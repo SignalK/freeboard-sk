@@ -1,0 +1,28 @@
+{
+  "name": "freeboardk",
+  "version": "0.0.1",
+  "description": "Openlayers chartplotter implementation",
+  "main": "index.js",
+  "dependencies": {
+    "openlayers": "~3.4.0",
+    "jquery": "^2.1.3",
+    "bluebird": "^2.9.24",
+    "ws": "^0.7.1",
+    "browser": "^0.2.6",
+    "debug": "^2.1.3",
+    "simplify-js": "^1.2.1"
+  },
+  "devDependencies": {
+    "uglify-js": "^2.4.20",
+    "watchify": "^3.1.2",
+    "browserify": "^9.0.8",
+    "openlayers": "^3.4.0"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "watchify index.js --outfile bundle.js",
+    "build": "browserify index.js | uglifyjs --compress --output bundle.js"
+  },
+  "author": "robert@42.co.nz",
+  "license": "Apache v2"
+}

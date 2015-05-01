@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="en" >
+	<head>
+		<link rel="stylesheet" href="node_modules/openlayers/dist/ol.css" type="text/css">
+		<link rel="stylesheet" data-aload="styles/fonts.css">
+		<meta http-equiv="cleartype" content="on">
+		<meta name="MobileOptimized" content="320">
+		<meta name="HandheldFriendly" content="True">
+		<meta name="apple-mobile-web-app-capable" content="yes">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+		<link rel="stylesheet" href="styles.css">
+		<style>
+			#map {
+				height: 100%;
+				width: 100%;
+			}
+			body {
+				width: 100%;
+				height: 100%;
+			}
+			.ol-attribution {
+			  max-width: calc(100% - 3em);
+			}
+			.ol-control button, .ol-attribution, .ol-scale-line-inner {
+			  font-family: 'Lucida Grande',Verdana,Geneva,Lucida,Arial,Helvetica,sans-serif;
+			}
+			.rotate-north {
+				top: 65px;
+				left: .5em;
+			  }
+			  .ol-touch .rotate-north {
+				top: 80px;
+			  }
+
+			.slideout-menu {
+				position: fixed;
+				left: 0;
+				top: 0;
+				bottom: 0;
+				right: 0;
+				z-index: 0;
+				width: 256px;
+				overflow-y: auto;
+				-webkit-overflow-scrolling: touch;
+				display: none;
+			}
+
+			.slideout-panel {
+				position: relative;
+				z-index: 1;
+			
+			}
+
+			.slideout-open,
+			.slideout-open body,
+			.slideout-open .slideout-panel {
+				overflow: hidden;
+			}
+
+			.slideout-open .slideout-menu {
+				display: block;
+			}
+			.js-slideout-toggle {
+				z-index: 1	
+			}
+
+			/**
+			* hamburger
+			*/
+			.btn-hamburger {
+				border: none;
+				position: absolute;
+				top: 12px;
+				left: 12px;
+				outline:none;
+				//background: url('assets/menu.png') no-repeat center;
+				width: 50px;
+				height: 50px;
+			}
+		</style>
+		<title>Freeboard K - OpenLayers 3 + Signal K</title>
+	</head>
+	<body>
+		<nav id="menu" class="menu">
+
+			<header class="menu-header">
+				<h3 class="menu-header-title">Freeboard</h3>
+			</header>
+
+			<section class="menu-section">
+				<h3 class="menu-section-title">Docs</h3>
+				<ul class="menu-section-list">
+					<li><a href="#">Installation</a></li>
+					<li><a href="#">Usage</a></li>
+				</ul>
+			</section>
+		</nav>
+		<main id="panel" class="panel">
+			<div id="map"></div>
+		</main>
+		<div>
+      <label>Interaction type:  &nbsp;</label>
+      <label>draw</label>
+      <input type="radio" id="interaction_type_draw" name="interaction_type" value="draw" checked>
+      <label>modify</label>
+      <input type="radio" id="interaction_type_modify" name="interaction_type" value="modify">
+    </div>
+    <div>
+      <label>Geometry type</label>
+      <select id="geom_type">
+        <option value="Point" selected>Point</option>
+        <option value="LineString">LineString</option>
+        <option value="Polygon">Polygon</option>
+      </select>
+    </div>
+    <div id="delete" style="text-decoration:underline;cursor:pointer">
+      Delete all features
+    </div>
+    <label>Data:</label>
+    <textarea id="data" rows="12" style="width:100%"></textarea>
+		<!-- hidden modals container -->
+
+		<div style="display: none;">
+			<div id="saveFeaturePopup">
+				<h3>Save?</h3>
+				Name: <input id="saveFeaturePopupName" type="text"><br/>
+				Description: <input id="saveFeaturePopupDesc" type="text"/><br/>
+				Path: <input id="saveFeaturePopupPath" type="text"/><br/>
+
+			</div>
+		</div>
+		</main>
+		<script src="bundle.js"></script>
+
+	</body>
+</html>
