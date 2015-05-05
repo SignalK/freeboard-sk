@@ -1,0 +1,1 @@
+Notes: jquery-modile installs with the wrone paths in the bower.json file. Edit the paths in main to = dist/

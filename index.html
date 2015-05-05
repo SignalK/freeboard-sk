@@ -1,15 +1,27 @@
-<!doctype html>
-<html lang="en" >
+<!DOCTYPE html>
+<html lang="en">
 	<head>
-		<link rel="stylesheet" href="node_modules/openlayers/dist/ol.css" type="text/css">
-		<link rel="stylesheet" data-aload="styles/fonts.css">
+		<meta charset="utf-8">
 		<meta http-equiv="cleartype" content="on">
 		<meta name="MobileOptimized" content="320">
 		<meta name="HandheldFriendly" content="True">
 		<meta name="apple-mobile-web-app-capable" content="yes">
 		<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+		<link rel="stylesheet" href="node_modules/bootstrap/dist/css/bootstrap.css" rel="stylesheet">
+		<link rel="stylesheet" href="node_modules/bootstrap/dist/css/bootstrap-theme.css" rel="stylesheet">
+		<link rel="stylesheet" href="node_modules/bootstrap-drawer/dist/css/bootstrap-drawer.css" rel="stylesheet">
+
+		<link rel="stylesheet" href="node_modules/bootstrap-toggle/css/bootstrap-toggle.css" rel="stylesheet">
+		<link rel="stylesheet" href="node_modules/openlayers/dist/ol.css" type="text/css">
+		<link rel="stylesheet" data-aload="styles/fonts.css">
 		<link rel="stylesheet" href="styles.css">
+
 		<style>
+			body {
+				padding-top: 5px;
+				padding-bottom: 5px;
+				// background-color: #eee;
+			}
 			#map {
 				height: 100%;
 				width: 100%;
@@ -19,118 +31,123 @@
 				height: 100%;
 			}
 			.ol-attribution {
-			  max-width: calc(100% - 3em);
+				max-width: calc(100% - 3em);
 			}
 			.ol-control button, .ol-attribution, .ol-scale-line-inner {
-			  font-family: 'Lucida Grande',Verdana,Geneva,Lucida,Arial,Helvetica,sans-serif;
+				font-family: 'Lucida Grande',Verdana,Geneva,Lucida,Arial,Helvetica,sans-serif;
 			}
-			.rotate-north {
+			.anchor-btn {
 				top: 65px;
 				left: .5em;
-			  }
-			  .ol-touch .rotate-north {
+			}
+			.chart-btn {
+				top: 90px;
+				left: .5em;
+			}
+			.ol-touch .anchor-btn  {
 				top: 80px;
-			  }
-
-			.slideout-menu {
-				position: fixed;
-				left: 0;
-				top: 0;
-				bottom: 0;
-				right: 0;
-				z-index: 0;
-				width: 256px;
-				overflow-y: auto;
-				-webkit-overflow-scrolling: touch;
-				display: none;
+			}
+			.ol-touch .chart-btn  {
+				top: 100px;
 			}
 
-			.slideout-panel {
-				position: relative;
-				z-index: 1;
-			
+			.img-button{
+				height: 1.6em;
+				width: 1.6em;
+				top: 6em;
+				left: .45em;
+				//background-color: rgba(0, 60, 136, 0.5);
 			}
-
-			.slideout-open,
-			.slideout-open body,
-			.slideout-open .slideout-panel {
-				overflow: hidden;
+			.ol-touch .img-button {
+				top: 80px;
 			}
-
-			.slideout-open .slideout-menu {
-				display: block;
-			}
-			.js-slideout-toggle {
-				z-index: 1	
-			}
-
-			/**
-			* hamburger
-			*/
-			.btn-hamburger {
-				border: none;
-				position: absolute;
-				top: 12px;
-				left: 12px;
-				outline:none;
-				//background: url('assets/menu.png') no-repeat center;
-				width: 50px;
-				height: 50px;
+			.drawer {
+			  height: auto;
 			}
 		</style>
 		<title>Freeboard K - OpenLayers 3 + Signal K</title>
 	</head>
-	<body>
-		<nav id="menu" class="menu">
+	<body class="has-drawer">
 
-			<header class="menu-header">
-				<h3 class="menu-header-title">Freeboard</h3>
-			</header>
 
-			<section class="menu-section">
-				<h3 class="menu-section-title">Docs</h3>
-				<ul class="menu-section-list">
-					<li><a href="#">Installation</a></li>
-					<li><a href="#">Usage</a></li>
-				</ul>
-			</section>
-		</nav>
-		<main id="panel" class="panel">
-			<div id="map"></div>
-		</main>
-		<div>
-      <label>Interaction type:  &nbsp;</label>
-      <label>draw</label>
-      <input type="radio" id="interaction_type_draw" name="interaction_type" value="draw" checked>
-      <label>modify</label>
-      <input type="radio" id="interaction_type_modify" name="interaction_type" value="modify">
-    </div>
-    <div>
-      <label>Geometry type</label>
-      <select id="geom_type">
-        <option value="Point" selected>Point</option>
-        <option value="LineString">LineString</option>
-        <option value="Polygon">Polygon</option>
-      </select>
-    </div>
-    <div id="delete" style="text-decoration:underline;cursor:pointer">
-      Delete all features
-    </div>
-    <label>Data:</label>
-    <textarea id="data" rows="12" style="width:100%"></textarea>
-		<!-- hidden modals container -->
+		<div id="anchorDrawer" class="drawer dw-xs-10 dw-sm-6 dw-md-4 fold" aria-labelledby="anchorDrawer">
 
-		<div style="display: none;">
-			<div id="saveFeaturePopup">
-				<h3>Save?</h3>
-				Name: <input id="saveFeaturePopupName" type="text"><br/>
-				Description: <input id="saveFeaturePopupDesc" type="text"/><br/>
-				Path: <input id="saveFeaturePopupPath" type="text"/><br/>
+			<div class="drawer-contents">
+				<div class="drawer-heading">
+					<h2 class="drawer-title">Anchor Watch</h2>
+					<a href="#anchorDrawer" data-toggle="drawer" class="btn btn-primary btn-sm">Hide</a>
+					<input id="anchorPopupRadiusOn" checked data-toggle="toggle" data-onstyle="default" type="checkbox"/>
+					<a id="anchorPopupReset" class="btn btn-primary btn-sm" >Reset</a>
+				</div>
+				<div class="drawer-body">
+					<div id="anchorPopup"  class="panel" title="Anchor Guard">
 
+						<div class="input-group">
+							<span class="input-group-addon" id="basic-addon1">Lat:</span>
+							<input id="anchorPopupLat" type="text" class="form-control" placeholder="Latitude" aria-describedby="basic-addon1"/>
+						</div>
+						<div class="input-group">
+							<span class="input-group-addon" id="basic-addon1">Lon:</span>
+							<input id="anchorPopupLon" type="text" class="form-control" placeholder="Longitude" aria-describedby="basic-addon1"/>
+						</div>
+						<div class="input-group">
+							<span class="input-group-addon" id="basic-addon1">Max. Radius:</span>
+							<input id="anchorPopupMaxRadius" type="test" class="form-control" placeholder="Max. Radius" aria-describedby="basic-addon1"/>
+						</div>
+						<div class="input-group">
+							<span class="input-group-addon" id="basic-addon1">Radius:</span>
+							<input id="anchorPopupRadius" type="text" class="form-control" placeholder="Current radius" aria-describedby="basic-addon1"/>
+						</div>
+
+						
+
+					</div>
+				</div>
+				
 			</div>
 		</div>
-		</main>
-		<script src="bundle.js"></script>
+		<div id="chartDrawer" class="drawer dw-xs-10 dw-sm-6 dw-md-4 fold" aria-labelledby="chartDrawer">
 
+			<div class="drawer-contents">
+				<div class="drawer-heading">
+					<h2 class="drawer-title">Chart List</h2>
+					<a href="#chartDrawer" data-toggle="drawer" class="btn btn-primary btn-sm">Hide</a>
+				</div>
+				<div class="drawer-body">
+					<div id="chartPopup"  class="panel" title="Chart List">
+
+						<p>Just a placeholder</p>
+
+					</div>
+				</div>
+				
+			</div>
+		</div>
+		<div class="container-fluid">
+			<div id="map" class="row"></div>
+
+
+			<label>Data:</label>
+			<textarea id="data" rows="5" style="width:100%"></textarea>
+			<!-- hidden modals container -->
+			<div style="display: none;">
+				<div id="saveFeaturePopup">
+					<h3>Save?</h3>
+					Name: 
+					<input id="saveFeaturePopupName" type="text">
+					<br/>
+					Description: 
+					<input id="saveFeaturePopupDesc" type="text"/>
+					<br/>
+					Path: 
+					<input id="saveFeaturePopupPath" type="text"/>
+					<br/>
+				</div>
+			</div>
+
+		</div>
+
+
+		<script src="bundle.js"></script>
 	</body>
 </html>

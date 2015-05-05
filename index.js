@@ -1,11 +1,17 @@
-
-var $ = require('jquery');
-
+var $ =require('jquery');
+window.$ = window.jQuery = require('jquery');
+require('bootstrap');
+require('bootstrap-drawer');
+require('bootstrap-toggle');
+ 
 var ol = require('openlayers');
 var addBaseLayers = require('./lib/addBaseLayers.js');
 var addChartLayers = require('./lib/addLayers.js');
-var drawFeatures = require('./lib/drawFeatures.js');
+//var drawFeatures = require('./lib/drawFeatures.js');
 //var displayFeatureInfo = require('./lib/displayFeatureInfo.js');
+
+var menuControl = require('./lib/menuControl.js');
+//var anchor = require('./lib/anchorControl.js');
 
 var wsServer = require('./lib/signalk.js');
 var simplify = require('./lib/simplify-js.js');
@@ -16,8 +22,15 @@ var view= new ol.View({
 	zoom: 3
 })
 
-
-var MenuControl = require('./lib/menuControl.js');
+var mousePositionControl = new ol.control.MousePosition({
+  coordinateFormat: ol.coordinate.createStringXY(4),
+  projection: 'EPSG:4326',
+  // comment the following two lines to have the mouse position
+  // be placed within the map.
+  //className: 'custom-mouse-position',
+  //target: document.getElementById('mouse-position'),
+  undefinedHTML: '&nbsp;'
+});
 
 var map = new ol.Map({
 	interactions: ol.interaction.defaults().extend([new ol.interaction.DragRotateAndZoom()]),
@@ -37,27 +50,16 @@ var map = new ol.Map({
 		attributionOptions: {
 			collapsible: true
 		}
-	}).extend([new MenuControl()])
+	}).extend([ mousePositionControl, new menuControl.AnchorControl(), new menuControl.ChartControl()]) 
 });
 
 //add our layers
 addBaseLayers(map);
 addChartLayers(map);
 
-/*map.on('pointermove', function (evt) {
-	if (evt.dragging) {
-		return;
-	}
-	var pixel = map.getEventPixel(evt.originalEvent);
-	displayFeatureInfo(map, pixel);
-});
-map.on('click', function (evt) {
-	displayFeatureInfo(map, evt.pixel);
-});
-*/
-
 var vesselPosition = require('./lib/vesselPosition.js');
 wsServer.addSocketListener(vesselPosition);
+//wsServer.addSocketListener(anchor);
 var vesselOverlay = vesselPosition.getVesselOverlay(map);
 
 function dispatch(delta) {
@@ -70,7 +72,8 @@ function connect(){
 
 var connection = wsServer.connectDelta(window.location.host, dispatch, connect);
 
-drawFeatures.setup(connection, map);
+//drawFeatures.setup(connection, map);
+//anchor.setup(connection, map);
 
 // get the interaction type
 var $interaction_type = $('[name="interaction_type"]');
