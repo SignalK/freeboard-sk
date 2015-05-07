@@ -7,14 +7,14 @@
 		<meta name="HandheldFriendly" content="True">
 		<meta name="apple-mobile-web-app-capable" content="yes">
 		<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-		<link rel="stylesheet" href="node_modules/bootstrap/dist/css/bootstrap.css" rel="stylesheet">
-		<link rel="stylesheet" href="node_modules/bootstrap/dist/css/bootstrap-theme.css" rel="stylesheet">
-		<link rel="stylesheet" href="node_modules/bootstrap-drawer/dist/css/bootstrap-drawer.css" rel="stylesheet">
-
-		<link rel="stylesheet" href="node_modules/bootstrap-toggle/css/bootstrap-toggle.css" rel="stylesheet">
+		<link rel="stylesheet" href="node_modules/bootstrap/dist/css/bootstrap.css" >
+		<link rel="stylesheet" href="node_modules/bootstrap/dist/css/bootstrap-theme.css" >
+		<link rel="stylesheet" href="node_modules/bootstrap-drawer/dist/css/bootstrap-drawer.css">
+		<link rel="stylesheet" href="node_modules/bootstrap-slider/dist/css/bootstrap-slider.css">
+		<link rel="stylesheet" href="node_modules/bootstrap-toggle/css/bootstrap-toggle.css" >
 		<link rel="stylesheet" href="node_modules/openlayers/dist/ol.css" type="text/css">
 		<link rel="stylesheet" data-aload="styles/fonts.css">
-		<link rel="stylesheet" href="styles.css">
+
 
 		<style>
 			body {
@@ -44,11 +44,18 @@
 				top: 90px;
 				left: .5em;
 			}
+			.draw-btn {
+				top: 115px;
+				left: .5em;
+			}
 			.ol-touch .anchor-btn  {
 				top: 80px;
 			}
 			.ol-touch .chart-btn  {
 				top: 100px;
+			}
+			.ol-touch .draw-btn  {
+				top: 120px;
 			}
 
 			.img-button{
@@ -62,7 +69,17 @@
 				top: 80px;
 			}
 			.drawer {
-			  height: auto;
+				height: auto;
+			}
+
+
+			.input-group-addon{
+				width:40%;
+			}
+			.input-group{
+				width:100%;
+			}
+
 			}
 		</style>
 		<title>Freeboard K - OpenLayers 3 + Signal K</title>
@@ -70,44 +87,40 @@
 	<body class="has-drawer">
 
 
-		<div id="anchorDrawer" class="drawer dw-xs-10 dw-sm-6 dw-md-4 fold" aria-labelledby="anchorDrawer">
+		<div id="anchorDrawer" class="drawer dw-xs-8 dw-sm-5 dw-md-3 fold" aria-labelledby="anchorDrawer">
 
 			<div class="drawer-contents">
 				<div class="drawer-heading">
 					<h2 class="drawer-title">Anchor Watch</h2>
-					<a href="#anchorDrawer" data-toggle="drawer" class="btn btn-primary btn-sm">Hide</a>
-					<input id="anchorPopupRadiusOn" checked data-toggle="toggle" data-onstyle="default" type="checkbox"/>
+					<input type="checkbox" checked data-toggle="toggle">
 					<a id="anchorPopupReset" class="btn btn-primary btn-sm" >Reset</a>
+					<a href="#anchorDrawer" data-toggle="drawer" class="btn btn-primary btn-sm">Hide</a>
 				</div>
 				<div class="drawer-body">
 					<div id="anchorPopup"  class="panel" title="Anchor Guard">
 
 						<div class="input-group">
-							<span class="input-group-addon" id="basic-addon1">Lat:</span>
+							<span class="input-group-addon" id="basic-addon1">Latitude:</span>
 							<input id="anchorPopupLat" type="text" class="form-control" placeholder="Latitude" aria-describedby="basic-addon1"/>
 						</div>
 						<div class="input-group">
-							<span class="input-group-addon" id="basic-addon1">Lon:</span>
+							<span class="input-group-addon" id="basic-addon1">Longitude:</span>
 							<input id="anchorPopupLon" type="text" class="form-control" placeholder="Longitude" aria-describedby="basic-addon1"/>
 						</div>
 						<div class="input-group">
-							<span class="input-group-addon" id="basic-addon1">Max. Radius:</span>
-							<input id="anchorPopupMaxRadius" type="test" class="form-control" placeholder="Max. Radius" aria-describedby="basic-addon1"/>
-						</div>
+							<span class="input-group-addon" id="basic-addon1">Maximum Radius:<h3><label id="anchorPopupMaxRadius" class="label label-default">50</label></h3>
+								<input id="anchorPopupMaxRadiusSlide" type="text" style="width:100%; vertical-align: middle; "/>
+							</span>
+						</div>					
 						<div class="input-group">
-							<span class="input-group-addon" id="basic-addon1">Radius:</span>
-							<input id="anchorPopupRadius" type="text" class="form-control" placeholder="Current radius" aria-describedby="basic-addon1"/>
+							<span class="input-group-addon" id="basic-addon1">Current Radius:<h3><label id="anchorPopupRadius" class="label label-default">50</label></h3></span>
 						</div>
-
-						
-
 					</div>
 				</div>
-				
+
 			</div>
 		</div>
 		<div id="chartDrawer" class="drawer dw-xs-10 dw-sm-6 dw-md-4 fold" aria-labelledby="chartDrawer">
-
 			<div class="drawer-contents">
 				<div class="drawer-heading">
 					<h2 class="drawer-title">Chart List</h2>
@@ -120,28 +133,45 @@
 
 					</div>
 				</div>
-				
 			</div>
 		</div>
+
 		<div class="container-fluid">
+
+
 			<div id="map" class="row"></div>
-
-
 			<label>Data:</label>
 			<textarea id="data" rows="5" style="width:100%"></textarea>
+
 			<!-- hidden modals container -->
 			<div style="display: none;">
 				<div id="saveFeaturePopup">
-					<h3>Save?</h3>
-					Name: 
-					<input id="saveFeaturePopupName" type="text">
-					<br/>
-					Description: 
-					<input id="saveFeaturePopupDesc" type="text"/>
-					<br/>
-					Path: 
-					<input id="saveFeaturePopupPath" type="text"/>
-					<br/>
+					
+						<div class="drawer-contents">
+							<div class="drawer-heading">
+								<h2 class="drawer-title">Save Features</h2>
+								<a href="#chartDrawer" data-toggle="drawer" class="btn btn-primary btn-sm">Hide</a>
+							</div>
+							<div class="drawer-body">
+								<div class="input-group">
+									<span class="input-group-addon" id="basic-addon1">Name:</span>
+									<input id="saveFeaturePopupName" type="text" class="form-control" placeholder="eg Fishing Nelson" />
+								</div>
+								<div class="input-group">
+									<span class="input-group-addon" id="basic-addon1">Description:</span>
+									<input id="saveFeaturePopupDesc" type="text" class="form-control" placeholder="eg Nelson fishing waypoints" />
+								</div>
+								<div class="input-group">
+									<span class="input-group-addon" id="basic-addon1">Type:</span>
+									<select id="saveFeaturePopupPath" class="js-example-basic-single">
+										<option value="waypoints">Waypoints</option>
+										<option value="routes">Routes</option>
+										<option value="regions">Regions/Features</option>
+									</select>
+								</div>
+							</div>
+						</div>
+					
 				</div>
 			</div>
 

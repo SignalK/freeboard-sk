@@ -2,16 +2,40 @@ var $ =require('jquery');
 window.$ = window.jQuery = require('jquery');
 require('bootstrap');
 require('bootstrap-drawer');
+require('bootstrap-slider');
 require('bootstrap-toggle');
- 
+
+//anchor slider
+$("#anchorPopupMaxRadiusSlide").slider({
+	min: 10,
+	max: 500,
+	scale: 'logarithmic',
+	step: 1,
+	value: 50
+});
+$("#anchorPopupMaxRadiusSlide").on("slide", function(slideEvt) {
+	$("#anchorPopupMaxRadius").text(slideEvt.value);
+});
+/*var Knob = require('knob');
+var maxAnchorRadius = new Knob({
+      label: 'Max Radius',
+      value: 50,
+      min: 0, 
+	   max: 200,
+	stopper: false,
+      width: 100
+    });
+$('#anchorPopupMaxRadiusDiv').prepend(maxAnchorRadius);
+*/
+
 var ol = require('openlayers');
 var addBaseLayers = require('./lib/addBaseLayers.js');
 var addChartLayers = require('./lib/addLayers.js');
-//var drawFeatures = require('./lib/drawFeatures.js');
+var drawFeatures = require('./lib/drawFeatures.js');
 //var displayFeatureInfo = require('./lib/displayFeatureInfo.js');
 
 var menuControl = require('./lib/menuControl.js');
-//var anchor = require('./lib/anchorControl.js');
+var anchor = require('./lib/anchorControl.js');
 
 var wsServer = require('./lib/signalk.js');
 var simplify = require('./lib/simplify-js.js');
@@ -35,22 +59,13 @@ var mousePositionControl = new ol.control.MousePosition({
 var map = new ol.Map({
 	interactions: ol.interaction.defaults().extend([new ol.interaction.DragRotateAndZoom()]),
 	target: 'map',
-	layers: [
-		/*, new ol.layer.Tile({
-         source: new ol.source.TileDebug({
-             projection: 'EPSG:3857',
-             tileGrid: new ol.tilegrid.XYZ({
-					 maxZoom: 22
-				 })
-        })
-     })*/
-	],
+	layers: [],
 	view: view,
 	controls: ol.control.defaults({
 		attributionOptions: {
 			collapsible: true
 		}
-	}).extend([ mousePositionControl, new menuControl.AnchorControl(), new menuControl.ChartControl()]) 
+	}).extend([ mousePositionControl,  new menuControl.DrawControl(), new menuControl.AnchorControl(),  new menuControl.ChartControl(), ]) 
 });
 
 //add our layers
@@ -59,7 +74,7 @@ addChartLayers(map);
 
 var vesselPosition = require('./lib/vesselPosition.js');
 wsServer.addSocketListener(vesselPosition);
-//wsServer.addSocketListener(anchor);
+wsServer.addSocketListener(anchor);
 var vesselOverlay = vesselPosition.getVesselOverlay(map);
 
 function dispatch(delta) {
@@ -72,11 +87,11 @@ function connect(){
 
 var connection = wsServer.connectDelta(window.location.host, dispatch, connect);
 
-//drawFeatures.setup(connection, map);
-//anchor.setup(connection, map);
+drawFeatures.setup(connection, map);
+anchor.setup(connection, map);
 
 // get the interaction type
-var $interaction_type = $('[name="interaction_type"]');
+/*var $interaction_type = $('[name="interaction_type"]');
 $('#interaction_type_draw').prop('checked',true);
 // rebuild interaction when changed
 $interaction_type.on('click', function(e) {
@@ -104,5 +119,5 @@ $geom_type.on('change', function(e) {
 $("#delete").click(function() {
 	drawFeatures.clearMap();
 });
-
+*/
 
