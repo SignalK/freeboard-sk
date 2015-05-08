@@ -92,7 +92,7 @@
 			<div class="drawer-contents">
 				<div class="drawer-heading">
 					<h2 class="drawer-title">Anchor Watch</h2>
-					<input type="checkbox" checked data-toggle="toggle">
+					<input id="anchorPopupOn" type="checkbox"  data-toggle="toggle">
 					<a id="anchorPopupReset" class="btn btn-primary btn-sm" >Reset</a>
 					<a href="#anchorDrawer" data-toggle="drawer" class="btn btn-primary btn-sm">Hide</a>
 				</div>
@@ -101,11 +101,11 @@
 
 						<div class="input-group">
 							<span class="input-group-addon" id="basic-addon1">Latitude:</span>
-							<input id="anchorPopupLat" type="text" class="form-control" placeholder="Latitude" aria-describedby="basic-addon1"/>
+							<input id="anchorPopupLat" type="text" class="form-control readonly" placeholder="Latitude" aria-describedby="basic-addon1"/>
 						</div>
 						<div class="input-group">
 							<span class="input-group-addon" id="basic-addon1">Longitude:</span>
-							<input id="anchorPopupLon" type="text" class="form-control" placeholder="Longitude" aria-describedby="basic-addon1"/>
+							<input id="anchorPopupLon" type="text" class="form-control readonly" placeholder="Longitude" aria-describedby="basic-addon1"/>
 						</div>
 						<div class="input-group">
 							<span class="input-group-addon" id="basic-addon1">Maximum Radius:<h3><label id="anchorPopupMaxRadius" class="label label-default">50</label></h3>

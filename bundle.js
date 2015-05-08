@@ -6,17 +6,7 @@ require('bootstrap-drawer');
 require('bootstrap-slider');
 require('bootstrap-toggle');
 
-//anchor slider
-$("#anchorPopupMaxRadiusSlide").slider({
-	min: 10,
-	max: 500,
-	scale: 'logarithmic',
-	step: 1,
-	value: 50
-});
-$("#anchorPopupMaxRadiusSlide").on("slide", function(slideEvt) {
-	$("#anchorPopupMaxRadius").text(slideEvt.value);
-});
+
 /*var Knob = require('knob');
 var maxAnchorRadius = new Knob({
       label: 'Max Radius',
@@ -210,187 +200,78 @@ module.exports = function addChartLayers( map) {
 var $ = require('jquery');
 
 var ol = require('openlayers');
-//var nanoModal = require('nanomodal');
+
 var vesselPosition = require('./vesselPosition.js');
 
 var map, connection;
 var lat, lon, currentLat,currentLon, maxRadius=50.0, radius;
 
 var guard = false;
-/*var dialogModal=$( "#anchorPopup" ).dialog({
-	autoOpen: false,
-	resizable: true,
-	//height:140,
-	modal: false,
-	buttons: {
-		"Start": function(modal) {
-			guard=true;
-			var putMsg = { context: 'vessels.self',
-						  put: [
+
+function startAnchorWatch() {
+	guard=true;
+
+	$("#anchorPopupMaxRadius").value=maxRadius;
+	var putMsg = { context: 'vessels.self',
+				  put: [
+					  {
+						  timestamp: new Date().toISOString(),
+						  source: 'vessels.self',
+						  values: [
 							  {
-								  timestamp: new Date().toISOString(),
-								  source: 'vessels.self',
-								  values: [
-									  {
-										  path: 'navigation.anchor.position',
-										  value: {
-											  latitude: lat,
-											  longitude: lon,
-											  altitude:0
-										  }
-									  },
-									  {
-										  path: 'navigation.anchor',
-										  value: {
-											  maxRadius: maxRadius,
-											  currentRadius: radius
-										  }
-									  }
-
-								  ]
+								  path: 'navigation.anchor.position',
+								  value: {
+									  latitude: lat,
+									  longitude: lon,
+									  altitude:0
+								  }
+							  },
+							  {
+								  path: 'navigation.anchor',
+								  value: {
+									  maxRadius: maxRadius,
+									  currentRadius: radius
+								  }
 							  }
+
 						  ]
+					  }
+				  ]
 
-						 };
+				 };
 
-			console.log(JSON.stringify(putMsg));
-			//connection.send(JSON.stringify(putMsg)); 
-			//modal.hide();
-		},
-		"Stop": function() {
-			guard=false;
-		},  
-		"Reset": function() {
-			lat=currentLat;
-			lon=currentLon;
-			document.querySelector("#anchorPopupLat").value=lat;
-			document.querySelector("#anchorPopupLon").value=lon;
-			document.querySelector("#anchorPopupRadius").value=0;
-		}, 
-		"+": function() {
-			var maxRadius = +document.querySelector("#anchorPopupMaxRadius").value;
-			document.querySelector("#anchorPopupMaxRadius").value=maxRadius+5;
-		}
-		, 
-		"-": function() {
-			var maxRadius = +document.querySelector("#anchorPopupMaxRadius").value;
-			document.querySelector("#anchorPopupMaxRadius").value=maxRadius-5;
-		},
-		Hide: function() {
-			$( this ).dialog( "close" );
-		}
+	console.log(JSON.stringify(putMsg));
+	//connection.send(JSON.stringify(putMsg)); 
+	//modal.hide();
+}
+
+//anchor slider
+$("#anchorPopupMaxRadiusSlide").slider({
+	min: 10,
+	max: 500,
+	scale: 'logarithmic',
+	step: 1,
+	value: 50
+});
+$("#anchorPopupMaxRadiusSlide").on("slide", function(slideEvt) {
+	$("#anchorPopupMaxRadius").text(slideEvt.value);
+});
+
+$("#anchorPopupOn").change(function() {
+	if($(this).prop('checked')){
+		startAnchorWatch();
+	}else{
+		guard=false;
 	}
-});*/
+});
 
-var AnchorControl = function (opt_options) {
-	var options = opt_options || {};
-	var button = document.createElement('button');
-	button.innerHTML = ' <img src="img/anchor44x38.png" alt="Anchor" class="img-button"> </i>';
-	//button.innerHTML = 'A';
-	button.className='img-button';
-	var this_ = this;
-	var handleMenu = function (e) {
-		//pop the anchor box
-
-		lat=currentLat;
-		lon=currentLon;
-		document.querySelector("#anchorPopupLat").value=lat;
-		document.querySelector("#anchorPopupLon").value=lon;
-
-		/*var dialogModal = nanoModal(document.querySelector("#anchorPopup"), {
-			overlayClose: false, // Can't close the modal by clicking on the overlay. 
-			buttons: [{
-				text: "Start",
-				handler: function(modal) {
-					guard=true;
-					var putMsg = { context: 'vessels.self',
-								  put: [
-									  {
-										  timestamp: new Date().toISOString(),
-										  source: 'vessels.self',
-										  values: [
-											  {
-												  path: 'navigation.anchor.position',
-												  value: {
-													  latitude: lat,
-													  longitude: lon,
-													  altitude:0
-												  }
-											  },
-											  {
-												  path: 'navigation.anchor',
-												  value: {
-													  maxRadius: maxRadius,
-													  currentRadius: radius
-												  }
-											  }
-
-										  ]
-									  }
-								  ]
-
-								 };
-
-					console.log(JSON.stringify(putMsg));
-					//connection.send(JSON.stringify(putMsg)); 
-					//modal.hide();
-				},
-				primary: true
-			},  
-					  {
-						  text: "Stop",
-						  handler: function(modal) {
-							  guard=false;
-						  }
-					  },  
-					  {
-						  text: "Reset",
-						  handler: function(modal) {
-							  lat=currentLat;
-							  lon=currentLon;
-							  document.querySelector("#anchorPopupLat").value=lat;
-							  document.querySelector("#anchorPopupLon").value=lon;
-							  document.querySelector("#anchorPopupRadius").value=0;
-						  }
-					  }, {
-						  text: "+",
-						  handler: function(modal) {
-							  var maxRadius = +document.querySelector("#anchorPopupMaxRadius").value;
-							  document.querySelector("#anchorPopupMaxRadius").value=maxRadius+5;
-						  }
-					  }, {
-						  text: "-",
-						  handler: function(modal) {
-							  var maxRadius = +document.querySelector("#anchorPopupMaxRadius").value;
-							  document.querySelector("#anchorPopupMaxRadius").value=maxRadius-5;
-						  }
-					  }, {
-						  text: "Hide",
-						  handler: "hide"
-					  }]
-		});*/
-
-		document.querySelector("#anchorPopupLat").value=lat;
-		document.querySelector("#anchorPopupLon").value=lon;
-		document.querySelector("#anchorPopupMaxRadius").value=maxRadius;
-		//document.querySelector("#saveFeaturePopupPath").value=data.file.name;
-		//dialogModal.dialog("open");
-
-	};
-	button.addEventListener('click', handleMenu, false);
-	button.addEventListener('touchstart', handleMenu, false);
-	var element = document.createElement('div');
-	element.className = 'img-button ol-unselectable ol-control';
-	element.appendChild(button);
-	ol.control.Control.call(this, {
-		element: element,
-		target: options.target
-	});
-
-
-};
-ol.inherits(AnchorControl, ol.control.Control);
-
+$("#anchorPopupReset").on('click', function() {
+	lat=currentLat;
+	lon=currentLon;
+	$("#anchorPopupLat").val(lat);
+	$("#anchorPopupLon").val(lon);
+});
+								 
 function toRad(n) {
 	return n * Math.PI / 180;
 };
@@ -426,7 +307,7 @@ function onmessage(delta) {
 						//radius=new LineString([coord,cCoord]).getLength()
 						radius = haversine([lon,lat],[currentLon,currentLat]);
 						console.log("Radius:"+radius+", lat:"+lat+", lon:"+lon+", clat:"+currentLat+", clon:"+currentLon);
-						document.querySelector("#anchorPopupRadius").value=Math.round(radius);
+						$("#anchorPopupRadius").text(Math.round(radius));
 						sendCurrentRadius(radius);
 					}
 				}
@@ -467,7 +348,6 @@ function setup(connection, map) {
 
 module.exports = {
 	onmessage: onmessage,
-	AnchorControl:AnchorControl,
 	setup: setup
 };
 

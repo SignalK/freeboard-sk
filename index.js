@@ -5,17 +5,7 @@ require('bootstrap-drawer');
 require('bootstrap-slider');
 require('bootstrap-toggle');
 
-//anchor slider
-$("#anchorPopupMaxRadiusSlide").slider({
-	min: 10,
-	max: 500,
-	scale: 'logarithmic',
-	step: 1,
-	value: 50
-});
-$("#anchorPopupMaxRadiusSlide").on("slide", function(slideEvt) {
-	$("#anchorPopupMaxRadius").text(slideEvt.value);
-});
+
 /*var Knob = require('knob');
 var maxAnchorRadius = new Knob({
       label: 'Max Radius',
