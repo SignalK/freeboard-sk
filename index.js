@@ -37,13 +37,13 @@ var view= new ol.View({
 })
 
 var mousePositionControl = new ol.control.MousePosition({
-  coordinateFormat: ol.coordinate.createStringXY(4),
-  projection: 'EPSG:4326',
-  // comment the following two lines to have the mouse position
-  // be placed within the map.
-  //className: 'custom-mouse-position',
-  //target: document.getElementById('mouse-position'),
-  undefinedHTML: '&nbsp;'
+	coordinateFormat: ol.coordinate.createStringXY(4),
+	projection: 'EPSG:4326',
+	// comment the following two lines to have the mouse position
+	// be placed within the map.
+	//className: 'custom-mouse-position',
+	//target: document.getElementById('mouse-position'),
+	undefinedHTML: '&nbsp;'
 });
 
 var map = new ol.Map({
@@ -72,42 +72,37 @@ function dispatch(delta) {
 }
 function connect(){
 	var sub = '{"context":"vessels.self","subscribe":[{"path":"navigation.position.*"}]}';
-	connection.send(sub);
+	var sub1 = '{"context":"vessels.self","subscribe":[{"path":"navigation.anchor.*"}]}';
+	var sub2 = '{"context":"vessels.self","subscribe":[{"path":"navigation.courseOverGround*"}]}';
+	var sub3 = '{"context":"vessels.self","subscribe":[{"path":"navigation.speedOverGround"}]}';
+	socket.send(sub);
+	socket.send(sub1);
+	socket.send(sub2);
+	socket.send(sub3);
+	drawFeatures.setup( map);
+	$("#anchorPopupOn").change(anchor.anchorWatchToggle(map, socket));
+	
+	$("#drawPopupAction").on('change',function(e){
+			drawFeatures.toggleAction(map, e.target.value)
+	});
+	$("#drawPopupGeom").on('change',function(e){
+		drawFeatures.setGeomType(map, e.target.value);
+	});
+
+	$("#drawPopupSave").on('click', function() {
+		drawFeatures.saveData(socket);
+	});
+
 }
 
-var connection = wsServer.connectDelta(window.location.host, dispatch, connect);
+var socket = wsServer.connectDelta(window.location.host, dispatch, connect);
+//global.socket=socket;
 
-drawFeatures.setup(connection, map);
-anchor.setup(connection, map);
 
-// get the interaction type
-/*var $interaction_type = $('[name="interaction_type"]');
-$('#interaction_type_draw').prop('checked',true);
-// rebuild interaction when changed
-$interaction_type.on('click', function(e) {
-	// add new interaction
-	if (this.value === 'draw') {
-		drawFeatures.addDrawInteraction();
-	} else {
-		drawFeatures.addModifyInteraction();
-	}
-});
-
-// get geometry type
-var $geom_type = $('#geom_type');
-$geom_type.val('Point');
-// rebuild interaction when the geometry type is changed
-$geom_type.on('change', function(e) {
-			 console.log('Geom,interaction:'+$('input[name="interaction_type"]:checked').val());
-	drawFeatures.setGeomType(this.options[this.selectedIndex].value);
-	if ($('input[name="interaction_type"]:checked').val() === 'draw') {
-		drawFeatures.addDrawInteraction();
-	} 
-});
 
 // clear map when user clicks on 'Delete all features'
 $("#delete").click(function() {
 	drawFeatures.clearMap();
 });
-*/
+
 

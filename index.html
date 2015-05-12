@@ -136,6 +136,42 @@
 			</div>
 		</div>
 
+		<div id="drawDrawer" class="drawer dw-xs-10 dw-sm-6 dw-md-4 fold" aria-labelledby="drawDrawer">
+			<div class="drawer-contents">
+				<div class="drawer-heading">
+					<h2 class="drawer-title">Draw</h2>
+					
+					<div id="drawPopupAction" class="btn-group" data-toggle="buttons">
+						<label class="btn btn-default ">
+							<input type="radio" id="drawPopupAdd" name="drawAction" value="Add" /> Add
+						</label> 
+						<label class="btn btn-default">
+							<input type="radio" id="drawPopupEdit" name="drawAction" value="Edit" /> Edit
+						</label> 
+						<label class="btn btn-default active">
+							<input type="radio" id="drawPopupImport" name="drawAction" value="Import" /> Import
+						</label>
+					</div>
+					<div id="drawPopupGeom" class="btn-group" data-toggle="buttons">
+						<label class="btn btn-default active" disabled="disabled">
+							<input type="radio" id="drawPopupPoint" name="drawGeom" value="Point" /> Waypoint
+						</label> 
+						<label class="btn btn-default" disabled="disabled">
+							<input type="radio" id="drawPopupLine" name="drawGeom" value="LineString" /> Route
+						</label> 
+						<label class="btn btn-default" disabled="disabled">
+							<input type="radio" id="drawPopupPolygon" name="drawGeom" value="Polygon" /> Region
+						</label>
+					</div>
+					
+					<a id="drawPopupSave" class="btn btn-primary btn-sm" >Save</a>
+					<a href="#drawDrawer" data-toggle="drawer" class="btn btn-primary btn-sm">Hide</a>
+				</div>
+				<div class="drawer-body">
+				</div>
+			</div>
+		</div>
+
 		<div class="container-fluid">
 
 
@@ -146,32 +182,32 @@
 			<!-- hidden modals container -->
 			<div style="display: none;">
 				<div id="saveFeaturePopup">
-					
-						<div class="drawer-contents">
-							<div class="drawer-heading">
-								<h2 class="drawer-title">Save Features</h2>
-								<a href="#chartDrawer" data-toggle="drawer" class="btn btn-primary btn-sm">Hide</a>
+
+					<div class="drawer-contents">
+						<div class="drawer-heading">
+							<h2 class="drawer-title">Save Features</h2>
+							<a href="#saveFeaturePopup" data-toggle="drawer" class="btn btn-primary btn-sm">Hide</a>
+						</div>
+						<div class="drawer-body">
+							<div class="input-group">
+								<span class="input-group-addon" id="basic-addon1">Name:</span>
+								<input id="saveFeaturePopupName" type="text" class="form-control" placeholder="eg Fishing Nelson" />
 							</div>
-							<div class="drawer-body">
-								<div class="input-group">
-									<span class="input-group-addon" id="basic-addon1">Name:</span>
-									<input id="saveFeaturePopupName" type="text" class="form-control" placeholder="eg Fishing Nelson" />
-								</div>
-								<div class="input-group">
-									<span class="input-group-addon" id="basic-addon1">Description:</span>
-									<input id="saveFeaturePopupDesc" type="text" class="form-control" placeholder="eg Nelson fishing waypoints" />
-								</div>
-								<div class="input-group">
-									<span class="input-group-addon" id="basic-addon1">Type:</span>
-									<select id="saveFeaturePopupPath" class="js-example-basic-single">
-										<option value="waypoints">Waypoints</option>
-										<option value="routes">Routes</option>
-										<option value="regions">Regions/Features</option>
-									</select>
-								</div>
+							<div class="input-group">
+								<span class="input-group-addon" id="basic-addon1">Description:</span>
+								<input id="saveFeaturePopupDesc" type="text" class="form-control" placeholder="eg Nelson fishing waypoints" />
+							</div>
+							<div class="input-group">
+								<span class="input-group-addon" id="basic-addon1">Type:</span>
+								<select id="saveFeaturePopupPath" class="js-example-basic-single">
+									<option value="waypoints">Waypoints</option>
+									<option value="routes">Routes</option>
+									<option value="regions">Regions/Features</option>
+								</select>
 							</div>
 						</div>
-					
+					</div>
+
 				</div>
 			</div>
 
