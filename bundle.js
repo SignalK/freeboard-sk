@@ -76,12 +76,12 @@ function connect(){
 	var sub1 = '{"context":"vessels.self","subscribe":[{"path":"navigation.anchor.*"}]}';
 	var sub2 = '{"context":"vessels.self","subscribe":[{"path":"navigation.courseOverGround*"}]}';
 	var sub3 = '{"context":"vessels.self","subscribe":[{"path":"navigation.speedOverGround"}]}';
-	socket.send(sub);
-	socket.send(sub1);
-	socket.send(sub2);
-	socket.send(sub3);
+	wsServer.send(sub);
+	wsServer.send(sub1);
+	wsServer.send(sub2);
+	wsServer.send(sub3);
 	drawFeatures.setup( map);
-	$("#anchorPopupOn").change(anchor.anchorWatchToggle(map, socket));
+	$("#anchorPopupOn").change(anchor.anchorWatchToggle(map));
 	
 	$("#drawPopupAction").on('change',function(e){
 			drawFeatures.toggleAction(map, e.target.value)
@@ -91,14 +91,12 @@ function connect(){
 	});
 
 	$("#drawPopupSave").on('click', function() {
-		drawFeatures.saveData(socket);
+		drawFeatures.saveData();
 	});
 
 }
 
-var socket = wsServer.connectDelta(window.location.host, dispatch, connect);
-//global.socket=socket;
-
+wsServer.connectDelta(window.location.host, dispatch, connect);
 
 
 // clear map when user clicks on 'Delete all features'
@@ -199,23 +197,13 @@ var ol = require('openlayers');
 var vesselPosition = require('./vesselPosition.js');
 
 var styleFunction = require('./styleFunction.js');
-
+var wsServer = require('./signalk.js');
 //var map, connection;
 var lat, lon, currentLat,currentLon, maxRadius=50.0, radius;
 
 var guard = false;
 
 var anchorCircleFeature = new ol.Feature();
-/*anchorCircleFeature.setStyle(
-	new ol.style.Style({
-		image: new ol.style.Circle({
-			
-			stroke: new ol.style.Stroke({
-				color: '#888',
-				width: 1
-			})
-		})
-	}));*/
 
 var anchorFeatureOverlay;
 
@@ -237,7 +225,14 @@ function startAnchorWatch(map) {
 			})
 	});
 	//$("#anchorPopupMaxRadius").value=maxRadius;
-	var putMsg = { context: 'vessels.self',
+	var putMsg = getPutMsg(lat,lon,maxRadius);
+
+	console.log(JSON.stringify(putMsg));
+	wsServer.send(JSON.stringify(putMsg)); 
+}
+
+function getPutMsg(latitiude, longitude, maxRadius){
+	return { context: 'vessels.self',
 				  put: [
 					  {
 						  timestamp: new Date().toISOString(),
@@ -246,25 +241,26 @@ function startAnchorWatch(map) {
 							  {
 								  path: 'navigation.anchor.position',
 								  value: {
-									  latitude: lat,
-									  longitude: lon,
+									  latitude: latitiude,
+									  longitude: longitude,
 									  altitude:0
 								  }
 							  },
 							  {
-								  path: 'navigation.anchor',
+								  path: 'navigation.anchor.maxRadius',
 								  value: {
-									  maxRadius: maxRadius,
-									  currentRadius: radius
+									  value: maxRadius
 								  }
 							  },
 							  {
-								  path: 'navigation.anchor.currentRadius',
+								  path: 'navigation.anchor.currentRadius.meta',
 								  value: {
 									  "displayName": "Anchor Watch",
 									  "shortName": "Anchor Watch",
 									  "warnMethod": "visual",
+									  "warnMessage": "Check  anchor, near watch limit",
 									  "alarmMethod": "sound",
+									  "alarmMessage": "Dragging anchor",
 									  "zones": [
 										  [0, maxRadius, "normal"],
 										  [maxRadius, 999999, "alarm"]
@@ -277,9 +273,6 @@ function startAnchorWatch(map) {
 				  ]
 
 				 };
-
-	console.log(JSON.stringify(putMsg));
-	//window.app.socket.send(JSON.stringify(putMsg)); 
 }
 
 //anchor slider
@@ -296,7 +289,13 @@ $("#anchorPopupMaxRadiusSlide").on("slide", function(slideEvt) {
 	anchorCircleFeature.getGeometry().setRadius(maxRadius);
 });
 
-function anchorWatchToggle(map, socket){
+$("#anchorPopupMaxRadiusSlide").on("slideStop", function(slideEvt) {
+	if($(anchorPopupOn).prop('checked')){
+		wsServer.send(JSON.stringify(getPutMsg(lat,lon,maxRadius)));
+	}
+});
+
+function anchorWatchToggle(map){
 	return function(){
 		if($(this).prop('checked')){
 			startAnchorWatch(map);
@@ -310,7 +309,7 @@ function anchorWatchToggle(map, socket){
 								  source: 'vessels.self',
 								  values: [
 									  {
-										  path: 'navigation.anchor.currentRadius',
+										  path: 'navigation.anchor.currentRadius.meta',
 										  value: {
 											  "displayName": "Anchor Watch",
 											  "shortName": "Anchor Watch",
@@ -327,7 +326,7 @@ function anchorWatchToggle(map, socket){
 						 };
 
 			console.log(JSON.stringify(putMsg));
-			socket.send(JSON.stringify(putMsg)); 
+			wsServer.send(JSON.stringify(putMsg)); 
 		}
 	}
 }
@@ -340,6 +339,9 @@ $("#anchorPopupReset").on('click', function() {
 	$("#anchorPopupLon").val(lon);
 	var coord = ol.proj.transform([lon,lat], 'EPSG:4326', 'EPSG:3857');
 	anchorCircleFeature.setGeometry( new ol.geom.Circle(coord,maxRadius));
+	if($(anchorPopupOn).prop('checked')){
+		wsServer.send(JSON.stringify(getPutMsg(lat,lon,maxRadius)));
+	}
 });
 
 function toRad(n) {
@@ -365,50 +367,23 @@ function onmessage(delta, socket) {
 
 	if(delta.updates){
 		delta.updates.forEach(function(update) {
-			//console.log(update);
+			//console.log(JSON.stringify(update));
 			update.values.forEach(function(value) {
 				//console.log(value);
 				if(value.value.latitude){
 					currentLat=value.value.latitude;
 					currentLon=value.value.longitude;
-					if(guard && lat &&lon){
-						//var coord = ol.proj.transform([lon,lat], 'EPSG:4326', 'EPSG:3857');
-						//var cCoord = ol.proj.transform([currentLon,currentLat], 'EPSG:4326', 'EPSG:3857');
-						//radius=new LineString([coord,cCoord]).getLength()
-						radius = haversine([lon,lat],[currentLon,currentLat]);
-						console.log("Radius:"+radius+", lat:"+lat+", lon:"+lon+", clat:"+currentLat+", clon:"+currentLon);
-						$("#anchorPopupRadius").text(Math.round(radius));
-						sendCurrentRadius(socket, radius);
-					}
 				}
-
+				if(value.path==="navigation.anchor.currentRadius"){
+						radius = haversine([lon,lat],[currentLon,currentLat]);
+						//console.log("Radius:"+radius+", lat:"+lat+", lon:"+lon+", clat:"+currentLat+", clon:"+currentLon);
+						$("#anchorPopupRadius").text(Math.round(value.value));
+					}
+				
+				
 			});
 		});
 	}
-}
-
-function sendCurrentRadius(socket, radius){
-	var putMsg = { context: 'vessels.self',
-				  updates: [
-					  {
-						  timestamp: new Date().toISOString(),
-						  source: 'vessels.self',
-						  values: [
-							  {
-								  path: 'navigation.anchor',
-								  value: {
-									  currentRadius: radius
-								  }
-							  }
-
-						  ]
-					  }
-				  ]
-
-				 };
-
-	console.log(JSON.stringify(putMsg));
-	socket.send(JSON.stringify(putMsg)); 
 }
 
 
@@ -418,12 +393,13 @@ module.exports = {
 	anchorWatchToggle:anchorWatchToggle
 };
 
-},{"./styleFunction.js":10,"./vesselPosition.js":11,"jquery":134,"openlayers":136}],5:[function(require,module,exports){
+},{"./signalk.js":8,"./styleFunction.js":10,"./vesselPosition.js":11,"jquery":134,"openlayers":136}],5:[function(require,module,exports){
 var $ = require('jquery');
 var ol = require('openlayers');
 var styleFunction = require('./styleFunction.js');
 //var setupDragAndDrop = require('./setupDragAndDrop.js');
 var nanoModal= require('nanomodal');
+var wsServer = require('./signalk.js');
 var dragAndDropInteraction = new ol.interaction.DragAndDrop({
 	formatConstructors: [ol.format.GPX, ol.format.GeoJSON, ol.format.IGC, ol.format.KML, ol.format.TopoJSON]
 });
@@ -567,22 +543,22 @@ function  toggleAction(map, action){
 
 // shows data in textarea
 // replace this function by what you need
-function saveData(socket) {
+function saveData() {
 	// get the format the user has chosen
 	try {
 		var data = new ol.format.GeoJSON().writeFeaturesObject(vector_layer.getSource().getFeatures(), {
-			featureProjection: 'EPSG:900913',
+			featureProjection: 'EPSG:3857',
 			dataProjection: 'EPSG:4326'
 		});
 
-		var putMsg = { context: 'resources.self',
+		var putMsg = { context: 'vessels.self',
 					  put: [
 						  {
 							  timestamp: new Date().toISOString(),
 							  source: 'vessels.self',
 							  values: [
 								  {
-									  path: 'test',
+									  path: 'resources.routes.test',
 									  value: {
 										  name: 'test',
 										  description: 'A test save',
@@ -598,9 +574,8 @@ function saveData(socket) {
 					 };
 
 		$('#data').val(JSON.stringify(putMsg, null, 4));
-		if(socket){
-			socket.send(JSON.stringify(putMsg));
-		}
+		wsServer.send(JSON.stringify(putMsg));
+		
 	} catch (e) {
 		// at time of creation there is an error in the GPX format (18.7.2014)
 		$('#data').val(e.name + ": " + e.message);
@@ -624,15 +599,14 @@ function uid(){
 	return ("0000" + (Math.random()*Math.pow(36,4) << 0).toString(36)).slice(-4);
 }
 
-function addDragAndDropInteraction(map, socket){
+function addDragAndDropInteraction(map){
 	map.removeInteraction(select_interaction);
 	map.removeInteraction(modify_interaction);
 	map.removeInteraction(draw_interaction);
-
 	map.addInteraction(dragAndDropInteraction);
 }
 
-function setup( map, socket) {
+function setup( map) {
 	/*var dialogModal = nanoModal($("#saveFeaturePopup"), {
 		overlayClose: false, // Can't close the modal by clicking on the overlay. 
 		buttons: [{
@@ -664,7 +638,7 @@ function setup( map, socket) {
 							 };
 
 				console.log(JSON.stringify(putMsg));
-				//socket.send(JSON.stringify(putMsg)); 
+				//wsServer.send(JSON.stringify(putMsg)); 
 
 				modal.hide();
 			},
@@ -687,7 +661,7 @@ function setup( map, socket) {
 		var view = map.getView();
 		view.fitExtent(vector_layer.getExtent(), /** @type {ol.Size} */ (map.getSize()));
 		var data = new ol.format.GeoJSON().writeFeaturesObject(vector_layer.getSource().getFeatures(), {
-			featureProjection: 'EPSG:900913',
+			featureProjection: 'EPSG:3857',
 			dataProjection: 'EPSG:4326'
 		});
 		$('#data').val(JSON.stringify(data));
@@ -712,7 +686,7 @@ module.exports = {
 	setGeomType,
 	toggleAction
 }
-},{"./styleFunction.js":10,"jquery":134,"nanomodal":135,"openlayers":136}],6:[function(require,module,exports){
+},{"./signalk.js":8,"./styleFunction.js":10,"jquery":134,"nanomodal":135,"openlayers":136}],6:[function(require,module,exports){
 module.exports = function (coordinate, title) {
 
 			if (coordinate == null) {
@@ -778,13 +752,13 @@ var debug = require('debug')('signalk:ws');
 var browser = require('browser');
 var Promise = require('bluebird');
 
-
+var connection;
 function connectDelta(hostname, callback, onConnect, onDisconnect) {
 	debug("Connecting to " + hostname);
 	var url = "ws://localhost:3000/signalk/stream/v1?format=delta&context=self";
 
 	debug("Using ws");
-	var connection = new WebSocket(url);
+	connection = new WebSocket(url);
 	connection.onopen = function(msg) {
 		debug("open");
 		onConnect();
@@ -809,20 +783,19 @@ function connectDelta(hostname, callback, onConnect, onDisconnect) {
 		//mArray=null;
 		msg=null;
 	};
-	return {
-		disconnect: function() {
-			connection.close();
-			debug('Disconnected');
-		},
-		send: function(msg){
-			connection.send(msg);
-		}
-	}
 
 }
 
 var listenerList = [];
 
+function send(msg){
+	if(connection)connection.send(msg);
+}
+
+function disconnect() {
+	connection.close();
+	debug('Disconnected');
+}
 
 function addSocketListener(l){
 	console.log("Adding "+l);
@@ -854,6 +827,8 @@ function getSelfMatcher(host) {
 module.exports = {
 	connectDelta: connectDelta,
 	addSocketListener: addSocketListener,
+	send: send,
+	disconnect: disconnect,
 	getSelf: getSelf,
 	getSelfMatcher: getSelfMatcher
 }

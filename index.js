@@ -75,12 +75,12 @@ function connect(){
 	var sub1 = '{"context":"vessels.self","subscribe":[{"path":"navigation.anchor.*"}]}';
 	var sub2 = '{"context":"vessels.self","subscribe":[{"path":"navigation.courseOverGround*"}]}';
 	var sub3 = '{"context":"vessels.self","subscribe":[{"path":"navigation.speedOverGround"}]}';
-	socket.send(sub);
-	socket.send(sub1);
-	socket.send(sub2);
-	socket.send(sub3);
+	wsServer.send(sub);
+	wsServer.send(sub1);
+	wsServer.send(sub2);
+	wsServer.send(sub3);
 	drawFeatures.setup( map);
-	$("#anchorPopupOn").change(anchor.anchorWatchToggle(map, socket));
+	$("#anchorPopupOn").change(anchor.anchorWatchToggle(map));
 	
 	$("#drawPopupAction").on('change',function(e){
 			drawFeatures.toggleAction(map, e.target.value)
@@ -90,14 +90,12 @@ function connect(){
 	});
 
 	$("#drawPopupSave").on('click', function() {
-		drawFeatures.saveData(socket);
+		drawFeatures.saveData();
 	});
 
 }
 
-var socket = wsServer.connectDelta(window.location.host, dispatch, connect);
-//global.socket=socket;
-
+wsServer.connectDelta(window.location.host, dispatch, connect);
 
 
 // clear map when user clicks on 'Delete all features'
