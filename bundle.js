@@ -697,7 +697,7 @@ module.exports = function (coordinate, title) {
 			var z = coordinate[0];
 			var x = coordinate[1];
 			var y = (1 << z) - coordinate[2] - 1;
-			return './mapcache/'+title+'/' + z + '/' + x + '/' + y + '.png';
+			return '../mapcache/'+title+'/' + z + '/' + x + '/' + y + '.png';
 		};
 },{}],7:[function(require,module,exports){
 var $ = require('jquery');
