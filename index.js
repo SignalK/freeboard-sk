@@ -4,7 +4,7 @@ require('bootstrap');
 require('bootstrap-drawer');
 require('bootstrap-slider');
 require('bootstrap-toggle');
-
+var layerSwitcher = require('./lib/ol3-layerswitcher.js');
 
 /*var Knob = require('knob');
 var maxAnchorRadius = new Knob({
@@ -62,6 +62,9 @@ var map = new ol.Map({
 addBaseLayers(map);
 addChartLayers(map);
 
+
+map.addControl(layerSwitcher);
+
 var vesselPosition = require('./lib/vesselPosition.js');
 wsServer.addSocketListener(vesselPosition);
 wsServer.addSocketListener(anchor);
@@ -82,17 +85,6 @@ function connect(){
 	drawFeatures.setup( map);
 	$("#anchorPopupOn").change(anchor.anchorWatchToggle(map));
 	
-	$("#drawPopupAction").on('change',function(e){
-			drawFeatures.toggleAction(map, e.target.value)
-	});
-	$("#drawPopupGeom").on('change',function(e){
-		drawFeatures.setGeomType(map, e.target.value);
-	});
-
-	$("#drawPopupSave").on('click', function() {
-		drawFeatures.saveData();
-	});
-
 }
 
 wsServer.connectDelta(window.location.host, dispatch, connect);

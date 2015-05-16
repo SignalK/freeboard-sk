@@ -12,9 +12,10 @@
 		<link rel="stylesheet" href="node_modules/bootstrap-drawer/dist/css/bootstrap-drawer.css">
 		<link rel="stylesheet" href="node_modules/bootstrap-slider/dist/css/bootstrap-slider.css">
 		<link rel="stylesheet" href="node_modules/bootstrap-toggle/css/bootstrap-toggle.css" >
+		<link rel="stylesheet" href="node_modules/bootstrap-select/dist/css/bootstrap-select.css" >
 		<link rel="stylesheet" href="node_modules/openlayers/dist/ol.css" type="text/css">
 		<link rel="stylesheet" data-aload="styles/fonts.css">
-
+		<link rel="stylesheet" href="./lib/css/ol3-layerswitcher.css">
 
 		<style>
 			body {
@@ -74,7 +75,7 @@
 
 
 			.input-group-addon{
-				width:40%;
+				width:35%;
 			}
 			.input-group{
 				width:100%;
@@ -99,7 +100,7 @@
 				<div class="drawer-body">
 					<div id="anchorPopup"  class="panel" title="Anchor Guard">
 
-						<div class="input-group">
+						<div class="input-group ">
 							<span class="input-group-addon" id="basic-addon1">Latitude:</span>
 							<input id="anchorPopupLat" type="text" class="form-control readonly" placeholder="Latitude" aria-describedby="basic-addon1"/>
 						</div>
@@ -183,10 +184,10 @@
 			<div style="display: none;">
 				<div id="saveFeaturePopup">
 
-					<div class="drawer-contents">
+					<div class="drawer-contents ">
 						<div class="drawer-heading">
 							<h2 class="drawer-title">Save Features</h2>
-							<a href="#saveFeaturePopup" data-toggle="drawer" class="btn btn-primary btn-sm">Hide</a>
+							
 						</div>
 						<div class="drawer-body">
 							<div class="input-group">
@@ -195,16 +196,9 @@
 							</div>
 							<div class="input-group">
 								<span class="input-group-addon" id="basic-addon1">Description:</span>
-								<input id="saveFeaturePopupDesc" type="text" class="form-control" placeholder="eg Nelson fishing waypoints" />
+								<textarea id="saveFeaturePopupDesc" class="form-control" rows="5" placeholder="eg Nelson fishing waypoints" ></textarea>
 							</div>
-							<div class="input-group">
-								<span class="input-group-addon" id="basic-addon1">Type:</span>
-								<select id="saveFeaturePopupPath" class="js-example-basic-single">
-									<option value="waypoints">Waypoints</option>
-									<option value="routes">Routes</option>
-									<option value="regions">Regions/Features</option>
-								</select>
-							</div>
+							
 						</div>
 					</div>
 
