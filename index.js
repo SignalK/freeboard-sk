@@ -66,22 +66,16 @@ addChartLayers(map);
 map.addControl(layerSwitcher);
 
 var vesselPosition = require('./lib/vesselPosition.js');
-wsServer.addSocketListener(vesselPosition);
 wsServer.addSocketListener(anchor);
-var vesselOverlay = vesselPosition.getVesselOverlay(map);
 
 function dispatch(delta) {
 	//do nothing
 }
 function connect(){
-	var sub = '{"context":"vessels.self","subscribe":[{"path":"navigation.position.*"}]}';
+	
 	var sub1 = '{"context":"vessels.self","subscribe":[{"path":"navigation.anchor.*"}]}';
-	var sub2 = '{"context":"vessels.self","subscribe":[{"path":"navigation.courseOverGround*"}]}';
-	var sub3 = '{"context":"vessels.self","subscribe":[{"path":"navigation.speedOverGround"}]}';
-	wsServer.send(sub);
+	vesselPosition.setup(map);
 	wsServer.send(sub1);
-	wsServer.send(sub2);
-	wsServer.send(sub3);
 	drawFeatures.setup( map);
 	$("#anchorPopupOn").change(anchor.anchorWatchToggle(map));
 	
