@@ -614,6 +614,11 @@ function setup( map) {
 	$("#drawPopupGeom").on('change',function(e){
 		setGeomType(map, e.target.value);
 	});
+	
+	// clear map when user clicks on 'Delete all features'
+	//$("#delete").click(function() {
+	//	clearMap();
+	//});
 }
 
 
@@ -665,7 +670,7 @@ function makeButton(html, cssClass, handler){
 		var options = opt_options || {};
 		//charts
 		var buttonButton = document.createElement('button');
-		buttonButton.innerHTML = html;
+		//buttonButton.innerHTML = html;
 		//buttonButton.className=cssClass;
 		buttonButton.autocomplete='off';
 		//var this_ = this;
@@ -1324,7 +1329,7 @@ function toggleVesselUp(){
 
 var rotation = 0;
 function setRotation(radians, coord){
-	console.log("rotation:"+radians+", coord:"+coord+", vesselUp:"+vesselUp);
+	//console.log("rotation:"+radians+", coord:"+coord+", vesselUp:"+vesselUp);
 	if(vesselUp){
 		if(Math.abs(Math.abs(rotation)-Math.abs(radians))>0.2){
 			rotation = -radians;
@@ -48627,6 +48632,7 @@ map.addControl(layerSwitcher);
 function dispatch(delta) {
 	//do nothing
 }
+
 function connect(){
 	vesselPosition.setup(map);
 	drawFeatures.setup( map);
@@ -48637,10 +48643,6 @@ function connect(){
 wsServer.connectDelta(window.location.host, dispatch, connect);
 
 
-// clear map when user clicks on 'Delete all features'
-$("#delete").click(function() {
-	drawFeatures.clearMap();
-});
 
 
 

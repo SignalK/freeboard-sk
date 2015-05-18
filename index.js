@@ -67,6 +67,7 @@ map.addControl(layerSwitcher);
 function dispatch(delta) {
 	//do nothing
 }
+
 function connect(){
 	vesselPosition.setup(map);
 	drawFeatures.setup( map);
@@ -77,9 +78,5 @@ function connect(){
 wsServer.connectDelta(window.location.host, dispatch, connect);
 
 
-// clear map when user clicks on 'Delete all features'
-$("#delete").click(function() {
-	drawFeatures.clearMap();
-});
 
 
