@@ -960,7 +960,7 @@ var Promise = require('bluebird');
 var connection;
 function connectDelta(hostname, callback, onConnect, onDisconnect) {
 	debug("Connecting to " + hostname);
-	var url = "ws://localhost:3000/signalk/stream/v1?format=delta&context=self";
+	var url = "ws://"+hostname+":3000/signalk/stream/v1?format=delta&context=self";
 
 	debug("Using ws");
 	connection = new WebSocket(url);
@@ -48640,7 +48640,7 @@ function connect(){
 	menuControl.setup(map);
 }
 
-wsServer.connectDelta(window.location.host, dispatch, connect);
+wsServer.connectDelta(window.location.hostname, dispatch, connect);
 
 
 

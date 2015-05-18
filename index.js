@@ -75,7 +75,7 @@ function connect(){
 	menuControl.setup(map);
 }
 
-wsServer.connectDelta(window.location.host, dispatch, connect);
+wsServer.connectDelta(window.location.hostname, dispatch, connect);
 
 
 
