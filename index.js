@@ -55,7 +55,7 @@ var map = new ol.Map({
 		attributionOptions: {
 			collapsible: true
 		}
-	}).extend([ mousePositionControl,  new menuControl.DrawControl(), new menuControl.AnchorControl(),  new menuControl.ChartControl(), ]) 
+	}).extend([ mousePositionControl,  new menuControl.DrawControl(), new menuControl.AnchorControl(),  new menuControl.ChartControl(),new menuControl.FollowControl(),new menuControl.VesselUpControl() ]) 
 });
 
 //add our layers
