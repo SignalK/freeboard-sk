@@ -29,7 +29,7 @@ var anchor = require('./lib/anchorControl.js');
 
 var wsServer = require('./lib/signalk.js');
 var simplify = require('./lib/simplify-js.js');
-
+var vesselPosition = require('./lib/vesselPosition.js');
 
 var view= new ol.View({
 	center: ol.proj.transform([65, 50], 'EPSG:4326', 'EPSG:3857'),
@@ -55,30 +55,23 @@ var map = new ol.Map({
 		attributionOptions: {
 			collapsible: true
 		}
-	}).extend([ mousePositionControl,  new menuControl.DrawControl(), new menuControl.AnchorControl(),  new menuControl.ChartControl(),new menuControl.FollowControl(),new menuControl.VesselUpControl() ]) 
+	}).extend([ mousePositionControl,   new menuControl.ChartControl() ]) 
 });
 
 //add our layers
 addBaseLayers(map);
 addChartLayers(map);
 
-
 map.addControl(layerSwitcher);
-
-var vesselPosition = require('./lib/vesselPosition.js');
-wsServer.addSocketListener(anchor);
 
 function dispatch(delta) {
 	//do nothing
 }
 function connect(){
-	
-	var sub1 = '{"context":"vessels.self","subscribe":[{"path":"navigation.anchor.*"}]}';
 	vesselPosition.setup(map);
-	wsServer.send(sub1);
 	drawFeatures.setup( map);
-	$("#anchorPopupOn").change(anchor.anchorWatchToggle(map));
-	
+	anchor.setup(map);
+	menuControl.setup(map);
 }
 
 wsServer.connectDelta(window.location.host, dispatch, connect);

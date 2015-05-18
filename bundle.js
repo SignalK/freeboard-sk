@@ -13,7 +13,6 @@ module.exports = function addBaseLayers( map) {
 		title: "WORLD",
 		type: 'base',
 		source: new ol.source.XYZ({
-
 			tileUrlFunction: function(coordinate){ return getTileUrl(coordinate,'WORLD')},
 			maxResolution: 6,
 			params: {
@@ -35,9 +34,10 @@ module.exports = function addBaseLayers( map) {
 			}
 		})
 	});
-	map.addLayer(OSM);
-	map.addLayer(WORLD);
+	
 	map.addLayer(WORLD1);
+	map.addLayer(WORLD);
+	map.addLayer(OSM);
 }
 },{"./getTileUrl.js":5,"openlayers":107}],2:[function(require,module,exports){
 var ol = require('openlayers');
@@ -115,6 +115,7 @@ var vesselPosition = require('./vesselPosition.js');
 
 var styleFunction = require('./styleFunction.js');
 var wsServer = require('./signalk.js');
+var menuControl = require('./menuControl.js');
 //var map, connection;
 var lat, lon, currentLat,currentLon, maxRadius=50.0, radius;
 
@@ -123,6 +124,8 @@ var guard = false;
 var anchorCircleFeature = new ol.Feature();
 
 var anchorFeatureOverlay;
+
+var AnchorControl = menuControl.makeDrawerButton('A','anchor-btn','#anchorDrawer');
 
 function startAnchorWatch(map) {
 	guard=true;
@@ -212,6 +215,18 @@ $("#anchorPopupMaxRadiusSlide").on("slideStop", function(slideEvt) {
 	}
 });
 
+$("#anchorPopupReset").on('click', function() {
+	lat=currentLat;
+	lon=currentLon;
+	$("#anchorPopupLat").val(lat);
+	$("#anchorPopupLon").val(lon);
+	var coord = ol.proj.transform([lon,lat], 'EPSG:4326', 'EPSG:3857');
+	anchorCircleFeature.setGeometry( new ol.geom.Circle(coord,maxRadius));
+	if($(anchorPopupOn).prop('checked')){
+		wsServer.send(JSON.stringify(getPutMsg(lat,lon,maxRadius)));
+	}
+});
+
 function anchorWatchToggle(map){
 	return function(){
 		if($(this).prop('checked')){
@@ -249,17 +264,7 @@ function anchorWatchToggle(map){
 }
 
 
-$("#anchorPopupReset").on('click', function() {
-	lat=currentLat;
-	lon=currentLon;
-	$("#anchorPopupLat").val(lat);
-	$("#anchorPopupLon").val(lon);
-	var coord = ol.proj.transform([lon,lat], 'EPSG:4326', 'EPSG:3857');
-	anchorCircleFeature.setGeometry( new ol.geom.Circle(coord,maxRadius));
-	if($(anchorPopupOn).prop('checked')){
-		wsServer.send(JSON.stringify(getPutMsg(lat,lon,maxRadius)));
-	}
-});
+
 
 function toRad(n) {
 	return n * Math.PI / 180;
@@ -303,17 +308,28 @@ function onmessage(delta, socket) {
 	}
 }
 
-
+function setup(map){
+	wsServer.addSocketListener(this);
+	var sub = '{"context":"vessels.self","subscribe":[{"path":"navigation.anchor.*"}]}';
+	vesselPosition.setup(map);
+	wsServer.send(sub);
+	$("#anchorPopupOn").change(anchorWatchToggle(map));
+	map.addControl(new AnchorControl());
+	$(".anchor-btn").tooltip({ placement: 'right', title: 'Anchor Watch'});
+}
 
 module.exports = {
+	AnchorControl: AnchorControl,
 	onmessage: onmessage,
-	anchorWatchToggle:anchorWatchToggle
+	anchorWatchToggle:anchorWatchToggle,
+	setup: setup
 };
 
-},{"./signalk.js":8,"./styleFunction.js":10,"./vesselPosition.js":11,"jquery":105,"openlayers":107}],4:[function(require,module,exports){
+},{"./menuControl.js":6,"./signalk.js":8,"./styleFunction.js":10,"./vesselPosition.js":11,"jquery":105,"openlayers":107}],4:[function(require,module,exports){
 var $ = require('jquery');
 var ol = require('openlayers');
 var styleFunction = require('./styleFunction.js');
+var menuControl = require('./menuControl.js');
 require('bootstrap-select');
 //var setupDragAndDrop = require('./setupDragAndDrop.js');
 var nanoModal= require('nanomodal');
@@ -321,6 +337,10 @@ var wsServer = require('./signalk.js');
 var dragAndDropInteraction = new ol.interaction.DragAndDrop({
 	formatConstructors: [ol.format.GPX, ol.format.GeoJSON, ol.format.IGC, ol.format.KML, ol.format.TopoJSON]
 });
+
+//draw points
+var DrawControl = menuControl.makeDrawerButton('D','draw-btn','#drawDrawer');
+
 
 //draw edit features
 // create a vector layer used for editing
@@ -560,7 +580,8 @@ function addDragAndDropInteraction(map){
 }
 
 function setup( map) {
-
+	map.addControl(new DrawControl());
+	$(".draw-btn").tooltip({ placement: 'right', title: 'Add and edit waypoints, routes, and regions'});
 	dragAndDropInteraction.on('addfeatures', function (event) {
 		console.log(event);
 		console.log(event.features);
@@ -610,7 +631,7 @@ module.exports = {
 	setGeomType,
 	toggleAction
 }
-},{"./signalk.js":8,"./styleFunction.js":10,"bootstrap-select":14,"jquery":105,"nanomodal":106,"openlayers":107}],5:[function(require,module,exports){
+},{"./menuControl.js":6,"./signalk.js":8,"./styleFunction.js":10,"bootstrap-select":14,"jquery":105,"nanomodal":106,"openlayers":107}],5:[function(require,module,exports){
 module.exports = function (coordinate, title) {
 
 			if (coordinate == null) {
@@ -627,22 +648,8 @@ module.exports = function (coordinate, title) {
 var $ = require('jquery');
 //var bootstrap =require('bootstrap');
 var ol = require('openlayers');
-var vesselPosition = require('./vesselPosition.js');
 
-var AnchorControl = makeDrawerButton('A','anchor-btn','#anchorDrawer');
 var ChartControl = makeDrawerButton('C','chart-btn','#chartDrawer');
-//draw points
-var DrawControl = makeDrawerButton('D','draw-btn','#drawDrawer');
-
-var FollowControl = makeButton('V','follow-btn',function (e) {
-	vesselPosition.toggleFollowVessel();
-
-});
-
-var VesselUpControl = makeButton('U','vessel-up-btn',function (e) {
-	vesselPosition.toggleVesselUp();
-
-});
 
 function makeDrawerButton(html, cssClass, drawerId){
 	//draw points
@@ -659,7 +666,8 @@ function makeButton(html, cssClass, handler){
 		//charts
 		var buttonButton = document.createElement('button');
 		buttonButton.innerHTML = html;
-		buttonButton.className=cssClass;
+		//buttonButton.className=cssClass;
+		buttonButton.autocomplete='off';
 		//var this_ = this;
 		var buttonHandleMenu = handler;
 		buttonButton.addEventListener('click', buttonHandleMenu, false);
@@ -677,17 +685,17 @@ function makeButton(html, cssClass, handler){
 	return ButtonControl;
 }
 
+function setup(map){
+	//$(".anchor-btn").tooltip({ placement: 'right' });	
+}
 module.exports={
-	AnchorControl: AnchorControl,
 	ChartControl: ChartControl,
-	DrawControl: DrawControl,
-	FollowControl: FollowControl,
-	VesselUpControl: VesselUpControl,
 	makeDrawerButton: makeDrawerButton,
-	makeButton: makeButton
+	makeButton: makeButton,
+	setup:setup
 }
 
-},{"./vesselPosition.js":11,"jquery":105,"openlayers":107}],7:[function(require,module,exports){
+},{"jquery":105,"openlayers":107}],7:[function(require,module,exports){
 /**
  * OpenLayers 3 Layer Switcher Control.
  * See [the examples](./examples) for usage.
@@ -1216,19 +1224,28 @@ module.exports = function (feature, resolution) {
 },{"openlayers":107}],11:[function(require,module,exports){
 var ol = require('openlayers');
 var wsServer = require('./signalk.js');
+var menuControl = require('./menuControl.js');
 
 var vesselPosition = new ol.Feature();
 vesselPosition.setStyle(
 	new ol.style.Style({
 		image: new ol.style.Icon(/** @type {olx.style.IconOptions} */ ({
-					anchor: [0.5, 20.0],
+					anchor: [0.5, 0.46],
 					anchorXUnits: 'fraction',
-					anchorYUnits: 'pixels',
+					anchorYUnits: 'fraction',
 					opacity: 0.75,
 					rotation: 0,
 					src: 'img/ship_red.png'
 		}))
 	}));
+
+var FollowControl = menuControl.makeButton('V','follow-btn', function (e) {
+	toggleFollowVessel();
+});
+
+var VesselUpControl = menuControl.makeButton('U','vessel-up-btn', function (e) {
+	toggleVesselUp();
+});
 
 var markers = [];
 var trackLine = new ol.geom.LineString(markers, 'XY');
@@ -1260,19 +1277,16 @@ function onmessage(delta) {
 					if(!cog){
 						//use the track
 						var lastCoord = trackLine.getLastCoordinate();
-						var radians =  Math.atan2((coord[0] - lastCoord[0]), (coord[1] - lastCoord[1])) ;
-						setRotation(radians, coord);
+						if(lastCoord[0]!=coord[0] && lastCoord[1]!=coord[1] ){
+							var radians =  Math.atan2((coord[0] - lastCoord[0]), (coord[1] - lastCoord[1])) ;
+							setRotation(radians, coord);
+						}
 					}
 					trackLine.appendCoordinate(coord);
 					if(followVessel){
 						//recenter chart
 						var screen = vesselOverlay.getMap().getSize();
 						var pixel = [screen[0]*0.5,screen[1]*0.66];
-						//var extents = vesselOverlay.getMap().getView().calculateExtent(vesselOverlay.getMap().getSize());
-						//console.log(extents);
-						//var offset = (extents[1]-extents[3])*0.25;
-						//console.log(coord);
-						//coord[1]=coord[1]+offset;
 						vesselOverlay.getMap().getView().centerOn(coord, screen, pixel);
 					}
 						
@@ -1285,7 +1299,6 @@ function onmessage(delta) {
 					//vesselPosition.getStyle().getImage().setRotation(value.value * Math.PI / 180 );
 				}
 				
-
 			});
 		});
 	}
@@ -1303,15 +1316,19 @@ function toggleVesselUp(){
 	vesselUp=!vesselUp;
 	if(!vesselUp){
 		vesselOverlay.getMap().getView().setRotation(0);
+	}else{
+		vesselOverlay.getMap().getView().setRotation(rotation);
+		//vesselPosition.getStyle().getImage().setRotation(rotation+radians);
 	}
 }
 
 var rotation = 0;
 function setRotation(radians, coord){
+	console.log("rotation:"+radians+", coord:"+coord+", vesselUp:"+vesselUp);
 	if(vesselUp){
 		if(Math.abs(Math.abs(rotation)-Math.abs(radians))>0.2){
 			rotation = -radians;
-			vesselOverlay.getMap().getView().rotate(-radians,coord);
+			vesselOverlay.getMap().getView().rotate(rotation, coord);
 			vesselPosition.getStyle().getImage().setRotation(0);
 		}else{
 			vesselPosition.getStyle().getImage().setRotation(rotation+radians);
@@ -1324,18 +1341,20 @@ function setup(map){
 	vesselOverlay = setVesselOverlay(map);
 	wsServer.addSocketListener(this);
 	var sub = '{"context":"vessels.self","subscribe":[{"path":"navigation.position.*"},{"path":"navigation.courseOverGround*"},{"path":"navigation.speedOverGround"}]}';
-	
 	wsServer.send(sub);
+	
+	map.addControl(new FollowControl());
+	$(".follow-btn").tooltip({ placement: 'right', title: 'Toggle follow vessel'});
+	map.addControl(new VesselUpControl());
+	$(".vessel-up-btn").tooltip({ placement: 'right', title: 'Toggel Vessel up/North up'});
 }
 
 
 module.exports = {
 	onmessage: onmessage,
-	setup:setup,
-	toggleFollowVessel:toggleFollowVessel,
-	toggleVesselUp,toggleVesselUp
+	setup:setup
 };
-},{"./signalk.js":8,"openlayers":107}],12:[function(require,module,exports){
+},{"./menuControl.js":6,"./signalk.js":8,"openlayers":107}],12:[function(require,module,exports){
 (function (process,global){
 /* @preserve
  * The MIT License (MIT)
@@ -48570,7 +48589,7 @@ var anchor = require('./lib/anchorControl.js');
 
 var wsServer = require('./lib/signalk.js');
 var simplify = require('./lib/simplify-js.js');
-
+var vesselPosition = require('./lib/vesselPosition.js');
 
 var view= new ol.View({
 	center: ol.proj.transform([65, 50], 'EPSG:4326', 'EPSG:3857'),
@@ -48596,30 +48615,23 @@ var map = new ol.Map({
 		attributionOptions: {
 			collapsible: true
 		}
-	}).extend([ mousePositionControl,  new menuControl.DrawControl(), new menuControl.AnchorControl(),  new menuControl.ChartControl(),new menuControl.FollowControl(),new menuControl.VesselUpControl() ]) 
+	}).extend([ mousePositionControl,   new menuControl.ChartControl() ]) 
 });
 
 //add our layers
 addBaseLayers(map);
 addChartLayers(map);
 
-
 map.addControl(layerSwitcher);
-
-var vesselPosition = require('./lib/vesselPosition.js');
-wsServer.addSocketListener(anchor);
 
 function dispatch(delta) {
 	//do nothing
 }
 function connect(){
-	
-	var sub1 = '{"context":"vessels.self","subscribe":[{"path":"navigation.anchor.*"}]}';
 	vesselPosition.setup(map);
-	wsServer.send(sub1);
 	drawFeatures.setup( map);
-	$("#anchorPopupOn").change(anchor.anchorWatchToggle(map));
-	
+	anchor.setup(map);
+	menuControl.setup(map);
 }
 
 wsServer.connectDelta(window.location.host, dispatch, connect);
