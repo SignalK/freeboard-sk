@@ -722,6 +722,7 @@ var continueLineMsg = 'Click to continue drawing the line';
  * @param {ol.MapBrowserEvent} evt
  */
 var pointerMoveHandler = function(evt) {
+	if(!measureOn)return;
 	if (evt.dragging) {
 		return;
 	}
@@ -752,8 +753,6 @@ var pointerMoveHandler = function(evt) {
 
 function setup(map){
 	map.addLayer(vector);
-	map.on('pointermove', pointerMoveHandler);
-	
 	createInteraction(map);
 	
 	var MeasureControl = menuControl.makeButton('V','measure-btn', function (e) {
@@ -770,6 +769,7 @@ function toggleMeasure(map){
 		map.addInteraction(draw);
 		createHelpTooltip(map);
 		createMeasureTooltip(map);
+		map.on('pointermove', pointerMoveHandler);
 	}else{
 		map.removeInteraction(draw);
 		map.removeOverlay(helpTooltip);
@@ -1208,11 +1208,12 @@ var browser = require('browser');
 var Promise = require('bluebird');
 
 var connection;
-function connectDelta(hostname, callback, onConnect, onDisconnect) {
-	debug("Connecting to " + hostname);
-	var url = "ws://"+hostname+":3000/signalk/stream/v1?format=delta&context=self";
+function connectDelta(url, callback, onConnect, onDisconnect) {
+	debug("Connecting to " + url);
+	
+	url = url+"?format=delta&context=self";
 
-	debug("Using ws");
+	console.log("Using "+ url);
 	connection = new WebSocket(url);
 	connection.onopen = function(msg) {
 		debug("open");
@@ -48878,18 +48879,6 @@ require('bootstrap-slider');
 require('bootstrap-toggle');
 var layerSwitcher = require('./lib/ol3-layerswitcher.js');
 
-/*var Knob = require('knob');
-var maxAnchorRadius = new Knob({
-      label: 'Max Radius',
-      value: 50,
-      min: 0, 
-	   max: 200,
-	stopper: false,
-      width: 100
-    });
-$('#anchorPopupMaxRadiusDiv').prepend(maxAnchorRadius);
-*/
-
 var ol = require('openlayers');
 var addBaseLayers = require('./lib/addBaseLayers.js');
 var addChartLayers = require('./lib/addLayers.js');
@@ -48938,9 +48927,9 @@ map.addControl(layerSwitcher);
 
 
 var rkScaleLine = new ol.control.ScaleLine({
-                  className:'ol-scale-line',
-                  units:'nautical'});
-    map.addControl(rkScaleLine);
+	className:'ol-scale-line',
+	units:'nautical'});
+map.addControl(rkScaleLine);
 
 function dispatch(delta) {
 	//do nothing
@@ -48953,8 +48942,16 @@ function connect(){
 	menuControl.setup(map);
 	measure.setup(map);
 }
+$.ajax({
+			url : "/signalk/api/v1/addresses",
+			dataType: "text",
+			success : function (data) {
+				var jsonData = JSON.parse(data);
+				var url=jsonData.websocketUrl;
+				wsServer.connectDelta(url, dispatch, connect);
+			}
+		});
 
-wsServer.connectDelta(window.location.hostname, dispatch, connect);
 
 
 

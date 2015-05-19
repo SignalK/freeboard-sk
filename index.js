@@ -6,18 +6,6 @@ require('bootstrap-slider');
 require('bootstrap-toggle');
 var layerSwitcher = require('./lib/ol3-layerswitcher.js');
 
-/*var Knob = require('knob');
-var maxAnchorRadius = new Knob({
-      label: 'Max Radius',
-      value: 50,
-      min: 0, 
-	   max: 200,
-	stopper: false,
-      width: 100
-    });
-$('#anchorPopupMaxRadiusDiv').prepend(maxAnchorRadius);
-*/
-
 var ol = require('openlayers');
 var addBaseLayers = require('./lib/addBaseLayers.js');
 var addChartLayers = require('./lib/addLayers.js');
@@ -66,9 +54,9 @@ map.addControl(layerSwitcher);
 
 
 var rkScaleLine = new ol.control.ScaleLine({
-                  className:'ol-scale-line',
-                  units:'nautical'});
-    map.addControl(rkScaleLine);
+	className:'ol-scale-line',
+	units:'nautical'});
+map.addControl(rkScaleLine);
 
 function dispatch(delta) {
 	//do nothing
@@ -81,8 +69,16 @@ function connect(){
 	menuControl.setup(map);
 	measure.setup(map);
 }
+$.ajax({
+			url : "/signalk/api/v1/addresses",
+			dataType: "text",
+			success : function (data) {
+				var jsonData = JSON.parse(data);
+				var url=jsonData.websocketUrl;
+				wsServer.connectDelta(url, dispatch, connect);
+			}
+		});
 
-wsServer.connectDelta(window.location.hostname, dispatch, connect);
 
 
 
