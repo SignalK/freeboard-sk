@@ -16,6 +16,7 @@
 		<link rel="stylesheet" href="node_modules/openlayers/dist/ol.css" type="text/css">
 		<link rel="stylesheet" data-aload="styles/fonts.css">
 		<link rel="stylesheet" href="./lib/css/ol3-layerswitcher.css">
+		<link rel="stylesheet" href="./lib/css/measure.css">
 
 		<style>
 			body {
@@ -76,6 +77,12 @@
 				background-size: 30%;
 				background-position:center center;
 			}
+			.measure-btn {
+				top: 190px;
+				left: .5em;
+				background-image: url('img/measuring-stick-on.png');
+				background-size: contain;
+			}
 			.ol-touch .anchor-btn  {
 				top: 80px;
 			}
@@ -91,6 +98,9 @@
 			}
 			.ol-touch .vessel-up-btn  {
 				top: 220px;
+			}
+			.ol-touch .measure-btn  {
+				top: 255px;
 			}
 
 			.img-button{
@@ -115,7 +125,7 @@
 				width:100%;
 			}
 
-			}
+			
 		</style>
 		<title>Freeboard K - OpenLayers 3 + Signal K</title>
 	</head>

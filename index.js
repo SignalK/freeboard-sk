@@ -30,7 +30,7 @@ var anchor = require('./lib/anchorControl.js');
 var wsServer = require('./lib/signalk.js');
 var simplify = require('./lib/simplify-js.js');
 var vesselPosition = require('./lib/vesselPosition.js');
-
+var measure = require('./lib/measure.js');
 var view= new ol.View({
 	center: ol.proj.transform([65, 50], 'EPSG:4326', 'EPSG:3857'),
 	zoom: 3
@@ -64,6 +64,12 @@ addChartLayers(map);
 
 map.addControl(layerSwitcher);
 
+
+var rkScaleLine = new ol.control.ScaleLine({
+                  className:'ol-scale-line',
+                  units:'nautical'});
+    map.addControl(rkScaleLine);
+
 function dispatch(delta) {
 	//do nothing
 }
@@ -73,6 +79,7 @@ function connect(){
 	drawFeatures.setup( map);
 	anchor.setup(map);
 	menuControl.setup(map);
+	measure.setup(map);
 }
 
 wsServer.connectDelta(window.location.hostname, dispatch, connect);
