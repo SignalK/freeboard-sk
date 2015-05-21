@@ -3,25 +3,29 @@ Freeboard-SK
 
 This is a rewrite of Freeboard (http://www.42.co.nz/freeboard) to use the Signal K communication protocols.
 
-https://raw.githubusercontent.com/SignalK/signalk-server-java/master/src/test/resources/samples/freeboard-sk-north-up.png
+###Vessel up
+![Vessel Up](https://raw.githubusercontent.com/SignalK/signalk-server-java/master/src/test/resources/samples/freeboard-sk-vessel-up.png)
+
+###North up
+![North Up](https://raw.githubusercontent.com/SignalK/signalk-server-java/master/src/test/resources/samples/freeboard-sk-north-up.png)
 
 Its a work-in-progress, currently:
 
- * Displays WORLD chart outline
+ * Displays OpenStreetmap, OpenSeaMap, and WORLD chart outline
  * Displays suitably installed common chart formats
  * Displays boat position with track-line
  * Has anchor watch, alarms trigger properly, but doesnt make any alarm noise yet :-(
  * Has import for most common route and waypoint formats, just drag and drop the file on the chart
  * Allows draw/edit/save of waypoints, routes and regions.
  * Supports chart rotation by [Shift-click-drag].
+ * Waypoint/route/regions management
 
 Todo:
  * Integration to instrumentpanel project
  * Chart management
  * Bearing and speed lines
  * AIS targets
- * Better save facility, with naming/descriptions/etc
- * Waypoint/route/regions management
+ 
  * and on and on...
 
 ### Installation
