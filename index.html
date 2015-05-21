@@ -50,18 +50,13 @@
 				
 			}
 		
-			.chart-btn {
+			.feature-btn {
 				top: 90px;
-				left: .5em;
-				background-image: url('img/chart43x38.png');
-				background-size: contain;
-			}
-			.draw-btn {
-				top: 115px;
 				left: .5em;
 				background-image: url('img/draw_line_off.png');
 				background-size: contain;
 			}
+			
 			
 			.follow-btn {
 				top: 140px;
@@ -86,7 +81,7 @@
 			.ol-touch .anchor-btn  {
 				top: 80px;
 			}
-			.ol-touch .chart-btn  {
+			.ol-touch .feature-btn  {
 				top: 115px;
 			}
 			.ol-touch .draw-btn  {
@@ -165,17 +160,21 @@
 
 			</div>
 		</div>
-		<div id="chartDrawer" class="drawer dw-xs-10 dw-sm-6 dw-md-4 fold" aria-labelledby="chartDrawer">
+		<div id="featureDrawer" class="drawer dw-xs-10 dw-sm-6 dw-md-4 fold" aria-labelledby="featureDrawer">
 			<div class="drawer-contents">
 				<div class="drawer-heading">
 					<h2 class="drawer-title">Chart List</h2>
-					<a href="#chartDrawer" data-toggle="drawer" class="btn btn-primary btn-sm">Hide</a>
+					<span data-toggle="drawer" data-target="#featureDrawer" >
+						<a href="#drawDrawer" data-toggle="drawer" class="btn btn-primary btn-sm">New</a>
+					</span>
+					<a href="#featureDrawer" data-toggle="drawer" class="btn btn-primary btn-sm">Close</a>
+					<input type="text" id="featureDrawerFilter" name="featureFilterAction" value="" />
+					<a id="featureDrawerSearch" href="#featureDrawer"  class="btn btn-primary btn-sm">Search</a>
+					
 				</div>
 				<div class="drawer-body">
-					<div id="chartPopup"  class="panel" title="Chart List">
-
-						<p>Just a placeholder</p>
-
+					<div id="featurePopup"  class="panel" title="Chart List">
+						<ul id="featurePopupList" class="list-group"></ul>
 					</div>
 				</div>
 			</div>
@@ -210,7 +209,9 @@
 					</div>
 					
 					<a id="drawPopupSave" class="btn btn-primary btn-sm" >Save</a>
-					<a href="#drawDrawer" data-toggle="drawer" class="btn btn-primary btn-sm">Hide</a>
+					<span data-toggle="drawer" data-target="#featureDrawer" >
+						<a href="#drawDrawer" data-toggle="drawer" class="btn btn-primary btn-sm">Close</a>
+					</span>
 				</div>
 				<div class="drawer-body">
 				</div>

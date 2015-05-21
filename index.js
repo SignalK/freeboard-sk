@@ -10,6 +10,7 @@ var ol = require('openlayers');
 var addBaseLayers = require('./lib/addBaseLayers.js');
 var addChartLayers = require('./lib/addLayers.js');
 var drawFeatures = require('./lib/drawFeatures.js');
+var features = require('./lib/features.js');
 //var displayFeatureInfo = require('./lib/displayFeatureInfo.js');
 
 var menuControl = require('./lib/menuControl.js');
@@ -23,6 +24,8 @@ var view= new ol.View({
 	center: ol.proj.transform([65, 50], 'EPSG:4326', 'EPSG:3857'),
 	zoom: 3
 })
+//var settings = JSON.parse(localStorage.getItem("settings"));
+//localStorage.setItem("settings", JSON.stringify(data));
 
 var mousePositionControl = new ol.control.MousePosition({
 	coordinateFormat: ol.coordinate.createStringXY(4),
@@ -43,7 +46,33 @@ var map = new ol.Map({
 		attributionOptions: {
 			collapsible: true
 		}
-	}).extend([ mousePositionControl,   new menuControl.ChartControl() ]) 
+	}).extend([ mousePositionControl ]) 
+});
+
+//make map global
+$('#map').data('map', map);
+//use 'var map = $('#map').data('map');' to get it back
+
+//reset any existing settings
+if(localStorage.getItem("sk-zoom")){
+	map.getView().setZoom(localStorage.getItem("sk-zoom"));
+}
+if(localStorage.getItem("sk-center")){
+	map.getView().setCenter(JSON.parse(localStorage.getItem("sk-center")));
+}
+if(localStorage.getItem("sk-rotation")){
+	map.getView().setRotation(localStorage.getItem("sk-rotation"));
+}
+
+//store location and zoom, etc
+map.getView().on('change:resolution',function(evt){
+	localStorage.setItem("sk-zoom",map.getView().getZoom());
+});
+map.getView().on('change:center',function(evt){
+	localStorage.setItem("sk-center",JSON.stringify(map.getView().getCenter()));
+});
+map.getView().on('change:rotation',function(evt){
+	localStorage.setItem("sk-rotation",map.getView().getRotation());
 });
 
 //add our layers
@@ -68,6 +97,7 @@ function connect(){
 	anchor.setup(map);
 	menuControl.setup(map);
 	measure.setup(map);
+	features.setup(map);
 }
 $.ajax({
 			url : "/signalk/api/v1/addresses",
