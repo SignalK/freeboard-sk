@@ -3,6 +3,8 @@ Freeboard-SK
 
 This is a rewrite of Freeboard (http://www.42.co.nz/freeboard) to use the Signal K communication protocols.
 
+https://raw.githubusercontent.com/SignalK/signalk-server-java/master/src/test/resources/samples/freeboard-sk-north-up.png
+
 Its a work-in-progress, currently:
 
  * Displays WORLD chart outline
