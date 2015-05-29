@@ -11,6 +11,7 @@ var addBaseLayers = require('./lib/addBaseLayers.js');
 var addChartLayers = require('./lib/addLayers.js');
 var drawFeatures = require('./lib/drawFeatures.js');
 var features = require('./lib/features.js');
+var aisVessels = require('./lib/aisVessels.js');
 //var displayFeatureInfo = require('./lib/displayFeatureInfo.js');
 
 var menuControl = require('./lib/menuControl.js');
@@ -98,6 +99,7 @@ function connect(){
 	menuControl.setup(map);
 	measure.setup(map);
 	features.setup(map);
+	aisVessels.setup(map);
 }
 $.ajax({
 			url : "/signalk/api/v1/addresses",
