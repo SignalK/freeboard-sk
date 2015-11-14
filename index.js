@@ -102,11 +102,13 @@ function connect(){
 	aisVessels.setup(map);
 }
 $.ajax({
-			url : "/signalk/api/v1/addresses",
-			dataType: "text",
+			url : "/signalk/endpoints/v1",
+			dataType: "json",
 			success : function (data) {
-				var jsonData = JSON.parse(data);
-				var url=jsonData.websocketUrl;
+				//var jsonData = JSON.parse(data);
+                                console.log(data);
+				var url=data['signalk-ws'];
+                                console.log(url);
 				wsServer.connectDelta(url, dispatch, connect);
 			}
 		});

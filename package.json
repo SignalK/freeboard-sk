@@ -24,7 +24,7 @@
     "bootstrap-drawer": "./node_modules/bootstrap-drawer/dist/js/drawer.js",
     "bootstrap-slider": "./node_modules/bootstrap-slider/js/bootstrap-slider.js",
     "bootstrap-toggle": "./node_modules/bootstrap-toggle/js/bootstrap-toggle.js",
-	"bootstrap-select": "./node_modules/bootstrap-select/js/bootstrap-select.js"
+    "bootstrap-select": "./node_modules/bootstrap-select/js/bootstrap-select.js"
   },
   "devDependencies": {
     "uglify-js": "^2.4.20",
