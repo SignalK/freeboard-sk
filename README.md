@@ -19,20 +19,21 @@ Its a work-in-progress, currently:
  * Allows draw/edit/save of waypoints, routes and regions.
  * Supports chart rotation by [Shift-click-drag].
  * Waypoint/route/regions management
+ * AIS targets
 
 Todo:
  * Integration to instrumentpanel project
  * Chart management
  * Bearing and speed lines
- * AIS targets
- 
+
+
  * and on and on...
 
 ### Installation
 
 NOTE: Windows users - DONT put any of this in directories with spaces or anything but simple ascii names. Use something like eg C:\dev\freeboard-sk
 
-You will need a working nodejs installation, and the project must be served from a web server. The easiest way to do this is to also install and run the signalk-server-java project.
+You will need a working nodejs installation to be able to build the project, and the project must be served from a web server. The easiest way to do this is to also install and run the signalk-server-java project.
 
 ```shell
 $ git clone https://github.com/SignalK/signalk-java-server.git
@@ -42,4 +43,3 @@ $ git clone https://github.com/SignalK/signalk-java-server.git
 
  * install development dependencies with `npm install`
  * build & watch with `npm start`
- 

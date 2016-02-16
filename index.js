@@ -47,7 +47,7 @@ var map = new ol.Map({
 		attributionOptions: {
 			collapsible: true
 		}
-	}).extend([ mousePositionControl ]) 
+	}).extend([ mousePositionControl ])
 });
 
 //make map global
@@ -102,18 +102,13 @@ function connect(){
 	aisVessels.setup(map);
 }
 $.ajax({
-			url : "/signalk/endpoints/v1",
+			url : "/signalk",
 			dataType: "json",
 			success : function (data) {
 				//var jsonData = JSON.parse(data);
                                 console.log(data);
-				var url=data['signalk-ws'];
+				var url=data.endpoints.v1['signalk-ws'];
                                 console.log(url);
 				wsServer.connectDelta(url, dispatch, connect);
 			}
 		});
-
-
-
-
-
