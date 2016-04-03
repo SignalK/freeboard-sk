@@ -1,4 +1,4 @@
-var $ =require('jquery');
+var $ = require('jquery');
 window.$ = window.jQuery = require('jquery');
 require('bootstrap');
 require('bootstrap-drawer');
@@ -21,33 +21,33 @@ var wsServer = require('./lib/signalk.js');
 var simplify = require('./lib/simplify-js.js');
 var vesselPosition = require('./lib/vesselPosition.js');
 var measure = require('./lib/measure.js');
-var view= new ol.View({
-	center: ol.proj.transform([65, 50], 'EPSG:4326', 'EPSG:3857'),
-	zoom: 3
+var view = new ol.View({
+    center: ol.proj.transform([65, 50], 'EPSG:4326', 'EPSG:3857'),
+    zoom: 3
 })
 //var settings = JSON.parse(localStorage.getItem("settings"));
 //localStorage.setItem("settings", JSON.stringify(data));
 
 var mousePositionControl = new ol.control.MousePosition({
-	coordinateFormat: ol.coordinate.createStringXY(4),
-	projection: 'EPSG:4326',
-	// comment the following two lines to have the mouse position
-	// be placed within the map.
-	//className: 'custom-mouse-position',
-	//target: document.getElementById('mouse-position'),
-	undefinedHTML: '&nbsp;'
+    coordinateFormat: ol.coordinate.createStringXY(4),
+    projection: 'EPSG:4326',
+    // comment the following two lines to have the mouse position
+    // be placed within the map.
+    //className: 'custom-mouse-position',
+    //target: document.getElementById('mouse-position'),
+    undefinedHTML: '&nbsp;'
 });
 
 var map = new ol.Map({
-	interactions: ol.interaction.defaults().extend([new ol.interaction.DragRotateAndZoom()]),
-	target: 'map',
-	layers: [],
-	view: view,
-	controls: ol.control.defaults({
-		attributionOptions: {
-			collapsible: true
-		}
-	}).extend([ mousePositionControl ])
+    interactions: ol.interaction.defaults().extend([new ol.interaction.DragRotateAndZoom()]),
+    target: 'map',
+    layers: [],
+    view: view,
+    controls: ol.control.defaults({
+        attributionOptions: {
+            collapsible: true
+        }
+    }).extend([mousePositionControl])
 });
 
 //make map global
@@ -55,60 +55,85 @@ $('#map').data('map', map);
 //use 'var map = $('#map').data('map');' to get it back
 
 //reset any existing settings
-if(localStorage.getItem("sk-zoom")){
-	map.getView().setZoom(localStorage.getItem("sk-zoom"));
+if (localStorage.getItem("sk-zoom")) {
+    map.getView().setZoom(localStorage.getItem("sk-zoom"));
 }
-if(localStorage.getItem("sk-center")){
-	map.getView().setCenter(JSON.parse(localStorage.getItem("sk-center")));
+if (localStorage.getItem("sk-center")) {
+    map.getView().setCenter(JSON.parse(localStorage.getItem("sk-center")));
 }
-if(localStorage.getItem("sk-rotation")){
-	map.getView().setRotation(localStorage.getItem("sk-rotation"));
+if (localStorage.getItem("sk-rotation")) {
+    map.getView().setRotation(localStorage.getItem("sk-rotation"));
 }
 
 //store location and zoom, etc
-map.getView().on('change:resolution',function(evt){
-	localStorage.setItem("sk-zoom",map.getView().getZoom());
+map.getView().on('change:resolution', function (evt) {
+    localStorage.setItem("sk-zoom", map.getView().getZoom());
 });
-map.getView().on('change:center',function(evt){
-	localStorage.setItem("sk-center",JSON.stringify(map.getView().getCenter()));
+map.getView().on('change:center', function (evt) {
+    localStorage.setItem("sk-center", JSON.stringify(map.getView().getCenter()));
 });
-map.getView().on('change:rotation',function(evt){
-	localStorage.setItem("sk-rotation",map.getView().getRotation());
+map.getView().on('change:rotation', function (evt) {
+    localStorage.setItem("sk-rotation", map.getView().getRotation());
 });
 
 //add our layers
 addBaseLayers(map);
-addChartLayers(map);
+//addChartLayers(map);
 
 map.addControl(layerSwitcher);
 
 
 var rkScaleLine = new ol.control.ScaleLine({
-	className:'ol-scale-line',
-	units:'nautical'});
+    className: 'ol-scale-line',
+    units: 'nautical'});
 map.addControl(rkScaleLine);
 
 function dispatch(delta) {
-	//do nothing
+    //do nothing
 }
 
-function connect(){
-	vesselPosition.setup(map);
-	drawFeatures.setup( map);
-	anchor.setup(map);
-	menuControl.setup(map);
-	measure.setup(map);
-	features.setup(map);
-	aisVessels.setup(map);
+function connect() {
+    vesselPosition.setup(map);
+    drawFeatures.setup( map);
+    //anchor.setup(map);
+    menuControl.setup(map);
+    measure.setup(map);
+    features.setup(map);
+    aisVessels.setup(map);
 }
+
+
+
 $.ajax({
-			url : "/signalk",
-			dataType: "json",
-			success : function (data) {
-				//var jsonData = JSON.parse(data);
-                                console.log(data);
-				var url=data.endpoints.v1['signalk-ws'];
-                                console.log(url);
-				wsServer.connectDelta(url, dispatch, connect);
-			}
-		});
+    url: "/signalk",
+    dataType: "json",
+    success: function (data) {
+        //var jsonData = JSON.parse(data);
+        console.log(data);
+        var url = data.endpoints.v1['signalk-http'];
+        console.log(url);
+        $.ajax({
+            url: url + 'vessels/self/uuid',
+            dataType: "json",
+            success: function (data) {
+                //var jsonData = JSON.parse(data);
+                console.log(Object.keys(data.vessels));
+                //TODO: iterate keys and find first, then uuid
+                ownVessel = Object.keys(data.vessels)[0];
+                console.log(ownVessel);
+                vesselPosition.setOwnVessel(ownVessel);
+            }
+        });
+    }
+});
+$.ajax({
+    url: "/signalk",
+    dataType: "json",
+    success: function (data) {
+        //var jsonData = JSON.parse(data);
+        console.log(data);
+        var url = data.endpoints.v1['signalk-ws'];
+        console.log(url);
+        wsServer.connectDelta(url, dispatch, connect);
+    }
+});

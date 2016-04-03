@@ -37,7 +37,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "watchify index.js --outfile bundle.js",
-    "build": "browserify index.js | uglifyjs --compress --output bundle.js"
+    "build": "browserify index.js | --output bundle.js"
   },
   "author": "robert@42.co.nz",
   "license": "Apache v2"
