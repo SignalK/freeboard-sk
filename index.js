@@ -95,7 +95,7 @@ function dispatch(delta) {
 function connect() {
     vesselPosition.setup(map);
     drawFeatures.setup( map);
-    //anchor.setup(map);
+    anchor.setup(map);
     menuControl.setup(map);
     measure.setup(map);
     features.setup(map);

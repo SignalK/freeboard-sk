@@ -39,7 +39,7 @@
 				font-family: 'Lucida Grande',Verdana,Geneva,Lucida,Arial,Helvetica,sans-serif;
 			}
 			.ol-control button {
-			    opacity: 0.5;	
+			    opacity: 0.5;
 			}
 			.anchor-btn {
 				top: 65px;
@@ -47,17 +47,17 @@
 				background-image: url('img/anchor44x38.png');
 				background-repeat: no-repeat;
 				background-size: contain;
-				
+
 			}
-		
+
 			.feature-btn {
 				top: 90px;
 				left: .5em;
 				background-image: url('img/draw_line_off.png');
 				background-size: contain;
 			}
-			
-			
+
+
 			.follow-btn {
 				top: 140px;
 				left: .5em;
@@ -87,7 +87,7 @@
 			.ol-touch .draw-btn  {
 				top: 150px;
 			}
-			
+
 			.ol-touch .follow-btn  {
 				top: 185px;
 			}
@@ -120,21 +120,49 @@
 				width:100%;
 			}
 
-			
+
 		</style>
 		<title>Freeboard K - OpenLayers 3 + Signal K</title>
 	</head>
 	<body class="has-drawer">
+		<div id="menuDrawer" class="drawer drawer-inverse dw-xs-10 dw-sm-6 dw-md-4 fold" aria-labelledby="menuDrawer">
+			<div class="drawer-controls">
+            <a href="#menuDrawer" data-toggle="drawer" aria-foldedopen="false" aria-controls="menuDrawer" class="btn btn-primary btn-sm">Menu</a>
+        </div>
+			<div class="drawer-contents">
+				<div class="drawer-heading">
+					<h2 class="drawer-title">Menu</h2>
+					<!--<span data-toggle="drawer" data-target="#drawDrawer" >-->
+					   <ul class="drawer-nav">
+							 <li role="presentation" class="active"><a href="#anchorDrawer" data-toggle="drawer" >Anchor</a></li>
+							 <li role="presentation"><a href="#"><a href="#featurePopup" data-toggle="drawer" >Chart List</a></li>
+							 <li role="presentation"><a href="#"><a href="#featureDrawer" data-toggle="drawer" >Feature</a></li>
+							 <li role="presentation"><a href="#"><a href="#drawDrawer" data-toggle="drawer" >Draw</a></li>
+							 <li role="presentation"><a href="#"><a href="#drawDrawer" data-toggle="drawer" >Follow Vessel</a></li>
+							 <li role="presentation"><a href="#"><a href="#drawDrawer" data-toggle="drawer" >Find Vessel</a></li>
+            </ul>
 
+					<!--</span>-->
 
-		<div id="anchorDrawer" class="drawer dw-xs-8 dw-sm-5 dw-md-3 fold" aria-labelledby="anchorDrawer">
+				</div>
+				<div class="drawer-body">
+					<div id="featurePopup"  class="panel" title="Chart List">
+						<ul id="featurePopupList" class="list-group"></ul>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<div id="anchorDrawer" class="drawer drawer-inverse dw-xs-8 dw-sm-5 dw-md-3 fold" aria-labelledby="anchorDrawer">
 
 			<div class="drawer-contents">
 				<div class="drawer-heading">
 					<h2 class="drawer-title">Anchor Watch</h2>
-					<input id="anchorPopupOn" type="checkbox"  data-toggle="toggle">
-					<a id="anchorPopupReset" class="btn btn-primary btn-sm" >Reset</a>
-					<a href="#anchorDrawer" data-toggle="drawer" class="btn btn-primary btn-sm">Hide</a>
+					<ul class="drawer-nav">
+							<li role="presentation" class="active"><input id="anchorPopupOn" type="checkbox"  data-toggle="toggle"></li>
+							<li role="presentation"><a id="anchorPopupReset"  >Reset</a></li>
+							<li role="presentation"><a href="#anchorDrawer" data-toggle="drawer" >Hide</a></li>
+					</ul>
 				</div>
 				<div class="drawer-body">
 					<div id="anchorPopup"  class="panel" title="Anchor Guard">
@@ -151,7 +179,7 @@
 							<span class="input-group-addon" id="basic-addon1">Maximum Radius:<h3><label id="anchorPopupMaxRadius" class="label label-default">50</label></h3>
 								<input id="anchorPopupMaxRadiusSlide" type="text" style="width:100%; vertical-align: middle; "/>
 							</span>
-						</div>					
+						</div>
 						<div class="input-group">
 							<span class="input-group-addon" id="basic-addon1">Current Radius:<h3><label id="anchorPopupRadius" class="label label-default">50</label></h3></span>
 						</div>
@@ -160,7 +188,7 @@
 
 			</div>
 		</div>
-		<div id="featureDrawer" class="drawer dw-xs-10 dw-sm-6 dw-md-4 fold" aria-labelledby="featureDrawer">
+		<div id="featureDrawer" class="drawer drawer-inverse dw-xs-10 dw-sm-6 dw-md-4 fold" aria-labelledby="featureDrawer">
 			<div class="drawer-contents">
 				<div class="drawer-heading">
 					<h2 class="drawer-title">Features List</h2>
@@ -170,7 +198,7 @@
 					<a href="#featureDrawer" data-toggle="drawer" class="btn btn-primary btn-sm">Close</a>
 					<input type="text" id="featureDrawerFilter" name="featureFilterAction" value="" />
 					<a id="featureDrawerSearch" href="#featureDrawer"  class="btn btn-primary btn-sm">Search</a>
-					
+
 				</div>
 				<div class="drawer-body">
 					<div id="featurePopup"  class="panel" title="Chart List">
@@ -180,18 +208,18 @@
 			</div>
 		</div>
 
-		<div id="drawDrawer" class="drawer dw-xs-10 dw-sm-6 dw-md-4 fold" aria-labelledby="drawDrawer">
+		<div id="drawDrawer" class="drawer drawer-inverse dw-xs-10 dw-sm-6 dw-md-4 fold" aria-labelledby="drawDrawer">
 			<div class="drawer-contents">
 				<div class="drawer-heading">
 					<h2 class="drawer-title">Draw</h2>
-					
+
 					<div id="drawPopupAction" class="btn-group" data-toggle="buttons">
 						<label class="btn btn-default ">
 							<input type="radio" id="drawPopupAdd" name="drawAction" value="Add" /> Add
-						</label> 
+						</label>
 						<label class="btn btn-default">
 							<input type="radio" id="drawPopupEdit" name="drawAction" value="Edit" /> Edit
-						</label> 
+						</label>
 						<label class="btn btn-default active">
 							<input type="radio" id="drawPopupImport" name="drawAction" value="Import" /> Import
 						</label>
@@ -199,17 +227,17 @@
 					<div id="drawPopupGeom" class="btn-group" data-toggle="buttons">
 						<label class="btn btn-default active" disabled="disabled">
 							<input type="radio" id="drawPopupPoint" name="drawGeom" value="Point" /> Waypoint
-						</label> 
+						</label>
 						<label class="btn btn-default" disabled="disabled">
 							<input type="radio" id="drawPopupLine" name="drawGeom" value="LineString" /> Route
-						</label> 
+						</label>
 						<label class="btn btn-default" disabled="disabled">
 							<input type="radio" id="drawPopupPolygon" name="drawGeom" value="Polygon" /> Region
 						</label>
 					</div>
-					
+
 					<a id="drawPopupSave" class="btn btn-primary btn-sm" >Save</a>
-					<span data-toggle="drawer" data-target="#featureDrawer" >
+					<span data-toggle="drawer" data-target="#drawDrawer" >
 						<a href="#drawDrawer" data-toggle="drawer" class="btn btn-primary btn-sm">Close</a>
 					</span>
 				</div>
@@ -222,7 +250,7 @@
 
 
 			<div id="map" class="row"></div>
-			
+
 
 			<!-- hidden modals container -->
 			<div style="display: none;">
@@ -231,7 +259,7 @@
 					<div class="drawer-contents ">
 						<div class="drawer-heading">
 							<h2 class="drawer-title">Save Features</h2>
-							
+
 						</div>
 						<div class="drawer-body">
 							<div class="input-group">
@@ -242,7 +270,7 @@
 								<span class="input-group-addon" id="basic-addon1">Description:</span>
 								<textarea id="saveFeaturePopupDesc" class="form-control" rows="5" placeholder="eg Nelson fishing waypoints" ></textarea>
 							</div>
-							
+
 						</div>
 					</div>
 

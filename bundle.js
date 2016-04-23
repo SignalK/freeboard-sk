@@ -96,7 +96,7 @@ function dispatch(delta) {
 function connect() {
     vesselPosition.setup(map);
     drawFeatures.setup( map);
-    //anchor.setup(map);
+    anchor.setup(map);
     menuControl.setup(map);
     measure.setup(map);
     features.setup(map);
@@ -185,7 +185,7 @@ module.exports = function addBaseLayers( map) {
 var ol = require('openlayers');
 var getTileUrl = require('./getTileUrl.js');
 module.exports = function addChartLayers( map) {
-	var NZ23 = new ol.layer.Tile({
+/*	var NZ23 = new ol.layer.Tile({
 		title: "NZ23",
 		source: new ol.source.XYZ({
 			tileUrlFunction: function (coordinate) {
@@ -198,35 +198,8 @@ module.exports = function addChartLayers( map) {
 				VERSION: '1.1.1'
 			}
 		})
-	});
-	var NZ46 = new ol.layer.Tile({
-		title: "NZ46",
-		source: new ol.source.XYZ({
-			tileUrlFunction: function (coordinate) {
-				return getTileUrl(coordinate, 'NZ46')
-			},
-			minZoom: 7,
-			maxZoom: 12,
-			params: {
-				LAYERS: 'NZ46',
-				VERSION: '1.1.1'
-			}
-		})
-	});
-	var NZ61 = new ol.layer.Tile({
-		title: "NZ61",
-		source: new ol.source.XYZ({
-			tileUrlFunction: function (coordinate) {
-				return getTileUrl(coordinate, 'NZ61')
-			},
-			minZoom: 7,
-			maxZoom: 12,
-			params: {
-				LAYERS: 'NZ61',
-				VERSION: '1.1.1'
-			}
-		})
-	});
+	});*/
+	//map.addLayer(NZ23);
 
 /*	var openSeaMapLayer = new ol.layer.Tile({
 		title: "OpenSeaMap",
@@ -243,152 +216,7 @@ module.exports = function addChartLayers( map) {
 		})
 	});*/
 
-	var NZ14600 = new ol.layer.Tile({
-		title: "NZ14600",
-		source: new ol.source.XYZ({
-			tileUrlFunction: function (coordinate) {
-				return getTileUrl(coordinate, 'NZ14600')
-			},
-			minZoom: 7,
-			maxZoom: 12,
-			params: {
-				LAYERS: 'NZ14600',
-				VERSION: '1.1.1'
-			}
-		})
-	});
-	map.addLayer(NZ14600);
 
-	var NZ614 = new ol.layer.Tile({
-		title: "NZ614",
-		source: new ol.source.XYZ({
-			tileUrlFunction: function (coordinate) {
-				return getTileUrl(coordinate, 'NZ614')
-			},
-			minZoom: 7,
-			maxZoom: 12,
-			params: {
-				LAYERS: 'NZ614',
-				VERSION: '1.1.1'
-			}
-		})
-	});
-	map.addLayer(NZ614);
-
-	var NZ6142_1 = new ol.layer.Tile({
-		title: "NZ6142_1",
-		source: new ol.source.XYZ({
-			tileUrlFunction: function (coordinate) {
-				return getTileUrl(coordinate, 'NZ6142_1')
-			},
-			minZoom: 7,
-			maxZoom: 12,
-			params: {
-				LAYERS: 'NZ6142_1',
-				VERSION: '1.1.1'
-			}
-		})
-	});
-	map.addLayer(NZ6142_1);
-
-	var NZ6151_1 = new ol.layer.Tile({
-		title: "NZ6151_1",
-		source: new ol.source.XYZ({
-			tileUrlFunction: function (coordinate) {
-				return getTileUrl(coordinate, 'NZ6151_1')
-			},
-			minZoom: 7,
-			maxZoom: 12,
-			params: {
-				LAYERS: 'NZ6151_1',
-				VERSION: '1.1.1'
-			}
-		})
-	});
-	map.addLayer(NZ6151_1);
-
-	var NZ61401 = new ol.layer.Tile({
-		title: "NZ61401",
-		source: new ol.source.XYZ({
-			tileUrlFunction: function (coordinate) {
-				return getTileUrl(coordinate, 'NZ61401')
-			},
-			minZoom: 7,
-			maxZoom: 12,
-			params: {
-				LAYERS: 'NZ61401',
-				VERSION: '1.1.1'
-			}
-		})
-	});
-	map.addLayer(NZ61401);
-
-	var NZ614_1 = new ol.layer.Tile({
-		title: "NZ614_1",
-		source: new ol.source.XYZ({
-			tileUrlFunction: function (coordinate) {
-				return getTileUrl(coordinate, 'NZ614_1')
-			},
-			minZoom: 7,
-			maxZoom: 12,
-			params: {
-				LAYERS: 'NZ614_1',
-				VERSION: '1.1.1'
-			}
-		})
-	});
-	map.addLayer(NZ614_1);
-
-	var NZ6142_2 = new ol.layer.Tile({
-		title: "NZ6142_2",
-		source: new ol.source.XYZ({
-			tileUrlFunction: function (coordinate) {
-				return getTileUrl(coordinate, 'NZ6142_2')
-			},
-			minZoom: 7,
-			maxZoom: 12,
-			params: {
-				LAYERS: 'NZ6142_2',
-				VERSION: '1.1.1'
-			}
-		})
-	});
-	map.addLayer(NZ6142_2);
-
-	var NZ6144 = new ol.layer.Tile({
-		title: "NZ6144",
-		source: new ol.source.XYZ({
-			tileUrlFunction: function (coordinate) {
-				return getTileUrl(coordinate, 'NZ6144')
-			},
-			minZoom: 7,
-			maxZoom: 12,
-			params: {
-				LAYERS: 'NZ6144',
-				VERSION: '1.1.1'
-			}
-		})
-	});
-	map.addLayer(NZ6144);
-	var NZ615 = new ol.layer.Tile({
-		title: "NZ615",
-		source: new ol.source.XYZ({
-			tileUrlFunction: function (coordinate) {
-				return getTileUrl(coordinate, 'NZ615')
-			},
-			minZoom: 7,
-			maxZoom: 12,
-			params: {
-				LAYERS: 'NZ615',
-				VERSION: '1.1.1'
-			}
-		})
-	});
-	map.addLayer(NZ615);
-
-	map.addLayer(NZ23);
-	map.addLayer(NZ46);
-	map.addLayer(NZ61);
 	//map.addLayer(openSeaMapLayer);
 }
 
@@ -572,7 +400,7 @@ function startAnchorWatch(map) {
 	wsServer.send(JSON.stringify(putMsg)); 
 }
 
-function getPutMsg(latitiude, longitude, maxRadius){
+function getPutMsg(lat, lon, maxRadius){
 	return { context: 'vessels.self',
 				  put: [
 					  {
@@ -582,8 +410,8 @@ function getPutMsg(latitiude, longitude, maxRadius){
 							  {
 								  path: 'navigation.anchor.position',
 								  value: {
-									  latitude: latitiude,
-									  longitude: longitude,
+									  latitude: lat,
+									  longitude: lon,
 									  altitude:0
 								  }
 							  },
@@ -688,20 +516,27 @@ function anchorWatchToggle(map){
 
 
 
-
+var lat, lon;
 
 function onmessage(delta, socket) {
 
 	if(delta.updates){
 		delta.updates.forEach(function(update) {
 			//console.log(JSON.stringify(update));
-			update.values.forEach(function(value) {
-				//console.log(value);
-				if(value.value.latitude){
-					currentLat=value.value.latitude;
-					currentLon=value.value.longitude;
-				}
-				if(value.path==="navigation.anchor.currentRadius"){
+			update.values.forEach(function (value) {
+                console.log(value);
+
+                if (value.path === 'navigation.position.latitude') {
+                    console.log(value.value);
+                    lat = value.value;
+                  }
+                if (value.path === 'navigation.position.longitude') {
+                      console.log(value.value);
+                      lon = value.value;
+                    }
+               
+			
+				if(value.path==="navigation.anchor.currentRadius" && lat && lon){
 						radius = util.haversine([lon,lat],[currentLon,currentLat]);
 						//console.log("Radius:"+radius+", lat:"+lat+", lon:"+lon+", clat:"+currentLat+", clon:"+currentLon);
 						$("#anchorPopupRadius").text(Math.round(value.value));
@@ -1950,7 +1785,7 @@ var connection;
 function connectDelta(url, callback, onConnect, onDisconnect) {
 	debug("Connecting to " + url);
 
-	url = url+"?format=delta&context=self";
+	url = url+"?subscribe=self";
 
 	console.log("Using "+ url);
 	connection = new WebSocket(url);
@@ -7364,14 +7199,14 @@ module.exports = ret;
 }).call(this,require('_process'),typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
 },{"_process":122}],18:[function(require,module,exports){
 /* ========================================================================
- * Bootstrap: drawer.js v1.0
+ * Bootstrap: drawer.js v1.0.3
  # Heavily based on collapse, but had to change the name to "fold" to 
  # avoid transition conflicts.
  * ========================================================================
 */
 
 
-+function ($) {
+(function ($) {
   'use strict';
 
   // OFF CANVAS PUBLIC CLASS DEFINITION
@@ -7447,10 +7282,14 @@ module.exports = ret;
         .trigger('shown.bs.drawer')
     }
 
-    if (!$.support.transition) return complete.call(this)
+    if (!$.support.transition) {
+        return complete.call(this)
+    } else {
+        this.transEventName = $.support.transition.end;
+    }
 
     this.$element
-      .one('bsTransitionEnd', $.proxy(complete, this))
+      .one(this.transEventName, $.proxy(complete, this))
       .emulateTransitionEnd(Drawer.TRANSITION_DURATION).css(dimension, 0)
   }
 
@@ -7482,11 +7321,15 @@ module.exports = ret;
         .trigger('hidden.bs.drawer')
     }
 
-    if (!$.support.transition) return complete.call(this)
+    if (!$.support.transition) {
+        return complete.call(this)
+    } else {
+        this.transEventName = $.support.transition.end;
+    }
 
     this.$element
       .css(dimension, '')
-      .one('bsTransitionEnd', $.proxy(complete, this))
+      .one(this.transEventName, $.proxy(complete, this))
       .emulateTransitionEnd(Drawer.TRANSITION_DURATION)
   }
 
@@ -7567,7 +7410,8 @@ module.exports = ret;
     Plugin.call($target, option)
   })
 
-}(jQuery);
+})(window.jQuery || {});
+
 },{}],19:[function(require,module,exports){
 (function ($) {
   'use strict';
