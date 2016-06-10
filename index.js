@@ -93,12 +93,14 @@ function dispatch(delta) {
 }
 
 function connect() {
+	var sub = '{"context":"vessels.self","unsubscribe":[{"path":"*"}]}';
+    wsServer.send(sub);
     vesselPosition.setup(map);
     drawFeatures.setup( map);
     anchor.setup(map);
     menuControl.setup(map);
     measure.setup(map);
-    features.setup(map);
+    //features.setup(map);
     aisVessels.setup(map);
 }
 
