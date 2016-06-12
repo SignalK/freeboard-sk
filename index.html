@@ -120,12 +120,22 @@
 				width:100%;
 			}
 
-
+			.drawer-nav li.active a,
+			.drawer-fullnav li.active a,
+			.drawer-nav li a:hover,
+			.drawer-fullnav li a:hover,
+			.drawer-nav li a:focus,
+			.drawer-fullnav li a:focus {
+			  color: #fff;
+			  text-decoration: none;
+			  background-image: linear-gradient(to bottom, #337ab7 0%, #265a88 100%);
+				background-repeat: repeat-x;
+			}
 		</style>
 		<title>Freeboard K - OpenLayers 3 + Signal K</title>
 	</head>
 	<body class="has-drawer">
-		<div id="menuDrawer" class="drawer drawer-inverse dw-xs-10 dw-sm-6 dw-md-4 fold" aria-labelledby="menuDrawer">
+		<div id="menuDrawer" class="drawer  dw-xs-5 dw-sm-3 dw-md-2 fold" aria-labelledby="menuDrawer">
 			<div class="drawer-controls">
             <a href="#menuDrawer" data-toggle="drawer" aria-foldedopen="false" aria-controls="menuDrawer" class="btn btn-primary btn-sm">Menu</a>
         </div>
@@ -134,12 +144,13 @@
 					<h2 class="drawer-title">Menu</h2>
 					<!--<span data-toggle="drawer" data-target="#drawDrawer" >-->
 					   <ul class="drawer-nav">
-							 <li role="presentation" class="active"><a href="#anchorDrawer" data-toggle="drawer" >Anchor</a></li>
-							 <li role="presentation"><a href="#"><a href="#featurePopup" data-toggle="drawer" >Chart List</a></li>
-							 <li role="presentation"><a href="#"><a href="#featureDrawer" data-toggle="drawer" >Feature</a></li>
-							 <li role="presentation"><a href="#"><a href="#drawDrawer" data-toggle="drawer" >Draw</a></li>
-							 <li role="presentation"><a href="#"><a href="#drawDrawer" data-toggle="drawer" >Follow Vessel</a></li>
-							 <li role="presentation"><a href="#"><a href="#drawDrawer" data-toggle="drawer" >Find Vessel</a></li>
+							 <li role="presentation"><a href="#anchorDrawer" data-toggle="drawer" >Anchor</a></li>
+							 <li role="presentation"><a href="#featurePopup" data-toggle="drawer" >Chart List</a></li>
+							 <li role="presentation"><a href="#featureDrawer" data-toggle="drawer" >Feature</a></li>
+							 <li role="presentation"><a href="#drawDrawer" data-toggle="drawer" >Draw</a></li>
+							 <li role="presentation"><input id="followVessel" type="checkbox"></input></li>
+							 <li role="presentation"><a href="#drawDrawer" data-toggle="drawer" >Find Vessel</a></li>
+							 <li role="presentation"><a href="#menuDrawer" data-toggle="drawer" >Close</a></li>
             </ul>
 
 					<!--</span>-->
@@ -153,7 +164,7 @@
 			</div>
 		</div>
 
-		<div id="anchorDrawer" class="drawer drawer-inverse dw-xs-8 dw-sm-5 dw-md-3 fold" aria-labelledby="anchorDrawer">
+		<div id="anchorDrawer" class="drawer dw-xs-8 dw-sm-5 dw-md-3 fold" aria-labelledby="anchorDrawer">
 
 			<div class="drawer-contents">
 				<div class="drawer-heading">
@@ -188,7 +199,7 @@
 
 			</div>
 		</div>
-		<div id="featureDrawer" class="drawer drawer-inverse dw-xs-10 dw-sm-6 dw-md-4 fold" aria-labelledby="featureDrawer">
+		<div id="featureDrawer" class="drawer dw-xs-10 dw-sm-6 dw-md-4 fold" aria-labelledby="featureDrawer">
 			<div class="drawer-contents">
 				<div class="drawer-heading">
 					<h2 class="drawer-title">Features List</h2>
@@ -208,7 +219,7 @@
 			</div>
 		</div>
 
-		<div id="drawDrawer" class="drawer drawer-inverse dw-xs-10 dw-sm-6 dw-md-4 fold" aria-labelledby="drawDrawer">
+		<div id="drawDrawer" class="drawer dw-xs-10 dw-sm-6 dw-md-4 fold" aria-labelledby="drawDrawer">
 			<div class="drawer-contents">
 				<div class="drawer-heading">
 					<h2 class="drawer-title">Draw</h2>
