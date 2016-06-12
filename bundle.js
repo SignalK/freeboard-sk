@@ -2206,11 +2206,6 @@ vesselPosition.setStyle(
             }))
         }));
 
-
-var VesselUpControl = menuControl.makeButton('U', 'vessel-up-btn', function (e) {
-    toggleVesselUp();
-});
-
 var markers = [];
 var trackLine = new ol.geom.LineString(markers, 'XY');
 var vesselTrack = new ol.Feature({
@@ -2459,11 +2454,31 @@ function setOwnVessel(ownVessel) {
     this.ownVessel = ownVessel;
 }
 function setup(map) {
+    $("#followVessel").bootstrapToggle({
+        on: 'Follow Vessel',
+        off: 'Dont Follow'
+      });
     if (localStorage.getItem("sk-follow-vessel")) {
         followVessel = JSON.parse(localStorage.getItem("sk-follow-vessel"));
+        if(followVessel){
+          $("#followVessel").bootstrapToggle('on');
+        }else{
+          $("#followVessel").bootstrapToggle('off');
+        }
     }
+
+    $("#vesselUp").bootstrapToggle({
+          on: 'Vessel Up',
+          off: 'North Up'
+        });
+        
     if (localStorage.getItem("sk-vessel-up")) {
         vesselUp = JSON.parse(localStorage.getItem("sk-vessel-up"));
+        if(vesselUp){
+          $("#vesselUp").bootstrapToggle('on');
+        }else{
+          $("#vesselUp").bootstrapToggle('off');
+        }
     }
     //console.log("VesselPosition:"+vesselPosition));
     vesselOverlay = setVesselOverlay(map, vesselPosition, vesselTrack,vesselHdg,vesselAppWind, vesselTrueWind);
@@ -2472,15 +2487,14 @@ function setup(map) {
     var sub = '{"context":"vessels.self","subscribe":[{"path":"environment.wind.speedOverGround"},{"path":"environment.wind.directionMagnetic"},{"path":"navigation.position.*"},{"path":"navigation.magneticVariation"},{"path":"environment.wind.angleApparent"},{"path":"navigation.courseOverGround*"},{"path":"navigation.speedOverGround"}]}';
     wsServer.send(sub);
 
-    map.addControl(new VesselUpControl());
-    $(".vessel-up-btn").tooltip({placement: 'right', title: 'Toggle Vessel up/North up'});
 
-    $('#followVessel').bootstrapToggle({
-          on: 'Follow Vessel',
-          off: 'Dont Follow'
-        });
     $("#followVessel").change(function(){
       toggleFollowVessel();
+    });
+
+
+    $("#vesselUp").change(function(){
+      toggleVesselUp();
     });
 
 }
@@ -2489,7 +2503,8 @@ module.exports = {
     onmessage: onmessage,
     setup: setup,
     setOwnVessel: setOwnVessel,
-    toggleFollowVessel:toggleFollowVessel
+    toggleFollowVessel:toggleFollowVessel,
+    toggleVesselUp:toggleVesselUp
 };
 
 },{"./features.js":7,"./menuControl.js":10,"./signalk.js":12,"./styleFunction.js":14,"./util.js":15,"openlayers":40}],17:[function(require,module,exports){
