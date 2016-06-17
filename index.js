@@ -110,7 +110,6 @@ $.ajax({
     url: "/signalk",
     dataType: "json",
     success: function (data) {
-        //var jsonData = JSON.parse(data);
         console.log(data);
         var url = data.endpoints.v1['signalk-http'];
         console.log(url);
@@ -136,6 +135,9 @@ $.ajax({
         console.log(data);
         var url = data.endpoints.v1['signalk-ws'];
         console.log(url);
-        wsServer.connectDelta(url, dispatch, connect);
+        var host = url.substring(url.indexOf("//")+2);
+        host = host.substring(0,host.indexOf("/"));
+
+        wsServer.connectDelta(host, dispatch, connect);
     }
 });
