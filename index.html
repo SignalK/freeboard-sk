@@ -14,6 +14,7 @@
 		<link rel="stylesheet" href="node_modules/bootstrap-toggle/css/bootstrap-toggle.css" >
 		<link rel="stylesheet" href="node_modules/bootstrap-select/dist/css/bootstrap-select.css" >
 		<link rel="stylesheet" href="node_modules/openlayers/dist/ol.css" type="text/css">
+		<link rel="stylesheet" href="node_modules/font-awesome/css/font-awesome.min.css">
 		<link rel="stylesheet" data-aload="styles/fonts.css">
 		<link rel="stylesheet" href="./lib/css/ol3-layerswitcher.css">
 		<link rel="stylesheet" href="./lib/css/measure.css">
@@ -31,6 +32,15 @@
 			body {
 				width: 100%;
 				height: 100%;
+			}
+
+			.ol-zoom {
+				   top: 65px
+				}
+
+			.ol-control button {
+				width: 2em;
+				height: 2em;
 			}
 			.ol-attribution {
 				max-width: calc(100% - 3em);
@@ -137,7 +147,7 @@
 	<body class="has-drawer">
 		<div id="menuDrawer" class="drawer  dw-xs-5 dw-sm-3 dw-md-2 fold" aria-labelledby="menuDrawer">
 			<div class="drawer-controls">
-            <a href="#menuDrawer" data-toggle="drawer" aria-foldedopen="false" aria-controls="menuDrawer" class="btn btn-primary btn-sm">Menu</a>
+            <a href="#menuDrawer" data-toggle="drawer" aria-foldedopen="false" aria-controls="menuDrawer" class="btn btn-primary btn-sm" ><i class="fa fa-align-justify"></i></a>
         </div>
 			<div class="drawer-contents">
 				<div class="drawer-heading">
