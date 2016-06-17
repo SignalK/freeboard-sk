@@ -1819,12 +1819,11 @@ function connectDelta(host, callback, onConnect, onDisconnect) {
 
 	//url = url+"?subscribe=self";
  connection = signalk.discoverAndConnect();
- if(!connection){
-	 console.log("Could not use mdns, falling back to "+host);
+ if(connection){
 	 return;
  }
 
-	console.log("Using "+ host);
+	console.log("Could not use mdns, falling back to "+host);
 	connection=signalk.connectDelta(host,
             thisCallback,
             function(skConnection) {
@@ -2343,7 +2342,7 @@ function onmessage(delta) {
                     if (value.value !== 0) {
                         cog = 1;
                         //console.log("Heading magnetic (radians):"+value.value);
-                        cogm=value.value+magVar;
+                        cogm=value.value-magVar;
                         setRotation(cogm, coord);
                     }
                 }
@@ -2479,7 +2478,7 @@ function setup(map) {
           on: 'Vessel Up',
           off: 'North Up'
         });
-        
+
     if (localStorage.getItem("sk-vessel-up")) {
         vesselUp = JSON.parse(localStorage.getItem("sk-vessel-up"));
         if(vesselUp){
