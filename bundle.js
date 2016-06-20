@@ -14,13 +14,13 @@ var drawFeatures = require('./lib/drawFeatures.js');
 var features = require('./lib/features.js');
 var aisVessels = require('./lib/aisVessels.js');
 //var displayFeatureInfo = require('./lib/displayFeatureInfo.js');
-
+var vesselPosition = require('./lib/vesselPosition.js');
 var menuControl = require('./lib/menuControl.js');
 var anchor = require('./lib/anchorControl.js');
 
-var wsServer = require('./lib/signalk.js');
+window.wsServer = require('./lib/signalk.js');
 var simplify = require('./lib/simplify-js.js');
-var vesselPosition = require('./lib/vesselPosition.js');
+
 var measure = require('./lib/measure.js');
 var view = new ol.View({
     center: ol.proj.transform([65, 50], 'EPSG:4326', 'EPSG:3857'),
@@ -95,14 +95,15 @@ function dispatch(delta) {
 
 function connect() {
 	var sub = '{"context":"vessels.self","unsubscribe":[{"path":"*"}]}';
-    wsServer.send(sub);
+    window.wsServer.send(sub);
+    aisVessels.setup(map);
     vesselPosition.setup(map);
     drawFeatures.setup( map);
     anchor.setup(map);
     menuControl.setup(map);
     measure.setup(map);
     //features.setup(map);
-    aisVessels.setup(map);
+
 }
 
 
@@ -123,7 +124,7 @@ $.ajax({
                 //TODO: iterate keys and find first, then uuid
                 ownVessel = Object.keys(data.vessels)[0];
                 console.log(ownVessel);
-                vesselPosition.setOwnVessel(ownVessel);
+
             }
         });
     }
@@ -139,7 +140,7 @@ $.ajax({
         var host = url.substring(url.indexOf("//")+2);
         host = host.substring(0,host.indexOf("/"));
 
-        wsServer.connectDelta(host, dispatch, connect);
+        window.wsServer.connectDelta(host, dispatch, connect);
     }
 });
 
@@ -226,7 +227,7 @@ module.exports = function addChartLayers( map) {
 
 },{"./getTileUrl.js":8,"openlayers":40}],4:[function(require,module,exports){
 var ol = require('openlayers');
-var wsServer = require('./signalk.js');
+//var wsServer = require('./signalk.js');
 var styleFunction = require('./styleFunction.js');
 var menuControl = require('./menuControl.js');
 var features = require('./features.js');
@@ -255,7 +256,10 @@ function onmessage(delta) {
 	var vessel = delta.context;
 	//dont do self
 	//console.log(delta);
-	if(vessel === 'vessels.'+this.ownVessel || vessel === 'vessels.self') return;
+	if(vessel === 'vessels.'+window.ownVessel || vessel === 'vessels.self') {
+		//console.log('Ignore '+vessel+',  uuid:'+window.ownVessel);
+		return;
+	}
 	var now = new Date().getTime();
 	//10 min max
 	now=now-600000;
@@ -345,9 +349,9 @@ function setLocation(aisVessel, radians, coord){
 function setup(map){
 	//aisOverlay = setAisOverlay(map);
 	map.addLayer(aisLayer);
-	wsServer.addSocketListener(this, "Ais");
+	window.wsServer.addSocketListener(this, "Ais");
 	var sub = '{"context":"vessels.*","subscribe":[{"path":"navigation.position.*","period":10000},{"path":"navigation.courseOverGround*","period":10000},{"path":"navigation.speedOverGround","period":10000}]}';
-	wsServer.send(sub);
+	window.wsServer.send(sub);
 
 }
 
@@ -357,7 +361,7 @@ module.exports = {
 	setup:setup
 };
 
-},{"./features.js":7,"./menuControl.js":10,"./signalk.js":12,"./styleFunction.js":14,"./util.js":15,"openlayers":40}],5:[function(require,module,exports){
+},{"./features.js":7,"./menuControl.js":10,"./styleFunction.js":14,"./util.js":15,"openlayers":40}],5:[function(require,module,exports){
 var $ = require('jquery');
 
 var ol = require('openlayers');
@@ -365,7 +369,7 @@ var util = require('./util.js');
 var vesselPosition = require('./vesselPosition.js');
 
 var styleFunction = require('./styleFunction.js');
-var wsServer = require('./signalk.js');
+//var wsServer = require('./signalk.js');
 var menuControl = require('./menuControl.js');
 //var map, connection;
 var lat;
@@ -420,7 +424,7 @@ function startAnchorWatch(map) {
 	var putMsg = getPutMsg(lat,lon,maxRadius);
 
 	console.log(JSON.stringify(putMsg));
-	wsServer.send(JSON.stringify(putMsg));
+	window.wsServer.send(JSON.stringify(putMsg));
 }
 
 function getPutMsg(lat, lon, maxRadius){
@@ -428,14 +432,14 @@ function getPutMsg(lat, lon, maxRadius){
 				  put: [
 					  {
 						  timestamp: new Date().toISOString(),
-						  source: 'vessels.self',
+						  source: 'unknown',
 						  values: [
 							  {
 								  path: 'navigation.anchor.position',
 								  value: {
 									  latitude: lat,
 									  longitude: lon,
-									  altitude:0
+									  altitude:0.0
 								  }
 							  },
 							  {
@@ -481,7 +485,7 @@ function anchorWatchToggle(map){
 						  put: [
 							  {
 								  timestamp: new Date().toISOString(),
-								  source: 'vessels.self',
+								  source: 'unknown',
 								  values: [
 									  {
 										  path: 'navigation.anchor.currentRadius.meta',
@@ -501,7 +505,7 @@ function anchorWatchToggle(map){
 						 };
 			console.log("Switch off");
 			console.log(JSON.stringify(putMsg));
-			wsServer.send(JSON.stringify(putMsg));
+			window.wsServer.send(JSON.stringify(putMsg));
 		}
 	}
 }
@@ -509,27 +513,32 @@ function anchorWatchToggle(map){
 
 function onmessage(delta) {
 
-	if (delta.context !== 'vessels.' + vesselPosition.ownVessel && delta.context !== 'vessels.self' && delta.context !== 'vessels.motu') {
-		  //console.log('Ignore '+delta.context+', not:'+vesselPosition.ownVessel);
-			return;
-	}
+	 if (!delta.context ){
+	      //console.log("Invalid msg for vesselPositon");
+	      return;
+	    }
+    if (delta.context !== 'vessels.' + window.ownVessel && delta.context !== 'vessels.self' ) {
+        //console.log('Ignore '+delta.context+', not:'+window.ownVessel);
+        //console.log('Ignore '+delta.context);
+        return;
+    }
 
 	if(delta.updates){
 		delta.updates.forEach(function(update) {
 			//console.log(JSON.stringify(update));
 			update.values.forEach(function (value) {
                // console.log(value);
+				
 				if (value.path === 'navigation.position') {
-							 //console.log('Pos:'+value.value.latitude+':'value.value.longitude);
-							 currentLat = value.value.latitude;
-							 currentLon = value.value.longitude;
+					 console.log('Anchor Pos:'+value.value.latitude+':'+value.value.longitude);
+					 currentLat = value.value.latitude;
+					 currentLon = value.value.longitude;
 				 }
 
 				if(value.path==="navigation.anchor.currentRadius" && currentLat && currentLon){
-						$("#anchorPopupRadius").text(Math.round(value.value));
-					}
-
-
+					console.log('Anchor Current Radius:'+value.value);
+					$("#anchorPopupRadius").text(Math.round(value.value));
+				}
 			});
 		});
 	}
@@ -537,10 +546,10 @@ function onmessage(delta) {
 
 function setup(map){
 	anchorFeatureOverlay = setAnchorOverlay(map, anchorCircleFeature);
-  anchorFeatureOverlay.setVisible(false);
-	wsServer.addSocketListener(this, "Anchor Watch");
-	var sub = '{"context":"vessels.self","subscribe":[{"path":"navigation.anchor.*"}]}';
-	wsServer.send(sub);
+	anchorFeatureOverlay.setVisible(false);
+  	window.wsServer.addSocketListener(this, "Anchor Watch");
+	var sub = '{"context":"vessels.self","subscribe":[{"path":"navigation.anchor.*","period":1000}]}';
+	window.wsServer.send(sub);
 	$("#anchorPopupOn").change(anchorWatchToggle(map));
 
 
@@ -562,7 +571,7 @@ $("#anchorPopupMaxRadiusSlide").on("slide", function(slideEvt) {
 
 $("#anchorPopupMaxRadiusSlide").on("slideStop", function(slideEvt) {
 	if($("#anchorPopupOn").prop('checked')){
-		wsServer.send(JSON.stringify(getPutMsg(lat,lon,maxRadius)));
+		window.wsServer.send(JSON.stringify(getPutMsg(lat,lon,maxRadius)));
 	}
 });
 
@@ -574,7 +583,7 @@ $("#anchorPopupReset").on('click', function() {
 	var coord = ol.proj.transform([lon,lat], 'EPSG:4326', 'EPSG:3857');
 	anchorCircle.setCenterAndRadius(coord,maxRadius);
 	if($("#anchorPopupOn").prop('checked')){
-		wsServer.send(JSON.stringify(getPutMsg(lat,lon,maxRadius)));
+		window.wsServer.send(JSON.stringify(getPutMsg(lat,lon,maxRadius)));
 	}
 });
 module.exports = {
@@ -584,7 +593,7 @@ module.exports = {
 	setup: setup
 };
 
-},{"./menuControl.js":10,"./signalk.js":12,"./styleFunction.js":14,"./util.js":15,"./vesselPosition.js":16,"jquery":38,"openlayers":40}],6:[function(require,module,exports){
+},{"./menuControl.js":10,"./styleFunction.js":14,"./util.js":15,"./vesselPosition.js":16,"jquery":38,"openlayers":40}],6:[function(require,module,exports){
 var $ = require('jquery');
 var ol = require('openlayers');
 var styleFunction = require('./styleFunction.js');
@@ -1817,12 +1826,6 @@ var connection;
 function connectDelta(host, callback, onConnect, onDisconnect) {
 	debug("Connecting to " + host);
 
-	//url = url+"?subscribe=self";
- connection = signalk.discoverAndConnect();
- if(connection){
-	 return;
- }
-
 	console.log("Could not use mdns, falling back to "+host);
 	connection=signalk.connectDelta(host,
             thisCallback,
@@ -2194,13 +2197,14 @@ module.exports={
 }
 },{"openlayers":40}],16:[function(require,module,exports){
 var ol = require('openlayers');
-var wsServer = require('./signalk.js');
+//var wsServer = require('./signalk.js');
 var styleFunction = require('./styleFunction.js');
 var menuControl = require('./menuControl.js');
 var features = require('./features.js');
 var util = require('./util.js');
-var vesselPosition = new ol.Feature();
-vesselPosition.setStyle(
+
+var vesselPos = new ol.Feature();
+vesselPos.setStyle(
         new ol.style.Style({
             image: new ol.style.Icon(/** @type {olx.style.IconOptions} */ ({
                 anchor: [0.5, 0.46],
@@ -2305,7 +2309,6 @@ function setVesselOverlay(map,vessPos,vessTrack,vessHdg, vessAppWind, vessTrueWi
     return featureOverlay;
 }
 
-
 var cogm=0;
 var sog=0;
 var magVar=0;
@@ -2313,23 +2316,28 @@ var trueWind=0;
 var cog=0;
 var coord,wgs84Coord, lat, lon, awd, aws,twd,tws;
 function onmessage(delta) {
-    //console.log(JSON.stringify(delta));
-    if (delta.context !== 'vessels.' + this.ownVessel && delta.context !== 'vessels.self' && delta.context !== 'vessels.motu') {
-      //  console.log('Ignore '+delta.context+', not:'+this.ownVessel);
+
+    if (!delta.context ){
+      //console.log("Invalid msg for vesselPositon");
+      return;
+    }
+    if (delta.context !== 'vessels.' + window.ownVessel && delta.context !== 'vessels.self' ) {
+        //console.log('Ignore '+delta.context+', not:'+window.ownVessel);
+        //console.log('Ignore '+delta.context);
         return;
     }
-
+    //console.log(JSON.stringify(delta));
     if (delta.updates) {
         delta.updates.forEach(function (update) {
 
             update.values.forEach(function (value) {
-                //console.log(value.path);
+                //console.log(value.path+'='+JSON.stringify(value.value));
             	if (value.path === 'navigation.magneticVariation') {
-                    //console.log('Magnetic Variation(radians):'+value.value);
+                    console.log('Magnetic Variation(radians):'+value.value);
             		magVar = value.value;
 	            }
                 if (value.path === 'navigation.position') {
-                    //console.log('Pos:'+value.value.latitude+':'value.value.longitude);
+                    console.log('Pos:'+value.value.latitude+':'+value.value.longitude);
                     lat = value.value.latitude;
                     lon = value.value.longitude;
 	            }
@@ -2342,7 +2350,7 @@ function onmessage(delta) {
                     if (value.value !== 0) {
                         cog = 1;
                         //console.log("Heading magnetic (radians):"+value.value);
-                        cogm=value.value-magVar;
+                        cogm=value.value+magVar;
                         setRotation(cogm, coord);
                     }
                 }
@@ -2379,7 +2387,7 @@ function onmessage(delta) {
         });
         if (coord && !isNaN(coord[0]) && !isNaN(coord[1])) {
             //console.log("Trackline Coord:" + coord);
-            vesselPosition.setGeometry(new ol.geom.Point(coord));
+            vesselPos.setGeometry(new ol.geom.Point(coord));
             if (cog == 0) {
                 //use the track
                 var lastCoord = trackLine.getLastCoordinate();
@@ -2436,10 +2444,10 @@ function toggleVesselUp() {
     localStorage.setItem("sk-vessel-up", JSON.stringify(vesselUp));
     if (!vesselUp) {
         vesselOverlay.get('map').getView().setRotation(0);
-        vesselPosition.getStyle().getImage().setRotation(0-rotation);
+        vesselPos.getStyle().getImage().setRotation(0-rotation);
     } else {
         vesselOverlay.get('map').getView().setRotation(rotation);
-        vesselPosition.getStyle().getImage().setRotation(0);
+        vesselPos.getStyle().getImage().setRotation(0);
     }
 }
 
@@ -2449,17 +2457,15 @@ function setRotation(radians, coord) {
         if (Math.abs(Math.abs(rotation) - Math.abs(radians)) > 0.2) {
             rotation = -radians;
             vesselOverlay.get('map').getView().rotate(rotation, coord);
-            vesselPosition.getStyle().getImage().setRotation(0);
+            vesselPos.getStyle().getImage().setRotation(0);
         } else {
-            vesselPosition.getStyle().getImage().setRotation(rotation + radians);
+            vesselPos.getStyle().getImage().setRotation(rotation + radians);
         }
     } else {
-        vesselPosition.getStyle().getImage().setRotation(radians);
+        vesselPos.getStyle().getImage().setRotation(radians);
     }
 }
-function setOwnVessel(ownVessel) {
-    this.ownVessel = ownVessel;
-}
+
 function setup(map) {
     $("#followVessel").bootstrapToggle({
         on: 'Follow Vessel',
@@ -2487,12 +2493,12 @@ function setup(map) {
           $("#vesselUp").bootstrapToggle('off');
         }
     }
-    //console.log("VesselPosition:"+vesselPosition));
-    vesselOverlay = setVesselOverlay(map, vesselPosition, vesselTrack,vesselHdg,vesselAppWind, vesselTrueWind);
-
-    wsServer.addSocketListener(this, "Vessel");
-    var sub = '{"context":"vessels.self","subscribe":[{"path":"environment.wind.speedOverGround"},{"path":"environment.wind.directionMagnetic"},{"path":"navigation.position.*"},{"path":"navigation.magneticVariation"},{"path":"environment.wind.angleApparent"},{"path":"navigation.courseOverGround*"},{"path":"navigation.speedOverGround"}]}';
-    wsServer.send(sub);
+    //console.log("vesselPos:"+vesselPos));
+    vesselOverlay = setVesselOverlay(map, vesselPos, vesselTrack,vesselHdg,vesselAppWind, vesselTrueWind);
+    map.addLayer(vesselOverlay);
+    window.wsServer.addSocketListener(this, "Vessel");
+    var sub = '{"context":"vessels.self","subscribe":[{"path":"environment.wind.speedOverGround","period":1000},{"path":"environment.wind.directionMagnetic","period":1000},{"path":"navigation.position.*","period":1000},{"path":"navigation.magneticVariation","period":1000},{"path":"environment.wind.angleApparent","period":1000},{"path":"navigation.courseOverGroundMagnetic","period":1000},{"path":"navigation.speedOverGround","period":1000}]}';
+    window.wsServer.send(sub);
 
 
     $("#followVessel").change(function(){
@@ -2509,12 +2515,11 @@ function setup(map) {
 module.exports = {
     onmessage: onmessage,
     setup: setup,
-    setOwnVessel: setOwnVessel,
     toggleFollowVessel:toggleFollowVessel,
     toggleVesselUp:toggleVesselUp
 };
 
-},{"./features.js":7,"./menuControl.js":10,"./signalk.js":12,"./styleFunction.js":14,"./util.js":15,"openlayers":40}],17:[function(require,module,exports){
+},{"./features.js":7,"./menuControl.js":10,"./styleFunction.js":14,"./util.js":15,"openlayers":40}],17:[function(require,module,exports){
 (function (process,global){
 /* @preserve
  * The MIT License (MIT)

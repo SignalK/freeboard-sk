@@ -13,13 +13,13 @@ var drawFeatures = require('./lib/drawFeatures.js');
 var features = require('./lib/features.js');
 var aisVessels = require('./lib/aisVessels.js');
 //var displayFeatureInfo = require('./lib/displayFeatureInfo.js');
-
+var vesselPosition = require('./lib/vesselPosition.js');
 var menuControl = require('./lib/menuControl.js');
 var anchor = require('./lib/anchorControl.js');
 
-var wsServer = require('./lib/signalk.js');
+window.wsServer = require('./lib/signalk.js');
 var simplify = require('./lib/simplify-js.js');
-var vesselPosition = require('./lib/vesselPosition.js');
+
 var measure = require('./lib/measure.js');
 var view = new ol.View({
     center: ol.proj.transform([65, 50], 'EPSG:4326', 'EPSG:3857'),
@@ -94,14 +94,15 @@ function dispatch(delta) {
 
 function connect() {
 	var sub = '{"context":"vessels.self","unsubscribe":[{"path":"*"}]}';
-    wsServer.send(sub);
+    window.wsServer.send(sub);
+    aisVessels.setup(map);
     vesselPosition.setup(map);
     drawFeatures.setup( map);
     anchor.setup(map);
     menuControl.setup(map);
     measure.setup(map);
     //features.setup(map);
-    aisVessels.setup(map);
+
 }
 
 
@@ -122,7 +123,7 @@ $.ajax({
                 //TODO: iterate keys and find first, then uuid
                 ownVessel = Object.keys(data.vessels)[0];
                 console.log(ownVessel);
-                vesselPosition.setOwnVessel(ownVessel);
+
             }
         });
     }
@@ -138,6 +139,6 @@ $.ajax({
         var host = url.substring(url.indexOf("//")+2);
         host = host.substring(0,host.indexOf("/"));
 
-        wsServer.connectDelta(host, dispatch, connect);
+        window.wsServer.connectDelta(host, dispatch, connect);
     }
 });
