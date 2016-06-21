@@ -539,6 +539,7 @@ function onmessage(delta) {
 					console.log('Anchor Current Radius:'+value.value);
 					$("#anchorPopupRadius").text(Math.round(value.value));
 				}
+				//TODO: add alarm sound
 			});
 		});
 	}
@@ -2398,7 +2399,7 @@ function onmessage(delta) {
                 }
             }
             trackLine.appendCoordinate(coord);
-
+            
             //do headingLine
             var nextCoord = util.destVincenty(wgs84Coord[1], wgs84Coord[0], cogm , sog*60);
             headingLine.setCoordinates([coord, ol.proj.transform(nextCoord, 'EPSG:4326', 'EPSG:3857')]);
@@ -2466,6 +2467,7 @@ function setRotation(radians, coord) {
     }
 }
 
+
 function setup(map) {
     $("#followVessel").bootstrapToggle({
         on: 'Follow Vessel',
@@ -2510,6 +2512,7 @@ function setup(map) {
       toggleVesselUp();
     });
 
+   
 }
 
 module.exports = {
