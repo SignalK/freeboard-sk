@@ -101,7 +101,7 @@ function connect() {
     anchor.setup(map);
     menuControl.setup(map);
     measure.setup(map);
-    //features.setup(map);
+    features.setup(map);
 
 }
 

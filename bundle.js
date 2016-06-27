@@ -102,7 +102,7 @@ function connect() {
     anchor.setup(map);
     menuControl.setup(map);
     measure.setup(map);
-    //features.setup(map);
+    features.setup(map);
 
 }
 
@@ -530,13 +530,13 @@ function onmessage(delta) {
                // console.log(value);
 				
 				if (value.path === 'navigation.position') {
-					 console.log('Anchor Pos:'+value.value.latitude+':'+value.value.longitude);
+					 //console.log('Anchor Pos:'+value.value.latitude+':'+value.value.longitude);
 					 currentLat = value.value.latitude;
 					 currentLon = value.value.longitude;
 				 }
 
 				if(value.path==="navigation.anchor.currentRadius" && currentLat && currentLon){
-					console.log('Anchor Current Radius:'+value.value);
+					//console.log('Anchor Current Radius:'+value.value);
 					$("#anchorPopupRadius").text(Math.round(value.value));
 				}
 				//TODO: add alarm sound
@@ -903,17 +903,17 @@ var ol = require('openlayers');
 var styleFunction = require('./styleFunction.js');
 var menuControl = require('./menuControl.js');
 require('bootstrap-select');
-//var setupDragAndDrop = require('./setupDragAndDrop.js');
+// var setupDragAndDrop = require('./setupDragAndDrop.js');
 var nanoModal= require('nanomodal');
 var wsServer = require('./signalk.js');
-
+var util = require('./util.js');
 
 var FeatureControl = menuControl.makeDrawerButton('C','feature-btn','#featureDrawer');
 
 var modify_interaction, select_interaction;
-function addModifyInteraction(map, layer, title) {
+function addModifyInteraction(map, layer, key) {
 	// remove draw interaction
-	console.log("Select Modify Interaction:"+title);
+	console.log("Select Modify Interaction:"+key);
 	map.removeInteraction(modify_interaction);
 	map.removeInteraction(select_interaction);
 
@@ -921,12 +921,13 @@ function addModifyInteraction(map, layer, title) {
 	select_interaction = new ol.interaction.Select({
 		// make sure only the desired layer can be selected
 		layers: function(vect_layer) {
-			return layer.get('title') === title;
+			return layer.get('key') === key;
 		}
 	});
 	map.addInteraction(select_interaction);
 
-	// grab the features from the select interaction to use in the modify interaction
+	// grab the features from the select interaction to use in the modify
+	// interaction
 	var selected_features = select_interaction.getFeatures();
 	// when a feature is selected...
 	selected_features.on('add', function(event) {
@@ -938,7 +939,8 @@ function addModifyInteraction(map, layer, title) {
 		// listen to pressing of delete key, then delete selected features
 		$(document).on('keyup', function(event) {
 			if (event.keyCode == 46) {
-				// remove all selected features from select_interaction and edit_layer
+				// remove all selected features from select_interaction and
+				// edit_layer
 				selected_features.forEach(function(selected_feature) {
 					var selected_feature_id = selected_feature.getId();
 					// remove from select_interaction
@@ -960,7 +962,7 @@ function addModifyInteraction(map, layer, title) {
 		});
 	});
 	// create the modify interaction
-	console.log("Add modify feature:"+selected_features.length);
+	// console.log("Add modify feature:"+selected_features.length);
 	modify_interaction = new ol.interaction.Modify({
 		features: selected_features,
 		// delete vertices by pressing the SHIFT key
@@ -982,26 +984,28 @@ function saveData(layer){
 	});
 	var name = layer.get('title');
 	//var desc = document.querySelector("#saveFeaturePopupDesc").value;
-	//var type = document.querySelector('#drawPopupGeom :checked').value;
+	var description = layer.get('description');
+	//document.querySelector('#drawPopupGeom :checked').value;
 	var path = layer.get('type');
 	var key = layer.get('key');
-	if(key == null)key=name;
-	//if(type === 'Point') path = 'waypoints';
+	if(key == null)key=util.generateUUID();
+	//if(type === 'Point') path = 'resources.waypoints';
 	//if(type === 'LineString') path = 'resources.routes';
 	//if(type === 'Polygon') path = 'resources.regions';
-	var putMsg = { context: 'vessels.self',
+	var putMsg = { context: 'vessels.'+window.ownVessel,
 				  put: [
 					  {
 						  timestamp: new Date().toISOString(),
-						  source: 'vessels.self',
+						  source: 'vessels.'+window.ownVessel,
 						  values: [
 							  {
 								  path: 'resources.'+path+'.'+key,
 								  value: {
 									  name: name,
 									  key: key,
+									  description: description,
 									  mimetype: 'application/vnd.geo+json',
-									  payload: data
+									  feature: data
 								  }
 							  }
 
@@ -1014,22 +1018,16 @@ function saveData(layer){
 	console.log(JSON.stringify(putMsg));
 	wsServer.send(JSON.stringify(putMsg)); 
 }
-function deleteData(layer){
+function deleteData(key, type, uri){
 	
-	var name = layer.get('title');
-	
-	var path = layer.get('type');
-	var key = layer.get('key');
-	if(key == null)key=name;
-	
-	var putMsg = { context: 'vessels.self',
+	var putMsg = { context: 'vessels.'+window.ownVessel,
 				  put: [
 					  {
 						  timestamp: new Date().toISOString(),
-						  source: 'vessels.self',
+						  source: 'vessels.'+window.ownVessel,
 						  values: [
 							  {
-								  path: 'resources.'+path+'.'+key,
+								  path: 'resources.'+type+'.'+key,
 								  value: null
 							  }
 
@@ -1043,11 +1041,12 @@ function deleteData(layer){
 	wsServer.send(JSON.stringify(putMsg)); 
 }
 
+
 function setup(map){
 	$(".feature-btn").tooltip({ placement: 'right', title: 'Waypoints, routes, regions'});	
 	map.addControl(new FeatureControl());
 	refresh();
-	loadFeatures(map);
+	//loadFeatures(map);
 }
 
 function refresh(){
@@ -1055,23 +1054,25 @@ function refresh(){
 	var filter = $('#featureDrawerFilter').val();
 	console.log("filtering with :"+filter);
 	$('#featurePopupList').empty();
-	addFeatures(map, 'waypoints', filter);
+	//addFeatures(map, 'waypoints', filter);
 	addFeatures(map, 'routes', filter);
-	addFeatures(map, 'regions', filter);
+	//addFeatures(map, 'regions', filter);
 
 }
 
 function loadFeatures(map){
 	var layers = [];
-	if(!localStorage.getItem('sk-load-layers')){
+	//if(!localStorage.getItem('sk-load-layers')){
 		localStorage.setItem('sk-load-layers',JSON.stringify(layers));	
-	}
+	//}
 	layers = JSON.parse(localStorage.getItem('sk-load-layers'))
 	$.each(layers, function(i, obj) {
 		var layerSource = new ol.source.Vector({
 			url: obj.url,
 			format: new ol.format.GeoJSON()
 		});
+		//featureProjection: 'EPSG:3857',
+		//dataProjection: 'EPSG:4326'
 		map.addLayer(new ol.layer.Vector({
 			title: obj.title,
 			key: obj.key,
@@ -1098,46 +1099,54 @@ function storeRemoveLayer(key){
 
 function addFeatures(map, feature, filter){
 	$.ajax({
-		url : "/signalk/v1/api/vessels/self/resources/"+feature,
-		dataType: "text",
+		url : "/signalk/v1/api/vessels/"+window.ownVessel+"/resources/"+feature,
+		dataType: "json", 
 		success : function (data) {
 			if(data==null)return;
-			var jsonData = JSON.parse(data);
-			$.each(jsonData.vessels, function(i, obj) {
-				console.log("Vessel: "+i);
+			console.log("Data: "+data);
+			//var jsonData = JSON.parse(data);
+			$.each(data.vessels, function(i, obj) {
+				//console.log("Vessel: "+i);
 				$.each(obj.resources[feature], function(r, obj) {
-					//console.log(feature +' '+r);
+					// console.log(feature +' '+JSON.stringify(obj));
 					if(filter && filter.trim().length>0 && obj.name.indexOf(filter)<0){
 						console.log("Failed filter:"+filter);
 						return;
 					}
 					$('#featurePopupList').append('<li class="list-group-item" >'
-												  +'<h4 class="list-group-item-heading"  >'+obj.name+'</h4>'
-												  +'<div class="list-group-item-text">'+obj.description+'</div>'
-												  +'<div>'
-												  +'<a class="btn-primary btn-sm featureAdd" data-key="'+r+'"  data-type="'+feature+'" data-uri="'+obj.uri+'" data-title="'+obj.name+'">Show</a>&nbsp;'
-												  +'<a class="btn-primary btn-sm featureEdit" data-key="'+r+'">Edit</a>&nbsp;'
-												  +'<a class="btn-primary btn-sm featureSave" data-key="'+r+'" data-type="'+feature+'" data-uri="'+obj.uri+'" >Save</a>&nbsp;'
-												  +'<a class="btn-primary btn-sm featureRemove" data-key="'+r+'">Hide</a>&nbsp;'
-												  +'<a class="btn-primary btn-sm featureDelete" data-key="'+r+'">Delete</a>'
-												  +'</div>'
-												  +'</li>');
+						  +'<h4 class="list-group-item-heading"  >'+obj.name+'</h4>'
+						  +'<div class="list-group-item-text">'+obj.description+'</div>'
+						  +'<div>'
+						  +'<a class="btn-primary btn-sm featureAdd" data-key="'+r+'" data-name="'+obj.name+'"  data-type="'+feature+'" data-title="'+obj.name+'">Show</a>&nbsp;'
+						  //+'<a class="btn-primary btn-sm featureEdit" data-key="'+r+'" data-name="'+obj.name+'" data-type="'+feature+'">Edit</a>&nbsp;'
+						 //+'<a class="btn-primary btn-sm featureSave" data-key="'+r+'" data-name="'+obj.name+'" data-type="'+feature+'" >Save</a>&nbsp;'
+						  +'<a class="btn-primary btn-sm featureRemove" data-key="'+r+'" data-name="'+obj.name+'" data-type="'+feature+'">Hide</a>&nbsp;'
+						 // +'<a class="btn-primary btn-sm featureDelete" data-key="'+r+'" data-name="'+obj.name+'" data-type="'+feature+'">Delete</a>'
+						  +'</div>'
+						  +'</li>');
 				});
 			});
-			$('.featureDelete').on('click', function(){
+			/*$('.featureDelete').on('click', function(){
 				var lyrs = map.getLayerGroup().getLayers();
 				var key = $(this).attr('data-key');
+				var uri = $(this).attr('data-uri');
+				var type = $(this).attr('data-type');
 				var l ;
+				console.log("Find layer:"+key+", type:"+type+", uri:"+uri);
 				for (var x = 0; x < lyrs.getLength(); x++) {
 					if (lyrs.item(x).get('key')=== key) {
 						l = lyrs.item(x);
 					}
 				}
-				storeRemoveLayer(key);
-				console.log(map.removeLayer(l));
-				//now delete from server
-				deleteData(l);
-			});
+				if(l){
+					console.log("Found layer:"+l);
+					storeRemoveLayer(key);
+					map.removeLayer(l)
+					console.log("Removed layer:"+l);
+				}
+				// now delete from server
+				deleteData(key,type, uri);
+			});*/
 			
 			$('.featureRemove').on('click', function(){
 				var lyrs = map.getLayerGroup().getLayers();
@@ -1152,7 +1161,7 @@ function addFeatures(map, feature, filter){
 				console.log(map.removeLayer(l));
 			});
 
-			$('.featureEdit').on('click', function(){
+			/*$('.featureEdit').on('click', function(){
 				var lyrs = map.getLayerGroup().getLayers();
 				var key = $(this).attr('data-key');
 				var l ;
@@ -1163,9 +1172,9 @@ function addFeatures(map, feature, filter){
 					}
 				}
 
-			});
+			});*/
 
-			$('.featureSave').on('click', function(){
+			/*$('.featureSave').on('click', function(){
 				var lyrs = map.getLayerGroup().getLayers();
 				var key = $(this).attr('data-key');
 				var l ;
@@ -1176,44 +1185,68 @@ function addFeatures(map, feature, filter){
 					}
 				}
 
-			});
-
+			});*/
 			$('.featureAdd').on('click', function(){
-				//check it not already there
-				var lyrs = map.getLayers().getArray().slice().reverse();
-				var title = $(this).attr('data-name');
-				var key = $(this).attr('data-key');
-				for (var x = 0; x < lyrs.length; x++) {
-					if (lyrs[x].get('key')=== key) {
-						//zoom to extent
-						map.getView().fitExtent(lyrs[x].getSource().getExtent(), map.getSize());
-						return;
+					// check it not already there
+					var lyrs = map.getLayers().getArray().slice().reverse();
+					var title = $(this).attr('data-name');
+					var key = $(this).attr('data-key');
+					var type = $(this).attr('data-type');
+					
+					for (var x = 0; x < lyrs.length; x++) { 
+						if(lyrs[x].get('key')=== key) { 
+							//zoom to extent
+							//map.getView().calculateExtent(lyrs[x].getSource().getExtent(),
+							//map.getSize()); 
+							return; 
+						} 
 					}
-				}
-				//add new layer
-				
-				var url = "/signalk/v1/api/resources/"+$(this).attr('data-uri');
-				var type = $(this).attr('data-type');
-				storeAddLayer(url,title, key, type);
-				var layerSource = new ol.source.Vector({
-					url: url,
-					format: new ol.format.GeoJSON()
-				});
-				map.addLayer(new ol.layer.Vector({
-					title: title,
-					key: key,
-					type: type,
-					source: layerSource,
-					style: styleFunction
-				}));
-				setTimeout(function(){
-					map.getView().fitExtent(layerSource.getExtent(), map.getSize());
-				},250);
+					 
+					// add new layer
+					
+					
+					var url = "/signalk/v1/api/vessels/"+window.ownVessel+"/resources/"+type+"/"+key;
+					
+					storeAddLayer(url,title, key, type); 
+					//var testGeo = '{"feature":[{"type":"Feature","id":"fbv4","geometry":{"type":"Polygon","coordinates":[[[-122.46236801147461,37.8323275231033],[-122.42537498474121,37.82168374803001],[-122.45962142944336,37.81056377038564],[-122.46236801147461,37.8323275231033]]]}';
+					// get the geojson
+					 $.ajax({
+			            url: url,
+			            dataType: "json",
+			            success: function (data) {
+			            	console.log("data:"+JSON.stringify(data));
+			            	var collection = data.vessels[window.ownVessel].resources[type];
+			            	collection=collection[key];
+							console.log("feature:"+JSON.stringify(collection));
+							var layerSource = new ol.source.Vector({
+								features: (new ol.format.GeoJSON()).readFeatures(collection.feature[0],{ dataProjection: 'EPSG:4326', featureProjection: 'EPSG:3857' })
+							});
+							
+							console.log("layerSource complete");
+							var fLayer = new ol.layer.Vector({
+								key: key,
+								type: type,
+								title: title,
+								source: layerSource,
+								style: util.styleFunction
+							});
+							console.log("fLayer complete");
+							fLayer.setExtent(layerSource.getExtent());
+							map.addLayer(fLayer);
+							console.log("Added");
+			            }});
+				 });
+			
 
-			});
-		}});
+			}
+	});
+		
 
 }
+
+
+
+
 
 $('#featureDrawerSearch').on('click', function(){
 	refresh();
@@ -1227,7 +1260,7 @@ module.exports = {
 	storeAddLayer:storeAddLayer,
 	storeRemoveLayer:storeRemoveLayer
 }
-},{"./menuControl.js":10,"./signalk.js":12,"./styleFunction.js":14,"bootstrap-select":19,"jquery":38,"nanomodal":39,"openlayers":40}],8:[function(require,module,exports){
+},{"./menuControl.js":10,"./signalk.js":12,"./styleFunction.js":14,"./util.js":15,"bootstrap-select":19,"jquery":38,"nanomodal":39,"openlayers":40}],8:[function(require,module,exports){
 module.exports = function (coordinate, title) {
 
 			if (coordinate == null) {
@@ -2082,6 +2115,94 @@ module.exports = function (feature, resolution) {
 },{"openlayers":40}],15:[function(require,module,exports){
 var ol = require('openlayers');
 
+var image = new ol.style.Circle({
+	radius: 5,
+	fill: null,
+	stroke: new ol.style.Stroke({ color: 'red', width: 1 })
+  });
+
+var styles = {
+	'Point': new ol.style.Style({
+	    image: image
+	}),
+	'LineString': new ol.style.Style({
+	    stroke: new ol.style.Stroke({
+	        color: 'green',
+	        width: 1
+	    })
+	}),
+	'MultiLineString': new ol.style.Style({
+	    stroke: new ol.style.Stroke({
+	        color: 'green',
+	        width: 1
+	    })
+	}),
+	'MultiPoint': new ol.style.Style({
+	    image: image
+	}),
+	'MultiPolygon': new ol.style.Style({
+	    stroke: new ol.style.Stroke({
+	        color: 'yellow',
+	        width: 1
+	    }),
+	    fill: new ol.style.Fill({
+	        color: 'rgba(255, 255, 0, 0.1)'
+	    })
+	}),
+	'Polygon': new ol.style.Style({
+	    stroke: new ol.style.Stroke({
+	        color: 'blue',
+	        lineDash: [4],
+	        width: 3
+	    }),
+	    fill: new ol.style.Fill({
+	        color: 'rgba(0, 0, 255, 0.1)'
+	    })
+	}),
+	'GeometryCollection': new ol.style.Style({
+	    stroke: new ol.style.Stroke({
+	        color: 'magenta',
+	        width: 2
+	    }),
+	    fill: new ol.style.Fill({
+	        color: 'magenta'
+	    }),
+	    image: new ol.style.Circle({
+	        radius: 10,
+	        fill: null,
+	        stroke: new ol.style.Stroke({
+	            color: 'magenta'
+	        })
+	    })
+	}),
+	'Circle': new ol.style.Style({
+	    stroke: new ol.style.Stroke({
+	        color: 'red',
+	        width: 2
+	    }),
+	    fill: new ol.style.Fill({
+	        color: 'rgba(255,0,0,0.2)'
+	    })
+	})
+};
+
+ var styleFunction = function (feature) {
+	 
+	  return styles[feature.getGeometry().getType()];
+ };
+function generateUUID(){
+    var d = new Date().getTime();
+    if(window.performance && typeof window.performance.now === "function"){
+        d += performance.now(); //use high-precision timer if available
+    }
+    var uuid = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+        var r = (d + Math.random()*16)%16 | 0;
+        d = Math.floor(d/16);
+        return (c=='x' ? r : (r&0x3|0x8)).toString(16);
+    });
+    return uuid;
+}
+
 function lengthNm(line) {
 	return +(length(line)/1852).toFixed(2);
 };
@@ -2194,7 +2315,9 @@ module.exports={
 	toDeg: toDeg,
 	length: length,
 	lengthNm: lengthNm,
-	destVincenty:destVincenty
+	destVincenty:destVincenty,
+	generateUUID:generateUUID,
+	styleFunction:styleFunction
 }
 },{"openlayers":40}],16:[function(require,module,exports){
 var ol = require('openlayers');
@@ -2334,11 +2457,11 @@ function onmessage(delta) {
             update.values.forEach(function (value) {
                 //console.log(value.path+'='+JSON.stringify(value.value));
             	if (value.path === 'navigation.magneticVariation') {
-                    console.log('Magnetic Variation(radians):'+value.value);
+                    //console.log('Magnetic Variation(radians):'+value.value);
             		magVar = value.value;
 	            }
                 if (value.path === 'navigation.position') {
-                    console.log('Pos:'+value.value.latitude+':'+value.value.longitude);
+                    //console.log('Pos:'+value.value.latitude+':'+value.value.longitude);
                     lat = value.value.latitude;
                     lon = value.value.longitude;
 	            }
@@ -2436,11 +2559,13 @@ function toggleFollowVessel() {
     followVessel = !followVessel;
     console.log("Follow vessel:"+followVessel);
     localStorage.setItem("sk-follow-vessel", JSON.stringify(followVessel));
+    
 }
 
 //vessel or chart rotation
 var vesselUp = true;
 function toggleVesselUp() {
+	
     vesselUp = !vesselUp;
     localStorage.setItem("sk-vessel-up", JSON.stringify(vesselUp));
     if (!vesselUp) {
@@ -29438,12 +29563,12 @@ Client.prototype.connectDeltaByUrl = function(wsUrl, callback, onConnect, onDisc
 }
 
 
-Client.prototype.getSelf = function(host) {
-  return agent('GET', "http://" + (host || this.host + ":" + this.port) + "/signalk/v1/api/vessels/self");
+Client.prototype.getSelf = function(host, port) {
+  return agent('GET', "http://" + (host || this.host + ":" + port|| this.port) + "/signalk/v1/api/vessels/self");
 }
 
-Client.prototype.getSelfMatcher = function(host) {
-  return this.getSelf(host || this.host + ":" + this.port).then(function(result) {
+Client.prototype.getSelfMatcher = function(host, port) {
+  return this.getSelf(host || this.host + ":" + port||this.port).then(function(result) {
     var selfData = result.body;
     var selfId = selfData.mmsi || selfData.uuid;
     if (selfId) {
