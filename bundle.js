@@ -992,14 +992,14 @@ function saveData(layer){
 	//if(type === 'Point') path = 'resources.waypoints';
 	//if(type === 'LineString') path = 'resources.routes';
 	//if(type === 'Polygon') path = 'resources.regions';
-	var putMsg = { context: 'vessels.'+window.ownVessel,
+	var putMsg = { context: 'resources',
 				  put: [
 					  {
 						  timestamp: new Date().toISOString(),
-						  source: 'vessels.'+window.ownVessel,
+						  source: 'resources'+window.ownVessel,
 						  values: [
 							  {
-								  path: 'resources.'+path+'.'+key,
+								  path: path+'.'+key,
 								  value: {
 									  name: name,
 									  key: key,
@@ -1020,14 +1020,14 @@ function saveData(layer){
 }
 function deleteData(key, type, uri){
 	
-	var putMsg = { context: 'vessels.'+window.ownVessel,
+	var putMsg = { context: 'resources',
 				  put: [
 					  {
 						  timestamp: new Date().toISOString(),
 						  source: 'vessels.'+window.ownVessel,
 						  values: [
 							  {
-								  path: 'resources.'+type+'.'+key,
+								  path: type+'.'+key,
 								  value: null
 							  }
 
@@ -1099,33 +1099,32 @@ function storeRemoveLayer(key){
 
 function addFeatures(map, feature, filter){
 	$.ajax({
-		url : "/signalk/v1/api/vessels/"+window.ownVessel+"/resources/"+feature,
+		url : "/signalk/v1/api/resources/"+feature,
 		dataType: "json", 
 		success : function (data) {
 			if(data==null)return;
 			console.log("Data: "+data);
 			//var jsonData = JSON.parse(data);
-			$.each(data.vessels, function(i, obj) {
-				//console.log("Vessel: "+i);
-				$.each(obj.resources[feature], function(r, obj) {
-					// console.log(feature +' '+JSON.stringify(obj));
-					if(filter && filter.trim().length>0 && obj.name.indexOf(filter)<0){
-						console.log("Failed filter:"+filter);
-						return;
-					}
-					$('#featurePopupList').append('<li class="list-group-item" >'
-						  +'<h4 class="list-group-item-heading"  >'+obj.name+'</h4>'
-						  +'<div class="list-group-item-text">'+obj.description+'</div>'
-						  +'<div>'
-						  +'<a class="btn-primary btn-sm featureAdd" data-key="'+r+'" data-name="'+obj.name+'"  data-type="'+feature+'" data-title="'+obj.name+'">Show</a>&nbsp;'
-						  //+'<a class="btn-primary btn-sm featureEdit" data-key="'+r+'" data-name="'+obj.name+'" data-type="'+feature+'">Edit</a>&nbsp;'
-						 //+'<a class="btn-primary btn-sm featureSave" data-key="'+r+'" data-name="'+obj.name+'" data-type="'+feature+'" >Save</a>&nbsp;'
-						  +'<a class="btn-primary btn-sm featureRemove" data-key="'+r+'" data-name="'+obj.name+'" data-type="'+feature+'">Hide</a>&nbsp;'
-						 // +'<a class="btn-primary btn-sm featureDelete" data-key="'+r+'" data-name="'+obj.name+'" data-type="'+feature+'">Delete</a>'
-						  +'</div>'
-						  +'</li>');
-				});
+			$.each(data.resources[feature], function(r, obj) {
+				
+				// console.log(feature +' '+JSON.stringify(obj));
+				if(filter && filter.trim().length>0 && obj.name.indexOf(filter)<0){
+					console.log("Failed filter:"+filter);
+					return;
+				}
+				$('#featurePopupList').append('<li class="list-group-item" >'
+					  +'<h4 class="list-group-item-heading"  >'+obj.name+'</h4>'
+					  +'<div class="list-group-item-text">'+obj.description+'</div>'
+					  +'<div>'
+					  +'<a class="btn-primary btn-sm featureAdd" data-key="'+r+'" data-name="'+obj.name+'"  data-type="'+feature+'" data-title="'+obj.name+'">Show</a>&nbsp;'
+					  //+'<a class="btn-primary btn-sm featureEdit" data-key="'+r+'" data-name="'+obj.name+'" data-type="'+feature+'">Edit</a>&nbsp;'
+					 //+'<a class="btn-primary btn-sm featureSave" data-key="'+r+'" data-name="'+obj.name+'" data-type="'+feature+'" >Save</a>&nbsp;'
+					  +'<a class="btn-primary btn-sm featureRemove" data-key="'+r+'" data-name="'+obj.name+'" data-type="'+feature+'">Hide</a>&nbsp;'
+					 // +'<a class="btn-primary btn-sm featureDelete" data-key="'+r+'" data-name="'+obj.name+'" data-type="'+feature+'">Delete</a>'
+					  +'</div>'
+					  +'</li>');
 			});
+		
 			/*$('.featureDelete').on('click', function(){
 				var lyrs = map.getLayerGroup().getLayers();
 				var key = $(this).attr('data-key');
@@ -1205,7 +1204,7 @@ function addFeatures(map, feature, filter){
 					// add new layer
 					
 					
-					var url = "/signalk/v1/api/vessels/"+window.ownVessel+"/resources/"+type+"/"+key;
+					var url = "/signalk/v1/api/resources/"+type+"/"+key;
 					
 					storeAddLayer(url,title, key, type); 
 					//var testGeo = '{"feature":[{"type":"Feature","id":"fbv4","geometry":{"type":"Polygon","coordinates":[[[-122.46236801147461,37.8323275231033],[-122.42537498474121,37.82168374803001],[-122.45962142944336,37.81056377038564],[-122.46236801147461,37.8323275231033]]]}';
@@ -1215,7 +1214,7 @@ function addFeatures(map, feature, filter){
 			            dataType: "json",
 			            success: function (data) {
 			            	console.log("data:"+JSON.stringify(data));
-			            	var collection = data.vessels[window.ownVessel].resources[type];
+			            	var collection = data.resources[type];
 			            	collection=collection[key];
 							console.log("feature:"+JSON.stringify(collection));
 							var layerSource = new ol.source.Vector({
