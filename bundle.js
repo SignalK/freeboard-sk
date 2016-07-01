@@ -94,7 +94,7 @@ function dispatch(delta) {
 }
 
 function connect() {
-	var sub = '{"context":"vessels.self","unsubscribe":[{"path":"*"}]}';
+	var sub = '{"context":"vessels.self","unsubscribe":[{"path":"*","policy":"instant"}]}';
     window.wsServer.send(sub);
     aisVessels.setup(map);
     vesselPosition.setup(map);
@@ -116,13 +116,21 @@ $.ajax({
         var url = data.endpoints.v1['signalk-http'];
         console.log(url);
         $.ajax({
-            url: url + 'vessels/self/uuid',
+            url: url + 'vessels/self',
             dataType: "json",
             success: function (data) {
                 //var jsonData = JSON.parse(data);
-                console.log(Object.keys(data.vessels));
-                //TODO: iterate keys and find first, then uuid
-                ownVessel = Object.keys(data.vessels)[0];
+                console.log(JSON.stringify(data));
+                //TODO: find  uuid or mmsi or ?
+                if(data.uuid){
+                	ownVessel = data.uuid;
+                }
+                if(!ownVessel && data.mmsi){
+                	ownVessel = data.mmsi;
+                }
+                if(!ownVessel && data.url){
+                	ownVessel = data.url;
+                }
                 console.log(ownVessel);
 
             }
@@ -1105,7 +1113,7 @@ function addFeatures(map, feature, filter){
 			if(data==null)return;
 			console.log("Data: "+data);
 			//var jsonData = JSON.parse(data);
-			$.each(data.resources[feature], function(r, obj) {
+			$.each(data, function(r, obj) {
 				
 				// console.log(feature +' '+JSON.stringify(obj));
 				if(filter && filter.trim().length>0 && obj.name.indexOf(filter)<0){
@@ -1214,11 +1222,9 @@ function addFeatures(map, feature, filter){
 			            dataType: "json",
 			            success: function (data) {
 			            	console.log("data:"+JSON.stringify(data));
-			            	var collection = data.resources[type];
-			            	collection=collection[key];
-							console.log("feature:"+JSON.stringify(collection));
+			            	
 							var layerSource = new ol.source.Vector({
-								features: (new ol.format.GeoJSON()).readFeatures(collection.feature[0],{ dataProjection: 'EPSG:4326', featureProjection: 'EPSG:3857' })
+								features: (new ol.format.GeoJSON()).readFeatures(data.feature[0],{ dataProjection: 'EPSG:4326', featureProjection: 'EPSG:3857' })
 							});
 							
 							console.log("layerSource complete");

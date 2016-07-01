@@ -93,7 +93,7 @@ function dispatch(delta) {
 }
 
 function connect() {
-	var sub = '{"context":"vessels.self","unsubscribe":[{"path":"*"}]}';
+	var sub = '{"context":"vessels.self","unsubscribe":[{"path":"*","policy":"instant"}]}';
     window.wsServer.send(sub);
     aisVessels.setup(map);
     vesselPosition.setup(map);
@@ -115,13 +115,21 @@ $.ajax({
         var url = data.endpoints.v1['signalk-http'];
         console.log(url);
         $.ajax({
-            url: url + 'vessels/self/uuid',
+            url: url + 'vessels/self',
             dataType: "json",
             success: function (data) {
                 //var jsonData = JSON.parse(data);
-                console.log(Object.keys(data.vessels));
-                //TODO: iterate keys and find first, then uuid
-                ownVessel = Object.keys(data.vessels)[0];
+                console.log(JSON.stringify(data));
+                //TODO: find  uuid or mmsi or ?
+                if(data.uuid){
+                	ownVessel = data.uuid;
+                }
+                if(!ownVessel && data.mmsi){
+                	ownVessel = data.mmsi;
+                }
+                if(!ownVessel && data.url){
+                	ownVessel = data.url;
+                }
                 console.log(ownVessel);
 
             }
