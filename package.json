@@ -19,7 +19,8 @@
     "bootstrap-slider": "^4.8.0",
     "nanomodal": "^5.1.0",
     "bootstrap-select": "^1.6.3",
-    "signalk-client":"^0.1.0"
+    "signalk-client":"^0.1.0",
+    "web-audio-daw":"^2.3.1"
   },
   "browser": {
     "bootstrap-drawer": "./node_modules/bootstrap-drawer/dist/js/drawer.js",
