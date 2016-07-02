@@ -390,6 +390,7 @@ var currentLat = 0.0;
 var currentLon = 0.0;
 var guard = false;
 var edit = false;
+var init = true;
 
 var saw = new Wad({
     source  : 'sawtooth',
@@ -639,7 +640,7 @@ function onmessage(delta) {
 					}
 				}
 				//show if its relevant
-				if(guard && lat && lon && maxRadius){
+				if((guard||init) && lat && lon && maxRadius){
 					var coord = ol.proj.transform([lon,lat], 'EPSG:4326', 'EPSG:3857');
 					anchorCircle.setCenterAndRadius(coord,maxRadius);
 				}
@@ -670,6 +671,7 @@ $("#anchorPopupMaxRadiusSlide").slider({
 });
 $("#anchorPopupMaxRadiusSlide").on("slide", function(slideEvt) {
 	edit=true;
+	anchorFeatureOverlay.setVisible(true);
 	$("#anchorPopupMaxRadius").text(slideEvt.value);
 	maxRadius=slideEvt.value;
 	anchorCircle.setRadius(maxRadius);
@@ -677,6 +679,7 @@ $("#anchorPopupMaxRadiusSlide").on("slide", function(slideEvt) {
 
 $("#anchorPopupMaxRadiusSlide").on("slideStop", function(slideEvt) {
 		window.wsServer.send(JSON.stringify(getPutMsg(lat,lon,maxRadius)));
+		anchorFeatureOverlay.setVisible(guard);
 		edit=false;
 });
 
