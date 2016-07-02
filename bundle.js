@@ -544,7 +544,12 @@ function anchorWatchToggle(map){
 			window.wsServer.send(JSON.stringify(putMsg));
 			
 		}else{
-			saw.stop();
+			try{
+				saw.stop();
+			}
+			catch(e){
+				console.error(e);
+			}
 			guard=false;
 			anchorFeatureOverlay.setVisible(false);
 			var putMsg = { context: 'vessels.self',
