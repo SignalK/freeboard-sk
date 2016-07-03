@@ -549,7 +549,7 @@ function anchorWatchToggle(map){
 				saw.stop();
 			}
 			catch(e){
-				console.error(e);
+				//console.error(e);
 			}
 			guard=false;
 			anchorFeatureOverlay.setVisible(false);
@@ -605,9 +605,9 @@ function onmessage(delta) {
 					 currentLon = value.value.longitude;
 				 }
 				if(value.path==="navigation.anchor.state"){
-					console.log('Anchor Current State:'+value.value);
+					//console.log('Anchor Current State:'+value.value);
 					if("on"===value.value){
-						console.log('Switching:'+value.value);
+						//console.log('Switching:'+value.value);
 						guard=true;
 						$("#anchorPopupOn").bootstrapToggle('on');
 					}else{
@@ -627,7 +627,7 @@ function onmessage(delta) {
 					$("#anchorPopupMaxRadiusSlide").slider('setValue', maxRadius);
 				}
 				if(value.path==="navigation.anchor.position"){
-					console.log('Anchor Current Position:'+JSON.stringify(value.value));
+					//console.log('Anchor Current Position:'+JSON.stringify(value.value));
 					lat=value.value.latitude;
 					lon=value.value.longitude;
 					$("#anchorPopupLat").val(lat);
@@ -1127,13 +1127,12 @@ function saveData(layer){
 	console.log(JSON.stringify(putMsg));
 	wsServer.send(JSON.stringify(putMsg)); 
 }
-function deleteData(key, type, uri){
+function deleteData(key, type){
 	
 	var putMsg = { context: 'resources',
 				  put: [
 					  {
-						  timestamp: new Date().toISOString(),
-						  source: 'vessels.'+window.ownVessel,
+						 
 						  values: [
 							  {
 								  path: type+'.'+key,
@@ -1229,18 +1228,18 @@ function addFeatures(map, feature, filter){
 					  //+'<a class="btn-primary btn-sm featureEdit" data-key="'+r+'" data-name="'+obj.name+'" data-type="'+feature+'">Edit</a>&nbsp;'
 					 //+'<a class="btn-primary btn-sm featureSave" data-key="'+r+'" data-name="'+obj.name+'" data-type="'+feature+'" >Save</a>&nbsp;'
 					  +'<a class="btn-primary btn-sm featureRemove" data-key="'+r+'" data-name="'+obj.name+'" data-type="'+feature+'">Hide</a>&nbsp;'
-					 // +'<a class="btn-primary btn-sm featureDelete" data-key="'+r+'" data-name="'+obj.name+'" data-type="'+feature+'">Delete</a>'
+					  +'<a class="btn-primary btn-sm featureDelete" data-key="'+r+'" data-name="'+obj.name+'" data-type="'+feature+'">Delete</a>'
 					  +'</div>'
 					  +'</li>');
 			});
 		
-			/*$('.featureDelete').on('click', function(){
+			$('.featureDelete').on('click', function(){
+				//alert(Are you sure?);
 				var lyrs = map.getLayerGroup().getLayers();
 				var key = $(this).attr('data-key');
-				var uri = $(this).attr('data-uri');
 				var type = $(this).attr('data-type');
 				var l ;
-				console.log("Find layer:"+key+", type:"+type+", uri:"+uri);
+				console.log("Find layer:"+key+", type:"+type);
 				for (var x = 0; x < lyrs.getLength(); x++) {
 					if (lyrs.item(x).get('key')=== key) {
 						l = lyrs.item(x);
@@ -1253,8 +1252,8 @@ function addFeatures(map, feature, filter){
 					console.log("Removed layer:"+l);
 				}
 				// now delete from server
-				deleteData(key,type, uri);
-			});*/
+				deleteData(key,type);
+			});
 			
 			$('.featureRemove').on('click', function(){
 				var lyrs = map.getLayerGroup().getLayers();
@@ -1302,10 +1301,7 @@ function addFeatures(map, feature, filter){
 					var type = $(this).attr('data-type');
 					
 					for (var x = 0; x < lyrs.length; x++) { 
-						if(lyrs[x].get('key')=== key) { 
-							//zoom to extent
-							//map.getView().calculateExtent(lyrs[x].getSource().getExtent(),
-							//map.getSize()); 
+						if(lyrs[x].get('key')=== key) {  
 							return; 
 						} 
 					}
