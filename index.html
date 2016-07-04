@@ -180,7 +180,7 @@
 					<!--<span data-toggle="drawer" data-target="#drawDrawer" >-->
 					   <ul class="drawer-nav">
 							 <li role="presentation"><a href="#anchorDrawer" data-toggle="drawer" >Anchor</a></li>
-							 <li role="presentation"><a href="#featurePopup" data-toggle="drawer" >Chart List</a></li>
+							 <li role="presentation"><a href="#chartDrawer" data-toggle="drawer" >Chart List</a></li>
 							 <li role="presentation"><a href="#featureDrawer" data-toggle="drawer" >Feature</a></li>
 							 <li role="presentation"><a href="#drawDrawer" data-toggle="drawer" >Draw</a></li>
 							 <li role="presentation"><input id="followVessel" type="checkbox"></input></li>
@@ -191,11 +191,6 @@
 					<!--</span>-->
 
 				</div>
-<!-- 				<div class="drawer-body"> -->
-<!-- 					<div id="featurePopup"  class="panel" title="Chart List"> -->
-<!-- 						<ul id="featurePopupList" class="list-group"></ul> -->
-<!-- 					</div> -->
-<!-- 				</div> -->
 			</div>
 		</div>
 
@@ -249,6 +244,22 @@
 				<div class="drawer-body" >
 					<div id="featurePopup"  class="panel" title="Features">
 						<ul id="featurePopupList" class="list-group"></ul>
+					</div>
+				</div>
+			</div>
+		</div>
+		<div id="chartDrawer" class="drawer dw-xs-10 dw-sm-6 dw-md-4 fold" aria-labelledby="chartDrawer">
+			<div class="drawer-contents">
+				<div class="drawer-heading">
+					<h2 class="drawer-title">Chart List</h2>
+					<a href="#chartDrawer" data-toggle="drawer" class="btn btn-primary btn-sm">Close</a>
+					<input type="text" id="featureDrawerFilter" name="chartFilterAction" value="" />
+					<a id="chartDrawerSearch" href="#chartDrawer"  class="btn btn-primary btn-sm">Search</a>
+
+				</div>
+				<div class="drawer-body" >
+					<div id="chartPopup"  class="panel" title="Charts">
+						<ul id="chartPopupList" class="list-group"></ul>
 					</div>
 				</div>
 			</div>
