@@ -8,7 +8,7 @@ var layerSwitcher = require('./lib/ol3-layerswitcher.js');
 
 var ol = require('openlayers');
 var addBaseLayers = require('./lib/addBaseLayers.js');
-var addChartLayers = require('./lib/addLayers.js');
+//var addChartLayers = require('./lib/addLayers.js');
 var drawFeatures = require('./lib/drawFeatures.js');
 var features = require('./lib/features.js');
 var charts = require('./lib/charts.js');
@@ -32,10 +32,6 @@ var view = new ol.View({
 var mousePositionControl = new ol.control.MousePosition({
     coordinateFormat: ol.coordinate.createStringXY(4),
     projection: 'EPSG:4326',
-    // comment the following two lines to have the mouse position
-    // be placed within the map.
-    //className: 'custom-mouse-position',
-    //target: document.getElementById('mouse-position'),
     undefinedHTML: '&nbsp;'
 });
 
@@ -79,7 +75,6 @@ map.getView().on('change:rotation', function (evt) {
 
 //add our layers
 addBaseLayers(map);
-//addChartLayers(map);
 
 map.addControl(layerSwitcher);
 
