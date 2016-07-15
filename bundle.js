@@ -419,7 +419,7 @@ function setAnchorOverlay(map, anchCircleFeature) {
 	return featureOverlay;
 }
 
-var AnchorControl = menuControl.makeDrawerButton('A','anchor-btn','#anchorDrawer');
+//var AnchorControl = menuControl.makeDrawerButton('A','anchor-btn','#anchorDrawer');
 
 
 function getPutMsg(lat, lon, maxRadius){
@@ -654,7 +654,6 @@ $("#anchorPopupReset").on('click', function() {
 	edit=false;
 });
 module.exports = {
-	AnchorControl: AnchorControl,
 	onmessage: onmessage,
 	anchorWatchToggle:anchorWatchToggle,
 	setup: setup
@@ -1743,12 +1742,10 @@ var pointerMoveHandler = function(evt) {
 function setup(map){
 	map.addLayer(vector);
 	createInteraction(map);
-	
-	var MeasureControl = menuControl.makeButton('V','measure-btn', function (e) {
+	$("#measureOn").change(function(){
 		toggleMeasure(map);
-	});
-	map.addControl(new MeasureControl());
-	$(".measure-btn").tooltip({ placement: 'right', title: 'Toggle measure'});
+    });
+	
 }
 
 var measureOn = false;
@@ -1885,7 +1882,8 @@ var formatArea = function(polygon) {
 //addInteraction();
 module.exports={
 	setup: setup,
-	createInteraction: createInteraction
+	createInteraction: createInteraction,
+	toggleMeasure:toggleMeasure
 }
 
 },{"./menuControl.js":10,"./util.js":15,"jquery":38,"openlayers":40}],10:[function(require,module,exports){

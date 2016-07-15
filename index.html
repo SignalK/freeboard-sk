@@ -154,18 +154,19 @@
 				background-repeat: repeat-x;
 			}
 		
-			#featureDrawer {
+			#featureDrawer, #chartDrawer {
 				max-height: 95%;
 				height: 95%;
 				overflow: hidden;
 				
 			}
-			#featurePopupList {
+			#featurePopupList, #chartPopupList{
 				max-height: 95%;
 				height: 95%;
 				overflow: scroll;
 				
 			}
+			
 		</style>
 		<title>Freeboard K - OpenLayers 3 + Signal K</title>
 	</head>
@@ -183,6 +184,7 @@
 							 <li role="presentation"><a href="#chartDrawer" data-toggle="drawer" >Chart List</a></li>
 							 <li role="presentation"><a href="#featureDrawer" data-toggle="drawer" >Feature</a></li>
 							 <li role="presentation"><a href="#drawDrawer" data-toggle="drawer" >Draw</a></li>
+							 <li role="presentation" class="active"><input id="measureOn" type="checkbox"  data-toggle="toggle">Measure</li>
 							 <li role="presentation"><input id="followVessel" type="checkbox"></input></li>
 							 <li role="presentation"><input id="vesselUp" type="checkbox"></input></li>
 							 <li role="presentation"><a href="#menuDrawer" data-toggle="drawer" >Close</a></li>
@@ -201,8 +203,8 @@
 					<h2 class="drawer-title">Anchor Watch</h2>
 					<ul class="drawer-nav">
 							<li role="presentation" class="active"><input id="anchorPopupOn" type="checkbox"  data-toggle="toggle"></li>
-							<li role="presentation"><a id="anchorPopupReset"  >Reset</a></li>
-							<li role="presentation"><a href="#anchorDrawer" data-toggle="drawer" >Hide</a></li>
+							<li role="presentation"><a id="anchorPopupReset"  >Reset Position</a></li>
+							<li role="presentation"><a href="#anchorDrawer" data-toggle="drawer" >Close</a></li>
 					</ul>
 				</div>
 				<div class="drawer-body">
