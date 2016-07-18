@@ -154,6 +154,7 @@ var ol = require('openlayers');
 var getTileUrl = require('./getTileUrl.js');
 module.exports = function addBaseLayers( map) {
 	var OSM = new ol.layer.Tile({
+		scale: 10000000000003,
 		title: 'OpenStreetMap',
 		type: 'base',
 		visible: true,
@@ -161,6 +162,7 @@ module.exports = function addBaseLayers( map) {
 	});
 
 	var WORLD = new ol.layer.Tile({
+		scale: 10000000000000,
 		title: "WORLD",
 		type: 'base',
 		maxResolution: 156600,
@@ -173,6 +175,7 @@ module.exports = function addBaseLayers( map) {
 	});
 
 	var WORLD1 = new ol.layer.Tile({
+		scale: 10000000000002,
 		title: "WORLD1",
 		type: 'base',
 		maxResolution: 40000,
@@ -184,8 +187,9 @@ module.exports = function addBaseLayers( map) {
 		})
 	});
 
-	map.addLayer(WORLD1);
+	
 	map.addLayer(WORLD);
+	map.addLayer(WORLD1);
 	map.addLayer(OSM);
 	
 }
@@ -683,7 +687,7 @@ function setup(map){
 	var layers = JSON.parse(localStorage.getItem('sk-load-charts'));
 	if(!layers)return;
 	layers = jQuery.grep(layers, function(value) {
-		addChartLayer(map, value.key, value.type);
+		addChartLayer(map, value.key, value.type, value.scale);
 		});
 }
 
@@ -698,10 +702,10 @@ function refresh(){
 
 }
 
-function storeAddChart(key, type){
+function storeAddChart(key, type, scale){
 	var layers = JSON.parse(localStorage.getItem('sk-load-charts'));
 	if(!layers)layers = [];
-	var layer = {key: key, type: type,};
+	var layer = {key: key, type: type, scale: scale};
 	layers.push(layer);
 	localStorage.setItem('sk-load-charts',JSON.stringify(layers));	
 }
@@ -774,7 +778,7 @@ function addCharts(map, chart, filter){
 					  +'<h4 class="list-group-item-heading"  >'+obj.name+'</h4>'
 					  +'<div class="list-group-item-text">'+obj.description+'</div>'
 					  +'<div>'
-					  +'<a class="btn-primary btn-sm chartAdd" data-key="'+arrKey.key+'" data-name="'+obj.name+'"  data-type="'+chart+'" data-title="'+obj.name+'">Show</a>&nbsp;'
+					  +'<a class="btn-primary btn-sm chartAdd" data-key="'+arrKey.key+'" data-name="'+obj.name+'" data-scale="'+obj.scale+'" data-type="'+chart+'" data-title="'+obj.name+'">Show</a>&nbsp;'
 					  //+'<a class="btn-primary btn-sm chartEdit" data-key="'+arrKey.key+'" data-name="'+obj.name+'" data-type="'+chart+'">Edit</a>&nbsp;'
 					 //+'<a class="btn-primary btn-sm chartSave" data-key="'+arrKey.key+'" data-name="'+obj.name+'" data-type="'+chart+'" >Save</a>&nbsp;'
 					  +'<a class="btn-primary btn-sm chartRemove" data-key="'+arrKey.key+'" data-name="'+obj.name+'" data-type="'+chart+'">Hide</a>&nbsp;'
@@ -851,6 +855,7 @@ function addCharts(map, chart, filter){
 					var title = $(this).attr('data-name');
 					var key = $(this).attr('data-key');
 					var type = $(this).attr('data-type');
+					var scale = $(this).attr('data-scale')|10;
 					
 					for (var x = 0; x < lyrs.length; x++) { 
 						if(lyrs[x].get('key')=== key) {  
@@ -858,8 +863,8 @@ function addCharts(map, chart, filter){
 						} 
 					}
 					
-					addChartLayer(map, key, type);
-					storeAddChart(key, type); 
+					addChartLayer(map, key, type, scale);
+					storeAddChart(key, type, scale); 
 				 });
 			
 
@@ -869,8 +874,21 @@ function addCharts(map, chart, filter){
 
 }
 
+function addChartToMap(map, chartObj, scale){
+	//need to set it at the correct level
+	var lyrs = map.getLayerGroup().getLayers();
+	var l ;
+	for (var x = 0; x < lyrs.getLength(); x++) {
+		if (lyrs.item(x).get('scale')> scale) {
+			continue;
+		}
+		lyrs.insertAt(x,chartObj);
+		return;
+	}
+	
+}
 
-function addChartLayer(map, key, type){
+function addChartLayer(map, key, type, scale){
 	// add new layer
 	var url = "/signalk/v1/api/resources/"+type+"/"+key;
 	
@@ -895,6 +913,7 @@ function addChartLayer(map, key, type){
 	            	    var tileSets = result.TileMap.TileSets.TileSet;
 		            	var chartObj = new ol.layer.Tile({
 		            		key: key,
+		            		scale: scale,
 		        			title: result.TileMap.Title,
 		        			type: "overlay",
 		        			maxResolution: parseFloat(tileSets[0]['units-per-pixel'])*2,
@@ -911,7 +930,7 @@ function addChartLayer(map, key, type){
 						console.log("chartObj complete: maxZoom:"+ parseInt(tileSets[0].href));
 						console.log("chartObj complete: minZoom:"+ parseInt(tileSets[tileSets.length-1].href));
 						
-						map.addLayer(chartObj);
+						addChartToMap(map, chartObj, scale);
 						console.log("Added");
 	            	});
 	            }});
