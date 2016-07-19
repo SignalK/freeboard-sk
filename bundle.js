@@ -11,7 +11,7 @@ var ol = require('openlayers');
 var addBaseLayers = require('./lib/addBaseLayers.js');
 //var addChartLayers = require('./lib/addLayers.js');
 var drawFeatures = require('./lib/drawFeatures.js');
-var routes = require('./lib/tracks.js');
+var routes = require('./lib/routes.js');
 var waypoints = require('./lib/waypoints.js');
 var charts = require('./lib/charts.js');
 var aisVessels = require('./lib/aisVessels.js');
@@ -151,7 +151,7 @@ $.ajax({
     }
 });
 
-},{"./lib/addBaseLayers.js":2,"./lib/aisVessels.js":3,"./lib/anchorControl.js":4,"./lib/charts.js":5,"./lib/drawFeatures.js":6,"./lib/measure.js":8,"./lib/menuControl.js":9,"./lib/ol3-layerswitcher.js":10,"./lib/signalk.js":11,"./lib/simplify-js.js":12,"./lib/tracks.js":14,"./lib/vesselPosition.js":16,"./lib/waypoints.js":17,"bootstrap":23,"bootstrap-drawer":19,"bootstrap-slider":21,"bootstrap-toggle":22,"jquery":39,"openlayers":41}],2:[function(require,module,exports){
+},{"./lib/addBaseLayers.js":2,"./lib/aisVessels.js":3,"./lib/anchorControl.js":4,"./lib/charts.js":5,"./lib/drawFeatures.js":6,"./lib/measure.js":8,"./lib/menuControl.js":9,"./lib/ol3-layerswitcher.js":10,"./lib/routes.js":11,"./lib/signalk.js":12,"./lib/simplify-js.js":13,"./lib/vesselPosition.js":16,"./lib/waypoints.js":17,"bootstrap":23,"bootstrap-drawer":19,"bootstrap-slider":21,"bootstrap-toggle":22,"jquery":39,"openlayers":41}],2:[function(require,module,exports){
 var ol = require('openlayers');
 var getTileUrl = require('./getTileUrl.js');
 module.exports = function addBaseLayers( map) {
@@ -198,10 +198,6 @@ module.exports = function addBaseLayers( map) {
 
 },{"./getTileUrl.js":7,"openlayers":41}],3:[function(require,module,exports){
 var ol = require('openlayers');
-//var wsServer = require('./signalk.js');
-var styleFunction = require('./styleFunction.js');
-var menuControl = require('./menuControl.js');
-var features = require('./tracks.js');
 var util = require('./util.js');
 
 var aisOverlay = null;
@@ -332,7 +328,7 @@ module.exports = {
 	setup:setup
 };
 
-},{"./menuControl.js":9,"./styleFunction.js":13,"./tracks.js":14,"./util.js":15,"openlayers":41}],4:[function(require,module,exports){
+},{"./util.js":15,"openlayers":41}],4:[function(require,module,exports){
 var $ = require('jquery');
 
 var ol = require('openlayers');
@@ -665,7 +661,7 @@ module.exports = {
 	setup: setup
 };
 
-},{"./menuControl.js":9,"./styleFunction.js":13,"./util.js":15,"./vesselPosition.js":16,"bootstrap-toggle":22,"jquery":39,"openlayers":41,"web-audio-daw":79}],5:[function(require,module,exports){
+},{"./menuControl.js":9,"./styleFunction.js":14,"./util.js":15,"./vesselPosition.js":16,"bootstrap-toggle":22,"jquery":39,"openlayers":41,"web-audio-daw":79}],5:[function(require,module,exports){
 var $ = require('jquery');
 var ol = require('openlayers');
 var styleFunction = require('./styleFunction.js');
@@ -949,16 +945,15 @@ module.exports = {
 	setup:setup,
 	
 }
-},{"./menuControl.js":9,"./signalk.js":11,"./styleFunction.js":13,"./util.js":15,"bootstrap-select":20,"jquery":39,"nanomodal":40,"openlayers":41,"xml2js":82}],6:[function(require,module,exports){
+},{"./menuControl.js":9,"./signalk.js":12,"./styleFunction.js":14,"./util.js":15,"bootstrap-select":20,"jquery":39,"nanomodal":40,"openlayers":41,"xml2js":82}],6:[function(require,module,exports){
 var $ = require('jquery');
 var ol = require('openlayers');
 var util = require('./util.js');
-var styleFunction = require('./styleFunction.js');
-var menuControl = require('./menuControl.js');
 require('bootstrap-select');
 //var setupDragAndDrop = require('./setupDragAndDrop.js');
 var nanoModal= require('nanomodal');
 var wsServer = require('./signalk.js');
+
 var dragAndDropInteraction = new ol.interaction.DragAndDrop({
 	formatConstructors: [ol.format.GPX, ol.format.GeoJSON, ol.format.IGC, ol.format.KML, ol.format.TopoJSON]
 });
@@ -973,7 +968,7 @@ var vector_layer = new ol.layer.Vector({
 	title: "Routes Layer",
 	name: 'edit_vector_layer',
 	source: new ol.source.Vector(),
-	style: styleFunction
+	style: util.styleFunction
 });
 
 var geomType = 'Point';
@@ -1279,7 +1274,7 @@ module.exports = {
 	setGeomType,
 	toggleAction
 }
-},{"./menuControl.js":9,"./signalk.js":11,"./styleFunction.js":13,"./util.js":15,"bootstrap-select":20,"jquery":39,"nanomodal":40,"openlayers":41}],7:[function(require,module,exports){
+},{"./signalk.js":12,"./util.js":15,"bootstrap-select":20,"jquery":39,"nanomodal":40,"openlayers":41}],7:[function(require,module,exports){
 module.exports = function (coordinate, title) {
 
 			if (coordinate == null) {
@@ -1856,6 +1851,270 @@ module.exports= layerSwitcher;
 
 },{"openlayers":41}],11:[function(require,module,exports){
 var $ = require('jquery');
+var ol = require('openlayers');
+
+require('bootstrap-select');
+
+var wsServer = require('./signalk.js');
+var util = require('./util.js');
+
+function deleteData(key, type){
+	
+	var putMsg = { context: 'resources',
+				  put: [
+					  {
+						 
+						  values: [
+							  {
+								  path: type+'.'+key,
+								  value: null
+							  }
+
+						  ]
+					  }
+				  ]
+
+				 };
+
+	console.log(JSON.stringify(putMsg));
+	wsServer.send(JSON.stringify(putMsg)); 
+}
+
+
+function setup(map){
+	//$(".feature-btn").tooltip({ placement: 'right', title: 'Waypoints, routes, regions'});	
+	//map.addControl(new FeatureControl());
+	refresh();
+	//loadFeatures(map);
+}
+
+function refresh(){
+	var map = $('#map').data('map');
+	var filter = $('#routeDrawerFilter').val();
+	console.log("filtering with :"+filter);
+	$('#routePopupList').empty();
+	//addFeatures(map, 'waypoints', filter);
+	addFeatures(map, 'routes', filter);
+	//addFeatures(map, 'regions', filter);
+
+}
+
+function loadFeatures(map){
+	var layers = [];
+	//if(!localStorage.getItem('sk-load-layers')){
+		localStorage.setItem('sk-load-layers',JSON.stringify(layers));	
+	//}
+	layers = JSON.parse(localStorage.getItem('sk-load-layers'))
+	$.each(layers, function(i, obj) {
+		var layerSource = new ol.source.Vector({
+			url: obj.url,
+			format: new ol.format.GeoJSON()
+		});
+		//featureProjection: 'EPSG:3857',
+		//dataProjection: 'EPSG:4326'
+		map.addLayer(new ol.layer.Vector({
+			title: obj.title,
+			key: obj.key,
+			type: obj.type,
+			source: layerSource,
+			style: util.styleFunction
+		}));
+	});
+}
+
+function storeAddLayer(url,title, key, type){
+	var layers = JSON.parse(localStorage.getItem('sk-load-layers'));
+	if(!layers)layers = [];
+	var layer = {url:url,title:title,key: key, type: type,};
+	layers.push(layer);
+	localStorage.setItem('sk-load-layers',JSON.stringify(layers));	
+}
+function storeRemoveLayer(key){
+	var layers = JSON.parse(localStorage.getItem('sk-load-layers'));
+	if(!layers)return;
+	layers = jQuery.grep(layers, function(value) {
+		  return value.key != key;
+		});
+	localStorage.setItem('sk-load-layers',JSON.stringify(layers));	
+}
+
+function addFeatures(map, feature, filter){
+	$.ajax({
+		url : "/signalk/v1/api/resources/"+feature,
+		dataType: "json", 
+		success : function (data) {
+			if(data==null)return;
+			
+			//sort the keys in reverse
+			var arr = [];
+
+			for(var x in data){
+			  arr.push({'key': x,'name': data[x].name});
+			}
+			//console.log("Array: "+JSON.stringify(arr));
+			arr.sort(function(a,b) 
+			{
+				if (a.name > b.name) {
+				    return -1;
+				  }
+				  if (a.name < b.name) {
+				    return 1;
+				  }
+				  return 0;
+			});
+
+
+			$.each(arr, function(r, arrKey) {
+				var obj  = data[arrKey.key];
+				// console.log(feature +' '+JSON.stringify(obj));
+				if(filter && filter.trim().length>0 && obj.name.indexOf(filter)<0){
+					//console.log("Failed filter:"+filter);
+					return;
+				}
+				$('#routePopupList').append('<li class="list-group-item" >'
+					  +'<h4 class="list-group-item-heading"  >'+obj.name+'</h4>'
+					  +'<div class="list-group-item-text">'+obj.description+'</div>'
+					  +'<div>'
+					  +'<a class="btn-primary btn-sm featureAdd" data-key="'+arrKey.key+'" data-name="'+obj.name+'"  data-type="'+feature+'" data-title="'+obj.name+'">Show</a>&nbsp;'
+					  //+'<a class="btn-primary btn-sm featureEdit" data-key="'+arrKey.key+'" data-name="'+obj.name+'" data-type="'+feature+'">Edit</a>&nbsp;'
+					 //+'<a class="btn-primary btn-sm featureSave" data-key="'+arrKey.key+'" data-name="'+obj.name+'" data-type="'+feature+'" >Save</a>&nbsp;'
+					  +'<a class="btn-primary btn-sm featureRemove" data-key="'+arrKey.key+'" data-name="'+obj.name+'" data-type="'+feature+'">Hide</a>&nbsp;'
+					  +'<a class="btn-primary btn-sm featureDelete" data-key="'+arrKey.key+'" data-name="'+obj.name+'" data-type="'+feature+'">Delete</a>'
+					  +'</div>'
+					  +'</li>');
+			});
+		
+			$('#routePopupList .featureDelete').on('click', function(){
+				//alert(Are you sure?);
+				var lyrs = map.getLayerGroup().getLayers();
+				var key = $(this).attr('data-key');
+				var type = $(this).attr('data-type');
+				var l ;
+				console.log("Find layer:"+key+", type:"+type);
+				for (var x = 0; x < lyrs.getLength(); x++) {
+					if (lyrs.item(x).get('key')=== key) {
+						l = lyrs.item(x);
+					}
+				}
+				if(l){
+					console.log("Found layer:"+l);
+					storeRemoveLayer(key);
+					map.removeLayer(l)
+					console.log("Removed layer:"+l);
+				}
+				// now delete from server
+				deleteData(key,type);
+				refresh();
+			});
+			
+			$('#routePopupList .featureRemove').on('click', function(){
+				var lyrs = map.getLayerGroup().getLayers();
+				var key = $(this).attr('data-key');
+				var l ;
+				for (var x = 0; x < lyrs.getLength(); x++) {
+					if (lyrs.item(x).get('key')=== key) {
+						l = lyrs.item(x);
+					}
+				}
+				storeRemoveLayer(key);
+				console.log(map.removeLayer(l));
+				//$(this).removeClass("btn-primary").addClass("btn-secondary");
+			});
+
+			/*$('.featureEdit').on('click', function(){
+				var lyrs = map.getLayerGroup().getLayers();
+				var key = $(this).attr('data-key');
+				var l ;
+				for (var x = 0; x < lyrs.getLength(); x++) {
+					if (lyrs.item(x).get('key')=== key) {
+						l = lyrs.item(x);
+						addModifyInteraction(map, l, key);
+					}
+				}
+
+			});*/
+
+			/*$('.featureSave').on('click', function(){
+				var lyrs = map.getLayerGroup().getLayers();
+				var key = $(this).attr('data-key');
+				var l ;
+				for (var x = 0; x < lyrs.getLength(); x++) {
+					if (lyrs.item(x).get('key')=== key) {
+						l = lyrs.item(x);
+						saveData(l);
+					}
+				}
+
+			});*/
+			$('#routePopupList .featureAdd').on('click', function(){
+					// check it not already there
+					var lyrs = map.getLayers().getArray().slice().reverse();
+					var title = $(this).attr('data-name');
+					var key = $(this).attr('data-key');
+					var type = $(this).attr('data-type');
+					
+					for (var x = 0; x < lyrs.length; x++) { 
+						if(lyrs[x].get('key')=== key) {  
+							return; 
+						} 
+					}
+					 
+					// add new layer
+					
+					
+					var url = "/signalk/v1/api/resources/"+type+"/"+key;
+					
+					storeAddLayer(url,title, key, type); 
+					//var testGeo = '{"feature":[{"type":"Feature","id":"fbv4","geometry":{"type":"Polygon","coordinates":[[[-122.46236801147461,37.8323275231033],[-122.42537498474121,37.82168374803001],[-122.45962142944336,37.81056377038564],[-122.46236801147461,37.8323275231033]]]}';
+					// get the geojson
+					 $.ajax({
+			            url: url,
+			            dataType: "json",
+			            success: function (data) {
+			            	console.log("data:"+JSON.stringify(data));
+			            	
+							var layerSource = new ol.source.Vector({
+								features: (new ol.format.GeoJSON()).readFeatures(data.feature[0],{ dataProjection: 'EPSG:4326', featureProjection: 'EPSG:3857' })
+							});
+							
+							console.log("layerSource complete");
+							var fLayer = new ol.layer.Vector({
+								key: key,
+								type: type,
+								title: title,
+								source: layerSource,
+								style: util.styleFunction
+							});
+							console.log("fLayer complete");
+							fLayer.setExtent(layerSource.getExtent());
+							map.addLayer(fLayer);
+							console.log("Added");
+			            }});
+				 });
+			
+
+			}
+	});
+		
+
+}
+
+
+
+
+
+$('#routeDrawerSearch').on('click', function(){
+	refresh();
+});
+
+
+module.exports = {
+	setup:setup,
+	storeAddLayer:storeAddLayer,
+	storeRemoveLayer:storeRemoveLayer
+}
+},{"./signalk.js":12,"./util.js":15,"bootstrap-select":20,"jquery":39,"openlayers":41}],12:[function(require,module,exports){
+var $ = require('jquery');
 var signalkClient = require('signalk-client').Client;
 var debug = require('debug')('signalk:ws');
 var Promise = require('bluebird');
@@ -1941,7 +2200,7 @@ module.exports = {
 	getSelfMatcher: getSelfMatcher
 }
 
-},{"bluebird":18,"debug":36,"jquery":39,"signalk-client":225}],12:[function(require,module,exports){
+},{"bluebird":18,"debug":36,"jquery":39,"signalk-client":225}],13:[function(require,module,exports){
 /*
  (c) 2013, Vladimir Agafonkin
  Simplify.js, a high-performance JS polyline simplification library
@@ -2064,7 +2323,7 @@ else window.simplify = simplify;
 
 })();
 
-},{}],13:[function(require,module,exports){
+},{}],14:[function(require,module,exports){
 var ol = require('openlayers');
 var defaultStyle = {
 	'Point': [new ol.style.Style({
@@ -2130,272 +2389,7 @@ module.exports = function (feature, resolution) {
 		return defaultStyle[feature.getGeometry().getType()];
 	}
 };
-},{"openlayers":41}],14:[function(require,module,exports){
-var $ = require('jquery');
-var ol = require('openlayers');
-var styleFunction = require('./styleFunction.js');
-
-require('bootstrap-select');
-
-var wsServer = require('./signalk.js');
-var util = require('./util.js');
-
-function deleteData(key, type){
-	
-	var putMsg = { context: 'resources',
-				  put: [
-					  {
-						 
-						  values: [
-							  {
-								  path: type+'.'+key,
-								  value: null
-							  }
-
-						  ]
-					  }
-				  ]
-
-				 };
-
-	console.log(JSON.stringify(putMsg));
-	wsServer.send(JSON.stringify(putMsg)); 
-}
-
-
-function setup(map){
-	//$(".feature-btn").tooltip({ placement: 'right', title: 'Waypoints, routes, regions'});	
-	//map.addControl(new FeatureControl());
-	refresh();
-	//loadFeatures(map);
-}
-
-function refresh(){
-	var map = $('#map').data('map');
-	var filter = $('#trackDrawerFilter').val();
-	console.log("filtering with :"+filter);
-	$('#trackPopupList').empty();
-	//addFeatures(map, 'waypoints', filter);
-	addFeatures(map, 'routes', filter);
-	//addFeatures(map, 'regions', filter);
-
-}
-
-function loadFeatures(map){
-	var layers = [];
-	//if(!localStorage.getItem('sk-load-layers')){
-		localStorage.setItem('sk-load-layers',JSON.stringify(layers));	
-	//}
-	layers = JSON.parse(localStorage.getItem('sk-load-layers'))
-	$.each(layers, function(i, obj) {
-		var layerSource = new ol.source.Vector({
-			url: obj.url,
-			format: new ol.format.GeoJSON()
-		});
-		//featureProjection: 'EPSG:3857',
-		//dataProjection: 'EPSG:4326'
-		map.addLayer(new ol.layer.Vector({
-			title: obj.title,
-			key: obj.key,
-			type: obj.type,
-			source: layerSource,
-			style: styleFunction
-		}));
-	});
-}
-
-function storeAddLayer(url,title, key, type){
-	var layers = JSON.parse(localStorage.getItem('sk-load-layers'));
-	if(!layers)layers = [];
-	var layer = {url:url,title:title,key: key, type: type,};
-	layers.push(layer);
-	localStorage.setItem('sk-load-layers',JSON.stringify(layers));	
-}
-function storeRemoveLayer(key){
-	var layers = JSON.parse(localStorage.getItem('sk-load-layers'));
-	if(!layers)return;
-	layers = jQuery.grep(layers, function(value) {
-		  return value.key != key;
-		});
-	localStorage.setItem('sk-load-layers',JSON.stringify(layers));	
-}
-
-function addFeatures(map, feature, filter){
-	$.ajax({
-		url : "/signalk/v1/api/resources/"+feature,
-		dataType: "json", 
-		success : function (data) {
-			if(data==null)return;
-			
-			//sort the keys in reverse
-			var arr = [];
-
-			for(var x in data){
-			  arr.push({'key': x,'name': data[x].name});
-			}
-			//console.log("Array: "+JSON.stringify(arr));
-			arr.sort(function(a,b) 
-			{
-				if (a.name > b.name) {
-				    return -1;
-				  }
-				  if (a.name < b.name) {
-				    return 1;
-				  }
-				  return 0;
-			});
-
-
-			$.each(arr, function(r, arrKey) {
-				var obj  = data[arrKey.key];
-				// console.log(feature +' '+JSON.stringify(obj));
-				if(filter && filter.trim().length>0 && obj.name.indexOf(filter)<0){
-					//console.log("Failed filter:"+filter);
-					return;
-				}
-				$('#trackPopupList').append('<li class="list-group-item" >'
-					  +'<h4 class="list-group-item-heading"  >'+obj.name+'</h4>'
-					  +'<div class="list-group-item-text">'+obj.description+'</div>'
-					  +'<div>'
-					  +'<a class="btn-primary btn-sm featureAdd" data-key="'+arrKey.key+'" data-name="'+obj.name+'"  data-type="'+feature+'" data-title="'+obj.name+'">Show</a>&nbsp;'
-					  //+'<a class="btn-primary btn-sm featureEdit" data-key="'+arrKey.key+'" data-name="'+obj.name+'" data-type="'+feature+'">Edit</a>&nbsp;'
-					 //+'<a class="btn-primary btn-sm featureSave" data-key="'+arrKey.key+'" data-name="'+obj.name+'" data-type="'+feature+'" >Save</a>&nbsp;'
-					  +'<a class="btn-primary btn-sm featureRemove" data-key="'+arrKey.key+'" data-name="'+obj.name+'" data-type="'+feature+'">Hide</a>&nbsp;'
-					  +'<a class="btn-primary btn-sm featureDelete" data-key="'+arrKey.key+'" data-name="'+obj.name+'" data-type="'+feature+'">Delete</a>'
-					  +'</div>'
-					  +'</li>');
-			});
-		
-			$('#trackPopupList .featureDelete').on('click', function(){
-				//alert(Are you sure?);
-				var lyrs = map.getLayerGroup().getLayers();
-				var key = $(this).attr('data-key');
-				var type = $(this).attr('data-type');
-				var l ;
-				console.log("Find layer:"+key+", type:"+type);
-				for (var x = 0; x < lyrs.getLength(); x++) {
-					if (lyrs.item(x).get('key')=== key) {
-						l = lyrs.item(x);
-					}
-				}
-				if(l){
-					console.log("Found layer:"+l);
-					storeRemoveLayer(key);
-					map.removeLayer(l)
-					console.log("Removed layer:"+l);
-				}
-				// now delete from server
-				deleteData(key,type);
-				refresh();
-			});
-			
-			$('#trackPopupList .featureRemove').on('click', function(){
-				var lyrs = map.getLayerGroup().getLayers();
-				var key = $(this).attr('data-key');
-				var l ;
-				for (var x = 0; x < lyrs.getLength(); x++) {
-					if (lyrs.item(x).get('key')=== key) {
-						l = lyrs.item(x);
-					}
-				}
-				storeRemoveLayer(key);
-				console.log(map.removeLayer(l));
-				//$(this).removeClass("btn-primary").addClass("btn-secondary");
-			});
-
-			/*$('.featureEdit').on('click', function(){
-				var lyrs = map.getLayerGroup().getLayers();
-				var key = $(this).attr('data-key');
-				var l ;
-				for (var x = 0; x < lyrs.getLength(); x++) {
-					if (lyrs.item(x).get('key')=== key) {
-						l = lyrs.item(x);
-						addModifyInteraction(map, l, key);
-					}
-				}
-
-			});*/
-
-			/*$('.featureSave').on('click', function(){
-				var lyrs = map.getLayerGroup().getLayers();
-				var key = $(this).attr('data-key');
-				var l ;
-				for (var x = 0; x < lyrs.getLength(); x++) {
-					if (lyrs.item(x).get('key')=== key) {
-						l = lyrs.item(x);
-						saveData(l);
-					}
-				}
-
-			});*/
-			$('#trackPopupList .featureAdd').on('click', function(){
-					// check it not already there
-					var lyrs = map.getLayers().getArray().slice().reverse();
-					var title = $(this).attr('data-name');
-					var key = $(this).attr('data-key');
-					var type = $(this).attr('data-type');
-					
-					for (var x = 0; x < lyrs.length; x++) { 
-						if(lyrs[x].get('key')=== key) {  
-							return; 
-						} 
-					}
-					 
-					// add new layer
-					
-					
-					var url = "/signalk/v1/api/resources/"+type+"/"+key;
-					
-					storeAddLayer(url,title, key, type); 
-					//var testGeo = '{"feature":[{"type":"Feature","id":"fbv4","geometry":{"type":"Polygon","coordinates":[[[-122.46236801147461,37.8323275231033],[-122.42537498474121,37.82168374803001],[-122.45962142944336,37.81056377038564],[-122.46236801147461,37.8323275231033]]]}';
-					// get the geojson
-					 $.ajax({
-			            url: url,
-			            dataType: "json",
-			            success: function (data) {
-			            	console.log("data:"+JSON.stringify(data));
-			            	
-							var layerSource = new ol.source.Vector({
-								features: (new ol.format.GeoJSON()).readFeatures(data.feature[0],{ dataProjection: 'EPSG:4326', featureProjection: 'EPSG:3857' })
-							});
-							
-							console.log("layerSource complete");
-							var fLayer = new ol.layer.Vector({
-								key: key,
-								type: type,
-								title: title,
-								source: layerSource,
-								style: util.styleFunction
-							});
-							console.log("fLayer complete");
-							fLayer.setExtent(layerSource.getExtent());
-							map.addLayer(fLayer);
-							console.log("Added");
-			            }});
-				 });
-			
-
-			}
-	});
-		
-
-}
-
-
-
-
-
-$('#trackDrawerSearch').on('click', function(){
-	refresh();
-});
-
-
-module.exports = {
-	setup:setup,
-	storeAddLayer:storeAddLayer,
-	storeRemoveLayer:storeRemoveLayer
-}
-},{"./signalk.js":11,"./styleFunction.js":13,"./util.js":15,"bootstrap-select":20,"jquery":39,"openlayers":41}],15:[function(require,module,exports){
+},{"openlayers":41}],15:[function(require,module,exports){
 var ol = require('openlayers');
 
 var image = new ol.style.Circle({
@@ -2610,7 +2604,7 @@ var ol = require('openlayers');
 //var wsServer = require('./signalk.js');
 var styleFunction = require('./styleFunction.js');
 var menuControl = require('./menuControl.js');
-var features = require('./tracks.js');
+//var routes = require('./routes.js');
 var util = require('./util.js');
 
 var vesselPos = new ol.Feature();
@@ -2933,10 +2927,9 @@ module.exports = {
     toggleVesselUp:toggleVesselUp
 };
 
-},{"./menuControl.js":9,"./styleFunction.js":13,"./tracks.js":14,"./util.js":15,"openlayers":41}],17:[function(require,module,exports){
+},{"./menuControl.js":9,"./styleFunction.js":14,"./util.js":15,"openlayers":41}],17:[function(require,module,exports){
 var $ = require('jquery');
 var ol = require('openlayers');
-var styleFunction = require('./styleFunction.js');
 require('bootstrap-select');
 var wsServer = require('./signalk.js');
 var util = require('./util.js');
@@ -3000,7 +2993,7 @@ function loadFeatures(map){
 			key: obj.key,
 			type: obj.type,
 			source: layerSource,
-			style: styleFunction
+			style: util.styleFunction
 		}));
 	});
 }
@@ -3172,7 +3165,7 @@ module.exports = {
 	storeAddLayer:storeAddLayer,
 	storeRemoveLayer:storeRemoveLayer
 }
-},{"./signalk.js":11,"./styleFunction.js":13,"./util.js":15,"bootstrap-select":20,"jquery":39,"openlayers":41}],18:[function(require,module,exports){
+},{"./signalk.js":12,"./util.js":15,"bootstrap-select":20,"jquery":39,"openlayers":41}],18:[function(require,module,exports){
 (function (process,global){
 /* @preserve
  * The MIT License (MIT)

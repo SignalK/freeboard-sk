@@ -154,19 +154,19 @@
 				background-repeat: repeat-x;
 			}
 		
-			#waypointDrawer, #trackDrawer, #chartDrawer {
+			#waypointDrawer, #routeDrawer, #chartDrawer {
 				max-height: 95%;
 				height: 95%;
 				overflow: hidden;
 				
 			}
-			#waypointPopupList, #trackPopupList, #chartPopupList{
+			#waypointPopupList, #routePopupList, #chartPopupList{
 				max-height: 100%;
 				height: 100%;
 				overflow: scroll;
 				
 			}
-			.waypointDrawerBody, .trackDrawerBody, .chartDrawerBody{
+			.waypointDrawerBody, .routeDrawerBody, .chartDrawerBody{
 				max-height: 80%;
 				
 			}
@@ -186,7 +186,7 @@
 					   <ul class="drawer-nav">
 							 <li role="presentation"><a href="#anchorDrawer" data-toggle="drawer" >Anchor</a></li>
 							 <li role="presentation"><a href="#chartDrawer" data-toggle="drawer" >Chart List</a></li>
-							 <li role="presentation"><a href="#trackDrawer" data-toggle="drawer" >Route List</a></li>
+							 <li role="presentation"><a href="#routeDrawer" data-toggle="drawer" >Route List</a></li>
 							 <li role="presentation"><a href="#waypointDrawer" data-toggle="drawer" >Waypoint List</a></li>
 							 <li role="presentation"><a href="#drawDrawer" data-toggle="drawer" >Draw</a></li>
 							 <li role="presentation" class="active">Measure&nbsp;<input id="measureOn" type="checkbox"  data-toggle="toggle"></li>
@@ -236,21 +236,21 @@
 
 			</div>
 		</div>
-		<div id="trackDrawer" class="drawer dw-xs-10 dw-sm-6 dw-md-4 fold" aria-labelledby="trackDrawer">
+		<div id="routeDrawer" class="drawer dw-xs-10 dw-sm-6 dw-md-4 fold" aria-labelledby="routeDrawer">
 			<div class="drawer-contents">
 				<div class="drawer-heading">
 					<h2 class="drawer-title">Route List</h2>
-					<span data-toggle="drawer" data-target="#trackDrawer" >
+					<span data-toggle="drawer" data-target="#routeDrawer" >
 						<a href="#drawDrawer" data-toggle="drawer" class="btn btn-primary btn-sm">New</a>
 					</span>
-					<a href="#trackDrawer" data-toggle="drawer" class="btn btn-primary btn-sm">Close</a>
-					<input type="text" id="trackDrawerFilter" name="trackFilterAction" value="" />
-					<a id="trackDrawerSearch" href="#trackDrawer"  class="btn btn-primary btn-sm">Search</a>
+					<a href="#routeDrawer" data-toggle="drawer" class="btn btn-primary btn-sm">Close</a>
+					<input type="text" id="routeDrawerFilter" name="routeFilterAction" value="" />
+					<a id="routeDrawerSearch" href="#routeDrawer"  class="btn btn-primary btn-sm">Search</a>
 
 				</div>
-				<div class="drawer-body trackDrawerBody" >
-					<div id="featurePopup"  class="panel" title="Features">
-						<ul id="trackPopupList" class="list-group"></ul>
+				<div class="drawer-body routeDrawerBody" >
+					<div id="featurePopup"  class="panel" title="Routes">
+						<ul id="routePopupList" class="list-group"></ul>
 					</div>
 				</div>
 			</div>
