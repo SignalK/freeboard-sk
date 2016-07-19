@@ -950,6 +950,7 @@ module.exports = {
 },{"./menuControl.js":10,"./signalk.js":12,"./styleFunction.js":14,"./util.js":15,"bootstrap-select":19,"jquery":38,"nanomodal":39,"openlayers":40,"xml2js":81}],6:[function(require,module,exports){
 var $ = require('jquery');
 var ol = require('openlayers');
+var util = require('./util.js');
 var styleFunction = require('./styleFunction.js');
 var menuControl = require('./menuControl.js');
 require('bootstrap-select');
@@ -1081,7 +1082,7 @@ function addDrawInteraction(map) {
 		// give the feature this id
 		event.feature.setId(id);
 		// save the changed data
-		//saveData(); 
+		saveData(); 
 	});
 }
 
@@ -1110,30 +1111,56 @@ var dialogModal = nanoModal(document.querySelector("#saveFeaturePopup"), {
 			buttons: [{
 				text: "Save",
 				handler: function(modal) {
-					var data = new ol.format.GeoJSON().writeFeaturesObject(vector_layer.getSource().getFeatures(), {
-						featureProjection: 'EPSG:3857',
-						dataProjection: 'EPSG:4326'
-					});
+					
 					var name = document.querySelector("#saveFeaturePopupName").value;
 					var desc = document.querySelector("#saveFeaturePopupDesc").value;
 					var type = document.querySelector('#drawPopupGeom :checked').value;
-					var path = 'resources.waypoints';
+					var context = 'resources.waypoints';
+					
 					//if(type === 'Point') path = 'waypoints';
-					if(type === 'LineString') path = 'resources.routes';
-					if(type === 'Polygon') path = 'resources.regions';
-					var putMsg = { context: 'vessels.self',
+					if(type === 'LineString') context = 'resources.routes';
+					if(type === 'Polygon') context = 'resources.regions';
+					//TODO: loop through the waypoints here?
+					var vectorFeatures = vector_layer.getSource().getFeatures();
+					var vectorFeature = vectorFeatures[0];
+					
+					var uuid = util.generateUUID();
+					if(vectorFeature.properties){
+						vectorFeature.properties.forEach(function(prop) {
+							if (prop.uuid) {
+								uuid=prop.uuid;
+							}
+						});
+				    }
+					vectorFeature.properties=[
+					            {uuid: uuid},
+								{name: name},
+								{description: desc},
+								{mimetype: 'application/vnd.geo+json'}  
+					 ];
+					var data = new ol.format.GeoJSON().writeFeaturesObject(vectorFeatures, {
+						featureProjection: 'EPSG:3857',
+						dataProjection: 'EPSG:4326'
+					});
+					var coordinates = data.features[0].geometry.coordinates;
+					var putMsg = { context: context,
 								  put: [
 									  {
 										  timestamp: new Date().toISOString(),
-										  source: 'vessels.self',
+										  source: context,
 										  values: [
 											  {
-												  path: path+'.'+name,
+												  path: uuid,
 												  value: {
+													  position:{
+														  latittude: coordinates[1],
+														  longitude: coordinates[0],
+													      altitude:0
+													  },
+													  feature: data[0],
 													  name: name,
 													  description: desc,
-													  mimetype: 'application/vnd.geo+json',
-													  payload: data
+													  mimetype: 'application/vnd.geo+json' 
 												  }
 											  }
 
@@ -1250,7 +1277,7 @@ module.exports = {
 	setGeomType,
 	toggleAction
 }
-},{"./menuControl.js":10,"./signalk.js":12,"./styleFunction.js":14,"bootstrap-select":19,"jquery":38,"nanomodal":39,"openlayers":40}],7:[function(require,module,exports){
+},{"./menuControl.js":10,"./signalk.js":12,"./styleFunction.js":14,"./util.js":15,"bootstrap-select":19,"jquery":38,"nanomodal":39,"openlayers":40}],7:[function(require,module,exports){
 var $ = require('jquery');
 var ol = require('openlayers');
 var styleFunction = require('./styleFunction.js');
