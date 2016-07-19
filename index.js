@@ -10,7 +10,8 @@ var ol = require('openlayers');
 var addBaseLayers = require('./lib/addBaseLayers.js');
 //var addChartLayers = require('./lib/addLayers.js');
 var drawFeatures = require('./lib/drawFeatures.js');
-var features = require('./lib/features.js');
+var routes = require('./lib/tracks.js');
+var waypoints = require('./lib/waypoints.js');
 var charts = require('./lib/charts.js');
 var aisVessels = require('./lib/aisVessels.js');
 //var displayFeatureInfo = require('./lib/displayFeatureInfo.js');
@@ -97,8 +98,9 @@ function connect() {
     anchor.setup(map);
     menuControl.setup(map);
     measure.setup(map);
-    features.setup(map);
+    routes.setup(map);
     charts.setup(map);
+    waypoints.setup(map);
 
 }
 

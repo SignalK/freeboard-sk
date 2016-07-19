@@ -154,19 +154,19 @@
 				background-repeat: repeat-x;
 			}
 		
-			#featureDrawer, #chartDrawer {
+			#waypointDrawer, #trackDrawer, #chartDrawer {
 				max-height: 95%;
 				height: 95%;
 				overflow: hidden;
 				
 			}
-			#featurePopupList, #chartPopupList{
+			#waypointPopupList, #trackPopupList, #chartPopupList{
 				max-height: 100%;
 				height: 100%;
 				overflow: scroll;
 				
 			}
-			.featureDrawerBody, .chartDrawerBody{
+			.waypointDrawerBody, .trackDrawerBody, .chartDrawerBody{
 				max-height: 80%;
 				
 			}
@@ -186,7 +186,8 @@
 					   <ul class="drawer-nav">
 							 <li role="presentation"><a href="#anchorDrawer" data-toggle="drawer" >Anchor</a></li>
 							 <li role="presentation"><a href="#chartDrawer" data-toggle="drawer" >Chart List</a></li>
-							 <li role="presentation"><a href="#featureDrawer" data-toggle="drawer" >Feature</a></li>
+							 <li role="presentation"><a href="#trackDrawer" data-toggle="drawer" >Route List</a></li>
+							 <li role="presentation"><a href="#waypointDrawer" data-toggle="drawer" >Waypoint List</a></li>
 							 <li role="presentation"><a href="#drawDrawer" data-toggle="drawer" >Draw</a></li>
 							 <li role="presentation" class="active">Measure&nbsp;<input id="measureOn" type="checkbox"  data-toggle="toggle"></li>
 							 <li role="presentation"><input id="followVessel" type="checkbox"></input></li>
@@ -235,21 +236,40 @@
 
 			</div>
 		</div>
-		<div id="featureDrawer" class="drawer dw-xs-10 dw-sm-6 dw-md-4 fold" aria-labelledby="featureDrawer">
+		<div id="trackDrawer" class="drawer dw-xs-10 dw-sm-6 dw-md-4 fold" aria-labelledby="trackDrawer">
 			<div class="drawer-contents">
 				<div class="drawer-heading">
-					<h2 class="drawer-title">Features List</h2>
-					<span data-toggle="drawer" data-target="#featureDrawer" >
+					<h2 class="drawer-title">Route List</h2>
+					<span data-toggle="drawer" data-target="#trackDrawer" >
 						<a href="#drawDrawer" data-toggle="drawer" class="btn btn-primary btn-sm">New</a>
 					</span>
-					<a href="#featureDrawer" data-toggle="drawer" class="btn btn-primary btn-sm">Close</a>
-					<input type="text" id="featureDrawerFilter" name="featureFilterAction" value="" />
-					<a id="featureDrawerSearch" href="#featureDrawer"  class="btn btn-primary btn-sm">Search</a>
+					<a href="#trackDrawer" data-toggle="drawer" class="btn btn-primary btn-sm">Close</a>
+					<input type="text" id="trackDrawerFilter" name="trackFilterAction" value="" />
+					<a id="trackDrawerSearch" href="#trackDrawer"  class="btn btn-primary btn-sm">Search</a>
 
 				</div>
-				<div class="drawer-body featureDrawerBody" >
+				<div class="drawer-body trackDrawerBody" >
 					<div id="featurePopup"  class="panel" title="Features">
-						<ul id="featurePopupList" class="list-group"></ul>
+						<ul id="trackPopupList" class="list-group"></ul>
+					</div>
+				</div>
+			</div>
+		</div>
+		<div id="waypointDrawer" class="drawer dw-xs-10 dw-sm-6 dw-md-4 fold" aria-labelledby="waypointDrawer">
+			<div class="drawer-contents">
+				<div class="drawer-heading">
+					<h2 class="drawer-title">Waypoint List</h2>
+					<span data-toggle="drawer" data-target="#waypointDrawer" >
+						<a href="#drawDrawer" data-toggle="drawer" class="btn btn-primary btn-sm">New</a>
+					</span>
+					<a href="#waypointDrawer" data-toggle="drawer" class="btn btn-primary btn-sm">Close</a>
+					<input type="text" id="waypointDrawerFilter" name="waypointFilterAction" value="" />
+					<a id="waypointDrawerSearch" href="#waypointDrawer"  class="btn btn-primary btn-sm">Search</a>
+
+				</div>
+				<div class="drawer-body waypointDrawerBody" >
+					<div id="featurePopup"  class="panel" title="Features">
+						<ul id="waypointPopupList" class="list-group"></ul>
 					</div>
 				</div>
 			</div>
@@ -259,7 +279,7 @@
 				<div class="drawer-heading">
 					<h2 class="drawer-title">Chart List</h2>
 					<a href="#chartDrawer" data-toggle="drawer" class="btn btn-primary btn-sm">Close</a>
-					<input type="text" id="featureDrawerFilter" name="chartFilterAction" value="" />
+					<input type="text" id="chartDrawerFilter" name="chartFilterAction" value="" />
 					<a id="chartDrawerSearch" href="#chartDrawer"  class="btn btn-primary btn-sm">Search</a>
 
 				</div>
