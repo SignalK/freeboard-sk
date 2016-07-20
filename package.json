@@ -19,9 +19,11 @@
     "bootstrap-slider": "^4.8.0",
     "nanomodal": "^5.1.0",
     "bootstrap-select": "^1.6.3",
-    "signalk-client":"^0.1.0",
-    "web-audio-daw":"^2.3.1",
-    "xml2js":"^0.4.16"
+    "signalk-client": "^0.1.0",
+    "web-audio-daw": "^2.3.1",
+    "xml2js": "^0.4.16",
+    "d3": "^4.1.1",
+    "d3-gauge": "git://github.com/rob42/d3-gauge.git#master"
   },
   "browser": {
     "bootstrap-drawer": "./node_modules/bootstrap-drawer/dist/js/drawer.js",
@@ -30,12 +32,13 @@
     "bootstrap-select": "./node_modules/bootstrap-select/js/bootstrap-select.js"
   },
   "devDependencies": {
-    "uglify-js": "^2.4.20",
-    "watchify": "^3.1.2",
     "browserify": "^9.0.8",
-    "openlayers": "^3.16.0",
+    
     "karma": "^0.13.15",
-    "mocha": "^2.3.4"
+    "mocha": "^2.3.4",
+    "openlayers": "^3.16.0",
+    "uglify-js": "^2.4.20",
+    "watchify": "^3.1.2"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
