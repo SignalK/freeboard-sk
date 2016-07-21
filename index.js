@@ -113,10 +113,17 @@ var popup = new ol.Overlay({
   stopEvent: false,
   offset: [0, -10]
 });
+
+$(element).popover({
+    'placement': 'top',
+    'html': true
+  });
+
 map.addOverlay(popup);
 
 // display popup on click
 map.on('click', function(evt) {
+  
   var feature = map.forEachFeatureAtPixel(evt.pixel,
       function(feature) {
         return feature;
@@ -124,27 +131,21 @@ map.on('click', function(evt) {
   if (feature) {
     var coordinates = feature.getGeometry().getCoordinates();
     popup.setPosition(coordinates);
-    $(element).popover({
-      'placement': 'top',
-      'html': true,
-      'content': feature.get('context')
-    });
-    $(element).popover('show');
+    var context, name, vhf, port, flag, mmsi ;
+    context= name= vhf=port=flag=mmsi = '?';
+    if(feature.get('context'))context=feature.get('context');
+    if(feature.get('name'))name=feature.get('name').replace(/@/g,"");
+    if(feature.get('vhf'))vhf=feature.get('vhf');
+    if(feature.get('port'))port=feature.get('port');
+    if(feature.get('flag'))flag=feature.get('flag');
+    $(element).attr('data-content', '<p>'+context+'<br/> Name:'+name+'<br/> Vhf:'+vhf+'<br/> Port:'+port+', Flag:'+flag+'</p>');
+    $(element).popover('show'); 
   } else {
-    $(element).popover('destroy');
-  }
+    $(element).popover('hide');
+  } 
 });
 
-// change mouse cursor when over marker
-/*map.on('pointermove', function(e) {
-  if (e.dragging) {
-    $(element).popover('destroy');
-    return;
-  }
-  var pixel = map.getEventPixel(e.originalEvent);
-  var hit = map.hasFeatureAtPixel(pixel);
-  map.getTarget().getStyle().cursor = hit ? 'pointer' : '';
-});*/
+
 
 $.ajax({
     url: "/signalk",

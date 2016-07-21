@@ -114,10 +114,17 @@ var popup = new ol.Overlay({
   stopEvent: false,
   offset: [0, -10]
 });
+
+$(element).popover({
+    'placement': 'top',
+    'html': true
+  });
+
 map.addOverlay(popup);
 
 // display popup on click
 map.on('click', function(evt) {
+  
   var feature = map.forEachFeatureAtPixel(evt.pixel,
       function(feature) {
         return feature;
@@ -125,27 +132,21 @@ map.on('click', function(evt) {
   if (feature) {
     var coordinates = feature.getGeometry().getCoordinates();
     popup.setPosition(coordinates);
-    $(element).popover({
-      'placement': 'top',
-      'html': true,
-      'content': feature.get('context')
-    });
-    $(element).popover('show');
+    var context, name, vhf, port, flag, mmsi ;
+    context= name= vhf=port=flag=mmsi = '?';
+    if(feature.get('context'))context=feature.get('context');
+    if(feature.get('name'))name=feature.get('name').replace(/@/g,"");
+    if(feature.get('vhf'))vhf=feature.get('vhf');
+    if(feature.get('port'))port=feature.get('port');
+    if(feature.get('flag'))flag=feature.get('flag');
+    $(element).attr('data-content', '<p>'+context+'<br/> Name:'+name+'<br/> Vhf:'+vhf+'<br/> Port:'+port+', Flag:'+flag+'</p>');
+    $(element).popover('show'); 
   } else {
-    $(element).popover('destroy');
-  }
+    $(element).popover('hide');
+  } 
 });
 
-// change mouse cursor when over marker
-/*map.on('pointermove', function(e) {
-  if (e.dragging) {
-    $(element).popover('destroy');
-    return;
-  }
-  var pixel = map.getEventPixel(e.originalEvent);
-  var hit = map.hasFeatureAtPixel(pixel);
-  map.getTarget().getStyle().cursor = hit ? 'pointer' : '';
-});*/
+
 
 $.ajax({
     url: "/signalk",
@@ -273,7 +274,7 @@ function onmessage(delta) {
 	now=now-600000;
 	if(delta.updates){
 		delta.updates.forEach(function(ais){
-			var found, coord, radians, sog, uuid, mmsi, vhf, cog, lat, lon;
+			var found, coord, radians, sog, uuid, mmsi, flag, port, name, vhf, cog, lat, lon;
 			ais.values.forEach(function(value) {
 				//console.log(value);
 				if(value.path === 'navigation.position.latitude'){
@@ -303,6 +304,15 @@ function onmessage(delta) {
 				if(value.path === 'mmsi'){
 					mmsi = value.value;
 				}
+				if(value.path === 'flag'){
+					flag = value.value;
+				}
+				if(value.path === 'port'){
+					port = value.value;
+				}
+				if(value.path === 'name'){
+					name = value.value;
+				}
 				if(value.path === 'communication.callsignVhf'){
 					vhf = value.value;
 				}
@@ -313,8 +323,12 @@ function onmessage(delta) {
 			aisSource.getFeatures().forEach(function (aisVessel) {
 				if (aisVessel.get('context') === vessel){
 					aisVessel.set('received',new Date().getTime());
-					aisVessel.set('cog',cog);
-					aisVessel.set('sog',sog);
+					if(cog)aisVessel.set('cog',cog);
+					if(sog)aisVessel.set('sog',sog);
+					if(name)aisVessel.set('name',name);
+					if(port)aisVessel.set('port',port);
+					if(flag)aisVessel.set('flag',flag);
+					if(vhf)aisVessel.set('vhf',vhf);
 					setLocation(aisVessel, radians, coord);
 					found="true";
 					//if(vessel.indexOf('urn')>0) console.log("Updating ais coords:"+JSON.stringify(coord));
@@ -333,6 +347,9 @@ function onmessage(delta) {
 				received: new Date().getTime(),
 				uuid: uuid,
 				mmsi: mmsi,
+				port:port,
+				flag:flag,
+				name:name,
 				vhf: vhf,
 				sog: sog,
 				cog: cog
@@ -364,7 +381,7 @@ function setLocation(aisVessel, radians, coord){
 	//console.log("rotation:"+radians+", coord:"+coord+", vessel:"+aisVessel.get('context'));
 	if (coord && !isNaN(coord[0]) && !isNaN(coord[1])) {
 		aisVessel.setGeometry(new ol.geom.Point(coord));
-		if(aisVessel.get('context').indexOf('urn')>0) console.log("Set position:"+coord);
+		//if(aisVessel.get('context').indexOf('urn')>0) console.log("Set position:"+coord);
 	}
 	if(radians && !isNaN(radians) ){
 		aisVessel.getStyle().getImage().setRotation(radians);
@@ -375,7 +392,7 @@ function setup(map){
 	//aisOverlay = setAisOverlay(map);
 	map.addLayer(aisLayer);
 	window.wsServer.addSocketListener(this, "Ais");
-	var sub = '{"context":"vessels.*","subscribe":[{"path":"navigation.position.*","period":10000},{"path":"navigation.courseOverGround*","period":10000},{"path":"navigation.speedOverGround","period":10000}]}';
+	var sub = '{"context":"vessels.*","subscribe":[{"path":"name","period":10000},{"path":"uuid","period":10000},{"path":"vhf","period":10000},{"path":"mmsi","period":10000},{"path":"port","period":10000},{"path":"flag","period":10000},{"path":"navigation.position.*","period":10000},{"path":"navigation.courseOverGround*","period":10000},{"path":"navigation.speedOverGround","period":10000}]}';
 	window.wsServer.send(sub);
 
 }
