@@ -131,17 +131,18 @@ map.on('click', function(evt) {
   if (feature) {
     var coordinates = feature.getGeometry().getCoordinates();
     popup.setPosition(coordinates);
-    var context, name, vhf, port, flag, mmsi ;
-    context= name= vhf=port=flag=mmsi = '?';
+    var context, name, vhf, port, flag, mmsi, state ;
+    context= name= vhf=port=flag=mmsi = state= '?';
     if(feature.get('context'))context=feature.get('context');
     if(feature.get('name'))name=feature.get('name').replace(/@/g,"");
+    if(feature.get('state'))state=feature.get('state');
     if(feature.get('vhf'))vhf=feature.get('vhf');
     if(feature.get('port'))port=feature.get('port');
     if(feature.get('flag'))flag=feature.get('flag');
-    $(element).attr('data-content', '<p>'+context+'<br/> Name:'+name+'<br/> Vhf:'+vhf+'<br/> Port:'+port+', Flag:'+flag+'</p>');
+    $(element).attr('data-content', '<p>'+context+'<br/> Name:'+name+'<br/> Vhf:'+vhf+'<br/> State:'+state+'<br/> Port:'+port+', Flag:'+flag+'</p>');
     $(element).popover('show'); 
   } else {
-    $(element).popover('hide');
+    $(element).popover('hide'); 
   } 
 });
 

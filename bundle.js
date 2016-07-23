@@ -132,17 +132,18 @@ map.on('click', function(evt) {
   if (feature) {
     var coordinates = feature.getGeometry().getCoordinates();
     popup.setPosition(coordinates);
-    var context, name, vhf, port, flag, mmsi ;
-    context= name= vhf=port=flag=mmsi = '?';
+    var context, name, vhf, port, flag, mmsi, state ;
+    context= name= vhf=port=flag=mmsi = state= '?';
     if(feature.get('context'))context=feature.get('context');
     if(feature.get('name'))name=feature.get('name').replace(/@/g,"");
+    if(feature.get('state'))state=feature.get('state');
     if(feature.get('vhf'))vhf=feature.get('vhf');
     if(feature.get('port'))port=feature.get('port');
     if(feature.get('flag'))flag=feature.get('flag');
-    $(element).attr('data-content', '<p>'+context+'<br/> Name:'+name+'<br/> Vhf:'+vhf+'<br/> Port:'+port+', Flag:'+flag+'</p>');
+    $(element).attr('data-content', '<p>'+context+'<br/> Name:'+name+'<br/> Vhf:'+vhf+'<br/> State:'+state+'<br/> Port:'+port+', Flag:'+flag+'</p>');
     $(element).popover('show'); 
   } else {
-    $(element).popover('hide');
+    $(element).popover('hide'); 
   } 
 });
 
@@ -274,7 +275,7 @@ function onmessage(delta) {
 	now=now-600000;
 	if(delta.updates){
 		delta.updates.forEach(function(ais){
-			var found, coord, radians, sog, uuid, mmsi, flag, port, name, vhf, cog, lat, lon;
+			var found, coord, radians, sog, uuid, mmsi, flag, port, name, vhf, cog, lat, lon, state;
 			ais.values.forEach(function(value) {
 				//console.log(value);
 				if(value.path === 'navigation.position.latitude'){
@@ -316,6 +317,9 @@ function onmessage(delta) {
 				if(value.path === 'communication.callsignVhf'){
 					vhf = value.value;
 				}
+				if(value.path === 'navigation.state'){
+					state = value.value;
+				}
 			});
 			//if(vessel.indexOf('urn')>0) console.log("Updating ais data:"+JSON.stringify(ais));
 			coord = ol.proj.transform([lon, lat], 'EPSG:4326', 'EPSG:3857');
@@ -329,6 +333,7 @@ function onmessage(delta) {
 					if(port)aisVessel.set('port',port);
 					if(flag)aisVessel.set('flag',flag);
 					if(vhf)aisVessel.set('vhf',vhf);
+					if(state)aisVessel.set('state',state);
 					setLocation(aisVessel, radians, coord);
 					found="true";
 					//if(vessel.indexOf('urn')>0) console.log("Updating ais coords:"+JSON.stringify(coord));
@@ -347,10 +352,11 @@ function onmessage(delta) {
 				received: new Date().getTime(),
 				uuid: uuid,
 				mmsi: mmsi,
-				port:port,
-				flag:flag,
-				name:name,
+				port: port,
+				flag: flag,
+				name: name,
 				vhf: vhf,
+				state: state,
 				sog: sog,
 				cog: cog
 			});
@@ -392,7 +398,7 @@ function setup(map){
 	//aisOverlay = setAisOverlay(map);
 	map.addLayer(aisLayer);
 	window.wsServer.addSocketListener(this, "Ais");
-	var sub = '{"context":"vessels.*","subscribe":[{"path":"name","period":10000},{"path":"uuid","period":10000},{"path":"vhf","period":10000},{"path":"mmsi","period":10000},{"path":"port","period":10000},{"path":"flag","period":10000},{"path":"navigation.position.*","period":10000},{"path":"navigation.courseOverGround*","period":10000},{"path":"navigation.speedOverGround","period":10000}]}';
+	var sub = '{"context":"vessels.*","subscribe":[{"path":"name","period":10000},{"path":"uuid","period":10000},{"path":"communication.callsignVhf","period":10000},{"path":"mmsi","period":10000},{"path":"port","period":10000},{"path":"flag","period":10000},{"path":"navigation.position","period":10000},{"path":"navigation.state","period":10000},{"path":"navigation.courseOverGround*","period":10000},{"path":"navigation.speedOverGround","period":10000}]}';
 	window.wsServer.send(sub);
 
 }
@@ -2724,6 +2730,7 @@ var magVar=0;
 var trueWind=0;
 var cog=0;
 var coord,wgs84Coord, lat, lon, awd, aws,twd,tws;
+var uuid, mmsi, flag, port, name, vhf, state;
 function onmessage(delta) {
 
     if (!delta.context ){
@@ -2809,7 +2816,27 @@ function onmessage(delta) {
                 	.data([tws])
                 	.text(function(d) { return d.toFixed(1); });
                 }
-
+                if(value.path === 'uuid'){
+					uuid = value.value;
+				}
+                if(value.path === 'mmsi'){
+					mmsi = value.value;
+				}
+				if(value.path === 'flag'){
+					flag = value.value;
+				}
+				if(value.path === 'port'){
+					port = value.value;
+				}
+				if(value.path === 'name'){
+					name = value.value;
+				}
+				if(value.path === 'communication.callsignVhf'){
+					vhf = value.value;
+				}
+				if(value.path === 'navigation.state'){
+					state = value.value;
+				}
 
             });
         });
@@ -2853,6 +2880,15 @@ function onmessage(delta) {
                 var pixel = [screen[0] * 0.5, screen[1] * 0.66];
                 vesselOverlay.get('map').getView().centerOn(coord, screen, pixel);
             }
+            if(cog)vesselPos.set('cog',cog);
+			if(sog)vesselPos.set('sog',sog);
+			vesselPos.set('context',delta.context);
+			if(mmsi)vesselPos.set('mmsi',mmsi);
+			if(name)vesselPos.set('name',name);
+			if(port)vesselPos.set('port',port);
+			if(flag)vesselPos.set('flag',flag);
+			if(vhf)vesselPos.set('vhf',vhf);
+			if(state)vesselPos.set('state',state);
         }
     }
 }
