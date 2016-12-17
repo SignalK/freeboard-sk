@@ -42,7 +42,7 @@
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "watchify index.js --outfile bundle.js",
+    "start": "watchify index.js --exclude mdns --ignore bufferutil --ignore utf-8-validate --outfile bundle.js",
     "build": "browserify index.js --exclude mdns --ignore bufferutil --ignore utf-8-validate -o bundle.js"
   },
   "author": "robert@42.co.nz",
