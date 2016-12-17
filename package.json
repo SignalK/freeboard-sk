@@ -19,7 +19,7 @@
     "bootstrap-slider": "^4.8.0",
     "nanomodal": "^5.1.0",
     "bootstrap-select": "^1.6.3",
-    "signalk-client": "^0.1.0",
+    "signalk-client": "signalk/signalk-js-client",
     "web-audio-daw": "^2.3.1",
     "xml2js": "^0.4.16",
     "d3": "^4.1.1",
@@ -33,7 +33,7 @@
   },
   "devDependencies": {
     "browserify": "^9.0.8",
-    
+
     "karma": "^0.13.15",
     "mocha": "^2.3.4",
     "openlayers": "^3.16.0",
