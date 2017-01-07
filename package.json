@@ -19,7 +19,7 @@
     "bootstrap-slider": "^4.8.0",
     "nanomodal": "^5.1.0",
     "bootstrap-select": "^1.6.3",
-    "signalk-client": "^0.1.0",
+    "signalk-client": "signalk/signalk-js-client",
     "web-audio-daw": "^2.3.1",
     "xml2js": "^0.4.16",
     "d3": "^4.1.1",
@@ -33,7 +33,7 @@
   },
   "devDependencies": {
     "browserify": "^9.0.8",
-    
+
     "karma": "^0.13.15",
     "mocha": "^2.3.4",
     "openlayers": "^3.16.0",
@@ -42,8 +42,8 @@
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "watchify index.js --outfile bundle.js",
-    "build": "browserify index.js | --output bundle.js"
+    "start": "watchify index.js --exclude mdns --ignore bufferutil --ignore utf-8-validate --outfile bundle.js",
+    "build": "browserify index.js --exclude mdns --ignore bufferutil --ignore utf-8-validate -o bundle.js"
   },
   "author": "robert@42.co.nz",
   "license": "Apache v2"
