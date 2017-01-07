@@ -2747,19 +2747,27 @@ function onmessage(delta) {
         delta.updates.forEach(function (update) {
 
             update.values.forEach(function (value) {
-                //console.log(value.path+'='+JSON.stringify(value.value));
+                console.log(value.path+'='+JSON.stringify(value.value));
             	if (value.path === 'navigation.magneticVariation') {
                     //console.log('Magnetic Variation(radians):'+value.value);
             		magVar = value.value;
 	            }
-							if (value.path === 'navigation.position.latitude') {
-									//console.log('Pos (lat):'+value.value);
-									lat = value.value;
+				if (value.path === 'navigation.position.latitude') {
+						//console.log('Pos (lat):'+value.value);
+						lat = value.value;
 	            }
-	            if (value.path === 'navigation.position.longitude') {
-									//console.log('Pos (lon):'+value.value);
-									lon = value.value;
-	            }
+				 if (value.path === 'navigation.position.longitude') {
+						//console.log('Pos (lon):'+value.value);
+						lon = value.value;
+				 }
+				if (value.path === 'navigation.position') {
+					//console.log('Pos (lat):'+value.value);
+					lat = value.value.latitude;
+					lon = value.value.longitude;
+				}
+	           
+				console.log('Pos (lat):'+lat+',(lon):'+lon);
+				
                 if(lat && lon){
                   wgs84Coord=[lon, lat];
                   coord = ol.proj.transform(wgs84Coord, 'EPSG:4326', 'EPSG:3857');
