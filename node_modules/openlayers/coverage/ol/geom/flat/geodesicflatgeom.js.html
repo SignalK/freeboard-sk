@@ -1,0 +1,608 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <title>Code coverage report for ol/geom/flat/geodesicflatgeom.js</title>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="../../../prettify.css" />
+    <link rel="stylesheet" href="../../../base.css" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style type='text/css'>
+        .coverage-summary .sorter {
+            background-image: url(../../../sort-arrow-sprite.png);
+        }
+    </style>
+</head>
+<body>
+<div class='wrapper'>
+  <div class='pad1'>
+    <h1>
+      <a href="../../../index.html">all files</a> / <a href="index.html">ol/geom/flat/</a> geodesicflatgeom.js
+    </h1>
+    <div class='clearfix'>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">67.61% </span>
+        <span class="quiet">Statements</span>
+        <span class='fraction'>48/71</span>
+      </div>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">50% </span>
+        <span class="quiet">Branches</span>
+        <span class='fraction'>4/8</span>
+      </div>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">71.43% </span>
+        <span class="quiet">Functions</span>
+        <span class='fraction'>5/7</span>
+      </div>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">67.61% </span>
+        <span class="quiet">Lines</span>
+        <span class='fraction'>48/71</span>
+      </div>
+    </div>
+  </div>
+  <div class='status-line medium'></div>
+<pre><table class="coverage">
+<tr><td class="line-count quiet">1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+28
+29
+30
+31
+32
+33
+34
+35
+36
+37
+38
+39
+40
+41
+42
+43
+44
+45
+46
+47
+48
+49
+50
+51
+52
+53
+54
+55
+56
+57
+58
+59
+60
+61
+62
+63
+64
+65
+66
+67
+68
+69
+70
+71
+72
+73
+74
+75
+76
+77
+78
+79
+80
+81
+82
+83
+84
+85
+86
+87
+88
+89
+90
+91
+92
+93
+94
+95
+96
+97
+98
+99
+100
+101
+102
+103
+104
+105
+106
+107
+108
+109
+110
+111
+112
+113
+114
+115
+116
+117
+118
+119
+120
+121
+122
+123
+124
+125
+126
+127
+128
+129
+130
+131
+132
+133
+134
+135
+136
+137
+138
+139
+140
+141
+142
+143
+144
+145
+146
+147
+148
+149
+150
+151
+152
+153
+154
+155
+156
+157
+158
+159
+160
+161
+162
+163
+164
+165
+166
+167
+168
+169
+170
+171
+172
+173
+174
+175
+176
+177
+178
+179
+180
+181
+182</td><td class="line-coverage quiet"><span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">20×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">20×</span>
+<span class="cline-any cline-yes">20×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">20×</span>
+<span class="cline-any cline-yes">20×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">20×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">20×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">20×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">20×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">20×</span>
+<span class="cline-any cline-yes">20×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">20×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">20×</span>
+<span class="cline-any cline-yes">20×</span>
+<span class="cline-any cline-yes">20×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">20×</span>
+<span class="cline-any cline-yes">20×</span>
+<span class="cline-any cline-yes">20×</span>
+<span class="cline-any cline-yes">20×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">20×</span>
+<span class="cline-any cline-yes">20×</span>
+<span class="cline-any cline-yes">20×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">20×</span>
+<span class="cline-any cline-yes">20×</span>
+<span class="cline-any cline-yes">20×</span>
+<span class="cline-any cline-yes">20×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">20×</span>
+<span class="cline-any cline-yes">20×</span>
+<span class="cline-any cline-yes">20×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">20×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">20×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">20×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">13×</span>
+<span class="cline-any cline-yes">13×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">39×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">7×</span>
+<span class="cline-any cline-yes">7×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">21×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">goog.provide('ol.geom.flat.geodesic');
+&nbsp;
+goog.require('goog.asserts');
+goog.require('goog.object');
+goog.require('ol.TransformFunction');
+goog.require('ol.math');
+goog.require('ol.proj');
+&nbsp;
+&nbsp;
+/**
+ * @private
+ * @param {function(number): ol.Coordinate} interpolate Interpolate function.
+ * @param {ol.TransformFunction} transform Transform from longitude/latitude to
+ *     projected coordinates.
+ * @param {number} squaredTolerance Squared tolerance.
+ * @return {Array.&lt;number&gt;} Flat coordinates.
+ */
+ol.geom.flat.geodesic.line_ =
+    function(interpolate, transform, squaredTolerance) {
+  // FIXME reduce garbage generation
+  // FIXME optimize stack operations
+&nbsp;
+  /** @type {Array.&lt;number&gt;} */
+  var flatCoordinates = [];
+&nbsp;
+  var geoA = interpolate(0);
+  var geoB = interpolate(1);
+&nbsp;
+  var a = transform(geoA);
+  var b = transform(geoB);
+&nbsp;
+  /** @type {Array.&lt;ol.Coordinate&gt;} */
+  var geoStack = [geoB, geoA];
+  /** @type {Array.&lt;ol.Coordinate&gt;} */
+  var stack = [b, a];
+  /** @type {Array.&lt;number&gt;} */
+  var fractionStack = [1, 0];
+&nbsp;
+  /** @type {Object.&lt;string, boolean&gt;} */
+  var fractions = {};
+&nbsp;
+  var maxIterations = 1e5;
+  var geoM, m, fracA, fracB, fracM, key;
+&nbsp;
+  while (--maxIterations &gt; 0 &amp;&amp; fractionStack.length &gt; 0) {
+    // Pop the a coordinate off the stack
+    fracA = fractionStack.pop();
+    geoA = geoStack.pop();
+    a = stack.pop();
+    // Add the a coordinate if it has not been added yet
+    key = fracA.toString();
+    <span class="missing-if-branch" title="else path not taken" >E</span>if (!goog.object.containsKey(fractions, key)) {
+      flatCoordinates.push(a[0], a[1]);
+      fractions[key] = true;
+    }
+    // Pop the b coordinate off the stack
+    fracB = fractionStack.pop();
+    geoB = geoStack.pop();
+    b = stack.pop();
+    // Find the m point between the a and b coordinates
+    fracM = (fracA + fracB) / 2;
+    geoM = interpolate(fracM);
+    m = transform(geoM);
+    <span class="missing-if-branch" title="else path not taken" >E</span>if (ol.math.squaredSegmentDistance(m[0], m[1], a[0], a[1],
+        b[0], b[1]) &lt; squaredTolerance) {
+      // If the m point is sufficiently close to the straight line, then we
+      // discard it.  Just use the b coordinate and move on to the next line
+      // segment.
+      flatCoordinates.push(b[0], b[1]);
+      key = fracB.toString();
+      goog.asserts.assert(!goog.object.containsKey(fractions, key),
+          'fractions object should contain key : ' + key);
+      fractions[key] = true;
+    } else {
+      // Otherwise, we need to subdivide the current line segment.  Split it
+      // into two and push the two line segments onto the stack.
+<span class="cstat-no" title="statement not covered" >      fractionStack.push(fracB, fracM, fracM, fracA);</span>
+<span class="cstat-no" title="statement not covered" >      stack.push(b, m, m, a);</span>
+<span class="cstat-no" title="statement not covered" >      geoStack.push(geoB, geoM, geoM, geoA);</span>
+    }
+  }
+  goog.asserts.assert(maxIterations &gt; 0,
+      'maxIterations should be more than 0');
+&nbsp;
+  return flatCoordinates;
+};
+&nbsp;
+&nbsp;
+/**
+* Generate a great-circle arcs between two lat/lon points.
+* @param {number} lon1 Longitude 1 in degrees.
+* @param {number} lat1 Latitude 1 in degrees.
+* @param {number} lon2 Longitude 2 in degrees.
+* @param {number} lat2 Latitude 2 in degrees.
+ * @param {ol.proj.Projection} projection Projection.
+* @param {number} squaredTolerance Squared tolerance.
+* @return {Array.&lt;number&gt;} Flat coordinates.
+*/
+ol.geom.flat.geodesic.greatCircleArc = <span class="fstat-no" title="function not covered" >function(</span>
+    lon1, lat1, lon2, lat2, projection, squaredTolerance) {
+&nbsp;
+<span class="cstat-no" title="statement not covered" >  var geoProjection = ol.proj.get('EPSG:4326');</span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" >  var cosLat1 = Math.cos(ol.math.toRadians(lat1));</span>
+<span class="cstat-no" title="statement not covered" >  var sinLat1 = Math.sin(ol.math.toRadians(lat1));</span>
+<span class="cstat-no" title="statement not covered" >  var cosLat2 = Math.cos(ol.math.toRadians(lat2));</span>
+<span class="cstat-no" title="statement not covered" >  var sinLat2 = Math.sin(ol.math.toRadians(lat2));</span>
+<span class="cstat-no" title="statement not covered" >  var cosDeltaLon = Math.cos(ol.math.toRadians(lon2 - lon1));</span>
+<span class="cstat-no" title="statement not covered" >  var sinDeltaLon = Math.sin(ol.math.toRadians(lon2 - lon1));</span>
+<span class="cstat-no" title="statement not covered" >  var d = sinLat1 * sinLat2 + cosLat1 * cosLat2 * cosDeltaLon;</span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" >  return ol.geom.flat.geodesic.line_(</span>
+      /**
+       * @param {number} frac Fraction.
+       * @return {ol.Coordinate} Coordinate.
+       */
+<span class="fstat-no" title="function not covered" >      function(frac) {</span>
+<span class="cstat-no" title="statement not covered" >        if (1 &lt;= d) {</span>
+<span class="cstat-no" title="statement not covered" >          return [lon2, lat2];</span>
+        }
+<span class="cstat-no" title="statement not covered" >        var D = frac * Math.acos(d);</span>
+<span class="cstat-no" title="statement not covered" >        var cosD = Math.cos(D);</span>
+<span class="cstat-no" title="statement not covered" >        var sinD = Math.sin(D);</span>
+<span class="cstat-no" title="statement not covered" >        var y = sinDeltaLon * cosLat2;</span>
+<span class="cstat-no" title="statement not covered" >        var x = cosLat1 * sinLat2 - sinLat1 * cosLat2 * cosDeltaLon;</span>
+<span class="cstat-no" title="statement not covered" >        var theta = Math.atan2(y, x);</span>
+<span class="cstat-no" title="statement not covered" >        var lat = Math.asin(sinLat1 * cosD + cosLat1 * sinD * Math.cos(theta));</span>
+<span class="cstat-no" title="statement not covered" >        var lon = ol.math.toRadians(lon1) +</span>
+            Math.atan2(Math.sin(theta) * sinD * cosLat1,
+                       cosD - sinLat1 * Math.sin(lat));
+<span class="cstat-no" title="statement not covered" >        return [ol.math.toDegrees(lon), ol.math.toDegrees(lat)];</span>
+      }, ol.proj.getTransform(geoProjection, projection), squaredTolerance);
+};
+&nbsp;
+&nbsp;
+/**
+ * Generate a meridian (line at constant longitude).
+ * @param {number} lon Longitude.
+ * @param {number} lat1 Latitude 1.
+ * @param {number} lat2 Latitude 2.
+ * @param {ol.proj.Projection} projection Projection.
+ * @param {number} squaredTolerance Squared tolerance.
+ * @return {Array.&lt;number&gt;} Flat coordinates.
+ */
+ol.geom.flat.geodesic.meridian =
+    function(lon, lat1, lat2, projection, squaredTolerance) {
+  var epsg4326Projection = ol.proj.get('EPSG:4326');
+  return ol.geom.flat.geodesic.line_(
+      /**
+       * @param {number} frac Fraction.
+       * @return {ol.Coordinate} Coordinate.
+       */
+      function(frac) {
+        return [lon, lat1 + ((lat2 - lat1) * frac)];
+      },
+      ol.proj.getTransform(epsg4326Projection, projection), squaredTolerance);
+};
+&nbsp;
+&nbsp;
+/**
+ * Generate a parallel (line at constant latitude).
+ * @param {number} lat Latitude.
+ * @param {number} lon1 Longitude 1.
+ * @param {number} lon2 Longitude 2.
+ * @param {ol.proj.Projection} projection Projection.
+ * @param {number} squaredTolerance Squared tolerance.
+ * @return {Array.&lt;number&gt;} Flat coordinates.
+ */
+ol.geom.flat.geodesic.parallel =
+    function(lat, lon1, lon2, projection, squaredTolerance) {
+  var epsg4326Projection = ol.proj.get('EPSG:4326');
+  return ol.geom.flat.geodesic.line_(
+      /**
+       * @param {number} frac Fraction.
+       * @return {ol.Coordinate} Coordinate.
+       */
+      function(frac) {
+        return [lon1 + ((lon2 - lon1) * frac), lat];
+      },
+      ol.proj.getTransform(epsg4326Projection, projection), squaredTolerance);
+};
+&nbsp;</pre></td></tr>
+</table></pre>
+<div class='push'></div><!-- for sticky footer -->
+</div><!-- /wrapper -->
+<div class='footer quiet pad2 space-top1 center small'>
+  Code coverage
+  generated by <a href="http://istanbul-js.org/" target="_blank">istanbul</a> at Fri Nov 06 2015 19:36:11 GMT+0100 (CET)
+</div>
+</div>
+<script src="../../../prettify.js"></script>
+<script>
+window.onload = function () {
+        if (typeof prettyPrint === 'function') {
+            prettyPrint();
+        }
+};
+</script>
+<script src="../../../sorter.js"></script>
+</body>
+</html>

@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Index {{pathname}}</title>
+    <meta charset="utf-8">
+    <style>
+      body {
+        font-family: Tahoma, Geneva, sans-serif;
+        font-size: 16px;
+      }
+      a {
+        text-decoration: none;
+        color: #6688cc;
+      }
+      ul {
+        list-style: none
+      }
+      li {
+        margin-top: 5px;
+      }
+      svg.folder,
+      svg.file {
+        overflow: hidden;
+        width: 24px;
+        height: 24px;
+        margin-bottom: -4px;
+      }
+      a:hover path {
+        fill-opacity: 1;
+        stroke-opacity: 1;
+      }
+      .folder path {
+        fill: #6688cc;
+        fill-opacity: 0.75;
+        stroke: #009;
+        stroke-opacity: 0.75;
+        stroke-width: 0.5;
+        stroke-linejoin: round;
+      }
+      .file path {
+        fill: #fffffa;
+        fill-opacity: 0.5;
+        stroke: #009;
+        stroke-opacity: 0.75;
+        stroke-width: 0.5;
+        stroke-linejoin: round;
+      }
+    </style>
+    {{#if socket}}
+      <script src="/socket.io/socket.io.js"></script>
+      <script>
+        var socket = io.connect('/');
+        socket.on('error', function(error) {
+          alert(error.message);
+        });
+      </script>
+    {{/if}}
+  </head>
+  <body>
+    <ul>
+      {{#entries}}
+      <li>
+        <a href="./{{path}}">
+          {{#if dir}}
+            <svg version="1.1" xmlns="http://www.w3.org/2000/svg" class="folder">
+              <path d="m2,21l0,-14l1,0l2,-2l5,0l2,2l9,0l1,1l0,13l-19,0z">
+            </svg>
+          {{else}}
+            <svg version="1.1" xmlns="http://www.w3.org/2000/svg" class="file">
+              <path d="m5,3l0,18l14,0l0,-14l-4,-4l-10,0z"></path>
+              <path d="m14,3l0,5l5,0"></path>
+            </svg>
+          {{/if}}
+          {{name}}
+        </a>
+      </li>
+      {{/entries}}
+    </ul>
+  </body>
+</html>

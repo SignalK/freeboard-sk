@@ -1,0 +1,758 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <title>Code coverage report for ol/deviceorientation.js</title>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="../prettify.css" />
+    <link rel="stylesheet" href="../base.css" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style type='text/css'>
+        .coverage-summary .sorter {
+            background-image: url(../sort-arrow-sprite.png);
+        }
+    </style>
+</head>
+<body>
+<div class='wrapper'>
+  <div class='pad1'>
+    <h1>
+      <a href="../index.html">all files</a> / <a href="index.html">ol/</a> deviceorientation.js
+    </h1>
+    <div class='clearfix'>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">49.06% </span>
+        <span class="quiet">Statements</span>
+        <span class='fraction'>26/53</span>
+      </div>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">10.71% </span>
+        <span class="quiet">Branches</span>
+        <span class='fraction'>3/28</span>
+      </div>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">30% </span>
+        <span class="quiet">Functions</span>
+        <span class='fraction'>3/10</span>
+      </div>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">49.06% </span>
+        <span class="quiet">Lines</span>
+        <span class='fraction'>26/53</span>
+      </div>
+    </div>
+  </div>
+  <div class='status-line low'></div>
+<pre><table class="coverage">
+<tr><td class="line-count quiet">1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+28
+29
+30
+31
+32
+33
+34
+35
+36
+37
+38
+39
+40
+41
+42
+43
+44
+45
+46
+47
+48
+49
+50
+51
+52
+53
+54
+55
+56
+57
+58
+59
+60
+61
+62
+63
+64
+65
+66
+67
+68
+69
+70
+71
+72
+73
+74
+75
+76
+77
+78
+79
+80
+81
+82
+83
+84
+85
+86
+87
+88
+89
+90
+91
+92
+93
+94
+95
+96
+97
+98
+99
+100
+101
+102
+103
+104
+105
+106
+107
+108
+109
+110
+111
+112
+113
+114
+115
+116
+117
+118
+119
+120
+121
+122
+123
+124
+125
+126
+127
+128
+129
+130
+131
+132
+133
+134
+135
+136
+137
+138
+139
+140
+141
+142
+143
+144
+145
+146
+147
+148
+149
+150
+151
+152
+153
+154
+155
+156
+157
+158
+159
+160
+161
+162
+163
+164
+165
+166
+167
+168
+169
+170
+171
+172
+173
+174
+175
+176
+177
+178
+179
+180
+181
+182
+183
+184
+185
+186
+187
+188
+189
+190
+191
+192
+193
+194
+195
+196
+197
+198
+199
+200
+201
+202
+203
+204
+205
+206
+207
+208
+209
+210
+211
+212
+213
+214
+215
+216
+217
+218
+219
+220
+221
+222
+223
+224
+225
+226
+227
+228
+229
+230
+231
+232</td><td class="line-coverage quiet"><span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">goog.provide('ol.DeviceOrientation');
+goog.provide('ol.DeviceOrientationProperty');
+&nbsp;
+goog.require('goog.events');
+goog.require('ol');
+goog.require('ol.Object');
+goog.require('ol.has');
+goog.require('ol.math');
+&nbsp;
+&nbsp;
+/**
+ * @enum {string}
+ */
+ol.DeviceOrientationProperty = {
+  ALPHA: 'alpha',
+  BETA: 'beta',
+  GAMMA: 'gamma',
+  HEADING: 'heading',
+  TRACKING: 'tracking'
+};
+&nbsp;
+&nbsp;
+&nbsp;
+/**
+ * @classdesc
+ * The ol.DeviceOrientation class provides access to information from
+ * DeviceOrientation events.  See the [HTML 5 DeviceOrientation Specification](
+ * http://www.w3.org/TR/orientation-event/) for more details.
+ *
+ * Many new computers, and especially mobile phones
+ * and tablets, provide hardware support for device orientation. Web
+ * developers targeting mobile devices will be especially interested in this
+ * class.
+ *
+ * Device orientation data are relative to a common starting point. For mobile
+ * devices, the starting point is to lay your phone face up on a table with the
+ * top of the phone pointing north. This represents the zero state. All
+ * angles are then relative to this state. For computers, it is the same except
+ * the screen is open at 90 degrees.
+ *
+ * Device orientation is reported as three angles - `alpha`, `beta`, and
+ * `gamma` - relative to the starting position along the three planar axes X, Y
+ * and Z. The X axis runs from the left edge to the right edge through the
+ * middle of the device. Similarly, the Y axis runs from the bottom to the top
+ * of the device through the middle. The Z axis runs from the back to the front
+ * through the middle. In the starting position, the X axis points to the
+ * right, the Y axis points away from you and the Z axis points straight up
+ * from the device lying flat.
+ *
+ * The three angles representing the device orientation are relative to the
+ * three axes. `alpha` indicates how much the device has been rotated around the
+ * Z axis, which is commonly interpreted as the compass heading (see note
+ * below). `beta` indicates how much the device has been rotated around the X
+ * axis, or how much it is tilted from front to back.  `gamma` indicates how
+ * much the device has been rotated around the Y axis, or how much it is tilted
+ * from left to right.
+ *
+ * For most browsers, the `alpha` value returns the compass heading so if the
+ * device points north, it will be 0.  With Safari on iOS, the 0 value of
+ * `alpha` is calculated from when device orientation was first requested.
+ * ol.DeviceOrientation provides the `heading` property which normalizes this
+ * behavior across all browsers for you.
+ *
+ * It is important to note that the HTML 5 DeviceOrientation specification
+ * indicates that `alpha`, `beta` and `gamma` are in degrees while the
+ * equivalent properties in ol.DeviceOrientation are in radians for consistency
+ * with all other uses of angles throughout OpenLayers.
+ *
+ * @see http://www.w3.org/TR/orientation-event/
+ *
+ * To get notified of device orientation changes, register a listener for the
+ * generic `change` event on your `ol.DeviceOrientation` instance.
+ *
+ * @constructor
+ * @extends {ol.Object}
+ * @param {olx.DeviceOrientationOptions=} opt_options Options.
+ * @api
+ */
+ol.DeviceOrientation = function(opt_options) {
+&nbsp;
+  goog.base(this);
+&nbsp;
+  var options = opt_options ? <span class="branch-0 cbranch-no" title="branch not covered" >opt_options </span>: {};
+&nbsp;
+  /**
+   * @private
+   * @type {goog.events.Key}
+   */
+  this.listenerKey_ = null;
+&nbsp;
+  goog.events.listen(this,
+      ol.Object.getChangeEventType(ol.DeviceOrientationProperty.TRACKING),
+      this.handleTrackingChanged_, false, this);
+&nbsp;
+  this.setTracking(options.tracking !== undefined ? <span class="branch-0 cbranch-no" title="branch not covered" >options.tracking </span>: false);
+&nbsp;
+};
+goog.inherits(ol.DeviceOrientation, ol.Object);
+&nbsp;
+&nbsp;
+/**
+ * @inheritDoc
+ */
+ol.DeviceOrientation.prototype.disposeInternal = <span class="fstat-no" title="function not covered" >function() {</span>
+<span class="cstat-no" title="statement not covered" >  this.setTracking(false);</span>
+<span class="cstat-no" title="statement not covered" >  goog.base(this, 'disposeInternal');</span>
+};
+&nbsp;
+&nbsp;
+/**
+ * @private
+ * @param {goog.events.BrowserEvent} browserEvent Event.
+ */
+ol.DeviceOrientation.prototype.orientationChange_ = <span class="fstat-no" title="function not covered" >function(browserEvent) {</span>
+<span class="cstat-no" title="statement not covered" >  var event = /** @type {DeviceOrientationEvent} */</span>
+      (browserEvent.getBrowserEvent());
+<span class="cstat-no" title="statement not covered" >  if (event.alpha !== null) {</span>
+<span class="cstat-no" title="statement not covered" >    var alpha = ol.math.toRadians(event.alpha);</span>
+<span class="cstat-no" title="statement not covered" >    this.set(ol.DeviceOrientationProperty.ALPHA, alpha);</span>
+    // event.absolute is undefined in iOS.
+<span class="cstat-no" title="statement not covered" >    if (goog.isBoolean(event.absolute) &amp;&amp; event.absolute) {</span>
+<span class="cstat-no" title="statement not covered" >      this.set(ol.DeviceOrientationProperty.HEADING, alpha);</span>
+    } else <span class="cstat-no" title="statement not covered" >if (goog.isNumber(event.webkitCompassHeading) &amp;&amp;</span>
+               event.webkitCompassAccuracy != -1) {
+<span class="cstat-no" title="statement not covered" >      var heading = ol.math.toRadians(event.webkitCompassHeading);</span>
+<span class="cstat-no" title="statement not covered" >      this.set(ol.DeviceOrientationProperty.HEADING, heading);</span>
+    }
+  }
+<span class="cstat-no" title="statement not covered" >  if (event.beta !== null) {</span>
+<span class="cstat-no" title="statement not covered" >    this.set(ol.DeviceOrientationProperty.BETA,</span>
+        ol.math.toRadians(event.beta));
+  }
+<span class="cstat-no" title="statement not covered" >  if (event.gamma !== null) {</span>
+<span class="cstat-no" title="statement not covered" >    this.set(ol.DeviceOrientationProperty.GAMMA,</span>
+        ol.math.toRadians(event.gamma));
+  }
+<span class="cstat-no" title="statement not covered" >  this.changed();</span>
+};
+&nbsp;
+&nbsp;
+/**
+ * Rotation around the device z-axis (in radians).
+ * @return {number|undefined} The euler angle in radians of the device from the
+ *     standard Z axis.
+ * @observable
+ * @api
+ */
+ol.DeviceOrientation.prototype.getAlpha = <span class="fstat-no" title="function not covered" >function() {</span>
+<span class="cstat-no" title="statement not covered" >  return /** @type {number|undefined} */ (</span>
+      this.get(ol.DeviceOrientationProperty.ALPHA));
+};
+&nbsp;
+&nbsp;
+/**
+ * Rotation around the device x-axis (in radians).
+ * @return {number|undefined} The euler angle in radians of the device from the
+ *     planar X axis.
+ * @observable
+ * @api
+ */
+ol.DeviceOrientation.prototype.getBeta = <span class="fstat-no" title="function not covered" >function() {</span>
+<span class="cstat-no" title="statement not covered" >  return /** @type {number|undefined} */ (</span>
+      this.get(ol.DeviceOrientationProperty.BETA));
+};
+&nbsp;
+&nbsp;
+/**
+ * Rotation around the device y-axis (in radians).
+ * @return {number|undefined} The euler angle in radians of the device from the
+ *     planar Y axis.
+ * @observable
+ * @api
+ */
+ol.DeviceOrientation.prototype.getGamma = <span class="fstat-no" title="function not covered" >function() {</span>
+<span class="cstat-no" title="statement not covered" >  return /** @type {number|undefined} */ (</span>
+      this.get(ol.DeviceOrientationProperty.GAMMA));
+};
+&nbsp;
+&nbsp;
+/**
+ * The heading of the device relative to north (in radians).
+ * @return {number|undefined} The heading of the device relative to north, in
+ *     radians, normalizing for different browser behavior.
+ * @observable
+ * @api
+ */
+ol.DeviceOrientation.prototype.getHeading = <span class="fstat-no" title="function not covered" >function() {</span>
+<span class="cstat-no" title="statement not covered" >  return /** @type {number|undefined} */ (</span>
+      this.get(ol.DeviceOrientationProperty.HEADING));
+};
+&nbsp;
+&nbsp;
+/**
+ * Determine if orientation is being tracked.
+ * @return {boolean} Changes in device orientation are being tracked.
+ * @observable
+ * @api
+ */
+ol.DeviceOrientation.prototype.getTracking = <span class="fstat-no" title="function not covered" >function() {</span>
+<span class="cstat-no" title="statement not covered" >  return /** @type {boolean} */ (</span>
+      this.get(ol.DeviceOrientationProperty.TRACKING));
+};
+&nbsp;
+&nbsp;
+/**
+ * @private
+ */
+ol.DeviceOrientation.prototype.handleTrackingChanged_ = function() {
+  <span class="missing-if-branch" title="if path not taken" >I</span>if (ol.has.DEVICE_ORIENTATION) {
+<span class="cstat-no" title="statement not covered" >    var tracking = this.getTracking();</span>
+<span class="cstat-no" title="statement not covered" >    if (tracking &amp;&amp; !this.listenerKey_) {</span>
+<span class="cstat-no" title="statement not covered" >      this.listenerKey_ = goog.events.listen(goog.global, 'deviceorientation',</span>
+          this.orientationChange_, false, this);
+    } else <span class="cstat-no" title="statement not covered" >if (!tracking &amp;&amp; this.listenerKey_) {</span>
+<span class="cstat-no" title="statement not covered" >      goog.events.unlistenByKey(this.listenerKey_);</span>
+<span class="cstat-no" title="statement not covered" >      this.listenerKey_ = null;</span>
+    }
+  }
+};
+&nbsp;
+&nbsp;
+/**
+ * Enable or disable tracking of device orientation events.
+ * @param {boolean} tracking The status of tracking changes to alpha, beta and
+ *     gamma. If true, changes are tracked and reported immediately.
+ * @observable
+ * @api
+ */
+ol.DeviceOrientation.prototype.setTracking = function(tracking) {
+  this.set(ol.DeviceOrientationProperty.TRACKING, tracking);
+};
+&nbsp;</pre></td></tr>
+</table></pre>
+<div class='push'></div><!-- for sticky footer -->
+</div><!-- /wrapper -->
+<div class='footer quiet pad2 space-top1 center small'>
+  Code coverage
+  generated by <a href="http://istanbul-js.org/" target="_blank">istanbul</a> at Fri Nov 06 2015 19:36:11 GMT+0100 (CET)
+</div>
+</div>
+<script src="../prettify.js"></script>
+<script>
+window.onload = function () {
+        if (typeof prettyPrint === 'function') {
+            prettyPrint();
+        }
+};
+</script>
+<script src="../sorter.js"></script>
+</body>
+</html>

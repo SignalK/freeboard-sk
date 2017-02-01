@@ -1,0 +1,2324 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <title>Code coverage report for ol/view.js</title>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="../prettify.css" />
+    <link rel="stylesheet" href="../base.css" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style type='text/css'>
+        .coverage-summary .sorter {
+            background-image: url(../sort-arrow-sprite.png);
+        }
+    </style>
+</head>
+<body>
+<div class='wrapper'>
+  <div class='pad1'>
+    <h1>
+      <a href="../index.html">all files</a> / <a href="index.html">ol/</a> view.js
+    </h1>
+    <div class='clearfix'>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">82.44% </span>
+        <span class="quiet">Statements</span>
+        <span class='fraction'>216/262</span>
+      </div>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">69.39% </span>
+        <span class="quiet">Branches</span>
+        <span class='fraction'>68/98</span>
+      </div>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">70.97% </span>
+        <span class="quiet">Functions</span>
+        <span class='fraction'>22/31</span>
+      </div>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">82.44% </span>
+        <span class="quiet">Lines</span>
+        <span class='fraction'>216/262</span>
+      </div>
+    </div>
+  </div>
+  <div class='status-line high'></div>
+<pre><table class="coverage">
+<tr><td class="line-count quiet">1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+28
+29
+30
+31
+32
+33
+34
+35
+36
+37
+38
+39
+40
+41
+42
+43
+44
+45
+46
+47
+48
+49
+50
+51
+52
+53
+54
+55
+56
+57
+58
+59
+60
+61
+62
+63
+64
+65
+66
+67
+68
+69
+70
+71
+72
+73
+74
+75
+76
+77
+78
+79
+80
+81
+82
+83
+84
+85
+86
+87
+88
+89
+90
+91
+92
+93
+94
+95
+96
+97
+98
+99
+100
+101
+102
+103
+104
+105
+106
+107
+108
+109
+110
+111
+112
+113
+114
+115
+116
+117
+118
+119
+120
+121
+122
+123
+124
+125
+126
+127
+128
+129
+130
+131
+132
+133
+134
+135
+136
+137
+138
+139
+140
+141
+142
+143
+144
+145
+146
+147
+148
+149
+150
+151
+152
+153
+154
+155
+156
+157
+158
+159
+160
+161
+162
+163
+164
+165
+166
+167
+168
+169
+170
+171
+172
+173
+174
+175
+176
+177
+178
+179
+180
+181
+182
+183
+184
+185
+186
+187
+188
+189
+190
+191
+192
+193
+194
+195
+196
+197
+198
+199
+200
+201
+202
+203
+204
+205
+206
+207
+208
+209
+210
+211
+212
+213
+214
+215
+216
+217
+218
+219
+220
+221
+222
+223
+224
+225
+226
+227
+228
+229
+230
+231
+232
+233
+234
+235
+236
+237
+238
+239
+240
+241
+242
+243
+244
+245
+246
+247
+248
+249
+250
+251
+252
+253
+254
+255
+256
+257
+258
+259
+260
+261
+262
+263
+264
+265
+266
+267
+268
+269
+270
+271
+272
+273
+274
+275
+276
+277
+278
+279
+280
+281
+282
+283
+284
+285
+286
+287
+288
+289
+290
+291
+292
+293
+294
+295
+296
+297
+298
+299
+300
+301
+302
+303
+304
+305
+306
+307
+308
+309
+310
+311
+312
+313
+314
+315
+316
+317
+318
+319
+320
+321
+322
+323
+324
+325
+326
+327
+328
+329
+330
+331
+332
+333
+334
+335
+336
+337
+338
+339
+340
+341
+342
+343
+344
+345
+346
+347
+348
+349
+350
+351
+352
+353
+354
+355
+356
+357
+358
+359
+360
+361
+362
+363
+364
+365
+366
+367
+368
+369
+370
+371
+372
+373
+374
+375
+376
+377
+378
+379
+380
+381
+382
+383
+384
+385
+386
+387
+388
+389
+390
+391
+392
+393
+394
+395
+396
+397
+398
+399
+400
+401
+402
+403
+404
+405
+406
+407
+408
+409
+410
+411
+412
+413
+414
+415
+416
+417
+418
+419
+420
+421
+422
+423
+424
+425
+426
+427
+428
+429
+430
+431
+432
+433
+434
+435
+436
+437
+438
+439
+440
+441
+442
+443
+444
+445
+446
+447
+448
+449
+450
+451
+452
+453
+454
+455
+456
+457
+458
+459
+460
+461
+462
+463
+464
+465
+466
+467
+468
+469
+470
+471
+472
+473
+474
+475
+476
+477
+478
+479
+480
+481
+482
+483
+484
+485
+486
+487
+488
+489
+490
+491
+492
+493
+494
+495
+496
+497
+498
+499
+500
+501
+502
+503
+504
+505
+506
+507
+508
+509
+510
+511
+512
+513
+514
+515
+516
+517
+518
+519
+520
+521
+522
+523
+524
+525
+526
+527
+528
+529
+530
+531
+532
+533
+534
+535
+536
+537
+538
+539
+540
+541
+542
+543
+544
+545
+546
+547
+548
+549
+550
+551
+552
+553
+554
+555
+556
+557
+558
+559
+560
+561
+562
+563
+564
+565
+566
+567
+568
+569
+570
+571
+572
+573
+574
+575
+576
+577
+578
+579
+580
+581
+582
+583
+584
+585
+586
+587
+588
+589
+590
+591
+592
+593
+594
+595
+596
+597
+598
+599
+600
+601
+602
+603
+604
+605
+606
+607
+608
+609
+610
+611
+612
+613
+614
+615
+616
+617
+618
+619
+620
+621
+622
+623
+624
+625
+626
+627
+628
+629
+630
+631
+632
+633
+634
+635
+636
+637
+638
+639
+640
+641
+642
+643
+644
+645
+646
+647
+648
+649
+650
+651
+652
+653
+654
+655
+656
+657
+658
+659
+660
+661
+662
+663
+664
+665
+666
+667
+668
+669
+670
+671
+672
+673
+674
+675
+676
+677
+678
+679
+680
+681
+682
+683
+684
+685
+686
+687
+688
+689
+690
+691
+692
+693
+694
+695
+696
+697
+698
+699
+700
+701
+702
+703
+704
+705
+706
+707
+708
+709
+710
+711
+712
+713
+714
+715
+716
+717
+718
+719
+720
+721
+722
+723
+724
+725
+726
+727
+728
+729
+730
+731
+732
+733
+734
+735
+736
+737
+738
+739
+740
+741
+742
+743
+744
+745
+746
+747
+748
+749
+750
+751
+752
+753
+754</td><td class="line-coverage quiet"><span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">134×</span>
+<span class="cline-any cline-yes">134×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">134×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">134×</span>
+<span class="cline-any cline-yes">134×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">134×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">134×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">134×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">134×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">134×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">134×</span>
+<span class="cline-any cline-yes">134×</span>
+<span class="cline-any cline-yes">134×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">134×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">134×</span>
+<span class="cline-any cline-yes">70×</span>
+<span class="cline-any cline-yes">64×</span>
+<span class="cline-any cline-yes">15×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">134×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">134×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">112×</span>
+<span class="cline-any cline-yes">112×</span>
+<span class="cline-any cline-yes">112×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">263×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">114×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">4×</span>
+<span class="cline-any cline-yes">4×</span>
+<span class="cline-any cline-yes">4×</span>
+<span class="cline-any cline-yes">4×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">4×</span>
+<span class="cline-any cline-yes">4×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">4×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">78×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">269×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">10×</span>
+<span class="cline-any cline-yes">10×</span>
+<span class="cline-any cline-yes">10×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">103×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">78×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">78×</span>
+<span class="cline-any cline-yes">78×</span>
+<span class="cline-any cline-yes">78×</span>
+<span class="cline-any cline-yes">78×</span>
+<span class="cline-any cline-yes">78×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">18×</span>
+<span class="cline-any cline-yes">18×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">18×</span>
+<span class="cline-any cline-yes">17×</span>
+<span class="cline-any cline-yes">17×</span>
+<span class="cline-any cline-yes">75×</span>
+<span class="cline-any cline-yes">75×</span>
+<span class="cline-any cline-yes">14×</span>
+<span class="cline-any cline-yes">14×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">61×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">18×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">11×</span>
+<span class="cline-any cline-yes">5×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">4×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">3×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">9×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">9×</span>
+<span class="cline-any cline-yes">9×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">9×</span>
+<span class="cline-any cline-yes">9×</span>
+<span class="cline-any cline-yes">9×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">8×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">7×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">9×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">9×</span>
+<span class="cline-any cline-yes">9×</span>
+<span class="cline-any cline-yes">9×</span>
+<span class="cline-any cline-yes">9×</span>
+<span class="cline-any cline-yes">9×</span>
+<span class="cline-any cline-yes">9×</span>
+<span class="cline-any cline-yes">9×</span>
+<span class="cline-any cline-yes">9×</span>
+<span class="cline-any cline-yes">9×</span>
+<span class="cline-any cline-yes">9×</span>
+<span class="cline-any cline-yes">29×</span>
+<span class="cline-any cline-yes">29×</span>
+<span class="cline-any cline-yes">29×</span>
+<span class="cline-any cline-yes">29×</span>
+<span class="cline-any cline-yes">29×</span>
+<span class="cline-any cline-yes">29×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">9×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">9×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">9×</span>
+<span class="cline-any cline-yes">7×</span>
+<span class="cline-any cline-yes">7×</span>
+<span class="cline-any cline-yes">3×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">7×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">9×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">9×</span>
+<span class="cline-any cline-yes">9×</span>
+<span class="cline-any cline-yes">9×</span>
+<span class="cline-any cline-yes">9×</span>
+<span class="cline-any cline-yes">9×</span>
+<span class="cline-any cline-yes">9×</span>
+<span class="cline-any cline-yes">9×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">9×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">160×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">13×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">114×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">114×</span>
+<span class="cline-any cline-yes">114×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">114×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">29×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">9×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">10×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">10×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">134×</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">134×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">147×</span>
+<span class="cline-any cline-yes">147×</span>
+<span class="cline-any cline-yes">147×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">147×</span>
+<span class="cline-any cline-yes">147×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">147×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">147×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">147×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">147×</span>
+<span class="cline-any cline-yes">10×</span>
+<span class="cline-any cline-yes">10×</span>
+<span class="cline-any cline-yes">10×</span>
+<span class="cline-any cline-yes">10×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">137×</span>
+<span class="cline-any cline-yes">137×</span>
+<span class="cline-any cline-yes">137×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">137×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">137×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">137×</span>
+<span class="cline-any cline-yes">137×</span>
+<span class="cline-any cline-yes">6×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">131×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">137×</span>
+<span class="cline-any cline-yes">137×</span>
+<span class="cline-any cline-yes">133×</span>
+<span class="cline-any cline-yes">5×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">4×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">128×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">137×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">137×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">137×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">147×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">135×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">135×</span>
+<span class="cline-any cline-yes">135×</span>
+<span class="cline-any cline-yes">135×</span>
+<span class="cline-any cline-yes">135×</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">goog.provide('ol.View');
+goog.provide('ol.ViewHint');
+goog.provide('ol.ViewProperty');
+&nbsp;
+goog.require('goog.asserts');
+goog.require('ol');
+goog.require('ol.CenterConstraint');
+goog.require('ol.Constraints');
+goog.require('ol.Object');
+goog.require('ol.ResolutionConstraint');
+goog.require('ol.RotationConstraint');
+goog.require('ol.RotationConstraintType');
+goog.require('ol.Size');
+goog.require('ol.coordinate');
+goog.require('ol.extent');
+goog.require('ol.geom.Polygon');
+goog.require('ol.geom.SimpleGeometry');
+goog.require('ol.proj');
+goog.require('ol.proj.METERS_PER_UNIT');
+goog.require('ol.proj.Projection');
+goog.require('ol.proj.Units');
+&nbsp;
+&nbsp;
+/**
+ * @enum {string}
+ */
+ol.ViewProperty = {
+  CENTER: 'center',
+  RESOLUTION: 'resolution',
+  ROTATION: 'rotation'
+};
+&nbsp;
+&nbsp;
+/**
+ * @enum {number}
+ */
+ol.ViewHint = {
+  ANIMATING: 0,
+  INTERACTING: 1
+};
+&nbsp;
+&nbsp;
+&nbsp;
+/**
+ * @classdesc
+ * An ol.View object represents a simple 2D view of the map.
+ *
+ * This is the object to act upon to change the center, resolution,
+ * and rotation of the map.
+ *
+ * ### The view states
+ *
+ * An `ol.View` is determined by three states: `center`, `resolution`,
+ * and `rotation`. Each state has a corresponding getter and setter, e.g.
+ * `getCenter` and `setCenter` for the `center` state.
+ *
+ * An `ol.View` has a `projection`. The projection determines the
+ * coordinate system of the center, and its units determine the units of the
+ * resolution (projection units per pixel). The default projection is
+ * Spherical Mercator (EPSG:3857).
+ *
+ * ### The constraints
+ *
+ * `setCenter`, `setResolution` and `setRotation` can be used to change the
+ * states of the view. Any value can be passed to the setters. And the value
+ * that is passed to a setter will effectively be the value set in the view,
+ * and returned by the corresponding getter.
+ *
+ * But an `ol.View` object also has a *resolution constraint*, a
+ * *rotation constraint* and a *center constraint*.
+ *
+ * As said above, no constraints are applied when the setters are used to set
+ * new states for the view. Applying constraints is done explicitly through
+ * the use of the `constrain*` functions (`constrainResolution` and
+ * `constrainRotation` and `constrainCenter`).
+ *
+ * The main users of the constraints are the interactions and the
+ * controls. For example, double-clicking on the map changes the view to
+ * the "next" resolution. And releasing the fingers after pinch-zooming
+ * snaps to the closest resolution (with an animation).
+ *
+ * The *resolution constraint* snaps to specific resolutions. It is
+ * determined by the following options: `resolutions`, `maxResolution`,
+ * `maxZoom`, and `zoomFactor`. If `resolutions` is set, the other three
+ * options are ignored. See documentation for each option for more
+ * information.
+ *
+ * The *rotation constraint* snaps to specific angles. It is determined
+ * by the following options: `enableRotation` and `constrainRotation`.
+ * By default the rotation value is snapped to zero when approaching the
+ * horizontal.
+ *
+ * The *center constraint* is determined by the `extent` option. By
+ * default the center is not constrained at all.
+ *
+ * @constructor
+ * @extends {ol.Object}
+ * @param {olx.ViewOptions=} opt_options View options.
+ * @api stable
+ */
+ol.View = function(opt_options) {
+  goog.base(this);
+  var options = opt_options || {};
+&nbsp;
+  /**
+   * @private
+   * @type {Array.&lt;number&gt;}
+   */
+  this.hints_ = [0, 0];
+&nbsp;
+  /**
+   * @type {Object.&lt;string, *&gt;}
+   */
+  var properties = {};
+  properties[ol.ViewProperty.CENTER] = options.center !== undefined ?
+      options.center : null;
+&nbsp;
+  /**
+   * @private
+   * @const
+   * @type {ol.proj.Projection}
+   */
+  this.projection_ = ol.proj.createProjection(options.projection, 'EPSG:3857');
+&nbsp;
+  var resolutionConstraintInfo = ol.View.createResolutionConstraint_(
+      options);
+&nbsp;
+  /**
+   * @private
+   * @type {number}
+   */
+  this.maxResolution_ = resolutionConstraintInfo.maxResolution;
+&nbsp;
+  /**
+   * @private
+   * @type {number}
+   */
+  this.minResolution_ = resolutionConstraintInfo.minResolution;
+&nbsp;
+  /**
+   * @private
+   * @type {number}
+   */
+  this.minZoom_ = resolutionConstraintInfo.minZoom;
+&nbsp;
+  var centerConstraint = ol.View.createCenterConstraint_(options);
+  var resolutionConstraint = resolutionConstraintInfo.constraint;
+  var rotationConstraint = ol.View.createRotationConstraint_(options);
+&nbsp;
+  /**
+   * @private
+   * @type {ol.Constraints}
+   */
+  this.constraints_ = new ol.Constraints(
+      centerConstraint, resolutionConstraint, rotationConstraint);
+&nbsp;
+  if (options.resolution !== undefined) {
+    properties[ol.ViewProperty.RESOLUTION] = options.resolution;
+  } else if (options.zoom !== undefined) {
+    properties[ol.ViewProperty.RESOLUTION] = this.constrainResolution(
+        this.maxResolution_, options.zoom - this.minZoom_);
+  }
+  properties[ol.ViewProperty.ROTATION] =
+      options.rotation !== undefined ? options.rotation : 0;
+  this.setProperties(properties);
+};
+goog.inherits(ol.View, ol.Object);
+&nbsp;
+&nbsp;
+/**
+ * @param {number} rotation Target rotation.
+ * @param {ol.Coordinate} anchor Rotation anchor.
+ * @return {ol.Coordinate|undefined} Center for rotation and anchor.
+ */
+ol.View.prototype.calculateCenterRotate = <span class="fstat-no" title="function not covered" >function(rotation, anchor) {</span>
+<span class="cstat-no" title="statement not covered" >  var center;</span>
+<span class="cstat-no" title="statement not covered" >  var currentCenter = this.getCenter();</span>
+<span class="cstat-no" title="statement not covered" >  if (currentCenter !== undefined) {</span>
+<span class="cstat-no" title="statement not covered" >    center = [currentCenter[0] - anchor[0], currentCenter[1] - anchor[1]];</span>
+<span class="cstat-no" title="statement not covered" >    ol.coordinate.rotate(center, rotation - this.getRotation());</span>
+<span class="cstat-no" title="statement not covered" >    ol.coordinate.add(center, anchor);</span>
+  }
+<span class="cstat-no" title="statement not covered" >  return center;</span>
+};
+&nbsp;
+&nbsp;
+/**
+ * @param {number} resolution Target resolution.
+ * @param {ol.Coordinate} anchor Zoom anchor.
+ * @return {ol.Coordinate|undefined} Center for resolution and anchor.
+ */
+ol.View.prototype.calculateCenterZoom = <span class="fstat-no" title="function not covered" >function(resolution, anchor) {</span>
+<span class="cstat-no" title="statement not covered" >  var center;</span>
+<span class="cstat-no" title="statement not covered" >  var currentCenter = this.getCenter();</span>
+<span class="cstat-no" title="statement not covered" >  var currentResolution = this.getResolution();</span>
+<span class="cstat-no" title="statement not covered" >  if (currentCenter !== undefined &amp;&amp; currentResolution !== undefined) {</span>
+<span class="cstat-no" title="statement not covered" >    var x = anchor[0] -</span>
+        resolution * (anchor[0] - currentCenter[0]) / currentResolution;
+<span class="cstat-no" title="statement not covered" >    var y = anchor[1] -</span>
+        resolution * (anchor[1] - currentCenter[1]) / currentResolution;
+<span class="cstat-no" title="statement not covered" >    center = [x, y];</span>
+  }
+<span class="cstat-no" title="statement not covered" >  return center;</span>
+};
+&nbsp;
+&nbsp;
+/**
+ * Get the constrained center of this view.
+ * @param {ol.Coordinate|undefined} center Center.
+ * @return {ol.Coordinate|undefined} Constrained center.
+ * @api
+ */
+ol.View.prototype.constrainCenter = <span class="fstat-no" title="function not covered" >function(center) {</span>
+<span class="cstat-no" title="statement not covered" >  return this.constraints_.center(center);</span>
+};
+&nbsp;
+&nbsp;
+/**
+ * Get the constrained resolution of this view.
+ * @param {number|undefined} resolution Resolution.
+ * @param {number=} opt_delta Delta. Default is `0`.
+ * @param {number=} opt_direction Direction. Default is `0`.
+ * @return {number|undefined} Constrained resolution.
+ * @api
+ */
+ol.View.prototype.constrainResolution = function(
+    resolution, opt_delta, opt_direction) {
+  var delta = opt_delta || 0;
+  var direction = opt_direction || 0;
+  return this.constraints_.resolution(resolution, delta, direction);
+};
+&nbsp;
+&nbsp;
+/**
+ * Get the constrained rotation of this view.
+ * @param {number|undefined} rotation Rotation.
+ * @param {number=} opt_delta Delta. Default is `0`.
+ * @return {number|undefined} Constrained rotation.
+ * @api
+ */
+ol.View.prototype.constrainRotation = <span class="fstat-no" title="function not covered" >function(rotation, opt_delta) {</span>
+<span class="cstat-no" title="statement not covered" >  var delta = opt_delta || 0;</span>
+<span class="cstat-no" title="statement not covered" >  return this.constraints_.rotation(rotation, delta);</span>
+};
+&nbsp;
+&nbsp;
+/**
+ * Get the view center.
+ * @return {ol.Coordinate|undefined} The center of the view.
+ * @observable
+ * @api stable
+ */
+ol.View.prototype.getCenter = function() {
+  return /** @type {ol.Coordinate|undefined} */ (
+      this.get(ol.ViewProperty.CENTER));
+};
+&nbsp;
+&nbsp;
+/**
+ * @return {Array.&lt;number&gt;} Hint.
+ */
+ol.View.prototype.getHints = function() {
+  return this.hints_.slice();
+};
+&nbsp;
+&nbsp;
+/**
+ * Calculate the extent for the current view state and the passed size.
+ * The size is the pixel dimensions of the box into which the calculated extent
+ * should fit. In most cases you want to get the extent of the entire map,
+ * that is `map.getSize()`.
+ * @param {ol.Size} size Box pixel size.
+ * @return {ol.Extent} Extent.
+ * @api stable
+ */
+ol.View.prototype.calculateExtent = function(size) {
+  var center = this.getCenter();
+  goog.asserts.assert(center, 'The view center is not defined');
+  var resolution = this.getResolution();
+  goog.asserts.assert(resolution !== undefined,
+      'The view resolution is not defined');
+  var rotation = this.getRotation();
+  goog.asserts.assert(rotation !== undefined,
+      'The view rotation is not defined');
+&nbsp;
+  return ol.extent.getForViewAndSize(center, resolution, rotation, size);
+};
+&nbsp;
+&nbsp;
+/**
+ * Get the view projection.
+ * @return {ol.proj.Projection} The projection of the view.
+ * @api stable
+ */
+ol.View.prototype.getProjection = function() {
+  return this.projection_;
+};
+&nbsp;
+&nbsp;
+/**
+ * Get the view resolution.
+ * @return {number|undefined} The resolution of the view.
+ * @observable
+ * @api stable
+ */
+ol.View.prototype.getResolution = function() {
+  return /** @type {number|undefined} */ (
+      this.get(ol.ViewProperty.RESOLUTION));
+};
+&nbsp;
+&nbsp;
+/**
+ * Get the resolution for a provided extent (in map units) and size (in pixels).
+ * @param {ol.Extent} extent Extent.
+ * @param {ol.Size} size Box pixel size.
+ * @return {number} The resolution at which the provided extent will render at
+ *     the given size.
+ */
+ol.View.prototype.getResolutionForExtent = function(extent, size) {
+  var xResolution = ol.extent.getWidth(extent) / size[0];
+  var yResolution = ol.extent.getHeight(extent) / size[1];
+  return Math.max(xResolution, yResolution);
+};
+&nbsp;
+&nbsp;
+/**
+ * Return a function that returns a value between 0 and 1 for a
+ * resolution. Exponential scaling is assumed.
+ * @param {number=} opt_power Power.
+ * @return {function(number): number} Resolution for value function.
+ */
+ol.View.prototype.getResolutionForValueFunction = <span class="fstat-no" title="function not covered" >function(opt_power) {</span>
+<span class="cstat-no" title="statement not covered" >  var power = opt_power || 2;</span>
+<span class="cstat-no" title="statement not covered" >  var maxResolution = this.maxResolution_;</span>
+<span class="cstat-no" title="statement not covered" >  var minResolution = this.minResolution_;</span>
+<span class="cstat-no" title="statement not covered" >  var max = Math.log(maxResolution / minResolution) / Math.log(power);</span>
+<span class="cstat-no" title="statement not covered" >  return (</span>
+      /**
+       * @param {number} value Value.
+       * @return {number} Resolution.
+       */
+<span class="fstat-no" title="function not covered" >      function(value) {</span>
+<span class="cstat-no" title="statement not covered" >        var resolution = maxResolution / Math.pow(power, value * max);</span>
+<span class="cstat-no" title="statement not covered" >        goog.asserts.assert(resolution &gt;= minResolution &amp;&amp;</span>
+            resolution &lt;= maxResolution,
+            'calculated resolution outside allowed bounds (%s &lt;= %s &lt;= %s)',
+            minResolution, resolution, maxResolution);
+<span class="cstat-no" title="statement not covered" >        return resolution;</span>
+      });
+};
+&nbsp;
+&nbsp;
+/**
+ * Get the view rotation.
+ * @return {number} The rotation of the view in radians.
+ * @observable
+ * @api stable
+ */
+ol.View.prototype.getRotation = function() {
+  return /** @type {number} */ (this.get(ol.ViewProperty.ROTATION));
+};
+&nbsp;
+&nbsp;
+/**
+ * Return a function that returns a resolution for a value between
+ * 0 and 1. Exponential scaling is assumed.
+ * @param {number=} opt_power Power.
+ * @return {function(number): number} Value for resolution function.
+ */
+ol.View.prototype.getValueForResolutionFunction = <span class="fstat-no" title="function not covered" >function(opt_power) {</span>
+<span class="cstat-no" title="statement not covered" >  var power = opt_power || 2;</span>
+<span class="cstat-no" title="statement not covered" >  var maxResolution = this.maxResolution_;</span>
+<span class="cstat-no" title="statement not covered" >  var minResolution = this.minResolution_;</span>
+<span class="cstat-no" title="statement not covered" >  var max = Math.log(maxResolution / minResolution) / Math.log(power);</span>
+<span class="cstat-no" title="statement not covered" >  return (</span>
+      /**
+       * @param {number} resolution Resolution.
+       * @return {number} Value.
+       */
+<span class="fstat-no" title="function not covered" >      function(resolution) {</span>
+<span class="cstat-no" title="statement not covered" >        var value =</span>
+            (Math.log(maxResolution / resolution) / Math.log(power)) / max;
+<span class="cstat-no" title="statement not covered" >        goog.asserts.assert(value &gt;= 0 &amp;&amp; value &lt;= 1,</span>
+            'calculated value (%s) ouside allowed range (0-1)', value);
+<span class="cstat-no" title="statement not covered" >        return value;</span>
+      });
+};
+&nbsp;
+&nbsp;
+/**
+ * @return {olx.ViewState} View state.
+ */
+ol.View.prototype.getState = function() {
+  goog.asserts.assert(this.isDef(),
+      'the view was not defined (had no center and/or resolution)');
+  var center = /** @type {ol.Coordinate} */ (this.getCenter());
+  var projection = this.getProjection();
+  var resolution = /** @type {number} */ (this.getResolution());
+  var rotation = this.getRotation();
+  return /** @type {olx.ViewState} */ ({
+    // Snap center to closest pixel
+    center: [
+      Math.round(center[0] / resolution) * resolution,
+      Math.round(center[1] / resolution) * resolution
+    ],
+    projection: projection !== undefined ? projection : <span class="branch-1 cbranch-no" title="branch not covered" >null,</span>
+    resolution: resolution,
+    rotation: rotation
+  });
+};
+&nbsp;
+&nbsp;
+/**
+ * Get the current zoom level. Return undefined if the current
+ * resolution is undefined or not a "constrained resolution".
+ * @return {number|undefined} Zoom.
+ * @api stable
+ */
+ol.View.prototype.getZoom = function() {
+  var offset;
+  var resolution = this.getResolution();
+&nbsp;
+  if (resolution !== undefined) {
+    var res, z = 0;
+    do {
+      res = this.constrainResolution(this.maxResolution_, z);
+      if (res == resolution) {
+        offset = z;
+        break;
+      }
+      ++z;
+    } while (res &gt; this.minResolution_);
+  }
+&nbsp;
+  return offset !== undefined ? this.minZoom_ + offset : offset;
+};
+&nbsp;
+&nbsp;
+/**
+ * Fit the given geometry or extent based on the given map size and border.
+ * The size is pixel dimensions of the box to fit the extent into.
+ * In most cases you will want to use the map size, that is `map.getSize()`.
+ * Takes care of the map angle.
+ * @param {ol.geom.SimpleGeometry|ol.Extent} geometry Geometry.
+ * @param {ol.Size} size Box pixel size.
+ * @param {olx.view.FitOptions=} opt_options Options.
+ * @api
+ */
+ol.View.prototype.fit = function(geometry, size, opt_options) {
+  if (!(geometry instanceof ol.geom.SimpleGeometry)) {
+    goog.asserts.assert(goog.isArray(geometry),
+        'invalid extent or geometry');
+    goog.asserts.assert(!ol.extent.isEmpty(geometry),
+        'cannot fit empty extent');
+    geometry = ol.geom.Polygon.fromExtent(geometry);
+  }
+&nbsp;
+  var options = opt_options || {};
+&nbsp;
+  var padding = options.padding !== undefined ? options.padding : [0, 0, 0, 0];
+  var constrainResolution = options.constrainResolution !== undefined ?
+      options.constrainResolution : true;
+  var nearest = options.nearest !== undefined ? options.nearest : false;
+  var minResolution;
+  if (options.minResolution !== undefined) {
+    minResolution = options.minResolution;
+  } else if (options.maxZoom !== undefined) {
+    minResolution = this.constrainResolution(
+        this.maxResolution_, options.maxZoom - this.minZoom_, 0);
+  } else {
+    minResolution = 0;
+  }
+  var coords = geometry.getFlatCoordinates();
+&nbsp;
+  // calculate rotated extent
+  var rotation = this.getRotation();
+  goog.asserts.assert(rotation !== undefined, 'rotation was not defined');
+  var cosAngle = Math.cos(-rotation);
+  var sinAngle = Math.sin(-rotation);
+  var minRotX = +Infinity;
+  var minRotY = +Infinity;
+  var maxRotX = -Infinity;
+  var maxRotY = -Infinity;
+  var stride = geometry.getStride();
+  for (var i = 0, ii = coords.length; i &lt; ii; i += stride) {
+    var rotX = coords[i] * cosAngle - coords[i + 1] * sinAngle;
+    var rotY = coords[i] * sinAngle + coords[i + 1] * cosAngle;
+    minRotX = Math.min(minRotX, rotX);
+    minRotY = Math.min(minRotY, rotY);
+    maxRotX = Math.max(maxRotX, rotX);
+    maxRotY = Math.max(maxRotY, rotY);
+  }
+&nbsp;
+  // calculate resolution
+  var resolution = this.getResolutionForExtent(
+      [minRotX, minRotY, maxRotX, maxRotY],
+      [size[0] - padding[1] - padding[3], size[1] - padding[0] - padding[2]]);
+  resolution = isNaN(resolution) ? <span class="branch-0 cbranch-no" title="branch not covered" >minResolution </span>:
+      Math.max(resolution, minResolution);
+  if (constrainResolution) {
+    var constrainedResolution = this.constrainResolution(resolution, 0, 0);
+    if (!nearest &amp;&amp; constrainedResolution &lt; resolution) {
+      constrainedResolution = this.constrainResolution(
+          constrainedResolution, -1, 0);
+    }
+    resolution = constrainedResolution;
+  }
+  this.setResolution(resolution);
+&nbsp;
+  // calculate center
+  sinAngle = -sinAngle; // go back to original rotation
+  var centerRotX = (minRotX + maxRotX) / 2;
+  var centerRotY = (minRotY + maxRotY) / 2;
+  centerRotX += (padding[1] - padding[3]) / 2 * resolution;
+  centerRotY += (padding[0] - padding[2]) / 2 * resolution;
+  var centerX = centerRotX * cosAngle - centerRotY * sinAngle;
+  var centerY = centerRotY * cosAngle + centerRotX * sinAngle;
+&nbsp;
+  this.setCenter([centerX, centerY]);
+};
+&nbsp;
+&nbsp;
+/**
+ * Center on coordinate and view position.
+ * @param {ol.Coordinate} coordinate Coordinate.
+ * @param {ol.Size} size Box pixel size.
+ * @param {ol.Pixel} position Position on the view to center on.
+ * @api
+ */
+ol.View.prototype.centerOn = function(coordinate, size, position) {
+  // calculate rotated position
+  var rotation = this.getRotation();
+  var cosAngle = Math.cos(-rotation);
+  var sinAngle = Math.sin(-rotation);
+  var rotX = coordinate[0] * cosAngle - coordinate[1] * sinAngle;
+  var rotY = coordinate[1] * cosAngle + coordinate[0] * sinAngle;
+  var resolution = this.getResolution();
+  rotX += (size[0] / 2 - position[0]) * resolution;
+  rotY += (position[1] - size[1] / 2) * resolution;
+&nbsp;
+  // go back to original angle
+  sinAngle = -sinAngle; // go back to original rotation
+  var centerX = rotX * cosAngle - rotY * sinAngle;
+  var centerY = rotY * cosAngle + rotX * sinAngle;
+&nbsp;
+  this.setCenter([centerX, centerY]);
+};
+&nbsp;
+&nbsp;
+/**
+ * @return {boolean} Is defined.
+ */
+ol.View.prototype.isDef = function() {
+  return !!this.getCenter() &amp;&amp; this.getResolution() !== undefined;
+};
+&nbsp;
+&nbsp;
+/**
+ * Rotate the view around a given coordinate.
+ * @param {number} rotation New rotation value for the view.
+ * @param {ol.Coordinate=} opt_anchor The rotation center.
+ * @api stable
+ */
+ol.View.prototype.rotate = <span class="fstat-no" title="function not covered" >function(rotation, opt_anchor) {</span>
+<span class="cstat-no" title="statement not covered" >  if (opt_anchor !== undefined) {</span>
+<span class="cstat-no" title="statement not covered" >    var center = this.calculateCenterRotate(rotation, opt_anchor);</span>
+<span class="cstat-no" title="statement not covered" >    this.setCenter(center);</span>
+  }
+<span class="cstat-no" title="statement not covered" >  this.setRotation(rotation);</span>
+};
+&nbsp;
+&nbsp;
+/**
+ * Set the center of the current view.
+ * @param {ol.Coordinate|undefined} center The center of the view.
+ * @observable
+ * @api stable
+ */
+ol.View.prototype.setCenter = function(center) {
+  this.set(ol.ViewProperty.CENTER, center);
+};
+&nbsp;
+&nbsp;
+/**
+ * @param {ol.ViewHint} hint Hint.
+ * @param {number} delta Delta.
+ * @return {number} New value.
+ */
+ol.View.prototype.setHint = function(hint, delta) {
+  goog.asserts.assert(0 &lt;= hint &amp;&amp; hint &lt; this.hints_.length,
+      'illegal hint (%s), must be between 0 and %s', hint, this.hints_.length);
+  this.hints_[hint] += delta;
+  goog.asserts.assert(this.hints_[hint] &gt;= 0,
+      'Hint at %s must be positive, was %s', hint, this.hints_[hint]);
+  return this.hints_[hint];
+};
+&nbsp;
+&nbsp;
+/**
+ * Set the resolution for this view.
+ * @param {number|undefined} resolution The resolution of the view.
+ * @observable
+ * @api stable
+ */
+ol.View.prototype.setResolution = function(resolution) {
+  this.set(ol.ViewProperty.RESOLUTION, resolution);
+};
+&nbsp;
+&nbsp;
+/**
+ * Set the rotation for this view.
+ * @param {number} rotation The rotation of the view in radians.
+ * @observable
+ * @api stable
+ */
+ol.View.prototype.setRotation = function(rotation) {
+  this.set(ol.ViewProperty.ROTATION, rotation);
+};
+&nbsp;
+&nbsp;
+/**
+ * Zoom to a specific zoom level.
+ * @param {number} zoom Zoom level.
+ * @api stable
+ */
+ol.View.prototype.setZoom = function(zoom) {
+  var resolution = this.constrainResolution(
+      this.maxResolution_, zoom - this.minZoom_, 0);
+  this.setResolution(resolution);
+};
+&nbsp;
+&nbsp;
+/**
+ * @param {olx.ViewOptions} options View options.
+ * @private
+ * @return {ol.CenterConstraintType}
+ */
+ol.View.createCenterConstraint_ = function(options) {
+  <span class="missing-if-branch" title="if path not taken" >I</span>if (options.extent !== undefined) {
+<span class="cstat-no" title="statement not covered" >    return ol.CenterConstraint.createExtent(options.extent);</span>
+  } else {
+    return ol.CenterConstraint.none;
+  }
+};
+&nbsp;
+&nbsp;
+/**
+ * @private
+ * @param {olx.ViewOptions} options View options.
+ * @return {{constraint: ol.ResolutionConstraintType, maxResolution: number,
+ *     minResolution: number}}
+ */
+ol.View.createResolutionConstraint_ = function(options) {
+  var resolutionConstraint;
+  var maxResolution;
+  var minResolution;
+&nbsp;
+  // TODO: move these to be ol constants
+  // see https://github.com/openlayers/ol3/issues/2076
+  var defaultMaxZoom = 28;
+  var defaultZoomFactor = 2;
+&nbsp;
+  var minZoom = options.minZoom !== undefined ?
+      options.minZoom : ol.DEFAULT_MIN_ZOOM;
+&nbsp;
+  var maxZoom = options.maxZoom !== undefined ?
+      options.maxZoom : defaultMaxZoom;
+&nbsp;
+  var zoomFactor = options.zoomFactor !== undefined ?
+      options.zoomFactor : defaultZoomFactor;
+&nbsp;
+  if (options.resolutions !== undefined) {
+    var resolutions = options.resolutions;
+    maxResolution = resolutions[0];
+    minResolution = resolutions[resolutions.length - 1];
+    resolutionConstraint = ol.ResolutionConstraint.createSnapToResolutions(
+        resolutions);
+  } else {
+    // calculate the default min and max resolution
+    var projection = ol.proj.createProjection(options.projection, 'EPSG:3857');
+    var extent = projection.getExtent();
+    var size = !extent ?
+        // use an extent that can fit the whole world if need be
+<span class="branch-0 cbranch-no" title="branch not covered" >        360 * ol.proj.METERS_PER_UNIT[ol.proj.Units.DEGREES] /</span>
+            ol.proj.METERS_PER_UNIT[projection.getUnits()] :
+        Math.max(ol.extent.getWidth(extent), ol.extent.getHeight(extent));
+&nbsp;
+    var defaultMaxResolution = size / ol.DEFAULT_TILE_SIZE / Math.pow(
+        defaultZoomFactor, ol.DEFAULT_MIN_ZOOM);
+&nbsp;
+    var defaultMinResolution = defaultMaxResolution / Math.pow(
+        defaultZoomFactor, defaultMaxZoom - ol.DEFAULT_MIN_ZOOM);
+&nbsp;
+    // user provided maxResolution takes precedence
+    maxResolution = options.maxResolution;
+    if (maxResolution !== undefined) {
+      minZoom = 0;
+    } else {
+      maxResolution = defaultMaxResolution / Math.pow(zoomFactor, minZoom);
+    }
+&nbsp;
+    // user provided minResolution takes precedence
+    minResolution = options.minResolution;
+    if (minResolution === undefined) {
+      if (options.maxZoom !== undefined) {
+        if (options.maxResolution !== undefined) {
+          minResolution = maxResolution / Math.pow(zoomFactor, maxZoom);
+        } else {
+          minResolution = defaultMaxResolution / Math.pow(zoomFactor, maxZoom);
+        }
+      } else {
+        minResolution = defaultMinResolution;
+      }
+    }
+&nbsp;
+    // given discrete zoom levels, minResolution may be different than provided
+    maxZoom = minZoom + Math.floor(
+        Math.log(maxResolution / minResolution) / Math.log(zoomFactor));
+    minResolution = maxResolution / Math.pow(zoomFactor, maxZoom - minZoom);
+&nbsp;
+    resolutionConstraint = ol.ResolutionConstraint.createSnapToPower(
+        zoomFactor, maxResolution, maxZoom - minZoom);
+  }
+  return {constraint: resolutionConstraint, maxResolution: maxResolution,
+    minResolution: minResolution, minZoom: minZoom};
+};
+&nbsp;
+&nbsp;
+/**
+ * @private
+ * @param {olx.ViewOptions} options View options.
+ * @return {ol.RotationConstraintType} Rotation constraint.
+ */
+ol.View.createRotationConstraint_ = function(options) {
+  var enableRotation = options.enableRotation !== undefined ?
+<span class="branch-0 cbranch-no" title="branch not covered" >      options.enableRotation </span>: true;
+  <span class="missing-if-branch" title="else path not taken" >E</span>if (enableRotation) {
+    var constrainRotation = options.constrainRotation;
+    <span class="missing-if-branch" title="else path not taken" >E</span>if (constrainRotation === undefined || <span class="branch-1 cbranch-no" title="branch not covered" >constrainRotation === true)</span> {
+      return ol.RotationConstraint.createSnapToZero();
+    } else <span class="cstat-no" title="statement not covered" >if (constrainRotation === false) {</span>
+<span class="cstat-no" title="statement not covered" >      return ol.RotationConstraint.none;</span>
+    } else <span class="cstat-no" title="statement not covered" >if (goog.isNumber(constrainRotation)) {</span>
+<span class="cstat-no" title="statement not covered" >      return ol.RotationConstraint.createSnapToN(constrainRotation);</span>
+    } else {
+<span class="cstat-no" title="statement not covered" >      goog.asserts.fail(</span>
+          'illegal option for constrainRotation (%s)', constrainRotation);
+<span class="cstat-no" title="statement not covered" >      return ol.RotationConstraint.none;</span>
+    }
+  } else {
+<span class="cstat-no" title="statement not covered" >    return ol.RotationConstraint.disable;</span>
+  }
+};
+&nbsp;</pre></td></tr>
+</table></pre>
+<div class='push'></div><!-- for sticky footer -->
+</div><!-- /wrapper -->
+<div class='footer quiet pad2 space-top1 center small'>
+  Code coverage
+  generated by <a href="http://istanbul-js.org/" target="_blank">istanbul</a> at Fri Nov 06 2015 19:36:11 GMT+0100 (CET)
+</div>
+</div>
+<script src="../prettify.js"></script>
+<script>
+window.onload = function () {
+        if (typeof prettyPrint === 'function') {
+            prettyPrint();
+        }
+};
+</script>
+<script src="../sorter.js"></script>
+</body>
+</html>

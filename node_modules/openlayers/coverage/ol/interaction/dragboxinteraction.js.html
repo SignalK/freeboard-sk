@@ -1,0 +1,665 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <title>Code coverage report for ol/interaction/dragboxinteraction.js</title>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="../../prettify.css" />
+    <link rel="stylesheet" href="../../base.css" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style type='text/css'>
+        .coverage-summary .sorter {
+            background-image: url(../../sort-arrow-sprite.png);
+        }
+    </style>
+</head>
+<body>
+<div class='wrapper'>
+  <div class='pad1'>
+    <h1>
+      <a href="../../index.html">all files</a> / <a href="index.html">ol/interaction/</a> dragboxinteraction.js
+    </h1>
+    <div class='clearfix'>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">55.1% </span>
+        <span class="quiet">Statements</span>
+        <span class='fraction'>27/49</span>
+      </div>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">22.22% </span>
+        <span class="quiet">Branches</span>
+        <span class='fraction'>4/18</span>
+      </div>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">50% </span>
+        <span class="quiet">Functions</span>
+        <span class='fraction'>3/6</span>
+      </div>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">55.1% </span>
+        <span class="quiet">Lines</span>
+        <span class='fraction'>27/49</span>
+      </div>
+    </div>
+  </div>
+  <div class='status-line medium'></div>
+<pre><table class="coverage">
+<tr><td class="line-count quiet">1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+28
+29
+30
+31
+32
+33
+34
+35
+36
+37
+38
+39
+40
+41
+42
+43
+44
+45
+46
+47
+48
+49
+50
+51
+52
+53
+54
+55
+56
+57
+58
+59
+60
+61
+62
+63
+64
+65
+66
+67
+68
+69
+70
+71
+72
+73
+74
+75
+76
+77
+78
+79
+80
+81
+82
+83
+84
+85
+86
+87
+88
+89
+90
+91
+92
+93
+94
+95
+96
+97
+98
+99
+100
+101
+102
+103
+104
+105
+106
+107
+108
+109
+110
+111
+112
+113
+114
+115
+116
+117
+118
+119
+120
+121
+122
+123
+124
+125
+126
+127
+128
+129
+130
+131
+132
+133
+134
+135
+136
+137
+138
+139
+140
+141
+142
+143
+144
+145
+146
+147
+148
+149
+150
+151
+152
+153
+154
+155
+156
+157
+158
+159
+160
+161
+162
+163
+164
+165
+166
+167
+168
+169
+170
+171
+172
+173
+174
+175
+176
+177
+178
+179
+180
+181
+182
+183
+184
+185
+186
+187
+188
+189
+190
+191
+192
+193
+194
+195
+196
+197
+198
+199
+200
+201</td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">118×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">118×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">118×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">118×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">118×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">60×</span>
+<span class="cline-any cline-yes">60×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">// FIXME draw drag box
+goog.provide('ol.DragBoxEvent');
+goog.provide('ol.interaction.DragBox');
+&nbsp;
+goog.require('goog.events.Event');
+goog.require('ol');
+goog.require('ol.events.ConditionType');
+goog.require('ol.events.condition');
+goog.require('ol.interaction.Pointer');
+goog.require('ol.render.Box');
+&nbsp;
+&nbsp;
+/**
+ * @const
+ * @type {number}
+ */
+ol.DRAG_BOX_HYSTERESIS_PIXELS_SQUARED =
+    ol.DRAG_BOX_HYSTERESIS_PIXELS *
+    ol.DRAG_BOX_HYSTERESIS_PIXELS;
+&nbsp;
+&nbsp;
+/**
+ * @enum {string}
+ */
+ol.DragBoxEventType = {
+  /**
+   * Triggered upon drag box start.
+   * @event ol.DragBoxEvent#boxstart
+   * @api stable
+   */
+  BOXSTART: 'boxstart',
+  /**
+   * Triggered upon drag box end.
+   * @event ol.DragBoxEvent#boxend
+   * @api stable
+   */
+  BOXEND: 'boxend'
+};
+&nbsp;
+&nbsp;
+&nbsp;
+/**
+ * @classdesc
+ * Events emitted by {@link ol.interaction.DragBox} instances are instances of
+ * this type.
+ *
+ * @param {string} type The event type.
+ * @param {ol.Coordinate} coordinate The event coordinate.
+ * @extends {goog.events.Event}
+ * @constructor
+ * @implements {oli.DragBoxEvent}
+ */
+ol.DragBoxEvent = <span class="fstat-no" title="function not covered" >function(type, coordinate) {</span>
+<span class="cstat-no" title="statement not covered" >  goog.base(this, type);</span>
+&nbsp;
+  /**
+   * The coordinate of the drag event.
+   * @const
+   * @type {ol.Coordinate}
+   * @api stable
+   */
+<span class="cstat-no" title="statement not covered" >  this.coordinate = coordinate;</span>
+&nbsp;
+};
+goog.inherits(ol.DragBoxEvent, goog.events.Event);
+&nbsp;
+&nbsp;
+&nbsp;
+/**
+ * @classdesc
+ * Allows the user to draw a vector box by clicking and dragging on the map,
+ * normally combined with an {@link ol.events.condition} that limits
+ * it to when the shift or other key is held down. This is used, for example,
+ * for zooming to a specific area of the map
+ * (see {@link ol.interaction.DragZoom} and
+ * {@link ol.interaction.DragRotateAndZoom}).
+ *
+ * This interaction is only supported for mouse devices.
+ *
+ * @constructor
+ * @extends {ol.interaction.Pointer}
+ * @fires ol.DragBoxEvent
+ * @param {olx.interaction.DragBoxOptions=} opt_options Options.
+ * @api stable
+ */
+ol.interaction.DragBox = function(opt_options) {
+&nbsp;
+  goog.base(this, {
+    handleDownEvent: ol.interaction.DragBox.handleDownEvent_,
+    handleDragEvent: ol.interaction.DragBox.handleDragEvent_,
+    handleUpEvent: ol.interaction.DragBox.handleUpEvent_
+  });
+&nbsp;
+  var options = opt_options ? opt_options : <span class="branch-1 cbranch-no" title="branch not covered" >{};</span>
+&nbsp;
+  /**
+   * @type {ol.render.Box}
+   * @private
+   */
+  this.box_ = new ol.render.Box(options.className || <span class="branch-1 cbranch-no" title="branch not covered" >'ol-dragbox')</span>;
+&nbsp;
+  /**
+   * @type {ol.Pixel}
+   * @private
+   */
+  this.startPixel_ = null;
+&nbsp;
+  /**
+   * @private
+   * @type {ol.events.ConditionType}
+   */
+  this.condition_ = options.condition ?
+      options.condition : <span class="branch-1 cbranch-no" title="branch not covered" >ol.events.condition.always;</span>
+&nbsp;
+};
+goog.inherits(ol.interaction.DragBox, ol.interaction.Pointer);
+&nbsp;
+&nbsp;
+/**
+ * @param {ol.MapBrowserPointerEvent} mapBrowserEvent Event.
+ * @this {ol.interaction.DragBox}
+ * @private
+ */
+ol.interaction.DragBox.handleDragEvent_ = <span class="fstat-no" title="function not covered" >function(mapBrowserEvent) {</span>
+<span class="cstat-no" title="statement not covered" >  if (!ol.events.condition.mouseOnly(mapBrowserEvent)) {</span>
+<span class="cstat-no" title="statement not covered" >    return;</span>
+  }
+&nbsp;
+<span class="cstat-no" title="statement not covered" >  this.box_.setPixels(this.startPixel_, mapBrowserEvent.pixel);</span>
+};
+&nbsp;
+&nbsp;
+/**
+ * Returns geometry of last drawn box.
+ * @return {ol.geom.Polygon} Geometry.
+ * @api stable
+ */
+ol.interaction.DragBox.prototype.getGeometry = function() {
+  return this.box_.getGeometry();
+};
+&nbsp;
+&nbsp;
+/**
+ * To be overriden by child classes.
+ * FIXME: use constructor option instead of relying on overridding.
+ * @param {ol.MapBrowserEvent} mapBrowserEvent Map browser event.
+ * @protected
+ */
+ol.interaction.DragBox.prototype.onBoxEnd = ol.nullFunction;
+&nbsp;
+&nbsp;
+/**
+ * @param {ol.MapBrowserPointerEvent} mapBrowserEvent Event.
+ * @return {boolean} Stop drag sequence?
+ * @this {ol.interaction.DragBox}
+ * @private
+ */
+ol.interaction.DragBox.handleUpEvent_ = <span class="fstat-no" title="function not covered" >function(mapBrowserEvent) {</span>
+<span class="cstat-no" title="statement not covered" >  if (!ol.events.condition.mouseOnly(mapBrowserEvent)) {</span>
+<span class="cstat-no" title="statement not covered" >    return true;</span>
+  }
+&nbsp;
+<span class="cstat-no" title="statement not covered" >  this.box_.setMap(null);</span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" >  var deltaX = mapBrowserEvent.pixel[0] - this.startPixel_[0];</span>
+<span class="cstat-no" title="statement not covered" >  var deltaY = mapBrowserEvent.pixel[1] - this.startPixel_[1];</span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" >  if (deltaX * deltaX + deltaY * deltaY &gt;=</span>
+      ol.DRAG_BOX_HYSTERESIS_PIXELS_SQUARED) {
+<span class="cstat-no" title="statement not covered" >    this.onBoxEnd(mapBrowserEvent);</span>
+<span class="cstat-no" title="statement not covered" >    this.dispatchEvent(new ol.DragBoxEvent(ol.DragBoxEventType.BOXEND,</span>
+        mapBrowserEvent.coordinate));
+  }
+<span class="cstat-no" title="statement not covered" >  return false;</span>
+};
+&nbsp;
+&nbsp;
+/**
+ * @param {ol.MapBrowserPointerEvent} mapBrowserEvent Event.
+ * @return {boolean} Start drag sequence?
+ * @this {ol.interaction.DragBox}
+ * @private
+ */
+ol.interaction.DragBox.handleDownEvent_ = function(mapBrowserEvent) {
+  <span class="missing-if-branch" title="else path not taken" >E</span>if (!ol.events.condition.mouseOnly(mapBrowserEvent)) {
+    return false;
+  }
+&nbsp;
+<span class="cstat-no" title="statement not covered" >  var browserEvent = mapBrowserEvent.browserEvent;</span>
+<span class="cstat-no" title="statement not covered" >  if (browserEvent.isMouseActionButton() &amp;&amp; this.condition_(mapBrowserEvent)) {</span>
+<span class="cstat-no" title="statement not covered" >    this.startPixel_ = mapBrowserEvent.pixel;</span>
+<span class="cstat-no" title="statement not covered" >    this.box_.setMap(mapBrowserEvent.map);</span>
+<span class="cstat-no" title="statement not covered" >    this.box_.setPixels(this.startPixel_, this.startPixel_);</span>
+<span class="cstat-no" title="statement not covered" >    this.dispatchEvent(new ol.DragBoxEvent(ol.DragBoxEventType.BOXSTART,</span>
+        mapBrowserEvent.coordinate));
+<span class="cstat-no" title="statement not covered" >    return true;</span>
+  } else {
+<span class="cstat-no" title="statement not covered" >    return false;</span>
+  }
+};
+&nbsp;</pre></td></tr>
+</table></pre>
+<div class='push'></div><!-- for sticky footer -->
+</div><!-- /wrapper -->
+<div class='footer quiet pad2 space-top1 center small'>
+  Code coverage
+  generated by <a href="http://istanbul-js.org/" target="_blank">istanbul</a> at Fri Nov 06 2015 19:36:11 GMT+0100 (CET)
+</div>
+</div>
+<script src="../../prettify.js"></script>
+<script>
+window.onload = function () {
+        if (typeof prettyPrint === 'function') {
+            prettyPrint();
+        }
+};
+</script>
+<script src="../../sorter.js"></script>
+</body>
+</html>

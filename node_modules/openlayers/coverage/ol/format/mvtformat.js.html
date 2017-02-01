@@ -1,0 +1,842 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <title>Code coverage report for ol/format/mvtformat.js</title>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="../../prettify.css" />
+    <link rel="stylesheet" href="../../base.css" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style type='text/css'>
+        .coverage-summary .sorter {
+            background-image: url(../../sort-arrow-sprite.png);
+        }
+    </style>
+</head>
+<body>
+<div class='wrapper'>
+  <div class='pad1'>
+    <h1>
+      <a href="../../index.html">all files</a> / <a href="index.html">ol/format/</a> mvtformat.js
+    </h1>
+    <div class='clearfix'>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">93.64% </span>
+        <span class="quiet">Statements</span>
+        <span class='fraction'>103/110</span>
+      </div>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">67.5% </span>
+        <span class="quiet">Branches</span>
+        <span class='fraction'>27/40</span>
+      </div>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">77.78% </span>
+        <span class="quiet">Functions</span>
+        <span class='fraction'>7/9</span>
+      </div>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">93.64% </span>
+        <span class="quiet">Lines</span>
+        <span class='fraction'>103/110</span>
+      </div>
+    </div>
+  </div>
+  <div class='status-line high'></div>
+<pre><table class="coverage">
+<tr><td class="line-count quiet">1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+28
+29
+30
+31
+32
+33
+34
+35
+36
+37
+38
+39
+40
+41
+42
+43
+44
+45
+46
+47
+48
+49
+50
+51
+52
+53
+54
+55
+56
+57
+58
+59
+60
+61
+62
+63
+64
+65
+66
+67
+68
+69
+70
+71
+72
+73
+74
+75
+76
+77
+78
+79
+80
+81
+82
+83
+84
+85
+86
+87
+88
+89
+90
+91
+92
+93
+94
+95
+96
+97
+98
+99
+100
+101
+102
+103
+104
+105
+106
+107
+108
+109
+110
+111
+112
+113
+114
+115
+116
+117
+118
+119
+120
+121
+122
+123
+124
+125
+126
+127
+128
+129
+130
+131
+132
+133
+134
+135
+136
+137
+138
+139
+140
+141
+142
+143
+144
+145
+146
+147
+148
+149
+150
+151
+152
+153
+154
+155
+156
+157
+158
+159
+160
+161
+162
+163
+164
+165
+166
+167
+168
+169
+170
+171
+172
+173
+174
+175
+176
+177
+178
+179
+180
+181
+182
+183
+184
+185
+186
+187
+188
+189
+190
+191
+192
+193
+194
+195
+196
+197
+198
+199
+200
+201
+202
+203
+204
+205
+206
+207
+208
+209
+210
+211
+212
+213
+214
+215
+216
+217
+218
+219
+220
+221
+222
+223
+224
+225
+226
+227
+228
+229
+230
+231
+232
+233
+234
+235
+236
+237
+238
+239
+240
+241
+242
+243
+244
+245
+246
+247
+248
+249
+250
+251
+252
+253
+254
+255
+256
+257
+258
+259
+260</td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">5×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">5×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">5×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">5×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">5×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">5×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">5×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">85×</span>
+<span class="cline-any cline-yes">85×</span>
+<span class="cline-any cline-yes">85×</span>
+<span class="cline-any cline-yes">85×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">85×</span>
+<span class="cline-any cline-yes">85×</span>
+<span class="cline-any cline-yes">85×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">85×</span>
+<span class="cline-any cline-yes">85×</span>
+<span class="cline-any cline-yes">85×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">20×</span>
+<span class="cline-any cline-yes">20×</span>
+<span class="cline-any cline-yes">20×</span>
+<span class="cline-any cline-yes">20×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">20×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">20×</span>
+<span class="cline-any cline-yes">20×</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">20×</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">20×</span>
+<span class="cline-any cline-yes">20×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">20×</span>
+<span class="cline-any cline-yes">20×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">20×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">5×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">5×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">5×</span>
+<span class="cline-any cline-yes">5×</span>
+<span class="cline-any cline-yes">5×</span>
+<span class="cline-any cline-yes">5×</span>
+<span class="cline-any cline-yes">5×</span>
+<span class="cline-any cline-yes">5×</span>
+<span class="cline-any cline-yes">65×</span>
+<span class="cline-any cline-yes">60×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">5×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">5×</span>
+<span class="cline-any cline-yes">105×</span>
+<span class="cline-any cline-yes">20×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">85×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">105×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">5×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">105×</span>
+<span class="cline-any cline-yes">105×</span>
+<span class="cline-any cline-yes">105×</span>
+<span class="cline-any cline-yes">107×</span>
+<span class="cline-any cline-yes">107×</span>
+<span class="cline-any cline-yes">500×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">500×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">107×</span>
+<span class="cline-any cline-yes">107×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">85×</span>
+<span class="cline-any cline-yes">85×</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">85×</span>
+<span class="cline-any cline-yes">85×</span>
+<span class="cline-any cline-yes">85×</span>
+<span class="cline-any cline-yes">85×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">85×</span>
+<span class="cline-any cline-yes">85×</span>
+<span class="cline-any cline-yes">20×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">65×</span>
+<span class="cline-any cline-yes">46×</span>
+<span class="cline-any cline-yes">44×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">19×</span>
+<span class="cline-any cline-yes">19×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">85×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">85×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">//FIXME Implement projection handling
+&nbsp;
+goog.provide('ol.format.MVT');
+&nbsp;
+goog.require('goog.asserts');
+goog.require('ol.Feature');
+goog.require('ol.ext.pbf');
+goog.require('ol.ext.vectortile');
+goog.require('ol.format.Feature');
+goog.require('ol.format.FormatType');
+goog.require('ol.geom.Geometry');
+goog.require('ol.geom.GeometryLayout');
+goog.require('ol.geom.GeometryType');
+goog.require('ol.geom.LineString');
+goog.require('ol.geom.MultiLineString');
+goog.require('ol.geom.MultiPoint');
+goog.require('ol.geom.Point');
+goog.require('ol.geom.Polygon');
+goog.require('ol.proj');
+goog.require('ol.proj.Projection');
+goog.require('ol.proj.Units');
+goog.require('ol.render.Feature');
+&nbsp;
+&nbsp;
+&nbsp;
+/**
+ * @classdesc
+ * Feature format for reading data in the Mapbox MVT format.
+ *
+ * @constructor
+ * @extends {ol.format.Feature}
+ * @param {olx.format.MVTOptions=} opt_options Options.
+ * @api
+ */
+ol.format.MVT = function(opt_options) {
+&nbsp;
+  goog.base(this);
+&nbsp;
+  var options = opt_options ? opt_options : {};
+&nbsp;
+  /**
+   * @type {ol.proj.Projection}
+   */
+  this.defaultDataProjection = new ol.proj.Projection({
+    code: 'EPSG:3857',
+    units: ol.proj.Units.TILE_PIXELS
+  });
+&nbsp;
+  /**
+   * @private
+   * @type {function((ol.geom.Geometry|Object.&lt;string, *&gt;)=)|
+   *     function(ol.geom.GeometryType,Array.&lt;number&gt;,
+   *         (Array.&lt;number&gt;|Array.&lt;Array.&lt;number&gt;&gt;),Object.&lt;string, *&gt;)}
+   */
+  this.featureClass_ = options.featureClass ?
+      options.featureClass : ol.render.Feature;
+&nbsp;
+  /**
+   * @private
+   * @type {string}
+   */
+  this.geometryName_ = options.geometryName ?
+<span class="branch-0 cbranch-no" title="branch not covered" >      options.geometryName </span>: 'geometry';
+&nbsp;
+  /**
+   * @private
+   * @type {string}
+   */
+  this.layerName_ = options.layerName ? <span class="branch-0 cbranch-no" title="branch not covered" >options.layerName </span>: 'layer';
+&nbsp;
+  /**
+   * @private
+   * @type {Array.&lt;string&gt;}
+   */
+  this.layers_ = options.layers ? options.layers : null;
+&nbsp;
+};
+goog.inherits(ol.format.MVT, ol.format.Feature);
+&nbsp;
+&nbsp;
+/**
+ * @inheritDoc
+ */
+ol.format.MVT.prototype.getType = <span class="fstat-no" title="function not covered" >function() {</span>
+<span class="cstat-no" title="statement not covered" >  return ol.format.FormatType.ARRAY_BUFFER;</span>
+};
+&nbsp;
+&nbsp;
+/**
+ * @private
+ * @param {Object} rawFeature Raw Mapbox feature.
+ * @param {string} layer Layer.
+ * @param {olx.format.ReadOptions=} opt_options Read options.
+ * @return {ol.Feature} Feature.
+ */
+ol.format.MVT.prototype.readFeature_ = function(
+    rawFeature, layer, opt_options) {
+  var feature = new this.featureClass_();
+  var values = rawFeature.properties;
+  values[this.layerName_] = layer;
+  var geometry = ol.format.Feature.transformWithOptions(
+      ol.format.MVT.readGeometry_(rawFeature), false,
+      this.adaptOptions(opt_options));
+  <span class="missing-if-branch" title="else path not taken" >E</span>if (geometry) {
+    goog.asserts.assertInstanceof(geometry, ol.geom.Geometry);
+    values[this.geometryName_] = geometry;
+  }
+  feature.setProperties(values);
+  feature.setGeometryName(this.geometryName_);
+  return feature;
+};
+&nbsp;
+&nbsp;
+/**
+ * @private
+ * @param {Object} rawFeature Raw Mapbox feature.
+ * @param {string} layer Layer.
+ * @return {ol.render.Feature} Feature.
+ */
+ol.format.MVT.prototype.readRenderFeature_ = function(rawFeature, layer) {
+  var coords = rawFeature.loadGeometry();
+  var ends = [];
+  var flatCoordinates = [];
+  ol.format.MVT.calculateFlatCoordinates_(coords, flatCoordinates, ends);
+&nbsp;
+  var type = rawFeature.type;
+  /** @type {ol.geom.GeometryType} */
+  var geometryType;
+  <span class="missing-if-branch" title="if path not taken" >I</span>if (type === 1) {
+<span class="cstat-no" title="statement not covered" >    geometryType = coords.length === 1 ?</span>
+        ol.geom.GeometryType.POINT : ol.geom.GeometryType.MULTI_POINT;
+  } else <span class="missing-if-branch" title="if path not taken" >I</span>if (type === 2) {
+<span class="cstat-no" title="statement not covered" >    if (coords.length === 1) {</span>
+<span class="cstat-no" title="statement not covered" >      geometryType = ol.geom.GeometryType.LINE_STRING;</span>
+    } else {
+<span class="cstat-no" title="statement not covered" >      geometryType = ol.geom.GeometryType.MULTI_LINE_STRING;</span>
+    }
+  } else <span class="missing-if-branch" title="else path not taken" >E</span>if (type === 3) {
+    geometryType = ol.geom.GeometryType.POLYGON;
+  }
+&nbsp;
+  var values = rawFeature.properties;
+  values[this.layerName_] = layer;
+&nbsp;
+  return new this.featureClass_(geometryType, flatCoordinates, ends, values);
+};
+&nbsp;
+&nbsp;
+/**
+ * @inheritDoc
+ */
+ol.format.MVT.prototype.readFeatures = function(source, opt_options) {
+  goog.asserts.assertInstanceof(source, ArrayBuffer);
+&nbsp;
+  var layers = this.layers_;
+&nbsp;
+  var pbf = new ol.ext.pbf(source);
+  var tile = new ol.ext.vectortile.VectorTile(pbf);
+  var features = [];
+  var featureClass = this.featureClass_;
+  var layer, feature;
+  for (var name in tile.layers) {
+    if (layers &amp;&amp; layers.indexOf(name) == -1) {
+      continue;
+    }
+    layer = tile.layers[name];
+&nbsp;
+    for (var i = 0, ii = layer.length; i &lt; ii; ++i) {
+      if (featureClass === ol.render.Feature) {
+        feature = this.readRenderFeature_(layer.feature(i), name);
+      } else {
+        feature = this.readFeature_(layer.feature(i), name, opt_options);
+      }
+      features.push(feature);
+    }
+  }
+&nbsp;
+  return features;
+};
+&nbsp;
+&nbsp;
+/**
+ * @inheritDoc
+ */
+ol.format.MVT.prototype.readProjection = <span class="fstat-no" title="function not covered" >function(source) {</span>
+<span class="cstat-no" title="statement not covered" >  return this.defaultDataProjection;</span>
+};
+&nbsp;
+&nbsp;
+/**
+ * Sets the layers that features will be read from.
+ * @param {Array.&lt;string&gt;} layers Layers.
+ * @api
+ */
+ol.format.MVT.prototype.setLayers = function(layers) {
+  this.layers_ = layers;
+};
+&nbsp;
+&nbsp;
+/**
+ * @private
+ * @param {Object} coords Raw feature coordinates.
+ * @param {Array.&lt;number&gt;} flatCoordinates Flat coordinates to be populated by
+ *     this function.
+ * @param {Array.&lt;number&gt;} ends Ends to be populated by this function.
+ */
+ol.format.MVT.calculateFlatCoordinates_ = function(
+    coords, flatCoordinates, ends) {
+  var end = 0;
+  var line, coord;
+  for (var i = 0, ii = coords.length; i &lt; ii; ++i) {
+    line = coords[i];
+    for (var j = 0, jj = line.length; j &lt; jj; ++j) {
+      coord = line[j];
+      // Non-tilespace coords can be calculated here when a TileGrid and
+      // TileCoord are known.
+      flatCoordinates.push(coord.x, coord.y);
+    }
+    end += 2 * j;
+    ends.push(end);
+  }
+};
+&nbsp;
+&nbsp;
+/**
+ * @private
+ * @param {Object} rawFeature Raw Mapbox feature.
+ * @return {ol.geom.Geometry} Geometry.
+ */
+ol.format.MVT.readGeometry_ = function(rawFeature) {
+  var type = rawFeature.type;
+  <span class="missing-if-branch" title="if path not taken" >I</span>if (type === 0) {
+<span class="cstat-no" title="statement not covered" >    return null;</span>
+  }
+&nbsp;
+  var coords = rawFeature.loadGeometry();
+  var ends = [];
+  var flatCoordinates = [];
+  ol.format.MVT.calculateFlatCoordinates_(coords, flatCoordinates, ends);
+&nbsp;
+  var geom;
+  if (type === 1) {
+    geom = coords.length === 1 ?
+        new ol.geom.Point(null) : <span class="branch-1 cbranch-no" title="branch not covered" >new ol.geom.MultiPoint(null);</span>
+  } else if (type === 2) {
+    if (coords.length === 1) {
+      geom = new ol.geom.LineString(null);
+    } else {
+      geom = new ol.geom.MultiLineString(null);
+    }
+  } else <span class="missing-if-branch" title="else path not taken" >E</span>if (type === 3) {
+    geom = new ol.geom.Polygon(null);
+  }
+&nbsp;
+  geom.setFlatCoordinates(ol.geom.GeometryLayout.XY, flatCoordinates,
+      ends);
+&nbsp;
+  return geom;
+};
+&nbsp;</pre></td></tr>
+</table></pre>
+<div class='push'></div><!-- for sticky footer -->
+</div><!-- /wrapper -->
+<div class='footer quiet pad2 space-top1 center small'>
+  Code coverage
+  generated by <a href="http://istanbul-js.org/" target="_blank">istanbul</a> at Fri Nov 06 2015 19:36:11 GMT+0100 (CET)
+</div>
+</div>
+<script src="../../prettify.js"></script>
+<script>
+window.onload = function () {
+        if (typeof prettyPrint === 'function') {
+            prettyPrint();
+        }
+};
+</script>
+<script src="../../sorter.js"></script>
+</body>
+</html>

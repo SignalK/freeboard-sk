@@ -153,7 +153,7 @@ $.ajax({
     url: "/signalk",
     dataType: "json",
     success: function (data) {
-         console.log(data);
+        console.log(data);
         var url = data.endpoints.v1['signalk-http'];
         console.log(url);
         $.ajax({
@@ -745,284 +745,282 @@ var $ = require('jquery');
 var ol = require('openlayers');
 require('bootstrap-select');
 // var setupDragAndDrop = require('./setupDragAndDrop.js');
-var nanoModal = require('nanomodal');
+var nanoModal= require('nanomodal');
 //var wsServer = require('./signalk.js');
 var util = require('./util.js');
 var xml2js = require('xml2js');
-var xmlParser = new xml2js.Parser({mergeAttrs: true, explicitArray: false});
+var xmlParser = new xml2js.Parser({mergeAttrs: true, explicitArray:false});
 
 //var ChartControl = menuControl.makeDrawerButton('C','feature-btn','#chartDrawer');
 
 
 
-function setup(map) {
-    //$(".feature-btn").tooltip({ placement: 'right', title: 'Charts'});	
-    //map.addControl(new ChartControl());
-    refresh();
-    var layers = JSON.parse(localStorage.getItem('sk-load-charts'));
-    if (!layers)
-	return;
-    layers = jQuery.grep(layers, function (value) {
-	addChartLayer(map, value.key, value.type, value.scale);
-    });
+function setup(map){
+	//$(".feature-btn").tooltip({ placement: 'right', title: 'Charts'});	
+	//map.addControl(new ChartControl());
+	refresh();
+	var layers = JSON.parse(localStorage.getItem('sk-load-charts'));
+	if(!layers)return;
+	layers = jQuery.grep(layers, function(value) {
+		addChartLayer(map, value.key, value.type, value.scale);
+		});
 }
 
-function refresh() {
-    var map = $('#map').data('map');
-    var filter = $('#chartDrawerFilter').val();
-    console.log("filtering with :" + filter);
-    $('#chartPopupList').empty();
-    //addFeatures(map, 'waypoints', filter);
-    addCharts(map, 'charts', filter);
-
-
-}
-
-function storeAddChart(key, type, scale) {
-    var layers = JSON.parse(localStorage.getItem('sk-load-charts'));
-    if (!layers)
-	layers = [];
-    var layer = {key: key, type: type, scale: scale};
-    layers.push(layer);
-    localStorage.setItem('sk-load-charts', JSON.stringify(layers));
-}
-function storeRemoveChart(key) {
-    var layers = JSON.parse(localStorage.getItem('sk-load-charts'));
-    if (!layers)
-	return;
-    layers = jQuery.grep(layers, function (value) {
-	return value.key != key;
-    });
-    localStorage.setItem('sk-load-charts', JSON.stringify(layers));
-}
-
-function deleteData(key, type) {
-    storeRemoveChart(key);
-    var putMsg = {context: 'resources',
-	put: [
-	    {
-
-		values: [
-		    {
-			path: type + '.' + key,
-			value: null
-		    }
-
-		]
-	    }
-	]
-
-    };
-
-    console.log(JSON.stringify(putMsg));
-    window.wsServer.send(JSON.stringify(putMsg));
-}
-
-function addCharts(map, chart, filter) {
-    $.ajax({
-	url: "/signalk/v1/api/resources/" + chart,
-	dataType: "json",
-	success: function (data) {
-	    if (data == null)
-		return;
-	    console.log("Data: " + data);
-	    //var jsonData = JSON.parse(data);
-	    //sort the keys in reverse
-	    var arr = [];
-
-	    for (var x in data) {
-		arr.push({'key': x, 'name': data[x].name});
-	    }
-	    console.log("Array: " + arr);
-	    arr.sort(function (a, b)
-	    {
-		if (a.name > b.name) {
-		    return -1;
-		}
-		if (a.name < b.name) {
-		    return 1;
-		}
-		return 0;
-	    });
-
-
-	    $.each(arr, function (r, arrKey) {
-		var obj = data[arrKey.key];
-		// console.log(chart +' '+JSON.stringify(obj));
-		if (filter && filter.trim().length > 0 && obj.name.indexOf(filter) < 0) {
-		    console.log("Failed filter:" + filter);
-		    return;
-		}
-		$('#chartPopupList').append('<li class="list-group-item" >'
-		    + '<h4 class="list-group-item-heading"  >' + obj.name + '</h4>'
-		    + '<div class="list-group-item-text">' + obj.description + '</div>'
-		    + '<div>'
-		    + '<a class="btn-primary btn-sm chartAdd" data-key="' + arrKey.key + '" data-name="' + obj.name + '" data-scale="' + obj.scale + '" data-type="' + chart + '" data-title="' + obj.name + '">Show</a>&nbsp;'
-		    //+'<a class="btn-primary btn-sm chartEdit" data-key="'+arrKey.key+'" data-name="'+obj.name+'" data-type="'+chart+'">Edit</a>&nbsp;'
-		    //+'<a class="btn-primary btn-sm chartSave" data-key="'+arrKey.key+'" data-name="'+obj.name+'" data-type="'+chart+'" >Save</a>&nbsp;'
-		    + '<a class="btn-primary btn-sm chartRemove" data-key="' + arrKey.key + '" data-name="' + obj.name + '" data-type="' + chart + '">Hide</a>&nbsp;'
-		    + '<a class="btn-primary btn-sm chartDelete" data-key="' + arrKey.key + '" data-name="' + obj.name + '" data-type="' + chart + '">Delete</a>'
-		    + '</div>'
-		    + '</li>');
-	    });
-
-	    $('.chartDelete').on('click', function () {
-		//alert(Are you sure?);
-		var lyrs = map.getLayerGroup().getLayers();
-		var key = $(this).attr('data-key');
-		var type = $(this).attr('data-type');
-		var l;
-		console.log("Find layer:" + key + ", type:" + type);
-		for (var x = 0; x < lyrs.getLength(); x++) {
-		    if (lyrs.item(x).get('key') === key) {
-			l = lyrs.item(x);
-		    }
-		}
-		if (l) {
-		    console.log("Found layer:" + l);
-		    //storeRemoveLayer(key);
-		    map.removeLayer(l)
-		    console.log("Removed layer:" + l);
-		}
-		// now delete from server
-		deleteData(key, type);
-		refresh();
-	    });
-
-	    $('.chartRemove').on('click', function () {
-		var lyrs = map.getLayerGroup().getLayers();
-		var key = $(this).attr('data-key');
-		var l;
-		for (var x = 0; x < lyrs.getLength(); x++) {
-		    if (lyrs.item(x).get('key') === key) {
-			l = lyrs.item(x);
-		    }
-		}
-
-		console.log(map.removeLayer(l));
-		storeRemoveChart(key);
-	    });
-
-	    /*$('.chartEdit').on('click', function(){
-	     var lyrs = map.getLayerGroup().getLayers();
-	     var key = $(this).attr('data-key');
-	     var l ;
-	     for (var x = 0; x < lyrs.getLength(); x++) {
-	     if (lyrs.item(x).get('key')=== key) {
-	     l = lyrs.item(x);
-	     addModifyInteraction(map, l, key);
-	     }
-	     }
-	     
-	     });*/
-
-	    /*$('.chartSave').on('click', function(){
-	     var lyrs = map.getLayerGroup().getLayers();
-	     var key = $(this).attr('data-key');
-	     var l ;
-	     for (var x = 0; x < lyrs.getLength(); x++) {
-	     if (lyrs.item(x).get('key')=== key) {
-	     l = lyrs.item(x);
-	     saveData(l);
-	     }
-	     }
-	     
-	     });*/
-	    $('.chartAdd').on('click', function () {
-		// check it not already there
-		var lyrs = map.getLayers().getArray().slice().reverse();
-		var title = $(this).attr('data-name');
-		var key = $(this).attr('data-key');
-		var type = $(this).attr('data-type');
-		var scale = $(this).attr('data-scale') | 10;
-
-		for (var x = 0; x < lyrs.length; x++) {
-		    if (lyrs[x].get('key') === key) {
-			return;
-		    }
-		}
-
-		addChartLayer(map, key, type, scale);
-		storeAddChart(key, type, scale);
-	    });
-
-
-	}
-    });
-}
-
-function addChartToMap(map, chartObj, scale) {
-    //need to set it at the correct level
-    var lyrs = map.getLayerGroup().getLayers();
-    var l;
-    for (var x = 0; x < lyrs.getLength(); x++) {
-	if (lyrs.item(x).get('scale') > scale) {
-	    continue;
-	}
-	lyrs.insertAt(x, chartObj);
-	return;
-    }
+function refresh(){
+	var map = $('#map').data('map');
+	var filter = $('#chartDrawerFilter').val();
+	console.log("filtering with :"+filter);
+	$('#chartPopupList').empty();
+	//addFeatures(map, 'waypoints', filter);
+	addCharts(map, 'charts', filter);
+	
 
 }
 
-function addChartLayer(map, key, type, scale) {
-    // add new layer
-    var url = "/signalk/v1/api/resources/" + type + "/" + key;
+function storeAddChart(key, type, scale){
+	var layers = JSON.parse(localStorage.getItem('sk-load-charts'));
+	if(!layers)layers = [];
+	var layer = {key: key, type: type, scale: scale};
+	layers.push(layer);
+	localStorage.setItem('sk-load-charts',JSON.stringify(layers));	
+}
+function storeRemoveChart(key){
+	var layers = JSON.parse(localStorage.getItem('sk-load-charts'));
+	if(!layers)return;
+	layers = jQuery.grep(layers, function(value) {
+		  return value.key != key;
+		});
+	localStorage.setItem('sk-load-charts',JSON.stringify(layers));	
+}
 
-    $.ajax({
-	url: url,
-	dataType: "json",
-	success: function (data) {
-	    console.log("data:" + JSON.stringify(data));
-	    //now get the tilemapresource.xml
-	    var chartId = data.identifier;
-	    var chartUrl = data.tilemapUrl;
-	    var chartMeta = chartUrl + '/tilemapresource.xml';
-	    console.log("chartUrl:" + chartUrl);
-	    $.ajax({
-		url: chartMeta,
-		dataType: "text",
-		success: function (data) {
-		    console.log("data:" + data);
-		    //now magic, convert the xml to json
-		    xmlParser.parseString(data, function (err, result) {
-			console.log(JSON.stringify(result));
-			var tileSets = result.TileMap.TileSets.TileSet;
-			var chartObj = new ol.layer.Tile({
-			    key: key,
-			    scale: scale,
-			    title: result.TileMap.Title,
-			    type: "overlay",
-			    maxResolution: parseFloat(tileSets[0]['units-per-pixel']) * 2,
-			    minResolution: parseFloat(tileSets[tileSets.length - 1]['units-per-pixel']) * .5,
-			    source: new ol.source.XYZ({
-				url: chartUrl + '/{z}/{x}/{-y}.png',
-				minZoom: parseInt(tileSets[0].href),
-				maxZoom: parseInt(tileSets[tileSets.length - 1].href)
-			    })
+function deleteData(key, type){
+	storeRemoveChart(key);
+	var putMsg = { context: 'resources',
+				  put: [
+					  {
+						 
+						  values: [
+							  {
+								  path: type+'.'+key,
+								  value: null
+							  }
+
+						  ]
+					  }
+				  ]
+
+				 };
+
+	console.log(JSON.stringify(putMsg));
+	window.wsServer.send(JSON.stringify(putMsg)); 
+}
+
+function addCharts(map, chart, filter){
+	$.ajax({
+		url : "/signalk/v1/api/resources/"+chart,
+		dataType: "json", 
+		success : function (data) {
+			if(data==null)return;
+			console.log("Data: "+data);
+			//var jsonData = JSON.parse(data);
+			//sort the keys in reverse
+			var arr = [];
+
+			for(var x in data){
+			  arr.push({'key': x,'name': data[x].name});
+			}
+			console.log("Array: "+arr);
+			arr.sort(function(a,b) 
+			{
+				if (a.name > b.name) {
+				    return -1;
+				  }
+				  if (a.name < b.name) {
+				    return 1;
+				  }
+				  return 0;
 			});
 
-			console.log("chartObj complete: maxResolution:" + parseFloat(tileSets[0]['units-per-pixel']));
-			console.log("chartObj complete: minResolution:" + parseFloat(tileSets[tileSets.length - 1]['units-per-pixel']));
-			console.log("chartObj complete: maxZoom:" + parseInt(tileSets[0].href));
-			console.log("chartObj complete: minZoom:" + parseInt(tileSets[tileSets.length - 1].href));
 
-			addChartToMap(map, chartObj, scale);
-			console.log("Added");
-		    });
-		}});
-	}});
+			$.each(arr, function(r, arrKey) {
+				var obj  = data[arrKey.key];
+				// console.log(chart +' '+JSON.stringify(obj));
+				if(filter && filter.trim().length>0 && obj.name.indexOf(filter)<0){
+					console.log("Failed filter:"+filter);
+					return;
+				}
+				$('#chartPopupList').append('<li class="list-group-item" >'
+					  +'<h4 class="list-group-item-heading"  >'+obj.name+'</h4>'
+					  +'<div class="list-group-item-text">'+obj.description+'</div>'
+					  +'<div>'
+					  +'<a class="btn-primary btn-sm chartAdd" data-key="'+arrKey.key+'" data-name="'+obj.name+'" data-scale="'+obj.scale+'" data-type="'+chart+'" data-title="'+obj.name+'">Show</a>&nbsp;'
+					  //+'<a class="btn-primary btn-sm chartEdit" data-key="'+arrKey.key+'" data-name="'+obj.name+'" data-type="'+chart+'">Edit</a>&nbsp;'
+					 //+'<a class="btn-primary btn-sm chartSave" data-key="'+arrKey.key+'" data-name="'+obj.name+'" data-type="'+chart+'" >Save</a>&nbsp;'
+					  +'<a class="btn-primary btn-sm chartRemove" data-key="'+arrKey.key+'" data-name="'+obj.name+'" data-type="'+chart+'">Hide</a>&nbsp;'
+					  +'<a class="btn-primary btn-sm chartDelete" data-key="'+arrKey.key+'" data-name="'+obj.name+'" data-type="'+chart+'">Delete</a>'
+					  +'</div>'
+					  +'</li>');
+			});
+		
+			$('.chartDelete').on('click', function(){
+				//alert(Are you sure?);
+				var lyrs = map.getLayerGroup().getLayers();
+				var key = $(this).attr('data-key');
+				var type = $(this).attr('data-type');
+				var l ;
+				console.log("Find layer:"+key+", type:"+type);
+				for (var x = 0; x < lyrs.getLength(); x++) {
+					if (lyrs.item(x).get('key')=== key) {
+						l = lyrs.item(x);
+					}
+				}
+				if(l){
+					console.log("Found layer:"+l);
+					//storeRemoveLayer(key);
+					map.removeLayer(l)
+					console.log("Removed layer:"+l);
+				}
+				// now delete from server
+				deleteData(key,type);
+				refresh();
+			});
+			
+			$('.chartRemove').on('click', function(){
+				var lyrs = map.getLayerGroup().getLayers();
+				var key = $(this).attr('data-key');
+				var l ;
+				for (var x = 0; x < lyrs.getLength(); x++) {
+					if (lyrs.item(x).get('key')=== key) {
+						l = lyrs.item(x);
+					}
+				}
+				
+				console.log(map.removeLayer(l));
+				storeRemoveChart(key);
+			});
+
+			/*$('.chartEdit').on('click', function(){
+				var lyrs = map.getLayerGroup().getLayers();
+				var key = $(this).attr('data-key');
+				var l ;
+				for (var x = 0; x < lyrs.getLength(); x++) {
+					if (lyrs.item(x).get('key')=== key) {
+						l = lyrs.item(x);
+						addModifyInteraction(map, l, key);
+					}
+				}
+
+			});*/
+
+			/*$('.chartSave').on('click', function(){
+				var lyrs = map.getLayerGroup().getLayers();
+				var key = $(this).attr('data-key');
+				var l ;
+				for (var x = 0; x < lyrs.getLength(); x++) {
+					if (lyrs.item(x).get('key')=== key) {
+						l = lyrs.item(x);
+						saveData(l);
+					}
+				}
+
+			});*/
+			$('.chartAdd').on('click', function(){
+					// check it not already there
+					var lyrs = map.getLayers().getArray().slice().reverse();
+					var title = $(this).attr('data-name');
+					var key = $(this).attr('data-key');
+					var type = $(this).attr('data-type');
+					var scale = $(this).attr('data-scale')|10;
+					
+					for (var x = 0; x < lyrs.length; x++) { 
+						if(lyrs[x].get('key')=== key) {  
+							return; 
+						} 
+					}
+					
+					addChartLayer(map, key, type, scale);
+					storeAddChart(key, type, scale); 
+				 });
+			
+
+			}
+	});
+		
+
+}
+
+function addChartToMap(map, chartObj, scale){
+	//need to set it at the correct level
+	var lyrs = map.getLayerGroup().getLayers();
+	var l ;
+	for (var x = 0; x < lyrs.getLength(); x++) {
+		if (lyrs.item(x).get('scale')> scale) {
+			continue;
+		}
+		lyrs.insertAt(x,chartObj);
+		return;
+	}
+	
+}
+
+function addChartLayer(map, key, type, scale){
+	// add new layer
+	var url = "/signalk/v1/api/resources/"+type+"/"+key;
+	
+	 $.ajax({
+        url: url,
+        dataType: "json",
+        success: function (data) {
+        	console.log("data:"+JSON.stringify(data));
+        	//now get the tilemapresource.xml
+        	var chartId = data.identifier;
+        	var chartUrl = data.tilemapUrl;
+        	var chartMeta = chartUrl+'/tilemapresource.xml';
+        	console.log("chartUrl:"+chartUrl);
+        	$.ajax({
+	            url: chartMeta,
+	            dataType: "text",
+	            success: function (data) {
+	            	console.log("data:"+data);
+	            	//now magic, convert the xml to json
+	            	xmlParser.parseString(data, function (err, result) {
+	            	    console.log(JSON.stringify(result));
+	            	    var tileSets = result.TileMap.TileSets.TileSet;
+		            	var chartObj = new ol.layer.Tile({
+		            		key: key,
+		            		scale: scale,
+		        			title: result.TileMap.Title,
+		        			type: "overlay",
+		        			maxResolution: parseFloat(tileSets[0]['units-per-pixel'])*2,
+		        			minResolution: parseFloat(tileSets[tileSets.length-1]['units-per-pixel'])*.5,
+		        			source: new ol.source.XYZ({
+		        				url: chartUrl+'/{z}/{x}/{-y}.png',
+		        				minZoom: parseInt(tileSets[0].href),
+		        				maxZoom: parseInt(tileSets[tileSets.length-1].href)
+		        			})
+		        		});
+
+						console.log("chartObj complete: maxResolution:"+ parseFloat(tileSets[0]['units-per-pixel']));
+						console.log("chartObj complete: minResolution:"+ parseFloat(tileSets[tileSets.length-1]['units-per-pixel']));
+						console.log("chartObj complete: maxZoom:"+ parseInt(tileSets[0].href));
+						console.log("chartObj complete: minZoom:"+ parseInt(tileSets[tileSets.length-1].href));
+						
+						addChartToMap(map, chartObj, scale);
+						console.log("Added");
+	            	});
+	            }});
+        }});
 }
 
 
-$('#chartDrawerSearch').on('click', function () {
-    refresh();
+$('#chartDrawerSearch').on('click', function(){
+	refresh();
 });
 
 
 module.exports = {
-    setup: setup,
-
+	setup:setup,
+	
 }
 },{"./util.js":14,"bootstrap-select":34,"jquery":137,"nanomodal":369,"openlayers":374,"xml2js":477}],6:[function(require,module,exports){
 var $ = require('jquery');
@@ -2513,6 +2511,7 @@ function length(line) {
 	
 };
 
+// convert meters/sec to knot
 function msToKnt(n) {
 	return n * 1.94384;
 };
@@ -2744,6 +2743,9 @@ var gauge = d3gauge(document.getElementById("windDirGauge"), {
 });
 
 var cogm = 0;
+var cogt = 0;
+var headingT;
+var headingM;
 var sog = 0;
 var sow = 0;
 var dbt = 0;
@@ -2752,6 +2754,7 @@ var trueWind = 0;
 var cog = 0;
 var coord, wgs84Coord, lat, lon, awd, aws, twd, tws;
 var uuid, mmsi, flag, port, name, vhf, state;
+var rmcCourse = true;
 
 function onmessage(delta) {
 
@@ -2769,7 +2772,7 @@ function onmessage(delta) {
         delta.updates.forEach(function(update) {
 
             update.values.forEach(function(value) {
-                console.log(value.path + '=' + JSON.stringify(value.value));
+                //console.log(value.path + '=' + JSON.stringify(value.value));
                 if (value.path === 'navigation.magneticVariation') {
                     //console.log('Magnetic Variation(radians):'+value.value);
                     magVar = value.value;
@@ -2788,18 +2791,30 @@ function onmessage(delta) {
                     lon = value.value.longitude;
                 }
 
-                console.log('Pos (lat):' + lat + ',(lon):' + lon);
-
+                //console.log('Pos (lat):' + lat + ',(lon):' + lon);
                 if (lat && lon) {
                     wgs84Coord = [lon, lat];
                     coord = ol.proj.transform(wgs84Coord, 'EPSG:4326', 'EPSG:3857');
                 }
 
+                if (value.path === 'navigation.headingTrue') {
+                    if (value.value !== 0) {
+                        headingT = value.value;
+                        console.log("headingT (radians):" + headingT);
+                    }
+                } else if (value.path === 'navigation.headingMagnetic') {
+                    if (value.value !== 0) {
+                        headingM = value.value;
+                        headingT = headingM + magVar;
+                        console.log("headingT (radians):" + headingT);
+                    }
+                }
                 if (value.path === 'navigation.courseOverGroundMagnetic') {
                     if (value.value !== 0) {
                         cog = 1;
-
-                        cogm = value.value + magVar;
+                        rmcCourse = false; //	we got at least one NMEA sentence with magnetic course data
+                        cogm = value.value;
+                        cogt = value.value + magVar;
 
                         setRotation(cogm, coord);
                         //try updating testSOG
@@ -2812,49 +2827,81 @@ function onmessage(delta) {
                         });
                     }
                 }
-                // if(value.path === 'navigation.courseOverGroundTrue'){
-                // 	if(value.value!=0){
-                // 		cog=2;
-                // 		console.log("Heading true:"+value.value);
-                // 		setRotation(value.value, trackLine.getLastCoordinate());
-                // 	}
-                // }
+                if (rmcCourse) {
+                    if (value.path === 'navigation.courseOverGroundTrue') {
+                        if (value.value != 0) {
+                            cog = 2;
+                            cogt = value.value;
+                            console.log("Course True: " + cogt.toFixed(1));
+                            setRotation(value.value, trackLine.getLastCoordinate());
+                            d3.select("#cogt").data([cogt]).text(function(d) {
+                                return util.toDeg(d).toFixed(0);
+                            });
+                            d3.select("#cogm").data([cogt - magVar]).text(function(d) {
+                                return util.toDeg(d).toFixed(0);
+                            });
+                        }
+                    }
+                }
                 if (value.path === 'navigation.speedOverGround') {
-                    console.log("SOG:" + value.value);
                     sog = value.value;
+                    console.log("SOG: " + sog.toFixed(1));
                     d3.select("#sog").data([util.msToKnt(sog)]).text(function(d) {
                         return d.toFixed(1);
                     });
 
                 }
                 if (value.path === 'navigation.speedThroughWater') {
-                    console.log("SOW:" + value.value);
                     sow = value.value;
+                    console.log("SOW: " + sow.toFixed(1));
                     d3.select("#sow").data([sow]).text(function(d) {
                         return d.toFixed(1);
                     });
 
                 }
+                if (value.path === 'environment.depth.belowTransducer') {
+                    dbt = value.value;
+                    console.log("DBT: " + dbt.toFixed(2));
+                    d3.select("#dbt").data([dbt]).text(function(d) {
+                        return d.toFixed(1);
+                    });
+
+                }
                 if (value.path === 'environment.wind.angleApparent') {
-                    //console.log("SOG:"+value.value);
                     awd = value.value;
+                    if (awd > Math.PI) {
+                        awd = 2 * Math.PI - awd;
+                    }
+                    console.log("windAngleApp: " + util.toDeg(awd).toFixed(1));
                     gauge.write(util.toDeg(awd).toFixed(0));
+                    d3.select("#awd").data([util.toDeg(awd)]).text(function(d) {
+                        return d.toFixed(1);
+                    });
+                }
+                if (value.path === 'environment.wind.directionTrue') {
+                    twd = value.value;
+                    if (twd > Math.PI) {
+                        twd = twd - 2 * Math.PI;
+                    }
+                    console.log("windDirectionTrue:" + util.toDeg(twd).toFixed(0));
+                    d3.select("#twd").data([util.toDeg(twd)]).text(function(d) {
+                        return d.toFixed(1);
+                    });
                 }
                 if (value.path === 'environment.wind.speedApparent') {
-                    //console.log("SOG:"+value.value);
                     aws = value.value;
-
+                    console.log("windSpeedApp:" + aws.toFixed(1));
                     d3.select("#aws").data([util.msToKnt(aws)]).text(function(d) {
                         return d.toFixed(1);
                     });
                 }
-                if (value.path === 'environment.wind.directionMagnetic') {
-                    //console.log("SOG:"+value.value);
-                    twd = value.value;
-                }
-                if (value.path === 'environment.wind.speedOverGround') {
-                    //console.log("SOG:"+value.value);
+                //                if (value.path === 'environment.wind.directionMagnetic') {
+                //                    //console.log("SOG:"+value.value);
+                //                    twd = value.value;
+                //                }
+                if (value.path === 'environment.wind.speedTrue') {
                     tws = value.value;
+                    console.log("windSpeedTrue:" + util.msToKnt(tws).toFixed(1));
                     d3.select("#tws").data([util.msToKnt(tws)]).text(function(d) {
                         return d.toFixed(1);
                     });
@@ -2898,22 +2945,41 @@ function onmessage(delta) {
             trackLine.appendCoordinate(coord);
 
             //do headingLine
-            var nextCoord = util.destVincenty(wgs84Coord[1], wgs84Coord[0], cogm, sog * 60);
+            var nextCoord = util.destVincenty(wgs84Coord[1], wgs84Coord[0], headingT, sog * 60);
             headingLine.setCoordinates([coord, ol.proj.transform(nextCoord, 'EPSG:4326', 'EPSG:3857')]);
 
             //do bearingLine
-            nextCoord = util.destVincenty(wgs84Coord[1], wgs84Coord[0], cogm, sog * 30000);
+            nextCoord = util.destVincenty(wgs84Coord[1], wgs84Coord[0], cogt, sog * 30000);
             bearingLine.setCoordinates([coord, ol.proj.transform(nextCoord, 'EPSG:4326', 'EPSG:3857')]);
 
             //do appWindLine if we have wind
             if (awd && aws) {
-                nextCoord = util.destVincenty(wgs84Coord[1], wgs84Coord[0], awd, aws * 60);
+                var correct_awd;
+                if (typeof cogt !== 'undefined') {
+                    correct_awd = awd + cogt;
+                }
+                if (typeof headingT !== 'undefined') {
+                    correct_awd = awd + headingT;
+                }
+                correct_awd = correct_awd % (2. * Math.PI);
+                //								console.log("awd: " + util.toDeg(awd));
+                //                console.log("cogt: ", util.toDeg(cogt));
+                //                console.log("correct_awd: ", util.toDeg(correct_awd));
+                nextCoord = util.destVincenty(wgs84Coord[1], wgs84Coord[0], correct_awd, aws * 60);
                 appWindLine.setCoordinates([coord, ol.proj.transform(nextCoord, 'EPSG:4326', 'EPSG:3857')]);
             }
 
             //do trueWindLine if we have wind
             if (twd && tws) {
-                nextCoord = util.destVincenty(wgs84Coord[1], wgs84Coord[0], twd, tws * 60);
+                var correct_twd;
+                if (typeof cogt !== 'undefined') {
+                    correct_twd = twd + cogt;
+                }
+                if (typeof headingT !== 'undefined') {
+                    correct_twd = twd + headingT;
+                }
+                correct_twd = correct_twd % (2. * Math.PI);
+                nextCoord = util.destVincenty(wgs84Coord[1], wgs84Coord[0], correct_twd, tws * 60);
                 trueWindLine.setCoordinates([coord, ol.proj.transform(nextCoord, 'EPSG:4326', 'EPSG:3857')]);
             }
 
@@ -3010,7 +3076,18 @@ function setup(map) {
     vesselOverlay = setVesselOverlay(map, vesselPos, vesselTrack, vesselHdg, vesselAppWind, vesselTrueWind);
     map.addLayer(vesselOverlay);
     window.wsServer.addSocketListener(this, "Vessel");
-    var sub = '{"context":"vessels.self","subscribe":[{"path":"environment.wind.speedOverGround","period":1000},{"path":"environment.wind.directionMagnetic","period":1000},{"path":"navigation.position.*","period":1000},{"path":"navigation.magneticVariation","period":1000},{"path":"environment.wind.angleApparent","period":1000},{"path":"navigation.courseOverGroundMagnetic","period":1000},{"path":"navigation.speedOverGround","period":1000},{"path":"navigation.speedThroughWater","period":1000},{"path":"navigation.courseOverGroundTrue","period":1000},{"path":"environment.depth.belowTransducer","period":1000}]}';
+    var sub = '{"context":"vessels.self","subscribe":[{"path":"environment.wind.speedTrue","period":1000},' 
+				+ '{"path":"environment.wind.directionTrue","period":1000},' 
+				+ '{"path":"navigation.position.*","period":1000},' 
+				+ '{"path":"navigation.magneticVariation","period":1000},' 
+				+ '{"path":"environment.wind.angleApparent","period":1000},' 
+				+ '{"path":"environment.wind.speedApparent","period":1000},' 
+				+ '{"path":"navigation.speedOverGround","period":1000},' 
+				+ '{"path":"navigation.speedThroughWater","period":1000},' 
+				+ '{"path":"navigation.courseOverGroundTrue","period":1000},' 
+				+ '{"path":"navigation.headingMagnetic","period":1000},' 
+				+ '{"path":"navigation.headingTrue","period":1000},' 
+				+ '{"path":"environment.depth.belowTransducer","period":1000}]}';
     window.wsServer.send(sub);
 
 

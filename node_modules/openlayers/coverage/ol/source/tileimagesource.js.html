@@ -1,0 +1,923 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <title>Code coverage report for ol/source/tileimagesource.js</title>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="../../prettify.css" />
+    <link rel="stylesheet" href="../../base.css" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style type='text/css'>
+        .coverage-summary .sorter {
+            background-image: url(../../sort-arrow-sprite.png);
+        }
+    </style>
+</head>
+<body>
+<div class='wrapper'>
+  <div class='pad1'>
+    <h1>
+      <a href="../../index.html">all files</a> / <a href="index.html">ol/source/</a> tileimagesource.js
+    </h1>
+    <div class='clearfix'>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">80.61% </span>
+        <span class="quiet">Statements</span>
+        <span class='fraction'>79/98</span>
+      </div>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">60.66% </span>
+        <span class="quiet">Branches</span>
+        <span class='fraction'>37/61</span>
+      </div>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">71.43% </span>
+        <span class="quiet">Functions</span>
+        <span class='fraction'>10/14</span>
+      </div>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">80.61% </span>
+        <span class="quiet">Lines</span>
+        <span class='fraction'>79/98</span>
+      </div>
+    </div>
+  </div>
+  <div class='status-line high'></div>
+<pre><table class="coverage">
+<tr><td class="line-count quiet">1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+28
+29
+30
+31
+32
+33
+34
+35
+36
+37
+38
+39
+40
+41
+42
+43
+44
+45
+46
+47
+48
+49
+50
+51
+52
+53
+54
+55
+56
+57
+58
+59
+60
+61
+62
+63
+64
+65
+66
+67
+68
+69
+70
+71
+72
+73
+74
+75
+76
+77
+78
+79
+80
+81
+82
+83
+84
+85
+86
+87
+88
+89
+90
+91
+92
+93
+94
+95
+96
+97
+98
+99
+100
+101
+102
+103
+104
+105
+106
+107
+108
+109
+110
+111
+112
+113
+114
+115
+116
+117
+118
+119
+120
+121
+122
+123
+124
+125
+126
+127
+128
+129
+130
+131
+132
+133
+134
+135
+136
+137
+138
+139
+140
+141
+142
+143
+144
+145
+146
+147
+148
+149
+150
+151
+152
+153
+154
+155
+156
+157
+158
+159
+160
+161
+162
+163
+164
+165
+166
+167
+168
+169
+170
+171
+172
+173
+174
+175
+176
+177
+178
+179
+180
+181
+182
+183
+184
+185
+186
+187
+188
+189
+190
+191
+192
+193
+194
+195
+196
+197
+198
+199
+200
+201
+202
+203
+204
+205
+206
+207
+208
+209
+210
+211
+212
+213
+214
+215
+216
+217
+218
+219
+220
+221
+222
+223
+224
+225
+226
+227
+228
+229
+230
+231
+232
+233
+234
+235
+236
+237
+238
+239
+240
+241
+242
+243
+244
+245
+246
+247
+248
+249
+250
+251
+252
+253
+254
+255
+256
+257
+258
+259
+260
+261
+262
+263
+264
+265
+266
+267
+268
+269
+270
+271
+272
+273
+274
+275
+276
+277
+278
+279
+280
+281
+282
+283
+284
+285
+286
+287</td><td class="line-coverage quiet"><span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">56×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">56×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">56×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">56×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">56×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">56×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">56×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">71×</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">71×</span>
+<span class="cline-any cline-yes">71×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">20×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">51×</span>
+<span class="cline-any cline-yes">51×</span>
+<span class="cline-any cline-yes">24×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">51×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">18×</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">18×</span>
+<span class="cline-any cline-yes">18×</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">18×</span>
+<span class="cline-any cline-yes">18×</span>
+<span class="cline-any cline-yes">3×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">18×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">30×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">20×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">10×</span>
+<span class="cline-any cline-yes">10×</span>
+<span class="cline-any cline-yes">10×</span>
+<span class="cline-any cline-yes">6×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">4×</span>
+<span class="cline-any cline-yes">4×</span>
+<span class="cline-any cline-yes">4×</span>
+<span class="cline-any cline-yes">4×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">6×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">4×</span>
+<span class="cline-any cline-yes">4×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">26×</span>
+<span class="cline-any cline-yes">26×</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">26×</span>
+<span class="cline-any cline-yes">26×</span>
+<span class="cline-any cline-yes">26×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">26×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">26×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">26×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">26×</span>
+<span class="cline-any cline-yes">26×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">6×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">goog.provide('ol.source.TileImage');
+&nbsp;
+goog.require('goog.asserts');
+goog.require('goog.events');
+goog.require('goog.events.EventType');
+goog.require('goog.object');
+goog.require('ol.ImageTile');
+goog.require('ol.TileCache');
+goog.require('ol.TileState');
+goog.require('ol.proj');
+goog.require('ol.reproj.Tile');
+goog.require('ol.source.UrlTile');
+&nbsp;
+&nbsp;
+&nbsp;
+/**
+ * @classdesc
+ * Base class for sources providing images divided into a tile grid.
+ *
+ * @constructor
+ * @fires ol.source.TileEvent
+ * @extends {ol.source.UrlTile}
+ * @param {olx.source.TileImageOptions} options Image tile options.
+ * @api
+ */
+ol.source.TileImage = function(options) {
+&nbsp;
+  goog.base(this, {
+    attributions: options.attributions,
+    extent: options.extent,
+    logo: options.logo,
+    opaque: options.opaque,
+    projection: options.projection,
+    state: options.state !== undefined ?
+        /** @type {ol.source.State} */ (options.state) : undefined,
+    tileGrid: options.tileGrid,
+    tileLoadFunction: options.tileLoadFunction ?
+<span class="branch-0 cbranch-no" title="branch not covered" >        options.tileLoadFunction </span>: ol.source.TileImage.defaultTileLoadFunction,
+    tilePixelRatio: options.tilePixelRatio,
+    tileUrlFunction: options.tileUrlFunction,
+    url: options.url,
+    urls: options.urls,
+    wrapX: options.wrapX
+  });
+&nbsp;
+  /**
+   * @protected
+   * @type {?string}
+   */
+  this.crossOrigin =
+      options.crossOrigin !== undefined ? options.crossOrigin : null;
+&nbsp;
+  /**
+   * @protected
+   * @type {function(new: ol.ImageTile, ol.TileCoord, ol.TileState, string,
+   *        ?string, ol.TileLoadFunctionType)}
+   */
+  this.tileClass = options.tileClass !== undefined ?
+<span class="branch-0 cbranch-no" title="branch not covered" >      options.tileClass </span>: ol.ImageTile;
+&nbsp;
+  /**
+   * @protected
+   * @type {Object.&lt;string, ol.TileCache&gt;}
+   */
+  this.tileCacheForProjection = {};
+&nbsp;
+  /**
+   * @protected
+   * @type {Object.&lt;string, ol.tilegrid.TileGrid&gt;}
+   */
+  this.tileGridForProjection = {};
+&nbsp;
+  /**
+   * @private
+   * @type {number|undefined}
+   */
+  this.reprojectionErrorThreshold_ = options.reprojectionErrorThreshold;
+&nbsp;
+  /**
+   * @private
+   * @type {boolean}
+   */
+  this.renderReprojectionEdges_ = false;
+};
+goog.inherits(ol.source.TileImage, ol.source.UrlTile);
+&nbsp;
+&nbsp;
+/**
+ * @inheritDoc
+ */
+ol.source.TileImage.prototype.canExpireCache = function() {
+  <span class="missing-if-branch" title="if path not taken" >I</span>if (!ol.ENABLE_RASTER_REPROJECTION) {
+<span class="cstat-no" title="statement not covered" >    return goog.base(this, 'canExpireCache');</span>
+  }
+  var canExpire = this.tileCache.canExpireCache();
+  <span class="missing-if-branch" title="if path not taken" >I</span>if (canExpire) {
+<span class="cstat-no" title="statement not covered" >    return true;</span>
+  } else {
+    return goog.object.some(this.tileCacheForProjection, function(tileCache) {
+      return tileCache.canExpireCache();
+    });
+  }
+};
+&nbsp;
+&nbsp;
+/**
+ * @inheritDoc
+ */
+ol.source.TileImage.prototype.expireCache = <span class="fstat-no" title="function not covered" >function(projection, usedTiles) {</span>
+<span class="cstat-no" title="statement not covered" >  if (!ol.ENABLE_RASTER_REPROJECTION) {</span>
+<span class="cstat-no" title="statement not covered" >    goog.base(this, 'expireCache', projection, usedTiles);</span>
+<span class="cstat-no" title="statement not covered" >    return;</span>
+  }
+<span class="cstat-no" title="statement not covered" >  var usedTileCache = this.getTileCacheForProjection(projection);</span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" >  this.tileCache.expireCache(this.tileCache == usedTileCache ? usedTiles : {});</span>
+<span class="cstat-no" title="statement not covered" >  goog.object.forEach(this.tileCacheForProjection, <span class="fstat-no" title="function not covered" >function(tileCache) {</span></span>
+<span class="cstat-no" title="statement not covered" >    tileCache.expireCache(tileCache == usedTileCache ? usedTiles : {});</span>
+  });
+};
+&nbsp;
+&nbsp;
+/**
+ * @inheritDoc
+ */
+ol.source.TileImage.prototype.getTileGridForProjection = function(projection) {
+  <span class="missing-if-branch" title="if path not taken" >I</span>if (!ol.ENABLE_RASTER_REPROJECTION) {
+<span class="cstat-no" title="statement not covered" >    return goog.base(this, 'getTileGridForProjection', projection);</span>
+  }
+  var thisProj = this.getProjection();
+  if (this.tileGrid &amp;&amp;
+      (!thisProj || ol.proj.equivalent(thisProj, projection))) {
+    return this.tileGrid;
+  } else {
+    var projKey = goog.getUid(projection).toString();
+    if (!(projKey in this.tileGridForProjection)) {
+      this.tileGridForProjection[projKey] =
+          ol.tilegrid.getForProjection(projection);
+    }
+    return this.tileGridForProjection[projKey];
+  }
+};
+&nbsp;
+&nbsp;
+/**
+ * @inheritDoc
+ */
+ol.source.TileImage.prototype.getTileCacheForProjection = function(projection) {
+  <span class="missing-if-branch" title="if path not taken" >I</span>if (!ol.ENABLE_RASTER_REPROJECTION) {
+<span class="cstat-no" title="statement not covered" >    return goog.base(this, 'getTileCacheForProjection', projection);</span>
+  }
+  var thisProj = this.getProjection();
+  <span class="missing-if-branch" title="if path not taken" >I</span>if (!thisProj || ol.proj.equivalent(thisProj, projection)) {
+<span class="cstat-no" title="statement not covered" >    return this.tileCache;</span>
+  } else {
+    var projKey = goog.getUid(projection).toString();
+    if (!(projKey in this.tileCacheForProjection)) {
+      this.tileCacheForProjection[projKey] = new ol.TileCache();
+    }
+    return this.tileCacheForProjection[projKey];
+  }
+};
+&nbsp;
+&nbsp;
+/**
+ * @inheritDoc
+ */
+ol.source.TileImage.prototype.getTile =
+    function(z, x, y, pixelRatio, projection) {
+  if (!ol.ENABLE_RASTER_REPROJECTION ||
+      !this.getProjection() ||
+      !projection ||
+      ol.proj.equivalent(this.getProjection(), projection)) {
+    return this.getTileInternal(z, x, y, pixelRatio, projection);
+  } else {
+    var cache = this.getTileCacheForProjection(projection);
+    var tileCoordKey = this.getKeyZXY(z, x, y);
+    if (cache.containsKey(tileCoordKey)) {
+      return /** @type {!ol.Tile} */(cache.get(tileCoordKey));
+    } else {
+      var sourceProjection = this.getProjection();
+      var sourceTileGrid = this.getTileGridForProjection(sourceProjection);
+      var targetTileGrid = this.getTileGridForProjection(projection);
+      var tile = new ol.reproj.Tile(
+          sourceProjection, sourceTileGrid,
+          projection, targetTileGrid,
+          z, x, y, this.getTilePixelRatio(),
+          goog.bind(function(z, x, y, pixelRatio) {
+            return this.getTileInternal(z, x, y, pixelRatio, sourceProjection);
+          }, this), this.reprojectionErrorThreshold_,
+          this.renderReprojectionEdges_);
+&nbsp;
+      cache.set(tileCoordKey, tile);
+      return tile;
+    }
+  }
+};
+&nbsp;
+&nbsp;
+/**
+ * @param {number} z Tile coordinate z.
+ * @param {number} x Tile coordinate x.
+ * @param {number} y Tile coordinate y.
+ * @param {number} pixelRatio Pixel ratio.
+ * @param {ol.proj.Projection} projection Projection.
+ * @return {!ol.Tile} Tile.
+ * @protected
+ */
+ol.source.TileImage.prototype.getTileInternal =
+    function(z, x, y, pixelRatio, projection) {
+  var tileCoordKey = this.getKeyZXY(z, x, y);
+  <span class="missing-if-branch" title="if path not taken" >I</span>if (this.tileCache.containsKey(tileCoordKey)) {
+<span class="cstat-no" title="statement not covered" >    return /** @type {!ol.Tile} */ (this.tileCache.get(tileCoordKey));</span>
+  } else {
+    goog.asserts.assert(projection, 'argument projection is truthy');
+    var tileCoord = [z, x, y];
+    var urlTileCoord = this.getTileCoordForTileUrlFunction(
+        tileCoord, projection);
+    var tileUrl = !urlTileCoord ? <span class="branch-0 cbranch-no" title="branch not covered" >undefined </span>:
+        this.tileUrlFunction(urlTileCoord, pixelRatio, projection);
+    var tile = new this.tileClass(
+        tileCoord,
+        tileUrl !== undefined ? ol.TileState.IDLE : <span class="branch-1 cbranch-no" title="branch not covered" >ol.TileState.EMPTY,</span>
+        tileUrl !== undefined ? tileUrl : <span class="branch-1 cbranch-no" title="branch not covered" >'',</span>
+        this.crossOrigin,
+        this.tileLoadFunction);
+    goog.events.listen(tile, goog.events.EventType.CHANGE,
+        this.handleTileChange, false, this);
+&nbsp;
+    this.tileCache.set(tileCoordKey, tile);
+    return tile;
+  }
+};
+&nbsp;
+&nbsp;
+/**
+ * Sets whether to render reprojection edges or not (usually for debugging).
+ * @param {boolean} render Render the edges.
+ * @api
+ */
+ol.source.TileImage.prototype.setRenderReprojectionEdges = <span class="fstat-no" title="function not covered" >function(render) {</span>
+<span class="cstat-no" title="statement not covered" >  if (!ol.ENABLE_RASTER_REPROJECTION ||</span>
+      this.renderReprojectionEdges_ == render) {
+<span class="cstat-no" title="statement not covered" >    return;</span>
+  }
+<span class="cstat-no" title="statement not covered" >  this.renderReprojectionEdges_ = render;</span>
+<span class="cstat-no" title="statement not covered" >  goog.object.forEach(this.tileCacheForProjection, <span class="fstat-no" title="function not covered" >function(tileCache) {</span></span>
+<span class="cstat-no" title="statement not covered" >    tileCache.clear();</span>
+  });
+<span class="cstat-no" title="statement not covered" >  this.changed();</span>
+};
+&nbsp;
+&nbsp;
+/**
+ * Sets the tile grid to use when reprojecting the tiles to the given
+ * projection instead of the default tile grid for the projection.
+ *
+ * This can be useful when the default tile grid cannot be created
+ * (e.g. projection has no extent defined) or
+ * for optimization reasons (custom tile size, resolutions, ...).
+ *
+ * @param {ol.proj.ProjectionLike} projection Projection.
+ * @param {ol.tilegrid.TileGrid} tilegrid Tile grid to use for the projection.
+ * @api
+ */
+ol.source.TileImage.prototype.setTileGridForProjection =
+    function(projection, tilegrid) {
+  <span class="missing-if-branch" title="else path not taken" >E</span>if (ol.ENABLE_RASTER_REPROJECTION) {
+    var proj = ol.proj.get(projection);
+    <span class="missing-if-branch" title="else path not taken" >E</span>if (proj) {
+      var projKey = goog.getUid(proj).toString();
+      <span class="missing-if-branch" title="else path not taken" >E</span>if (!(projKey in this.tileGridForProjection)) {
+        this.tileGridForProjection[projKey] = tilegrid;
+      }
+    }
+  }
+};
+&nbsp;
+&nbsp;
+/**
+ * @param {ol.ImageTile} imageTile Image tile.
+ * @param {string} src Source.
+ */
+ol.source.TileImage.defaultTileLoadFunction = function(imageTile, src) {
+  imageTile.getImage().src = src;
+};
+&nbsp;</pre></td></tr>
+</table></pre>
+<div class='push'></div><!-- for sticky footer -->
+</div><!-- /wrapper -->
+<div class='footer quiet pad2 space-top1 center small'>
+  Code coverage
+  generated by <a href="http://istanbul-js.org/" target="_blank">istanbul</a> at Fri Nov 06 2015 19:36:11 GMT+0100 (CET)
+</div>
+</div>
+<script src="../../prettify.js"></script>
+<script>
+window.onload = function () {
+        if (typeof prettyPrint === 'function') {
+            prettyPrint();
+        }
+};
+</script>
+<script src="../../sorter.js"></script>
+</body>
+</html>

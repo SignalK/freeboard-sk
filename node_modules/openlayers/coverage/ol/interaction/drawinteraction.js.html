@@ -1,0 +1,2663 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <title>Code coverage report for ol/interaction/drawinteraction.js</title>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="../../prettify.css" />
+    <link rel="stylesheet" href="../../base.css" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style type='text/css'>
+        .coverage-summary .sorter {
+            background-image: url(../../sort-arrow-sprite.png);
+        }
+    </style>
+</head>
+<body>
+<div class='wrapper'>
+  <div class='pad1'>
+    <h1>
+      <a href="../../index.html">all files</a> / <a href="index.html">ol/interaction/</a> drawinteraction.js
+    </h1>
+    <div class='clearfix'>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">93.2% </span>
+        <span class="quiet">Statements</span>
+        <span class='fraction'>329/353</span>
+      </div>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">81.66% </span>
+        <span class="quiet">Branches</span>
+        <span class='fraction'>138/169</span>
+      </div>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">92% </span>
+        <span class="quiet">Functions</span>
+        <span class='fraction'>23/25</span>
+      </div>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">93.2% </span>
+        <span class="quiet">Lines</span>
+        <span class='fraction'>329/353</span>
+      </div>
+    </div>
+  </div>
+  <div class='status-line high'></div>
+<pre><table class="coverage">
+<tr><td class="line-count quiet">1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+28
+29
+30
+31
+32
+33
+34
+35
+36
+37
+38
+39
+40
+41
+42
+43
+44
+45
+46
+47
+48
+49
+50
+51
+52
+53
+54
+55
+56
+57
+58
+59
+60
+61
+62
+63
+64
+65
+66
+67
+68
+69
+70
+71
+72
+73
+74
+75
+76
+77
+78
+79
+80
+81
+82
+83
+84
+85
+86
+87
+88
+89
+90
+91
+92
+93
+94
+95
+96
+97
+98
+99
+100
+101
+102
+103
+104
+105
+106
+107
+108
+109
+110
+111
+112
+113
+114
+115
+116
+117
+118
+119
+120
+121
+122
+123
+124
+125
+126
+127
+128
+129
+130
+131
+132
+133
+134
+135
+136
+137
+138
+139
+140
+141
+142
+143
+144
+145
+146
+147
+148
+149
+150
+151
+152
+153
+154
+155
+156
+157
+158
+159
+160
+161
+162
+163
+164
+165
+166
+167
+168
+169
+170
+171
+172
+173
+174
+175
+176
+177
+178
+179
+180
+181
+182
+183
+184
+185
+186
+187
+188
+189
+190
+191
+192
+193
+194
+195
+196
+197
+198
+199
+200
+201
+202
+203
+204
+205
+206
+207
+208
+209
+210
+211
+212
+213
+214
+215
+216
+217
+218
+219
+220
+221
+222
+223
+224
+225
+226
+227
+228
+229
+230
+231
+232
+233
+234
+235
+236
+237
+238
+239
+240
+241
+242
+243
+244
+245
+246
+247
+248
+249
+250
+251
+252
+253
+254
+255
+256
+257
+258
+259
+260
+261
+262
+263
+264
+265
+266
+267
+268
+269
+270
+271
+272
+273
+274
+275
+276
+277
+278
+279
+280
+281
+282
+283
+284
+285
+286
+287
+288
+289
+290
+291
+292
+293
+294
+295
+296
+297
+298
+299
+300
+301
+302
+303
+304
+305
+306
+307
+308
+309
+310
+311
+312
+313
+314
+315
+316
+317
+318
+319
+320
+321
+322
+323
+324
+325
+326
+327
+328
+329
+330
+331
+332
+333
+334
+335
+336
+337
+338
+339
+340
+341
+342
+343
+344
+345
+346
+347
+348
+349
+350
+351
+352
+353
+354
+355
+356
+357
+358
+359
+360
+361
+362
+363
+364
+365
+366
+367
+368
+369
+370
+371
+372
+373
+374
+375
+376
+377
+378
+379
+380
+381
+382
+383
+384
+385
+386
+387
+388
+389
+390
+391
+392
+393
+394
+395
+396
+397
+398
+399
+400
+401
+402
+403
+404
+405
+406
+407
+408
+409
+410
+411
+412
+413
+414
+415
+416
+417
+418
+419
+420
+421
+422
+423
+424
+425
+426
+427
+428
+429
+430
+431
+432
+433
+434
+435
+436
+437
+438
+439
+440
+441
+442
+443
+444
+445
+446
+447
+448
+449
+450
+451
+452
+453
+454
+455
+456
+457
+458
+459
+460
+461
+462
+463
+464
+465
+466
+467
+468
+469
+470
+471
+472
+473
+474
+475
+476
+477
+478
+479
+480
+481
+482
+483
+484
+485
+486
+487
+488
+489
+490
+491
+492
+493
+494
+495
+496
+497
+498
+499
+500
+501
+502
+503
+504
+505
+506
+507
+508
+509
+510
+511
+512
+513
+514
+515
+516
+517
+518
+519
+520
+521
+522
+523
+524
+525
+526
+527
+528
+529
+530
+531
+532
+533
+534
+535
+536
+537
+538
+539
+540
+541
+542
+543
+544
+545
+546
+547
+548
+549
+550
+551
+552
+553
+554
+555
+556
+557
+558
+559
+560
+561
+562
+563
+564
+565
+566
+567
+568
+569
+570
+571
+572
+573
+574
+575
+576
+577
+578
+579
+580
+581
+582
+583
+584
+585
+586
+587
+588
+589
+590
+591
+592
+593
+594
+595
+596
+597
+598
+599
+600
+601
+602
+603
+604
+605
+606
+607
+608
+609
+610
+611
+612
+613
+614
+615
+616
+617
+618
+619
+620
+621
+622
+623
+624
+625
+626
+627
+628
+629
+630
+631
+632
+633
+634
+635
+636
+637
+638
+639
+640
+641
+642
+643
+644
+645
+646
+647
+648
+649
+650
+651
+652
+653
+654
+655
+656
+657
+658
+659
+660
+661
+662
+663
+664
+665
+666
+667
+668
+669
+670
+671
+672
+673
+674
+675
+676
+677
+678
+679
+680
+681
+682
+683
+684
+685
+686
+687
+688
+689
+690
+691
+692
+693
+694
+695
+696
+697
+698
+699
+700
+701
+702
+703
+704
+705
+706
+707
+708
+709
+710
+711
+712
+713
+714
+715
+716
+717
+718
+719
+720
+721
+722
+723
+724
+725
+726
+727
+728
+729
+730
+731
+732
+733
+734
+735
+736
+737
+738
+739
+740
+741
+742
+743
+744
+745
+746
+747
+748
+749
+750
+751
+752
+753
+754
+755
+756
+757
+758
+759
+760
+761
+762
+763
+764
+765
+766
+767
+768
+769
+770
+771
+772
+773
+774
+775
+776
+777
+778
+779
+780
+781
+782
+783
+784
+785
+786
+787
+788
+789
+790
+791
+792
+793
+794
+795
+796
+797
+798
+799
+800
+801
+802
+803
+804
+805
+806
+807
+808
+809
+810
+811
+812
+813
+814
+815
+816
+817
+818
+819
+820
+821
+822
+823
+824
+825
+826
+827
+828
+829
+830
+831
+832
+833
+834
+835
+836
+837
+838
+839
+840
+841
+842
+843
+844
+845
+846
+847
+848
+849
+850
+851
+852
+853
+854
+855
+856
+857
+858
+859
+860
+861
+862
+863
+864
+865
+866
+867</td><td class="line-coverage quiet"><span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">49×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">49×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">34×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">34×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">34×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">34×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">34×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">34×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">34×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">34×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">34×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">34×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">34×</span>
+<span class="cline-any cline-yes">34×</span>
+<span class="cline-any cline-yes">33×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-yes">6×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">6×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">6×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">6×</span>
+<span class="cline-any cline-yes">6×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">31×</span>
+<span class="cline-any cline-yes">31×</span>
+<span class="cline-any cline-yes">31×</span>
+<span class="cline-any cline-yes">9×</span>
+<span class="cline-any cline-yes">22×</span>
+<span class="cline-any cline-yes">16×</span>
+<span class="cline-any cline-yes">6×</span>
+<span class="cline-any cline-yes">6×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">31×</span>
+<span class="cline-any cline-yes">102×</span>
+<span class="cline-any cline-yes">102×</span>
+<span class="cline-any cline-yes">78×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">24×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">102×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">34×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">34×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">34×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">34×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">34×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">34×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">34×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">34×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">34×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">34×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">34×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">34×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">34×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">34×</span>
+<span class="cline-any cline-yes">34×</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">42×</span>
+<span class="cline-any cline-yes">42×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">183×</span>
+<span class="cline-any cline-yes">183×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">4×</span>
+<span class="cline-any cline-yes">4×</span>
+<span class="cline-any cline-yes">179×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">61×</span>
+<span class="cline-any cline-yes">118×</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">183×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">59×</span>
+<span class="cline-any cline-yes">56×</span>
+<span class="cline-any cline-yes">56×</span>
+<span class="cline-any cline-yes">3×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">58×</span>
+<span class="cline-any cline-yes">58×</span>
+<span class="cline-any cline-yes">58×</span>
+<span class="cline-any cline-yes">58×</span>
+<span class="cline-any cline-yes">58×</span>
+<span class="cline-any cline-yes">58×</span>
+<span class="cline-any cline-yes">58×</span>
+<span class="cline-any cline-yes">58×</span>
+<span class="cline-any cline-yes">53×</span>
+<span class="cline-any cline-yes">53×</span>
+<span class="cline-any cline-yes">25×</span>
+<span class="cline-any cline-yes">25×</span>
+<span class="cline-any cline-yes">6×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">28×</span>
+<span class="cline-any cline-yes">3×</span>
+<span class="cline-any cline-yes">25×</span>
+<span class="cline-any cline-yes">11×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">14×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">53×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">58×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">114×</span>
+<span class="cline-any cline-yes">55×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">59×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">114×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">56×</span>
+<span class="cline-any cline-yes">56×</span>
+<span class="cline-any cline-yes">56×</span>
+<span class="cline-any cline-yes">56×</span>
+<span class="cline-any cline-yes">56×</span>
+<span class="cline-any cline-yes">9×</span>
+<span class="cline-any cline-yes">47×</span>
+<span class="cline-any cline-yes">47×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">47×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">56×</span>
+<span class="cline-any cline-yes">20×</span>
+<span class="cline-any cline-yes">20×</span>
+<span class="cline-any cline-yes">26×</span>
+<span class="cline-any cline-yes">26×</span>
+<span class="cline-any cline-yes">26×</span>
+<span class="cline-any cline-yes">26×</span>
+<span class="cline-any cline-yes">26×</span>
+<span class="cline-any cline-yes">26×</span>
+<span class="cline-any cline-yes">26×</span>
+<span class="cline-any cline-yes">26×</span>
+<span class="cline-any cline-yes">26×</span>
+<span class="cline-any cline-yes">20×</span>
+<span class="cline-any cline-yes">20×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">56×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">59×</span>
+<span class="cline-any cline-yes">59×</span>
+<span class="cline-any cline-yes">32×</span>
+<span class="cline-any cline-yes">32×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">27×</span>
+<span class="cline-any cline-yes">27×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">27×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">27×</span>
+<span class="cline-any cline-yes">27×</span>
+<span class="cline-any cline-yes">27×</span>
+<span class="cline-any cline-yes">6×</span>
+<span class="cline-any cline-yes">21×</span>
+<span class="cline-any cline-yes">6×</span>
+<span class="cline-any cline-yes">6×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">15×</span>
+<span class="cline-any cline-yes">15×</span>
+<span class="cline-any cline-yes">3×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">27×</span>
+<span class="cline-any cline-yes">9×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">27×</span>
+<span class="cline-any cline-yes">27×</span>
+<span class="cline-any cline-yes">27×</span>
+<span class="cline-any cline-yes">27×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">27×</span>
+<span class="cline-any cline-yes">27×</span>
+<span class="cline-any cline-yes">27×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">55×</span>
+<span class="cline-any cline-yes">55×</span>
+<span class="cline-any cline-yes">55×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">55×</span>
+<span class="cline-any cline-yes">55×</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">55×</span>
+<span class="cline-any cline-yes">31×</span>
+<span class="cline-any cline-yes">31×</span>
+<span class="cline-any cline-yes">31×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">9×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">24×</span>
+<span class="cline-any cline-yes">24×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">55×</span>
+<span class="cline-any cline-yes">55×</span>
+<span class="cline-any cline-yes">55×</span>
+<span class="cline-any cline-yes">55×</span>
+<span class="cline-any cline-yes">55×</span>
+<span class="cline-any cline-yes">55×</span>
+<span class="cline-any cline-yes">55×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">55×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">55×</span>
+<span class="cline-any cline-yes">55×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">53×</span>
+<span class="cline-any cline-yes">35×</span>
+<span class="cline-any cline-yes">35×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">35×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">55×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">18×</span>
+<span class="cline-any cline-yes">18×</span>
+<span class="cline-any cline-yes">18×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">18×</span>
+<span class="cline-any cline-yes">18×</span>
+<span class="cline-any cline-yes">18×</span>
+<span class="cline-any cline-yes">6×</span>
+<span class="cline-any cline-yes">6×</span>
+<span class="cline-any cline-yes">6×</span>
+<span class="cline-any cline-yes">6×</span>
+<span class="cline-any cline-yes">6×</span>
+<span class="cline-any cline-yes">12×</span>
+<span class="cline-any cline-yes">12×</span>
+<span class="cline-any cline-yes">12×</span>
+<span class="cline-any cline-yes">12×</span>
+<span class="cline-any cline-yes">12×</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">12×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">18×</span>
+<span class="cline-any cline-yes">18×</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">20×</span>
+<span class="cline-any cline-yes">20×</span>
+<span class="cline-any cline-yes">20×</span>
+<span class="cline-any cline-yes">20×</span>
+<span class="cline-any cline-yes">20×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">20×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">5×</span>
+<span class="cline-any cline-yes">5×</span>
+<span class="cline-any cline-yes">15×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">6×</span>
+<span class="cline-any cline-yes">6×</span>
+<span class="cline-any cline-yes">6×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">20×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">19×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">18×</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">20×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">20×</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">20×</span>
+<span class="cline-any cline-yes">20×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">36×</span>
+<span class="cline-any cline-yes">36×</span>
+<span class="cline-any cline-yes">36×</span>
+<span class="cline-any cline-yes">27×</span>
+<span class="cline-any cline-yes">27×</span>
+<span class="cline-any cline-yes">27×</span>
+<span class="cline-any cline-yes">27×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">36×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">134×</span>
+<span class="cline-any cline-yes">134×</span>
+<span class="cline-any cline-yes">102×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">134×</span>
+<span class="cline-any cline-yes">58×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">134×</span>
+<span class="cline-any cline-yes">132×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">134×</span>
+<span class="cline-any cline-yes">134×</span>
+<span class="cline-any cline-yes">134×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">50×</span>
+<span class="cline-any cline-yes">50×</span>
+<span class="cline-any cline-yes">50×</span>
+<span class="cline-any cline-yes">16×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">50×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">3×</span>
+<span class="cline-any cline-yes">3×</span>
+<span class="cline-any cline-yes">3×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">3×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">3×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">3×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">3×</span>
+<span class="cline-any cline-yes">3×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">34×</span>
+<span class="cline-any cline-yes">34×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">9×</span>
+<span class="cline-any cline-yes">25×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">16×</span>
+<span class="cline-any cline-yes">9×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">6×</span>
+<span class="cline-any cline-yes">3×</span>
+<span class="cline-any cline-yes">3×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">34×</span>
+<span class="cline-any cline-yes">34×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">goog.provide('ol.interaction.Draw');
+goog.provide('ol.interaction.DrawEvent');
+goog.provide('ol.interaction.DrawEventType');
+goog.provide('ol.interaction.DrawGeometryFunctionType');
+goog.provide('ol.interaction.DrawMode');
+&nbsp;
+goog.require('goog.asserts');
+goog.require('goog.events');
+goog.require('goog.events.Event');
+goog.require('ol.Collection');
+goog.require('ol.Coordinate');
+goog.require('ol.Feature');
+goog.require('ol.MapBrowserEvent');
+goog.require('ol.MapBrowserEvent.EventType');
+goog.require('ol.Object');
+goog.require('ol.coordinate');
+goog.require('ol.events.condition');
+goog.require('ol.geom.Circle');
+goog.require('ol.geom.GeometryType');
+goog.require('ol.geom.LineString');
+goog.require('ol.geom.MultiLineString');
+goog.require('ol.geom.MultiPoint');
+goog.require('ol.geom.MultiPolygon');
+goog.require('ol.geom.Point');
+goog.require('ol.geom.Polygon');
+goog.require('ol.geom.SimpleGeometry');
+goog.require('ol.interaction.InteractionProperty');
+goog.require('ol.interaction.Pointer');
+goog.require('ol.layer.Vector');
+goog.require('ol.source.Vector');
+&nbsp;
+&nbsp;
+/**
+ * @enum {string}
+ */
+ol.interaction.DrawEventType = {
+  /**
+   * Triggered upon feature draw start
+   * @event ol.interaction.DrawEvent#drawstart
+   * @api stable
+   */
+  DRAWSTART: 'drawstart',
+  /**
+   * Triggered upon feature draw end
+   * @event ol.interaction.DrawEvent#drawend
+   * @api stable
+   */
+  DRAWEND: 'drawend'
+};
+&nbsp;
+&nbsp;
+&nbsp;
+/**
+ * @classdesc
+ * Events emitted by {@link ol.interaction.Draw} instances are instances of
+ * this type.
+ *
+ * @constructor
+ * @extends {goog.events.Event}
+ * @implements {oli.DrawEvent}
+ * @param {ol.interaction.DrawEventType} type Type.
+ * @param {ol.Feature} feature The feature drawn.
+ */
+ol.interaction.DrawEvent = function(type, feature) {
+&nbsp;
+  goog.base(this, type);
+&nbsp;
+  /**
+   * The feature being drawn.
+   * @type {ol.Feature}
+   * @api stable
+   */
+  this.feature = feature;
+&nbsp;
+};
+goog.inherits(ol.interaction.DrawEvent, goog.events.Event);
+&nbsp;
+&nbsp;
+&nbsp;
+/**
+ * @classdesc
+ * Interaction for drawing feature geometries.
+ *
+ * @constructor
+ * @extends {ol.interaction.Pointer}
+ * @fires ol.interaction.DrawEvent
+ * @param {olx.interaction.DrawOptions} options Options.
+ * @api stable
+ */
+ol.interaction.Draw = function(options) {
+&nbsp;
+  goog.base(this, {
+    handleDownEvent: ol.interaction.Draw.handleDownEvent_,
+    handleEvent: ol.interaction.Draw.handleEvent,
+    handleUpEvent: ol.interaction.Draw.handleUpEvent_
+  });
+&nbsp;
+  /**
+   * @type {ol.Pixel}
+   * @private
+   */
+  this.downPx_ = null;
+&nbsp;
+  /**
+   * @type {boolean}
+   * @private
+   */
+  this.freehand_ = false;
+&nbsp;
+  /**
+   * Target source for drawn features.
+   * @type {ol.source.Vector}
+   * @private
+   */
+  this.source_ = options.source ? options.source : null;
+&nbsp;
+  /**
+   * Target collection for drawn features.
+   * @type {ol.Collection.&lt;ol.Feature&gt;}
+   * @private
+   */
+  this.features_ = options.features ? <span class="branch-0 cbranch-no" title="branch not covered" >options.features </span>: null;
+&nbsp;
+  /**
+   * Pixel distance for snapping.
+   * @type {number}
+   * @private
+   */
+  this.snapTolerance_ = options.snapTolerance ? <span class="branch-0 cbranch-no" title="branch not covered" >options.snapTolerance </span>: 12;
+&nbsp;
+  /**
+   * Geometry type.
+   * @type {ol.geom.GeometryType}
+   * @private
+   */
+  this.type_ = options.type;
+&nbsp;
+  /**
+   * Drawing mode (derived from geometry type.
+   * @type {ol.interaction.DrawMode}
+   * @private
+   */
+  this.mode_ = ol.interaction.Draw.getMode_(this.type_);
+&nbsp;
+  /**
+   * The number of points that must be drawn before a polygon ring or line
+   * string can be finished.  The default is 3 for polygon rings and 2 for
+   * line strings.
+   * @type {number}
+   * @private
+   */
+  this.minPoints_ = options.minPoints ?
+<span class="branch-0 cbranch-no" title="branch not covered" >      options.minPoints </span>:
+      (this.mode_ === ol.interaction.DrawMode.POLYGON ? 3 : 2);
+&nbsp;
+  /**
+   * The number of points that can be drawn before a polygon ring or line string
+   * is finished. The default is no restriction.
+   * @type {number}
+   * @private
+   */
+  this.maxPoints_ = options.maxPoints ? <span class="branch-0 cbranch-no" title="branch not covered" >options.maxPoints </span>: Infinity;
+&nbsp;
+  var geometryFunction = options.geometryFunction;
+  if (!geometryFunction) {
+    if (this.type_ === ol.geom.GeometryType.CIRCLE) {
+      /**
+       * @param {ol.Coordinate|Array.&lt;ol.Coordinate&gt;|Array.&lt;Array.&lt;ol.Coordinate&gt;&gt;} coordinates
+       * @param {ol.geom.SimpleGeometry=} opt_geometry
+       * @return {ol.geom.SimpleGeometry}
+       */
+      geometryFunction = function(coordinates, opt_geometry) {
+        var circle = opt_geometry ? opt_geometry :
+            new ol.geom.Circle([NaN, NaN]);
+        goog.asserts.assertInstanceof(circle, ol.geom.Circle,
+            'geometry must be an ol.geom.Circle');
+        var squaredLength = ol.coordinate.squaredDistance(
+            coordinates[0], coordinates[1]);
+        circle.setCenterAndRadius(coordinates[0], Math.sqrt(squaredLength));
+        return circle;
+      };
+    } else {
+      var Constructor;
+      var mode = this.mode_;
+      if (mode === ol.interaction.DrawMode.POINT) {
+        Constructor = ol.geom.Point;
+      } else if (mode === ol.interaction.DrawMode.LINE_STRING) {
+        Constructor = ol.geom.LineString;
+      } else <span class="missing-if-branch" title="else path not taken" >E</span>if (mode === ol.interaction.DrawMode.POLYGON) {
+        Constructor = ol.geom.Polygon;
+      }
+      /**
+       * @param {ol.Coordinate|Array.&lt;ol.Coordinate&gt;|Array.&lt;Array.&lt;ol.Coordinate&gt;&gt;} coordinates
+       * @param {ol.geom.SimpleGeometry=} opt_geometry
+       * @return {ol.geom.SimpleGeometry}
+       */
+      geometryFunction = function(coordinates, opt_geometry) {
+        var geometry = opt_geometry;
+        if (geometry) {
+          geometry.setCoordinates(coordinates);
+        } else {
+          geometry = new Constructor(coordinates);
+        }
+        return geometry;
+      };
+    }
+  }
+&nbsp;
+  /**
+   * @type {ol.interaction.DrawGeometryFunctionType}
+   * @private
+   */
+  this.geometryFunction_ = geometryFunction;
+&nbsp;
+  /**
+   * Finish coordinate for the feature (first point for polygons, last point for
+   * linestrings).
+   * @type {ol.Coordinate}
+   * @private
+   */
+  this.finishCoordinate_ = null;
+&nbsp;
+  /**
+   * Sketch feature.
+   * @type {ol.Feature}
+   * @private
+   */
+  this.sketchFeature_ = null;
+&nbsp;
+  /**
+   * Sketch point.
+   * @type {ol.Feature}
+   * @private
+   */
+  this.sketchPoint_ = null;
+&nbsp;
+  /**
+   * Sketch coordinates. Used when drawing a line or polygon.
+   * @type {ol.Coordinate|Array.&lt;ol.Coordinate&gt;|Array.&lt;Array.&lt;ol.Coordinate&gt;&gt;}
+   * @private
+   */
+  this.sketchCoords_ = null;
+&nbsp;
+  /**
+   * Sketch line. Used when drawing polygon.
+   * @type {ol.Feature}
+   * @private
+   */
+  this.sketchLine_ = null;
+&nbsp;
+  /**
+   * Sketch line coordinates. Used when drawing a polygon or circle.
+   * @type {Array.&lt;ol.Coordinate&gt;}
+   * @private
+   */
+  this.sketchLineCoords_ = null;
+&nbsp;
+  /**
+   * Squared tolerance for handling up events.  If the squared distance
+   * between a down and up event is greater than this tolerance, up events
+   * will not be handled.
+   * @type {number}
+   * @private
+   */
+  this.squaredClickTolerance_ = options.clickTolerance ?
+      options.clickTolerance * options.clickTolerance : 36;
+&nbsp;
+  /**
+   * Draw overlay where our sketch features are drawn.
+   * @type {ol.layer.Vector}
+   * @private
+   */
+  this.overlay_ = new ol.layer.Vector({
+    source: new ol.source.Vector({
+      useSpatialIndex: false,
+      wrapX: options.wrapX ? <span class="branch-0 cbranch-no" title="branch not covered" >options.wrapX </span>: false
+    }),
+    style: options.style ? <span class="branch-0 cbranch-no" title="branch not covered" >options.style </span>:
+        ol.interaction.Draw.getDefaultStyleFunction()
+  });
+&nbsp;
+  /**
+   * Name of the geometry attribute for newly created features.
+   * @type {string|undefined}
+   * @private
+   */
+  this.geometryName_ = options.geometryName;
+&nbsp;
+  /**
+   * @private
+   * @type {ol.events.ConditionType}
+   */
+  this.condition_ = options.condition ?
+<span class="branch-0 cbranch-no" title="branch not covered" >      options.condition </span>: ol.events.condition.noModifierKeys;
+&nbsp;
+  /**
+   * @private
+   * @type {ol.events.ConditionType}
+   */
+  this.freehandCondition_ = options.freehandCondition ?
+<span class="branch-0 cbranch-no" title="branch not covered" >      options.freehandCondition </span>: ol.events.condition.shiftKeyOnly;
+&nbsp;
+  goog.events.listen(this,
+      ol.Object.getChangeEventType(ol.interaction.InteractionProperty.ACTIVE),
+      this.updateState_, false, this);
+&nbsp;
+};
+goog.inherits(ol.interaction.Draw, ol.interaction.Pointer);
+&nbsp;
+&nbsp;
+/**
+ * @return {ol.style.StyleFunction} Styles.
+ */
+ol.interaction.Draw.getDefaultStyleFunction = function() {
+  var styles = ol.style.createDefaultEditingStyles();
+  return <span class="fstat-no" title="function not covered" >function(feature, resolution) {</span>
+<span class="cstat-no" title="statement not covered" >    return styles[feature.getGeometry().getType()];</span>
+  };
+};
+&nbsp;
+&nbsp;
+/**
+ * @inheritDoc
+ */
+ol.interaction.Draw.prototype.setMap = function(map) {
+  goog.base(this, 'setMap', map);
+  this.updateState_();
+};
+&nbsp;
+&nbsp;
+/**
+ * Handles the {@link ol.MapBrowserEvent map browser event} and may actually
+ * draw or finish the drawing.
+ * @param {ol.MapBrowserEvent} mapBrowserEvent Map browser event.
+ * @return {boolean} `false` to stop event propagation.
+ * @this {ol.interaction.Draw}
+ * @api
+ */
+ol.interaction.Draw.handleEvent = function(mapBrowserEvent) {
+  var pass = !this.freehand_;
+  if (this.freehand_ &amp;&amp;
+      mapBrowserEvent.type === ol.MapBrowserEvent.EventType.POINTERDRAG) {
+    this.addToDrawing_(mapBrowserEvent);
+    pass = false;
+  } else if (mapBrowserEvent.type ===
+      ol.MapBrowserEvent.EventType.POINTERMOVE) {
+    pass = this.handlePointerMove_(mapBrowserEvent);
+  } else <span class="missing-if-branch" title="if path not taken" >I</span>if (mapBrowserEvent.type === ol.MapBrowserEvent.EventType.DBLCLICK) {
+<span class="cstat-no" title="statement not covered" >    pass = false;</span>
+  }
+  return ol.interaction.Pointer.handleEvent.call(this, mapBrowserEvent) &amp;&amp; pass;
+};
+&nbsp;
+&nbsp;
+/**
+ * @param {ol.MapBrowserPointerEvent} event Event.
+ * @return {boolean} Start drag sequence?
+ * @this {ol.interaction.Draw}
+ * @private
+ */
+ol.interaction.Draw.handleDownEvent_ = function(event) {
+  if (this.condition_(event)) {
+    this.downPx_ = event.pixel;
+    return true;
+  } else if ((this.mode_ === ol.interaction.DrawMode.LINE_STRING ||
+      this.mode_ === ol.interaction.DrawMode.POLYGON) &amp;&amp;
+      this.freehandCondition_(event)) {
+    this.downPx_ = event.pixel;
+    this.freehand_ = true;
+    <span class="missing-if-branch" title="else path not taken" >E</span>if (!this.finishCoordinate_) {
+      this.startDrawing_(event);
+    }
+    return true;
+  } else {
+    return false;
+  }
+};
+&nbsp;
+&nbsp;
+/**
+ * @param {ol.MapBrowserPointerEvent} event Event.
+ * @return {boolean} Stop drag sequence?
+ * @this {ol.interaction.Draw}
+ * @private
+ */
+ol.interaction.Draw.handleUpEvent_ = function(event) {
+  this.freehand_ = false;
+  var downPx = this.downPx_;
+  var clickPx = event.pixel;
+  var dx = downPx[0] - clickPx[0];
+  var dy = downPx[1] - clickPx[1];
+  var squaredDistance = dx * dx + dy * dy;
+  var pass = true;
+  if (squaredDistance &lt;= this.squaredClickTolerance_) {
+    this.handlePointerMove_(event);
+    if (!this.finishCoordinate_) {
+      this.startDrawing_(event);
+      if (this.mode_ === ol.interaction.DrawMode.POINT) {
+        this.finishDrawing();
+      }
+    } else if (this.mode_ === ol.interaction.DrawMode.CIRCLE) {
+      this.finishDrawing();
+    } else if (this.atFinish_(event)) {
+      this.finishDrawing();
+    } else {
+      this.addToDrawing_(event);
+    }
+    pass = false;
+  }
+  return pass;
+};
+&nbsp;
+&nbsp;
+/**
+ * Handle move events.
+ * @param {ol.MapBrowserEvent} event A move event.
+ * @return {boolean} Pass the event to other interactions.
+ * @private
+ */
+ol.interaction.Draw.prototype.handlePointerMove_ = function(event) {
+  if (this.finishCoordinate_) {
+    this.modifyDrawing_(event);
+  } else {
+    this.createOrUpdateSketchPoint_(event);
+  }
+  return true;
+};
+&nbsp;
+&nbsp;
+/**
+ * Determine if an event is within the snapping tolerance of the start coord.
+ * @param {ol.MapBrowserEvent} event Event.
+ * @return {boolean} The event is within the snapping tolerance of the start.
+ * @private
+ */
+ol.interaction.Draw.prototype.atFinish_ = function(event) {
+  var at = false;
+  <span class="missing-if-branch" title="else path not taken" >E</span>if (this.sketchFeature_) {
+    var potentiallyDone = false;
+    var potentiallyFinishCoordinates = [this.finishCoordinate_];
+    if (this.mode_ === ol.interaction.DrawMode.LINE_STRING) {
+      potentiallyDone = this.sketchCoords_.length &gt; this.minPoints_;
+    } else <span class="missing-if-branch" title="else path not taken" >E</span>if (this.mode_ === ol.interaction.DrawMode.POLYGON) {
+      potentiallyDone = this.sketchCoords_[0].length &gt;
+          this.minPoints_;
+      potentiallyFinishCoordinates = [this.sketchCoords_[0][0],
+        this.sketchCoords_[0][this.sketchCoords_[0].length - 2]];
+    }
+    if (potentiallyDone) {
+      var map = event.map;
+      for (var i = 0, ii = potentiallyFinishCoordinates.length; i &lt; ii; i++) {
+        var finishCoordinate = potentiallyFinishCoordinates[i];
+        var finishPixel = map.getPixelFromCoordinate(finishCoordinate);
+        var pixel = event.pixel;
+        var dx = pixel[0] - finishPixel[0];
+        var dy = pixel[1] - finishPixel[1];
+        var freehand = this.freehand_ &amp;&amp; <span class="branch-1 cbranch-no" title="branch not covered" >this.freehandCondition_(event);</span>
+        var snapTolerance = freehand ? <span class="branch-0 cbranch-no" title="branch not covered" >1 </span>: this.snapTolerance_;
+        at = Math.sqrt(dx * dx + dy * dy) &lt;= snapTolerance;
+        if (at) {
+          this.finishCoordinate_ = finishCoordinate;
+          break;
+        }
+      }
+    }
+  }
+  return at;
+};
+&nbsp;
+&nbsp;
+/**
+ * @param {ol.MapBrowserEvent} event Event.
+ * @private
+ */
+ol.interaction.Draw.prototype.createOrUpdateSketchPoint_ = function(event) {
+  var coordinates = event.coordinate.slice();
+  if (!this.sketchPoint_) {
+    this.sketchPoint_ = new ol.Feature(new ol.geom.Point(coordinates));
+    this.updateSketchFeatures_();
+  } else {
+    var sketchPointGeom = this.sketchPoint_.getGeometry();
+    goog.asserts.assertInstanceof(sketchPointGeom, ol.geom.Point,
+        'sketchPointGeom should be an ol.geom.Point');
+    sketchPointGeom.setCoordinates(coordinates);
+  }
+};
+&nbsp;
+&nbsp;
+/**
+ * Start the drawing.
+ * @param {ol.MapBrowserEvent} event Event.
+ * @private
+ */
+ol.interaction.Draw.prototype.startDrawing_ = function(event) {
+  var start = event.coordinate;
+  this.finishCoordinate_ = start;
+  if (this.mode_ === ol.interaction.DrawMode.POINT) {
+    this.sketchCoords_ = start.slice();
+  } else if (this.mode_ === ol.interaction.DrawMode.POLYGON) {
+    this.sketchCoords_ = [[start.slice(), start.slice()]];
+    this.sketchLineCoords_ = this.sketchCoords_[0];
+  } else {
+    this.sketchCoords_ = [start.slice(), start.slice()];
+    if (this.mode_ === ol.interaction.DrawMode.CIRCLE) {
+      this.sketchLineCoords_ = this.sketchCoords_;
+    }
+  }
+  if (this.sketchLineCoords_) {
+    this.sketchLine_ = new ol.Feature(
+        new ol.geom.LineString(this.sketchLineCoords_));
+  }
+  var geometry = this.geometryFunction_(this.sketchCoords_);
+  goog.asserts.assert(geometry !== undefined, 'geometry should be defined');
+  this.sketchFeature_ = new ol.Feature();
+  if (this.geometryName_) {
+    this.sketchFeature_.setGeometryName(this.geometryName_);
+  }
+  this.sketchFeature_.setGeometry(geometry);
+  this.updateSketchFeatures_();
+  this.dispatchEvent(new ol.interaction.DrawEvent(
+      ol.interaction.DrawEventType.DRAWSTART, this.sketchFeature_));
+};
+&nbsp;
+&nbsp;
+/**
+ * Modify the drawing.
+ * @param {ol.MapBrowserEvent} event Event.
+ * @private
+ */
+ol.interaction.Draw.prototype.modifyDrawing_ = function(event) {
+  var coordinate = event.coordinate;
+  var geometry = this.sketchFeature_.getGeometry();
+  goog.asserts.assertInstanceof(geometry, ol.geom.SimpleGeometry,
+      'geometry should be ol.geom.SimpleGeometry or subclass');
+  var coordinates, last;
+  <span class="missing-if-branch" title="if path not taken" >I</span>if (this.mode_ === ol.interaction.DrawMode.POINT) {
+<span class="cstat-no" title="statement not covered" >    last = this.sketchCoords_;</span>
+  } else if (this.mode_ === ol.interaction.DrawMode.POLYGON) {
+    coordinates = this.sketchCoords_[0];
+    last = coordinates[coordinates.length - 1];
+    if (this.atFinish_(event)) {
+      // snap to finish
+      coordinate = this.finishCoordinate_.slice();
+    }
+  } else {
+    coordinates = this.sketchCoords_;
+    last = coordinates[coordinates.length - 1];
+  }
+  last[0] = coordinate[0];
+  last[1] = coordinate[1];
+  goog.asserts.assert(this.sketchCoords_, 'sketchCoords_ expected');
+  this.geometryFunction_(this.sketchCoords_, geometry);
+  <span class="missing-if-branch" title="else path not taken" >E</span>if (this.sketchPoint_) {
+    var sketchPointGeom = this.sketchPoint_.getGeometry();
+    goog.asserts.assertInstanceof(sketchPointGeom, ol.geom.Point,
+        'sketchPointGeom should be an ol.geom.Point');
+    sketchPointGeom.setCoordinates(coordinate);
+  }
+  var sketchLineGeom;
+  if (geometry instanceof ol.geom.Polygon &amp;&amp;
+      this.mode_ !== ol.interaction.DrawMode.POLYGON) {
+    <span class="missing-if-branch" title="if path not taken" >I</span>if (!this.sketchLine_) {
+<span class="cstat-no" title="statement not covered" >      this.sketchLine_ = new ol.Feature(new ol.geom.LineString(null));</span>
+    }
+    var ring = geometry.getLinearRing(0);
+    sketchLineGeom = this.sketchLine_.getGeometry();
+    goog.asserts.assertInstanceof(sketchLineGeom, ol.geom.LineString,
+        'sketchLineGeom must be an ol.geom.LineString');
+    sketchLineGeom.setFlatCoordinates(
+        ring.getLayout(), ring.getFlatCoordinates());
+  } else if (this.sketchLineCoords_) {
+    sketchLineGeom = this.sketchLine_.getGeometry();
+    goog.asserts.assertInstanceof(sketchLineGeom, ol.geom.LineString,
+        'sketchLineGeom must be an ol.geom.LineString');
+    sketchLineGeom.setCoordinates(this.sketchLineCoords_);
+  }
+  this.updateSketchFeatures_();
+};
+&nbsp;
+&nbsp;
+/**
+ * Add a new coordinate to the drawing.
+ * @param {ol.MapBrowserEvent} event Event.
+ * @private
+ */
+ol.interaction.Draw.prototype.addToDrawing_ = function(event) {
+  var coordinate = event.coordinate;
+  var geometry = this.sketchFeature_.getGeometry();
+  goog.asserts.assertInstanceof(geometry, ol.geom.SimpleGeometry,
+      'geometry must be an ol.geom.SimpleGeometry');
+  var done;
+  var coordinates;
+  if (this.mode_ === ol.interaction.DrawMode.LINE_STRING) {
+    this.finishCoordinate_ = coordinate.slice();
+    coordinates = this.sketchCoords_;
+    coordinates.push(coordinate.slice());
+    done = coordinates.length &gt; this.maxPoints_;
+    this.geometryFunction_(coordinates, geometry);
+  } else <span class="missing-if-branch" title="else path not taken" >E</span>if (this.mode_ === ol.interaction.DrawMode.POLYGON) {
+    coordinates = this.sketchCoords_[0];
+    coordinates.push(coordinate.slice());
+    done = coordinates.length &gt; this.maxPoints_;
+    <span class="missing-if-branch" title="if path not taken" >I</span>if (done) {
+<span class="cstat-no" title="statement not covered" >      this.finishCoordinate_ = coordinates[0];</span>
+    }
+    this.geometryFunction_(this.sketchCoords_, geometry);
+  }
+  this.updateSketchFeatures_();
+  <span class="missing-if-branch" title="if path not taken" >I</span>if (done) {
+<span class="cstat-no" title="statement not covered" >    this.finishDrawing();</span>
+  }
+};
+&nbsp;
+&nbsp;
+/**
+ * Remove last point of the feature currently being drawn.
+ * @api
+ */
+ol.interaction.Draw.prototype.removeLastPoint = <span class="fstat-no" title="function not covered" >function() {</span>
+<span class="cstat-no" title="statement not covered" >  var geometry = this.sketchFeature_.getGeometry();</span>
+<span class="cstat-no" title="statement not covered" >  goog.asserts.assertInstanceof(geometry, ol.geom.SimpleGeometry,</span>
+      'geometry must be an ol.geom.SimpleGeometry');
+<span class="cstat-no" title="statement not covered" >  var coordinates, sketchLineGeom;</span>
+<span class="cstat-no" title="statement not covered" >  if (this.mode_ === ol.interaction.DrawMode.LINE_STRING) {</span>
+<span class="cstat-no" title="statement not covered" >    coordinates = this.sketchCoords_;</span>
+<span class="cstat-no" title="statement not covered" >    coordinates.splice(-2, 1);</span>
+<span class="cstat-no" title="statement not covered" >    this.geometryFunction_(coordinates, geometry);</span>
+  } else <span class="cstat-no" title="statement not covered" >if (this.mode_ === ol.interaction.DrawMode.POLYGON) {</span>
+<span class="cstat-no" title="statement not covered" >    coordinates = this.sketchCoords_[0];</span>
+<span class="cstat-no" title="statement not covered" >    coordinates.splice(-2, 1);</span>
+<span class="cstat-no" title="statement not covered" >    sketchLineGeom = this.sketchLine_.getGeometry();</span>
+<span class="cstat-no" title="statement not covered" >    goog.asserts.assertInstanceof(sketchLineGeom, ol.geom.LineString,</span>
+        'sketchLineGeom must be an ol.geom.LineString');
+<span class="cstat-no" title="statement not covered" >    sketchLineGeom.setCoordinates(coordinates);</span>
+<span class="cstat-no" title="statement not covered" >    this.geometryFunction_(this.sketchCoords_, geometry);</span>
+  }
+&nbsp;
+<span class="cstat-no" title="statement not covered" >  if (coordinates.length === 0) {</span>
+<span class="cstat-no" title="statement not covered" >    this.finishCoordinate_ = null;</span>
+  }
+&nbsp;
+<span class="cstat-no" title="statement not covered" >  this.updateSketchFeatures_();</span>
+};
+&nbsp;
+&nbsp;
+/**
+ * Stop drawing and add the sketch feature to the target layer.
+ * The {@link ol.interaction.DrawEventType.DRAWEND} event is dispatched before
+ * inserting the feature.
+ * @api
+ */
+ol.interaction.Draw.prototype.finishDrawing = function() {
+  var sketchFeature = this.abortDrawing_();
+  goog.asserts.assert(sketchFeature, 'sketchFeature expected to be truthy');
+  var coordinates = this.sketchCoords_;
+  var geometry = sketchFeature.getGeometry();
+  goog.asserts.assertInstanceof(geometry, ol.geom.SimpleGeometry,
+      'geometry must be an ol.geom.SimpleGeometry');
+  if (this.mode_ === ol.interaction.DrawMode.LINE_STRING) {
+    // remove the redundant last point
+    coordinates.pop();
+    this.geometryFunction_(coordinates, geometry);
+  } else if (this.mode_ === ol.interaction.DrawMode.POLYGON) {
+    // When we finish drawing a polygon on the last point,
+    // the last coordinate is duplicated as for LineString
+    // we force the replacement by the first point
+    coordinates[0].pop();
+    coordinates[0].push(coordinates[0][0]);
+    this.geometryFunction_(coordinates, geometry);
+  }
+&nbsp;
+  // cast multi-part geometries
+  if (this.type_ === ol.geom.GeometryType.MULTI_POINT) {
+    sketchFeature.setGeometry(new ol.geom.MultiPoint([coordinates]));
+  } else if (this.type_ === ol.geom.GeometryType.MULTI_LINE_STRING) {
+    sketchFeature.setGeometry(new ol.geom.MultiLineString([coordinates]));
+  } else if (this.type_ === ol.geom.GeometryType.MULTI_POLYGON) {
+    sketchFeature.setGeometry(new ol.geom.MultiPolygon([coordinates]));
+  }
+&nbsp;
+  // First dispatch event to allow full set up of feature
+  this.dispatchEvent(new ol.interaction.DrawEvent(
+      ol.interaction.DrawEventType.DRAWEND, sketchFeature));
+&nbsp;
+  // Then insert feature
+  <span class="missing-if-branch" title="if path not taken" >I</span>if (this.features_) {
+<span class="cstat-no" title="statement not covered" >    this.features_.push(sketchFeature);</span>
+  }
+  <span class="missing-if-branch" title="else path not taken" >E</span>if (this.source_) {
+    this.source_.addFeature(sketchFeature);
+  }
+};
+&nbsp;
+&nbsp;
+/**
+ * Stop drawing without adding the sketch feature to the target layer.
+ * @return {ol.Feature} The sketch feature (or null if none).
+ * @private
+ */
+ol.interaction.Draw.prototype.abortDrawing_ = function() {
+  this.finishCoordinate_ = null;
+  var sketchFeature = this.sketchFeature_;
+  if (sketchFeature) {
+    this.sketchFeature_ = null;
+    this.sketchPoint_ = null;
+    this.sketchLine_ = null;
+    this.overlay_.getSource().clear(true);
+  }
+  return sketchFeature;
+};
+&nbsp;
+&nbsp;
+/**
+ * Extend an existing geometry by adding additional points. This only works
+ * on features with `LineString` geometries, where the interaction will
+ * extend lines by adding points to the end of the coordinates array.
+ * @param {!ol.Feature} feature Feature to be extended.
+ * @api
+ */
+ol.interaction.Draw.prototype.extend = function(feature) {
+  var geometry = feature.getGeometry();
+  goog.asserts.assert(this.mode_ == ol.interaction.DrawMode.LINE_STRING,
+      'interaction mode must be "line"');
+  goog.asserts.assert(geometry, 'feature must have a geometry');
+  goog.asserts.assert(geometry.getType() == ol.geom.GeometryType.LINE_STRING,
+      'feature geometry must be a line string');
+  var lineString = /** @type {ol.geom.LineString} */ (geometry);
+  this.sketchFeature_ = feature;
+  this.sketchCoords_ = lineString.getCoordinates();
+  var last = this.sketchCoords_[this.sketchCoords_.length - 1];
+  this.finishCoordinate_ = last.slice();
+  this.sketchCoords_.push(last.slice());
+  this.updateSketchFeatures_();
+  this.dispatchEvent(new ol.interaction.DrawEvent(
+      ol.interaction.DrawEventType.DRAWSTART, this.sketchFeature_));
+};
+&nbsp;
+&nbsp;
+/**
+ * @inheritDoc
+ */
+ol.interaction.Draw.prototype.shouldStopEvent = goog.functions.FALSE;
+&nbsp;
+&nbsp;
+/**
+ * Redraw the sketch features.
+ * @private
+ */
+ol.interaction.Draw.prototype.updateSketchFeatures_ = function() {
+  var sketchFeatures = [];
+  if (this.sketchFeature_) {
+    sketchFeatures.push(this.sketchFeature_);
+  }
+  if (this.sketchLine_) {
+    sketchFeatures.push(this.sketchLine_);
+  }
+  if (this.sketchPoint_) {
+    sketchFeatures.push(this.sketchPoint_);
+  }
+  var overlaySource = this.overlay_.getSource();
+  overlaySource.clear(true);
+  overlaySource.addFeatures(sketchFeatures);
+};
+&nbsp;
+&nbsp;
+/**
+ * @private
+ */
+ol.interaction.Draw.prototype.updateState_ = function() {
+  var map = this.getMap();
+  var active = this.getActive();
+  if (!map || !active) {
+    this.abortDrawing_();
+  }
+  this.overlay_.setMap(active ? map : null);
+};
+&nbsp;
+&nbsp;
+/**
+ * Create a `geometryFunction` for `mode: 'Circle'` that will create a regular
+ * polygon with a user specified number of sides and start angle instead of an
+ * `ol.geom.Circle` geometry.
+ * @param {number=} opt_sides Number of sides of the regular polygon. Default is
+ *     32.
+ * @param {number=} opt_angle Angle of the first point in radians. 0 means East.
+ *     Default is the angle defined by the heading from the center of the
+ *     regular polygon to the current pointer position.
+ * @return {ol.interaction.DrawGeometryFunctionType} Function that draws a
+ *     polygon.
+ * @api
+ */
+ol.interaction.Draw.createRegularPolygon = function(opt_sides, opt_angle) {
+  return (
+      /**
+       * @param {ol.Coordinate|Array.&lt;ol.Coordinate&gt;|Array.&lt;Array.&lt;ol.Coordinate&gt;&gt;} coordinates
+       * @param {ol.geom.SimpleGeometry=} opt_geometry
+       * @return {ol.geom.SimpleGeometry}
+       */
+      function(coordinates, opt_geometry) {
+        var center = coordinates[0];
+        var end = coordinates[1];
+        var radius = Math.sqrt(
+            ol.coordinate.squaredDistance(center, end));
+        var geometry = opt_geometry ? opt_geometry :
+            ol.geom.Polygon.fromCircle(new ol.geom.Circle(center), opt_sides);
+        goog.asserts.assertInstanceof(geometry, ol.geom.Polygon,
+            'geometry must be a polygon');
+        var angle = opt_angle ? opt_angle :
+<span class="branch-1 cbranch-no" title="branch not covered" >            Math.atan((end[1] - center[1]) / (end[0] - center[0]));</span>
+        ol.geom.Polygon.makeRegular(geometry, center, radius, angle);
+        return geometry;
+      }
+  );
+};
+&nbsp;
+&nbsp;
+/**
+ * Get the drawing mode.  The mode for mult-part geometries is the same as for
+ * their single-part cousins.
+ * @param {ol.geom.GeometryType} type Geometry type.
+ * @return {ol.interaction.DrawMode} Drawing mode.
+ * @private
+ */
+ol.interaction.Draw.getMode_ = function(type) {
+  var mode;
+  if (type === ol.geom.GeometryType.POINT ||
+      type === ol.geom.GeometryType.MULTI_POINT) {
+    mode = ol.interaction.DrawMode.POINT;
+  } else if (type === ol.geom.GeometryType.LINE_STRING ||
+      type === ol.geom.GeometryType.MULTI_LINE_STRING) {
+    mode = ol.interaction.DrawMode.LINE_STRING;
+  } else if (type === ol.geom.GeometryType.POLYGON ||
+      type === ol.geom.GeometryType.MULTI_POLYGON) {
+    mode = ol.interaction.DrawMode.POLYGON;
+  } else <span class="missing-if-branch" title="else path not taken" >E</span>if (type === ol.geom.GeometryType.CIRCLE) {
+    mode = ol.interaction.DrawMode.CIRCLE;
+  }
+  goog.asserts.assert(mode !== undefined, 'mode should be defined');
+  return mode;
+};
+&nbsp;
+&nbsp;
+/**
+ * Function that takes coordinates and an optional existing geometry as
+ * arguments, and returns a geometry. The optional existing geometry is the
+ * geometry that is returned when the function is called without a second
+ * argument.
+ * @typedef {function(!(ol.Coordinate|Array.&lt;ol.Coordinate&gt;|
+ *     Array.&lt;Array.&lt;ol.Coordinate&gt;&gt;), ol.geom.SimpleGeometry=):
+ *     ol.geom.SimpleGeometry}
+ * @api
+ */
+ol.interaction.DrawGeometryFunctionType;
+&nbsp;
+&nbsp;
+/**
+ * Draw mode.  This collapses multi-part geometry types with their single-part
+ * cousins.
+ * @enum {string}
+ */
+ol.interaction.DrawMode = {
+  POINT: 'Point',
+  LINE_STRING: 'LineString',
+  POLYGON: 'Polygon',
+  CIRCLE: 'Circle'
+};
+&nbsp;</pre></td></tr>
+</table></pre>
+<div class='push'></div><!-- for sticky footer -->
+</div><!-- /wrapper -->
+<div class='footer quiet pad2 space-top1 center small'>
+  Code coverage
+  generated by <a href="http://istanbul-js.org/" target="_blank">istanbul</a> at Fri Nov 06 2015 19:36:11 GMT+0100 (CET)
+</div>
+</div>
+<script src="../../prettify.js"></script>
+<script>
+window.onload = function () {
+        if (typeof prettyPrint === 'function') {
+            prettyPrint();
+        }
+};
+</script>
+<script src="../../sorter.js"></script>
+</body>
+</html>

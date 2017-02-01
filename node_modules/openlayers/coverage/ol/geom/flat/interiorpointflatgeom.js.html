@@ -1,0 +1,344 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <title>Code coverage report for ol/geom/flat/interiorpointflatgeom.js</title>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="../../../prettify.css" />
+    <link rel="stylesheet" href="../../../base.css" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style type='text/css'>
+        .coverage-summary .sorter {
+            background-image: url(../../../sort-arrow-sprite.png);
+        }
+    </style>
+</head>
+<body>
+<div class='wrapper'>
+  <div class='pad1'>
+    <h1>
+      <a href="../../../index.html">all files</a> / <a href="index.html">ol/geom/flat/</a> interiorpointflatgeom.js
+    </h1>
+    <div class='clearfix'>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">10.87% </span>
+        <span class="quiet">Statements</span>
+        <span class='fraction'>5/46</span>
+      </div>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">0% </span>
+        <span class="quiet">Branches</span>
+        <span class='fraction'>0/14</span>
+      </div>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">0% </span>
+        <span class="quiet">Functions</span>
+        <span class='fraction'>0/2</span>
+      </div>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">10.87% </span>
+        <span class="quiet">Lines</span>
+        <span class='fraction'>5/46</span>
+      </div>
+    </div>
+  </div>
+  <div class='status-line low'></div>
+<pre><table class="coverage">
+<tr><td class="line-count quiet">1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+28
+29
+30
+31
+32
+33
+34
+35
+36
+37
+38
+39
+40
+41
+42
+43
+44
+45
+46
+47
+48
+49
+50
+51
+52
+53
+54
+55
+56
+57
+58
+59
+60
+61
+62
+63
+64
+65
+66
+67
+68
+69
+70
+71
+72
+73
+74
+75
+76
+77
+78
+79
+80
+81
+82
+83
+84
+85
+86
+87
+88
+89
+90
+91
+92
+93
+94</td><td class="line-coverage quiet"><span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">goog.provide('ol.geom.flat.interiorpoint');
+&nbsp;
+goog.require('goog.asserts');
+goog.require('ol.geom.flat.contains');
+&nbsp;
+&nbsp;
+/**
+ * Calculates a point that is likely to lie in the interior of the linear rings.
+ * Inspired by JTS's com.vividsolutions.jts.geom.Geometry#getInteriorPoint.
+ * @param {Array.&lt;number&gt;} flatCoordinates Flat coordinates.
+ * @param {number} offset Offset.
+ * @param {Array.&lt;number&gt;} ends Ends.
+ * @param {number} stride Stride.
+ * @param {Array.&lt;number&gt;} flatCenters Flat centers.
+ * @param {number} flatCentersOffset Flat center offset.
+ * @param {Array.&lt;number&gt;=} opt_dest Destination.
+ * @return {Array.&lt;number&gt;} Destination.
+ */
+ol.geom.flat.interiorpoint.linearRings = <span class="fstat-no" title="function not covered" >function(flatCoordinates, offset,</span>
+    ends, stride, flatCenters, flatCentersOffset, opt_dest) {
+<span class="cstat-no" title="statement not covered" >  var i, ii, x, x1, x2, y1, y2;</span>
+<span class="cstat-no" title="statement not covered" >  var y = flatCenters[flatCentersOffset + 1];</span>
+  /** @type {Array.&lt;number&gt;} */
+<span class="cstat-no" title="statement not covered" >  var intersections = [];</span>
+  // Calculate intersections with the horizontal line
+<span class="cstat-no" title="statement not covered" >  var end = ends[0];</span>
+<span class="cstat-no" title="statement not covered" >  x1 = flatCoordinates[end - stride];</span>
+<span class="cstat-no" title="statement not covered" >  y1 = flatCoordinates[end - stride + 1];</span>
+<span class="cstat-no" title="statement not covered" >  for (i = offset; i &lt; end; i += stride) {</span>
+<span class="cstat-no" title="statement not covered" >    x2 = flatCoordinates[i];</span>
+<span class="cstat-no" title="statement not covered" >    y2 = flatCoordinates[i + 1];</span>
+<span class="cstat-no" title="statement not covered" >    if ((y &lt;= y1 &amp;&amp; y2 &lt;= y) || (y1 &lt;= y &amp;&amp; y &lt;= y2)) {</span>
+<span class="cstat-no" title="statement not covered" >      x = (y - y1) / (y2 - y1) * (x2 - x1) + x1;</span>
+<span class="cstat-no" title="statement not covered" >      intersections.push(x);</span>
+    }
+<span class="cstat-no" title="statement not covered" >    x1 = x2;</span>
+<span class="cstat-no" title="statement not covered" >    y1 = y2;</span>
+  }
+  // Find the longest segment of the horizontal line that has its center point
+  // inside the linear ring.
+<span class="cstat-no" title="statement not covered" >  var pointX = NaN;</span>
+<span class="cstat-no" title="statement not covered" >  var maxSegmentLength = -Infinity;</span>
+<span class="cstat-no" title="statement not covered" >  intersections.sort();</span>
+<span class="cstat-no" title="statement not covered" >  x1 = intersections[0];</span>
+<span class="cstat-no" title="statement not covered" >  for (i = 1, ii = intersections.length; i &lt; ii; ++i) {</span>
+<span class="cstat-no" title="statement not covered" >    x2 = intersections[i];</span>
+<span class="cstat-no" title="statement not covered" >    var segmentLength = Math.abs(x2 - x1);</span>
+<span class="cstat-no" title="statement not covered" >    if (segmentLength &gt; maxSegmentLength) {</span>
+<span class="cstat-no" title="statement not covered" >      x = (x1 + x2) / 2;</span>
+<span class="cstat-no" title="statement not covered" >      if (ol.geom.flat.contains.linearRingsContainsXY(</span>
+          flatCoordinates, offset, ends, stride, x, y)) {
+<span class="cstat-no" title="statement not covered" >        pointX = x;</span>
+<span class="cstat-no" title="statement not covered" >        maxSegmentLength = segmentLength;</span>
+      }
+    }
+<span class="cstat-no" title="statement not covered" >    x1 = x2;</span>
+  }
+<span class="cstat-no" title="statement not covered" >  if (isNaN(pointX)) {</span>
+    // There is no horizontal line that has its center point inside the linear
+    // ring.  Use the center of the the linear ring's extent.
+<span class="cstat-no" title="statement not covered" >    pointX = flatCenters[flatCentersOffset];</span>
+  }
+<span class="cstat-no" title="statement not covered" >  if (opt_dest) {</span>
+<span class="cstat-no" title="statement not covered" >    opt_dest.push(pointX, y);</span>
+<span class="cstat-no" title="statement not covered" >    return opt_dest;</span>
+  } else {
+<span class="cstat-no" title="statement not covered" >    return [pointX, y];</span>
+  }
+};
+&nbsp;
+&nbsp;
+/**
+ * @param {Array.&lt;number&gt;} flatCoordinates Flat coordinates.
+ * @param {number} offset Offset.
+ * @param {Array.&lt;Array.&lt;number&gt;&gt;} endss Endss.
+ * @param {number} stride Stride.
+ * @param {Array.&lt;number&gt;} flatCenters Flat centers.
+ * @return {Array.&lt;number&gt;} Interior points.
+ */
+ol.geom.flat.interiorpoint.linearRingss =
+<span class="fstat-no" title="function not covered" >    function(flatCoordinates, offset, endss, stride, flatCenters) {</span>
+<span class="cstat-no" title="statement not covered" >  goog.asserts.assert(2 * endss.length == flatCenters.length,</span>
+      'endss.length times 2 should be flatCenters.length');
+<span class="cstat-no" title="statement not covered" >  var interiorPoints = [];</span>
+<span class="cstat-no" title="statement not covered" >  var i, ii;</span>
+<span class="cstat-no" title="statement not covered" >  for (i = 0, ii = endss.length; i &lt; ii; ++i) {</span>
+<span class="cstat-no" title="statement not covered" >    var ends = endss[i];</span>
+<span class="cstat-no" title="statement not covered" >    interiorPoints = ol.geom.flat.interiorpoint.linearRings(flatCoordinates,</span>
+        offset, ends, stride, flatCenters, 2 * i, interiorPoints);
+<span class="cstat-no" title="statement not covered" >    offset = ends[ends.length - 1];</span>
+  }
+<span class="cstat-no" title="statement not covered" >  return interiorPoints;</span>
+};
+&nbsp;</pre></td></tr>
+</table></pre>
+<div class='push'></div><!-- for sticky footer -->
+</div><!-- /wrapper -->
+<div class='footer quiet pad2 space-top1 center small'>
+  Code coverage
+  generated by <a href="http://istanbul-js.org/" target="_blank">istanbul</a> at Fri Nov 06 2015 19:36:11 GMT+0100 (CET)
+</div>
+</div>
+<script src="../../../prettify.js"></script>
+<script>
+window.onload = function () {
+        if (typeof prettyPrint === 'function') {
+            prettyPrint();
+        }
+};
+</script>
+<script src="../../../sorter.js"></script>
+</body>
+</html>

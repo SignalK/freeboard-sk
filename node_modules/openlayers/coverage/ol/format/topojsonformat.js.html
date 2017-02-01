@@ -1,0 +1,1289 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <title>Code coverage report for ol/format/topojsonformat.js</title>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="../../prettify.css" />
+    <link rel="stylesheet" href="../../base.css" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style type='text/css'>
+        .coverage-summary .sorter {
+            background-image: url(../../sort-arrow-sprite.png);
+        }
+    </style>
+</head>
+<body>
+<div class='wrapper'>
+  <div class='pad1'>
+    <h1>
+      <a href="../../index.html">all files</a> / <a href="index.html">ol/format/</a> topojsonformat.js
+    </h1>
+    <div class='clearfix'>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">90.21% </span>
+        <span class="quiet">Statements</span>
+        <span class='fraction'>129/143</span>
+      </div>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">71.88% </span>
+        <span class="quiet">Branches</span>
+        <span class='fraction'>23/32</span>
+      </div>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">81.25% </span>
+        <span class="quiet">Functions</span>
+        <span class='fraction'>13/16</span>
+      </div>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">90.21% </span>
+        <span class="quiet">Lines</span>
+        <span class='fraction'>129/143</span>
+      </div>
+    </div>
+  </div>
+  <div class='status-line high'></div>
+<pre><table class="coverage">
+<tr><td class="line-count quiet">1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+28
+29
+30
+31
+32
+33
+34
+35
+36
+37
+38
+39
+40
+41
+42
+43
+44
+45
+46
+47
+48
+49
+50
+51
+52
+53
+54
+55
+56
+57
+58
+59
+60
+61
+62
+63
+64
+65
+66
+67
+68
+69
+70
+71
+72
+73
+74
+75
+76
+77
+78
+79
+80
+81
+82
+83
+84
+85
+86
+87
+88
+89
+90
+91
+92
+93
+94
+95
+96
+97
+98
+99
+100
+101
+102
+103
+104
+105
+106
+107
+108
+109
+110
+111
+112
+113
+114
+115
+116
+117
+118
+119
+120
+121
+122
+123
+124
+125
+126
+127
+128
+129
+130
+131
+132
+133
+134
+135
+136
+137
+138
+139
+140
+141
+142
+143
+144
+145
+146
+147
+148
+149
+150
+151
+152
+153
+154
+155
+156
+157
+158
+159
+160
+161
+162
+163
+164
+165
+166
+167
+168
+169
+170
+171
+172
+173
+174
+175
+176
+177
+178
+179
+180
+181
+182
+183
+184
+185
+186
+187
+188
+189
+190
+191
+192
+193
+194
+195
+196
+197
+198
+199
+200
+201
+202
+203
+204
+205
+206
+207
+208
+209
+210
+211
+212
+213
+214
+215
+216
+217
+218
+219
+220
+221
+222
+223
+224
+225
+226
+227
+228
+229
+230
+231
+232
+233
+234
+235
+236
+237
+238
+239
+240
+241
+242
+243
+244
+245
+246
+247
+248
+249
+250
+251
+252
+253
+254
+255
+256
+257
+258
+259
+260
+261
+262
+263
+264
+265
+266
+267
+268
+269
+270
+271
+272
+273
+274
+275
+276
+277
+278
+279
+280
+281
+282
+283
+284
+285
+286
+287
+288
+289
+290
+291
+292
+293
+294
+295
+296
+297
+298
+299
+300
+301
+302
+303
+304
+305
+306
+307
+308
+309
+310
+311
+312
+313
+314
+315
+316
+317
+318
+319
+320
+321
+322
+323
+324
+325
+326
+327
+328
+329
+330
+331
+332
+333
+334
+335
+336
+337
+338
+339
+340
+341
+342
+343
+344
+345
+346
+347
+348
+349
+350
+351
+352
+353
+354
+355
+356
+357
+358
+359
+360
+361
+362
+363
+364
+365
+366
+367
+368
+369
+370
+371
+372
+373
+374
+375
+376
+377
+378
+379
+380
+381
+382
+383
+384
+385
+386
+387
+388
+389
+390
+391
+392
+393
+394
+395
+396
+397
+398
+399
+400
+401
+402
+403
+404
+405
+406
+407
+408
+409</td><td class="line-coverage quiet"><span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">420×</span>
+<span class="cline-any cline-yes">420×</span>
+<span class="cline-any cline-yes">420×</span>
+<span class="cline-any cline-yes">420×</span>
+<span class="cline-any cline-yes">420×</span>
+<span class="cline-any cline-yes">1681×</span>
+<span class="cline-any cline-yes">1681×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1261×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1681×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1353×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">328×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1681×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">420×</span>
+<span class="cline-any cline-yes">15728×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">420×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">3×</span>
+<span class="cline-any cline-yes">3×</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">3×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">152×</span>
+<span class="cline-any cline-yes">152×</span>
+<span class="cline-any cline-yes">152×</span>
+<span class="cline-any cline-yes">153×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">152×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">29×</span>
+<span class="cline-any cline-yes">29×</span>
+<span class="cline-any cline-yes">29×</span>
+<span class="cline-any cline-yes">29×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">264×</span>
+<span class="cline-any cline-yes">264×</span>
+<span class="cline-any cline-yes">264×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">265×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">264×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">29×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">3×</span>
+<span class="cline-any cline-yes">3×</span>
+<span class="cline-any cline-yes">3×</span>
+<span class="cline-any cline-yes">3×</span>
+<span class="cline-any cline-yes">183×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">3×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">186×</span>
+<span class="cline-any cline-yes">186×</span>
+<span class="cline-any cline-yes">186×</span>
+<span class="cline-any cline-yes">186×</span>
+<span class="cline-any cline-yes">186×</span>
+<span class="cline-any cline-yes">3×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">183×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">186×</span>
+<span class="cline-any cline-yes">186×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">186×</span>
+<span class="cline-any cline-yes">179×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">186×</span>
+<span class="cline-any cline-yes">7×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">186×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">5×</span>
+<span class="cline-any cline-yes">5×</span>
+<span class="cline-any cline-yes">5×</span>
+<span class="cline-any cline-yes">5×</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">5×</span>
+<span class="cline-any cline-yes">5×</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">5×</span>
+<span class="cline-any cline-yes">5×</span>
+<span class="cline-any cline-yes">5×</span>
+<span class="cline-any cline-yes">5×</span>
+<span class="cline-any cline-yes">5×</span>
+<span class="cline-any cline-yes">6×</span>
+<span class="cline-any cline-yes">3×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">3×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">3×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">3×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">5×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-yes">986×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">986×</span>
+<span class="cline-any cline-yes">986×</span>
+<span class="cline-any cline-yes">986×</span>
+<span class="cline-any cline-yes">986×</span>
+<span class="cline-any cline-yes">986×</span>
+<span class="cline-any cline-yes">9595×</span>
+<span class="cline-any cline-yes">9595×</span>
+<span class="cline-any cline-yes">9595×</span>
+<span class="cline-any cline-yes">9595×</span>
+<span class="cline-any cline-yes">9595×</span>
+<span class="cline-any cline-yes">9595×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">9595×</span>
+<span class="cline-any cline-yes">9595×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">goog.provide('ol.format.TopoJSON');
+&nbsp;
+goog.require('goog.asserts');
+goog.require('goog.object');
+goog.require('ol.Feature');
+goog.require('ol.format.Feature');
+goog.require('ol.format.JSONFeature');
+goog.require('ol.geom.LineString');
+goog.require('ol.geom.MultiLineString');
+goog.require('ol.geom.MultiPoint');
+goog.require('ol.geom.MultiPolygon');
+goog.require('ol.geom.Point');
+goog.require('ol.geom.Polygon');
+goog.require('ol.proj');
+&nbsp;
+&nbsp;
+&nbsp;
+/**
+ * @classdesc
+ * Feature format for reading data in the TopoJSON format.
+ *
+ * @constructor
+ * @extends {ol.format.JSONFeature}
+ * @param {olx.format.TopoJSONOptions=} opt_options Options.
+ * @api stable
+ */
+ol.format.TopoJSON = function(opt_options) {
+&nbsp;
+  var options = opt_options ? <span class="branch-0 cbranch-no" title="branch not covered" >opt_options </span>: {};
+&nbsp;
+  goog.base(this);
+&nbsp;
+  /**
+   * @inheritDoc
+   */
+  this.defaultDataProjection = ol.proj.get(
+      options.defaultDataProjection ?
+<span class="branch-0 cbranch-no" title="branch not covered" >          options.defaultDataProjection </span>: 'EPSG:4326');
+&nbsp;
+};
+goog.inherits(ol.format.TopoJSON, ol.format.JSONFeature);
+&nbsp;
+&nbsp;
+/**
+ * @const {Array.&lt;string&gt;}
+ * @private
+ */
+ol.format.TopoJSON.EXTENSIONS_ = ['.topojson'];
+&nbsp;
+&nbsp;
+/**
+ * Concatenate arcs into a coordinate array.
+ * @param {Array.&lt;number&gt;} indices Indices of arcs to concatenate.  Negative
+ *     values indicate arcs need to be reversed.
+ * @param {Array.&lt;Array.&lt;ol.Coordinate&gt;&gt;} arcs Array of arcs (already
+ *     transformed).
+ * @return {Array.&lt;ol.Coordinate&gt;} Coordinates array.
+ * @private
+ */
+ol.format.TopoJSON.concatenateArcs_ = function(indices, arcs) {
+  /** @type {Array.&lt;ol.Coordinate&gt;} */
+  var coordinates = [];
+  var index, arc;
+  var i, ii;
+  var j, jj;
+  for (i = 0, ii = indices.length; i &lt; ii; ++i) {
+    index = indices[i];
+    if (i &gt; 0) {
+      // splicing together arcs, discard last point
+      coordinates.pop();
+    }
+    if (index &gt;= 0) {
+      // forward arc
+      arc = arcs[index];
+    } else {
+      // reverse arc
+      arc = arcs[~index].slice().reverse();
+    }
+    coordinates.push.apply(coordinates, arc);
+  }
+  // provide fresh copies of coordinate arrays
+  for (j = 0, jj = coordinates.length; j &lt; jj; ++j) {
+    coordinates[j] = coordinates[j].slice();
+  }
+  return coordinates;
+};
+&nbsp;
+&nbsp;
+/**
+ * Create a point from a TopoJSON geometry object.
+ *
+ * @param {TopoJSONGeometry} object TopoJSON object.
+ * @param {Array.&lt;number&gt;} scale Scale for each dimension.
+ * @param {Array.&lt;number&gt;} translate Translation for each dimension.
+ * @return {ol.geom.Point} Geometry.
+ * @private
+ */
+ol.format.TopoJSON.readPointGeometry_ = function(object, scale, translate) {
+  var coordinates = object.coordinates;
+  <span class="missing-if-branch" title="if path not taken" >I</span>if (scale &amp;&amp; <span class="branch-1 cbranch-no" title="branch not covered" >translate)</span> {
+<span class="cstat-no" title="statement not covered" >    ol.format.TopoJSON.transformVertex_(coordinates, scale, translate);</span>
+  }
+  return new ol.geom.Point(coordinates);
+};
+&nbsp;
+&nbsp;
+/**
+ * Create a multi-point from a TopoJSON geometry object.
+ *
+ * @param {TopoJSONGeometry} object TopoJSON object.
+ * @param {Array.&lt;number&gt;} scale Scale for each dimension.
+ * @param {Array.&lt;number&gt;} translate Translation for each dimension.
+ * @return {ol.geom.MultiPoint} Geometry.
+ * @private
+ */
+ol.format.TopoJSON.readMultiPointGeometry_ = <span class="fstat-no" title="function not covered" >function(object, scale,</span>
+    translate) {
+<span class="cstat-no" title="statement not covered" >  var coordinates = object.coordinates;</span>
+<span class="cstat-no" title="statement not covered" >  var i, ii;</span>
+<span class="cstat-no" title="statement not covered" >  if (scale &amp;&amp; translate) {</span>
+<span class="cstat-no" title="statement not covered" >    for (i = 0, ii = coordinates.length; i &lt; ii; ++i) {</span>
+<span class="cstat-no" title="statement not covered" >      ol.format.TopoJSON.transformVertex_(coordinates[i], scale, translate);</span>
+    }
+  }
+<span class="cstat-no" title="statement not covered" >  return new ol.geom.MultiPoint(coordinates);</span>
+};
+&nbsp;
+&nbsp;
+/**
+ * Create a linestring from a TopoJSON geometry object.
+ *
+ * @param {TopoJSONGeometry} object TopoJSON object.
+ * @param {Array.&lt;Array.&lt;ol.Coordinate&gt;&gt;} arcs Array of arcs.
+ * @return {ol.geom.LineString} Geometry.
+ * @private
+ */
+ol.format.TopoJSON.readLineStringGeometry_ = function(object, arcs) {
+  var coordinates = ol.format.TopoJSON.concatenateArcs_(object.arcs, arcs);
+  return new ol.geom.LineString(coordinates);
+};
+&nbsp;
+&nbsp;
+/**
+ * Create a multi-linestring from a TopoJSON geometry object.
+ *
+ * @param {TopoJSONGeometry} object TopoJSON object.
+ * @param {Array.&lt;Array.&lt;ol.Coordinate&gt;&gt;} arcs Array of arcs.
+ * @return {ol.geom.MultiLineString} Geometry.
+ * @private
+ */
+ol.format.TopoJSON.readMultiLineStringGeometry_ = <span class="fstat-no" title="function not covered" >function(object, arcs) {</span>
+<span class="cstat-no" title="statement not covered" >  var coordinates = [];</span>
+<span class="cstat-no" title="statement not covered" >  var i, ii;</span>
+<span class="cstat-no" title="statement not covered" >  for (i = 0, ii = object.arcs.length; i &lt; ii; ++i) {</span>
+<span class="cstat-no" title="statement not covered" >    coordinates[i] = ol.format.TopoJSON.concatenateArcs_(object.arcs[i], arcs);</span>
+  }
+<span class="cstat-no" title="statement not covered" >  return new ol.geom.MultiLineString(coordinates);</span>
+};
+&nbsp;
+&nbsp;
+/**
+ * Create a polygon from a TopoJSON geometry object.
+ *
+ * @param {TopoJSONGeometry} object TopoJSON object.
+ * @param {Array.&lt;Array.&lt;ol.Coordinate&gt;&gt;} arcs Array of arcs.
+ * @return {ol.geom.Polygon} Geometry.
+ * @private
+ */
+ol.format.TopoJSON.readPolygonGeometry_ = function(object, arcs) {
+  var coordinates = [];
+  var i, ii;
+  for (i = 0, ii = object.arcs.length; i &lt; ii; ++i) {
+    coordinates[i] = ol.format.TopoJSON.concatenateArcs_(object.arcs[i], arcs);
+  }
+  return new ol.geom.Polygon(coordinates);
+};
+&nbsp;
+&nbsp;
+/**
+ * Create a multi-polygon from a TopoJSON geometry object.
+ *
+ * @param {TopoJSONGeometry} object TopoJSON object.
+ * @param {Array.&lt;Array.&lt;ol.Coordinate&gt;&gt;} arcs Array of arcs.
+ * @return {ol.geom.MultiPolygon} Geometry.
+ * @private
+ */
+ol.format.TopoJSON.readMultiPolygonGeometry_ = function(object, arcs) {
+  var coordinates = [];
+  var polyArray, ringCoords, j, jj;
+  var i, ii;
+  for (i = 0, ii = object.arcs.length; i &lt; ii; ++i) {
+    // for each polygon
+    polyArray = object.arcs[i];
+    ringCoords = [];
+    for (j = 0, jj = polyArray.length; j &lt; jj; ++j) {
+      // for each ring
+      ringCoords[j] = ol.format.TopoJSON.concatenateArcs_(polyArray[j], arcs);
+    }
+    coordinates[i] = ringCoords;
+  }
+  return new ol.geom.MultiPolygon(coordinates);
+};
+&nbsp;
+&nbsp;
+/**
+ * @inheritDoc
+ */
+ol.format.TopoJSON.prototype.getExtensions = <span class="fstat-no" title="function not covered" >function() {</span>
+<span class="cstat-no" title="statement not covered" >  return ol.format.TopoJSON.EXTENSIONS_;</span>
+};
+&nbsp;
+&nbsp;
+/**
+ * Create features from a TopoJSON GeometryCollection object.
+ *
+ * @param {TopoJSONGeometryCollection} collection TopoJSON Geometry
+ *     object.
+ * @param {Array.&lt;Array.&lt;ol.Coordinate&gt;&gt;} arcs Array of arcs.
+ * @param {Array.&lt;number&gt;} scale Scale for each dimension.
+ * @param {Array.&lt;number&gt;} translate Translation for each dimension.
+ * @param {olx.format.ReadOptions=} opt_options Read options.
+ * @return {Array.&lt;ol.Feature&gt;} Array of features.
+ * @private
+ */
+ol.format.TopoJSON.readFeaturesFromGeometryCollection_ = function(
+    collection, arcs, scale, translate, opt_options) {
+  var geometries = collection.geometries;
+  var features = [];
+  var i, ii;
+  for (i = 0, ii = geometries.length; i &lt; ii; ++i) {
+    features[i] = ol.format.TopoJSON.readFeatureFromGeometry_(
+        geometries[i], arcs, scale, translate, opt_options);
+  }
+  return features;
+};
+&nbsp;
+&nbsp;
+/**
+ * Create a feature from a TopoJSON geometry object.
+ *
+ * @param {TopoJSONGeometry} object TopoJSON geometry object.
+ * @param {Array.&lt;Array.&lt;ol.Coordinate&gt;&gt;} arcs Array of arcs.
+ * @param {Array.&lt;number&gt;} scale Scale for each dimension.
+ * @param {Array.&lt;number&gt;} translate Translation for each dimension.
+ * @param {olx.format.ReadOptions=} opt_options Read options.
+ * @return {ol.Feature} Feature.
+ * @private
+ */
+ol.format.TopoJSON.readFeatureFromGeometry_ = function(object, arcs,
+    scale, translate, opt_options) {
+  var geometry;
+  var type = object.type;
+  var geometryReader = ol.format.TopoJSON.GEOMETRY_READERS_[type];
+  goog.asserts.assert(geometryReader, 'geometryReader should be defined');
+  if ((type === 'Point') || (type === 'MultiPoint')) {
+    geometry = geometryReader(object, scale, translate);
+  } else {
+    geometry = geometryReader(object, arcs);
+  }
+  var feature = new ol.Feature();
+  feature.setGeometry(/** @type {ol.geom.Geometry} */ (
+      ol.format.Feature.transformWithOptions(geometry, false, opt_options)));
+  if (object.id !== undefined) {
+    feature.setId(object.id);
+  }
+  if (object.properties) {
+    feature.setProperties(object.properties);
+  }
+  return feature;
+};
+&nbsp;
+&nbsp;
+/**
+ * Read all features from a TopoJSON source.
+ *
+ * @function
+ * @param {Document|Node|Object|string} source Source.
+ * @return {Array.&lt;ol.Feature&gt;} Features.
+ * @api stable
+ */
+ol.format.TopoJSON.prototype.readFeatures;
+&nbsp;
+&nbsp;
+/**
+ * @inheritDoc
+ */
+ol.format.TopoJSON.prototype.readFeaturesFromObject = function(
+    object, opt_options) {
+  <span class="missing-if-branch" title="else path not taken" >E</span>if (object.type == 'Topology') {
+    var topoJSONTopology = /** @type {TopoJSONTopology} */ (object);
+    var transform, scale = null, translate = null;
+    if (topoJSONTopology.transform) {
+      transform = topoJSONTopology.transform;
+      scale = transform.scale;
+      translate = transform.translate;
+    }
+    var arcs = topoJSONTopology.arcs;
+    if (transform) {
+      ol.format.TopoJSON.transformArcs_(arcs, scale, translate);
+    }
+    /** @type {Array.&lt;ol.Feature&gt;} */
+    var features = [];
+    var topoJSONFeatures = goog.object.getValues(topoJSONTopology.objects);
+    var i, ii;
+    var feature;
+    for (i = 0, ii = topoJSONFeatures.length; i &lt; ii; ++i) {
+      if (topoJSONFeatures[i].type === 'GeometryCollection') {
+        feature = /** @type {TopoJSONGeometryCollection} */
+            (topoJSONFeatures[i]);
+        features.push.apply(features,
+            ol.format.TopoJSON.readFeaturesFromGeometryCollection_(
+                feature, arcs, scale, translate, opt_options));
+      } else {
+        feature = /** @type {TopoJSONGeometry} */
+            (topoJSONFeatures[i]);
+        features.push(ol.format.TopoJSON.readFeatureFromGeometry_(
+            feature, arcs, scale, translate, opt_options));
+      }
+    }
+    return features;
+  } else {
+<span class="cstat-no" title="statement not covered" >    return [];</span>
+  }
+};
+&nbsp;
+&nbsp;
+/**
+ * Apply a linear transform to array of arcs.  The provided array of arcs is
+ * modified in place.
+ *
+ * @param {Array.&lt;Array.&lt;ol.Coordinate&gt;&gt;} arcs Array of arcs.
+ * @param {Array.&lt;number&gt;} scale Scale for each dimension.
+ * @param {Array.&lt;number&gt;} translate Translation for each dimension.
+ * @private
+ */
+ol.format.TopoJSON.transformArcs_ = function(arcs, scale, translate) {
+  var i, ii;
+  for (i = 0, ii = arcs.length; i &lt; ii; ++i) {
+    ol.format.TopoJSON.transformArc_(arcs[i], scale, translate);
+  }
+};
+&nbsp;
+&nbsp;
+/**
+ * Apply a linear transform to an arc.  The provided arc is modified in place.
+ *
+ * @param {Array.&lt;ol.Coordinate&gt;} arc Arc.
+ * @param {Array.&lt;number&gt;} scale Scale for each dimension.
+ * @param {Array.&lt;number&gt;} translate Translation for each dimension.
+ * @private
+ */
+ol.format.TopoJSON.transformArc_ = function(arc, scale, translate) {
+  var x = 0;
+  var y = 0;
+  var vertex;
+  var i, ii;
+  for (i = 0, ii = arc.length; i &lt; ii; ++i) {
+    vertex = arc[i];
+    x += vertex[0];
+    y += vertex[1];
+    vertex[0] = x;
+    vertex[1] = y;
+    ol.format.TopoJSON.transformVertex_(vertex, scale, translate);
+  }
+};
+&nbsp;
+&nbsp;
+/**
+ * Apply a linear transform to a vertex.  The provided vertex is modified in
+ * place.
+ *
+ * @param {ol.Coordinate} vertex Vertex.
+ * @param {Array.&lt;number&gt;} scale Scale for each dimension.
+ * @param {Array.&lt;number&gt;} translate Translation for each dimension.
+ * @private
+ */
+ol.format.TopoJSON.transformVertex_ = function(vertex, scale, translate) {
+  vertex[0] = vertex[0] * scale[0] + translate[0];
+  vertex[1] = vertex[1] * scale[1] + translate[1];
+};
+&nbsp;
+&nbsp;
+/**
+ * Read the projection from a TopoJSON source.
+ *
+ * @function
+ * @param {Document|Node|Object|string} object Source.
+ * @return {ol.proj.Projection} Projection.
+ * @api stable
+ */
+ol.format.TopoJSON.prototype.readProjection = function(object) {
+  return this.defaultDataProjection;
+};
+&nbsp;
+&nbsp;
+/**
+ * @const
+ * @private
+ * @type {Object.&lt;string, function(TopoJSONGeometry, Array, ...Array): ol.geom.Geometry&gt;}
+ */
+ol.format.TopoJSON.GEOMETRY_READERS_ = {
+  'Point': ol.format.TopoJSON.readPointGeometry_,
+  'LineString': ol.format.TopoJSON.readLineStringGeometry_,
+  'Polygon': ol.format.TopoJSON.readPolygonGeometry_,
+  'MultiPoint': ol.format.TopoJSON.readMultiPointGeometry_,
+  'MultiLineString': ol.format.TopoJSON.readMultiLineStringGeometry_,
+  'MultiPolygon': ol.format.TopoJSON.readMultiPolygonGeometry_
+};
+&nbsp;</pre></td></tr>
+</table></pre>
+<div class='push'></div><!-- for sticky footer -->
+</div><!-- /wrapper -->
+<div class='footer quiet pad2 space-top1 center small'>
+  Code coverage
+  generated by <a href="http://istanbul-js.org/" target="_blank">istanbul</a> at Fri Nov 06 2015 19:36:11 GMT+0100 (CET)
+</div>
+</div>
+<script src="../../prettify.js"></script>
+<script>
+window.onload = function () {
+        if (typeof prettyPrint === 'function') {
+            prettyPrint();
+        }
+};
+</script>
+<script src="../../sorter.js"></script>
+</body>
+</html>

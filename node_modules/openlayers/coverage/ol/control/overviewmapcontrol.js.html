@@ -1,0 +1,1658 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <title>Code coverage report for ol/control/overviewmapcontrol.js</title>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="../../prettify.css" />
+    <link rel="stylesheet" href="../../base.css" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style type='text/css'>
+        .coverage-summary .sorter {
+            background-image: url(../../sort-arrow-sprite.png);
+        }
+    </style>
+</head>
+<body>
+<div class='wrapper'>
+  <div class='pad1'>
+    <h1>
+      <a href="../../index.html">all files</a> / <a href="index.html">ol/control/</a> overviewmapcontrol.js
+    </h1>
+    <div class='clearfix'>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">52.43% </span>
+        <span class="quiet">Statements</span>
+        <span class='fraction'>108/206</span>
+      </div>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">36.96% </span>
+        <span class="quiet">Branches</span>
+        <span class='fraction'>34/92</span>
+      </div>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">33.33% </span>
+        <span class="quiet">Functions</span>
+        <span class='fraction'>7/21</span>
+      </div>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">52.43% </span>
+        <span class="quiet">Lines</span>
+        <span class='fraction'>108/206</span>
+      </div>
+    </div>
+  </div>
+  <div class='status-line medium'></div>
+<pre><table class="coverage">
+<tr><td class="line-count quiet">1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+28
+29
+30
+31
+32
+33
+34
+35
+36
+37
+38
+39
+40
+41
+42
+43
+44
+45
+46
+47
+48
+49
+50
+51
+52
+53
+54
+55
+56
+57
+58
+59
+60
+61
+62
+63
+64
+65
+66
+67
+68
+69
+70
+71
+72
+73
+74
+75
+76
+77
+78
+79
+80
+81
+82
+83
+84
+85
+86
+87
+88
+89
+90
+91
+92
+93
+94
+95
+96
+97
+98
+99
+100
+101
+102
+103
+104
+105
+106
+107
+108
+109
+110
+111
+112
+113
+114
+115
+116
+117
+118
+119
+120
+121
+122
+123
+124
+125
+126
+127
+128
+129
+130
+131
+132
+133
+134
+135
+136
+137
+138
+139
+140
+141
+142
+143
+144
+145
+146
+147
+148
+149
+150
+151
+152
+153
+154
+155
+156
+157
+158
+159
+160
+161
+162
+163
+164
+165
+166
+167
+168
+169
+170
+171
+172
+173
+174
+175
+176
+177
+178
+179
+180
+181
+182
+183
+184
+185
+186
+187
+188
+189
+190
+191
+192
+193
+194
+195
+196
+197
+198
+199
+200
+201
+202
+203
+204
+205
+206
+207
+208
+209
+210
+211
+212
+213
+214
+215
+216
+217
+218
+219
+220
+221
+222
+223
+224
+225
+226
+227
+228
+229
+230
+231
+232
+233
+234
+235
+236
+237
+238
+239
+240
+241
+242
+243
+244
+245
+246
+247
+248
+249
+250
+251
+252
+253
+254
+255
+256
+257
+258
+259
+260
+261
+262
+263
+264
+265
+266
+267
+268
+269
+270
+271
+272
+273
+274
+275
+276
+277
+278
+279
+280
+281
+282
+283
+284
+285
+286
+287
+288
+289
+290
+291
+292
+293
+294
+295
+296
+297
+298
+299
+300
+301
+302
+303
+304
+305
+306
+307
+308
+309
+310
+311
+312
+313
+314
+315
+316
+317
+318
+319
+320
+321
+322
+323
+324
+325
+326
+327
+328
+329
+330
+331
+332
+333
+334
+335
+336
+337
+338
+339
+340
+341
+342
+343
+344
+345
+346
+347
+348
+349
+350
+351
+352
+353
+354
+355
+356
+357
+358
+359
+360
+361
+362
+363
+364
+365
+366
+367
+368
+369
+370
+371
+372
+373
+374
+375
+376
+377
+378
+379
+380
+381
+382
+383
+384
+385
+386
+387
+388
+389
+390
+391
+392
+393
+394
+395
+396
+397
+398
+399
+400
+401
+402
+403
+404
+405
+406
+407
+408
+409
+410
+411
+412
+413
+414
+415
+416
+417
+418
+419
+420
+421
+422
+423
+424
+425
+426
+427
+428
+429
+430
+431
+432
+433
+434
+435
+436
+437
+438
+439
+440
+441
+442
+443
+444
+445
+446
+447
+448
+449
+450
+451
+452
+453
+454
+455
+456
+457
+458
+459
+460
+461
+462
+463
+464
+465
+466
+467
+468
+469
+470
+471
+472
+473
+474
+475
+476
+477
+478
+479
+480
+481
+482
+483
+484
+485
+486
+487
+488
+489
+490
+491
+492
+493
+494
+495
+496
+497
+498
+499
+500
+501
+502
+503
+504
+505
+506
+507
+508
+509
+510
+511
+512
+513
+514
+515
+516
+517
+518
+519
+520
+521
+522
+523
+524
+525
+526
+527
+528
+529
+530
+531
+532</td><td class="line-coverage quiet"><span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">4×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">4×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">4×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">4×</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">4×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">4×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">4×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">4×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">4×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">4×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">4×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">4×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">4×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">4×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">4×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">4×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">4×</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">4×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">4×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">4×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">4×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">4×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">4×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">4×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">4×</span>
+<span class="cline-any cline-yes">4×</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">4×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">4×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">4×</span>
+<span class="cline-any cline-yes">3×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">3×</span>
+<span class="cline-any cline-yes">3×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">3×</span>
+<span class="cline-any cline-yes">3×</span>
+<span class="cline-any cline-yes">3×</span>
+<span class="cline-any cline-yes">3×</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">4×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">3×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">goog.provide('ol.control.OverviewMap');
+&nbsp;
+goog.require('goog.asserts');
+goog.require('goog.dom');
+goog.require('goog.dom.classlist');
+goog.require('goog.events');
+goog.require('goog.events.EventType');
+goog.require('goog.math.Size');
+goog.require('goog.style');
+goog.require('ol');
+goog.require('ol.Collection');
+goog.require('ol.Map');
+goog.require('ol.MapEventType');
+goog.require('ol.Object');
+goog.require('ol.ObjectEventType');
+goog.require('ol.Overlay');
+goog.require('ol.OverlayPositioning');
+goog.require('ol.View');
+goog.require('ol.ViewProperty');
+goog.require('ol.control.Control');
+goog.require('ol.coordinate');
+goog.require('ol.css');
+goog.require('ol.extent');
+&nbsp;
+&nbsp;
+&nbsp;
+/**
+ * Create a new control with a map acting as an overview map for an other
+ * defined map.
+ * @constructor
+ * @extends {ol.control.Control}
+ * @param {olx.control.OverviewMapOptions=} opt_options OverviewMap options.
+ * @api
+ */
+ol.control.OverviewMap = function(opt_options) {
+&nbsp;
+  var options = opt_options ? <span class="branch-0 cbranch-no" title="branch not covered" >opt_options </span>: {};
+&nbsp;
+  /**
+   * @type {boolean}
+   * @private
+   */
+  this.collapsed_ = options.collapsed !== undefined ? <span class="branch-0 cbranch-no" title="branch not covered" >options.collapsed </span>: true;
+&nbsp;
+  /**
+   * @private
+   * @type {boolean}
+   */
+  this.collapsible_ = options.collapsible !== undefined ?
+<span class="branch-0 cbranch-no" title="branch not covered" >      options.collapsible </span>: true;
+&nbsp;
+  <span class="missing-if-branch" title="if path not taken" >I</span>if (!this.collapsible_) {
+<span class="cstat-no" title="statement not covered" >    this.collapsed_ = false;</span>
+  }
+&nbsp;
+  var className = options.className ? <span class="branch-0 cbranch-no" title="branch not covered" >options.className </span>: 'ol-overviewmap';
+&nbsp;
+  var tipLabel = options.tipLabel ? <span class="branch-0 cbranch-no" title="branch not covered" >options.tipLabel </span>: 'Overview map';
+&nbsp;
+  var collapseLabel = options.collapseLabel ? <span class="branch-0 cbranch-no" title="branch not covered" >options.collapseLabel </span>: '\u00AB';
+&nbsp;
+  /**
+   * @private
+   * @type {Node}
+   */
+  this.collapseLabel_ = goog.isString(collapseLabel) ?
+      goog.dom.createDom('SPAN', {}, collapseLabel) :
+<span class="branch-1 cbranch-no" title="branch not covered" >      collapseLabel;</span>
+&nbsp;
+  var label = options.label ? <span class="branch-0 cbranch-no" title="branch not covered" >options.label </span>: '\u00BB';
+&nbsp;
+  /**
+   * @private
+   * @type {Node}
+   */
+  this.label_ = goog.isString(label) ?
+      goog.dom.createDom('SPAN', {}, label) :
+<span class="branch-1 cbranch-no" title="branch not covered" >      label;</span>
+&nbsp;
+  var activeLabel = (this.collapsible_ &amp;&amp; !this.collapsed_) ?
+<span class="branch-0 cbranch-no" title="branch not covered" >      this.collapseLabel_ </span>: this.label_;
+  var button = goog.dom.createDom('BUTTON', {
+    'type': 'button',
+    'title': tipLabel
+  }, activeLabel);
+&nbsp;
+  goog.events.listen(button, goog.events.EventType.CLICK,
+      this.handleClick_, false, this);
+&nbsp;
+  var ovmapDiv = goog.dom.createDom('DIV', 'ol-overviewmap-map');
+&nbsp;
+  /**
+   * @type {ol.Map}
+   * @private
+   */
+  this.ovmap_ = new ol.Map({
+    controls: new ol.Collection(),
+    interactions: new ol.Collection(),
+    target: ovmapDiv,
+    view: options.view
+  });
+  var ovmap = this.ovmap_;
+&nbsp;
+  <span class="missing-if-branch" title="if path not taken" >I</span>if (options.layers) {
+<span class="cstat-no" title="statement not covered" >    options.layers.forEach(</span>
+        /**
+       * @param {ol.layer.Layer} layer Layer.
+       */
+<span class="fstat-no" title="function not covered" >        function(layer) {</span>
+<span class="cstat-no" title="statement not covered" >          ovmap.addLayer(layer);</span>
+        }, this);
+  }
+&nbsp;
+  var box = goog.dom.createDom('DIV', 'ol-overviewmap-box');
+&nbsp;
+  /**
+   * @type {ol.Overlay}
+   * @private
+   */
+  this.boxOverlay_ = new ol.Overlay({
+    position: [0, 0],
+    positioning: ol.OverlayPositioning.BOTTOM_LEFT,
+    element: box
+  });
+  this.ovmap_.addOverlay(this.boxOverlay_);
+&nbsp;
+  var cssClasses = className + ' ' + ol.css.CLASS_UNSELECTABLE + ' ' +
+      ol.css.CLASS_CONTROL +
+      (this.collapsed_ &amp;&amp; this.collapsible_ ? ' ol-collapsed' : <span class="branch-1 cbranch-no" title="branch not covered" >'')</span> +
+      (this.collapsible_ ? '' : <span class="branch-1 cbranch-no" title="branch not covered" >' ol-uncollapsible')</span>;
+  var element = goog.dom.createDom('DIV',
+      cssClasses, ovmapDiv, button);
+&nbsp;
+  var render = options.render ? <span class="branch-0 cbranch-no" title="branch not covered" >options.render </span>: ol.control.OverviewMap.render;
+&nbsp;
+  goog.base(this, {
+    element: element,
+    render: render,
+    target: options.target
+  });
+};
+goog.inherits(ol.control.OverviewMap, ol.control.Control);
+&nbsp;
+&nbsp;
+/**
+ * @inheritDoc
+ * @api
+ */
+ol.control.OverviewMap.prototype.setMap = function(map) {
+  var oldMap = this.getMap();
+  <span class="missing-if-branch" title="if path not taken" >I</span>if (map === oldMap) {
+<span class="cstat-no" title="statement not covered" >    return;</span>
+  }
+  if (oldMap) {
+    var oldView = oldMap.getView();
+    <span class="missing-if-branch" title="else path not taken" >E</span>if (oldView) {
+      this.unbindView_(oldView);
+    }
+  }
+  goog.base(this, 'setMap', map);
+&nbsp;
+  if (map) {
+    this.listenerKeys.push(goog.events.listen(
+        map, ol.ObjectEventType.PROPERTYCHANGE,
+        this.handleMapPropertyChange_, false, this));
+&nbsp;
+    // TODO: to really support map switching, this would need to be reworked
+    <span class="missing-if-branch" title="else path not taken" >E</span>if (this.ovmap_.getLayers().getLength() === 0) {
+      this.ovmap_.setLayerGroup(map.getLayerGroup());
+    }
+&nbsp;
+    var view = map.getView();
+    <span class="missing-if-branch" title="else path not taken" >E</span>if (view) {
+      this.bindView_(view);
+      if (view.isDef()) {
+        this.ovmap_.updateSize();
+        this.resetExtent_();
+      }
+    }
+  }
+};
+&nbsp;
+&nbsp;
+/**
+ * Handle map property changes.  This only deals with changes to the map's view.
+ * @param {ol.ObjectEvent} event The propertychange event.
+ * @private
+ */
+ol.control.OverviewMap.prototype.handleMapPropertyChange_ = function(event) {
+  <span class="missing-if-branch" title="else path not taken" >E</span>if (event.key === ol.MapProperty.VIEW) {
+    var oldView = /** @type {ol.View} */ (event.oldValue);
+    <span class="missing-if-branch" title="else path not taken" >E</span>if (oldView) {
+      this.unbindView_(oldView);
+    }
+    var newView = this.getMap().getView();
+    this.bindView_(newView);
+  }
+};
+&nbsp;
+&nbsp;
+/**
+ * Register listeners for view property changes.
+ * @param {ol.View} view The view.
+ * @private
+ */
+ol.control.OverviewMap.prototype.bindView_ = function(view) {
+  goog.events.listen(view,
+      ol.Object.getChangeEventType(ol.ViewProperty.ROTATION),
+      this.handleRotationChanged_, false, this);
+};
+&nbsp;
+&nbsp;
+/**
+ * Unregister listeners for view property changes.
+ * @param {ol.View} view The view.
+ * @private
+ */
+ol.control.OverviewMap.prototype.unbindView_ = function(view) {
+  goog.events.unlisten(view,
+      ol.Object.getChangeEventType(ol.ViewProperty.ROTATION),
+      this.handleRotationChanged_, false, this);
+};
+&nbsp;
+&nbsp;
+/**
+ * Handle rotation changes to the main map.
+ * TODO: This should rotate the extent rectrangle instead of the
+ * overview map's view.
+ * @private
+ */
+ol.control.OverviewMap.prototype.handleRotationChanged_ = function() {
+  this.ovmap_.getView().setRotation(this.getMap().getView().getRotation());
+};
+&nbsp;
+&nbsp;
+/**
+ * Update the overview map element.
+ * @param {ol.MapEvent} mapEvent Map event.
+ * @this {ol.control.OverviewMap}
+ * @api
+ */
+ol.control.OverviewMap.render = <span class="fstat-no" title="function not covered" >function(mapEvent) {</span>
+<span class="cstat-no" title="statement not covered" >  this.validateExtent_();</span>
+<span class="cstat-no" title="statement not covered" >  this.updateBox_();</span>
+};
+&nbsp;
+&nbsp;
+/**
+ * Reset the overview map extent if the box size (width or
+ * height) is less than the size of the overview map size times minRatio
+ * or is greater than the size of the overview size times maxRatio.
+ *
+ * If the map extent was not reset, the box size can fits in the defined
+ * ratio sizes. This method then checks if is contained inside the overview
+ * map current extent. If not, recenter the overview map to the current
+ * main map center location.
+ * @private
+ */
+ol.control.OverviewMap.prototype.validateExtent_ = <span class="fstat-no" title="function not covered" >function() {</span>
+<span class="cstat-no" title="statement not covered" >  var map = this.getMap();</span>
+<span class="cstat-no" title="statement not covered" >  var ovmap = this.ovmap_;</span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" >  if (!map.isRendered() || !ovmap.isRendered()) {</span>
+<span class="cstat-no" title="statement not covered" >    return;</span>
+  }
+&nbsp;
+<span class="cstat-no" title="statement not covered" >  var mapSize = map.getSize();</span>
+<span class="cstat-no" title="statement not covered" >  goog.asserts.assertArray(mapSize, 'mapSize should be an array');</span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" >  var view = map.getView();</span>
+<span class="cstat-no" title="statement not covered" >  goog.asserts.assert(view, 'view should be defined');</span>
+<span class="cstat-no" title="statement not covered" >  var extent = view.calculateExtent(mapSize);</span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" >  var ovmapSize = ovmap.getSize();</span>
+<span class="cstat-no" title="statement not covered" >  goog.asserts.assertArray(ovmapSize, 'ovmapSize should be an array');</span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" >  var ovview = ovmap.getView();</span>
+<span class="cstat-no" title="statement not covered" >  goog.asserts.assert(ovview, 'ovview should be defined');</span>
+<span class="cstat-no" title="statement not covered" >  var ovextent = ovview.calculateExtent(ovmapSize);</span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" >  var topLeftPixel =</span>
+      ovmap.getPixelFromCoordinate(ol.extent.getTopLeft(extent));
+<span class="cstat-no" title="statement not covered" >  var bottomRightPixel =</span>
+      ovmap.getPixelFromCoordinate(ol.extent.getBottomRight(extent));
+<span class="cstat-no" title="statement not covered" >  var boxSize = new goog.math.Size(</span>
+      Math.abs(topLeftPixel[0] - bottomRightPixel[0]),
+      Math.abs(topLeftPixel[1] - bottomRightPixel[1]));
+&nbsp;
+<span class="cstat-no" title="statement not covered" >  var ovmapWidth = ovmapSize[0];</span>
+<span class="cstat-no" title="statement not covered" >  var ovmapHeight = ovmapSize[1];</span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" >  if (boxSize.width &lt; ovmapWidth * ol.OVERVIEWMAP_MIN_RATIO ||</span>
+      boxSize.height &lt; ovmapHeight * ol.OVERVIEWMAP_MIN_RATIO ||
+      boxSize.width &gt; ovmapWidth * ol.OVERVIEWMAP_MAX_RATIO ||
+      boxSize.height &gt; ovmapHeight * ol.OVERVIEWMAP_MAX_RATIO) {
+<span class="cstat-no" title="statement not covered" >    this.resetExtent_();</span>
+  } else <span class="cstat-no" title="statement not covered" >if (!ol.extent.containsExtent(ovextent, extent)) {</span>
+<span class="cstat-no" title="statement not covered" >    this.recenter_();</span>
+  }
+};
+&nbsp;
+&nbsp;
+/**
+ * Reset the overview map extent to half calculated min and max ratio times
+ * the extent of the main map.
+ * @private
+ */
+ol.control.OverviewMap.prototype.resetExtent_ = function() {
+  <span class="missing-if-branch" title="if path not taken" >I</span>if (ol.OVERVIEWMAP_MAX_RATIO === 0 || ol.OVERVIEWMAP_MIN_RATIO === 0) {
+<span class="cstat-no" title="statement not covered" >    return;</span>
+  }
+&nbsp;
+  var map = this.getMap();
+  var ovmap = this.ovmap_;
+&nbsp;
+  var mapSize = map.getSize();
+  goog.asserts.assertArray(mapSize, 'mapSize should be an array');
+&nbsp;
+  var view = map.getView();
+  goog.asserts.assert(view, 'view should be defined');
+  var extent = view.calculateExtent(mapSize);
+&nbsp;
+  var ovmapSize = ovmap.getSize();
+  goog.asserts.assertArray(ovmapSize, 'ovmapSize should be an array');
+&nbsp;
+  var ovview = ovmap.getView();
+  goog.asserts.assert(ovview, 'ovview should be defined');
+&nbsp;
+  // get how many times the current map overview could hold different
+  // box sizes using the min and max ratio, pick the step in the middle used
+  // to calculate the extent from the main map to set it to the overview map,
+  var steps = Math.log(
+      ol.OVERVIEWMAP_MAX_RATIO / ol.OVERVIEWMAP_MIN_RATIO) / Math.LN2;
+  var ratio = 1 / (Math.pow(2, steps / 2) * ol.OVERVIEWMAP_MIN_RATIO);
+  ol.extent.scaleFromCenter(extent, ratio);
+  ovview.fit(extent, ovmapSize);
+};
+&nbsp;
+&nbsp;
+/**
+ * Set the center of the overview map to the map center without changing its
+ * resolution.
+ * @private
+ */
+ol.control.OverviewMap.prototype.recenter_ = <span class="fstat-no" title="function not covered" >function() {</span>
+<span class="cstat-no" title="statement not covered" >  var map = this.getMap();</span>
+<span class="cstat-no" title="statement not covered" >  var ovmap = this.ovmap_;</span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" >  var view = map.getView();</span>
+<span class="cstat-no" title="statement not covered" >  goog.asserts.assert(view, 'view should be defined');</span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" >  var ovview = ovmap.getView();</span>
+<span class="cstat-no" title="statement not covered" >  goog.asserts.assert(ovview, 'ovview should be defined');</span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" >  ovview.setCenter(view.getCenter());</span>
+};
+&nbsp;
+&nbsp;
+/**
+ * Update the box using the main map extent
+ * @private
+ */
+ol.control.OverviewMap.prototype.updateBox_ = <span class="fstat-no" title="function not covered" >function() {</span>
+<span class="cstat-no" title="statement not covered" >  var map = this.getMap();</span>
+<span class="cstat-no" title="statement not covered" >  var ovmap = this.ovmap_;</span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" >  if (!map.isRendered() || !ovmap.isRendered()) {</span>
+<span class="cstat-no" title="statement not covered" >    return;</span>
+  }
+&nbsp;
+<span class="cstat-no" title="statement not covered" >  var mapSize = map.getSize();</span>
+<span class="cstat-no" title="statement not covered" >  goog.asserts.assertArray(mapSize, 'mapSize should be an array');</span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" >  var view = map.getView();</span>
+<span class="cstat-no" title="statement not covered" >  goog.asserts.assert(view, 'view should be defined');</span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" >  var ovview = ovmap.getView();</span>
+<span class="cstat-no" title="statement not covered" >  goog.asserts.assert(ovview, 'ovview should be defined');</span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" >  var ovmapSize = ovmap.getSize();</span>
+<span class="cstat-no" title="statement not covered" >  goog.asserts.assertArray(ovmapSize, 'ovmapSize should be an array');</span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" >  var rotation = view.getRotation();</span>
+<span class="cstat-no" title="statement not covered" >  goog.asserts.assert(rotation !== undefined, 'rotation should be defined');</span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" >  var overlay = this.boxOverlay_;</span>
+<span class="cstat-no" title="statement not covered" >  var box = this.boxOverlay_.getElement();</span>
+<span class="cstat-no" title="statement not covered" >  var extent = view.calculateExtent(mapSize);</span>
+<span class="cstat-no" title="statement not covered" >  var ovresolution = ovview.getResolution();</span>
+<span class="cstat-no" title="statement not covered" >  var bottomLeft = ol.extent.getBottomLeft(extent);</span>
+<span class="cstat-no" title="statement not covered" >  var topRight = ol.extent.getTopRight(extent);</span>
+&nbsp;
+  // set position using bottom left coordinates
+<span class="cstat-no" title="statement not covered" >  var rotateBottomLeft = this.calculateCoordinateRotate_(rotation, bottomLeft);</span>
+<span class="cstat-no" title="statement not covered" >  overlay.setPosition(rotateBottomLeft);</span>
+&nbsp;
+  // set box size calculated from map extent size and overview map resolution
+<span class="cstat-no" title="statement not covered" >  if (box) {</span>
+<span class="cstat-no" title="statement not covered" >    var boxWidth = Math.abs((bottomLeft[0] - topRight[0]) / ovresolution);</span>
+<span class="cstat-no" title="statement not covered" >    var boxHeight = Math.abs((topRight[1] - bottomLeft[1]) / ovresolution);</span>
+<span class="cstat-no" title="statement not covered" >    goog.style.setBorderBoxSize(box, new goog.math.Size(</span>
+        boxWidth, boxHeight));
+  }
+};
+&nbsp;
+&nbsp;
+/**
+ * @param {number} rotation Target rotation.
+ * @param {ol.Coordinate} coordinate Coordinate.
+ * @return {ol.Coordinate|undefined} Coordinate for rotation and center anchor.
+ * @private
+ */
+ol.control.OverviewMap.prototype.calculateCoordinateRotate_ = <span class="fstat-no" title="function not covered" >function(</span>
+    rotation, coordinate) {
+<span class="cstat-no" title="statement not covered" >  var coordinateRotate;</span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" >  var map = this.getMap();</span>
+<span class="cstat-no" title="statement not covered" >  var view = map.getView();</span>
+<span class="cstat-no" title="statement not covered" >  goog.asserts.assert(view, 'view should be defined');</span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" >  var currentCenter = view.getCenter();</span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" >  if (currentCenter) {</span>
+<span class="cstat-no" title="statement not covered" >    coordinateRotate = [</span>
+      coordinate[0] - currentCenter[0],
+      coordinate[1] - currentCenter[1]
+    ];
+<span class="cstat-no" title="statement not covered" >    ol.coordinate.rotate(coordinateRotate, rotation);</span>
+<span class="cstat-no" title="statement not covered" >    ol.coordinate.add(coordinateRotate, currentCenter);</span>
+  }
+<span class="cstat-no" title="statement not covered" >  return coordinateRotate;</span>
+};
+&nbsp;
+&nbsp;
+/**
+ * @param {goog.events.BrowserEvent} event The event to handle
+ * @private
+ */
+ol.control.OverviewMap.prototype.handleClick_ = <span class="fstat-no" title="function not covered" >function(event) {</span>
+<span class="cstat-no" title="statement not covered" >  event.preventDefault();</span>
+<span class="cstat-no" title="statement not covered" >  this.handleToggle_();</span>
+};
+&nbsp;
+&nbsp;
+/**
+ * @private
+ */
+ol.control.OverviewMap.prototype.handleToggle_ = <span class="fstat-no" title="function not covered" >function() {</span>
+<span class="cstat-no" title="statement not covered" >  goog.dom.classlist.toggle(this.element, 'ol-collapsed');</span>
+<span class="cstat-no" title="statement not covered" >  if (this.collapsed_) {</span>
+<span class="cstat-no" title="statement not covered" >    goog.dom.replaceNode(this.collapseLabel_, this.label_);</span>
+  } else {
+<span class="cstat-no" title="statement not covered" >    goog.dom.replaceNode(this.label_, this.collapseLabel_);</span>
+  }
+<span class="cstat-no" title="statement not covered" >  this.collapsed_ = !this.collapsed_;</span>
+&nbsp;
+  // manage overview map if it had not been rendered before and control
+  // is expanded
+<span class="cstat-no" title="statement not covered" >  var ovmap = this.ovmap_;</span>
+<span class="cstat-no" title="statement not covered" >  if (!this.collapsed_ &amp;&amp; !ovmap.isRendered()) {</span>
+<span class="cstat-no" title="statement not covered" >    ovmap.updateSize();</span>
+<span class="cstat-no" title="statement not covered" >    this.resetExtent_();</span>
+<span class="cstat-no" title="statement not covered" >    goog.events.listenOnce(ovmap, ol.MapEventType.POSTRENDER,</span>
+<span class="fstat-no" title="function not covered" >        function(event) {</span>
+<span class="cstat-no" title="statement not covered" >          this.updateBox_();</span>
+        },
+        false, this);
+  }
+};
+&nbsp;
+&nbsp;
+/**
+ * Return `true` if the overview map is collapsible, `false` otherwise.
+ * @return {boolean} True if the widget is collapsible.
+ * @api stable
+ */
+ol.control.OverviewMap.prototype.getCollapsible = <span class="fstat-no" title="function not covered" >function() {</span>
+<span class="cstat-no" title="statement not covered" >  return this.collapsible_;</span>
+};
+&nbsp;
+&nbsp;
+/**
+ * Set whether the overview map should be collapsible.
+ * @param {boolean} collapsible True if the widget is collapsible.
+ * @api stable
+ */
+ol.control.OverviewMap.prototype.setCollapsible = <span class="fstat-no" title="function not covered" >function(collapsible) {</span>
+<span class="cstat-no" title="statement not covered" >  if (this.collapsible_ === collapsible) {</span>
+<span class="cstat-no" title="statement not covered" >    return;</span>
+  }
+<span class="cstat-no" title="statement not covered" >  this.collapsible_ = collapsible;</span>
+<span class="cstat-no" title="statement not covered" >  goog.dom.classlist.toggle(this.element, 'ol-uncollapsible');</span>
+<span class="cstat-no" title="statement not covered" >  if (!collapsible &amp;&amp; this.collapsed_) {</span>
+<span class="cstat-no" title="statement not covered" >    this.handleToggle_();</span>
+  }
+};
+&nbsp;
+&nbsp;
+/**
+ * Collapse or expand the overview map according to the passed parameter. Will
+ * not do anything if the overview map isn't collapsible or if the current
+ * collapsed state is already the one requested.
+ * @param {boolean} collapsed True if the widget is collapsed.
+ * @api stable
+ */
+ol.control.OverviewMap.prototype.setCollapsed = <span class="fstat-no" title="function not covered" >function(collapsed) {</span>
+<span class="cstat-no" title="statement not covered" >  if (!this.collapsible_ || this.collapsed_ === collapsed) {</span>
+<span class="cstat-no" title="statement not covered" >    return;</span>
+  }
+<span class="cstat-no" title="statement not covered" >  this.handleToggle_();</span>
+};
+&nbsp;
+&nbsp;
+/**
+ * Determine if the overview map is collapsed.
+ * @return {boolean} The overview map is collapsed.
+ * @api stable
+ */
+ol.control.OverviewMap.prototype.getCollapsed = <span class="fstat-no" title="function not covered" >function() {</span>
+<span class="cstat-no" title="statement not covered" >  return this.collapsed_;</span>
+};
+&nbsp;
+&nbsp;
+/**
+ * Return the overview map.
+ * @return {ol.Map} Overview map.
+ * @api
+ */
+ol.control.OverviewMap.prototype.getOverviewMap = <span class="fstat-no" title="function not covered" >function() {</span>
+<span class="cstat-no" title="statement not covered" >  return this.ovmap_;</span>
+};
+&nbsp;</pre></td></tr>
+</table></pre>
+<div class='push'></div><!-- for sticky footer -->
+</div><!-- /wrapper -->
+<div class='footer quiet pad2 space-top1 center small'>
+  Code coverage
+  generated by <a href="http://istanbul-js.org/" target="_blank">istanbul</a> at Fri Nov 06 2015 19:36:11 GMT+0100 (CET)
+</div>
+</div>
+<script src="../../prettify.js"></script>
+<script>
+window.onload = function () {
+        if (typeof prettyPrint === 'function') {
+            prettyPrint();
+        }
+};
+</script>
+<script src="../../sorter.js"></script>
+</body>
+</html>

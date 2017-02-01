@@ -1,0 +1,845 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <title>Code coverage report for ol/geom/flat/closestflatgeom.js</title>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="../../../prettify.css" />
+    <link rel="stylesheet" href="../../../base.css" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style type='text/css'>
+        .coverage-summary .sorter {
+            background-image: url(../../../sort-arrow-sprite.png);
+        }
+    </style>
+</head>
+<body>
+<div class='wrapper'>
+  <div class='pad1'>
+    <h1>
+      <a href="../../../index.html">all files</a> / <a href="index.html">ol/geom/flat/</a> closestflatgeom.js
+    </h1>
+    <div class='clearfix'>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">58% </span>
+        <span class="quiet">Statements</span>
+        <span class='fraction'>58/100</span>
+      </div>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">50% </span>
+        <span class="quiet">Branches</span>
+        <span class='fraction'>14/28</span>
+      </div>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">42.86% </span>
+        <span class="quiet">Functions</span>
+        <span class='fraction'>3/7</span>
+      </div>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">58% </span>
+        <span class="quiet">Lines</span>
+        <span class='fraction'>58/100</span>
+      </div>
+    </div>
+  </div>
+  <div class='status-line medium'></div>
+<pre><table class="coverage">
+<tr><td class="line-count quiet">1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+28
+29
+30
+31
+32
+33
+34
+35
+36
+37
+38
+39
+40
+41
+42
+43
+44
+45
+46
+47
+48
+49
+50
+51
+52
+53
+54
+55
+56
+57
+58
+59
+60
+61
+62
+63
+64
+65
+66
+67
+68
+69
+70
+71
+72
+73
+74
+75
+76
+77
+78
+79
+80
+81
+82
+83
+84
+85
+86
+87
+88
+89
+90
+91
+92
+93
+94
+95
+96
+97
+98
+99
+100
+101
+102
+103
+104
+105
+106
+107
+108
+109
+110
+111
+112
+113
+114
+115
+116
+117
+118
+119
+120
+121
+122
+123
+124
+125
+126
+127
+128
+129
+130
+131
+132
+133
+134
+135
+136
+137
+138
+139
+140
+141
+142
+143
+144
+145
+146
+147
+148
+149
+150
+151
+152
+153
+154
+155
+156
+157
+158
+159
+160
+161
+162
+163
+164
+165
+166
+167
+168
+169
+170
+171
+172
+173
+174
+175
+176
+177
+178
+179
+180
+181
+182
+183
+184
+185
+186
+187
+188
+189
+190
+191
+192
+193
+194
+195
+196
+197
+198
+199
+200
+201
+202
+203
+204
+205
+206
+207
+208
+209
+210
+211
+212
+213
+214
+215
+216
+217
+218
+219
+220
+221
+222
+223
+224
+225
+226
+227
+228
+229
+230
+231
+232
+233
+234
+235
+236
+237
+238
+239
+240
+241
+242
+243
+244
+245
+246
+247
+248
+249
+250
+251
+252
+253
+254
+255
+256
+257
+258
+259
+260
+261</td><td class="line-coverage quiet"><span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">244×</span>
+<span class="cline-any cline-yes">244×</span>
+<span class="cline-any cline-yes">244×</span>
+<span class="cline-any cline-yes">244×</span>
+<span class="cline-any cline-yes">244×</span>
+<span class="cline-any cline-yes">244×</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">244×</span>
+<span class="cline-any cline-yes">244×</span>
+<span class="cline-any cline-yes">144×</span>
+<span class="cline-any cline-yes">100×</span>
+<span class="cline-any cline-yes">5×</span>
+<span class="cline-any cline-yes">12×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">5×</span>
+<span class="cline-any cline-yes">5×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">95×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">239×</span>
+<span class="cline-any cline-yes">478×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">239×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">5×</span>
+<span class="cline-any cline-yes">5×</span>
+<span class="cline-any cline-yes">5×</span>
+<span class="cline-any cline-yes">211×</span>
+<span class="cline-any cline-yes">211×</span>
+<span class="cline-any cline-yes">211×</span>
+<span class="cline-any cline-yes">211×</span>
+<span class="cline-any cline-yes">19×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">211×</span>
+<span class="cline-any cline-yes">211×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">5×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">8×</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">8×</span>
+<span class="cline-any cline-yes">8×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">8×</span>
+<span class="cline-any cline-yes">8×</span>
+<span class="cline-any cline-yes">8×</span>
+<span class="cline-any cline-yes">8×</span>
+<span class="cline-any cline-yes">244×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">244×</span>
+<span class="cline-any cline-yes">244×</span>
+<span class="cline-any cline-yes">113×</span>
+<span class="cline-any cline-yes">113×</span>
+<span class="cline-any cline-yes">228×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">113×</span>
+<span class="cline-any cline-yes">113×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">131×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">8×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">8×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">goog.provide('ol.geom.flat.closest');
+&nbsp;
+goog.require('goog.asserts');
+goog.require('goog.math');
+goog.require('ol.math');
+&nbsp;
+&nbsp;
+/**
+ * Returns the point on the 2D line segment flatCoordinates[offset1] to
+ * flatCoordinates[offset2] that is closest to the point (x, y).  Extra
+ * dimensions are linearly interpolated.
+ * @param {Array.&lt;number&gt;} flatCoordinates Flat coordinates.
+ * @param {number} offset1 Offset 1.
+ * @param {number} offset2 Offset 2.
+ * @param {number} stride Stride.
+ * @param {number} x X.
+ * @param {number} y Y.
+ * @param {Array.&lt;number&gt;} closestPoint Closest point.
+ */
+ol.geom.flat.closest.point =
+    function(flatCoordinates, offset1, offset2, stride, x, y, closestPoint) {
+  var x1 = flatCoordinates[offset1];
+  var y1 = flatCoordinates[offset1 + 1];
+  var dx = flatCoordinates[offset2] - x1;
+  var dy = flatCoordinates[offset2 + 1] - y1;
+  var i, offset;
+  <span class="missing-if-branch" title="if path not taken" >I</span>if (dx === 0 &amp;&amp; <span class="branch-1 cbranch-no" title="branch not covered" >dy === 0)</span> {
+<span class="cstat-no" title="statement not covered" >    offset = offset1;</span>
+  } else {
+    var t = ((x - x1) * dx + (y - y1) * dy) / (dx * dx + dy * dy);
+    if (t &gt; 1) {
+      offset = offset2;
+    } else if (t &gt; 0) {
+      for (i = 0; i &lt; stride; ++i) {
+        closestPoint[i] = goog.math.lerp(flatCoordinates[offset1 + i],
+            flatCoordinates[offset2 + i], t);
+      }
+      closestPoint.length = stride;
+      return;
+    } else {
+      offset = offset1;
+    }
+  }
+  for (i = 0; i &lt; stride; ++i) {
+    closestPoint[i] = flatCoordinates[offset + i];
+  }
+  closestPoint.length = stride;
+};
+&nbsp;
+&nbsp;
+/**
+ * Return the squared of the largest distance between any pair of consecutive
+ * coordinates.
+ * @param {Array.&lt;number&gt;} flatCoordinates Flat coordinates.
+ * @param {number} offset Offset.
+ * @param {number} end End.
+ * @param {number} stride Stride.
+ * @param {number} maxSquaredDelta Max squared delta.
+ * @return {number} Max squared delta.
+ */
+ol.geom.flat.closest.getMaxSquaredDelta =
+    function(flatCoordinates, offset, end, stride, maxSquaredDelta) {
+  var x1 = flatCoordinates[offset];
+  var y1 = flatCoordinates[offset + 1];
+  for (offset += stride; offset &lt; end; offset += stride) {
+    var x2 = flatCoordinates[offset];
+    var y2 = flatCoordinates[offset + 1];
+    var squaredDelta = ol.math.squaredDistance(x1, y1, x2, y2);
+    if (squaredDelta &gt; maxSquaredDelta) {
+      maxSquaredDelta = squaredDelta;
+    }
+    x1 = x2;
+    y1 = y2;
+  }
+  return maxSquaredDelta;
+};
+&nbsp;
+&nbsp;
+/**
+ * @param {Array.&lt;number&gt;} flatCoordinates Flat coordinates.
+ * @param {number} offset Offset.
+ * @param {Array.&lt;number&gt;} ends Ends.
+ * @param {number} stride Stride.
+ * @param {number} maxSquaredDelta Max squared delta.
+ * @return {number} Max squared delta.
+ */
+ol.geom.flat.closest.getsMaxSquaredDelta =
+<span class="fstat-no" title="function not covered" >    function(flatCoordinates, offset, ends, stride, maxSquaredDelta) {</span>
+<span class="cstat-no" title="statement not covered" >  var i, ii;</span>
+<span class="cstat-no" title="statement not covered" >  for (i = 0, ii = ends.length; i &lt; ii; ++i) {</span>
+<span class="cstat-no" title="statement not covered" >    var end = ends[i];</span>
+<span class="cstat-no" title="statement not covered" >    maxSquaredDelta = ol.geom.flat.closest.getMaxSquaredDelta(</span>
+        flatCoordinates, offset, end, stride, maxSquaredDelta);
+<span class="cstat-no" title="statement not covered" >    offset = end;</span>
+  }
+<span class="cstat-no" title="statement not covered" >  return maxSquaredDelta;</span>
+};
+&nbsp;
+&nbsp;
+/**
+ * @param {Array.&lt;number&gt;} flatCoordinates Flat coordinates.
+ * @param {number} offset Offset.
+ * @param {Array.&lt;Array.&lt;number&gt;&gt;} endss Endss.
+ * @param {number} stride Stride.
+ * @param {number} maxSquaredDelta Max squared delta.
+ * @return {number} Max squared delta.
+ */
+ol.geom.flat.closest.getssMaxSquaredDelta =
+<span class="fstat-no" title="function not covered" >    function(flatCoordinates, offset, endss, stride, maxSquaredDelta) {</span>
+<span class="cstat-no" title="statement not covered" >  var i, ii;</span>
+<span class="cstat-no" title="statement not covered" >  for (i = 0, ii = endss.length; i &lt; ii; ++i) {</span>
+<span class="cstat-no" title="statement not covered" >    var ends = endss[i];</span>
+<span class="cstat-no" title="statement not covered" >    maxSquaredDelta = ol.geom.flat.closest.getsMaxSquaredDelta(</span>
+        flatCoordinates, offset, ends, stride, maxSquaredDelta);
+<span class="cstat-no" title="statement not covered" >    offset = ends[ends.length - 1];</span>
+  }
+<span class="cstat-no" title="statement not covered" >  return maxSquaredDelta;</span>
+};
+&nbsp;
+&nbsp;
+/**
+ * @param {Array.&lt;number&gt;} flatCoordinates Flat coordinates.
+ * @param {number} offset Offset.
+ * @param {number} end End.
+ * @param {number} stride Stride.
+ * @param {number} maxDelta Max delta.
+ * @param {boolean} isRing Is ring.
+ * @param {number} x X.
+ * @param {number} y Y.
+ * @param {Array.&lt;number&gt;} closestPoint Closest point.
+ * @param {number} minSquaredDistance Minimum squared distance.
+ * @param {Array.&lt;number&gt;=} opt_tmpPoint Temporary point object.
+ * @return {number} Minimum squared distance.
+ */
+ol.geom.flat.closest.getClosestPoint = function(flatCoordinates, offset, end,
+    stride, maxDelta, isRing, x, y, closestPoint, minSquaredDistance,
+    opt_tmpPoint) {
+  <span class="missing-if-branch" title="if path not taken" >I</span>if (offset == end) {
+<span class="cstat-no" title="statement not covered" >    return minSquaredDistance;</span>
+  }
+  var i, squaredDistance;
+  <span class="missing-if-branch" title="if path not taken" >I</span>if (maxDelta === 0) {
+    // All points are identical, so just test the first point.
+<span class="cstat-no" title="statement not covered" >    squaredDistance = ol.math.squaredDistance(</span>
+        x, y, flatCoordinates[offset], flatCoordinates[offset + 1]);
+<span class="cstat-no" title="statement not covered" >    if (squaredDistance &lt; minSquaredDistance) {</span>
+<span class="cstat-no" title="statement not covered" >      for (i = 0; i &lt; stride; ++i) {</span>
+<span class="cstat-no" title="statement not covered" >        closestPoint[i] = flatCoordinates[offset + i];</span>
+      }
+<span class="cstat-no" title="statement not covered" >      closestPoint.length = stride;</span>
+<span class="cstat-no" title="statement not covered" >      return squaredDistance;</span>
+    } else {
+<span class="cstat-no" title="statement not covered" >      return minSquaredDistance;</span>
+    }
+  }
+  goog.asserts.assert(maxDelta &gt; 0, 'maxDelta should be larger than 0');
+  var tmpPoint = opt_tmpPoint ? <span class="branch-0 cbranch-no" title="branch not covered" >opt_tmpPoint </span>: [NaN, NaN];
+  var index = offset + stride;
+  while (index &lt; end) {
+    ol.geom.flat.closest.point(
+        flatCoordinates, index - stride, index, stride, x, y, tmpPoint);
+    squaredDistance = ol.math.squaredDistance(x, y, tmpPoint[0], tmpPoint[1]);
+    if (squaredDistance &lt; minSquaredDistance) {
+      minSquaredDistance = squaredDistance;
+      for (i = 0; i &lt; stride; ++i) {
+        closestPoint[i] = tmpPoint[i];
+      }
+      closestPoint.length = stride;
+      index += stride;
+    } else {
+      // Skip ahead multiple points, because we know that all the skipped
+      // points cannot be any closer than the closest point we have found so
+      // far.  We know this because we know how close the current point is, how
+      // close the closest point we have found so far is, and the maximum
+      // distance between consecutive points.  For example, if we're currently
+      // at distance 10, the best we've found so far is 3, and that the maximum
+      // distance between consecutive points is 2, then we'll need to skip at
+      // least (10 - 3) / 2 == 3 (rounded down) points to have any chance of
+      // finding a closer point.  We use Math.max(..., 1) to ensure that we
+      // always advance at least one point, to avoid an infinite loop.
+      index += stride * Math.max(
+          ((Math.sqrt(squaredDistance) -
+            Math.sqrt(minSquaredDistance)) / maxDelta) | 0, 1);
+    }
+  }
+  <span class="missing-if-branch" title="if path not taken" >I</span>if (isRing) {
+    // Check the closing segment.
+<span class="cstat-no" title="statement not covered" >    ol.geom.flat.closest.point(</span>
+        flatCoordinates, end - stride, offset, stride, x, y, tmpPoint);
+<span class="cstat-no" title="statement not covered" >    squaredDistance = ol.math.squaredDistance(x, y, tmpPoint[0], tmpPoint[1]);</span>
+<span class="cstat-no" title="statement not covered" >    if (squaredDistance &lt; minSquaredDistance) {</span>
+<span class="cstat-no" title="statement not covered" >      minSquaredDistance = squaredDistance;</span>
+<span class="cstat-no" title="statement not covered" >      for (i = 0; i &lt; stride; ++i) {</span>
+<span class="cstat-no" title="statement not covered" >        closestPoint[i] = tmpPoint[i];</span>
+      }
+<span class="cstat-no" title="statement not covered" >      closestPoint.length = stride;</span>
+    }
+  }
+  return minSquaredDistance;
+};
+&nbsp;
+&nbsp;
+/**
+ * @param {Array.&lt;number&gt;} flatCoordinates Flat coordinates.
+ * @param {number} offset Offset.
+ * @param {Array.&lt;number&gt;} ends Ends.
+ * @param {number} stride Stride.
+ * @param {number} maxDelta Max delta.
+ * @param {boolean} isRing Is ring.
+ * @param {number} x X.
+ * @param {number} y Y.
+ * @param {Array.&lt;number&gt;} closestPoint Closest point.
+ * @param {number} minSquaredDistance Minimum squared distance.
+ * @param {Array.&lt;number&gt;=} opt_tmpPoint Temporary point object.
+ * @return {number} Minimum squared distance.
+ */
+ol.geom.flat.closest.getsClosestPoint = <span class="fstat-no" title="function not covered" >function(flatCoordinates, offset, ends,</span>
+    stride, maxDelta, isRing, x, y, closestPoint, minSquaredDistance,
+    opt_tmpPoint) {
+<span class="cstat-no" title="statement not covered" >  var tmpPoint = opt_tmpPoint ? opt_tmpPoint : [NaN, NaN];</span>
+<span class="cstat-no" title="statement not covered" >  var i, ii;</span>
+<span class="cstat-no" title="statement not covered" >  for (i = 0, ii = ends.length; i &lt; ii; ++i) {</span>
+<span class="cstat-no" title="statement not covered" >    var end = ends[i];</span>
+<span class="cstat-no" title="statement not covered" >    minSquaredDistance = ol.geom.flat.closest.getClosestPoint(</span>
+        flatCoordinates, offset, end, stride,
+        maxDelta, isRing, x, y, closestPoint, minSquaredDistance, tmpPoint);
+<span class="cstat-no" title="statement not covered" >    offset = end;</span>
+  }
+<span class="cstat-no" title="statement not covered" >  return minSquaredDistance;</span>
+};
+&nbsp;
+&nbsp;
+/**
+ * @param {Array.&lt;number&gt;} flatCoordinates Flat coordinates.
+ * @param {number} offset Offset.
+ * @param {Array.&lt;Array.&lt;number&gt;&gt;} endss Endss.
+ * @param {number} stride Stride.
+ * @param {number} maxDelta Max delta.
+ * @param {boolean} isRing Is ring.
+ * @param {number} x X.
+ * @param {number} y Y.
+ * @param {Array.&lt;number&gt;} closestPoint Closest point.
+ * @param {number} minSquaredDistance Minimum squared distance.
+ * @param {Array.&lt;number&gt;=} opt_tmpPoint Temporary point object.
+ * @return {number} Minimum squared distance.
+ */
+ol.geom.flat.closest.getssClosestPoint = <span class="fstat-no" title="function not covered" >function(flatCoordinates, offset,</span>
+    endss, stride, maxDelta, isRing, x, y, closestPoint, minSquaredDistance,
+    opt_tmpPoint) {
+<span class="cstat-no" title="statement not covered" >  var tmpPoint = opt_tmpPoint ? opt_tmpPoint : [NaN, NaN];</span>
+<span class="cstat-no" title="statement not covered" >  var i, ii;</span>
+<span class="cstat-no" title="statement not covered" >  for (i = 0, ii = endss.length; i &lt; ii; ++i) {</span>
+<span class="cstat-no" title="statement not covered" >    var ends = endss[i];</span>
+<span class="cstat-no" title="statement not covered" >    minSquaredDistance = ol.geom.flat.closest.getsClosestPoint(</span>
+        flatCoordinates, offset, ends, stride,
+        maxDelta, isRing, x, y, closestPoint, minSquaredDistance, tmpPoint);
+<span class="cstat-no" title="statement not covered" >    offset = ends[ends.length - 1];</span>
+  }
+<span class="cstat-no" title="statement not covered" >  return minSquaredDistance;</span>
+};
+&nbsp;</pre></td></tr>
+</table></pre>
+<div class='push'></div><!-- for sticky footer -->
+</div><!-- /wrapper -->
+<div class='footer quiet pad2 space-top1 center small'>
+  Code coverage
+  generated by <a href="http://istanbul-js.org/" target="_blank">istanbul</a> at Fri Nov 06 2015 19:36:11 GMT+0100 (CET)
+</div>
+</div>
+<script src="../../../prettify.js"></script>
+<script>
+window.onload = function () {
+        if (typeof prettyPrint === 'function') {
+            prettyPrint();
+        }
+};
+</script>
+<script src="../../../sorter.js"></script>
+</body>
+</html>

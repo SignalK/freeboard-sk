@@ -1,0 +1,1904 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <title>Code coverage report for ol/format/geojsonformat.js</title>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="../../prettify.css" />
+    <link rel="stylesheet" href="../../base.css" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style type='text/css'>
+        .coverage-summary .sorter {
+            background-image: url(../../sort-arrow-sprite.png);
+        }
+    </style>
+</head>
+<body>
+<div class='wrapper'>
+  <div class='pad1'>
+    <h1>
+      <a href="../../index.html">all files</a> / <a href="index.html">ol/format/</a> geojsonformat.js
+    </h1>
+    <div class='clearfix'>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">91.93% </span>
+        <span class="quiet">Statements</span>
+        <span class='fraction'>148/161</span>
+      </div>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">87.5% </span>
+        <span class="quiet">Branches</span>
+        <span class='fraction'>28/32</span>
+      </div>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">82.14% </span>
+        <span class="quiet">Functions</span>
+        <span class='fraction'>23/28</span>
+      </div>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">91.93% </span>
+        <span class="quiet">Lines</span>
+        <span class='fraction'>148/161</span>
+      </div>
+    </div>
+  </div>
+  <div class='status-line high'></div>
+<pre><table class="coverage">
+<tr><td class="line-count quiet">1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+28
+29
+30
+31
+32
+33
+34
+35
+36
+37
+38
+39
+40
+41
+42
+43
+44
+45
+46
+47
+48
+49
+50
+51
+52
+53
+54
+55
+56
+57
+58
+59
+60
+61
+62
+63
+64
+65
+66
+67
+68
+69
+70
+71
+72
+73
+74
+75
+76
+77
+78
+79
+80
+81
+82
+83
+84
+85
+86
+87
+88
+89
+90
+91
+92
+93
+94
+95
+96
+97
+98
+99
+100
+101
+102
+103
+104
+105
+106
+107
+108
+109
+110
+111
+112
+113
+114
+115
+116
+117
+118
+119
+120
+121
+122
+123
+124
+125
+126
+127
+128
+129
+130
+131
+132
+133
+134
+135
+136
+137
+138
+139
+140
+141
+142
+143
+144
+145
+146
+147
+148
+149
+150
+151
+152
+153
+154
+155
+156
+157
+158
+159
+160
+161
+162
+163
+164
+165
+166
+167
+168
+169
+170
+171
+172
+173
+174
+175
+176
+177
+178
+179
+180
+181
+182
+183
+184
+185
+186
+187
+188
+189
+190
+191
+192
+193
+194
+195
+196
+197
+198
+199
+200
+201
+202
+203
+204
+205
+206
+207
+208
+209
+210
+211
+212
+213
+214
+215
+216
+217
+218
+219
+220
+221
+222
+223
+224
+225
+226
+227
+228
+229
+230
+231
+232
+233
+234
+235
+236
+237
+238
+239
+240
+241
+242
+243
+244
+245
+246
+247
+248
+249
+250
+251
+252
+253
+254
+255
+256
+257
+258
+259
+260
+261
+262
+263
+264
+265
+266
+267
+268
+269
+270
+271
+272
+273
+274
+275
+276
+277
+278
+279
+280
+281
+282
+283
+284
+285
+286
+287
+288
+289
+290
+291
+292
+293
+294
+295
+296
+297
+298
+299
+300
+301
+302
+303
+304
+305
+306
+307
+308
+309
+310
+311
+312
+313
+314
+315
+316
+317
+318
+319
+320
+321
+322
+323
+324
+325
+326
+327
+328
+329
+330
+331
+332
+333
+334
+335
+336
+337
+338
+339
+340
+341
+342
+343
+344
+345
+346
+347
+348
+349
+350
+351
+352
+353
+354
+355
+356
+357
+358
+359
+360
+361
+362
+363
+364
+365
+366
+367
+368
+369
+370
+371
+372
+373
+374
+375
+376
+377
+378
+379
+380
+381
+382
+383
+384
+385
+386
+387
+388
+389
+390
+391
+392
+393
+394
+395
+396
+397
+398
+399
+400
+401
+402
+403
+404
+405
+406
+407
+408
+409
+410
+411
+412
+413
+414
+415
+416
+417
+418
+419
+420
+421
+422
+423
+424
+425
+426
+427
+428
+429
+430
+431
+432
+433
+434
+435
+436
+437
+438
+439
+440
+441
+442
+443
+444
+445
+446
+447
+448
+449
+450
+451
+452
+453
+454
+455
+456
+457
+458
+459
+460
+461
+462
+463
+464
+465
+466
+467
+468
+469
+470
+471
+472
+473
+474
+475
+476
+477
+478
+479
+480
+481
+482
+483
+484
+485
+486
+487
+488
+489
+490
+491
+492
+493
+494
+495
+496
+497
+498
+499
+500
+501
+502
+503
+504
+505
+506
+507
+508
+509
+510
+511
+512
+513
+514
+515
+516
+517
+518
+519
+520
+521
+522
+523
+524
+525
+526
+527
+528
+529
+530
+531
+532
+533
+534
+535
+536
+537
+538
+539
+540
+541
+542
+543
+544
+545
+546
+547
+548
+549
+550
+551
+552
+553
+554
+555
+556
+557
+558
+559
+560
+561
+562
+563
+564
+565
+566
+567
+568
+569
+570
+571
+572
+573
+574
+575
+576
+577
+578
+579
+580
+581
+582
+583
+584
+585
+586
+587
+588
+589
+590
+591
+592
+593
+594
+595
+596
+597
+598
+599
+600
+601
+602
+603
+604
+605
+606
+607
+608
+609
+610
+611
+612
+613
+614</td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">41×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">41×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">41×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">41×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">224×</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">222×</span>
+<span class="cline-any cline-yes">222×</span>
+<span class="cline-any cline-yes">222×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">4×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">15×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">15×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">21×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">21×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">28×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">28×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">156×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">156×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">28×</span>
+<span class="cline-any cline-yes">28×</span>
+<span class="cline-any cline-yes">28×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">7×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">7×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">6×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">6×</span>
+<span class="cline-any cline-yes">6×</span>
+<span class="cline-any cline-yes">4×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">6×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">5×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">5×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">8×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">8×</span>
+<span class="cline-any cline-yes">8×</span>
+<span class="cline-any cline-yes">4×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">8×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">210×</span>
+<span class="cline-any cline-yes">210×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">210×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">210×</span>
+<span class="cline-any cline-yes">210×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">210×</span>
+<span class="cline-any cline-yes">210×</span>
+<span class="cline-any cline-yes">183×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">210×</span>
+<span class="cline-any cline-yes">210×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">210×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">15×</span>
+<span class="cline-any cline-yes">15×</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-yes">13×</span>
+<span class="cline-any cline-yes">13×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">13×</span>
+<span class="cline-any cline-yes">13×</span>
+<span class="cline-any cline-yes">13×</span>
+<span class="cline-any cline-yes">13×</span>
+<span class="cline-any cline-yes">202×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">13×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">10×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">10×</span>
+<span class="cline-any cline-yes">10×</span>
+<span class="cline-any cline-yes">10×</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">8×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">10×</span>
+<span class="cline-any cline-yes">10×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">10×</span>
+<span class="cline-any cline-yes">10×</span>
+<span class="cline-any cline-yes">3×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">10×</span>
+<span class="cline-any cline-yes">10×</span>
+<span class="cline-any cline-yes">8×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">10×</span>
+<span class="cline-any cline-yes">10×</span>
+<span class="cline-any cline-yes">10×</span>
+<span class="cline-any cline-yes">5×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">5×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">10×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">3×</span>
+<span class="cline-any cline-yes">3×</span>
+<span class="cline-any cline-yes">3×</span>
+<span class="cline-any cline-yes">3×</span>
+<span class="cline-any cline-yes">5×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">3×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">18×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">// TODO: serialize dataProjection as crs member when writing
+// see https://github.com/openlayers/ol3/issues/2078
+&nbsp;
+goog.provide('ol.format.GeoJSON');
+&nbsp;
+goog.require('goog.asserts');
+goog.require('goog.object');
+goog.require('ol.Feature');
+goog.require('ol.format.Feature');
+goog.require('ol.format.JSONFeature');
+goog.require('ol.geom.GeometryCollection');
+goog.require('ol.geom.LineString');
+goog.require('ol.geom.MultiLineString');
+goog.require('ol.geom.MultiPoint');
+goog.require('ol.geom.MultiPolygon');
+goog.require('ol.geom.Point');
+goog.require('ol.geom.Polygon');
+goog.require('ol.proj');
+&nbsp;
+&nbsp;
+&nbsp;
+/**
+ * @classdesc
+ * Feature format for reading and writing data in the GeoJSON format.
+ *
+ * @constructor
+ * @extends {ol.format.JSONFeature}
+ * @param {olx.format.GeoJSONOptions=} opt_options Options.
+ * @api stable
+ */
+ol.format.GeoJSON = function(opt_options) {
+&nbsp;
+  var options = opt_options ? opt_options : {};
+&nbsp;
+  goog.base(this);
+&nbsp;
+  /**
+   * @inheritDoc
+   */
+  this.defaultDataProjection = ol.proj.get(
+      options.defaultDataProjection ?
+<span class="branch-0 cbranch-no" title="branch not covered" >          options.defaultDataProjection </span>: 'EPSG:4326');
+&nbsp;
+&nbsp;
+  /**
+   * Name of the geometry attribute for features.
+   * @type {string|undefined}
+   * @private
+   */
+  this.geometryName_ = options.geometryName;
+&nbsp;
+};
+goog.inherits(ol.format.GeoJSON, ol.format.JSONFeature);
+&nbsp;
+&nbsp;
+/**
+ * @const
+ * @type {Array.&lt;string&gt;}
+ * @private
+ */
+ol.format.GeoJSON.EXTENSIONS_ = ['.geojson'];
+&nbsp;
+&nbsp;
+/**
+ * @param {GeoJSONGeometry|GeoJSONGeometryCollection} object Object.
+ * @param {olx.format.ReadOptions=} opt_options Read options.
+ * @private
+ * @return {ol.geom.Geometry} Geometry.
+ */
+ol.format.GeoJSON.readGeometry_ = function(object, opt_options) {
+  if (!object) {
+    return null;
+  }
+  var geometryReader = ol.format.GeoJSON.GEOMETRY_READERS_[object.type];
+  goog.asserts.assert(geometryReader, 'geometryReader should be defined');
+  return /** @type {ol.geom.Geometry} */ (
+      ol.format.Feature.transformWithOptions(
+          geometryReader(object), false, opt_options));
+};
+&nbsp;
+&nbsp;
+/**
+ * @param {GeoJSONGeometryCollection} object Object.
+ * @param {olx.format.ReadOptions=} opt_options Read options.
+ * @private
+ * @return {ol.geom.GeometryCollection} Geometry collection.
+ */
+ol.format.GeoJSON.readGeometryCollectionGeometry_ = function(
+    object, opt_options) {
+  goog.asserts.assert(object.type == 'GeometryCollection',
+      'object.type should be GeometryCollection');
+  var geometries = object.geometries.map(
+      /**
+       * @param {GeoJSONGeometry} geometry Geometry.
+       * @return {ol.geom.Geometry} geometry Geometry.
+       */
+      function(geometry) {
+        return ol.format.GeoJSON.readGeometry_(geometry, opt_options);
+      });
+  return new ol.geom.GeometryCollection(geometries);
+};
+&nbsp;
+&nbsp;
+/**
+ * @param {GeoJSONGeometry} object Object.
+ * @private
+ * @return {ol.geom.Point} Point.
+ */
+ol.format.GeoJSON.readPointGeometry_ = function(object) {
+  goog.asserts.assert(object.type == 'Point',
+      'object.type should be Point');
+  return new ol.geom.Point(object.coordinates);
+};
+&nbsp;
+&nbsp;
+/**
+ * @param {GeoJSONGeometry} object Object.
+ * @private
+ * @return {ol.geom.LineString} LineString.
+ */
+ol.format.GeoJSON.readLineStringGeometry_ = function(object) {
+  goog.asserts.assert(object.type == 'LineString',
+      'object.type should be LineString');
+  return new ol.geom.LineString(object.coordinates);
+};
+&nbsp;
+&nbsp;
+/**
+ * @param {GeoJSONGeometry} object Object.
+ * @private
+ * @return {ol.geom.MultiLineString} MultiLineString.
+ */
+ol.format.GeoJSON.readMultiLineStringGeometry_ = <span class="fstat-no" title="function not covered" >function(object) {</span>
+<span class="cstat-no" title="statement not covered" >  goog.asserts.assert(object.type == 'MultiLineString',</span>
+      'object.type should be MultiLineString');
+<span class="cstat-no" title="statement not covered" >  return new ol.geom.MultiLineString(object.coordinates);</span>
+};
+&nbsp;
+&nbsp;
+/**
+ * @param {GeoJSONGeometry} object Object.
+ * @private
+ * @return {ol.geom.MultiPoint} MultiPoint.
+ */
+ol.format.GeoJSON.readMultiPointGeometry_ = <span class="fstat-no" title="function not covered" >function(object) {</span>
+<span class="cstat-no" title="statement not covered" >  goog.asserts.assert(object.type == 'MultiPoint',</span>
+      'object.type should be MultiPoint');
+<span class="cstat-no" title="statement not covered" >  return new ol.geom.MultiPoint(object.coordinates);</span>
+};
+&nbsp;
+&nbsp;
+/**
+ * @param {GeoJSONGeometry} object Object.
+ * @private
+ * @return {ol.geom.MultiPolygon} MultiPolygon.
+ */
+ol.format.GeoJSON.readMultiPolygonGeometry_ = function(object) {
+  goog.asserts.assert(object.type == 'MultiPolygon',
+      'object.type should be MultiPolygon');
+  return new ol.geom.MultiPolygon(object.coordinates);
+};
+&nbsp;
+&nbsp;
+/**
+ * @param {GeoJSONGeometry} object Object.
+ * @private
+ * @return {ol.geom.Polygon} Polygon.
+ */
+ol.format.GeoJSON.readPolygonGeometry_ = function(object) {
+  goog.asserts.assert(object.type == 'Polygon',
+      'object.type should be Polygon');
+  return new ol.geom.Polygon(object.coordinates);
+};
+&nbsp;
+&nbsp;
+/**
+ * @param {ol.geom.Geometry} geometry Geometry.
+ * @param {olx.format.WriteOptions=} opt_options Write options.
+ * @private
+ * @return {GeoJSONGeometry|GeoJSONGeometryCollection} GeoJSON geometry.
+ */
+ol.format.GeoJSON.writeGeometry_ = function(geometry, opt_options) {
+  var geometryWriter = ol.format.GeoJSON.GEOMETRY_WRITERS_[geometry.getType()];
+  goog.asserts.assert(geometryWriter, 'geometryWriter should be defined');
+  return geometryWriter(/** @type {ol.geom.Geometry} */ (
+      ol.format.Feature.transformWithOptions(geometry, true, opt_options)),
+      opt_options);
+};
+&nbsp;
+&nbsp;
+/**
+ * @param {ol.geom.Geometry} geometry Geometry.
+ * @private
+ * @return {GeoJSONGeometryCollection} Empty GeoJSON geometry collection.
+ */
+ol.format.GeoJSON.writeEmptyGeometryCollectionGeometry_ = function(geometry) {
+  return /** @type {GeoJSONGeometryCollection} */ ({
+    type: 'GeometryCollection',
+    geometries: []
+  });
+};
+&nbsp;
+&nbsp;
+/**
+ * @param {ol.geom.Geometry} geometry Geometry.
+ * @param {olx.format.WriteOptions=} opt_options Write options.
+ * @private
+ * @return {GeoJSONGeometryCollection} GeoJSON geometry collection.
+ */
+ol.format.GeoJSON.writeGeometryCollectionGeometry_ = function(
+    geometry, opt_options) {
+  goog.asserts.assertInstanceof(geometry, ol.geom.GeometryCollection,
+      'geometry should be an ol.geom.GeometryCollection');
+  var geometries = geometry.getGeometriesArray().map(function(geometry) {
+    return ol.format.GeoJSON.writeGeometry_(geometry, opt_options);
+  });
+  return /** @type {GeoJSONGeometryCollection} */ ({
+    type: 'GeometryCollection',
+    geometries: geometries
+  });
+};
+&nbsp;
+&nbsp;
+/**
+ * @param {ol.geom.Geometry} geometry Geometry.
+ * @param {olx.format.WriteOptions=} opt_options Write options.
+ * @private
+ * @return {GeoJSONGeometry} GeoJSON geometry.
+ */
+ol.format.GeoJSON.writeLineStringGeometry_ = function(geometry, opt_options) {
+  goog.asserts.assertInstanceof(geometry, ol.geom.LineString,
+      'geometry should be an ol.geom.LineString');
+  return /** @type {GeoJSONGeometry} */ ({
+    type: 'LineString',
+    coordinates: geometry.getCoordinates()
+  });
+};
+&nbsp;
+&nbsp;
+/**
+ * @param {ol.geom.Geometry} geometry Geometry.
+ * @param {olx.format.WriteOptions=} opt_options Write options.
+ * @private
+ * @return {GeoJSONGeometry} GeoJSON geometry.
+ */
+ol.format.GeoJSON.writeMultiLineStringGeometry_ =
+<span class="fstat-no" title="function not covered" >    function(geometry, opt_options) {</span>
+<span class="cstat-no" title="statement not covered" >  goog.asserts.assertInstanceof(geometry, ol.geom.MultiLineString,</span>
+      'geometry should be an ol.geom.MultiLineString');
+<span class="cstat-no" title="statement not covered" >  return /** @type {GeoJSONGeometry} */ ({</span>
+    type: 'MultiLineString',
+    coordinates: geometry.getCoordinates()
+  });
+};
+&nbsp;
+&nbsp;
+/**
+ * @param {ol.geom.Geometry} geometry Geometry.
+ * @param {olx.format.WriteOptions=} opt_options Write options.
+ * @private
+ * @return {GeoJSONGeometry} GeoJSON geometry.
+ */
+ol.format.GeoJSON.writeMultiPointGeometry_ = <span class="fstat-no" title="function not covered" >function(geometry, opt_options) {</span>
+<span class="cstat-no" title="statement not covered" >  goog.asserts.assertInstanceof(geometry, ol.geom.MultiPoint,</span>
+      'geometry should be an ol.geom.MultiPoint');
+<span class="cstat-no" title="statement not covered" >  return /** @type {GeoJSONGeometry} */ ({</span>
+    type: 'MultiPoint',
+    coordinates: geometry.getCoordinates()
+  });
+};
+&nbsp;
+&nbsp;
+/**
+ * @param {ol.geom.Geometry} geometry Geometry.
+ * @param {olx.format.WriteOptions=} opt_options Write options.
+ * @private
+ * @return {GeoJSONGeometry} GeoJSON geometry.
+ */
+ol.format.GeoJSON.writeMultiPolygonGeometry_ = function(geometry, opt_options) {
+  goog.asserts.assertInstanceof(geometry, ol.geom.MultiPolygon,
+      'geometry should be an ol.geom.MultiPolygon');
+  var right;
+  if (opt_options) {
+    right = opt_options.rightHanded;
+  }
+  return /** @type {GeoJSONGeometry} */ ({
+    type: 'MultiPolygon',
+    coordinates: geometry.getCoordinates(right)
+  });
+};
+&nbsp;
+&nbsp;
+/**
+ * @param {ol.geom.Geometry} geometry Geometry.
+ * @param {olx.format.WriteOptions=} opt_options Write options.
+ * @private
+ * @return {GeoJSONGeometry} GeoJSON geometry.
+ */
+ol.format.GeoJSON.writePointGeometry_ = function(geometry, opt_options) {
+  goog.asserts.assertInstanceof(geometry, ol.geom.Point,
+      'geometry should be an ol.geom.Point');
+  return /** @type {GeoJSONGeometry} */ ({
+    type: 'Point',
+    coordinates: geometry.getCoordinates()
+  });
+};
+&nbsp;
+&nbsp;
+/**
+ * @param {ol.geom.Geometry} geometry Geometry.
+ * @param {olx.format.WriteOptions=} opt_options Write options.
+ * @private
+ * @return {GeoJSONGeometry} GeoJSON geometry.
+ */
+ol.format.GeoJSON.writePolygonGeometry_ = function(geometry, opt_options) {
+  goog.asserts.assertInstanceof(geometry, ol.geom.Polygon,
+      'geometry should be an ol.geom.Polygon');
+  var right;
+  if (opt_options) {
+    right = opt_options.rightHanded;
+  }
+  return /** @type {GeoJSONGeometry} */ ({
+    type: 'Polygon',
+    coordinates: geometry.getCoordinates(right)
+  });
+};
+&nbsp;
+&nbsp;
+/**
+ * @const
+ * @private
+ * @type {Object.&lt;string, function(GeoJSONObject): ol.geom.Geometry&gt;}
+ */
+ol.format.GeoJSON.GEOMETRY_READERS_ = {
+  'Point': ol.format.GeoJSON.readPointGeometry_,
+  'LineString': ol.format.GeoJSON.readLineStringGeometry_,
+  'Polygon': ol.format.GeoJSON.readPolygonGeometry_,
+  'MultiPoint': ol.format.GeoJSON.readMultiPointGeometry_,
+  'MultiLineString': ol.format.GeoJSON.readMultiLineStringGeometry_,
+  'MultiPolygon': ol.format.GeoJSON.readMultiPolygonGeometry_,
+  'GeometryCollection': ol.format.GeoJSON.readGeometryCollectionGeometry_
+};
+&nbsp;
+&nbsp;
+/**
+ * @const
+ * @private
+ * @type {Object.&lt;string, function(ol.geom.Geometry, olx.format.WriteOptions=): (GeoJSONGeometry|GeoJSONGeometryCollection)&gt;}
+ */
+ol.format.GeoJSON.GEOMETRY_WRITERS_ = {
+  'Point': ol.format.GeoJSON.writePointGeometry_,
+  'LineString': ol.format.GeoJSON.writeLineStringGeometry_,
+  'Polygon': ol.format.GeoJSON.writePolygonGeometry_,
+  'MultiPoint': ol.format.GeoJSON.writeMultiPointGeometry_,
+  'MultiLineString': ol.format.GeoJSON.writeMultiLineStringGeometry_,
+  'MultiPolygon': ol.format.GeoJSON.writeMultiPolygonGeometry_,
+  'GeometryCollection': ol.format.GeoJSON.writeGeometryCollectionGeometry_,
+  'Circle': ol.format.GeoJSON.writeEmptyGeometryCollectionGeometry_
+};
+&nbsp;
+&nbsp;
+/**
+ * @inheritDoc
+ */
+ol.format.GeoJSON.prototype.getExtensions = <span class="fstat-no" title="function not covered" >function() {</span>
+<span class="cstat-no" title="statement not covered" >  return ol.format.GeoJSON.EXTENSIONS_;</span>
+};
+&nbsp;
+&nbsp;
+/**
+ * Read a feature from a GeoJSON Feature source.  Only works for Feature,
+ * use `readFeatures` to read FeatureCollection source.
+ *
+ * @function
+ * @param {Document|Node|Object|string} source Source.
+ * @param {olx.format.ReadOptions=} opt_options Read options.
+ * @return {ol.Feature} Feature.
+ * @api stable
+ */
+ol.format.GeoJSON.prototype.readFeature;
+&nbsp;
+&nbsp;
+/**
+ * Read all features from a GeoJSON source.  Works with both Feature and
+ * FeatureCollection sources.
+ *
+ * @function
+ * @param {Document|Node|Object|string} source Source.
+ * @param {olx.format.ReadOptions=} opt_options Read options.
+ * @return {Array.&lt;ol.Feature&gt;} Features.
+ * @api stable
+ */
+ol.format.GeoJSON.prototype.readFeatures;
+&nbsp;
+&nbsp;
+/**
+ * @inheritDoc
+ */
+ol.format.GeoJSON.prototype.readFeatureFromObject = function(
+    object, opt_options) {
+  var geoJSONFeature = /** @type {GeoJSONFeature} */ (object);
+  goog.asserts.assert(geoJSONFeature.type == 'Feature',
+      'geoJSONFeature.type should be Feature');
+  var geometry = ol.format.GeoJSON.readGeometry_(geoJSONFeature.geometry,
+      opt_options);
+  var feature = new ol.Feature();
+  if (this.geometryName_) {
+    feature.setGeometryName(this.geometryName_);
+  }
+  feature.setGeometry(geometry);
+  if (geoJSONFeature.id !== undefined) {
+    feature.setId(geoJSONFeature.id);
+  }
+  <span class="missing-if-branch" title="else path not taken" >E</span>if (geoJSONFeature.properties) {
+    feature.setProperties(geoJSONFeature.properties);
+  }
+  return feature;
+};
+&nbsp;
+&nbsp;
+/**
+ * @inheritDoc
+ */
+ol.format.GeoJSON.prototype.readFeaturesFromObject = function(
+    object, opt_options) {
+  var geoJSONObject = /** @type {GeoJSONObject} */ (object);
+  if (geoJSONObject.type == 'Feature') {
+    return [this.readFeatureFromObject(object, opt_options)];
+  } else <span class="missing-if-branch" title="else path not taken" >E</span>if (geoJSONObject.type == 'FeatureCollection') {
+    var geoJSONFeatureCollection = /** @type {GeoJSONFeatureCollection} */
+        (object);
+    /** @type {Array.&lt;ol.Feature&gt;} */
+    var features = [];
+    var geoJSONFeatures = geoJSONFeatureCollection.features;
+    var i, ii;
+    for (i = 0, ii = geoJSONFeatures.length; i &lt; ii; ++i) {
+      features.push(this.readFeatureFromObject(geoJSONFeatures[i],
+          opt_options));
+    }
+    return features;
+  } else {
+<span class="cstat-no" title="statement not covered" >    goog.asserts.fail('Unknown geoJSONObject.type: ' + geoJSONObject.type);</span>
+<span class="cstat-no" title="statement not covered" >    return [];</span>
+  }
+};
+&nbsp;
+&nbsp;
+/**
+ * Read a geometry from a GeoJSON source.
+ *
+ * @function
+ * @param {Document|Node|Object|string} source Source.
+ * @param {olx.format.ReadOptions=} opt_options Read options.
+ * @return {ol.geom.Geometry} Geometry.
+ * @api stable
+ */
+ol.format.GeoJSON.prototype.readGeometry;
+&nbsp;
+&nbsp;
+/**
+ * @inheritDoc
+ */
+ol.format.GeoJSON.prototype.readGeometryFromObject = function(
+    object, opt_options) {
+  return ol.format.GeoJSON.readGeometry_(
+      /** @type {GeoJSONGeometry} */ (object), opt_options);
+};
+&nbsp;
+&nbsp;
+/**
+ * Read the projection from a GeoJSON source.
+ *
+ * @function
+ * @param {Document|Node|Object|string} source Source.
+ * @return {ol.proj.Projection} Projection.
+ * @api stable
+ */
+ol.format.GeoJSON.prototype.readProjection;
+&nbsp;
+&nbsp;
+/**
+ * @inheritDoc
+ */
+ol.format.GeoJSON.prototype.readProjectionFromObject = function(object) {
+  var geoJSONObject = /** @type {GeoJSONObject} */ (object);
+  var crs = geoJSONObject.crs;
+  if (crs) {
+    if (crs.type == 'name') {
+      return ol.proj.get(crs.properties.name);
+    } else <span class="missing-if-branch" title="else path not taken" >E</span>if (crs.type == 'EPSG') {
+      // 'EPSG' is not part of the GeoJSON specification, but is generated by
+      // GeoServer.
+      // TODO: remove this when http://jira.codehaus.org/browse/GEOS-5996
+      // is fixed and widely deployed.
+      return ol.proj.get('EPSG:' + crs.properties.code);
+    } else {
+<span class="cstat-no" title="statement not covered" >      goog.asserts.fail('Unknown crs.type: ' + crs.type);</span>
+<span class="cstat-no" title="statement not covered" >      return null;</span>
+    }
+  } else {
+    return this.defaultDataProjection;
+  }
+};
+&nbsp;
+&nbsp;
+/**
+ * Encode a feature as a GeoJSON Feature string.
+ *
+ * @function
+ * @param {ol.Feature} feature Feature.
+ * @param {olx.format.WriteOptions=} opt_options Write options.
+ * @return {string} GeoJSON.
+ * @api stable
+ */
+ol.format.GeoJSON.prototype.writeFeature;
+&nbsp;
+&nbsp;
+/**
+ * Encode a feature as a GeoJSON Feature object.
+ *
+ * @param {ol.Feature} feature Feature.
+ * @param {olx.format.WriteOptions=} opt_options Write options.
+ * @return {Object} Object.
+ * @api stable
+ */
+ol.format.GeoJSON.prototype.writeFeatureObject = function(
+    feature, opt_options) {
+  opt_options = this.adaptOptions(opt_options);
+  var object = {
+    'type': 'Feature'
+  };
+  var id = feature.getId();
+  if (id !== undefined) {
+    object['id'] = id;
+  }
+  var geometry = feature.getGeometry();
+  if (geometry) {
+    object['geometry'] =
+        ol.format.GeoJSON.writeGeometry_(geometry, opt_options);
+  } else {
+    object['geometry'] = null;
+  }
+  var properties = feature.getProperties();
+  delete properties[feature.getGeometryName()];
+  if (!goog.object.isEmpty(properties)) {
+    object['properties'] = properties;
+  } else {
+    object['properties'] = null;
+  }
+  return object;
+};
+&nbsp;
+&nbsp;
+/**
+ * Encode an array of features as GeoJSON.
+ *
+ * @function
+ * @param {Array.&lt;ol.Feature&gt;} features Features.
+ * @param {olx.format.WriteOptions=} opt_options Write options.
+ * @return {string} GeoJSON.
+ * @api stable
+ */
+ol.format.GeoJSON.prototype.writeFeatures;
+&nbsp;
+&nbsp;
+/**
+ * Encode an array of features as a GeoJSON object.
+ *
+ * @param {Array.&lt;ol.Feature&gt;} features Features.
+ * @param {olx.format.WriteOptions=} opt_options Write options.
+ * @return {Object} GeoJSON Object.
+ * @api stable
+ */
+ol.format.GeoJSON.prototype.writeFeaturesObject =
+    function(features, opt_options) {
+  opt_options = this.adaptOptions(opt_options);
+  var objects = [];
+  var i, ii;
+  for (i = 0, ii = features.length; i &lt; ii; ++i) {
+    objects.push(this.writeFeatureObject(features[i], opt_options));
+  }
+  return /** @type {GeoJSONFeatureCollection} */ ({
+    type: 'FeatureCollection',
+    features: objects
+  });
+};
+&nbsp;
+&nbsp;
+/**
+ * Encode a geometry as a GeoJSON string.
+ *
+ * @function
+ * @param {ol.geom.Geometry} geometry Geometry.
+ * @param {olx.format.WriteOptions=} opt_options Write options.
+ * @return {string} GeoJSON.
+ * @api stable
+ */
+ol.format.GeoJSON.prototype.writeGeometry;
+&nbsp;
+&nbsp;
+/**
+ * Encode a geometry as a GeoJSON object.
+ *
+ * @param {ol.geom.Geometry} geometry Geometry.
+ * @param {olx.format.WriteOptions=} opt_options Write options.
+ * @return {GeoJSONGeometry|GeoJSONGeometryCollection} Object.
+ * @api stable
+ */
+ol.format.GeoJSON.prototype.writeGeometryObject = function(geometry,
+    opt_options) {
+  return ol.format.GeoJSON.writeGeometry_(geometry,
+      this.adaptOptions(opt_options));
+};
+&nbsp;</pre></td></tr>
+</table></pre>
+<div class='push'></div><!-- for sticky footer -->
+</div><!-- /wrapper -->
+<div class='footer quiet pad2 space-top1 center small'>
+  Code coverage
+  generated by <a href="http://istanbul-js.org/" target="_blank">istanbul</a> at Fri Nov 06 2015 19:36:11 GMT+0100 (CET)
+</div>
+</div>
+<script src="../../prettify.js"></script>
+<script>
+window.onload = function () {
+        if (typeof prettyPrint === 'function') {
+            prettyPrint();
+        }
+};
+</script>
+<script src="../../sorter.js"></script>
+</body>
+</html>

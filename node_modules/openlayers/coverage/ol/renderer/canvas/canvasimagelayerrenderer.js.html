@@ -1,0 +1,710 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <title>Code coverage report for ol/renderer/canvas/canvasimagelayerrenderer.js</title>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="../../../prettify.css" />
+    <link rel="stylesheet" href="../../../base.css" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style type='text/css'>
+        .coverage-summary .sorter {
+            background-image: url(../../../sort-arrow-sprite.png);
+        }
+    </style>
+</head>
+<body>
+<div class='wrapper'>
+  <div class='pad1'>
+    <h1>
+      <a href="../../../index.html">all files</a> / <a href="index.html">ol/renderer/canvas/</a> canvasimagelayerrenderer.js
+    </h1>
+    <div class='clearfix'>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">26.6% </span>
+        <span class="quiet">Statements</span>
+        <span class='fraction'>25/94</span>
+      </div>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">0% </span>
+        <span class="quiet">Branches</span>
+        <span class='fraction'>0/31</span>
+      </div>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">14.29% </span>
+        <span class="quiet">Functions</span>
+        <span class='fraction'>1/7</span>
+      </div>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">26.6% </span>
+        <span class="quiet">Lines</span>
+        <span class='fraction'>25/94</span>
+      </div>
+    </div>
+  </div>
+  <div class='status-line low'></div>
+<pre><table class="coverage">
+<tr><td class="line-count quiet">1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+28
+29
+30
+31
+32
+33
+34
+35
+36
+37
+38
+39
+40
+41
+42
+43
+44
+45
+46
+47
+48
+49
+50
+51
+52
+53
+54
+55
+56
+57
+58
+59
+60
+61
+62
+63
+64
+65
+66
+67
+68
+69
+70
+71
+72
+73
+74
+75
+76
+77
+78
+79
+80
+81
+82
+83
+84
+85
+86
+87
+88
+89
+90
+91
+92
+93
+94
+95
+96
+97
+98
+99
+100
+101
+102
+103
+104
+105
+106
+107
+108
+109
+110
+111
+112
+113
+114
+115
+116
+117
+118
+119
+120
+121
+122
+123
+124
+125
+126
+127
+128
+129
+130
+131
+132
+133
+134
+135
+136
+137
+138
+139
+140
+141
+142
+143
+144
+145
+146
+147
+148
+149
+150
+151
+152
+153
+154
+155
+156
+157
+158
+159
+160
+161
+162
+163
+164
+165
+166
+167
+168
+169
+170
+171
+172
+173
+174
+175
+176
+177
+178
+179
+180
+181
+182
+183
+184
+185
+186
+187
+188
+189
+190
+191
+192
+193
+194
+195
+196
+197
+198
+199
+200
+201
+202
+203
+204
+205
+206
+207
+208
+209
+210
+211
+212
+213
+214
+215
+216</td><td class="line-coverage quiet"><span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">3×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">3×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">3×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">3×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">3×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">goog.provide('ol.renderer.canvas.ImageLayer');
+&nbsp;
+goog.require('goog.asserts');
+goog.require('goog.functions');
+goog.require('goog.vec.Mat4');
+goog.require('ol.ImageBase');
+goog.require('ol.ViewHint');
+goog.require('ol.dom');
+goog.require('ol.extent');
+goog.require('ol.layer.Image');
+goog.require('ol.proj');
+goog.require('ol.renderer.canvas.Layer');
+goog.require('ol.source.ImageVector');
+goog.require('ol.vec.Mat4');
+&nbsp;
+&nbsp;
+&nbsp;
+/**
+ * @constructor
+ * @extends {ol.renderer.canvas.Layer}
+ * @param {ol.layer.Image} imageLayer Single image layer.
+ */
+ol.renderer.canvas.ImageLayer = function(imageLayer) {
+&nbsp;
+  goog.base(this, imageLayer);
+&nbsp;
+  /**
+   * @private
+   * @type {?ol.ImageBase}
+   */
+  this.image_ = null;
+&nbsp;
+  /**
+   * @private
+   * @type {!goog.vec.Mat4.Number}
+   */
+  this.imageTransform_ = goog.vec.Mat4.createNumber();
+&nbsp;
+  /**
+   * @private
+   * @type {?goog.vec.Mat4.Number}
+   */
+  this.imageTransformInv_ = null;
+&nbsp;
+  /**
+   * @private
+   * @type {CanvasRenderingContext2D}
+   */
+  this.hitCanvasContext_ = null;
+&nbsp;
+};
+goog.inherits(ol.renderer.canvas.ImageLayer, ol.renderer.canvas.Layer);
+&nbsp;
+&nbsp;
+/**
+ * @inheritDoc
+ */
+ol.renderer.canvas.ImageLayer.prototype.forEachFeatureAtCoordinate =
+<span class="fstat-no" title="function not covered" >    function(coordinate, frameState, callback, thisArg) {</span>
+<span class="cstat-no" title="statement not covered" >  var layer = this.getLayer();</span>
+<span class="cstat-no" title="statement not covered" >  var source = layer.getSource();</span>
+<span class="cstat-no" title="statement not covered" >  var resolution = frameState.viewState.resolution;</span>
+<span class="cstat-no" title="statement not covered" >  var rotation = frameState.viewState.rotation;</span>
+<span class="cstat-no" title="statement not covered" >  var skippedFeatureUids = frameState.skippedFeatureUids;</span>
+<span class="cstat-no" title="statement not covered" >  return source.forEachFeatureAtCoordinate(</span>
+      coordinate, resolution, rotation, skippedFeatureUids,
+      /**
+       * @param {ol.Feature|ol.render.Feature} feature Feature.
+       * @return {?} Callback result.
+       */
+<span class="fstat-no" title="function not covered" >      function(feature) {</span>
+<span class="cstat-no" title="statement not covered" >        return callback.call(thisArg, feature, layer);</span>
+      });
+};
+&nbsp;
+&nbsp;
+/**
+ * @inheritDoc
+ */
+ol.renderer.canvas.ImageLayer.prototype.forEachLayerAtPixel =
+<span class="fstat-no" title="function not covered" >    function(pixel, frameState, callback, thisArg) {</span>
+<span class="cstat-no" title="statement not covered" >  if (!this.getImage()) {</span>
+<span class="cstat-no" title="statement not covered" >    return undefined;</span>
+  }
+&nbsp;
+<span class="cstat-no" title="statement not covered" >  if (this.getLayer().getSource() instanceof ol.source.ImageVector) {</span>
+    // for ImageVector sources use the original hit-detection logic,
+    // so that for example also transparent polygons are detected
+<span class="cstat-no" title="statement not covered" >    var coordinate = pixel.slice();</span>
+<span class="cstat-no" title="statement not covered" >    ol.vec.Mat4.multVec2(</span>
+        frameState.pixelToCoordinateMatrix, coordinate, coordinate);
+<span class="cstat-no" title="statement not covered" >    var hasFeature = this.forEachFeatureAtCoordinate(</span>
+        coordinate, frameState, goog.functions.TRUE, this);
+&nbsp;
+<span class="cstat-no" title="statement not covered" >    if (hasFeature) {</span>
+<span class="cstat-no" title="statement not covered" >      return callback.call(thisArg, this.getLayer());</span>
+    } else {
+<span class="cstat-no" title="statement not covered" >      return undefined;</span>
+    }
+  } else {
+    // for all other image sources directly check the image
+<span class="cstat-no" title="statement not covered" >    if (!this.imageTransformInv_) {</span>
+<span class="cstat-no" title="statement not covered" >      this.imageTransformInv_ = goog.vec.Mat4.createNumber();</span>
+<span class="cstat-no" title="statement not covered" >      goog.vec.Mat4.invert(this.imageTransform_, this.imageTransformInv_);</span>
+    }
+&nbsp;
+<span class="cstat-no" title="statement not covered" >    var pixelOnCanvas =</span>
+        this.getPixelOnCanvas(pixel, this.imageTransformInv_);
+&nbsp;
+<span class="cstat-no" title="statement not covered" >    if (!this.hitCanvasContext_) {</span>
+<span class="cstat-no" title="statement not covered" >      this.hitCanvasContext_ = ol.dom.createCanvasContext2D(1, 1);</span>
+    }
+&nbsp;
+<span class="cstat-no" title="statement not covered" >    this.hitCanvasContext_.clearRect(0, 0, 1, 1);</span>
+<span class="cstat-no" title="statement not covered" >    this.hitCanvasContext_.drawImage(</span>
+        this.getImage(), pixelOnCanvas[0], pixelOnCanvas[1], 1, 1, 0, 0, 1, 1);
+&nbsp;
+<span class="cstat-no" title="statement not covered" >    var imageData = this.hitCanvasContext_.getImageData(0, 0, 1, 1).data;</span>
+<span class="cstat-no" title="statement not covered" >    if (imageData[3] &gt; 0) {</span>
+<span class="cstat-no" title="statement not covered" >      return callback.call(thisArg, this.getLayer());</span>
+    } else {
+<span class="cstat-no" title="statement not covered" >      return undefined;</span>
+    }
+  }
+};
+&nbsp;
+&nbsp;
+/**
+ * @inheritDoc
+ */
+ol.renderer.canvas.ImageLayer.prototype.getImage = <span class="fstat-no" title="function not covered" >function() {</span>
+<span class="cstat-no" title="statement not covered" >  return !this.image_ ? null : this.image_.getImage();</span>
+};
+&nbsp;
+&nbsp;
+/**
+ * @inheritDoc
+ */
+ol.renderer.canvas.ImageLayer.prototype.getImageTransform = <span class="fstat-no" title="function not covered" >function() {</span>
+<span class="cstat-no" title="statement not covered" >  return this.imageTransform_;</span>
+};
+&nbsp;
+&nbsp;
+/**
+ * @inheritDoc
+ */
+ol.renderer.canvas.ImageLayer.prototype.prepareFrame =
+<span class="fstat-no" title="function not covered" >    function(frameState, layerState) {</span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" >  var pixelRatio = frameState.pixelRatio;</span>
+<span class="cstat-no" title="statement not covered" >  var viewState = frameState.viewState;</span>
+<span class="cstat-no" title="statement not covered" >  var viewCenter = viewState.center;</span>
+<span class="cstat-no" title="statement not covered" >  var viewResolution = viewState.resolution;</span>
+<span class="cstat-no" title="statement not covered" >  var viewRotation = viewState.rotation;</span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" >  var image;</span>
+<span class="cstat-no" title="statement not covered" >  var imageLayer = this.getLayer();</span>
+<span class="cstat-no" title="statement not covered" >  goog.asserts.assertInstanceof(imageLayer, ol.layer.Image,</span>
+      'layer is an instance of ol.layer.Image');
+<span class="cstat-no" title="statement not covered" >  var imageSource = imageLayer.getSource();</span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" >  var hints = frameState.viewHints;</span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" >  var renderedExtent = frameState.extent;</span>
+<span class="cstat-no" title="statement not covered" >  if (layerState.extent !== undefined) {</span>
+<span class="cstat-no" title="statement not covered" >    renderedExtent = ol.extent.getIntersection(</span>
+        renderedExtent, layerState.extent);
+  }
+&nbsp;
+<span class="cstat-no" title="statement not covered" >  if (!hints[ol.ViewHint.ANIMATING] &amp;&amp; !hints[ol.ViewHint.INTERACTING] &amp;&amp;</span>
+      !ol.extent.isEmpty(renderedExtent)) {
+<span class="cstat-no" title="statement not covered" >    var projection = viewState.projection;</span>
+<span class="cstat-no" title="statement not covered" >    if (!ol.ENABLE_RASTER_REPROJECTION) {</span>
+<span class="cstat-no" title="statement not covered" >      var sourceProjection = imageSource.getProjection();</span>
+<span class="cstat-no" title="statement not covered" >      if (sourceProjection) {</span>
+<span class="cstat-no" title="statement not covered" >        goog.asserts.assert(ol.proj.equivalent(projection, sourceProjection),</span>
+            'projection and sourceProjection are equivalent');
+<span class="cstat-no" title="statement not covered" >        projection = sourceProjection;</span>
+      }
+    }
+<span class="cstat-no" title="statement not covered" >    image = imageSource.getImage(</span>
+        renderedExtent, viewResolution, pixelRatio, projection);
+<span class="cstat-no" title="statement not covered" >    if (image) {</span>
+<span class="cstat-no" title="statement not covered" >      var loaded = this.loadImage(image);</span>
+<span class="cstat-no" title="statement not covered" >      if (loaded) {</span>
+<span class="cstat-no" title="statement not covered" >        this.image_ = image;</span>
+      }
+    }
+  }
+&nbsp;
+<span class="cstat-no" title="statement not covered" >  if (this.image_) {</span>
+<span class="cstat-no" title="statement not covered" >    image = this.image_;</span>
+<span class="cstat-no" title="statement not covered" >    var imageExtent = image.getExtent();</span>
+<span class="cstat-no" title="statement not covered" >    var imageResolution = image.getResolution();</span>
+<span class="cstat-no" title="statement not covered" >    var imagePixelRatio = image.getPixelRatio();</span>
+<span class="cstat-no" title="statement not covered" >    var xImageResolution = imageResolution[0];</span>
+<span class="cstat-no" title="statement not covered" >    var yImageResolution = imageResolution[1];</span>
+<span class="cstat-no" title="statement not covered" >    var xScale = pixelRatio * xImageResolution /</span>
+        (viewResolution * imagePixelRatio);
+<span class="cstat-no" title="statement not covered" >    var yScale = pixelRatio * yImageResolution /</span>
+        (viewResolution * imagePixelRatio);
+<span class="cstat-no" title="statement not covered" >    ol.vec.Mat4.makeTransform2D(this.imageTransform_,</span>
+        pixelRatio * frameState.size[0] / 2,
+        pixelRatio * frameState.size[1] / 2,
+        xScale, yScale,
+        viewRotation,
+        imagePixelRatio * (imageExtent[0] - viewCenter[0]) / xImageResolution,
+        imagePixelRatio * (viewCenter[1] - imageExtent[3]) / yImageResolution);
+<span class="cstat-no" title="statement not covered" >    this.imageTransformInv_ = null;</span>
+<span class="cstat-no" title="statement not covered" >    this.updateAttributions(frameState.attributions, image.getAttributions());</span>
+<span class="cstat-no" title="statement not covered" >    this.updateLogos(frameState, imageSource);</span>
+  }
+&nbsp;
+<span class="cstat-no" title="statement not covered" >  return true;</span>
+};
+&nbsp;</pre></td></tr>
+</table></pre>
+<div class='push'></div><!-- for sticky footer -->
+</div><!-- /wrapper -->
+<div class='footer quiet pad2 space-top1 center small'>
+  Code coverage
+  generated by <a href="http://istanbul-js.org/" target="_blank">istanbul</a> at Fri Nov 06 2015 19:36:11 GMT+0100 (CET)
+</div>
+</div>
+<script src="../../../prettify.js"></script>
+<script>
+window.onload = function () {
+        if (typeof prettyPrint === 'function') {
+            prettyPrint();
+        }
+};
+</script>
+<script src="../../../sorter.js"></script>
+</body>
+</html>

@@ -1,0 +1,794 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <title>Code coverage report for ol/interaction/draganddropinteraction.js</title>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="../../prettify.css" />
+    <link rel="stylesheet" href="../../base.css" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style type='text/css'>
+        .coverage-summary .sorter {
+            background-image: url(../../sort-arrow-sprite.png);
+        }
+    </style>
+</head>
+<body>
+<div class='wrapper'>
+  <div class='pad1'>
+    <h1>
+      <a href="../../index.html">all files</a> / <a href="index.html">ol/interaction/</a> draganddropinteraction.js
+    </h1>
+    <div class='clearfix'>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">34.57% </span>
+        <span class="quiet">Statements</span>
+        <span class='fraction'>28/81</span>
+      </div>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">15% </span>
+        <span class="quiet">Branches</span>
+        <span class='fraction'>3/20</span>
+      </div>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">14.29% </span>
+        <span class="quiet">Functions</span>
+        <span class='fraction'>1/7</span>
+      </div>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">34.57% </span>
+        <span class="quiet">Lines</span>
+        <span class='fraction'>28/81</span>
+      </div>
+    </div>
+  </div>
+  <div class='status-line low'></div>
+<pre><table class="coverage">
+<tr><td class="line-count quiet">1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+28
+29
+30
+31
+32
+33
+34
+35
+36
+37
+38
+39
+40
+41
+42
+43
+44
+45
+46
+47
+48
+49
+50
+51
+52
+53
+54
+55
+56
+57
+58
+59
+60
+61
+62
+63
+64
+65
+66
+67
+68
+69
+70
+71
+72
+73
+74
+75
+76
+77
+78
+79
+80
+81
+82
+83
+84
+85
+86
+87
+88
+89
+90
+91
+92
+93
+94
+95
+96
+97
+98
+99
+100
+101
+102
+103
+104
+105
+106
+107
+108
+109
+110
+111
+112
+113
+114
+115
+116
+117
+118
+119
+120
+121
+122
+123
+124
+125
+126
+127
+128
+129
+130
+131
+132
+133
+134
+135
+136
+137
+138
+139
+140
+141
+142
+143
+144
+145
+146
+147
+148
+149
+150
+151
+152
+153
+154
+155
+156
+157
+158
+159
+160
+161
+162
+163
+164
+165
+166
+167
+168
+169
+170
+171
+172
+173
+174
+175
+176
+177
+178
+179
+180
+181
+182
+183
+184
+185
+186
+187
+188
+189
+190
+191
+192
+193
+194
+195
+196
+197
+198
+199
+200
+201
+202
+203
+204
+205
+206
+207
+208
+209
+210
+211
+212
+213
+214
+215
+216
+217
+218
+219
+220
+221
+222
+223
+224
+225
+226
+227
+228
+229
+230
+231
+232
+233
+234
+235
+236
+237
+238
+239
+240
+241
+242
+243
+244</td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">// FIXME should handle all geo-referenced data, not just vector data
+&nbsp;
+goog.provide('ol.interaction.DragAndDrop');
+goog.provide('ol.interaction.DragAndDropEvent');
+&nbsp;
+goog.require('goog.asserts');
+goog.require('goog.events');
+goog.require('goog.events.Event');
+goog.require('goog.events.FileDropHandler');
+goog.require('goog.events.FileDropHandler.EventType');
+goog.require('goog.fs.FileReader');
+goog.require('goog.functions');
+goog.require('ol.interaction.Interaction');
+goog.require('ol.proj');
+&nbsp;
+&nbsp;
+&nbsp;
+/**
+ * @classdesc
+ * Handles input of vector data by drag and drop.
+ *
+ * @constructor
+ * @extends {ol.interaction.Interaction}
+ * @fires ol.interaction.DragAndDropEvent
+ * @param {olx.interaction.DragAndDropOptions=} opt_options Options.
+ * @api stable
+ */
+ol.interaction.DragAndDrop = function(opt_options) {
+&nbsp;
+  var options = opt_options ? <span class="branch-0 cbranch-no" title="branch not covered" >opt_options </span>: {};
+&nbsp;
+  goog.base(this, {
+    handleEvent: ol.interaction.DragAndDrop.handleEvent
+  });
+&nbsp;
+  /**
+   * @private
+   * @type {Array.&lt;function(new: ol.format.Feature)&gt;}
+   */
+  this.formatConstructors_ = options.formatConstructors ?
+<span class="branch-0 cbranch-no" title="branch not covered" >      options.formatConstructors </span>: [];
+&nbsp;
+  /**
+   * @private
+   * @type {ol.proj.Projection}
+   */
+  this.projection_ = options.projection ?
+<span class="branch-0 cbranch-no" title="branch not covered" >      ol.proj.get(options.projection) </span>: null;
+&nbsp;
+  /**
+   * @private
+   * @type {goog.events.FileDropHandler}
+   */
+  this.fileDropHandler_ = null;
+&nbsp;
+  /**
+   * @private
+   * @type {goog.events.Key|undefined}
+   */
+  this.dropListenKey_ = undefined;
+&nbsp;
+};
+goog.inherits(ol.interaction.DragAndDrop, ol.interaction.Interaction);
+&nbsp;
+&nbsp;
+/**
+ * @inheritDoc
+ */
+ol.interaction.DragAndDrop.prototype.disposeInternal = <span class="fstat-no" title="function not covered" >function() {</span>
+<span class="cstat-no" title="statement not covered" >  if (this.dropListenKey_) {</span>
+<span class="cstat-no" title="statement not covered" >    goog.events.unlistenByKey(this.dropListenKey_);</span>
+  }
+<span class="cstat-no" title="statement not covered" >  goog.base(this, 'disposeInternal');</span>
+};
+&nbsp;
+&nbsp;
+/**
+ * @param {goog.events.BrowserEvent} event Event.
+ * @private
+ */
+ol.interaction.DragAndDrop.prototype.handleDrop_ = <span class="fstat-no" title="function not covered" >function(event) {</span>
+<span class="cstat-no" title="statement not covered" >  var files = event.getBrowserEvent().dataTransfer.files;</span>
+<span class="cstat-no" title="statement not covered" >  var i, ii, file;</span>
+<span class="cstat-no" title="statement not covered" >  for (i = 0, ii = files.length; i &lt; ii; ++i) {</span>
+<span class="cstat-no" title="statement not covered" >    file = files[i];</span>
+    // The empty string param is a workaround for
+    // https://code.google.com/p/closure-library/issues/detail?id=524
+<span class="cstat-no" title="statement not covered" >    var reader = goog.fs.FileReader.readAsText(file, '');</span>
+<span class="cstat-no" title="statement not covered" >    reader.addCallback(goog.partial(this.handleResult_, file), this);</span>
+  }
+};
+&nbsp;
+&nbsp;
+/**
+ * @param {File} file File.
+ * @param {string} result Result.
+ * @private
+ */
+ol.interaction.DragAndDrop.prototype.handleResult_ = <span class="fstat-no" title="function not covered" >function(file, result) {</span>
+<span class="cstat-no" title="statement not covered" >  var map = this.getMap();</span>
+<span class="cstat-no" title="statement not covered" >  goog.asserts.assert(map, 'map must be set');</span>
+<span class="cstat-no" title="statement not covered" >  var projection = this.projection_;</span>
+<span class="cstat-no" title="statement not covered" >  if (!projection) {</span>
+<span class="cstat-no" title="statement not covered" >    var view = map.getView();</span>
+<span class="cstat-no" title="statement not covered" >    goog.asserts.assert(view, 'map must have view');</span>
+<span class="cstat-no" title="statement not covered" >    projection = view.getProjection();</span>
+<span class="cstat-no" title="statement not covered" >    goog.asserts.assert(projection !== undefined,</span>
+        'projection should be defined');
+  }
+<span class="cstat-no" title="statement not covered" >  var formatConstructors = this.formatConstructors_;</span>
+<span class="cstat-no" title="statement not covered" >  var features = [];</span>
+<span class="cstat-no" title="statement not covered" >  var i, ii;</span>
+<span class="cstat-no" title="statement not covered" >  for (i = 0, ii = formatConstructors.length; i &lt; ii; ++i) {</span>
+<span class="cstat-no" title="statement not covered" >    var formatConstructor = formatConstructors[i];</span>
+<span class="cstat-no" title="statement not covered" >    var format = new formatConstructor();</span>
+<span class="cstat-no" title="statement not covered" >    var readFeatures = this.tryReadFeatures_(format, result);</span>
+<span class="cstat-no" title="statement not covered" >    if (readFeatures) {</span>
+<span class="cstat-no" title="statement not covered" >      var featureProjection = format.readProjection(result);</span>
+<span class="cstat-no" title="statement not covered" >      var transform = ol.proj.getTransform(featureProjection, projection);</span>
+<span class="cstat-no" title="statement not covered" >      var j, jj;</span>
+<span class="cstat-no" title="statement not covered" >      for (j = 0, jj = readFeatures.length; j &lt; jj; ++j) {</span>
+<span class="cstat-no" title="statement not covered" >        var feature = readFeatures[j];</span>
+<span class="cstat-no" title="statement not covered" >        var geometry = feature.getGeometry();</span>
+<span class="cstat-no" title="statement not covered" >        if (geometry) {</span>
+<span class="cstat-no" title="statement not covered" >          geometry.applyTransform(transform);</span>
+        }
+<span class="cstat-no" title="statement not covered" >        features.push(feature);</span>
+      }
+    }
+  }
+<span class="cstat-no" title="statement not covered" >  this.dispatchEvent(</span>
+      new ol.interaction.DragAndDropEvent(
+          ol.interaction.DragAndDropEventType.ADD_FEATURES, this, file,
+          features, projection));
+};
+&nbsp;
+&nbsp;
+/**
+ * Handles the {@link ol.MapBrowserEvent map browser event} unconditionally and
+ * neither prevents the browser default nor stops event propagation.
+ * @param {ol.MapBrowserEvent} mapBrowserEvent Map browser event.
+ * @return {boolean} `false` to stop event propagation.
+ * @this {ol.interaction.DragAndDrop}
+ * @api
+ */
+ol.interaction.DragAndDrop.handleEvent = goog.functions.TRUE;
+&nbsp;
+&nbsp;
+/**
+ * @inheritDoc
+ */
+ol.interaction.DragAndDrop.prototype.setMap = <span class="fstat-no" title="function not covered" >function(map) {</span>
+<span class="cstat-no" title="statement not covered" >  if (this.dropListenKey_) {</span>
+<span class="cstat-no" title="statement not covered" >    goog.events.unlistenByKey(this.dropListenKey_);</span>
+<span class="cstat-no" title="statement not covered" >    this.dropListenKey_ = undefined;</span>
+  }
+<span class="cstat-no" title="statement not covered" >  if (this.fileDropHandler_) {</span>
+<span class="cstat-no" title="statement not covered" >    goog.dispose(this.fileDropHandler_);</span>
+<span class="cstat-no" title="statement not covered" >    this.fileDropHandler_ = null;</span>
+  }
+<span class="cstat-no" title="statement not covered" >  goog.asserts.assert(this.dropListenKey_ === undefined,</span>
+      'this.dropListenKey_ should be undefined');
+<span class="cstat-no" title="statement not covered" >  goog.base(this, 'setMap', map);</span>
+<span class="cstat-no" title="statement not covered" >  if (map) {</span>
+<span class="cstat-no" title="statement not covered" >    this.fileDropHandler_ = new goog.events.FileDropHandler(map.getViewport());</span>
+<span class="cstat-no" title="statement not covered" >    this.dropListenKey_ = goog.events.listen(</span>
+        this.fileDropHandler_, goog.events.FileDropHandler.EventType.DROP,
+        this.handleDrop_, false, this);
+  }
+};
+&nbsp;
+&nbsp;
+/**
+ * @param {ol.format.Feature} format Format.
+ * @param {string} text Text.
+ * @private
+ * @return {Array.&lt;ol.Feature&gt;} Features.
+ */
+ol.interaction.DragAndDrop.prototype.tryReadFeatures_ = <span class="fstat-no" title="function not covered" >function(format, text) {</span>
+<span class="cstat-no" title="statement not covered" >  try {</span>
+<span class="cstat-no" title="statement not covered" >    return format.readFeatures(text);</span>
+  } catch (e) {
+<span class="cstat-no" title="statement not covered" >    return null;</span>
+  }
+};
+&nbsp;
+&nbsp;
+/**
+ * @enum {string}
+ */
+ol.interaction.DragAndDropEventType = {
+  /**
+   * Triggered when features are added
+   * @event ol.interaction.DragAndDropEvent#addfeatures
+   * @api stable
+   */
+  ADD_FEATURES: 'addfeatures'
+};
+&nbsp;
+&nbsp;
+&nbsp;
+/**
+ * @classdesc
+ * Events emitted by {@link ol.interaction.DragAndDrop} instances are instances
+ * of this type.
+ *
+ * @constructor
+ * @extends {goog.events.Event}
+ * @implements {oli.interaction.DragAndDropEvent}
+ * @param {ol.interaction.DragAndDropEventType} type Type.
+ * @param {Object} target Target.
+ * @param {File} file File.
+ * @param {Array.&lt;ol.Feature&gt;=} opt_features Features.
+ * @param {ol.proj.Projection=} opt_projection Projection.
+ */
+ol.interaction.DragAndDropEvent =
+<span class="fstat-no" title="function not covered" >    function(type, target, file, opt_features, opt_projection) {</span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" >  goog.base(this, type, target);</span>
+&nbsp;
+  /**
+   * The features parsed from dropped data.
+   * @type {Array.&lt;ol.Feature&gt;|undefined}
+   * @api stable
+   */
+<span class="cstat-no" title="statement not covered" >  this.features = opt_features;</span>
+&nbsp;
+  /**
+   * The dropped file.
+   * @type {File}
+   * @api stable
+   */
+<span class="cstat-no" title="statement not covered" >  this.file = file;</span>
+&nbsp;
+  /**
+   * The feature projection.
+   * @type {ol.proj.Projection|undefined}
+   * @api
+   */
+<span class="cstat-no" title="statement not covered" >  this.projection = opt_projection;</span>
+&nbsp;
+};
+goog.inherits(ol.interaction.DragAndDropEvent, goog.events.Event);
+&nbsp;</pre></td></tr>
+</table></pre>
+<div class='push'></div><!-- for sticky footer -->
+</div><!-- /wrapper -->
+<div class='footer quiet pad2 space-top1 center small'>
+  Code coverage
+  generated by <a href="http://istanbul-js.org/" target="_blank">istanbul</a> at Fri Nov 06 2015 19:36:11 GMT+0100 (CET)
+</div>
+</div>
+<script src="../../prettify.js"></script>
+<script>
+window.onload = function () {
+        if (typeof prettyPrint === 'function') {
+            prettyPrint();
+        }
+};
+</script>
+<script src="../../sorter.js"></script>
+</body>
+</html>

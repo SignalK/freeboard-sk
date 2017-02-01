@@ -1,0 +1,11 @@
+@import 'simple.css';
+@import 'small.css';
+@import 'grayscale.css';
+
+body {
+  background: antiquewhite;
+}
+
+.d3-gauge {
+  float: left;
+}

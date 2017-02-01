@@ -1,0 +1,980 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <title>Code coverage report for ol/render/webgl/webglimmediate.js</title>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="../../../prettify.css" />
+    <link rel="stylesheet" href="../../../base.css" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style type='text/css'>
+        .coverage-summary .sorter {
+            background-image: url(../../../sort-arrow-sprite.png);
+        }
+    </style>
+</head>
+<body>
+<div class='wrapper'>
+  <div class='pad1'>
+    <h1>
+      <a href="../../../index.html">all files</a> / <a href="index.html">ol/render/webgl/</a> webglimmediate.js
+    </h1>
+    <div class='clearfix'>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">25.81% </span>
+        <span class="quiet">Statements</span>
+        <span class='fraction'>24/93</span>
+      </div>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">0% </span>
+        <span class="quiet">Branches</span>
+        <span class='fraction'>0/12</span>
+      </div>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">0% </span>
+        <span class="quiet">Functions</span>
+        <span class='fraction'>0/17</span>
+      </div>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">25.81% </span>
+        <span class="quiet">Lines</span>
+        <span class='fraction'>24/93</span>
+      </div>
+    </div>
+  </div>
+  <div class='status-line low'></div>
+<pre><table class="coverage">
+<tr><td class="line-count quiet">1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+28
+29
+30
+31
+32
+33
+34
+35
+36
+37
+38
+39
+40
+41
+42
+43
+44
+45
+46
+47
+48
+49
+50
+51
+52
+53
+54
+55
+56
+57
+58
+59
+60
+61
+62
+63
+64
+65
+66
+67
+68
+69
+70
+71
+72
+73
+74
+75
+76
+77
+78
+79
+80
+81
+82
+83
+84
+85
+86
+87
+88
+89
+90
+91
+92
+93
+94
+95
+96
+97
+98
+99
+100
+101
+102
+103
+104
+105
+106
+107
+108
+109
+110
+111
+112
+113
+114
+115
+116
+117
+118
+119
+120
+121
+122
+123
+124
+125
+126
+127
+128
+129
+130
+131
+132
+133
+134
+135
+136
+137
+138
+139
+140
+141
+142
+143
+144
+145
+146
+147
+148
+149
+150
+151
+152
+153
+154
+155
+156
+157
+158
+159
+160
+161
+162
+163
+164
+165
+166
+167
+168
+169
+170
+171
+172
+173
+174
+175
+176
+177
+178
+179
+180
+181
+182
+183
+184
+185
+186
+187
+188
+189
+190
+191
+192
+193
+194
+195
+196
+197
+198
+199
+200
+201
+202
+203
+204
+205
+206
+207
+208
+209
+210
+211
+212
+213
+214
+215
+216
+217
+218
+219
+220
+221
+222
+223
+224
+225
+226
+227
+228
+229
+230
+231
+232
+233
+234
+235
+236
+237
+238
+239
+240
+241
+242
+243
+244
+245
+246
+247
+248
+249
+250
+251
+252
+253
+254
+255
+256
+257
+258
+259
+260
+261
+262
+263
+264
+265
+266
+267
+268
+269
+270
+271
+272
+273
+274
+275
+276
+277
+278
+279
+280
+281
+282
+283
+284
+285
+286
+287
+288
+289
+290
+291
+292
+293
+294
+295
+296
+297
+298
+299
+300
+301
+302
+303
+304
+305
+306</td><td class="line-coverage quiet"><span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">goog.provide('ol.render.webgl.Immediate');
+goog.require('goog.array');
+goog.require('ol.extent');
+goog.require('ol.render.VectorContext');
+goog.require('ol.render.webgl.ImageReplay');
+goog.require('ol.render.webgl.ReplayGroup');
+&nbsp;
+&nbsp;
+&nbsp;
+/**
+ * @constructor
+ * @extends {ol.render.VectorContext}
+ * @param {ol.webgl.Context} context Context.
+ * @param {ol.Coordinate} center Center.
+ * @param {number} resolution Resolution.
+ * @param {number} rotation Rotation.
+ * @param {ol.Size} size Size.
+ * @param {ol.Extent} extent Extent.
+ * @param {number} pixelRatio Pixel ratio.
+ * @struct
+ */
+ol.render.webgl.Immediate = <span class="fstat-no" title="function not covered" >function(context,</span>
+    center, resolution, rotation, size, extent, pixelRatio) {
+<span class="cstat-no" title="statement not covered" >  goog.base(this);</span>
+&nbsp;
+  /**
+   * @private
+   */
+<span class="cstat-no" title="statement not covered" >  this.context_ = context;</span>
+&nbsp;
+  /**
+   * @private
+   */
+<span class="cstat-no" title="statement not covered" >  this.center_ = center;</span>
+&nbsp;
+  /**
+   * @private
+   */
+<span class="cstat-no" title="statement not covered" >  this.extent_ = extent;</span>
+&nbsp;
+  /**
+   * @private
+   */
+<span class="cstat-no" title="statement not covered" >  this.pixelRatio_ = pixelRatio;</span>
+&nbsp;
+  /**
+   * @private
+   */
+<span class="cstat-no" title="statement not covered" >  this.size_ = size;</span>
+&nbsp;
+  /**
+   * @private
+   */
+<span class="cstat-no" title="statement not covered" >  this.rotation_ = rotation;</span>
+&nbsp;
+  /**
+   * @private
+   */
+<span class="cstat-no" title="statement not covered" >  this.resolution_ = resolution;</span>
+&nbsp;
+  /**
+   * @private
+   * @type {ol.style.Image}
+   */
+<span class="cstat-no" title="statement not covered" >  this.imageStyle_ = null;</span>
+&nbsp;
+  /**
+   * @private
+   * @type {!Object.&lt;string,
+   *        Array.&lt;function(ol.render.webgl.Immediate)&gt;&gt;}
+   */
+<span class="cstat-no" title="statement not covered" >  this.callbacksByZIndex_ = {};</span>
+};
+goog.inherits(ol.render.webgl.Immediate, ol.render.VectorContext);
+&nbsp;
+&nbsp;
+/**
+ * FIXME: empty description for jsdoc
+ */
+ol.render.webgl.Immediate.prototype.flush = <span class="fstat-no" title="function not covered" >function() {</span>
+  /** @type {Array.&lt;number&gt;} */
+<span class="cstat-no" title="statement not covered" >  var zs = Object.keys(this.callbacksByZIndex_).map(Number);</span>
+<span class="cstat-no" title="statement not covered" >  goog.array.sort(zs);</span>
+<span class="cstat-no" title="statement not covered" >  var i, ii, callbacks, j, jj;</span>
+<span class="cstat-no" title="statement not covered" >  for (i = 0, ii = zs.length; i &lt; ii; ++i) {</span>
+<span class="cstat-no" title="statement not covered" >    callbacks = this.callbacksByZIndex_[zs[i].toString()];</span>
+<span class="cstat-no" title="statement not covered" >    for (j = 0, jj = callbacks.length; j &lt; jj; ++j) {</span>
+<span class="cstat-no" title="statement not covered" >      callbacks[j](this);</span>
+    }
+  }
+};
+&nbsp;
+&nbsp;
+/**
+ * Register a function to be called for rendering at a given zIndex.  The
+ * function will be called asynchronously.  The callback will receive a
+ * reference to {@link ol.render.canvas.Immediate} context for drawing.
+ * @param {number} zIndex Z index.
+ * @param {function(ol.render.webgl.Immediate)} callback Callback.
+ * @api
+ */
+ol.render.webgl.Immediate.prototype.drawAsync = <span class="fstat-no" title="function not covered" >function(zIndex, callback) {</span>
+<span class="cstat-no" title="statement not covered" >  var zIndexKey = zIndex.toString();</span>
+<span class="cstat-no" title="statement not covered" >  var callbacks = this.callbacksByZIndex_[zIndexKey];</span>
+<span class="cstat-no" title="statement not covered" >  if (callbacks !== undefined) {</span>
+<span class="cstat-no" title="statement not covered" >    callbacks.push(callback);</span>
+  } else {
+<span class="cstat-no" title="statement not covered" >    this.callbacksByZIndex_[zIndexKey] = [callback];</span>
+  }
+};
+&nbsp;
+&nbsp;
+/**
+ * @inheritDoc
+ * @api
+ */
+ol.render.webgl.Immediate.prototype.drawCircleGeometry =
+<span class="fstat-no" title="function not covered" >    function(circleGeometry, data) {</span>
+};
+&nbsp;
+&nbsp;
+/**
+ * @inheritDoc
+ * @api
+ */
+ol.render.webgl.Immediate.prototype.drawFeature = <span class="fstat-no" title="function not covered" >function(feature, style) {</span>
+<span class="cstat-no" title="statement not covered" >  var geometry = style.getGeometryFunction()(feature);</span>
+<span class="cstat-no" title="statement not covered" >  if (!geometry ||</span>
+      !ol.extent.intersects(this.extent_, geometry.getExtent())) {
+<span class="cstat-no" title="statement not covered" >    return;</span>
+  }
+<span class="cstat-no" title="statement not covered" >  var zIndex = style.getZIndex();</span>
+<span class="cstat-no" title="statement not covered" >  if (zIndex === undefined) {</span>
+<span class="cstat-no" title="statement not covered" >    zIndex = 0;</span>
+  }
+<span class="cstat-no" title="statement not covered" >  this.drawAsync(zIndex, <span class="fstat-no" title="function not covered" >function(render) {</span></span>
+<span class="cstat-no" title="statement not covered" >    render.setFillStrokeStyle(style.getFill(), style.getStroke());</span>
+<span class="cstat-no" title="statement not covered" >    render.setImageStyle(style.getImage());</span>
+<span class="cstat-no" title="statement not covered" >    render.setTextStyle(style.getText());</span>
+<span class="cstat-no" title="statement not covered" >    var type = geometry.getType();</span>
+<span class="cstat-no" title="statement not covered" >    var renderGeometry = ol.render.webgl.Immediate.GEOMETRY_RENDERERS_[type];</span>
+    // Do not assert since all kinds of geometries are not handled yet.
+    // In spite, render what we support.
+<span class="cstat-no" title="statement not covered" >    if (renderGeometry) {</span>
+<span class="cstat-no" title="statement not covered" >      renderGeometry.call(render, geometry, null);</span>
+    }
+  });
+};
+&nbsp;
+&nbsp;
+/**
+ * @inheritDoc
+ * @api
+ */
+ol.render.webgl.Immediate.prototype.drawGeometryCollectionGeometry =
+<span class="fstat-no" title="function not covered" >    function(geometryCollectionGeometry, data) {</span>
+<span class="cstat-no" title="statement not covered" >  var geometries = geometryCollectionGeometry.getGeometriesArray();</span>
+<span class="cstat-no" title="statement not covered" >  var renderers = ol.render.webgl.Immediate.GEOMETRY_RENDERERS_;</span>
+<span class="cstat-no" title="statement not covered" >  var i, ii;</span>
+<span class="cstat-no" title="statement not covered" >  for (i = 0, ii = geometries.length; i &lt; ii; ++i) {</span>
+<span class="cstat-no" title="statement not covered" >    var geometry = geometries[i];</span>
+<span class="cstat-no" title="statement not covered" >    var geometryRenderer = renderers[geometry.getType()];</span>
+    // Do not assert since all kinds of geometries are not handled yet.
+    // In order to support hierarchies, delegate instead what we can to
+    // valid renderers.
+<span class="cstat-no" title="statement not covered" >    if (geometryRenderer) {</span>
+<span class="cstat-no" title="statement not covered" >      geometryRenderer.call(this, geometry, data);</span>
+    }
+  }
+};
+&nbsp;
+&nbsp;
+/**
+ * @inheritDoc
+ * @api
+ */
+ol.render.webgl.Immediate.prototype.drawPointGeometry =
+<span class="fstat-no" title="function not covered" >    function(pointGeometry, data) {</span>
+<span class="cstat-no" title="statement not covered" >  var context = this.context_;</span>
+<span class="cstat-no" title="statement not covered" >  var replayGroup = new ol.render.webgl.ReplayGroup(1, this.extent_);</span>
+<span class="cstat-no" title="statement not covered" >  var replay = /** @type {ol.render.webgl.ImageReplay} */ (</span>
+      replayGroup.getReplay(0, ol.render.ReplayType.IMAGE));
+<span class="cstat-no" title="statement not covered" >  replay.setImageStyle(this.imageStyle_);</span>
+<span class="cstat-no" title="statement not covered" >  replay.drawPointGeometry(pointGeometry, data);</span>
+<span class="cstat-no" title="statement not covered" >  replay.finish(context);</span>
+  // default colors
+<span class="cstat-no" title="statement not covered" >  var opacity = 1;</span>
+<span class="cstat-no" title="statement not covered" >  var skippedFeatures = {};</span>
+<span class="cstat-no" title="statement not covered" >  var featureCallback;</span>
+<span class="cstat-no" title="statement not covered" >  var oneByOne = false;</span>
+<span class="cstat-no" title="statement not covered" >  replay.replay(this.context_, this.center_, this.resolution_, this.rotation_,</span>
+      this.size_, this.pixelRatio_, opacity, skippedFeatures, featureCallback,
+      oneByOne);
+<span class="cstat-no" title="statement not covered" >  replay.getDeleteResourcesFunction(context)();</span>
+};
+&nbsp;
+&nbsp;
+/**
+ * @inheritDoc
+ * @api
+ */
+ol.render.webgl.Immediate.prototype.drawLineStringGeometry =
+<span class="fstat-no" title="function not covered" >    function(lineStringGeometry, data) {</span>
+};
+&nbsp;
+&nbsp;
+/**
+ * @inheritDoc
+ * @api
+ */
+ol.render.webgl.Immediate.prototype.drawMultiLineStringGeometry =
+<span class="fstat-no" title="function not covered" >    function(multiLineStringGeometry, data) {</span>
+};
+&nbsp;
+&nbsp;
+/**
+ * @inheritDoc
+ * @api
+ */
+ol.render.webgl.Immediate.prototype.drawMultiPointGeometry =
+<span class="fstat-no" title="function not covered" >    function(multiPointGeometry, data) {</span>
+<span class="cstat-no" title="statement not covered" >  var context = this.context_;</span>
+<span class="cstat-no" title="statement not covered" >  var replayGroup = new ol.render.webgl.ReplayGroup(1, this.extent_);</span>
+<span class="cstat-no" title="statement not covered" >  var replay = /** @type {ol.render.webgl.ImageReplay} */ (</span>
+      replayGroup.getReplay(0, ol.render.ReplayType.IMAGE));
+<span class="cstat-no" title="statement not covered" >  replay.setImageStyle(this.imageStyle_);</span>
+<span class="cstat-no" title="statement not covered" >  replay.drawMultiPointGeometry(multiPointGeometry, data);</span>
+<span class="cstat-no" title="statement not covered" >  replay.finish(context);</span>
+<span class="cstat-no" title="statement not covered" >  var opacity = 1;</span>
+<span class="cstat-no" title="statement not covered" >  var skippedFeatures = {};</span>
+<span class="cstat-no" title="statement not covered" >  var featureCallback;</span>
+<span class="cstat-no" title="statement not covered" >  var oneByOne = false;</span>
+<span class="cstat-no" title="statement not covered" >  replay.replay(this.context_, this.center_, this.resolution_, this.rotation_,</span>
+      this.size_, this.pixelRatio_, opacity, skippedFeatures, featureCallback,
+      oneByOne);
+<span class="cstat-no" title="statement not covered" >  replay.getDeleteResourcesFunction(context)();</span>
+};
+&nbsp;
+&nbsp;
+/**
+ * @inheritDoc
+ * @api
+ */
+ol.render.webgl.Immediate.prototype.drawMultiPolygonGeometry =
+<span class="fstat-no" title="function not covered" >    function(multiPolygonGeometry, data) {</span>
+};
+&nbsp;
+&nbsp;
+/**
+ * @inheritDoc
+ * @api
+ */
+ol.render.webgl.Immediate.prototype.drawPolygonGeometry =
+<span class="fstat-no" title="function not covered" >    function(polygonGeometry, data) {</span>
+};
+&nbsp;
+&nbsp;
+/**
+ * @inheritDoc
+ * @api
+ */
+ol.render.webgl.Immediate.prototype.drawText =
+<span class="fstat-no" title="function not covered" >    function(flatCoordinates, offset, end, stride, geometry, data) {</span>
+};
+&nbsp;
+&nbsp;
+/**
+ * @inheritDoc
+ * @api
+ */
+ol.render.webgl.Immediate.prototype.setFillStrokeStyle =
+<span class="fstat-no" title="function not covered" >    function(fillStyle, strokeStyle) {</span>
+};
+&nbsp;
+&nbsp;
+/**
+ * @inheritDoc
+ * @api
+ */
+ol.render.webgl.Immediate.prototype.setImageStyle = <span class="fstat-no" title="function not covered" >function(imageStyle) {</span>
+<span class="cstat-no" title="statement not covered" >  this.imageStyle_ = imageStyle;</span>
+};
+&nbsp;
+&nbsp;
+/**
+ * @inheritDoc
+ * @api
+ */
+ol.render.webgl.Immediate.prototype.setTextStyle = <span class="fstat-no" title="function not covered" >function(textStyle) {</span>
+};
+&nbsp;
+&nbsp;
+/**
+ * @const
+ * @private
+ * @type {Object.&lt;ol.geom.GeometryType,
+ *      function(this: ol.render.webgl.Immediate,
+ *          (ol.geom.Geometry|ol.render.Feature), Object)&gt;}
+ */
+ol.render.webgl.Immediate.GEOMETRY_RENDERERS_ = {
+  'Point': ol.render.webgl.Immediate.prototype.drawPointGeometry,
+  'MultiPoint': ol.render.webgl.Immediate.prototype.drawMultiPointGeometry,
+  'GeometryCollection':
+      ol.render.webgl.Immediate.prototype.drawGeometryCollectionGeometry
+};
+&nbsp;</pre></td></tr>
+</table></pre>
+<div class='push'></div><!-- for sticky footer -->
+</div><!-- /wrapper -->
+<div class='footer quiet pad2 space-top1 center small'>
+  Code coverage
+  generated by <a href="http://istanbul-js.org/" target="_blank">istanbul</a> at Fri Nov 06 2015 19:36:11 GMT+0100 (CET)
+</div>
+</div>
+<script src="../../../prettify.js"></script>
+<script>
+window.onload = function () {
+        if (typeof prettyPrint === 'function') {
+            prettyPrint();
+        }
+};
+</script>
+<script src="../../../sorter.js"></script>
+</body>
+</html>

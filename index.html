@@ -215,16 +215,17 @@
                 overflow: scroll;
             }
             .dataLabel {
-                font-size: 1.5em;
+                font-size: 2em;
             }
             .dataValue {
                 font-size: 3em;
             }
 
             .gauge-container {
-                height: 350px;
-                width: 350px;
+                height: 200px;
+                width: 200px;
                 position: relative;
+                margin: auto;
             }
             @media screen and (max-width: 992px) {
 
@@ -271,7 +272,7 @@
                 </div>
             </div>
         </div>
-        <div id="dataDrawer" class="drawer  dw-xs-8 dw-sm-5 dw-md-5 dw-lg-3  fold drawer-right" aria-labelledby="dataDrawer">
+        <div id="dataDrawer" class="drawer  dw-xs-8 dw-sm-5 dw-md-3 dw-lg-2  fold drawer-right" aria-labelledby="dataDrawer">
             <div class="drawer-controls">
                 <a href="#dataDrawer" data-toggle="drawer" aria-foldedopen="false" aria-controls="dataDrawer" class="btn btn-primary btn-sm" ><i class="fa fa-align-justify"></i></a>
             </div>
@@ -282,25 +283,22 @@
                 </div>
                 <div class="drawer-body dataDrawerBody">
                     <div>
-                        <table>
+                        <div id="windDirGauge" class="gauge-container" ></div>
+                        <table border="1" colspan="1">
                             <thead>
-                                <tr><th></th><th width="80%"></th></tr>
+                                <tr><th></th><th width="100%"></th></tr>
                             </thead>
                             <tbody>
-                                <tr><td colspan="2"><div id="windDirGauge" class="gauge-container"></div></td></tr>
-                                <tr><td><label class="dataLabel">COG:</label><td><label id="cogm"  class="dataLabel"></label></td><td><label class="dataLabel">Mag</label></td></tr>
-                                <tr><td><label class="dataLabel">SOG:</label><td><label id="sog"  class="dataLabel"></label></td><td><label class="dataLabel">Kt</label></td></tr>
-                                <tr><td><label class="dataLabel">SOW:</label><td><label id="sow"  class="dataLabel"></label></td><td><label class="dataLabel">Kt</label></td></tr>
-                                <tr><td><label class="dataLabel">DBT:</label><td><label id="dbt"  class="dataLabel"></label></td><td><label class="dataLabel">M</label></td></tr>
-                                <tr><td><label class="dataLabel">TWS:</label><td><label id="tws"  class="dataLabel"></label></td><td><label class="dataLabel">Kt</label></td></tr>
-                                <tr><td><label class="dataLabel">AWS:</label><td><label id="aws"  class="dataLabel"></label></td><td><label class="dataLabel">Kt</label></td></tr>
-                                <!--  <tr><td><label class="dataLabel">COG:</label><br/><label class="dataLabel">M</label></td><td><label id="cogm"  class="dataValue"></label></td></tr>
-                                <tr><td><label class="dataLabel">COG:</label><br/><label class="dataLabel">T</label></td><td><label id="cogt"  class="dataValue"></label></td></tr> 
-                                <tr><td><label class="dataLabel">SOG:</label><br/><label class="dataLabel">KNTS</label></td><td><label id="sog"  class="dataValue"></label></td></tr>
-                                <tr><td><label class="dataLabel">SOW:</label><br/><label class="dataLabel">KNTS</label></td><td><label id="sow"  class="dataValue"></label></td></tr>
-                                <tr><td><label class="dataLabel">DBT:</label><br/><label class="dataLabel">M</label></td><td><label id="dbt"  class="dataValue"></label></td></tr>	
-                                <tr><td><label class="dataLabel">TWS:</label><br/><label class="dataLabel">KNTS</label></td><td><label id="tws"  class="dataValue"></label></td></tr>	
-                                <tr><td><label class="dataLabel">AWS:</label><br/><label class="dataLabel">KNTS</label></td><td><label id="aws"  class="dataValue"></label></td></tr> -->
+                                <!--<tr><td></td><td colspan="1"><div id="windDirGauge" class="gauge-container"></div></td><td></td></tr> -->
+                                <tr><td><label class="dataLabel">COGM</label><td><label id="cogm" class="dataLabel"></label></td><td><label class="dataLabel">deg</label ></td></tr>
+                                <tr><td><label class="dataLabel">COGT</label><td><label id="cogt" class="dataLabel"></label></td><td><label class="dataLabel">deg</label ></td></tr>
+                                <tr><td><label class="dataLabel">SOG</label><td><label id="sog"  class="dataLabel"></label></td><td><label class="dataLabel">Kt</label></td></tr>
+                                <tr><td><label class="dataLabel">SOW</label><td><label id="sow"  class="dataLabel"></label></td><td><label class="dataLabel">Kt</label></td></tr>
+                                <tr><td><label class="dataLabel">DBT</label><td><label id="dbt"  class="dataLabel"></label></td><td><label class="dataLabel">M</label></td></tr>
+                                <tr><td><label class="dataLabel">TWS</label><td><label id="tws"  class="dataLabel"></label></td><td><label class="dataLabel">Kt</label></td></tr>
+                                <tr><td><label class="dataLabel">AWS</label><td><label id="aws"  class="dataLabel"></label></td><td><label class="dataLabel">Kt</label></td></tr>
+                                <tr><td><label class="dataLabel">TWD</label><td><label id="twd"  class="dataLabel"></label></td><td><label class="dataLabel">deg</label></td></tr>
+                                <tr><td><label class="dataLabel">AWD</label><td><label id="awd"  class="dataLabel"></label></td><td><label class="dataLabel">deg</label></td></tr>
                             </tbody>
                         </table>
                         <!--</span>-->

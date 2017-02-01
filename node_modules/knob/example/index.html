@@ -1,0 +1,32 @@
+<html>
+<head>
+  <title>Knob Example</title>
+  <script src='entry.js'></script>
+</head>
+
+<body>
+  <script>
+    append(Knob({
+      label: 'Test 123',
+      value: 100,
+      angleOffset: -125,
+      angleArc: 250, 
+      min: 0, 
+      max: 200,
+      width: 100
+    }))
+
+    append(Knob({
+      label: 'Another',
+      value: 50
+    }))
+
+    append(Knob({
+      value: 26,
+      fgColor: 'brown'
+    }))
+
+  </script>
+</body>
+
+</html>

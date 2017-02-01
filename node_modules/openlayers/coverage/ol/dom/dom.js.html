@@ -1,0 +1,734 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <title>Code coverage report for ol/dom/dom.js</title>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="../../prettify.css" />
+    <link rel="stylesheet" href="../../base.css" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style type='text/css'>
+        .coverage-summary .sorter {
+            background-image: url(../../sort-arrow-sprite.png);
+        }
+    </style>
+</head>
+<body>
+<div class='wrapper'>
+  <div class='pad1'>
+    <h1>
+      <a href="../../index.html">all files</a> / <a href="index.html">ol/dom/</a> dom.js
+    </h1>
+    <div class='clearfix'>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">27.27% </span>
+        <span class="quiet">Statements</span>
+        <span class='fraction'>24/88</span>
+      </div>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">11.11% </span>
+        <span class="quiet">Branches</span>
+        <span class='fraction'>4/36</span>
+      </div>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">33.33% </span>
+        <span class="quiet">Functions</span>
+        <span class='fraction'>3/9</span>
+      </div>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">27.27% </span>
+        <span class="quiet">Lines</span>
+        <span class='fraction'>24/88</span>
+      </div>
+    </div>
+  </div>
+  <div class='status-line low'></div>
+<pre><table class="coverage">
+<tr><td class="line-count quiet">1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+28
+29
+30
+31
+32
+33
+34
+35
+36
+37
+38
+39
+40
+41
+42
+43
+44
+45
+46
+47
+48
+49
+50
+51
+52
+53
+54
+55
+56
+57
+58
+59
+60
+61
+62
+63
+64
+65
+66
+67
+68
+69
+70
+71
+72
+73
+74
+75
+76
+77
+78
+79
+80
+81
+82
+83
+84
+85
+86
+87
+88
+89
+90
+91
+92
+93
+94
+95
+96
+97
+98
+99
+100
+101
+102
+103
+104
+105
+106
+107
+108
+109
+110
+111
+112
+113
+114
+115
+116
+117
+118
+119
+120
+121
+122
+123
+124
+125
+126
+127
+128
+129
+130
+131
+132
+133
+134
+135
+136
+137
+138
+139
+140
+141
+142
+143
+144
+145
+146
+147
+148
+149
+150
+151
+152
+153
+154
+155
+156
+157
+158
+159
+160
+161
+162
+163
+164
+165
+166
+167
+168
+169
+170
+171
+172
+173
+174
+175
+176
+177
+178
+179
+180
+181
+182
+183
+184
+185
+186
+187
+188
+189
+190
+191
+192
+193
+194
+195
+196
+197
+198
+199
+200
+201
+202
+203
+204
+205
+206
+207
+208
+209
+210
+211
+212
+213
+214
+215
+216
+217
+218
+219
+220
+221
+222
+223
+224</td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">294×</span>
+<span class="cline-any cline-yes">294×</span>
+<span class="cline-any cline-yes">96×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">294×</span>
+<span class="cline-any cline-yes">96×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">294×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">// FIXME add tests for browser features (Modernizr?)
+&nbsp;
+goog.provide('ol.dom');
+goog.provide('ol.dom.BrowserFeature');
+&nbsp;
+goog.require('goog.asserts');
+goog.require('goog.dom');
+goog.require('goog.userAgent');
+goog.require('goog.vec.Mat4');
+goog.require('ol');
+&nbsp;
+&nbsp;
+/**
+ * Create an html canvas element and returns its 2d context.
+ * @param {number=} opt_width Canvas width.
+ * @param {number=} opt_height Canvas height.
+ * @return {CanvasRenderingContext2D}
+ */
+ol.dom.createCanvasContext2D = function(opt_width, opt_height) {
+  var canvas = goog.dom.createElement('CANVAS');
+  if (opt_width) {
+    canvas.width = opt_width;
+  }
+  if (opt_height) {
+    canvas.height = opt_height;
+  }
+  return canvas.getContext('2d');
+};
+&nbsp;
+&nbsp;
+/**
+ * Detect 2d transform.
+ * Adapted from http://stackoverflow.com/q/5661671/130442
+ * http://caniuse.com/#feat=transforms2d
+ * @return {boolean}
+ */
+ol.dom.canUseCssTransform = (function() {
+  var canUseCssTransform;
+  return <span class="fstat-no" title="function not covered" >function() {</span>
+<span class="cstat-no" title="statement not covered" >    if (canUseCssTransform === undefined) {</span>
+<span class="cstat-no" title="statement not covered" >      goog.asserts.assert(document.body,</span>
+          'document.body should not be null');
+<span class="cstat-no" title="statement not covered" >      if (!goog.global.getComputedStyle) {</span>
+        // this browser is ancient
+<span class="cstat-no" title="statement not covered" >        canUseCssTransform = false;</span>
+      } else {
+<span class="cstat-no" title="statement not covered" >        var el = goog.dom.createElement('P'),</span>
+            has2d,
+            transforms = {
+              'webkitTransform': '-webkit-transform',
+              'OTransform': '-o-transform',
+              'msTransform': '-ms-transform',
+              'MozTransform': '-moz-transform',
+              'transform': 'transform'
+            };
+<span class="cstat-no" title="statement not covered" >        document.body.appendChild(el);</span>
+<span class="cstat-no" title="statement not covered" >        for (var t in transforms) {</span>
+<span class="cstat-no" title="statement not covered" >          if (t in el.style) {</span>
+<span class="cstat-no" title="statement not covered" >            el.style[t] = 'translate(1px,1px)';</span>
+<span class="cstat-no" title="statement not covered" >            has2d = goog.global.getComputedStyle(el).getPropertyValue(</span>
+                transforms[t]);
+          }
+        }
+<span class="cstat-no" title="statement not covered" >        goog.dom.removeNode(el);</span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" >        canUseCssTransform = (has2d &amp;&amp; has2d !== 'none');</span>
+      }
+    }
+<span class="cstat-no" title="statement not covered" >    return canUseCssTransform;</span>
+  };
+}());
+&nbsp;
+&nbsp;
+/**
+ * Detect 3d transform.
+ * Adapted from http://stackoverflow.com/q/5661671/130442
+ * http://caniuse.com/#feat=transforms3d
+ * @return {boolean}
+ */
+ol.dom.canUseCssTransform3D = (function() {
+  var canUseCssTransform3D;
+  return <span class="fstat-no" title="function not covered" >function() {</span>
+<span class="cstat-no" title="statement not covered" >    if (canUseCssTransform3D === undefined) {</span>
+<span class="cstat-no" title="statement not covered" >      goog.asserts.assert(document.body,</span>
+          'document.body should not be null');
+<span class="cstat-no" title="statement not covered" >      if (!goog.global.getComputedStyle) {</span>
+        // this browser is ancient
+<span class="cstat-no" title="statement not covered" >        canUseCssTransform3D = false;</span>
+      } else {
+<span class="cstat-no" title="statement not covered" >        var el = goog.dom.createElement('P'),</span>
+            has3d,
+            transforms = {
+              'webkitTransform': '-webkit-transform',
+              'OTransform': '-o-transform',
+              'msTransform': '-ms-transform',
+              'MozTransform': '-moz-transform',
+              'transform': 'transform'
+            };
+<span class="cstat-no" title="statement not covered" >        document.body.appendChild(el);</span>
+<span class="cstat-no" title="statement not covered" >        for (var t in transforms) {</span>
+<span class="cstat-no" title="statement not covered" >          if (t in el.style) {</span>
+<span class="cstat-no" title="statement not covered" >            el.style[t] = 'translate3d(1px,1px,1px)';</span>
+<span class="cstat-no" title="statement not covered" >            has3d = goog.global.getComputedStyle(el).getPropertyValue(</span>
+                transforms[t]);
+          }
+        }
+<span class="cstat-no" title="statement not covered" >        goog.dom.removeNode(el);</span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" >        canUseCssTransform3D = (has3d &amp;&amp; has3d !== 'none');</span>
+      }
+    }
+<span class="cstat-no" title="statement not covered" >    return canUseCssTransform3D;</span>
+  };
+}());
+&nbsp;
+&nbsp;
+/**
+ * @param {Element} element Element.
+ * @param {string} value Value.
+ */
+ol.dom.setTransform = <span class="fstat-no" title="function not covered" >function(element, value) {</span>
+<span class="cstat-no" title="statement not covered" >  var style = element.style;</span>
+<span class="cstat-no" title="statement not covered" >  style.WebkitTransform = value;</span>
+<span class="cstat-no" title="statement not covered" >  style.MozTransform = value;</span>
+<span class="cstat-no" title="statement not covered" >  style.OTransform = value;</span>
+<span class="cstat-no" title="statement not covered" >  style.msTransform = value;</span>
+<span class="cstat-no" title="statement not covered" >  style.transform = value;</span>
+&nbsp;
+  // IE 9+ seems to assume transform-origin: 100% 100%; for some unknown reason
+<span class="cstat-no" title="statement not covered" >  if (goog.userAgent.IE &amp;&amp; goog.userAgent.isVersionOrHigher('9.0')) {</span>
+<span class="cstat-no" title="statement not covered" >    element.style.transformOrigin = '0 0';</span>
+  }
+};
+&nbsp;
+&nbsp;
+/**
+ * @param {!Element} element Element.
+ * @param {goog.vec.Mat4.Number} transform Matrix.
+ * @param {number=} opt_precision Precision.
+ */
+ol.dom.transformElement2D = <span class="fstat-no" title="function not covered" >function(element, transform, opt_precision) {</span>
+  // using matrix() causes gaps in Chrome and Firefox on Mac OS X, so prefer
+  // matrix3d()
+<span class="cstat-no" title="statement not covered" >  var i;</span>
+<span class="cstat-no" title="statement not covered" >  if (ol.dom.canUseCssTransform3D()) {</span>
+<span class="cstat-no" title="statement not covered" >    var value3D;</span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" >    if (opt_precision !== undefined) {</span>
+      /** @type {Array.&lt;string&gt;} */
+<span class="cstat-no" title="statement not covered" >      var strings3D = new Array(16);</span>
+<span class="cstat-no" title="statement not covered" >      for (i = 0; i &lt; 16; ++i) {</span>
+<span class="cstat-no" title="statement not covered" >        strings3D[i] = transform[i].toFixed(opt_precision);</span>
+      }
+<span class="cstat-no" title="statement not covered" >      value3D = strings3D.join(',');</span>
+    } else {
+<span class="cstat-no" title="statement not covered" >      value3D = transform.join(',');</span>
+    }
+<span class="cstat-no" title="statement not covered" >    ol.dom.setTransform(element, 'matrix3d(' + value3D + ')');</span>
+  } else <span class="cstat-no" title="statement not covered" >if (ol.dom.canUseCssTransform()) {</span>
+    /** @type {Array.&lt;number&gt;} */
+<span class="cstat-no" title="statement not covered" >    var transform2D = [</span>
+      goog.vec.Mat4.getElement(transform, 0, 0),
+      goog.vec.Mat4.getElement(transform, 1, 0),
+      goog.vec.Mat4.getElement(transform, 0, 1),
+      goog.vec.Mat4.getElement(transform, 1, 1),
+      goog.vec.Mat4.getElement(transform, 0, 3),
+      goog.vec.Mat4.getElement(transform, 1, 3)
+    ];
+<span class="cstat-no" title="statement not covered" >    var value2D;</span>
+<span class="cstat-no" title="statement not covered" >    if (opt_precision !== undefined) {</span>
+      /** @type {Array.&lt;string&gt;} */
+<span class="cstat-no" title="statement not covered" >      var strings2D = new Array(6);</span>
+<span class="cstat-no" title="statement not covered" >      for (i = 0; i &lt; 6; ++i) {</span>
+<span class="cstat-no" title="statement not covered" >        strings2D[i] = transform2D[i].toFixed(opt_precision);</span>
+      }
+<span class="cstat-no" title="statement not covered" >      value2D = strings2D.join(',');</span>
+    } else {
+<span class="cstat-no" title="statement not covered" >      value2D = transform2D.join(',');</span>
+    }
+<span class="cstat-no" title="statement not covered" >    ol.dom.setTransform(element, 'matrix(' + value2D + ')');</span>
+  } else {
+<span class="cstat-no" title="statement not covered" >    element.style.left =</span>
+        Math.round(goog.vec.Mat4.getElement(transform, 0, 3)) + 'px';
+<span class="cstat-no" title="statement not covered" >    element.style.top =</span>
+        Math.round(goog.vec.Mat4.getElement(transform, 1, 3)) + 'px';
+&nbsp;
+    // TODO: Add scaling here. This isn't quite as simple as multiplying
+    // width/height, because that only changes the container size, not the
+    // content size.
+  }
+};
+&nbsp;
+&nbsp;
+/**
+ * Get the current computed width for the given element including margin,
+ * padding and border.
+ * Equivalent to jQuery's `$(el).outerWidth(true)`.
+ * @param {!Element} element Element.
+ * @return {number}
+ */
+ol.dom.outerWidth = <span class="fstat-no" title="function not covered" >function(element) {</span>
+<span class="cstat-no" title="statement not covered" >  var width = element.offsetWidth;</span>
+<span class="cstat-no" title="statement not covered" >  var style = element.currentStyle || window.getComputedStyle(element);</span>
+<span class="cstat-no" title="statement not covered" >  width += parseInt(style.marginLeft, 10) + parseInt(style.marginRight, 10);</span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" >  return width;</span>
+};
+&nbsp;
+&nbsp;
+/**
+ * Get the current computed height for the given element including margin,
+ * padding and border.
+ * Equivalent to jQuery's `$(el).outerHeight(true)`.
+ * @param {!Element} element Element.
+ * @return {number}
+ */
+ol.dom.outerHeight = <span class="fstat-no" title="function not covered" >function(element) {</span>
+<span class="cstat-no" title="statement not covered" >  var height = element.offsetHeight;</span>
+<span class="cstat-no" title="statement not covered" >  var style = element.currentStyle || window.getComputedStyle(element);</span>
+<span class="cstat-no" title="statement not covered" >  height += parseInt(style.marginTop, 10) + parseInt(style.marginBottom, 10);</span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" >  return height;</span>
+};
+&nbsp;</pre></td></tr>
+</table></pre>
+<div class='push'></div><!-- for sticky footer -->
+</div><!-- /wrapper -->
+<div class='footer quiet pad2 space-top1 center small'>
+  Code coverage
+  generated by <a href="http://istanbul-js.org/" target="_blank">istanbul</a> at Fri Nov 06 2015 19:36:11 GMT+0100 (CET)
+</div>
+</div>
+<script src="../../prettify.js"></script>
+<script>
+window.onload = function () {
+        if (typeof prettyPrint === 'function') {
+            prettyPrint();
+        }
+};
+</script>
+<script src="../../sorter.js"></script>
+</body>
+</html>

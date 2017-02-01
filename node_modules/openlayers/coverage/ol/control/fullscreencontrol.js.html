@@ -1,0 +1,503 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <title>Code coverage report for ol/control/fullscreencontrol.js</title>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="../../prettify.css" />
+    <link rel="stylesheet" href="../../base.css" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style type='text/css'>
+        .coverage-summary .sorter {
+            background-image: url(../../sort-arrow-sprite.png);
+        }
+    </style>
+</head>
+<body>
+<div class='wrapper'>
+  <div class='pad1'>
+    <h1>
+      <a href="../../index.html">all files</a> / <a href="index.html">ol/control/</a> fullscreencontrol.js
+    </h1>
+    <div class='clearfix'>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">52.63% </span>
+        <span class="quiet">Statements</span>
+        <span class='fraction'>30/57</span>
+      </div>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">30% </span>
+        <span class="quiet">Branches</span>
+        <span class='fraction'>9/30</span>
+      </div>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">25% </span>
+        <span class="quiet">Functions</span>
+        <span class='fraction'>1/4</span>
+      </div>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">52.63% </span>
+        <span class="quiet">Lines</span>
+        <span class='fraction'>30/57</span>
+      </div>
+    </div>
+  </div>
+  <div class='status-line medium'></div>
+<pre><table class="coverage">
+<tr><td class="line-count quiet">1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+28
+29
+30
+31
+32
+33
+34
+35
+36
+37
+38
+39
+40
+41
+42
+43
+44
+45
+46
+47
+48
+49
+50
+51
+52
+53
+54
+55
+56
+57
+58
+59
+60
+61
+62
+63
+64
+65
+66
+67
+68
+69
+70
+71
+72
+73
+74
+75
+76
+77
+78
+79
+80
+81
+82
+83
+84
+85
+86
+87
+88
+89
+90
+91
+92
+93
+94
+95
+96
+97
+98
+99
+100
+101
+102
+103
+104
+105
+106
+107
+108
+109
+110
+111
+112
+113
+114
+115
+116
+117
+118
+119
+120
+121
+122
+123
+124
+125
+126
+127
+128
+129
+130
+131
+132
+133
+134
+135
+136
+137
+138
+139
+140
+141
+142
+143
+144
+145
+146
+147</td><td class="line-coverage quiet"><span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">goog.provide('ol.control.FullScreen');
+&nbsp;
+goog.require('goog.asserts');
+goog.require('goog.dom');
+goog.require('goog.dom.classlist');
+goog.require('goog.dom.fullscreen');
+goog.require('goog.dom.fullscreen.EventType');
+goog.require('goog.events');
+goog.require('goog.events.EventType');
+goog.require('ol');
+goog.require('ol.control.Control');
+goog.require('ol.css');
+&nbsp;
+&nbsp;
+&nbsp;
+/**
+ * @classdesc
+ * Provides a button that when clicked fills up the full screen with the map.
+ * When in full screen mode, a close button is shown to exit full screen mode.
+ * The [Fullscreen API](http://www.w3.org/TR/fullscreen/) is used to
+ * toggle the map in full screen mode.
+ *
+ *
+ * @constructor
+ * @extends {ol.control.Control}
+ * @param {olx.control.FullScreenOptions=} opt_options Options.
+ * @api stable
+ */
+ol.control.FullScreen = function(opt_options) {
+&nbsp;
+  var options = opt_options ? <span class="branch-0 cbranch-no" title="branch not covered" >opt_options </span>: {};
+&nbsp;
+  /**
+   * @private
+   * @type {string}
+   */
+  this.cssClassName_ = options.className ? <span class="branch-0 cbranch-no" title="branch not covered" >options.className </span>: 'ol-full-screen';
+&nbsp;
+  var label = options.label ? <span class="branch-0 cbranch-no" title="branch not covered" >options.label </span>: '\u2194';
+&nbsp;
+  /**
+   * @private
+   * @type {Node}
+   */
+  this.labelNode_ = goog.isString(label) ?
+      goog.dom.createTextNode(label) : <span class="branch-1 cbranch-no" title="branch not covered" >label;</span>
+&nbsp;
+  var labelActive = options.labelActive ? <span class="branch-0 cbranch-no" title="branch not covered" >options.labelActive </span>: '\u00d7';
+&nbsp;
+  /**
+   * @private
+   * @type {Node}
+   */
+  this.labelActiveNode_ = goog.isString(labelActive) ?
+      goog.dom.createTextNode(labelActive) : <span class="branch-1 cbranch-no" title="branch not covered" >labelActive;</span>
+&nbsp;
+  var tipLabel = options.tipLabel ? <span class="branch-0 cbranch-no" title="branch not covered" >options.tipLabel </span>: 'Toggle full-screen';
+  var button = goog.dom.createDom('BUTTON', {
+    'class': this.cssClassName_ + '-' + goog.dom.fullscreen.isFullScreen(),
+    'type': 'button',
+    'title': tipLabel
+  }, this.labelNode_);
+&nbsp;
+  goog.events.listen(button, goog.events.EventType.CLICK,
+      this.handleClick_, false, this);
+&nbsp;
+  goog.events.listen(goog.global.document,
+      goog.dom.fullscreen.EventType.CHANGE,
+      this.handleFullScreenChange_, false, this);
+&nbsp;
+  var cssClasses = this.cssClassName_ + ' ' + ol.css.CLASS_UNSELECTABLE +
+      ' ' + ol.css.CLASS_CONTROL + ' ' +
+      (!goog.dom.fullscreen.isSupported() ? ol.css.CLASS_UNSUPPORTED : <span class="branch-1 cbranch-no" title="branch not covered" >'')</span>;
+  var element = goog.dom.createDom('DIV', cssClasses, button);
+&nbsp;
+  goog.base(this, {
+    element: element,
+    target: options.target
+  });
+&nbsp;
+  /**
+   * @private
+   * @type {boolean}
+   */
+  this.keys_ = options.keys !== undefined ? <span class="branch-0 cbranch-no" title="branch not covered" >options.keys </span>: false;
+&nbsp;
+};
+goog.inherits(ol.control.FullScreen, ol.control.Control);
+&nbsp;
+&nbsp;
+/**
+ * @param {goog.events.BrowserEvent} event The event to handle
+ * @private
+ */
+ol.control.FullScreen.prototype.handleClick_ = <span class="fstat-no" title="function not covered" >function(event) {</span>
+<span class="cstat-no" title="statement not covered" >  event.preventDefault();</span>
+<span class="cstat-no" title="statement not covered" >  this.handleFullScreen_();</span>
+};
+&nbsp;
+&nbsp;
+/**
+ * @private
+ */
+ol.control.FullScreen.prototype.handleFullScreen_ = <span class="fstat-no" title="function not covered" >function() {</span>
+<span class="cstat-no" title="statement not covered" >  if (!goog.dom.fullscreen.isSupported()) {</span>
+<span class="cstat-no" title="statement not covered" >    return;</span>
+  }
+<span class="cstat-no" title="statement not covered" >  var map = this.getMap();</span>
+<span class="cstat-no" title="statement not covered" >  if (!map) {</span>
+<span class="cstat-no" title="statement not covered" >    return;</span>
+  }
+<span class="cstat-no" title="statement not covered" >  if (goog.dom.fullscreen.isFullScreen()) {</span>
+<span class="cstat-no" title="statement not covered" >    goog.dom.fullscreen.exitFullScreen();</span>
+  } else {
+<span class="cstat-no" title="statement not covered" >    var target = map.getTarget();</span>
+<span class="cstat-no" title="statement not covered" >    goog.asserts.assert(target, 'target should be defined');</span>
+<span class="cstat-no" title="statement not covered" >    var element = goog.dom.getElement(target);</span>
+<span class="cstat-no" title="statement not covered" >    goog.asserts.assert(element, 'element should be defined');</span>
+<span class="cstat-no" title="statement not covered" >    if (this.keys_) {</span>
+<span class="cstat-no" title="statement not covered" >      goog.dom.fullscreen.requestFullScreenWithKeys(element);</span>
+    } else {
+<span class="cstat-no" title="statement not covered" >      goog.dom.fullscreen.requestFullScreen(element);</span>
+    }
+  }
+};
+&nbsp;
+&nbsp;
+/**
+ * @private
+ */
+ol.control.FullScreen.prototype.handleFullScreenChange_ = <span class="fstat-no" title="function not covered" >function() {</span>
+<span class="cstat-no" title="statement not covered" >  var opened = this.cssClassName_ + '-true';</span>
+<span class="cstat-no" title="statement not covered" >  var closed = this.cssClassName_ + '-false';</span>
+<span class="cstat-no" title="statement not covered" >  var button = goog.dom.getFirstElementChild(this.element);</span>
+<span class="cstat-no" title="statement not covered" >  var map = this.getMap();</span>
+<span class="cstat-no" title="statement not covered" >  if (goog.dom.fullscreen.isFullScreen()) {</span>
+<span class="cstat-no" title="statement not covered" >    goog.dom.classlist.swap(button, closed, opened);</span>
+<span class="cstat-no" title="statement not covered" >    goog.dom.replaceNode(this.labelActiveNode_, this.labelNode_);</span>
+  } else {
+<span class="cstat-no" title="statement not covered" >    goog.dom.classlist.swap(button, opened, closed);</span>
+<span class="cstat-no" title="statement not covered" >    goog.dom.replaceNode(this.labelNode_, this.labelActiveNode_);</span>
+  }
+<span class="cstat-no" title="statement not covered" >  if (map) {</span>
+<span class="cstat-no" title="statement not covered" >    map.updateSize();</span>
+  }
+};
+&nbsp;</pre></td></tr>
+</table></pre>
+<div class='push'></div><!-- for sticky footer -->
+</div><!-- /wrapper -->
+<div class='footer quiet pad2 space-top1 center small'>
+  Code coverage
+  generated by <a href="http://istanbul-js.org/" target="_blank">istanbul</a> at Fri Nov 06 2015 19:36:11 GMT+0100 (CET)
+</div>
+</div>
+<script src="../../prettify.js"></script>
+<script>
+window.onload = function () {
+        if (typeof prettyPrint === 'function') {
+            prettyPrint();
+        }
+};
+</script>
+<script src="../../sorter.js"></script>
+</body>
+</html>
