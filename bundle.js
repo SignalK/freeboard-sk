@@ -2612,7 +2612,8 @@ module.exports={
 	lengthNm: lengthNm,
 	destVincenty:destVincenty,
 	generateUUID:generateUUID,
-	styleFunction:styleFunction
+	styleFunction:styleFunction,
+	msToKnt: msToKnt 
 }
 },{"openlayers":182}],15:[function(require,module,exports){
 var ol = require('openlayers');
