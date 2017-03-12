@@ -2792,8 +2792,8 @@ function onmessage(delta) {
                         	.data([cogm])
                         	.text(function(d) { return util.toDeg(d).toFixed(0); });
                         d3.select("#cogt")
-													.data([value.value])
-													.text(function(d) { return util.toDeg(d).toFixed(0); });
+							.data([value.value])
+							.text(function(d) { return util.toDeg(d).toFixed(0); });
                     }
                 }
                // if(value.path === 'navigation.courseOverGroundTrue'){
@@ -2807,8 +2807,8 @@ function onmessage(delta) {
                 	//console.log("SOG:"+value.value);
                     sog=value.value;
                     d3.select("#sog")
-											.data([util.msToKnt(sog)])
-											.text(function(d) { return d.toFixed(1); });
+						.data([util.msToKnt(sog)])
+						.text(function(d) { return d.toFixed(1); });
                     
                 }
                 if (value.path === 'environment.wind.angleApparent') {
@@ -2832,8 +2832,8 @@ function onmessage(delta) {
                 	//console.log("SOG:"+value.value);
                     tws=value.value;
                     d3.select("#tws")
-											.data([util.msToKnt(tws)])
-											.text(function(d) { return d.toFixed(1); });
+						.data([util.msToKnt(tws)])
+						.text(function(d) { return d.toFixed(1); });
                 }
                 if(value.path === 'uuid'){
 									uuid = value.value;
@@ -2938,9 +2938,10 @@ function toggleVesselUp() {
 
 var rotation = 0;
 function setRotation(radians, coord) {
+	
     if (vesselUp) {
         if (Math.abs(Math.abs(rotation) - Math.abs(radians)) > 0.2) {
-            rotation = -radians;
+            rotation = -(radians);
             vesselOverlay.get('map').getView().rotate(rotation, coord);
             vesselPos.getStyle().getImage().setRotation(0);
         } else {
