@@ -163,27 +163,27 @@ $.ajax({
                 console.log(JSON.stringify(data));
                 //TODO: find  uuid or mmsi or ?
                 if(data.uuid){
-                	ownVessel = data.uuid;
+                	window.ownVessel = data.uuid;
                 }
 								if (typeof(Storage) !== "undefined") {
 									if (data.environment){
-										localStorage.setItem("depthDisplayUnit", data.environment.depth.meta.displayUnit);
-										console.log("depthDisplayUnit: "+localStorage.getItem("depthDisplayUnit"));
-										localStorage.setItem("sogDisplayUnit", data.navigation.meta.sogDisplayUnit);
-										console.log("sogDisplayUnit: "+localStorage.getItem("sogDisplayUnit"));
-										localStorage.setItem("stwDisplayUnit", data.navigation.meta.stwDisplayUnit);
-										console.log("stwDisplayUnit: "+localStorage.getItem("stwDisplayUnit"));
+										//localStorage.setItem("depthDisplayUnit", data.environment.depth.meta.displayUnit);
+										//console.log("depthDisplayUnit: "+localStorage.getItem("depthDisplayUnit"));
+										//localStorage.setItem("sogDisplayUnit", data.navigation.meta.sogDisplayUnit);
+										//console.log("sogDisplayUnit: "+localStorage.getItem("sogDisplayUnit"));
+									//	localStorage.setItem("stwDisplayUnit", data.navigation.meta.stwDisplayUnit);
+										//console.log("stwDisplayUnit: "+localStorage.getItem("stwDisplayUnit"));
 									} else {
 										 alert("Please use another browser\n  this one has no local storage support!");
 									}
 								}
-                if(!ownVessel && data.mmsi){
+                if(window.ownVessel === 'undefined'&& data.mmsi){
                 	ownVessel = data.mmsi;
                 }
-                if(!ownVessel && data.url){
+                if(window.ownVessel === 'undefined' && data.url){
                 	ownVessel = data.url;
                 }
-                console.log(ownVessel);
+                console.log(window.ownVessel);
 
             }
         });
