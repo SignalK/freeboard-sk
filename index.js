@@ -167,7 +167,7 @@ $.ajax({
                 }
 								if (typeof(Storage) !== "undefined") {
 									if (data.environment){
-										localStorage.setItem("depthDisplayUnit", data.environment.depth.meta.displayUnit);
+										localStorage.setItem("depthDisplayUnit", data.environment.depth.belowSurface.meta.displayUnit);
 										console.log("depthDisplayUnit: "+localStorage.getItem("depthDisplayUnit"));
 										localStorage.setItem("sogDisplayUnit", data.navigation.meta.sogDisplayUnit);
 										console.log("sogDisplayUnit: "+localStorage.getItem("sogDisplayUnit"));
