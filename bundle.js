@@ -244,9 +244,10 @@ module.exports = function addBaseLayers( map) {
 	});
 
 	
-	map.addLayer(OSM);
-	map.addLayer(WORLD);	
+	map.addLayer(WORLD);
 	map.addLayer(WORLD1);
+	map.addLayer(OSM);
+	
 }
 
 },{"./getTileUrl.js":7,"openlayers":375}],3:[function(require,module,exports){
@@ -2660,9 +2661,12 @@ module.exports={
 },{"openlayers":375}],15:[function(require,module,exports){
 var ol = require('openlayers');
 
+//var steelseries = require('./steelseries-min.js');
+//var tween = require('./tween-min.js');
 var util = require('./util.js');
 var d3 = require('d3');
 var d3gauge = require('d3-gauge');
+
 
 var vesselPos = new ol.Feature();
 vesselPos.setStyle(
@@ -2771,18 +2775,6 @@ function setVesselOverlay(map, vessPos, vessTrack, vessHdg, vessAppWind, vessTru
 	return featureOverlay;
 }
 
-var gauge = d3gauge(document.getElementById("windDirGauge"), {
-	clazz: 'simple',
-	label: 'Wind',
-	min: -180,
-	max: 180,
-	zones: [{
-			clazz: 'yellow-zone',
-			from: 0.4,
-			to: 0.6
-		}]
-});
-
 var cogm = 0;
 var cogt = 0;
 var headingT;
@@ -2817,17 +2809,17 @@ function onmessage(delta) {
 				//console.log(value.path + '=' + JSON.stringify(value.value));
 				if (value.path === 'notifications.environment.depth.belowSurface.alarmState') {
 					console.log('Depth alarm:' + value.value);
-					var fName = document.getElementById("depthRow");
-					if (value.value === "alarm"){
-							fName.style.background="rgba(255, 0, 0, 1.0)";
-					}else if (value.value === "warn"){
-							fName.style.background="rgba(250, 250, 0, 1.0)";						
-					}else {
-							fName.style.background="white";						
-					}
+//					var fName = document.getElementById("depthRow");
+//					if (value.value === "alarm") {
+//						fName.style.background = "rgba(255, 0, 0, 1.0)";
+//					} else if (value.value === "warn") {
+//						fName.style.background = "rgba(250, 250, 0, 1.0)";
+//					} else {
+//						fName.style.background = "white";
+//					}
 				}
 				if (value.path === 'propulsion.engine.coolantTemperature') {
-					console.log('Engine Temperature:'+value.value);
+					console.log('Engine Temperature:' + value.value);
 				}
 				if (value.path === 'navigation.magneticVariation') {
 					//console.log('Magnetic Variation(radians):'+value.value);
@@ -2860,79 +2852,79 @@ function onmessage(delta) {
 					}
 				} else if (value.path === 'navigation.headingMagnetic') {
 					if (value.value !== 0) {
-						if(cog<3)cog = 3;
+						if (cog < 3)
+							cog = 3;
 						headingM = value.value;
-						headingT = (headingM + magVar) % (2*Math.PI);
-						if(cog==3){
+						headingT = (headingM + magVar) % (2 * Math.PI);
+						if (cog == 3) {
 							setRotation(headingT, coord);
-							d3.select("#cogt").data([headingT]).text(function (d) {
-								return util.toDeg(d).toFixed(0);
-							});
-							d3.select("#cogm").data([headingM]).text(function (d) {
-								return util.toDeg(d).toFixed(0);
-							});
-							console.log("headingM (radians):" + headingM); 
+//							d3.select("#cogt").data([headingT]).text(function (d) {
+//								return util.toDeg(d).toFixed(0);
+//							});
+//							d3.select("#cogm").data([headingM]).text(function (d) {
+//								return util.toDeg(d).toFixed(0);
+//							});
+							console.log("headingM (radians):" + headingM);
 						}
-						
+
 					}
 				}
 				if (value.path === 'navigation.courseOverGroundMagnetic') {
 					if (value.value !== 0) {
-						if(cog<2)cog = 2;
+						if (cog < 2)
+							cog = 2;
 						//rmcCourse = false; //	we got at least one NMEA sentence with magnetic course data
 						cogm = value.value;
-						cogt = (value.value + magVar) % (2*Math.PI);
+						cogt = (value.value + magVar) % (2 * Math.PI);
 
-						if(cog==2){
+						if (cog == 2) {
 							setRotation(cogt, coord);
-						
+
 							//try updating testSOG
 							console.log("Heading magnetic (radians):" + cogm);
-							d3.select("#cogm").data([cogm]).text(function (d) {
-								return util.toDeg(d).toFixed(0);
-							});
-							d3.select("#cogt").data([cogt]).text(function (d) {
-								return util.toDeg(d).toFixed(0);
-							});
+//							d3.select("#cogm").data([cogm]).text(function (d) {
+//								return util.toDeg(d).toFixed(0);
+//							});
+//							d3.select("#cogt").data([cogt]).text(function (d) {
+//								return util.toDeg(d).toFixed(0);
+//							});
 						}
 					}
 				}
 				//if (rmcCourse) {
-					if (value.path === 'navigation.courseOverGroundTrue') {
-						if (value.value != 0) {
-							if(cog<1)cog = 1;
-							cogt = value.value;
-							cogm = cogt-magVar;
-							if(cogm<0)cogm=cogm+(2*Math.PI);
-							console.log("Course True: " + cogt.toFixed(1));
-							if(cog==1){
-								setRotation(value.value, trackLine.getLastCoordinate());
-								d3.select("#cogt").data([cogt]).text(function (d) {
-									return util.toDeg(d).toFixed(0);
-								});
-								d3.select("#cogm").data([cogm]).text(function (d) {
-									return util.toDeg(d).toFixed(0);
-								});
-							}
+				if (value.path === 'navigation.courseOverGroundTrue') {
+					if (value.value != 0) {
+						if (cog < 1)
+							cog = 1;
+						cogt = value.value;
+						cogm = cogt - magVar;
+						if (cogm < 0)
+							cogm = cogm + (2 * Math.PI);
+						console.log("Course True: " + cogt.toFixed(1));
+						if (cog == 1) {
+							setRotation(value.value, trackLine.getLastCoordinate());
+//							d3.select("#cogt").data([cogt]).text(function (d) {
+//								return util.toDeg(d).toFixed(0);
+//							});
+//							d3.select("#cogm").data([cogm]).text(function (d) {
+//								return util.toDeg(d).toFixed(0);
+//							});
 						}
 					}
+				}
 				//}
 				if (value.path === 'navigation.speedOverGround') {
 					sog = value.value;
 					console.log("SOG: " + sog.toFixed(1));
-					d3.select("#sog").data([util.msToKnt(sog)]).text(function (d) {
-						return d.toFixed(1);
-					});
-
+					sogLCD.setValue(sog);
 				}
+
 				if (value.path === 'navigation.speedThroughWater') {
-					sow = value.value;
-					console.log("SOW: " + sow.toFixed(1));
-					d3.select("#sow").data([sow]).text(function (d) {
-						return d.toFixed(1);
-					});
-
+					stw = value.value;
+					console.log("STW: " + stw.toFixed(1));
+					stwLCD.setValue(stw);
 				}
+
 				if (value.path === 'environment.depth.belowSurface') {
 					dbt = value.value;
 					//convert to user units
@@ -2946,12 +2938,7 @@ function onmessage(delta) {
 						}
 					}
 					console.log("DBS: " + dbt.toFixed(2));
-					d3.select("#dbs").data([dbt]).text(function (d) {
-						return d.toFixed(1);
-					});
-					d3.select("#depthUnit").data([depthUserUnit]).text(function (d) {
-						return d;
-					});
+					dbsLCD.setValue(dbt);
 				}
 
 				if (value.path === 'environment.wind.angleApparent') {
@@ -2960,10 +2947,11 @@ function onmessage(delta) {
 						awd = 2 * Math.PI - awd;
 					}
 					console.log("windAngleApp: " + util.toDeg(awd).toFixed(1));
-					gauge.write(util.toDeg(awd).toFixed(0));
-					d3.select("#awd").data([util.toDeg(awd)]).text(function (d) {
-						return d.toFixed(1);
-					});
+					windDir.setValueAnimatedLatest(util.toDeg(awd));
+//					gauge.write(util.toDeg(awd).toFixed(0));
+//					d3.select("#awd").data([util.toDeg(awd)]).text(function (d) {
+//						return d.toFixed(1);
+//					});
 				}
 				if (value.path === 'environment.wind.directionTrue') {
 					twd = value.value;
@@ -2971,16 +2959,18 @@ function onmessage(delta) {
 						twd = 2 * Math.PI - twd;
 					}
 					console.log("windDirectionTrue:" + util.toDeg(twd).toFixed(0));
-					d3.select("#twd").data([util.toDeg(twd)]).text(function (d) {
-						return d.toFixed(1);
-					});
+					windDir.setValueAnimatedAverage(util.toDeg(twd));
+//					d3.select("#twd").data([util.toDeg(twd)]).text(function (d) {
+//						return d.toFixed(1);
+//					});
 				}
 				if (value.path === 'environment.wind.speedApparent') {
 					aws = value.value;
 					console.log("windSpeedApp:" + aws.toFixed(1));
-					d3.select("#aws").data([util.msToKnt(aws)]).text(function (d) {
-						return d.toFixed(1);
-					});
+					windDir.setValueTop(aws);
+//					d3.select("#aws").data([util.msToKnt(aws)]).text(function (d) {
+//						return d.toFixed(1);
+//					});
 				}
 				//                if (value.path === 'environment.wind.directionMagnetic') {
 				//                    //console.log("SOG:"+value.value);
@@ -2989,9 +2979,10 @@ function onmessage(delta) {
 				if (value.path === 'environment.wind.speedTrue') {
 					tws = value.value;
 					console.log("windSpeedTrue:" + util.msToKnt(tws).toFixed(1));
-					d3.select("#tws").data([util.msToKnt(tws)]).text(function (d) {
-						return d.toFixed(1);
-					});
+					windDir.setValueBottom(tws);
+//					d3.select("#tws").data([util.msToKnt(tws)]).text(function (d) {
+//						return d.toFixed(1);
+//					});
 				}
 				if (value.path === 'uuid') {
 					uuid = value.value;
@@ -3126,10 +3117,10 @@ function toggleVesselUp() {
 var rotation = 0;
 
 function setRotation(radians, coord) {
-	
+
 	if (vesselUp) {
 		if (Math.abs(Math.abs(rotation) - Math.abs(radians)) > 0.2) {
-            rotation = -(radians);
+			rotation = -(radians);
 			vesselOverlay.get('map').getView().rotate(rotation, coord);
 			vesselPos.getStyle().getImage().setRotation(0);
 		} else {
@@ -3204,6 +3195,7 @@ function setup(map) {
 }
 
 module.exports = {
+//	initGauges: initGauges,
 	onmessage: onmessage,
 	setup: setup,
 	toggleFollowVessel: toggleFollowVessel,

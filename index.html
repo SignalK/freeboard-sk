@@ -1,475 +1,537 @@
 <!DOCTYPE html>
 <html lang="en">
-    <head>
-        <meta charset="utf-8">
-        <meta http-equiv="cleartype" content="on">
-        <meta name="MobileOptimized" content="320">
-        <meta name="HandheldFriendly" content="True">
-        <meta name="apple-mobile-web-app-capable" content="yes">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-        <link rel="stylesheet" href="css/bootstrap.css" >
-        <link rel="stylesheet" href="css/bootstrap-theme.css" >
-        <link rel="stylesheet" href="css/bootstrap-drawer.css">
-        <link rel="stylesheet" href="css/bootstrap-slider.css">
-        <link rel="stylesheet" href="css/bootstrap-toggle.css" >
-        <link rel="stylesheet" href="css/bootstrap-select.css" >
-        <link rel="stylesheet" href="css/ol.css" type="text/css">
-        <link rel="stylesheet" href="css/font-awesome.min.css">
-        <link rel="stylesheet" data-aload="styles/fonts.css">
-        <link rel="stylesheet" href="./lib/css/ol3-layerswitcher.css">
-        <link rel="stylesheet" href="./lib/css/measure.css">
-        <link rel="stylesheet" href="css/d3-gauge/simple.css">
+   <head>
+      <meta charset="utf-8">
+      <meta http-equiv="cleartype" content="on">
+      <meta name="MobileOptimized" content="320">
+      <meta name="HandheldFriendly" content="True">
+      <meta name="apple-mobile-web-app-capable" content="yes">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+      <link rel="stylesheet" href="css/bootstrap.css" >
+      <link rel="stylesheet" href="css/bootstrap-theme.css" >
+      <link rel="stylesheet" href="css/bootstrap-drawer.css">
+      <link rel="stylesheet" href="css/bootstrap-slider.css">
+      <link rel="stylesheet" href="css/bootstrap-toggle.css" >
+      <link rel="stylesheet" href="css/bootstrap-select.css" >
+      <link rel="stylesheet" href="css/ol.css" type="text/css">
+      <link rel="stylesheet" href="css/font-awesome.min.css">
+      <link rel="stylesheet" data-aload="styles/fonts.css">
+      <link rel="stylesheet" href="./lib/css/ol3-layerswitcher.css">
+      <link rel="stylesheet" href="./lib/css/measure.css">
+      <link rel="stylesheet" href="css/d3-gauge/simple.css">
+      <script src="./lib/steelseries-min.js"></script>
 
-        <style>
-            html {
-                width: 100%;
-                height: 100%;
-            }
-            body {
-                padding-top: 5px;
-                padding-bottom: 5px;
-                <!-- background-color: #eee; -->
-                width: 100%;
-                height: 100%;
-            }
-            .container,.panel {
-                max-height: 100%;
-                height:100%;
-            }
-            #map {
-                height: 99%;
-            }
+      <style>
+         html {
+             width: 100%;
+             height: 100%;
+         }
+         body {
+             padding-top: 5px;
+             padding-bottom: 5px;
+             <!-- background-color: #eee; -->
+             width: 100%;
+             height: 100%;
+         }
+         .container,.panel {
+             max-height: 100%;
+             height:100%;
+         }
+         #map {
+             height: 99%;
+         }
 
-            .ol-zoom, .ol-rotate{
-                top: 65px;
-            }
+         .ol-zoom, .ol-rotate{
+             top: 65px;
+         }
 
-            .layer-switcher{
-                top: 115px;
-            }
+         .layer-switcher{
+             top: 115px;
+         }
 
-            .ol-control button {
-                width: 2em;
-                height: 2em;
-            }
-            .ol-attribution {
-                max-width: calc(100% - 3em);
-            }
-            .ol-control button, .ol-attribution, .ol-scale-line-inner {
-                font-family: 'Lucida Grande',Verdana,Geneva,Lucida,Arial,Helvetica,sans-serif;
-            }
-            .ol-control button {
-                opacity: 0.5;
-            }
-            .container-fluid {
-                height: 99%;
-            }
-            .anchor-btn {
-                top: 65px;
-                left: .5em;
-                background-image: url('img/anchor44x38.png');
-                background-repeat: no-repeat;
-                background-size: contain;
+         .ol-control button {
+             width: 2em;
+             height: 2em;
+         }
+         .ol-attribution {
+             max-width: calc(100% - 3em);
+         }
+         .ol-control button, .ol-attribution, .ol-scale-line-inner {
+             font-family: 'Lucida Grande',Verdana,Geneva,Lucida,Arial,Helvetica,sans-serif;
+         }
+         .ol-control button {
+             opacity: 0.5;
+         }
+         .container-fluid {
+             height: 99%;
+         }
+         .anchor-btn {
+             top: 65px;
+             left: .5em;
+             background-image: url('img/anchor44x38.png');
+             background-repeat: no-repeat;
+             background-size: contain;
 
-            }
+         }
 
-            .feature-btn {
-                top: 90px;
-                left: .5em;
-                background-image: url('img/draw_line_off.png');
-                background-size: contain;
-            }
-
-
-            .follow-btn {
-                top: 140px;
-                left: .5em;
-                background-image: url('img/crosshair43x38.png');
-                background-size: contain;
-            }
-            .vessel-up-btn {
-                top: 165px;
-                left: .5em;
-                background-image: url('img/ship_red.png');
-                background-repeat: no-repeat;
-                background-size: 30%;
-                background-position:center center;
-            }
-            .measure-btn {
-                top: 190px;
-                left: .5em;
-                background-image: url('img/measuring-stick-on.png');
-                background-size: contain;
-            }
-            .ol-touch .anchor-btn  {
-                top: 80px;
-            }
-            .ol-touch .feature-btn  {
-                top: 115px;
-            }
-            .ol-touch .draw-btn  {
-                top: 150px;
-            }
-
-            .ol-touch .follow-btn  {
-                top: 185px;
-            }
-            .ol-touch .vessel-up-btn  {
-                top: 220px;
-            }
-            .ol-touch .measure-btn  {
-                top: 255px;
-            }
-
-            .img-button{
-                height: 1.6em;
-                width: 1.6em;
-                top: 6em;
-                left: .45em;
-                <!--background-color: rgba(0, 60, 136, 0.5);-->
-            }
-            .ol-touch .img-button {
-                top: 80px;
-            }
-            .popover-content {
-                padding: 9px 14px;
-                width: 250px;
-            }
-
-            .input-group-addon{
-                width:35%;
-            }
-            .input-group{
-                width:100%;
-            }
+         .feature-btn {
+             top: 90px;
+             left: .5em;
+             background-image: url('img/draw_line_off.png');
+             background-size: contain;
+         }
 
 
-            .input-group-addon{
-                width:35%;
-            }
-            .input-group{
-                width:100%;
-            }
+         .follow-btn {
+             top: 140px;
+             left: .5em;
+             background-image: url('img/crosshair43x38.png');
+             background-size: contain;
+         }
+         .vessel-up-btn {
+             top: 165px;
+             left: .5em;
+             background-image: url('img/ship_red.png');
+             background-repeat: no-repeat;
+             background-size: 30%;
+             background-position:center center;
+         }
+         .measure-btn {
+             top: 190px;
+             left: .5em;
+             background-image: url('img/measuring-stick-on.png');
+             background-size: contain;
+         }
+         .ol-touch .anchor-btn  {
+             top: 80px;
+         }
+         .ol-touch .feature-btn  {
+             top: 115px;
+         }
+         .ol-touch .draw-btn  {
+             top: 150px;
+         }
 
-            .drawer, .fold .open {
-                height: auto;
-            }
-            .drawer-contents, .drawer-body{
-                max-height: inherit;
-                height: inherit;
-                overflow: hidden;
-            }
+         .ol-touch .follow-btn  {
+             top: 185px;
+         }
+         .ol-touch .vessel-up-btn  {
+             top: 220px;
+         }
+         .ol-touch .measure-btn  {
+             top: 255px;
+         }
 
-            .drawer-nav li.active a,
-            .drawer-fullnav li.active a,
-            .drawer-nav li a:hover,
-            .drawer-fullnav li a:hover,
-            .drawer-nav li a:focus,
-            .drawer-fullnav li a:focus {
-                color: #fff;
-                text-decoration: none;
-                background-image: linear-gradient(to bottom, #337ab7 0%, #265a88 100%);
-                background-repeat: repeat-x;
-            }
+         .img-button{
+             height: 1.6em;
+             width: 1.6em;
+             top: 6em;
+             left: .45em;
+             <!--background-color: rgba(0, 60, 136, 0.5);-->
+         }
+         .ol-touch .img-button {
+             top: 80px;
+         }
+         .popover-content {
+             padding: 9px 14px;
+             width: 250px;
+         }
 
-            #waypointDrawer, #routeDrawer, #chartDrawer {
-                max-height: 95%;
-                height: 95%;
-                overflow: hidden;
+         .input-group-addon{
+             width:35%;
+         }
+         .input-group{
+             width:100%;
+         }
 
-            }
-            #dataDrawer {
-                max-height: 100%;
-                height: auto;
-                line-height: 1.0;
-                background-color: rgba(248, 248, 248, 0.18);
 
-            }
-            #dataDrawer td {
-                text-align: center;
-            }
-            #dataDrawer button {
-                float:right;
-            }
-            #dataDrawer .drawer-controls{
-                height: auto;
-                width: auto;
-                margin-left: -55px;
-            }
-            #dataDrawer .drawer-contents{
-                background-color: rgba(248, 248, 248, 1.0);
-            }
+         .input-group-addon{
+             width:35%;
+         }
+         .input-group{
+             width:100%;
+         }
 
-            #waypointPopupList, #routePopupList, #chartPopupList{
-                max-height: 100%;
-                height: 100%;
-                overflow: scroll;
+         .drawer, .fold .open {
+             height: auto;
+         }
+         .drawer-contents, .drawer-body{
+             max-height: inherit;
+             height: inherit;
+             overflow: hidden !important;
+         }
 
-            }
-            .waypointDrawerBody, .routeDrawerBody, .chartDrawerBody{
-                max-height: 80%;
+         .drawer-nav li.active a,
+         .drawer-fullnav li.active a,
+         .drawer-nav li a:hover,
+         .drawer-fullnav li a:hover,
+         .drawer-nav li a:focus,
+         .drawer-fullnav li a:focus {
+             color: #fff;
+             text-decoration: none;
+             background-image: linear-gradient(to bottom, #337ab7 0%, #265a88 100%);
+             background-repeat: repeat-x;
+         }
 
-            }
-            .waypointDrawerBody, .routeDrawerBody, .chartDrawerBody, .dataDrawerBody{
-                max-height: 100%;
-                overflow: scroll;
-            }
-            .dataLabel {
-                font-size: 2em;
-            }
-            .dataValue {
-                font-size: 3em;
-            }
+         #waypointDrawer, #routeDrawer, #chartDrawer {
+             max-height: 95%;
+             height: 95%;
+             overflow: hidden;
+         }
+         #dataDrawer {
+             max-height: 100%;
+             line-height: 1.0;
+             background-color: rgba(248, 248, 248, 0.18);
 
-            .gauge-container {
-                height: 200px;
-                width: 200px;
-                position: relative;
-                margin: auto;
-            }
-            @media screen and (max-width: 992px) {
+         }
+         #dataDrawer td {
+             text-align: left;
+         }
+         #dataDrawer button {
+             float:right;
+         }
+         #dataDrawer .drawer-controls{
+             height: auto;
+             width: auto;
+             margin-left: -55px;
+         }
+         #dataDrawer .drawer-contents{
+             background-color: rgba(248, 248, 248, 0.0);
+         }
 
-                .dataValue {
-                    font-size: 6em;
-                }
-                .dataLabel {
-                    font-size: 2em;
-                }
-            }
-            @media screen and (max-width: 992px) {
-                .gauge-container {
-                    height: 250px;
-                    width: 250px;
-                    position: relative;
-                }
-            }
-        </style>
-        <title>Freeboard K - OpenLayers 3 + Signal K</title>
-    </head>
-    <body class="has-drawer">
+         #waypointPopupList, #routePopupList, #chartPopupList{
+             max-height: 100%;
+             height: 100%;
+             overflow: scroll;
 
-        <div id="menuDrawer" class="drawer  dw-xs-5 dw-sm-3 dw-md-2 dw-lg-2 fold" aria-labelledby="menuDrawer">
-            <div class="drawer-controls">
-                <a href="#menuDrawer" data-toggle="drawer" aria-foldedopen="false" aria-controls="menuDrawer" class="btn btn-primary btn-sm" ><i class="fa fa-align-justify"></i></a>
-            </div>
-            <div class="drawer-contents">
-                <div class="drawer-heading">
-                    <h2 class="drawer-title">Menu</h2>
-                    <!--<span data-toggle="drawer" data-target="#drawDrawer" >-->
-                    <ul class="drawer-nav">
-                        <li role="presentation"><a href="#anchorDrawer" data-toggle="drawer" >Anchor</a></li>
-                        <li role="presentation"><a href="#chartDrawer" data-toggle="drawer" >Chart List</a></li>
-                        <li role="presentation"><a href="#routeDrawer" data-toggle="drawer" >Route List</a></li>
-                        <li role="presentation"><a href="#waypointDrawer" data-toggle="drawer" >Waypoint List</a></li>
-                        <li role="presentation"><a href="#drawDrawer" data-toggle="drawer" >Draw</a></li>
-                        <li role="presentation" class="active">Measure&nbsp;<input id="measureOn" type="checkbox"  data-toggle="toggle"></li>
-                        <li role="presentation"><input id="followVessel" type="checkbox"></input></li>
-                        <li role="presentation"><input id="vesselUp" type="checkbox"></input></li>
-                        <li role="presentation"><a href="#menuDrawer" data-toggle="drawer" >Close</a></li>
-                    </ul>
-                    <!--</span>-->
+         }
+         .waypointDrawerBody, .routeDrawerBody, .chartDrawerBody{
+             max-height: 80%;
 
-                </div>
-            </div>
-        </div>
-        <div id="dataDrawer" class="drawer  dw-xs-8 dw-sm-5 dw-md-3 dw-lg-2  fold drawer-right" aria-labelledby="dataDrawer">
-            <div class="drawer-controls">
-                <a href="#dataDrawer" data-toggle="drawer" aria-foldedopen="false" aria-controls="dataDrawer" class="btn btn-primary btn-sm" ><i class="fa fa-align-justify"></i></a>
-            </div>
-            <div class="drawer-contents">
-                <div class="drawer-heading">
-                    <a href="#dataDrawer" data-toggle="drawer" class="btn btn-primary btn-sm">Hide</a>
-                    <!--<span data-toggle="drawer" data-target="#drawDrawer" >-->
-                </div>
-                <div class="drawer-body dataDrawerBody">
-                    <div>
-                        <div id="windDirGauge" class="gauge-container"  ></div>
-                        <table border="1" colspan="1">
-                            <thead>
-                                <tr><th></th><th width="100%"></th></tr>
-                            </thead>
-                            <tbody>
-                                <!--<tr><td></td><td colspan="1"><div id="windDirGauge" class="gauge-container"></div></td><td></td></tr> -->
-                                <tr><td><label class="dataLabel">COGM</label><td><label id="cogm" class="dataLabel"></label></td><td><label class="dataLabel">deg</label ></td></tr>
-                                <tr><td><label class="dataLabel">COGT</label><td><label id="cogt" class="dataLabel"></label></td><td><label class="dataLabel">deg</label ></td></tr>
-                                <tr><td><label class="dataLabel">SOG</label><td><label id="sog"  class="dataLabel"></label></td><td><label class="dataLabel">Kt</label></td></tr>
-                                <tr><td><label class="dataLabel">SOW</label><td><label id="sow"  class="dataLabel"></label></td><td><label class="dataLabel">Kt</label></td></tr>
-                                <tr id="depthRow"><td><label class="dataLabel">DBS</label><td><label id="dbs"  class="dataLabel"></label></td><td><label id="depthUnit" class="dataLabel">M</label></td></tr>
-                                <tr><td><label class="dataLabel">TWS</label><td><label id="tws"  class="dataLabel"></label></td><td><label class="dataLabel">Kt</label></td></tr>
-                                <tr><td><label class="dataLabel">AWS</label><td><label id="aws"  class="dataLabel"></label></td><td><label class="dataLabel">Kt</label></td></tr>
-                                <tr><td><label class="dataLabel">TWD</label><td><label id="twd"  class="dataLabel"></label></td><td><label class="dataLabel">deg</label></td></tr>
-                                <tr><td><label class="dataLabel">AWD</label><td><label id="awd"  class="dataLabel"></label></td><td><label class="dataLabel">deg</label></td></tr>
-                            </tbody>
-                        </table>
-                        <!--</span>-->
-                    </div>
-                </div>
-            </div>
-        </div>
+         }
+         .waypointDrawerBody, .routeDrawerBody, .chartDrawerBody, .dataDrawerBody{
+             max-height: 100%;
+             overflow: scroll;
+         }
+         .dataLabel {
+             font-size: 2em;
+         }
+         .dataValue {
+             font-size: 3em;
+         }
 
-        <div id="anchorDrawer" class="drawer dw-xs-8 dw-sm-5 dw-md-3 fold" aria-labelledby="anchorDrawer">
+         .gauge-container {
+             height: 250px;
+             width: 250px;
+             position: relative;
+             margin: auto;
+         }
+         @media screen and (max-width: 992px) {
 
-            <div class="drawer-contents">
-                <div class="drawer-heading">
-                    <h2 class="drawer-title">Anchor Watch</h2>
-                    <ul class="drawer-nav">
-                        <li role="presentation" class="active"><input id="anchorPopupOn" type="checkbox"  data-toggle="toggle"></li>
-                        <li role="presentation"><a id="anchorPopupReset"  >Reset Position</a></li>
-                        <li role="presentation"><a href="#anchorDrawer" data-toggle="drawer" >Close</a></li>
-                    </ul>
-                </div>
-                <div class="drawer-body">
-                    <div id="anchorPopup"  class="panel" title="Anchor Guard">
+             .dataValue {
+                 font-size: 6em;
+             }
+             .dataLabel {
+                 font-size: 2em;
+             }
+         }
+         @media screen and (max-width: 992px) {
+             .gauge-container {
+                 height: 250px;
+                 width: 250px;
+                 position: relative;
+             }
+         }
+      </style>
+      <title>Freeboard K - OpenLayers 3 + Signal K</title>
+      <script src="./lib/tween-min.js"></script>
+      <script src="bundle.js"></script>
+   </head>
+   <body class="has-drawer" onload="init()">
+      <script>
+				 function init() {
 
-                        <div class="input-group ">
-                            <span class="input-group-addon" id="basic-addon1">Latitude:</span>
-                            <input id="anchorPopupLat" type="text" class="form-control readonly" placeholder="Latitude" aria-describedby="basic-addon1"/>
-                        </div>
-                        <div class="input-group">
-                            <span class="input-group-addon" id="basic-addon1">Longitude:</span>
-                            <input id="anchorPopupLon" type="text" class="form-control readonly" placeholder="Longitude" aria-describedby="basic-addon1"/>
-                        </div>
-                        <div class="input-group">
-                            <span class="input-group-addon" id="basic-addon1">Maximum Radius:<h3><label id="anchorPopupMaxRadius" class="label label-default">50</label></h3>
-                                <input id="anchorPopupMaxRadiusSlide" type="text" style="width:100%; vertical-align: middle; "/>
-                            </span>
-                        </div>
-                        <div class="input-group">
-                            <span class="input-group-addon" id="basic-addon1">Current Radius:<h3><label id="anchorPopupRadius" class="label label-default">50</label></h3></span>
-                        </div>
-                    </div>
-                </div>
+					 var tackAngle = 45;
+					 var areasCloseHaul = [
+						 steelseries.Section((0 - tackAngle), 0, 'rgba(0, 0, 220, 0.3)'),
+						 steelseries.Section(0, tackAngle, 'rgba(0, 0, 220, 0.3)')];
+					 var areasCloseHaulTrue = [
+						 steelseries.Section((360 - tackAngle), 0, 'rgba(0, 0, 220, 0.3)'),
+						 steelseries.Section(0, tackAngle, 'rgba(0, 0, 220, 0.3)')];
+
+					 windDir = new steelseries.MarineWindDirection('canvasWind', {
+						 size: 250,
+						 lcdTitleStrings: ['Apparent', 'True'],
+						 useColorLabels: true,
+						 unitString: "Kt",
+						 lcdVisible: true,
+						 lcdColor: steelseries.LcdColor.BEIGE,
+						 pointSymbolsVisible: false,
+						 degreeScaleHalf: true,
+						 section: areasCloseHaul,
+						 area: areasCloseHaul,
+						 pointerTypeLatest: steelseries.PointerType.TYPE2,
+						 pointerTypeAverage: steelseries.PointerType.TYPE2,
+						 backgroundColor: steelseries.BackgroundColor.BROWN,
+					 });
+
+					 sogLCD = new steelseries.DisplaySingle('sog', {
+						 width: 250,
+						 height: 50,
+						 unitString: "Kt",
+						 unitStringVisible: true,
+						 headerString: "Speed Over Ground",
+						 digitalFont: true,
+						 headerStringVisible: true,
+						 lcdColor: steelseries.LcdColor.BEIGE,
+					 });
+
+					 stwLCD = new steelseries.DisplaySingle('stw', {
+						 width: 250,
+						 height: 50,
+						 unitString: "Kt",
+						 unitStringVisible: true,
+						 headerString: "Speed Through Water",
+						 digitalFont: true,
+						 headerStringVisible: true,
+						 lcdColor: steelseries.LcdColor.BEIGE,
+					 });
+					if (localStorage.getItem("depthUserUnit") != null) {
+						depthUserUnit = localStorage.getItem("depthUserUnit");
+						console.log("depthUserUnit: " + depthUserUnit);
+					}
+
+					 dbsLCD = new steelseries.DisplaySingle('depth', {
+						 width: 250,
+						 height: 50,
+						 valuesNumeric: true,
+						 unitString: depthUserUnit,
+						 unitStringVisible: true,
+						 headerString: "Depth Below Surface",
+						 digitalFont: true,
+						 headerStringVisible: true,
+						 lcdColor: steelseries.LcdColor.BEIGE,
+					 });
+
+					 console.log("init executed");
+				 }
+      </script>
+      <div id="menuDrawer" class="drawer  dw-xs-5 dw-sm-3 dw-md-2 dw-lg-2 fold" aria-labelledby="menuDrawer">
+         <div class="drawer-controls">
+            <a href="#menuDrawer" data-toggle="drawer" aria-foldedopen="false" aria-controls="menuDrawer" class="btn btn-primary btn-sm" ><i class="fa fa-align-justify"></i></a>
+         </div>
+         <div class="drawer-contents">
+            <div class="drawer-heading">
+               <h2 class="drawer-title">Menu</h2>
+               <!--<span data-toggle="drawer" data-target="#drawDrawer" >-->
+               <ul class="drawer-nav">
+                  <li role="presentation"><a href="#anchorDrawer" data-toggle="drawer" >Anchor</a></li>
+                  <li role="presentation"><a href="#chartDrawer" data-toggle="drawer" >Chart List</a></li>
+                  <li role="presentation"><a href="#routeDrawer" data-toggle="drawer" >Route List</a></li>
+                  <li role="presentation"><a href="#waypointDrawer" data-toggle="drawer" >Waypoint List</a></li>
+                  <li role="presentation"><a href="#drawDrawer" data-toggle="drawer" >Draw</a></li>
+                  <li role="presentation" class="active">Measure&nbsp;<input id="measureOn" type="checkbox"  data-toggle="toggle"></li>
+                  <li role="presentation"><input id="followVessel" type="checkbox"></input></li>
+                  <li role="presentation"><input id="vesselUp" type="checkbox"></input></li>
+                  <li role="presentation"><a href="#menuDrawer" data-toggle="drawer" >Close</a></li>
+               </ul>
+               <!--</span>-->
 
             </div>
-        </div>
-        <div id="routeDrawer" class="drawer dw-xs-10 dw-sm-6 dw-md-4 fold" aria-labelledby="routeDrawer">
-            <div class="drawer-contents">
-                <div class="drawer-heading">
-                    <h2 class="drawer-title">Route List</h2>
-                    <span data-toggle="drawer" data-target="#routeDrawer" >
-                        <a href="#drawDrawer" data-toggle="drawer" class="btn btn-primary btn-sm">New</a>
-                    </span>
-                    <a href="#routeDrawer" data-toggle="drawer" class="btn btn-primary btn-sm">Close</a>
-                    <input type="text" id="routeDrawerFilter" name="routeFilterAction" value="" />
-                    <a id="routeDrawerSearch" href="#routeDrawer"  class="btn btn-primary btn-sm">Search</a>
-
-                </div>
-                <div class="drawer-body routeDrawerBody" >
-                    <div id="featurePopup"  class="panel" title="Routes">
-                        <ul id="routePopupList" class="list-group"></ul>
-                    </div>
-                </div>
+         </div>
+      </div>
+      <div id="dataDrawer" class="drawer  dw-xs-8 dw-sm-5 dw-md-3 dw-lg-2  fold drawer-right" aria-labelledby="dataDrawer">
+         <div class="drawer-controls">
+            <a href="#dataDrawer" data-toggle="drawer" aria-foldedopen="false" aria-controls="dataDrawer" class="btn btn-primary btn-sm" ><i class="fa fa-align-justify"></i></a>
+         </div>
+         <div class="drawer-contents">
+            <div class="drawer-heading">
+               <a href="#dataDrawer" data-toggle="drawer" class="btn btn-primary btn-sm">Hide</a>
+               <!--<span data-toggle="drawer" data-target="#drawDrawer" >-->
             </div>
-        </div>
-        <div id="waypointDrawer" class="drawer dw-xs-10 dw-sm-6 dw-md-4 fold" aria-labelledby="waypointDrawer">
-            <div class="drawer-contents">
-                <div class="drawer-heading">
-                    <h2 class="drawer-title">Waypoint List</h2>
-                    <span data-toggle="drawer" data-target="#waypointDrawer" >
-                        <a href="#drawDrawer" data-toggle="drawer" class="btn btn-primary btn-sm">New</a>
-                    </span>
-                    <a href="#waypointDrawer" data-toggle="drawer" class="btn btn-primary btn-sm">Close</a>
-                    <input type="text" id="waypointDrawerFilter" name="waypointFilterAction" value="" />
-                    <a id="waypointDrawerSearch" href="#waypointDrawer"  class="btn btn-primary btn-sm">Search</a>
-
-                </div>
-                <div class="drawer-body waypointDrawerBody" >
-                    <div id="featurePopup"  class="panel" title="Features">
-                        <ul id="waypointPopupList" class="list-group"></ul>
-                    </div>
-                </div>
+            <div class="drawer-body dataDrawerBody">
+               <div>
+                  <canvas id="canvasWind"  class="gauge-container"></canvas>
+                  <table colspan="1">
+                     <thead>
+                        <tr><th width="100%"></th></tr>
+                     </thead>
+                     <tbody>
+                        <tr><td ><canvas id="sog" width="100%" height="50px"></canvas></td></tr>
+                        <tr><td style="td"><canvas id="stw"  height="50px"></canvas></td></tr>
+                        <tr><td style="td"><canvas id="depth" height="50px"></canvas></td></tr>
+                        <tr><td style="td"><canvas id="depthSpark"  height="50px"></canvas></td></tr>
+                        <tr><td style="td"><canvas id="engineTemp" height="50px"></canvas></td></tr>
+                     </tbody>
+                  </table>
+               </div>
             </div>
-        </div>
-        <div id="chartDrawer" class="drawer dw-xs-10 dw-sm-6 dw-md-4 fold" aria-labelledby="chartDrawer">
-            <div class="drawer-contents">
-                <div class="drawer-heading">
-                    <h2 class="drawer-title">Chart List</h2>
-                    <a href="#chartDrawer" data-toggle="drawer" class="btn btn-primary btn-sm">Close</a>
-                    <input type="text" id="chartDrawerFilter" name="chartFilterAction" value="" />
-                    <a id="chartDrawerSearch" href="#chartDrawer"  class="btn btn-primary btn-sm">Search</a>
+         </div>
+      </div>
 
-                </div>
-                <div class="drawer-body chartDrawerBody" >
-                    <div id="chartPopup"  class="panel" title="Charts">
-                        <ul id="chartPopupList" class="list-group"></ul>
-                    </div>
-                </div>
+      <div id="anchorDrawer" class="drawer dw-xs-8 dw-sm-5 dw-md-3 fold" aria-labelledby="anchorDrawer">
+
+         <div class="drawer-contents">
+            <div class="drawer-heading">
+               <h2 class="drawer-title">Anchor Watch</h2>
+               <ul class="drawer-nav">
+                  <li role="presentation" class="active"><input id="anchorPopupOn" type="checkbox"  data-toggle="toggle"></li>
+                  <li role="presentation"><a id="anchorPopupReset"  >Reset Position</a></li>
+                  <li role="presentation"><a href="#anchorDrawer" data-toggle="drawer" >Close</a></li>
+               </ul>
             </div>
-        </div>
+            <div class="drawer-body">
+               <div id="anchorPopup"  class="panel" title="Anchor Guard">
 
-        <div id="drawDrawer" class="drawer dw-xs-10 dw-sm-6 dw-md-4 fold" aria-labelledby="drawDrawer">
-            <div class="drawer-contents">
-                <div class="drawer-heading">
-                    <h2 class="drawer-title">Draw</h2>
-
-                    <div id="drawPopupAction" class="btn-group" data-toggle="buttons">
-                        <label class="btn btn-default ">
-                            <input type="radio" id="drawPopupAdd" name="drawAction" value="Add" /> Add
-                        </label>
-                        <label class="btn btn-default">
-                            <input type="radio" id="drawPopupEdit" name="drawAction" value="Edit" /> Edit
-                        </label>
-                        <label class="btn btn-default active">
-                            <input type="radio" id="drawPopupImport" name="drawAction" value="Import" /> Import
-                        </label>
-                    </div>
-                    <div id="drawPopupGeom" class="btn-group" data-toggle="buttons">
-                        <label class="btn btn-default active" disabled="disabled">
-                            <input type="radio" id="drawPopupPoint" name="drawGeom" value="Point" /> Waypoint
-                        </label>
-                        <label class="btn btn-default" disabled="disabled">
-                            <input type="radio" id="drawPopupLine" name="drawGeom" value="LineString" /> Route
-                        </label>
-                        <label class="btn btn-default" disabled="disabled">
-                            <input type="radio" id="drawPopupPolygon" name="drawGeom" value="Polygon" /> Region
-                        </label>
-                    </div>
-
-                    <a id="drawPopupSave" class="btn btn-primary btn-sm" >Save</a>
-                    <span data-toggle="drawer" data-target="#drawDrawer" >
-                        <a href="#drawDrawer" data-toggle="drawer" class="btn btn-primary btn-sm">Close</a>
-                    </span>
-                </div>
-                <div class="drawer-body">
-                </div>
-            </div>
-        </div>
-
-        <div class="container-fluid">
-
-
-            <div id="map" class="row"></div>
-
-
-            <!-- hidden modals container -->
-            <div id="mapPopup"></div>
-            <div style="display: none;">
-                <div id="saveFeaturePopup">
-
-                    <div class="drawer-contents ">
-                        <div class="drawer-heading">
-                            <h2 class="drawer-title">Save Features</h2>
-
-                        </div>
-                        <div class="drawer-body">
-                            <div class="input-group">
-                                <span class="input-group-addon" id="basic-addon1">Name:</span>
-                                <input id="saveFeaturePopupName" type="text" class="form-control" placeholder="eg Fishing Nelson" />
-                            </div>
-                            <div class="input-group">
-                                <span class="input-group-addon" id="basic-addon1">Description:</span>
-                                <textarea id="saveFeaturePopupDesc" class="form-control" rows="5" placeholder="eg Nelson fishing waypoints" ></textarea>
-                            </div>
-
-                        </div>
-                    </div>
-
-                </div>
+                  <div class="input-group ">
+                     <span class="input-group-addon" id="basic-addon1">Latitude:</span>
+                     <input id="anchorPopupLat" type="text" class="form-control readonly" placeholder="Latitude" aria-describedby="basic-addon1"/>
+                  </div>
+                  <div class="input-group">
+                     <span class="input-group-addon" id="basic-addon1">Longitude:</span>
+                     <input id="anchorPopupLon" type="text" class="form-control readonly" placeholder="Longitude" aria-describedby="basic-addon1"/>
+                  </div>
+                  <div class="input-group">
+                     <span class="input-group-addon" id="basic-addon1">Maximum Radius:<h3><label id="anchorPopupMaxRadius" class="label label-default">50</label></h3>
+                        <input id="anchorPopupMaxRadiusSlide" type="text" style="width:100%; vertical-align: middle; "/>
+                     </span>
+                  </div>
+                  <div class="input-group">
+                     <span class="input-group-addon" id="basic-addon1">Current Radius:<h3><label id="anchorPopupRadius" class="label label-default">50</label></h3></span>
+                  </div>
+               </div>
             </div>
 
-        </div>
+         </div>
+      </div>
+      <div id="routeDrawer" class="drawer dw-xs-10 dw-sm-6 dw-md-4 fold" aria-labelledby="routeDrawer">
+         <div class="drawer-contents">
+            <div class="drawer-heading">
+               <h2 class="drawer-title">Route List</h2>
+               <span data-toggle="drawer" data-target="#routeDrawer" >
+                  <a href="#drawDrawer" data-toggle="drawer" class="btn btn-primary btn-sm">New</a>
+               </span>
+               <a href="#routeDrawer" data-toggle="drawer" class="btn btn-primary btn-sm">Close</a>
+               <input type="text" id="routeDrawerFilter" name="routeFilterAction" value="" />
+               <a id="routeDrawerSearch" href="#routeDrawer"  class="btn btn-primary btn-sm">Search</a>
+
+            </div>
+            <div class="drawer-body routeDrawerBody" >
+               <div id="featurePopup"  class="panel" title="Routes">
+                  <ul id="routePopupList" class="list-group"></ul>
+               </div>
+            </div>
+         </div>
+      </div>
+      <div id="waypointDrawer" class="drawer dw-xs-10 dw-sm-6 dw-md-4 fold" aria-labelledby="waypointDrawer">
+         <div class="drawer-contents">
+            <div class="drawer-heading">
+               <h2 class="drawer-title">Waypoint List</h2>
+               <span data-toggle="drawer" data-target="#waypointDrawer" >
+                  <a href="#drawDrawer" data-toggle="drawer" class="btn btn-primary btn-sm">New</a>
+               </span>
+               <a href="#waypointDrawer" data-toggle="drawer" class="btn btn-primary btn-sm">Close</a>
+               <input type="text" id="waypointDrawerFilter" name="waypointFilterAction" value="" />
+               <a id="waypointDrawerSearch" href="#waypointDrawer"  class="btn btn-primary btn-sm">Search</a>
+
+            </div>
+            <div class="drawer-body waypointDrawerBody" >
+               <div id="featurePopup"  class="panel" title="Features">
+                  <ul id="waypointPopupList" class="list-group"></ul>
+               </div>
+            </div>
+         </div>
+      </div>
+      <div id="chartDrawer" class="drawer dw-xs-10 dw-sm-6 dw-md-4 fold" aria-labelledby="chartDrawer">
+         <div class="drawer-contents">
+            <div class="drawer-heading">
+               <h2 class="drawer-title">Chart List</h2>
+               <a href="#chartDrawer" data-toggle="drawer" class="btn btn-primary btn-sm">Close</a>
+               <input type="text" id="chartDrawerFilter" name="chartFilterAction" value="" />
+               <a id="chartDrawerSearch" href="#chartDrawer"  class="btn btn-primary btn-sm">Search</a>
+
+            </div>
+            <div class="drawer-body chartDrawerBody" >
+               <div id="chartPopup"  class="panel" title="Charts">
+                  <ul id="chartPopupList" class="list-group"></ul>
+               </div>
+            </div>
+         </div>
+      </div>
+
+      <div id="drawDrawer" class="drawer dw-xs-10 dw-sm-6 dw-md-4 fold" aria-labelledby="drawDrawer">
+         <div class="drawer-contents">
+            <div class="drawer-heading">
+               <h2 class="drawer-title">Draw</h2>
+
+               <div id="drawPopupAction" class="btn-group" data-toggle="buttons">
+                  <label class="btn btn-default ">
+                     <input type="radio" id="drawPopupAdd" name="drawAction" value="Add" /> Add
+                  </label>
+                  <label class="btn btn-default">
+                     <input type="radio" id="drawPopupEdit" name="drawAction" value="Edit" /> Edit
+                  </label>
+                  <label class="btn btn-default active">
+                     <input type="radio" id="drawPopupImport" name="drawAction" value="Import" /> Import
+                  </label>
+               </div>
+               <div id="drawPopupGeom" class="btn-group" data-toggle="buttons">
+                  <label class="btn btn-default active" disabled="disabled">
+                     <input type="radio" id="drawPopupPoint" name="drawGeom" value="Point" /> Waypoint
+                  </label>
+                  <label class="btn btn-default" disabled="disabled">
+                     <input type="radio" id="drawPopupLine" name="drawGeom" value="LineString" /> Route
+                  </label>
+                  <label class="btn btn-default" disabled="disabled">
+                     <input type="radio" id="drawPopupPolygon" name="drawGeom" value="Polygon" /> Region
+                  </label>
+               </div>
+
+               <a id="drawPopupSave" class="btn btn-primary btn-sm" >Save</a>
+               <span data-toggle="drawer" data-target="#drawDrawer" >
+                  <a href="#drawDrawer" data-toggle="drawer" class="btn btn-primary btn-sm">Close</a>
+               </span>
+            </div>
+            <div class="drawer-body">
+            </div>
+         </div>
+      </div>
+
+      <div class="container-fluid">
 
 
-        <script src="bundle.js"></script>
-    </body>
+         <div id="map" class="row"></div>
+
+
+         <!-- hidden modals container -->
+         <div id="mapPopup"></div>
+         <div style="display: none;">
+            <div id="saveFeaturePopup">
+
+               <div class="drawer-contents ">
+                  <div class="drawer-heading">
+                     <h2 class="drawer-title">Save Features</h2>
+
+                  </div>
+                  <div class="drawer-body">
+                     <div class="input-group">
+                        <span class="input-group-addon" id="basic-addon1">Name:</span>
+                        <input id="saveFeaturePopupName" type="text" class="form-control" placeholder="eg Fishing Nelson" />
+                     </div>
+                     <div class="input-group">
+                        <span class="input-group-addon" id="basic-addon1">Description:</span>
+                        <textarea id="saveFeaturePopupDesc" class="form-control" rows="5" placeholder="eg Nelson fishing waypoints" ></textarea>
+                     </div>
+
+                  </div>
+               </div>
+
+            </div>
+         </div>
+
+      </div>
+
+
+      <script src="bundle.js"></script>
+   </body>
 </html>
