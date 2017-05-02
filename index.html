@@ -296,7 +296,8 @@
 						 headerStringVisible: true,
 						 lcdColor: steelseries.LcdColor.BEIGE,
 					 });
-					if (localStorage.getItem("depthUserUnit") != null) {
+
+      if (localStorage.getItem("depthUserUnit") != null) {
 						depthUserUnit = localStorage.getItem("depthUserUnit");
 						console.log("depthUserUnit: " + depthUserUnit);
 					}
@@ -308,6 +309,23 @@
 						 unitString: depthUserUnit,
 						 unitStringVisible: true,
 						 headerString: "Depth Below Surface",
+						 digitalFont: true,
+						 headerStringVisible: true,
+						 lcdColor: steelseries.LcdColor.BEIGE,
+					 });
+                
+      if (localStorage.getItem("engineTempUserUnit") != null) {
+						engineTempUserUnit = localStorage.getItem("engineTempUserUnit");
+						console.log("engineTempUserUnit: " + engineTempUserUnit);
+					}
+
+					 engineTempLCD = new steelseries.DisplaySingle('engineTemp', {
+						 width: 250,
+						 height: 50,
+						 valuesNumeric: true,
+						 unitString: engineTempUserUnit,
+						 unitStringVisible: true,
+						 headerString: "Engine Temperature",
 						 digitalFont: true,
 						 headerStringVisible: true,
 						 lcdColor: steelseries.LcdColor.BEIGE,

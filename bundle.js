@@ -174,6 +174,8 @@ $.ajax({
                                 console.log("sogDisplayUnit: "+localStorage.getItem("sogDisplayUnit"));
                                 localStorage.setItem("stwDisplayUnit", data.navigation.speedThroughWater.meta.unit);
                                 console.log("stwDisplayUnit: "+localStorage.getItem("stwDisplayUnit"));
+                                localStorage.setItem("engineTempUserUnit", data.propulsion.engine.coolantTemperature.meta.unit);
+                                console.log("engineTempUserUnit: "+localStorage.getItem("engineTempUserUnit"));
                         } else {
                                  alert("Please use another browser\n  this one has no local storage support!");
                         }
@@ -2523,6 +2525,16 @@ function length(line) {
 	
 };
 
+		// convert centigrade to fahrenheit
+		function cToFahr(n){
+			return n * (9./5.) + 32.;
+		};
+		
+		//convert fahrenheit to centigrade
+		function fahrToC(n){
+			return (n - 32.)*5./9.;
+		};
+
 // convert meters/sec to knot
 function msToKnt(n) {
 	return n * 1.94384;
@@ -2647,6 +2659,7 @@ module.exports={
 	toRad: toRad,
 	toDeg: toDeg,
   msToKnt: msToKnt,
+	cToFahr: cToFahr,
 	mToF: mToF,
 	mToFt: mToFt,
 	mToKm: mToKm,
@@ -2809,17 +2822,28 @@ function onmessage(delta) {
 				//console.log(value.path + '=' + JSON.stringify(value.value));
 				if (value.path === 'notifications.environment.depth.belowSurface.alarmState') {
 					console.log('Depth alarm:' + value.value);
-//					var fName = document.getElementById("depthRow");
-//					if (value.value === "alarm") {
-//						fName.style.background = "rgba(255, 0, 0, 1.0)";
-//					} else if (value.value === "warn") {
-//						fName.style.background = "rgba(250, 250, 0, 1.0)";
-//					} else {
-//						fName.style.background = "white";
-//					}
+					if (value.value == "alarm"){
+						dbsLCD.setLcdColor(steelseries.LcdColor.RED);
+					} else if (value.value == "warn"){
+						dbsLCD.setLcdColor(steelseries.LcdColor.YELLOW);
+					}else {
+						dbsLCD.setLcdColor(steelseries.LcdColor.BEIGE);
+					}
 				}
 				if (value.path === 'propulsion.engine.coolantTemperature') {
-					console.log('Engine Temperature:' + value.value);
+					var engineTemp = value.value;
+					if (localStorage.getItem("engineTempUserUnit") != null) {
+						engineTempUserUnit = localStorage.getItem("engineTempUserUnit");
+						console.log("engineTempUserUnit: " + engineTempUserUnit);
+						
+						// convert to user units
+						if (engineTempUserUnit == "C") {
+						} else {
+							engineTemp = util.cToFahr(engineTemp);
+						}
+					}
+					console.log('Engine Temperature:' + engineTemp + engineTempUserUnit);
+					engineTempLCD.setValue(engineTemp);
 				}
 				if (value.path === 'navigation.magneticVariation') {
 					//console.log('Magnetic Variation(radians):'+value.value);
@@ -2948,10 +2972,6 @@ function onmessage(delta) {
 					}
 					console.log("windAngleApp: " + util.toDeg(awd).toFixed(1));
 					windDir.setValueAnimatedLatest(util.toDeg(awd));
-//					gauge.write(util.toDeg(awd).toFixed(0));
-//					d3.select("#awd").data([util.toDeg(awd)]).text(function (d) {
-//						return d.toFixed(1);
-//					});
 				}
 				if (value.path === 'environment.wind.directionTrue') {
 					twd = value.value;
@@ -2960,17 +2980,11 @@ function onmessage(delta) {
 					}
 					console.log("windDirectionTrue:" + util.toDeg(twd).toFixed(0));
 					windDir.setValueAnimatedAverage(util.toDeg(twd));
-//					d3.select("#twd").data([util.toDeg(twd)]).text(function (d) {
-//						return d.toFixed(1);
-//					});
 				}
 				if (value.path === 'environment.wind.speedApparent') {
 					aws = value.value;
 					console.log("windSpeedApp:" + aws.toFixed(1));
-					windDir.setValueTop(aws);
-//					d3.select("#aws").data([util.msToKnt(aws)]).text(function (d) {
-//						return d.toFixed(1);
-//					});
+					windDir.setValueTop(util.msToKnt(aws));
 				}
 				//                if (value.path === 'environment.wind.directionMagnetic') {
 				//                    //console.log("SOG:"+value.value);
@@ -2980,9 +2994,6 @@ function onmessage(delta) {
 					tws = value.value;
 					console.log("windSpeedTrue:" + util.msToKnt(tws).toFixed(1));
 					windDir.setValueBottom(tws);
-//					d3.select("#tws").data([util.msToKnt(tws)]).text(function (d) {
-//						return d.toFixed(1);
-//					});
 				}
 				if (value.path === 'uuid') {
 					uuid = value.value;
@@ -3201,6 +3212,7 @@ module.exports = {
 	toggleFollowVessel: toggleFollowVessel,
 	toggleVesselUp: toggleVesselUp
 }
+
 },{"./util.js":14,"d3":94,"d3-gauge":90,"openlayers":375}],16:[function(require,module,exports){
 var $ = require('jquery');
 var ol = require('openlayers');
