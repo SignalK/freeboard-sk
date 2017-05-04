@@ -19,7 +19,6 @@
       <link rel="stylesheet" href="./lib/css/ol3-layerswitcher.css">
       <link rel="stylesheet" href="./lib/css/measure.css">
       <link rel="stylesheet" href="css/d3-gauge/simple.css">
-      <script src="./lib/steelseries-min.js"></script>
 
       <style>
          html {
@@ -134,7 +133,7 @@
          }
          .popover-content {
              padding: 9px 14px;
-             width: 250px;
+             width: 225px;
          }
 
          .input-group-addon{
@@ -221,8 +220,8 @@
          }
 
          .gauge-container {
-             height: 250px;
-             width: 250px;
+             height: 225px;
+             width: 225px;
              position: relative;
              margin: auto;
          }
@@ -237,103 +236,17 @@
          }
          @media screen and (max-width: 992px) {
              .gauge-container {
-                 height: 250px;
-                 width: 250px;
+                 height: 225px;
+                 width: 225px;
                  position: relative;
              }
          }
       </style>
       <title>Freeboard K - OpenLayers 3 + Signal K</title>
+      <script src="./lib/steelseries-min.js"></script>
       <script src="./lib/tween-min.js"></script>
-      <script src="bundle.js"></script>
    </head>
    <body class="has-drawer" onload="init()">
-      <script>
-				 function init() {
-
-					 var tackAngle = 45;
-					 var areasCloseHaul = [
-						 steelseries.Section((0 - tackAngle), 0, 'rgba(0, 0, 220, 0.3)'),
-						 steelseries.Section(0, tackAngle, 'rgba(0, 0, 220, 0.3)')];
-					 var areasCloseHaulTrue = [
-						 steelseries.Section((360 - tackAngle), 0, 'rgba(0, 0, 220, 0.3)'),
-						 steelseries.Section(0, tackAngle, 'rgba(0, 0, 220, 0.3)')];
-
-					 windDir = new steelseries.MarineWindDirection('canvasWind', {
-						 size: 250,
-						 lcdTitleStrings: ['Apparent', 'True'],
-						 useColorLabels: true,
-						 unitString: "Kt",
-						 lcdVisible: true,
-						 lcdColor: steelseries.LcdColor.BEIGE,
-						 pointSymbolsVisible: false,
-						 degreeScaleHalf: true,
-						 section: areasCloseHaul,
-						 area: areasCloseHaul,
-						 pointerTypeLatest: steelseries.PointerType.TYPE2,
-						 pointerTypeAverage: steelseries.PointerType.TYPE2,
-						 backgroundColor: steelseries.BackgroundColor.BROWN,
-					 });
-
-					 sogLCD = new steelseries.DisplaySingle('sog', {
-						 width: 250,
-						 height: 50,
-						 unitString: "Kt",
-						 unitStringVisible: true,
-						 headerString: "Speed Over Ground",
-						 digitalFont: true,
-						 headerStringVisible: true,
-						 lcdColor: steelseries.LcdColor.BEIGE,
-					 });
-
-					 stwLCD = new steelseries.DisplaySingle('stw', {
-						 width: 250,
-						 height: 50,
-						 unitString: "Kt",
-						 unitStringVisible: true,
-						 headerString: "Speed Through Water",
-						 digitalFont: true,
-						 headerStringVisible: true,
-						 lcdColor: steelseries.LcdColor.BEIGE,
-					 });
-
-      if (localStorage.getItem("depthUserUnit") != null) {
-						depthUserUnit = localStorage.getItem("depthUserUnit");
-						console.log("depthUserUnit: " + depthUserUnit);
-					}
-
-					 dbsLCD = new steelseries.DisplaySingle('depth', {
-						 width: 250,
-						 height: 50,
-						 valuesNumeric: true,
-						 unitString: depthUserUnit,
-						 unitStringVisible: true,
-						 headerString: "Depth Below Surface",
-						 digitalFont: true,
-						 headerStringVisible: true,
-						 lcdColor: steelseries.LcdColor.BEIGE,
-					 });
-                
-      if (localStorage.getItem("engineTempUserUnit") != null) {
-						engineTempUserUnit = localStorage.getItem("engineTempUserUnit");
-						console.log("engineTempUserUnit: " + engineTempUserUnit);
-					}
-
-					 engineTempLCD = new steelseries.DisplaySingle('engineTemp', {
-						 width: 250,
-						 height: 50,
-						 valuesNumeric: true,
-						 unitString: engineTempUserUnit,
-						 unitStringVisible: true,
-						 headerString: "Engine Temperature",
-						 digitalFont: true,
-						 headerStringVisible: true,
-						 lcdColor: steelseries.LcdColor.BEIGE,
-					 });
-
-					 console.log("init executed");
-				 }
-      </script>
       <div id="menuDrawer" class="drawer  dw-xs-5 dw-sm-3 dw-md-2 dw-lg-2 fold" aria-labelledby="menuDrawer">
          <div class="drawer-controls">
             <a href="#menuDrawer" data-toggle="drawer" aria-foldedopen="false" aria-controls="menuDrawer" class="btn btn-primary btn-sm" ><i class="fa fa-align-justify"></i></a>
@@ -548,8 +461,92 @@
          </div>
 
       </div>
-
-
       <script src="bundle.js"></script>
+      <script>
+             function init() {
+
+                var tackAngle = 45;
+                var areasCloseHaul = [
+                   steelseries.Section((0 - tackAngle), 0, 'rgba(0, 0, 220, 0.3)'),
+                   steelseries.Section(0, tackAngle, 'rgba(0, 0, 220, 0.3)')];
+                var areasCloseHaulTrue = [
+                   steelseries.Section((360 - tackAngle), 0, 'rgba(0, 0, 220, 0.3)'),
+                   steelseries.Section(0, tackAngle, 'rgba(0, 0, 220, 0.3)')];
+
+                windDir = new steelseries.MarineWindDirection('canvasWind', {
+                   size: 225,
+                   lcdTitleStrings: ['Apparent', 'True'],
+                   useColorLabels: true,
+                   unitString: "Kt",
+                   lcdVisible: true,
+                   lcdColor: steelseries.LcdColor.BEIGE,
+                   pointSymbolsVisible: false,
+                   degreeScaleHalf: true,
+                   section: areasCloseHaul,
+                   area: areasCloseHaul,
+                   pointerTypeLatest: steelseries.PointerType.TYPE2,
+                   pointerTypeAverage: steelseries.PointerType.TYPE2,
+                   backgroundColor: steelseries.BackgroundColor.BROWN,
+                });
+
+                sogLCD = new steelseries.DisplaySingle('sog', {
+                   width: 225,
+                   height: 50,
+                   unitString: "Kt",
+                   unitStringVisible: true,
+                   headerString: "Speed Over Ground",
+                   digitalFont: true,
+                   headerStringVisible: true,
+                   lcdColor: steelseries.LcdColor.BEIGE,
+                });
+
+                stwLCD = new steelseries.DisplaySingle('stw', {
+                   width: 225,
+                   height: 50,
+                   unitString: "Kt",
+                   unitStringVisible: true,
+                   headerString: "Speed Through Water",
+                   digitalFont: true,
+                   headerStringVisible: true,
+                   lcdColor: steelseries.LcdColor.BEIGE,
+                });
+
+                if (localStorage.getItem("depthUserUnit") != null) {
+                   depthUserUnit = localStorage.getItem("depthUserUnit");
+                   console.log("depthUserUnit: " + depthUserUnit);
+                }
+
+                dbsLCD = new steelseries.DisplaySingle('depth', {
+                   width: 225,
+                   height: 50,
+                   valuesNumeric: true,
+                   unitString: depthUserUnit,
+                   unitStringVisible: true,
+                   headerString: "Depth Below Surface",
+                   digitalFont: true,
+                   headerStringVisible: true,
+                   lcdColor: steelseries.LcdColor.BEIGE,
+                });
+
+                if (localStorage.getItem("engineTempUserUnit") != null) {
+                   engineTempUserUnit = localStorage.getItem("engineTempUserUnit");
+                   console.log("engineTempUserUnit: " + engineTempUserUnit);
+                }
+
+                engineTempLCD = new steelseries.DisplaySingle('engineTemp', {
+                   width: 225,
+                   height: 50,
+                   valuesNumeric: true,
+                   unitString: engineTempUserUnit,
+                   unitStringVisible: true,
+                   headerString: "Engine Temperature",
+                   digitalFont: true,
+                   headerStringVisible: true,
+                   lcdColor: steelseries.LcdColor.BEIGE,
+                });
+
+                console.log("init executed");
+             }
+      </script>
    </body>
 </html>
