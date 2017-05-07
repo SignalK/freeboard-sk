@@ -153,7 +153,7 @@ $.ajax({
     url: "/signalk",
     dataType: "json",
     success: function (data) {
-        console.log(data);
+//        console.log(data);
         var url = data.endpoints.v1['signalk-http'];
         console.log(url);
         $.ajax({
@@ -161,7 +161,7 @@ $.ajax({
             dataType: "json",
             success: function (data) {
                 //var jsonData = JSON.parse(data);
-                console.log(JSON.stringify(data));
+//                console.log(JSON.stringify(data));
                 //TODO: find  uuid or mmsi or ?
                 if(data.uuid){
                 	window.ownVessel = data.uuid;
@@ -2882,6 +2882,8 @@ function onmessage(delta) {
 						headingT = (headingM + magVar) % (2 * Math.PI);
 						if (cog == 3) {
 							setRotation(headingT, coord);
+							magHeadLCD.setValue(util.toDeg(headingM));
+							trueHeadLCD.setValue(util.toDeg(headingT));
 //							d3.select("#cogt").data([headingT]).text(function (d) {
 //								return util.toDeg(d).toFixed(0);
 //							});
@@ -2903,6 +2905,8 @@ function onmessage(delta) {
 
 						if (cog == 2) {
 							setRotation(cogt, coord);
+							trueHeadLCD.setValue(util.toDeg(cogt));
+							magHeadLCD.setValue(util.toDeg(cogm));
 
 							//try updating testSOG
 							console.log("Heading magnetic (radians):" + cogm);
@@ -2927,20 +2931,50 @@ function onmessage(delta) {
 						console.log("Course True: " + cogt.toFixed(1));
 						if (cog == 1) {
 							setRotation(value.value, trackLine.getLastCoordinate());
+							magHeadLCD.setValue(util.toDeg(cogm));
+							trueHeadLCD.setValue(util.toDeg(cogt));
 						}
 					}
 				}
 				//}
 				if (value.path === 'navigation.speedOverGround') {
 					sog = value.value;
-					console.log("SOG: " + sog.toFixed(1));
-					sogLCD.setValue(sog);
+					sogDisp = sog;
+					if (localStorage.getItem("sogDisplayUnit") != null) {
+						sogDisplayUnit = localStorage.getItem("sogDisplayUnit");
+						console.log("sogDisplayUnit: " + sogDisplayUnit);
+						if (sogDisplayUnit == "Kt") {
+							sogDisp = util.msToKnt(sog);
+						} else if (sogDisplayUnit == "Mi/hr") {
+							sogDisp = msToMoPerHr(sog);
+						} else if (sogDisplayUnit == "km/hr"){
+							sogDisp = msToKmPerHr(sog);
+						} else {
+							sogDisplayUnit = "m/s";
+						}
+					}
+					console.log("SOG: " + sogDisp.toFixed(1));
+					sogLCD.setValue(sogDisp);
 				}
 
 				if (value.path === 'navigation.speedThroughWater') {
 					stw = value.value;
-					console.log("STW: " + stw.toFixed(1));
-					stwLCD.setValue(stw);
+					stwDisp = stw;
+					if (localStorage.getItem("stwDisplayUnit") != null) {
+						stwDisplayUnit = localStorage.getItem("stwDisplayUnit");
+						console.log("stwDisplayUnit: " + stwDisplayUnit);
+						if (stwDisplayUnit == "Kt") {
+							stwDisp = util.msToKnt(stw);
+						} else if (stwDisplayUnit == "Mi/hr") {
+							stwDisp = msToMoPerHr(stw);
+						} else if (stwDisplayUnit == "km/hr"){
+							stwDisp = msToKmPerHr(stw);
+						} else {
+							stwDisplayUnit = "m/s";
+						}
+					}
+					console.log("STW: " + stwDisp.toFixed(1));
+					stwLCD.setValue(stwDisp);
 				}
 
 				if (value.path === 'environment.depth.belowSurface') {

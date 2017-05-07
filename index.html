@@ -243,8 +243,10 @@
          }
       </style>
       <title>Freeboard K - OpenLayers 3 + Signal K</title>
+<!--
       <script src="./lib/steelseries-min.js"></script>
       <script src="./lib/tween-min.js"></script>
+-->
    </head>
    <body class="has-drawer" onload="init()">
       <div id="menuDrawer" class="drawer  dw-xs-5 dw-sm-3 dw-md-2 dw-lg-2 fold" aria-labelledby="menuDrawer">
@@ -292,6 +294,8 @@
                         <tr><td style="td"><canvas id="stw"  height="50px"></canvas></td></tr>
                         <tr><td style="td"><canvas id="depth" height="50px"></canvas></td></tr>
                         <tr><td style="td"><canvas id="depthSpark"  height="50px"></canvas></td></tr>
+                        <tr><td style="td"><canvas id="magHead" height="50px"></canvas></td></tr>
+                        <tr><td style="td"><canvas id="trueHead" height="50px"></canvas></td></tr>
                         <tr><td style="td"><canvas id="engineTemp" height="50px"></canvas></td></tr>
                      </tbody>
                   </table>
@@ -461,8 +465,18 @@
          </div>
 
       </div>
+      <script src="./lib/steelseries-min.js"></script>
+      <script src="./lib/tween-min.js"></script>
       <script src="bundle.js"></script>
       <script>
+             var windDir;
+             var sogLCD;
+             var stwLCD;
+             var dbsLCD;
+             var magHeadLCD;
+             var trueHeadLCD;
+             var engineTempLCD;
+             
              function init() {
 
                 var tackAngle = 45;
@@ -495,7 +509,7 @@
                    unitString: "Kt",
                    unitStringVisible: true,
                    headerString: "Speed Over Ground",
-                   digitalFont: true,
+                   lcdDecimals: 1,
                    headerStringVisible: true,
                    lcdColor: steelseries.LcdColor.BEIGE,
                 });
@@ -504,6 +518,7 @@
                    width: 225,
                    height: 50,
                    unitString: "Kt",
+                   lcdDecimals: 1,
                    unitStringVisible: true,
                    headerString: "Speed Through Water",
                    digitalFont: true,
@@ -531,12 +546,39 @@
                 if (localStorage.getItem("engineTempUserUnit") != null) {
                    engineTempUserUnit = localStorage.getItem("engineTempUserUnit");
                    console.log("engineTempUserUnit: " + engineTempUserUnit);
-                }
+                };
+
+                magHeadLCD = new steelseries.DisplaySingle('magHead', {
+                   width: 225,
+                   height: 50,
+                   valuesNumeric: true,
+                   lcdDecimals: 0,
+                   unitString: "deg",
+                   unitStringVisible: true,
+                   headerString: "Magnetic Heaing",
+                   digitalFont: true,
+                   headerStringVisible: true,
+                   lcdColor: steelseries.LcdColor.BEIGE,
+                });
+
+                trueHeadLCD = new steelseries.DisplaySingle('trueHead', {
+                   width: 225,
+                   height: 50,
+                   valuesNumeric: true,
+                   lcdDecimals: 0,
+                   unitString: "deg",
+                   unitStringVisible: true,
+                   headerString: "True Heaing",
+                   digitalFont: true,
+                   headerStringVisible: true,
+                   lcdColor: steelseries.LcdColor.BEIGE,
+                });
 
                 engineTempLCD = new steelseries.DisplaySingle('engineTemp', {
                    width: 225,
                    height: 50,
                    valuesNumeric: true,
+                   lcdDecimals: 0,
                    unitString: engineTempUserUnit,
                    unitStringVisible: true,
                    headerString: "Engine Temperature",

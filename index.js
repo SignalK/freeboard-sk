@@ -152,7 +152,7 @@ $.ajax({
     url: "/signalk",
     dataType: "json",
     success: function (data) {
-        console.log(data);
+//        console.log(data);
         var url = data.endpoints.v1['signalk-http'];
         console.log(url);
         $.ajax({
@@ -160,7 +160,7 @@ $.ajax({
             dataType: "json",
             success: function (data) {
                 //var jsonData = JSON.parse(data);
-                console.log(JSON.stringify(data));
+//                console.log(JSON.stringify(data));
                 //TODO: find  uuid or mmsi or ?
                 if(data.uuid){
                 	window.ownVessel = data.uuid;
