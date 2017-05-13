@@ -24,28 +24,28 @@ var simplify = require('./lib/simplify-js.js');
 
 var measure = require('./lib/measure.js');
 var view = new ol.View({
-    center: ol.proj.transform([65, 50], 'EPSG:4326', 'EPSG:3857'),
-    zoom: 3
+	center: ol.proj.transform([65, 50], 'EPSG:4326', 'EPSG:3857'),
+	zoom: 3
 })
 //var settings = JSON.parse(localStorage.getItem("settings"));
 //localStorage.setItem("settings", JSON.stringify(data));
 
 var mousePositionControl = new ol.control.MousePosition({
-    coordinateFormat: ol.coordinate.createStringXY(4),
-    projection: 'EPSG:4326',
-    undefinedHTML: '&nbsp;'
+	coordinateFormat: ol.coordinate.createStringXY(4),
+	projection: 'EPSG:4326',
+	undefinedHTML: '&nbsp;'
 });
 
 var map = new ol.Map({
-    interactions: ol.interaction.defaults().extend([new ol.interaction.DragRotateAndZoom()]),
-    target: 'map',
-    layers: [],
-    view: view,
-    controls: ol.control.defaults({
-        attributionOptions: {
-            collapsible: true
-        }
-    }).extend([mousePositionControl])
+	interactions: ol.interaction.defaults().extend([new ol.interaction.DragRotateAndZoom()]),
+	target: 'map',
+	layers: [],
+	view: view,
+	controls: ol.control.defaults({
+		attributionOptions: {
+			collapsible: true
+		}
+	}).extend([mousePositionControl])
 });
 
 //make map global
@@ -54,24 +54,24 @@ $('#map').data('map', map);
 
 //reset any existing settings
 if (localStorage.getItem("sk-zoom")) {
-    map.getView().setZoom(localStorage.getItem("sk-zoom"));
+	map.getView().setZoom(localStorage.getItem("sk-zoom"));
 }
 if (localStorage.getItem("sk-center")) {
-    map.getView().setCenter(JSON.parse(localStorage.getItem("sk-center")));
+	map.getView().setCenter(JSON.parse(localStorage.getItem("sk-center")));
 }
 if (localStorage.getItem("sk-rotation")) {
-    map.getView().setRotation(localStorage.getItem("sk-rotation"));
+	map.getView().setRotation(localStorage.getItem("sk-rotation"));
 }
 
 //store location and zoom, etc
 map.getView().on('change:resolution', function (evt) {
-    localStorage.setItem("sk-zoom", map.getView().getZoom());
+	localStorage.setItem("sk-zoom", map.getView().getZoom());
 });
 map.getView().on('change:center', function (evt) {
-    localStorage.setItem("sk-center", JSON.stringify(map.getView().getCenter()));
+	localStorage.setItem("sk-center", JSON.stringify(map.getView().getCenter()));
 });
 map.getView().on('change:rotation', function (evt) {
-    localStorage.setItem("sk-rotation", map.getView().getRotation());
+	localStorage.setItem("sk-rotation", map.getView().getRotation());
 });
 
 //add our layers
@@ -81,26 +81,26 @@ map.addControl(layerSwitcher);
 
 
 var rkScaleLine = new ol.control.ScaleLine({
-    className: 'ol-scale-line',
-    units: 'nautical'});
+	className: 'ol-scale-line',
+	units: 'nautical'});
 map.addControl(rkScaleLine);
 
 function dispatch(delta) {
-    //do nothing
+	//do nothing
 }
 
 function connect() {
 	var sub = '{"context":"vessels.self","unsubscribe":[{"path":"*","policy":"instant"}]}';
-    window.wsServer.send(sub);
-    aisVessels.setup(map);
-    vesselPosition.setup(map);
-    drawFeatures.setup( map);
-    anchor.setup(map);
-    menuControl.setup(map);
-    measure.setup(map);
-    routes.setup(map);
-    charts.setup(map);
-    waypoints.setup(map);
+	window.wsServer.send(sub);
+	aisVessels.setup(map);
+	vesselPosition.setup(map);
+	drawFeatures.setup(map);
+	anchor.setup(map);
+	menuControl.setup(map);
+	measure.setup(map);
+	routes.setup(map);
+	charts.setup(map);
+	waypoints.setup(map);
 
 }
 
@@ -108,100 +108,113 @@ function connect() {
 var element = document.getElementById('mapPopup');
 
 var popup = new ol.Overlay({
-  element: element,
-  positioning: 'bottom-center',
-  stopEvent: false,
-  offset: [0, -10]
+	element: element,
+	positioning: 'bottom-center',
+	stopEvent: false,
+	offset: [0, -10]
 });
 
 $(element).popover({
-    'placement': 'top',
-    'html': true
-  });
+	'placement': 'top',
+	'html': true
+});
 
 map.addOverlay(popup);
 
 // display popup on click
-map.on('click', function(evt) {
-  
-  var feature = map.forEachFeatureAtPixel(evt.pixel,
-      function(feature) {
-        return feature;
-      });
-  if (feature) {
-    var coordinates = feature.getGeometry().getCoordinates();
-    popup.setPosition(coordinates);
-    var context, name, vhf, port, flag, mmsi, state ;
-    context= name= vhf=port=flag=mmsi = state= '?';
-    if(feature.get('context'))context=feature.get('context');
-    if(feature.get('name'))name=feature.get('name').replace(/@/g,"");
-    if(feature.get('state'))state=feature.get('state');
-    if(feature.get('vhf'))vhf=feature.get('vhf');
-    if(feature.get('port'))port=feature.get('port');
-    if(feature.get('flag'))flag=feature.get('flag');
-    $(element).attr('data-content', '<p>'+context+'<br/> Name:'+name+'<br/> Vhf:'+vhf+'<br/> State:'+state+'<br/> Port:'+port+', Flag:'+flag+'</p>');
-    $(element).popover('show'); 
-  } else {
-    $(element).popover('hide'); 
-  } 
+map.on('click', function (evt) {
+
+	var feature = map.forEachFeatureAtPixel(evt.pixel,
+			function (feature) {
+				return feature;
+			});
+	if (feature) {
+		var coordinates = feature.getGeometry().getCoordinates();
+		popup.setPosition(coordinates);
+		var context, name, vhf, port, flag, mmsi, state;
+		context = name = vhf = port = flag = mmsi = state = '?';
+		if (feature.get('context'))
+			context = feature.get('context');
+		if (feature.get('name'))
+			name = feature.get('name').replace(/@/g, "");
+		if (feature.get('state'))
+			state = feature.get('state');
+		if (feature.get('vhf'))
+			vhf = feature.get('vhf');
+		if (feature.get('port'))
+			port = feature.get('port');
+		if (feature.get('flag'))
+			flag = feature.get('flag');
+		$(element).attr('data-content', '<p>' + context + '<br/> Name:' + name + '<br/> Vhf:' + vhf + '<br/> State:' + state + '<br/> Port:' + port + ', Flag:' + flag + '</p>');
+		$(element).popover('show');
+	} else {
+		$(element).popover('hide');
+	}
 });
 
 
 
 $.ajax({
-    url: "/signalk",
-    dataType: "json",
-    success: function (data) {
+	url: "/signalk",
+	dataType: "json",
+	success: function (data) {
 //        console.log(data);
-        var url = data.endpoints.v1['signalk-http'];
-        console.log(url);
-        $.ajax({
-            url: url + 'vessels/self',
-            dataType: "json",
-            success: function (data) {
-                //var jsonData = JSON.parse(data);
-//                console.log(JSON.stringify(data));
-                //TODO: find  uuid or mmsi or ?
-                if(data.uuid){
-                	window.ownVessel = data.uuid;
-                }
-                if (typeof(Storage) !== "undefined") {
-                        if (data.environment){
-                                localStorage.setItem("depthUserUnit", data.environment.depth.meta.userUnit);
-                                console.log("depthUserUnit: "+localStorage.getItem("depthUserUnit"));
-                                localStorage.setItem("sogDisplayUnit", data.navigation.speedOverGround.meta.unit);
-                                console.log("sogDisplayUnit: "+localStorage.getItem("sogDisplayUnit"));
-                                localStorage.setItem("stwDisplayUnit", data.navigation.speedThroughWater.meta.unit);
-                                console.log("stwDisplayUnit: "+localStorage.getItem("stwDisplayUnit"));
-                                localStorage.setItem("engineTempUserUnit", data.propulsion.engine.coolantTemperature.meta.unit);
-                                console.log("engineTempUserUnit: "+localStorage.getItem("engineTempUserUnit"));
-                        } else {
-                                 alert("Please use another browser\n  this one has no local storage support!");
-                        }
-                }
-                if(window.ownVessel === 'undefined'&& data.mmsi){
-                	ownVessel = data.mmsi;
-                }
-                if(window.ownVessel === 'undefined' && data.url){
-                	ownVessel = data.url;
-                }
-                console.log(window.ownVessel);
+		var url = data.endpoints.v1['signalk-http'];
+		console.log(url);
+		$.ajax({
+			url: url + 'vessels/self',
+			dataType: "json",
+			success: function (data) {
+				//var jsonData = JSON.parse(data);
+				//console.log(JSON.stringify(data));
+				//TODO: find  uuid or mmsi or ?
+				if (data.uuid) {
+					window.ownVessel = data.uuid;
+				}
+				if (typeof (Storage) !== "undefined") {
+					if (data.environment) {
+						localStorage.setItem("depthSparklinePoints", data.environment.depth.meta.sparklinePoints.value);
+						console.log("depthSparklinePoints: " + localStorage.getItem("depthSparklinePoints"));
+						localStorage.setItem("depthUserUnit", data.environment.depth.meta.userUnit);
+						console.log("depthUserUnit: " + localStorage.getItem("depthUserUnit"));
+						var jsonData = data.environment.depth.belowSurface.meta.zones;
+						alarmDepth = jsonData[0].upper;
+						warnDepth = jsonData[1].upper;
+						localStorage.setItem("alarmDepth", alarmDepth);
+						localStorage.setItem("warnDepth", warnDepth);
+						localStorage.setItem("sogDisplayUnit", data.navigation.speedOverGround.meta.unit);
+						console.log("sogDisplayUnit: " + localStorage.getItem("sogDisplayUnit"));
+						localStorage.setItem("stwDisplayUnit", data.navigation.speedThroughWater.meta.unit);
+						console.log("stwDisplayUnit: " + localStorage.getItem("stwDisplayUnit"));
+						localStorage.setItem("engineTempUserUnit", data.propulsion.engine.coolantTemperature.meta.unit);
+						console.log("engineTempUserUnit: " + localStorage.getItem("engineTempUserUnit"));
+					} else {
+						alert("Please use another browser\n  this one has no local storage support!");
+					}
+				}
+				if (window.ownVessel === 'undefined' && data.mmsi) {
+					ownVessel = data.mmsi;
+				}
+				if (window.ownVessel === 'undefined' && data.url) {
+					ownVessel = data.url;
+				}
+				console.log(window.ownVessel);
 
-            }
-        });
-    }
+			}
+		});
+	}
 });
 $.ajax({
-    url: "/signalk",
-    dataType: "json",
-    success: function (data) {
-        //var jsonData = JSON.parse(data);
-        console.log(data);
-        var url = data.endpoints.v1['signalk-ws'];
-        console.log(url);
-        var host = url.substring(url.indexOf("//")+2);
-        host = host.substring(0,host.indexOf("/"));
+	url: "/signalk",
+	dataType: "json",
+	success: function (data) {
+		//var jsonData = JSON.parse(data);
+		console.log(data);
+		var url = data.endpoints.v1['signalk-ws'];
+		console.log(url);
+		var host = url.substring(url.indexOf("//") + 2);
+		host = host.substring(0, host.indexOf("/"));
 
-        window.wsServer.connectDelta(host, dispatch, connect);
-    }
+		window.wsServer.connectDelta(host, dispatch, connect);
+	}
 });

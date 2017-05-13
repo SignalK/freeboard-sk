@@ -243,10 +243,10 @@
          }
       </style>
       <title>Freeboard K - OpenLayers 3 + Signal K</title>
-<!--
-      <script src="./lib/steelseries-min.js"></script>
-      <script src="./lib/tween-min.js"></script>
--->
+      <!--
+            <script src="./lib/steelseries-min.js"></script>
+            <script src="./lib/tween-min.js"></script>
+      -->
    </head>
    <body class="has-drawer" onload="init()">
       <div id="menuDrawer" class="drawer  dw-xs-5 dw-sm-3 dw-md-2 dw-lg-2 fold" aria-labelledby="menuDrawer">
@@ -290,10 +290,10 @@
                         <tr><th width="100%"></th></tr>
                      </thead>
                      <tbody>
-                        <tr><td ><canvas id="sog" width="100%" height="50px"></canvas></td></tr>
+                        <tr><td style="td"><canvas id="sog" width="100%" height="50px"></canvas></td></tr>
                         <tr><td style="td"><canvas id="stw"  height="50px"></canvas></td></tr>
                         <tr><td style="td"><canvas id="depth" height="50px"></canvas></td></tr>
-                        <tr><td style="td"><canvas id="depthSpark"  height="50px"></canvas></td></tr>
+                        <tr><td style="td"><div id="depthSpark"  height="50px"></dov></td></tr>
                         <tr><td style="td"><canvas id="magHead" height="50px"></canvas></td></tr>
                         <tr><td style="td"><canvas id="trueHead" height="50px"></canvas></td></tr>
                         <tr><td style="td"><canvas id="engineTemp" height="50px"></canvas></td></tr>
@@ -468,127 +468,178 @@
       <script src="./lib/steelseries-min.js"></script>
       <script src="./lib/tween-min.js"></script>
       <script src="bundle.js"></script>
+      <script type="text/javascript" src="./lib/jquery.sparkline.min.js"></script>
       <script>
-             var windDir;
-             var sogLCD;
-             var stwLCD;
-             var dbsLCD;
-             var magHeadLCD;
-             var trueHeadLCD;
-             var engineTempLCD;
-             
-             function init() {
+         var windDir;
+         var sogLCD;
+         var stwLCD;
+         var dbsLCD;
+         var magHeadLCD;
+         var trueHeadLCD;
+         var engineTempLCD;
+         var sparkArray = [];
+         var sparkOptions;
 
-                var tackAngle = 45;
-                var areasCloseHaul = [
-                   steelseries.Section((0 - tackAngle), 0, 'rgba(0, 0, 220, 0.3)'),
-                   steelseries.Section(0, tackAngle, 'rgba(0, 0, 220, 0.3)')];
-                var areasCloseHaulTrue = [
-                   steelseries.Section((360 - tackAngle), 0, 'rgba(0, 0, 220, 0.3)'),
-                   steelseries.Section(0, tackAngle, 'rgba(0, 0, 220, 0.3)')];
+         function init() {
 
-                windDir = new steelseries.MarineWindDirection('canvasWind', {
-                   size: 225,
-                   lcdTitleStrings: ['Apparent', 'True'],
-                   useColorLabels: true,
-                   unitString: "Kt",
-                   lcdVisible: true,
-                   lcdColor: steelseries.LcdColor.BEIGE,
-                   pointSymbolsVisible: false,
-                   degreeScaleHalf: true,
-                   section: areasCloseHaul,
-                   area: areasCloseHaul,
-                   pointerTypeLatest: steelseries.PointerType.TYPE2,
-                   pointerTypeAverage: steelseries.PointerType.TYPE2,
-                   backgroundColor: steelseries.BackgroundColor.BROWN,
-                });
+            var tackAngle = 45;
+            var areasCloseHaul = [
+               steelseries.Section((0 - tackAngle), 0, 'rgba(0, 0, 220, 0.3)'),
+               steelseries.Section(0, tackAngle, 'rgba(0, 0, 220, 0.3)')];
+            var areasCloseHaulTrue = [
+               steelseries.Section((360 - tackAngle), 0, 'rgba(0, 0, 220, 0.3)'),
+               steelseries.Section(0, tackAngle, 'rgba(0, 0, 220, 0.3)')];
+           
+            windDir = new steelseries.MarineWindDirection('canvasWind', {
+               size: 225,
+               lcdTitleStrings: ['Apparent', 'True'],
+               useColorLabels: true,
+               unitString: "Kt",
+               lcdVisible: true,
+               lcdColor: steelseries.LcdColor.BEIGE,
+               pointSymbolsVisible: false,
+               degreeScaleHalf: true,
+               section: areasCloseHaul,
+               area: areasCloseHaul,
+               pointerTypeLatest: steelseries.PointerType.TYPE2,
+               pointerTypeAverage: steelseries.PointerType.TYPE2,
+               backgroundColor: steelseries.BackgroundColor.BROWN,
+            });
 
-                sogLCD = new steelseries.DisplaySingle('sog', {
-                   width: 225,
-                   height: 50,
-                   unitString: "Kt",
-                   unitStringVisible: true,
-                   headerString: "Speed Over Ground",
-                   lcdDecimals: 1,
-                   headerStringVisible: true,
-                   lcdColor: steelseries.LcdColor.BEIGE,
-                });
+            sogLCD = new steelseries.DisplaySingle('sog', {
+               width: 225,
+               height: 50,
+               unitString: "Kt",
+               unitStringVisible: true,
+               headerString: "Speed Over Ground",
+               lcdDecimals: 1,
+               headerStringVisible: true,
+               lcdColor: steelseries.LcdColor.BEIGE,
+            });
 
-                stwLCD = new steelseries.DisplaySingle('stw', {
-                   width: 225,
-                   height: 50,
-                   unitString: "Kt",
-                   lcdDecimals: 1,
-                   unitStringVisible: true,
-                   headerString: "Speed Through Water",
-                   digitalFont: true,
-                   headerStringVisible: true,
-                   lcdColor: steelseries.LcdColor.BEIGE,
-                });
+            stwLCD = new steelseries.DisplaySingle('stw', {
+               width: 225,
+               height: 50,
+               unitString: "Kt",
+               lcdDecimals: 1,
+               unitStringVisible: true,
+               headerString: "Speed Through Water",
+               digitalFont: true,
+               headerStringVisible: true,
+               lcdColor: steelseries.LcdColor.BEIGE,
+            });
 
-                if (localStorage.getItem("depthUserUnit") != null) {
-                   depthUserUnit = localStorage.getItem("depthUserUnit");
-                   console.log("depthUserUnit: " + depthUserUnit);
-                }
+            if (localStorage.getItem("depthUserUnit") != null) {
+               depthUserUnit = localStorage.getItem("depthUserUnit");
+               console.log("depthUserUnit: " + depthUserUnit);
+            }
 
-                dbsLCD = new steelseries.DisplaySingle('depth', {
-                   width: 225,
-                   height: 50,
-                   valuesNumeric: true,
-                   unitString: depthUserUnit,
-                   unitStringVisible: true,
-                   headerString: "Depth Below Surface",
-                   digitalFont: true,
-                   headerStringVisible: true,
-                   lcdColor: steelseries.LcdColor.BEIGE,
-                });
+            dbsLCD = new steelseries.DisplaySingle('depth', {
+               width: 225,
+               height: 50,
+               valuesNumeric: true,
+               unitString: depthUserUnit,
+               unitStringVisible: true,
+               headerString: "Depth Below Surface",
+               digitalFont: true,
+               headerStringVisible: true,
+               lcdColor: steelseries.LcdColor.BEIGE,
+            });
 
-                if (localStorage.getItem("engineTempUserUnit") != null) {
-                   engineTempUserUnit = localStorage.getItem("engineTempUserUnit");
-                   console.log("engineTempUserUnit: " + engineTempUserUnit);
-                };
+            if (localStorage.getItem("engineTempUserUnit") != null) {
+               engineTempUserUnit = localStorage.getItem("engineTempUserUnit");
+               console.log("engineTempUserUnit: " + engineTempUserUnit);
+            }
+            ;
 
-                magHeadLCD = new steelseries.DisplaySingle('magHead', {
-                   width: 225,
-                   height: 50,
-                   valuesNumeric: true,
-                   lcdDecimals: 0,
-                   unitString: "deg",
-                   unitStringVisible: true,
-                   headerString: "Magnetic Heaing",
-                   digitalFont: true,
-                   headerStringVisible: true,
-                   lcdColor: steelseries.LcdColor.BEIGE,
-                });
+            magHeadLCD = new steelseries.DisplaySingle('magHead', {
+               width: 225,
+               height: 50,
+               valuesNumeric: true,
+               lcdDecimals: 0,
+               unitString: "deg",
+               unitStringVisible: true,
+               headerString: "Magnetic Heaing",
+               digitalFont: true,
+               headerStringVisible: true,
+               lcdColor: steelseries.LcdColor.BEIGE,
+            });
 
-                trueHeadLCD = new steelseries.DisplaySingle('trueHead', {
-                   width: 225,
-                   height: 50,
-                   valuesNumeric: true,
-                   lcdDecimals: 0,
-                   unitString: "deg",
-                   unitStringVisible: true,
-                   headerString: "True Heaing",
-                   digitalFont: true,
-                   headerStringVisible: true,
-                   lcdColor: steelseries.LcdColor.BEIGE,
-                });
+            trueHeadLCD = new steelseries.DisplaySingle('trueHead', {
+               width: 225,
+               height: 50,
+               valuesNumeric: true,
+               lcdDecimals: 0,
+               unitString: "deg",
+               unitStringVisible: true,
+               headerString: "True Heaing",
+               digitalFont: true,
+               headerStringVisible: true,
+               lcdColor: steelseries.LcdColor.BEIGE,
+            });
 
-                engineTempLCD = new steelseries.DisplaySingle('engineTemp', {
-                   width: 225,
-                   height: 50,
-                   valuesNumeric: true,
-                   lcdDecimals: 0,
-                   unitString: engineTempUserUnit,
-                   unitStringVisible: true,
-                   headerString: "Engine Temperature",
-                   digitalFont: true,
-                   headerStringVisible: true,
-                   lcdColor: steelseries.LcdColor.BEIGE,
-                });
+            engineTempLCD = new steelseries.DisplaySingle('engineTemp', {
+               width: 225,
+               height: 50,
+               valuesNumeric: true,
+               lcdDecimals: 0,
+               unitString: engineTempUserUnit,
+               unitStringVisible: true,
+               headerString: "Engine Temperature",
+               digitalFont: true,
+               headerStringVisible: true,
+               lcdColor: steelseries.LcdColor.BEIGE,
+            });
 
-                console.log("init executed");
-             }
+            var depthUnit = localStorage.getItem("depthUserUnit");
+            var alarmDepth = localStorage.getItem("alarmDepth");
+            var warnDepth = localStorage.getItem("warnDepth");
+            var size = localStorage.getItem("depthSparklinePoints");
+
+            // switch to user units for depth
+
+            if (depthUnit == "f") {
+               alarmDepth = mToF(alarmDepth);
+               warnDepth = mToF(warnDepth);
+            while (size--)
+               sparkArray.push(mToF(alarmDepth / 2.));
+            } else if (depthUnit == "ft") {
+               alarmDepth = mToFt(alarmDepth);
+               warnDepth = mToFt(warnDepth);
+            while (size--)
+               sparkArray.push(mToFt(alarmDepth / 2.));
+            }
+            sparkOptions = {
+               width: 225,
+               height: 50,
+               maxSpotColor: '',
+               minSpotColor: '',
+               fillColor: 'rgba(0, 255, 0, 1.0)',
+               chartRangeMin: alarmDepth / 2.,
+               normalRangeMin: alarmDepth / 2.,
+               normalRangeMax: alarmDepth,
+               drawNormalOnTop: 'true',
+               normalRangeColor: 'rgba(255, 0, 0, 1.0)'
+            };
+
+            console.log("init executed");
+         }
+         ;
+
+         // convert m to ft
+         function mToFt(n) {
+            return n * 3.2808398;
+         }
+         ;
+
+//convert m to fathoms
+         function mToF(n) {
+            return n / 0.5468066;
+         }
+         ;
+
+
+
       </script>
    </body>
 </html>
