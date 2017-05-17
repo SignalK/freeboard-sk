@@ -1,6 +1,7 @@
 (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
 var $ = require('jquery');
 window.$ = window.jQuery = require('jquery');
+alert("index.js");
 require('bootstrap');
 require('bootstrap-drawer');
 require('bootstrap-slider');
@@ -174,8 +175,10 @@ $.ajax({
 				}
 				if (typeof (Storage) !== "undefined") {
 					if (data.environment) {
-						localStorage.setItem("depthSparklinePoints", data.environment.depth.meta.sparklinePoints.value);
-						console.log("depthSparklinePoints: " + localStorage.getItem("depthSparklinePoints"));
+						localStorage.setItem("sparklinePoints", data.environment.depth.meta.sparkline.points.value);
+						console.log("sparklinePoints: " + localStorage.getItem("sparklinePoints"));
+						localStorage.setItem("sparklineMin", data.environment.depth.meta.sparkline.min.value);
+						console.log("sparklineMin: " + localStorage.getItem("sparklineMin"));
 						localStorage.setItem("depthUserUnit", data.environment.depth.meta.userUnit);
 						console.log("depthUserUnit: " + localStorage.getItem("depthUserUnit"));
 						var jsonData = data.environment.depth.belowSurface.meta.zones;
@@ -3006,12 +3009,12 @@ function onmessage(delta) {
 					dbsLCD.setValue(dbs);
 					sparkArray.shift();
 
-					if (dbs < sparkOptions.chartRangeMin) {
-						sparkArray.push(sparkOptions.chartRangeMin)
+					if (dbs < sparkDepthOptions.chartRangeMin) {
+						sparkArray.push(sparkDepthOptions.chartRangeMin)
 					} else {
 						sparkArray.push(dbs);
 					}
-					$('#depthSpark').sparkline(sparkArray, sparkOptions);
+					$('#depthSpark').sparkline(sparkArray, sparkDepthOptions);
 				}
 
 				if (value.path === 'environment.wind.angleApparent') {

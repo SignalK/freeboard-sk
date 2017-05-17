@@ -1,5 +1,6 @@
 var $ = require('jquery');
 window.$ = window.jQuery = require('jquery');
+alert("index.js");
 require('bootstrap');
 require('bootstrap-drawer');
 require('bootstrap-slider');
@@ -173,8 +174,10 @@ $.ajax({
 				}
 				if (typeof (Storage) !== "undefined") {
 					if (data.environment) {
-						localStorage.setItem("depthSparklinePoints", data.environment.depth.meta.sparklinePoints.value);
-						console.log("depthSparklinePoints: " + localStorage.getItem("depthSparklinePoints"));
+						localStorage.setItem("sparklinePoints", data.environment.depth.meta.sparkline.points.value);
+						console.log("sparklinePoints: " + localStorage.getItem("sparklinePoints"));
+						localStorage.setItem("sparklineMin", data.environment.depth.meta.sparkline.min.value);
+						console.log("sparklineMin: " + localStorage.getItem("sparklineMin"));
 						localStorage.setItem("depthUserUnit", data.environment.depth.meta.userUnit);
 						console.log("depthUserUnit: " + localStorage.getItem("depthUserUnit"));
 						var jsonData = data.environment.depth.belowSurface.meta.zones;

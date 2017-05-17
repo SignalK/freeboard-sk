@@ -478,7 +478,8 @@
          var trueHeadLCD;
          var engineTempLCD;
          var sparkArray = [];
-         var sparkOptions;
+         sparkArray.length = localStorage.getItem("sparklinePoints");
+         var sparkDepthOptions;
 
          function init() {
 
@@ -594,49 +595,48 @@
             var depthUnit = localStorage.getItem("depthUserUnit");
             var alarmDepth = localStorage.getItem("alarmDepth");
             var warnDepth = localStorage.getItem("warnDepth");
-            var size = localStorage.getItem("depthSparklinePoints");
+            var sparklineSize = localStorage.getItem("sparklinePoints");
+            var sparklineMin = localStorage.getItem("sparklineMin")
 
             // switch to user units for depth
 
             if (depthUnit == "f") {
                alarmDepth = mToF(alarmDepth);
                warnDepth = mToF(warnDepth);
-            while (size--)
-               sparkArray.push(mToF(alarmDepth / 2.));
+               sparklineMin = mToF(sparklineMin);
             } else if (depthUnit == "ft") {
                alarmDepth = mToFt(alarmDepth);
                warnDepth = mToFt(warnDepth);
-            while (size--)
-               sparkArray.push(mToFt(alarmDepth / 2.));
+               sparklineMin = mToFt(sparklineMin);
             }
-            sparkOptions = {
+            while (sparklineSize--)
+               sparkArray.push(sparklineMin);
+            sparkDepthOptions = {
                width: 225,
                height: 50,
                maxSpotColor: '',
                minSpotColor: '',
                fillColor: 'rgba(0, 255, 0, 1.0)',
-               chartRangeMin: alarmDepth / 2.,
-               normalRangeMin: alarmDepth / 2.,
+               defaultPixelsPerValue: 1,
+               chartRangeMin: sparklineMin,
+               normalRangeMin: sparklineMin,
                normalRangeMax: alarmDepth,
                drawNormalOnTop: 'true',
                normalRangeColor: 'rgba(255, 0, 0, 1.0)'
             };
 
             console.log("init executed");
-         }
-         ;
+         };
 
          // convert m to ft
          function mToFt(n) {
             return n * 3.2808398;
-         }
-         ;
+         };
 
-//convert m to fathoms
+         //convert m to fathoms
          function mToF(n) {
             return n / 0.5468066;
-         }
-         ;
+         };
 
 
 
