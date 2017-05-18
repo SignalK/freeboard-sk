@@ -1,6 +1,5 @@
 var $ = require('jquery');
 window.$ = window.jQuery = require('jquery');
-alert("index.js");
 require('bootstrap');
 require('bootstrap-drawer');
 require('bootstrap-slider');
