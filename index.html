@@ -133,7 +133,7 @@
          }
          .popover-content {
              padding: 9px 14px;
-             width: 225px;
+             width: 226px;
          }
 
          .input-group-addon{
@@ -220,8 +220,8 @@
          }
 
          .gauge-container {
-             height: 225px;
-             width: 225px;
+             height: 226px;
+             width: 226px;
              position: relative;
              margin: auto;
          }
@@ -236,8 +236,8 @@
          }
          @media screen and (max-width: 992px) {
              .gauge-container {
-                 height: 225px;
-                 width: 225px;
+                 height: 226px;
+                 width: 226px;
                  position: relative;
              }
          }
@@ -290,12 +290,10 @@
                         <tr><th width="100%"></th></tr>
                      </thead>
                      <tbody>
-                        <tr><td style="td"><canvas id="sog" width="100%" height="50px"></canvas></td></tr>
-                        <tr><td style="td"><canvas id="stw"  height="50px"></canvas></td></tr>
+                        <tr><td style="td"><div><canvas id="sog" width="100%" height="50px"></canvas><canvas id="stw"  height="50px"></canvas></div></td></tr>
                         <tr><td style="td"><canvas id="depth" height="50px"></canvas></td></tr>
-                        <tr><td style="td"><div id="depthSpark"  height="50px"></dov></td></tr>
-                        <tr><td style="td"><canvas id="magHead" height="50px"></canvas></td></tr>
-                        <tr><td style="td"><canvas id="trueHead" height="50px"></canvas></td></tr>
+                        <tr><td style="td"><div id="depthSpark"  height="50px"></div></td></tr>
+                        <tr><td style="td"><div><canvas id="magHead" height="50px"></canvas><canvas id="trueHead" height="50px"></canvas></div></td></tr>
                         <tr><td style="td"><canvas id="engineTemp" height="50px"></canvas></td></tr>
                      </tbody>
                   </table>
@@ -492,7 +490,7 @@
                steelseries.Section(0, tackAngle, 'rgba(0, 0, 220, 0.3)')];
            
             windDir = new steelseries.MarineWindDirection('canvasWind', {
-               size: 225,
+               size: 226,
                lcdTitleStrings: ['Apparent', 'True'],
                useColorLabels: true,
                unitString: "Kt",
@@ -507,24 +505,32 @@
                backgroundColor: steelseries.BackgroundColor.BROWN,
             });
 
+            if (localStorage.getItem("sogDisplayUnit") != null) {
+               sogDisplayUnit = localStorage.getItem("sogDisplayUnit");
+            }
+
             sogLCD = new steelseries.DisplaySingle('sog', {
-               width: 225,
+               width: 113,
                height: 50,
-               unitString: "Kt",
+               unitString: sogDisplayUnit+" ",
                unitStringVisible: true,
-               headerString: "Speed Over Ground",
+               headerString: "SOG",
                lcdDecimals: 1,
                headerStringVisible: true,
                lcdColor: steelseries.LcdColor.BEIGE,
             });
 
+            if (localStorage.getItem("stwDisplayUnit") != null) {
+               stwDisplayUnit = localStorage.getItem("stwDisplayUnit");
+            }
+
             stwLCD = new steelseries.DisplaySingle('stw', {
-               width: 225,
+               width: 113,
                height: 50,
-               unitString: "Kt",
+               unitString: stwDisplayUnit+" ",
                lcdDecimals: 1,
                unitStringVisible: true,
-               headerString: "Speed Through Water",
+               headerString: "STW",
                digitalFont: true,
                headerStringVisible: true,
                lcdColor: steelseries.LcdColor.BEIGE,
@@ -532,14 +538,13 @@
 
             if (localStorage.getItem("depthUserUnit") != null) {
                depthUserUnit = localStorage.getItem("depthUserUnit");
-               console.log("depthUserUnit: " + depthUserUnit);
             }
 
             dbsLCD = new steelseries.DisplaySingle('depth', {
-               width: 225,
+               width: 226,
                height: 50,
                valuesNumeric: true,
-               unitString: depthUserUnit,
+               unitString: depthUserUnit+" ",
                unitStringVisible: true,
                headerString: "Depth Below Surface",
                digitalFont: true,
@@ -549,16 +554,14 @@
 
             if (localStorage.getItem("engineTempUserUnit") != null) {
                engineTempUserUnit = localStorage.getItem("engineTempUserUnit");
-               console.log("engineTempUserUnit: " + engineTempUserUnit);
-            }
-            ;
+            };
 
             magHeadLCD = new steelseries.DisplaySingle('magHead', {
-               width: 225,
+               width: 113,
                height: 50,
                valuesNumeric: true,
                lcdDecimals: 0,
-               unitString: "deg",
+               unitString: "deg ",
                unitStringVisible: true,
                headerString: "Magnetic Heaing",
                digitalFont: true,
@@ -567,11 +570,11 @@
             });
 
             trueHeadLCD = new steelseries.DisplaySingle('trueHead', {
-               width: 225,
+               width: 113,
                height: 50,
                valuesNumeric: true,
                lcdDecimals: 0,
-               unitString: "deg",
+               unitString: "deg ",
                unitStringVisible: true,
                headerString: "True Heaing",
                digitalFont: true,
@@ -580,11 +583,11 @@
             });
 
             engineTempLCD = new steelseries.DisplaySingle('engineTemp', {
-               width: 225,
+               width: 226,
                height: 50,
                valuesNumeric: true,
                lcdDecimals: 0,
-               unitString: engineTempUserUnit,
+               unitString: engineTempUserUnit+" ",
                unitStringVisible: true,
                headerString: "Engine Temperature",
                digitalFont: true,
@@ -612,7 +615,7 @@
             while (sparklineSize--)
                sparkArray.push(sparklineMin);
       sparkDepthOptions = {
-               width: 225,
+               width: 226,
                height: 50,
                maxSpotColor: '',
                minSpotColor: '',
