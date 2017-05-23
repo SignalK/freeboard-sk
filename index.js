@@ -1,3 +1,4 @@
+//alert("index.js");
 var $ = require('jquery');
 window.$ = window.jQuery = require('jquery');
 require('bootstrap');
@@ -13,6 +14,7 @@ var drawFeatures = require('./lib/drawFeatures.js');
 var routes = require('./lib/routes.js');
 var waypoints = require('./lib/waypoints.js');
 var charts = require('./lib/charts.js');
+var util = require('./lib/util.js');
 var aisVessels = require('./lib/aisVessels.js');
 //var displayFeatureInfo = require('./lib/displayFeatureInfo.js');
 var vesselPosition = require('./lib/vesselPosition.js');
@@ -206,6 +208,179 @@ $.ajax({
 		});
 	}
 });
+
+
+//         var windDir;
+//         var sogLCD;
+//         var stwLCD;
+//         var dbsLCD;
+//         var magHeadLCD;
+//         var trueHeadLCD;
+//         var engineTempLCD;
+         sparkArray = [];
+         sparkArray.length = localStorage.getItem("sparklinePoints");
+//         sparkDepthOptions;
+
+         
+
+            var tackAngle = 45;
+            var areasCloseHaul = [
+               steelseries.Section((0 - tackAngle), 0, 'rgba(0, 0, 220, 0.3)'),
+               steelseries.Section(0, tackAngle, 'rgba(0, 0, 220, 0.3)')];
+            var areasCloseHaulTrue = [
+               steelseries.Section((360 - tackAngle), 0, 'rgba(0, 0, 220, 0.3)'),
+               steelseries.Section(0, tackAngle, 'rgba(0, 0, 220, 0.3)')];
+           
+            windDir = new steelseries.MarineWindDirection('canvasWind', {
+               lcdTitleStrings: ['Apparent', 'True'],
+               useColorLabels: true,
+               unitString: "Kt",
+               lcdVisible: true,
+               lcdColor: steelseries.LcdColor.BEIGE,
+               pointSymbolsVisible: false,
+               degreeScaleHalf: true,
+               section: areasCloseHaul,
+               area: areasCloseHaul,
+               pointerTypeLatest: steelseries.PointerType.TYPE2,
+               pointerTypeAverage: steelseries.PointerType.TYPE2,
+               backgroundColor: steelseries.BackgroundColor.BROWN,
+            });
+
+            if (localStorage.getItem("sogDisplayUnit") != null) {
+               sogDisplayUnit = localStorage.getItem("sogDisplayUnit");
+            } else {
+							sogDisplayUnit = "m/s";
+						}
+
+            sogLCD = new steelseries.DisplaySingle('sog', {
+               width: 113,
+               height: 50,
+               unitString: sogDisplayUnit+" ",
+               unitStringVisible: true,
+               headerString: "SOG",
+               lcdDecimals: 1,
+               headerStringVisible: true,
+               lcdColor: steelseries.LcdColor.BEIGE,
+            });
+
+            if (localStorage.getItem("stwDisplayUnit") != null) {
+               stwDisplayUnit = localStorage.getItem("stwDisplayUnit");
+            } else {
+							stwDisplayUnit = "m/s";
+						}
+
+            stwLCD = new steelseries.DisplaySingle('stw', {
+               width: 113,
+               height: 50,
+               unitString: stwDisplayUnit+" ",
+               lcdDecimals: 1,
+               unitStringVisible: true,
+               headerString: "STW",
+               digitalFont: true,
+               headerStringVisible: true,
+               lcdColor: steelseries.LcdColor.BEIGE,
+            });
+
+            if (localStorage.getItem("depthUserUnit") != null) {
+               depthUserUnit = localStorage.getItem("depthUserUnit");
+            } else {
+							depthUserUnit = "m";
+						}
+
+            dbsLCD = new steelseries.DisplaySingle('depth', {
+               height: 50,
+               width: 226,
+               valuesNumeric: true,
+               unitString: depthUserUnit+" ",
+               unitStringVisible: true,
+               headerString: "Depth Below Surface",
+               digitalFont: true,
+               headerStringVisible: true,
+               lcdColor: steelseries.LcdColor.BEIGE,
+            });
+
+            if (localStorage.getItem("engineTempUserUnit") != null) {
+               engineTempUserUnit = localStorage.getItem("engineTempUserUnit");
+            } else {
+							engineTempUserUnit = "C";
+						}
+
+            magHeadLCD = new steelseries.DisplaySingle('magHead', {
+               width: 113,
+               height: 50,
+               valuesNumeric: true,
+               lcdDecimals: 0,
+               unitString: "deg ",
+               unitStringVisible: true,
+               headerString: "Magnetic Heaing",
+               digitalFont: true,
+               headerStringVisible: true,
+               lcdColor: steelseries.LcdColor.BEIGE,
+            });
+
+            trueHeadLCD = new steelseries.DisplaySingle('trueHead', {
+               width: 113,
+               height: 50,
+               valuesNumeric: true,
+               lcdDecimals: 0,
+               unitString: "deg ",
+               unitStringVisible: true,
+               headerString: "True Heaing",
+               digitalFont: true,
+               headerStringVisible: true,
+               lcdColor: steelseries.LcdColor.BEIGE,
+            });
+
+            engineTempLCD = new steelseries.DisplaySingle('engineTemp', {
+               width: 226,
+               height: 50,
+               valuesNumeric: true,
+               lcdDecimals: 0,
+               unitString: engineTempUserUnit+" ",
+               unitStringVisible: true,
+               headerString: "Engine Temperature",
+               digitalFont: true,
+               headerStringVisible: true,
+               lcdColor: steelseries.LcdColor.BEIGE,
+            });
+
+            var depthUnit = localStorage.getItem("depthUserUnit");
+            var alarmDepth = localStorage.getItem("alarmDepth");
+            var warnDepth = localStorage.getItem("warnDepth");
+            var sparklineSize = localStorage.getItem("sparklinePoints");
+            var sparklineMin = localStorage.getItem("sparklineMin")
+
+            // switch to user units for depth
+
+            if (depthUnit == "f") {
+               alarmDepth = util.mToF(alarmDepth);
+               warnDepth = util.mToF(warnDepth);
+               sparklineMin = util.mToF(sparklineMin);
+            } else if (depthUnit == "ft") {
+               alarmDepth = util.mToFt(alarmDepth);
+               warnDepth = util.mToFt(warnDepth);
+               sparklineMin = util.mToFt(sparklineMin);
+            }
+            while (sparklineSize--)
+               sparkArray.push(sparklineMin);
+								sparkDepthOptions = {
+               width: 226,
+               height: 50,
+               maxSpotColor: '',
+               minSpotColor: '',
+               fillColor: 'rgba(0,255,38, 1.0)',
+               defaultPixelsPerValue: 1,
+               chartRangeMin: sparklineMin,
+               normalRangeMin: sparklineMin,
+               normalRangeMax: alarmDepth,
+               drawNormalOnTop: 'true',
+               normalRangeColor: 'rgba(255, 0, 0, 1.0)'
+            };
+            
+            console.log("init executed");
+
+
+
 $.ajax({
 	url: "/signalk",
 	dataType: "json",
