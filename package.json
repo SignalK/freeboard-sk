@@ -46,5 +46,6 @@
     "build": "browserify index.js --exclude mdns --ignore bufferutil --ignore utf-8-validate -o bundle.js"
   },
   "author": "robert@42.co.nz",
-  "license": "Apache v2"
+  "license": "Apache v2",
+  "keywords": ["signalk-webapp"]
 }
