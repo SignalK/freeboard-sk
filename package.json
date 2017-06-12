@@ -20,8 +20,7 @@
     "bootstrap-select": "^1.6.3",
     "signalk-client": "signalk/signalk-js-client",
     "web-audio-daw": "^2.3.1",
-    "xml2js": "^0.4.16",
-    "d3": "^4.1.1"
+    "xml2js": "^0.4.16"
   },
   "browser": {
     "bootstrap-drawer": "./node_modules/bootstrap-drawer/dist/js/drawer.js",
