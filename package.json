@@ -8,7 +8,6 @@
     "jquery": "^2.1.3",
     "font-awesome": "^4.6.3",
     "bluebird": "^2.9.24",
-    "ws": "^0.7.1",
     "browser": "^0.2.6",
     "debug": "^2.1.3",
     "simplify-js": "^1.2.1",
@@ -21,9 +20,7 @@
     "bootstrap-select": "^1.6.3",
     "signalk-client": "signalk/signalk-js-client",
     "web-audio-daw": "^2.3.1",
-    "xml2js": "^0.4.16",
-    "d3": "^4.1.1",
-    "d3-gauge": "git://github.com/rob42/d3-gauge.git#master"
+    "xml2js": "^0.4.16"
   },
   "browser": {
     "bootstrap-drawer": "./node_modules/bootstrap-drawer/dist/js/drawer.js",
@@ -46,5 +43,6 @@
     "build": "browserify index.js --exclude mdns --ignore bufferutil --ignore utf-8-validate -o bundle.js"
   },
   "author": "robert@42.co.nz",
-  "license": "Apache v2"
+  "license": "Apache v2",
+  "keywords": ["signalk-webapp"]
 }
