@@ -4,7 +4,15 @@
   "description": "Openlayers chartplotter implementation",
   "main": "index.js",
   "dependencies": {
-    "openlayers": "~3.16.0",
+  },
+  "browser": {
+    "bootstrap-drawer": "./node_modules/bootstrap-drawer/dist/js/drawer.js",
+    "bootstrap-slider": "./node_modules/bootstrap-slider/js/bootstrap-slider.js",
+    "bootstrap-toggle": "./node_modules/bootstrap-toggle/js/bootstrap-toggle.js",
+    "bootstrap-select": "./node_modules/bootstrap-select/js/bootstrap-select.js"
+  },
+  "devDependencies": {
+    "browserify": "^9.0.8",
     "jquery": "^2.1.3",
     "font-awesome": "^4.6.3",
     "bluebird": "^2.9.24",
@@ -20,17 +28,7 @@
     "bootstrap-select": "^1.6.3",
     "signalk-client": "signalk/signalk-js-client",
     "web-audio-daw": "^2.3.1",
-    "xml2js": "^0.4.16"
-  },
-  "browser": {
-    "bootstrap-drawer": "./node_modules/bootstrap-drawer/dist/js/drawer.js",
-    "bootstrap-slider": "./node_modules/bootstrap-slider/js/bootstrap-slider.js",
-    "bootstrap-toggle": "./node_modules/bootstrap-toggle/js/bootstrap-toggle.js",
-    "bootstrap-select": "./node_modules/bootstrap-select/js/bootstrap-select.js"
-  },
-  "devDependencies": {
-    "browserify": "^9.0.8",
-
+    "xml2js": "^0.4.16",
     "karma": "^0.13.15",
     "mocha": "^2.3.4",
     "openlayers": "^3.16.0",
