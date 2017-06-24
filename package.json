@@ -1,5 +1,5 @@
 {
-  "name": "@signalk/freeboard-SK",
+  "name": "@signalk/freeboard-sk",
   "version": "0.0.1",
   "description": "Openlayers chartplotter implementation for Signal K",
   "main": "index.js",
