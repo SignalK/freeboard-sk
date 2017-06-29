@@ -1,14 +1,21 @@
 {
-  "name": "freeboardk",
+  "name": "@signalk/freeboard-sk",
   "version": "0.0.1",
-  "description": "Openlayers chartplotter implementation",
+  "description": "Openlayers chartplotter implementation for Signal K",
   "main": "index.js",
   "dependencies": {
-    "openlayers": "~3.16.0",
+  },
+  "browser": {
+    "bootstrap-drawer": "./node_modules/bootstrap-drawer/dist/js/drawer.js",
+    "bootstrap-slider": "./node_modules/bootstrap-slider/js/bootstrap-slider.js",
+    "bootstrap-toggle": "./node_modules/bootstrap-toggle/js/bootstrap-toggle.js",
+    "bootstrap-select": "./node_modules/bootstrap-select/js/bootstrap-select.js"
+  },
+  "devDependencies": {
+    "browserify": "^9.0.8",
     "jquery": "^2.1.3",
     "font-awesome": "^4.6.3",
     "bluebird": "^2.9.24",
-    "ws": "^0.7.1",
     "browser": "^0.2.6",
     "debug": "^2.1.3",
     "simplify-js": "^1.2.1",
@@ -22,18 +29,6 @@
     "signalk-client": "signalk/signalk-js-client",
     "web-audio-daw": "^2.3.1",
     "xml2js": "^0.4.16",
-    "d3": "^4.1.1",
-    "d3-gauge": "git://github.com/rob42/d3-gauge.git#master"
-  },
-  "browser": {
-    "bootstrap-drawer": "./node_modules/bootstrap-drawer/dist/js/drawer.js",
-    "bootstrap-slider": "./node_modules/bootstrap-slider/js/bootstrap-slider.js",
-    "bootstrap-toggle": "./node_modules/bootstrap-toggle/js/bootstrap-toggle.js",
-    "bootstrap-select": "./node_modules/bootstrap-select/js/bootstrap-select.js"
-  },
-  "devDependencies": {
-    "browserify": "^9.0.8",
-
     "karma": "^0.13.15",
     "mocha": "^2.3.4",
     "openlayers": "^3.16.0",
