@@ -178,7 +178,7 @@ $.ajax({
                           console.log("engineTempUserUnit: "+localStorage.getItem("engineTempUserUnit"));
                         }
                 } else {
-                  alert("Please use another browserxxx\n  this one has no local storage support!");
+                  alert("Please use another browser\n  this one has no local storage support!");
                 }
 
                 if(window.ownVessel === 'undefined'&& data.mmsi){
