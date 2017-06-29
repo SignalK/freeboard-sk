@@ -174,11 +174,12 @@ $.ajax({
                                 localStorage.setItem("stwDisplayUnit", data.navigation.speedThroughWater.meta.unit);
                                 console.log("stwDisplayUnit: "+localStorage.getItem("stwDisplayUnit"));
                                 localStorage.setItem("engineTempUserUnit", data.propulsion.engine.coolantTemperature.meta.unit);
-                                console.log("engineTempUserUnit: "+localStorage.getItem("engineTempUserUnit"));
-                        } else {
-                                 alert("Please use another browser\n  this one has no local storage support!");
+                          console.log("engineTempUserUnit: "+localStorage.getItem("engineTempUserUnit"));
                         }
+                } else {
+                  alert("Please use another browserxxx\n  this one has no local storage support!");
                 }
+
                 if(window.ownVessel === 'undefined'&& data.mmsi){
                 	ownVessel = data.mmsi;
                 }
