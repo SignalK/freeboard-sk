@@ -9,7 +9,7 @@ require('bootstrap-toggle');
 var layerSwitcher = require('./lib/ol3-layerswitcher.js');
 
 var ol = require('openlayers');
-var addBaseLayers = require('./lib/addBaseLayers.js');
+var baseLayers = require('./lib/addBaseLayers.js');
 //var addChartLayers = require('./lib/addLayers.js');
 var drawFeatures = require('./lib/drawFeatures.js');
 var routes = require('./lib/routes.js');
@@ -78,7 +78,8 @@ map.getView().on('change:rotation', function (evt) {
 });
 
 //add our layers
-addBaseLayers(map);
+baseLayers.addBaseLayers(map);
+
 
 map.addControl(layerSwitcher);
 
@@ -155,8 +156,43 @@ map.on('click', function (evt) {
 	}
 });
 
+var offline = false;
 
+function toggleOffline() {
+	offline = !offline;
+	console.log('Toggle internet layers:' + offline);
+	localStorage.setItem("sk-offline", JSON.stringify(offline));
+	var mapTmp = $('#map').data('map');
+	if (offline) {
+		//remove internet maps
+		baseLayers.removeInternetLayers(mapTmp);
+	} else {
+		//add internet maps
+		baseLayers.addInternetLayers(mapTmp);
+	}
+}
 
+$("#offline").bootstrapToggle({
+		on: 'Offline',
+		off: 'Online'
+	});
+
+	if (localStorage.getItem("sk-offline")) {
+		offline = JSON.parse(localStorage.getItem("sk-offline"));
+		if (offline) {
+			$("#offline").bootstrapToggle('on');
+			baseLayers.removeInternetLayers(map);
+		} else {
+			$("#offline").bootstrapToggle('off');
+			baseLayers.addInternetLayers(map);
+		}
+	}
+
+	$("#offline").change(function () {
+		toggleOffline();
+	});
+
+	
 $.ajax({
 	url: "/signalk",
 	dataType: "json",
@@ -399,17 +435,11 @@ $.ajax({
 
 },{"./lib/addBaseLayers.js":2,"./lib/aisVessels.js":3,"./lib/anchorControl.js":4,"./lib/charts.js":5,"./lib/drawFeatures.js":6,"./lib/measure.js":8,"./lib/menuControl.js":9,"./lib/ol3-layerswitcher.js":10,"./lib/routes.js":11,"./lib/signalk.js":12,"./lib/simplify-js.js":13,"./lib/util.js":14,"./lib/vesselPosition.js":15,"./lib/waypoints.js":16,"bootstrap":22,"bootstrap-drawer":18,"bootstrap-slider":20,"bootstrap-toggle":21,"jquery":44,"openlayers":173}],2:[function(require,module,exports){
 var ol = require('openlayers');
+var $ = require('jquery');
+window.$ = window.jQuery = require('jquery');
 var getTileUrl = require('./getTileUrl.js');
-module.exports = function addBaseLayers( map) {
-	var OSM = new ol.layer.Tile({
-		scale: 10000000000003,
-		title: 'OpenStreetMap',
-		type: 'base',
-		visible: true,
-		source: new ol.source.OSM() 
-	});
 
-	var WORLD = new ol.layer.Tile({
+var WORLD = new ol.layer.Tile({
 		scale: 10000000000000,
 		title: "WORLD",
 		type: 'base',
@@ -426,6 +456,7 @@ module.exports = function addBaseLayers( map) {
 		scale: 10000000000002,
 		title: "WORLD1",
 		type: 'base',
+		visible: true,
 		maxResolution: 40000,
 		minResolution: 1000,
 		source: new ol.source.XYZ({
@@ -434,15 +465,62 @@ module.exports = function addBaseLayers( map) {
 			maxZoom: 6
 		})
 	});
-
 	
+function addBaseLayers( map) {
 	map.addLayer(WORLD);
 	map.addLayer(WORLD1);
-	map.addLayer(OSM);
 	
 }
 
-},{"./getTileUrl.js":7,"openlayers":173}],3:[function(require,module,exports){
+var OSeaM = new ol.layer.Tile({ 
+		scale: 10000000000004,
+	  title: "OpenSeaMap",
+	//  type: 'base',
+	  visible: true,
+	  source: new ol.source.OSM({ 
+				//attributions: [ new ol.Attribution({ html: 'All maps &copy; ' + '<a href="http://www.openseamap.org/">OpenSeaMap</a>' }), ol.source.OSM.DATA_ATTRIBUTION ], 
+				//crossOrigin: null, 
+				url: 'http://tiles.openseamap.org/seamark/{z}/{x}/{y}.png' }) 
+	}); 
+	
+var OSM = new ol.layer.Tile({
+		scale: 10000000000003,
+		title: 'OpenStreetMap',
+	//	type: 'base',
+		source: new ol.source.OSM() 
+	});
+	
+function addInternetLayers( map) {
+	console.log('Adding internet layers');
+	var lyrs = map.getLayerGroup().getLayers();
+	lyrs.insertAt(2,OSM);
+  lyrs.insertAt(3,OSeaM);
+}
+
+function removeInternetLayers( map) {
+	console.log('Removing internet layers:'+map.getLayers());
+	var lyrs = map.getLayers();
+	for (var x = 0; x < lyrs.getLength(); x++) {
+		console.log('Check layer:'+ lyrs.item(x).get('title'));
+		if (lyrs.item(x).get('title')=== 'OpenSeaMap') {
+			map.removeLayer(lyrs.item(x));
+		}
+	}
+	for (var x = 0; x < lyrs.getLength(); x++) {
+		console.log('Check layer:'+ lyrs.item(x).get('title'));
+		if (lyrs.item(x).get('title')=== 'OpenStreetMap') {
+			map.removeLayer(lyrs.item(x));
+		}
+	}
+}
+
+module.exports = {
+	addBaseLayers : addBaseLayers,
+	addInternetLayers : addInternetLayers,
+	removeInternetLayers : removeInternetLayers
+}
+
+},{"./getTileUrl.js":7,"jquery":44,"openlayers":173}],3:[function(require,module,exports){
 var ol = require('openlayers');
 var util = require('./util.js');
 
@@ -530,7 +608,7 @@ function onmessage(delta) {
 			
 			aisSource.getFeatures().forEach(function (aisVessel) {
 				if (aisVessel.get('context') === vessel){
-					console.log("Update vessel:"+vessel);
+					//console.log("Update vessel:"+vessel);
 					aisVessel.set('received',new Date().getTime());
 					if(cog)aisVessel.set('cog',cog);
 					if(sog)aisVessel.set('sog',sog);
@@ -2869,7 +2947,6 @@ var ol = require('openlayers');
 var util = require('./util.js');
 // var d3 = require('d3');
 
-
 var vesselPos = new ol.Feature();
 vesselPos.setStyle(
 		new ol.style.Style({
@@ -3010,7 +3087,7 @@ function onmessage(delta) {
 			update.values.forEach(function (value) {
 				//console.log(value.path + '=' + JSON.stringify(value.value));
 				if (value.path === 'notifications.environment.depth.belowSurface.alarmState') {
-					console.log('Depth alarm:' + value.value);
+					//console.log('Depth alarm:' + value.value);
 					if (value.value == "alarm") {
 						dbsLCD.setLcdColor(steelseries.LcdColor.RED);
 					} else if (value.value == "warn") {
@@ -3023,7 +3100,7 @@ function onmessage(delta) {
 					var engineTemp = value.value;
 					if (localStorage.getItem("engineTempUserUnit") != null) {
 						engineTempUserUnit = localStorage.getItem("engineTempUserUnit");
-						console.log("engineTempUserUnit: " + engineTempUserUnit);
+						//console.log("engineTempUserUnit: " + engineTempUserUnit);
 
 						// convert to user units
 						if (engineTempUserUnit == "C") {
@@ -3031,7 +3108,7 @@ function onmessage(delta) {
 							engineTemp = util.cToFahr(engineTemp);
 						}
 					}
-					console.log('Engine Temperature:' + engineTemp + engineTempUserUnit);
+					//console.log('Engine Temperature:' + engineTemp + engineTempUserUnit);
 					engineTempLCD.setValue(engineTemp);
 				}
 				if (value.path === 'navigation.magneticVariation') {
@@ -3061,7 +3138,7 @@ function onmessage(delta) {
 				if (value.path === 'navigation.headingTrue') {
 					if (value.value !== 0) {
 						headingT = value.value;
-						console.log("headingT (radians):" + headingT);
+						//console.log("headingT (radians):" + headingT);
 					}
 				} else if (value.path === 'navigation.headingMagnetic') {
 					if (value.value !== 0) {
@@ -3079,7 +3156,7 @@ function onmessage(delta) {
 //							d3.select("#cogm").data([headingM]).text(function (d) {
 //								return util.toDeg(d).toFixed(0);
 //							});
-							console.log("headingM (radians):" + headingM);
+							//console.log("headingM (radians):" + headingM);
 						}
 
 					}
@@ -3098,7 +3175,7 @@ function onmessage(delta) {
 							magHeadLCD.setValue(util.toDeg(cogm));
 
 							//try updating testSOG
-							console.log("Heading magnetic (radians):" + cogm);
+							//console.log("Heading magnetic (radians):" + cogm);
 //							d3.select("#cogm").data([cogm]).text(function (d) {
 //								return util.toDeg(d).toFixed(0);
 //							});
@@ -3117,7 +3194,7 @@ function onmessage(delta) {
 						cogm = cogt - magVar;
 						if (cogm < 0)
 							cogm = cogm + (2 * Math.PI);
-						console.log("Course True: " + cogt.toFixed(1));
+						//console.log("Course True: " + cogt.toFixed(1));
 						if (cog == 1) {
 							setRotation(value.value, trackLine.getLastCoordinate());
 							magHeadLCD.setValue(util.toDeg(cogm));
@@ -3131,7 +3208,7 @@ function onmessage(delta) {
 					sogDisp = sog;
 					if (localStorage.getItem("sogDisplayUnit") != null) {
 						sogDisplayUnit = localStorage.getItem("sogDisplayUnit");
-						console.log("sogDisplayUnit: " + sogDisplayUnit);
+						//console.log("sogDisplayUnit: " + sogDisplayUnit);
 						if (sogDisplayUnit == "Kt") {
 							sogDisp = util.msToKnt(sog);
 						} else if (sogDisplayUnit == "Mi/hr") {
@@ -3142,7 +3219,7 @@ function onmessage(delta) {
 							sogDisplayUnit = "m/s";
 						}
 					}
-					console.log("SOG: " + sogDisp.toFixed(1));
+					//console.log("SOG: " + sogDisp.toFixed(1));
 					sogLCD.setValue(sogDisp);
 				}
 
@@ -3151,7 +3228,7 @@ function onmessage(delta) {
 					stwDisp = stw;
 					if (localStorage.getItem("stwDisplayUnit") != null) {
 						stwDisplayUnit = localStorage.getItem("stwDisplayUnit");
-						console.log("stwDisplayUnit: " + stwDisplayUnit);
+						//console.log("stwDisplayUnit: " + stwDisplayUnit);
 						if (stwDisplayUnit == "Kt") {
 							stwDisp = util.msToKnt(stw);
 						} else if (stwDisplayUnit == "Mi/hr") {
@@ -3162,7 +3239,7 @@ function onmessage(delta) {
 							stwDisplayUnit = "m/s";
 						}
 					}
-					console.log("STW: " + stwDisp.toFixed(1));
+					//console.log("STW: " + stwDisp.toFixed(1));
 					stwLCD.setValue(stwDisp);
 				}
 
@@ -3171,14 +3248,14 @@ function onmessage(delta) {
 					//convert to user units
 					if (localStorage.getItem("depthUserUnit") != null) {
 						depthUserUnit = localStorage.getItem("depthUserUnit");
-						console.log("depthUserUnit: " + depthUserUnit);
+						//console.log("depthUserUnit: " + depthUserUnit);
 						if (depthUserUnit == "ft") {
 							dbs = util.mToFt(dbs);
 						} else if (depthUserUnit == "F") {
 							dbs = mToF(dbs);
 						}
 					}
-					console.log("DBS: " + dbs.toFixed(2));
+					//console.log("DBS: " + dbs.toFixed(2));
 					dbsLCD.setValue(dbs);
 					sparkArray.shift();
 
@@ -3195,7 +3272,7 @@ function onmessage(delta) {
 					if (awd > Math.PI) {
 						awd = 2 * Math.PI - awd;
 					}
-					console.log("windAngleApp: " + util.toDeg(awd).toFixed(1));
+					//console.log("windAngleApp: " + util.toDeg(awd).toFixed(1));
 					windDir.setValueAnimatedLatest(util.toDeg(awd));
 				}
 				if (value.path === 'environment.wind.directionTrue') {
@@ -3203,12 +3280,12 @@ function onmessage(delta) {
 					if (twd > Math.PI) {
 						twd = 2 * Math.PI - twd;
 					}
-					console.log("windDirectionTrue:" + util.toDeg(twd).toFixed(0));
+					//console.log("windDirectionTrue:" + util.toDeg(twd).toFixed(0));
 					windDir.setValueAnimatedAverage(util.toDeg(twd));
 				}
 				if (value.path === 'environment.wind.speedApparent') {
 					aws = value.value;
-					console.log("windSpeedApp:" + util.msToKnt(aws).toFixed(1));
+					//console.log("windSpeedApp:" + util.msToKnt(aws).toFixed(1));
 					windDir.setValueTop(util.msToKnt(aws));
 				}
 				//                if (value.path === 'environment.wind.directionMagnetic') {
@@ -3217,7 +3294,7 @@ function onmessage(delta) {
 				//                }
 				if (value.path === 'environment.wind.speedTrue') {
 					tws = value.value;
-					console.log("windSpeedTrue:" + util.msToKnt(tws).toFixed(1));
+					//console.log("windSpeedTrue:" + util.msToKnt(tws).toFixed(1));
 					windDir.setValueBottom(util.msToKnt(tws));
 				}
 				if (value.path === 'uuid') {
@@ -3350,6 +3427,7 @@ function toggleVesselUp() {
 	}
 }
 
+
 var rotation = 0;
 
 function setRotation(radians, coord) {
@@ -3395,6 +3473,8 @@ function setup(map) {
 			$("#vesselUp").bootstrapToggle('off');
 		}
 	}
+	
+	
 	//console.log("vesselPos:"+vesselPos));
 	vesselOverlay = setVesselOverlay(map, vesselPos, vesselTrack, vesselHdg, vesselAppWind, vesselTrueWind);
 	map.addLayer(vesselOverlay);
@@ -3426,7 +3506,8 @@ function setup(map) {
 	$("#vesselUp").change(function () {
 		toggleVesselUp();
 	});
-
+	
+	
 
 }
 
@@ -3436,6 +3517,7 @@ module.exports = {
 	setup: setup,
 	toggleFollowVessel: toggleFollowVessel,
 	toggleVesselUp: toggleVesselUp
+	
 }
 
 },{"./util.js":14,"openlayers":173}],16:[function(require,module,exports){

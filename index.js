@@ -8,7 +8,7 @@ require('bootstrap-toggle');
 var layerSwitcher = require('./lib/ol3-layerswitcher.js');
 
 var ol = require('openlayers');
-var addBaseLayers = require('./lib/addBaseLayers.js');
+var baseLayers = require('./lib/addBaseLayers.js');
 //var addChartLayers = require('./lib/addLayers.js');
 var drawFeatures = require('./lib/drawFeatures.js');
 var routes = require('./lib/routes.js');
@@ -77,7 +77,8 @@ map.getView().on('change:rotation', function (evt) {
 });
 
 //add our layers
-addBaseLayers(map);
+baseLayers.addBaseLayers(map);
+
 
 map.addControl(layerSwitcher);
 
@@ -154,8 +155,43 @@ map.on('click', function (evt) {
 	}
 });
 
+var offline = false;
 
+function toggleOffline() {
+	offline = !offline;
+	console.log('Toggle internet layers:' + offline);
+	localStorage.setItem("sk-offline", JSON.stringify(offline));
+	var mapTmp = $('#map').data('map');
+	if (offline) {
+		//remove internet maps
+		baseLayers.removeInternetLayers(mapTmp);
+	} else {
+		//add internet maps
+		baseLayers.addInternetLayers(mapTmp);
+	}
+}
 
+$("#offline").bootstrapToggle({
+		on: 'Offline',
+		off: 'Online'
+	});
+
+	if (localStorage.getItem("sk-offline")) {
+		offline = JSON.parse(localStorage.getItem("sk-offline"));
+		if (offline) {
+			$("#offline").bootstrapToggle('on');
+			baseLayers.removeInternetLayers(map);
+		} else {
+			$("#offline").bootstrapToggle('off');
+			baseLayers.addInternetLayers(map);
+		}
+	}
+
+	$("#offline").change(function () {
+		toggleOffline();
+	});
+
+	
 $.ajax({
 	url: "/signalk",
 	dataType: "json",
