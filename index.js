@@ -169,8 +169,9 @@ $.ajax({
 			success: function (data) {
 				//var jsonData = JSON.parse(data);
 				//console.log(JSON.stringify(data));
-				//TODO: find  uuid or mmsi or ?
-				if (data.uuid) {
+                          	if(data.mmsi){
+                        		window.ownVessel = "urn:mrn:imo:mmsi:" + data.mmsi;
+                                } else if (data.uuid) {
 					window.ownVessel = data.uuid;
 				}
 				if (typeof (Storage) !== "undefined") {
