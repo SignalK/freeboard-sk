@@ -168,12 +168,15 @@ $.ajax({
 			dataType: "json",
 			success: function (data) {
 				//var jsonData = JSON.parse(data);
-				//console.log(JSON.stringify(data));
-                          	if(data.mmsi){
-                        		window.ownVessel = "urn:mrn:imo:mmsi:" + data.mmsi;
-                                } else if (data.uuid) {
+			  	//console.log(JSON.stringify(data));
+                          	if (data.uuid) {
 					window.ownVessel = data.uuid;
-				}
+				} else if(data.mmsi){
+                        		window.ownVessel = "urn:mrn:imo:mmsi:" + data.mmsi;
+                                } else if(data.url)
+                          	{
+                                  	window.ownVessel = data.url;
+                          	}
 				if (typeof (Storage) !== "undefined") {
 					if (data.environment) {
 						localStorage.setItem("sparklinePoints", data.environment.depth.meta.sparkline.points.value);
