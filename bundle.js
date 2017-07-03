@@ -186,6 +186,10 @@ $("#offline").bootstrapToggle({
 			$("#offline").bootstrapToggle('off');
 			baseLayers.addInternetLayers(map);
 		}
+	}else{
+		//not used yet, so add layers
+		$("#offline").bootstrapToggle('off');
+			baseLayers.addInternetLayers(map);
 	}
 
 	$("#offline").change(function () {
