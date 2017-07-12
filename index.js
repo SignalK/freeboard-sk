@@ -1,6 +1,7 @@
 //alert("index.js");
 var $ = require('jquery');
 window.$ = window.jQuery = require('jquery');
+var _ = require('lodash')
 require('bootstrap');
 require('bootstrap-drawer');
 require('bootstrap-slider');
@@ -215,32 +216,45 @@ $.ajax({
 				}
 				if (typeof (Storage) !== "undefined") {
 					if (data.environment) {
-						localStorage.setItem("sparklinePoints", data.environment.depth.meta.sparkline.points.value);
-						console.log("sparklinePoints: " + localStorage.getItem("sparklinePoints"));
-						localStorage.setItem("sparklineMin", data.environment.depth.meta.sparkline.min.value);
-						console.log("sparklineMin: " + localStorage.getItem("sparklineMin"));
-						localStorage.setItem("depthUserUnit", data.environment.depth.meta.userUnit);
-						console.log("depthUserUnit: " + localStorage.getItem("depthUserUnit"));
-						var jsonData = data.environment.depth.belowSurface.meta.zones;
-						alarmDepth = jsonData[0].upper;
-						warnDepth = jsonData[1].upper;
-						localStorage.setItem("alarmDepth", alarmDepth);
-						localStorage.setItem("warnDepth", warnDepth);
+                        if ( _.get(data.environment, "depth.meta.sparkline") ) {
+						    localStorage.setItem("sparklinePoints", data.environment.depth.meta.sparkline.points.value);
+						    console.log("sparklinePoints: " + localStorage.getItem("sparklinePoints"));
+						    localStorage.setItem("sparklineMin", data.environment.depth.meta.sparkline.min.value);
+						    console.log("sparklineMin: " + localStorage.getItem("sparklineMin"));
+                        }
+                        if ( _.get(data.environment, "depth.meta.userUnit") ) {
+						    localStorage.setItem("depthUserUnit", data.environment.depth.meta.userUnit);
+						    console.log("depthUserUnit: " + localStorage.getItem("depthUserUnit"));
+                        }
+                        if ( _.get(data.environment, "depth.belowSurface.meta.zones") ) {
+						    var jsonData = data.environment.depth.belowSurface.meta.zones;
+						    alarmDepth = jsonData[0].upper;
+						    warnDepth = jsonData[1].upper;
+						    localStorage.setItem("alarmDepth", alarmDepth);
+						    localStorage.setItem("warnDepth", warnDepth);
+                        }
+                    }
+                    if ( _.get(data, "navigation.speedOverGround.meta.unit") ) {
 						localStorage.setItem("sogDisplayUnit", data.navigation.speedOverGround.meta.unit);
 						console.log("sogDisplayUnit: " + localStorage.getItem("sogDisplayUnit"));
+                    }
+                    if ( _.get(data, "navigation.speedThroughWater.meta.unit") ) {
 						localStorage.setItem("stwDisplayUnit", data.navigation.speedThroughWater.meta.unit);
 						console.log("stwDisplayUnit: " + localStorage.getItem("stwDisplayUnit"));
+                    }
+                    if ( _.get(data, "propulsion.engine.coolantTemperature.meta.unit") ) {
 						localStorage.setItem("engineTempUserUnit", data.propulsion.engine.coolantTemperature.meta.unit);
 						console.log("engineTempUserUnit: " + localStorage.getItem("engineTempUserUnit"));
-					} else {
-						alert("Please use another browser\n  this one has no local storage support!");
-					}
+				    }
+                } else {
+				  alert("Please use another browser\n  this one has no local storage support!");
 				}
-				if (window.ownVessel === 'undefined' && data.mmsi) {
-					ownVessel = data.mmsi;
+
+				if (typeof window.ownVessel === 'undefined' && data.mmsi) {
+					window.ownVessel = "urn:mrn:imo:mmsi:" + data.mmsi;
 				}
-				if (window.ownVessel === 'undefined' && data.url) {
-					ownVessel = data.url;
+				if (typeof window.ownVessel === 'undefined' && data.url) {
+					window.ownVessel = data.url;
 				}
 				console.log(window.ownVessel);
 
