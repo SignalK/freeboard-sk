@@ -203,17 +203,19 @@ $.ajax({
 	success: function (data) {
 //        console.log(data);
 		var url = data.endpoints.v1['signalk-http'];
-		console.log(url);
-		$.ajax({
+	  console.log(url);
+      $.ajax({
+		url: url + 'self',
+		dataType: "json",
+		success: function (data) {
+          window.ownVessel = data;
+          console.log("self: " + window.ownVessel);
+		  $.ajax({
 			url: url + 'vessels/self',
 			dataType: "json",
 			success: function (data) {
 				//var jsonData = JSON.parse(data);
 				//console.log(JSON.stringify(data));
-				//TODO: find  uuid or mmsi or ?
-				if (data.uuid) {
-					window.ownVessel = data.uuid;
-				}
 				if (typeof (Storage) !== "undefined") {
 					if (data.environment) {
                         if ( _.get(data.environment, "depth.meta.sparkline") ) {
@@ -249,17 +251,10 @@ $.ajax({
                 } else {
 				  alert("Please use another browser\n  this one has no local storage support!");
 				}
-
-				if (typeof window.ownVessel === 'undefined' && data.mmsi) {
-					window.ownVessel = "urn:mrn:imo:mmsi:" + data.mmsi;
-				}
-				if (typeof window.ownVessel === 'undefined' && data.url) {
-					window.ownVessel = data.url;
-				}
-				console.log(window.ownVessel);
-
 			}
-		});
+		  });
+        }
+      });
 	}
 });
 
