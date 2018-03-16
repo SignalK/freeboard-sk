@@ -141,16 +141,16 @@ map.on('click', function(evt) {
     if(feature.get('context'))context=feature.get('context');
     vessel = context.split('.')[1]
     $.get('/signalk/v1/api/vessels/' + vessel +'/').done(function(item){
-      value = item
       if(item.mmsi)mmsi = item.mmsi.toString();
       if(item.navigation.speedOverGround.value)sog = (item.navigation.speedOverGround.value *1.94384).toFixed(2);
-      if(item.name)name = item.name.toString();
+      if(item.name)name = item.name;
       if(item.navigation.state)state = item.navigation.state.toString();
-      //if(item.communication.callsignVhf.value)vhf=item.communication.callsignVhf.value.toString();
+      if(item.communication && item.communication.callsignVhf)vhf=item.communication.callsignVhf.toString();
       if(item.port)port=item.port.toString();
       if (item.flag)flag=item.flag.toString();
+			if(item.navigation.destination)destination=item.navigation.destination.commonName.value;
 
-      $(element).attr('data-content', '<p>'+name+'<br/> Speed:'+sog+' kn <br/> vhf:'+vhf+'<br/> mmsi:'+mmsi+'<br/> State:'+state+'<br/> Port:'+port+',<br/> Flag:'+flag+'</p>');
+      $(element).attr('data-content', '<p>'+name+'<br/> Speed:'+sog+' kn <br/> vhf:'+vhf+'<br/> mmsi:'+mmsi+'<br/> State:'+state+'<br/> Port:'+port+',<br/> Flag:'+flag+',<br/> Destination:'+destination+'</p>');
       $(element).popover('show')
     });
 
@@ -198,7 +198,7 @@ $("#offline").bootstrapToggle({
 		toggleOffline();
 	});
 
-	
+
 $.ajax({
 	url: "/signalk",
 	dataType: "json",
@@ -272,7 +272,7 @@ $.ajax({
          sparkArray.length = localStorage.getItem("sparklinePoints");
 //         sparkDepthOptions;
 
-         
+
 
             var tackAngle = 45;
             var areasCloseHaul = [
@@ -281,7 +281,7 @@ $.ajax({
             var areasCloseHaulTrue = [
                steelseries.Section((360 - tackAngle), 0, 'rgba(0, 0, 220, 0.3)'),
                steelseries.Section(0, tackAngle, 'rgba(0, 0, 220, 0.3)')];
-           
+
             windDir = new steelseries.MarineWindDirection('canvasWind', {
                lcdTitleStrings: ['Apparent', 'True'],
                useColorLabels: true,
@@ -427,7 +427,7 @@ $.ajax({
                drawNormalOnTop: 'true',
                normalRangeColor: 'rgba(255, 0, 0, 1.0)'
             };
-            
+
             console.log("init executed");
 
 
@@ -446,3 +446,4 @@ $.ajax({
 		window.wsServer.connectDelta(host, dispatch, connect);
 	}
 });
+
