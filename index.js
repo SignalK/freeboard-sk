@@ -148,9 +148,9 @@ map.on('click', function(evt) {
       if(item.communication && item.communication.callsignVhf)vhf=item.communication.callsignVhf.toString();
       if(item.port)port=item.port.toString();
       if (item.flag)flag=item.flag.toString();
-			if(item.navigation.destination)destination=item.navigation.destination.commonName.value;
+      if(item.navigation.destination)destination=item.navigation.destination.commonName.value;
 
-      $(element).attr('data-content', '<p>'+name+'<br/> Speed:'+sog+' kn <br/> vhf:'+vhf+'<br/> mmsi:'+mmsi+'<br/> State:'+state+'<br/> Port:'+port+',<br/> Flag:'+flag+',<br/> Destination:'+destination+'</p>');
+      $(element).attr('data-content', '<p><b>' +name+'<br/> Speed:</b>  '+sog+' kn <br/><b> vhf:</b>  '+vhf+'<br/><b> mmsi:</b>  '+mmsi+'<br/><b> State:</b>  '+state+'<br/><b> Port:</b>  '+port+'<br/><b> Flag:</b>  '+flag+'<br/><b> Destination:</b>  '+destination+'</p>');
       $(element).popover('show')
     });
 
