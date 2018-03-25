@@ -126,36 +126,38 @@ $(element).popover({
 map.addOverlay(popup);
 
 // display popup on click
-map.on('click', function (evt) {
+map.on('click', function(evt) {
 
-	var feature = map.forEachFeatureAtPixel(evt.pixel,
-			function (feature) {
-				return feature;
-			});
-	if (feature) {
-		var coordinates = feature.getGeometry().getCoordinates();
-		popup.setPosition(coordinates);
-		var context, name, vhf, port, flag, mmsi, state;
-		context = name = vhf = port = flag = mmsi = state = '?';
-		if (feature.get('context'))
-			context = feature.get('context');
-		if (feature.get('name'))
-			name = feature.get('name').replace(/@/g, "");
-		if (feature.get('state'))
-			state = feature.get('state');
-		if (feature.get('vhf'))
-			vhf = feature.get('vhf');
-		if (feature.get('port'))
-			port = feature.get('port');
-		if (feature.get('flag'))
-			flag = feature.get('flag');
-		$(element).attr('data-content', '<p>' + context + '<br/> Name:' + name + '<br/> Vhf:' + vhf + '<br/> State:' + state + '<br/> Port:' + port + ', Flag:' + flag + '</p>');
-		$(element).popover('show');
-	} else {
-		$(element).popover('hide');
-	}
+  var feature = map.forEachFeatureAtPixel(evt.pixel,
+      function(feature) {
+        return feature;
+      });
+  if (feature) {
+    console.log("feature selected: " + feature.get('context'))
+    var coordinates = feature.getGeometry().getCoordinates();
+    popup.setPosition(coordinates);
+    var context, vessel, name, sog, vhf, port, flag, mmsi, state, destination;
+    context= vessel= name= sog= vhf=port=flag=mmsi = state= destination= '?';
+    if(feature.get('context'))context=feature.get('context');
+    vessel = context.split('.')[1]
+    $.get('/signalk/v1/api/vessels/' + vessel +'/').done(function(item){
+      value = item
+      if(item.mmsi)mmsi = item.mmsi.toString();
+      if(item.navigation.speedOverGround.value)sog = (item.navigation.speedOverGround.value *1.94384).toFixed(2);
+      if(item.name)name = item.name.toString();
+      if(item.navigation.state)state = item.navigation.state.toString();
+      //if(item.communication.callsignVhf.value)vhf=item.communication.callsignVhf.value.toString();
+      if(item.port)port=item.port.toString();
+      if (item.flag)flag=item.flag.toString();
+
+      $(element).attr('data-content', '<p>'+name+'<br/> Speed:'+sog+' kn <br/> vhf:'+vhf+'<br/> mmsi:'+mmsi+'<br/> State:'+state+'<br/> Port:'+port+',<br/> Flag:'+flag+'</p>');
+      $(element).popover('show')
+    });
+
+  } else {
+    $(element).popover('hide');
+  }
 });
-
 var offline = false;
 
 function toggleOffline() {
