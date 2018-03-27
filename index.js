@@ -126,36 +126,38 @@ $(element).popover({
 map.addOverlay(popup);
 
 // display popup on click
-map.on('click', function (evt) {
+map.on('click', function(evt) {
 
-	var feature = map.forEachFeatureAtPixel(evt.pixel,
-			function (feature) {
-				return feature;
-			});
-	if (feature) {
-		var coordinates = feature.getGeometry().getCoordinates();
-		popup.setPosition(coordinates);
-		var context, name, vhf, port, flag, mmsi, state;
-		context = name = vhf = port = flag = mmsi = state = '?';
-		if (feature.get('context'))
-			context = feature.get('context');
-		if (feature.get('name'))
-			name = feature.get('name').replace(/@/g, "");
-		if (feature.get('state'))
-			state = feature.get('state');
-		if (feature.get('vhf'))
-			vhf = feature.get('vhf');
-		if (feature.get('port'))
-			port = feature.get('port');
-		if (feature.get('flag'))
-			flag = feature.get('flag');
-		$(element).attr('data-content', '<p>' + context + '<br/> Name:' + name + '<br/> Vhf:' + vhf + '<br/> State:' + state + '<br/> Port:' + port + ', Flag:' + flag + '</p>');
-		$(element).popover('show');
-	} else {
-		$(element).popover('hide');
-	}
+  var feature = map.forEachFeatureAtPixel(evt.pixel,
+      function(feature) {
+        return feature;
+      });
+  if (feature) {
+    console.log("feature selected: " + feature.get('context'))
+    var coordinates = feature.getGeometry().getCoordinates();
+    popup.setPosition(coordinates);
+    var context, vessel, name, sog, vhf, port, flag, mmsi, state, destination;
+    context= vessel= name= sog= vhf=port=flag=mmsi = state= destination= '?';
+    if(feature.get('context'))context=feature.get('context');
+    vessel = context.split('.')[1]
+    $.get('/signalk/v1/api/vessels/' + vessel +'/').done(function(item){
+      if(item.mmsi)mmsi = item.mmsi.toString();
+      if(item.navigation.speedOverGround.value)sog = (item.navigation.speedOverGround.value *1.94384).toFixed(2);
+      if(item.name)name = item.name;
+      if(item.navigation.state)state = item.navigation.state.toString();
+      if(item.communication && item.communication.callsignVhf)vhf=item.communication.callsignVhf.toString();
+      if(item.port)port=item.port.toString();
+      if (item.flag)flag=item.flag.toString();
+      if(item.navigation.destination)destination=item.navigation.destination.commonName.value;
+
+      $(element).attr('data-content', '<p><b>' +name+'<br/> Speed:</b>  '+sog+' kn <br/><b> vhf:</b>  '+vhf+'<br/><b> mmsi:</b>  '+mmsi+'<br/><b> State:</b>  '+state+'<br/><b> Port:</b>  '+port+'<br/><b> Flag:</b>  '+flag+'<br/><b> Destination:</b>  '+destination+'</p>');
+      $(element).popover('show')
+    });
+
+  } else {
+    $(element).popover('hide');
+  }
 });
-
 var offline = false;
 
 function toggleOffline() {
@@ -196,7 +198,7 @@ $("#offline").bootstrapToggle({
 		toggleOffline();
 	});
 
-	
+
 $.ajax({
 	url: "/signalk",
 	dataType: "json",
@@ -270,7 +272,7 @@ $.ajax({
          sparkArray.length = localStorage.getItem("sparklinePoints");
 //         sparkDepthOptions;
 
-         
+
 
             var tackAngle = 45;
             var areasCloseHaul = [
@@ -279,7 +281,7 @@ $.ajax({
             var areasCloseHaulTrue = [
                steelseries.Section((360 - tackAngle), 0, 'rgba(0, 0, 220, 0.3)'),
                steelseries.Section(0, tackAngle, 'rgba(0, 0, 220, 0.3)')];
-           
+
             windDir = new steelseries.MarineWindDirection('canvasWind', {
                lcdTitleStrings: ['Apparent', 'True'],
                useColorLabels: true,
@@ -425,7 +427,7 @@ $.ajax({
                drawNormalOnTop: 'true',
                normalRangeColor: 'rgba(255, 0, 0, 1.0)'
             };
-            
+
             console.log("init executed");
 
 
@@ -444,3 +446,4 @@ $.ajax({
 		window.wsServer.connectDelta(host, dispatch, connect);
 	}
 });
+
