@@ -144,7 +144,7 @@ map.on('click', function(evt) {
       if(item.mmsi)mmsi = item.mmsi.toString();
       if(item.navigation.speedOverGround.value)sog = (item.navigation.speedOverGround.value *1.94384).toFixed(2);
       if(item.name)name = item.name;
-      if(item.navigation.state)state = item.navigation.state.toString();
+      if(item.navigation.state)state = item.navigation.state.value.toString();
       if(item.communication && item.communication.callsignVhf)vhf=item.communication.callsignVhf.toString();
       if(item.port)port=item.port.toString();
       if (item.flag)flag=item.flag.toString();
