@@ -142,7 +142,7 @@ map.on('click', function(evt) {
     vessel = context.split('.')[1]
     $.get('/signalk/v1/api/vessels/' + vessel +'/').done(function(item){
       if(item.mmsi)mmsi = item.mmsi.toString();
-      if(item.navigation.speedOverGround.value)sog = (item.navigation.speedOverGround.value *1.94384).toFixed(2);
+      if(item.navigation.speedOverGround.value || item.navigation.speedOverGround.value === 0)sog = (item.navigation.speedOverGround.value *1.94384).toFixed(2);
       if(item.name)name = item.name;
       if(item.navigation.state)state = item.navigation.state.value.toString();
       if(item.communication && item.communication.callsignVhf)vhf=item.communication.callsignVhf.toString();
