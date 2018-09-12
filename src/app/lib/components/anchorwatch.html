@@ -1,0 +1,90 @@
+<div class="resourcelist">
+
+    <div class="title-block">
+        <div style="flex: 1 1 auto;">
+            <div class="title-text">Anchor Watch:</div>
+        </div>
+        <div style="min-width:35px;">&nbsp;&nbsp;</div>
+        <div>
+            <button mat-icon-button 
+                (click)="close()"
+                matTooltip="Close"
+                matTooltipPosition="left">
+                <mat-icon>close</mat-icon>
+            </button>            
+        </div>
+    </div>
+
+    <div class="resources" style="top: 40px;">
+        <mat-card *ngIf="!app.config.anchor.plugin.installed">          
+            <b>Anchor Alarm</b> plugin not installed!<br>
+            &nbsp;<br>
+            Open Sever <b>Admin</b> and install <b>Anchor Alarm</b>
+            <hr>
+            <mat-card-actions>
+                <a mat-button [href]="app.host + '/@signalk/server-admin-ui/#/appstore/apps'"
+                    target="_blank">
+                    <mat-icon color="primary">open_in_new</mat-icon>
+                    OPEN ADMIN UI
+                </a>
+            </mat-card-actions>
+        </mat-card>
+        <mat-card *ngIf="app.config.anchor.plugin.installed && !app.config.anchor.plugin.enabled">
+            Anchor Alarm plugin is installed but not enabled!<br>
+            &nbsp;<br>
+            Open Sever <b>Plugin Config</b> screen and enable <b>Ancor Alarm</b>
+            <hr>
+            <mat-card-actions>
+                <a mat-button [href]="app.host + '/@signalk/server-admin-ui/#/serverConfiguration/plugins'"
+                    target="_blank">
+                    <mat-icon color="primary">open_in_new</mat-icon>
+                    OPEN CONFIG
+                </a>
+                <a mat-button (click)="emitCheckPlugin()">
+                <mat-icon color="accent">refresh</mat-icon>
+                RE-CHECK
+            </a>
+                
+            </mat-card-actions>            
+        </mat-card>        
+        <mat-card *ngIf="app.config.anchor.plugin.enabled">
+            <div style="display: flex;">
+                <div style="flex: 1 1 auto;">
+                    <div style="width: 150px;text-align: center;">
+                        <mat-slider [color]="display.sliderColor"
+                            [min]="(this.feet) ? mToFt(min) : min" 
+                            [max]="(this.feet) ? mToFt(max) : max" step="1" 
+                            [value]="(this.feet) ? mToFt(radius) : radius"
+                            thumbLabel tickInterval="1"
+                            (change)="setRadius($event)">
+                        </mat-slider>
+                    </div>
+                    <div style="width: 150px;height:150px;
+                        background-image: url('./assets/img/anchor-radius.png');
+                        background-position: top left;
+                        background-size:cover; 
+                        ">
+                        <b style="position: fixed;top: 145px;left: 62px;width:35px;text-align:right;">
+                            {{(this.feet) ? mToFt(radius) : radius}} 
+                        </b>
+                        <b style="position: fixed;top: 145px;left:102px;text-align:left;">
+                            {{(feet) ? 'ft' : 'm'}}
+                        </b>                       
+                    </div>                    
+                </div>        
+                <div style="text-align: right;"></div>  
+            </div>
+            <mat-card-actions>
+                <div style="display: flex;">
+                    <div>&nbsp;</div>
+                    <div style="flex: 1 1 auto;text-align:right;">
+                            RAISE <mat-slide-toggle color="warn"
+                            [checked]="!raised"
+                            (change)="dropAnchor($event)">
+                        </mat-slide-toggle> DROP                            
+                    </div>                             
+                </div>
+            </mat-card-actions>
+        </mat-card>
+    </div>
+</div>
