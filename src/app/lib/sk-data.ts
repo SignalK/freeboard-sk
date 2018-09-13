@@ -32,10 +32,8 @@ export class SKData {
 
         v.id= ( key==this.app.data.selfId ) ? 'self' : key;
         v.position= value['navigation.position'] ?
-            v.position= [
-                value['navigation.position'].longitude,
-                value['navigation.position'].latitude
-            ] : [0,0];
+            [ value['navigation.position'].longitude, value['navigation.position'].latitude ] 
+            : [0,0];
         v.headingTrue= value['navigation.headingTrue'] ? value['navigation.headingTrue'] : null;
         v.headingMagnetic= value['navigation.headingMagnetic'] ? value['navigation.headingMagnetic'] : null;
         v.callsign= value['communication.callsignVhf'] ? value['communication.callsignVhf'] : null;
@@ -43,10 +41,9 @@ export class SKData {
         v.sog= value['navigation.speedOverGround'] ? value['navigation.speedOverGround'] : null;  
         v.state= value['navigation.state'] ? value['navigation.state'] : null;  
         v.wind.twd= value['environment.wind.directionTrue'] ?  value['environment.wind.directionTrue'] : null;
-        v.wind.awa=  value['environment.wind.angleApparent'] ? value['environment.wind.angleApparent'] : null;
+        v.wind.awa= value['environment.wind.angleApparent'] ? value['environment.wind.angleApparent'] : null;
         v.wind.tws= value['environment.wind.speedTrue'] ?  value['environment.wind.speedTrue'] : null;
-        v.wind.aws=  value['environment.wind.speedApparent'] ? value['environment.wind.speedApparent'] : null;
-                
+        v.wind.aws= value['environment.wind.speedApparent'] ? value['environment.wind.speedApparent'] : null;       
         return v;
     }    
 }

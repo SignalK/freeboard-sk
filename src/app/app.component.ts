@@ -279,18 +279,14 @@ export class AppComponent {
                 ca,
                 (this.display.vessels.self.wind.aws || this.display.vessels.self.sog) * 60
             )
-        ];   
-
-        ca= (this.app.config.map.northup) ? 
-            this.display.vessels.self.wind.twd : 
-            this.display.vessels.self.wind.twd + (this.display.vessels.self.cogTrue || this.display.vessels.self.headingTrue);        
+        ];        
         
-            this.display.vesselLines.twd= [
+        this.display.vesselLines.twd= [
             this.display.vessels.self.position, 
             GeoUtils.destCoordinate(
                 this.display.vessels.self.position[1],
                 this.display.vessels.self.position[0],
-                ca,
+                this.display.vessels.self.wind.twd,
                 (this.display.vessels.self.wind.tws || this.display.vessels.self.sog) * 60
             )
         ];
@@ -1025,7 +1021,7 @@ export class AppComponent {
     }
     
     // ** handle error message
-    onError(e) { console.log(e) }
+    onError(e) { console.warn(e) }
     
     // ** handle delta message received
     onMessage(e) { 
