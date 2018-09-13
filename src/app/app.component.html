@@ -372,7 +372,56 @@
                             </ap-popover>
                         </aol-content>
                     </aol-overlay>   
-                    <!-- /*** popover *** -->                          
+                    <!-- /*** popover *** -->   
+                    
+                    <!-- ANCHOR WATCH -->  
+                    <aol-layer-vector [zIndex]="49" *ngIf="!app.config.anchor.raised">
+                        <aol-source-vector>
+                            <aol-feature>
+                                <xol-geometry-circle [radius]="app.config.anchor.radius"
+                                    [center]="app.config.anchor.position">                                 
+                                    <aol-style>
+                                        <aol-style-fill [color]="'rgba(0, 255, 0, .3)'"></aol-style-fill>                                        
+                                    </aol-style>
+                                </xol-geometry-circle>
+                            </aol-feature>
+               
+                            <aol-feature>
+                                <aol-geometry-point>
+                                    <aol-coordinate 
+                                        [x]="app.config.anchor.position[0]" 
+                                        [y]="app.config.anchor.position[1]" 
+                                        [srid]="app.config.map.srid">
+                                    </aol-coordinate>
+                                </aol-geometry-point>
+                                <aol-style>
+                                    <aol-style-icon 
+                                        [anchor]="[13,1]"
+                                        [anchorXUnits]="'pixels'"
+                                        [anchorYUnits]= "'pixels'"
+                                        [src]="'./assets/img/anchor.png'"
+                                        [size]="[26,26]"
+                                        [scale]=".75"
+                                        [rotateWithView]="false"
+                                        [rotation]="0">
+                                    </aol-style-icon>
+                                </aol-style>
+                            </aol-feature>
+
+                            <aol-feature>
+                                <aol-geometry-linestring>
+                                    <aol-collection-coordinates
+                                        [coordinates]="display.vesselLines.anchor"
+                                        [srid]="app.config.map.srid">
+                                    </aol-collection-coordinates>
+                                </aol-geometry-linestring>
+                                <aol-style>
+                                    <aol-style-stroke [color]="'black'" [width]="2"></aol-style-stroke>                                   
+                                </aol-style>
+                            </aol-feature>
+                        </aol-source-vector>
+                    </aol-layer-vector>
+                    <!-- ANCHOR WATCH --> 
 
                     <!-- *** VESSEL SELF *** -->
                     <aol-layer-vector [zIndex]="210">
@@ -460,79 +509,7 @@
                                     </aol-style-stroke>
                                 </aol-style>
                             </aol-feature>                             
-                            
-                            <!-- ANCHOR WATCH -->                          
-                            <aol-feature *ngIf="!app.config.anchor.raised">
-                                <aol-geometry-point>
-                                    <aol-coordinate 
-                                        [x]="app.config.anchor.position[0]" 
-                                        [y]="app.config.anchor.position[1]" 
-                                        [srid]="app.config.map.srid">
-                                    </aol-coordinate>
-                                </aol-geometry-point>
-                                <aol-style>
-                                    <aol-style-icon 
-                                        [anchor]="[13,1]"
-                                        [anchorXUnits]="'pixels'"
-                                        [anchorYUnits]= "'pixels'"
-                                        [src]="'./assets/img/anchor.png'"
-                                        [size]="[26,26]"
-                                        [scale]=".75"
-                                        [rotateWithView]="false"
-                                        [rotation]="0">
-                                    </aol-style-icon>
-                                </aol-style>
-                            </aol-feature>
-                            <aol-feature *ngIf="!app.config.anchor.raised">
-                                <aol-geometry-linestring>
-                                    <aol-collection-coordinates
-                                        [coordinates]="display.vesselLines.anchor.slice(0,2)"
-                                        [srid]="app.config.map.srid">
-                                    </aol-collection-coordinates>
-                                </aol-geometry-linestring>
-                                <aol-style>
-                                    <aol-style-stroke [color]="'green'" [width]="2"></aol-style-stroke>                                   
-                                </aol-style>
-                            </aol-feature>   
-                            <aol-feature 
-                                *ngIf="!app.config.anchor.raised && display.vesselLines.anchor.length>2">
-                                <aol-geometry-linestring>
-                                    <aol-collection-coordinates
-                                        [coordinates]="display.vesselLines.anchor.slice(1)"
-                                        [srid]="app.config.map.srid">
-                                    </aol-collection-coordinates>
-                                </aol-geometry-linestring>
-                                <aol-style>
-                                    <aol-style-stroke [color]="'red'" [width]="2"></aol-style-stroke>                                   
-                                </aol-style>
-                            </aol-feature>     
-                            <aol-feature *ngIf="!app.config.anchor.raised  && display.vesselLines.anchor.length>1">
-                                <aol-geometry-point>
-                                    <aol-coordinate 
-                                        [x]="display.vesselLines.anchor[1][0]" 
-                                        [y]="display.vesselLines.anchor[1][1]" 
-                                        [srid]="app.config.map.srid">
-                                    </aol-coordinate>
-                                    <aol-style>
-                                        <!--<aol-style-circle [radius]="3">
-                                            <aol-style-stroke [color]="'green'" [width]="width"></aol-style-stroke>
-                                            <aol-style-fill [color]="'red'"></aol-style-fill>
-                                        </aol-style-circle>  -->   
-                                        <aol-style-icon 
-                                            [anchor]="[13,13]"
-                                            [anchorXUnits]="'pixels'"
-                                            [anchorYUnits]= "'pixels'"
-                                            [src]="'./assets/img/anchor-limit.png'"
-                                            [size]="[26,26]"
-                                            [scale]=".75"
-                                            [rotateWithView]="false"
-                                            [rotation]="0">
-                                        </aol-style-icon>                                                                
-                                    </aol-style>                                    
-                                </aol-geometry-point>   
-                            </aol-feature>                                                                            
-                            <!-- ANCHOR WATCH -->                            
-                            
+
                         </aol-source-vector>
                     </aol-layer-vector>   
                     

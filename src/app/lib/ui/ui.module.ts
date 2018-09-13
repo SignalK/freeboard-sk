@@ -12,6 +12,7 @@ import { MatDialogModule, MatIconModule, MatButtonModule,
 import { MsgBox, AlertDialog, ConfirmDialog, AboutDialog } from './dialogs';
 import { PopoverComponent } from './popover';
 import { ResourceDialog } from './resource-dialogs';
+import { GeometryCircleComponent } from '../components/geom-circle.component';
 
 @NgModule({
     imports: [
@@ -21,11 +22,11 @@ import { ResourceDialog } from './resource-dialogs';
       ],    
     declarations: [
         MsgBox, AlertDialog, ConfirmDialog, AboutDialog,
-        PopoverComponent, ResourceDialog
+        PopoverComponent, ResourceDialog, GeometryCircleComponent
     ],
     exports: [
         MsgBox, AlertDialog, ConfirmDialog, AboutDialog,
-        PopoverComponent, ResourceDialog
+        PopoverComponent, ResourceDialog, GeometryCircleComponent
     ],
     entryComponents: [
         MsgBox, AlertDialog, ConfirmDialog, AboutDialog,

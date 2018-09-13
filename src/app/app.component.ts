@@ -292,23 +292,11 @@ export class AppComponent {
         ];
 
         if(!this.app.config.anchor.raised) {
-            let b= GeoUtils.toGo(this.app.config.anchor.position , this.display.vessels.self.position);
-            let alimit= GeoUtils.destCoordinate(
-                this.app.config.anchor.position[1],
-                this.app.config.anchor.position[0],
-                b.bearing,
-                this.app.config.anchor.radius
-            )
-
             this.display.vesselLines.anchor= [
                 this.app.config.anchor.position,
-                alimit
+                this.display.vessels.self.position
             ];
-            if(b.distance>this.app.config.anchor.radius) {
-                this.display.vesselLines.anchor.push(this.display.vessels.self.position);
-            }
         }
-
     }
 
     toggleMoveMap() { 
