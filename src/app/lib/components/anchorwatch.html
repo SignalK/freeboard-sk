@@ -52,6 +52,7 @@
                 <div style="flex: 1 1 auto;">
                     <div style="width: 150px;text-align: center;">
                         <mat-slider [color]="display.sliderColor"
+                            [disabled]="!raised"
                             [min]="(this.feet) ? mToFt(min) : min" 
                             [max]="(this.feet) ? mToFt(max) : max" step="1" 
                             [value]="(this.feet) ? mToFt(radius) : radius"

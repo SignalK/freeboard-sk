@@ -812,25 +812,59 @@ export class AppComponent {
             return;
         }
         if(!e.raised) {  // ** drop anchor
+            this.app.config.anchor.raised= false;
+            this.app.config.anchor.position= this.display.vessels.self.position;
             this.signalk.post( 
-                `/plugins/anchoralarm/dropAnchor`, 
-                {radius: e.radius}
+                `/plugins/anchoralarm/setAnchorPosition`, 
+                { 
+                    position: {
+                        latitude: this.app.config.anchor.position[1],
+                        longitude: this.app.config.anchor.position[0]
+                    } 
+                }
             ).subscribe(
-                r=>{this.app.debug(r); this.getAnchorStatus();},
-                e=> {this.app.debug(e); this.getAnchorStatus();}
-            );                              
+                r=> { this.dropAnchor(e.radius) },
+                err=> { 
+                    if(this.parseAnchorError(err)) { this.dropAnchor(e.radius) }
+                    else { this.getAnchorStatus() }
+                }
+            );             
+                           
         }
         else {  // ** raise anchor
+            this.app.config.anchor.raised= true;
             this.signalk.post( `/plugins/anchoralarm/raiseAnchor`, null )
             .subscribe(
-                r=>{this.app.debug(r); this.getAnchorStatus(); },
-                e=> {this.app.debug(e); this.getAnchorStatus(); }
+                r=> { this.getAnchorStatus() },
+                err=> { this.parseAnchorError(err); this.getAnchorStatus(); }
             );
         }
     }
 
+    dropAnchor(radius) {
+        this.signalk.post( 
+            `/plugins/anchoralarm/dropAnchor`, 
+            {radius: radius}
+        ).subscribe(
+            r=> { this.getAnchorStatus() },
+            err=> { this.parseAnchorError(err); this.getAnchorStatus(); }
+        );   
+    }
+
+    parseAnchorError(e) {
+        this.app.debug(e); 
+        let errText=`Reported error:\n${e.error || e.statusText}`;
+        if(e.status && e.status!=200) { // plugin error
+            console.warn(errText);
+            this.showAlert('AnchorWatch Plugin says:', errText);
+            return false;
+        }  
+        else { return true }      
+    }
+
     getAnchorStatus() {
         // ** query anchor status
+        this.app.debug('Retrieving anchor status...');
         this.signalk.apiGet('/vessels/self/navigation/anchor').subscribe(
             r=> {
                 if(r['position'] && r['position']['value']) {
@@ -853,6 +887,10 @@ export class AppComponent {
                 
                 this.mapVesselLines(); 
                 this.app.saveConfig(); 
+            },
+            e=> { 
+                this.app.config.anchor.position= [0,0];
+                this.app.config.anchor.raised= true;
             }
         ); 
     }
@@ -975,7 +1013,8 @@ export class AppComponent {
                     r['course']['activeRoute']['href']) { 
                     this.processActiveRoute( r['course']['activeRoute']['href'].value );
                 }                
-            }
+            },
+            e=> { this.app.debug('No navigation data available!') }
         ); 
         // ** query anchor alarm status
         this.getAnchorStatus();
@@ -985,7 +1024,8 @@ export class AppComponent {
             r=> {  
                 this.display.vessels.self.mmsi= (r['mmsi']) ? r['mmsi'] : null;
                 this.display.vessels.self.name= (r['name']) ? r['name'] : null;
-            }
+            },
+            e=> { this.app.debug('No vessel data available!') }
         );   
         
         // ** start trail logging interval timer

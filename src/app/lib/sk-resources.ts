@@ -63,9 +63,11 @@ export class SKResources {
         
         this.signalk.apiGet('/resources/charts')
         .subscribe( 
-            res=> {              
+            res=> { 
+                this.app.data.charts= baseCharts.slice(0); 
+                if(!res) { return }  
+                          
                 let r= Object.entries(res);
-                this.app.data.charts= baseCharts.slice(0);
                 r.forEach( i=> {
                     this.app.data.charts.push([ 
                         i[0], 
@@ -101,9 +103,11 @@ export class SKResources {
 
     private retrieveRoutes() {
         this.signalk.apiGet('/resources/routes')
-        .subscribe( res=> {               
-            let r= Object.entries(res);
+        .subscribe( res=> {  
             this.app.data.routes= [];
+            if(!res) { return }   
+
+            let r= Object.entries(res);
             r.forEach( i=> {
                 this.app.data.routes.push([ 
                     i[0], 
@@ -161,8 +165,10 @@ export class SKResources {
         this.signalk.apiGet('/resources/waypoints')
         .subscribe( 
             res=> { 
-                let r= Object.entries(res);
                 this.app.data.waypoints= [];
+                if(!res) { return }                   
+                let r= Object.entries(res);
+
                 r.forEach( i=> {
                     if(!i[1].feature.properties.name) { 
                         i[1].feature.properties.name='Xpt-' + i[0].slice(-6);
