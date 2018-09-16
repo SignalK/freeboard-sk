@@ -71,7 +71,7 @@ This is an Angular project generated with [Angular CLI](https://github.com/angul
 
 To build the NPM package source use the `ng build --prod` command from within the project folder.
 
-Built package is placed in the `dist/freeboard` folder which can then be published to NPM.
+Built package suitable for use with `npm publish` is placed in the `/public` folder which contains the application files for deployment.
 
 
 

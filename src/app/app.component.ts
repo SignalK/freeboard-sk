@@ -327,11 +327,15 @@ export class AppComponent {
         let item= null;
         let info= [];        
         let t= id.split('.');
-        let c= proj.transform(coord, prj, this.app.config.map.srid);
+
+        this.display.overlay.position= proj.transform(
+            coord, 
+            prj, 
+            this.app.config.map.srid
+        );        
 
         switch(t[0]) {
             case 'vessels':
-                this.display.overlay.position= this.display.vessels.self.position;
                 this.display.overlay.title= (this.display.vessels.self.name) ? 
                     this.display.vessels.self.name : 'Self'; 
                 info.push(['MMSI', this.display.vessels.self.mmsi]);
@@ -346,7 +350,6 @@ export class AppComponent {
                 if(!item) { return false }
                 this.display.overlay['type']='ais'
                 this.display.overlay['showProperties']=false;
-                this.display.overlay.position= item[0].position;
                 this.display.overlay.title= 'AIS';    
                 info.push(['Name', item[0].name]); 
                 info.push(['MMSI', item[0].mmsi]);  
@@ -362,7 +365,6 @@ export class AppComponent {
                 if(!item) { return false }
                 this.display.overlay['showProperties']=true;
                 this.display.overlay['type']='route';
-                this.display.overlay.position= c;
                 this.display.overlay.title= 'Route';
                 this.display.overlay['id']=t[1];
                 this.display.overlay['activateRoute']=!item[0][3];
@@ -380,7 +382,6 @@ export class AppComponent {
                 if(!item) { return false }
                 this.display.overlay['showProperties']=true;
                 this.display.overlay['type']='waypoint';
-                this.display.overlay.position= item[0][1]['feature']['geometry']['coordinates'];
                 this.display.overlay.title= 'Waypoint';   
                 this.display.overlay['canDelete']= (this.display.overlay['type']=='waypoint' && !this.display.overlay['addWaypoint']) ? true : false;
                 if(item[0][1].feature.properties.name) {
@@ -1020,7 +1021,7 @@ export class AppComponent {
         this.getAnchorStatus();
 
         // ** get vessel details
-        this.signalk.get('/vessel').subscribe(
+        this.signalk.apiGet('vessels/self').subscribe(
             r=> {  
                 this.display.vessels.self.mmsi= (r['mmsi']) ? r['mmsi'] : null;
                 this.display.vessels.self.name= (r['name']) ? r['name'] : null;
