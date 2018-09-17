@@ -49,34 +49,10 @@ Selected application will be displayed in the Instrument panel drawer.
 
 When selected provides a link to the application at the top of the menu drawer.
 
-![Freeboard](https://raw.githubusercontent.com/SignalK/signalk-server-java/master/src/test/resources/samples/freeboard-sk-vessel-up.png)
+### Vessel up
+![Vessel Up](https://raw.githubusercontent.com/SignalK/signalk-server-java/master/src/test/resources/samples/freeboard-sk-vessel-up.png)
 
-
-## Development:
-
-This is an Angular project generated with [Angular CLI](https://github.com/angular/angular-cli).
-
-1. Clone this repository
-
-1. Run: `npm install` *(to install Angular CLI and project dependencies)*
-
-1. Run `ng serve` to start a develeopment web server and navigate to `http://localhost:4200/`. The app will automatically reload if you change any of the source files.
-
-* **Note:** The served application will look to connect to Signal K server at the ip address defined in the `DEVHOST` property in the `src/app.info.ts` file.
-
-
-## Build:
-
-#### NPM package
-
-To build the NPM package source use the `ng build --prod` command from within the project folder.
-
-Built package suitable for use with `npm publish` is placed in the `/public` folder which contains the application files for deployment.
-
-
-
-
-
-
+### North up
+![North Up](https://raw.githubusercontent.com/SignalK/signalk-server-java/master/src/test/resources/samples/freeboard-sk-north-up.png)
 
 
