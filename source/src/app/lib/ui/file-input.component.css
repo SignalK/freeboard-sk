@@ -1,0 +1,55 @@
+.ap-file-input {
+	display: -webkit-box;      
+	display: -moz-box;         
+	display: -ms-flexbox;      
+	display: -webkit-flex; 			
+	display: inline-flex;
+	-moz-flex-direction: row;
+	-ms-flex-direction: row;
+	-webkit-flex-direction: row;
+	flex-direction: row;
+	flex-wrap: nowrap;
+	justify-content: flex-start;
+	align-content: stretch; 
+    font-size: 10pt;
+    width:100%;
+}
+#ctrl {
+    cursor: pointer;
+}
+#ctrl label {
+    cursor: pointer;  
+}
+#apfileinput {
+    position: absolute;
+    top: 0;
+    left: -9000px;
+
+	width: 0.1px;
+	height: 0.1px;
+	opacity: 0;
+	overflow: hidden;
+	z-index: -1;    
+}
+
+.disabled {
+    color:rgba(33,33,33,.5) !important;
+    border-color:rgba(33,33,33,.5) !important;
+    cursor: none !important;
+}
+
+#avatar {
+    background-color: inherit;
+    border-radius: 5px;
+    height: 42px;   
+}
+#avatar>img {
+    width: 42px;
+    height: 42px;      
+}
+#avatar>button {
+    background-color: inherit;
+    border: 0;
+    color: red;
+}
+

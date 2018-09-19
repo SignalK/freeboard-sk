@@ -26,7 +26,7 @@
     "hammerjs": "^2.0.8",
     "ngx-openlayers": "^0.8.22",
     "rxjs": "^6.3.2",
-    "signalk-client-angular": "^1.3.0",
+    "signalk-client-angular": "^1.3.1",
     "zone.js": "~0.8.26"
   },
   "devDependencies": {

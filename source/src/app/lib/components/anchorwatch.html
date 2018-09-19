@@ -15,39 +15,8 @@
         </div>
     </div>
 
-    <div class="resources" style="top: 40px;">
-        <mat-card *ngIf="!app.config.anchor.plugin.installed">          
-            <b>Anchor Alarm</b> plugin not installed!<br>
-            &nbsp;<br>
-            Open Sever <b>Admin</b> and install <b>Anchor Alarm</b>
-            <hr>
-            <mat-card-actions>
-                <a mat-button [href]="app.host + '/@signalk/server-admin-ui/#/appstore/apps'"
-                    target="_blank">
-                    <mat-icon color="primary">open_in_new</mat-icon>
-                    OPEN ADMIN UI
-                </a>
-            </mat-card-actions>
-        </mat-card>
-        <mat-card *ngIf="app.config.anchor.plugin.installed && !app.config.anchor.plugin.enabled">
-            Anchor Alarm plugin is installed but not enabled!<br>
-            &nbsp;<br>
-            Open Sever <b>Plugin Config</b> screen and enable <b>Ancor Alarm</b>
-            <hr>
-            <mat-card-actions>
-                <a mat-button [href]="app.host + '/@signalk/server-admin-ui/#/serverConfiguration/plugins'"
-                    target="_blank">
-                    <mat-icon color="primary">open_in_new</mat-icon>
-                    OPEN CONFIG
-                </a>
-                <a mat-button (click)="emitCheckPlugin()">
-                <mat-icon color="accent">refresh</mat-icon>
-                RE-CHECK
-            </a>
-                
-            </mat-card-actions>            
-        </mat-card>        
-        <mat-card *ngIf="app.config.anchor.plugin.enabled">
+    <div class="resources" style="top: 40px;">    
+        <mat-card>
             <div style="display: flex;">
                 <div style="flex: 1 1 auto;">
                     <div style="width: 150px;text-align: center;">

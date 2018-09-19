@@ -7,11 +7,11 @@ import {AppInfo} from '../../app.info';
 
 //** HomePage **
 @Component({
-    selector:	    'settings-page',
-    templateUrl: 	'./settings-page.html',
-    styleUrls: 	    ['./settings-page.css']
+    selector:	    'settings-dialog',
+    templateUrl: 	'./settings-dialog.html',
+    styleUrls: 	    ['./settings-dialog.css']
 })
-export class SettingsPage implements OnInit {
+export class SettingsDialog implements OnInit {
 
     distanceUnits= [ 
         ['m', 'metres / Kilometres'], ['ft', 'feet / Nautical Miles']
@@ -27,10 +27,12 @@ export class SettingsPage implements OnInit {
 
      
     constructor( 
-        public dialogRef: MatDialogRef<SettingsPage>, 
+        public dialogRef: MatDialogRef<SettingsDialog>, 
         public app: AppInfo,
         private signalk: SignalKClient ) { 
-            this.appList= [app.config.plugins.instruments];
+            if(app.config.plugins.instruments) { 
+                this.appList.push(app.config.plugins.instruments);
+            }
         }
     
     ngOnInit() { 

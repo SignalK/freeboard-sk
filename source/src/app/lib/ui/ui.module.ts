@@ -10,6 +10,7 @@ import { MatDialogModule, MatIconModule, MatButtonModule,
 
 // ** components **
 import { MsgBox, AlertDialog, ConfirmDialog, AboutDialog } from './dialogs';
+import { FileInputComponent } from './file-input.component';
 import { PopoverComponent } from './popover';
 import { ResourceDialog } from './resource-dialogs';
 import { GeometryCircleComponent } from '../components/geom-circle.component';
@@ -22,10 +23,12 @@ import { GeometryCircleComponent } from '../components/geom-circle.component';
       ],    
     declarations: [
         MsgBox, AlertDialog, ConfirmDialog, AboutDialog,
+        FileInputComponent,
         PopoverComponent, ResourceDialog, GeometryCircleComponent
     ],
     exports: [
         MsgBox, AlertDialog, ConfirmDialog, AboutDialog,
+        FileInputComponent,
         PopoverComponent, ResourceDialog, GeometryCircleComponent
     ],
     entryComponents: [

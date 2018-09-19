@@ -18,9 +18,7 @@ export class GeometryCircleComponent implements OnInit, OnDestroy {
     private srid= 'EPSG:4326';
 
 
-    constructor(private host: FeatureComponent) {
-        console.log('creating aol-geometry-circle');
-    }
+    constructor(private host: FeatureComponent) { }
 
     ngOnInit() {
         let ctr= this.center ? this.center : [0,0];

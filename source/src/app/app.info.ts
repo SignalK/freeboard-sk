@@ -50,18 +50,12 @@ export class AppInfo extends Info {
             anchor: {       // ** anchor watch
                 raised: true,
                 radius: 40,
-                position: [0,0],
-                plugin: {
-                    url: '/plugins/anchoralarm/',
-                    installed: false,
-                    enabled: false
-                }
+                position: [0,0]
             },
             usePUT: true,
             depthAlarm: { enabled: false, smoothing: 10000 },
             plugins: {
-                instruments: '/@signalk/instrumentpanel',
-                resources: null
+                instruments: '/@signalk/instrumentpanel'
             },
             units: {        // ** display units
                 distance: 'm',

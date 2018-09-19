@@ -14,7 +14,6 @@ export class RouteListComponent {
     @Output() refresh: EventEmitter<any>= new EventEmitter();
     @Output() properties: EventEmitter<any>= new EventEmitter();
     @Output() closed: EventEmitter<any>= new EventEmitter();
-    @Output() add: EventEmitter<any>= new EventEmitter();
 
     filterList= [];
     filterText: string= '';
@@ -72,8 +71,6 @@ export class RouteListComponent {
     itemDelete(id) { this.delete.emit({id: id}) }  
     
     itemRefresh() { this.refresh.emit() }
-
-    itemNew() { this.add.emit() }
 
     filterKeyUp(e) {
         this.filterText=e;

@@ -1,0 +1,20 @@
+<div class="ap-file-input" (dragover)="dragOver($event)" (drop)="drop($event)">  
+    <div id="ctrl" [ngClass]="{disabled: disabled}">
+        <label>
+            <ng-content></ng-content>            
+            <span *ngIf="icon">
+                <i class="fi-upload" style="font-size:20pt;font-style:normal;">
+                    &nbsp;<span style="font-size:10pt;">{{label}}</span>
+                </i>
+            </span>
+            <input #input  type="file" style="display:none;" [multiple]="multiple" [disabled]="disabled"
+                [accept]="accept" (change)="fileChange(input)" (click)="input.value=null"
+                />                 
+        </label>
+    </div>
+    <div *ngIf="preview && avatar" id="avatar" style="display: inline-flex">  
+        <img [attr.src]='avatar' alt=""/>
+        <button *ngIf="avatar" (click)="clear()">Clear</button>
+    </div>    
+</div> 
+

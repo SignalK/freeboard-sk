@@ -13,7 +13,6 @@ export class AnchorWatchComponent {
     @Input() max: number= 100;
     @Input() feet: boolean= false;
     @Input() raised: boolean= true;
-    @Output() checkPlugin: EventEmitter<any>= new EventEmitter();
     @Output() change: EventEmitter<any>= new EventEmitter();
     @Output() closed: EventEmitter<any>= new EventEmitter();
 
@@ -49,8 +48,6 @@ export class AnchorWatchComponent {
             action: raiseDrop ? 'raised' : 'radius'
         })
     }
-
-    emitCheckPlugin() { this.checkPlugin.emit() }
 
     mToFt(value) { return Math.round(value * 3.28084) }
     ftToM(value) { return Math.round(value / 3.28084) }

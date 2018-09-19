@@ -160,6 +160,20 @@ export class SKResources {
         }
     }
 
+    // ** build and return SKWaypoint object with supplied coordinates
+    buildWaypoint(coordinates) {
+        let wpt= new SKWaypoint();
+        let wptUuid= new UUIDjs._create4().hex;  
+
+        wptUuid= `urn:mrn:signalk:uuid:${wptUuid}`;
+        wpt.feature.geometry.coordinates= coordinates;
+        wpt.position= { 
+            latitude: coordinates[1],
+            longitude: coordinates[0]
+        }        
+        return [wptUuid, wpt];
+    }    
+
     // ** get waypoints from sk server
     getWaypoints() {
         this.signalk.apiGet('/resources/waypoints')
@@ -171,7 +185,7 @@ export class SKResources {
 
                 r.forEach( i=> {
                     if(!i[1].feature.properties.name) { 
-                        i[1].feature.properties.name='Xpt-' + i[0].slice(-6);
+                        i[1].feature.properties.name='Wpt-' + i[0].slice(-6);
                     }
                     this.app.data.waypoints.push([ 
                         i[0], 
@@ -254,7 +268,6 @@ export class SKChart {
     chartLayers: Array<any>;
     bounds: Array<any>;
     chartFormat: string;
-    type: string;
 
     constructor(chart?) {
         if(chart) {
@@ -269,7 +282,6 @@ export class SKChart {
             this.chartLayers= (chart.chartLayers) ? chart.chartLayers : null;
             this.bounds= (chart.bounds) ? chart.bounds : null;
             this.chartFormat= (chart.chartFormat) ? chart.chartFormat : null;
-            this.type= (chart.type) ? chart.type : null;
         }
     }
 }

@@ -7,7 +7,8 @@ import { HttpClient } from '@angular/common/http';
 import { AppInfo } from './app.info';
 import { AboutDialog, ConfirmDialog, AlertDialog } from './lib/app-ui';
 import { ResourceDialog } from './lib/ui/resource-dialogs';
-import { SettingsPage } from './pages';
+import { SettingsDialog } from './pages';
+import { GPXImportDialog } from './lib/gpxload/gpxload.module';
 
 import { SignalKClient } from 'signalk-client-angular';
 import { SKResources, SKWaypoint, SKRoute } from './lib/sk-resources';
@@ -75,7 +76,6 @@ export class AppComponent {
 
     private lastInstUrl: string;
     public instUrl: SafeResourceUrl;
-    public resmgrUrl: SafeResourceUrl;
     public coord;
 
     private watchDog;       // ** settings watchdog timer
@@ -94,9 +94,6 @@ export class AppComponent {
         private dialog: MatDialog) { 
             this.lastInstUrl= this.app.config.plugins.instruments;
             this.instUrl= dom.bypassSecurityTrustResourceUrl(`${this.app.host}${this.app.config.plugins.instruments}`);
-            if(this.app.config.plugins.resources) {
-                this.resmgrUrl= dom.bypassSecurityTrustResourceUrl(`${this.app.host}${this.app.config.plugins.resources}`);
-            }
             this.coord= coordinate;
             this.measure.style= new style.Style({
                 stroke: new style.Stroke({
@@ -108,6 +105,7 @@ export class AppComponent {
         }
 
     ngAfterViewInit() { }
+
     ngOnInit() {
         // ** apply loaded app config	
         this.display.map.center= this.app.config.map.center;
@@ -128,10 +126,7 @@ export class AppComponent {
             if(this.lastInstUrl!= this.app.config.plugins.instruments) {
                 this.lastInstUrl= this.app.config.plugins.instruments
                 this.instUrl= this.dom.bypassSecurityTrustResourceUrl(`${this.app.host}${this.app.config.plugins.instruments}`);
-            }
-            if(this.app.config.plugins.resources) {
-                this.resmgrUrl= this.dom.bypassSecurityTrustResourceUrl(`${this.app.host}${this.app.config.plugins.resources}`);
-            }            
+            }          
         });           
     } 
 
@@ -157,7 +152,7 @@ export class AppComponent {
     }  
 
     //** open settings dialog **
-    openSettings() {  this.dialog.open( SettingsPage, { disableClose: false }) }      
+    openSettings() {  this.dialog.open( SettingsDialog, { disableClose: false }) }      
 
     // ** alert message
     showAlert(title, message) {
@@ -167,8 +162,108 @@ export class AppComponent {
         });         
     }
 
+    // **********  GPX File processing **********
+    processGPX(e) {
+        let dref= this.dialog.open(GPXImportDialog, {
+            disableClose: true,
+            data: { 
+                fileData: e.data,
+                fileName: e.name
+            }
+        });     
+        dref.afterClosed().subscribe( res=> {
+            console.log(res);
+            if(!res) { return }
+
+            let subCount=0;
+            let errCount=0;
+            res.routes.forEach( rte=> {
+                subCount++;
+                if(this.app.config.usePUT) {
+                    this.signalk.apiPut('self',`/resources/routes`, rte[0], rte[1])
+                    .subscribe( 
+                        r=> { 
+                            if(r['state']=='COMPLETED') { 
+                                this.app.debug('SUCCESS: Route added.');
+                                this.app.config.selections.routes.push(rte[0]);                        
+                            }
+                            else { errCount++ }
+                            subCount--;
+                            if(subCount==0) { this.gpxResult(errCount) }
+                        },
+                        e=> { 
+                            errCount++; subCount--; 
+                            if(subCount==0) { this.gpxResult(errCount) }
+                        }
+                    );
+                }
+                else { 
+                    this.signalk.sendUpdate('self', `/resources/routes/${rte[0]}`, rte[1]);
+                    if(subCount==res.waypoints.length + res.routes.length) { 
+                        this.gpxResult(errCount);
+                    }
+                }
+            });
+
+            res.waypoints.forEach( wpt=> {
+                subCount++;            
+                if(this.app.config.usePUT) {
+                    this.signalk.apiPut('self',`/resources/waypoints`, wpt[0], wpt[1])
+                    .subscribe( 
+                        r=>{ 
+                            if(r['state']=='COMPLETED') { 
+                                this.app.debug('SUCCESS: Waypoint added.');
+                                this.app.config.selections.waypoints.push(wpt[0]);
+                            }
+                            else { errCount++ }
+                            subCount--;
+                            if(subCount==0) { this.gpxResult(errCount) }
+                        },
+                        e=> { 
+                            errCount++; subCount--; 
+                            if(subCount==0) { this.gpxResult(errCount) }
+                        }
+                    );
+                }
+                else { 
+                    this.signalk.sendUpdate('self', `resources.waypoints.${wpt[0]}`, wpt[1]);
+                    if(subCount==res.waypoints.length + res.routes.length) { 
+                        this.gpxResult(errCount);
+                    }
+                }
+            });
+        });         
+    }
+
+    gpxResult(errCount) {
+        this.skres.getRoutes();
+        this.skres.getWaypoints();
+        this.app.saveConfig();       
+        if(errCount==0) { this.showAlert('GPX Load','Completed successfully.') }
+        else { this.showAlert('GPX Load','Completed with errors!\nNot all resources were loaded.') }
+    }
     // ********** MAP / MAP EVENTS *****************
     
+    mapDragOver(e) { e.preventDefault() }
+
+    mapDrop(e) {  
+        e.preventDefault();
+        if (e.dataTransfer.files) {
+            if( e.dataTransfer.files.length>1 ) { 
+                this.showAlert('Load Resources', 'Multiple files provided!\nPlease select only one file for processing.');
+            }
+            else {
+                let reader = new FileReader();
+                reader.onerror= err=> { 
+                    this.showAlert('File Load error', `There was an error reading the file contents!`);
+                }    
+                let fname= e.dataTransfer.files[0].name;            
+                reader.onload= ()=> { this.processGPX({ name: fname, data: reader.result}) }
+                reader.readAsText(e.dataTransfer.files[0]);
+            }
+        } 
+    }     
+
     mapMoveEvent(e) {
         let v= e.map.getView();
         let z= v.getZoom();
@@ -809,68 +904,107 @@ export class AppComponent {
     // ******** Anchor Watch EVENTS ************
     anchorEvent(e) {
         if(e.action=='radius') {
-            this.app.config.anchor.radius= e.radius;
+            this.app.config.anchor.radius= e.radius;            
+            this.signalk.put('/signalk/v1/api/vessels/self/navigation/anchor/maxRadius', 
+                { value: this.app.config.anchor.radius }
+            ).subscribe(
+                r=> { this.getAnchorStatus() },
+                err=> { this.parseAnchorError(err); this.getAnchorStatus(); }
+            );           
+            /*
+            this.signalk.send({ 
+                context: 'vessels.self',
+                put: [{
+                    timestamp: new Date().toISOString(),
+                    source: this.app.id,
+                    values: [{
+                        path: 'navigation.anchor.maxRadius',
+                        value: this.app.config.anchor.radius
+                    }]   
+                }]
+            });*/        
             return;
         }
         if(!e.raised) {  // ** drop anchor
             this.app.config.anchor.raised= false;
             this.app.config.anchor.position= this.display.vessels.self.position;
-            this.signalk.post( 
-                `/plugins/anchoralarm/setAnchorPosition`, 
-                { 
-                    position: {
-                        latitude: this.app.config.anchor.position[1],
-                        longitude: this.app.config.anchor.position[0]
-                    } 
-                }
+
+            this.signalk.put('/signalk/v1/api/vessels/self/navigation/anchor/position', 
+                { value: {
+                    latitude: this.app.config.anchor.position[1],
+                    longitude: this.app.config.anchor.position[0]
+                } }
             ).subscribe(
-                r=> { this.dropAnchor(e.radius) },
-                err=> { 
-                    if(this.parseAnchorError(err)) { this.dropAnchor(e.radius) }
-                    else { this.getAnchorStatus() }
-                }
+                r=> { 
+                    this.signalk.put('/signalk/v1/api/vessels/self/navigation/anchor/maxRadius', 
+                        { value: this.app.config.anchor.radius }
+                    ).subscribe(
+                        r=> { this.getAnchorStatus() },
+                        err=> { this.parseAnchorError(err); this.getAnchorStatus(); }
+                    ); 
+                 },
+                err=> { this.parseAnchorError(err); this.getAnchorStatus(); }
             );             
-                           
+            /*this.signalk.send({ 
+                context: 'vessels.self',
+                put: [{
+                    timestamp: new Date().toISOString(),
+                    source: this.app.id,
+                    values: [
+                        {
+                            path: 'navigation.anchor.position',
+                            value: {
+                                latitude: this.app.config.anchor.position[1],
+                                longitude: this.app.config.anchor.position[0],
+                                altitude: 0
+                            }
+                        },
+                        {
+                            path: 'navigation.anchor.maxRadius',
+                            value: this.app.config.anchor.radius
+                        },
+                        {
+                            path: 'navigation.anchor.state',
+                            value: 'on'
+                        }
+                    ]
+                }]
+            });*/                             
         }
         else {  // ** raise anchor
             this.app.config.anchor.raised= true;
-            this.signalk.post( `/plugins/anchoralarm/raiseAnchor`, null )
-            .subscribe(
+            this.signalk.put(
+                '/signalk/v1/api/vessels/self/navigation/anchor/position', 
+                { value: null }
+            ).subscribe(
                 r=> { this.getAnchorStatus() },
                 err=> { this.parseAnchorError(err); this.getAnchorStatus(); }
-            );
+            );             
+            /*
+            this.signalk.send({ 
+                context: 'vessels.self',
+                put: [{
+                    timestamp: new Date().toISOString(),
+                    source: this.app.id,
+                    values: [{
+                        path: 'navigation.anchor.state',
+                        value: 'off'
+                    }]
+                }]
+            }); 
+            */ 
         }
     }
 
-    dropAnchor(radius) {
-        this.signalk.post( 
-            `/plugins/anchoralarm/dropAnchor`, 
-            {radius: radius}
-        ).subscribe(
-            r=> { this.getAnchorStatus() },
-            err=> { this.parseAnchorError(err); this.getAnchorStatus(); }
-        );   
-    }
-
-    parseAnchorError(e) {
-        this.app.debug(e); 
-        let errText=`Reported error:\n${e.error || e.statusText}`;
-        if(e.status && e.status!=200) { // plugin error
-            console.warn(errText);
-            this.showAlert('AnchorWatch Plugin says:', errText);
-            return false;
-        }  
-        else { return true }      
-    }
-
+    // ** query anchor status
     getAnchorStatus() {
-        // ** query anchor status
         this.app.debug('Retrieving anchor status...');
         this.signalk.apiGet('/vessels/self/navigation/anchor').subscribe(
             r=> {
+                this.app.debug(r);
                 if(r['position'] && r['position']['value']) {
                     let p= r['position']['value'];
-                    if(p.latitude && p.longitude) {
+                    if(typeof p.latitude!= 'undefined' && typeof p.longitude!= 'undefined') {
                         this.app.config.anchor.position= [
                             p.longitude,
                             p.latitude
@@ -896,6 +1030,18 @@ export class AppComponent {
         ); 
     }
 
+    // ** process anchor watch errors
+    parseAnchorError(e) {
+        this.app.debug(e); 
+        let errText=`Reported error:\n${e.error || e.statusText}`;
+        if(e.status && e.status!=200) { 
+            let errText= 'Server returned an error. This function may not be supported by yor server.';
+            this.showAlert('Anchor Watch:', errText);
+            return false;
+        }  
+        else { return true }      
+    }
+
     // ******** Alarm EVENTS ************
     muteAlarm(id) { this.display.alarms.get(id)['muted']=true }
 
@@ -919,7 +1065,6 @@ export class AppComponent {
         .subscribe(
             res=> {
                 this.signalk.connect( this.app.hostName, this.app.hostPort, this.app.hostSSL, 'none');
-                this.checkAnchorWatchPlugin();
             },
             err=> {
                 let dRef= this.dialog.open(AlertDialog, {
@@ -942,19 +1087,6 @@ export class AppComponent {
         this.subOnMessage.unsubscribe();
         this.subOnClose.unsubscribe();      
         this.signalk.disconnect();
-    }
-
-    checkAnchorWatchPlugin() {
-        this.signalk.get(this.app.config.anchor.plugin.url).subscribe(
-            r=> {
-                this.app.config.anchor.plugin.installed= true;
-                this.app.config.anchor.plugin.enabled= r['enabled'];
-            },
-            e=> { 
-                this.app.config.anchor.plugin.installed=false;
-                this.app.config.anchor.plugin.enabled=false;
-            }
-        ); 
     }
 
     // ** subscribe to signal k messages
@@ -1099,12 +1231,12 @@ export class AppComponent {
                         );
                     }                                        
                 }
-                if( value['notifications.anchorAlarm'] ) {
+                if( value['notifications.navigation.anchor'] ) {
                     this.processAlarm(
                         'Anchor', 
-                        value['notifications.anchorAlarm']
+                        value['notifications.navigation.anchor']
                     );
-                }    
+                }                   
                 
                 // ** update map display **
                 this.mapVesselLines();

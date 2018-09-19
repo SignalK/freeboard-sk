@@ -17,7 +17,7 @@
                 <div class="setting-group">
                     <div class="setting-group-title">PLUG-INS</div>
                     <mat-card class="setting-card">
-                        <div class="setting-card-row" >
+                        <div class="setting-card-row">
                             <div class="setting-card-row-item">
                                 <mat-form-field style="width:100%;">
                                     <mat-select #instruments 
@@ -33,21 +33,8 @@
                                     </mat-select>                                        
                                 </mat-form-field>
                             </div> 
-                            <div class="setting-card-row-item">
-                                <mat-form-field style="width:100%;">
-                                    <mat-select #resmgr 
-                                            [(value)]="app.config.plugins.resources" 
-                                            (selectionChange)="onFormChange($event, resmgr)"
-                                            placeholder="Select Resource Manager App">
-                                        <mat-option *ngFor="let i of appList" 
-                                                [value]="i.url"
-                                                [matTooltip]="i.description"
-                                                matTooltipPosition="left">
-                                            {{i.name}}
-                                        </mat-option>
-                                    </mat-select>                                        
-                                </mat-form-field>
-                            </div>  
+                        </div>
+                        <div class="setting-card-row">
                             <div class="setting-card-row-item">
                                 <b>Server Resource Updates:</b>
                                 <br>

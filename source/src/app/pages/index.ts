@@ -1,2 +1,2 @@
 
-export * from './settings/settings-page';
+export * from './settings/settings-dialog';
