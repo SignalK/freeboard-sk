@@ -1,0 +1,50 @@
+.settings {
+    position: relative;
+    width: 100%;
+    min-height: 300px;
+    max-height: 400px;
+    overflow-y: auto;    
+}
+
+
+.settings .setting-group-title {
+    font-weight: bold;
+    font-size: 10pt;
+    font-family: Arial, Helvetica, sans-serif;
+    padding: 10px 0 10px 0;
+}
+.setting-card-row {
+    display: flex;
+    flex-wrap: wrap;
+}
+.settings .setting-card-row-item {
+    padding-right: 15px;
+    flex: 1 1 auto;
+}
+
+/*ipads*/
+@media only screen
+    and (min-device-width : 768px)
+    and (max-device-width : 1024px),
+/*desktop / laptop */
+only screen	and (min-width : 800px) {
+  
+}
+/*xs*/
+@media only screen and (max-width: 599px) {
+	.settings .setting-group {
+		padding: 5px 5% 5px 5%;
+	}	
+}
+/*sm*/
+@media only screen and (min-width: 600px) and (max-width: 959px),
+/*md*/
+screen and (min-width: 960px) and (max-width: 1279px),
+/*lg*/
+screen and (min-width: 1280px) and (max-width: 1919px),
+/*xl*/
+screen and (min-width: 1920px) and (max-width: 5000px) {
+    .settings .setting-group {
+        padding: 5px 15% 5px 15%;
+    }  
+}

@@ -1,45 +1,82 @@
-Freeboard-SK
-============
+# Freeboard
 
-This is a rewrite of Freeboard (http://www.42.co.nz/freeboard) to use the Signal K communication protocols.
+This is a port of Freeboard (http://www.42.co.nz/freeboard) to use the Signal K communication protocols and utilise Signal K server features.
 
-###Vessel up
-![Vessel Up](https://raw.githubusercontent.com/SignalK/signalk-server-java/master/src/test/resources/samples/freeboard-sk-vessel-up.png)
+## Features:
 
-###North up
-![North Up](https://raw.githubusercontent.com/SignalK/signalk-server-java/master/src/test/resources/samples/freeboard-sk-north-up.png)
+#### Chart Display:
 
-Its a work-in-progress, currently:
+- *(online)* OpenStreetMap, OpenSeaMap, and WORLD chart outline
+- Charts hosted on Signal K server *(requires @signalk/charts-plugin)*
 
- * Displays OpenStreetmap, OpenSeaMap, and WORLD chart outline
- * Displays suitably installed common chart formats
- * Displays boat position with track-line
- * Has anchor watch, alarms trigger properly, but doesnt make any alarm noise yet :-(
- * Has import for most common route and waypoint formats, just drag and drop the file on the chart
- * Allows draw/edit/save of waypoints, routes and regions.
- * Supports chart rotation by [Shift-click-drag].
- * Waypoint/route/regions management
- * AIS targets
+#### Resources:  Routes and Waypoints
 
-Todo:
- * Integration to instrumentpanel project
- * Chart management
- * Bearing and speed lines
+    - List / Select resources hosted on Signal K server
+    - Set an active Route
+    - Edit Route / Waypoint properties (Name, Description)
+    - Draw Route
+    - Add Waypoint at: Cursor or Vessel position
+    - Delete Waypoint(s) / Route(s) 
+
+**Note:** For resources to be Added, Updated or Deleted on the Signal K server, a suitable resource provider plugin is required to be installed on the Signal K server *e.g. GPXLoad*.
+
+If a suitable plugin is not installed it is recommended that the **Use PUT Requests** checkbox in **Settings** be *unchecked* to enable Delta Updates to be sent.
+    
+#### Map Display:
+
+    - North-up or Vessel-up 
+    - Moving Map or Moving Vessel
+    - Vessel Heading / Bearing lines
+    - Wind true direction / apparent angle lines
+    - Measure distance
+
+#### Alarms:
+
+    Displays both visual and audio alarm indication as specified by the received *Notification* message.
+
+    - Anchor Watch: set radius and raise / drop anchor (requires signalk-anchor-watch plugin)
+    - Depth Notification display.
+
+#### Integration: 
+
+Freeboard allows you to select installed *Applications* to use for the following:
+
+- **Instrument panel**: *(default: `@SignalK/InstrumentPanel`)*
+
+Selected application will be displayed in the Instrument panel drawer.
+
+- **Resource Manager**: *(default: `none`)*
+
+When selected provides a link to the application at the top of the menu drawer.
+
+![Freeboard](https://raw.githubusercontent.com/SignalK/signalk-server-java/master/src/test/resources/samples/freeboard-sk-vessel-up.png)
 
 
- * and on and on...
+## Development:
 
-### Installation
+This is an Angular project generated with [Angular CLI](https://github.com/angular/angular-cli).
 
-NOTE: Windows users - DONT put any of this in directories with spaces or anything but simple ascii names. Use something like eg C:\dev\freeboard-sk
+1. Clone this repository
 
-You will need a working nodejs installation to be able to build the project, and the project must be served from a web server. The easiest way to do this is to also install and run the signalk-server-java project.
+1. Run: `npm install` *(to install Angular CLI and project dependencies)*
 
-```shell
-$ git clone https://github.com/SignalK/signalk-java-server.git
-```
+1. Run `ng serve` to start a develeopment web server and navigate to `http://localhost:4200/`. The app will automatically reload if you change any of the source files.
 
-### Developing:
+* **Note:** The served application will look to connect to Signal K server at the ip address defined in the `DEVHOST` property in the `src/app.info.ts` file.
 
- * install development dependencies with `npm install`
- * build & watch with `npm start`
+
+## Build:
+
+#### NPM package
+
+To build the NPM package source use the `ng build --prod` command from within the project folder.
+
+Built package is placed in the `dist/freeboard` folder which can then be published to NPM.
+
+
+
+
+
+
+
+
