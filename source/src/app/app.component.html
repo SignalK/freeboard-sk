@@ -241,7 +241,7 @@
                                 *ngIf="i>1 && c[2]"
                                 [minZoom]="c[1].minzoom"
                                 [maxZoom]="c[1].maxzoom"
-                                [url]="app.host + c[1].tilemapUrl">                           
+                                [url]="app.host + c[1].tilemapUrl+'/{z}/{x}/{-y}.png'">                           
                             </aol-source-xyz>
                         </div>
                     </aol-layer-tile>
