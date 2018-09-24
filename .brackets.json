@@ -1,0 +1,7 @@
+{
+    "jscodehints.detectedExclusions": [
+        "/home/robert/gitrep/freeboardk/node_modules/openlayers/dist/ol.js",
+        "/home/robert/gitrep/freeboardk/bundle.js",
+        "/home/robert/gitrep/freeboardk/index.js"
+    ]
+}
