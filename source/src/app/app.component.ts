@@ -2,10 +2,8 @@ import { Component } from '@angular/core';
 import { MatDialog } from '@angular/material';
 import { DomSanitizer, SafeResourceUrl} from '@angular/platform-browser';
 
-import { HttpClient } from '@angular/common/http';
-
 import { AppInfo } from './app.info';
-import { AboutDialog, ConfirmDialog, AlertDialog } from './lib/app-ui';
+import { MsgBox, AboutDialog, ConfirmDialog, AlertDialog } from './lib/app-ui';
 import { ResourceDialog } from './lib/ui/resource-dialogs';
 import { SettingsDialog } from './pages';
 import { GPXImportDialog } from './lib/gpxload/gpxload.module';
@@ -18,7 +16,6 @@ import { GeoUtils } from './lib/geoutils';
 
 import 'hammerjs';
 import { proj, coordinate, style } from 'openlayers';
-
 declare var UUIDjs: any;
 
 @Component({
@@ -37,7 +34,7 @@ export class AppComponent {
         anchorWatch: false,
         vessels: { 
             self: new SKVessel(), 
-            aisTargets: Array<SKVessel>()
+            aisTargets: new Map()
         },
         alarms: new Map(),
         map: { center: [0,0], zoomLevel: 2, rotation: 0 },        
@@ -85,8 +82,7 @@ export class AppComponent {
     private trailTimer;     // ** timer for logging vessel trail
 
     constructor(
-        public app: AppInfo, 
-        private http: HttpClient,
+        public app: AppInfo,
         private dom: DomSanitizer,
         public signalk: SignalKClient,
         public skres: SKResources,
@@ -102,7 +98,7 @@ export class AppComponent {
                     width: 2
                 })   
             });   
-        }
+    }
 
     ngAfterViewInit() { }
 
@@ -162,6 +158,29 @@ export class AppComponent {
         });         
     }
 
+    // ** show welcome message on first run **
+    showWelcome() {
+        let title: string= 'Welcome to Freeboard';
+        let message: string;
+        if(this.app.data.server.id=='signalk-server-node') {
+            message='Node version of Signal K server detected!\n\n';
+            message+='For all Freeboard features to operate ensure the server has plugins ';
+            message+='that can service the following Signal K API paths:\n';
+            message+='- resources/routes, resources/waypoints\n';
+            message+='- resources/charts\n';
+            message+='- navigation/anchor, navigation/course/activeRoute';
+        }
+        else {
+            message='- View Routes, Waypoints and Charts available on your Signal K server\n';
+            message+='- Add, delete and manage Routes and Waypoints\n';
+            message+='- Set Anchor Watch alarms and display Depth alarms\n';
+        }
+        let dref= this.dialog.open(MsgBox, {
+            disableClose: true,
+            data: { message: message, title: title, buttonText: 'Continue' }
+        });         
+    }
+
     // **********  GPX File processing **********
     processGPX(e) {
         let dref= this.dialog.open(GPXImportDialog, {
@@ -172,9 +191,7 @@ export class AppComponent {
             }
         });     
         dref.afterClosed().subscribe( res=> {
-            console.log(res);
             if(!res) { return }
-
             let subCount=0;
             let errCount=0;
             res.routes.forEach( rte=> {
@@ -239,13 +256,14 @@ export class AppComponent {
         this.skres.getRoutes();
         this.skres.getWaypoints();
         this.app.saveConfig();       
-        if(errCount==0) { this.showAlert('GPX Load','Completed successfully.') }
+        if(errCount==0) { this.showAlert('GPX Load','GPX file resources loaded successfully.') }
         else { this.showAlert('GPX Load','Completed with errors!\nNot all resources were loaded.') }
     }
     // ********** MAP / MAP EVENTS *****************
     
     mapDragOver(e) { e.preventDefault() }
 
+    // ** handle drag and drop of files onto map container**
     mapDrop(e) {  
         e.preventDefault();
         if (e.dataTransfer.files) {
@@ -440,20 +458,15 @@ export class AppComponent {
                 this.display.overlay['type']='vessel';
                 this.display.overlay['showProperties']=false;
                 break;
-            case 'ais':
-                item= this.display.vessels.aisTargets.filter( i=>{ if(i.id==t[1] + '.' + t[2]) return true });
-                if(!item) { return false }
-                this.display.overlay['type']='ais'
+            case 'ais-vessels':
+                let aid= id.slice(4);
+                if(!this.display.vessels.aisTargets.has(aid)) {return false }
+                item= this.display.vessels.aisTargets.get(aid);
+                this.display.overlay['type']='ais';
+                this.display.overlay['id']= aid;
                 this.display.overlay['showProperties']=false;
                 this.display.overlay.title= 'AIS';    
-                info.push(['Name', item[0].name]); 
-                info.push(['MMSI', item[0].mmsi]);  
-                info.push(['Call Sign', item[0].callsign]);    
-                info.push(['State', item[0].state]);  
-                info.push(['Latitude', item[0].position[1] ]); 
-                info.push(['Longitude', item[0].position[0] ]);   
-                info.push(['SOG', Convert.msecToKnots(item[0].sog).toFixed(1) + ' kn']);  
-                info.push(['COG', Convert.radiansToDegrees(item[0].cogTrue) + String.fromCharCode(186)]);         
+                info= this.compileAISInfo(item);
                 break;
             case 'route':
                 item= this.app.data.routes.filter( i=>{ if(i[0]==t[1]) return true });
@@ -470,7 +483,6 @@ export class AppComponent {
                     [Convert.kmToNauticalMiles( item[0][1].distance/1000 ).toFixed(1), 'NM'];
                 info.push(['Distance', `${d[0]} ${d[1]}`]);
                 info.push(['Desc.', item[0][1].description]);
-                
                 break;
             case 'waypoint':
                 item= this.app.data.waypoints.filter( i=>{ if(i[0]==t[1]) return true });
@@ -485,13 +497,27 @@ export class AppComponent {
                 if(item[0][1].feature.properties.cmt) {
                     info.push( ['Desc.', item[0][1].feature.properties.cmt] );
                 }
-                info.push(['Latitude', item[0][1]['position']['latitude']]); 
-                info.push(['Longitude', item[0][1]['position']['longitude']]);    
+                info.push(['Latitude', item[0][1]['position']['latitude'].toFixed(6)]); 
+                info.push(['Longitude', item[0][1]['position']['longitude'].toFixed(6)]);    
                 this.display.overlay['id']=t[1];             
                 break;       
         }
         this.display.overlay.content= info;
         return true;
+    }
+
+    // ** return AIS vessel info for popover **
+    compileAISInfo(item) {
+        let info=[];
+        info.push(['Name', item.name]); 
+        info.push(['MMSI', item.mmsi]);  
+        info.push(['Call Sign', item.callsign]);    
+        info.push(['State', item.state]);  
+        info.push(['Latitude', item.position[1].toFixed(6) ]); 
+        info.push(['Longitude', item.position[0].toFixed(6) ]);   
+        info.push(['SOG', Convert.msecToKnots(item.sog).toFixed(1) + ' kn']);  
+        info.push(['COG', Convert.radiansToDegrees(item.cogTrue).toFixed(1) + String.fromCharCode(186)]);         
+        return info;    
     }
 
     // ******** DRAW / EDIT EVENTS ************
@@ -692,8 +718,23 @@ export class AppComponent {
 
     routeActivate(e) { 
         let dt= new Date();
-        this.signalk.sendUpdate('self', 'navigation.course.activeRoute.href', `/resources/routes/${e.id}`);
-        this.signalk.sendUpdate('self', 'navigation.course.activeRoute.startTime', dt.toISOString());
+        if(this.app.config.usePUT) {
+            this.signalk.apiPut('self', 'navigation/course/activeRoute/href', `/resources/routes/${e.id}`)
+            .subscribe( 
+                r=> {
+                    this.signalk.apiPut('self', 'navigation/course/activeRoute/startTime', dt.toISOString())
+                    .subscribe( 
+                        r=> { this.app.debug('Route activated') },
+                        e=> { this.showAlert('ERROR:', 'Server could not Activate Route!') }
+                    );
+                },
+                e=> { this.showAlert('ERROR:', 'Server could not Activate Route!') }
+            );
+        }
+        else {
+            this.signalk.sendUpdate('self', 'navigation.course.activeRoute.href', `/resources/routes/${e.id}`);
+            this.signalk.sendUpdate('self', 'navigation.course.activeRoute.startTime', dt.toISOString());
+        }
     }
 
     routeAdd(e) {
@@ -905,39 +946,41 @@ export class AppComponent {
     anchorEvent(e) {
         if(e.action=='radius') {
             this.app.config.anchor.radius= e.radius;            
-            this.signalk.put('/signalk/v1/api/vessels/self/navigation/anchor/maxRadius', 
-                { value: this.app.config.anchor.radius }
+            this.signalk.apiPut('self', '/navigation/anchor/maxRadius', 
+                this.app.config.anchor.radius
             ).subscribe(
                 r=> { this.getAnchorStatus() },
                 err=> { this.parseAnchorError(err); this.getAnchorStatus(); }
             );           
             /*
-            this.signalk.send({ 
-                context: 'vessels.self',
-                put: [{
-                    timestamp: new Date().toISOString(),
-                    source: this.app.id,
-                    values: [{
-                        path: 'navigation.anchor.maxRadius',
-                        value: this.app.config.anchor.radius
-                    }]   
-                }]
-            });*/        
+            if(!this.app.data.server.id=='signalk-server-node') {
+                this.signalk.send({ 
+                    context: 'vessels.self',
+                    put: [{
+                        timestamp: new Date().toISOString(),
+                        source: this.app.id,
+                        values: [{
+                            path: 'navigation.anchor.maxRadius',
+                            value: this.app.config.anchor.radius
+                        }]   
+                    }]
+                });
+            }
+            */        
             return;
         }
         if(!e.raised) {  // ** drop anchor
             this.app.config.anchor.raised= false;
             this.app.config.anchor.position= this.display.vessels.self.position;
-
-            this.signalk.put('/signalk/v1/api/vessels/self/navigation/anchor/position', 
-                { value: {
+            this.signalk.apiPut('self','/navigation/anchor/position', 
+                {
                     latitude: this.app.config.anchor.position[1],
                     longitude: this.app.config.anchor.position[0]
-                } }
+                }
             ).subscribe(
                 r=> { 
-                    this.signalk.put('/signalk/v1/api/vessels/self/navigation/anchor/maxRadius', 
-                        { value: this.app.config.anchor.radius }
+                    this.signalk.apiPut('self', '/navigation/anchor/maxRadius', 
+                        this.app.config.anchor.radius
                     ).subscribe(
                         r=> { this.getAnchorStatus() },
                         err=> { this.parseAnchorError(err); this.getAnchorStatus(); }
@@ -945,53 +988,56 @@ export class AppComponent {
                  },
                 err=> { this.parseAnchorError(err); this.getAnchorStatus(); }
             );             
-            /*this.signalk.send({ 
-                context: 'vessels.self',
-                put: [{
-                    timestamp: new Date().toISOString(),
-                    source: this.app.id,
-                    values: [
-                        {
-                            path: 'navigation.anchor.position',
-                            value: {
-                                latitude: this.app.config.anchor.position[1],
-                                longitude: this.app.config.anchor.position[0],
-                                altitude: 0
+            /*
+            if(!this.app.data.server.id=='signalk-server-node') {
+                this.signalk.send({ 
+                    context: 'vessels.self',
+                    put: [{
+                        timestamp: new Date().toISOString(),
+                        source: this.app.id,
+                        values: [
+                            {
+                                path: 'navigation.anchor.position',
+                                value: {
+                                    latitude: this.app.config.anchor.position[1],
+                                    longitude: this.app.config.anchor.position[0],
+                                    altitude: 0
+                                }
+                            },
+                            {
+                                path: 'navigation.anchor.maxRadius',
+                                value: this.app.config.anchor.radius
+                            },
+                            {
+                                path: 'navigation.anchor.state',
+                                value: 'on'
                             }
-                        },
-                        {
-                            path: 'navigation.anchor.maxRadius',
-                            value: this.app.config.anchor.radius
-                        },
-                        {
-                            path: 'navigation.anchor.state',
-                            value: 'on'
-                        }
-                    ]
-                }]
-            });*/                             
+                        ]
+                    }]
+                });
+            }
+            */                             
         }
         else {  // ** raise anchor
             this.app.config.anchor.raised= true;
-            this.signalk.put(
-                '/signalk/v1/api/vessels/self/navigation/anchor/position', 
-                { value: null }
-            ).subscribe(
+            this.signalk.apiPut('self', '/navigation/anchor/position', null ).subscribe(
                 r=> { this.getAnchorStatus() },
                 err=> { this.parseAnchorError(err); this.getAnchorStatus(); }
             );             
             /*
-            this.signalk.send({ 
-                context: 'vessels.self',
-                put: [{
-                    timestamp: new Date().toISOString(),
-                    source: this.app.id,
-                    values: [{
-                        path: 'navigation.anchor.state',
-                        value: 'off'
+            if(!this.app.data.server.id=='signalk-server-node') {
+                this.signalk.send({ 
+                    context: 'vessels.self',
+                    put: [{
+                        timestamp: new Date().toISOString(),
+                        source: this.app.id,
+                        values: [{
+                            path: 'navigation.anchor.state',
+                            value: 'off'
+                        }]
                     }]
-                }]
-            }); 
+                }); 
+            }
             */ 
         }
     }
@@ -1064,6 +1110,9 @@ export class AppComponent {
         this.signalk.hello(this.app.hostName, this.app.hostPort, this.app.hostSSL)
         .subscribe(
             res=> {
+                this.app.data.server= res['server'];
+                this.app.debug(this.app.data.server);
+                if(this.app.data['firstRun']) { this.showWelcome() }
                 this.signalk.connect( this.app.hostName, this.app.hostPort, this.app.hostSSL, 'none');
             },
             err=> {
@@ -1162,7 +1211,7 @@ export class AppComponent {
         );   
         
         // ** start trail logging interval timer
-        this.trailTimer= setInterval( ()=> { this.processTrail() }, 5000 );        
+        this.trailTimer= setInterval( ()=> { this.processTrail() }, 5000 );
     }
 
     // ** handle connection closure
@@ -1203,7 +1252,11 @@ export class AppComponent {
                 // ** preserve non delta values
                 v.name= this.display.vessels.self.name;
                 v.mmsi= this.display.vessels.self.mmsi;
-                this.display.vessels.self= v;             
+                this.display.vessels.self= v;    
+                // ** locate vessel popover
+                if(this.display.overlay.show && this.display.overlay['type']=='vessel') { 
+                    this.display.overlay.position= v.position 
+                }
 
                 // ** active route **
                 if( value['navigation.course.activeRoute.href'] ) {
@@ -1244,11 +1297,15 @@ export class AppComponent {
                     this.display.map.center= this.display.vessels.self.position;
                 }
                 this.mapRotate(); 
-
             }
-            else { this.display.vessels.aisTargets.push(v) }
-
-            //console.table(this.app.data.vessels.get(this.app.data.selfId));
+            else { 
+                this.display.vessels.aisTargets.set(v.id, v);
+                if(this.display.overlay['type']=='ais' && this.display.overlay.show 
+                        && this.display.overlay['id']==v.id) { 
+                    this.display.overlay.position= v.position;
+                    this.compileAISInfo(v);
+                }
+            }                 
         });
  
     }   
@@ -1304,7 +1361,20 @@ export class AppComponent {
             this.app.data.trail.push(this.display.vessels.self.position) 
         }
         let vt= this.app.data.trail.slice(-5000);
-        this.app.data.trail= vt;     
+        this.app.data.trail= vt;  
+        this.app.db.saveTrail(undefined, this.app.data.trail);
+    }
+
+    // ** delete vessel trail **
+    clearTrail() {
+        let dref= this.dialog.open(ConfirmDialog, {
+            disableClose: true,
+            data: { 
+                title: 'Clear Vessel Trail',
+                message: 'Do you want to delete the vessel trail?'
+            }
+        });     
+        dref.afterClosed().subscribe( res=> { if(res) this.app.data.trail=[] });    
     }
 
 }

@@ -36,7 +36,8 @@ export class SettingsDialog implements OnInit {
         }
     
     ngOnInit() { 
-        this.signalk.get('/webapps').subscribe( (a: Array<any>)=> {
+        let appListUrl= (this.app.data.server.id=='signalk-server-node') ? '/webapps' : '/signalk/apps/list';
+        this.signalk.get(appListUrl).subscribe( (a: Array<any>)=> {
             this.appList= a.map( i=> { 
                 if(!i._location) { // npm linked app
                     return {

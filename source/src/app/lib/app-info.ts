@@ -9,3 +9,4 @@ export * from './info/state.service';
 
 // ** app storage services **
 export * from './info/localstorage.service';
+export * from './info/indexeddb';

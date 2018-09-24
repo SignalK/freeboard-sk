@@ -42,7 +42,9 @@
                 <div style="flex: 1 1 auto;">
                     <div><b>{{r[1].name}}</b></div>
                     <div>{{r[1].description}}</div>
-                    <div><i>{{r[1].distance.toFixed(2)}} m</i></div>
+                    <div><i>{{ app.config.units.distance!='m' ? 
+                            km2Nm(r[1].distance/1000).toFixed(2) + 'NM' :
+                            (r[1].distance/1000).toFixed(2) + 'km'}} </i></div>
                 </div>        
                 <div style="text-align: right;">
                     <mat-checkbox color="primary"

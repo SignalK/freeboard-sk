@@ -3,6 +3,8 @@
  * ************************************/
 import { Injectable } from '@angular/core';
 import { Info } from './lib/app-info';
+import { Subject } from 'rxjs';
+import {IndexedDB} from './lib/info/indexeddb';
 
 
 @Injectable({
@@ -18,8 +20,13 @@ export class AppInfo extends Info {
     public hostSSL: boolean;
     public host= ''; 
 
+    public db: AppDB;
+
     constructor() {
         super();
+
+        this.db= new AppDB();
+
         this.hostName= (this.devMode) ? this.DEVHOST : window.location.hostname;
         this.hostPort= (this.devMode) ? 3000 : parseInt(window.location.port);
         this.hostSSL= (window.location.protocol=='https:') ? true : false;
@@ -78,7 +85,8 @@ export class AppInfo extends Info {
             vessels: new Map(),
             selfId: null,
             activeRoute: null,
-            trail: []
+            trail: [],
+            server: null
         }
 
         /***************************************
@@ -92,6 +100,21 @@ export class AppInfo extends Info {
         this.settings$.subscribe( value=> {
             this.handleSettingsEvent(value);
         });    
+        // ** database events
+        this.db.dbUpdate$.subscribe( res=> {
+            if(res.action) {
+                switch(res.action) {
+                    case 'db_init':
+                        if(res.value) { 
+                            this.db.getTrail().then(t=> { this.data.trail= t.value || [] });
+                        }
+                        break;
+                    case 'trail_save':
+                        if(!res.value) { this.debug('app.trail.save.error', 'warn') }
+                        break;                        
+                }
+            }
+        });            
         this.init();    
 
         /***************************************
@@ -124,6 +147,7 @@ export class AppInfo extends Info {
             this.debug('Upgrade result....new installation');
             this.loadConfig();
             this.loadData();
+            this.data['firstRun']=true;
         }        
         
         // *******************
@@ -137,4 +161,47 @@ export class AppInfo extends Info {
         // ** do stuff here ** 
     }
 
+}
+
+/******************
+** App Database  **
+******************/
+export class AppDB {
+
+    private db: IndexedDB; 
+    private dbUpdateSource;
+    public dbUpdate$;
+
+	constructor() {
+		this.dbUpdateSource= new Subject<string>();
+        this.dbUpdate$ = this.dbUpdateSource.asObservable();
+		this.db= new IndexedDB('freeboard', 1);
+
+        this.db.openDatabase(1, (evt) => {
+            let trail = evt.currentTarget.result.createObjectStore('trail', {keyPath: 'uuid'});
+            trail.createIndex('uuid_idx', 'uuid', {unique: true});
+        }).then( 
+            ()=> { this.emitDbUpdate({action: 'db_init', value: true}) },
+            e=> { this.emitDbUpdate({action: 'db_init', value: false}) }
+        );
+	}
+
+	// ** emit dbUpdate message **
+    emitDbUpdate(value: any= null) { this.dbUpdateSource.next(value) }
+
+	// ** get veesel trail **
+	getTrail(id='self') { return this.db.getByIndex('trail', 'uuid_idx', id) }
+
+	// ** create / update vessel trail entry**
+	saveTrail(id='self', trailData) {
+        this.db.update( 'trail', {uuid: id, value: trailData}).then(
+            () => { this.emitDbUpdate({action: 'trail_save', value: true}) }, 
+            (e)=> { 
+                this.db.add( 'trail', {uuid: id, value: trailData}).then( 
+                    () => { this.emitDbUpdate({action: 'trail_save', value: true}) }, 
+                    e=> { this.emitDbUpdate({action: 'trail_save', value: false}) }
+                );
+            }
+        );
+    } 
 }

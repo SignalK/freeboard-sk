@@ -60,7 +60,12 @@
     <!-- /MENU BAR-->
 
     <!--context menus-->
-    <mat-menu #settingsmenu="matMenu">                   
+    <mat-menu #settingsmenu="matMenu">     
+        <a mat-menu-item (click)="clearTrail()">
+            <mat-icon color="warn">clear_all</mat-icon>
+            <span>Clear Trail</span>			
+        </a>
+        <mat-divider></mat-divider>                      
         <a mat-menu-item (click)="mapMove()">
             <mat-icon>my_location</mat-icon>
             <span>Center Vessel</span>			
@@ -126,26 +131,6 @@
                         <mat-icon>settings</mat-icon>
                         &nbsp;Settings
                     </a>                       
-                
-                                       
-				<!--
-                    <a mat-list-item (click)="sidemenu.toggle();displayLeftMenu('routeList',true)">
-                        <mat-icon>directions</mat-icon>
-                        <p matLine>Routes</p>
-                        <p matLine style="font-size: 8pt;">View Routes</p>
-                    </a>   	
-                    <a mat-list-item (click)="sidemenu.toggle();displayLeftMenu('waypointList',true)">
-                        <mat-icon>location_on</mat-icon>
-                        <p matLine>Waypoints</p>
-                        <p matLine style="font-size: 8pt;">View Waypoints</p>
-                    </a>   
-
-                    <a mat-list-item (click)="sidemenu.toggle();displayLeftMenu('chartList',true)">
-                        <mat-icon>map</mat-icon>
-                        <p matLine>Charts</p>
-                        <p matLine style="font-size: 8pt;">View Charts</p>
-                    </a>                       
-                -->
                     <mat-divider></mat-divider>
 					<a mat-list-item (click)="sidemenu.close();openAbout();">
                         <mat-icon mat-list-avatar>
@@ -317,14 +302,14 @@
                     <!-- *** /WAYPOINTS *** -->     
                     
                     <!-- *** AIS TARGETS *** -->
-                    <aol-layer-vector [zIndex]="120">
+                    <aol-layer-vector [zIndex]="120" [renderBuffer]="200">
                         <aol-source-vector>
-                            <aol-feature [id]="'ais.'+v.id"
-                                *ngFor="let v of display.vessels.aisTargets">
+                            <aol-feature [id]="'ais-'+ v.key"
+                                *ngFor="let v of display.vessels.aisTargets | keyvalue">
                                 <aol-geometry-point>
                                     <aol-coordinate 
-                                        [x]="v.position[0]" 
-                                        [y]="v.position[1]" 
+                                        [x]="v.value.position[0]" 
+                                        [y]="v.value.position[1]" 
                                         [srid]="app.config.map.srid">
                                     </aol-coordinate>
                                 </aol-geometry-point>
@@ -679,8 +664,8 @@
                         [muted]="a.value.muted || a.value.acknowledged"
                     ></audio>
                 </div>
-			</div>
-			
+            </div>
+		
 		</mat-sidenav-container>
 	</div>
 	<!-- /content -->

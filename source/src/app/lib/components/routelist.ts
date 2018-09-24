@@ -1,5 +1,6 @@
 import { Component, OnInit, Input, Output, EventEmitter } from '@angular/core';
-
+import { AppInfo } from '../../app.info';
+import { Convert } from '../convert';
 
 @Component({
     selector: 'route-list',
@@ -20,7 +21,7 @@ export class RouteListComponent {
     someSel: boolean= false;
     allSel: boolean= false;
 
-    constructor() { }
+    constructor(public app: AppInfo) { }
 
     ngOnInit() { this.initItems() }
 
@@ -80,6 +81,8 @@ export class RouteListComponent {
             }
         });
     }
+
+    km2Nm(v) {return Convert.kmToNauticalMiles(v) }
 
 }
 
