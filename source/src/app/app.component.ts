@@ -18,6 +18,8 @@ import 'hammerjs';
 import { proj, coordinate, style } from 'openlayers';
 declare var UUIDjs: any;
 
+enum APP_MODE { REALTIME, PLAYBACK }
+
 @Component({
   selector: 'app-root',
   templateUrl: './app.component.html',
@@ -26,7 +28,7 @@ declare var UUIDjs: any;
 export class AppComponent {
 
     public display= {
-        badge: { hide: true, value: ''},
+        badge: { hide: true, value: '!'},
         leftMenuPanel: false,
         routeList: false,
         waypointList: false,
@@ -65,6 +67,10 @@ export class AppComponent {
         geom: null,
         style: null
     }    
+
+    // ** APP features / mode **
+    public features= { historyAPI: null }
+    public mode: APP_MODE= APP_MODE.REALTIME;
 
     private subOnConnect;
     private subOnError;
@@ -259,6 +265,7 @@ export class AppComponent {
         if(errCount==0) { this.showAlert('GPX Load','GPX file resources loaded successfully.') }
         else { this.showAlert('GPX Load','Completed with errors!\nNot all resources were loaded.') }
     }
+
     // ********** MAP / MAP EVENTS *****************
     
     mapDragOver(e) { e.preventDefault() }
@@ -942,6 +949,14 @@ export class AppComponent {
         this.app.saveConfig();
     } 
 
+    // ** return local charts sorted by scale descending.
+    chartsLocalByScale() {
+        let c= (this.app.data.charts.length>2) ? this.app.data.charts.slice(2) : [];
+        // ** sort local maps by scale descending
+        c.sort( (a,b)=> { return b[1].scale > a[1].scale ? 1 : -1 } );
+        return c;
+    }
+
     // ******** Anchor Watch EVENTS ************
     anchorEvent(e) {
         if(e.action=='radius') {
@@ -1110,8 +1125,7 @@ export class AppComponent {
         this.signalk.hello(this.app.hostName, this.app.hostPort, this.app.hostSSL)
         .subscribe(
             res=> {
-                this.app.data.server= res['server'];
-                this.app.debug(this.app.data.server);
+                this.setFeatures(res['server']);
                 if(this.app.data['firstRun']) { this.showWelcome() }
                 this.signalk.connect( this.app.hostName, this.app.hostPort, this.app.hostSSL, 'none');
             },
@@ -1211,7 +1225,7 @@ export class AppComponent {
         );   
         
         // ** start trail logging interval timer
-        this.trailTimer= setInterval( ()=> { this.processTrail() }, 5000 );
+        this.trailTimer= setInterval( ()=> { this.processTrail() }, 5000 );       
     }
 
     // ** handle connection closure
@@ -1305,7 +1319,7 @@ export class AppComponent {
                     this.display.overlay.position= v.position;
                     this.compileAISInfo(v);
                 }
-            }                 
+            }                              
         });
  
     }   
@@ -1360,9 +1374,9 @@ export class AppComponent {
                 this.display.vessels.self.position[1]!=t[0][1] ) {
             this.app.data.trail.push(this.display.vessels.self.position) 
         }
-        let vt= this.app.data.trail.slice(-5000);
-        this.app.data.trail= vt;  
-        this.app.db.saveTrail(undefined, this.app.data.trail);
+        this.app.data.trail= this.app.data.trail.slice(-5000);  
+        let trailId= (this.mode==APP_MODE.PLAYBACK) ? 'history' : 'self';
+        this.app.db.saveTrail(trailId, this.app.data.trail);
     }
 
     // ** delete vessel trail **
@@ -1375,6 +1389,37 @@ export class AppComponent {
             }
         });     
         dref.afterClosed().subscribe( res=> { if(res) this.app.data.trail=[] });    
+    }
+
+    // ** set available features
+    setFeatures(res) {
+        if(!res) { return }
+        this.app.data.server= res;
+        this.app.debug(this.app.data.server);
+        let ver= this.app.data.server.version.split('.');
+
+        this.features.historyAPI= (res.id=='signalk-server-node' && ver[0]>=1 && ver[1]>=6) ? true : false;
+        this.app.debug(this.features);
+        console.log('mode= ' + this.mode);
+    }
+
+    // ** switch between realtime and history playback modes
+    switchMode(m: APP_MODE) {
+        if(m== APP_MODE.PLAYBACK) { // ** history playback
+            this.app.db.saveTrail('self', this.app.data.trail);
+            this.app.data.trail= [];
+            /*this.app.db.getTrail('history').then( t=> { 
+                this.data.trail= (t && t.value) ? t.value : [];
+            });*/
+            // ** subscribe to history playback
+        }
+        else {  // ** realtime data
+            //this.app.db.saveTrail('history', this.app.data.trail);
+            this.app.db.getTrail('self').then( t=> { 
+                this.app.data.trail= (t && t.value) ? t.value : [];
+            });
+            // ** re-subscribe 
+        }
     }
 
 }

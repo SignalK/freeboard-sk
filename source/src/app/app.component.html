@@ -22,14 +22,14 @@
             [disabled]="draw.enabled || measure.enabled"
             matTooltip="Routes" matTooltipPosition="right"
             (click)="sidemenu.close();displayLeftMenu('routeList',true)">
-            <mat-icon color="primary">directions</mat-icon>
+            <mat-icon style="color:cyan;">directions</mat-icon>
         </button>   
         <hr> 	
         <button mat-icon-button 
             [disabled]="draw.enabled || measure.enabled"
             matTooltip="Waypoints" matTooltipPosition="right"
             (click)="sidemenu.close();displayLeftMenu('waypointList',true)">
-            <mat-icon color="accent">location_on</mat-icon>
+            <mat-icon style="color:yellow;">location_on</mat-icon>
         </button>  
         <hr>  
         <button mat-icon-button 
@@ -119,19 +119,28 @@
                         <h4 matLine>&nbsp;</h4>
                     </a>
                     <mat-divider></mat-divider>    
-                    
+
+                    <a mat-list-item *ngIf="features.historyAPI"
+                        (click)="sidemenu.close();showAlert('Coming Soon', 'This feature coming soon!');">
+                        <mat-icon>history</mat-icon>
+                        &nbsp;History Playback
+                    </a>                      
+                    <mat-divider *ngIf="features.historyAPI"></mat-divider>  
+
                     <ap-file-input [astext]="true" (chosen)="processGPX($event)">
                         <a mat-list-item>
                             <mat-icon><img src="./assets/img/gpx_black.png" style="width:25px;"/></mat-icon>
                             &nbsp;Load from GPX
                         </a>                  
                     </ap-file-input>   
+                    <mat-divider></mat-divider> 
 
                     <a mat-list-item (click)="sidemenu.close();openSettings()">
                         <mat-icon>settings</mat-icon>
                         &nbsp;Settings
                     </a>                       
                     <mat-divider></mat-divider>
+
 					<a mat-list-item (click)="sidemenu.close();openAbout();">
                         <mat-icon mat-list-avatar>
                             <img src="assets/img/app_logo.png" style="width:42px;"/>
@@ -220,14 +229,12 @@
                     </aol-view>
 
                     <!-- *** base maps *** -->
-                    <aol-layer-tile 
-                        *ngIf="app.data.charts.length!=0 && app.data.charts[0][2]"
-                        [zIndex]="0">
+                    <aol-layer-tile [zIndex]="1"
+                        *ngIf="app.data.charts.length!=0 && app.data.charts[0][2]">
                         <aol-source-osm></aol-source-osm>
                     </aol-layer-tile>
-                    <aol-layer-tile 
-                        *ngIf="app.data.charts.length!=0 && app.data.charts[1][2]"
-                        [zIndex]="1">
+                    <aol-layer-tile [zIndex]="2"
+                        *ngIf="app.data.charts.length!=0 && app.data.charts[1][2]">
                         <aol-source-xyz 
                             [url]="'https://tiles.openseamap.org/seamark/{z}/{x}/{y}.png'">
                         </aol-source-xyz>
@@ -235,16 +242,15 @@
                     <!-- *** /base maps *** -->   
 
                     <!-- *** Charts *** -->
-                    <aol-layer-tile>
-                        <div *ngFor="let c of app.data.charts; let i= index;">
+                    <div *ngFor="let c of chartsLocalByScale(); let i=index;">
+                        <aol-layer-tile [zIndex]="5 + i" *ngIf="c[2]">
                             <aol-source-xyz 
-                                *ngIf="i>1 && c[2]"
                                 [minZoom]="c[1].minzoom"
                                 [maxZoom]="c[1].maxzoom"
-                                [url]="app.host + c[1].tilemapUrl+'/{z}/{x}/{-y}.png'">                           
+                                [url]="c[1].tilemapUrl">                           
                             </aol-source-xyz>
-                        </div>
-                    </aol-layer-tile>
+                        </aol-layer-tile>
+                    </div>
                     <!-- *** Charts *** -->        
                     
                     <!-- *** ROUTES *** -->
@@ -324,6 +330,13 @@
                                         [rotateWithView]="true"
                                         [rotation]="0">
                                     </aol-style-icon>
+                                    <aol-style-text 
+                                        [font]="'bold 8pt black roboto,arial'"
+                                        [text]="v.value.name || v.value.mmsi"
+                                        [offsetX]="0"
+                                        [offsetY]= "-10"
+                                        [scale]="1">
+                                    </aol-style-text>                                     
                                 </aol-style>
                             </aol-feature>
                         </aol-source-vector>
@@ -457,7 +470,7 @@
                                         [scale]=".75"
                                         [rotateWithView]="true"
                                         [rotation]="display.vessels.self.heading">
-                                    </aol-style-icon>
+                                    </aol-style-icon>                                   
                                 </aol-style>
                             </aol-feature>
                             <!-- /vessel -->    

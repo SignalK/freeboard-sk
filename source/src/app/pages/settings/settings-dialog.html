@@ -17,7 +17,7 @@
                 <div class="setting-group">
                     <div class="setting-group-title">PLUG-INS</div>
                     <mat-card class="setting-card">
-                        <div class="setting-card-row">
+                        <div class="setting-card-row" *ngIf="appList.length>1">
                             <div class="setting-card-row-item">
                                 <mat-form-field style="width:100%;">
                                     <mat-select #instruments 

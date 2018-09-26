@@ -106,7 +106,9 @@ export class AppInfo extends Info {
                 switch(res.action) {
                     case 'db_init':
                         if(res.value) { 
-                            this.db.getTrail().then(t=> { this.data.trail= t.value || [] });
+                            this.db.getTrail().then( t=> { 
+                                this.data.trail= (t && t.value) ? t.value : [];
+                            });
                         }
                         break;
                     case 'trail_save':

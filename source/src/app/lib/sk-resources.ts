@@ -65,21 +65,25 @@ export class SKResources {
         .subscribe( 
             res=> { 
                 this.app.data.charts= baseCharts.slice(0); 
-                if(!res) { return }  
-                          
                 let r= Object.entries(res);
-                r.forEach( i=> {
-                    this.app.data.charts.push([ 
-                        i[0], 
-                        new SKChart(i[1]),
-                        (this.app.config.selections.charts.indexOf(i[0])==-1) ? false : true 
-                    ]);
-                });
-            // ** clean up selections
-            let k= Object.keys(res);
-            this.app.config.selections.charts= this.app.config.selections.charts.map( i=> {
-                return k.indexOf(i)!=-1 ? i : null;
-            }).filter(i=> { return i});                  
+                if(r.length>0) {   
+                    // ** sort by name **
+                    r.sort( (a,b)=> { return (b[1].name < a[1].name) ? 1 : -1 });
+                    r.forEach( i=> {
+                        if(i[1].tilemapUrl[0]=='/' || i[1].tilemapUrl.slice(0,4)!='http') { // ** ensure host is in url
+                            i[1].tilemapUrl= this.app.host + i[1].tilemapUrl;
+                        }
+                        this.app.data.charts.push([ 
+                            i[0], 
+                            new SKChart(i[1]),
+                            (this.app.config.selections.charts.indexOf(i[0])==-1) ? false : true 
+                        ]);
+                    });
+                    // ** clean up selections
+                    this.app.config.selections.charts= this.app.data.charts.map( 
+                        i=>{ return (i[2]) ? i[0] : null }
+                    ).filter(i=> { return i});
+                }               
             },
             err=> { this.app.data.charts= baseCharts.slice(0) }
         )

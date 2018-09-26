@@ -36,29 +36,35 @@ export class SettingsDialog implements OnInit {
         }
     
     ngOnInit() { 
-        let appListUrl= (this.app.data.server.id=='signalk-server-node') ? '/webapps' : '/signalk/apps/list';
-        this.signalk.get(appListUrl).subscribe( (a: Array<any>)=> {
-            this.appList= a.map( i=> { 
-                if(!i._location) { // npm linked app
-                    return {
-                        name:  i.name,
-                        description: i.description, 
-                        url: `/${i.name}`
-                    }                    
-                }
-                let x= i._location.indexOf('/signalk-server/');
-                return {
-                    name: i.name,
-                    description: i.description, 
-                    url: (x==-1) ? i._location : i._location.slice(15)
-                }
-            });
-            this.appList.unshift({
-                name:  'None',
-                description: '', 
-                url: null
-            })
-        })
+        let appListUrl= null;
+        if(this.app.data.server && this.app.data.server.id ) {
+            appListUrl= (this.app.data.server.id=='signalk-server-node') ? '/webapps' : '/signalk/apps/list';
+            this.signalk.get(appListUrl).subscribe( 
+                (a: Array<any>)=> {
+                    this.appList= a.map( i=> { 
+                        if(!i._location) { // npm linked app
+                            return {
+                                name:  i.name,
+                                description: i.description, 
+                                url: `/${i.name}`
+                            }                    
+                        }
+                        let x= i._location.indexOf('/signalk-server/');
+                        return {
+                            name: i.name,
+                            description: i.description, 
+                            url: (x==-1) ? i._location : i._location.slice(15)
+                        }
+                    });
+                    this.appList.unshift({
+                        name:  'None',
+                        description: '', 
+                        url: null
+                    });
+                },
+                err=> { this.app.debug('ERROR retrieving AppList!') }
+            );
+        }
     }
 
     ngOnDestroy() { }
