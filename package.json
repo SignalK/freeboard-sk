@@ -7,18 +7,13 @@
     ],
     "repository": "https://github.com/SignalK/freeboard-sk",
     "scripts": {
-        "format": "prettier-standard 'src/**/*.js'",
-        "test": "mocha"
+        "prepare": "cd source && npx ng build --prod"
     },
     "author": "robert@42.co.nz",
     "contributors": [
-        { "name": "panaaj@hotmail.com" }
+        {
+            "name": "panaaj@hotmail.com"
+        }
     ],
-    "license": "Apache-v2",
-    "dependencies": {
-    },
-    "devDependencies": {
-    "mocha": "^5.0.5",
-    "prettier-standard": "^8.0.0"
-    }
+    "license": "Apache-v2"
 }
