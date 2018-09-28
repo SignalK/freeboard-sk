@@ -5,6 +5,7 @@ import { DomSanitizer, SafeResourceUrl} from '@angular/platform-browser';
 import { AppInfo } from './app.info';
 import { MsgBox, AboutDialog, ConfirmDialog, AlertDialog } from './lib/app-ui';
 import { ResourceDialog } from './lib/ui/resource-dialogs';
+import { PlaybackDialog } from './lib/ui/playback-dialog';
 import { SettingsDialog } from './pages';
 import { GPXImportDialog } from './lib/gpxload/gpxload.module';
 
@@ -185,6 +186,59 @@ export class AppComponent {
             disableClose: true,
             data: { message: message, title: title, buttonText: 'Continue' }
         });         
+    }
+
+    // ** show select mode dialog
+    showSelectMode() {
+        if(this.mode== APP_MODE.REALTIME) { // request history playback
+            let dref= this.dialog.open(ConfirmDialog, {
+                disableClose: false,
+                data: { 
+                    message: 'Do you want to change to History Playback mode?', 
+                    title: 'Switch Mode' 
+                }
+            }); 
+            dref.afterClosed().subscribe( r=> {
+                if(r) { this.showPlaybackSettings() }
+            });         
+        }
+        else {  // request realtime
+            let dref= this.dialog.open(ConfirmDialog, {
+                disableClose: false,
+                data: { 
+                    message: 'Do you want to exit History Playback mode?', 
+                    title: 'Exit History Playback' 
+                }
+            }); 
+            dref.afterClosed().subscribe( r=> {
+                if(r) { this.switchMode(APP_MODE.REALTIME) }
+            });  
+        }
+    }
+
+    showPlaybackSettings() {
+        let dref= this.dialog.open(PlaybackDialog, {
+            disableClose: false,
+            data: { 
+                message: 'Do you want to change to History Playback mode?', 
+                title: 'Switch Mode' 
+            }
+        }); 
+        dref.afterClosed().subscribe( r=> {
+            if(r.result) {
+                console.log(r.data);
+                // ** test for history provider
+                let t= new Date().toISOString();
+                t='2018-09-27T03:53:51.285Z';
+                this.signalk.apiGet(`vessels/self/navigation/position?time=${t}`)
+                .subscribe( 
+                    r=> {   
+                        //switchMode()                  
+                    },
+                    err=> { this.showAlert('Error:', 'Cannot enter History Playback mode.\n\n' + err.error) }
+                ); 
+            } 
+        });
     }
 
     // **********  GPX File processing **********
@@ -1131,7 +1185,7 @@ export class AppComponent {
             },
             err=> {
                 let dRef= this.dialog.open(AlertDialog, {
-                    disableClose: false,
+                    disableClose: true,
                     data: {
                         title: 'Connection Error:',  
                         message: 'Unable to contact Signal K server!', 
@@ -1196,8 +1250,8 @@ export class AppComponent {
     // ** handle connection established
     onConnect(e) {
         console.info('Connected to Signal K server...');
-        // ** subscribe to messages 
-        this.subscribeSignalK();
+        // ** subscribe to messages if not history playback
+        if(this.mode== APP_MODE.REALTIME) { this.subscribeSignalK() }
         // ** query for resources
         this.skres.getRoutes();
         this.skres.getWaypoints();
@@ -1231,10 +1285,10 @@ export class AppComponent {
     // ** handle connection closure
     onClose(e) {
         console.info('Closing connection to Signal K server...');
-        this.terminateSignalK();
+        if(this.mode== APP_MODE.REALTIME) { this.terminateSignalK() }
         if(this.trailTimer) { clearInterval(this.trailTimer) }
         let dRef= this.dialog.open(AlertDialog, {
-            disableClose: false,
+            disableClose: true,
             data: {
                 title: 'Connection Closed:',  
                 message: 'Connection to the Signal K server has been closed.', 
@@ -1262,7 +1316,8 @@ export class AppComponent {
                 if( ph[1]=='headingTrue' && v.headingTrue) { v.heading= v.headingTrue }
                 else if( ph[1]=='headingMagnetic' && v.headingMagnetic) { v.heading= v.headingMagnetic } 
                 else { v.heading= v.headingTrue ? v.headingTrue : 
-                        v.headingMagnetic ? v.headingMagnetic : 0 }
+                    v.headingMagnetic ? v.headingMagnetic : 0 
+                }
                 // ** preserve non delta values
                 v.name= this.display.vessels.self.name;
                 v.mmsi= this.display.vessels.self.mmsi;
@@ -1398,27 +1453,34 @@ export class AppComponent {
         this.app.debug(this.app.data.server);
         let ver= this.app.data.server.version.split('.');
 
-        this.features.historyAPI= (res.id=='signalk-server-node' && ver[0]>=1 && ver[1]>=6) ? true : false;
-        this.app.debug(this.features);
-        console.log('mode= ' + this.mode);
+        //this.features.historyAPI= (res.id=='signalk-server-node' && ver[0]>=1 && ver[1]>=6) ? true : false;
+        //this.app.debug(this.features);
     }
 
     // ** switch between realtime and history playback modes
-    switchMode(m: APP_MODE) {
-        if(m== APP_MODE.PLAYBACK) { // ** history playback
+    switchMode(toMode: APP_MODE, context='self', startTime?, playbackRate?) {
+        // close current connection & re-initialise
+        this.signalk.disconnect();
+        this.app.data.vessels= new Map();
+        this.app.data.selfId= null;
+        if(this.trailTimer) { clearInterval(this.trailTimer) }
+        
+        if(toMode== APP_MODE.PLAYBACK) { // ** history playback
+            if(!startTime) { return }
             this.app.db.saveTrail('self', this.app.data.trail);
             this.app.data.trail= [];
-            /*this.app.db.getTrail('history').then( t=> { 
-                this.data.trail= (t && t.value) ? t.value : [];
-            });*/
-            // ** subscribe to history playback
+            // e.g. subscribe=self&startTime=2018-09-24T06:19:09Z&playbackRate=10
+            let sub= `${context}&startTime=${startTime}`;
+            sub+= (playbackRate) ? `&playbackRate=${playbackRate}` : '';
+            this.signalk.connect(this.app.hostName, this.app.hostPort, this.app.hostSSL, sub);
         }
         else {  // ** realtime data
-            //this.app.db.saveTrail('history', this.app.data.trail);
             this.app.db.getTrail('self').then( t=> { 
                 this.app.data.trail= (t && t.value) ? t.value : [];
             });
-            // ** re-subscribe 
+            // ** connect and re-subscribe 
+            this.signalk.connect(this.app.hostName, this.app.hostPort, this.app.hostSSL, 'none');
+            // re-subscription happens in onConnect() message handler
         }
     }
 

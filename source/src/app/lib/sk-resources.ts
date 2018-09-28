@@ -73,6 +73,10 @@ export class SKResources {
                         if(i[1].tilemapUrl[0]=='/' || i[1].tilemapUrl.slice(0,4)!='http') { // ** ensure host is in url
                             i[1].tilemapUrl= this.app.host + i[1].tilemapUrl;
                         }
+                        if(!i[1].scale) { i[1].scale= 250000 }
+                        i[1].name= (i[1].identifier && i[1].identifier!=i[1].name) ? 
+                             i[1].identifier + ' - ' + i[1].name : i[1].name;
+                        
                         this.app.data.charts.push([ 
                             i[0], 
                             new SKChart(i[1]),

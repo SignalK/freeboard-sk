@@ -16,6 +16,8 @@ export class ChartListComponent {
 
     filterList= [];
     filterText= '';
+    someSel: boolean= false;
+    allSel: boolean= false;    
 
     constructor() { }
 
@@ -36,12 +38,32 @@ export class ChartListComponent {
                 return  x<=y ? -1 : 1;
             }
         });
+        this.checkSelections();
+    }   
+    
+    checkSelections() {
+        let c= false;
+        let u= false;
+        this.charts.forEach( i=> { 
+            c= (i[2]) ? true : c;
+            u= (!i[2]) ? true : u;
+        });
+        this.allSel= (c && !u) ? true : false;
+        this.someSel= (c && u) ? true : false;        
+    } 
+    
+    selectAll(value) {
+        this.charts.forEach( i=> { i[2]=value} );
+        this.someSel= false;
+        this.allSel= (value) ? true : false;
+        this.select.emit({id: 'all', value: value});
     }    
 
     itemSelect(e, id) { 
         this.charts.forEach( i=> { 
             if(i[0]==id) { i[2]=e }
         });        
+        this.checkSelections();
         this.select.emit({id: id, value: e}) 
     }
 

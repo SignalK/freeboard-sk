@@ -13,7 +13,14 @@
                     matTooltip="Reload Charts"
                     matTooltipPosition="left">
                     <mat-icon>refresh</mat-icon>
-                </button>              
+                </button>   
+                <mat-checkbox #selall color="primary"
+                    [checked]="allSel"
+                    [indeterminate]="someSel"
+                    (change)="selectAll($event.checked)"
+                    [matTooltip]="(!selall.checked || someSel) ? 'Select All' : 'Deselect All'"
+                    matTooltipPosition="right">
+                </mat-checkbox>                             
             </div>
         </div>
         <div>
@@ -31,9 +38,9 @@
             <div style="display: flex;">
                 <div style="flex: 1 1 auto;">
                     <div>
-                        <mat-icon>{{ i<2 ? 'language' : 'map'}}</mat-icon>
-                        &nbsp;
-                        <b>{{r[1].name}}</b></div>
+                        <mat-icon>{{ (i<2) ? 'language' : 'map'}}</mat-icon>
+                        &nbsp;<b>{{r[1].name}}</b>
+                    </div>
                     <div>{{r[1].description}}</div>
                 </div>        
                 <div style="text-align: right;">

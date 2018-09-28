@@ -23,7 +23,7 @@
               "src/assets",
               "src/manifest.json", "src/browserconfig.xml",
               "src/package.json", "src/README.md",
-              "src/.npmignore"
+              "src/.npmignore", "src/.gitignore"
             ],
             "styles": [
               {
