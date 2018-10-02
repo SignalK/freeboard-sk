@@ -60,6 +60,7 @@ export class AppInfo extends Info {
                 position: [0,0]
             },
             usePUT: true,
+            vesselTrail: false,
             depthAlarm: { enabled: false, smoothing: 10000 },
             plugins: {
                 instruments: '/@signalk/instrumentpanel'
@@ -106,9 +107,11 @@ export class AppInfo extends Info {
                 switch(res.action) {
                     case 'db_init':
                         if(res.value) { 
-                            this.db.getTrail().then( t=> { 
-                                this.data.trail= (t && t.value) ? t.value : [];
-                            });
+                            if(this.config.vesselTrail) {
+                                this.db.getTrail().then( t=> { 
+                                    this.data.trail= (t && t.value) ? t.value : [];
+                                });
+                            }
                         }
                         break;
                     case 'trail_save':

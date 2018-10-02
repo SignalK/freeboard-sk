@@ -61,11 +61,12 @@
 
     <!--context menus-->
     <mat-menu #settingsmenu="matMenu">     
-        <a mat-menu-item (click)="clearTrail()">
+        <a mat-menu-item *ngIf="app.config.vesselTrail && app.data.trail.length!=0" 
+            (click)="clearTrail()">
             <mat-icon color="warn">clear_all</mat-icon>
             <span>Clear Trail</span>			
         </a>
-        <mat-divider></mat-divider>                      
+        <mat-divider *ngIf="app.config.vesselTrail && app.data.trail.length!=0" ></mat-divider>                      
         <a mat-menu-item (click)="mapMove()">
             <mat-icon>my_location</mat-icon>
             <span>Center Vessel</span>			
@@ -515,7 +516,8 @@
                     </aol-layer-vector>   
                     
                     <!-- *** VESSEL TRAIL *** -->
-                    <aol-layer-vector [zIndex]="200">
+                    <aol-layer-vector [zIndex]="200"
+                        *ngIf="app.config.vesselTrail">
                         <aol-source-vector>
                             <aol-feature>
                                 <aol-geometry-linestring>

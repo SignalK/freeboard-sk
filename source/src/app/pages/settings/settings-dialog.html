@@ -96,8 +96,15 @@
                                     </mat-select>                                        
                                 </mat-form-field>
                             </div>                        
-
-                        
+                            <br>
+                            <div class="setting-card-row-item">
+                                <mat-checkbox #vesseltrail color="primary"
+                                    [(ngModel)]="app.config.vesselTrail" 
+                                    (change)="onFormChange($event, vesseltrail)"
+                                    label="after">
+                                    Display Vessel Trail
+                                </mat-checkbox>                                        
+                            </div>                            
                         </div>                             
                     </mat-card>
                 </div>  

@@ -1425,6 +1425,7 @@ export class AppComponent {
 
     // ** process vessel trail **
     processTrail() {
+        if(!this.app.config.vesselTrail) { return }
         // ** update vessel trail **
         let t= this.app.data.trail.slice(-1);
         if(t.length==0) { 
