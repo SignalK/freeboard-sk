@@ -120,13 +120,6 @@
                     </a>
                     <mat-divider></mat-divider>    
 
-                    <a mat-list-item *ngIf="features.historyAPI"
-                        (click)="sidemenu.close();showSelectMode();">
-                        <mat-icon>history</mat-icon>
-                        &nbsp;History Playback
-                    </a>                      
-                    <mat-divider *ngIf="features.historyAPI"></mat-divider>  
-
                     <ap-file-input [astext]="true" (chosen)="processGPX($event)">
                         <a mat-list-item>
                             <mat-icon><img src="./assets/img/gpx_black.png" style="width:25px;"/></mat-icon>
@@ -134,6 +127,13 @@
                         </a>                  
                     </ap-file-input>   
                     <mat-divider></mat-divider> 
+
+                    <a mat-list-item *ngIf="features.historyAPI"
+                        (click)="sidemenu.close();showSelectMode();">
+                        <mat-icon>history</mat-icon>
+                        &nbsp;History Playback
+                    </a>                      
+                    <mat-divider *ngIf="features.historyAPI"></mat-divider>                      
 
                     <a mat-list-item (click)="sidemenu.close();openSettings()">
                         <mat-icon>settings</mat-icon>
@@ -310,35 +310,11 @@
                     <!-- *** AIS TARGETS *** -->
                     <aol-layer-vector [zIndex]="120" [renderBuffer]="200">
                         <aol-source-vector>
-                            <aol-feature [id]="'ais-'+ v.key"
-                                *ngFor="let v of display.vessels.aisTargets | keyvalue">
-                                <aol-geometry-point>
-                                    <aol-coordinate 
-                                        [x]="v.value.position[0]" 
-                                        [y]="v.value.position[1]" 
-                                        [srid]="app.config.map.srid">
-                                    </aol-coordinate>
-                                </aol-geometry-point>
-                                <aol-style>
-                                    <aol-style-icon 
-                                        [anchor]="[12,12]"
-                                        [anchorXUnits]="'pixels'"
-                                        [anchorYUnits]= "'pixels'"
-                                        [src]="'./assets/img/magenta_yacht.png'"
-                                        [size]="[24,24]"
-                                        [scale]=".75"
-                                        [rotateWithView]="true"
-                                        [rotation]="0">
-                                    </aol-style-icon>
-                                    <aol-style-text 
-                                        [font]="'bold 8pt black roboto,arial'"
-                                        [text]="v.value.name || v.value.mmsi"
-                                        [offsetX]="0"
-                                        [offsetY]= "-10"
-                                        [scale]="1">
-                                    </aol-style-text>                                     
-                                </aol-style>
-                            </aol-feature>
+                            <xol-ais-targets [aisTargets]="display.vessels.aisDisplayList"
+                                [icon]="'./assets/img/magenta_yacht.png'"
+                                [labelMinZoom]="10"
+                                [mapZoom]="app.config.map.zoomLevel">                               
+                            </xol-ais-targets>
                         </aol-source-vector>
                     </aol-layer-vector>
                     <!-- *** AIS TARGETS *** -->                    
@@ -642,8 +618,19 @@
                 </anchor-watch>                     
             </div>
 
-            <!-- *** Alarm panel ***-->
+            <!-- *** Alarm / Mode panel ***-->
 			<div class="alarmPanel">
+                <div *ngIf="mode==1">
+                    <mat-card>
+                        History Playback Mode
+                        <mat-card-actions>
+                            <button mat-button (click)="showSelectMode()">
+                                <mat-icon color="warn">cancel</mat-icon>
+                                CLOSE
+                            </button>
+                        </mat-card-actions>
+                    </mat-card>
+                </div>
 				<div *ngFor="let a of display.alarms | keyvalue" style="margin-bottom: 5px;">
                     <mat-card *ngIf="a.value.visual && !a.value.acknowledged">
                         <mat-card-title-group>

@@ -15,7 +15,9 @@ import { FileInputComponent } from './file-input.component';
 import { PopoverComponent } from './popover';
 import { ResourceDialog } from './resource-dialogs';
 import { PlaybackDialog } from './playback-dialog';
+
 import { GeometryCircleComponent } from '../components/geom-circle.component';
+import { AisTargetsComponent } from '../components/feature-ais.component';
 
 @NgModule({
     imports: [
@@ -28,13 +30,13 @@ import { GeometryCircleComponent } from '../components/geom-circle.component';
         MsgBox, AlertDialog, ConfirmDialog, AboutDialog,
         FileInputComponent,
         PopoverComponent, ResourceDialog, PlaybackDialog,
-        GeometryCircleComponent
+        GeometryCircleComponent, AisTargetsComponent
     ],
     exports: [
         MsgBox, AlertDialog, ConfirmDialog, AboutDialog,
         FileInputComponent,
         PopoverComponent, ResourceDialog, PlaybackDialog,
-        GeometryCircleComponent
+        GeometryCircleComponent, AisTargetsComponent
     ],
     entryComponents: [
         MsgBox, AlertDialog, ConfirmDialog, AboutDialog,

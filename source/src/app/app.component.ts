@@ -19,7 +19,7 @@ import 'hammerjs';
 import { proj, coordinate, style } from 'openlayers';
 declare var UUIDjs: any;
 
-enum APP_MODE { REALTIME, PLAYBACK }
+enum APP_MODE { REALTIME=0, PLAYBACK }
 
 @Component({
   selector: 'app-root',
@@ -37,7 +37,8 @@ export class AppComponent {
         anchorWatch: false,
         vessels: { 
             self: new SKVessel(), 
-            aisTargets: new Map()
+            aisTargets: new Map(),
+            aisDisplayList: []  // ** immutable for AIS map display
         },
         alarms: new Map(),
         map: { center: [0,0], zoomLevel: 2, rotation: 0 },        
@@ -72,6 +73,7 @@ export class AppComponent {
     // ** APP features / mode **
     public features= { historyAPI: null }
     public mode: APP_MODE= APP_MODE.REALTIME;
+    private switchingMode: boolean=false;
 
     private subOnConnect;
     private subOnError;
@@ -226,15 +228,10 @@ export class AppComponent {
         }); 
         dref.afterClosed().subscribe( r=> {
             if(r.result) {
-                console.log(r.data);
-                // ** test for history provider
-                let t= new Date().toISOString();
-                t='2018-09-27T03:53:51.285Z';
-                this.signalk.apiGet(`vessels/self/navigation/position?time=${t}`)
+                // ** test for history provider / available time data
+                this.signalk.apiGet(`vessels/self/navigation/position?time=${r.startTime}`)
                 .subscribe( 
-                    r=> {   
-                        //switchMode()                  
-                    },
+                    res=> { this.switchMode(APP_MODE.PLAYBACK, r.query) },
                     err=> { this.showAlert('Error:', 'Cannot enter History Playback mode.\n\n' + err.error) }
                 ); 
             } 
@@ -1174,7 +1171,16 @@ export class AppComponent {
         this.connectSignalKServer();
     }
 
-    // ** establish connection 
+    // ** tear down connection 
+    terminateSignalK() {
+        this.subOnConnect.unsubscribe();
+        this.subOnError.unsubscribe();
+        this.subOnMessage.unsubscribe();
+        this.subOnClose.unsubscribe();      
+        this.signalk.disconnect();
+    }    
+
+    // ** establish connection to server
     connectSignalKServer() {
         this.signalk.hello(this.app.hostName, this.app.hostPort, this.app.hostSSL)
         .subscribe(
@@ -1197,47 +1203,39 @@ export class AppComponent {
         ) 
     }
 
-    // ** tear down connection 
-    terminateSignalK() {
-        this.subOnConnect.unsubscribe();
-        this.subOnError.unsubscribe();
-        this.subOnMessage.unsubscribe();
-        this.subOnClose.unsubscribe();      
-        this.signalk.disconnect();
-    }
-
     // ** subscribe to signal k messages
     subscribeSignalK() {
+        let selfPolicy='fixed';
         let aisSub = {
             "context":"vessels.*",
             "subscribe":[
-                {"path":"uuid","period":10000},
-                {"path":"name","period":10000},
-                {"path":"communication.callsignVhf","period":10000},
-                {"path":"mmsi","period":10000},
-                {"path":"port","period":10000},
-                {"path":"flag","period":10000},
-                {"path":"navigation.position","period":10000},
-                {"path":"navigation.state","period":10000},
-                {"path":"navigation.courseOverGround*","period":10000},
-                {"path":"navigation.speedOverGround","period":10000}
+                {"path":"uuid","period":10000,"policy":selfPolicy},
+                {"path":"name","period":10000,"policy":selfPolicy},
+                {"path":"communication.callsignVhf","period":10000,"policy":selfPolicy},
+                {"path":"mmsi","period":10000,"policy":selfPolicy},
+                {"path":"port","period":10000,"policy":selfPolicy},
+                {"path":"flag","period":10000,"policy":selfPolicy},
+                {"path":"navigation.position","period":10000,"policy":selfPolicy},
+                {"path":"navigation.state","period":10000,"policy":selfPolicy},
+                {"path":"navigation.courseOverGround*","period":10000,"policy":selfPolicy},
+                {"path":"navigation.speedOverGround","period":10000,"policy":selfPolicy}
             ]
         };
         let selfSub = {
             "context":"vessels.self",
             "subscribe":[
-                {"path":"navigation.position","period":1000},
-                {"path":"navigation.state","period":1000},
-                {"path":"navigation.courseOverGroundTrue*","period":1000},
-                {"path":"navigation.speedOverGround","period":1000},
-                {"path":"navigation.headingMagnetic","period":1000},
-                {"path":"navigation.headingTrue","period":1000},
-                {"path":"navigation.course.activeRoute.href","period":1000},
-                {"path":"navigation.anchor","period":1000},
-                {"path":"environment.wind.directionTrue","period":1000},
-                {"path":"environment.wind.angleApparent","period":1000},
-                {"path":"environment.wind.speedTrue","period":1000},
-                {"path":"environment.wind.speedApparent","period":1000},
+                {"path":"navigation.position","period":1000,"policy":selfPolicy},
+                {"path":"navigation.state","period":1000,"policy":selfPolicy},
+                {"path":"navigation.courseOverGroundTrue*","period":1000,"policy":selfPolicy},
+                {"path":"navigation.speedOverGround","period":1000,"policy":selfPolicy},
+                {"path":"navigation.headingMagnetic","period":1000,"policy":selfPolicy},
+                {"path":"navigation.headingTrue","period":1000,"policy":selfPolicy},
+                {"path":"navigation.course.activeRoute.href","period":1000,"policy":selfPolicy},
+                {"path":"navigation.anchor","period":1000,"policy":selfPolicy},
+                {"path":"environment.wind.directionTrue","period":1000,"policy":selfPolicy},
+                {"path":"environment.wind.angleApparent","period":1000,"policy":selfPolicy},
+                {"path":"environment.wind.speedTrue","period":1000,"policy":selfPolicy},
+                {"path":"environment.wind.speedApparent","period":1000,"policy":selfPolicy},
                 {"path":"notifications.*","period":1000}
             ]
         };        
@@ -1245,7 +1243,7 @@ export class AppComponent {
         this.signalk.send(selfSub);
     } 
 
-    // ******** Signal K Event handlers **************
+    // ******** SIGNAL K Event handlers **************
 
     // ** handle connection established
     onConnect(e) {
@@ -1284,18 +1282,20 @@ export class AppComponent {
 
     // ** handle connection closure
     onClose(e) {
-        console.info('Closing connection to Signal K server...');
-        if(this.mode== APP_MODE.REALTIME) { this.terminateSignalK() }
-        if(this.trailTimer) { clearInterval(this.trailTimer) }
-        let dRef= this.dialog.open(AlertDialog, {
-            disableClose: true,
-            data: {
-                title: 'Connection Closed:',  
-                message: 'Connection to the Signal K server has been closed.', 
-                buttonText: 'Re-connect'
-            }
-        });  
-        dRef.afterClosed().subscribe( ()=>{ this.initSignalK() } );        
+        if(!this.switchingMode) { 
+            console.info('Closing connection to Signal K server...')
+            this.terminateSignalK();
+            let dRef= this.dialog.open(AlertDialog, {
+                disableClose: true,
+                data: {
+                    title: 'Connection Closed:',  
+                    message: 'Connection to the Signal K server has been closed.', 
+                    buttonText: 'Re-connect'
+                }
+            });  
+            dRef.afterClosed().subscribe( ()=>{ this.initSignalK() } );             
+        }
+        if(this.trailTimer) { clearInterval(this.trailTimer) }       
     }
     
     // ** handle error message
@@ -1376,7 +1376,13 @@ export class AppComponent {
                 }
             }                              
         });
- 
+
+        // ** refresh AIS target charts display
+        this.display.vessels.aisDisplayList= [];
+        this.display.vessels.aisTargets.forEach( (v,k)=>{
+            this.display.vessels.aisDisplayList.push([k, v]);
+        });         
+
     }   
     
     // ** process alarm / notification **
@@ -1458,21 +1464,16 @@ export class AppComponent {
     }
 
     // ** switch between realtime and history playback modes
-    switchMode(toMode: APP_MODE, context='self', startTime?, playbackRate?) {
-        // close current connection & re-initialise
+    switchMode(toMode: APP_MODE, query?) {
+        this.switchingMode= true;
         this.signalk.disconnect();
         this.app.data.vessels= new Map();
         this.app.data.selfId= null;
-        if(this.trailTimer) { clearInterval(this.trailTimer) }
         
         if(toMode== APP_MODE.PLAYBACK) { // ** history playback
-            if(!startTime) { return }
             this.app.db.saveTrail('self', this.app.data.trail);
             this.app.data.trail= [];
-            // e.g. subscribe=self&startTime=2018-09-24T06:19:09Z&playbackRate=10
-            let sub= `${context}&startTime=${startTime}`;
-            sub+= (playbackRate) ? `&playbackRate=${playbackRate}` : '';
-            this.signalk.connect(this.app.hostName, this.app.hostPort, this.app.hostSSL, sub);
+            //this.signalk.connect(this.app.hostName, this.app.hostPort, this.app.hostSSL, query);
         }
         else {  // ** realtime data
             this.app.db.getTrail('self').then( t=> { 
@@ -1482,6 +1483,8 @@ export class AppComponent {
             this.signalk.connect(this.app.hostName, this.app.hostPort, this.app.hostSSL, 'none');
             // re-subscription happens in onConnect() message handler
         }
+        this.switchingMode= false;
+        this.mode= toMode;
     }
 
 }

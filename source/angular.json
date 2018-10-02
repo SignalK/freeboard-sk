@@ -21,9 +21,7 @@
             "assets": [
               "src/favicon.ico",
               "src/assets",
-              "src/manifest.json", "src/browserconfig.xml",
-              "src/package.json", "src/README.md",
-              "src/.npmignore", "src/.gitignore"
+              "src/manifest.json", "src/browserconfig.xml"
             ],
             "styles": [
               {
