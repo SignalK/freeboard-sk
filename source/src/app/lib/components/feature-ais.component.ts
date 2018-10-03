@@ -36,7 +36,7 @@ export class AisTargetsComponent implements OnInit, OnDestroy, OnChanges {
         
         this.aisTargets.forEach( e=> {
             let aisText= (this.mapZoom<this.labelMinZoom) ? '' : 
-                e[1].name || e[1].callsign || e[1].mmsi || e[0].slice(-6); 
+                e[1].name || e[1].callsign || e[1].mmsi || ''; 
             let tc= proj.transform(
                 e[1].position, 
                 this.srid, 

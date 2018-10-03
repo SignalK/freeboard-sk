@@ -9,35 +9,21 @@
                 [matBadge]="display.badge.value" 
                 matBadgeOverlap="true" matBadgeColor="warn"
                 [matBadgeHidden]="display.badge.hide">menu</mat-icon>
-        </button> 
-        <hr>              
-        <button mat-icon-button 
-            [disabled]="draw.enabled || measure.enabled"
-            matTooltip="Anchor Watch" matTooltipPosition="right"
-            (click)="sidemenu.close();displayLeftMenu('anchorWatch',true)">
-            <mat-icon style="color:white"><i class="fi-anchor"></i></mat-icon>
-        </button>   
+        </button>
         <hr>                                            
         <button mat-icon-button
             [disabled]="draw.enabled || measure.enabled"
             matTooltip="Routes" matTooltipPosition="right"
             (click)="sidemenu.close();displayLeftMenu('routeList',true)">
-            <mat-icon style="color:cyan;">directions</mat-icon>
+            <mat-icon style="color:white;">directions</mat-icon>
         </button>   
         <hr> 	
         <button mat-icon-button 
             [disabled]="draw.enabled || measure.enabled"
             matTooltip="Waypoints" matTooltipPosition="right"
             (click)="sidemenu.close();displayLeftMenu('waypointList',true)">
-            <mat-icon style="color:yellow;">location_on</mat-icon>
-        </button>  
-        <hr>  
-        <button mat-icon-button 
-            [disabled]="draw.enabled || measure.enabled"        
-            matTooltip="Charts" matTooltipPosition="right"
-            (click)="sidemenu.close();displayLeftMenu('chartList',true)">
-            <mat-icon style="color:white">map</mat-icon>
-        </button>                       
+            <mat-icon style="color:white;">location_on</mat-icon>
+        </button>                      
         <hr>
         <button mat-icon-button 
             [disabled]="draw.enabled || measure.enabled"
@@ -47,40 +33,46 @@
             <mat-icon style="color:white">edit</mat-icon>
         </button>                 
         <hr> 	        
+        <button mat-icon-button (click)="toggleNorthUp()"
+            [matTooltip]="app.config.map.northUp ? 'Show Heading Up' : 'Show North Up'"
+            matTooltipPosition="right">
+            <mat-icon [style.color]="app.config.map.northUp ? 'white' : 'yellow'">
+                {{app.config.map.northUp ? 'navigation' : 'explore'}}
+            </mat-icon>			
+        </button>          
+        <hr>
+        <button mat-icon-button (click)="toggleMoveMap()"
+            [matTooltip]="app.config.map.moveMap ? 'Turn off Follow Vessel' : 'Follow Vessel' " 
+            matTooltipPosition="right">
+            <mat-icon [style.color]="app.config.map.moveMap ? 'yellow' : 'white'">
+                my_location
+            </mat-icon>	
+        </button> 
+        <hr *ngIf="!app.config.map.moveMap">
+        <button mat-icon-button *ngIf="!app.config.map.moveMap"
+            (click)="mapMove()"
+            matTooltip="Center Vessel" matTooltipPosition="right">
+            <mat-icon>center_focus_strong</mat-icon>			
+        </button>        
+        <hr>
         <button mat-icon-button 
             [disabled]="draw.enabled || measure.enabled"
             matTooltip="More actions" matTooltipPosition="right"
             (click)="sidemenu.close();"
             [matMenuTriggerFor]="settingsmenu">
             <mat-icon style="color:white">more_horiz</mat-icon>
-        </button>    
-        <hr>
+        </button>              
             
     </div>
     <!-- /MENU BAR-->
 
     <!--context menus-->
     <mat-menu #settingsmenu="matMenu">     
-        <a mat-menu-item *ngIf="app.config.vesselTrail && app.data.trail.length!=0" 
+        <button mat-menu-item [disabled]="!app.config.vesselTrail || app.data.trail.length==0" 
             (click)="clearTrail()">
             <mat-icon color="warn">clear_all</mat-icon>
             <span>Clear Trail</span>			
-        </a>
-        <mat-divider *ngIf="app.config.vesselTrail && app.data.trail.length!=0" ></mat-divider>                      
-        <a mat-menu-item (click)="mapMove()">
-            <mat-icon>my_location</mat-icon>
-            <span>Center Vessel</span>			
-        </a>
-        <mat-divider></mat-divider>
-        <a mat-menu-item (click)="toggleMoveMap()">
-            <mat-icon>{{(app.config.map.moveMap) ? 'near_me' : 'horizontal_split' }}</mat-icon>
-            <span>{{(app.config.map.moveMap) ? 'Move Vessel' : 'Move Map' }}</span>			
-        </a>	                     
-        <a mat-menu-item (click)="toggleNorthUp()">
-            <mat-icon>{{(app.config.map.northUp) ? 'navigation' : 'explore' }}</mat-icon>
-            <span>{{(app.config.map.northUp) ? 'Heading Up' : 'North Up' }}</span>			
-        </a>	                    
-        <mat-divider></mat-divider>     
+        </button>     
         <a mat-menu-item (click)="openSettings()">
             <mat-icon color="primary">settings</mat-icon>
             <span>Settings</span>			
@@ -127,20 +119,32 @@
                             &nbsp;Load from GPX
                         </a>                  
                     </ap-file-input>   
-                    <mat-divider></mat-divider> 
+
+                    <a mat-list-item 
+                        *ngIf="!draw.enabled || !measure.enabled"
+                        (click)="sidemenu.close();displayLeftMenu('chartList',true)">
+                        <mat-icon>map</mat-icon>
+                        &nbsp;Charts
+                    </a>  
+                                        
+                    <a mat-list-item 
+                        *ngIf="!draw.enabled || !measure.enabled"
+                        (click)="sidemenu.close();displayLeftMenu('anchorWatch',true)">
+                        <mat-icon><i class="fi-anchor"></i></mat-icon>
+                        &nbsp;Anchor Watch
+                    </a>                     
 
                     <a mat-list-item *ngIf="features.historyAPI"
                         (click)="sidemenu.close();showSelectMode();">
                         <mat-icon>history</mat-icon>
                         &nbsp;History Playback
-                    </a>                      
-                    <mat-divider *ngIf="features.historyAPI"></mat-divider>                      
+                    </a> 
 
+                    <mat-divider></mat-divider>
                     <a mat-list-item (click)="sidemenu.close();openSettings()">
                         <mat-icon>settings</mat-icon>
                         &nbsp;Settings
-                    </a>                       
-                    <mat-divider></mat-divider>
+                    </a>  
 
 					<a mat-list-item (click)="sidemenu.close();openAbout();">
                         <mat-icon mat-list-avatar>
@@ -202,7 +206,8 @@
                 <aol-map [width]="'100%'" [height]="'100%'" 
                         [style.cursor]="draw.enabled ? 'crosshair' : 'initial'"
                         (onMoveEnd)="mapMoveEvent($event)"
-                        (onPointerMove)="mapMouseMove($event)"
+                        (onPointerMove)="mapPointerMove($event)"
+                        (onPointerDrag)="mapPointerDrag($event)"
                         (onClick)="mapMouseClick($event)">
 
                     <aol-interaction-default></aol-interaction-default>

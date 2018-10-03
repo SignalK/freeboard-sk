@@ -317,7 +317,7 @@ export class AppComponent {
         else { this.showAlert('GPX Load','Completed with errors!\nNot all resources were loaded.') }
     }
 
-    // ********** MAP / MAP EVENTS *****************
+    // ********** MAP EVENTS *****************
     
     mapDragOver(e) { e.preventDefault() }
 
@@ -358,17 +358,6 @@ export class AppComponent {
         else { this.isDirty=true }
     }
 
-    mapRotate() {
-        if(this.app.config.map.northUp) { this.display.map.rotation=0 }
-        else { this.display.map.rotation= 0-this.display.vessels.self.heading }
-    }
-
-    mapMove() { 
-        let t=this.display.vessels.self.position;
-        t[0]+=0.0000000000001;
-        this.display.map.center= t;
-    }
-
     mapMouseClick(e) {
         if(this.measure.enabled) {
             let l= this.measure.geom.getLength();
@@ -393,8 +382,10 @@ export class AppComponent {
             });
         }
     }
+    
+    mapPointerDrag(e) { this.app.config.map.moveMap=false; }
 
-    mapMouseMove(e) {
+    mapPointerMove(e) {
         if(this.measure.enabled && this.measure.geom) {
             let cl= proj.transform(
                 this.measure.geom.getLastCoordinate(), 
@@ -413,7 +404,19 @@ export class AppComponent {
             this.display.overlay.position= c;
             this.display.overlay.title= l;            
         }            
-    }    
+    }  
+    
+    // ****** MAP functions *******
+    mapRotate() {
+        if(this.app.config.map.northUp) { this.display.map.rotation=0 }
+        else { this.display.map.rotation= 0-this.display.vessels.self.heading }
+    }
+
+    mapMove() { 
+        let t=this.display.vessels.self.position;
+        t[0]+=0.0000000000001;
+        this.display.map.center= t;
+    }
 
     mapVesselLines() {
         if(!this.display.vessels.self.sog) { return }
@@ -1224,21 +1227,11 @@ export class AppComponent {
         let selfSub = {
             "context":"vessels.self",
             "subscribe":[
-                {"path":"navigation.position","period":1000,"policy":selfPolicy},
-                {"path":"navigation.state","period":1000,"policy":selfPolicy},
-                {"path":"navigation.courseOverGroundTrue*","period":1000,"policy":selfPolicy},
-                {"path":"navigation.speedOverGround","period":1000,"policy":selfPolicy},
-                {"path":"navigation.headingMagnetic","period":1000,"policy":selfPolicy},
-                {"path":"navigation.headingTrue","period":1000,"policy":selfPolicy},
-                {"path":"navigation.course.activeRoute.href","period":1000,"policy":selfPolicy},
-                {"path":"navigation.anchor","period":1000,"policy":selfPolicy},
-                {"path":"environment.wind.directionTrue","period":1000,"policy":selfPolicy},
-                {"path":"environment.wind.angleApparent","period":1000,"policy":selfPolicy},
-                {"path":"environment.wind.speedTrue","period":1000,"policy":selfPolicy},
-                {"path":"environment.wind.speedApparent","period":1000,"policy":selfPolicy},
+                {"path":"navigation.*","period":1000,"policy":selfPolicy},
+                {"path":"environment.wind.*","period":1000,"policy":selfPolicy},
                 {"path":"notifications.*","period":1000}
             ]
-        };        
+        };      
         this.signalk.send(aisSub);
         this.signalk.send(selfSub);
     } 
