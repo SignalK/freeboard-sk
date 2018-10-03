@@ -485,6 +485,11 @@ export class AppComponent {
         this.app.saveConfig();
     }
 
+    toggleAisTargets() { 
+        this.app.config.aisTargets= !this.app.config.aisTargets;
+        this.app.saveConfig();
+    }
+
     popoverClosed() { this.display.overlay.show= false }
 
     formatPopover(id, coord, prj) {
@@ -826,8 +831,8 @@ export class AppComponent {
                         r=>{ 
                             this.skres.getRoutes();
                             if(r['state']=='COMPLETED') { 
-                                this.submitWaypoint(res['wptStart'][0], res['wptStart'][1], true);
-                                this.submitWaypoint(res['wptEnd'][0], res['wptEnd'][1], true);               
+                                this.submitWaypoint(res['wptStart'][0], res['wptStart'][1], false);
+                                this.submitWaypoint(res['wptEnd'][0], res['wptEnd'][1], false);               
                                 this.app.debug('SUCCESS: Route updated.');
                                 this.app.config.selections.routes.push(res['route'][0]);
                                 this.app.saveConfig();                                
@@ -843,8 +848,8 @@ export class AppComponent {
                 else { 
                     this.signalk.sendUpdate('self', `/resources/routes/${res['route'][0]}`, res['route'][1]);
                     this.skres.getRoutes();
-                    this.submitWaypoint(res['wptStart'][0], res['wptStart'][1], true);
-                    this.submitWaypoint(res['wptEnd'][0], res['wptEnd'][1], true);               
+                    this.submitWaypoint(res['wptStart'][0], res['wptStart'][1], false);
+                    this.submitWaypoint(res['wptEnd'][0], res['wptEnd'][1], false);               
                     
                 }
             }

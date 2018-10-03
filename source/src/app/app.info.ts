@@ -12,8 +12,14 @@ import {IndexedDB} from './lib/info/indexeddb';
 })
 export class AppInfo extends Info {
 
-    private DEVHOST=  `192.168.99.100`;
-    //private DEVHOST=  `192.168.86.32`;
+    private DEV_SERVER= {
+        host: `192.168.99.100`,
+        port: 3000
+    }
+    /*private DEV_SERVER= {
+        host: null,
+        port: null
+    }*/
 
     public hostName;
     public hostPort: number;
@@ -27,8 +33,8 @@ export class AppInfo extends Info {
 
         this.db= new AppDB();
 
-        this.hostName= (this.devMode) ? this.DEVHOST : window.location.hostname;
-        this.hostPort= (this.devMode) ? 3000 : parseInt(window.location.port);
+        this.hostName= (this.devMode && this.DEV_SERVER.host) ? this.DEV_SERVER.host : window.location.hostname;
+        this.hostPort= (this.devMode && this.DEV_SERVER.port) ? this.DEV_SERVER.port : parseInt(window.location.port);
         this.hostSSL= (window.location.protocol=='https:') ? true : false;
 
         this.host= (this.devMode) ? 
@@ -61,6 +67,7 @@ export class AppInfo extends Info {
             },
             usePUT: true,
             vesselTrail: false,
+            aisTargets: true,
             depthAlarm: { enabled: false, smoothing: 10000 },
             plugins: {
                 instruments: '/@signalk/instrumentpanel'

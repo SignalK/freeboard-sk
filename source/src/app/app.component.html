@@ -68,11 +68,15 @@
 
     <!--context menus-->
     <mat-menu #settingsmenu="matMenu">     
-        <button mat-menu-item [disabled]="!app.config.vesselTrail || app.data.trail.length==0" 
+        <button mat-menu-item *ngIf="app.config.vesselTrail && app.data.trail.length!=0" 
             (click)="clearTrail()">
             <mat-icon color="warn">clear_all</mat-icon>
             <span>Clear Trail</span>			
         </button>     
+        <a mat-menu-item (click)="toggleAisTargets()">
+            <mat-icon>{{app.config.aisTargets ? 'visibility_off' : 'visibility'}}</mat-icon>
+            <span>{{app.config.aisTargets ? 'Hide' : 'Show'}} AIS Targets</span>			
+        </a>	        
         <a mat-menu-item (click)="openSettings()">
             <mat-icon color="primary">settings</mat-icon>
             <span>Settings</span>			
@@ -314,7 +318,8 @@
                     <!-- *** /WAYPOINTS *** -->     
                     
                     <!-- *** AIS TARGETS *** -->
-                    <aol-layer-vector [zIndex]="120" [renderBuffer]="200">
+                    <aol-layer-vector *ngIf="app.config.aisTargets"
+                        [zIndex]="120" [renderBuffer]="200">
                         <aol-source-vector>
                             <xol-ais-targets [aisTargets]="display.vessels.aisDisplayList"
                                 [icon]="'./assets/img/magenta_yacht.png'"
