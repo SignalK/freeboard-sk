@@ -10,8 +10,7 @@ import { SettingsDialog } from './pages';
 import { GPXImportDialog } from './lib/gpxload/gpxload.module';
 
 import { SignalKClient } from 'signalk-client-angular';
-import { SKResources, SKWaypoint, SKRoute } from './lib/sk-resources';
-import { SKData, SKVessel } from './lib/sk-data';
+import { SKResources, SKWaypoint, SKVessel } from './lib/sk-resources';
 import { Convert } from './lib/convert';
 import { GeoUtils } from './lib/geoutils';
 
@@ -37,8 +36,7 @@ export class AppComponent {
         anchorWatch: false,
         vessels: { 
             self: new SKVessel(), 
-            aisTargets: new Map(),
-            aisDisplayList: []  // ** immutable for AIS map display
+            aisTargets: new Map()
         },
         alarms: new Map(),
         map: { center: [0,0], zoomLevel: 2, rotation: 0 },        
@@ -89,13 +87,19 @@ export class AppComponent {
 
     private depthAlarmSmoothing: boolean= false;
     private trailTimer;     // ** timer for logging vessel trail
+    private aisTimer;       // ** AIS target manager
+    public aisMgr= {
+        maxAge: 3600000,        // age in m/sec
+        lastTick: new Date().valueOf(),
+        updateList: [],
+        staleList: []
+    }
 
     constructor(
         public app: AppInfo,
         private dom: DomSanitizer,
         public signalk: SignalKClient,
         public skres: SKResources,
-        public skdata: SKData,
         private dialog: MatDialog) { 
             this.lastInstUrl= this.app.config.plugins.instruments;
             this.instUrl= dom.bypassSecurityTrustResourceUrl(`${this.app.host}${this.app.config.plugins.instruments}`);
@@ -138,8 +142,9 @@ export class AppComponent {
     ngOnDestroy() {
         // ** clean up
         this.terminateSignalK();
-        clearInterval(this.watchDog);
+        if(this.watchDog) { clearInterval(this.watchDog) }
         if(this.trailTimer) { clearInterval(this.trailTimer) }
+        if(this.aisTimer) { clearInterval(this.aisTimer) }
     }     
   
     //** open about dialog **
@@ -332,7 +337,8 @@ export class AppComponent {
                 let reader = new FileReader();
                 reader.onerror= err=> { 
                     this.showAlert('File Load error', `There was an error reading the file contents!`);
-                }    
+                }  
+                if(!e.dataTransfer.files[0].name) { return }  
                 let fname= e.dataTransfer.files[0].name;            
                 reader.onload= ()=> { this.processGPX({ name: fname, data: reader.result}) }
                 reader.readAsText(e.dataTransfer.files[0]);
@@ -383,7 +389,7 @@ export class AppComponent {
         }
     }
     
-    mapPointerDrag(e) { this.app.config.map.moveMap=false; }
+    mapPointerDrag(e) { this.app.config.map.moveMap=false }
 
     mapPointerMove(e) {
         if(this.measure.enabled && this.measure.geom) {
@@ -1275,7 +1281,10 @@ export class AppComponent {
         );   
         
         // ** start trail logging interval timer
-        this.trailTimer= setInterval( ()=> { this.processTrail() }, 5000 );       
+        this.trailTimer= setInterval( ()=> { this.processTrail() }, 5000 );     
+        
+        // ** AIS target manager
+        this.aisTimer= setInterval( ()=> { this.processAIS() }, 5000);
     }
 
     // ** handle connection closure
@@ -1293,7 +1302,8 @@ export class AppComponent {
             });  
             dRef.afterClosed().subscribe( ()=>{ this.initSignalK() } );             
         }
-        if(this.trailTimer) { clearInterval(this.trailTimer) }       
+        if(this.trailTimer) { clearInterval(this.trailTimer) }      
+        if(this.aisTimer) { clearInterval(this.aisTimer) }     
     }
     
     // ** handle error message
@@ -1301,87 +1311,127 @@ export class AppComponent {
     
     // ** handle delta message received
     onMessage(e) { 
-        // ** process message **
-        this.skdata.parse(e);
-
-        // ** display received data **
-        this.app.data.vessels.forEach( (value, key)=> {
-
-            let v= this.skdata.getVesselData(value, key);
-            if(v.id=='self') {
-                // ** set preferred heading true / magnetic ** 
-                let ph =this.app.config.selections.headingAttribute.split('.');
-                if( ph[1]=='headingTrue' && v.headingTrue) { v.heading= v.headingTrue }
-                else if( ph[1]=='headingMagnetic' && v.headingMagnetic) { v.heading= v.headingMagnetic } 
-                else { v.heading= v.headingTrue ? v.headingTrue : 
-                    v.headingMagnetic ? v.headingMagnetic : 0 
-                }
-                // ** preserve non delta values
-                v.name= this.display.vessels.self.name;
-                v.mmsi= this.display.vessels.self.mmsi;
-                this.display.vessels.self= v;    
-                // ** locate vessel popover
-                if(this.display.overlay.show && this.display.overlay['type']=='vessel') { 
-                    this.display.overlay.position= v.position 
-                }
-
-                // ** active route **
-                if( value['navigation.course.activeRoute.href'] ) {
-                    this.processActiveRoute( value['navigation.course.activeRoute.href'] );
-                }   
-                
-                // ** alarms **
-                if( this.app.config.depthAlarm.enabled) {
-                    if( value['notifications.environment.depth.belowTransducer'] ) {
-                        this.processAlarm(
-                            'Depth',
-                            value['notifications.environment.depth.belowTransducer']
-                        );
-                    }
-                    if( value['notifications.environment.depth.belowSurface'] ) {
-                        this.processAlarm(
-                            'Depth',
-                            value['notifications.environment.depth.belowSurface']
-                        );
-                    }
-                    if( value['notifications.environment.depth.belowKeel'] ) {
-                        this.processAlarm(
-                            'Depth', 
-                            value['notifications.environment.depth.belowKeel']
-                        );
-                    }                                        
-                }
-                if( value['notifications.navigation.anchor'] ) {
-                    this.processAlarm(
-                        'Anchor', 
-                        value['notifications.navigation.anchor']
-                    );
-                }                   
-                
-                // ** update map display **
-                this.mapVesselLines();
-                if(this.app.config.map.moveMap) {
-                    this.display.map.center= this.display.vessels.self.position;
-                }
-                this.mapRotate(); 
-            }
-            else { 
-                this.display.vessels.aisTargets.set(v.id, v);
-                if(this.display.overlay['type']=='ais' && this.display.overlay.show 
-                        && this.display.overlay['id']==v.id) { 
-                    this.display.overlay.position= v.position;
-                    this.compileAISInfo(v);
-                }
-            }                              
-        });
-
-        // ** refresh AIS target charts display
-        this.display.vessels.aisDisplayList= [];
-        this.display.vessels.aisTargets.forEach( (v,k)=>{
-            this.display.vessels.aisDisplayList.push([k, v]);
-        });         
-
+        if(!e.context && e.self) {
+            this.app.data.selfId= e.self;
+            return;
+        }
+        e.updates.forEach( u=> {
+            u.values.forEach( v=> {
+                if(e.context== this.app.data.selfId) { this.displayVesselSelf(v) }
+                else { this.displayVesselOther(e.context, v) }
+            });
+        });   
     }   
+
+    displayVesselSelf(v) {
+        let d= this.display.vessels.self;
+        let updateVlines= true;
+
+        if( v.path=='navigation.headingTrue' ) { d.headingTrue= v.value } 
+        if( v.path=='navigation.headingMagnetic' ) { d.headingTrue= v.value }   
+        // ** set preferred heading true / magnetic ** 
+        if( v.path==this.app.config.selections.headingAttribute ) {
+            d.heading= v.value;
+        }  
+        if( v.path=='navigation.position') {
+            d.position= [ v.value.longitude, v.value.latitude];
+            // ** move map
+            if(this.app.config.map.moveMap) {
+                this.display.map.center= d.position;
+            } 
+            // ** locate vessel popover
+            if(this.display.overlay.show && this.display.overlay['type']=='vessel') { 
+                this.display.overlay.position= d.position 
+            }                       
+        }
+        if(v.path=='navigation.courseOverGroundTrue') { d.cogTrue= v.value }
+        if(v.path=='navigation.speedOverGround') { d.sog= v.value }
+        if(v.path=='navigation.state') { d.state= v.value; updateVlines= false; }
+        if(v.path=='environment.wind.directionTrue') { d.wind.twd= v.value }
+        if(v.path=='environment.wind.speedTrue') { d.wind.tws= v.value }
+        if(v.path=='environment.wind.angleApparent') { d.wind.awa= v.value }
+        if(v.path=='environment.wind.speedApparent') { d.wind.aws= v.value }
+        if(v.path=='communication.callsignVhf') { d.callsign= v.value; updateVlines= false; }
+
+        // ** update map display **
+        if( updateVlines) { this.mapVesselLines() }
+        this.mapRotate(); 
+
+        // ** active route **
+        if(v.path=='navigation.course.activeRoute.href') {
+            this.processActiveRoute(v.value);
+        }   
+
+        // ** alarms **
+        if( this.app.config.depthAlarm.enabled) {
+            if(v.path=='notifications.environment.depth.belowTransducer') {
+                this.processAlarm('Depth', v.value);
+            }
+            if(v.path=='notifications.environment.depth.belowSurface') {
+                this.processAlarm('Depth', v.value);
+            }
+            if(v.path=='notifications.environment.depth.belowKeel') {
+                this.processAlarm('Depth', v.value);
+            }                                        
+        }
+        if(v.path=='notifications.navigation.anchor') {
+            this.processAlarm('Anchor', v.value);
+        }                   
+    }
+
+    displayVesselOther(id, v) {
+        if( !this.display.vessels.aisTargets.has(id) ) {
+            this.display.vessels.aisTargets.set(id, new SKVessel() );
+        }
+        let d= this.display.vessels.aisTargets.get(id);
+        d.lastUpdated= new Date();
+
+        if( v.path=='' ) { 
+            if(typeof v.value.name!= 'undefined') { d.name= v.value.name }
+            if(typeof v.value.mmsi!= 'undefined') { d.mmsi= v.value.mmsi }
+        } 
+        if( v.path=='navigation.headingTrue' ) { d.headingTrue= v.value } 
+        if( v.path=='navigation.headingMagnetic' ) { d.headingTrue= v.value }   
+        // ** set preferred heading true / magnetic ** 
+        if( v.path==this.app.config.selections.headingAttribute ) {
+            d.heading= v.value;
+        }  
+        if( v.path=='navigation.position') {
+            d.position= [ v.value.longitude, v.value.latitude];
+            // ** locate / update ais popover
+            if(this.display.overlay['type']=='ais' && this.display.overlay.show 
+                    && this.display.overlay['id']==id) { 
+                this.display.overlay.position= d.position;
+                this.compileAISInfo(d);
+            }                     
+        }
+        if(v.path=='navigation.courseOverGroundTrue') { d.cogTrue= v.value }
+        if(v.path=='navigation.speedOverGround') { d.sog= v.value }
+        if(v.path=='navigation.state') { d.state= v.value }
+        if(v.path=='environment.wind.directionTrue') { d.wind.twd= v.value }
+        if(v.path=='environment.wind.speedTrue') { d.wind.tws= v.value }
+        if(v.path=='environment.wind.angleApparent') { d.wind.awa= v.value }
+        if(v.path=='environment.wind.speedApparent') { d.wind.aws= v.value }
+        if(v.path=='communication.callsignVhf') { d.callsign= v.value }        
+    }
+
+    // ** process / cleanup AIS targets
+    processAIS() {
+        let now= new Date().valueOf();
+        this.aisMgr.staleList= [];
+        this.aisMgr.updateList= [];
+        this.display.vessels.aisTargets.forEach( (v,k)=>{
+            //if stale then remove
+            if(v.lastUpdated< (now-this.aisMgr.maxAge) ) {
+                this.aisMgr.staleList.push(k);
+            }
+            //if recently updated
+            if(v.lastUpdated.valueOf()>=this.aisMgr.lastTick ) {
+                this.aisMgr.updateList.push(k);
+            }            
+        });   
+        this.aisMgr.lastTick= now;
+    }
     
     // ** process alarm / notification **
     processAlarm(id, av) {

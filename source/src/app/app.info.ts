@@ -90,7 +90,6 @@ export class AppInfo extends Info {
             waypoints: [],
             charts: [],
             alarms: [],
-            vessels: new Map(),
             selfId: null,
             activeRoute: null,
             trail: [],

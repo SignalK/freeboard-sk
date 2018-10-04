@@ -14,6 +14,8 @@ export class AisTargetsComponent implements OnInit, OnDestroy, OnChanges {
     @Input() id: string|number|undefined;
 
     @Input() aisTargets;
+    @Input() updateIds= [];
+    @Input() staleIds= [];
     @Input() icon;
     @Input() labelMinZoom;
     @Input() mapZoom;
@@ -28,21 +30,23 @@ export class AisTargetsComponent implements OnInit, OnDestroy, OnChanges {
 
     ngOnDestroy() { this.host.instance.clear(true) }
 
-    ngOnChanges(changes) { if(changes.aisTargets) { this.processTargets() } }
+    ngOnChanges(changes) { 
+        if(changes.updateIds) { this.updateTargets(changes.updateIds.currentValue) } 
+        if(changes.staleIds) { this.removeStaleIds( changes.staleIds.currentValue) } 
+    }
 
-    processTargets() {
+    updateTargets(ids) {
+        if( !ids || !Array.isArray(ids) ) { return }        
         if(!this.host.instance) { return }
         let layer= this.host.instance;
-        
-        this.aisTargets.forEach( e=> {
+
+        ids.forEach( id=> {
+            let ais= this.aisTargets.get(id);
             let aisText= (this.mapZoom<this.labelMinZoom) ? '' : 
-                e[1].name || e[1].callsign || e[1].mmsi || ''; 
-            let tc= proj.transform(
-                e[1].position, 
-                this.srid, 
-                this.mrid
-            );
-            let f=layer.getFeatureById('ais-'+ e[0]);
+                ais.name || ais.callsign || ais.mmsi || ''; 
+            let tc= proj.transform( ais.position, this.srid, this.mrid );
+
+            let f=layer.getFeatureById('ais-'+ id);
             if(f) {
                 f.setGeometry( new geom.Point(tc) );
                 f.setStyle( 
@@ -50,7 +54,7 @@ export class AisTargetsComponent implements OnInit, OnDestroy, OnChanges {
                         image: new style.Icon({
                             src: this.icon,
                             rotateWithView: true,
-                            rotation: e[1].cogTrue
+                            rotation: ais.cogTrue
                         }),
                         text: new style.Text({
                             text: aisText,
@@ -61,13 +65,13 @@ export class AisTargetsComponent implements OnInit, OnDestroy, OnChanges {
             }
             else {
                 f= new Feature( new geom.Point(tc) );
-                f.setId('ais-'+ e[0]);
+                f.setId('ais-'+ id);
                 f.setStyle( 
                     new style.Style({
                         image: new style.Icon({
                             src: this.icon,
                             rotateWithView: true,
-                            rotation: e[1].cogTrue
+                            rotation: ais.cogTrue
                         }),
                         text: new style.Text({
                             text: aisText,
@@ -76,9 +80,19 @@ export class AisTargetsComponent implements OnInit, OnDestroy, OnChanges {
                     })
                 );
                 layer.addFeature(f);
-            }            
-
+            }                        
         });
+    }
+
+    removeStaleIds(ids) {
+        if( !ids || !Array.isArray(ids) ) { return }
+        if(!this.host.instance) { return }
+        let layer= this.host.instance;
+        ids.forEach( id=> { 
+            let f=layer.getFeatureById('ais-'+ id);
+            if(f) { layer.removeFeature(f) }
+            this.aisTargets.delete(id);
+        });   
     }
 
 }

@@ -294,3 +294,20 @@ export class SKChart {
     }
 }
 
+// ** Vessel Data **
+export class SKVessel {
+    id: string;
+    position= [0,0];
+    heading: number=0;
+    headingTrue: number= 0;
+    headingMagnetic: number= 0;
+    cogTrue: number;
+    sog: number;
+    name: string;
+    mmsi: string;
+    callsign: string; 
+    state: string;   
+    wind= { twd: null, tws: null, awa: null, aws: null };
+    lastUpdated= new Date();
+}
+

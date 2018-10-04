@@ -5,6 +5,8 @@
 ### v1.0.0
 
 - Port to Angular framework.
+- Align operation across both NodeJS and Artemis Signal K server implementations
+- Integrate instrumentation via Apps installed on Signal K server
 
 
 #### Notes:
@@ -28,7 +30,7 @@ To be able to set an anchor alarm the Signal K server will need to action HTTP P
 1. `/signalk/v1/api/vessels/self/navigation/anchor/maxRadius` 
 2. `/signalk/v1/api/vessels/self/navigation/anchor/position` 
 
-*If notification messages are received for the path `notifications.anchorAlarm` an alarm message will be displayed on the screen regardless of where the alarm was configured.*
+*If notification messages are received for the path `notifications.navigation.anchor` an alarm message will be displayed on the screen regardless of where the alarm was configured.*
 
 
 
