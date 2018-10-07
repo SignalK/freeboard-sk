@@ -9,7 +9,7 @@ import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material';
 	template: `
         <div class="_ap-playback">
             <div>
-                <h1 mat-dialog-title>History Playback</h1>
+                <h1 mat-dialog-title><mat-icon>history</mat-icon>&nbsp;History Playback</h1>
             </div>
             <mat-dialog-content>
                 <div style="display:flex;">
@@ -17,34 +17,30 @@ import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material';
                         <div>
                             <b>Context:</b>&nbsp;&nbsp;
                             <mat-form-field  style="width:50px;">
-                                <mat-select #inpcontext [value]="'self'"
-                                    (selectionChange)="formValue($event,inpcontext)">
+                                <mat-select [(ngModel)]="formData.context">
                                     <mat-option *ngFor="let i of ['self','all']" [value]="i">{{i}}</mat-option>
                                 </mat-select>
                             </mat-form-field>                                               
                         </div>                                        
                         <div>                                     
                             <mat-form-field>
-                                <input matInput #inpdate required [matDatepicker]="picker" 
-                                    (dateInput)="formValue($event,$event)"
-                                    (dateChange)="formValue($event,$event)"
+                                <input matInput required [matDatepicker]="picker" 
+                                    [(ngModel)]="formData.startDate"
                                     placeholder="Choose a start date">
                                 <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
-                                <mat-datepicker #picker (dateChange)="formValue($event,inpdate)"></mat-datepicker>
+                                <mat-datepicker #picker></mat-datepicker>
                             </mat-form-field>
                         </div>
                         <div>
                             <b>Start Time:</b>&nbsp;&nbsp;
                             <mat-form-field style="width:50px;">
-                                <mat-select #inphr [value]="'00'"
-                                    (selectionChange)="formValue($event,inphr)">
+                                <mat-select [(ngModel)]="formData.startTimeHr">
                                     <mat-option *ngFor="let i of hrValues()" [value]="i">{{i}}</mat-option>
                                 </mat-select>
                             </mat-form-field>     
                             <b>: </b>
                             <mat-form-field style="width:50px;">
-                                <mat-select #inpmin [value]="'00'"
-                                (selectionChange)="formValue($event,inpmin)">
+                                <mat-select [(ngModel)]="formData.startTimeMin">
                                     <mat-option *ngFor="let i of minValues()" [value]="i">{{i}}</mat-option>
                                 </mat-select>
                             </mat-form-field>                                                
@@ -53,8 +49,7 @@ import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material';
                         <b>Playback Rate:</b>&nbsp;&nbsp;
                         <mat-form-field style="width:50px;"
                             matTooltip="Advance stream the selected number of seconds for every second of playback">
-                            <mat-select #inprate [value]="1" 
-                                (selectionChange)="formValue($event,inprate)">
+                            <mat-select [(ngModel)]="formData.playbackRate">
                                 <mat-option *ngFor="let i of rateValues()" [value]="i">{{i}}</mat-option>
                             </mat-select>
                         </mat-form-field>                         
@@ -65,11 +60,11 @@ import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material';
             <mat-dialog-actions>
                 <div style="text-align:center;width:100%;">
                     <button mat-raised-button color="primary" 
-                        [disabled]="formReady"
-                        (click)="dialogRef.close({result:true, data: formData})">
+                        [disabled]="!formData.startDate"
+                        (click)="submit()">
                         SAVE
                     </button>
-                    <button mat-raised-button (click)="dialogRef.close({result:false, data: formData})">
+                    <button mat-raised-button (click)="submit(true)">
                         CANCEL
                     </button>
                 </div>					
@@ -92,13 +87,12 @@ export class PlaybackDialog implements OnInit {
     public hour;
     public minute;
     public formData= {
-        context: 'self',
+        context: 'all',
         startTimeHr: '00',
         startTimeMin: '00',
         startDate: null,
-        playBackRate: 1
+        playbackRate: 1
     };
-    public formReady: boolean= true;
 
     constructor(
         public dialogRef: MatDialogRef<PlaybackDialog>,
@@ -108,8 +102,21 @@ export class PlaybackDialog implements OnInit {
 	//** lifecycle: events **
     ngOnInit() {} 
 
-    formValue(e, f) {
-        console.log(f);
+    submit(cancel=false) {
+        let q='';
+        let ts='';
+        if(!cancel) {
+            this.formData.startDate.setHours( parseInt(this.formData.startTimeHr) );
+            this.formData.startDate.setMinutes( parseInt(this.formData.startTimeMin) );
+            ts= this.formData.startDate.toISOString();
+            ts= ts.slice(0,ts.indexOf('.')) + 'Z';
+            q=`${this.formData.context}&startTime=${ts}&playbackRate=${this.formData.playbackRate}`
+        }
+        this.dialogRef.close({
+            result: !cancel, 
+            query: q, 
+            startTime: ts
+        });
     }
 
     hrValues() { 

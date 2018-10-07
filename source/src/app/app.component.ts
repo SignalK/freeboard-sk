@@ -70,8 +70,8 @@ export class AppComponent {
 
     // ** APP features / mode **
     public features= { historyAPI: null }
-    public mode: APP_MODE= APP_MODE.REALTIME;
-    private switchingMode: boolean=false;
+    public mode: APP_MODE= APP_MODE.REALTIME;   // current mode
+    private connectMode= APP_MODE.REALTIME;     // connection attempt mode
 
     private subOnConnect;
     private subOnError;
@@ -198,48 +198,45 @@ export class AppComponent {
     // ** show select mode dialog
     showSelectMode() {
         if(this.mode== APP_MODE.REALTIME) { // request history playback
-            let dref= this.dialog.open(ConfirmDialog, {
-                disableClose: false,
+            this.dialog.open(ConfirmDialog, {
+                disableClose: true,
                 data: { 
                     message: 'Do you want to change to History Playback mode?', 
                     title: 'Switch Mode' 
                 }
-            }); 
-            dref.afterClosed().subscribe( r=> {
+            }).afterClosed().subscribe( r=> {
                 if(r) { this.showPlaybackSettings() }
             });         
         }
         else {  // request realtime
-            let dref= this.dialog.open(ConfirmDialog, {
-                disableClose: false,
+            this.dialog.open(ConfirmDialog, {
+                disableClose: true,
                 data: { 
                     message: 'Do you want to exit History Playback mode?', 
                     title: 'Exit History Playback' 
                 }
-            }); 
-            dref.afterClosed().subscribe( r=> {
+            }).afterClosed().subscribe( r=> {
                 if(r) { this.switchMode(APP_MODE.REALTIME) }
             });  
         }
     }
 
     showPlaybackSettings() {
-        let dref= this.dialog.open(PlaybackDialog, {
-            disableClose: false,
-            data: { 
-                message: 'Do you want to change to History Playback mode?', 
-                title: 'Switch Mode' 
-            }
-        }); 
-        dref.afterClosed().subscribe( r=> {
-            if(r.result) {
+        this.dialog.open(PlaybackDialog, {
+            disableClose: false
+        }).afterClosed().subscribe( r=> {
+            if(r.result) { // OK
+                this.switchMode(APP_MODE.PLAYBACK, r.query);
                 // ** test for history provider / available time data
-                this.signalk.apiGet(`vessels/self/navigation/position?time=${r.startTime}`)
+                /*this.signalk.apiGet(`vessels/self/navigation/position?time=${r.startTime}`)
                 .subscribe( 
                     res=> { this.switchMode(APP_MODE.PLAYBACK, r.query) },
                     err=> { this.showAlert('Error:', 'Cannot enter History Playback mode.\n\n' + err.error) }
-                ); 
-            } 
+                ); */
+            }
+            else {  // cancel: restarts realtime mode
+                if(this.mode==APP_MODE.PLAYBACK) { this.initSignalK() }
+            }
         });
     }
 
@@ -1177,12 +1174,16 @@ export class AppComponent {
     // ******** SIGNAL K *************
     
     // ** initialise and connect to signalk server
-    initSignalK() {
+    initSignalK(query?) {
+        this.app.data.selfId= null;
+        this.app.data.server= null;
         this.subOnConnect= this.signalk.onConnect.subscribe( e=> { this.onConnect(e)} );
         this.subOnError= this.signalk.onError.subscribe( e=> { this.onError(e)} );
         this.subOnMessage= this.signalk.onMessage.subscribe( e=> { this.onMessage(e)} );
         this.subOnClose= this.signalk.onClose.subscribe( e=> { this.onClose(e)} );
-        this.connectSignalKServer();
+        if(query && query.indexOf('startTime')!=-1) { this.connectMode= APP_MODE.PLAYBACK }
+        else { this.connectMode= APP_MODE.REALTIME }
+        this.connectSignalKServer(query);
     }
 
     // ** tear down connection 
@@ -1195,13 +1196,13 @@ export class AppComponent {
     }    
 
     // ** establish connection to server
-    connectSignalKServer() {
+    connectSignalKServer(query='none') {
         this.signalk.hello(this.app.hostName, this.app.hostPort, this.app.hostSSL)
         .subscribe(
             res=> {
                 this.setFeatures(res['server']);
                 if(this.app.data['firstRun']) { this.showWelcome() }
-                this.signalk.connect( this.app.hostName, this.app.hostPort, this.app.hostSSL, 'none');
+                this.signalk.connect( this.app.hostName, this.app.hostPort, this.app.hostSSL, query);
             },
             err=> {
                 let dRef= this.dialog.open(AlertDialog, {
@@ -1212,7 +1213,7 @@ export class AppComponent {
                         buttonText: 'Try Again'
                     }
                 });  
-                dRef.afterClosed().subscribe( ()=>{ this.connectSignalKServer() } );
+                dRef.afterClosed().subscribe( ()=>{ this.connectSignalKServer(query) } );
             }
         ) 
     }
@@ -1289,21 +1290,23 @@ export class AppComponent {
 
     // ** handle connection closure
     onClose(e) {
-        if(!this.switchingMode) { 
-            console.info('Closing connection to Signal K server...')
-            this.terminateSignalK();
-            let dRef= this.dialog.open(AlertDialog, {
-                disableClose: true,
-                data: {
-                    title: 'Connection Closed:',  
-                    message: 'Connection to the Signal K server has been closed.', 
-                    buttonText: 'Re-connect'
-                }
-            });  
-            dRef.afterClosed().subscribe( ()=>{ this.initSignalK() } );             
+        console.info('Closing connection to Signal K server...');
+        this.terminateSignalK();
+        let data= { title: 'Connection Closed:', buttonText: 'Re-connect', message: ''};
+        if(this.connectMode== APP_MODE.PLAYBACK) {
+            data.buttonText= 'OK'
+            data.message= 'Unable to open Playback connection.\n\nClick OK to re-connect to Data Stream.';
         }
+        else {
+            data.message= 'Connection to the Signal K server has been closed.';            
+        }
+        this.dialog.open(AlertDialog, { disableClose: true, data: data })
+        .afterClosed().subscribe( ()=>{ 
+            if(this.mode==APP_MODE.REALTIME) { this.initSignalK() }
+            else { this.showPlaybackSettings() }
+        });
         if(this.trailTimer) { clearInterval(this.trailTimer) }      
-        if(this.aisTimer) { clearInterval(this.aisTimer) }     
+        if(this.aisTimer) { clearInterval(this.aisTimer) }  
     }
     
     // ** handle error message
@@ -1312,6 +1315,9 @@ export class AppComponent {
     // ** handle delta message received
     onMessage(e) { 
         if(!e.context && e.self) {
+            this.connectMode= null;
+            if(e.startTime) { this.mode= APP_MODE.PLAYBACK }
+            else { this.mode= APP_MODE.REALTIME }
             this.app.data.selfId= e.self;
             return;
         }
@@ -1514,26 +1520,18 @@ export class AppComponent {
 
     // ** switch between realtime and history playback modes
     switchMode(toMode: APP_MODE, query?) {
-        this.switchingMode= true;
-        this.signalk.disconnect();
-        this.app.data.vessels= new Map();
-        this.app.data.selfId= null;
-        
+        this.terminateSignalK();
         if(toMode== APP_MODE.PLAYBACK) { // ** history playback
             this.app.db.saveTrail('self', this.app.data.trail);
             this.app.data.trail= [];
-            //this.signalk.connect(this.app.hostName, this.app.hostPort, this.app.hostSSL, query);
         }
         else {  // ** realtime data
+            query='none';
             this.app.db.getTrail('self').then( t=> { 
                 this.app.data.trail= (t && t.value) ? t.value : [];
             });
-            // ** connect and re-subscribe 
-            this.signalk.connect(this.app.hostName, this.app.hostPort, this.app.hostSSL, 'none');
-            // re-subscription happens in onConnect() message handler
         }
-        this.switchingMode= false;
-        this.mode= toMode;
+        this.initSignalK(query);
     }
 
 }
