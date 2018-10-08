@@ -16,7 +16,10 @@ export class AisTargetsComponent implements OnInit, OnDestroy, OnChanges {
     @Input() aisTargets;
     @Input() updateIds= [];
     @Input() staleIds= [];
+    @Input() removeIds= [];
     @Input() icon;
+    @Input() inactiveIcon;
+    @Input() inactiveTime: number= 180000;  // in ms (3 mins)
     @Input() labelMinZoom;
     @Input() mapZoom;
 
@@ -32,7 +35,33 @@ export class AisTargetsComponent implements OnInit, OnDestroy, OnChanges {
 
     ngOnChanges(changes) { 
         if(changes.updateIds) { this.updateTargets(changes.updateIds.currentValue) } 
-        if(changes.staleIds) { this.removeStaleIds( changes.staleIds.currentValue) } 
+        if(changes.removeIds) { this.removeTargets( changes.removeIds.currentValue) } 
+        if(changes.staleIds) { this.markStaleTargets( changes.staleIds.currentValue) } 
+        if(changes.mapZoom) { this.handleZoom() } 
+    }
+
+    formatlabel(label) { return (this.mapZoom < this.labelMinZoom) ? '' : label }
+
+    handleZoom() {
+        if(!this.host.instance) { return }
+        let layer= this.host.instance;
+        let now= new Date().valueOf();
+        layer.forEachFeature(f=>{
+            let ais= this.aisTargets.get( f.getId().toString().slice(4) );
+            f.setStyle(
+                new style.Style({
+                    text: new style.Text({
+                        text: this.formatlabel( ais.name || ais.callsign || ais.mmsi || ''),
+                        offsetY: -12
+                    }),
+                    image: new style.Icon({
+                        src: (ais.lastUpdated< (now-this.inactiveTime) ) ? this.inactiveIcon : this.icon,
+                        rotateWithView: true,
+                        rotation: ais.heading || ais.cogTrue
+                    })
+                })
+            );     
+        });
     }
 
     updateTargets(ids) {
@@ -42,8 +71,7 @@ export class AisTargetsComponent implements OnInit, OnDestroy, OnChanges {
 
         ids.forEach( id=> {
             let ais= this.aisTargets.get(id);
-            let aisText= (this.mapZoom<this.labelMinZoom) ? '' : 
-                ais.name || ais.callsign || ais.mmsi || ''; 
+            let aisText= this.formatlabel( ais.name || ais.callsign || ais.mmsi || ''); 
             let tc= proj.transform( ais.position, this.srid, this.mrid );
 
             let f=layer.getFeatureById('ais-'+ id);
@@ -54,7 +82,7 @@ export class AisTargetsComponent implements OnInit, OnDestroy, OnChanges {
                         image: new style.Icon({
                             src: this.icon,
                             rotateWithView: true,
-                            rotation: ais.cogTrue
+                            rotation: ais.heading || ais.cogTrue
                         }),
                         text: new style.Text({
                             text: aisText,
@@ -71,7 +99,7 @@ export class AisTargetsComponent implements OnInit, OnDestroy, OnChanges {
                         image: new style.Icon({
                             src: this.icon,
                             rotateWithView: true,
-                            rotation: ais.cogTrue
+                            rotation: ais.heading || ais.cogTrue
                         }),
                         text: new style.Text({
                             text: aisText,
@@ -84,7 +112,33 @@ export class AisTargetsComponent implements OnInit, OnDestroy, OnChanges {
         });
     }
 
-    removeStaleIds(ids) {
+    markStaleTargets(ids) {
+        if( !ids || !Array.isArray(ids) ) { return }        
+        if(!this.host.instance) { return }
+        let layer= this.host.instance;
+
+        ids.forEach( id=> {
+            let ais= this.aisTargets.get(id);
+            let f=layer.getFeatureById('ais-'+ id);
+            if(f) {
+                f.setStyle( 
+                    new style.Style({
+                        image: new style.Icon({
+                            src: this.inactiveIcon,
+                            rotateWithView: true,
+                            rotation: ais.heading || ais.cogTrue
+                        }),
+                        text: new style.Text({
+                            text: this.formatlabel( ais.name || ais.callsign || ais.mmsi || ''),
+                            offsetY: -12
+                        })
+                    })
+                );
+            }                      
+        });
+    }    
+
+    removeTargets(ids) {
         if( !ids || !Array.isArray(ids) ) { return }
         if(!this.host.instance) { return }
         let layer= this.host.instance;

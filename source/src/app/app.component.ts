@@ -89,10 +89,12 @@ export class AppComponent {
     private trailTimer;     // ** timer for logging vessel trail
     private aisTimer;       // ** AIS target manager
     public aisMgr= {
-        maxAge: 3600000,        // age in m/sec
+        maxAge: 540000,        // time since last update in ms (9 min)
+        staleAge: 360000,        // time since last update in ms (6 min)
         lastTick: new Date().valueOf(),
         updateList: [],
-        staleList: []
+        staleList: [],
+        removeList: []
     }
 
     constructor(
@@ -1426,11 +1428,16 @@ export class AppComponent {
         let now= new Date().valueOf();
         this.aisMgr.staleList= [];
         this.aisMgr.updateList= [];
+        this.aisMgr.removeList= [];
         this.display.vessels.aisTargets.forEach( (v,k)=>{
-            //if stale then remove
-            if(v.lastUpdated< (now-this.aisMgr.maxAge) ) {
+            //if stale then mark inactive
+            if(v.lastUpdated< (now-this.aisMgr.staleAge) ) {
                 this.aisMgr.staleList.push(k);
             }
+            //if not present then mark for deletion
+            if(v.lastUpdated< (now-this.aisMgr.maxAge) ) {
+                this.aisMgr.removeList.push(k);
+            }            
             //if recently updated
             if(v.lastUpdated.valueOf()>=this.aisMgr.lastTick ) {
                 this.aisMgr.updateList.push(k);

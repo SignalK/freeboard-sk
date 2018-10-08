@@ -325,7 +325,10 @@
                             <xol-ais-targets [aisTargets]="display.vessels.aisTargets"
                                 [updateIds]="aisMgr.updateList"
                                 [staleIds]="aisMgr.staleList"
-                                [icon]="'./assets/img/magenta_yacht.png'"
+                                [removeIds]="aisMgr.removeList"
+                                icon="./assets/img/ais_active.png"
+                                inactiveIcon="./assets/img/ais_inactive.png"
+                                [inactiveTime]="aisMgr.staleAge"
                                 [labelMinZoom]="10"
                                 [mapZoom]="app.config.map.zoomLevel">                               
                             </xol-ais-targets>
