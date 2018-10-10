@@ -493,6 +493,7 @@ export class AppComponent {
 
     toggleAisTargets() { 
         this.app.config.aisTargets= !this.app.config.aisTargets;
+        if(this.app.config.aisTargets) { this.processAIS(true) }
         this.app.saveConfig();
     }
 
@@ -1429,24 +1430,33 @@ export class AppComponent {
     }
 
     // ** process / cleanup AIS targets
-    processAIS() {
+    processAIS(toggled?) {
+        if(!this.app.config.aisTargets && !toggled) { return }
         let now= new Date().valueOf();
         this.aisMgr.staleList= [];
         this.aisMgr.updateList= [];
         this.aisMgr.removeList= [];
         this.display.vessels.aisTargets.forEach( (v,k)=>{
-            //if stale then mark inactive
-            if(v.lastUpdated< (now-this.aisMgr.staleAge) ) {
-                this.aisMgr.staleList.push(k);
-            }
             //if not present then mark for deletion
             if(v.lastUpdated< (now-this.aisMgr.maxAge) ) {
                 this.aisMgr.removeList.push(k);
-            }            
-            //if recently updated
-            if(v.lastUpdated.valueOf()>=this.aisMgr.lastTick ) {
-                this.aisMgr.updateList.push(k);
-            }            
+            }              
+            if(toggled) { // ** re-populate list after hide
+                if(v.lastUpdated< (now-this.aisMgr.staleAge) ) {
+                    this.aisMgr.staleList.push(k);
+                }                
+                else { this.aisMgr.updateList.push(k) }
+            }
+            else {  
+                //if stale then mark inactive
+                if(v.lastUpdated< (now-this.aisMgr.staleAge) ) {
+                    this.aisMgr.staleList.push(k);
+                }                         
+                //if recently updated
+                if(v.lastUpdated.valueOf()>=this.aisMgr.lastTick ) {
+                    this.aisMgr.updateList.push(k);
+                } 
+            }           
         });   
         this.aisMgr.lastTick= now;
     }

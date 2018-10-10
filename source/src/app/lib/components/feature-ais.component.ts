@@ -78,10 +78,9 @@ export class AisTargetsComponent implements OnInit, OnDestroy, OnChanges {
         ids.forEach( id=> {
             let ais= this.aisTargets.get(id);
             let aisText= this.formatlabel( ais.name || ais.callsign || ais.mmsi || ''); 
-            let tc= proj.transform( ais.position, this.srid, this.mrid );
             let f=layer.getFeatureById('ais-'+ id);
             if(f) {
-                f.setGeometry( new geom.Point(tc) );
+                f.setGeometry( new geom.Point( proj.transform( ais.position, this.srid, this.mrid ) ) );
                 f.setStyle( 
                     new style.Style({
                         image: new style.Icon({
@@ -98,7 +97,7 @@ export class AisTargetsComponent implements OnInit, OnDestroy, OnChanges {
             }
             else {
                 if(ais.position) {
-                    f= new Feature( new geom.Point(tc) );
+                    f= new Feature( new geom.Point( proj.transform( ais.position, this.srid, this.mrid ) ) );
                     f.setId('ais-'+ id);
                     f.setStyle( 
                         new style.Style({
