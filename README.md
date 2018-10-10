@@ -70,12 +70,14 @@ For example the following plugins installed on the *Signal K node server* will e
 - signalk-anchoralarm-plugin *(anchor alarm settings & notifications)*
 - signalk-simple-notifications *(depth alarm notifications)*
 
+### Integrated Apps on Server
+![Server Instruments](https://user-images.githubusercontent.com/38519157/46716813-00d27080-ccad-11e8-98a3-ab4b4f47df11.png)
 
 ### Vessel up
-![Vessel Up](https://raw.githubusercontent.com/SignalK/signalk-server-java/master/src/test/resources/samples/freeboard-sk-vessel-up.png)
+![Vessel Up](https://user-images.githubusercontent.com/38519157/46716759-cf59a500-ccac-11e8-9ac5-68a7f3429f4a.png)
 
 ### North up
-![North Up](https://raw.githubusercontent.com/SignalK/signalk-server-java/master/src/test/resources/samples/freeboard-sk-north-up.png)
+![North Up](https://user-images.githubusercontent.com/38519157/46716737-bc46d500-ccac-11e8-9d31-87cfffb1ad3b.PNG)
 
 
 
