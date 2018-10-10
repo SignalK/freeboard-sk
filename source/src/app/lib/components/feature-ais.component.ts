@@ -37,12 +37,18 @@ export class AisTargetsComponent implements OnInit, OnDestroy, OnChanges {
         if(changes.updateIds) { this.updateTargets(changes.updateIds.currentValue) } 
         if(changes.removeIds) { this.removeTargets( changes.removeIds.currentValue) } 
         if(changes.staleIds) { this.markStaleTargets( changes.staleIds.currentValue) } 
-        if(changes.mapZoom) { this.handleZoom() } 
+        if(changes.mapZoom) { this.handleZoom(changes.mapZoom) } 
     }
 
     formatlabel(label) { return (this.mapZoom < this.labelMinZoom) ? '' : label }
 
-    handleZoom() {
+    handleZoom(zoom) {
+        if(!zoom.firstChange) {
+            if( zoom.currentValue<this.labelMinZoom && 
+                zoom.previousValue<this.labelMinZoom) { return }
+            if( zoom.currentValue>=this.labelMinZoom && 
+                zoom.previousValue>=this.labelMinZoom) { return }                
+        }
         if(!this.host.instance) { return }
         let layer= this.host.instance;
         let now= new Date().valueOf();
@@ -73,7 +79,6 @@ export class AisTargetsComponent implements OnInit, OnDestroy, OnChanges {
             let ais= this.aisTargets.get(id);
             let aisText= this.formatlabel( ais.name || ais.callsign || ais.mmsi || ''); 
             let tc= proj.transform( ais.position, this.srid, this.mrid );
-
             let f=layer.getFeatureById('ais-'+ id);
             if(f) {
                 f.setGeometry( new geom.Point(tc) );
@@ -92,23 +97,25 @@ export class AisTargetsComponent implements OnInit, OnDestroy, OnChanges {
                 );
             }
             else {
-                f= new Feature( new geom.Point(tc) );
-                f.setId('ais-'+ id);
-                f.setStyle( 
-                    new style.Style({
-                        image: new style.Icon({
-                            src: this.icon,
-                            rotateWithView: true,
-                            rotation: ais.heading || ais.cogTrue
-                        }),
-                        text: new style.Text({
-                            text: aisText,
-                            offsetY: -12
+                if(ais.position) {
+                    f= new Feature( new geom.Point(tc) );
+                    f.setId('ais-'+ id);
+                    f.setStyle( 
+                        new style.Style({
+                            image: new style.Icon({
+                                src: this.icon,
+                                rotateWithView: true,
+                                rotation: ais.heading || ais.cogTrue
+                            }),
+                            text: new style.Text({
+                                text: aisText,
+                                offsetY: -12
+                            })
                         })
-                    })
-                );
-                layer.addFeature(f);
-            }                        
+                    );
+                    layer.addFeature(f);
+                }
+            }            
         });
     }
 

@@ -191,6 +191,7 @@ export class AppComponent {
             message+='- Add, delete and manage Routes and Waypoints\n';
             message+='- Set Anchor Watch alarms and display Depth alarms\n';
         }
+        this.app.data['firstRun']=false;
         let dref= this.dialog.open(MsgBox, {
             disableClose: true,
             data: { message: message, title: title, buttonText: 'Continue' }
@@ -583,11 +584,13 @@ export class AppComponent {
         info.push(['Name', item.name]); 
         info.push(['MMSI', item.mmsi]);  
         info.push(['Call Sign', item.callsign]);    
-        info.push(['State', item.state]);  
-        info.push(['Latitude', item.position[1].toFixed(6) ]); 
-        info.push(['Longitude', item.position[0].toFixed(6) ]);   
-        info.push(['SOG', Convert.msecToKnots(item.sog).toFixed(1) + ' kn']);  
-        info.push(['COG', Convert.radiansToDegrees(item.cogTrue).toFixed(1) + String.fromCharCode(186)]);         
+        info.push(['State', item.state]); 
+        if(item.position) {
+            info.push(['Latitude', item.position[1].toFixed(6) ]); 
+            info.push(['Longitude', item.position[0].toFixed(6) ]);  
+        } 
+        info.push(['SOG', (item.sog ? Convert.msecToKnots(item.sog).toFixed(1) : '0.0') + ' kn']);
+        info.push(['COG', (item.cogTrue ? Convert.radiansToDegrees(item.cogTrue).toFixed(1) : '0.0') + String.fromCharCode(186)]);
         return info;    
     }
 
@@ -1336,7 +1339,7 @@ export class AppComponent {
         let updateVlines= true;
 
         if( v.path=='navigation.headingTrue' ) { d.headingTrue= v.value } 
-        if( v.path=='navigation.headingMagnetic' ) { d.headingTrue= v.value }   
+        if( v.path=='navigation.headingMagnetic' ) { d.headingMagnetic= v.value }   
         // ** set preferred heading true / magnetic ** 
         if( v.path==this.app.config.selections.headingAttribute ) {
             d.heading= v.value;
@@ -1389,7 +1392,9 @@ export class AppComponent {
 
     displayVesselOther(id, v) {
         if( !this.display.vessels.aisTargets.has(id) ) {
-            this.display.vessels.aisTargets.set(id, new SKVessel() );
+            let vessel= new SKVessel();
+            vessel.position= null;
+            this.display.vessels.aisTargets.set(id, vessel );
         }
         let d= this.display.vessels.aisTargets.get(id);
         d.lastUpdated= new Date();
@@ -1399,7 +1404,7 @@ export class AppComponent {
             if(typeof v.value.mmsi!= 'undefined') { d.mmsi= v.value.mmsi }
         } 
         if( v.path=='navigation.headingTrue' ) { d.headingTrue= v.value } 
-        if( v.path=='navigation.headingMagnetic' ) { d.headingTrue= v.value }   
+        if( v.path=='navigation.headingMagnetic' ) { d.headingMagnetic= v.value }   
         // ** set preferred heading true / magnetic ** 
         if( v.path==this.app.config.selections.headingAttribute ) {
             d.heading= v.value;
