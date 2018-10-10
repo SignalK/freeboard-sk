@@ -14,8 +14,12 @@ import {AppInfo} from '../../app.info';
 export class SettingsDialog implements OnInit {
 
     distanceUnits= [ 
-        ['m', 'metres / Kilometres'], ['ft', 'feet / Nautical Miles']
+        ['m', 'Kilometres'], ['ft', 'Nautical Miles']
     ];
+
+    depthUnits= [ 
+        ['m', 'metres'], ['ft', 'feet']
+    ];    
 
     headingValue= [ 
         ['navigation.headingTrue', 'Heading True'], ['navigation.headingMagnetic', 'Heading Magnetic']

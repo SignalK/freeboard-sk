@@ -15,7 +15,7 @@
         <div class="theme-panel">
             <div>
                 <div class="setting-group">
-                    <div class="setting-group-title">PLUG-INS</div>
+                    <div class="setting-group-title">DISPLAY</div>
                     <mat-card class="setting-card">
                         <div class="setting-card-row" *ngIf="appList.length>1">
                             <div class="setting-card-row-item">
@@ -33,49 +33,8 @@
                                     </mat-select>                                        
                                 </mat-form-field>
                             </div> 
-                        </div>
-                        <div class="setting-card-row">
-                            <div class="setting-card-row-item">
-                                <b>Server Resource Updates:</b>
-                                <br>
-                                <mat-checkbox #useput color="primary"
-                                    [(ngModel)]="app.config.usePUT" 
-                                    (change)="onFormChange($event, useput)"
-                                    matTooltip="If unchecked Delta Update messages will be used (not recommended)"
-                                    label="after">
-                                    Use PUT requests (*Recommended)
-                                </mat-checkbox>                                        
-                            </div>                                                   
-                        </div>
-                    </mat-card>
-                </div>
-
-                <div class="setting-group">
-                    <div class="setting-group-title">DISPLAY</div>
-                    <mat-card class="setting-card">
+                        </div>                
                         <div class="setting-card-row" style="padding-bottom: 10px;">
-                            <div class="setting-card-row-item">
-                                <mat-form-field style="width:100%;">
-                                    <mat-select #distunits 
-                                            [(value)]="app.config.units.distance" 
-                                            (selectionChange)="onFormChange($event, distunits)"
-                                            placeholder="Distance units">
-                                        <mat-option *ngFor="let i of distanceUnits" [value]="i[0]">{{i[1]}}</mat-option>
-                                    </mat-select>                                        
-                                </mat-form-field>
-                            </div>                         
-
-                            <div class="setting-card-row-item">
-                                <mat-form-field style="width:100%;">
-                                    <mat-select #headingattrib 
-                                            [(value)]="app.config.selections.headingAttribute" 
-                                            (selectionChange)="onFormChange($event, headingattrib)"
-                                            placeholder="Preferred Heading Value">
-                                        <mat-option *ngFor="let i of headingValue" [value]="i[0]">{{i[1]}}</mat-option>
-                                    </mat-select>                                        
-                                </mat-form-field>
-                            </div>  
-                            <br>
                             <div class="setting-card-row-item">
                                 <mat-checkbox #depthalarm color="primary"
                                     [(ngModel)]="app.config.depthAlarm.enabled" 
@@ -95,7 +54,7 @@
                                         <mat-option *ngFor="let i of smoothing" [value]="i[0]">{{i[1]}}</mat-option>
                                     </mat-select>                                        
                                 </mat-form-field>
-                            </div>                        
+                            </div> 
                             <br>
                             <div class="setting-card-row-item">
                                 <mat-checkbox #vesseltrail color="primary"
@@ -104,10 +63,69 @@
                                     label="after">
                                     Display Vessel Trail
                                 </mat-checkbox>                                        
-                            </div>                            
+                            </div>
                         </div>                             
                     </mat-card>
-                </div>  
+                </div>                  
+
+                <div class="setting-group">
+                    <div class="setting-group-title">UNITS &amp; VALUES</div>
+                    <mat-card class="setting-card">
+                        <div class="setting-card-row" style="padding-bottom: 10px;">
+                            <div class="setting-card-row-item">
+                                <mat-form-field style="width:100%;">
+                                    <mat-select #distunits 
+                                            [(value)]="app.config.units.distance" 
+                                            (selectionChange)="onFormChange($event, distunits)"
+                                            placeholder="Distance units">
+                                        <mat-option *ngFor="let i of distanceUnits" [value]="i[0]">{{i[1]}}</mat-option>
+                                    </mat-select>                                        
+                                </mat-form-field>
+                            </div>          
+
+                            <div class="setting-card-row-item">
+                                <mat-form-field style="width:100%;">
+                                    <mat-select #depthunits 
+                                            [(value)]="app.config.units.depth" 
+                                            (selectionChange)="onFormChange($event, depthunits)"
+                                            placeholder="Depth units">
+                                        <mat-option *ngFor="let i of depthUnits" [value]="i[0]">{{i[1]}}</mat-option>
+                                    </mat-select>                                        
+                                </mat-form-field>
+                            </div>                                             
+
+                            <div class="setting-card-row-item">
+                                <mat-form-field style="width:100%;">
+                                    <mat-select #headingattrib 
+                                            [(value)]="app.config.selections.headingAttribute" 
+                                            (selectionChange)="onFormChange($event, headingattrib)"
+                                            placeholder="Preferred Heading Value">
+                                        <mat-option *ngFor="let i of headingValue" [value]="i[0]">{{i[1]}}</mat-option>
+                                    </mat-select>                                        
+                                </mat-form-field>
+                            </div> 
+                        </div> 
+                    </mat-card>
+                </div>
+
+                <div class="setting-group">
+                    <div class="setting-group-title">SERVER</div>
+                    <mat-card class="setting-card">
+                        <div class="setting-card-row">
+                            <div class="setting-card-row-item">
+                                <b>Server Resource Updates:</b>
+                                <br>
+                                <mat-checkbox #useput color="primary"
+                                    [(ngModel)]="app.config.usePUT" 
+                                    (change)="onFormChange($event, useput)"
+                                    matTooltip="If unchecked Delta Update messages will be used (not recommended)"
+                                    label="after">
+                                    Use PUT requests (*Recommended)
+                                </mat-checkbox>                                        
+                            </div>                                                   
+                        </div>
+                    </mat-card>
+                </div>
 
             </div>
         </div>

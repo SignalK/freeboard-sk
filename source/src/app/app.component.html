@@ -629,7 +629,7 @@
                 <anchor-watch *ngIf="display.anchorWatch"
                     min="10" max="500" 
                     [radius]="app.config.anchor.radius" 
-                    [feet]="(app.config.units.distance!='m') ? true : false"
+                    [feet]="(app.config.units.depth!='m') ? true : false"
                     [raised]="app.config.anchor.raised"
                     (change)="anchorEvent($event)"
                     (closed)="displayLeftMenu()">
