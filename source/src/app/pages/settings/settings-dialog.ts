@@ -46,9 +46,10 @@ export class SettingsDialog implements OnInit {
             this.signalk.get(appListUrl).subscribe( 
                 (a: Array<any>)=> {
                     this.appList= a.map( i=> { 
+                        if(i.name=='@signalk/freeboard-sk') { return null }
                         if(!i._location) { // npm linked app
                             return {
-                                name:  i.name,
+                                name: i.name,
                                 description: i.description, 
                                 url: `/${i.name}`
                             }                    
@@ -59,7 +60,7 @@ export class SettingsDialog implements OnInit {
                             description: i.description, 
                             url: (x==-1) ? i._location : i._location.slice(15)
                         }
-                    });
+                    }).filter(e=> {return e} );
                     this.appList.unshift({
                         name:  'None',
                         description: '', 
