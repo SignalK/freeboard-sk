@@ -13,13 +13,10 @@ import {IndexedDB} from './lib/info/indexeddb';
 export class AppInfo extends Info {
 
     private DEV_SERVER= {
-        host: `192.168.99.100`,
-        port: 3000
+        host: null,     // host name || ip address
+        port: null,     // port number
+        ssl: null       // true || false
     }
-    /*private DEV_SERVER= {
-        host: null,
-        port: null
-    }*/
 
     public hostName;
     public hostPort: number;
@@ -35,10 +32,11 @@ export class AppInfo extends Info {
 
         this.hostName= (this.devMode && this.DEV_SERVER.host) ? this.DEV_SERVER.host : window.location.hostname;
         this.hostPort= (this.devMode && this.DEV_SERVER.port) ? this.DEV_SERVER.port : parseInt(window.location.port);
-        this.hostSSL= (window.location.protocol=='https:') ? true : false;
+        this.hostSSL= (window.location.protocol=='https:' || 
+                        (this.devMode && this.DEV_SERVER.ssl) ) ? true : false;
 
         this.host= (this.devMode) ? 
-            `${window.location.protocol}//${this.hostName}:${this.hostPort}` :
+            `${this.hostSSL ? 'https:' : 'http:'}//${this.hostName}:${this.hostPort}` :
             `${window.location.protocol}//${window.location.host}`;
             
         this.id='freeboard';
