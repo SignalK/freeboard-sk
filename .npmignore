@@ -1,1 +1,7 @@
-/source
+angular.json
+e2e
+package-lock.json
+package.json
+src
+tsconfig.json
+tslint.json
