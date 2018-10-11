@@ -154,7 +154,14 @@
                         <mat-icon>settings</mat-icon>
                         &nbsp;Settings
                     </a>  
+                    <a mat-list-item (click)="sidemenu.close()"
+                        href="./assets/help/index.html"
+                        target="_blank">
+                        <mat-icon>help</mat-icon>
+                        &nbsp;Help
+                    </a> 
 
+                    <mat-divider></mat-divider>
 					<a mat-list-item (click)="sidemenu.close();openAbout();">
                         <mat-icon mat-list-avatar>
                             <img src="assets/img/app_logo.png" style="width:42px;"/>
