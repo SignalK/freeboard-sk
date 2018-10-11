@@ -42,17 +42,21 @@
         </button>          
         <hr>
         <button mat-icon-button (click)="toggleMoveMap()"
+            [disabled]="!display.showSelf"
             [matTooltip]="app.config.map.moveMap ? 'Turn off Follow Vessel' : 'Follow Vessel' " 
             matTooltipPosition="right">
-            <mat-icon [style.color]="app.config.map.moveMap ? 'yellow' : 'white'">
+            <mat-icon [style.color]="!display.showSelf ? 'silver' : app.config.map.moveMap ? 'yellow' : 'white'">
                 my_location
             </mat-icon>	
         </button> 
         <hr *ngIf="!app.config.map.moveMap">
         <button mat-icon-button *ngIf="!app.config.map.moveMap"
             (click)="mapMove()"
+            [disabled]="!display.showSelf"
             matTooltip="Center Vessel" matTooltipPosition="right">
-            <mat-icon>center_focus_strong</mat-icon>			
+            <mat-icon [style.color]="!display.showSelf ? 'silver' : 'white'">
+                center_focus_strong
+            </mat-icon>			
         </button>        
         <hr>
         <button mat-icon-button 
@@ -442,7 +446,7 @@
                     <!-- ANCHOR WATCH --> 
 
                     <!-- *** VESSEL SELF *** -->
-                    <aol-layer-vector [zIndex]="210">
+                    <aol-layer-vector [zIndex]="210" *ngIf="display.showSelf">
                         <aol-source-vector>
                             <!-- vessel -->
                             <aol-feature [id]="''+app.data.selfId">
@@ -532,8 +536,8 @@
                     </aol-layer-vector>   
                     
                     <!-- *** VESSEL TRAIL *** -->
-                    <aol-layer-vector [zIndex]="200"
-                        *ngIf="app.config.vesselTrail">
+                    <aol-layer-vector [zIndex]="200" 
+                        *ngIf="app.config.vesselTrail && display.showSelf">
                         <aol-source-vector>
                             <aol-feature>
                                 <aol-geometry-linestring>

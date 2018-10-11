@@ -34,6 +34,7 @@ export class AppComponent {
         waypointList: false,
         chartList: false,
         anchorWatch: false,
+        showSelf: false,
         vessels: { 
             self: new SKVessel(), 
             aisTargets: new Map()
@@ -349,6 +350,7 @@ export class AppComponent {
     mapMoveEvent(e) {
         let v= e.map.getView();
         let z= v.getZoom();
+        this.app.debug(`Zoom: ${z}`);
         if(!this.app.config.map.mrid) { this.app.config.map.mrid= v.getProjection().getCode() }
         let center = proj.transform(
             v.getCenter(), 
@@ -426,6 +428,8 @@ export class AppComponent {
 
     mapVesselLines() {
         if(!this.display.vessels.self.sog) { return }
+        let z= this.app.config.map.zoomLevel;
+        let offset= (z>=10) ? 12000 / z : 60000/z;
         
         this.display.vesselLines.heading= [
             this.display.vessels.self.position, 
@@ -433,7 +437,7 @@ export class AppComponent {
                 this.display.vessels.self.position[1],
                 this.display.vessels.self.position[0],
                 this.display.vessels.self.heading,
-                (this.display.vessels.self.sog * 60)
+                (this.display.vessels.self.sog * offset)
             )
         ];
 
@@ -443,7 +447,7 @@ export class AppComponent {
                 this.display.vessels.self.position[1],
                 this.display.vessels.self.position[0],
                 this.display.vessels.self.heading,
-                (this.display.vessels.self.sog * 30000)
+                (this.display.vessels.self.sog * 30000 )
             )
         ];  
         
@@ -457,7 +461,7 @@ export class AppComponent {
                 this.display.vessels.self.position[1],
                 this.display.vessels.self.position[0],
                 ca,
-                (this.display.vessels.self.wind.aws || this.display.vessels.self.sog) * 60
+                (this.display.vessels.self.wind.aws || this.display.vessels.self.sog) * offset
             )
         ];        
         
@@ -467,7 +471,7 @@ export class AppComponent {
                 this.display.vessels.self.position[1],
                 this.display.vessels.self.position[0],
                 this.display.vessels.self.wind.twd,
-                (this.display.vessels.self.wind.tws || this.display.vessels.self.sog) * 60
+                (this.display.vessels.self.wind.tws || this.display.vessels.self.sog) * offset
             )
         ];
 
@@ -1347,6 +1351,7 @@ export class AppComponent {
         }  
         if( v.path=='navigation.position') {
             d.position= [ v.value.longitude, v.value.latitude];
+            this.display.showSelf= true;
             // ** move map
             if(this.app.config.map.moveMap) {
                 this.display.map.center= d.position;
@@ -1442,10 +1447,7 @@ export class AppComponent {
                 this.aisMgr.removeList.push(k);
             }              
             if(toggled) { // ** re-populate list after hide
-                if(v.lastUpdated< (now-this.aisMgr.staleAge) ) {
-                    this.aisMgr.staleList.push(k);
-                }                
-                else { this.aisMgr.updateList.push(k) }
+                this.aisMgr.updateList.push(k);
             }
             else {  
                 //if stale then mark inactive
