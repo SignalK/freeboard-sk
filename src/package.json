@@ -1,0 +1,19 @@
+{
+    "name": "@signalk/freeboard-sk",
+    "version": "1.0.0",
+    "description": "Openlayers chartplotter implementation for Signal K",
+    "keywords": [
+        "signalk-webapp"
+    ],
+    "repository": "https://github.com/SignalK/freeboard-sk",
+    "scripts": {
+        "prepare": "cd source && npx ng build --prod"
+    },
+    "author": "robert@42.co.nz",
+    "contributors": [
+        {
+            "name": "panaaj@hotmail.com"
+        }
+    ],
+    "license": "Apache-v2"
+}

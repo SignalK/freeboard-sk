@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html>
+    
+<head>
+	<title>Freeboard | Help</title>
+    <!-- ** Foundation ** -->
+    <link rel="stylesheet" href="./css/foundation.min.css" />
+	<link rel="stylesheet" href="../css/foundation-icons.css" />
+    <!--** Foundation ** -->
+    <link rel="stylesheet" href="./css/help.css">
+</head>
+    
+<body>
+
+	<!-- top Bar menu -->	
+	<div class="sticky">  
+		<nav class="top-bar" data-topbar>
+			<ul class="title-area">
+				<!-- Title Area -->
+				<li class="name">
+                    <h1>
+                        <img src="../img/app_logo.png" style="width:38px"> 
+                        Freeboard Help
+                    </h1>
+				</li>
+				<!-- Remove the class "menu-icon" to get rid of menu icon. Take out "Menu" to just have icon alone -->
+				<li class="toggle-topbar menu-icon"><a href="#"><span>Menu</span></a></li>
+			</ul>
+			<section class="top-bar-section">
+				<!-- Nav Section -->
+				<ul class="right"></ul>
+			</section>
+		</nav>
+	</div>
+     
+    <div class="content-container">
+        <div class="content-left">
+            <ul class="side-nav">
+                <li><a href="#top">Introduction</a></li>
+                <li><a href="#server">Signal K Server</a></li>
+                <li><a href="#display">Display</a></li>
+                <li><a href="#resources">Resources</a></li>
+                <li><a href="#anchor">Anchor Watch</a></li>
+                <li><a href="#settings">Settings</a></li>
+                <li><a href="https://github.com/SignalK/freeboard-sk/" target="_fb">
+                    <i class="fi-social-github"></i> GitHub</a></li>
+            </ul>
+        </div>
+        <div class="content-right">
+
+            <div class="panel" id="top">
+                <h3>Introduction</h3>
+                <p>Freeboard is an Openlayers based chart plotter that uses
+                    Signal K communication protocols and Signal K server features 
+                    to provide the following functionality:<br>
+                    <ul>
+                        <li><b>Moving Vessel / Map</b> display with vessel Heading / Bearing 
+                            and True Wind / Apparent Wind lines.
+                        </li>
+                        <li><b>Charts</b> display including both online and locally hosted.</li>
+                        <li><b>Route and Waypoint</b> List and filter resources, drop waypoints, 
+                            draw routes, set active route and import from GPX files.
+                        </li>
+                        <li><b>Anchor Watch:</b> and Depth alarms (visual and sound).</li>
+                        <li><b>Instrument Panel:</b> allows you to select from the apps 
+                            installed on your Signal K server for display.
+                        </li>
+                        <li><b>AIS</b> target display.</li>
+                    </ul>
+                </p> 
+                To learn more about Signal K visit 
+                <a href="http://signalk.org" target="_sk">http://signalk.org</a>
+                <br>
+                Visit us at 
+                <a href="https://github.com/SignalK/freeboard-sk/" target="_fb">
+                    <i class="fi-social-github"></i> GitHub</a>
+            </div>
+            
+            <div class="panel" id="server">
+                <h3>Signal K Server</h3>
+                <p>Freeboard is a "stateless" application which can be used concurrently at multiple stations 
+                    to both display and send back information to the Signal K server.<br>
+                    Therefore Freeboard requires that the host Signal K server be able to service requests 
+                    to the following paths for all functionality to be available:<br>
+                    <ul>
+                        <li>
+                            <i>reources/routes</i> and <i>resources/waypoints</i> - 
+                            Serve resources as well as accept and persist resource data submitted to these paths.
+                        </li>
+                        <li><i>resources/charts</i> - Serve chart resources.</li>
+                        <li><i>navigation/anchor</i>, <i>notifications/navigation/anchor</i> -
+                            Serve and accept `position`, `maxRadius` values as well as calculate `currentRadius` 
+                            and serve notifications.
+                        </li>
+                        <li><i>notifications/environment/depth</i> - Serve notifications for <i>belowKeel</i>, 
+                            <i>belowSurface</i> and <i>belowTransducer</i>.
+                        </li>
+                        <li><i>navigation/course/activeRoute</i> - Serve and accept <i>href</i> & <i>startTime</i> values 
+                            to allow a route to be set as active. It is expected that the server will initiate 
+                            any subsequent calculations and related value updates.
+                        </li>
+                    </ul>
+                </p> 
+            </div>
+
+            <div class="panel" id="display">
+                <h4>Display</h4>
+                <p>
+                    Freeboard provides a moving Vessel / Map display for both your vessel
+                    <img src="../img/ship_red.png" style="height:30px;"/>
+                    and other vessels <img src="../img/ais_active.png" style="height:20px;"/>(via AIS).<br>
+                    <img src="./img/screen.png" style="height:400px;"/>
+                    <br>
+                    The menu bar along the left of the screen provides access to functions and
+                    menus that allow you control the map display.
+                    <li class="nobullet"><img src="./img/north_up.png"/>
+                        <b>Heading / North Up:</b>
+                        Toggles between <i>Heading / North Up</i> mode.
+                    </li>                        
+                    <li class="nobullet"><img src="./img/follow_vessel.png"/>
+                        <b>Follow Vessel On / Off:</b>
+                        Toggles <i>Follow Vessel</i> mode to keep the vessel at the centre of the 
+                        screen.<br>
+                        <i>Note: this option is disabled when vessel position is not available.</i>
+                    </li>
+                    <li class="nobullet"><img src="./img/centre_vessel.png"/>
+                        <b>Centre Vessel on screen:</b> 
+                        <i>Note: This option is disabled when vessel position is not available.</i>
+                    </li>     
+                    <li class="nobullet"><img src="./img/more.png"/>
+                        <b>More Actions:</b>
+                        Menu containing options to:
+                        <b>Show / Hide AIS Targets</b> and
+                        <b>Clear Vessel Trail</b>
+                    </li>         
+                    <li class="nobullet"><img src="./img/instrument_panel.png"/>
+                        <b>Instrument panel:</b> The instrument panel can contain any WebApp installed on
+                        the Signal K server.<br>
+                        <i>The default instruments shown are <b>@signalk/instrumentpanel</b></i><br>
+                        You can select which application to display from the 
+                        <a href="#settings">Settings</a> screen.
+                    </li>                                                               
+                </p>
+                <p>
+                    <img src="../img/ship_red.png" style="height:30px;"/>
+                    <b>Vessel:</b> displays the current position and heading of your vessel.<br>
+                    <i>Note: Vessel icon is not displayed when vessel position is not available.</i><br>
+                    Additionally, Heading, Bearing True Wind Direction and Apparent Wind Angle 
+                    lines are displayed with the vessel when the information is available.<br>
+                    <img src="./img/vessel_lines.png" style="height:80px;"/>
+                </p>
+                <p>
+                    <img src="../img/ais_active.png" style="height:20px;"/>
+                    <b>Active AIS Target:</b> displays the current position and heading 
+                    for an AIS target for which
+                    an update has been received in the last 6 mins.<br>
+                    <img src="../img/ais_inactive.png" style="height:20px;"/>
+                    <b>Inactive AIS Target:</b> displays the last received position and heading 
+                    for an AIS target for which
+                    an update has NOT been received for more than 6 mins.<br>
+                    <i>Note: AIS Targets are removed from display after there has been no 
+                        update received for 9 mins or more.</i>
+                </p>   
+                <P>
+                    Clicking on an AIS target or vessel icon will display an information window
+                    containing vessel data and available actions.<br>
+                    <img src="./img/vessel_popover.png" style="height:150px;"/>
+                    &nbsp;&nbsp;
+                    <img src="./img/ais_popover.png" style="height:150px;"/>
+                </P>                 
+            </div>	
+
+            <div class="panel" id="resources">
+                <h4>Resources</h4>
+                <p>
+                    Freeboard provides functionality for Route, Waypoint and Chart resources.
+                    <br>
+
+                    <li class="nobullet"><img src="./img/routes.png"/>
+                        <b>Routes:</b>
+                        Displays a list of available Routes.
+                    </li> 
+                    <br>
+                    <div style="display:flex;">
+                        <div><img src="./img/route_list.png" style="max-width:250px;"/></div>
+                        <div style="padding-left:15px;">
+                            <li><b>Filter Routes:</b> Type into the text box to filter the list of routes.</li>
+                            <li><b>Display Route:</b> Check the checkbox to display the route on the map.</li>
+                            <li><b>Delete Route: </b> Click the trash can icon and you will be prompted to 
+                                delete the route.<br>
+                                <i>Note: Deleting a route will also delete the associated Start and End Waypoints!</i>
+                            </li>
+                            <li><b>Activate: </b> Clicking this button sends a message to the server to set 
+                                this route as the <i>Active Route</i>.
+                            </li>
+                            <li><b>Properties</b> Click the widget icon to edit route Name and Description.</li> 
+                        </div>
+                    </div>       
+                    <br>                                    
+                    <li class="nobullet"><img src="./img/waypoints.png"/>
+                        <b>Waypoints:</b>
+                        Displays a list of available Waypoints.
+                    </li>
+                    <br>
+                    <div style="display:flex;">
+                        <div><img src="./img/waypoint_list.png" style="max-width:250px;"/></div>
+                        <div style="padding-left:15px;">
+                            <li><b>Filter Waypoints:</b> Type into the text box to filter the list of waypoints.</li>
+                            <li><b>Display Waypoint:</b> Check the checkbox to display the waypoint on the map.</li>
+                            <li><b>Delete Waypoint: </b> Click the trash can icon and you will be prompted to 
+                                delete the route.<br>
+                                <i>Note: A waypoint may be associated with a route. 
+                                    so take care when deleting waypoints!</i>
+                            </li>
+                            <li><b>Properties</b> Click the widget icon to edit waypoint Name and Description.</li> 
+                        </div>
+                    </div>  
+                    <br>
+                    Additionally, you can click on both Routes and Waypoints to display
+                    an information window available actions.<br>
+                    <img src="./img/route_popover.png"/>&nbsp;&nbsp;
+                    <img src="./img/wpt_popover.png"/>
+                    <br>&nbsp;<br>                   
+                    <li class="nobullet"><img src="./img/draw.png"/>
+                        <b>Draw Menu:</b>
+                        The Draw menu is where you will find options to:
+                        <li>Draw a Route</li>
+                        <li>Add Waypoint at the current Vessel position</li>
+                        <li>Drop Waypoint on the map</b></li>
+                        <li>Measure distances</li>
+                    </li>  
+                    <br>                  
+                    <li class="nobullet"><img src="./img/charts.png"/>
+                        <b>Charts:</b> 
+                        Displays a list of available Charts.
+                    </li>  
+                    <br>
+                    <div style="display:flex;">
+                        <div><img src="./img/chart_list.png" style="max-width:250px;"/></div>
+                        <div style="padding-left:15px;">
+                            <li><b>Filter Charts:</b> Type into the text box to filter the list of charts.</li>
+                            <li><b>Display Chart:</b> Check the checkbox to display the chart.</li>
+                            Freeboard by default will display:
+                            <li>OpenStreetMap</li>
+                            <li>OpenSeaMap</li>
+                            which require an internet connection to be displayed.<br>
+                            <b>Local Charts</b> hosted on the Signal K server are identified with the 
+                            <img src="./img/charts.png"/> icon.
+                            <br>&nbsp;<br>
+                            Charts are displayed in descending order of scale to ensure more detailed 
+                            charts are on top.
+                        </div>
+                    </div>  
+                    <br>                        
+                    <li class="nobullet"><img src="../img/gpx_black.png" style="width:36px;"/>
+                        <b>Load from GPX:</b>
+                        Load Route and Waypoint resources from GPX file. 
+                    </li>  
+                    <br>
+                    <div style="display:flex;">
+                        <div><img src="./img/gpx_load.png" style="max-width:250px;"/></div>
+                        <div style="padding-left:15px;">
+                            After selecting a GPX file from the Open File dialog you will be
+                            presented with a screen that will allow you to select some or all
+                            of the Route and Waypoint resources contained in the file.<br>
+        
+                            <li><b>Waypoints:</b> Click the checkbox to select all Waypoints or
+                                expand the list and select the Waypoints to import.
+                            </li>
+                            <li><b>Routes:</b> Click the checkbox to select all Routes or
+                                expand the list and select the Routes to import.
+                            </li>
+                            <br>
+                            After selecting the resources click <b>Load Selected</b> to load the
+                            resources onto the Signal K server.
+                        </div>
+                    </div>
+                </p>                 
+            </div>		
+
+            <div class="panel" id="anchor">
+                <h4>Anchor Watch</h4>
+                <p>
+                    Set anchor watch alarm.
+                </p>
+                <div style="display:flex;">
+                    <div><img src="./img/anchor_watch.png" style="max-width:250px;"/></div>
+                    <div style="padding-left:15px;">
+                        <li><b>Set Radius</b>: 
+                            Move the slider to the desired radius.
+                        </li>
+                        <li><b>Drop Anchor</b>: 
+                            Slide the toggle to drop the anchor and tell the server to 
+                            start watching.
+                        </li>    
+                        <img src="./img/anchor_circle.png" style="max-width:100px;"/>       
+                        <li>When the server calculates that the maxumum radius has been 
+                            exceeded it sends a notification which triggers the alarm 
+                            message.
+                        </li>                                
+                        <li>An alarm message will be either just Visual or also Audible 
+                            depending on the content of the notification from the server.
+                            An audible alarm can be muted by clicking the Mute button.
+                        </li>  
+                        <img src="./img/anchor_alarm.png" style="max-width:250px;"/>
+                        <img src="./img/anchor_alarm_muted.png" style="max-width:250px;"/>
+                        <li>To clear the alarm and remove it from the screen click Acknowledge.</li>
+                    </div>
+                </div> 
+                    
+                    
+  
+
+                </p>	                
+            </div>            
+        
+            <div class="panel" id="settings">
+                <h4><i class="fi-widget"></i> Settings</h4>
+                <p>
+                    The Settings screen is where you can configure Freeboard and it consists 
+                    of the following sections:
+                </p>
+        
+                <p>
+                    <b>DISPLAY:</b><br>
+                    This section provides choices about how information is displayed.<br>
+                    <img src="./img/settings_display.png" style="height:170px;"/>
+                    <ul>
+                        <li><b>Instrument Panel App</b>: 
+                            Select from a list of installed applications the one you wish to
+                            be displayed in the Instrument Panel.<br>
+                            <i>Note: The application selected should be responsive to display correctly
+                                within the space afforded by the instrument panel.
+                            </i>
+                        </li>
+                        <li><b>Show DEPTH Alarm Messages</b>: 
+                            Check this box if you want received DEPTH notifications from the Signal K server
+                            to be displayed as an alarm message.
+                        </li>           
+                        <li><b>Alarm Smoothing Time</b>: 
+                            Once the DEPTH alarm message has been acknowledged and the notification 
+                            state has returned to <i>Normal</i>, this is the 
+                            length of time that the notification must remain in <i>Normal</i> state
+                            before the alarm is re-triggered.
+                        </li>                                
+                        <li><b>Display Vessel Trail</b>: 
+                            Check this box if you want to display the vessel trail.
+                        </li>   
+                    </ul>
+                </p>		
+
+                <p>
+                    <b>UNITS &amp; VALUES:</b><br>
+                    This section provides choices about the units and values used when displaying data.<br>
+                    <img src="./img/settings_units.png" style="height:100px;"/><br>
+
+                    <b>Distance Units</b>: 
+                    <i>Kilometres</i> / <i>Nautical Miles</i>
+                    <br>
+                    <b>Depth Units</b>: 
+                    <i>Metres</i> / <i>Feet</i>
+                    <br>
+                    <b>Preferred Heading</b>: <i>headingTrue</i> / <i>headingMagnetic</i><br>
+                    Value used to display vessel heading when both are available.<br>
+                </p>	   
+                
+                <p>
+                    <b>SERVER:</b><br>
+                    <img src="./img/settings_server.png" style="height:100px;"/>
+                    <ul>
+                        <li><b>Server Resource Updates</b>: 
+                            Un-check this box if you want to use <i>UPDATES</i> messages to send 
+                            information to the server rather than <i>PUT</i> requests.
+                        </li>        
+                    </ul>
+                    This setting is <b>Checked</b> by default and should be left checked to ensure 
+                    Freeboard can respond to the success / failure of an action on the server.<br>
+                    
+                    Un-checking this option will cause UPDATES messages to be sent, which essentially 
+                    broadcasts the information and does not 
+                    elicit a specific response from the Signal K server regarding the sucess or failure
+                    of an operation.<br>
+                    This option can be used when the Signal K server does not accept requests for 
+                    the paths required for Freeboard functions.<br>
+                </p>                
+            </div>
+        
+        </div>
+    </div>
+</body>
+    
+</html>

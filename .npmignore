@@ -1,7 +1,7 @@
-node_modules/*
-!node_modules/app
-**/*.swp
-npm-debug.log
-lib/
-!lib/jquery.sparkline.min.js
-nbproject/
+angular.json
+e2e
+package-lock.json
+package.json
+src
+tsconfig.json
+tslint.json

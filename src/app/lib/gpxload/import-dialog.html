@@ -1,0 +1,160 @@
+<div class="gpxload-dialog">
+    <mat-toolbar style="background-color: transparent;">
+        <span class="dialog-icon"><mat-icon><img src="./assets/img/gpx.png" style="height: 35px;"/></mat-icon></span>
+        <span style="flex: 1 1 auto;text-align:center;">Load GPX</span>
+        <span style="text-align:right;">
+            <button mat-icon-button (click)="this.dialogRef.close(null);">
+                <mat-icon>close</mat-icon>
+            </button>
+        </span>
+    </mat-toolbar>    
+
+    <div *ngIf="display.notValid" class="error">
+        <div>
+            <b>Invalid GPX Data:</b><br><br>
+            <i>Selected file does not contain GPX data or<br>
+                does not correctly 
+                implement namespaced &lt;extensions&gt; attributes.</i>
+        </div>
+    </div>    
+
+    <div *ngIf="!display.notValid" class="dialog-content">
+        <!--valid GPX file-->
+        <div class="card-group" *ngIf="!display.notValid">
+            <div class="card-group-title">
+                <div style="display:flex;">
+                    <div>  
+                    </div>
+                    <div style="flex: 1 1 auto; padding-left:20px;">
+                        {{data.fileName}}
+                    </div>
+                    <div>
+                        <button mat-button 
+                            matTooltip="Load all selected resources" matTooltipPosition="below"
+                            [disabled]="!display.loadRoutesOK && !display.loadWaypointsOK"  
+                            (click)="load()">
+                                <mat-icon>file_upload</mat-icon>
+                                &nbsp;Load<span class="txtSelect"> Selected</span>
+                        </button>                      
+                    </div>   
+                </div>         
+            </div>
+        </div>
+
+        <!-- Waypoints -->
+        <div class="card-group" *ngIf="gpxData.waypoints.length!=0">
+            <mat-expansion-panel #pnlWpt
+                [expanded]="display.expand.waypoints"
+                (opened)="display.expand.waypoints=true"
+                (closed)="display.expand.waypoints=false">
+                <mat-expansion-panel-header>
+                    <mat-panel-title>
+                        <mat-icon color="accent">place</mat-icon>
+                        &nbsp;&nbsp;
+                        <b>Waypoints:</b> 
+                    </mat-panel-title>
+                    <mat-panel-description>
+                        <div style="display:flex;width:100%;">
+                            <span class="pnlSelectedItems">
+                                ({{display.selCount.waypoints}} of {{gpx?.wpt.length}}) 
+                            </span>
+                            <span class="pnlSelect">
+                                <mat-checkbox 
+                                    [indeterminate]="display.someWptChecked"
+                                    [checked]="display.allWaypointsChecked"
+                                    [disabled]="gpxData.waypoints.length==0"
+                                    (change)="checkWpt($event.checked, -1)"
+                                    (click)="$event.cancelBubble=true"
+                                    matTooltip="Select all Waypoints" matTooltipPosition="before"
+                                    color="accent"></mat-checkbox>                            
+                            </span>
+                        </div>
+                    </mat-panel-description>
+                </mat-expansion-panel-header>
+
+                <div class="list-container-scrollable">
+                    <mat-card class="row" *ngFor="let w of gpxData.waypoints;let i=index">
+                        <div class="rgrid" >
+                            <div class="row">
+                                <div class="name">
+                                    <mat-icon color="accent">place</mat-icon>
+                                    {{w.name}}
+                                </div>
+                                <div class="">
+                                    <i>{{w.description}}</i>
+                                </div>                         
+                                <div class="check"> 
+                                    <mat-slide-toggle color="primary"
+                                        matTooltip="Select this Waypoint" matTooltipPosition="below"
+                                        [checked]="selWaypoints[i]"
+                                        #wval (change)="checkWpt(wval.checked, i)">
+                                    </mat-slide-toggle>  
+                                </div>      
+                            </div>
+                        </div>     
+                    </mat-card>            
+                </div> 
+            </mat-expansion-panel>
+        </div> 
+
+        <!-- Routes -->
+        <div class="card-group" *ngIf="gpxData.routes.length!=0">
+            <mat-expansion-panel 
+                [expanded]="display.expand.routes"
+                (opened)="display.expand.routes=true"
+                (closed)="display.expand.routes=false">
+                <mat-expansion-panel-header>
+                    <mat-panel-title>
+                        <mat-icon color="primary">directions</mat-icon>
+                        &nbsp;&nbsp;
+                        <b>Routes:</b> 
+                    </mat-panel-title>
+                    <mat-panel-description>
+                        <div style="display:flex;width:100%;">
+                            <span class="pnlSelectedItems">                    
+                                ({{display.selCount.routes}} of {{gpx?.rte.length}})
+                            </span>
+                            <span class="pnlSelect">
+                                <mat-checkbox 
+                                    [indeterminate]="display.someRteChecked"
+                                    [checked]="display.allRoutesChecked"
+                                    [disabled]="gpxData.routes.length==0"
+                                    (change)="checkRte($event.checked, -1)"
+                                    (click)="$event.cancelBubble=true"
+                                    matTooltip="Select all Routes" matTooltipPosition="before"
+                                    color="primary"></mat-checkbox>                              
+                            </span>
+                        </div>
+                    </mat-panel-description>
+                </mat-expansion-panel-header>
+
+                <div class="list-container-scrollable">
+                    <mat-card class="row" *ngFor="let r of gpxData.routes;let i=index">
+                        <div class="rgrid" >
+                            <div class="row">
+                                <div class="name">
+                                    <mat-icon color="primary">directions</mat-icon>
+                                    {{r.name}}
+                                </div>
+                                <div>
+                                    <i>{{r.description}}</i><br>
+                                    {{r.length}}
+                                </div>
+                                <div class="check">                            
+                                    <mat-slide-toggle color="primary"
+                                        matTooltip="Select this Route" matTooltipPosition="below"
+                                        [checked]="selRoutes[i]"
+                                        #rval (change)="checkRte(rval.checked, i)">
+                                    </mat-slide-toggle>  
+                                </div>      
+                            </div>
+                            
+                        </div>          
+                    </mat-card>
+                </div>  
+            </mat-expansion-panel>       
+        </div>
+    </div>
+
+</div>
+
