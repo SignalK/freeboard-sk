@@ -36,6 +36,7 @@ mat-nav-list {
     top: 0;
     left: 0;
     bottom: 0;
+    padding-left: 40px;
     z-index: 5000; 
     background-color: rgba(200,200,200,.4);   
 }
