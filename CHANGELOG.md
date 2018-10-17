@@ -1,5 +1,12 @@
 # CHANGELOG: Freeboard-SK
 
+### v1.1.0
+
+- Display Navigation data from `navigation.courseGreatCircle.nextPoint` / `navigation.courseRhumbline.nextPoint`
+
+
+**Breaking Changes:**
+
 
 
 ### v1.0.0
