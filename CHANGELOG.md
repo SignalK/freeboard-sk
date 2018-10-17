@@ -1,6 +1,8 @@
 # CHANGELOG: Freeboard-SK
 
+### v1.0.1
 
+- Fix: Url used to retrieve app list from non-node servers to include api version number.
 
 ### v1.0.0
 
