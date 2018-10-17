@@ -35,6 +35,16 @@ export class AppComponent {
         chartList: false,
         anchorWatch: false,
         showSelf: false,
+        navData: {
+            vmg: null,
+            dtg: null,
+            ttg: null,
+            bearing: {value: null, type: null},
+            bearingTrue: null,
+            bearingMagnetic: null,
+            xte: null,
+            position: [null, null]
+        },
         vessels: { 
             self: new SKVessel(), 
             aisTargets: new Map()
@@ -441,14 +451,18 @@ export class AppComponent {
             )
         ];
 
-        this.display.vesselLines.bearing= [
-            this.display.vessels.self.position, 
+        let bpos= (this.display.navData.position[0]) ?
+            this.display.navData.position : 
             GeoUtils.destCoordinate(
                 this.display.vessels.self.position[1],
                 this.display.vessels.self.position[0],
                 this.display.vessels.self.heading,
                 (this.display.vessels.self.sog * 30000 )
-            )
+            );
+
+        this.display.vesselLines.bearing= [
+            this.display.vessels.self.position, 
+            bpos
         ];  
         
         let ca= (this.app.config.map.northup) ? 
@@ -798,10 +812,10 @@ export class AppComponent {
     routeActivate(e) { 
         let dt= new Date();
         if(this.app.config.usePUT) {
-            this.signalk.apiPut('self', 'navigation/course/activeRoute/href', `/resources/routes/${e.id}`)
+            this.signalk.apiPut('self', 'navigation/courseGreatCircle/activeRoute/href', `/resources/routes/${e.id}`)
             .subscribe( 
                 r=> {
-                    this.signalk.apiPut('self', 'navigation/course/activeRoute/startTime', dt.toISOString())
+                    this.signalk.apiPut('self', 'navigation/courseGreatCircle/activeRoute/startTime', dt.toISOString())
                     .subscribe( 
                         r=> { this.app.debug('Route activated') },
                         e=> { this.showAlert('ERROR:', 'Server could not Activate Route!') }
@@ -811,8 +825,8 @@ export class AppComponent {
             );
         }
         else {
-            this.signalk.sendUpdate('self', 'navigation.course.activeRoute.href', `/resources/routes/${e.id}`);
-            this.signalk.sendUpdate('self', 'navigation.course.activeRoute.startTime', dt.toISOString());
+            this.signalk.sendUpdate('self', 'navigation.courseGreatCircle.activeRoute.href', `/resources/routes/${e.id}`);
+            this.signalk.sendUpdate('self', 'navigation.courseGreatCircle.activeRoute.startTime', dt.toISOString());
         }
     }
 
@@ -1369,15 +1383,14 @@ export class AppComponent {
         if(v.path=='environment.wind.angleApparent') { d.wind.awa= v.value }
         if(v.path=='environment.wind.speedApparent') { d.wind.aws= v.value }
         if(v.path=='communication.callsignVhf') { d.callsign= v.value; updateVlines= false; }
+        if(v.path.indexOf('navigation.courseRhumbline')!=-1 
+            || v.path.indexOf('navigation.courseGreatCircle')!=-1)  { 
+                this.processCourse(v); 
+        }
 
         // ** update map display **
         if( updateVlines) { this.mapVesselLines() }
-        this.mapRotate(); 
-
-        // ** active route **
-        if(v.path=='navigation.course.activeRoute.href') {
-            this.processActiveRoute(v.value);
-        }   
+        this.mapRotate();  
 
         // ** alarms **
         if( this.app.config.depthAlarm.enabled) {
@@ -1432,6 +1445,52 @@ export class AppComponent {
         if(v.path=='environment.wind.angleApparent') { d.wind.awa= v.value }
         if(v.path=='environment.wind.speedApparent') { d.wind.aws= v.value }
         if(v.path=='communication.callsignVhf') { d.callsign= v.value }        
+    }
+
+    // ** process course data
+    processCourse(data) {
+        let path= data.path.split('.');
+     
+        // ** active route **
+        if(path[2]=='activeRoute') {
+            if(path[3]=='href') { this.processActiveRoute(data.value) }
+        }   
+        // ** course **
+        if(path[2]=='crossTrackError') {
+            this.display.navData.xte= (this.app.config.units.distance=='m') ? 
+                data.value/1000 : Convert.kmToNauticalMiles(data.value/1000);                  
+        }
+        // ** next point **
+        if(path[2]=='nextPoint') {
+            if(path[3]=='position') {
+                this.display.navData.position= [data.value.longitude, data.value.latitude];
+            }              
+            if(path[3]=='distance') {  
+                this.display.navData.dtg= (this.app.config.units.distance=='m') ? 
+                    data.value/1000 : Convert.kmToNauticalMiles(data.value/1000);                
+            }
+            if(path[3]=='bearingTrue') { 
+                this.display.navData.bearingTrue= Convert.radiansToDegrees(data.value);
+                if(this.app.config.selections.headingAttribute=='navigation.headingTrue'
+                        || this.display.navData.bearingMagnetic==null) {
+                    this.display.navData.bearing.value= this.display.navData.bearingTrue;
+                    this.display.navData.bearing.type= 'T';
+                } 
+            }
+            if(path[3]=='bearingMagnetic') { 
+                this.display.navData.bearingMagnetic= Convert.radiansToDegrees(data.value);
+                if(this.app.config.selections.headingAttribute=='navigation.headingMagnetic'
+                        || this.display.navData.bearingTrue==null) {
+                    this.display.navData.bearing.value= this.display.navData.bearingMagnetic;
+                    this.display.navData.bearing.type= 'M';
+                }                 
+            }
+            if(path[3]=='velocityMadeGood') {  
+                this.display.navData.vmg= (this.app.config.units.speed=='kn') ? 
+                    Convert.msecToKnots(data.value) : data.value;
+            }
+            if(path[3]=='timeToGo') { this.display.navData.ttg= data.value/60 }           
+        }          
     }
 
     // ** process / cleanup AIS targets
@@ -1529,6 +1588,20 @@ export class AppComponent {
             }
         });     
         dref.afterClosed().subscribe( res=> { if(res) this.app.data.trail=[] });    
+    }
+
+    // ** clear navigation data **
+    clearNavData() {
+        this.display.navData= {
+            vmg: null,
+            dtg: null,
+            ttg: null,
+            bearing: {value: null, type: null},
+            bearingTrue: null,
+            bearingMagnetic: null,
+            xte: null,
+            position: [null, null]
+        }
     }
 
     // ** set available features

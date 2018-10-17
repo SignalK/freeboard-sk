@@ -71,12 +71,18 @@
     <!-- /MENU BAR-->
 
     <!--context menus-->
-    <mat-menu #settingsmenu="matMenu">     
+    <mat-menu #settingsmenu="matMenu">   
         <a mat-menu-item *ngIf="app.config.vesselTrail && app.data.trail.length!=0" 
             (click)="clearTrail()">
             <mat-icon>clear_all</mat-icon>
             <span>Clear Trail</span>			
-        </a>     
+        </a>
+        <button mat-menu-item 
+            (click)="clearNavData()">
+            <mat-icon>clear_all</mat-icon>
+            <span>Clear Navigation Data</span>			
+        </button>   
+        <mat-divider></mat-divider>        
         <a mat-menu-item (click)="toggleAisTargets()">
             <mat-icon>{{app.config.aisTargets ? 'visibility_off' : 'visibility'}}</mat-icon>
             <span>{{app.config.aisTargets ? 'Hide' : 'Show'}} AIS Targets</span>			
@@ -693,6 +699,35 @@
                         [muted]="a.value.muted || a.value.acknowledged"
                     ></audio>
                 </div>
+            </div>
+
+            <!-- *** Nav data panel ***-->
+            <div class="navdataPanel">
+                <ap-dial-text *ngIf="display.navData.vmg"
+                    [title]="'VMG'"
+                    [value]="display.navData.vmg.toFixed(1)"
+                    [units]="(app.config.units.speed=='kn') ? 'knots' : 'm/sec'">
+                </ap-dial-text>
+                <ap-dial-text *ngIf="display.navData.bearing.value"
+                    [title]="'BRG'"
+                    [value]="display.navData.bearing.value.toFixed(1)"
+                    [units]="(display.navData.bearing.type=='M') ? 'deg (M)' : 'deg (T)'">
+                </ap-dial-text>     
+                <ap-dial-text *ngIf="display.navData.dtg"
+                    [title]="'DTG'"
+                    [value]="display.navData.dtg.toFixed(1)"
+                    [units]="(app.config.units.distance=='m') ? 'km' : 'NM'">
+                </ap-dial-text>                               
+                <ap-dial-text *ngIf="display.navData.ttg"
+                    [title]="'TTG'"
+                    [value]="display.navData.ttg.toFixed(1)"
+                    [units]="'mins'">
+                </ap-dial-text>    
+                <ap-dial-text *ngIf="display.navData.xte"
+                    [title]="'XTE'"
+                    [value]="display.navData.xte.toFixed(3)"
+                    [units]="(app.config.units.distance=='m') ? 'km' : 'NM'">
+                </ap-dial-text>                              
             </div>
 		
 		</mat-sidenav-container>
