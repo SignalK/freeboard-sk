@@ -41,8 +41,10 @@ export class SettingsDialog implements OnInit {
     
     ngOnInit() { 
         let appListUrl= null;
+        let nodeUri= '/webapps';
+        let javaUri= `/signalk/v${this.signalk.version}/apps/list`;
         if(this.app.data.server && this.app.data.server.id ) {
-            appListUrl= (this.app.data.server.id=='signalk-server-node') ? '/webapps' : '/signalk/apps/list';
+            appListUrl= (this.app.data.server.id=='signalk-server-node') ? nodeUri : javaUri;
             this.signalk.get(appListUrl).subscribe( 
                 (a: Array<any>)=> {
                     this.appList= a.map( i=> { 
