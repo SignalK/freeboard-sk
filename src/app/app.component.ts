@@ -69,6 +69,15 @@ export class AppComponent {
         style: null
     }    
 
+    private zoomOffsetLevel=[
+        1,1000000,550000,290000,140000,70000,
+        38000,17000,7600,3900,1900,
+        950,470,250,120,60,
+        30,15.5,8.1,4,2,
+        1,.5,.25,.12,.06,
+        .03,.015,.008,1
+    ]    
+
     // ** APP features / mode **
     public features= { historyAPI: null }
     public mode: APP_MODE= APP_MODE.REALTIME;   // current mode
@@ -359,6 +368,7 @@ export class AppComponent {
         );
         this.app.config.map.zoomLevel= z;
         this.app.config.map.center= center;
+        this.mapVesselLines();
         if(!this.app.config.map.moveMap) { 
             this.app.saveConfig();
             this.isDirty=false;
@@ -429,8 +439,7 @@ export class AppComponent {
     mapVesselLines() {
         if(!this.display.vessels.self.sog) { return }
         let z= this.app.config.map.zoomLevel;
-        let offset= (z>=10) ? 12000 / z : 60000/z;
-        
+        let offset= (z<29) ? this.zoomOffsetLevel[z] : 60;
         this.display.vesselLines.heading= [
             this.display.vessels.self.position, 
             GeoUtils.destCoordinate(
