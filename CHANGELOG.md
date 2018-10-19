@@ -3,7 +3,8 @@
 ### v1.1.0
 
 - Display Navigation data from `navigation.courseGreatCircle.nextPoint` / `navigation.courseRhumbline.nextPoint`
-
+- Add Zoom In / Out buttons to map display
+- Fix Bearing, TWD and AWA vessel lines to have consistant appearance at all scales.
 
 **Breaking Changes:**
 
