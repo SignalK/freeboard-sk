@@ -423,8 +423,18 @@ export class AppComponent {
             this.display.overlay.title= l;            
         }            
     }  
-    
+   
     // ****** MAP functions *******
+    // ** handle map zoom controls 
+    mapZoom(zoomIn) {
+        if(zoomIn) {
+            if(this.display.map.zoomLevel<28) { this.display.map.zoomLevel++ }
+        }
+        else { 
+            if(this.display.map.zoomLevel>1) { this.display.map.zoomLevel-- }
+        }
+    }
+
     mapRotate() {
         if(this.app.config.map.northUp) { this.display.map.rotation=0 }
         else { this.display.map.rotation= 0-this.display.vessels.self.heading }

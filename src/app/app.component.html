@@ -240,6 +240,21 @@
                     <aol-control-mouseposition class="ol-mouse-position"
                         [projection]="app.config.map.srid"
                         [coordinateFormat]="coord.createStringXY(4)"></aol-control-mouseposition>
+                        
+                    <aol-control>
+                        <aol-content>
+                            <div class="ol-zoom ol-control">
+                                <button mat-mini-fab (click)="mapZoom(true)"
+                                    matTooltip="Zoom in">
+                                    <mat-icon>add</mat-icon>
+                                </button>&nbsp;
+                                <button mat-mini-fab (click)="mapZoom(false)"
+                                    matTooltip="Zoom out">
+                                    <mat-icon>remove</mat-icon>
+                                </button>
+                            </div>
+                        </aol-content>
+                    </aol-control>                        
 
                     <aol-view [zoom]="display.map.zoomLevel" [minZoom]="1"
                             [rotation]="display.map.rotation">
