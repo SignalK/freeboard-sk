@@ -1,5 +1,9 @@
 # CHANGELOG: Freeboard-SK
 
+### v1.0.2
+
+- Fix: platform checks that were causing MS Edge to throw an exception.
+
 ### v1.0.1
 
 - Fix: Url used to retrieve app list from non-node servers to include api version number.

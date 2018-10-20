@@ -21,9 +21,7 @@ export class Platform {
         runningState: null          // chrome.app.runningState()
     };
 	
-    constructor() {
-        this.checkPlatform();
-    }
+    constructor() { this.checkPlatform() }
 	
     //** get platform details and return platform object **
     checkPlatform() {
@@ -31,13 +29,6 @@ export class Platform {
         let x= navigator.userAgent.indexOf("(");
         let y= navigator.userAgent.indexOf(")");
         let uagent= navigator.userAgent.substring(x+1, y).toLowerCase();
-
-        
-        if( (<any>window).chrome) {
-            this.app.isInstalled= (<any>window).chrome.app.isInstalled;
-            this.app.runningState= (<any>window).chrome.app.runningState();
-            this.app.chromeOS= this.app.runningState=='running' && this.app.isInstalled;
-        }
 
         this.os= uagent;
 		this.webkit= ( /webkit/.test( navigator.appVersion.toLowerCase() ) ) ? true : false;
