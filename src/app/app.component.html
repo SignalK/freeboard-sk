@@ -212,14 +212,6 @@
             <!--map panel-->
             <div style="display: relative; width: 100%; height: 100%;"
                 (dragover)="mapDragOver($event)" (drop)="mapDrop($event)">
-                <!-- cancel Draw / Measure button -->
-                <a mat-mini-fab class="mapButton" style="bottom:20px;left:270px;"
-                    color="warn" *ngIf="draw.enabled || measure.enabled"
-                    (click)="draw.enabled=false;measure.enabled=false;display.overlay.show=false;"
-                    [matTooltip]="(measure.enabled) ? 'Cancel Measure' : 'Cancel Draw'" 
-                    matTooltipPosition="left">
-                    <mat-icon>close</mat-icon>
-                </a>  
                 <!-- instrument sidebar open button -->
                 <button mat-mini-fab class="mapButton" style="top:10px;right:20px;"
                     *ngIf="!draw.enabled && !measure.enabled"
