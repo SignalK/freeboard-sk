@@ -438,15 +438,16 @@ export class AppComponent {
     // ****** MAP functions *******
     // ** handle map zoom controls 
     mapZoom(zoomIn) {
-        console.log(this.app.config.map.zoomLevel);
         if(zoomIn) {
             if(this.display.map.zoomLevel<28) { 
-                this.display.map.zoomLevel= ++this.app.config.map.zoomLevel;
+                ++this.app.config.map.zoomLevel;
+                this.display.map.zoomLevel= this.app.config.map.zoomLevel;
             }
         }
         else { 
             if(this.display.map.zoomLevel>1) { 
-                this.display.map.zoomLevel= --this.app.config.map.zoomLevel;
+                --this.app.config.map.zoomLevel;
+                this.display.map.zoomLevel= this.app.config.map.zoomLevel;
             }
         }
     }
