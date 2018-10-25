@@ -13,6 +13,7 @@ import { MatDialogModule, MatIconModule, MatButtonModule, MatTooltipModule,
 import { MsgBox, AlertDialog, ConfirmDialog, AboutDialog } from './dialogs';
 import { FileInputComponent } from './file-input.component';
 import { PopoverComponent } from './popover';
+import { TextDialComponent } from './dial-text';
 import { ResourceDialog } from './resource-dialogs';
 import { PlaybackDialog } from './playback-dialog';
 
@@ -28,13 +29,13 @@ import { AisTargetsComponent } from '../components/feature-ais.component';
       ],    
     declarations: [
         MsgBox, AlertDialog, ConfirmDialog, AboutDialog,
-        FileInputComponent,
+        FileInputComponent, TextDialComponent,
         PopoverComponent, ResourceDialog, PlaybackDialog,
         GeometryCircleComponent, AisTargetsComponent
     ],
     exports: [
         MsgBox, AlertDialog, ConfirmDialog, AboutDialog,
-        FileInputComponent,
+        FileInputComponent, TextDialComponent,
         PopoverComponent, ResourceDialog, PlaybackDialog,
         GeometryCircleComponent, AisTargetsComponent
     ],

@@ -53,7 +53,7 @@
             </div>         
             <mat-card-actions>
                 <div style="display: flex;">
-                    <div style="flex: 1 1 auto;">
+                    <div>
                         <button mat-icon-button 
                             (click)="itemDelete(r[0])"
                             matTooltip="Delete Waypoint"
@@ -61,6 +61,15 @@
                             <mat-icon color="warn">delete</mat-icon>
                         </button>   
                     </div>  
+                    <div style="flex: 1 1 auto;text-align:center;">
+                        <!--<button mat-button color="primary"
+                            (click)="itemGoTo(r[0])"
+                            matTooltip="Navigate to Waypoint"
+                            matTooltipPosition="below">
+                            <mat-icon color="primary">near_me</mat-icon>
+                            NAVIGATE TO
+                        </button>-->   
+                    </div>                      
                     <div>
                         <button mat-icon-button 
                             (click)="itemProperties(r[0])"

@@ -66,6 +66,7 @@ export class AppInfo extends Info {
             usePUT: true,
             vesselTrail: false,
             aisTargets: true,
+			courseData: false,
             depthAlarm: { enabled: false, smoothing: 10000 },
             plugins: {
                 instruments: '/@signalk/instrumentpanel'

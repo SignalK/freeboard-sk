@@ -71,12 +71,22 @@
     <!-- /MENU BAR-->
 
     <!--context menus-->
-    <mat-menu #settingsmenu="matMenu">     
+    <mat-menu #settingsmenu="matMenu">   
         <a mat-menu-item *ngIf="app.config.vesselTrail && app.data.trail.length!=0" 
             (click)="clearTrail()">
             <mat-icon>clear_all</mat-icon>
             <span>Clear Trail</span>			
-        </a>     
+        </a>
+        <button mat-menu-item 
+            (click)="clearCourseData()">
+            <mat-icon>clear_all</mat-icon>
+            <span>Clear Course Data</span>			
+        </button>   
+        <mat-divider></mat-divider>   
+        <a mat-menu-item (click)="toggleCourseData()">
+                <mat-icon>{{app.config.courseData ? 'visibility_off' : 'visibility'}}</mat-icon>
+                <span>{{app.config.courseData ? 'Hide' : 'Show'}} Course Data</span>			
+            </a>	             
         <a mat-menu-item (click)="toggleAisTargets()">
             <mat-icon>{{app.config.aisTargets ? 'visibility_off' : 'visibility'}}</mat-icon>
             <span>{{app.config.aisTargets ? 'Hide' : 'Show'}} AIS Targets</span>			
@@ -202,6 +212,14 @@
             <!--map panel-->
             <div style="display: relative; width: 100%; height: 100%;"
                 (dragover)="mapDragOver($event)" (drop)="mapDrop($event)">
+                <!-- cancel Draw / Measure button -->
+                <a mat-mini-fab class="mapButton" style="bottom:20px;left:270px;"
+                    color="warn" *ngIf="draw.enabled || measure.enabled"
+                    (click)="draw.enabled=false;measure.enabled=false;display.overlay.show=false;"
+                    [matTooltip]="(measure.enabled) ? 'Cancel Measure' : 'Cancel Draw'" 
+                    matTooltipPosition="left">
+                    <mat-icon>close</mat-icon>
+                </a>  
                 <!-- instrument sidebar open button -->
                 <button mat-mini-fab class="mapButton" style="top:10px;right:20px;"
                     *ngIf="!draw.enabled && !measure.enabled"
@@ -387,6 +405,13 @@
                                                 matTooltip="Delete">
                                                 <mat-icon>delete</mat-icon>
                                             </button>
+
+                                            <!--<button mat-button *ngIf="display.overlay.gotoWaypoint"
+                                                (click)="waypointGoTo({id: display.overlay.id});display.overlay.show=false"
+                                                color="primary"
+                                                matTooltip="Navigate to Waypoint">
+                                                <mat-icon>near_me</mat-icon>
+                                            </button>-->                                           
 
                                             <button mat-icon-button *ngIf="display.overlay.activateRoute" 
                                                 (click)="routeActivate({id: display.overlay.id});display.overlay.show=false"
@@ -645,6 +670,7 @@
                 <waypoint-list [waypoints]="app.data.waypoints" *ngIf="display.waypointList"
                     (select)="waypointSelected($event)"
                     (delete)="waypointDelete($event)"
+                    (goto)="waypointGoTo($event)"
                     (refresh)="skres.getWaypoints()"
                     (properties)="resourceProperties($event)"
                     (closed)="displayLeftMenu()">
@@ -712,6 +738,35 @@
                         [muted]="a.value.muted || a.value.acknowledged"
                     ></audio>
                 </div>
+            </div>
+
+            <!-- *** Nav data panel ***-->
+            <div class="navdataPanel" *ngIf="app.config.courseData">
+                <ap-dial-text *ngIf="display.navData.vmg"
+                    [title]="'VMG'"
+                    [value]="display.navData.vmg.toFixed(1)"
+                    [units]="(app.config.units.speed=='kn') ? 'knots' : 'm/sec'">
+                </ap-dial-text>
+                <ap-dial-text *ngIf="display.navData.bearing.value"
+                    [title]="'BRG'"
+                    [value]="display.navData.bearing.value.toFixed(1)"
+                    [units]="(display.navData.bearing.type=='M') ? 'deg (M)' : 'deg (T)'">
+                </ap-dial-text>     
+                <ap-dial-text *ngIf="display.navData.dtg"
+                    [title]="'DTG'"
+                    [value]="display.navData.dtg.toFixed(1)"
+                    [units]="(app.config.units.distance=='m') ? 'km' : 'NM'">
+                </ap-dial-text>                               
+                <ap-dial-text *ngIf="display.navData.ttg"
+                    [title]="'TTG'"
+                    [value]="display.navData.ttg.toFixed(1)"
+                    [units]="'mins'">
+                </ap-dial-text>    
+                <ap-dial-text *ngIf="display.navData.xte"
+                    [title]="'XTE'"
+                    [value]="display.navData.xte.toFixed(3)"
+                    [units]="(app.config.units.distance=='m') ? 'km' : 'NM'">
+                </ap-dial-text>                              
             </div>
 		
 		</mat-sidenav-container>

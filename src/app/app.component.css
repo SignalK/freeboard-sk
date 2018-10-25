@@ -48,10 +48,23 @@ mat-nav-list {
 
 .alarmPanel {
     position: absolute;
-    z-index: 4901;
+    z-index: 4902;
     top: 20px;
     left: 33%;
     right: 33%;
+}
+
+.navdataPanel {
+    position: absolute;
+    z-index: 4901;
+    bottom: 30px;
+    left: 0;
+    right: 0;
+    max-height: 100px;
+    text-align: center;
+    display: flex;
+    flex-wrap: nowrap;
+    overflow-x: auto;
 }
 
 .control {
