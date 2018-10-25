@@ -369,6 +369,7 @@ export class AppComponent {
     mapMoveEvent(e) {
         let v= e.map.getView();
         let z= v.getZoom();
+        this.app.config.map.zoomLevel=z;
         this.app.debug(`Zoom: ${z}`);
         if(!this.app.config.map.mrid) { this.app.config.map.mrid= v.getProjection().getCode() }
         let center = proj.transform(
@@ -437,11 +438,16 @@ export class AppComponent {
     // ****** MAP functions *******
     // ** handle map zoom controls 
     mapZoom(zoomIn) {
+        console.log(this.app.config.map.zoomLevel);
         if(zoomIn) {
-            if(this.display.map.zoomLevel<28) { this.display.map.zoomLevel++ }
+            if(this.display.map.zoomLevel<28) { 
+                this.display.map.zoomLevel= ++this.app.config.map.zoomLevel;
+            }
         }
         else { 
-            if(this.display.map.zoomLevel>1) { this.display.map.zoomLevel-- }
+            if(this.display.map.zoomLevel>1) { 
+                this.display.map.zoomLevel= --this.app.config.map.zoomLevel;
+            }
         }
     }
 
@@ -470,14 +476,18 @@ export class AppComponent {
             )
         ];
 
-        this.display.vesselLines.bearing= [
-            this.display.vessels.self.position, 
+        let bpos= (this.display.navData.position[0]) ?
+            this.display.navData.position : 
             GeoUtils.destCoordinate(
                 this.display.vessels.self.position[1],
                 this.display.vessels.self.position[0],
                 this.display.vessels.self.heading,
                 (this.display.vessels.self.sog * 30000 )
-            )
+            );
+
+        this.display.vesselLines.bearing= [
+            this.display.vessels.self.position, 
+            bpos
         ];  
         
         let ca= (this.app.config.map.northup) ? 
