@@ -6,8 +6,6 @@
 - Add Zoom In / Out buttons to map display
 - Fix Bearing, TWD and AWA vessel lines to have consistant appearance at all scales.
 
-**Breaking Changes:**
-
 
 
 ### v1.0.0
