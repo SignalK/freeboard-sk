@@ -50,7 +50,7 @@ export class AppComponent {
             aisTargets: new Map()
         },
         alarms: new Map(),
-        map: { center: [0,0], zoomLevel: 2, rotation: 0 },        
+        map: { center: [0,0], rotation: 0, minZoom: 1, maxZoom:28 },        
         vesselLines: {
             twd: [null,null],
             awa: [null,null],
@@ -89,9 +89,9 @@ export class AppComponent {
     ]    
 
     // ** APP features / mode **
-    public features= { historyAPI: null }
+    public features= { playbackAPI: null }
     public mode: APP_MODE= APP_MODE.REALTIME;   // current mode
-    private connectMode= APP_MODE.REALTIME;     // connection attempt mode
+    private connectMode: APP_MODE= APP_MODE.REALTIME;     // connection attempt mode
 
     private subOnConnect;
     private subOnError;
@@ -140,7 +140,6 @@ export class AppComponent {
     ngOnInit() {
         // ** apply loaded app config	
         this.display.map.center= this.app.config.map.center;
-        this.display.map.zoomLevel= this.app.config.map.zoomLevel;
         this.display.map.rotation= this.app.config.map.rotation;
         // ** connect to signalk server and intialise
         this.initSignalK(); 
@@ -220,7 +219,7 @@ export class AppComponent {
 
     // ** show select mode dialog
     showSelectMode() {
-        if(this.mode== APP_MODE.REALTIME) { // request history playback
+        if(this.mode= APP_MODE.REALTIME) { // request history playback
             this.dialog.open(ConfirmDialog, {
                 disableClose: true,
                 data: { 
@@ -239,26 +238,24 @@ export class AppComponent {
                     title: 'Exit History Playback' 
                 }
             }).afterClosed().subscribe( r=> {
-                if(r) { this.switchMode(APP_MODE.REALTIME) }
+                if(r) { 
+                    this.terminateSignalK();
+                    setTimeout( ()=> { this.switchMode(APP_MODE.REALTIME) }, 500); 
+                }
             });  
         }
     }
 
     showPlaybackSettings() {
+        this.terminateSignalK();
         this.dialog.open(PlaybackDialog, {
             disableClose: false
         }).afterClosed().subscribe( r=> {
-            if(r.result) { // OK
+            if(r.result) { // OK: switch to playback mode
                 this.switchMode(APP_MODE.PLAYBACK, r.query);
-                // ** test for history provider / available time data
-                /*this.signalk.apiGet(`vessels/self/navigation/position?time=${r.startTime}`)
-                .subscribe( 
-                    res=> { this.switchMode(APP_MODE.PLAYBACK, r.query) },
-                    err=> { this.showAlert('Error:', 'Cannot enter History Playback mode.\n\n' + err.error) }
-                ); */
             }
             else {  // cancel: restarts realtime mode
-                if(this.mode==APP_MODE.PLAYBACK) { this.initSignalK() }
+                this.switchMode(APP_MODE.REALTIME);
             }
         });
     }
@@ -439,16 +436,10 @@ export class AppComponent {
     // ** handle map zoom controls 
     mapZoom(zoomIn) {
         if(zoomIn) {
-            if(this.display.map.zoomLevel<28) { 
-                ++this.app.config.map.zoomLevel;
-                this.display.map.zoomLevel= this.app.config.map.zoomLevel;
-            }
+            if(this.app.config.map.zoomLevel<this.display.map.maxZoom) { ++this.app.config.map.zoomLevel }
         }
         else { 
-            if(this.display.map.zoomLevel>1) { 
-                --this.app.config.map.zoomLevel;
-                this.display.map.zoomLevel= this.app.config.map.zoomLevel;
-            }
+            if(this.app.config.map.zoomLevel>this.display.map.minZoom) { --this.app.config.map.zoomLevel }
         }
     }
 
@@ -1211,10 +1202,10 @@ export class AppComponent {
 
     // ** tear down connection 
     terminateSignalK() {
-        this.subOnConnect.unsubscribe();
-        this.subOnError.unsubscribe();
-        this.subOnMessage.unsubscribe();
-        this.subOnClose.unsubscribe();      
+        if(this.subOnConnect) { this.subOnConnect.unsubscribe() }
+        if(this.subOnError) { this.subOnError.unsubscribe() }
+        if(this.subOnMessage) { this.subOnMessage.unsubscribe() }
+        if(this.subOnClose) { this.subOnClose.unsubscribe() }      
         this.signalk.disconnect();
     }    
 
@@ -1223,9 +1214,13 @@ export class AppComponent {
         this.signalk.hello(this.app.hostName, this.app.hostPort, this.app.hostSSL)
         .subscribe(
             res=> {
-                this.setFeatures(res['server']);
-                if(this.app.data['firstRun']) { this.showWelcome() }
-                this.signalk.connect( this.app.hostName, this.app.hostPort, this.app.hostSSL, query);
+                if(this.connectMode== APP_MODE.REALTIME ) {
+                    if(this.app.data['firstRun']) { this.showWelcome() }
+                    this.signalk.connect( this.app.hostName, this.app.hostPort, this.app.hostSSL, 'none');    
+                }
+                else {
+                    this.signalk.playback( this.app.hostName, this.app.hostPort, this.app.hostSSL, query);    
+                }
             },
             err=> {
                 let dRef= this.dialog.open(AlertDialog, {
@@ -1276,8 +1271,6 @@ export class AppComponent {
     // ** handle connection established
     onConnect(e) {
         console.info('Connected to Signal K server...');
-        // ** subscribe to messages if not history playback
-        if(this.mode== APP_MODE.REALTIME) { this.subscribeSignalK() }
         // ** query for resources
         this.skres.getRoutes();
         this.skres.getWaypoints();
@@ -1311,6 +1304,8 @@ export class AppComponent {
         
         // ** AIS target manager
         this.aisTimer= setInterval( ()=> { this.processAIS() }, 5000);
+
+        this.setFeatures();
     }
 
     // ** handle connection closure
@@ -1339,10 +1334,13 @@ export class AppComponent {
     
     // ** handle delta message received
     onMessage(e) { 
-        if(!e.context && e.self) {
+        if(!e.context && e.self) {  // ** hello message
             this.connectMode= null;
             if(e.startTime) { this.mode= APP_MODE.PLAYBACK }
-            else { this.mode= APP_MODE.REALTIME }
+            else { 
+                this.mode= APP_MODE.REALTIME;
+                this.subscribeSignalK();
+            }
             this.app.data.selfId= e.self;
             return;
         }
@@ -1606,25 +1604,38 @@ export class AppComponent {
     }
 
     // ** set available features
-    setFeatures(res) {
-        if(!res) { return }
-        this.app.data.server= res;
+    setFeatures() {
+        this.app.data.server= this.signalk.server.info;
         this.app.debug(this.app.data.server);
         let ver= this.app.data.server.version.split('.');
+        // ** test for playback capability
+        this.signalk.snapshot( 'self', new Date().toISOString() )
+        .subscribe( 
+            res=> { this.features.playbackAPI=true },
+            err=> { 
+                switch(err.status) {
+                    case 501:   // ** not implemented
+                        this.features.playbackAPI= false;
+                        break;
+                    case 400:   // ** no data **
+                    case 404:
+                        this.features.playbackAPI=true
+                        break;
+                }
+            }
+        );
 
-        //this.features.historyAPI= (res.id=='signalk-server-node' && ver[0]>=1 && ver[1]>=6) ? true : false;
+        this.features.playbackAPI= (this.app.data.server.id=='signalk-server-node' && ver[0]>=1 && ver[1]>=6) ? true : false;
         //this.app.debug(this.features);
     }
 
     // ** switch between realtime and history playback modes
-    switchMode(toMode: APP_MODE, query?) {
-        this.terminateSignalK();
+    switchMode(toMode: APP_MODE, query='none') {
         if(toMode== APP_MODE.PLAYBACK) { // ** history playback
             this.app.db.saveTrail('self', this.app.data.trail);
             this.app.data.trail= [];
         }
         else {  // ** realtime data
-            query='none';
             this.app.db.getTrail('self').then( t=> { 
                 this.app.data.trail= (t && t.value) ? t.value : [];
             });

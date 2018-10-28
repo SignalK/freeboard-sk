@@ -65,8 +65,14 @@
             (click)="sidemenu.close();"
             [matMenuTriggerFor]="settingsmenu">
             <mat-icon style="color:white">more_horiz</mat-icon>
-        </button>              
-            
+        </button>      
+        <!-- Playback mode -->
+        <hr *ngIf="mode==1" >
+        <button mat-icon-button *ngIf="mode==1" 
+            matTooltip="Exit playback mode"  matTooltipPosition="right"
+            (click)="showSelectMode()">
+            <mat-icon style="color:red;">cancel</mat-icon>
+        </button>
     </div>
     <!-- /MENU BAR-->
 
@@ -153,10 +159,10 @@
                     </a>                     
 
                     <mat-divider></mat-divider>
-                    <a mat-list-item *ngIf="features.historyAPI"
+                    <a mat-list-item *ngIf="features.playbackAPI"
                         (click)="sidemenu.close();showPlaybackSettings();">
                         <mat-icon>history</mat-icon>
-                        &nbsp;History Playback
+                        &nbsp;Playback History
                     </a> 
 
                     <mat-divider></mat-divider>
@@ -247,11 +253,13 @@
                         <aol-content>
                             <div class="ol-zoom ol-control">
                                 <button mat-mini-fab (click)="mapZoom(false)"
+                                    [disabled]="app.config.map.zoomLevel==display.map.minZoom"
                                     matTooltip="Zoom out">
                                     <mat-icon>remove</mat-icon>
                                 </button> 
                                 &nbsp;                               
                                 <button mat-mini-fab (click)="mapZoom(true)"
+                                    [disabled]="app.config.map.zoomLevel==display.map.maxZoom"
                                     matTooltip="Zoom in">
                                     <mat-icon>add</mat-icon>
                                 </button>
@@ -259,7 +267,7 @@
                         </aol-content>
                     </aol-control>                        
 
-                    <aol-view [zoom]="display.map.zoomLevel" [minZoom]="1"
+                    <aol-view [zoom]="app.config.map.zoomLevel" [minZoom]="1"
                             [rotation]="display.map.rotation">
                         <aol-coordinate 
                             [x]="display.map.center[0]" 
@@ -646,7 +654,7 @@
                     CANCEL
                 </a>                      
                 </div>             
-            </div>
+            </div>         
 
             <!--left menu panel-->
             <div class="leftMenuPanel" *ngIf="display.leftMenuPanel">
@@ -686,17 +694,6 @@
 
             <!-- *** Alarm / Mode panel ***-->
 			<div class="alarmPanel">
-                <div *ngIf="mode==1">
-                    <mat-card>
-                        History Playback Mode
-                        <mat-card-actions>
-                            <button mat-button (click)="showSelectMode()">
-                                <mat-icon color="warn">cancel</mat-icon>
-                                CLOSE
-                            </button>
-                        </mat-card-actions>
-                    </mat-card>
-                </div>
 				<div *ngFor="let a of display.alarms | keyvalue" style="margin-bottom: 5px;">
                     <mat-card *ngIf="a.value.visual && !a.value.acknowledged">
                         <mat-card-title-group>

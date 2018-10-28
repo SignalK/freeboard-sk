@@ -13,9 +13,9 @@ import {IndexedDB} from './lib/info/indexeddb';
 export class AppInfo extends Info {
 
     private DEV_SERVER= {
-        host: null,     // host name || ip address
-        port: null,     // port number
-        ssl: null       // true || false
+        host: '192.168.99.100',     // host name || ip address
+        port: 3000,     // port number
+        ssl: false       // true || false
     }
 
     public hostName;
@@ -66,7 +66,7 @@ export class AppInfo extends Info {
             usePUT: true,
             vesselTrail: false,
             aisTargets: true,
-			courseData: false,
+            courseData: false,
             depthAlarm: { enabled: false, smoothing: 10000 },
             plugins: {
                 instruments: '/@signalk/instrumentpanel'

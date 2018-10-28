@@ -39,9 +39,10 @@
                 <li><a href="#top">Introduction</a></li>
                 <li><a href="#server">Signal K Server</a></li>
                 <li><a href="#display">Display</a></li>
-                <li><a href="#resources">Resources</a></li>
-                <li><a href="#navdata">Navigation</a></li>                
+                <li><a href="#navdata">Navigation</a></li>                  
+                <li><a href="#resources">Resources</a></li>    
                 <li><a href="#anchor">Anchor Watch</a></li>
+                <li><a href="#playback">Playback</a></li>
                 <li><a href="#settings">Settings</a></li>
                 <li><a href="https://github.com/SignalK/freeboard-sk/" target="_fb">
                     <i class="fi-social-github"></i> GitHub</a></li>
@@ -172,6 +173,43 @@
                 </P>                 
             </div>	
 
+            <div class="panel" id="navdata">
+                <h4>Navigation</h4>
+                <p>
+                    Freeboard will display course data in either the 
+                    <i>navigation.courseGreatCircle</i> or 
+                    <i>navigation.courseRhumbline</i> paths when received
+                        from the server.                        
+                </p>   
+                <p>To display course data when it is available from the server,
+                    click <img src="./img/more.png"/> and
+                    select <b>Show Course Data</b>.
+                </p>  
+                <p>If the server stops sending course data, the last received values 
+                    will remain on the screen. <br>
+                    To hide the course data display until the next set of data is 
+                    received, click <img src="./img/more.png"/> and
+                    select <b>Clear Course Data</b> from the menu.
+                </p>                                  
+                <div style="display:flex;">
+                    <div><img src="./img/navdata.png" style="max-width:250px;"/></div>
+                    <div style="padding-left:15px;">
+                        <!--
+                        A waypoint can be set as the target for which navigation data 
+                        is to be displayed by clicking the <b>Navigate To</b> button
+                        in either: 
+                        <ul>
+                            <li>A waypoint card in the <b>Waypoint List</b>
+                                <img src="./img/waypoint_list.png" style="width:150px;"/></li> or 
+                            <li>The pop-up displayed when a waypoint is clicked.
+                                    <img src="./img/wpt_popover.png" style="width:100px;"/>
+                            </li>
+                        </ul> 
+                        -->
+                    </div>
+                </div> 	                
+            </div>               
+
             <div class="panel" id="resources">
                 <h4>Resources</h4>
                 <p>
@@ -235,7 +273,12 @@
                         <li>Drop Waypoint on the map</b></li>
                         <li>Measure distances</li>
                     </li>  
-                    <br>                  
+                    <br>  
+                    <li class="nobullet"><img src="./img/menu.png"/>
+                        <b>Main Menu:</b>
+                        The Main menu contains links to the following additional features:
+                    </li> 
+                    <br>                                    
                     <li class="nobullet"><img src="./img/charts.png"/>
                         <b>Charts:</b> 
                         Displays a list of available Charts.
@@ -282,44 +325,7 @@
                         </div>
                     </div>
                 </p>                 
-            </div>	
-            
-            <div class="panel" id="navdata">
-                <h4>Navigation</h4>
-                <p>
-                    Freeboard will display course data in either the 
-                    <i>navigation.courseGreatCircle</i> or 
-                    <i>navigation.courseRhumbline</i> paths when received
-                        from the server.                        
-                </p>   
-                <p>To display course data when it is available from the server,
-                    click <img src="./img/more.png"/> and
-                    select <b>Show Course Data</b>.
-                </p>  
-                <p>If the server stops sending course data, the last received values 
-                    will remain on the screen. <br>
-                    To hide the course data display until the next set of data is 
-                    received, click <img src="./img/more.png"/> and
-                    select <b>Clear Course Data</b> from the menu.
-                </p>                                  
-                <div style="display:flex;">
-                    <div><img src="./img/navdata.png" style="max-width:250px;"/></div>
-                    <div style="padding-left:15px;">
-                        <!--
-                        A waypoint can be set as the target for which navigation data 
-                        is to be displayed by clicking the <b>Navigate To</b> button
-                        in either: 
-                        <ul>
-                            <li>A waypoint card in the <b>Waypoint List</b>
-                                <img src="./img/waypoint_list.png" style="width:150px;"/></li> or 
-                            <li>The pop-up displayed when a waypoint is clicked.
-                                    <img src="./img/wpt_popover.png" style="width:100px;"/>
-                            </li>
-                        </ul> 
-                        -->
-                    </div>
-                </div> 	                
-            </div>              
+            </div>	           
 
             <div class="panel" id="anchor">
                 <h4>Anchor Watch</h4>
@@ -350,7 +356,52 @@
                         <li>To clear the alarm and remove it from the screen click Acknowledge.</li>
                     </div>
                 </div> 	                
-            </div>            
+            </div>    
+            
+            <div class="panel" id="playback">
+                <h4>Playback History</h4>
+                <p>
+                    Freeboard provides the ability to request historical data playback  
+                    from the server.     <br>
+                    <b>Note: Selecting this option from the menu disconnects the realtime stream.</b>                   
+                </p>  
+                <p><i>Note: Playback history must be supported by the server.</i></p> 
+                <li class="nobullet"><img src="./img/menu.png"/>
+                    <b>Main Menu:</b>
+                    Access the <img src="./img/history.png"/> <b>Playback History</b> option from the Main menu.
+                </li>     
+                <br>                                          
+                <div style="display:flex;">
+                    <div><img src="./img/playback.png" style="max-width:250px;"/></div>
+                    <div style="padding-left:15px;">
+                        From the History Playback screen select: 
+                        <ul>
+                            <li><b>Context:</b> to choose vessel(s) data. <i>self</i> or <i>all</i></li>
+                            <li><b>Start Date:</b> Date of playback stream start</li>
+                            <li><b>Start Time:</b>Time of playback stream start</li>
+                            <li><b>Playback Rate:</b> Rate of playback. 
+                                <i>1= real-time, 5= 5 x real-time</i> 
+                            </li>
+                        </ul> 
+                        Click <b>Start</b> to start the data stream.<br>
+                        Click <b>Cancel</b> to re-start the real-time data stream.
+                    </div>
+                </div> 	           
+                <br>                                          
+                <div style="display:flex;">
+                    <div style="padding-left:15px;">
+                        <b>Playback Mode: </b>
+                        <p>
+                            Once started, Playback Mode is identified by the addition of the 
+                            <img src="./img/playback_stop.png"/> button to the menu bar.
+                        </p>
+                        <li class="nobullet">
+                            Click <img src="./img/playback_stop.png"/> to end playback and 
+                            return to realtime data stream.
+                        </li>
+                    </div>
+                </div> 	                      
+            </div>               
         
             <div class="panel" id="settings">
                 <h4><i class="fi-widget"></i> Settings</h4>
