@@ -455,7 +455,7 @@ export class AppComponent {
     }
 
     mapVesselLines() {
-        if(!this.display.vessels.self.sog) { return }
+        let sog= (this.display.vessels.self.sog) ? this.display.vessels.self.sog : 1;
         let z= this.app.config.map.zoomLevel;
         let offset= (z<29) ? this.zoomOffsetLevel[z] : 60;
         this.display.vesselLines.heading= [
@@ -464,7 +464,7 @@ export class AppComponent {
                 this.display.vessels.self.position[1],
                 this.display.vessels.self.position[0],
                 this.display.vessels.self.heading,
-                (this.display.vessels.self.sog * offset)
+                (sog * offset)
             )
         ];
 
@@ -474,7 +474,7 @@ export class AppComponent {
                 this.display.vessels.self.position[1],
                 this.display.vessels.self.position[0],
                 this.display.vessels.self.heading,
-                (this.display.vessels.self.sog * 30000 )
+                (sog * 30000 )
             );
 
         this.display.vesselLines.bearing= [
@@ -492,7 +492,7 @@ export class AppComponent {
                 this.display.vessels.self.position[1],
                 this.display.vessels.self.position[0],
                 ca,
-                (this.display.vessels.self.wind.aws || this.display.vessels.self.sog) * offset
+                (this.display.vessels.self.wind.aws || sog) * offset
             )
         ];        
         
@@ -502,7 +502,7 @@ export class AppComponent {
                 this.display.vessels.self.position[1],
                 this.display.vessels.self.position[0],
                 this.display.vessels.self.wind.twd,
-                (this.display.vessels.self.wind.tws || this.display.vessels.self.sog) * offset
+                (this.display.vessels.self.wind.tws || sog) * offset
             )
         ];
 
