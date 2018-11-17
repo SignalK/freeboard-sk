@@ -197,7 +197,7 @@ export class AppComponent {
     showWelcome() {
         let title: string= 'Welcome to Freeboard';
         let message: string;
-        if(this.app.data.server.id=='signalk-server-node') {
+        if(this.app.data.server && this.app.data.server.id=='signalk-server-node') {
             message='Node version of Signal K server detected!\n\n';
             message+='For all Freeboard features to operate ensure the server has plugins ';
             message+='that can service the following Signal K API paths:\n';
