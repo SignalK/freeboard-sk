@@ -365,17 +365,18 @@ export class AppComponent {
 
     mapMoveEvent(e) {
         let v= e.map.getView();
-        let z= v.getZoom();
+        let z= Math.round(v.getZoom());
         this.app.config.map.zoomLevel=z;
         this.app.debug(`Zoom: ${z}`);
+
         if(!this.app.config.map.mrid) { this.app.config.map.mrid= v.getProjection().getCode() }
         let center = proj.transform(
             v.getCenter(), 
             this.app.config.map.mrid, 
             this.app.config.map.srid
         );
-        this.app.config.map.zoomLevel= z;
         this.app.config.map.center= center;
+
         this.mapVesselLines();
         if(!this.app.config.map.moveMap) { 
             this.app.saveConfig();
