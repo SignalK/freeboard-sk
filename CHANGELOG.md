@@ -3,11 +3,11 @@
 ### v1.1.0
 
 - Display Navigation data from `navigation.courseGreatCircle.nextPoint` / `navigation.courseRhumbline.nextPoint`
-- Initial support for History and Playback APIs.
+- Initial support for History and Playback APIs
 - Add Zoom In / Out buttons to map display
-- Updated Bearing, TWD and AWA vessel lines to have consistant appearance at all scales.
-- Bug Fix: Vessel lines not updated when SOG=0.
-- Bug Fix: Pinch zooming caused vessel to disappear from screen.
+- Update: Heading, TWD and AWA vessel lines to have consistant appearance at all scales
+- Update: Bearing line is now displayed only when destination point data is available
+- Bug Fix: Vessel lines not updated when SOG=0
 
 
 ### v1.0.0

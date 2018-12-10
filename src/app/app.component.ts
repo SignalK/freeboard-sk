@@ -456,33 +456,34 @@ export class AppComponent {
     }
 
     mapVesselLines() {
-        let sog= (this.display.vessels.self.sog) ? this.display.vessels.self.sog : 1;
         let z= this.app.config.map.zoomLevel;
         let offset= (z<29) ? this.zoomOffsetLevel[z] : 60;
+        let wMax= 10;   // ** max line length
+
+        // ** heading line **
+        let sog=(this.display.vessels.self.sog || 0);
+        if(sog>wMax) { sog=wMax }
         this.display.vesselLines.heading= [
             this.display.vessels.self.position, 
             GeoUtils.destCoordinate(
                 this.display.vessels.self.position[1],
                 this.display.vessels.self.position[0],
                 this.display.vessels.self.heading,
-                (sog * offset)
+                sog * offset
             )
         ];
 
-        let bpos= (this.display.navData.position[0]) ?
-            this.display.navData.position : 
-            GeoUtils.destCoordinate(
-                this.display.vessels.self.position[1],
-                this.display.vessels.self.position[0],
-                this.display.vessels.self.heading,
-                (sog * 30000 )
-            );
-
+        // ** bearing line **
+        let bpos= (this.display.navData.position[0]) ? this.display.navData.position : this.display.vessels.self.position;
         this.display.vesselLines.bearing= [
             this.display.vessels.self.position, 
             bpos
         ];  
         
+        // ** awa **
+        let aws= (this.display.vessels.self.wind.aws || 0);
+        if(aws>wMax) { aws=wMax }
+
         let ca= (this.app.config.map.northup) ? 
             this.display.vessels.self.wind.awa :
             this.display.vessels.self.wind.awa + (this.display.vessels.self.cogTrue || this.display.vessels.self.headingTrue);
@@ -493,20 +494,25 @@ export class AppComponent {
                 this.display.vessels.self.position[1],
                 this.display.vessels.self.position[0],
                 ca,
-                (this.display.vessels.self.wind.aws || sog) * offset
+                aws * offset
             )
         ];        
         
+        // ** twd **
+        let tws= (this.display.vessels.self.wind.tws || 0);
+        if(tws>wMax) { tws=wMax }
+
         this.display.vesselLines.twd= [
             this.display.vessels.self.position, 
             GeoUtils.destCoordinate(
                 this.display.vessels.self.position[1],
                 this.display.vessels.self.position[0],
                 this.display.vessels.self.wind.twd,
-                (this.display.vessels.self.wind.tws || sog) * offset
+                tws * offset
             )
         ];
 
+        // ** anchor line **
         if(!this.app.config.anchor.raised) {
             this.display.vesselLines.anchor= [
                 this.app.config.anchor.position,
