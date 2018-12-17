@@ -19,9 +19,26 @@ li.nobullet { list-style-type: none !important; }
     min-width: 150px;
     max-width: 30%;
     overflow-y: auto;
+    display: block;
 }
 
 .content-right {
     flex: 1 1 auto;
 	overflow-y: auto;
 }
+
+tr {
+    background: white !important;
+}
+
+tr td {
+    padding: 1px 5px 1px 5px !important;
+}
+
+@media only screen and (max-width: 40.0625em) {
+    .content-left {
+        display: none;
+    }
+
+}
+

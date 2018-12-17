@@ -43,7 +43,8 @@ export class AppComponent {
             bearingTrue: null,
             bearingMagnetic: null,
             xte: null,
-            position: [null, null]
+            position: [null, null],
+            pointIndex: -1
         },
         vessels: { 
             self: new SKVessel(), 
@@ -474,7 +475,8 @@ export class AppComponent {
         ];
 
         // ** bearing line **
-        let bpos= (this.display.navData.position[0]) ? this.display.navData.position : this.display.vessels.self.position;
+        let bpos= (this.display.navData.position && this.display.navData.position[0]) ? 
+            this.display.navData.position : this.display.vessels.self.position;
         this.display.vesselLines.bearing= [
             this.display.vessels.self.position, 
             bpos
@@ -905,46 +907,108 @@ export class AppComponent {
 
     routeActivate(e) { 
         let dt= new Date();
+        let t= this.app.data.routes
+            .map( i=> { if(i[0]==e.id) { return i }  })
+            .filter( i=> {return i} );
+        this.display.navData.pointIndex=0;
+        let c= t[0][1].feature.geometry.coordinates[this.display.navData.pointIndex];
+        let startPoint= {latitude: c[1], longitude: c[0]};        
         if(this.app.config.usePUT) {
             this.signalk.apiPut('self', 'navigation/courseGreatCircle/activeRoute/href', `/resources/routes/${e.id}`)
             .subscribe( 
                 r=> {
                     this.signalk.apiPut('self', 'navigation/courseGreatCircle/activeRoute/startTime', dt.toISOString())
                     .subscribe( 
-                        r=> { this.app.debug('Route activated') },
-                        e=> { this.showAlert('ERROR:', 'Server could not Activate Route!') }
+                        r=> { 
+                            this.app.debug('Route activated');
+                            this.signalk.apiPut('self', 
+                                'navigation/courseGreatCircle/nextPoint/position', 
+                                startPoint
+                            ).subscribe( r=> { this.app.debug('nextPoint set') } );                            
+
+                        },
+                        err=> { this.showAlert('ERROR:', 'Server could not Activate Route!') }
                     );
                 },
-                e=> { this.showAlert('ERROR:', 'Server could not Activate Route!') }
+                err=> { this.showAlert('ERROR:', 'Server could not Activate Route!') }
             );
         }
         else {
             this.signalk.sendUpdate('self', 'navigation.courseGreatCircle.activeRoute.href', `/resources/routes/${e.id}`);
             this.signalk.sendUpdate('self', 'navigation.courseGreatCircle.activeRoute.startTime', dt.toISOString());
+            this.signalk.sendUpdate('self', 'navigation.courseGreatCircle.nextPoint.position', startPoint);
         }
     }   
+
+    routeClearActive() { 
+        if(this.app.config.usePUT) {
+            this.signalk.apiPut('self', 'navigation/courseGreatCircle/activeRoute/href', null)
+            .subscribe( 
+                r=> { 
+                    this.app.debug('Active Route cleared');
+                    this.display.navData.pointIndex=-1;
+                    this.signalk.apiPut('self', 
+                        'navigation/courseGreatCircle/nextPoint/position', 
+                        null
+                    ).subscribe( r=> { this.app.debug('nextPont cleared') } );               
+                },
+                err=> { this.showAlert('ERROR:', 'Server could not clear Active Route!') }
+            );
+        }
+        else {
+            this.display.navData.pointIndex=-1;
+            this.signalk.sendUpdate('self', 'navigation.courseGreatCircle.activeRoute.href', null);
+            this.signalk.sendUpdate('self', 'navigation.courseGreatCircle.nextPoint.position', null);
+        }
+    }      
     
+    routeNextPoint(i) {
+        let rte= this.app.data.routes.map( i=> { if(i[2]) { return i }  });
+        let c= rte[0][1].feature.geometry.coordinates;
+        let l= c.length;
+        if(i==-1) {
+            if(this.display.navData.pointIndex!=0) {
+                this.display.navData.pointIndex--;
+            }
+        }
+        else { // +1
+            if(this.display.navData.pointIndex!=l-1) {
+                this.display.navData.pointIndex++;
+            }
+        }
+        let nextPoint= {
+            latitude: c[this.display.navData.pointIndex][1], 
+            longitude: c[this.display.navData.pointIndex][0], 
+        }
+        if(this.app.config.usePUT) {
+            this.signalk.apiPut('self', 
+                'navigation/courseGreatCircle/nextPoint/position', 
+                nextPoint
+            ).subscribe( 
+                r=> { this.app.debug('nextPoint set') },
+                err=> { this.app.debug(err) }
+            );
+        }
+        else {
+            this.signalk.sendUpdate('self', 'navigation/courseGreatCircle/nextPoint/position', nextPoint);
+        }        
+    }
+
     waypointGoTo(e) { 
         let wpt= this.app.data.waypoints.map( i=>{ if(i[0]==e.id) {return i} } ).filter(i=> {return i});
         if(this.app.config.usePUT) {
             this.signalk.apiPut('self', 
-                'navigation/courseGreatCircle/nextPoint/value', 
-                {href: `/resources/waypoints/${e.id}`, type: 'Waypoint'}
+                'navigation/courseGreatCircle/nextPoint/position', 
+                wpt[0][1].position
             ).subscribe( 
-                r=> {
-                    this.signalk.apiPut('self', 
-                        'navigation/courseGreatCircle/nextPoint/position',
-                        wpt[0][1].position
-                    ).subscribe( 
-                        r=> { this.app.debug('Waypoint activated') },
-                        e=> { this.showAlert('ERROR:', 'Server could not Activate Waypoint!') }
-                    );
-                },
-                e=> { this.showAlert('ERROR:', 'Server could not Activate Waypoint!') }
+                r=> { this.app.debug('Waypoint activated') },
+                err=> { 
+                    this.showAlert('ERROR:', 'Server could not set Waypoint!') 
+                    this.app.debug(err);
+                }
             );
         }
         else {
-            this.signalk.sendUpdate('self', 'navigation/courseGreatCircle/nextPoint/value', {href: `/resources/waypoints/${e.id}`, type: 'Waypoint'});
             this.signalk.sendUpdate('self', 'navigation/courseGreatCircle/nextPoint/position', e.position);
         }
     }    
@@ -969,7 +1033,7 @@ export class AppComponent {
                             if(r['state']=='COMPLETED') { this.app.debug('SUCCESS: Waypoint deleted.') }
                             else { this.showAlert('ERROR:', 'Server could not delete Waypoint!') }                            
                         },
-                        e=> { this.showAlert('ERROR:', 'Server could not delete Waypoint!') }
+                        err=> { this.showAlert('ERROR:', 'Server could not delete Waypoint!') }
                     );
                 }
                 else { 
@@ -1469,7 +1533,19 @@ export class AppComponent {
         // ** next point **
         if(path[2]=='nextPoint') {
             if(path[3]=='position') {
-                this.display.navData.position= [data.value.longitude, data.value.latitude];
+                    this.display.navData.position= (data.value) ? 
+                        [data.value.longitude, data.value.latitude] : null;
+                if(this.app.data.activeRoute) {
+                    let t= this.app.data.routes.map( i=> { if(i[2]) { return i }  });
+                    if(t.length!=0) {
+                        let c= t[0][1].feature.geometry.coordinates;
+                        for(let i=0; i<c.length;++i) {
+                            if(c[i]==this.display.navData.position) {
+                                this.display.navData.pointIndex=i;
+                            }
+                        }
+                    }
+                }
             }              
             if(path[3]=='distance') {  
                 this.display.navData.dtg= (this.app.config.units.distance=='m') ? 
@@ -1559,11 +1635,11 @@ export class AppComponent {
 
     // ** process active route information **
     processActiveRoute(value) {
-        let a= value.split('/');
-        this.app.data.activeRoute= a[a.length-1];        
+        let a= (value) ? value.split('/') : null;
+        this.app.data.activeRoute= (a) ? a[a.length-1] : null;        
         this.app.data.routes.forEach( i=> {
             i[3]= (i[0]==this.app.data.activeRoute) ? true : false;
-        }); 
+        });
     }
 
     // ** process vessel trail **
@@ -1598,6 +1674,7 @@ export class AppComponent {
 
     // ** clear course / navigation data **
     clearCourseData() {
+        let idx= this.display.navData.pointIndex;
         this.display.navData= {
             vmg: null,
             dtg: null,
@@ -1606,7 +1683,8 @@ export class AppComponent {
             bearingTrue: null,
             bearingMagnetic: null,
             xte: null,
-            position: [null, null]
+            position: [null, null],
+            pointIndex: idx
         }
     }
 

@@ -2,12 +2,19 @@
 <html>
     
 <head>
-	<title>Freeboard | Help</title>
+    <title>Freeboard | Help</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <!-- ** Foundation ** -->
     <link rel="stylesheet" href="./css/foundation.min.css" />
 	<link rel="stylesheet" href="../css/foundation-icons.css" />
     <!--** Foundation ** -->
     <link rel="stylesheet" href="./css/help.css">
+
+    <script>
+        function toggleMenu() {
+            contentLeft.style.display= (!contentLeft.style.display || contentLeft.style.display=='none') ? 'block' : 'none';
+        }
+    </script>
 </head>
     
 <body>
@@ -15,7 +22,7 @@
 	<!-- top Bar menu -->	
 	<div class="sticky">  
 		<nav class="top-bar" data-topbar>
-			<ul class="title-area">
+			<ul class="title-area" style="float:none;">
 				<!-- Title Area -->
 				<li class="name">
                     <h1>
@@ -24,18 +31,14 @@
                     </h1>
 				</li>
 				<!-- Remove the class "menu-icon" to get rid of menu icon. Take out "Menu" to just have icon alone -->
-				<li class="toggle-topbar menu-icon"><a href="#"><span>Menu</span></a></li>
+				<li class="toggle-topbar menu-icon"><a href="#" onClick="toggleMenu()"><span>Menu</span></a></li>
 			</ul>
-			<section class="top-bar-section">
-				<!-- Nav Section -->
-				<ul class="right"></ul>
-			</section>
 		</nav>
 	</div>
      
     <div class="content-container">
-        <div class="content-left">
-            <ul class="side-nav">
+        <div class="content-left" id="contentLeft">
+            <ul class="side-nav" onClick="toggleMenu()">
                 <li><a href="#top">Introduction</a></li>
                 <li><a href="#server">Signal K Server</a></li>
                 <li><a href="#display">Display</a></li>
@@ -45,7 +48,8 @@
                 <li><a href="#playback">Playback</a></li>
                 <li><a href="#settings">Settings</a></li>
                 <li><a href="https://github.com/SignalK/freeboard-sk/" target="_fb">
-                    <i class="fi-social-github"></i> GitHub</a></li>
+                    <i class="fi-social-github"></i> GitHub</a>
+                </li>
             </ul>
         </div>
         <div class="content-right">
@@ -86,7 +90,7 @@
                     to the following paths for all functionality to be available:<br>
                     <ul>
                         <li>
-                            <i>reources/routes</i> and <i>resources/waypoints</i> - 
+                            <i>resources/routes</i> and <i>resources/waypoints</i> - 
                             Serve resources as well as accept and persist resource data submitted to these paths.
                         </li>
                         <li><i>resources/charts</i> - Serve chart resources.</li>
@@ -97,10 +101,14 @@
                         <li><i>notifications/environment/depth</i> - Serve notifications for <i>belowKeel</i>, 
                             <i>belowSurface</i> and <i>belowTransducer</i>.
                         </li>
-                        <li><i>navigation/courseGreatCircle/activeRoute</i> - Serve and accept <i>href</i> & <i>startTime</i> values 
-                            to allow a route to be set as active. It is expected that the server will initiate 
+                        <li><i>navigation/courseGreatCircle/activeRoute</i></li> 
+                        <li><i>navigation/courseGreatCircle/nextPoint/position</i> - 
+                            Serve and accept these values to allow
+                            a route to be set as active and / or waypoint 
+                            to be set as a destnation.<br>
+                            It is expected that the server will initiate 
                             any subsequent calculations and related value updates.
-                        </li>
+                        </li>                        
                     </ul>
                 </p> 
             </div>
@@ -133,8 +141,9 @@
                         <b>More Actions:</b>
                         Menu containing options to:
                         <b>Show / Hide AIS Targets</b>, 
-                        <b>Clear Vessel Trail</b> and 
-                        <b>Clear Course Data</b>
+                        <b>Clear Vessel Trail</b>,
+                        <b>Show / Hide / Clear Course Data</b>, 
+                        <b>Clear Active Route</b>, etc.
                     </li>         
                     <li class="nobullet"><img src="./img/instrument_panel.png"/>
                         <b>Instrument panel:</b> The instrument panel can contain any WebApp installed on
@@ -149,8 +158,36 @@
                     <b>Vessel:</b> displays the current position and heading of your vessel.<br>
                     <i>Note: Vessel icon is not displayed when vessel position is not available.</i><br>
                     Additionally, Heading, Bearing True Wind Direction and Apparent Wind Angle 
-                    lines are displayed with the vessel when the information is available.<br>
-                    <img src="./img/vessel_lines.png" style="height:80px;"/>
+                    lines are displayed with the vessel when the related data is available.<br>
+                    <div style="display:flex;">
+                        <div>                        
+                            <img src="./img/vessel_lines.png" style="height:80px;"/>
+                        </div>
+                        <div style="padding-left: 25px;">
+                            <table>
+                                <tr>
+                                    <td style="width:40px;">
+                                        <hr style="border-color:rgba(221, 99, 0, 0.5);border-width: 1px;"></td>
+                                    <td>Heading</td>
+                                </tr>
+                                <tr>
+                                    <td style="width:40px;">
+                                        <hr style="border-color:rgba(221, 99, 0, 0.5);border-width: .5px;"></td>
+                                    <td>bearing</td>
+                                </tr>
+                                <tr>
+                                    <td style="width:40px;">
+                                        <hr style="border-color:olive;border-width: 1px;"></td>
+                                    <td>True Wind</td>
+                                </tr>
+                                <tr>
+                                    <td style="width:40px;">
+                                        <hr style="border-color:green;border-width: 1px;"></td>
+                                    <td>Apparent Wind</td>
+                                </tr>                                                                                    
+                            </table>
+                        </div>    
+                    </div>                
                 </p>
                 <p>
                     <img src="../img/ais_active.png" style="height:20px;"/>
@@ -191,21 +228,21 @@
                     received, click <img src="./img/more.png"/> and
                     select <b>Clear Course Data</b> from the menu.
                 </p>                                  
-                <div style="display:flex;">
+                <div style="display:flex;flex-wrap: wrap;">
                     <div><img src="./img/navdata.png" style="max-width:250px;"/></div>
                     <div style="padding-left:15px;">
-                        <!--
                         A waypoint can be set as the target for which navigation data 
                         is to be displayed by clicking the <b>Navigate To</b> button
                         in either: 
                         <ul>
-                            <li>A waypoint card in the <b>Waypoint List</b>
-                                <img src="./img/waypoint_list.png" style="width:150px;"/></li> or 
-                            <li>The pop-up displayed when a waypoint is clicked.
+                            <li>A waypoint card in the <b>Waypoint List</b><br>
+                                <img src="./img/waypoint_list.png" style="width:150px;"/>
+                            </li> 
+
+                            <li>The pop-up displayed when a waypoint is clicked.<br>
                                     <img src="./img/wpt_popover.png" style="width:100px;"/>
                             </li>
-                        </ul> 
-                        -->
+                        </ul>
                     </div>
                 </div> 	                
             </div>               
@@ -221,7 +258,7 @@
                         Displays a list of available Routes.
                     </li> 
                     <br>
-                    <div style="display:flex;">
+                    <div style="display:flex;;flex-wrap: wrap;">
                         <div><img src="./img/route_list.png" style="max-width:250px;"/></div>
                         <div style="padding-left:15px;">
                             <li><b>Filter Routes:</b> Type into the text box to filter the list of routes.</li>
@@ -231,7 +268,11 @@
                                 <i>Note: Deleting a route will also delete the associated Start and End Waypoints!</i>
                             </li>
                             <li><b>Activate: </b> Clicking this button sends a message to the server to set 
-                                this route as the <i>Active Route</i>.
+                                this route as the <i>Active Route</i>.<br>
+                                The start of the route is set as the current destination. <br>
+                                Use the <i>Previous</i> and <i>Next</i> point options in the 
+                                <img src="./img/more.png"/> menu to 
+                                select the destination point.
                             </li>
                             <li><b>Properties</b> Click the widget icon to edit route Name and Description.</li> 
                         </div>
@@ -242,7 +283,7 @@
                         Displays a list of available Waypoints.
                     </li>
                     <br>
-                    <div style="display:flex;">
+                    <div style="display:flex;;flex-wrap: wrap;">
                         <div><img src="./img/waypoint_list.png" style="max-width:250px;"/></div>
                         <div style="padding-left:15px;">
                             <li><b>Filter Waypoints:</b> Type into the text box to filter the list of waypoints.</li>
@@ -252,10 +293,10 @@
                                 <i>Note: A waypoint may be associated with a route. 
                                     so take care when deleting waypoints!</i>
                             </li>
-                            <!--<li><b>Navigate To: </b> Clicking this button sends a message to the server to set 
+                            <li><b>Navigate To: </b> Clicking this button sends a message to the server to set 
                                 this waypoint as the target to navigate to. The server should then send 
                                 <a href="#navdata">navigation data</a> in relation to this location.
-                            </li>-->                            
+                            </li>                           
                             <li><b>Properties</b> Click the widget icon to edit waypoint Name and Description.</li> 
                         </div>
                     </div>  
@@ -284,7 +325,7 @@
                         Displays a list of available Charts.
                     </li>  
                     <br>
-                    <div style="display:flex;">
+                    <div style="display:flex;;flex-wrap: wrap;">
                         <div><img src="./img/chart_list.png" style="max-width:250px;"/></div>
                         <div style="padding-left:15px;">
                             <li><b>Filter Charts:</b> Type into the text box to filter the list of charts.</li>
@@ -306,7 +347,7 @@
                         Load Route and Waypoint resources from GPX file. 
                     </li>  
                     <br>
-                    <div style="display:flex;">
+                    <div style="display:flex;;flex-wrap: wrap;">
                         <div><img src="./img/gpx_load.png" style="max-width:250px;"/></div>
                         <div style="padding-left:15px;">
                             After selecting a GPX file from the Open File dialog you will be
@@ -332,7 +373,7 @@
                 <p>
                     Set anchor watch alarm.
                 </p>
-                <div style="display:flex;">
+                <div style="display:flex;flex-wrap: wrap;">
                     <div><img src="./img/anchor_watch.png" style="max-width:250px;"/></div>
                     <div style="padding-left:15px;">
                         <li><b>Set Radius</b>: 
@@ -371,7 +412,7 @@
                     Access the <img src="./img/history.png"/> <b>Playback History</b> option from the Main menu.
                 </li>     
                 <br>                                          
-                <div style="display:flex;">
+                <div style="display:flex;;flex-wrap: wrap;">
                     <div><img src="./img/playback.png" style="max-width:250px;"/></div>
                     <div style="padding-left:15px;">
                         From the History Playback screen select: 

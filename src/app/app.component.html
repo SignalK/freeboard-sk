@@ -1,6 +1,6 @@
 <div class="appframe">
-    <!-- MENU BAR-->
-    <div>
+    <!-- TOOLBAR-->
+    <div class="mainToolBar">
         <button mat-icon-button 
             [disabled]="draw.enabled || measure.enabled"
             matTooltip="Menu" matTooltipPosition="right"
@@ -74,7 +74,7 @@
             <mat-icon style="color:red;">cancel</mat-icon>
         </button>
     </div>
-    <!-- /MENU BAR-->
+    <!-- /TOOLBAR-->
 
     <!--context menus-->
     <mat-menu #settingsmenu="matMenu">   
@@ -88,6 +88,22 @@
             <mat-icon>clear_all</mat-icon>
             <span>Clear Course Data</span>			
         </button>   
+        <button mat-menu-item 
+            (click)="routeClearActive()">
+            <mat-icon>clear_all</mat-icon>
+            <span *ngIf="app.data.activeRoute">Clear Active Route</span>
+            <span *ngIf="!app.data.activeRoute">Clear Destination</span>			
+        </button>         
+        <button mat-menu-item *ngIf="app.data.activeRoute"
+            (click)="routeNextPoint(1)">
+            <mat-icon>navigate_next</mat-icon>
+            <span>Next Point</span>			
+        </button>  
+        <button mat-menu-item *ngIf="app.data.activeRoute && display.navData.pointIndex!=0"
+            (click)="routeNextPoint(-1)">
+            <mat-icon>navigate_before</mat-icon>
+            <span>Previous Point</span>			
+        </button>                  
         <mat-divider></mat-divider>   
         <a mat-menu-item (click)="toggleCourseData()">
                 <mat-icon>{{app.config.courseData ? 'visibility_off' : 'visibility'}}</mat-icon>
@@ -277,11 +293,11 @@
                     </aol-view>
 
                     <!-- *** base maps *** -->
-                    <aol-layer-tile [zIndex]="1"
+                    <aol-layer-tile [zIndex]="10"
                         *ngIf="app.data.charts.length!=0 && app.data.charts[0][2]">
                         <aol-source-osm></aol-source-osm>
                     </aol-layer-tile>
-                    <aol-layer-tile [zIndex]="2"
+                    <aol-layer-tile [zIndex]="11"
                         *ngIf="app.data.charts.length!=0 && app.data.charts[1][2]">
                         <aol-source-xyz 
                             [url]="'https://tiles.openseamap.org/seamark/{z}/{x}/{y}.png'">
@@ -291,7 +307,7 @@
 
                     <!-- *** Charts *** -->
                     <div *ngFor="let c of chartsLocalByScale(); let i=index;">
-                        <aol-layer-tile [zIndex]="5 + i" *ngIf="c[2]">
+                        <aol-layer-tile [zIndex]="15 + i" *ngIf="c[2]">
                             <aol-source-xyz 
                                 [minZoom]="c[1].minzoom"
                                 [maxZoom]="c[1].maxzoom"
@@ -406,12 +422,12 @@
                                                 <mat-icon>delete</mat-icon>
                                             </button>
 
-                                            <!--<button mat-button *ngIf="display.overlay.gotoWaypoint"
+                                            <button mat-button *ngIf="display.overlay.gotoWaypoint"
                                                 (click)="waypointGoTo({id: display.overlay.id});display.overlay.show=false"
                                                 color="primary"
                                                 matTooltip="Navigate to Waypoint">
                                                 <mat-icon>near_me</mat-icon>
-                                            </button>-->                                           
+                                            </button>                                           
 
                                             <button mat-icon-button *ngIf="display.overlay.activateRoute" 
                                                 (click)="routeActivate({id: display.overlay.id});display.overlay.show=false"
