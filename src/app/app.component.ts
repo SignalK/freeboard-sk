@@ -909,7 +909,7 @@ export class AppComponent {
         let dt= new Date();
         let t= this.app.data.routes
             .map( i=> { if(i[0]==e.id) { return i }  })
-            .filter( i=> {return i} );
+            .filter( i=>{ return i });
         this.display.navData.pointIndex=0;
         let c= t[0][1].feature.geometry.coordinates[this.display.navData.pointIndex];
         let startPoint= {latitude: c[1], longitude: c[0]};        
@@ -963,7 +963,9 @@ export class AppComponent {
     }      
     
     routeNextPoint(i) {
-        let rte= this.app.data.routes.map( i=> { if(i[2]) { return i }  });
+        let rte= this.app.data.routes
+            .map( i=> { if(i[3]) { return i } })
+            .filter( i=>{ return i } );
         let c= rte[0][1].feature.geometry.coordinates;
         let l= c.length;
         if(i==-1) {
@@ -1536,7 +1538,9 @@ export class AppComponent {
                     this.display.navData.position= (data.value) ? 
                         [data.value.longitude, data.value.latitude] : null;
                 if(this.app.data.activeRoute) {
-                    let t= this.app.data.routes.map( i=> { if(i[2]) { return i }  });
+                    let t= this.app.data.routes
+                        .map( i=> { if(i[3]) { return i }  })
+                        .filter( i=>{ return i });
                     if(t.length!=0) {
                         let c= t[0][1].feature.geometry.coordinates;
                         for(let i=0; i<c.length;++i) {
