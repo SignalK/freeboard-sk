@@ -44,7 +44,8 @@ export class AppComponent {
             bearingMagnetic: null,
             xte: null,
             position: [null, null],
-            pointIndex: -1
+            pointIndex: -1,
+            pointTotal: 0
         },
         vessels: { 
             self: new SKVessel(), 
@@ -910,7 +911,8 @@ export class AppComponent {
         let t= this.app.data.routes
             .map( i=> { if(i[0]==e.id) { return i }  })
             .filter( i=>{ return i });
-        this.display.navData.pointIndex=0;
+        this.display.navData.pointIndex= 0;
+        this.display.navData.pointTotal= t[0][1].feature.geometry.coordinates.length;
         let c= t[0][1].feature.geometry.coordinates[this.display.navData.pointIndex];
         let startPoint= {latitude: c[1], longitude: c[0]};        
         if(this.app.config.usePUT) {
@@ -946,7 +948,8 @@ export class AppComponent {
             .subscribe( 
                 r=> { 
                     this.app.debug('Active Route cleared');
-                    this.display.navData.pointIndex=-1;
+                    this.display.navData.pointIndex= -1;
+                    this.display.navData.pointTotal= 0;
                     this.signalk.apiPut('self', 
                         'navigation/courseGreatCircle/nextPoint/position', 
                         null
@@ -956,7 +959,8 @@ export class AppComponent {
             );
         }
         else {
-            this.display.navData.pointIndex=-1;
+            this.display.navData.pointIndex= -1;
+            this.display.navData.pointTotal= 0;
             this.signalk.sendUpdate('self', 'navigation.courseGreatCircle.activeRoute.href', null);
             this.signalk.sendUpdate('self', 'navigation.courseGreatCircle.nextPoint.position', null);
         }
@@ -967,16 +971,17 @@ export class AppComponent {
             .map( i=> { if(i[3]) { return i } })
             .filter( i=>{ return i } );
         let c= rte[0][1].feature.geometry.coordinates;
-        let l= c.length;
         if(i==-1) {
-            if(this.display.navData.pointIndex!=0) {
+            if(this.display.navData.pointIndex>0) {
                 this.display.navData.pointIndex--;
             }
+            else { return }
         }
         else { // +1
-            if(this.display.navData.pointIndex!=l-1) {
+            if(this.display.navData.pointIndex<this.display.navData.pointTotal-1) {
                 this.display.navData.pointIndex++;
             }
+            else { return }
         }
         let nextPoint= {
             latitude: c[this.display.navData.pointIndex][1], 
@@ -1544,7 +1549,8 @@ export class AppComponent {
                     if(t.length!=0) {
                         let c= t[0][1].feature.geometry.coordinates;
                         for(let i=0; i<c.length;++i) {
-                            if(c[i]==this.display.navData.position) {
+                            if(c[i][0]==this.display.navData.position[0] &&
+                                c[i][1]==this.display.navData.position[1] ) {
                                 this.display.navData.pointIndex=i;
                             }
                         }
@@ -1642,7 +1648,20 @@ export class AppComponent {
         let a= (value) ? value.split('/') : null;
         this.app.data.activeRoute= (a) ? a[a.length-1] : null;        
         this.app.data.routes.forEach( i=> {
-            i[3]= (i[0]==this.app.data.activeRoute) ? true : false;
+            if(i[0]==this.app.data.activeRoute) {
+                i[3]= true;
+                let c= i[1].feature.geometry.coordinates;
+                this.display.navData.pointTotal= c.length;
+                if(this.display.navData.position) {
+                    for(let i=0; i<c.length; i++) {
+                        if(c[i][0]==this.display.navData.position[0] &&
+                            c[i][1]==this.display.navData.position[1] ) {
+                            this.display.navData.pointIndex=i;
+                        }
+                    }  
+                }              
+            }
+            else { i[3]= false }
         });
     }
 
@@ -1688,7 +1707,8 @@ export class AppComponent {
             bearingMagnetic: null,
             xte: null,
             position: [null, null],
-            pointIndex: idx
+            pointIndex: idx,
+            pointTotal: 0
         }
     }
 

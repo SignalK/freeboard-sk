@@ -68,7 +68,7 @@ mat-nav-list {
     z-index: 4901;
     bottom: 30px;
     left: 0;
-    right: 0;
+    max-width:100%;
     max-height: 100px;
     text-align: center;
     display: flex;

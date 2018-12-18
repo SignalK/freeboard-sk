@@ -84,26 +84,16 @@
             <span>Clear Trail</span>			
         </a>
         <button mat-menu-item 
-            (click)="clearCourseData()">
-            <mat-icon>clear_all</mat-icon>
-            <span>Clear Course Data</span>			
-        </button>   
-        <button mat-menu-item 
             (click)="routeClearActive()">
             <mat-icon>clear_all</mat-icon>
             <span *ngIf="app.data.activeRoute">Clear Active Route</span>
             <span *ngIf="!app.data.activeRoute">Clear Destination</span>			
-        </button>         
-        <button mat-menu-item *ngIf="app.data.activeRoute"
-            (click)="routeNextPoint(1)">
-            <mat-icon>navigate_next</mat-icon>
-            <span>Next Point</span>			
-        </button>  
-        <button mat-menu-item *ngIf="app.data.activeRoute && display.navData.pointIndex!=0"
-            (click)="routeNextPoint(-1)">
-            <mat-icon>navigate_before</mat-icon>
-            <span>Previous Point</span>			
-        </button>                  
+        </button>     
+        <button mat-menu-item 
+            (click)="clearCourseData()">
+            <mat-icon>clear_all</mat-icon>
+            <span>Clear Course Data</span>			
+        </button>                
         <mat-divider></mat-divider>   
         <a mat-menu-item (click)="toggleCourseData()">
                 <mat-icon>{{app.config.courseData ? 'visibility_off' : 'visibility'}}</mat-icon>
@@ -746,32 +736,50 @@
             </div>
 
             <!-- *** Nav data panel ***-->
-            <div class="navdataPanel" *ngIf="app.config.courseData">
-                <ap-dial-text *ngIf="display.navData.vmg"
-                    [title]="'VMG'"
-                    [value]="display.navData.vmg.toFixed(1)"
-                    [units]="(app.config.units.speed=='kn') ? 'knots' : 'm/sec'">
-                </ap-dial-text>
-                <ap-dial-text *ngIf="display.navData.bearing.value"
-                    [title]="'BRG'"
-                    [value]="display.navData.bearing.value.toFixed(1)"
-                    [units]="(display.navData.bearing.type=='M') ? 'deg (M)' : 'deg (T)'">
-                </ap-dial-text>     
-                <ap-dial-text *ngIf="display.navData.dtg"
-                    [title]="'DTG'"
-                    [value]="display.navData.dtg.toFixed(1)"
-                    [units]="(app.config.units.distance=='m') ? 'km' : 'NM'">
-                </ap-dial-text>                               
-                <ap-dial-text *ngIf="display.navData.ttg"
-                    [title]="'TTG'"
-                    [value]="display.navData.ttg.toFixed(1)"
-                    [units]="'mins'">
-                </ap-dial-text>    
-                <ap-dial-text *ngIf="display.navData.xte"
-                    [title]="'XTE'"
-                    [value]="display.navData.xte.toFixed(3)"
-                    [units]="(app.config.units.distance=='m') ? 'km' : 'NM'">
-                </ap-dial-text>                              
+            <div class="navdataPanel" *ngIf="app.config.courseData || app.data.activeRoute">
+                <div style="display: flex; flex-wrap: nowrap;" *ngIf="app.data.activeRoute">
+                    <div>
+                        <button [disabled]="display.navData.pointIndex==0"
+                            (click)="routeNextPoint(-1)">
+                            <mat-icon>navigate_before</mat-icon><br>
+                            <span>Prev</span>			
+                        </button>
+                    </div>
+                    <div>                          
+                        <button [disabled]="display.navData.pointIndex>=display.navData.pointTotal-1"
+                            (click)="routeNextPoint(1)">
+                            <mat-icon>navigate_next</mat-icon><br>
+                            <span>Next</span>			
+                        </button>                         
+                    </div>                    
+                </div>   
+                <div *ngIf="app.config.courseData" style="display: flex; flex-wrap: nowrap;">                             
+                    <ap-dial-text *ngIf="display.navData.vmg"
+                        [title]="'VMG'"
+                        [value]="display.navData.vmg.toFixed(1)"
+                        [units]="(app.config.units.speed=='kn') ? 'knots' : 'm/sec'">
+                    </ap-dial-text>
+                    <ap-dial-text *ngIf="display.navData.bearing.value"
+                        [title]="'BRG'"
+                        [value]="display.navData.bearing.value.toFixed(1)"
+                        [units]="(display.navData.bearing.type=='M') ? 'deg (M)' : 'deg (T)'">
+                    </ap-dial-text>     
+                    <ap-dial-text *ngIf="display.navData.dtg"
+                        [title]="'DTG'"
+                        [value]="display.navData.dtg.toFixed(1)"
+                        [units]="(app.config.units.distance=='m') ? 'km' : 'NM'">
+                    </ap-dial-text>                               
+                    <ap-dial-text *ngIf="display.navData.ttg"
+                        [title]="'TTG'"
+                        [value]="display.navData.ttg.toFixed(1)"
+                        [units]="'mins'">
+                    </ap-dial-text>    
+                    <ap-dial-text *ngIf="display.navData.xte"
+                        [title]="'XTE'"
+                        [value]="display.navData.xte.toFixed(3)"
+                        [units]="(app.config.units.distance=='m') ? 'km' : 'NM'">
+                    </ap-dial-text>   
+                </div>                           
             </div>
 		
 		</mat-sidenav-container>
