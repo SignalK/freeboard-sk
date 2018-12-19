@@ -2,12 +2,14 @@
 
 ### v1.1.0
 
-- Display Navigation data from `navigation.courseGreatCircle.nextPoint` / `navigation.courseRhumbline.nextPoint`
 - Initial support for History and Playback APIs
-- Add Zoom In / Out buttons to map display
+- Display Navigation data from `navigation.courseGreatCircle.nextPoint` when available
+- `Navigate To`: Select waypoint as course destination
+- Display `Prev / Next` point buttons to cycle through points of `Active Route`
+- Added `Zoom In / Out` buttons to map display
 - Update: Heading, TWD and AWA vessel lines to have consistant appearance at all scales
-- Update: Bearing line is now displayed only when destination point data is available
-- Bug Fix: Vessel lines not updated when SOG=0
+- Update: Bearing line is now displayed only when course destination point data is available
+- Bug Fix: TWD & AWA lines not updated when SOG=0
 
 ### v1.0.2
 
@@ -48,5 +50,10 @@ To be able to set an anchor alarm the Signal K server will need to action HTTP P
 
 *If notification messages are received for the path `notifications.navigation.anchor` an alarm message will be displayed on the screen regardless of where the alarm was configured.*
 
+**Active Route / Navigate To:**
 
+To be able to set the Active Route or target Waypoint Signal K server will need to action HTTP PUT requests to the foloowing paths:
+1. `/signalk/v1/api/vessels/self/navigation/courseGreatCircle/nextPoint.position` 
+2. `/signalk/v1/api/vessels/self/navigation/courseGreatCircle/activeRoute.href` 
+3. `/signalk/v1/api/vessels/self/navigation/courseGreatCircle/activeRoute.startTime` 
 

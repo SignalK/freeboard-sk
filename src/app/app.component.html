@@ -737,22 +737,28 @@
 
             <!-- *** Nav data panel ***-->
             <div class="navdataPanel" *ngIf="app.config.courseData || app.data.activeRoute">
-                <div style="display: flex; flex-wrap: nowrap;" *ngIf="app.data.activeRoute">
-                    <div>
-                        <button [disabled]="display.navData.pointIndex==0"
-                            (click)="routeNextPoint(-1)">
-                            <mat-icon>navigate_before</mat-icon><br>
-                            <span>Prev</span>			
-                        </button>
-                    </div>
-                    <div>                          
-                        <button [disabled]="display.navData.pointIndex>=display.navData.pointTotal-1"
-                            (click)="routeNextPoint(1)">
-                            <mat-icon>navigate_next</mat-icon><br>
-                            <span>Next</span>			
-                        </button>                         
-                    </div>                    
-                </div>   
+                <div *ngIf="app.data.activeRoute">
+                    <div style="display: flex; flex-wrap: nowrap;" >
+                        <div>
+                            <button [disabled]="display.navData.pointIndex==0"
+                                (click)="routeNextPoint(-1)">
+                                <mat-icon>navigate_before</mat-icon><br>
+                                <span>Prev</span>			
+                            </button>
+                        </div>
+                        <div>                          
+                            <button [disabled]="display.navData.pointIndex>=display.navData.pointTotal-1"
+                                (click)="routeNextPoint(1)">
+                                <mat-icon>navigate_next</mat-icon><br>
+                                <span>Next</span>			
+                            </button>                         
+                        </div>            
+                    </div>   
+                    <div style="background-color: rgb(221,221,221);font-family:roboto;"> 
+                        {{display.navData.pointIndex+1}} of {{display.navData.pointTotal}}
+                    </div>      
+                </div>
+
                 <div *ngIf="app.config.courseData" style="display: flex; flex-wrap: nowrap;">                             
                     <ap-dial-text *ngIf="display.navData.vmg"
                         [title]="'VMG'"

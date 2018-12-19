@@ -13,6 +13,8 @@ This is a port of Freeboard (http://www.42.co.nz/freeboard) to use the Signal K 
 #### Resources:  Routes and Waypoints
     - List / Select resources hosted on Signal K server via `/resources/routes`, `/resources/waypoints` paths
     - Set an active Route
+    - Select destination point along and Active Route
+    - Select Waypoint as course destination
     - Edit Route / Waypoint properties (Name, Description)
     - Draw Route
     - Add Waypoint at: Cursor or Vessel position
@@ -60,13 +62,17 @@ For all Freeboard features to be fully functional, it requires that the Signal K
 
 4. `notifications/environment/depth` - Serve notifications for `belowKeel`, `belowSurface` `belowTransducer`.
 
-5. `navigation/course/activeRoute` - Serve and accept `href` & `startTime` values to allow a route to be set as active. It is expected that the server will initiate any subsequent calculations and related value updates.
+5. `navigation/courseGreatCircle/activeRoute` - Serve and accept `href` & `startTime` values to allow a route to be set as active. It is expected that the server will initiate any subsequent calculations and related value updates.
+
+6. `navigation/courseGreatCircle/nextPoint` - Serve and accept `position` values to allow a waypoint to be set as a destination. It is expected that the server will initiate any subsequent calculations and related value updates.
+
+7. **Playback History** - Implement the Signal K Playback api (`/signalk/v1/playback`)
 
 This function may be provided natively by the server or through the use of *plugins*.
 
 For example the following plugins installed on the *Signal K node server* will enable full functionality:
 - @signalk/charts-plugin *(Charts provider)*
-- GPXLoad *(Routes & Waypoints provider)*
+- GPXLoad (v1.1.1 or later) *(Routes & Waypoints provider)*
 - signalk-anchoralarm-plugin *(anchor alarm settings & notifications)*
 - signalk-simple-notifications *(depth alarm notifications)*
 
