@@ -3,7 +3,7 @@ import { MatDialog } from '@angular/material';
 import { DomSanitizer, SafeResourceUrl} from '@angular/platform-browser';
 
 import { AppInfo } from './app.info';
-import { MsgBox, AboutDialog, ConfirmDialog, AlertDialog } from './lib/app-ui';
+import { MsgBox, AboutDialog, ConfirmDialog, AlertDialog, LoginDialog } from './lib/app-ui';
 import { ResourceDialog } from './lib/ui/resource-dialogs';
 import { PlaybackDialog } from './lib/ui/playback-dialog';
 import { SettingsDialog } from './pages';
@@ -187,13 +187,75 @@ export class AppComponent {
     //** open settings dialog **
     openSettings() {  this.dialog.open( SettingsDialog, { disableClose: false }) }      
 
+    // ** show login dialog **
+    showLogin(message?, cancelWarning=true, onConnect?) {
+        this.dialog.open(LoginDialog, {
+            disableClose: true,
+            data: { message: message || 'Login to Signal K server.'}
+        }).afterClosed().subscribe( res=> {
+            if(!res.cancel) {
+                this.signalk.login(res.user, res.pwd).subscribe(
+                    r=> {   // ** authenticated
+                        this.signalk.authToken= r['token'];
+                        this.app.db.saveAuthToken(r['token']);
+                        this.app.data.hasToken= true; // hide login menu item
+                        if(onConnect) { this.queryAfterConnect() }
+                    },
+                    err=> {   // ** auth failed
+                        this.app.data.hasToken= false; // show login menu item
+                        if(onConnect) { 
+                            this.dialog.open(AlertDialog, {
+                                disableClose: true,
+                                data: { 
+                                    message: 'Invalid Username or Password.', 
+                                    title: 'Authentication Failed:',
+                                    button1Text: 'Try Again'
+                                }
+                            }).afterClosed().subscribe( r=> { this.showLogin(null, false, true) });
+                        }
+                        else { 
+                            this.dialog.open(ConfirmDialog, {
+                                disableClose: true,
+                                data: { 
+                                    message: 'Invalid Username or Password.\nNote: Choosing CLOSE will make Update operations unavailable until you login.', 
+                                    title: 'Authentication Failed:',
+                                    button1Text: 'Try Again',
+                                    button2Text: 'Close'
+                                }
+                            }).afterClosed().subscribe( r=> { if(r) { this.showLogin() } }); 
+                        }
+                    }
+                );
+            }
+            else { 
+                this.app.data.hasToken= false; // show login menu item
+                if(onConnect) { this.showLogin(null, false, true) }
+                else {
+                    if(cancelWarning) {
+                        this.showAlert(
+                            'Login Cancelled:', 
+                            `Update operations are NOT available until you have authenticated to the Signal K server.`);
+                    }
+                }
+            }
+        });        
+    }
+
+    // ** display Authentication required message then login dialog
+    showAuthRequired() {
+        let dref= this.dialog.open(AlertDialog, {
+            disableClose: true,
+            data: { message: 'Signal K Server requires authentication!\n\nPlease login and then RE-TRY last operation.', title: 'Login Required' }
+        }).afterClosed().subscribe( r=> { this.showLogin() });             
+    } 
+
     // ** alert message
     showAlert(title, message) {
         let dref= this.dialog.open(AlertDialog, {
             disableClose: false,
             data: { message: message, title: title }
         });         
-    }
+    }   
 
     // ** show welcome message on first run **
     showWelcome() {
@@ -796,9 +858,10 @@ export class AppComponent {
                             if(r['state']=='COMPLETED') { this.app.debug('SUCCESS: Route updated.') }
                             else { this.showAlert('ERROR:', 'Server could not update Route details!') }
                         },
-                        e=> { 
+                        err=> { 
                             this.skres.getRoutes();
-                            this.showAlert('ERROR:', 'Server could not update Route details!');
+                            if(err.status && err.status==401) { this.showAuthRequired() }  
+                            else { this.showAlert('ERROR:', 'Server could not update Route details!') }
                         }
                     );
                 }
@@ -812,7 +875,7 @@ export class AppComponent {
 
     routeDelete(e) { 
         let dref= this.dialog.open(ConfirmDialog, {
-            disableClose: false,
+            disableClose: true,
             data: {
                 message: 'Do you want to delete this Route?\n \nRoute will be removed from the server (if configured to permit this operation).',
                 title: 'Delete Route:',
@@ -831,7 +894,10 @@ export class AppComponent {
                             if(r['state']=='COMPLETED') { this.app.debug('SUCCESS: Route deleted.') }
                             else { this.showAlert('ERROR:', 'Server could not delete Route!') }
                         },
-                        e=> { this.showAlert('ERROR:', 'Server could not delete Route!') }
+                        err=> { 
+                            if(err.status && err.status==401) { this.showAuthRequired() }  
+                            else { this.showAlert('ERROR:', 'Server could not delete Route!') }
+                        }
                     );
                 }
                 else { 
@@ -879,9 +945,10 @@ export class AppComponent {
                             }
                             else { this.showAlert('ERROR:', 'Server could not add Route!') }
                             },
-                        e=> { 
+                        err=> { 
                             this.skres.getRoutes();
-                            this.showAlert('ERROR:', 'Server could not add Route!');
+                            if(err.status && err.status==401) { this.showAuthRequired() }  
+                            else { this.showAlert('ERROR:', 'Server could not add Route!') }
                         }
                     );
                 }
@@ -932,7 +999,10 @@ export class AppComponent {
                         err=> { this.showAlert('ERROR:', 'Server could not Activate Route!') }
                     );
                 },
-                err=> { this.showAlert('ERROR:', 'Server could not Activate Route!') }
+                err=> { 
+                    if(err.status && err.status==401) { this.showAuthRequired() }  
+                    else { this.showAlert('ERROR:', 'Server could not Activate Route!') }
+                }
             );
         }
         else {
@@ -955,7 +1025,10 @@ export class AppComponent {
                         null
                     ).subscribe( r=> { this.app.debug('nextPont cleared') } );               
                 },
-                err=> { this.showAlert('ERROR:', 'Server could not clear Active Route!') }
+                err=> { 
+                    if(err.status && err.status==401) { this.showAuthRequired() }  
+                    else { this.showAlert('ERROR:', 'Server could not clear Active Route!') }
+                }
             );
         }
         else {
@@ -993,7 +1066,10 @@ export class AppComponent {
                 nextPoint
             ).subscribe( 
                 r=> { this.app.debug('nextPoint set') },
-                err=> { this.app.debug(err) }
+                err=> { 
+                    if(err.status && err.status==401) { this.showAuthRequired() }  
+                    else { this.app.debug(err) }
+                }
             );
         }
         else {
@@ -1010,8 +1086,11 @@ export class AppComponent {
             ).subscribe( 
                 r=> { this.app.debug('Waypoint activated') },
                 err=> { 
-                    this.showAlert('ERROR:', 'Server could not set Waypoint!') 
-                    this.app.debug(err);
+                    if(err.status && err.status==401) { this.showAuthRequired() }  
+                    else { 
+                        this.showAlert('ERROR:', 'Server could not set Waypoint!') 
+                        this.app.debug(err);
+                    }
                 }
             );
         }
@@ -1022,7 +1101,7 @@ export class AppComponent {
 
     waypointDelete(e) { 
         let dref= this.dialog.open(ConfirmDialog, {
-            disableClose: false,
+            disableClose: true,
             data: {
                 message: 'Do you want to delete this Waypoint?\nNote: Waypoint may be the Start or End of a route so proceed with care!\n \nWaypoint will be removed from the server (if configured to permit this operation).',
                 title: 'Delete Waypoint:',
@@ -1040,7 +1119,10 @@ export class AppComponent {
                             if(r['state']=='COMPLETED') { this.app.debug('SUCCESS: Waypoint deleted.') }
                             else { this.showAlert('ERROR:', 'Server could not delete Waypoint!') }                            
                         },
-                        err=> { this.showAlert('ERROR:', 'Server could not delete Waypoint!') }
+                        err=> { 
+                            if(err.status && err.status==401) { this.showAuthRequired() }  
+                            else { this.showAlert('ERROR:', 'Server could not delete Waypoint!') }
+                        }
                     );
                 }
                 else { 
@@ -1131,9 +1213,10 @@ export class AppComponent {
                         this.showAlert('ERROR:', 'Server could not update Waypoint details!');
                     }
                 },
-                e=> { 
+                err=> { 
                     this.skres.getWaypoints();
-                    this.showAlert('ERROR:', 'Server could not update Waypoint details!');
+                    if(err.status && err.status==401) { this.showAuthRequired() }  
+                    else { this.showAlert('ERROR:', 'Server could not update Waypoint details!') }
                 }
             );
         }
@@ -1178,7 +1261,10 @@ export class AppComponent {
                 this.app.config.anchor.radius
             ).subscribe(
                 r=> { this.getAnchorStatus() },
-                err=> { this.parseAnchorError(err); this.getAnchorStatus(); }
+                err=> { 
+                    this.parseAnchorError(err); 
+                    this.getAnchorStatus();  
+                }
             );               
             return;
         }
@@ -1199,14 +1285,20 @@ export class AppComponent {
                         err=> { this.parseAnchorError(err); this.getAnchorStatus(); }
                     ); 
                  },
-                err=> { this.parseAnchorError(err); this.getAnchorStatus(); }
+                err=> { 
+                    this.parseAnchorError(err); 
+                    this.getAnchorStatus(); 
+                }
             );                                         
         }
         else {  // ** raise anchor
             this.app.config.anchor.raised= true;
             this.signalk.apiPut('self', '/navigation/anchor/position', null ).subscribe(
                 r=> { this.getAnchorStatus() },
-                err=> { this.parseAnchorError(err); this.getAnchorStatus(); }
+                err=> { 
+                    this.parseAnchorError(err); 
+                    this.getAnchorStatus(); 
+                }
             );             
         }
     }
@@ -1238,7 +1330,7 @@ export class AppComponent {
                 this.mapVesselLines(); 
                 this.app.saveConfig(); 
             },
-            e=> { 
+            err=> { 
                 this.app.config.anchor.position= [0,0];
                 this.app.config.anchor.raised= true;
             }
@@ -1248,7 +1340,10 @@ export class AppComponent {
     // ** process anchor watch errors
     parseAnchorError(e) {
         this.app.debug(e); 
-        let errText=`Reported error:\n${e.error || e.statusText}`;
+        if(e.status && e.status==401) { 
+            this.showLogin();
+            return false;
+        }  
         if(e.status && e.status!=200) { 
             let errText= 'Server returned an error. This function may not be supported by yor server.';
             this.showAlert('Anchor Watch:', errText);
@@ -1346,36 +1441,45 @@ export class AppComponent {
 
     // ******** SIGNAL K Event handlers **************
 
-    // ** handle connection established
-    onConnect(e) {
-        console.info('Connected to Signal K server...');
-        // ** query for resources
-        this.skres.getRoutes();
-        this.skres.getWaypoints();
-        this.skres.getCharts();
-        // ** query navigation status
-        this.signalk.apiGet('/vessels/self/navigation').subscribe(
-            r=> {
-                let c;
-                if( r['courseRhumbline'] ) { c= r['courseRhumbline'] }
-                if( r['courseGreatCircle'] ) { c= r['courseGreatCircle'] }
-                if( c && c['activeRoute'] && c['activeRoute']['href']) { 
-                    this.processActiveRoute( c['activeRoute']['href'].value );
-                }                
-            },
-            e=> { this.app.debug('No navigation data available!') }
-        ); 
-        // ** query anchor alarm status
-        this.getAnchorStatus();
-
+    // ** query server for current values **
+    queryAfterConnect() {
+        console.info('Querying Signal K server...');
         // ** get vessel details
         this.signalk.apiGet('vessels/self').subscribe(
             r=> {  
                 this.display.vessels.self.mmsi= (r['mmsi']) ? r['mmsi'] : null;
                 this.display.vessels.self.name= (r['name']) ? r['name'] : null;
+                // ** query navigation status
+                this.signalk.apiGet('/vessels/self/navigation').subscribe(
+                    r=> {
+                        let c;
+                        if( r['courseRhumbline'] ) { c= r['courseRhumbline'] }
+                        if( r['courseGreatCircle'] ) { c= r['courseGreatCircle'] }
+                        if( c && c['activeRoute'] && c['activeRoute']['href']) { 
+                            this.processActiveRoute( c['activeRoute']['href'].value );
+                        }                
+                    },
+                    err=> { this.app.debug('No navigation data available!') }
+                ); 
+                // ** query for resources
+                this.skres.getRoutes();
+                this.skres.getWaypoints();
+                this.skres.getCharts();        
+                // ** query anchor alarm status
+                this.getAnchorStatus();                
             },
-            e=> { this.app.debug('No vessel data available!') }
-        );   
+            err=> { 
+                if(err.status && err.status==401) { this.showLogin(null, false, true) }  
+                this.app.debug('No vessel data available!') }
+        );          
+    }
+
+    // ** handle connection established
+    onConnect(e?) {
+        console.info('Connected to Signal K server...');
+
+        // ** query server for status
+        this.queryAfterConnect();
         
         // ** start trail logging interval timer
         this.trailTimer= setInterval( ()=> { this.processTrail() }, 5000 );     
@@ -1387,7 +1491,7 @@ export class AppComponent {
     }
 
     // ** handle connection closure
-    onClose(e) {
+    onClose(e?) {
         console.info('Closing connection to Signal K server...');
         this.terminateSignalK();
         let data= { title: 'Connection Closed:', buttonText: 'Re-connect', message: ''};

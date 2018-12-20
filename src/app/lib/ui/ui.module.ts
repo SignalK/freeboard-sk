@@ -6,11 +6,11 @@ import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatDialogModule, MatIconModule, MatButtonModule, MatTooltipModule,
-        MatFormFieldModule, MatInputModule, MatSelectModule,
+        MatFormFieldModule, MatInputModule, MatSelectModule, MatCardModule,
         MatDatepickerModule, MatNativeDateModule } from '@angular/material';
 
 // ** components **
-import { MsgBox, AlertDialog, ConfirmDialog, AboutDialog } from './dialogs';
+import { MsgBox, AlertDialog, ConfirmDialog, AboutDialog, LoginDialog } from './dialogs';
 import { FileInputComponent } from './file-input.component';
 import { PopoverComponent } from './popover';
 import { TextDialComponent } from './dial-text';
@@ -25,23 +25,23 @@ import { AisTargetsComponent } from '../components/feature-ais.component';
         CommonModule, FormsModule, MatTooltipModule,
         MatDialogModule, MatIconModule, MatButtonModule,
         MatFormFieldModule, MatInputModule, MatSelectModule,
-        MatDatepickerModule, MatNativeDateModule
+        MatDatepickerModule, MatNativeDateModule, MatCardModule
       ],    
     declarations: [
         MsgBox, AlertDialog, ConfirmDialog, AboutDialog,
-        FileInputComponent, TextDialComponent,
+        FileInputComponent, TextDialComponent, LoginDialog,
         PopoverComponent, ResourceDialog, PlaybackDialog,
         GeometryCircleComponent, AisTargetsComponent
     ],
     exports: [
         MsgBox, AlertDialog, ConfirmDialog, AboutDialog,
-        FileInputComponent, TextDialComponent,
+        FileInputComponent, TextDialComponent, LoginDialog,
         PopoverComponent, ResourceDialog, PlaybackDialog,
         GeometryCircleComponent, AisTargetsComponent
     ],
     entryComponents: [
         MsgBox, AlertDialog, ConfirmDialog, AboutDialog,
-        ResourceDialog, PlaybackDialog
+        ResourceDialog, PlaybackDialog, LoginDialog
     ], 
     providers: []  
 })

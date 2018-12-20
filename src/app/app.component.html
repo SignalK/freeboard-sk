@@ -143,6 +143,12 @@
                     </a>
                     <mat-divider></mat-divider>    
 
+                    <a mat-list-item *ngIf="!app.data.hasToken"
+                        (click)="sidemenu.close();showLogin(null, false)">
+                        <mat-icon>account_circle</mat-icon>
+                        &nbsp;Login
+                    </a>                      
+
                     <ap-file-input [astext]="true" (chosen)="processGPX($event)">
                         <a mat-list-item>
                             <mat-icon><img src="./assets/img/gpx_black.png" style="width:25px;"/></mat-icon>

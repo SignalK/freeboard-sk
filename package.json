@@ -15,10 +15,10 @@
         "lint": "ng lint",
         "e2e": "ng e2e"
     },
-    "author": "robert@42.co.nz",
+    "author": "panaaj@hotmail.com",
     "contributors": [
         {
-            "name": "panaaj@hotmail.com"
+            "name": "robert@42.co.nz"
         }
     ],
     "license": "Apache-v2",
@@ -55,7 +55,7 @@
         "ngx-openlayers": "^0.8.22",
         "protractor": "^5.4.1",
         "rxjs": "^6.3.2",
-        "signalk-client-angular": "^1.4.0",
+        "signalk-client-angular": "^1.4.1",
         "ts-node": "~5.0.1",
         "tslint": "~5.9.1",
         "typescript": "~2.7.2",
