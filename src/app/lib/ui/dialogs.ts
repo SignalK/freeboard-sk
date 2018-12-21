@@ -323,14 +323,12 @@ export class AboutDialog  {
                     <input matInput type="text" value="" #username 
                         (keyup)="keyUp($event, username, password)"
                         style="width:110px;"
-                        [disabled]="loggingIn" 
                         (focus)="handleFocus($event)"/>
                 </mat-form-field><br>
                 <mat-form-field hintLabel="Password:">
                     <input matInput type="password" value="" #password 
                         (keyup)="keyUp($event, username, password)"
                         style="width:110px;"
-                        [disabled]="loggingIn" 
                         (focus)="handleFocus($event)"/>
                 </mat-form-field>                     
             </mat-card-content>    

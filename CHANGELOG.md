@@ -6,6 +6,7 @@
 - Display Navigation data from `navigation.courseGreatCircle.nextPoint` when available
 - `Navigate To`: Select waypoint as course destination
 - Display `Prev / Next` point buttons to cycle through points of `Active Route`
+- Login / Authentication: Initial support.
 - Added `Zoom In / Out` buttons to map display
 - Update: Heading, TWD and AWA vessel lines to have consistant appearance at all scales
 - Update: Bearing line is now displayed only when course destination point data is available
