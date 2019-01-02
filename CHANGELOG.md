@@ -1,6 +1,5 @@
 # CHANGELOG: Freeboard-SK
 
-### v1.0.2
 ### v1.1.0
 
 - Initial support for History and Playback APIs
@@ -14,13 +13,6 @@
 - Bug Fix: TWD & AWA lines not updated when SOG=0
 
 ### v1.0.2
-
-- Fix: platform checks that were causing MS Edge to throw an exception.
-
-### v1.0.1
-
-- Fix: Url used to retrieve app list from non-node servers to include api version number.
->>>>>>> r1.1
 
 - Fix: platform checks that were causing MS Edge to throw an exception.
 
