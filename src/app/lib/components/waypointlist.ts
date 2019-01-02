@@ -10,6 +10,7 @@ export class WaypointListComponent {
     @Input() waypoints;
     @Output() select: EventEmitter<any>= new EventEmitter();
     @Output() delete: EventEmitter<any>= new EventEmitter();
+    @Output() goto: EventEmitter<any>= new EventEmitter();
     @Output() refresh: EventEmitter<any>= new EventEmitter();
     @Output() properties: EventEmitter<any>= new EventEmitter();
     @Output() closed: EventEmitter<any>= new EventEmitter();
@@ -66,6 +67,8 @@ export class WaypointListComponent {
     itemProperties(id) { this.properties.emit({id: id, type: 'waypoint'}) }
 
     itemDelete(id) { this.delete.emit({id: id}) }  
+
+    itemGoTo(id) { this.goto.emit({id: id}) }  
     
     itemRefresh() { this.refresh.emit() }
 

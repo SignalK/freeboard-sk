@@ -3,7 +3,7 @@ import { MatDialog } from '@angular/material';
 import { DomSanitizer, SafeResourceUrl} from '@angular/platform-browser';
 
 import { AppInfo } from './app.info';
-import { MsgBox, AboutDialog, ConfirmDialog, AlertDialog } from './lib/app-ui';
+import { MsgBox, AboutDialog, ConfirmDialog, AlertDialog, LoginDialog } from './lib/app-ui';
 import { ResourceDialog } from './lib/ui/resource-dialogs';
 import { PlaybackDialog } from './lib/ui/playback-dialog';
 import { SettingsDialog } from './pages';
@@ -35,12 +35,24 @@ export class AppComponent {
         chartList: false,
         anchorWatch: false,
         showSelf: false,
+        navData: {
+            vmg: null,
+            dtg: null,
+            ttg: null,
+            bearing: {value: null, type: null},
+            bearingTrue: null,
+            bearingMagnetic: null,
+            xte: null,
+            position: [null, null],
+            pointIndex: -1,
+            pointTotal: 0
+        },
         vessels: { 
             self: new SKVessel(), 
             aisTargets: new Map()
         },
         alarms: new Map(),
-        map: { center: [0,0], zoomLevel: 2, rotation: 0 },        
+        map: { center: [0,0], rotation: 0, minZoom: 1, maxZoom:28 },        
         vesselLines: {
             twd: [null,null],
             awa: [null,null],
@@ -69,10 +81,19 @@ export class AppComponent {
         style: null
     }    
 
+    private zoomOffsetLevel=[
+        1,1000000,550000,290000,140000,70000,
+        38000,17000,7600,3900,1900,
+        950,470,250,120,60,
+        30,15.5,8.1,4,2,
+        1,.5,.25,.12,.06,
+        .03,.015,.008,1
+    ]    
+
     // ** APP features / mode **
-    public features= { historyAPI: null }
+    public features= { playbackAPI: null }
     public mode: APP_MODE= APP_MODE.REALTIME;   // current mode
-    private connectMode= APP_MODE.REALTIME;     // connection attempt mode
+    private connectMode: APP_MODE= APP_MODE.REALTIME;     // connection attempt mode
 
     private subOnConnect;
     private subOnError;
@@ -121,7 +142,6 @@ export class AppComponent {
     ngOnInit() {
         // ** apply loaded app config	
         this.display.map.center= this.app.config.map.center;
-        this.display.map.zoomLevel= this.app.config.map.zoomLevel;
         this.display.map.rotation= this.app.config.map.rotation;
         // ** connect to signalk server and intialise
         this.initSignalK(); 
@@ -167,25 +187,87 @@ export class AppComponent {
     //** open settings dialog **
     openSettings() {  this.dialog.open( SettingsDialog, { disableClose: false }) }      
 
+    // ** show login dialog **
+    showLogin(message?, cancelWarning=true, onConnect?) {
+        this.dialog.open(LoginDialog, {
+            disableClose: true,
+            data: { message: message || 'Login to Signal K server.'}
+        }).afterClosed().subscribe( res=> {
+            if(!res.cancel) {
+                this.signalk.login(res.user, res.pwd).subscribe(
+                    r=> {   // ** authenticated
+                        this.signalk.authToken= r['token'];
+                        this.app.db.saveAuthToken(r['token']);
+                        this.app.data.hasToken= true; // hide login menu item
+                        if(onConnect) { this.queryAfterConnect() }
+                    },
+                    err=> {   // ** auth failed
+                        this.app.data.hasToken= false; // show login menu item
+                        if(onConnect) { 
+                            this.dialog.open(AlertDialog, {
+                                disableClose: true,
+                                data: { 
+                                    message: 'Invalid Username or Password.', 
+                                    title: 'Authentication Failed:',
+                                    button1Text: 'Try Again'
+                                }
+                            }).afterClosed().subscribe( r=> { this.showLogin(null, false, true) });
+                        }
+                        else { 
+                            this.dialog.open(ConfirmDialog, {
+                                disableClose: true,
+                                data: { 
+                                    message: 'Invalid Username or Password.\nNote: Choosing CLOSE may make operations requiring authentication unavailable.', 
+                                    title: 'Authentication Failed:',
+                                    button1Text: 'Try Again',
+                                    button2Text: 'Close'
+                                }
+                            }).afterClosed().subscribe( r=> { if(r) { this.showLogin() } }); 
+                        }
+                    }
+                );
+            }
+            else { 
+                this.app.data.hasToken= false; // show login menu item
+                if(onConnect) { this.showLogin(null, false, true) }
+                else {
+                    if(cancelWarning) {
+                        this.showAlert(
+                            'Login Cancelled:', 
+                            `Update operations are NOT available until you have authenticated to the Signal K server.`);
+                    }
+                }
+            }
+        });        
+    }
+
+    // ** display Authentication required message then login dialog
+    showAuthRequired() {
+        let dref= this.dialog.open(AlertDialog, {
+            disableClose: true,
+            data: { message: 'Signal K Server requires authentication!\n\nPlease login and then RE-TRY last operation.', title: 'Login Required' }
+        }).afterClosed().subscribe( r=> { this.showLogin() });             
+    } 
+
     // ** alert message
     showAlert(title, message) {
         let dref= this.dialog.open(AlertDialog, {
             disableClose: false,
             data: { message: message, title: title }
         });         
-    }
+    }   
 
     // ** show welcome message on first run **
     showWelcome() {
         let title: string= 'Welcome to Freeboard';
         let message: string;
-        if(this.app.data.server.id=='signalk-server-node') {
+        if(this.app.data.server && this.app.data.server.id=='signalk-server-node') {
             message='Node version of Signal K server detected!\n\n';
             message+='For all Freeboard features to operate ensure the server has plugins ';
             message+='that can service the following Signal K API paths:\n';
             message+='- resources/routes, resources/waypoints\n';
             message+='- resources/charts\n';
-            message+='- navigation/anchor, navigation/course/activeRoute';
+            message+='- navigation/anchor, navigation/courseGreatCircle/activeRoute';
         }
         else {
             message='- View Routes, Waypoints and Charts available on your Signal K server\n';
@@ -201,7 +283,7 @@ export class AppComponent {
 
     // ** show select mode dialog
     showSelectMode() {
-        if(this.mode== APP_MODE.REALTIME) { // request history playback
+        if(this.mode= APP_MODE.REALTIME) { // request history playback
             this.dialog.open(ConfirmDialog, {
                 disableClose: true,
                 data: { 
@@ -220,26 +302,24 @@ export class AppComponent {
                     title: 'Exit History Playback' 
                 }
             }).afterClosed().subscribe( r=> {
-                if(r) { this.switchMode(APP_MODE.REALTIME) }
+                if(r) { 
+                    this.terminateSignalK();
+                    setTimeout( ()=> { this.switchMode(APP_MODE.REALTIME) }, 500); 
+                }
             });  
         }
     }
 
     showPlaybackSettings() {
+        this.terminateSignalK();
         this.dialog.open(PlaybackDialog, {
             disableClose: false
         }).afterClosed().subscribe( r=> {
-            if(r.result) { // OK
+            if(r.result) { // OK: switch to playback mode
                 this.switchMode(APP_MODE.PLAYBACK, r.query);
-                // ** test for history provider / available time data
-                /*this.signalk.apiGet(`vessels/self/navigation/position?time=${r.startTime}`)
-                .subscribe( 
-                    res=> { this.switchMode(APP_MODE.PLAYBACK, r.query) },
-                    err=> { this.showAlert('Error:', 'Cannot enter History Playback mode.\n\n' + err.error) }
-                ); */
             }
             else {  // cancel: restarts realtime mode
-                if(this.mode==APP_MODE.PLAYBACK) { this.initSignalK() }
+                this.switchMode(APP_MODE.REALTIME);
             }
         });
     }
@@ -324,7 +404,7 @@ export class AppComponent {
     }
 
     // ********** MAP EVENTS *****************
-    
+
     mapDragOver(e) { e.preventDefault() }
 
     // ** handle drag and drop of files onto map container**
@@ -349,16 +429,19 @@ export class AppComponent {
 
     mapMoveEvent(e) {
         let v= e.map.getView();
-        let z= v.getZoom();
+        let z= Math.round(v.getZoom());
+        this.app.config.map.zoomLevel=z;
         this.app.debug(`Zoom: ${z}`);
+
         if(!this.app.config.map.mrid) { this.app.config.map.mrid= v.getProjection().getCode() }
         let center = proj.transform(
             v.getCenter(), 
             this.app.config.map.mrid, 
             this.app.config.map.srid
         );
-        this.app.config.map.zoomLevel= z;
         this.app.config.map.center= center;
+
+        this.mapVesselLines();
         if(!this.app.config.map.moveMap) { 
             this.app.saveConfig();
             this.isDirty=false;
@@ -413,8 +496,18 @@ export class AppComponent {
             this.display.overlay.title= l;            
         }            
     }  
-    
+   
     // ****** MAP functions *******
+    // ** handle map zoom controls 
+    mapZoom(zoomIn) {
+        if(zoomIn) {
+            if(this.app.config.map.zoomLevel<this.display.map.maxZoom) { ++this.app.config.map.zoomLevel }
+        }
+        else { 
+            if(this.app.config.map.zoomLevel>this.display.map.minZoom) { --this.app.config.map.zoomLevel }
+        }
+    }
+
     mapRotate() {
         if(this.app.config.map.northUp) { this.display.map.rotation=0 }
         else { this.display.map.rotation= 0-this.display.vessels.self.heading }
@@ -427,30 +520,35 @@ export class AppComponent {
     }
 
     mapVesselLines() {
-        if(!this.display.vessels.self.sog) { return }
         let z= this.app.config.map.zoomLevel;
-        let offset= (z>=10) ? 12000 / z : 60000/z;
-        
+        let offset= (z<29) ? this.zoomOffsetLevel[z] : 60;
+        let wMax= 10;   // ** max line length
+
+        // ** heading line **
+        let sog=(this.display.vessels.self.sog || 0);
+        if(sog>wMax) { sog=wMax }
         this.display.vesselLines.heading= [
             this.display.vessels.self.position, 
             GeoUtils.destCoordinate(
                 this.display.vessels.self.position[1],
                 this.display.vessels.self.position[0],
                 this.display.vessels.self.heading,
-                (this.display.vessels.self.sog * offset)
+                sog * offset
             )
         ];
 
+        // ** bearing line **
+        let bpos= (this.display.navData.position && this.display.navData.position[0]) ? 
+            this.display.navData.position : this.display.vessels.self.position;
         this.display.vesselLines.bearing= [
             this.display.vessels.self.position, 
-            GeoUtils.destCoordinate(
-                this.display.vessels.self.position[1],
-                this.display.vessels.self.position[0],
-                this.display.vessels.self.heading,
-                (this.display.vessels.self.sog * 30000 )
-            )
+            bpos
         ];  
         
+        // ** awa **
+        let aws= (this.display.vessels.self.wind.aws || 0);
+        if(aws>wMax) { aws=wMax }
+
         let ca= (this.app.config.map.northup) ? 
             this.display.vessels.self.wind.awa :
             this.display.vessels.self.wind.awa + (this.display.vessels.self.cogTrue || this.display.vessels.self.headingTrue);
@@ -461,20 +559,25 @@ export class AppComponent {
                 this.display.vessels.self.position[1],
                 this.display.vessels.self.position[0],
                 ca,
-                (this.display.vessels.self.wind.aws || this.display.vessels.self.sog) * offset
+                aws * offset
             )
         ];        
         
+        // ** twd **
+        let tws= (this.display.vessels.self.wind.tws || 0);
+        if(tws>wMax) { tws=wMax }
+
         this.display.vesselLines.twd= [
             this.display.vessels.self.position, 
             GeoUtils.destCoordinate(
                 this.display.vessels.self.position[1],
                 this.display.vessels.self.position[0],
                 this.display.vessels.self.wind.twd,
-                (this.display.vessels.self.wind.tws || this.display.vessels.self.sog) * offset
+                tws * offset
             )
         ];
 
+        // ** anchor line **
         if(!this.app.config.anchor.raised) {
             this.display.vesselLines.anchor= [
                 this.app.config.anchor.position,
@@ -501,10 +604,16 @@ export class AppComponent {
         this.app.saveConfig();
     }
 
+    toggleCourseData() { 
+        this.app.config.courseData= !this.app.config.courseData;
+        this.app.saveConfig();
+    }    
+
     popoverClosed() { this.display.overlay.show= false }
 
     formatPopover(id, coord, prj) {
         this.display.overlay['addWaypoint']=null;  
+        this.display.overlay['gotoWaypoint']=null;
         this.display.overlay['activateRoute']=null;
         this.display.overlay['id']=null;    
         this.display.overlay['type']=null;   
@@ -565,6 +674,7 @@ export class AppComponent {
                 item= this.app.data.waypoints.filter( i=>{ if(i[0]==t[1]) return true });
                 if(!item) { return false }
                 this.display.overlay['showProperties']=true;
+                this.display.overlay['gotoWaypoint']=!item[0][3];
                 this.display.overlay['type']='waypoint';
                 this.display.overlay.title= 'Waypoint';   
                 this.display.overlay['canDelete']= (this.display.overlay['type']=='waypoint' && !this.display.overlay['addWaypoint']) ? true : false;
@@ -748,9 +858,10 @@ export class AppComponent {
                             if(r['state']=='COMPLETED') { this.app.debug('SUCCESS: Route updated.') }
                             else { this.showAlert('ERROR:', 'Server could not update Route details!') }
                         },
-                        e=> { 
+                        err=> { 
                             this.skres.getRoutes();
-                            this.showAlert('ERROR:', 'Server could not update Route details!');
+                            if(err.status && err.status==401) { this.showAuthRequired() }  
+                            else { this.showAlert('ERROR:', 'Server could not update Route details!') }
                         }
                     );
                 }
@@ -764,7 +875,7 @@ export class AppComponent {
 
     routeDelete(e) { 
         let dref= this.dialog.open(ConfirmDialog, {
-            disableClose: false,
+            disableClose: true,
             data: {
                 message: 'Do you want to delete this Route?\n \nRoute will be removed from the server (if configured to permit this operation).',
                 title: 'Delete Route:',
@@ -783,7 +894,10 @@ export class AppComponent {
                             if(r['state']=='COMPLETED') { this.app.debug('SUCCESS: Route deleted.') }
                             else { this.showAlert('ERROR:', 'Server could not delete Route!') }
                         },
-                        e=> { this.showAlert('ERROR:', 'Server could not delete Route!') }
+                        err=> { 
+                            if(err.status && err.status==401) { this.showAuthRequired() }  
+                            else { this.showAlert('ERROR:', 'Server could not delete Route!') }
+                        }
                     );
                 }
                 else { 
@@ -793,27 +907,6 @@ export class AppComponent {
                 }                       
             }      
         });        
-    }
-
-    routeActivate(e) { 
-        let dt= new Date();
-        if(this.app.config.usePUT) {
-            this.signalk.apiPut('self', 'navigation/course/activeRoute/href', `/resources/routes/${e.id}`)
-            .subscribe( 
-                r=> {
-                    this.signalk.apiPut('self', 'navigation/course/activeRoute/startTime', dt.toISOString())
-                    .subscribe( 
-                        r=> { this.app.debug('Route activated') },
-                        e=> { this.showAlert('ERROR:', 'Server could not Activate Route!') }
-                    );
-                },
-                e=> { this.showAlert('ERROR:', 'Server could not Activate Route!') }
-            );
-        }
-        else {
-            this.signalk.sendUpdate('self', 'navigation.course.activeRoute.href', `/resources/routes/${e.id}`);
-            this.signalk.sendUpdate('self', 'navigation.course.activeRoute.startTime', dt.toISOString());
-        }
     }
 
     routeAdd(e) {
@@ -852,9 +945,10 @@ export class AppComponent {
                             }
                             else { this.showAlert('ERROR:', 'Server could not add Route!') }
                             },
-                        e=> { 
+                        err=> { 
                             this.skres.getRoutes();
-                            this.showAlert('ERROR:', 'Server could not add Route!');
+                            if(err.status && err.status==401) { this.showAuthRequired() }  
+                            else { this.showAlert('ERROR:', 'Server could not add Route!') }
                         }
                     );
                 }
@@ -879,9 +973,135 @@ export class AppComponent {
         this.app.saveConfig();
     }
 
+    routeActivate(e) { 
+        let dt= new Date();
+        let t= this.app.data.routes
+            .map( i=> { if(i[0]==e.id) { return i }  })
+            .filter( i=>{ return i });
+        this.display.navData.pointIndex= 0;
+        this.display.navData.pointTotal= t[0][1].feature.geometry.coordinates.length;
+        let c= t[0][1].feature.geometry.coordinates[this.display.navData.pointIndex];
+        let startPoint= {latitude: c[1], longitude: c[0]};        
+        if(this.app.config.usePUT) {
+            this.signalk.apiPut('self', 'navigation/courseGreatCircle/activeRoute/href', `/resources/routes/${e.id}`)
+            .subscribe( 
+                r=> {
+                    this.signalk.apiPut('self', 'navigation/courseGreatCircle/activeRoute/startTime', dt.toISOString())
+                    .subscribe( 
+                        r=> { 
+                            this.app.debug('Route activated');
+                            this.signalk.apiPut('self', 
+                                'navigation/courseGreatCircle/nextPoint/position', 
+                                startPoint
+                            ).subscribe( r=> { this.app.debug('nextPoint set') } );                            
+
+                        },
+                        err=> { this.showAlert('ERROR:', 'Server could not Activate Route!') }
+                    );
+                },
+                err=> { 
+                    if(err.status && err.status==401) { this.showAuthRequired() }  
+                    else { this.showAlert('ERROR:', 'Server could not Activate Route!') }
+                }
+            );
+        }
+        else {
+            this.signalk.sendUpdate('self', 'navigation.courseGreatCircle.activeRoute.href', `/resources/routes/${e.id}`);
+            this.signalk.sendUpdate('self', 'navigation.courseGreatCircle.activeRoute.startTime', dt.toISOString());
+            this.signalk.sendUpdate('self', 'navigation.courseGreatCircle.nextPoint.position', startPoint);
+        }
+    }   
+
+    routeClearActive() { 
+        if(this.app.config.usePUT) {
+            this.signalk.apiPut('self', 'navigation/courseGreatCircle/activeRoute/href', null)
+            .subscribe( 
+                r=> { 
+                    this.app.debug('Active Route cleared');
+                    this.display.navData.pointIndex= -1;
+                    this.display.navData.pointTotal= 0;
+                    this.signalk.apiPut('self', 
+                        'navigation/courseGreatCircle/nextPoint/position', 
+                        null
+                    ).subscribe( r=> { this.app.debug('nextPont cleared') } );               
+                },
+                err=> { 
+                    if(err.status && err.status==401) { this.showAuthRequired() }  
+                    else { this.showAlert('ERROR:', 'Server could not clear Active Route!') }
+                }
+            );
+        }
+        else {
+            this.display.navData.pointIndex= -1;
+            this.display.navData.pointTotal= 0;
+            this.signalk.sendUpdate('self', 'navigation.courseGreatCircle.activeRoute.href', null);
+            this.signalk.sendUpdate('self', 'navigation.courseGreatCircle.nextPoint.position', null);
+        }
+    }      
+    
+    routeNextPoint(i) {
+        let rte= this.app.data.routes
+            .map( i=> { if(i[3]) { return i } })
+            .filter( i=>{ return i } );
+        let c= rte[0][1].feature.geometry.coordinates;
+        if(i==-1) {
+            if(this.display.navData.pointIndex>0) {
+                this.display.navData.pointIndex--;
+            }
+            else { return }
+        }
+        else { // +1
+            if(this.display.navData.pointIndex<this.display.navData.pointTotal-1) {
+                this.display.navData.pointIndex++;
+            }
+            else { return }
+        }
+        let nextPoint= {
+            latitude: c[this.display.navData.pointIndex][1], 
+            longitude: c[this.display.navData.pointIndex][0], 
+        }
+        if(this.app.config.usePUT) {
+            this.signalk.apiPut('self', 
+                'navigation/courseGreatCircle/nextPoint/position', 
+                nextPoint
+            ).subscribe( 
+                r=> { this.app.debug('nextPoint set') },
+                err=> { 
+                    if(err.status && err.status==401) { this.showAuthRequired() }  
+                    else { this.app.debug(err) }
+                }
+            );
+        }
+        else {
+            this.signalk.sendUpdate('self', 'navigation/courseGreatCircle/nextPoint/position', nextPoint);
+        }        
+    }
+
+    waypointGoTo(e) { 
+        let wpt= this.app.data.waypoints.map( i=>{ if(i[0]==e.id) {return i} } ).filter(i=> {return i});
+        if(this.app.config.usePUT) {
+            this.signalk.apiPut('self', 
+                'navigation/courseGreatCircle/nextPoint/position', 
+                wpt[0][1].position
+            ).subscribe( 
+                r=> { this.app.debug('Waypoint activated') },
+                err=> { 
+                    if(err.status && err.status==401) { this.showAuthRequired() }  
+                    else { 
+                        this.showAlert('ERROR:', 'Server could not set Waypoint!') 
+                        this.app.debug(err);
+                    }
+                }
+            );
+        }
+        else {
+            this.signalk.sendUpdate('self', 'navigation/courseGreatCircle/nextPoint/position', e.position);
+        }
+    }    
+
     waypointDelete(e) { 
         let dref= this.dialog.open(ConfirmDialog, {
-            disableClose: false,
+            disableClose: true,
             data: {
                 message: 'Do you want to delete this Waypoint?\nNote: Waypoint may be the Start or End of a route so proceed with care!\n \nWaypoint will be removed from the server (if configured to permit this operation).',
                 title: 'Delete Waypoint:',
@@ -899,7 +1119,10 @@ export class AppComponent {
                             if(r['state']=='COMPLETED') { this.app.debug('SUCCESS: Waypoint deleted.') }
                             else { this.showAlert('ERROR:', 'Server could not delete Waypoint!') }                            
                         },
-                        e=> { this.showAlert('ERROR:', 'Server could not delete Waypoint!') }
+                        err=> { 
+                            if(err.status && err.status==401) { this.showAuthRequired() }  
+                            else { this.showAlert('ERROR:', 'Server could not delete Waypoint!') }
+                        }
                     );
                 }
                 else { 
@@ -990,9 +1213,10 @@ export class AppComponent {
                         this.showAlert('ERROR:', 'Server could not update Waypoint details!');
                     }
                 },
-                e=> { 
+                err=> { 
                     this.skres.getWaypoints();
-                    this.showAlert('ERROR:', 'Server could not update Waypoint details!');
+                    if(err.status && err.status==401) { this.showAuthRequired() }  
+                    else { this.showAlert('ERROR:', 'Server could not update Waypoint details!') }
                 }
             );
         }
@@ -1037,23 +1261,11 @@ export class AppComponent {
                 this.app.config.anchor.radius
             ).subscribe(
                 r=> { this.getAnchorStatus() },
-                err=> { this.parseAnchorError(err); this.getAnchorStatus(); }
-            );           
-            /*
-            if(!this.app.data.server.id=='signalk-server-node') {
-                this.signalk.send({ 
-                    context: 'vessels.self',
-                    put: [{
-                        timestamp: new Date().toISOString(),
-                        source: this.app.id,
-                        values: [{
-                            path: 'navigation.anchor.maxRadius',
-                            value: this.app.config.anchor.radius
-                        }]   
-                    }]
-                });
-            }
-            */        
+                err=> { 
+                    this.parseAnchorError(err); 
+                    this.getAnchorStatus();  
+                }
+            );               
             return;
         }
         if(!e.raised) {  // ** drop anchor
@@ -1073,59 +1285,21 @@ export class AppComponent {
                         err=> { this.parseAnchorError(err); this.getAnchorStatus(); }
                     ); 
                  },
-                err=> { this.parseAnchorError(err); this.getAnchorStatus(); }
-            );             
-            /*
-            if(!this.app.data.server.id=='signalk-server-node') {
-                this.signalk.send({ 
-                    context: 'vessels.self',
-                    put: [{
-                        timestamp: new Date().toISOString(),
-                        source: this.app.id,
-                        values: [
-                            {
-                                path: 'navigation.anchor.position',
-                                value: {
-                                    latitude: this.app.config.anchor.position[1],
-                                    longitude: this.app.config.anchor.position[0],
-                                    altitude: 0
-                                }
-                            },
-                            {
-                                path: 'navigation.anchor.maxRadius',
-                                value: this.app.config.anchor.radius
-                            },
-                            {
-                                path: 'navigation.anchor.state',
-                                value: 'on'
-                            }
-                        ]
-                    }]
-                });
-            }
-            */                             
+                err=> { 
+                    this.parseAnchorError(err); 
+                    this.getAnchorStatus(); 
+                }
+            );                                         
         }
         else {  // ** raise anchor
             this.app.config.anchor.raised= true;
             this.signalk.apiPut('self', '/navigation/anchor/position', null ).subscribe(
                 r=> { this.getAnchorStatus() },
-                err=> { this.parseAnchorError(err); this.getAnchorStatus(); }
+                err=> { 
+                    this.parseAnchorError(err); 
+                    this.getAnchorStatus(); 
+                }
             );             
-            /*
-            if(!this.app.data.server.id=='signalk-server-node') {
-                this.signalk.send({ 
-                    context: 'vessels.self',
-                    put: [{
-                        timestamp: new Date().toISOString(),
-                        source: this.app.id,
-                        values: [{
-                            path: 'navigation.anchor.state',
-                            value: 'off'
-                        }]
-                    }]
-                }); 
-            }
-            */ 
         }
     }
 
@@ -1156,7 +1330,7 @@ export class AppComponent {
                 this.mapVesselLines(); 
                 this.app.saveConfig(); 
             },
-            e=> { 
+            err=> { 
                 this.app.config.anchor.position= [0,0];
                 this.app.config.anchor.raised= true;
             }
@@ -1166,7 +1340,10 @@ export class AppComponent {
     // ** process anchor watch errors
     parseAnchorError(e) {
         this.app.debug(e); 
-        let errText=`Reported error:\n${e.error || e.statusText}`;
+        if(e.status && e.status==401) { 
+            this.showLogin();
+            return false;
+        }  
         if(e.status && e.status!=200) { 
             let errText= 'Server returned an error. This function may not be supported by yor server.';
             this.showAlert('Anchor Watch:', errText);
@@ -1198,10 +1375,10 @@ export class AppComponent {
 
     // ** tear down connection 
     terminateSignalK() {
-        this.subOnConnect.unsubscribe();
-        this.subOnError.unsubscribe();
-        this.subOnMessage.unsubscribe();
-        this.subOnClose.unsubscribe();      
+        if(this.subOnConnect) { this.subOnConnect.unsubscribe() }
+        if(this.subOnError) { this.subOnError.unsubscribe() }
+        if(this.subOnMessage) { this.subOnMessage.unsubscribe() }
+        if(this.subOnClose) { this.subOnClose.unsubscribe() }      
         this.signalk.disconnect();
     }    
 
@@ -1210,9 +1387,13 @@ export class AppComponent {
         this.signalk.hello(this.app.hostName, this.app.hostPort, this.app.hostSSL)
         .subscribe(
             res=> {
-                this.setFeatures(res['server']);
-                if(this.app.data['firstRun']) { this.showWelcome() }
-                this.signalk.connect( this.app.hostName, this.app.hostPort, this.app.hostSSL, query);
+                if(this.connectMode== APP_MODE.REALTIME ) {
+                    if(this.app.data['firstRun']) { this.showWelcome() }
+                    this.signalk.connect( this.app.hostName, this.app.hostPort, this.app.hostSSL, 'none');    
+                }
+                else {
+                    this.signalk.playback( this.app.hostName, this.app.hostPort, this.app.hostSSL, query);    
+                }
             },
             err=> {
                 let dRef= this.dialog.open(AlertDialog, {
@@ -1260,46 +1441,57 @@ export class AppComponent {
 
     // ******** SIGNAL K Event handlers **************
 
-    // ** handle connection established
-    onConnect(e) {
-        console.info('Connected to Signal K server...');
-        // ** subscribe to messages if not history playback
-        if(this.mode== APP_MODE.REALTIME) { this.subscribeSignalK() }
-        // ** query for resources
-        this.skres.getRoutes();
-        this.skres.getWaypoints();
-        this.skres.getCharts();
-        // ** query navigation status
-        this.signalk.apiGet('/vessels/self/navigation').subscribe(
-            r=> {
-                if(r['course'] && r['course']['activeRoute'] && 
-                    r['course']['activeRoute']['href']) { 
-                    this.processActiveRoute( r['course']['activeRoute']['href'].value );
-                }                
-            },
-            e=> { this.app.debug('No navigation data available!') }
-        ); 
-        // ** query anchor alarm status
-        this.getAnchorStatus();
-
+    // ** query server for current values **
+    queryAfterConnect() {
+        console.info('Querying Signal K server...');
         // ** get vessel details
         this.signalk.apiGet('vessels/self').subscribe(
             r=> {  
                 this.display.vessels.self.mmsi= (r['mmsi']) ? r['mmsi'] : null;
                 this.display.vessels.self.name= (r['name']) ? r['name'] : null;
+                // ** query navigation status
+                this.signalk.apiGet('/vessels/self/navigation').subscribe(
+                    r=> {
+                        let c;
+                        if( r['courseRhumbline'] ) { c= r['courseRhumbline'] }
+                        if( r['courseGreatCircle'] ) { c= r['courseGreatCircle'] }
+                        if( c && c['activeRoute'] && c['activeRoute']['href']) { 
+                            this.processActiveRoute( c['activeRoute']['href'].value );
+                        }                
+                    },
+                    err=> { this.app.debug('No navigation data available!') }
+                ); 
+                // ** query for resources
+                this.skres.getRoutes();
+                this.skres.getWaypoints();
+                this.skres.getCharts();        
+                // ** query anchor alarm status
+                this.getAnchorStatus();                
             },
-            e=> { this.app.debug('No vessel data available!') }
-        );   
+            err=> { 
+                if(err.status && err.status==401) { this.showLogin(null, false, true) }  
+                this.app.debug('No vessel data available!') }
+        );          
+    }
+
+    // ** handle connection established
+    onConnect(e?) {
+        console.info('Connected to Signal K server...');
+
+        // ** query server for status
+        this.queryAfterConnect();
         
         // ** start trail logging interval timer
         this.trailTimer= setInterval( ()=> { this.processTrail() }, 5000 );     
         
         // ** AIS target manager
         this.aisTimer= setInterval( ()=> { this.processAIS() }, 5000);
+
+        this.setFeatures();
     }
 
     // ** handle connection closure
-    onClose(e) {
+    onClose(e?) {
         console.info('Closing connection to Signal K server...');
         this.terminateSignalK();
         let data= { title: 'Connection Closed:', buttonText: 'Re-connect', message: ''};
@@ -1324,10 +1516,13 @@ export class AppComponent {
     
     // ** handle delta message received
     onMessage(e) { 
-        if(!e.context && e.self) {
+        if(!e.context && e.self) {  // ** hello message
             this.connectMode= null;
             if(e.startTime) { this.mode= APP_MODE.PLAYBACK }
-            else { this.mode= APP_MODE.REALTIME }
+            else { 
+                this.mode= APP_MODE.REALTIME;
+                this.subscribeSignalK();
+            }
             this.app.data.selfId= e.self;
             return;
         }
@@ -1369,15 +1564,14 @@ export class AppComponent {
         if(v.path=='environment.wind.angleApparent') { d.wind.awa= v.value }
         if(v.path=='environment.wind.speedApparent') { d.wind.aws= v.value }
         if(v.path=='communication.callsignVhf') { d.callsign= v.value; updateVlines= false; }
+        if(v.path.indexOf('navigation.courseRhumbline')!=-1 
+            || v.path.indexOf('navigation.courseGreatCircle')!=-1)  { 
+                this.processCourse(v); 
+        }
 
         // ** update map display **
         if( updateVlines) { this.mapVesselLines() }
-        this.mapRotate(); 
-
-        // ** active route **
-        if(v.path=='navigation.course.activeRoute.href') {
-            this.processActiveRoute(v.value);
-        }   
+        this.mapRotate();  
 
         // ** alarms **
         if( this.app.config.depthAlarm.enabled) {
@@ -1432,6 +1626,67 @@ export class AppComponent {
         if(v.path=='environment.wind.angleApparent') { d.wind.awa= v.value }
         if(v.path=='environment.wind.speedApparent') { d.wind.aws= v.value }
         if(v.path=='communication.callsignVhf') { d.callsign= v.value }        
+    }
+
+    // ** process course data
+    processCourse(data) {
+        let path= data.path.split('.');
+     
+        // ** active route **
+        if(path[2]=='activeRoute') {
+            if(path[3]=='href') { this.processActiveRoute(data.value) }
+        }   
+        // ** course **
+        if(path[2]=='crossTrackError') {
+            this.display.navData.xte= (this.app.config.units.distance=='m') ? 
+                data.value/1000 : Convert.kmToNauticalMiles(data.value/1000);                  
+        }
+        // ** next point **
+        if(path[2]=='nextPoint') {
+            if(path[3]=='position') {
+                    this.display.navData.position= (data.value) ? 
+                        [data.value.longitude, data.value.latitude] : null;
+                if(this.app.data.activeRoute) {
+                    let t= this.app.data.routes
+                        .map( i=> { if(i[3]) { return i }  })
+                        .filter( i=>{ return i });
+                    if(t.length!=0) {
+                        let c= t[0][1].feature.geometry.coordinates;
+                        for(let i=0; i<c.length;++i) {
+                            if(c[i][0]==this.display.navData.position[0] &&
+                                c[i][1]==this.display.navData.position[1] ) {
+                                this.display.navData.pointIndex=i;
+                            }
+                        }
+                    }
+                }
+            }              
+            if(path[3]=='distance') {  
+                this.display.navData.dtg= (this.app.config.units.distance=='m') ? 
+                    data.value/1000 : Convert.kmToNauticalMiles(data.value/1000);                
+            }
+            if(path[3]=='bearingTrue') { 
+                this.display.navData.bearingTrue= Convert.radiansToDegrees(data.value);
+                if(this.app.config.selections.headingAttribute=='navigation.headingTrue'
+                        || this.display.navData.bearingMagnetic==null) {
+                    this.display.navData.bearing.value= this.display.navData.bearingTrue;
+                    this.display.navData.bearing.type= 'T';
+                } 
+            }
+            if(path[3]=='bearingMagnetic') { 
+                this.display.navData.bearingMagnetic= Convert.radiansToDegrees(data.value);
+                if(this.app.config.selections.headingAttribute=='navigation.headingMagnetic'
+                        || this.display.navData.bearingTrue==null) {
+                    this.display.navData.bearing.value= this.display.navData.bearingMagnetic;
+                    this.display.navData.bearing.type= 'M';
+                }                 
+            }
+            if(path[3]=='velocityMadeGood') {  
+                this.display.navData.vmg= (this.app.config.units.speed=='kn') ? 
+                    Convert.msecToKnots(data.value) : data.value;
+            }
+            if(path[3]=='timeToGo') { this.display.navData.ttg= data.value/60 }           
+        }          
     }
 
     // ** process / cleanup AIS targets
@@ -1494,11 +1749,24 @@ export class AppComponent {
 
     // ** process active route information **
     processActiveRoute(value) {
-        let a= value.split('/');
-        this.app.data.activeRoute= a[a.length-1];        
+        let a= (value) ? value.split('/') : null;
+        this.app.data.activeRoute= (a) ? a[a.length-1] : null;        
         this.app.data.routes.forEach( i=> {
-            i[3]= (i[0]==this.app.data.activeRoute) ? true : false;
-        }); 
+            if(i[0]==this.app.data.activeRoute) {
+                i[3]= true;
+                let c= i[1].feature.geometry.coordinates;
+                this.display.navData.pointTotal= c.length;
+                if(this.display.navData.position) {
+                    for(let i=0; i<c.length; i++) {
+                        if(c[i][0]==this.display.navData.position[0] &&
+                            c[i][1]==this.display.navData.position[1] ) {
+                            this.display.navData.pointIndex=i;
+                        }
+                    }  
+                }              
+            }
+            else { i[3]= false }
+        });
     }
 
     // ** process vessel trail **
@@ -1531,26 +1799,56 @@ export class AppComponent {
         dref.afterClosed().subscribe( res=> { if(res) this.app.data.trail=[] });    
     }
 
+    // ** clear course / navigation data **
+    clearCourseData() {
+        let idx= this.display.navData.pointIndex;
+        this.display.navData= {
+            vmg: null,
+            dtg: null,
+            ttg: null,
+            bearing: {value: null, type: null},
+            bearingTrue: null,
+            bearingMagnetic: null,
+            xte: null,
+            position: [null, null],
+            pointIndex: idx,
+            pointTotal: 0
+        }
+    }
+
     // ** set available features
-    setFeatures(res) {
-        if(!res) { return }
-        this.app.data.server= res;
+    setFeatures() {
+        this.app.data.server= this.signalk.server.info;
         this.app.debug(this.app.data.server);
         let ver= this.app.data.server.version.split('.');
+        // ** test for playback capability
+        this.signalk.snapshot( 'self', new Date().toISOString() )
+        .subscribe( 
+            res=> { this.features.playbackAPI=true },
+            err=> { 
+                switch(err.status) {
+                    case 501:   // ** not implemented
+                        this.features.playbackAPI= false;
+                        break;
+                    case 400:   // ** no data **
+                    case 404:
+                        this.features.playbackAPI=true
+                        break;
+                }
+            }
+        );
 
-        //this.features.historyAPI= (res.id=='signalk-server-node' && ver[0]>=1 && ver[1]>=6) ? true : false;
+        this.features.playbackAPI= (this.app.data.server.id=='signalk-server-node' && ver[0]>=1 && ver[1]>=6) ? true : false;
         //this.app.debug(this.features);
     }
 
     // ** switch between realtime and history playback modes
-    switchMode(toMode: APP_MODE, query?) {
-        this.terminateSignalK();
+    switchMode(toMode: APP_MODE, query='none') {
         if(toMode== APP_MODE.PLAYBACK) { // ** history playback
             this.app.db.saveTrail('self', this.app.data.trail);
             this.app.data.trail= [];
         }
         else {  // ** realtime data
-            query='none';
             this.app.db.getTrail('self').then( t=> { 
                 this.app.data.trail= (t && t.value) ? t.value : [];
             });

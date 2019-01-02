@@ -95,7 +95,7 @@ export class SKResources {
 
     // ** get routes from sk server
     getRoutes() {
-        this.signalk.apiGet('vessels/self/navigation/course/activeRoute')
+        this.signalk.apiGet('vessels/self/navigation/courseGreatCircle/activeRoute')
         .subscribe( 
             r=> {
                 if(r['href'] && r['href'].value) {

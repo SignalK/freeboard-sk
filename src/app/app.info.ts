@@ -5,6 +5,7 @@ import { Injectable } from '@angular/core';
 import { Info } from './lib/app-info';
 import { Subject } from 'rxjs';
 import {IndexedDB} from './lib/info/indexeddb';
+import { SignalKClient } from 'signalk-client-angular';
 
 
 @Injectable({
@@ -15,7 +16,7 @@ export class AppInfo extends Info {
     private DEV_SERVER= {
         host: null,     // host name || ip address
         port: null,     // port number
-        ssl: null       // true || false
+        ssl: false       // true || false
     }
 
     public hostName;
@@ -25,7 +26,7 @@ export class AppInfo extends Info {
 
     public db: AppDB;
 
-    constructor() {
+    constructor( public signalk: SignalKClient) {
         super();
 
         this.db= new AppDB();
@@ -66,6 +67,7 @@ export class AppInfo extends Info {
             usePUT: true,
             vesselTrail: false,
             aisTargets: true,
+            courseData: false,
             depthAlarm: { enabled: false, smoothing: 10000 },
             plugins: {
                 instruments: '/@signalk/instrumentpanel'
@@ -91,7 +93,8 @@ export class AppInfo extends Info {
             selfId: null,
             activeRoute: null,
             trail: [],
-            server: null
+            server: null,
+            hasToken: false
         }
 
         /***************************************
@@ -116,6 +119,13 @@ export class AppInfo extends Info {
                                     this.data.trail= (t && t.value) ? t.value : [];
                                 });
                             }
+                            this.db.getAuthToken()
+                            .then( t=> { 
+                                if(t && t.value) {
+                                    this.signalk.authToken= t.value;
+                                    this.data.hasToken= true;
+                                }
+                            });
                         }
                         break;
                     case 'trail_save':
@@ -213,4 +223,20 @@ export class AppDB {
             }
         );
     } 
+
+    // ** retrieve token **
+    getAuthToken() { return this.db.getByIndex('trail', 'uuid_idx', 'token') }
+
+	// ** save token **
+	saveAuthToken(token) {
+        this.db.update( 'trail', {uuid: 'token', value: token}).then(
+            () => { }, 
+            (e)=> { 
+                this.db.add( 'trail', {uuid: 'token', value: token}).then( 
+                    () => { }, 
+                    e=> { }
+                );
+            }
+        );
+    }    
 }

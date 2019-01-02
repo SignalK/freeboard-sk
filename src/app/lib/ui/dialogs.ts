@@ -120,7 +120,7 @@ export class AlertDialog implements OnInit {
     public image= null;
 
     constructor(
-        public dialogRef: MatDialogRef<MsgBox>,
+        public dialogRef: MatDialogRef<AlertDialog>,
         @Inject(MAT_DIALOG_DATA) public data: any) {
 	}
 	
@@ -205,7 +205,7 @@ export class ConfirmDialog implements OnInit {
 	public msglines= [];
 
     constructor(
-        public dialogRef: MatDialogRef<MsgBox>,
+        public dialogRef: MatDialogRef<ConfirmDialog>,
         @Inject(MAT_DIALOG_DATA) public data: any) {
 	}
 	
@@ -295,10 +295,90 @@ export class ConfirmDialog implements OnInit {
 export class AboutDialog  {
 
     constructor(
-        public dialogRef: MatDialogRef<MsgBox>,
+        public dialogRef: MatDialogRef<AboutDialog>,
         @Inject(MAT_DIALOG_DATA) public data: any) { }
 
     ngOnInit() { }
-
 }
 
+/********* LoginDialog ****************
+    data: {
+        message: '',  
+        button1Text: 'Log in', 
+        button2Text: 'Cancel'
+    }
+***************************************/
+@Component({
+    selector: 'ap-login-dialog',
+    styles: [],
+    template: `
+        <mat-card>
+            <mat-card-title-group>
+                <mat-icon>account_circle</mat-icon>
+                <mat-card-title>Sign-In</mat-card-title>
+                <mat-card-subtitle>{{data.message}}</mat-card-subtitle>
+            </mat-card-title-group>
+            <mat-card-content> 
+                <mat-form-field hintLabel="User name:">
+                    <input matInput type="text" value="" #username 
+                        (keyup)="keyUp($event, username, password)"
+                        style="width:110px;"
+                        (focus)="handleFocus($event)"/>
+                </mat-form-field><br>
+                <mat-form-field hintLabel="Password:">
+                    <input matInput type="password" value="" #password 
+                        (keyup)="keyUp($event, username, password)"
+                        style="width:110px;"
+                        (focus)="handleFocus($event)"/>
+                </mat-form-field>                     
+            </mat-card-content>    
+            <mat-card-actions>
+                <button default mat-button color="primary"
+                    [disabled]="username.value.length==0" 
+                    (click)="login(username.value, password.value)">
+                    {{data.button1Text}}
+                </button>
+                &nbsp;&nbsp;
+                <button default mat-button (click)="cancel()">
+                    {{data.button2Text}}
+                </button>
+            </mat-card-actions>
+        </mat-card>
+    `
+})
+export class LoginDialog implements OnInit {
+    public imgSource= 'assets/img/success.png';
+    private result= {
+        cancel: false,
+        user: null,
+        pwd: null
+    }
+    
+    constructor(
+        public dialogRef: MatDialogRef<LoginDialog>,
+        @Inject(MAT_DIALOG_DATA) public data: any) { }
+    
+    ngOnInit() {
+        this.data.message= this.data.message || '';
+        this.data.button1Text= this.data.button1Text || 'Log in';
+        this.data.button2Text= this.data.button2Text || 'Cancel';
+    }
+
+    keyUp(e, u, p) { if(e.key=="Enter") { this.login(u.value, p.value) } }
+
+    handleFocus(e) { e.currentTarget.select(0, e.currentTarget.value.length) }       
+
+    // ** cancelled login
+    cancel() { 
+        this.result.cancel= true;
+        this.dialogRef.close(this.result);
+    }
+
+    //** submit log in
+    login(user='', password='') {   
+        this.result.cancel= false;
+        this.result.user= user;
+        this.result.pwd= password;   
+        this.dialogRef.close(this.result);    
+    }
+}

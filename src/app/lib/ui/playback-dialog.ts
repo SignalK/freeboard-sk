@@ -62,7 +62,7 @@ import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material';
                     <button mat-raised-button color="primary" 
                         [disabled]="!formData.startDate"
                         (click)="submit()">
-                        SAVE
+                        START
                     </button>
                     <button mat-raised-button (click)="submit(true)">
                         CANCEL
@@ -131,7 +131,7 @@ export class PlaybackDialog implements OnInit {
         return v;
     }    
 
-    rateValues() { return  [1,5,10,20,30,45,60] }     
+    rateValues() { return  [0.5,1,2,5,10] }     
 
 }
 
