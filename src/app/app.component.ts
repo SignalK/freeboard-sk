@@ -217,7 +217,7 @@ export class AppComponent {
                             this.dialog.open(ConfirmDialog, {
                                 disableClose: true,
                                 data: { 
-                                    message: 'Invalid Username or Password.\nNote: Choosing CLOSE will make Update operations unavailable until you login.', 
+                                    message: 'Invalid Username or Password.\nNote: Choosing CLOSE may make operations requiring authentication unavailable.', 
                                     title: 'Authentication Failed:',
                                     button1Text: 'Try Again',
                                     button2Text: 'Close'
@@ -404,7 +404,7 @@ export class AppComponent {
     }
 
     // ********** MAP EVENTS *****************
-    
+
     mapDragOver(e) { e.preventDefault() }
 
     // ** handle drag and drop of files onto map container**
