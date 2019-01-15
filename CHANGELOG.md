@@ -1,24 +1,30 @@
 # CHANGELOG: Freeboard-SK
 
+### v1.2.0
+
+- **Enhancement:** In Playback mode display timestamp of received data.
+- **Added:** Filter display of `Other Vessels`. Select the specific vessels you want to appear on the map.
+- **Enhancement:** Display `wind vector` of `Other Vessels` at high zoom levels (>14) when data is available for the vessel. Displayed vector can be either `True` or `Apparent` wind value, this is configured in `Settings` screen.
+
 ### v1.1.0
 
-- Initial support for History and Playback APIs
-- Display Navigation data from `navigation.courseGreatCircle.nextPoint` when available
-- `Navigate To`: Select waypoint as course destination
+- **Added:** Initial support for History and Playback APIs
+- **Added:** Display Navigation data from `navigation.courseGreatCircle.nextPoint` when available
+- **Added:** `Navigate To`: Select waypoint as course destination
 - Display `Prev / Next` point buttons to cycle through points of `Active Route`
-- Login / Authentication: Initial support.
-- Added `Zoom In / Out` buttons to map display
-- Update: Heading, TWD and AWA vessel lines to have consistant appearance at all scales
-- Update: Bearing line is now displayed only when course destination point data is available
-- Bug Fix: TWD & AWA lines not updated when SOG=0
+- **Added:** Login / Authentication: Initial support.
+- **Enhancement:** Added `Zoom In / Out` buttons to map display
+- **Fix:** Heading, TWD and AWA vessel lines to have consistant appearance at all scales
+- **Fix**: Bearing line is now displayed only when course destination point data is available
+- **Fix:** TWD & AWA lines not updated when SOG=0
 
 ### v1.0.2
 
-- Fix: platform checks that were causing MS Edge to throw an exception.
+- **Fix:** platform checks that were causing MS Edge to throw an exception.
 
 ### v1.0.1
 
-- Fix: Url used to retrieve app list from non-node servers to include api version number.
+- **Fix:** Url used to retrieve app list from non-node servers to include api version number.
 
 ### v1.0.0
 

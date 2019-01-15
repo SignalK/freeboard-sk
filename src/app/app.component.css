@@ -63,6 +63,20 @@ mat-nav-list {
     right: 33%;
 }
 
+.playbackPanel {
+    position: absolute;
+    z-index: 4900;
+    bottom: 150px; 
+    left: 10px; 
+    top: auto; 
+    width:100px; 
+    border: gray 1px solid;
+    border-radius: 5px;
+    background-color: white;
+    font-family: roboto;
+    text-align:center;
+}
+
 .navdataPanel {
     position: absolute;
     z-index: 4901;

@@ -21,7 +21,7 @@ export class GeoUtils {
     * direct formula by T. Vincenty, Direct and Inverse Solutions of Geodesics on
     * the Ellipsoid with application of nested equations, Survey Review, vol XXII
     * no 176, 1975 <http://www.ngs.noaa.gov/PUBS_LIB/inverse.pdf> */
-    static destCoordinate(lat1, lon1, brng, dist) {
+    static destCoordinate(lat1, lon1, brng, dist): [number,number] {
         let a = 6378137, b = 6356752.3142, f = 1 / 298.257223563, // WGS-84
         // ellipsiod
         s = dist, alpha1 = brng, sinAlpha1 = Math.sin(alpha1), cosAlpha1 = Math

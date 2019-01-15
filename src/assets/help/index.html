@@ -8,6 +8,7 @@
     <link rel="stylesheet" href="./css/foundation.min.css" />
 	<link rel="stylesheet" href="../css/foundation-icons.css" />
     <!--** Foundation ** -->
+    <link rel="stylesheet" href="../fonts/material-icons.css" />
     <link rel="stylesheet" href="./css/help.css">
 
     <script>
@@ -31,7 +32,11 @@
                     </h1>
 				</li>
 				<!-- Remove the class "menu-icon" to get rid of menu icon. Take out "Menu" to just have icon alone -->
-				<li class="toggle-topbar menu-icon"><a href="#" onClick="toggleMenu()"><span>Menu</span></a></li>
+				<li class="toggle-topbar ">
+                    <a style="color:black;" href="#" onClick="toggleMenu()">
+                        <span style="color:black;">Menu</span>
+                    </a>
+                </li>
 			</ul>
 		</nav>
 	</div>
@@ -43,7 +48,8 @@
                 <li><a href="#server">Signal K Server</a></li>
                 <li><a href="#display">Display</a></li>
                 <li><a href="#navdata">Navigation</a></li>                  
-                <li><a href="#resources">Resources</a></li>    
+                <li><a href="#resources">Resources</a></li>   
+                <li><a href="#aistargets">Vessels</a></li> 
                 <li><a href="#anchor">Anchor Watch</a></li>
                 <li><a href="#playback">Playback</a></li>
                 <li><a href="#settings">Settings</a></li>
@@ -71,7 +77,7 @@
                         <li><b>Instrument Panel:</b> allows you to select from the apps 
                             installed on your Signal K server for display.
                         </li>
-                        <li><b>AIS</b> target display.</li>
+                        <li><b>Other Vessels: </b> display other vessels on map.</li>
                     </ul>
                 </p> 
                 To learn more about Signal K visit 
@@ -118,34 +124,35 @@
                 <p>
                     Freeboard provides a moving Vessel / Map display for both your vessel
                     <img src="../img/ship_red.png" style="height:30px;"/>
-                    and other vessels <img src="../img/ais_active.png" style="height:20px;"/>(via AIS).<br>
+                    and other vessels <img src="../img/ais_active.png" style="height:20px;"/>.<br>
                     <img src="./img/screen.png" style="height:400px;"/>
                     <br>
                     The menu bar along the left of the screen provides access to functions and
                     menus that allow you control the map display.
-                    <li class="nobullet"><img src="./img/north_up.png"/>
+                    <li class="nobullet"><i class="material-icons">navigation</i>
                         <b>Heading / North Up:</b>
                         Toggles between <i>Heading / North Up</i> mode.
                     </li>                        
-                    <li class="nobullet"><img src="./img/follow_vessel.png"/>
+                    <li class="nobullet"><i class="material-icons">my_location</i>
                         <b>Follow Vessel On / Off:</b>
                         Toggles <i>Follow Vessel</i> mode to keep the vessel at the centre of the 
                         screen.<br>
                         <i>Note: this option is disabled when vessel position is not available.</i>
                     </li>
-                    <li class="nobullet"><img src="./img/centre_vessel.png"/>
+                    <li class="nobullet"><i class="material-icons">center_focus_strong</i>
                         <b>Centre Vessel on screen:</b> 
                         <i>Note: This option is disabled when vessel position is not available.</i>
                     </li>     
-                    <li class="nobullet"><img src="./img/more.png"/>
+                    <li class="nobullet"><i class="material-icons">more_horiz</i>
                         <b>More Actions:</b>
-                        Menu containing options to:
-                        <b>Show / Hide AIS Targets</b>, 
-                        <b>Clear Vessel Trail</b>,
-                        <b>Show / Hide / Clear Course Data</b>, 
-                        <b>Clear Active Route</b>, etc.
+                        <ul>
+                            <li>Show / Hide Vessels</li>
+                            <li>Clear Vessel Trail</li>
+                            <li>Show / Hide / Clear Course Data</li>
+                            <li>Clear Active Route</li>
+                        </ul>
                     </li>         
-                    <li class="nobullet"><img src="./img/instrument_panel.png"/>
+                    <li class="nobullet"><i class="material-icons">av_timer</i>
                         <b>Instrument panel:</b> The instrument panel can contain any WebApp installed on
                         the Signal K server.<br>
                         <i>The default instruments shown are <b>@signalk/instrumentpanel</b></i><br>
@@ -191,18 +198,18 @@
                 </p>
                 <p>
                     <img src="../img/ais_active.png" style="height:20px;"/>
-                    <b>Active AIS Target:</b> displays the current position and heading 
-                    for an AIS target for which
+                    <b>Active Vessel:</b> displays the current position and heading 
+                    for a vessel for which
                     an update has been received in the last 6 mins.<br>
                     <img src="../img/ais_inactive.png" style="height:20px;"/>
-                    <b>Inactive AIS Target:</b> displays the last received position and heading 
-                    for an AIS target for which
+                    <b>Inactive Vessel:</b> displays the last received position and heading 
+                    for a vessel for which
                     an update has NOT been received for more than 6 mins.<br>
-                    <i>Note: AIS Targets are removed from display after there has been no 
+                    <i>Note: Vessels are removed from display after there has been no 
                         update received for 9 mins or more.</i>
                 </p>   
                 <P>
-                    Clicking on an AIS target or vessel icon will display an information window
+                    Clicking on a vessel icon will display an information window
                     containing vessel data and available actions.<br>
                     <img src="./img/vessel_popover.png" style="height:150px;"/>
                     &nbsp;&nbsp;
@@ -219,13 +226,13 @@
                         from the server.                        
                 </p>   
                 <p>To display course data when it is available from the server,
-                    click <img src="./img/more.png"/> and
+                    click <i class="material-icons">more_horiz</i> and
                     select <b>Show Course Data</b>.
                 </p>  
                 <p>If the server stops sending course data, the last received values 
                     will remain on the screen. <br>
                     To hide the course data display until the next set of data is 
-                    received, click <img src="./img/more.png"/> and
+                    received, click <i class="material-icons">more_horiz</i> and
                     select <b>Clear Course Data</b> from the menu.
                 </p>                                  
                 <div style="display:flex;flex-wrap: wrap;">
@@ -253,7 +260,7 @@
                     Freeboard provides functionality for Route, Waypoint and Chart resources.
                     <br>
 
-                    <li class="nobullet"><img src="./img/routes.png"/>
+                    <li class="nobullet"><i class="material-icons">directions</i>
                         <b>Routes:</b>
                         Displays a list of available Routes.
                     </li> 
@@ -267,18 +274,18 @@
                                 delete the route.<br>
                                 <i>Note: Deleting a route will also delete the associated Start and End Waypoints!</i>
                             </li>
-                            <li><b>Activate: </b> Clicking this button sends a message to the server to set 
+                            <li><b>Activate: </b> Clicking <i class="material-icons">select_all</i> sends a message to the server to set 
                                 this route as the <i>Active Route</i>.<br>
                                 The start of the route is set as the current destination. <br>
                                 Use the <i>Previous</i> and <i>Next</i> point options in the 
-                                <img src="./img/more.png"/> menu to 
+                                <i class="material-icons">more_horiz</i> menu to 
                                 select the destination point.
                             </li>
-                            <li><b>Properties</b> Click the widget icon to edit route Name and Description.</li> 
+                            <li><b>Properties</b> Click <i class="material-icons">info_outline</i> to edit route Name and Description.</li> 
                         </div>
                     </div>       
                     <br>                                    
-                    <li class="nobullet"><img src="./img/waypoints.png"/>
+                    <li class="nobullet"><i class="material-icons">location_on</i>
                         <b>Waypoints:</b>
                         Displays a list of available Waypoints.
                     </li>
@@ -293,11 +300,11 @@
                                 <i>Note: A waypoint may be associated with a route. 
                                     so take care when deleting waypoints!</i>
                             </li>
-                            <li><b>Navigate To: </b> Clicking this button sends a message to the server to set 
+                            <li><b>Navigate To: </b> Clicking <i class="material-icons">near_me</i> sends a message to the server to set 
                                 this waypoint as the target to navigate to. The server should then send 
                                 <a href="#navdata">navigation data</a> in relation to this location.
                             </li>                           
-                            <li><b>Properties</b> Click the widget icon to edit waypoint Name and Description.</li> 
+                            <li><b>Properties</b> Click <i class="material-icons">info_outline</i> to edit waypoint Name and Description.</li> 
                         </div>
                     </div>  
                     <br>
@@ -306,7 +313,7 @@
                     <img src="./img/route_popover.png"/>&nbsp;&nbsp;
                     <img src="./img/wpt_popover.png"/>
                     <br>&nbsp;<br>                   
-                    <li class="nobullet"><img src="./img/draw.png"/>
+                    <li class="nobullet"><i class="material-icons">edit</i>
                         <b>Draw Menu:</b>
                         The Draw menu is where you will find options to:
                         <li>Draw a Route</li>
@@ -315,17 +322,17 @@
                         <li>Measure distances</li>
                     </li>  
                     <br>  
-                    <li class="nobullet"><img src="./img/menu.png"/>
+                    <li class="nobullet"><i class="material-icons">menu</i>
                         <b>Main Menu:</b>
                         The Main menu contains links to the following additional features:
                     </li> 
                     <br>                                    
-                    <li class="nobullet"><img src="./img/charts.png"/>
+                    <li class="nobullet"><i class="material-icons">map</i>
                         <b>Charts:</b> 
                         Displays a list of available Charts.
                     </li>  
                     <br>
-                    <div style="display:flex;;flex-wrap: wrap;">
+                    <div style="display:flex;flex-wrap: wrap;">
                         <div><img src="./img/chart_list.png" style="max-width:250px;"/></div>
                         <div style="padding-left:15px;">
                             <li><b>Filter Charts:</b> Type into the text box to filter the list of charts.</li>
@@ -335,7 +342,7 @@
                             <li>OpenSeaMap</li>
                             which require an internet connection to be displayed.<br>
                             <b>Local Charts</b> hosted on the Signal K server are identified with the 
-                            <img src="./img/charts.png"/> icon.
+                            <i class="material-icons">map</i> icon.
                             <br>&nbsp;<br>
                             Charts are displayed in descending order of scale to ensure more detailed 
                             charts are on top.
@@ -347,7 +354,7 @@
                         Load Route and Waypoint resources from GPX file. 
                     </li>  
                     <br>
-                    <div style="display:flex;;flex-wrap: wrap;">
+                    <div style="display:flex;flex-wrap: wrap;">
                         <div><img src="./img/gpx_load.png" style="max-width:250px;"/></div>
                         <div style="padding-left:15px;">
                             After selecting a GPX file from the Open File dialog you will be
@@ -371,7 +378,10 @@
             <div class="panel" id="anchor">
                 <h4>Anchor Watch</h4>
                 <p>
-                    Set anchor watch alarm.
+                        <li class="nobullet"><i class="material-icons">menu</i>
+                            <b>Main Menu:</b>
+                            Access the <i class="fi-anchor" style="font-size:20pt;"></i> <b>Anchor Watch</b> option from the Main menu.
+                        </li> 
                 </p>
                 <div style="display:flex;flex-wrap: wrap;">
                     <div><img src="./img/anchor_watch.png" style="max-width:250px;"/></div>
@@ -399,6 +409,56 @@
                 </div> 	                
             </div>    
             
+            <div class="panel" id="aistargets">
+                <h4>Vessels</h4>
+                <p>
+                    Freeboard provides the ability to de-clutter the screen of vessels in the following ways:
+                    <li>Show / Hide Vessels layer on the map</li>
+                    <li>Providing the ability select which Vessels to display.</li>                 
+                </p>  
+                <p>
+                    Additionally, a wind vector will be displayed for vessels where the data is available.<br>
+                    This vector will only be displayed at higher zoom levels so as to reduce screen clutter.
+                </p>
+                <p>You can select whether to use either True or Apparent wind data for displaying the vector.<br>
+                    This choce can be made in the <a href="#settings">Settings</a> screen.
+                </p>
+                <br>  
+                <h5>To Show / Hide the Vessels Map Layer:</h5> 
+                <li class="nobullet">
+                    From the <i class="material-icons">more_horiz</i> menu
+                    select either:
+                    <ul>
+                        <li class="nobullet"><i class="material-icons">visibility</i> Show Vessels </li>
+                        <li class="nobullet"><i class="material-icons">visibility_off</i> Hide Vessels</li>
+                    </ul>
+                </li>   
+                <br>  
+                <h5>To Select Vessels:</h5> 
+                <li class="nobullet">
+                    From the <i class="material-icons">menu</i> menu
+                    select <i class="material-icons">directions_boat</i> <b>Vessels</b>.
+                </li>   
+                <br>        
+                <div style="display:flex;flex-wrap: wrap;">
+                    <div><img src="./img/ais_list.png" style="max-width:250px;"/></div>
+                    <div style="padding-left:15px;">
+                        <li><b>Filter Vessels:</b> Type into the text box to filter the list of vessels.</li>
+                        <li><b>Display Vessel:</b> Tick the checkbox to display the vessel on the map.</li>
+                        <i>Freeboard by default will display all vessels</i><br>
+                        <li><i class="material-icons">info_outline</i>
+                            Click the list entry to display the vessel properties.
+                        </li>
+                        
+                    </div>
+                </div> 
+                <img src="./img/ais_properties.png"style="max-width:250px;"/><br>
+                <i>Note:If the Vessels layer is hidden selections made in this screen will
+                   not be displayed until the Vessels layer is made visible.
+                </i>                       
+                      
+            </div>                
+
             <div class="panel" id="playback">
                 <h4>Playback History</h4>
                 <p>
@@ -407,9 +467,9 @@
                     <b>Note: Selecting this option from the menu disconnects the realtime stream.</b>                   
                 </p>  
                 <p><i>Note: Playback history must be supported by the server.</i></p> 
-                <li class="nobullet"><img src="./img/menu.png"/>
+                <li class="nobullet"><i class="material-icons">menu</i>
                     <b>Main Menu:</b>
-                    Access the <img src="./img/history.png"/> <b>Playback History</b> option from the Main menu.
+                    Access the <i class="material-icons">history</i> <b>Playback History</b> option from the Main menu.
                 </li>     
                 <br>                                          
                 <div style="display:flex;;flex-wrap: wrap;">
@@ -434,10 +494,10 @@
                         <b>Playback Mode: </b>
                         <p>
                             Once started, Playback Mode is identified by the addition of the 
-                            <img src="./img/playback_stop.png"/> button to the menu bar.
+                            <i class="material-icons" style="color:red;">cancel</i> button to the menu bar.
                         </p>
                         <li class="nobullet">
-                            Click <img src="./img/playback_stop.png"/> to end playback and 
+                            Click <i class="material-icons" style="color:red;">cancel</i> to end playback and 
                             return to realtime data stream.
                         </li>
                     </div>
@@ -445,7 +505,7 @@
             </div>               
         
             <div class="panel" id="settings">
-                <h4><i class="fi-widget"></i> Settings</h4>
+                <h4><i class="material-icons">settings</i></i> Settings</h4>
                 <p>
                     The Settings screen is where you can configure Freeboard and it consists 
                     of the following sections:
@@ -482,7 +542,7 @@
                 <p>
                     <b>UNITS &amp; VALUES:</b><br>
                     This section provides choices about the units and values used when displaying data.<br>
-                    <img src="./img/settings_units.png" style="height:100px;"/><br>
+                    <img src="./img/settings_units.png" style="height:250px;"/><br>
 
                     <b>Distance Units</b>: 
                     <i>Kilometres</i> / <i>Nautical Miles</i>
@@ -491,7 +551,10 @@
                     <i>Metres</i> / <i>Feet</i>
                     <br>
                     <b>Preferred Heading</b>: <i>headingTrue</i> / <i>headingMagnetic</i><br>
-                    Value used to display vessel heading when both are available.<br>
+                    Value used to display vessel heading when both are available.
+                    <br>
+                    <b>Other Vessels Wind Vector</b>: <i>Wind True</i> / <i>Wind Apparent</i><br>
+                    Value used to display wind vector for other vessels displayed on the map.<br>
                 </p>	   
                 
                 <p>

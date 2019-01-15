@@ -2,7 +2,8 @@ import { NgModule, Injectable } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HttpClientModule, HttpClient } from '@angular/common/http';
 
-import { MatCheckboxModule, MatCardModule, MatButtonModule,
+import { MatCheckboxModule, MatCardModule, MatButtonModule, MatListModule, 
+        MatFormFieldModule, MatInputModule,
         MatIconModule, MatTooltipModule, MatSliderModule, MatSlideToggleModule } from '@angular/material';
 
 import { SignalKClient } from 'signalk-client-angular';
@@ -11,6 +12,7 @@ import { AppInfo } from '../app.info';
 import { RouteListComponent } from  './components/routelist'
 import { WaypointListComponent } from  './components/waypointlist'
 import { ChartListComponent } from  './components/chartlist'
+import { AISListComponent } from  './components/aislist'
 import { AnchorWatchComponent } from  './components/anchorwatch'
 
 import { GeoUtils } from  './geoutils'
@@ -19,17 +21,18 @@ declare var UUIDjs: any;
 @NgModule({
     imports: [
         CommonModule, HttpClientModule,
-        MatCheckboxModule, MatCardModule,
+        MatCheckboxModule, MatCardModule, MatListModule,
         MatButtonModule, MatIconModule, MatTooltipModule, 
-        MatSliderModule, MatSlideToggleModule
+        MatSliderModule, MatSlideToggleModule, 
+        MatFormFieldModule, MatInputModule
     ],
     declarations: [
         RouteListComponent, WaypointListComponent, ChartListComponent,
-        AnchorWatchComponent
+        AnchorWatchComponent, AISListComponent
     ],
     exports: [
         RouteListComponent, WaypointListComponent, ChartListComponent,
-        AnchorWatchComponent
+        AnchorWatchComponent, AISListComponent
     ]
 })
 export class SignalKModule { }

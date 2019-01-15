@@ -4,10 +4,17 @@
         <div style="flex: 1 1 auto;">
             <div class="title-text">Routes:</div>
             <div>
-                <input #ftext type="text" matInput 
-                    [value]="filterText"
-                    (keyup)="filterKeyUp(ftext.value)"
-                    placeholder="type to filter list"/>
+                <mat-form-field style="width:150px;">
+                    <input #ftext type="text" matInput style="background-color:white;"
+                        [value]="filterText"
+                        (keyup)="filterKeyUp(ftext.value)"
+                        placeholder="type to filter list">
+                    <button mat-button *ngIf="filterText" matSuffix mat-icon-button
+                        (click)="filterKeyUp('')">
+                        <mat-icon>close</mat-icon>
+                    </button>
+                </mat-form-field> 
+                &nbsp;&nbsp;                    
                 <button mat-icon-button 
                     (click)="itemRefresh()"
                     matTooltip="Reload Routes"
@@ -78,7 +85,7 @@
                             (click)="itemProperties(r[0])"
                             matTooltip="Route Properties"
                             matTooltipPosition="right">
-                            <mat-icon>settings_applications</mat-icon>
+                            <mat-icon>info_outline</mat-icon>
                         </button>                                                 
                     </div>               
                 </div>

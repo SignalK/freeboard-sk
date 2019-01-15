@@ -16,8 +16,7 @@ import { SettingsDialog } from './pages';
 
 @NgModule({
   declarations: [
-    AppComponent,
-    SettingsDialog
+    AppComponent, SettingsDialog
   ],
   imports: [
     BrowserModule,

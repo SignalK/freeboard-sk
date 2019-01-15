@@ -1,0 +1,76 @@
+<div class="resourcelist">
+
+        <div class="title-block">
+            <div style="flex: 1 1 auto;">
+                <div class="title-text">Vessels:</div>
+                <div>
+                    <mat-form-field style="width:150px;">
+                        <input #ftext type="text" matInput style="background-color:white;"
+                            [value]="filterText"
+                            (keyup)="filterKeyUp(ftext.value)"
+                            placeholder="type to filter list">
+                        <button mat-button *ngIf="filterText" matSuffix mat-icon-button
+                            (click)="filterKeyUp('')">
+                            <mat-icon>close</mat-icon>
+                        </button>
+                    </mat-form-field> 
+                    &nbsp;&nbsp;
+                    <button mat-icon-button 
+                        (click)="initItems()"
+                        matTooltip="Reload Vessels"
+                        matTooltipPosition="left">
+                        <mat-icon>refresh</mat-icon>
+                    </button>                      
+                    <mat-checkbox #selall color="primary"
+                        [checked]="allSel"
+                        [indeterminate]="someSel"
+                        (change)="selectAll($event.checked)"
+                        [matTooltip]="(!selall.checked || someSel) ? 'Select All' : 'Deselect All'"
+                        matTooltipPosition="right">
+                    </mat-checkbox>                                               
+                </div>
+            </div>
+            <div>
+                <button mat-icon-button 
+                    (click)="close()"
+                    matTooltip="Close Vessels List"
+                    matTooltipPosition="left">
+                    <mat-icon>close</mat-icon>
+                </button>            
+            </div>
+        </div>
+    
+        <div class="resources">
+            <mat-list style="background-color: white;">
+                <mat-list-item *ngFor="let r of filterList; let i= index;"
+                    style="border-bottom: silver 1px solid;">
+                    <div style="display: flex;width: 100%;">
+                        <div>
+                            <a style="cursor: pointer;"
+                                (click)="itemProperties(r[0])"
+                                matTooltip="Vessel Properties"
+                                matTooltipPosition="right">
+                                <mat-icon color="primary">info_outline</mat-icon>
+                            </a>                              
+                        </div>
+                        <div style="flex: 1 1 auto;padding-left: 7px;">
+                            <a style="cursor: pointer;"
+                                (click)="itemProperties(r[0])"
+                                matTooltip="Vessel Properties"
+                                matTooltipPosition="right">
+                                <b>{{(r[1].name) ? r[1].name : r[1].mmsi}}</b>
+                            </a>                             
+                        </div>        
+                        <div style="text-align: right;">
+                            <mat-checkbox color="primary"
+                                [checked]="r[2]"
+                                (change)="itemSelect($event.checked, r[0])"
+                                matTooltip="Show in Map"
+                                matTooltipPosition="left">
+                            </mat-checkbox>
+                        </div>  
+                    </div>        
+                </mat-list-item>
+            </mat-list>
+        </div>
+    </div>

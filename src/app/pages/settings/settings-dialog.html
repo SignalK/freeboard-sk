@@ -40,7 +40,7 @@
                                     [(ngModel)]="app.config.depthAlarm.enabled" 
                                     (change)="onFormChange($event, depthalarm)"
                                     label="after">
-                                    Show DEPTH Alarm Messages
+                                    Show DEPTH Alarms
                                 </mat-checkbox>                                        
                             </div>                          
                             <div class="setting-card-row-item">
@@ -104,6 +104,18 @@
                                     </mat-select>                                        
                                 </mat-form-field>
                             </div> 
+
+                            <div class="setting-card-row-item">
+                                <mat-form-field style="width:100%;">
+                                    <mat-select #aiswindvector
+                                            [(value)]="app.config.selections.aisWindApparent" 
+                                            (selectionChange)="onFormChange($event, aiswindvector)"
+                                            placeholder="Other Vessels Wind Vector">
+                                        <mat-option *ngFor="let i of aisWindVector" [value]="i[0]">{{i[1]}}</mat-option>
+                                    </mat-select>                                        
+                                </mat-form-field>
+                            </div> 
+
                         </div> 
                     </mat-card>
                 </div>
@@ -113,14 +125,14 @@
                     <mat-card class="setting-card">
                         <div class="setting-card-row">
                             <div class="setting-card-row-item">
-                                <b>Server Resource Updates:</b>
+                                <b>Resource Updates:</b>
                                 <br>
                                 <mat-checkbox #useput color="primary"
                                     [(ngModel)]="app.config.usePUT" 
                                     (change)="onFormChange($event, useput)"
                                     matTooltip="If unchecked Delta Update messages will be used (not recommended)"
                                     label="after">
-                                    Use PUT requests (*Recommended)
+                                    Use PUT
                                 </mat-checkbox>                                        
                             </div>                                                   
                         </div>

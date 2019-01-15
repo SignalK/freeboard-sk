@@ -4,7 +4,7 @@ import { DomSanitizer, SafeResourceUrl} from '@angular/platform-browser';
 
 import { AppInfo } from './app.info';
 import { MsgBox, AboutDialog, ConfirmDialog, AlertDialog, LoginDialog } from './lib/app-ui';
-import { ResourceDialog } from './lib/ui/resource-dialogs';
+import { ResourceDialog, AISPropertiesDialog } from './lib/ui/resource-dialogs';
 import { PlaybackDialog } from './lib/ui/playback-dialog';
 import { SettingsDialog } from './pages';
 import { GPXImportDialog } from './lib/gpxload/gpxload.module';
@@ -33,6 +33,7 @@ export class AppComponent {
         routeList: false,
         waypointList: false,
         chartList: false,
+        aisList: false,
         anchorWatch: false,
         showSelf: false,
         navData: {
@@ -65,7 +66,8 @@ export class AppComponent {
             position: [0,0],
             title: '',
             content: null
-        }
+        },
+        playback: { time: null }
     }
 
     public draw= {
@@ -283,7 +285,7 @@ export class AppComponent {
 
     // ** show select mode dialog
     showSelectMode() {
-        if(this.mode= APP_MODE.REALTIME) { // request history playback
+        if(this.mode== APP_MODE.REALTIME) { // request history playback
             this.dialog.open(ConfirmDialog, {
                 disableClose: true,
                 data: { 
@@ -650,8 +652,8 @@ export class AppComponent {
                 item= this.display.vessels.aisTargets.get(aid);
                 this.display.overlay['type']='ais';
                 this.display.overlay['id']= aid;
-                this.display.overlay['showProperties']=false;
-                this.display.overlay.title= 'AIS';    
+                this.display.overlay['showProperties']=true;
+                this.display.overlay.title= 'Vessel';    
                 info= this.compileAISInfo(item);
                 break;
             case 'route':
@@ -783,6 +785,7 @@ export class AppComponent {
         this.display.routeList= false;
         this.display.waypointList= false; 
         this.display.chartList= false;
+        this.display.aisList= false;
         this.display.anchorWatch= false;
         switch (menulist) {
             case 'routeList': 
@@ -796,7 +799,10 @@ export class AppComponent {
                 break;  
             case 'anchorWatch': 
                 this.display.anchorWatch= show;
-                break;                                      
+                break;    
+            case 'aisList': 
+                this.display.aisList= show;
+                break;                                                   
             default: 
                 this.display.leftMenuPanel= false;     
         }
@@ -833,7 +839,7 @@ export class AppComponent {
         let rte=t[0][1];
         let resId= t[0][0];
 
-        let dref= this.dialog.open(ResourceDialog, {
+        this.dialog.open(ResourceDialog, {
             disableClose: true,
             data: {
                 title: 'Route Details:',
@@ -841,8 +847,7 @@ export class AppComponent {
                 comment: (rte['description']) ? rte['description'] : null,
                 type: 'route'
             }
-        });  
-        dref.afterClosed().subscribe( r=> {
+        }).afterClosed().subscribe( r=> {
             if(r.result) { // ** save / update route **
                 rte['description']= r.data.comment;
                 rte['name']= r.data.name;
@@ -1166,7 +1171,7 @@ export class AppComponent {
             addMode=false;
         }
 
-        let dref= this.dialog.open(ResourceDialog, {
+        this.dialog.open(ResourceDialog, {
             disableClose: true,
             data: {
                 title: title,
@@ -1175,8 +1180,7 @@ export class AppComponent {
                 position: wpt.feature.geometry['coordinates'],
                 addMode: addMode
             }
-        });  
-        dref.afterClosed().subscribe( r=> {
+        }).afterClosed().subscribe( r=> {
             wpt.feature.properties['cmt']= r.data.comment || '';
             wpt.feature.properties['name']= r.data.name || '';            
             if(r.result) { // ** save / update waypoint **
@@ -1244,6 +1248,25 @@ export class AppComponent {
         );   
         this.app.saveConfig();
     } 
+
+    aisSelected(e) {
+        this.app.config.selections.aisTargets= e;
+        this.app.saveConfig();
+    }   
+
+    // ** handle display ais target properties **
+    aisProperties(id: string) {
+        let ais= this.display.vessels.aisTargets.get(id);
+        if(ais) {
+            this.dialog.open(AISPropertiesDialog, {
+                disableClose: true,
+                data: {
+                    title: 'Vessel Properties',
+                    target: ais
+                }
+            });
+        }
+    }      
 
     // ** return local charts sorted by scale descending.
     chartsLocalByScale() {
@@ -1475,7 +1498,7 @@ export class AppComponent {
     }
 
     // ** handle connection established
-    onConnect(e?) {
+    onConnect(e?: any) {
         console.info('Connected to Signal K server...');
 
         // ** query server for status
@@ -1491,7 +1514,7 @@ export class AppComponent {
     }
 
     // ** handle connection closure
-    onClose(e?) {
+    onClose(e?: any) {
         console.info('Closing connection to Signal K server...');
         this.terminateSignalK();
         let data= { title: 'Connection Closed:', buttonText: 'Re-connect', message: ''};
@@ -1512,10 +1535,10 @@ export class AppComponent {
     }
     
     // ** handle error message
-    onError(e) { console.warn(e) }
+    onError(e: any) { console.warn(e) }
     
     // ** handle delta message received
-    onMessage(e) { 
+    onMessage(e: any) { 
         if(!e.context && e.self) {  // ** hello message
             this.connectMode= null;
             if(e.startTime) { this.mode= APP_MODE.PLAYBACK }
@@ -1526,7 +1549,13 @@ export class AppComponent {
             this.app.data.selfId= e.self;
             return;
         }
+        if(typeof e.updates==='undefined') { return }
         e.updates.forEach( u=> {
+            if(this.mode==APP_MODE.PLAYBACK) { 
+                let d= new Date(u.timestamp);
+                this.display.playback.time= `${d.toDateString().slice(4)} ${d.toTimeString().slice(0,8)}`;
+            }
+            else { this.display.playback.time= null }            
             u.values.forEach( v=> {
                 if(e.context== this.app.data.selfId) { this.displayVesselSelf(v) }
                 else { this.displayVesselOther(e.context, v) }
@@ -1534,7 +1563,7 @@ export class AppComponent {
         });   
     }   
 
-    displayVesselSelf(v) {
+    displayVesselSelf(v: any) {
         let d= this.display.vessels.self;
         let updateVlines= true;
 
@@ -1590,7 +1619,7 @@ export class AppComponent {
         }                   
     }
 
-    displayVesselOther(id, v) {
+    displayVesselOther(id: string, v: any) {
         if( !this.display.vessels.aisTargets.has(id) ) {
             let vessel= new SKVessel();
             vessel.position= null;
@@ -1629,7 +1658,7 @@ export class AppComponent {
     }
 
     // ** process course data
-    processCourse(data) {
+    processCourse(data: any) {
         let path= data.path.split('.');
      
         // ** active route **
@@ -1690,7 +1719,7 @@ export class AppComponent {
     }
 
     // ** process / cleanup AIS targets
-    processAIS(toggled?) {
+    processAIS(toggled?: boolean) {
         if(!this.app.config.aisTargets && !toggled) { return }
         let now= new Date().valueOf();
         this.aisMgr.staleList= [];
@@ -1719,7 +1748,7 @@ export class AppComponent {
     }
     
     // ** process alarm / notification **
-    processAlarm(id, av) {
+    processAlarm(id: string, av: any) {
         if(av.state!=='normal') {
             if( !this.display.alarms.has(id) ) {    // create alarm entry
                 this.display.alarms.set(id, {
@@ -1748,7 +1777,7 @@ export class AppComponent {
     }
 
     // ** process active route information **
-    processActiveRoute(value) {
+    processActiveRoute(value: any) {
         let a= (value) ? value.split('/') : null;
         this.app.data.activeRoute= (a) ? a[a.length-1] : null;        
         this.app.data.routes.forEach( i=> {

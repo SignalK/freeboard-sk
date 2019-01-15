@@ -77,11 +77,13 @@ export class AppInfo extends Info {
                 depth: 'm',
                 speed: 'kn'
             },
-            selections: {   // ** selected resources 
+            selections: {   // ** saved selections 
                 routes: [],
                 waypoints: [],
                 charts: ['openstreetmap','openseamap'],
-                headingAttribute: 'navigation.headingTrue'
+                headingAttribute: 'navigation.headingTrue',
+                aisTargets: null,
+                aisWindApparent: false
             }
         } 
 

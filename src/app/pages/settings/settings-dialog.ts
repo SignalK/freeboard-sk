@@ -25,6 +25,10 @@ export class SettingsDialog implements OnInit {
         ['navigation.headingTrue', 'Heading True'], ['navigation.headingMagnetic', 'Heading Magnetic']
     ];
 
+    aisWindVector= [ 
+        [false, 'Wind True'], [true, 'Wind Apparent']
+    ];    
+
     smoothing= [ [5000,'5 secs'],[10000,'10 secs'],[20000,'20 secs'],[30000,'30 secs'] ];
 
     appList= [];

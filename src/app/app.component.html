@@ -101,7 +101,7 @@
             </a>	             
         <a mat-menu-item (click)="toggleAisTargets()">
             <mat-icon>{{app.config.aisTargets ? 'visibility_off' : 'visibility'}}</mat-icon>
-            <span>{{app.config.aisTargets ? 'Hide' : 'Show'}} AIS Targets</span>			
+            <span>{{app.config.aisTargets ? 'Hide' : 'Show'}} Vessels</span>			
         </a>	        
         <a mat-menu-item (click)="openSettings()">
             <mat-icon color="primary">settings</mat-icon>
@@ -169,6 +169,12 @@
                         <mat-icon><i class="fi-anchor"></i></mat-icon>
                         &nbsp;Anchor Watch
                     </a>                     
+
+                    <a mat-list-item 
+                        (click)="sidemenu.close();displayLeftMenu('aisList',true)">
+                        <mat-icon>directions_boat</mat-icon>
+                        &nbsp;Vessels
+                    </a>  
 
                     <mat-divider></mat-divider>
                     <a mat-list-item *ngIf="features.playbackAPI"
@@ -375,10 +381,12 @@
                                 [updateIds]="aisMgr.updateList"
                                 [staleIds]="aisMgr.staleList"
                                 [removeIds]="aisMgr.removeList"
+                                [filterIds]="app.config.selections.aisTargets"
                                 icon="./assets/img/ais_active.png"
                                 inactiveIcon="./assets/img/ais_inactive.png"
                                 [inactiveTime]="aisMgr.staleAge"
                                 [labelMinZoom]="10"
+                                [vectorApparent]="(app.config.selections.aisWindApparent) ? app.config.selections.aisWindApparent : false"
                                 [mapZoom]="app.config.map.zoomLevel">                               
                             </xol-ais-targets>
                         </aol-source-vector>
@@ -437,10 +445,16 @@
                                     <div style="text-align:right;">
                                         <button mat-icon-button
                                             (click)="resourceProperties(display.overlay);display.overlay.show=false"
-                                            *ngIf="display.overlay.showProperties"
+                                            *ngIf="display.overlay.showProperties && display.overlay.type!='ais'"
                                             matTooltip="Show Properties">
-                                            <mat-icon>settings_applications</mat-icon>
+                                            <mat-icon>info_outline</mat-icon>
                                         </button>
+                                        <button mat-icon-button
+                                            (click)="aisProperties(display.overlay.id);display.overlay.show=false"
+                                            *ngIf="display.overlay.showProperties && display.overlay.type=='ais'"
+                                            matTooltip="Show Properties">
+                                            <mat-icon style="color:blue;">info_outline</mat-icon>
+                                        </button>                                        
                                     </div>   
                                 </div>                             
                             </ap-popover>
@@ -693,6 +707,12 @@
                     (refresh)="skres.getCharts()"
                     (closed)="displayLeftMenu()">
                 </chart-list>   
+
+                <ais-list [aisTargets]="display.vessels.aisTargets" *ngIf="display.aisList"
+                    (select)="aisSelected($event)"
+                    (properties)="aisProperties($event)"
+                    (closed)="displayLeftMenu()">
+                </ais-list>                   
                 
                 <anchor-watch *ngIf="display.anchorWatch"
                     min="10" max="500" 
@@ -704,6 +724,13 @@
                 </anchor-watch>                     
             </div>
 
+            <!-- *** Playback panel ***-->
+            <div class="playbackPanel" *ngIf="mode==1">
+                <div style="background-color: #eeee; color:gray;border-radius: 5px;">
+                    <mat-icon color="accent">access_time</mat-icon> <b>Playback:</b>
+                </div>
+                <div style="text-align:center;"> {{display.playback.time}}</div>
+            </div>
             <!-- *** Alarm / Mode panel ***-->
 			<div class="alarmPanel">
 				<div *ngFor="let a of display.alarms | keyvalue" style="margin-bottom: 5px;">

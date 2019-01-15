@@ -7,7 +7,7 @@ This is a port of Freeboard (http://www.42.co.nz/freeboard) to use the Signal K 
 
 #### Chart Display:
 
-    - *(online)* OpenStreetMap, OpenSeaMap, and WORLD chart outline
+    - OpenStreetMap, OpenSeaMap, and WORLD chart outline (online only)
     - Charts hosted on Signal K server via `/resources/charts` path
 
 #### Resources:  Routes and Waypoints
