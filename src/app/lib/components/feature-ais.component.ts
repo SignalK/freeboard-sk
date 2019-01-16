@@ -173,6 +173,11 @@ export class AisTargetsComponent implements OnInit, OnDestroy, OnChanges {
                     ]) );
                 }             
                 f.setStyle( new style.Style( this.setVectorStyle(fid) ) );
+                // ** align vessel position
+                let vf=layer.getFeatureById('ais-'+ fid);
+                if(vf && ais.position) {
+                    vf.setGeometry( new geom.Point( proj.transform( ais.position, this.srid, this.mrid ) ) );
+                }
             }
         });       
     }

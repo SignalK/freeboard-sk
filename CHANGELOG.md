@@ -1,5 +1,12 @@
 # CHANGELOG: Freeboard-SK
 
+### v1.2.1
+
+- **Fix:** Issue where wind values for AIS targets was not received.
+- **Fix:** Display alignment of AIS targets and wind vectors when map is zoomed
+- **Fix:** Add default name for vessels in vessels list with no name or mmsi data
+
+
 ### v1.2.0
 
 - **Enhancement:** In Playback mode display timestamp of received data.

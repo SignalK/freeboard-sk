@@ -179,11 +179,11 @@ export class ResourceDialog implements OnInit {
                     </div>      
                     <div style="display:flex;" *ngIf="target.wind.tws">
                         <div style="width:45%;font-weight:bold;">Wind (T):</div>
-                        <div style="flex: 1 1 auto;">{{formatKnots(target.wind.tws)}} m/s ({{formatDegrees(target.wind.twd)}})</div>
+                        <div style="flex: 1 1 auto;">{{formatKnots(target.wind.tws)}} ({{formatDegrees(target.wind.twd)}})</div>
                     </div>       
                     <div style="display:flex;" *ngIf="target.wind.aws">
                         <div style="width:45%;font-weight:bold;">Wind (A):</div>
-                        <div style="flex: 1 1 auto;">{{formatKnots(target.wind.aws)}} m/s ({{formatDegrees(target.wind.awa)}})</div>
+                        <div style="flex: 1 1 auto;">{{formatKnots(target.wind.aws)}} ({{formatDegrees(target.wind.awa)}})</div>
                     </div>                                 
                 </div>
             </mat-dialog-content>

@@ -1447,7 +1447,8 @@ export class AppComponent {
                 {"path":"navigation.position","period":10000,"policy":selfPolicy},
                 {"path":"navigation.state","period":10000,"policy":selfPolicy},
                 {"path":"navigation.courseOverGround*","period":10000,"policy":selfPolicy},
-                {"path":"navigation.speedOverGround","period":10000,"policy":selfPolicy}
+                {"path":"navigation.speedOverGround","period":10000,"policy":selfPolicy},
+                {"path":"environment.wind.*","period":10000,"policy":selfPolicy},
             ]
         };
         let selfSub = {
@@ -1654,7 +1655,12 @@ export class AppComponent {
         if(v.path=='environment.wind.speedTrue') { d.wind.tws= v.value }
         if(v.path=='environment.wind.angleApparent') { d.wind.awa= v.value }
         if(v.path=='environment.wind.speedApparent') { d.wind.aws= v.value }
-        if(v.path=='communication.callsignVhf') { d.callsign= v.value }        
+        if(v.path=='communication.callsignVhf') { d.callsign= v.value }  
+        /*d.wind.awa= Convert.degreesToRadians(-45);
+        d.wind.aws= 1.3;
+        d.wind.twd= Convert.degreesToRadians(130);;
+        d.wind.tws= 0.1;*/
+        //console.log(this.display.vessels);     
     }
 
     // ** process course data

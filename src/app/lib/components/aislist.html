@@ -58,7 +58,7 @@
                                 (click)="itemProperties(r[0])"
                                 matTooltip="Vessel Properties"
                                 matTooltipPosition="right">
-                                <b>{{(r[1].name) ? r[1].name : r[1].mmsi}}</b>
+                                <b>{{(r[1].name) ? r[1].name : (r[1].mmsi) ? r[1].mmsi : 'Vessel-' + i}}</b>
                             </a>                             
                         </div>        
                         <div style="text-align: right;">
