@@ -16,7 +16,6 @@ import { AISListComponent } from  './components/aislist'
 import { AnchorWatchComponent } from  './components/anchorwatch'
 
 import { GeoUtils } from  './geoutils'
-declare var UUIDjs: any;
 
 @NgModule({
     imports: [
@@ -64,7 +63,7 @@ export class SKResources {
             i[2]= (this.app.config.selections.charts.indexOf(i[0])==-1) ? false : true;            
         })
         
-        this.signalk.apiGet('/resources/charts')
+        this.signalk.api.get('/resources/charts')
         .subscribe( 
             res=> { 
                 this.app.data.charts= baseCharts.slice(0); 
@@ -98,7 +97,7 @@ export class SKResources {
 
     // ** get routes from sk server
     getRoutes() {
-        this.signalk.apiGet('vessels/self/navigation/courseGreatCircle/activeRoute')
+        this.signalk.api.get('vessels/self/navigation/courseGreatCircle/activeRoute')
         .subscribe( 
             r=> {
                 if(r['href'] && r['href'].value) {
@@ -113,7 +112,7 @@ export class SKResources {
     }
 
     private retrieveRoutes() {
-        this.signalk.apiGet('/resources/routes')
+        this.signalk.api.get('/resources/routes')
         .subscribe( res=> {  
             this.app.data.routes= [];
             if(!res) { return }   
@@ -136,22 +135,21 @@ export class SKResources {
     }
 
     // ** build and return object containing: SKRoute,  start & end SKWaypoint objects from supplied coordinates
-    buildRoute(coordinates) {
+    buildRoute(coordinates):any {
         let rte= new SKRoute();
         let wStart= new SKWaypoint();
         let wEnd= new SKWaypoint();
 
-        let rteUuid= new UUIDjs._create4().hex;  
-        let wStartUuid= new UUIDjs._create4().hex;  
-        let wEndUuid= new UUIDjs._create4().hex; 
+        let rteUuid= this.signalk.uuid.toSignalK();  
+        let wStartUuid= this.signalk.uuid.toSignalK();  
+        let wEndUuid= this.signalk.uuid.toSignalK(); 
 
-        rteUuid= `urn:mrn:signalk:uuid:${rteUuid}`;
         rte.feature.geometry.coordinates= coordinates;
         for(let i=0;i<coordinates.length-1;++i) { 
             rte.distance+= GeoUtils.distanceTo(coordinates[i], coordinates[i+1]);
         }
-        rte.start= `urn:mrn:signalk:uuid:${wStartUuid}`;
-        rte.end= `urn:mrn:signalk:uuid:${wEndUuid}`;  
+        rte.start= wStartUuid;
+        rte.end= wEndUuid;  
 
         wStart.feature.geometry.coordinates= rte.feature.geometry.coordinates[0];
         wStart.position= { 
@@ -172,11 +170,10 @@ export class SKResources {
     }
 
     // ** build and return SKWaypoint object with supplied coordinates
-    buildWaypoint(coordinates) {
+    buildWaypoint(coordinates):any {
         let wpt= new SKWaypoint();
-        let wptUuid= new UUIDjs._create4().hex;  
+        let wptUuid= this.signalk.uuid.toSignalK();  
 
-        wptUuid= `urn:mrn:signalk:uuid:${wptUuid}`;
         wpt.feature.geometry.coordinates= coordinates;
         wpt.position= { 
             latitude: coordinates[1],
@@ -187,7 +184,7 @@ export class SKResources {
 
     // ** get waypoints from sk server
     getWaypoints() {
-        this.signalk.apiGet('/resources/waypoints')
+        this.signalk.api.get('/resources/waypoints')
         .subscribe( 
             res=> { 
                 this.app.data.waypoints= [];
@@ -301,16 +298,18 @@ export class SKChart {
 export class SKVessel {
     id: string;
     position= [0,0];
-    heading: number=0;
+    heading: number= 0;
     headingTrue: number= 0;
     headingMagnetic: number= 0;
-    cogTrue: number;
+    cog: number;
+    cogTrue: number= null;
+    cogMagnetic: number= null;
     sog: number;
     name: string;
     mmsi: string;
     callsign: string; 
     state: string;   
-    wind= { twd: null, tws: null, awa: null, aws: null };
+    wind= { direction: null, mwd: null, twd: null, tws: null, awa: null, aws: null };
     lastUpdated= new Date();
 }
 

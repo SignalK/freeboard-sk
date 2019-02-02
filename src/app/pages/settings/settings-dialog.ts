@@ -21,13 +21,13 @@ export class SettingsDialog implements OnInit {
         ['m', 'metres'], ['ft', 'feet']
     ];    
 
-    headingValue= [ 
-        ['navigation.headingTrue', 'Heading True'], ['navigation.headingMagnetic', 'Heading Magnetic']
-    ];
+    headingValue= [['navigation.headingTrue', 'True']];
 
     aisWindVector= [ 
         [false, 'Wind True'], [true, 'Wind Apparent']
-    ];    
+    ];   
+    
+    aisWindMinZoom= [10,11,12,13,15,16,17];
 
     smoothing= [ [5000,'5 secs'],[10000,'10 secs'],[20000,'20 secs'],[30000,'30 secs'] ];
 
@@ -47,6 +47,13 @@ export class SettingsDialog implements OnInit {
         let appListUrl= null;
         let nodeUri= '/webapps';
         let javaUri= `/signalk/v${this.signalk.version}/apps/list`;
+
+        this.app.data.headingValues.forEach( i=>{
+            if(i=='navigation.headingMagnetic') {
+                this.headingValue.push(['navigation.headingMagnetic', 'Magnetic'] );
+            }
+        });
+
         if(this.app.data.server && this.app.data.server.id ) {
             appListUrl= (this.app.data.server.id=='signalk-server-node') ? nodeUri : javaUri;
             this.signalk.get(appListUrl).subscribe( 

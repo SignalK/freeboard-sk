@@ -72,7 +72,7 @@ export class GeoUtils {
         return { bearing: brg, distance: dst }
     }
 
-    //** Calculate the distance between two points in metres
+    //** Calculate the great circle distance between two points in metres
     static distanceTo(srcpt, destpt) {  
         const Rk= 6373; // mean radius of the earth (km) at 39 degrees from the equator
         let lat1= Convert.degreesToRadians(srcpt[1]);
@@ -96,4 +96,5 @@ export class GeoUtils {
                 Math.sin(lat1)*Math.cos(lat2)*Math.cos(dLon);
         return Math.atan2(y, x);
     }   
+   
 }

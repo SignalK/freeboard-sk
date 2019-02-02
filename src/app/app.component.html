@@ -10,7 +10,13 @@
                 matBadgeOverlap="true" matBadgeColor="warn"
                 [matBadgeHidden]="display.badge.hide">menu</mat-icon>
         </button>
-        <hr>                                            
+        <hr>     
+        <button mat-icon-button 
+            matTooltip="Alarms" matTooltipPosition="right"
+            (click)="sidemenu.close(); openAlarmsDialog()">
+            <mat-icon style="color: orangered">warning</mat-icon>
+        </button>
+        <hr>                                                   
         <button mat-icon-button
             [disabled]="draw.enabled || measure.enabled"
             matTooltip="Routes" matTooltipPosition="right"
@@ -386,7 +392,8 @@
                                 inactiveIcon="./assets/img/ais_inactive.png"
                                 [inactiveTime]="aisMgr.staleAge"
                                 [labelMinZoom]="10"
-                                [vectorApparent]="(app.config.selections.aisWindApparent) ? app.config.selections.aisWindApparent : false"
+                                [vectorMinZoom]="app.config.selections.aisWindMinZoom"
+                                [vectorApparent]="app.config.selections.aisWindApparent"
                                 [mapZoom]="app.config.map.zoomLevel">                               
                             </xol-ais-targets>
                         </aol-source-vector>
@@ -401,7 +408,9 @@
                             [srid]="app.config.map.srid">
                         </aol-coordinate>
                         <aol-content>
-                            <ap-popover [title]="display.overlay.title" 
+                            <!--resource popover-->
+                            <ap-popover *ngIf="this.display.overlay['type']!='ais';"
+                                [title]="display.overlay.title" 
                                 [canClose]="!measure.enabled"
                                 (close)="popoverClosed()">
                                 <div *ngFor="let p of display.overlay.content" style="display:flex;">
@@ -448,16 +457,60 @@
                                             *ngIf="display.overlay.showProperties && display.overlay.type!='ais'"
                                             matTooltip="Show Properties">
                                             <mat-icon>info_outline</mat-icon>
-                                        </button>
+                                        </button>                                      
+                                    </div>   
+                                </div>                             
+                            </ap-popover>
+                            <!--AIS popover-->
+                            <ap-popover *ngIf="this.display.overlay['type']=='ais';"
+                                [title]="display.overlay.content.name || display.overlay.content.mmsi || display.overlay.title" 
+                                [canClose]="!measure.enabled"
+                                (close)="popoverClosed()">
+                                
+                                <div style="display:flex;">
+                                    <div style="font-weight:bold;">State:</div>
+                                    <div style="flex: 1 1 auto;text-align:right;">{{display.overlay.content.state}}</div>
+                                </div>
+                                <div style="display:flex;">
+                                    <div style="font-weight:bold;">Latitude:</div>
+                                    <div style="flex: 1 1 auto;text-align:right;">{{display.overlay.content.position[1].toFixed(6)}}</div>
+                                </div>
+                                <div style="display:flex;">
+                                    <div style="font-weight:bold;">Longitude:</div>
+                                    <div style="flex: 1 1 auto;text-align:right;">{{display.overlay.content.position[0].toFixed(6)}}</div>
+                                </div>
+                                <div>
+                                    <ap-compass 
+                                        [heading]="(display.overlay.content.heading!= null) ? convert.radiansToDegrees(display.overlay.content.heading) : convert.radiansToDegrees(display.overlay.content.cog)"
+                                        [windtrue]="(display.overlay.content.wind.direction!= null) ? convert.radiansToDegrees(display.overlay.content.wind.direction) : null"
+                                        [windapparent]="(display.overlay.content.wind.awa!= null) ? convert.radiansToDegrees(display.overlay.content.wind.awa) : null"
+                                        [speed]="(display.overlay.content.sog!= null) ? convert.msecToKnots(display.overlay.content.sog) : null">
+                                    </ap-compass>                                    
+                                </div>   
+                                <div style="display:flex;">
+                                    <div style="background-color:olive;width:10px">&nbsp;</div>
+                                    <div style="font-weight:bold;padding-left: 5px;"> Wind ({{app.useMagnetic ? 'M' : 'T'}}):</div>
+                                    <div style="flex: 1 1 auto;text-align:right;">{{(display.overlay.content.wind.tws) ? convert.msecToKnots(display.overlay.content.wind.tws).toFixed(1) : '-'}} kn</div>
+                                </div>       
+                                <div style="display:flex;">
+                                    <div style="background-color:rgb(16, 75, 16);width:10px">&nbsp;</div>
+                                    <div style="font-weight:bold;padding-left: 5px;"> Wind (A):</div>
+                                    <div style="flex: 1 1 auto;text-align:right;">{{(display.overlay.content.wind.aws) ? convert.msecToKnots(display.overlay.content.wind.aws).toFixed(1) : '-'}} kn</div>
+                                </div>                                                                                                                                                                                                                                                                                                                                       
+                          
+                                <div style="display:flex;">
+                                    <div style="flex:1 1 auto;">
+                                    </div>
+                                    <div style="text-align:right;">
                                         <button mat-icon-button
                                             (click)="aisProperties(display.overlay.id);display.overlay.show=false"
-                                            *ngIf="display.overlay.showProperties && display.overlay.type=='ais'"
+                                            *ngIf="display.overlay.showProperties"
                                             matTooltip="Show Properties">
                                             <mat-icon style="color:blue;">info_outline</mat-icon>
                                         </button>                                        
                                     </div>   
                                 </div>                             
-                            </ap-popover>
+                            </ap-popover>                            
                         </aol-content>
                     </aol-overlay>   
                     <!-- /*** popover *** -->   
@@ -593,7 +646,7 @@
                                 </aol-geometry-linestring>
                                 <aol-style>
                                     <aol-style-stroke 
-                                        [color]="'green'" [width]="2">
+                                        [color]="'rgb(16, 75, 16)'" [width]="2">
                                     </aol-style-stroke>
                                 </aol-style>
                             </aol-feature>                             
@@ -733,39 +786,16 @@
             </div>
             <!-- *** Alarm / Mode panel ***-->
 			<div class="alarmPanel">
-				<div *ngFor="let a of display.alarms | keyvalue" style="margin-bottom: 5px;">
-                    <mat-card *ngIf="a.value.visual && !a.value.acknowledged">
-                        <mat-card-title-group>
-                            <mat-card-title>{{a.key}} Alarm</mat-card-title>
-                            <mat-card-subtitle>{{a.value.message}}</mat-card-subtitle>
-                            <img mat-card-sm-image 
-                                [src]="(a.value.muted) ? './assets/img/alarm-ack.png' :'./assets/img/alarm.png'"/>
-                        </mat-card-title-group>
-        
-                        <mat-card-actions>
-                            <div style="display:flex;flex-wrap: wrap;">
-                                <div>
-                                    <button mat-button (click)="acknowledgeAlarm(a.key)">
-                                        <mat-icon style="color:green;">check</mat-icon>
-                                        ACKNOWLEDGE
-                                    </button>                                    
-                                </div>  
-                                <div style="text-align: right;">
-                                    <button mat-button *ngIf="a.value.sound"
-                                        (click)="muteAlarm(a.key)"
-                                        [disabled]="a.value.muted">
-                                        <mat-icon color="warn">volume_off</mat-icon>
-                                        {{(a.value.muted) ? 'MUTED' : 'MUTE'}}
-                                    </button>                                 
-                                </div>                                                               
-                            </div>
-                        </mat-card-actions>
-                    </mat-card>
+                <span *ngFor="let a of display.alarms | keyvalue" style="margin-bottom: 5px;">
+                    <ap-alarm [alarm]="a" 
+                        (mute)="actionAlarm('mute', $event)"
+                        (acknowledge)="actionAlarm('ack', $event)"
+                        (clear)="actionAlarm('clear', $event)"></ap-alarm>
                     <audio loop  src="./assets/sound/woop.mp3" *ngIf="a.value.sound"
                         [autoplay]="!a.value.muted || !a.value.acknowledged"
                         [muted]="a.value.muted || a.value.acknowledged"
                     ></audio>
-                </div>
+                </span>
             </div>
 
             <!-- *** Nav data panel ***-->

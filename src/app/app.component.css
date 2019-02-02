@@ -58,9 +58,9 @@ mat-nav-list {
 .alarmPanel {
     position: absolute;
     z-index: 4902;
-    top: 20px;
+    top: 55px;
     left: 33%;
-    right: 33%;
+    right: auto;
 }
 
 .playbackPanel {
@@ -116,5 +116,9 @@ mat-nav-list {
     height: 45px;
 }
 
-@media (max-width: 600px) and (orientation: portrait) { 
+@media only screen and (max-width: 650px) { 
+    .alarmPanel {
+        left: 15%;
+        right: 15%;
+    }    
 }
