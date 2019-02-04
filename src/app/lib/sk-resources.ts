@@ -298,7 +298,7 @@ export class SKChart {
 export class SKVessel {
     id: string;
     position= [0,0];
-    heading: number= 0;
+    heading: number;
     headingTrue: number= 0;
     headingMagnetic: number= 0;
     cog: number;

@@ -219,7 +219,7 @@ export class AisTargetsComponent implements OnInit, OnDestroy, OnChanges {
     setTargetStyle(id: any) {
         if(!id) { return }
         let target= this.aisTargets.get(id);      
-        let rotation= target.heading || target.cogTrue;
+        let rotation= target.heading || target.cog;
         let label= this.formatlabel( target.name || target.callsign || target.mmsi || '');
         let fstyle: any;
         // ** check if stale 
