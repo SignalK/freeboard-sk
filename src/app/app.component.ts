@@ -53,7 +53,7 @@ export class AppComponent {
             aisTargets: new Map()
         },
         alarms: new Map(),
-        map: { center: [0,0], rotation: 0, minZoom: 1, maxZoom:28 },        
+        map: { center: [0,0], rotation: 0, minZoom: 1, maxZoom:28, vesselRotation: 0 },        
         vesselLines: {
             twd: [null,null],
             awa: [null,null],
@@ -632,7 +632,11 @@ export class AppComponent {
 
     mapRotate() {
         if(this.app.config.map.northUp) { this.display.map.rotation=0 }
-        else { this.display.map.rotation= 0-this.display.vessels.self.heading }
+        else { 
+            let h= (typeof this.display.vessels.self.heading === 'undefined') ? 
+                this.display.vessels.self.cog : this.display.vessels.self.heading;
+            this.display.map.rotation= 0- (h || 0); 
+        }
     }
 
     mapMove() { 
@@ -1646,6 +1650,9 @@ export class AppComponent {
         let d= this.display.vessels.self;
         let updateVlines= true;
         this.processVessel(d,v);
+
+        // ** vessel on map rotation
+        this.display.map.vesselRotation= (typeof d.heading!== 'undefined') ? d.heading : (d.cog || 0);
 
         // ** add to true / magnetic selection list
         if( v.path=='navigation.headingMagnetic' && 
