@@ -26,6 +26,10 @@ export class AppInfo extends Info {
 
     public db: AppDB;
 
+    get useMagnetic(): boolean { 
+        return  (this.config.selections.headingAttribute=='navigation.headingMagnetic') ? true : false;
+    }
+
     constructor( public signalk: SignalKClient) {
         super();
 
@@ -83,7 +87,8 @@ export class AppInfo extends Info {
                 charts: ['openstreetmap','openseamap'],
                 headingAttribute: 'navigation.headingTrue',
                 aisTargets: null,
-                aisWindApparent: false
+                aisWindApparent: false,
+                aisWindMinZoom: 15
             }
         } 
 
@@ -96,7 +101,8 @@ export class AppInfo extends Info {
             activeRoute: null,
             trail: [],
             server: null,
-            hasToken: false
+            hasToken: false,
+            headingValues: []
         }
 
         /***************************************
@@ -179,7 +185,14 @@ export class AppInfo extends Info {
     // ** handle Settings load / save **
     handleSettingsEvent(value) {
         this.debug(value);
-        // ** do stuff here ** 
+        if(value.action=='load' && value.setting=='config') {
+            if(typeof this.config.selections.aisWindMinZoom === 'undefined') {
+                this.config.selections.aisWindMinZoom=15;
+            }
+            if(typeof this.config.selections.aisWindApparent === 'undefined') {
+                this.config.selections.aisWindMinZoom= false;
+            }
+        }
     }
 
 }

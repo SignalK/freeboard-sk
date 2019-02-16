@@ -2,7 +2,6 @@ import { Component, OnInit, OnDestroy, OnChanges, Input } from '@angular/core';
 import { geom, proj, style, Feature } from 'openlayers';
 import { SourceVectorComponent } from 'ngx-openlayers';
 import {GeoUtils} from '../geoutils';
-import {AppInfo} from '../../app.info';
 
 
 @Component({
@@ -40,7 +39,7 @@ export class AisTargetsComponent implements OnInit, OnDestroy, OnChanges {
         .03,.015,.008,1
     ];
 
-    constructor(private host: SourceVectorComponent, private app: AppInfo) { }
+    constructor(private host: SourceVectorComponent) { }
 
     ngOnInit() { }
 
@@ -95,9 +94,7 @@ export class AisTargetsComponent implements OnInit, OnDestroy, OnChanges {
             // ** wind vector **
             let wf=layer.getFeatureById('wind-'+ id);
             let pos= (ais.position) ? ais.position : [0,0];
-            let windDirection= (this.vectorApparent) ? 
-                (ais.wind.awa && ais.cogTrue) ? ais.cogTrue + ais.wind.awa : null 
-                : ais.wind.twd;  
+            let windDirection= this.getWindDirection(ais);   
             let windc= GeoUtils.destCoordinate( 
                 pos[1], pos[0], windDirection, 
                 this.zoomOffsetLevel[this.mapZoom]
@@ -150,6 +147,13 @@ export class AisTargetsComponent implements OnInit, OnDestroy, OnChanges {
         });   
     }
 
+    getWindDirection(ais) {
+        let h= ais.heading || ais.cog;
+        return (this.vectorApparent) ? 
+            (ais.wind.awa && h) ? h + ais.wind.awa : null 
+            : ais.wind.direction; 
+    }
+
     // ** render the AIS wind vectors
     updateVectors() {
         if(!this.host.instance) { return }
@@ -157,11 +161,10 @@ export class AisTargetsComponent implements OnInit, OnDestroy, OnChanges {
         layer.forEachFeature( f=> {
             let id= f.getId().toString();
             let fid= id.slice(5);
+
             if(id.slice(0,4)=='wind') { //wind vectors
-                let ais= this.aisTargets.get(fid);
-                let windDirection= (this.vectorApparent) ? 
-                    (ais.wind.awa && ais.cogTrue) ? ais.cogTrue + ais.wind.awa : null 
-                    : ais.wind.twd;           
+                let ais= this.aisTargets.get(fid);                                 
+                let windDirection= this.getWindDirection(ais);          
                 if(ais.position && windDirection) { 
                     let windc= GeoUtils.destCoordinate( 
                         ais.position[1], ais.position[0], windDirection, 
@@ -185,7 +188,7 @@ export class AisTargetsComponent implements OnInit, OnDestroy, OnChanges {
     // ** return style to set for wind vector
     setVectorStyle(id: any) {
         let color: string;
-        let rgb= '255,0,0';
+        let rgb= (this.vectorApparent) ? '16, 75, 16' : '128, 128, 0';
         if(this.mapZoom<this.vectorMinZoom) { color=`rgba(${rgb},0)` }
         else {  // ** if filtered
             color= ( (this.filterIds && Array.isArray(this.filterIds) ) && this.filterIds.indexOf(id)==-1 ) ?
@@ -216,7 +219,7 @@ export class AisTargetsComponent implements OnInit, OnDestroy, OnChanges {
     setTargetStyle(id: any) {
         if(!id) { return }
         let target= this.aisTargets.get(id);      
-        let rotation= target.heading || target.cogTrue;
+        let rotation= (target.heading !=='undefined') ? target.heading : (target.cog || 0);
         let label= this.formatlabel( target.name || target.callsign || target.mmsi || '');
         let fstyle: any;
         // ** check if stale 

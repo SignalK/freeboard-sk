@@ -103,14 +103,18 @@ export class PlaybackDialog implements OnInit {
     ngOnInit() {} 
 
     submit(cancel=false) {
-        let q='';
+        let q= {};
         let ts='';
         if(!cancel) {
             this.formData.startDate.setHours( parseInt(this.formData.startTimeHr) );
             this.formData.startDate.setMinutes( parseInt(this.formData.startTimeMin) );
             ts= this.formData.startDate.toISOString();
             ts= ts.slice(0,ts.indexOf('.')) + 'Z';
-            q=`${this.formData.context}&startTime=${ts}&playbackRate=${this.formData.playbackRate}`
+            q= {
+                subscribe: this.formData.context,
+                startTime: ts,
+                playbackRate: this.formData.playbackRate
+            }
         }
         this.dialogRef.close({
             result: !cancel, 

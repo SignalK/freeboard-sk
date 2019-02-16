@@ -5,6 +5,7 @@ import {Component, OnInit, Inject} from '@angular/core';
 import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material';
 
 import { Convert } from '../../lib/convert'
+import { AppInfo } from '../../app.info'
 
 /********* ResourceDialog **********
 	data: {
@@ -170,18 +171,22 @@ export class ResourceDialog implements OnInit {
                         <div style="flex: 1 1 auto;">{{target.position[0].toFixed(6)}}</div>
                     </div>  
                     <div style="display:flex;">
-                        <div style="width:45%;font-weight:bold;">COG:</div>
-                        <div style="flex: 1 1 auto;">{{formatDegrees(target.cogTrue)}}</div>
+                        <div style="width:45%;font-weight:bold;">Heading ({{app.useMagnetic ? 'M' : 'T'}}):</div>
+                        <div style="flex: 1 1 auto;">{{formatDegrees(target.heading)}}</div>
+                    </div>                      
+                    <div style="display:flex;">
+                        <div style="width:45%;font-weight:bold;">COG ({{app.useMagnetic ? 'M' : 'T'}}):</div>
+                        <div style="flex: 1 1 auto;">{{formatDegrees(target.cog)}}</div>
                     </div>     
                     <div style="display:flex;">
                         <div style="width:45%;font-weight:bold;">SOG:</div>
                         <div style="flex: 1 1 auto;">{{formatKnots(target.sog)}}</div>
                     </div>      
-                    <div style="display:flex;" *ngIf="target.wind.tws">
-                        <div style="width:45%;font-weight:bold;">Wind (T):</div>
-                        <div style="flex: 1 1 auto;">{{formatKnots(target.wind.tws)}} ({{formatDegrees(target.wind.twd)}})</div>
+                    <div style="display:flex;">
+                        <div style="width:45%;font-weight:bold;">Wind ({{app.useMagnetic ? 'M' : 'T'}}):</div>
+                        <div style="flex: 1 1 auto;">{{formatKnots(target.wind.tws)}} ({{formatDegrees(target.wind.direction)}})</div>
                     </div>       
-                    <div style="display:flex;" *ngIf="target.wind.aws">
+                    <div style="display:flex;">
                         <div style="width:45%;font-weight:bold;">Wind (A):</div>
                         <div style="flex: 1 1 auto;">{{formatKnots(target.wind.aws)}} ({{formatDegrees(target.wind.awa)}})</div>
                     </div>                                 
@@ -229,6 +234,7 @@ export class AISPropertiesDialog implements OnInit {
     public target: any;
 
     constructor(
+        public app: AppInfo,
         public dialogRef: MatDialogRef<ResourceDialog>,
         @Inject(MAT_DIALOG_DATA) public data: any) {
     }

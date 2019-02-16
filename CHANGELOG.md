@@ -1,5 +1,14 @@
 # CHANGELOG: Freeboard-SK
 
+### v1.3.0
+
+- **Added:** Raise M.O.B., Sinking, Piracy, Fire, etc. alarms.
+- **Enhancement:** Alarm display will now `minimize` acknowledged alarms until the alarm is cleared.
+- **Enhancement:** Add ability to choose the miimum zoom level at which `Other Vessels` wind vector is displayed.
+- **Change:** Changed the `Preferred Heading` configuration setting to be `Use True / Magnetic Values`. The selection made in this setting will cause Freeboard to use the chosen Signal K (path where a value has both a True and / or Magnetic path) e.g. `environment.windDirectionTrue`,  `environment.windDirectionMagnetic`. 
+
+_Note: If the selected path is not available in the data stream NO value is shown!_
+
 ### v1.2.1
 
 - **Fix:** Issue where wind values for AIS targets was not received.

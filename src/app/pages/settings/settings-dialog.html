@@ -94,27 +94,45 @@
                                 </mat-form-field>
                             </div>                                             
 
-                            <div class="setting-card-row-item">
+                            <div class="setting-card-row-item" *ngIf="headingValue.length!=0">
                                 <mat-form-field style="width:100%;">
                                     <mat-select #headingattrib 
                                             [(value)]="app.config.selections.headingAttribute" 
                                             (selectionChange)="onFormChange($event, headingattrib)"
-                                            placeholder="Preferred Heading Value">
+                                            placeholder="Use True / Magnetic Values">
                                         <mat-option *ngFor="let i of headingValue" [value]="i[0]">{{i[1]}}</mat-option>
+                                    </mat-select>                                        
+                                </mat-form-field>
+                            </div> 
+                        </div>
+                    </mat-card>
+                </div>
+
+                <div class="setting-group">
+                    <div class="setting-group-title">OTHER VESSELS</div>
+                    <mat-card class="setting-card">
+                        <div class="setting-card-row" style="padding-bottom: 10px;">                            
+                            <div class="setting-card-row-item">
+                                <mat-form-field style="width:100%;">
+                                    <mat-select #aiswindvector
+                                            [(value)]="app.config.selections.aisWindApparent" 
+                                            (selectionChange)="onFormChange($event, aiswindvector)"
+                                            placeholder="Wind Vector Value">
+                                        <mat-option *ngFor="let i of aisWindVector" [value]="i[0]">{{i[1]}}</mat-option>
                                     </mat-select>                                        
                                 </mat-form-field>
                             </div> 
 
                             <div class="setting-card-row-item">
                                 <mat-form-field style="width:100%;">
-                                    <mat-select #aiswindvector
-                                            [(value)]="app.config.selections.aisWindApparent" 
-                                            (selectionChange)="onFormChange($event, aiswindvector)"
-                                            placeholder="Other Vessels Wind Vector">
-                                        <mat-option *ngFor="let i of aisWindVector" [value]="i[0]">{{i[1]}}</mat-option>
+                                    <mat-select #aiswindminzoom
+                                            [(value)]="app.config.selections.aisWindMinZoom" 
+                                            (selectionChange)="onFormChange($event, aiswindminzoom)"
+                                            placeholder="Wind Vector Zoom Level">
+                                        <mat-option *ngFor="let i of aisWindMinZoom" [value]="i">{{i}}</mat-option>
                                     </mat-select>                                        
                                 </mat-form-field>
-                            </div> 
+                            </div>                             
 
                         </div> 
                     </mat-card>

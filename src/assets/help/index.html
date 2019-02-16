@@ -51,6 +51,7 @@
                 <li><a href="#resources">Resources</a></li>   
                 <li><a href="#aistargets">Vessels</a></li> 
                 <li><a href="#anchor">Anchor Watch</a></li>
+                <li><a href="#alarms">Alarms</a></li>
                 <li><a href="#playback">Playback</a></li>
                 <li><a href="#settings">Settings</a></li>
                 <li><a href="https://github.com/SignalK/freeboard-sk/" target="_fb">
@@ -402,12 +403,58 @@
                             depending on the content of the notification from the server.
                             An audible alarm can be muted by clicking the Mute button.
                         </li>  
+    
                         <img src="./img/anchor_alarm.png" style="max-width:250px;"/>
                         <img src="./img/anchor_alarm_muted.png" style="max-width:250px;"/>
+                        <li>Acknowledging the alarm will minimise the alarm icon until the alarm has been cleared.</li>
+                        <img src="./img/ackalarms.png" style="max-width:250px;height:60px;"/>
                         <li>To clear the alarm and remove it from the screen click Acknowledge.</li>
                     </div>
                 </div> 	                
             </div>    
+
+            <div class="panel" id="alarms">
+                <h4><i class="material-icons">warning</i> Alarms</h4> 
+                <p>
+                    Freeboard provides a means for raising a number of alarms:
+                    <li>Man Overboard</li>
+                    <li>Sinking</li>
+                    <li>Fire</li>
+                    <li>Piracy</li>
+                    <li>Flooding</li>
+                    <li>Adrift</li>
+                    <li>Abandon</li>
+                    <li>Collision</li>
+                    <li>Grounding</li>
+                    <li>Listing</li>
+                </p>
+                <br>  
+                <h5>To RAISE an alarm:</h5> 
+                <li>
+                    Click the <i class="material-icons" style="color:orangered;">warning</i> button
+                    on the toolbar to display the Alarms dialog:
+                </li>   
+                <li>
+                    Click the <b>RAISE ALARM</b> button for the desired alarm type.
+                </li>  
+                <div><img src="./img/alarms.png" style="max-width:250px;"/></div>                 
+                An alarm notification will be sent to the Signal K server.<br>
+                Freeboard will display the received alarm from the server. This alarm 
+                can be <i>Acknowledged</i> and / or <i>Muted</i>.<br>
+                <li>Acknowledging the alarm will minimise the alarm icon until the alarm has been cleared.</li>
+                <img src="./img/ackalarms.png" style="max-width:250px;height:60px;"/>                
+                <li>The raised alarm will remain until it is cancelled.</li>
+                <br>
+                <h5>To CANCEL an alarm:</h5> 
+                <li>
+                    Click the <i class="material-icons" style="color:orangered;">warning</i> button
+                    on the toolbar to display the Alarms dialog:
+                </li>   
+                <li>
+                    Click the <b>CANCEL ALARM</b> button.
+                </li>
+    
+            </div>            
             
             <div class="panel" id="aistargets">
                 <h4>Vessels</h4>
@@ -550,12 +597,34 @@
                     <b>Depth Units</b>: 
                     <i>Metres</i> / <i>Feet</i>
                     <br>
-                    <b>Preferred Heading</b>: <i>headingTrue</i> / <i>headingMagnetic</i><br>
-                    Value used to display vessel heading when both are available.
+                    <b>Use True / Magnetic values</b>: <i>True</i> / <i>Magnetic</i><br>
+                    Selects the type of value to use for
+                    paths that have both True and Magnetic values:
+                    <li>Heading</li>
+                    <li>Course Over Ground</li> 
+                    <li>Bearing</li>
+                    <li>Wind Direction</li>
                     <br>
-                    <b>Other Vessels Wind Vector</b>: <i>Wind True</i> / <i>Wind Apparent</i><br>
-                    Value used to display wind vector for other vessels displayed on the map.<br>
-                </p>	   
+                    Your selection will determine which value freeboard uses.
+                    <i>Defaults to True</i><br>
+                    <i>Note: If the selected path type does not exist within the received data 
+                        stream NO value will be displayed. Freeboard will NOT fallback to other available
+                        path values!
+                    </i>
+                </p>	
+                
+                <p>
+                    <b>OTHER VESSELS:</b><br>
+                    This section provides choices about the units and values used when displaying data.<br>
+                    <img src="./img/settings_other_vessels.png" style="height:250px;"/><br>
+
+                    <b>Wind Vector</b>: <i>Wind True</i> / <i>Wind Apparent</i><br>
+                    Value used to display wind vector for other vessels displayed on the map.
+                    <br>
+                    <b>Wind Vector Zoom Level</b>: <br>
+                    The minimum Zoom level at which other vessels wind vector will be displayed. <i>(Default=15)</i>
+                    <br>                    
+                </p>                
                 
                 <p>
                     <b>SERVER:</b><br>
