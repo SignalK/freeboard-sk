@@ -1,5 +1,11 @@
 # CHANGELOG: Freeboard-SK
 
+### v1.3.1
+
+- **Fix:** Issue where measured distance was not using Great Circle calculation. (Closes #69)
+
+- **Fix:** Issue where AIS target heading was not displayed correctly in popover.
+
 ### v1.3.0
 
 - **Added:** Raise M.O.B., Sinking, Piracy, Fire, etc. alarms.
