@@ -1,11 +1,7 @@
 /********************************
 ** GPX File Class Module       *
 ********************************/
-
-declare var X2JS: any;
-
-"use strict"
-
+import { XML2JS } from './xml2js'
 
 /************************
 ** GPX File Class **
@@ -22,7 +18,7 @@ export class GPX {
 
     public metadata: GPXMetadataType;
 
-    private x2js= new X2JS();   // ** xml 2 json
+    private x2js= new XML2JS();   // ** xml 2 json
 
     constructor() { this.init() }
     
@@ -223,7 +219,7 @@ export class GPX {
         if(ext && Object.keys(ext).length!=0) {
             let pad= '\t\t\t\t\t\t\t\t\t'.slice(0-padLevel);
             xml+= `${pad}<extensions>\r\n` +
-                `${pad}\t${this.x2js.json2xml_str(ext)}\r\n` +  
+                `${pad}\t${this.x2js.toString(ext)}\r\n` +  
                 `${pad}</extensions>\r\n`;   
         }      
         return xml;
@@ -237,7 +233,7 @@ export class GPX {
         // ** initialise **
         this.init();
         // ** xml to Json
-        let xjs= this.x2js.xml_str2json(gpxstr);
+        let xjs= this.x2js.toJson(gpxstr);
         //console.log(xjs);
         if(!xjs) { return false }
     

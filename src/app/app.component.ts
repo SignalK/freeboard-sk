@@ -81,7 +81,9 @@ export class AppComponent {
         enabled: false,
         end: false,
         geom: null,
-        style: null
+        style: null,
+        totalDistance: 0,
+        coords: []
     }    
 
     private zoomOffsetLevel=[
@@ -570,20 +572,22 @@ export class AppComponent {
         }
         else { this.isDirty=true }
     }
-
+   
     mapMouseClick(e:any) {
         if(this.measure.enabled) {
-            let l= this.measure.geom.getLength();
             let c= proj.transform(
-                this.measure.geom.getLastCoordinate(), 
+                e.coordinate,
                 this.app.config.map.mrid, 
                 this.app.config.map.srid
             ); 
+            this.measure.coords.push(c);
             this.display.overlay.position= c;
-            l= (this.app.config.units.distance=='m') ? 
-                `${(l/1000).toFixed(2)} km` :
-                `${Convert.kmToNauticalMiles(l/1000).toFixed(2)} NM`
-            this.display.overlay.title= l;               
+
+            let l= this.measureDistanceToAdd();
+            this.measure.totalDistance+= l;
+            this.display.overlay.title= (this.app.config.units.distance=='m') ? 
+                `${(this.measure.totalDistance/1000).toFixed(2)} km` :
+                `${Convert.kmToNauticalMiles(this.measure.totalDistance/1000).toFixed(2)} NM`              
         }        
         else if(!this.draw.enabled) {
             e.map.forEachFeatureAtPixel(e.pixel, (feature, layer)=> {
@@ -599,23 +603,18 @@ export class AppComponent {
     mapPointerDrag(e:any) { this.app.config.map.moveMap=false }
 
     mapPointerMove(e:any) {
-        if(this.measure.enabled && this.measure.geom) {
-            let cl= proj.transform(
-                this.measure.geom.getLastCoordinate(), 
-                this.app.config.map.mrid, 
-                this.app.config.map.srid
-            ); 
+        if(this.measure.enabled && this.measure.coords.length!=0) {
             let c= proj.transform(
                 e.coordinate, 
                 this.app.config.map.mrid, 
                 this.app.config.map.srid
             ); 
-            let l= this.measure.geom.getLength() + GeoUtils.distanceTo(cl,c);
-            l= (this.app.config.units.distance=='m') ? 
+            this.display.overlay.position= c;  
+
+            let l= this.measure.totalDistance + this.measureDistanceToAdd(c);
+            this.display.overlay.title= (this.app.config.units.distance=='m') ? 
                 `${(l/1000).toFixed(2)} km` :
-                `${Convert.kmToNauticalMiles(l/1000).toFixed(2)} NM`
-            this.display.overlay.position= c;
-            this.display.overlay.title= l;            
+                `${Convert.kmToNauticalMiles(l/1000).toFixed(2)} NM`;    
         }            
     }  
    
@@ -864,7 +863,11 @@ export class AppComponent {
         }
     }
 
-    measureStart() { this.measure.enabled=true }
+    measureStart() { 
+        this.measure.enabled=true;
+        this.measure.coords= [];
+        this.measure.totalDistance= 0;
+    }
 
     handleMeasure(e:any) {
          if(e.type=='drawstart') {         
@@ -886,6 +889,23 @@ export class AppComponent {
         }    
     }
  
+    // Returns distance from last point 
+    measureDistanceToAdd(pt?:any) {
+        if(pt && this.measure.coords.length>0) { // return distance between last point in array and pt
+            return GeoUtils.distanceTo(
+                this.measure.coords[this.measure.coords.length-1],
+                pt
+            );            
+        }
+        if(this.measure.coords.length>1) { // return distance between last two points in array
+            return GeoUtils.distanceTo(
+                this.measure.coords[this.measure.coords.length-2],
+                this.measure.coords[this.measure.coords.length-1],
+            );
+        }
+        else { return 0 }
+    }
+         
     // ******** RESOURCE EVENTS ************
 
     displayLeftMenu( menulist:string='', show:boolean= false) {

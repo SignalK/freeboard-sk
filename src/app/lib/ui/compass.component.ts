@@ -70,12 +70,14 @@ class SvgDialBase {
 	templateUrl:  './compass.component.html'
 })
 export class CompassComponent extends SvgDialBase  {
-	@Input() speed: number;
+    @Input() speed: number;
+    @Input() speedunits: string= 'knots';
 	@Input() heading: number;
 	@Input() needle: number;
 	@Input() windtrue: number;
     @Input() windapparent: number;
     @ViewChild('speedtext') speedtext: ElementRef;
+    @ViewChild('speedunitstext') speedunitstext: ElementRef;
 	@ViewChild('dial') dial: ElementRef;
 	@ViewChild('headingtext') headingtext: ElementRef;
 	@ViewChild('pointer') pointer: ElementRef;
@@ -109,13 +111,18 @@ export class CompassComponent extends SvgDialBase  {
 
         this.renderer.setProperty (
             this.speedtext.nativeElement,    
-            'innerHTML', this.speed.toFixed(1) + 'kn'
-        );            
+            'innerHTML', `${(this.speed) ? this.speed.toFixed(1) : '-'}`
+        );   
+        this.renderer.setProperty (
+            this.speedunitstext.nativeElement,    
+            'innerHTML', this.speedunits
+        );                  
 		if (this.pointers.value) {
             d.heading= parseFloat(d.heading);
             if(isNaN(d.heading)) { d.heading=null }   
             this.ptrOffset= (d.heading!=null) ? d.heading : 0;
 			if (d.heading!=null) {
+                d.heading= d.heading>360 ? d.heading -360 : d.heading;
                 this.valueStr= d.heading.toFixed(0) +  String.fromCharCode(186); 
 				let val= 0-( this.getAngle(d.heading) );
 				this.renderer.setAttribute (
