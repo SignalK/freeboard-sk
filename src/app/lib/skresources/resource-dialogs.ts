@@ -91,9 +91,9 @@ import { AppInfo } from '../../app.info'
                 }
 
                 @media only screen
-                and (min-device-width : 768px)
-                and (max-device-width : 1024px),
-                only screen	and (min-width : 800px) { 
+                    and (min-device-width : 768px)
+                    and (max-device-width : 1024px),
+                    only screen	and (min-width : 800px) { 
                     .ap-confirm-icon {
                         min-width: 25%;
                         max-width: 25%;
@@ -105,7 +105,7 @@ import { AppInfo } from '../../app.info'
 			`]
 })
 export class ResourceDialog implements OnInit {
-	public icon;
+	public icon:string;
 
     constructor(
         public dialogRef: MatDialogRef<ResourceDialog>,
@@ -121,7 +121,8 @@ export class ResourceDialog implements OnInit {
         this.data.addMode= this.data.addMode || false;
         this.data.type= this.data.type || 'waypoint';
 
-        this.icon= this.data.type=='route' ? 'directions' : 
+        this.icon= (this.data.type=='route') ? 'directions' : 
+            (this.data.type=='note') ? 'local_offer' :
             this.data.addMode ? 'add_location' : 'edit_location';
     } 
 
@@ -216,9 +217,9 @@ export class ResourceDialog implements OnInit {
                 }
 
                 @media only screen
-                and (min-device-width : 768px)
-                and (max-device-width : 1024px),
-                only screen	and (min-width : 800px) { 
+                    and (min-device-width : 768px)
+                    and (max-device-width : 1024px),
+                    only screen	and (min-width : 800px) { 
                     .ap-confirm-icon {
                         min-width: 25%;
                         max-width: 25%;
@@ -239,9 +240,7 @@ export class AISPropertiesDialog implements OnInit {
         @Inject(MAT_DIALOG_DATA) public data: any) {
     }
     
-    ngOnInit() {
-        this.target= this.data.target;
-    }
+    ngOnInit() { this.target= this.data.target }
 
     formatDegrees(val: number) { 
         return (val ? `${Convert.radiansToDegrees(val).toFixed(1)} ${String.fromCharCode(186)}` : '0.0');
@@ -253,4 +252,25 @@ export class AISPropertiesDialog implements OnInit {
 	
 }
 
+/********* NoteDialog **********
+	data: {
+        note: "<SKNote>"
+    }
+***********************************/
+@Component({
+	selector: 'ap-notedialog',
+	templateUrl: `note-dialog.html`
+})
+export class NoteDialog implements OnInit {
+    public icon: string = './assets/img/note.png';
 
+    constructor(
+        public dialogRef: MatDialogRef<NoteDialog>,
+        @Inject(MAT_DIALOG_DATA) public data: any) {
+	}
+	
+    ngOnInit() { }
+    
+    openNoteUrl() { window.open(this.data.note.url, 'note')}
+
+}

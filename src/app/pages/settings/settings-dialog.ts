@@ -27,7 +27,7 @@ export class SettingsDialog implements OnInit {
         [false, 'Wind True'], [true, 'Wind Apparent']
     ];   
     
-    aisWindMinZoom= [10,11,12,13,15,16,17];
+    minZoomList= [8,9,10,11,12,13,15,16,17];
 
     smoothing= [ [5000,'5 secs'],[10000,'10 secs'],[20000,'20 secs'],[30000,'30 secs'] ];
 

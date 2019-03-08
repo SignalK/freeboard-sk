@@ -22,6 +22,7 @@
                     <mat-icon>refresh</mat-icon>
                 </button>              
                 <mat-checkbox #selall color="primary"
+                    [disabled]="waypoints.length==0"
                     [checked]="allSel"
                     [indeterminate]="someSel"
                     (change)="selectAll($event.checked)"

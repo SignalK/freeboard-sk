@@ -1,40 +1,9 @@
-import { NgModule, Injectable } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { HttpClientModule, HttpClient } from '@angular/common/http';
-
-import { MatCheckboxModule, MatCardModule, MatButtonModule, MatListModule, 
-        MatFormFieldModule, MatInputModule,
-        MatIconModule, MatTooltipModule, MatSliderModule, MatSlideToggleModule } from '@angular/material';
+import { Injectable } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
 
 import { SignalKClient } from 'signalk-client-angular';
-import { AppInfo } from '../app.info';
-
-import { RouteListComponent } from  './components/routelist'
-import { WaypointListComponent } from  './components/waypointlist'
-import { ChartListComponent } from  './components/chartlist'
-import { AISListComponent } from  './components/aislist'
-import { AnchorWatchComponent } from  './components/anchorwatch'
-
-import { GeoUtils } from  './geoutils'
-
-@NgModule({
-    imports: [
-        CommonModule, HttpClientModule,
-        MatCheckboxModule, MatCardModule, MatListModule,
-        MatButtonModule, MatIconModule, MatTooltipModule, 
-        MatSliderModule, MatSlideToggleModule, 
-        MatFormFieldModule, MatInputModule
-    ],
-    declarations: [
-        RouteListComponent, WaypointListComponent, ChartListComponent,
-        AnchorWatchComponent, AISListComponent
-    ],
-    exports: [
-        RouteListComponent, WaypointListComponent, ChartListComponent,
-        AnchorWatchComponent, AISListComponent
-    ]
-})
-export class SignalKModule { }
+import { AppInfo } from '../../app.info';
+import { GeoUtils, GeoHash } from  '../geoutils'
 
 // ** Signal K resource operations
 @Injectable({ providedIn: 'root' })
@@ -70,14 +39,14 @@ export class SKResources {
                 let r= Object.entries(res);
                 if(r.length>0) {   
                     // ** sort by name **
-                    r.sort( (a,b)=> { return (b[1].name < a[1].name) ? 1 : -1 });
+                    r.sort( (a,b)=> { return (b[1]['name'] < a[1]['name']) ? 1 : -1 });
                     r.forEach( i=> {
-                        if(i[1].tilemapUrl[0]=='/' || i[1].tilemapUrl.slice(0,4)!='http') { // ** ensure host is in url
-                            i[1].tilemapUrl= this.app.host + i[1].tilemapUrl;
+                        if(i[1]['tilemapUrl'][0]=='/' || i[1]['tilemapUrl'].slice(0,4)!='http') { // ** ensure host is in url
+                            i[1]['tilemapUrl']= this.app.host + i[1]['tilemapUrl'];
                         }
-                        if(!i[1].scale) { i[1].scale= 250000 }
-                        i[1].name= (i[1].identifier && i[1].identifier!=i[1].name) ? 
-                             i[1].identifier + ' - ' + i[1].name : i[1].name;
+                        if(!i[1]['scale']) { i[1]['scale']= 250000 }
+                        i[1]['name']= (i[1]['identifier'] && i[1]['identifier']!=i[1]['name']) ? 
+                             i[1]['identifier'] + ' - ' + i[1]['name'] : i[1]['name'];
                         
                         this.app.data.charts.push([ 
                             i[0], 
@@ -192,8 +161,8 @@ export class SKResources {
                 let r= Object.entries(res);
 
                 r.forEach( i=> {
-                    if(!i[1].feature.properties.name) { 
-                        i[1].feature.properties.name='Wpt-' + i[0].slice(-6);
+                    if(!i[1]['feature'].properties.name) { 
+                        i[1]['feature'].properties.name='Wpt-' + i[0].slice(-6);
                     }
                     this.app.data.waypoints.push([ 
                         i[0], 
@@ -211,6 +180,61 @@ export class SKResources {
         )
     }       
 
+    // ** get notes / regions from sk server
+    getNotes() {
+        let regions= [];
+        this.signalk.api.get('/resources/regions')
+        .subscribe( 
+            res=> { 
+                if(res) {                   
+                    let r= Object.entries(res);
+                    r.forEach( i=> { regions.push([i[0], new SKRegion(i[1]), false]) });
+                }
+                let rf= this.app.config.resources.notes.rootFilter;
+                if(rf && rf[0]!='?') { rf='?' + rf }
+                this.signalk.api.get('/resources/notes'+ rf)
+                .subscribe( 
+                    res=> { 
+                        this.app.data.notes= [];
+                        if(!res) { return }                   
+                        let r= Object.entries(res);
+                        // ** set an upper limit of records to process **
+                        if(r.length>300) { r= r.slice(0,299) }
+                        r.forEach( i=> {
+                            if(!i[1]['title']) { 
+                                i[1]['feature'].properties.title='Note-' + i[0].slice(-6);
+                            }
+                            if(typeof i[1]['position']=='undefined') {
+                                if(typeof i[1]['geohash']!=='undefined') {  // get center of geohash
+                                    let gh= new GeoHash()
+                                    let p= gh.center( i[1]['geohash'] );
+                                    i[1]['position']= {latitude:p[1], longitude:p[0]} 
+                                    let b= gh.decode( i[1]['geohash'] );
+                                    i[1]['boundary']= [
+                                        b.ne, [ b.ne[0], b.sw[1] ], b.sw, [ b.sw[0], b.ne[1] ], b.ne
+                                    ];
+                                }
+                                else if(typeof i[1]['region']!=='undefined') { // get center of region 
+                                    let ra= regions.filter( j=> { 
+                                        if(j[0]==i[1]['region']) { return true }
+                                    });
+                                    if(ra.length!=0) {
+                                        let r= ra[0][1];
+                                        let c= GeoUtils.centreOfPolygon(r.feature.geometry.coordinates[0]);
+                                        i[1]['position']= {latitude: c[1], longitude: c[0]};
+                                        i[1]['boundary']= r.feature.geometry.coordinates[0];
+                                    }
+                                }            
+                            }
+                            if( typeof i[1]['position']!== 'undefined') { 
+                                this.app.data.notes.push([ i[0], new SKNote(i[1]), true ]);
+                            }
+                        });
+                    }
+                )                
+            }
+        )        
+    } 
 }
 
 // ** Signal K route
@@ -313,3 +337,48 @@ export class SKVessel {
     lastUpdated= new Date();
 }
 
+// ** Signal K Note
+export class SKNote {
+    title: string;
+    description: string;
+    region: string;
+    geohash: string;   
+    mimeType: string;
+    url: string; 
+    position: any;
+    boundary: any;
+
+    constructor(note?) {
+        if(note) {
+            if(note.title) { this.title= note.title }
+            if(note.description) { this.description= note.description }
+            if(note.region) { this.region= note.region }
+            if(note.geohash) { this.geohash= note.geohash }
+            if(note.mimeType) { this.mimeType= note.mimeType }
+            if(note.url) { this.url= note.url }
+            if(note.position) { this.position= note.position }
+            if(note.boundary) { this.boundary= note.boundary }
+        }
+    }    
+} 
+
+// ** Signal K Region
+export class SKRegion {
+    geohash: string;   
+    feature= {          
+        type: 'Feature',
+        geometry: {
+            type: 'Polygon',
+            coordinates: [0,0]
+        },
+        properties: {},
+        id: ''
+    };
+
+    constructor(region?) {
+        if(region) {
+            if(region.geohash) { this.geohash= region.geohash }
+            if(region.feature) { this.feature= region.feature }
+        }
+    }     
+}

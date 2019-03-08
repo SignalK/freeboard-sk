@@ -1,5 +1,12 @@
 # CHANGELOG: Freeboard-SK
 
+### v1.4.0
+
+- **Added:** Initial support for viewing / adding Notes.
+
+- **Deprecated:** Option to use delta updates as a means of submitting resource changes.
+
+
 ### v1.3.1
 
 - **Fix:** Issue where measured distance was not using Great Circle calculation. (Closes #69)

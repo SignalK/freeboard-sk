@@ -4,14 +4,14 @@ import { DomSanitizer, SafeResourceUrl} from '@angular/platform-browser';
 
 import { AppInfo } from './app.info';
 import { MsgBox, AboutDialog, ConfirmDialog, AlertDialog, LoginDialog } from './lib/app-ui';
-import { ResourceDialog, AISPropertiesDialog } from './lib/ui/resource-dialogs';
 import { PlaybackDialog } from './lib/ui/playback-dialog';
 import { AlarmsDialog } from './lib/ui/alarms';
 import { SettingsDialog } from './pages';
 import { GPXImportDialog } from './lib/gpxload/gpxload.module';
 
 import { SignalKClient, Alarm, AlarmState } from 'signalk-client-angular';
-import { SKResources, SKWaypoint, SKVessel } from './lib/sk-resources';
+import { SKResources, SKWaypoint, SKVessel, SKNote,
+        ResourceDialog, AISPropertiesDialog, NoteDialog  } from './lib/skresources/';
 import { Convert } from './lib/convert';
 import { GeoUtils } from './lib/geoutils';
 
@@ -33,6 +33,8 @@ export class AppComponent {
         routeList: false,
         waypointList: false,
         chartList: false,
+        noteList: false,
+        region: { show:false, boundary: [] },        
         aisList: false,
         anchorWatch: false,
         showSelf: false,
@@ -169,7 +171,7 @@ export class AppComponent {
                         this.app.data.trueMagChoice= this.app.config.selections.headingAttribute;
                     };
                 }    
-            });                
+            }); 
     }
 
     ngAfterViewInit() { if(this.app.data['firstRun']) { setTimeout( ()=> { this.showWelcome()}, 500) } }
@@ -250,6 +252,8 @@ export class AppComponent {
 
     // ******************************************************
   
+    openUrl(url:string, target:string='_blank') { window.open(url, target) }
+
     //** open about dialog **
     openAbout() { 
         this.dialog.open(AboutDialog, {
@@ -463,58 +467,42 @@ export class AppComponent {
             let errCount=0;
             res.routes.forEach( rte=> {
                 subCount++;
-                if(this.app.config.usePUT) {
-                    this.signalk.api.put('self',`/resources/routes`, rte[0], rte[1])
-                    .subscribe( 
-                        r=> { 
-                            if(r['state']=='COMPLETED') { 
-                                this.app.debug('SUCCESS: Route added.');
-                                this.app.config.selections.routes.push(rte[0]);                        
-                            }
-                            else { errCount++ }
-                            subCount--;
-                            if(subCount==0) { this.gpxResult(errCount) }
-                        },
-                        e=> { 
-                            errCount++; subCount--; 
-                            if(subCount==0) { this.gpxResult(errCount) }
+                this.signalk.api.put('self',`/resources/routes`, rte[0], rte[1])
+                .subscribe( 
+                    r=> { 
+                        if(r['state']=='COMPLETED') { 
+                            this.app.debug('SUCCESS: Route added.');
+                            this.app.config.selections.routes.push(rte[0]);                        
                         }
-                    );
-                }
-                else { 
-                    this.signalk.stream.sendUpdate('self', `/resources/routes/${rte[0]}`, rte[1]);
-                    if(subCount==res.waypoints.length + res.routes.length) { 
-                        this.gpxResult(errCount);
+                        else { errCount++ }
+                        subCount--;
+                        if(subCount==0) { this.gpxResult(errCount) }
+                    },
+                    e=> { 
+                        errCount++; subCount--; 
+                        if(subCount==0) { this.gpxResult(errCount) }
                     }
-                }
+                );
             });
 
             res.waypoints.forEach( wpt=> {
                 subCount++;            
-                if(this.app.config.usePUT) {
-                    this.signalk.api.put('self',`/resources/waypoints`, wpt[0], wpt[1])
-                    .subscribe( 
-                        r=>{ 
-                            if(r['state']=='COMPLETED') { 
-                                this.app.debug('SUCCESS: Waypoint added.');
-                                this.app.config.selections.waypoints.push(wpt[0]);
-                            }
-                            else { errCount++ }
-                            subCount--;
-                            if(subCount==0) { this.gpxResult(errCount) }
-                        },
-                        e=> { 
-                            errCount++; subCount--; 
-                            if(subCount==0) { this.gpxResult(errCount) }
+                this.signalk.api.put('self',`/resources/waypoints`, wpt[0], wpt[1])
+                .subscribe( 
+                    r=>{ 
+                        if(r['state']=='COMPLETED') { 
+                            this.app.debug('SUCCESS: Waypoint added.');
+                            this.app.config.selections.waypoints.push(wpt[0]);
                         }
-                    );
-                }
-                else { 
-                    this.signalk.stream.sendUpdate('self', `resources.waypoints.${wpt[0]}`, wpt[1]);
-                    if(subCount==res.waypoints.length + res.routes.length) { 
-                        this.gpxResult(errCount);
+                        else { errCount++ }
+                        subCount--;
+                        if(subCount==0) { this.gpxResult(errCount) }
+                    },
+                    err=> { 
+                        errCount++; subCount--; 
+                        if(subCount==0) { this.gpxResult(errCount) }
                     }
-                }
+                );
             });
         });         
     }
@@ -733,9 +721,17 @@ export class AppComponent {
     toggleCourseData() { 
         this.app.config.courseData= !this.app.config.courseData;
         this.app.saveConfig();
-    }    
+    }  
+    
+    toggleNotes() { 
+        this.app.config.notes= !this.app.config.notes;
+        this.app.saveConfig();
+    }
 
-    popoverClosed() { this.display.overlay.show= false }
+    popoverClosed() { 
+        this.display.overlay.show= false; 
+        this.display.region= {show: false, boundary:[]}; 
+    }
 
     formatPopover(id:string, coord:any, prj:any) {
         this.display.overlay['addWaypoint']=null;  
@@ -745,10 +741,11 @@ export class AppComponent {
         this.display.overlay['type']=null;   
         this.display.overlay['showProperties']=false;
         this.display.overlay['canDelete']=null;
+        this.display.overlay['url']=null;
         this.display.overlay.content=[];
+        this.display.region= {show: false, boundary:[]};
 
         if(!id) { return false }
-
         let item= null;
         let info= [];        
         let t= id.split('.');
@@ -779,6 +776,21 @@ export class AppComponent {
                 this.display.overlay.title= 'Vessel';  
                 info= this.display.vessels.aisTargets.get(aid);  
                 break;
+            case 'note':
+                item= this.app.data.notes.filter( i=>{ if(i[0]==t[1]) return true });
+                if(!item) { return false }
+                this.display.overlay['type']='note';
+                this.display.overlay['id']= t[1];
+                this.display.overlay['showProperties']=true;
+                this.display.overlay.title= 'Note';  
+                info.push(['Title', item[0][1].title]);
+                info.push(['Desc.', (item[0][1].description) ? item[0][1].description.slice(0,47) + '...' : '']);  
+                if(item[0][1].url) { this.display.overlay['url']=item[0][1].url }
+                if(item[0][1].boundary) { 
+                    this.display.region.show=true;
+                    this.display.region.boundary=item[0][1].boundary;
+                }                
+                break;                
             case 'route':
                 item= this.app.data.routes.filter( i=>{ if(i[0]==t[1]) return true });
                 if(!item) { return false }
@@ -823,6 +835,7 @@ export class AppComponent {
     drawStart(mode:string) {
         switch(mode) {
             case 'waypoint':
+            case 'note':
                 this.draw.type= 'Point'
                 this.draw.mode= mode;
                 this.draw.enabled= true;
@@ -846,8 +859,9 @@ export class AppComponent {
                     e.feature.getGeometry().getCoordinates(), 
                     this.app.config.map.mrid, 
                     this.app.config.map.srid
-                );                 
-                this.waypointAdd({position: c});
+                );     
+                if(this.draw.mode=='note') { this.noteUpdate({position: c}) }          
+                else { this.waypointAdd({position: c}) }
                 break;
             case 'LineString':
                 let rc= e.feature.getGeometry().getCoordinates();
@@ -913,6 +927,7 @@ export class AppComponent {
         this.display.routeList= false;
         this.display.waypointList= false; 
         this.display.chartList= false;
+        this.display.noteList= false;
         this.display.aisList= false;
         this.display.anchorWatch= false;
         switch (menulist) {
@@ -925,6 +940,9 @@ export class AppComponent {
             case 'chartList': 
                 this.display.chartList= show;
                 break;  
+            case 'noteList': 
+                this.display.noteList= show;
+                break;                                   
             case 'anchorWatch': 
                 this.display.anchorWatch= show;
                 break;    
@@ -944,11 +962,101 @@ export class AppComponent {
                 break;
             case 'route': 
                 this.routeDetails(r);
-                break;                
+                break; 
+            case 'note':
+                this.noteDetails(r);
+                break;               
         }
     }
 
-     // ** handle resource deletion **
+    // ** Display Note Details.
+    noteDetails(r:any) {
+        let na= this.app.data.notes.filter( i=> { if(i[0]==r.id) { return true } });
+        let n= na[0][1];
+        this.dialog.open(NoteDialog, {
+            disableClose: true,
+            data: { note: n, editable: false }
+        }).afterClosed().subscribe( r=> {
+            if(r.result) { // ** open in tab **
+                if(r.data== 'url') { this.openUrl(n.url, 'note') }
+                if(r.data== 'edit') { this.noteUpdate({id: na[0][0]}) }
+            }
+        });
+    }
+
+    // ** Add / Edit Note entry
+    noteUpdate(e:any=null) {      
+        let resId= null; 
+        let title: string;
+        let note: SKNote;
+        let addMode: boolean=true;
+
+        if(!e) { return }
+        if(!e.id && e.position) { // add note at provided position
+            if(this.app.config.resources.notes.extAdd) {
+                let url:any= this.dom.bypassSecurityTrustResourceUrl(`${this.app.config.resources.notes.extAdd}${e.id}`);
+                url=this.app.config.resources.notes.extAdd;
+                this.openUrl( url, 'extedit' );
+                return;
+            }
+            note= new SKNote(); 
+            note.position= {latitude: e.position[1], longitude: e.position[0]};    
+            title= 'Add Note:';      
+            note.title= '';
+            note.description= '';
+        }
+        else { // edit selected note details
+            if(this.app.config.resources.notes.extEdit) {
+                let url:any= this.dom.bypassSecurityTrustResourceUrl(`${this.app.config.resources.notes.extEdit}${e.id}`);
+                url=this.app.config.resources.notes.extEdit;
+                this.openUrl( url, 'extedit' );
+                return;
+            }            
+            resId= e.id;
+            title= 'Note Details:'; 
+            let n= this.app.data.notes.filter( i=>{ if(i[0]==resId) return true });
+            if(n.length==0) { return }
+            note= JSON.parse( JSON.stringify(n[0][1]) );
+            addMode=false;
+        }
+
+        this.dialog.open(NoteDialog, {
+            disableClose: true,
+            data: {
+                note: note,
+                editable: true,
+                addNote: addMode
+            }
+        }).afterClosed().subscribe( r=> {        
+            if(r.result) { // ** save / update waypoint **
+                let note= r.data;
+                console.log(note)
+                if(note.boundary) { delete note.boundary }
+                console.log(note)
+                
+                if(!resId) { // add
+                    resId= this.signalk.uuid.toSignalK();
+                    this.signalk.post(`/signalk/v1/api/resources/notes/${resId}`, note).subscribe(
+                        r=> this.skres.getNotes(),
+                        err=> {
+                            if(err.status && err.status==401) { this.showAuthRequired() }  
+                            else { this.showAlert('ERROR:', 'Server could not add Note!') }                            
+                        }
+                    );
+                }
+                else { this.signalk.post(`/signalk/v1/api/resources/notes/${resId}`, note).subscribe(
+                        r=> this.skres.getNotes(),
+                        err=> {
+                            if(err.status && err.status==401) { this.showAuthRequired() }  
+                            else { this.showAlert('ERROR:', 'Server could not update Note!') }                            
+                        }
+                    );
+                }
+            }
+        });
+    }
+
+    // ** handle resource deletion **
     resourceDelete(id:string) {
         switch(this.display.overlay['type']) {
             case 'waypoint':
@@ -979,35 +1087,29 @@ export class AppComponent {
             if(r.result) { // ** save / update route **
                 rte['description']= r.data.comment;
                 rte['name']= r.data.name;
-                if(this.app.config.usePUT) { // update
-                    this.signalk.api.put(
-                        'self',
-                        `/resources/routes`,
-                        resId, 
-                        rte
-                    ).subscribe( 
-                        r=>{ 
-                            this.skres.getRoutes();
-                            if(r['state']=='COMPLETED') { this.app.debug('SUCCESS: Route updated.') }
-                            else { this.showAlert('ERROR:', 'Server could not update Route details!') }
-                        },
-                        err=> { 
-                            this.skres.getRoutes();
-                            if(err.status && err.status==401) { this.showAuthRequired() }  
-                            else { this.showAlert('ERROR:', 'Server could not update Route details!') }
-                        }
-                    );
-                }
-                else { 
-                    this.signalk.stream.sendUpdate('self', `/resources/routes/${resId}`, rte);
-                    this.skres.getRoutes();
-                }
+                this.signalk.api.put(
+                    'self',
+                    `/resources/routes`,
+                    resId, 
+                    rte
+                ).subscribe( 
+                    r=>{ 
+                        this.skres.getRoutes();
+                        if(r['state']=='COMPLETED') { this.app.debug('SUCCESS: Route updated.') }
+                        else { this.showAlert('ERROR:', 'Server could not update Route details!') }
+                    },
+                    err=> { 
+                        this.skres.getRoutes();
+                        if(err.status && err.status==401) { this.showAuthRequired() }  
+                        else { this.showAlert('ERROR:', 'Server could not update Route details!') }
+                    }
+                );
             }
         });
     }
 
     routeDelete(e:any) { 
-        let dref= this.dialog.open(ConfirmDialog, {
+        this.dialog.open(ConfirmDialog, {
             disableClose: true,
             data: {
                 message: 'Do you want to delete this Route?\n \nRoute will be removed from the server (if configured to permit this operation).',
@@ -1015,29 +1117,21 @@ export class AppComponent {
                 button1Text: 'YES',
                 button2Text: 'NO'
             }
-        }); 
-        dref.afterClosed().subscribe( res=> {
+        }).afterClosed().subscribe( res=> {
             if(res) {
-                if(this.app.config.usePUT) {
-                    this.signalk.api.put('self','resources.routes', e.id, null)
-                    .subscribe( 
-                        r=> {  
-                            this.skres.getRoutes();
-                            this.skres.getWaypoints();                            
-                            if(r['state']=='COMPLETED') { this.app.debug('SUCCESS: Route deleted.') }
-                            else { this.showAlert('ERROR:', 'Server could not delete Route!') }
-                        },
-                        err=> { 
-                            if(err.status && err.status==401) { this.showAuthRequired() }  
-                            else { this.showAlert('ERROR:', 'Server could not delete Route!') }
-                        }
-                    );
-                }
-                else { 
-                    this.signalk.stream.sendUpdate('self', `resources.routes.${e.id}`, null);
-                    this.skres.getRoutes();
-                    this.skres.getWaypoints();                    
-                }                       
+                this.signalk.api.put('self','resources.routes', e.id, null)
+                .subscribe( 
+                    r=> {  
+                        this.skres.getRoutes();
+                        this.skres.getWaypoints();                            
+                        if(r['state']=='COMPLETED') { this.app.debug('SUCCESS: Route deleted.') }
+                        else { this.showAlert('ERROR:', 'Server could not delete Route!') }
+                    },
+                    err=> { 
+                        if(err.status && err.status==401) { this.showAuthRequired() }  
+                        else { this.showAlert('ERROR:', 'Server could not delete Route!') }
+                    }
+                );                     
             }      
         });        
     }
@@ -1046,7 +1140,7 @@ export class AppComponent {
         if(!e.coordinates) { return }    
         let res= this.skres.buildRoute(e.coordinates);
         
-        let dref= this.dialog.open(ResourceDialog, {
+        this.dialog.open(ResourceDialog, {
             disableClose: true,
             data: {
                 title: 'New Route:',
@@ -1055,43 +1149,33 @@ export class AppComponent {
                 type: 'route',
                 addMode: true
             }
-        });  
-        dref.afterClosed().subscribe( r=> {
+        }).afterClosed().subscribe( r=> {
             if(r.result) { // ** save route **
                 res['route'][1]['description']= r.data.comment || '';
                 res['route'][1]['name']= r.data.name;
-                if(this.app.config.usePUT) {
-                    this.signalk.api.put(
-                        'self',
-                        `/resources/routes`,
-                        res['route'][0], 
-                        res['route'][1]
-                    ).subscribe( 
-                        r=>{ 
-                            this.skres.getRoutes();
-                            if(r['state']=='COMPLETED') { 
-                                this.submitWaypoint(res['wptStart'][0], res['wptStart'][1], false);
-                                this.submitWaypoint(res['wptEnd'][0], res['wptEnd'][1], false);               
-                                this.app.debug('SUCCESS: Route updated.');
-                                this.app.config.selections.routes.push(res['route'][0]);
-                                this.app.saveConfig();                                
-                            }
-                            else { this.showAlert('ERROR:', 'Server could not add Route!') }
-                            },
-                        err=> { 
-                            this.skres.getRoutes();
-                            if(err.status && err.status==401) { this.showAuthRequired() }  
-                            else { this.showAlert('ERROR:', 'Server could not add Route!') }
+                this.signalk.api.put(
+                    'self',
+                    `/resources/routes`,
+                    res['route'][0], 
+                    res['route'][1]
+                ).subscribe( 
+                    r=>{ 
+                        this.skres.getRoutes();
+                        if(r['state']=='COMPLETED') { 
+                            this.submitWaypoint(res['wptStart'][0], res['wptStart'][1], false);
+                            this.submitWaypoint(res['wptEnd'][0], res['wptEnd'][1], false);               
+                            this.app.debug('SUCCESS: Route updated.');
+                            this.app.config.selections.routes.push(res['route'][0]);
+                            this.app.saveConfig();                                
                         }
-                    );
-                }
-                else { 
-                    this.signalk.stream.sendUpdate('self', `/resources/routes/${res['route'][0]}`, res['route'][1]);
-                    this.skres.getRoutes();
-                    this.submitWaypoint(res['wptStart'][0], res['wptStart'][1], false);
-                    this.submitWaypoint(res['wptEnd'][0], res['wptEnd'][1], false);               
-                    
-                }
+                        else { this.showAlert('ERROR:', 'Server could not add Route!') }
+                        },
+                    err=> { 
+                        this.skres.getRoutes();
+                        if(err.status && err.status==401) { this.showAuthRequired() }  
+                        else { this.showAlert('ERROR:', 'Server could not add Route!') }
+                    }
+                );
             }
         });
     }
@@ -1115,61 +1199,46 @@ export class AppComponent {
         this.display.navData.pointTotal= t[0][1].feature.geometry.coordinates.length;
         let c= t[0][1].feature.geometry.coordinates[this.display.navData.pointIndex];
         let startPoint= {latitude: c[1], longitude: c[0]};        
-        if(this.app.config.usePUT) {
-            this.signalk.api.put('self', 'navigation/courseGreatCircle/activeRoute/href', `/resources/routes/${e.id}`)
-            .subscribe( 
-                r=> {
-                    this.signalk.api.put('self', 'navigation/courseGreatCircle/activeRoute/startTime', dt.toISOString())
-                    .subscribe( 
-                        r=> { 
-                            this.app.debug('Route activated');
-                            this.signalk.api.put('self', 
-                                'navigation/courseGreatCircle/nextPoint/position', 
-                                startPoint
-                            ).subscribe( r=> { this.app.debug('nextPoint set') } );                            
+        this.signalk.api.put('self', 'navigation/courseGreatCircle/activeRoute/href', `/resources/routes/${e.id}`)
+        .subscribe( 
+            r=> {
+                this.signalk.api.put('self', 'navigation/courseGreatCircle/activeRoute/startTime', dt.toISOString())
+                .subscribe( 
+                    r=> { 
+                        this.app.debug('Route activated');
+                        this.signalk.api.put('self', 
+                            'navigation/courseGreatCircle/nextPoint/position', 
+                            startPoint
+                        ).subscribe( r=> { this.app.debug('nextPoint set') } );                            
 
-                        },
-                        err=> { this.showAlert('ERROR:', 'Server could not Activate Route!') }
-                    );
-                },
-                err=> { 
-                    if(err.status && err.status==401) { this.showAuthRequired() }  
-                    else { this.showAlert('ERROR:', 'Server could not Activate Route!') }
-                }
-            );
-        }
-        else {
-            this.signalk.stream.sendUpdate('self', 'navigation.courseGreatCircle.activeRoute.href', `/resources/routes/${e.id}`);
-            this.signalk.stream.sendUpdate('self', 'navigation.courseGreatCircle.activeRoute.startTime', dt.toISOString());
-            this.signalk.stream.sendUpdate('self', 'navigation.courseGreatCircle.nextPoint.position', startPoint);
-        }
+                    },
+                    err=> { this.showAlert('ERROR:', 'Server could not Activate Route!') }
+                );
+            },
+            err=> { 
+                if(err.status && err.status==401) { this.showAuthRequired() }  
+                else { this.showAlert('ERROR:', 'Server could not Activate Route!') }
+            }
+        );
     }   
 
     routeClearActive() { 
-        if(this.app.config.usePUT) {
-            this.signalk.api.put('self', 'navigation/courseGreatCircle/activeRoute/href', null)
-            .subscribe( 
-                r=> { 
-                    this.app.debug('Active Route cleared');
-                    this.display.navData.pointIndex= -1;
-                    this.display.navData.pointTotal= 0;
-                    this.signalk.api.put('self', 
-                        'navigation/courseGreatCircle/nextPoint/position', 
-                        null
-                    ).subscribe( r=> { this.app.debug('nextPont cleared') } );               
-                },
-                err=> { 
-                    if(err.status && err.status==401) { this.showAuthRequired() }  
-                    else { this.showAlert('ERROR:', 'Server could not clear Active Route!') }
-                }
-            );
-        }
-        else {
-            this.display.navData.pointIndex= -1;
-            this.display.navData.pointTotal= 0;
-            this.signalk.stream.sendUpdate('self', 'navigation.courseGreatCircle.activeRoute.href', null);
-            this.signalk.stream.sendUpdate('self', 'navigation.courseGreatCircle.nextPoint.position', null);
-        }
+        this.signalk.api.put('self', 'navigation/courseGreatCircle/activeRoute/href', null)
+        .subscribe( 
+            r=> { 
+                this.app.debug('Active Route cleared');
+                this.display.navData.pointIndex= -1;
+                this.display.navData.pointTotal= 0;
+                this.signalk.api.put('self', 
+                    'navigation/courseGreatCircle/nextPoint/position', 
+                    null
+                ).subscribe( r=> { this.app.debug('nextPont cleared') } );               
+            },
+            err=> { 
+                if(err.status && err.status==401) { this.showAuthRequired() }  
+                else { this.showAlert('ERROR:', 'Server could not clear Active Route!') }
+            }
+        );
     }      
     
     routeNextPoint(i:number) {
@@ -1193,47 +1262,37 @@ export class AppComponent {
             latitude: c[this.display.navData.pointIndex][1], 
             longitude: c[this.display.navData.pointIndex][0], 
         }
-        if(this.app.config.usePUT) {
-            this.signalk.api.put('self', 
-                'navigation/courseGreatCircle/nextPoint/position', 
-                nextPoint
-            ).subscribe( 
-                r=> { this.app.debug('nextPoint set') },
-                err=> { 
-                    if(err.status && err.status==401) { this.showAuthRequired() }  
-                    else { this.app.debug(err) }
-                }
-            );
-        }
-        else {
-            this.signalk.stream.sendUpdate('self', 'navigation/courseGreatCircle/nextPoint/position', nextPoint);
-        }        
+        this.signalk.api.put('self', 
+            'navigation/courseGreatCircle/nextPoint/position', 
+            nextPoint
+        ).subscribe( 
+            r=> { this.app.debug('nextPoint set') },
+            err=> { 
+                if(err.status && err.status==401) { this.showAuthRequired() }  
+                else { this.app.debug(err) }
+            }
+        );      
     }
 
     waypointGoTo(e:any) { 
         let wpt= this.app.data.waypoints.map( i=>{ if(i[0]==e.id) {return i} } ).filter(i=> {return i});
-        if(this.app.config.usePUT) {
-            this.signalk.api.put('self', 
-                'navigation/courseGreatCircle/nextPoint/position', 
-                wpt[0][1].position
-            ).subscribe( 
-                r=> { this.app.debug('Waypoint activated') },
-                err=> { 
-                    if(err.status && err.status==401) { this.showAuthRequired() }  
-                    else { 
-                        this.showAlert('ERROR:', 'Server could not set Waypoint!') 
-                        this.app.debug(err);
-                    }
+        this.signalk.api.put('self', 
+            'navigation/courseGreatCircle/nextPoint/position', 
+            wpt[0][1].position
+        ).subscribe( 
+            r=> { this.app.debug('Waypoint activated') },
+            err=> { 
+                if(err.status && err.status==401) { this.showAuthRequired() }  
+                else { 
+                    this.showAlert('ERROR:', 'Server could not set Waypoint!') 
+                    this.app.debug(err);
                 }
-            );
-        }
-        else {
-            this.signalk.stream.sendUpdate('self', 'navigation/courseGreatCircle/nextPoint/position', e.position);
-        }
+            }
+        );
     }    
 
     waypointDelete(e:any) { 
-        let dref= this.dialog.open(ConfirmDialog, {
+        this.dialog.open(ConfirmDialog, {
             disableClose: true,
             data: {
                 message: 'Do you want to delete this Waypoint?\nNote: Waypoint may be the Start or End of a route so proceed with care!\n \nWaypoint will be removed from the server (if configured to permit this operation).',
@@ -1241,27 +1300,20 @@ export class AppComponent {
                 button1Text: 'YES',
                 button2Text: 'NO'
             }
-        }); 
-        dref.afterClosed().subscribe( res=> {
+        }).afterClosed().subscribe( res=> {
             if(res) {
-                if(this.app.config.usePUT) {
-                    this.signalk.api.put('self','resources.waypoints', e.id, null)
-                    .subscribe( 
-                        r=> {  
-                            this.skres.getWaypoints();
-                            if(r['state']=='COMPLETED') { this.app.debug('SUCCESS: Waypoint deleted.') }
-                            else { this.showAlert('ERROR:', 'Server could not delete Waypoint!') }                            
-                        },
-                        err=> { 
-                            if(err.status && err.status==401) { this.showAuthRequired() }  
-                            else { this.showAlert('ERROR:', 'Server could not delete Waypoint!') }
-                        }
-                    );
-                }
-                else { 
-                    this.signalk.stream.sendUpdate('self', `resources.waypoints.${e.id}`, null);
-                    this.skres.getWaypoints();                    
-                }
+                this.signalk.api.put('self','resources.waypoints', e.id, null)
+                .subscribe( 
+                    r=> {  
+                        this.skres.getWaypoints();
+                        if(r['state']=='COMPLETED') { this.app.debug('SUCCESS: Waypoint deleted.') }
+                        else { this.showAlert('ERROR:', 'Server could not delete Waypoint!') }                            
+                    },
+                    err=> { 
+                        if(err.status && err.status==401) { this.showAuthRequired() }  
+                        else { this.showAlert('ERROR:', 'Server could not delete Waypoint!') }
+                    }
+                );
             }
         });          
     }
@@ -1323,38 +1375,27 @@ export class AppComponent {
     }
 
     submitWaypoint(id:string, wpt:SKWaypoint, isNew=false) {
-        if(this.app.config.usePUT) {
-            this.signalk.api.put(
-                'self',
-                `/resources/waypoints`,
-                id, 
-                wpt
-            ).subscribe( 
-                r=>{ 
-                    if(r['state']=='COMPLETED') { 
-                        this.app.debug('SUCCESS: Waypoint updated.');
-                        if(isNew) { 
-                            this.app.config.selections.waypoints.push(id);
-                            this.app.saveConfig();
-                        }
-                        this.skres.getWaypoints();
+        this.signalk.api.put('self', `/resources/waypoints`, id, wpt).subscribe( 
+            r=> { 
+                if(r['state']=='COMPLETED') { 
+                    this.app.debug('SUCCESS: Waypoint updated.');
+                    if(isNew) { 
+                        this.app.config.selections.waypoints.push(id);
+                        this.app.saveConfig();
                     }
-                    else { 
-                        this.skres.getWaypoints();
-                        this.showAlert('ERROR:', 'Server could not update Waypoint details!');
-                    }
-                },
-                err=> { 
                     this.skres.getWaypoints();
-                    if(err.status && err.status==401) { this.showAuthRequired() }  
-                    else { this.showAlert('ERROR:', 'Server could not update Waypoint details!') }
                 }
-            );
-        }
-        else { 
-            this.signalk.stream.sendUpdate('self', `resources.waypoints.${id}`, wpt);
-            this.skres.getWaypoints();
-        }
+                else { 
+                    this.skres.getWaypoints();
+                    this.showAlert('ERROR:', 'Server could not update Waypoint details!');
+                }
+            },
+            err=> { 
+                this.skres.getWaypoints();
+                if(err.status && err.status==401) { this.showAuthRequired() }  
+                else { this.showAlert('ERROR:', 'Server could not update Waypoint details!') }
+            }
+        );
     }
 
     waypointSelected(e:any) {
@@ -1375,6 +1416,17 @@ export class AppComponent {
         );   
         this.app.saveConfig();
     } 
+    
+    regionSelected(e:any) {
+        if(!e) { return }
+        let t= this.app.data.regions.map(
+            i=> { if(i[2]) { return i[0] } }
+        );
+        this.app.config.selections.regions= t.filter(
+            i=> { return (i) ? true : false }
+        );   
+        this.app.saveConfig();
+    }     
 
     aisSelected(e:any) {
         this.app.config.selections.aisTargets= e;
@@ -1551,7 +1603,8 @@ export class AppComponent {
                 // ** query for resources
                 this.skres.getRoutes();
                 this.skres.getWaypoints();
-                this.skres.getCharts();        
+                this.skres.getCharts();  
+                this.skres.getNotes();
                 // ** query anchor alarm status
                 this.getAnchorStatus();                
             },

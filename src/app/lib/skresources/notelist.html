@@ -1,0 +1,62 @@
+<div class="resourcelist">
+
+    <div class="title-block">
+        <div style="flex: 1 1 auto;">
+            <div class="title-text">Notes:</div>
+            <div>
+                <mat-form-field style="width:150px;">
+                    <input #ftext type="text" matInput style="background-color:white;"
+                        [value]="filterText"
+                        (keyup)="filterKeyUp(ftext.value)"
+                        placeholder="type to filter list">
+                    <button mat-button *ngIf="filterText" matSuffix mat-icon-button
+                        (click)="filterKeyUp('')">
+                        <mat-icon>close</mat-icon>
+                    </button>
+                </mat-form-field> 
+                &nbsp;&nbsp;                    
+                <button mat-icon-button 
+                    (click)="itemRefresh()"
+                    matTooltip="Reload Charts"
+                    matTooltipPosition="left">
+                    <mat-icon>refresh</mat-icon>
+                </button>
+                <mat-checkbox color="primary"
+                    [checked]="showNotes"
+                    (change)="toggleMapDisplay($event.checked)"
+                    matTooltip="Show Notes on Map"
+                    matTooltipPosition="right">
+                </mat-checkbox>                             
+            </div>
+        </div>
+        <div>
+            <button mat-icon-button 
+                (click)="close()"
+                matTooltip="Close Chart List"
+                matTooltipPosition="left">
+                <mat-icon>close</mat-icon>
+            </button>            
+        </div>
+    </div>
+
+    <div class="resources">
+        <mat-card *ngFor="let r of filterList; let i= index;">
+            <div style="display: flex;">
+                <div style="flex: 1 1 auto;">
+                    <div>
+                        <mat-icon>local_offer</mat-icon>
+                        &nbsp;<b>{{r[1].title}}</b>
+                    </div>
+                </div>        
+                <div style="text-align: right;">
+                    <button mat-icon-button color="primary"
+                        (click)="viewNote(r[0])"
+                        matTooltip="View Note"
+                        matTooltipPosition="left">
+                            <mat-icon>info_outline</mat-icon>
+                    </button>
+                </div>  
+            </div>
+        </mat-card>
+    </div>
+</div>

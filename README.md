@@ -1,7 +1,6 @@
 # Freeboard
 
-This is a port of Freeboard (http://www.42.co.nz/freeboard) to use the Signal K communication protocols and utilise Signal K server features.
-
+Freeboard is an Openlayers chartplotter implementation for Signal K.
 
 ## Features:
 
@@ -21,11 +20,12 @@ This is a port of Freeboard (http://www.42.co.nz/freeboard) to use the Signal K 
     - Delete Waypoint(s) / Route(s) 
     - Import Routes and Waypoints from GPX files
 
-**Note:** Server requests to update data values *e.g. the creation, updating or deletion of resources* requires is can be done via either PUT requests *(default / recommended)* or web socket UPDATES.
 
-This can be selected by the **Use PUT Requests** checkbox in **Settings**.
+#### Resources:  Notes and Regions
+    - Show / Hide Notes hosted on Signal K server via `/resources/notes` path
+    - Display on map the Region associated with note when accessing Note properties
 
-    
+
 #### Map Display:
 
     - North-up or Vessel-up 
@@ -34,12 +34,14 @@ This can be selected by the **Use PUT Requests** checkbox in **Settings**.
     - Wind true direction / apparent angle lines
     - Measure distance
 
+
 #### Alarms:
 
     Displays both visual and audio alarm indication as specified by the received *Notification* message.
 
     - Anchor Watch: set radius and raise / drop anchor
     - Depth Notifications.
+
 
 #### Integration: 
 
@@ -48,6 +50,8 @@ Freeboard allows you to select installed *Applications* to use for the following
 - **Instrument panel**: *(default: `@SignalK/InstrumentPanel`)*
 
 Selected application will be displayed in the Instrument panel drawer.
+
+_Freeboard was originally ported from (http://www.42.co.nz/freeboard) to use the Signal K communication protocols and server features._
 
 
 ## System Requirements:

@@ -129,7 +129,7 @@
                                             [(value)]="app.config.selections.aisWindMinZoom" 
                                             (selectionChange)="onFormChange($event, aiswindminzoom)"
                                             placeholder="Wind Vector Zoom Level">
-                                        <mat-option *ngFor="let i of aisWindMinZoom" [value]="i">{{i}}</mat-option>
+                                        <mat-option *ngFor="let i of minZoomList" [value]="i">{{i}}</mat-option>
                                     </mat-select>                                        
                                 </mat-form-field>
                             </div>                             
@@ -137,26 +137,85 @@
                         </div> 
                     </mat-card>
                 </div>
-
+            
                 <div class="setting-group">
-                    <div class="setting-group-title">SERVER</div>
+                    <div class="setting-group-title">RESOURCES: NOTES</div>
                     <mat-card class="setting-card">
                         <div class="setting-card-row">
                             <div class="setting-card-row-item">
-                                <b>Resource Updates:</b>
-                                <br>
-                                <mat-checkbox #useput color="primary"
-                                    [(ngModel)]="app.config.usePUT" 
-                                    (change)="onFormChange($event, useput)"
-                                    matTooltip="If unchecked Delta Update messages will be used (not recommended)"
+                                <mat-checkbox #shownotes color="primary"
+                                    [(ngModel)]="app.config.notes" 
+                                    (change)="onFormChange($event, shownotes)"
                                     label="after">
-                                    Use PUT
+                                    Display Notes on Map
                                 </mat-checkbox>                                        
-                            </div>                                                   
+                            </div>                            
+                            <div class="setting-card-row-item">
+                                <mat-form-field style="width:100%;">
+                                    <mat-select #notesminzoom
+                                            [disabled]="!app.config.notes"
+                                            [(value)]="app.config.selections.notesMinZoom" 
+                                            (selectionChange)="onFormChange($event, notesminzoom)"
+                                            placeholder="Notes Zoom Level">
+                                        <mat-option *ngFor="let i of minZoomList" [value]="i">{{i}}</mat-option>
+                                    </mat-select>                                        
+                                </mat-form-field>
+                            </div>                                                      
                         </div>
+                        <div class="setting-card-row">
+                            <div class="setting-card-row-item">
+                                <mat-form-field style="width:100%;" floatLabel="always">
+                                    <mat-label>Fetch /resources/notes filter parameters:</mat-label>
+                                    <input matInput type="text" #notesrootfilter
+                                        [(ngModel)]="app.config.resources.notes.rootFilter" 
+                                        (change)="onFormChange($event, notesrootfilter)"
+                                        placeholder="?dist=10"
+                                        matTooltip="Filter to apply when retrieving notes"/>   
+                                        <button mat-button *ngIf="notesrootfilter.value"
+                                                matSuffix mat-icon-button 
+                                                (click)="notesrootfilter.value=''">
+                                            <mat-icon>close</mat-icon>
+                                        </button>                                                                           
+                                </mat-form-field>                            
+                            </div>    
+                        </div>    
+                        <!--<div class="setting-card-row">
+                            <div class="setting-card-row-item">
+                                <mat-form-field style="width:100%;" floatLabel="always">
+                                    <mat-label>External Add url:</mat-label>
+                                    <input matInput type="text" #notesextadd
+                                        [(ngModel)]="app.config.resources.notes.extAdd" 
+                                        (change)="onFormChange($event, notesextadd)"
+                                        placeholder="/path"
+                                        matTooltip="url for adding note"/>   
+                                        <button mat-button *ngIf="notesextadd.value"
+                                                matSuffix mat-icon-button 
+                                                (click)="notesextadd.value=''">
+                                            <mat-icon>close</mat-icon>
+                                        </button>                                                                           
+                                </mat-form-field>                            
+                            </div>    
+                        </div> 
+                        <div class="setting-card-row">
+                            <div class="setting-card-row-item">
+                                <mat-form-field style="width:100%;" floatLabel="always">
+                                    <mat-label>External Edit url:</mat-label>
+                                    <input matInput type="text" #notesextedit
+                                        [(ngModel)]="app.config.resources.notes.extEdit" 
+                                        (change)="onFormChange($event, notesextedit)"
+                                        placeholder="/path"
+                                        matTooltip="url for editing note"/>   
+                                        <button mat-button *ngIf="notesextedit.value"
+                                                matSuffix mat-icon-button 
+                                                (click)="notesextedit.value=''">
+                                            <mat-icon>close</mat-icon>
+                                        </button>                                                                           
+                                </mat-form-field>                            
+                            </div>    
+                        </div> -->                                                               
                     </mat-card>
                 </div>
-
+            
             </div>
         </div>
         

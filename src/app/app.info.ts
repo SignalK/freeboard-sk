@@ -4,7 +4,7 @@
 import { Injectable } from '@angular/core';
 import { Info } from './lib/app-info';
 import { Subject } from 'rxjs';
-import {IndexedDB} from './lib/info/indexeddb';
+import { IndexedDB } from './lib/info/indexeddb';
 import { SignalKClient } from 'signalk-client-angular';
 
 
@@ -68,10 +68,10 @@ export class AppInfo extends Info {
                 radius: 40,
                 position: [0,0]
             },
-            usePUT: true,
-            vesselTrail: false,
-            aisTargets: true,
-            courseData: false,
+            vesselTrail: false,     // display trail
+            aisTargets: true,       // display ais targets
+            courseData: false,      // display course data
+            notes: false,           // display notes
             depthAlarm: { enabled: false, smoothing: 10000 },
             plugins: {
                 instruments: '/@signalk/instrumentpanel'
@@ -85,10 +85,19 @@ export class AppInfo extends Info {
                 routes: [],
                 waypoints: [],
                 charts: ['openstreetmap','openseamap'],
+                notes: [],
                 headingAttribute: 'navigation.headingTrue',
                 aisTargets: null,
                 aisWindApparent: false,
-                aisWindMinZoom: 15
+                aisWindMinZoom: 15,
+                notesMinZoom: 10
+            },
+            resources: {    // ** resource options
+                notes: {
+                    rootFilter: '', // param string to provide record filtering
+                    extEdit: null,    // url to use for external editing
+                    extAdd: null      // url to use for external creation
+                }
             }
         } 
 
@@ -97,6 +106,7 @@ export class AppInfo extends Info {
             waypoints: [],
             charts: [],
             alarms: [],
+            notes: [],
             selfId: null,
             activeRoute: null,
             trail: [],
@@ -186,12 +196,19 @@ export class AppInfo extends Info {
     handleSettingsEvent(value) {
         this.debug(value);
         if(value.action=='load' && value.setting=='config') {
+            if(typeof this.config.usePUT !== 'undefined') { delete this.config.usePUT }
             if(typeof this.config.selections.aisWindMinZoom === 'undefined') {
                 this.config.selections.aisWindMinZoom=15;
             }
             if(typeof this.config.selections.aisWindApparent === 'undefined') {
-                this.config.selections.aisWindMinZoom= false;
+                this.config.selections.aisWindApparent= false;
             }
+            if(typeof this.config.selections.notesMinZoom === 'undefined') {
+                this.config.selections.notesMinZoom=10;
+            }   
+            if(typeof this.config.resources === 'undefined') {
+                this.config.resources= { notes: { rootFilter: '', extAdd: null, extEdit: null } };
+            }                              
         }
     }
 

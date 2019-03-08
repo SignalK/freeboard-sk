@@ -14,7 +14,7 @@ import { MsgBox, AlertDialog, ConfirmDialog, AboutDialog, LoginDialog } from './
 import { FileInputComponent } from './file-input.component';
 import { PopoverComponent } from './popover';
 import { TextDialComponent } from './dial-text';
-import { ResourceDialog, AISPropertiesDialog } from './resource-dialogs';
+
 import { PlaybackDialog } from './playback-dialog';
 import { AlarmsDialog, AlarmComponent } from './alarms';
 
@@ -32,18 +32,19 @@ import { CompassComponent } from './compass.component';
     declarations: [
         MsgBox, AlertDialog, ConfirmDialog, AboutDialog,
         FileInputComponent, TextDialComponent, LoginDialog, AlarmsDialog, AlarmComponent,
-        PopoverComponent, ResourceDialog, AISPropertiesDialog, PlaybackDialog,
+        PopoverComponent, PlaybackDialog, 
         GeometryCircleComponent, AisTargetsComponent, CompassComponent
     ],
     exports: [
         MsgBox, AlertDialog, ConfirmDialog, AboutDialog,
         FileInputComponent, TextDialComponent, LoginDialog, AlarmsDialog,
-        PopoverComponent, ResourceDialog, AISPropertiesDialog, PlaybackDialog,
-        GeometryCircleComponent, AisTargetsComponent, CompassComponent, AlarmComponent,
+        PopoverComponent, PlaybackDialog, 
+        GeometryCircleComponent, AisTargetsComponent,  
+        CompassComponent, AlarmComponent,
     ],
     entryComponents: [
         MsgBox, AlertDialog, ConfirmDialog, AboutDialog, LoginDialog,
-        ResourceDialog, AISPropertiesDialog, PlaybackDialog, AlarmsDialog
+        PlaybackDialog, AlarmsDialog
     ], 
     providers: []  
 })

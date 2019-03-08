@@ -102,12 +102,16 @@
         </button>                
         <mat-divider></mat-divider>   
         <a mat-menu-item (click)="toggleCourseData()">
-                <mat-icon>{{app.config.courseData ? 'visibility_off' : 'visibility'}}</mat-icon>
-                <span>{{app.config.courseData ? 'Hide' : 'Show'}} Course Data</span>			
-            </a>	             
+            <mat-icon>{{app.config.courseData ? 'visibility_off' : 'compare_arrows'}}</mat-icon>
+            <span>{{app.config.courseData ? 'Hide' : 'Show'}} Course Data</span>			
+        </a>	             
         <a mat-menu-item (click)="toggleAisTargets()">
-            <mat-icon>{{app.config.aisTargets ? 'visibility_off' : 'visibility'}}</mat-icon>
+            <mat-icon>{{app.config.aisTargets ? 'visibility_off' : 'directions_boat'}}</mat-icon>
             <span>{{app.config.aisTargets ? 'Hide' : 'Show'}} Vessels</span>			
+        </a>     
+        <a mat-menu-item (click)="toggleNotes()">
+            <mat-icon>{{app.config.notes ? 'visibility_off' : 'local_offer'}}</mat-icon>
+            <span>{{app.config.notes ? 'Hide' : 'Show'}} Notes</span>			
         </a>	        
         <a mat-menu-item (click)="openSettings()">
             <mat-icon color="primary">settings</mat-icon>
@@ -120,6 +124,10 @@
             <mat-icon style="color:black;">straighten</mat-icon>
             <span>Measure</span>			
         </a>  
+        <a mat-menu-item (click)="drawStart('note')">
+            <mat-icon color="primary">local_offer</mat-icon>
+            <span>Add Note</span>			
+        </a>   
         <mat-divider></mat-divider>                   
         <a mat-menu-item (click)="waypointAdd()">
             <mat-icon style="color:black;" >add_location</mat-icon>
@@ -168,6 +176,13 @@
                         <mat-icon>map</mat-icon>
                         &nbsp;Charts
                     </a>  
+
+                    <a mat-list-item 
+                        *ngIf="!draw.enabled || !measure.enabled"
+                        (click)="sidemenu.close();displayLeftMenu('noteList',true)">
+                        <mat-icon>local_offer</mat-icon>
+                        &nbsp;Notes
+                    </a>                   
                                         
                     <a mat-list-item 
                         *ngIf="!draw.enabled || !measure.enabled"
@@ -238,6 +253,54 @@
                     </div>  
                 </div>             
             </mat-sidenav>
+
+            <!--left menu panel-->
+            <div class="leftMenuPanel" *ngIf="display.leftMenuPanel">
+                <route-list [routes]="app.data.routes" *ngIf="display.routeList"
+                    (select)="routeSelected($event)"
+                    (delete)="routeDelete($event)"
+                    (activate)="routeActivate($event)"
+                    (refresh)="skres.getRoutes()"
+                    (properties)="resourceProperties($event)"
+                    (closed)="displayLeftMenu()">
+                </route-list>
+
+                <waypoint-list [waypoints]="app.data.waypoints" *ngIf="display.waypointList"
+                    (select)="waypointSelected($event)"
+                    (delete)="waypointDelete($event)"
+                    (goto)="waypointGoTo($event)"
+                    (refresh)="skres.getWaypoints()"
+                    (properties)="resourceProperties($event)"
+                    (closed)="displayLeftMenu()">
+                </waypoint-list>       
+                
+                <chart-list [charts]="app.data.charts" *ngIf="display.chartList"
+                    (select)="chartSelected($event)"
+                    (refresh)="skres.getCharts()"
+                    (closed)="displayLeftMenu()">
+                </chart-list>   
+
+                <note-list [notes]="app.data.notes" *ngIf="display.noteList"
+                    (select)="noteDetails({id: $event})"
+                    (refresh)="skres.getNotes()"
+                    (closed)="displayLeftMenu()">
+                </note-list>                 
+
+                <ais-list [aisTargets]="display.vessels.aisTargets" *ngIf="display.aisList"
+                    (select)="aisSelected($event)"
+                    (properties)="aisProperties($event)"
+                    (closed)="displayLeftMenu()">
+                </ais-list>                   
+                
+                <anchor-watch *ngIf="display.anchorWatch"
+                    min="10" max="500" 
+                    [radius]="app.config.anchor.radius" 
+                    [feet]="(app.config.units.depth!='m') ? true : false"
+                    [raised]="app.config.anchor.raised"
+                    (change)="anchorEvent($event)"
+                    (closed)="displayLeftMenu()">
+                </anchor-watch>                     
+            </div>            
 
             <!--map panel-->
             <div style="display: relative; width: 100%; height: 100%;" 
@@ -400,6 +463,50 @@
                     </aol-layer-vector>
                     <!-- *** AIS TARGETS *** -->                    
 
+                    <!-- *** NOTES *** -->
+                    <aol-layer-vector 
+                        *ngIf="app.config.notes && app.config.map.zoomLevel>=app.config.selections.notesMinZoom" 
+                        [zIndex]="120" [renderBuffer]="200">
+                        <aol-source-vector>
+                            <div *ngFor="let w of app.data.notes; let i=index;">
+                                <aol-feature [id]="'note.'+ w[0]">
+                                    <aol-geometry-point>
+                                        <aol-coordinate 
+                                            [x]="w[1].position.longitude" 
+                                            [y]="w[1].position.latitude" 
+                                            [srid]="app.config.map.srid">
+                                        </aol-coordinate>
+                                    </aol-geometry-point>
+                                    <aol-style>
+                                        <aol-style-icon 
+                                            [anchor]="[3.5, 3]"
+                                            [anchorXUnits]="'pixels'"
+                                            [anchorYUnits]= "'pixels'"
+                                            [src]="'./assets/img/note.png'"
+                                            [size]="[25,25]"
+                                            [scale]="1"
+                                            [rotateWithView]="false"
+                                            [rotation]="0">
+                                        </aol-style-icon>
+                                    </aol-style>
+                                </aol-feature>
+                            </div>
+                            <aol-feature *ngIf="display.region.show">
+                                <aol-geometry-polygon>
+                                    <aol-collection-coordinates
+                                        [coordinates]="display.region.boundary"
+                                        [srid]="app.config.map.srid">
+                                    </aol-collection-coordinates>
+                                </aol-geometry-polygon>
+                                <aol-style>
+                                    <aol-style-stroke [color]="'red'"></aol-style-stroke>
+                                    <aol-style-fill [color]="[255,0,0,0.1]"></aol-style-fill>
+                                </aol-style>
+                            </aol-feature> 
+                        </aol-source-vector> 
+                    </aol-layer-vector>
+                    <!-- *** NOTES *** -->    
+
                     <!-- *** popover *** -->
                     <aol-overlay *ngIf="display.overlay.show">
                         <aol-coordinate
@@ -420,8 +527,14 @@
                                 <div style="display:flex;">
                                     <div style="flex:1 1 auto;">
                                         <div>
+                                            <button mat-icon-button *ngIf="display.overlay.type=='note'"
+                                                (click)="noteUpdate({id: display.overlay.id});popoverClosed()"
+                                                matTooltip="Edit Note">
+                                                <mat-icon color="primary">edit</mat-icon>
+                                            </button>                                               
+
                                             <button mat-button *ngIf="display.overlay.addWaypoint"
-                                                (click)="waypointAdd();display.overlay.show=false"
+                                                (click)="waypointAdd();popoverClosed()"
                                                 color="primary"
                                                 matTooltip="Add Waypoint at vessel location">
                                                 <mat-icon>add_location</mat-icon>
@@ -429,21 +542,21 @@
                                             </button>
 
                                             <button mat-icon-button *ngIf="display.overlay.canDelete"
-                                                (click)="resourceDelete(display.overlay.id);display.overlay.show=false"
+                                                (click)="resourceDelete(display.overlay.id);popoverClosed()"
                                                 color="warn"
                                                 matTooltip="Delete">
                                                 <mat-icon>delete</mat-icon>
                                             </button>
 
                                             <button mat-button *ngIf="display.overlay.gotoWaypoint"
-                                                (click)="waypointGoTo({id: display.overlay.id});display.overlay.show=false"
+                                                (click)="waypointGoTo({id: display.overlay.id});popoverClosed()"
                                                 color="primary"
                                                 matTooltip="Navigate to Waypoint">
                                                 <mat-icon>near_me</mat-icon>
                                             </button>                                           
 
                                             <button mat-icon-button *ngIf="display.overlay.activateRoute" 
-                                                (click)="routeActivate({id: display.overlay.id});display.overlay.show=false"
+                                                (click)="routeActivate({id: display.overlay.id});popoverClosed()"
                                                 color="primary"
                                                 matTooltip="Make this the Active Route">
                                                 <mat-icon>select_all</mat-icon>
@@ -453,11 +566,11 @@
                                     </div>
                                     <div style="text-align:right;">
                                         <button mat-icon-button
-                                            (click)="resourceProperties(display.overlay);display.overlay.show=false"
+                                            (click)="resourceProperties(display.overlay);popoverClosed()"
                                             *ngIf="display.overlay.showProperties && display.overlay.type!='ais'"
                                             matTooltip="Show Properties">
                                             <mat-icon>info_outline</mat-icon>
-                                        </button>                                      
+                                        </button>                                                                          
                                     </div>   
                                 </div>                             
                             </ap-popover>
@@ -734,48 +847,6 @@
                 </a>                      
                 </div>             
             </div>         
-
-            <!--left menu panel-->
-            <div class="leftMenuPanel" *ngIf="display.leftMenuPanel">
-                <route-list [routes]="app.data.routes" *ngIf="display.routeList"
-                    (select)="routeSelected($event)"
-                    (delete)="routeDelete($event)"
-                    (activate)="routeActivate($event)"
-                    (refresh)="skres.getRoutes()"
-                    (properties)="resourceProperties($event)"
-                    (closed)="displayLeftMenu()">
-                </route-list>
-
-                <waypoint-list [waypoints]="app.data.waypoints" *ngIf="display.waypointList"
-                    (select)="waypointSelected($event)"
-                    (delete)="waypointDelete($event)"
-                    (goto)="waypointGoTo($event)"
-                    (refresh)="skres.getWaypoints()"
-                    (properties)="resourceProperties($event)"
-                    (closed)="displayLeftMenu()">
-                </waypoint-list>       
-                
-                <chart-list [charts]="app.data.charts" *ngIf="display.chartList"
-                    (select)="chartSelected($event)"
-                    (refresh)="skres.getCharts()"
-                    (closed)="displayLeftMenu()">
-                </chart-list>   
-
-                <ais-list [aisTargets]="display.vessels.aisTargets" *ngIf="display.aisList"
-                    (select)="aisSelected($event)"
-                    (properties)="aisProperties($event)"
-                    (closed)="displayLeftMenu()">
-                </ais-list>                   
-                
-                <anchor-watch *ngIf="display.anchorWatch"
-                    min="10" max="500" 
-                    [radius]="app.config.anchor.radius" 
-                    [feet]="(app.config.units.depth!='m') ? true : false"
-                    [raised]="app.config.anchor.raised"
-                    (change)="anchorEvent($event)"
-                    (closed)="displayLeftMenu()">
-                </anchor-watch>                     
-            </div>
 
             <!-- *** Playback panel ***-->
             <div class="playbackPanel" *ngIf="mode==1">
