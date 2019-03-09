@@ -189,52 +189,57 @@ export class SKResources {
                 if(res) {                   
                     let r= Object.entries(res);
                     r.forEach( i=> { regions.push([i[0], new SKRegion(i[1]), false]) });
-                }
-                let rf= this.app.config.resources.notes.rootFilter;
-                if(rf && rf[0]!='?') { rf='?' + rf }
-                this.signalk.api.get('/resources/notes'+ rf)
-                .subscribe( 
-                    res=> { 
-                        this.app.data.notes= [];
-                        if(!res) { return }                   
-                        let r= Object.entries(res);
-                        // ** set an upper limit of records to process **
-                        if(r.length>300) { r= r.slice(0,299) }
-                        r.forEach( i=> {
-                            if(!i[1]['title']) { 
-                                i[1]['feature'].properties.title='Note-' + i[0].slice(-6);
-                            }
-                            if(typeof i[1]['position']=='undefined') {
-                                if(typeof i[1]['geohash']!=='undefined') {  // get center of geohash
-                                    let gh= new GeoHash()
-                                    let p= gh.center( i[1]['geohash'] );
-                                    i[1]['position']= {latitude:p[1], longitude:p[0]} 
-                                    let b= gh.decode( i[1]['geohash'] );
-                                    i[1]['boundary']= [
-                                        b.ne, [ b.ne[0], b.sw[1] ], b.sw, [ b.sw[0], b.ne[1] ], b.ne
-                                    ];
-                                }
-                                else if(typeof i[1]['region']!=='undefined') { // get center of region 
-                                    let ra= regions.filter( j=> { 
-                                        if(j[0]==i[1]['region']) { return true }
-                                    });
-                                    if(ra.length!=0) {
-                                        let r= ra[0][1];
-                                        let c= GeoUtils.centreOfPolygon(r.feature.geometry.coordinates[0]);
-                                        i[1]['position']= {latitude: c[1], longitude: c[0]};
-                                        i[1]['boundary']= r.feature.geometry.coordinates[0];
-                                    }
-                                }            
-                            }
-                            if( typeof i[1]['position']!== 'undefined') { 
-                                this.app.data.notes.push([ i[0], new SKNote(i[1]), true ]);
-                            }
-                        });
-                    }
-                )                
-            }
+                    this.retrieveNotes(regions);
+                }          
+            },
+            err=> { this.retrieveNotes() }
         )        
     } 
+
+    private retrieveNotes(regions=[]) {
+        let rf= this.app.config.resources.notes.rootFilter;
+        if(rf && rf[0]!='?') { rf='?' + rf }
+        this.signalk.api.get('/resources/notes'+ rf)
+        .subscribe( 
+            res=> { 
+                this.app.data.notes= [];
+                if(!res) { return }                   
+                let r= Object.entries(res);
+                // ** set an upper limit of records to process **
+                if(r.length>300) { r= r.slice(0,299) }
+                r.forEach( i=> {
+                    if(!i[1]['title']) { 
+                        i[1]['feature'].properties.title='Note-' + i[0].slice(-6);
+                    }
+                    if(typeof i[1]['position']=='undefined') {
+                        if(typeof i[1]['geohash']!=='undefined') {  // get center of geohash
+                            let gh= new GeoHash()
+                            let p= gh.center( i[1]['geohash'] );
+                            i[1]['position']= {latitude:p[1], longitude:p[0]} 
+                            let b= gh.decode( i[1]['geohash'] );
+                            i[1]['boundary']= [
+                                b.ne, [ b.ne[0], b.sw[1] ], b.sw, [ b.sw[0], b.ne[1] ], b.ne
+                            ];
+                        }
+                        else if(typeof i[1]['region']!=='undefined') { // get center of region 
+                            let ra= regions.filter( j=> { 
+                                if(j[0]==i[1]['region']) { return true }
+                            });
+                            if(ra.length!=0) {
+                                let r= ra[0][1];
+                                let c= GeoUtils.centreOfPolygon(r.feature.geometry.coordinates[0]);
+                                i[1]['position']= {latitude: c[1], longitude: c[0]};
+                                i[1]['boundary']= r.feature.geometry.coordinates[0];
+                            }
+                        }            
+                    }
+                    if( typeof i[1]['position']!== 'undefined') { 
+                        this.app.data.notes.push([ i[0], new SKNote(i[1]), true ]);
+                    }
+                });
+            }
+        )      
+    }
 }
 
 // ** Signal K route
