@@ -74,6 +74,11 @@
     </mat-dialog-content>
     <mat-dialog-actions>
         <div style="text-align:center;width:100%;">
+            <button mat-raised-button (click)="dialogRef.close({result:true, data: 'delete'})"
+                matTooltip="Delete Note">
+                <mat-icon color="warn">delete</mat-icon>
+            </button>   
+            &nbsp;&nbsp;&nbsp;              
             <button mat-raised-button (click)="dialogRef.close({result:true, data: 'edit'})"
                 matTooltip="Edit Note">
                 <mat-icon color="primary">edit</mat-icon>
@@ -88,7 +93,7 @@
 
 <div class="_ap-resource" *ngIf="data.editable">
     <div>
-        <h1 mat-dialog-title>{{(data.addMode) ? 'New Note:' : 'Edit Note:'}}</h1>
+        <h1 mat-dialog-title>{{(!data.title) ? (data.addMode) ? 'New Note:' : 'Edit Note:' : data.title}}</h1>
     </div>
     <mat-dialog-content>
         <div style="display:flex;">

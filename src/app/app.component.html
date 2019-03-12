@@ -128,6 +128,10 @@
             <mat-icon color="primary">local_offer</mat-icon>
             <span>Add Note</span>			
         </a>   
+        <a mat-menu-item (click)="drawStart('region')">
+            <mat-icon color="primary">tab_unselected</mat-icon>
+            <span>Draw Region + Note</span>			
+        </a>           
         <mat-divider></mat-divider>                   
         <a mat-menu-item (click)="waypointAdd()">
             <mat-icon style="color:black;" >add_location</mat-icon>
@@ -821,6 +825,15 @@
                             <li>Click on the last Point to end drawing.</li>
                         </ol>
                     </div> 
+                    <div *ngIf="draw.type=='Polygon'"
+                        style="padding: 5px;">
+                        <ol style="margin-block-start: .2em;
+                                margin-block-end: .2em;
+                                padding-inline-start: 15px;">
+                            <li>Click on the Map to place a vertex of the Region.</li>
+                            <li>Click on the last point to end drawing.</li>
+                        </ol>
+                    </div>                     
                 </div>
                 <div *ngIf="measure.enabled">
                     <span style="font-weight:bold;padding: 5px;">
@@ -855,6 +868,7 @@
                 </div>
                 <div style="text-align:center;"> {{display.playback.time}}</div>
             </div>
+
             <!-- *** Alarm / Mode panel ***-->
 			<div class="alarmPanel">
                 <span *ngFor="let a of display.alarms | keyvalue" style="margin-bottom: 5px;">

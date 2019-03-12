@@ -10,7 +10,7 @@ import { SettingsDialog } from './pages';
 import { GPXImportDialog } from './lib/gpxload/gpxload.module';
 
 import { SignalKClient, Alarm, AlarmState } from 'signalk-client-angular';
-import { SKResources, SKWaypoint, SKVessel, SKNote,
+import { SKResources, SKWaypoint, SKVessel, SKNote, SKRegion,
         ResourceDialog, AISPropertiesDialog, NoteDialog  } from './lib/skresources/';
 import { Convert } from './lib/convert';
 import { GeoUtils } from './lib/geoutils';
@@ -606,7 +606,7 @@ export class AppComponent {
         }            
     }  
    
-    // ****** MAP functions *******
+    // ****** MAP handler functions *******
     // ** handle map zoom controls 
     mapZoom(zoomIn:boolean) {
         if(zoomIn) {
@@ -782,6 +782,7 @@ export class AppComponent {
                 this.display.overlay['type']='note';
                 this.display.overlay['id']= t[1];
                 this.display.overlay['showProperties']=true;
+                this.display.overlay['canDelete']=true;
                 this.display.overlay.title= 'Note';  
                 info.push(['Title', item[0][1].title]);
                 info.push(['Desc.', (item[0][1].description) ? item[0][1].description.slice(0,47) + '...' : '']);  
@@ -844,7 +845,12 @@ export class AppComponent {
                 this.draw.type= 'LineString'
                 this.draw.mode= mode;
                 this.draw.enabled= true;
-                break;                
+                break;    
+            case 'region':
+                this.draw.type= 'Polygon'
+                this.draw.mode= mode;
+                this.draw.enabled= true;
+                break;                              
             default: 
                 return;
         }
@@ -874,6 +880,21 @@ export class AppComponent {
                 });
                 this.routeAdd({coordinates: c});
                 break;
+            case 'Polygon':  // region + Note
+                let p= e.feature.getGeometry().getCoordinates();
+                if(p.length==0) { return }
+                c= p[0].map( i=> { 
+                    return proj.transform(
+                        i, 
+                        this.app.config.map.mrid, 
+                        this.app.config.map.srid
+                    );
+                });
+                let region= new SKRegion();
+                let uuid= this.signalk.uuid.toSignalK();
+                region.feature.geometry.coordinates= [c];
+                this.noteUpdate({region: {id:uuid, data: region }})
+                break;                
         }
     }
 
@@ -980,6 +1001,7 @@ export class AppComponent {
             if(r.result) { // ** open in tab **
                 if(r.data== 'url') { this.openUrl(n.url, 'note') }
                 if(r.data== 'edit') { this.noteUpdate({id: na[0][0]}) }
+                if(r.data== 'delete') { this.noteDelete({id: na[0][0]}) }
             }
         });
     }
@@ -993,27 +1015,34 @@ export class AppComponent {
 
         if(!e) { return }
         if(!e.id && e.position) { // add note at provided position
-            if(this.app.config.resources.notes.extAdd) {
+            /*if(this.app.config.resources.notes.extAdd) {
                 let url:any= this.dom.bypassSecurityTrustResourceUrl(`${this.app.config.resources.notes.extAdd}${e.id}`);
                 url=this.app.config.resources.notes.extAdd;
                 this.openUrl( url, 'extedit' );
                 return;
-            }
+            }*/
             note= new SKNote(); 
             note.position= {latitude: e.position[1], longitude: e.position[0]};    
             title= 'Add Note:';      
             note.title= '';
             note.description= '';
         }
-        else { // edit selected note details
-            if(this.app.config.resources.notes.extEdit) {
+        else if(!e.id && e.region) { // add region + note
+            note= new SKNote(); 
+            note.region= e.region.id;    
+            title= 'Add Note to Region:';      
+            note.title= '';
+            note.description= '';
+        }        
+        else {    // edit selected note details
+            /*if(this.app.config.resources.notes.extEdit) {
                 let url:any= this.dom.bypassSecurityTrustResourceUrl(`${this.app.config.resources.notes.extEdit}${e.id}`);
                 url=this.app.config.resources.notes.extEdit;
                 this.openUrl( url, 'extedit' );
                 return;
-            }            
+            }*/            
             resId= e.id;
-            title= 'Note Details:'; 
+            title= 'Edit Note:'; 
             let n= this.app.data.notes.filter( i=>{ if(i[0]==resId) return true });
             if(n.length==0) { return }
             note= JSON.parse( JSON.stringify(n[0][1]) );
@@ -1025,27 +1054,53 @@ export class AppComponent {
             data: {
                 note: note,
                 editable: true,
-                addNote: addMode
+                addNote: addMode,
+                title: title
             }
         }).afterClosed().subscribe( r=> {        
             if(r.result) { // ** save / update waypoint **
                 let note= r.data;
-                console.log(note)
                 if(note.boundary) { delete note.boundary }
-                console.log(note)
-                
-                if(!resId) { // add
+
+                if(e.region) {  // add region + note
+                    this.signalk.api.put( 
+                        'self', 
+                        `resources.regions`, 
+                        e.region.id,
+                        e.region.data
+                    ).subscribe( 
+                        res=>{ 
+                            if(res['state']=='COMPLETED') {  
+                                resId= this.signalk.uuid.toSignalK();
+                                this.signalk.api.put( 'self', 'resources.notes', resId, note ).subscribe(
+                                    r=> this.skres.getNotes(),
+                                    err=> {
+                                        if(err.status && err.status==401) { this.showAuthRequired() }  
+                                        else { this.showAlert('ERROR:', 'Server could not add Note!') }                            
+                                    }
+                                );                                
+                            }
+                            else { this.showAlert('ERROR:', 'Server could not add Region!') }
+                        },
+                        err=> { 
+                            if(err.status && err.status==401) { this.showAuthRequired() }  
+                            else { this.showAlert('ERROR:', 'Server could not add Region!') }
+                        }
+                    );
+                }
+                else if(!resId) { // add note
                     resId= this.signalk.uuid.toSignalK();
-                    this.signalk.post(`/signalk/v1/api/resources/notes/${resId}`, note).subscribe(
-                        r=> this.skres.getNotes(),
+                    this.signalk.api.put( 'self', 'resources.notes', resId, note ).subscribe(
+                        res=> this.skres.getNotes(),
                         err=> {
                             if(err.status && err.status==401) { this.showAuthRequired() }  
                             else { this.showAlert('ERROR:', 'Server could not add Note!') }                            
                         }
                     );
                 }
-                else { this.signalk.post(`/signalk/v1/api/resources/notes/${resId}`, note).subscribe(
-                        r=> this.skres.getNotes(),
+                else {      // update note
+                    this.signalk.api.put( 'self', 'resources.notes', resId, note ).subscribe(
+                        res=> this.skres.getNotes(),
                         err=> {
                             if(err.status && err.status==401) { this.showAuthRequired() }  
                             else { this.showAlert('ERROR:', 'Server could not update Note!') }                            
@@ -1056,6 +1111,42 @@ export class AppComponent {
         });
     }
 
+    // **  Delete Note
+    noteDelete(e:any) { 
+        this.dialog.open(ConfirmDialog, {
+            disableClose: true,
+            data: {
+                message: 'Do you want to delete this Note?\nWarning: If Note has an associated Region it too wil be deleted!\n \Note (and Region) will be removed from the server (if configured to permit this operation).',
+                title: 'Delete Note:',
+                button1Text: 'YES',
+                button2Text: 'NO'
+            }
+        }).afterClosed().subscribe( res=> {
+            if(res) {
+                let n= this.app.data.notes.filter( i=> { if(i[0]==e.id) { return true } });
+                if(n[0][1].region) {    // delete associated region
+                    this.signalk.api.put( 'self', `resources.regions`, n[0][1].region, null)
+                    .subscribe( 
+                        res=> { this.app.debug('Region deleted') },
+                        err=> { this.app.debug('Error deleteing Region!') } 
+                    ); 
+                }
+                this.signalk.api.put('self', `resources.notes`, e.id, null)
+                .subscribe( 
+                    r=> {  
+                        this.skres.getNotes();
+                        if(r['state']=='COMPLETED') { this.app.debug('SUCCESS: Note deleted.') }
+                        else { this.showAlert('ERROR:', 'Server could not delete Note!') }                            
+                    },
+                    err=> { 
+                        if(err.status && err.status==401) { this.showAuthRequired() }  
+                        else { this.showAlert('ERROR:', 'Server could not delete Note!') }
+                    }
+                );
+            }
+        });          
+    }    
+
     // ** handle resource deletion **
     resourceDelete(id:string) {
         switch(this.display.overlay['type']) {
@@ -1064,7 +1155,10 @@ export class AppComponent {
                 break;
             case 'route':
                 this.routeDelete({id: id});
-                break;                
+                break;   
+            case 'note':
+                this.noteDelete({id: id});
+                break;               
         }    
     }
 
