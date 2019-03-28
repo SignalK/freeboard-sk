@@ -70,23 +70,28 @@
             &nbsp;
             <div style="width:45px;font-weight:bold;">Lng:</div>
             <div>{{data.note.position.longitude}}</div> 
-        </div>       
+        </div>    
+        <div style="text-align:right;display:flex;">
+            <div>
+                <button mat-raised-button (click)="dialogRef.close({result:true, data: 'edit'})"
+                    matTooltip="Edit Note">
+                    <mat-icon color="primary">edit</mat-icon> Edit
+                </button>  
+            </div>
+            <div style="flex: 1 1 auto;"></div>   
+            <div>
+                <button mat-raised-button (click)="dialogRef.close({result:true, data: 'delete'})"
+                    matTooltip="Delete Note">
+                    <mat-icon color="warn">delete</mat-icon>
+                </button> 
+            </div>         
+        </div>
     </mat-dialog-content>
     <mat-dialog-actions>
-        <div style="text-align:center;width:100%;">
-            <button mat-raised-button (click)="dialogRef.close({result:true, data: 'delete'})"
-                matTooltip="Delete Note">
-                <mat-icon color="warn">delete</mat-icon>
-            </button>   
-            &nbsp;&nbsp;&nbsp;              
-            <button mat-raised-button (click)="dialogRef.close({result:true, data: 'edit'})"
-                matTooltip="Edit Note">
-                <mat-icon color="primary">edit</mat-icon>
-            </button>   
-            &nbsp;&nbsp;&nbsp;                       
+        <div style="text-align:center;width:100%;">                   
             <button mat-raised-button (click)="dialogRef.close({result:false})">
                 CLOSE
-            </button>
+            </button>          
         </div>					
     </mat-dialog-actions>
 </div>	

@@ -33,8 +33,7 @@ export class AppComponent {
         routeList: false,
         waypointList: false,
         chartList: false,
-        noteList: false,
-        region: { show:false, boundary: [] },        
+        noteList: false,     
         aisList: false,
         anchorWatch: false,
         showSelf: false,
@@ -233,6 +232,21 @@ export class AppComponent {
             dRef.afterClosed().subscribe( ()=>{ this.connectSignalKServer() } );
         });
     } 
+
+    // ** switch between realtime and history playback modes
+    switchMode(toMode: APP_MODE, query:any='none') {
+        this.app.debug(`switchMode from: ${this.mode} to ${toMode}`);
+        if(toMode== APP_MODE.PLAYBACK) { // ** history playback
+            this.app.db.saveTrail('self', this.app.data.trail);
+            this.app.data.trail= [];
+        }
+        else {  // ** realtime data
+            this.app.db.getTrail('self').then( t=> { 
+                this.app.data.trail= (t && t.value) ? t.value : [];
+            });
+        }
+        this.openSKStream(query, toMode);
+    }   
     
     // ** start trail / AIS timers
     startTimers() {
@@ -284,21 +298,6 @@ export class AppComponent {
             }
             else { this.signalk.stream.clearAlarm('self', r.type) }
         });          
-    }
-
-    actionAlarm(action:string, id:string) { 
-        let alarm= this.display.alarms.get(id);
-        switch(action) {
-            case 'ack':
-                alarm.acknowledged=true;
-                break;
-            case 'mute':
-                alarm.muted=true;
-                break;
-            case 'clear':
-                this.display.alarms.delete(id);
-                break;
-        } 
     }
 
     //** open settings dialog **
@@ -436,21 +435,69 @@ export class AppComponent {
             }
         });
     }
+ 
 
-    // ** switch between realtime and history playback modes
-    switchMode(toMode: APP_MODE, query:any='none') {
-        this.app.debug(`switchMode from: ${this.mode} to ${toMode}`);
-        if(toMode== APP_MODE.PLAYBACK) { // ** history playback
-            this.app.db.saveTrail('self', this.app.data.trail);
-            this.app.data.trail= [];
+    // ********** TOOLBAR ACTIONS **********
+
+    displayLeftMenu( menulist:string='', show:boolean= false) {
+        this.display.leftMenuPanel= show;
+        this.display.routeList= false;
+        this.display.waypointList= false; 
+        this.display.chartList= false;
+        this.display.noteList= false;
+        this.display.aisList= false;
+        this.display.anchorWatch= false;
+        switch (menulist) {
+            case 'routeList': 
+                this.display.routeList= show;
+                break;
+            case 'waypointList': 
+                this.display.waypointList= show;
+                break;   
+            case 'chartList': 
+                this.display.chartList= show;
+                break;  
+            case 'noteList': 
+                this.display.noteList= show;
+                break;                                   
+            case 'anchorWatch': 
+                this.display.anchorWatch= show;
+                break;    
+            case 'aisList': 
+                this.display.aisList= show;
+                break;                                                   
+            default: 
+                this.display.leftMenuPanel= false;     
         }
-        else {  // ** realtime data
-            this.app.db.getTrail('self').then( t=> { 
-                this.app.data.trail= (t && t.value) ? t.value : [];
-            });
-        }
-        this.openSKStream(query, toMode);
-    }    
+    }
+
+    toggleMoveMap() { 
+        this.app.config.map.moveMap= !this.app.config.map.moveMap;
+        if(this.app.config.map.moveMap) { this.mapMove() }
+        this.app.saveConfig();
+    }
+
+    toggleNorthUp() { 
+        this.app.config.map.northUp= !this.app.config.map.northUp;
+        this.mapRotate();
+        this.app.saveConfig();
+    }
+
+    toggleAisTargets() { 
+        this.app.config.aisTargets= !this.app.config.aisTargets;
+        if(this.app.config.aisTargets) { this.processAIS(true) }
+        this.app.saveConfig();
+    }
+
+    toggleCourseData() { 
+        this.app.config.courseData= !this.app.config.courseData;
+        this.app.saveConfig();
+    }  
+    
+    toggleNotes() { 
+        this.app.config.notes= !this.app.config.notes;
+        this.app.saveConfig();
+    }  
 
     // **********  GPX File processing **********
     processGPX(e) {
@@ -467,7 +514,7 @@ export class AppComponent {
             let errCount=0;
             res.routes.forEach( rte=> {
                 subCount++;
-                this.signalk.api.put('self',`/resources/routes`, rte[0], rte[1])
+                this.signalk.api.put(`/resources/routes/${rte[0]}`, rte[1])
                 .subscribe( 
                     r=> { 
                         if(r['state']=='COMPLETED') { 
@@ -487,7 +534,7 @@ export class AppComponent {
 
             res.waypoints.forEach( wpt=> {
                 subCount++;            
-                this.signalk.api.put('self',`/resources/waypoints`, wpt[0], wpt[1])
+                this.signalk.api.put(`/resources/waypoints/${wpt[0]}`, wpt[1])
                 .subscribe( 
                     r=>{ 
                         if(r['state']=='COMPLETED') { 
@@ -557,6 +604,9 @@ export class AppComponent {
         if(!this.app.config.map.moveMap) { 
             this.app.saveConfig();
             this.isDirty=false;
+            if(this.app.config.resources.notes.rootFilter) { // retrieve Notes
+                //this.skres.getNotes();
+            }
         }
         else { this.isDirty=true }
     }
@@ -578,13 +628,57 @@ export class AppComponent {
                 `${Convert.kmToNauticalMiles(this.measure.totalDistance/1000).toFixed(2)} NM`              
         }        
         else if(!this.draw.enabled) {
+            let flist= [];
+            // compile list of features at click location
             e.map.forEachFeatureAtPixel(e.pixel, (feature, layer)=> {
-                this.display.overlay.show= this.formatPopover( 
-                    feature.getId(),
-                    e.coordinate,
-                    this.app.config.map.mrid
-                );         
+                let id= feature.getId();
+                if(id) {
+                    let t= id.split('.');
+                    let icon: string;
+                    let text: string;
+                    switch(t[0]) {
+                        case 'note': icon="local_offer"; 
+                            text= this.app.data.notes.filter( i=>{ return (i[0]==t[1])? i[1].title : null })[0][1].title;
+                            break;
+                        case 'route': icon="directions"; 
+                            text= this.app.data.routes.filter( i=>{ return (i[0]==t[1])? i[1].title : null })[0][1].title;
+                            break;
+                        case 'waypoint': icon="location"; 
+                            text= this.app.data.waypoints.filter( i=>{ return (i[0]==t[1])? i[1].title : null })[0][1].title;
+                            break;
+                        case 'ais-vessels': icon="directions_boat"; 
+                            let v= this.display.vessels.aisTargets.get(`vessels.${t[1]}`);
+                            text= (v) ? v.name || v.mmsi || v.title : '';
+                            break;
+                        case 'vessels': icon="directions_boat"; 
+                            text= 'self'; 
+                            break;
+                        case 'region': icon="360"; text='Region'; break;
+                    }
+                    flist.push({
+                        id: id, 
+                        coord: e.coordinate, 
+                        mrid: this.app.config.map.mrid,
+                        icon: icon,
+                        text: text
+                    });
+                }  
             });
+            if(flist.length==1) {   // only 1 feature
+                this.formatPopover( 
+                    flist[0].id,
+                    flist[0].coord,
+                    flist[0].mrid
+                );  
+            }
+            else if(flist.length>1) { //show list of features
+                this.formatPopover( 
+                    'list.',
+                    e.coordinate,
+                    this.app.config.map.mrid,
+                    flist
+                );                  
+            }
         }
     }
     
@@ -700,40 +794,10 @@ export class AppComponent {
         }
     }
 
-    toggleMoveMap() { 
-        this.app.config.map.moveMap= !this.app.config.map.moveMap;
-        if(this.app.config.map.moveMap) { this.mapMove() }
-        this.app.saveConfig();
-    }
+    popoverClosed() { this.display.overlay.show= false }
 
-    toggleNorthUp() { 
-        this.app.config.map.northUp= !this.app.config.map.northUp;
-        this.mapRotate();
-        this.app.saveConfig();
-    }
-
-    toggleAisTargets() { 
-        this.app.config.aisTargets= !this.app.config.aisTargets;
-        if(this.app.config.aisTargets) { this.processAIS(true) }
-        this.app.saveConfig();
-    }
-
-    toggleCourseData() { 
-        this.app.config.courseData= !this.app.config.courseData;
-        this.app.saveConfig();
-    }  
-    
-    toggleNotes() { 
-        this.app.config.notes= !this.app.config.notes;
-        this.app.saveConfig();
-    }
-
-    popoverClosed() { 
-        this.display.overlay.show= false; 
-        this.display.region= {show: false, boundary:[]}; 
-    }
-
-    formatPopover(id:string, coord:any, prj:any) {
+    formatPopover(id:string, coord:any, prj:any, list?:any) {
+        this.display.overlay['addNote']=null;  
         this.display.overlay['addWaypoint']=null;  
         this.display.overlay['gotoWaypoint']=null;
         this.display.overlay['activateRoute']=null;
@@ -743,9 +807,8 @@ export class AppComponent {
         this.display.overlay['canDelete']=null;
         this.display.overlay['url']=null;
         this.display.overlay.content=[];
-        this.display.region= {show: false, boundary:[]};
+        if(!id) { this.display.overlay.show=false; return false }
 
-        if(!id) { return false }
         let item= null;
         let info= [];        
         let t= id.split('.');
@@ -754,9 +817,26 @@ export class AppComponent {
             coord, 
             prj, 
             this.app.config.map.srid
-        );        
-
+        );      
+ 
         switch(t[0]) {
+            case 'list':
+                this.display.overlay['type']='list';
+                this.display.overlay['id']= null;
+                this.display.overlay['showProperties']=false;
+                this.display.overlay['canDelete']=false;
+                this.display.overlay['addNote']=false;  
+                this.display.overlay.title= 'Features'; 
+                info= (list) ? list : [];          
+                break;            
+            case 'region':
+                this.display.overlay['type']='region';
+                this.display.overlay['id']= t[1];
+                this.display.overlay['showProperties']=false;
+                this.display.overlay['canDelete']=false;
+                this.display.overlay['addNote']=true;  
+                this.display.overlay.title= 'Region';           
+                break;
             case 'vessels':
                 this.display.overlay.title= (this.display.vessels.self.name) ? 
                     this.display.vessels.self.name : 'Self'; 
@@ -786,11 +866,7 @@ export class AppComponent {
                 this.display.overlay.title= 'Note';  
                 info.push(['Title', item[0][1].title]);
                 info.push(['Desc.', (item[0][1].description) ? item[0][1].description.slice(0,47) + '...' : '']);  
-                if(item[0][1].url) { this.display.overlay['url']=item[0][1].url }
-                if(item[0][1].boundary) { 
-                    this.display.region.show=true;
-                    this.display.region.boundary=item[0][1].boundary;
-                }                
+                if(item[0][1].url) { this.display.overlay['url']=item[0][1].url }             
                 break;                
             case 'route':
                 item= this.app.data.routes.filter( i=>{ if(i[0]==t[1]) return true });
@@ -828,6 +904,7 @@ export class AppComponent {
                 break;       
         }
         this.display.overlay.content= info;
+        this.display.overlay.show=true;
         return true;
     }
 
@@ -941,39 +1018,7 @@ export class AppComponent {
         else { return 0 }
     }
          
-    // ******** RESOURCE EVENTS ************
-
-    displayLeftMenu( menulist:string='', show:boolean= false) {
-        this.display.leftMenuPanel= show;
-        this.display.routeList= false;
-        this.display.waypointList= false; 
-        this.display.chartList= false;
-        this.display.noteList= false;
-        this.display.aisList= false;
-        this.display.anchorWatch= false;
-        switch (menulist) {
-            case 'routeList': 
-                this.display.routeList= show;
-                break;
-            case 'waypointList': 
-                this.display.waypointList= show;
-                break;   
-            case 'chartList': 
-                this.display.chartList= show;
-                break;  
-            case 'noteList': 
-                this.display.noteList= show;
-                break;                                   
-            case 'anchorWatch': 
-                this.display.anchorWatch= show;
-                break;    
-            case 'aisList': 
-                this.display.aisList= show;
-                break;                                                   
-            default: 
-                this.display.leftMenuPanel= false;     
-        }
-    }
+    // ******** RESOURCE EVENTS ************  
 
     // ** handle display resource properties **
     resourceProperties(r:any) {
@@ -990,6 +1035,22 @@ export class AppComponent {
         }
     }
 
+    // ** handle resource deletion **
+    resourceDelete(id:string) {
+        switch(this.display.overlay['type']) {
+            case 'waypoint':
+                this.waypointDelete({id: id});
+                break;
+            case 'route':
+                this.routeDelete({id: id});
+                break;   
+            case 'note':
+                this.noteDelete({id: id});
+                break;               
+        }    
+    }    
+
+    // *********** NOTES ****************
     // ** Display Note Details.
     noteDetails(r:any) {
         let na= this.app.data.notes.filter( i=> { if(i[0]==r.id) { return true } });
@@ -1064,15 +1125,13 @@ export class AppComponent {
 
                 if(e.region) {  // add region + note
                     this.signalk.api.put( 
-                        'self', 
-                        `resources.regions`, 
-                        e.region.id,
+                        `/resources/regions/${e.region.id}`,
                         e.region.data
                     ).subscribe( 
                         res=>{ 
                             if(res['state']=='COMPLETED') {  
                                 resId= this.signalk.uuid.toSignalK();
-                                this.signalk.api.put( 'self', 'resources.notes', resId, note ).subscribe(
+                                this.signalk.api.put(`/resources/notes/${resId}`, note ).subscribe(
                                     r=> this.skres.getNotes(),
                                     err=> {
                                         if(err.status && err.status==401) { this.showAuthRequired() }  
@@ -1090,7 +1149,7 @@ export class AppComponent {
                 }
                 else if(!resId) { // add note
                     resId= this.signalk.uuid.toSignalK();
-                    this.signalk.api.put( 'self', 'resources.notes', resId, note ).subscribe(
+                    this.signalk.api.put(`/resources/notes/${resId}`, note ).subscribe(
                         res=> this.skres.getNotes(),
                         err=> {
                             if(err.status && err.status==401) { this.showAuthRequired() }  
@@ -1099,7 +1158,7 @@ export class AppComponent {
                     );
                 }
                 else {      // update note
-                    this.signalk.api.put( 'self', 'resources.notes', resId, note ).subscribe(
+                    this.signalk.api.put(`/resources/notes/${resId}`, note ).subscribe(
                         res=> this.skres.getNotes(),
                         err=> {
                             if(err.status && err.status==401) { this.showAuthRequired() }  
@@ -1116,7 +1175,7 @@ export class AppComponent {
         this.dialog.open(ConfirmDialog, {
             disableClose: true,
             data: {
-                message: 'Do you want to delete this Note?\nWarning: If Note has an associated Region it too wil be deleted!\n \Note (and Region) will be removed from the server (if configured to permit this operation).',
+                message: 'Do you want to delete this Note?\nNote will be removed from the server (if configured to permit this operation).',
                 title: 'Delete Note:',
                 button1Text: 'YES',
                 button2Text: 'NO'
@@ -1124,14 +1183,7 @@ export class AppComponent {
         }).afterClosed().subscribe( res=> {
             if(res) {
                 let n= this.app.data.notes.filter( i=> { if(i[0]==e.id) { return true } });
-                if(n[0][1].region) {    // delete associated region
-                    this.signalk.api.put( 'self', `resources.regions`, n[0][1].region, null)
-                    .subscribe( 
-                        res=> { this.app.debug('Region deleted') },
-                        err=> { this.app.debug('Error deleteing Region!') } 
-                    ); 
-                }
-                this.signalk.api.put('self', `resources.notes`, e.id, null)
+                this.signalk.api.delete(`/resources/notes/${e.id}`)
                 .subscribe( 
                     r=> {  
                         this.skres.getNotes();
@@ -1147,21 +1199,7 @@ export class AppComponent {
         });          
     }    
 
-    // ** handle resource deletion **
-    resourceDelete(id:string) {
-        switch(this.display.overlay['type']) {
-            case 'waypoint':
-                this.waypointDelete({id: id});
-                break;
-            case 'route':
-                this.routeDelete({id: id});
-                break;   
-            case 'note':
-                this.noteDelete({id: id});
-                break;               
-        }    
-    }
-
+    // *********** ROUTES ****************
     // ** view / update route details **
     routeDetails(e:any) {
         let t= this.app.data.routes.filter( i=>{ if(i[0]==e.id) return true });
@@ -1181,12 +1219,8 @@ export class AppComponent {
             if(r.result) { // ** save / update route **
                 rte['description']= r.data.comment;
                 rte['name']= r.data.name;
-                this.signalk.api.put(
-                    'self',
-                    `/resources/routes`,
-                    resId, 
-                    rte
-                ).subscribe( 
+                this.signalk.api.put(`/resources/routes/${resId}`, rte)
+                .subscribe( 
                     r=>{ 
                         this.skres.getRoutes();
                         if(r['state']=='COMPLETED') { this.app.debug('SUCCESS: Route updated.') }
@@ -1213,7 +1247,7 @@ export class AppComponent {
             }
         }).afterClosed().subscribe( res=> {
             if(res) {
-                this.signalk.api.put('self','resources.routes', e.id, null)
+                this.signalk.api.delete(`/resources/routes/${e.id}`)
                 .subscribe( 
                     r=> {  
                         this.skres.getRoutes();
@@ -1248,9 +1282,7 @@ export class AppComponent {
                 res['route'][1]['description']= r.data.comment || '';
                 res['route'][1]['name']= r.data.name;
                 this.signalk.api.put(
-                    'self',
-                    `/resources/routes`,
-                    res['route'][0], 
+                    `/resources/routes/${res['route'][0]}`, 
                     res['route'][1]
                 ).subscribe( 
                     r=>{ 
@@ -1323,10 +1355,8 @@ export class AppComponent {
                 this.app.debug('Active Route cleared');
                 this.display.navData.pointIndex= -1;
                 this.display.navData.pointTotal= 0;
-                this.signalk.api.put('self', 
-                    'navigation/courseGreatCircle/nextPoint/position', 
-                    null
-                ).subscribe( r=> { this.app.debug('nextPont cleared') } );               
+                this.signalk.api.put('self', 'navigation/courseGreatCircle/nextPoint/position', null)
+                .subscribe( r=> { this.app.debug('nextPont cleared') } );               
             },
             err=> { 
                 if(err.status && err.status==401) { this.showAuthRequired() }  
@@ -1368,6 +1398,7 @@ export class AppComponent {
         );      
     }
 
+    // *********** WAYPOINTS ****************
     waypointGoTo(e:any) { 
         let wpt= this.app.data.waypoints.map( i=>{ if(i[0]==e.id) {return i} } ).filter(i=> {return i});
         this.signalk.api.put('self', 
@@ -1396,7 +1427,7 @@ export class AppComponent {
             }
         }).afterClosed().subscribe( res=> {
             if(res) {
-                this.signalk.api.put('self','resources.waypoints', e.id, null)
+                this.signalk.api.delete(`/resources/waypoints/${e.id}`)
                 .subscribe( 
                     r=> {  
                         this.skres.getWaypoints();
@@ -1469,7 +1500,7 @@ export class AppComponent {
     }
 
     submitWaypoint(id:string, wpt:SKWaypoint, isNew=false) {
-        this.signalk.api.put('self', `/resources/waypoints`, id, wpt).subscribe( 
+        this.signalk.api.put(`/resources/waypoints/${id}`, wpt).subscribe( 
             r=> { 
                 if(r['state']=='COMPLETED') { 
                     this.app.debug('SUCCESS: Waypoint updated.');
@@ -1499,6 +1530,14 @@ export class AppComponent {
         );   
         this.app.saveConfig();
     }    
+
+    // ** return local charts sorted by scale descending.
+    chartsLocalByScale() {
+        let c= (this.app.data.charts.length>2) ? this.app.data.charts.slice(2) : [];
+        // ** sort local maps by scale descending
+        c.sort( (a,b)=> { return b[1].scale > a[1].scale ? 1 : -1 } );
+        return c;
+    }
 
     chartSelected(e:any) {
         if(!e) { return }
@@ -1541,15 +1580,8 @@ export class AppComponent {
         }
     }      
 
-    // ** return local charts sorted by scale descending.
-    chartsLocalByScale() {
-        let c= (this.app.data.charts.length>2) ? this.app.data.charts.slice(2) : [];
-        // ** sort local maps by scale descending
-        c.sort( (a,b)=> { return b[1].scale > a[1].scale ? 1 : -1 } );
-        return c;
-    }
 
-    // ******** Anchor Watch EVENTS ************
+    // ******** ANCHOR WATCH EVENTS ************
     anchorEvent(e:any) {
         if(e.action=='radius') {
             this.app.config.anchor.radius= e.radius;            
@@ -1649,7 +1681,22 @@ export class AppComponent {
         else { return true }      
     }
 
-    // ******** Alarm EVENTS ************
+    // ******** ALARM EVENTS ************
+    actionAlarm(action:string, id:string) { 
+        let alarm= this.display.alarms.get(id);
+        switch(action) {
+            case 'ack':
+                alarm.acknowledged=true;
+                break;
+            case 'mute':
+                alarm.muted=true;
+                break;
+            case 'clear':
+                this.display.alarms.delete(id);
+                break;
+        } 
+    }
+
     muteAlarm(id:string) { this.display.alarms.get(id)['muted']=true }
 
     acknowledgeAlarm(id:string) { this.display.alarms.get(id)['acknowledged']=true }
@@ -1811,7 +1858,7 @@ export class AppComponent {
 
     }   
 
-    // ******** Process STREAM data **************
+    // ******** Process STREAM data update display **************
 
     displayVesselSelf(v: any) {
         let d= this.display.vessels.self;

@@ -133,7 +133,7 @@
             <span>Draw Region + Note</span>			
         </a>           
         <mat-divider></mat-divider>                   
-        <a mat-menu-item (click)="waypointAdd()">
+        <a mat-menu-item (click)="waypointAdd()" *ngIf="display.showSelf">
             <mat-icon style="color:black;" >add_location</mat-icon>
             <span>Add Waypoint at Vessel</span>			
         </a>
@@ -264,6 +264,7 @@
                     (select)="routeSelected($event)"
                     (delete)="routeDelete($event)"
                     (activate)="routeActivate($event)"
+                    (deactivate)="routeClearActive()"
                     (refresh)="skres.getRoutes()"
                     (properties)="resourceProperties($event)"
                     (closed)="displayLeftMenu()">
@@ -467,11 +468,25 @@
                     </aol-layer-vector>
                     <!-- *** AIS TARGETS *** -->                    
 
-                    <!-- *** NOTES *** -->
+                    <!-- *** NOTES & REGIONS*** -->
                     <aol-layer-vector 
                         *ngIf="app.config.notes && app.config.map.zoomLevel>=app.config.selections.notesMinZoom" 
                         [zIndex]="120" [renderBuffer]="200">
                         <aol-source-vector>
+                            <div *ngFor="let r of app.data.regions; let i=index;">
+                                <aol-feature [id]="'region.'+ r[0]"> 
+                                    <aol-geometry-polygon>
+                                        <aol-collection-coordinates
+                                            [coordinates]="r[1].feature.geometry.coordinates[0]"
+                                            [srid]="app.config.map.srid">
+                                        </aol-collection-coordinates>                                        
+                                    </aol-geometry-polygon>
+                                    <aol-style>
+                                        <aol-style-stroke [color]="'red'"></aol-style-stroke>
+                                        <aol-style-fill [color]="[255,0,0,0.1]"></aol-style-fill>
+                                    </aol-style>
+                                </aol-feature> 
+                            </div>                            
                             <div *ngFor="let w of app.data.notes; let i=index;">
                                 <aol-feature [id]="'note.'+ w[0]">
                                     <aol-geometry-point>
@@ -495,18 +510,6 @@
                                     </aol-style>
                                 </aol-feature>
                             </div>
-                            <aol-feature *ngIf="display.region.show">
-                                <aol-geometry-polygon>
-                                    <aol-collection-coordinates
-                                        [coordinates]="display.region.boundary"
-                                        [srid]="app.config.map.srid">
-                                    </aol-collection-coordinates>
-                                </aol-geometry-polygon>
-                                <aol-style>
-                                    <aol-style-stroke [color]="'red'"></aol-style-stroke>
-                                    <aol-style-fill [color]="[255,0,0,0.1]"></aol-style-fill>
-                                </aol-style>
-                            </aol-feature> 
                         </aol-source-vector> 
                     </aol-layer-vector>
                     <!-- *** NOTES *** -->    
@@ -519,8 +522,27 @@
                             [srid]="app.config.map.srid">
                         </aol-coordinate>
                         <aol-content>
+                            <!--Feature LIST popover-->
+                            <ap-popover *ngIf="this.display.overlay['type']=='list';"
+                                [title]="display.overlay.title" 
+                                [canClose]="true"
+                                (close)="popoverClosed()">
+                                
+                                <div style="display:flex;" *ngFor="let f of this.display.overlay['content']">
+                                    <div style="font-weight:bold;">
+                                        <mat-icon [color]="(f.text=='self') ? 'warn' : '' ">
+                                            {{f.icon}}
+                                        </mat-icon>
+                                    </div>
+                                    <div style="flex: 1 1 auto;text-align:right;">
+                                        <a href="#" (click)="formatPopover(f.id, f.coord, f.mrid)">
+                                            {{(f.text=='self') ? this.display.vessels.self.name || 'Self' : f.text}}
+                                        </a>
+                                    </div>
+                                </div>
+                            </ap-popover>                               
                             <!--resource popover-->
-                            <ap-popover *ngIf="this.display.overlay['type']!='ais';"
+                            <ap-popover *ngIf="this.display.overlay['type']!='ais' && this.display.overlay['type']!='list'"
                                 [title]="display.overlay.title" 
                                 [canClose]="!measure.enabled"
                                 (close)="popoverClosed()">
@@ -544,6 +566,14 @@
                                                 <mat-icon>add_location</mat-icon>
                                                 WAYPOINT HERE
                                             </button>
+
+                                            <button mat-button *ngIf="display.overlay.addNote"
+                                                (click)="noteUpdate({region: { id: display.overlay.id } });popoverClosed()"
+                                                color="primary"
+                                                matTooltip="Add Note">
+                                                <mat-icon>local_offer</mat-icon>
+                                                ADD NOTE
+                                            </button>                                            
 
                                             <button mat-icon-button *ngIf="display.overlay.canDelete"
                                                 (click)="resourceDelete(display.overlay.id);popoverClosed()"

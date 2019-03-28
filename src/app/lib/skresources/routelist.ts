@@ -12,6 +12,7 @@ export class RouteListComponent {
     @Output() select: EventEmitter<any>= new EventEmitter();
     @Output() delete: EventEmitter<any>= new EventEmitter();
     @Output() activate: EventEmitter<any>= new EventEmitter();
+    @Output() deactivate: EventEmitter<any>= new EventEmitter();
     @Output() refresh: EventEmitter<any>= new EventEmitter();
     @Output() properties: EventEmitter<any>= new EventEmitter();
     @Output() closed: EventEmitter<any>= new EventEmitter();
@@ -65,15 +66,16 @@ export class RouteListComponent {
         this.select.emit({id: id, value: e}); 
     }
 
-    itemProperties(id) { this.properties.emit({id: id, type: 'route'}) }
+    itemProperties(id:string) { this.properties.emit({id: id, type: 'route'}) }
 
-    itemSetActive(id) { this.activate.emit({id: id}) } 
+    itemSetActive(id:string) { this.activate.emit({id: id}) } 
+    itemClearActive(id:string) { this.deactivate.emit({id: id}) } 
 
-    itemDelete(id) { this.delete.emit({id: id}) }  
+    itemDelete(id:string) { this.delete.emit({id: id}) }  
     
     itemRefresh() { this.refresh.emit() }
 
-    filterKeyUp(e) {
+    filterKeyUp(e:string) {
         this.filterText=e;
         this.filterList= this.routes.filter( i=> {
             if(i[1].name.toLowerCase().indexOf(this.filterText.toLowerCase())!=-1) {

@@ -18,8 +18,8 @@ import { TextDialComponent } from './dial-text';
 import { PlaybackDialog } from './playback-dialog';
 import { AlarmsDialog, AlarmComponent } from './alarms';
 
-import { GeometryCircleComponent } from '../components/geom-circle.component';
-import { AisTargetsComponent } from '../components/feature-ais.component';
+import { GeometryCircleComponent } from './map/geom-circle.component';
+import { AisTargetsComponent } from './map/feature-ais.component';
 import { CompassComponent } from './compass.component';
 
 @NgModule({

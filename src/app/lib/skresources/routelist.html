@@ -66,20 +66,27 @@
             <mat-card-actions>
                 <div style="display: flex;">
                     <div style="flex: 1 1 auto;">
-                        <button mat-icon-button 
+                        <button mat-icon-button color="warn"
                             (click)="itemDelete(r[0])"
+                            [disabled]="r[3]"
                             matTooltip="Delete Route"
                             matTooltipPosition="right">
-                            <mat-icon color="warn">delete</mat-icon>
+                            <mat-icon>delete</mat-icon>
                         </button>  
                         <button mat-button color="primary" 
                             (click)="itemSetActive(r[0])"
-                            [disabled]="r[3]"
+                            *ngIf="!r[3]"
                             matTooltip="Set as Active Route"
                             matTooltipPosition="right">
-                            <mat-icon>{{r[3] ? 'check' : 'select_all'}}</mat-icon>
-                            {{r[3] ? 'ACTIVE' : 'ACTIVATE'}}
-                        </button>                            
+                            <mat-icon>select_all</mat-icon> ACTIVATE
+                        </button>          
+                        <button mat-button color="primary" 
+                            (click)="itemClearActive(r[0])"
+                            *ngIf="r[3]"
+                            matTooltip="Clear Active Route"
+                            matTooltipPosition="right">
+                            <mat-icon>clear_all</mat-icon> DE-ACTIVATE
+                        </button>                                             
                     </div> 
                     <div>
                         <button mat-icon-button 

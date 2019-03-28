@@ -6,6 +6,10 @@
 
 - **Deprecated:** Option to use delta updates as a means of submitting resource changes.
 
+- **Fix:** Disable `Add Waypoint at Vessel` menu item when no vessel position is available.
+
+- **Fix:** Disable `Delete` button of Active Route in Route List.
+
 
 ### v1.3.1
 

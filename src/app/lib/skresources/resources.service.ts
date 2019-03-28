@@ -193,20 +193,18 @@ export class SKResources {
         let resRegions= this.getRegions(params).pipe( catchError(error => of(error)) );
 
         let rf= (params) ? params : this.app.config.resources.notes.rootFilter;
+        rf= this.processTokens(rf);
         if(rf && rf[0]!='?') { rf='?' + rf }
         let resNotes= this.signalk.api.get(`/resources/notes${rf}`);
-
         let res= forkJoin(resRegions, resNotes);
-
-        this.app.data.regions= [];
         res.subscribe(
             res=> { 
-                if(typeof res[0].error==='undefined') {                   
+                if(typeof res[0]['error']==='undefined') { 
                     let r= Object.entries(res[0]);
+                    this.app.data.regions= []; 
                     r.forEach( i=> { this.app.data.regions.push([i[0], new SKRegion(i[1]), false]) });
                 }   
-                this.processNotes(res[1]);     
-                this.app.data.regions= [];  
+                this.processNotes(res[1]);
             }
         )
     } 
@@ -246,6 +244,21 @@ export class SKResources {
                 this.app.data.notes.push([ i[0], new SKNote(i[1]), true ]);
             }
         });
+    }
+
+    // ** process url tokens
+    processTokens(s:string):string {
+        if(!s) { return s }
+        let ts= s.split('%');
+        if(ts.length>1) {
+            let uts= ts.map( i=>{
+                if(i=='map:latitude') { return this.app.config.map.center[1] }
+                else if(i=='map:longitude') { return this.app.config.map.center[0] }
+                else { return i }
+            });
+            s= uts.join('');
+        }
+        return s;
     }
 
 }
@@ -359,7 +372,6 @@ export class SKNote {
     mimeType: string;
     url: string; 
     position: any;
-    boundary: any;
 
     constructor(note?) {
         if(note) {
@@ -370,7 +382,6 @@ export class SKNote {
             if(note.mimeType) { this.mimeType= note.mimeType }
             if(note.url) { this.url= note.url }
             if(note.position) { this.position= note.position }
-            if(note.boundary) { this.boundary= note.boundary }
         }
     }    
 } 
