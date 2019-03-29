@@ -604,8 +604,8 @@ export class AppComponent {
         if(!this.app.config.map.moveMap) { 
             this.app.saveConfig();
             this.isDirty=false;
-            if(this.app.config.resources.notes.rootFilter) { // retrieve Notes
-                //this.skres.getNotes();
+            if(z>= this.app.config.selections.notesMinZoom) { // retrieve Notes
+                this.skres.getNotes();
             }
         }
         else { this.isDirty=true }
@@ -1148,8 +1148,7 @@ export class AppComponent {
                     );
                 }
                 else if(!resId) { // add note
-                    resId= this.signalk.uuid.toSignalK();
-                    this.signalk.api.put(`/resources/notes/${resId}`, note ).subscribe(
+                    this.signalk.api.post(`/resources/notes`, note ).subscribe(
                         res=> this.skres.getNotes(),
                         err=> {
                             if(err.status && err.status==401) { this.showAuthRequired() }  

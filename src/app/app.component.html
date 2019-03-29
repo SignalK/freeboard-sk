@@ -528,18 +528,17 @@
                                 [canClose]="true"
                                 (close)="popoverClosed()">
                                 
-                                <div style="display:flex;" *ngFor="let f of this.display.overlay['content']">
-                                    <div style="font-weight:bold;">
-                                        <mat-icon [color]="(f.text=='self') ? 'warn' : '' ">
-                                            {{f.icon}}
-                                        </mat-icon>
-                                    </div>
-                                    <div style="flex: 1 1 auto;text-align:right;">
-                                        <a href="#" (click)="formatPopover(f.id, f.coord, f.mrid)">
+                                <mat-nav-list>
+                                    <mat-list-item *ngFor="let f of this.display.overlay['content']">
+                                        <a matLine href="#" (click)="formatPopover(f.id, f.coord, f.mrid)">
+                                            <mat-icon [color]="(f.text=='self') ? 'warn' : '' ">
+                                                {{f.icon}}
+                                            </mat-icon>
                                             {{(f.text=='self') ? this.display.vessels.self.name || 'Self' : f.text}}
                                         </a>
-                                    </div>
-                                </div>
+                                    </mat-list-item>
+                                </mat-nav-list>
+
                             </ap-popover>                               
                             <!--resource popover-->
                             <ap-popover *ngIf="this.display.overlay['type']!='ais' && this.display.overlay['type']!='list'"
