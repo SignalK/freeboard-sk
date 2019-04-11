@@ -1,0 +1,105 @@
+
+<style>
+    ._ap-resource {
+        font-family: arial;
+        width: 60vw;
+    }
+      
+    .ap-confirm-icon { 
+        min-width: 35px;
+        max-width: 35px;
+        text-align: left;                    
+    }
+   
+    .ap-confirm-icon .mat-icon { 
+        font-size: 25pt;
+    }
+    .mat-form-field {
+        width: 100%;
+    }
+    .nosmall { 
+        display: none;
+    }
+    @media only screen
+        and (min-device-width : 768px)
+        and (max-device-width : 1024px),
+        only screen	and (min-width : 800px) { 
+        .ap-confirm-icon {
+            min-width: 25%;
+            max-width: 25%;
+        }
+        .ap-confirm-icon .mat-icon { 
+            font-size: 40pt;
+        }
+        .nosmall { 
+            display: flex;
+        }                   
+    }    
+           
+</style>
+
+<div class="_ap-resource">
+    <h1 mat-dialog-title>
+        <mat-icon class="ap-confirm-icon" color="primary">360</mat-icon>
+        Related Notes
+    </h1>
+    <mat-dialog-content>        
+        <div style="padding-bottom: 5px; overflow-y: auto;" *ngFor="let n of data.notes;">
+            <mat-card style="background-color: whitesmoke;">
+                <mat-card-title>
+                    <mat-icon>local_offer</mat-icon>
+                    {{n[1].title}}
+                </mat-card-title>
+                <mat-card-content>
+                    <div style="padding-bottom: 5px;">{{n[1].description}}</div>
+                    <!--<div style="padding-bottom: 5px;font-style: italic;" 
+                        *ngIf="n[1].timestamp">
+                        {{n[1]?.timestamp}}
+                    </div>
+                    <div style="padding-bottom: 5px;font-style: italic;" 
+                        *ngIf="n[1].source">
+                        {{n[1]?.source}}
+                    </div>-->
+                </mat-card-content>
+                <mat-card-actions>
+                    <div style="display:flex;">
+                        <div style="flex: 1 1 auto;">
+                            <div *ngIf="n[1].url">
+                                <button mat-icon-button
+                                    (click)="openNoteUrl(n[1].url)"
+                                    matTooltip="Open Note link in browser window">
+                                    <mat-icon color="primary">open_in_new</mat-icon>
+                                </button>
+                            </div>  
+                        </div>  
+                        <div style="text-align: right;">
+                            <button mat-icon-button 
+                                (click)="editNote(n[0])"
+                                matTooltip="Edit Note">
+                                <mat-icon color="primary">edit</mat-icon>
+                            </button>  
+                            &nbsp;
+                            <button mat-icon-button 
+                                (click)="deleteNote(n[0])"
+                                matTooltip="Delete Note">
+                                <mat-icon color="warn">delete</mat-icon>
+                            </button>                     
+                        </div>
+                    </div>                    
+                </mat-card-actions>
+            </mat-card>        
+        </div>
+    </mat-dialog-content>
+    <mat-dialog-actions>
+        <div style="text-align:center;width:100%;">    
+            <button mat-raised-button (click)="addNote()">
+                <mat-icon color="primary">add</mat-icon>
+                ADD NOTE
+            </button>   
+            &nbsp;&nbsp;                           
+            <button mat-raised-button (click)="dialogRef.close({result:false})">
+                CLOSE
+            </button>          
+        </div>					
+    </mat-dialog-actions>
+</div>	

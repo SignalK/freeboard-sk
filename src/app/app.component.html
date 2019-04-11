@@ -133,7 +133,7 @@
             <span>Draw Region + Note</span>			
         </a>           
         <mat-divider></mat-divider>                   
-        <a mat-menu-item (click)="waypointAdd()" *ngIf="display.showSelf">
+        <a mat-menu-item (click)="skres.showWaypointEditor(null,display.vessels.self.position)" *ngIf="display.showSelf">
             <mat-icon style="color:black;" >add_location</mat-icon>
             <span>Add Waypoint at Vessel</span>			
         </a>
@@ -262,7 +262,7 @@
             <div class="leftMenuPanel" *ngIf="display.leftMenuPanel">
                 <route-list [routes]="app.data.routes" *ngIf="display.routeList"
                     (select)="routeSelected($event)"
-                    (delete)="routeDelete($event)"
+                    (delete)="skres.showRouteDelete($event)"
                     (activate)="routeActivate($event)"
                     (deactivate)="routeClearActive()"
                     (refresh)="skres.getRoutes()"
@@ -272,8 +272,8 @@
 
                 <waypoint-list [waypoints]="app.data.waypoints" *ngIf="display.waypointList"
                     (select)="waypointSelected($event)"
-                    (delete)="waypointDelete($event)"
-                    (goto)="waypointGoTo($event)"
+                    (delete)="skres.showWaypointDelete($event)"
+                    (goto)="navigateToWaypoint($event)"
                     (refresh)="skres.getWaypoints()"
                     (properties)="resourceProperties($event)"
                     (closed)="displayLeftMenu()">
@@ -286,7 +286,7 @@
                 </chart-list>   
 
                 <note-list [notes]="app.data.notes" *ngIf="display.noteList"
-                    (select)="noteDetails({id: $event})"
+                    (select)="skres.showNoteInfo({id: $event})"
                     (refresh)="skres.getNotes()"
                     (closed)="displayLeftMenu()">
                 </note-list>                 
@@ -553,13 +553,13 @@
                                     <div style="flex:1 1 auto;">
                                         <div>
                                             <button mat-icon-button *ngIf="display.overlay.type=='note'"
-                                                (click)="noteUpdate({id: display.overlay.id});popoverClosed()"
+                                                (click)="skres.showNoteEditor({id: display.overlay.id});popoverClosed()"
                                                 matTooltip="Edit Note">
                                                 <mat-icon color="primary">edit</mat-icon>
                                             </button>                                               
 
                                             <button mat-button *ngIf="display.overlay.addWaypoint"
-                                                (click)="waypointAdd();popoverClosed()"
+                                                (click)="skres.showWaypointEditor(null, display.vessels.self.position);popoverClosed()"
                                                 color="primary"
                                                 matTooltip="Add Waypoint at vessel location">
                                                 <mat-icon>add_location</mat-icon>
@@ -567,12 +567,12 @@
                                             </button>
 
                                             <button mat-button *ngIf="display.overlay.addNote"
-                                                (click)="noteUpdate({region: { id: display.overlay.id } });popoverClosed()"
+                                                (click)="skres.showNoteEditor({region: { id: display.overlay.id } });popoverClosed()"
                                                 color="primary"
                                                 matTooltip="Add Note">
-                                                <mat-icon>local_offer</mat-icon>
-                                                ADD NOTE
-                                            </button>                                            
+                                                <mat-icon>add</mat-icon>
+                                                NOTE
+                                            </button>                                                 
 
                                             <button mat-icon-button *ngIf="display.overlay.canDelete"
                                                 (click)="resourceDelete(display.overlay.id);popoverClosed()"
@@ -582,7 +582,7 @@
                                             </button>
 
                                             <button mat-button *ngIf="display.overlay.gotoWaypoint"
-                                                (click)="waypointGoTo({id: display.overlay.id});popoverClosed()"
+                                                (click)="navigateToWaypoint({id: display.overlay.id});popoverClosed()"
                                                 color="primary"
                                                 matTooltip="Navigate to Waypoint">
                                                 <mat-icon>near_me</mat-icon>

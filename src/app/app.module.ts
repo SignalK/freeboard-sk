@@ -9,8 +9,9 @@ import { AngularOpenlayersModule } from 'ngx-openlayers';
 import { AppComponent } from './app.component';
 import { AppMaterialModule } from './lib/app-material.module';
 import { AppUIModule } from './lib/app-ui';
-import { SignalKResourcesModule } from './lib/skresources/';
 import { GPXLoadModule } from './lib/gpxload/gpxload.module';
+
+import { SignalKResourcesModule } from './lib/skresources/';
 
 import { SettingsDialog } from './pages';
 
@@ -23,7 +24,7 @@ import { SettingsDialog } from './pages';
     BrowserAnimationsModule, 
     FormsModule, HttpClientModule,
     AppMaterialModule, AppUIModule, SignalKResourcesModule,
-    GPXLoadModule,
+    GPXLoadModule, 
     AngularOpenlayersModule
   ],
   entryComponents: [ SettingsDialog ],

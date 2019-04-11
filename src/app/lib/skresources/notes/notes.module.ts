@@ -1,0 +1,34 @@
+import { NgModule, Injectable } from '@angular/core';
+import { CommonModule } from '@angular/common';
+
+import { FormsModule } from '@angular/forms';
+import { MatDialogModule, 
+        MatCheckboxModule, MatCardModule, MatButtonModule, MatListModule, 
+        MatFormFieldModule, MatInputModule,
+        MatIconModule, MatTooltipModule, MatSliderModule, MatSlideToggleModule } from '@angular/material';
+
+import { NoteDialog } from './note-dialog';
+import { RegionDialog } from './region-dialog';
+
+@NgModule({
+    imports: [
+        CommonModule, FormsModule, MatDialogModule,
+        MatCheckboxModule, MatCardModule, MatListModule,
+        MatButtonModule, MatIconModule, MatTooltipModule, 
+        MatSliderModule, MatSlideToggleModule, 
+        MatFormFieldModule, MatInputModule
+    ],
+    declarations: [
+        NoteDialog, RegionDialog
+    ],
+    exports: [
+        NoteDialog, RegionDialog
+    ],
+    entryComponents: [
+        NoteDialog, RegionDialog
+    ]
+})
+export class SKNotesModule { }
+
+export * from './note-dialog';
+export * from './region-dialog';
