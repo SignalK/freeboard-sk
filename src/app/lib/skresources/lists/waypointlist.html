@@ -45,49 +45,56 @@
         <div *ngIf="waypoints.length==0" style="text-align: center;">
             <br><i>No Waypoints available.</i>
         </div>        
-        <mat-card *ngFor="let r of filterList; let i=index;">
-            <div style="display: flex;">
-                <div style="flex: 1 1 auto;">
-                    <div><b>{{(r[1].feature.properties.name) ? r[1].feature.properties.name : 'Wpt-' + r[0].slice(-6)}}</b></div>
-                </div>        
-                <div style="text-align: right;">
-                    <mat-checkbox color="primary"
-                        [checked]="r[2]"
-                        (change)="itemSelect($event.checked, r[0])"
-                        matTooltip="Show on Map"
-                        matTooltipPosition="left">
-                    </mat-checkbox>
-                </div>  
-            </div>         
-            <mat-card-actions>
+        <cdk-virtual-scroll-viewport itemSize="90" 
+                style="position: absolute;
+                    top: 10px;
+                    bottom: 0;
+                    left: 0;
+                    right: 0;">
+            <mat-card *cdkVirtualFor="let r of filterList; let i= index;">
                 <div style="display: flex;">
-                    <div>
-                        <button mat-icon-button 
-                            (click)="itemDelete(r[0])"
-                            matTooltip="Delete Waypoint"
-                            matTooltipPosition="right">
-                            <mat-icon color="warn">delete</mat-icon>
-                        </button>   
+                    <div style="flex: 1 1 auto;">
+                        <div><b>{{(r[1].feature.properties.name) ? r[1].feature.properties.name : 'Wpt-' + r[0].slice(-6)}}</b></div>
+                    </div>        
+                    <div style="text-align: right;">
+                        <mat-checkbox color="primary"
+                            [checked]="r[2]"
+                            (change)="itemSelect($event.checked, r[0])"
+                            matTooltip="Show on Map"
+                            matTooltipPosition="left">
+                        </mat-checkbox>
                     </div>  
-                    <div style="flex: 1 1 auto;text-align:center;">
-                        <button mat-button color="primary"
-                            (click)="itemGoTo(r[0])"
-                            matTooltip="Navigate to Waypoint"
-                            matTooltipPosition="below">
-                            <mat-icon color="primary">near_me</mat-icon>
-                            NAVIGATE TO
-                        </button>   
-                    </div>                      
-                    <div>
-                        <button mat-icon-button 
-                            (click)="itemProperties(r[0])"
-                            matTooltip="Waypoint Properties"
-                            matTooltipPosition="right">
-                            <mat-icon>info_outline</mat-icon>
-                        </button>                          
-                    </div>              
-                </div>
-            </mat-card-actions>
-        </mat-card>
+                </div>         
+                <mat-card-actions>
+                    <div style="display: flex;">
+                        <div>
+                            <button mat-icon-button 
+                                (click)="itemDelete(r[0])"
+                                matTooltip="Delete Waypoint"
+                                matTooltipPosition="right">
+                                <mat-icon color="warn">delete</mat-icon>
+                            </button>   
+                        </div>  
+                        <div style="flex: 1 1 auto;text-align:center;">
+                            <button mat-button color="primary"
+                                (click)="itemGoTo(r[0])"
+                                matTooltip="Navigate to Waypoint"
+                                matTooltipPosition="below">
+                                <mat-icon color="primary">near_me</mat-icon>
+                                NAVIGATE TO
+                            </button>   
+                        </div>                      
+                        <div>
+                            <button mat-icon-button 
+                                (click)="itemProperties(r[0])"
+                                matTooltip="Waypoint Properties"
+                                matTooltipPosition="right">
+                                <mat-icon>info_outline</mat-icon>
+                            </button>                          
+                        </div>              
+                    </div>
+                </mat-card-actions>
+            </mat-card>
+        </cdk-virtual-scroll-viewport>
     </div>
 </div>

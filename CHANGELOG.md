@@ -4,6 +4,8 @@
 
 - **Added:** Initial support for viewing / adding Notes.
 
+- **Added:** Support for modifying `Waypoint` position and `Route` points.
+
 - **Deprecated:** Option to use delta updates as a means of submitting resource changes.
 
 - **Fix:** Disable `Add Waypoint at Vessel` menu item when no vessel position is available.
@@ -11,11 +13,17 @@
 - **Fix:** Disable `Delete` button of Active Route in Route List.
 
 
+### v1.3.2
+
+- **Update:** Update to `signalk-client-angular` v1.5.1
+
+
 ### v1.3.1
 
 - **Fix:** Issue where measured distance was not using Great Circle calculation. (Closes #69)
 
 - **Fix:** Issue where AIS target heading was not displayed correctly in popover.
+
 
 ### v1.3.0
 

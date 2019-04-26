@@ -162,6 +162,19 @@
                                 </mat-form-field>
                             </div>                                                      
                         </div>
+                        <div class="setting-card-row">                         
+                            <div class="setting-card-row-item">
+                                <mat-form-field style="width:100%;">
+                                    <mat-select #notesgetradius
+                                            [disabled]="!app.config.notes"
+                                            [(value)]="app.config.resources.notes.getRadius" 
+                                            (selectionChange)="onFormChange($event, notesgetradius)"
+                                            placeholder="Fetch Notes within:">
+                                        <mat-option *ngFor="let i of resRadiusList" [value]="i[0]">{{i[1]}}</mat-option>
+                                    </mat-select>                                        
+                                </mat-form-field>
+                            </div>                                                      
+                        </div>                        
                         <div class="setting-card-row">
                             <div class="setting-card-row-item">
                                 <mat-form-field style="width:100%;" floatLabel="always">

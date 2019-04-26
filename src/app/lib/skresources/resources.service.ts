@@ -11,6 +11,7 @@ import { AlertDialog, ConfirmDialog, LoginDialog } from '../app-ui';
 
 import { NoteDialog, RegionDialog } from './notes'
 import { ResourceDialog } from './resource-dialogs'
+import { HttpParams } from '@angular/common/http';
 
 // ** Signal K resource operations
 @Injectable({ providedIn: 'root' })
@@ -261,6 +262,15 @@ export class SKResources {
             }
         );  
     }   
+
+    // ** modify Route point coordinates **
+    updateRouteCoords(id:string, coords:Array<[number,number]>) {
+        let t= this.app.data.routes.filter( i=>{ if(i[0]==id) return true });
+        if(t.length==0) { return }
+        let rte=t[0][1];
+        rte['feature']['geometry']['coordinates']= coords;
+        this.updateRoute(id, rte);
+    }
 
     // ** Display Edit Route properties Dialog **
     showRouteInfo(e:any) {
@@ -553,6 +563,16 @@ export class SKResources {
         );        
     }
 
+    // ** modify waypoint point coordinates **
+    updateWaypointPosition(id:string, position:[number,number]) {
+        let t= this.app.data.waypoints.filter( i=>{ if(i[0]==id) return true });
+        if(t.length==0) { return }
+        let wpt=t[0][1];
+        wpt['position']= { latitude: position[1], longitude: position[0] };
+        wpt['feature']['geometry']['coordinates']= position;
+        this.submitWaypoint(id, wpt);
+    }    
+
     // ** Display waypoint properties Dialog **
     showWaypointEditor(e:any=null, position:[number,number]=null) {      
         let resId= null; 
@@ -631,8 +651,8 @@ export class SKResources {
 
     // get regions from server
     getRegions(params:string=null) { 
-        let rf= (params && params[0]!='?') ? `?${params}` : ''
-        return this.signalk.api.get(`/resources/regions${rf}`);
+        params= (params && params[0]!='?') ? `?${params}` : params
+        return this.signalk.api.get(`/resources/regions${params}`);
     }
 
     // ** create Region and optionally add note **
@@ -675,11 +695,12 @@ export class SKResources {
 
     // ** get notes / regions from sk server
     getNotes(params:string=null) {
-        let resRegions= this.getRegions(params).pipe( catchError(error => of(error)) );
-
         let rf= (params) ? params : this.app.config.resources.notes.rootFilter;
         rf= this.processTokens(rf);
         if(rf && rf[0]!='?') { rf='?' + rf }
+        this.app.debug(rf);
+
+        let resRegions= this.getRegions(rf).pipe( catchError(error => of(error)) );
         let resNotes= this.signalk.api.get(`/resources/notes${rf}`);
         let res= forkJoin(resRegions, resNotes);
         res.subscribe(
@@ -848,7 +869,7 @@ export class SKResources {
         }).afterClosed().subscribe( r=> {        
             if(r.result) { // ** save / update waypoint **
                 let note= r.data;
-                if(e.region) {  // add region + note
+                if(e.region && e.createRegion) {  // add region + note
                     this.createRegion(e.region, note);
                 }
                 else if(!e.noteId) { // add note
@@ -884,7 +905,7 @@ export class SKResources {
                                 this.showNoteEditor({id: r.id});
                                 break;
                             case 'add':
-                                this.showNoteEditor({region: {id: id} });
+                                this.showNoteEditor({region: {id: id, exists: true} });
                                 break;
                             case 'delete':
                                 this.showNoteDelete({id: r.id});
@@ -908,7 +929,8 @@ export class SKResources {
             editable: true,
             addNote: true,
             title: null,
-            region: null
+            region: null,
+            createRegion: null
         }
 
         if(!e) { return }
@@ -921,7 +943,7 @@ export class SKResources {
             data.note= note;
             this.openNoteForEdit(data);
         }
-        else if(!e.id && e.region) { // add region + note
+        else if(!e.id && e.region) { // add note to exisitng or new region
             data.title= 'Add Note to Region:'; 
             data.region= e.region; 
             note= new SKNote(); 
@@ -929,6 +951,7 @@ export class SKResources {
             note.title= '';
             note.description= '';
             data.note= note;
+            data.createRegion= (e.region.exists) ? false : true;
             this.openNoteForEdit(data);
         }        
         else {    // edit selected note details 
@@ -1023,6 +1046,7 @@ export class SKResources {
             let uts= ts.map( i=>{
                 if(i=='map:latitude') { return this.app.config.map.center[1] }
                 else if(i=='map:longitude') { return this.app.config.map.center[0] }
+                else if(i=='note:radius') { return this.app.config.resources.notes.getRadius }
                 else { return i }
             });
             s= uts.join('');

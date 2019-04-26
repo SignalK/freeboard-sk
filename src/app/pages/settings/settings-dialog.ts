@@ -29,6 +29,8 @@ export class SettingsDialog implements OnInit {
     
     minZoomList= [8,9,10,11,12,13,15,16,17];
 
+    resRadiusList= [ [5000, '5 km'],[10000, '10 km'],[15000, '15 km'],[20000,'20 km'],[50000, '50 km'] ];
+
     smoothing= [ [5000,'5 secs'],[10000,'10 secs'],[20000,'20 secs'],[30000,'30 secs'] ];
 
     appList= [];

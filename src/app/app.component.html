@@ -145,7 +145,7 @@
         <a mat-menu-item (click)="drawStart('route')">
             <mat-icon color="primary">directions</mat-icon>
             <span>Draw Route</span>			
-        </a>                                       			
+        </a>                                         			
     </mat-menu>   
     <!--/context menus-->
 
@@ -329,13 +329,20 @@
                     <aol-interaction-default></aol-interaction-default>
                     <aol-interaction-draw *ngIf="draw.enabled"
                         [type]="draw.type"
-                        (onDrawEnd)="handleDrawEnd($event)"></aol-interaction-draw>
+                        (onDrawEnd)="handleDrawEnd($event)">
+                    </aol-interaction-draw>
                     <aol-interaction-draw *ngIf="measure.enabled"
                         [type]="'LineString'"
                         (onDrawStart)="handleMeasure($event)"
                         (onDrawEnd)="handleMeasure($event)"
                         [style]="measure.style">
-                    </aol-interaction-draw>                        
+                    </aol-interaction-draw>   
+                    
+                    <aol-interaction-modify *ngIf="draw.modify && draw.features"
+                        [features]="draw.features"
+                        (onModifyStart)="handleModifyStart($event)"
+                        (onModifyEnd)="handleModifyEnd($event)">
+                    </aol-interaction-modify>                 
                     
                     <aol-control-mouseposition class="ol-mouse-position"
                         [projection]="app.config.map.srid"
@@ -397,7 +404,7 @@
                     <aol-layer-vector [zIndex]="50"> 
                         <aol-source-vector>
                         <div *ngFor="let r of app.data.routes; let i=index;">
-                            <aol-feature *ngIf="r[2]" [id]="'route.'+ r[0]">
+                              <aol-feature *ngIf="r[2]" [id]="'route.'+ r[0]">
                                 <aol-geometry-linestring>
                                     <aol-collection-coordinates
                                         [coordinates]="r[1].feature?.geometry?.coordinates"
@@ -408,8 +415,8 @@
                                     <aol-style-stroke 
                                         [color]="(r[3]) ? 'blue' : 'green'" 
                                         [lineDash]="(r[3]) ? [1] : [20,5,5,5]"
-                                        [width]="2">
-                                    </aol-style-stroke>
+                                        [width]="(r[3]) ? 4 : 2">
+                                    </aol-style-stroke>                                                                    
                                 </aol-style>
                             </aol-feature>
                         </div>
@@ -515,7 +522,7 @@
                     <!-- *** NOTES *** -->    
 
                     <!-- *** popover *** -->
-                    <aol-overlay *ngIf="display.overlay.show">
+                    <aol-overlay *ngIf="display.overlay.show && !draw.modify">
                         <aol-coordinate
                             [x]="display.overlay.position[0]"
                             [y]="display.overlay.position[1]"
@@ -552,6 +559,12 @@
                                 <div style="display:flex;">
                                     <div style="flex:1 1 auto;">
                                         <div>
+                                            <button mat-icon-button *ngIf="display.overlay.canModify"
+                                                (click)="modifyStart();popoverClosed()"
+                                                matTooltip="Modify">
+                                                <mat-icon color="primary">touch_app</mat-icon>
+                                            </button> 
+
                                             <button mat-icon-button *ngIf="display.overlay.type=='note'"
                                                 (click)="skres.showNoteEditor({id: display.overlay.id});popoverClosed()"
                                                 matTooltip="Edit Note">
@@ -567,7 +580,7 @@
                                             </button>
 
                                             <button mat-button *ngIf="display.overlay.addNote"
-                                                (click)="skres.showNoteEditor({region: { id: display.overlay.id } });popoverClosed()"
+                                                (click)="skres.showNoteEditor({region: { id: display.overlay.id, exists: true } });popoverClosed()"
                                                 color="primary"
                                                 matTooltip="Add Note">
                                                 <mat-icon>add</mat-icon>
@@ -581,7 +594,7 @@
                                                 <mat-icon>delete</mat-icon>
                                             </button>
 
-                                            <button mat-button *ngIf="display.overlay.gotoWaypoint"
+                                            <button mat-icon-button *ngIf="display.overlay.gotoWaypoint"
                                                 (click)="navigateToWaypoint({id: display.overlay.id});popoverClosed()"
                                                 color="primary"
                                                 matTooltip="Navigate to Waypoint">
@@ -593,8 +606,14 @@
                                                 color="primary"
                                                 matTooltip="Make this the Active Route">
                                                 <mat-icon>select_all</mat-icon>
-                                                Activate
                                             </button>
+                                            <button mat-icon-button *ngIf="display.overlay.deactivateRoute" 
+                                                (click)="routeClearActive();popoverClosed()"
+                                                color="primary"
+                                                matTooltip="De-activate Route">
+                                                <mat-icon>clear_all</mat-icon>
+                                            </button>
+                                            
                                         </div>  
                                     </div>
                                     <div style="text-align:right;">
@@ -753,6 +772,7 @@
                             </aol-feature>    
                             
                             <!-- bearing Line-->
+                            <!-- base-->
                             <aol-feature *ngIf="display.vesselLines.bearing[0] && app.config.anchor.raised">
                                 <aol-geometry-linestring>
                                     <aol-collection-coordinates
@@ -762,7 +782,21 @@
                                 </aol-geometry-linestring>
                                 <aol-style>
                                     <aol-style-stroke 
-                                        [color]="'rgba(221, 99, 0, 0.5)'" [width]="1">
+                                        [color]="'white'" [width]="6">
+                                    </aol-style-stroke>                                  
+                                </aol-style>
+                            </aol-feature>  
+                            <!-- highlight-->
+                            <aol-feature *ngIf="display.vesselLines.bearing[0] && app.config.anchor.raised">
+                                <aol-geometry-linestring>
+                                    <aol-collection-coordinates
+                                        [coordinates]="display.vesselLines.bearing"
+                                        [srid]="app.config.map.srid">
+                                    </aol-collection-coordinates>
+                                </aol-geometry-linestring>
+                                <aol-style>
+                                    <aol-style-stroke 
+                                        [color]="'rgba(221, 149, 0, 1)'" [width]="2">
                                     </aol-style-stroke>
                                 </aol-style>
                             </aol-feature>        
@@ -830,7 +864,7 @@
             <!--/map panel-->
 
             <!-- Draw / Measure Help -->
-            <div *ngIf="draw.enabled || measure.enabled"
+            <div *ngIf="draw.enabled || draw.modify || measure.enabled"
                 style="position: absolute; top: 60px; left:10px; 
                     width:150px;
                     border: black 1px solid;
@@ -864,6 +898,19 @@
                         </ol>
                     </div>                     
                 </div>
+                <div *ngIf="draw.modify">
+                        <span style="font-weight:bold;padding: 5px;">
+                            <mat-icon>edit</mat-icon> Modify:
+                        </span>
+                        <div style="padding: 5px;">
+                            <ol style="margin-block-start: .2em;
+                                    margin-block-end: .2em;
+                                    padding-inline-start: 15px;">
+                                <li>Click and drag to move.</li>
+                                <li>Alt-Click to remove vertex.</li>
+                            </ol>
+                        </div> 
+                    </div>                 
                 <div *ngIf="measure.enabled">
                     <span style="font-weight:bold;padding: 5px;">
                         <mat-icon>straighten</mat-icon> Measure:
@@ -880,12 +927,12 @@
                 <div style="text-align: center;">
                 <!-- cancel Draw / Measure button -->
                 <a mat-raised-button
-                    color="warn" *ngIf="draw.enabled || measure.enabled"
-                    (click)="draw.enabled=false;measure.enabled=false;display.overlay.show=false;"
-                    [matTooltip]="(measure.enabled) ? 'Cancel Measure' : 'Cancel Draw'" 
+                    color="warn" *ngIf="draw.enabled || draw.modify || measure.enabled"
+                    (click)="drawEnd()"
+                    [matTooltip]="(measure.enabled) ? 'Cancel Measure' : (draw.modify) ? 'Cancel Editing' : 'Cancel Draw'" 
                     matTooltipPosition="left">
                     <mat-icon>close</mat-icon>
-                    CANCEL
+                    {{ (draw.modify) ? 'FINISH' : 'CANCEL'}}
                 </a>                      
                 </div>             
             </div>         

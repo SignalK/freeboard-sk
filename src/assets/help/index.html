@@ -589,7 +589,7 @@
                 <p>
                     <b>UNITS &amp; VALUES:</b><br>
                     This section provides choices about the units and values used when displaying data.<br>
-                    <img src="./img/settings_units.png" style="height:250px;"/><br>
+                    <img src="./img/settings_units.png" style="height:200px;"/><br>
 
                     <b>Distance Units</b>: 
                     <i>Kilometres</i> / <i>Nautical Miles</i>
@@ -616,7 +616,7 @@
                 <p>
                     <b>OTHER VESSELS:</b><br>
                     This section provides choices about the units and values used when displaying data.<br>
-                    <img src="./img/settings_other_vessels.png" style="height:250px;"/><br>
+                    <img src="./img/settings_other_vessels.png" style="height:200px;"/><br>
 
                     <b>Wind Vector</b>: <i>Wind True</i> / <i>Wind Apparent</i><br>
                     Value used to display wind vector for other vessels displayed on the map.
@@ -627,23 +627,37 @@
                 </p>                
                 
                 <p>
-                    <b>SERVER:</b><br>
-                    <img src="./img/settings_server.png" style="height:100px;"/>
+                    <b>RESOURCES: NOTES</b><br>
+                    <img src="./img/settings_resources_notes.png" style="height:200px;"/>
                     <ul>
-                        <li><b>Server Resource Updates</b>: 
-                            Un-check this box if you want to use <i>UPDATES</i> messages to send 
-                            information to the server rather than <i>PUT</i> requests.
-                        </li>        
+                        <li><b>Display Notes on Map</b>: 
+                            Un-check this box if you do not want to display <i>NOTES</i> on the map.
+                        </li>    
+                        <li><b>Notes Zoom Level</b>: 
+                            Select the zoom level at which <i>NOTES</i> will appear on the map.
+                        </li>       
+                        <li><b>Fetch Notes within</b>: 
+                            Select the radius from the centre of the displayed map within which <i>NOTES</i> 
+                            will be retrived from the server.<br>
+                            A request to fetch Notes is triggered when the map centre moves more than 
+                            50% of this value. 
+                        </li>                          
+                        <li><b>Notes Fetch Filter</b>: 
+                            This field allows you to specify a parameter string that will be 
+                            used when fetching Notes from the Signal K server. This can be useful to reduce 
+                            the number of Notes records returned or to only return Notes in a particular area. <br>
+                            The string can contain <i>%Tokens%</i> to specify specific values.<br>
+                            <i>e.g. ?position=%map:longitude%,%map:latitude%&radius=%note:radius%</i>
+                        </li>                                                 
                     </ul>
-                    This setting is <b>Checked</b> by default and should be left checked to ensure 
-                    Freeboard can respond to the success / failure of an action on the server.<br>
-                    
-                    Un-checking this option will cause UPDATES messages to be sent, which essentially 
-                    broadcasts the information and does not 
-                    elicit a specific response from the Signal K server regarding the sucess or failure
-                    of an operation.<br>
-                    This option can be used when the Signal K server does not accept requests for 
-                    the paths required for Freeboard functions.<br>
+
+                    <b>Parameter Tokens</b> are text enclosed in <b>%</b>.<br>
+                    Valid tokens include:
+                    <ul>
+                        <li><b>map:latitude</b>: Latitude at centre of Map</li>
+                        <li><b>map:longitude</b>: Longitude at centre of Map</li>
+                        <li><b>note:radius</b>: The value set in the <i>Fetch Notes within</i> field</li>
+                    </ul>
                 </p>                
             </div>
         

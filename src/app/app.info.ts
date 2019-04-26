@@ -8,9 +8,7 @@ import { IndexedDB } from './lib/info/indexeddb';
 import { SignalKClient } from 'signalk-client-angular';
 
 
-@Injectable({
-    providedIn: 'root'
-})
+@Injectable({ providedIn: 'root' })
 export class AppInfo extends Info {
 
     private DEV_SERVER= {
@@ -95,8 +93,7 @@ export class AppInfo extends Info {
             resources: {    // ** resource options
                 notes: {
                     rootFilter: '', // param string to provide record filtering
-                    extEdit: null,    // url to use for external editing
-                    extAdd: null      // url to use for external creation
+                    getRadius: 10000      // radius(m) within which to return notes
                 }
             }
         } 
@@ -112,7 +109,8 @@ export class AppInfo extends Info {
             trail: [],
             server: null,
             hasToken: false,
-            headingValues: []
+            headingValues: [],
+            lastGet: null,    // map position of last resources GET
         }
 
         /***************************************
@@ -207,7 +205,7 @@ export class AppInfo extends Info {
                 this.config.selections.notesMinZoom=10;
             }   
             if(typeof this.config.resources === 'undefined') {
-                this.config.resources= { notes: { rootFilter: '', extAdd: null, extEdit: null } };
+                this.config.resources= { notes: { rootFilter: '', getRadius: 10000 } };
             }                              
         }
     }

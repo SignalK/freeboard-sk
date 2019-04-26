@@ -11,7 +11,7 @@ import { GPXImportDialog } from './lib/gpxload/gpxload.module';
 
 import { SignalKClient, Alarm, AlarmState } from 'signalk-client-angular';
 import { SKResources, SKWaypoint, SKVessel, SKNote, SKRegion,
-        ResourceDialog, AISPropertiesDialog } from './lib/skresources';
+        ResourceDialog, AISPropertiesDialog, SKRoute } from './lib/skresources';
 
 import { NoteDialog  } from './lib/skresources';
 
@@ -19,7 +19,7 @@ import { Convert } from './lib/convert';
 import { GeoUtils } from './lib/geoutils';
 
 import 'hammerjs';
-import { proj, coordinate, style } from 'openlayers';
+import { proj, coordinate, style, Collection } from 'openlayers';
 
 enum APP_MODE { REALTIME=0, PLAYBACK }
 
@@ -78,7 +78,10 @@ export class AppComponent {
     public draw= {
         enabled: false,
         mode: null,
-        type: 'Point'
+        type: 'Point',
+        modify: false,
+        features: null,
+        forSave: null
     }
 
     public measure= {
@@ -134,13 +137,15 @@ export class AppComponent {
             this.lastInstUrl= this.app.config.plugins.instruments;
             this.instUrl= dom.bypassSecurityTrustResourceUrl(`${this.app.host}${this.app.config.plugins.instruments}`);
             this.coord= coordinate;
+            /* draw styles */
             this.measure.style= new style.Style({
                 stroke: new style.Stroke({
                     color: 'purple', 
                     lineDash: [10,10],
                     width: 2
-                })   
+                })
             }); 
+            /* /draw styles */            
             // ** handle settings load / save events to manage True/magnetic values
             this.app.settings$.subscribe( r=> {
                 if(r.action=='load' && r.setting=='config') {
@@ -607,11 +612,11 @@ export class AppComponent {
         if(!this.app.config.map.moveMap) { 
             this.app.saveConfig();
             this.isDirty=false;
-            if(z>= this.app.config.selections.notesMinZoom) { // retrieve Notes
-                this.skres.getNotes();
-            }
         }
         else { this.isDirty=true }
+
+        // retrieve Notes
+        if(this.fetchNotes()) {this.skres.getNotes();this.app.debug(`fetching Notes...`) }
     }
    
     mapMouseClick(e:any) {
@@ -630,8 +635,9 @@ export class AppComponent {
                 `${(this.measure.totalDistance/1000).toFixed(2)} km` :
                 `${Convert.kmToNauticalMiles(this.measure.totalDistance/1000).toFixed(2)} NM`              
         }        
-        else if(!this.draw.enabled) {
+        else if(!this.draw.enabled && !this.draw.modify) {
             let flist= [];
+            let fa= [];
             // compile list of features at click location
             e.map.forEachFeatureAtPixel(e.pixel, (feature, layer)=> {
                 let id= feature.getId();
@@ -665,8 +671,10 @@ export class AppComponent {
                         icon: icon,
                         text: text
                     });
+                    fa.push(feature);
                 }  
             });
+            this.draw.features= new Collection(fa); // features collection for modify interaction
             if(flist.length==1) {   // only 1 feature
                 this.formatPopover( 
                     flist[0].id,
@@ -802,8 +810,10 @@ export class AppComponent {
     formatPopover(id:string, coord:any, prj:any, list?:any) {
         this.display.overlay['addNote']=null;  
         this.display.overlay['addWaypoint']=null;  
+        this.display.overlay['canModify']=false;  
         this.display.overlay['gotoWaypoint']=null;
         this.display.overlay['activateRoute']=null;
+        this.display.overlay['deactivateRoute']=null;
         this.display.overlay['id']=null;    
         this.display.overlay['type']=null;   
         this.display.overlay['showProperties']=false;
@@ -866,6 +876,7 @@ export class AppComponent {
                 this.display.overlay['id']= t[1];
                 this.display.overlay['showProperties']=true;
                 this.display.overlay['canDelete']=true;
+                this.display.overlay['canModify']=false;  
                 this.display.overlay.title= 'Note';  
                 info.push(['Title', item[0][1].title]);
                 if(item[0][1].url) { this.display.overlay['url']=item[0][1].url }             
@@ -873,11 +884,13 @@ export class AppComponent {
             case 'route':
                 item= this.app.data.routes.filter( i=>{ if(i[0]==t[1]) return true });
                 if(!item) { return false }
+                this.display.overlay['canModify']=true;  
                 this.display.overlay['showProperties']=true;
                 this.display.overlay['type']='route';
                 this.display.overlay.title= 'Route';
                 this.display.overlay['id']=t[1];
                 this.display.overlay['activateRoute']=!item[0][3];
+                this.display.overlay['deactivateRoute']=item[0][3];
                 this.display.overlay['canDelete']= !item[0][3];
                 info.push(['Name', item[0][1].name]);
                 let d= (this.app.config.units.distance=='m') ?
@@ -891,6 +904,7 @@ export class AppComponent {
                 if(!item) { return false }
                 this.display.overlay['showProperties']=true;
                 this.display.overlay['gotoWaypoint']=!item[0][3];
+                this.display.overlay['canModify']=true;  
                 this.display.overlay['type']='waypoint';
                 this.display.overlay.title= 'Waypoint';   
                 this.display.overlay['canDelete']= (this.display.overlay['type']=='waypoint' && !this.display.overlay['addWaypoint']) ? true : false;
@@ -911,6 +925,88 @@ export class AppComponent {
 
     // ******** DRAW / EDIT EVENTS ************
 
+    // ** Enter modify mode **
+    modifyStart() {
+        this.draw.type= null
+        this.draw.mode= null;
+        this.draw.enabled= false;
+        this.draw.modify= true;
+    }
+
+    // ** modify start event **
+    handleModifyStart(e:any) {
+        if(!this.draw.forSave) { 
+            this.draw.forSave= { id: null, coords: null};
+            this.draw.forSave.id= e.features.getArray()[0].getId();
+        }
+        this.app.debug(this.draw.forSave);
+    }
+
+    // ** Modify end event **
+    handleModifyEnd(e:any) {
+        let f= e.features.getArray()[0];
+        let fid= f.getId();
+        let c= f.getGeometry().getCoordinates();
+        let pc:any;
+        if(fid.split('.')[0]=='route') {
+            pc= c.map( i=> { 
+                return proj.transform(
+                    i, 
+                    this.app.config.map.mrid, 
+                    this.app.config.map.srid
+                );
+            });
+        }
+        else {
+            pc= proj.transform(
+                c, 
+                this.app.config.map.mrid, 
+                this.app.config.map.srid
+            );
+        }
+        this.draw.forSave['coords']= pc;
+        this.app.debug(this.draw.forSave);
+    }    
+
+    // ** Exit Draw / modify / measure mode **
+    drawEnd() {
+        if(this.draw.modify && this.draw.forSave) {  // save changes
+            this.dialog.open(ConfirmDialog, {
+                disableClose: false,
+                data: { 
+                    message: `Do you want to save the changes made to ${this.draw.forSave.id.split('.')[0]}?`, 
+                    title: 'Save Changes' }
+            }).afterClosed().subscribe( res=> {
+                let r= this.draw.forSave.id.split('.');
+                if(res) {   // save changes
+                    if(r[0]=='route') { 
+                        this.skres.updateRouteCoords(r[1], this.draw.forSave.coords);
+                        this.updateNavData(this.draw.forSave.coords); 
+                    }
+                    if(r[0]=='waypoint') {
+                        this.skres.updateWaypointPosition(r[1], this.draw.forSave.coords);
+                        this.skres.setNextPoint({
+                            latitude: this.draw.forSave.coords[1], 
+                            longitude: this.draw.forSave.coords[0], 
+                        });  
+                    }
+                }
+                else {
+                    if(r[0]=='route') { this.skres.getRoutes() }
+                    if(r[0]=='waypoint') { this.skres.getWaypoints() }
+                }
+                this.draw.forSave= null;
+            });
+        }
+        // clean up
+        this.draw.enabled=false;
+        this.draw.modify=false;
+        this.draw.features= null;
+        this.measure.enabled=false;
+        this.display.overlay.show=false;
+    }
+
+    // ** Enter Draw mode **
     drawStart(mode:string) {
         switch(mode) {
             case 'waypoint':
@@ -934,6 +1030,7 @@ export class AppComponent {
         }
     }
 
+    // ** Draw end event **
     handleDrawEnd(e:any) {
         this.draw.enabled=false;
         let c:any;
@@ -976,12 +1073,14 @@ export class AppComponent {
         }
     }
 
+    // ** Enter Measure mode **
     measureStart() { 
         this.measure.enabled=true;
         this.measure.coords= [];
         this.measure.totalDistance= 0;
     }
 
+    // ** Measure end event **
     handleMeasure(e:any) {
          if(e.type=='drawstart') {         
             this.measure.geom= e.feature.getGeometry();
@@ -1020,6 +1119,26 @@ export class AppComponent {
     }
          
     // ******** RESOURCE EVENTS ************  
+
+    // ** returns true if skres.getNotes() should be called
+    fetchNotes() {
+        this.app.debug(`lastGet: ${this.app.data.lastGet}`);
+        this.app.debug(`getRadius: ${this.app.config.resources.notes.getRadius}`);
+        if(this.app.config.map.zoomLevel < this.app.config.selections.notesMinZoom) { return false }
+        if(!this.app.data.lastGet) { 
+            this.app.data.lastGet= this.app.config.map.center;
+            return true; 
+        }
+        // ** calc distance from new map center to lastGet
+        let d= GeoUtils.distanceTo(this.app.data.lastGet, this.app.config.map.center )
+        this.app.debug(`distance: ${d}`);
+        // ** if d is more than half the getRadius
+        if(d>= this.app.config.resources.notes.getRadius/2 ) { 
+            this.app.data.lastGet= this.app.config.map.center;
+            return true; 
+        }
+        return false;    
+    }
 
     // ** handle display resource properties **
     resourceProperties(r:any) {
@@ -1082,13 +1201,19 @@ export class AppComponent {
             .filter( i=>{ return i } );
         let c= rte[0][1].feature.geometry.coordinates;
         if(i==-1) {
-            if(this.display.navData.pointIndex>0) {
+            if(this.display.navData.pointIndex==-1) {
+                this.display.navData.pointIndex=0;
+            }
+            else if(this.display.navData.pointIndex>0) {
                 this.display.navData.pointIndex--;
             }
             else { return }
         }
         else { // +1
-            if(this.display.navData.pointIndex<this.display.navData.pointTotal-1) {
+            if(this.display.navData.pointIndex==-1) {
+                this.display.navData.pointIndex= c.length-1;
+            }
+            else if(this.display.navData.pointIndex<this.display.navData.pointTotal-1) {
                 this.display.navData.pointIndex++;
             }
             else { return }
@@ -1694,19 +1819,25 @@ export class AppComponent {
         this.app.data.routes.forEach( i=> {
             if(i[0]==this.app.data.activeRoute) {
                 i[3]= true;
-                let c= i[1].feature.geometry.coordinates;
-                this.display.navData.pointTotal= c.length;
-                if(this.display.navData.position) {
-                    for(let i=0; i<c.length; i++) {
-                        if(c[i][0]==this.display.navData.position[0] &&
-                            c[i][1]==this.display.navData.position[1] ) {
-                            this.display.navData.pointIndex=i;
-                        }
-                    }  
-                }              
+                this.updateNavData(i[1].feature.geometry.coordinates);            
             }
             else { i[3]= false }
         });
+    }
+
+    // ** Update the nextPoint position from supplied coordinates list
+    updateNavData(coords: Array<[number,number]>) {
+        let idx=-1;
+        if(this.display.navData.position) {
+            for(let i=0; i<coords.length; i++) {
+                if(coords[i][0]==this.display.navData.position[0] &&
+                    coords[i][1]==this.display.navData.position[1] ) {
+                    idx=i;
+                }
+            }   
+        } 
+        this.display.navData.pointTotal= coords.length;
+        this.display.navData.pointIndex= idx;
     }
 
     // ** process vessel trail **

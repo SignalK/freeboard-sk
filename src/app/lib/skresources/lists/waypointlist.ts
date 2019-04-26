@@ -28,7 +28,7 @@ export class WaypointListComponent {
 
     close() { this.closed.emit() }
 
-    initItems() {
+    initItems() {         
         this.filterList= this.waypoints;
         this.filterList.sort( (a,b)=>{ 
             let x=a[1].feature.properties.name || 'zzz';

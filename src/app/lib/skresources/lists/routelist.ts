@@ -30,7 +30,7 @@ export class RouteListComponent {
 
     close() { this.closed.emit() }
 
-    initItems() {
+    initItems() {   
         this.filterList= this.routes;
         this.filterList.sort( (a,b)=>{ 
             let x=a[1].name.toUpperCase();

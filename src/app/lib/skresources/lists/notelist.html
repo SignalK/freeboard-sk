@@ -40,23 +40,30 @@
     </div>
 
     <div class="resources">
-        <mat-card *ngFor="let r of filterList; let i= index;">
-            <div style="display: flex;">
-                <div style="flex: 1 1 auto;">
-                    <div>
-                        <mat-icon>local_offer</mat-icon>
-                        &nbsp;<b>{{r[1].title}}</b>
-                    </div>
-                </div>        
-                <div style="text-align: right;">
-                    <button mat-icon-button color="primary"
-                        (click)="viewNote(r[0])"
-                        matTooltip="View Note"
-                        matTooltipPosition="left">
-                            <mat-icon>info_outline</mat-icon>
-                    </button>
-                </div>  
-            </div>
-        </mat-card>
+        <cdk-virtual-scroll-viewport itemSize="72" 
+                style="position: absolute;
+                    top: 10px;
+                    bottom: 0;
+                    left: 0;
+                    right: 0;">
+            <mat-card *cdkVirtualFor="let r of filterList; let i= index;">
+                <div style="display: flex;">
+                    <div style="flex: 1 1 auto;">
+                        <div>
+                            <mat-icon>local_offer</mat-icon>
+                            &nbsp;<b>{{r[1].title}}</b>
+                        </div>
+                    </div>        
+                    <div style="text-align: right;">
+                        <button mat-icon-button color="primary"
+                            (click)="viewNote(r[0])"
+                            matTooltip="View Note"
+                            matTooltipPosition="left">
+                                <mat-icon>info_outline</mat-icon>
+                        </button>
+                    </div>  
+                </div>
+            </mat-card>
+        </cdk-virtual-scroll-viewport>
     </div>
 </div>

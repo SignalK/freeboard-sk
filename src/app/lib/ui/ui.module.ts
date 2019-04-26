@@ -21,6 +21,7 @@ import { AlarmsDialog, AlarmComponent } from './alarms';
 import { GeometryCircleComponent } from './map/geom-circle.component';
 import { AisTargetsComponent } from './map/feature-ais.component';
 import { CompassComponent } from './compass.component';
+import { PiPVideoComponent } from './pip.component';
 
 @NgModule({
     imports: [
@@ -32,7 +33,7 @@ import { CompassComponent } from './compass.component';
     declarations: [
         MsgBox, AlertDialog, ConfirmDialog, AboutDialog,
         FileInputComponent, TextDialComponent, LoginDialog, AlarmsDialog, AlarmComponent,
-        PopoverComponent, PlaybackDialog, 
+        PopoverComponent, PlaybackDialog, PiPVideoComponent,
         GeometryCircleComponent, AisTargetsComponent, CompassComponent
     ],
     exports: [
@@ -40,7 +41,7 @@ import { CompassComponent } from './compass.component';
         FileInputComponent, TextDialComponent, LoginDialog, AlarmsDialog,
         PopoverComponent, PlaybackDialog, 
         GeometryCircleComponent, AisTargetsComponent,  
-        CompassComponent, AlarmComponent,
+        CompassComponent, AlarmComponent, PiPVideoComponent
     ],
     entryComponents: [
         MsgBox, AlertDialog, ConfirmDialog, AboutDialog, LoginDialog,

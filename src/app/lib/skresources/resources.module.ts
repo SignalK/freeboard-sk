@@ -2,10 +2,12 @@ import { NgModule, Injectable } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HttpClientModule } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
+
 import { MatDialogModule, 
         MatCheckboxModule, MatCardModule, MatButtonModule, MatListModule, 
         MatFormFieldModule, MatInputModule,
         MatIconModule, MatTooltipModule, MatSliderModule, MatSlideToggleModule } from '@angular/material';
+import {ScrollDispatchModule} from '@angular/cdk/scrolling';
 
 import { RouteListComponent } from  './lists/routelist';
 import { WaypointListComponent } from  './lists/waypointlist';
@@ -22,7 +24,7 @@ import { SKNotesModule } from './notes';
         CommonModule, HttpClientModule, FormsModule, MatDialogModule,
         MatCheckboxModule, MatCardModule, MatListModule,
         MatButtonModule, MatIconModule, MatTooltipModule, 
-        MatSliderModule, MatSlideToggleModule, 
+        MatSliderModule, MatSlideToggleModule, ScrollDispatchModule,
         MatFormFieldModule, MatInputModule, SKNotesModule
     ],
     declarations: [
