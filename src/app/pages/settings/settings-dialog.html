@@ -1,12 +1,23 @@
 <div style="position: relative; width: 100%;">
 
+    <mat-menu #settingsMenu="matMenu">
+        <a mat-menu-item href="#sectDisplay">Display</a>
+        <a mat-menu-item href="#sectunits">Units & Values</a>
+        <a mat-menu-item href="#sectVessels">Vessels</a>
+        <a mat-menu-item href="#sectNotes">Notes</a>
+    </mat-menu>
+
     <mat-toolbar style="background-color: transparent;">
-        <span><mat-icon>settings</mat-icon></span>
+        <span>
+            <button mat-icon-button [matMenuTriggerFor]="settingsMenu">
+                <mat-icon>menu</mat-icon>
+            </button> 
+        </span>
         <span style="flex: 1 1 auto;text-align:center;">Settings</span>
         <span style="text-align:right;">
             <button mat-icon-button (click)="this.dialogRef.close();">
                 <mat-icon>close</mat-icon>
-            </button>
+            </button>           
         </span>
     </mat-toolbar>
 
@@ -14,7 +25,7 @@
 
         <div class="theme-panel">
             <div>
-                <div class="setting-group">
+                <div class="setting-group" id="sectDisplay">
                     <div class="setting-group-title">DISPLAY</div>
                     <mat-card class="setting-card">
                         <div class="setting-card-row" *ngIf="appList.length>1">
@@ -68,7 +79,7 @@
                     </mat-card>
                 </div>                  
 
-                <div class="setting-group">
+                <div class="setting-group" id="sectunits">
                     <div class="setting-group-title">UNITS &amp; VALUES</div>
                     <mat-card class="setting-card">
                         <div class="setting-card-row" style="padding-bottom: 10px;">
@@ -108,7 +119,7 @@
                     </mat-card>
                 </div>
 
-                <div class="setting-group">
+                <div class="setting-group" id="sectVessels">
                     <div class="setting-group-title">OTHER VESSELS</div>
                     <mat-card class="setting-card">
                         <div class="setting-card-row" style="padding-bottom: 10px;">                            
@@ -138,7 +149,7 @@
                     </mat-card>
                 </div>
             
-                <div class="setting-group">
+                <div class="setting-group" id="sectNotes">
                     <div class="setting-group-title">RESOURCES: NOTES</div>
                     <mat-card class="setting-card">
                         <div class="setting-card-row">
@@ -169,7 +180,7 @@
                                             [disabled]="!app.config.notes"
                                             [(value)]="app.config.resources.notes.getRadius" 
                                             (selectionChange)="onFormChange($event, notesgetradius)"
-                                            placeholder="Fetch Notes within:">
+                                            placeholder="Fetch Notes radius:">
                                         <mat-option *ngFor="let i of resRadiusList" [value]="i[0]">{{i[1]}}</mat-option>
                                     </mat-select>                                        
                                 </mat-form-field>

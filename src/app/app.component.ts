@@ -81,7 +81,8 @@ export class AppComponent {
         type: 'Point',
         modify: false,
         features: null,
-        forSave: null
+        forSave: null,
+        properties: {}
     }
 
     public measure= {
@@ -209,7 +210,10 @@ export class AppComponent {
                 this.lastInstUrl= this.app.config.plugins.instruments
                 this.instUrl= this.dom.bypassSecurityTrustResourceUrl(`${this.app.host}${this.app.config.plugins.instruments}`);
             }
-        });    
+        });   
+        
+        // ** respond to resources.update event
+        this.skres.update$.subscribe( value=> { this.handleResourceUpdate(value) });
     } 
 
     ngOnDestroy() {
@@ -296,7 +300,7 @@ export class AppComponent {
             disableClose: false,
             data: this.display.alarms
         }).afterClosed().subscribe( r=> {
-            if(!r) { return }
+            if(!r || typeof r.raise==='undefined') { return }
             if(r.raise) {
                 this.signalk.stream.raiseAlarm(
                     'self', 
@@ -847,6 +851,7 @@ export class AppComponent {
                 this.display.overlay['id']= t[1];
                 this.display.overlay['showProperties']=true;
                 this.display.overlay['canDelete']=false;
+                this.display.overlay['canModify']=true;
                 this.display.overlay['addNote']=true;  
                 this.display.overlay.title= 'Region';  
                 break;
@@ -876,7 +881,7 @@ export class AppComponent {
                 this.display.overlay['id']= t[1];
                 this.display.overlay['showProperties']=true;
                 this.display.overlay['canDelete']=true;
-                this.display.overlay['canModify']=false;  
+                this.display.overlay['canModify']=true;  
                 this.display.overlay.title= 'Note';  
                 info.push(['Title', item[0][1].title]);
                 if(item[0][1].url) { this.display.overlay['url']=item[0][1].url }             
@@ -923,7 +928,23 @@ export class AppComponent {
         this.display.overlay.show=true;
     }
 
+    // ******** RESOURCE handler functions ****
+
+    handleResourceUpdate(e:any) {
+        // ** create note in group **
+        if(e.action=='new' && e.mode=='note') { this.drawStart(e.mode, {group: e.group}) }
+    }
+
     // ******** DRAW / EDIT EVENTS ************
+
+    // ** trim the draw.features collection to the selected id **
+    trimDrawFeatureList(id:string) {
+        let sf= new Collection();
+        this.draw.features.forEach( e=> {
+            if(e.getId()==id) { sf.push(e) }
+        });
+        this.draw.features= sf;
+    }
 
     // ** Enter modify mode **
     modifyStart() {
@@ -957,6 +978,16 @@ export class AppComponent {
                 );
             });
         }
+        if(fid.split('.')[0]=='region') {
+            let a= c[0].map( i=> { 
+                return proj.transform(
+                    i, 
+                    this.app.config.map.mrid, 
+                    this.app.config.map.srid
+                );
+            });
+            pc= [a];
+        }        
         else {
             pc= proj.transform(
                 c, 
@@ -990,10 +1021,17 @@ export class AppComponent {
                             longitude: this.draw.forSave.coords[0], 
                         });  
                     }
+                    if(r[0]=='note') { 
+                        this.skres.updateNotePosition(r[1], this.draw.forSave.coords);
+                    }         
+                    if(r[0]=='region') { 
+                        this.skres.updateRegionCoords(r[1], this.draw.forSave.coords);
+                    }                                 
                 }
                 else {
                     if(r[0]=='route') { this.skres.getRoutes() }
                     if(r[0]=='waypoint') { this.skres.getWaypoints() }
+                    if(r[0]=='note' || r[0]=='region') { this.skres.getNotes() }
                 }
                 this.draw.forSave= null;
             });
@@ -1007,13 +1045,15 @@ export class AppComponent {
     }
 
     // ** Enter Draw mode **
-    drawStart(mode:string) {
+    drawStart(mode:string, props?:any) {
+        this.draw.properties= {};
         switch(mode) {
             case 'waypoint':
             case 'note':
                 this.draw.type= 'Point'
                 this.draw.mode= mode;
                 this.draw.enabled= true;
+                if(props && props.group) { this.draw.properties= props }
                 break;
             case 'route':
                 this.draw.type= 'LineString'
@@ -1041,7 +1081,11 @@ export class AppComponent {
                     this.app.config.map.mrid, 
                     this.app.config.map.srid
                 );     
-                if(this.draw.mode=='note') { this.skres.showNoteEditor({position: c}) }          
+                if(this.draw.mode=='note') { 
+                    let params= {position: c};
+                    if(this.draw.properties['group']) { params['group']= this.draw.properties['group'];}
+                    this.skres.showNoteEditor(params);
+                }          
                 else { this.skres.showWaypointEditor({position: c}) }
                 break;
             case 'LineString':

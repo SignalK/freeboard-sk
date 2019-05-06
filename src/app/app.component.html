@@ -537,7 +537,7 @@
                                 
                                 <mat-nav-list>
                                     <mat-list-item *ngFor="let f of this.display.overlay['content']">
-                                        <a matLine href="#" (click)="formatPopover(f.id, f.coord, f.mrid)">
+                                        <a matLine href="#" (click)="trimDrawFeatureList(f.id); formatPopover(f.id, f.coord, f.mrid)">
                                             <mat-icon [color]="(f.text=='self') ? 'warn' : '' ">
                                                 {{f.icon}}
                                             </mat-icon>
@@ -556,75 +556,80 @@
                                     <div style="font-weight:bold;">{{p[0]}}:</div>
                                     <div style="flex: 1 1 auto;text-align:right;">{{p[1]}}</div>
                                 </div>
-                                <div style="display:flex;">
-                                    <div style="flex:1 1 auto;">
-                                        <div>
-                                            <button mat-icon-button *ngIf="display.overlay.canModify"
-                                                (click)="modifyStart();popoverClosed()"
-                                                matTooltip="Modify">
-                                                <mat-icon color="primary">touch_app</mat-icon>
-                                            </button> 
-
-                                            <button mat-icon-button *ngIf="display.overlay.type=='note'"
-                                                (click)="skres.showNoteEditor({id: display.overlay.id});popoverClosed()"
-                                                matTooltip="Edit Note">
-                                                <mat-icon color="primary">edit</mat-icon>
-                                            </button>                                               
-
-                                            <button mat-button *ngIf="display.overlay.addWaypoint"
-                                                (click)="skres.showWaypointEditor(null, display.vessels.self.position);popoverClosed()"
-                                                color="primary"
-                                                matTooltip="Add Waypoint at vessel location">
-                                                <mat-icon>add_location</mat-icon>
-                                                WAYPOINT HERE
-                                            </button>
-
-                                            <button mat-button *ngIf="display.overlay.addNote"
-                                                (click)="skres.showNoteEditor({region: { id: display.overlay.id, exists: true } });popoverClosed()"
-                                                color="primary"
-                                                matTooltip="Add Note">
-                                                <mat-icon>add</mat-icon>
-                                                NOTE
-                                            </button>                                                 
-
-                                            <button mat-icon-button *ngIf="display.overlay.canDelete"
-                                                (click)="resourceDelete(display.overlay.id);popoverClosed()"
-                                                color="warn"
-                                                matTooltip="Delete">
-                                                <mat-icon>delete</mat-icon>
-                                            </button>
-
-                                            <button mat-icon-button *ngIf="display.overlay.gotoWaypoint"
-                                                (click)="navigateToWaypoint({id: display.overlay.id});popoverClosed()"
-                                                color="primary"
-                                                matTooltip="Navigate to Waypoint">
-                                                <mat-icon>near_me</mat-icon>
-                                            </button>                                           
-
-                                            <button mat-icon-button *ngIf="display.overlay.activateRoute" 
-                                                (click)="routeActivate({id: display.overlay.id});popoverClosed()"
-                                                color="primary"
-                                                matTooltip="Make this the Active Route">
-                                                <mat-icon>select_all</mat-icon>
-                                            </button>
-                                            <button mat-icon-button *ngIf="display.overlay.deactivateRoute" 
-                                                (click)="routeClearActive();popoverClosed()"
-                                                color="primary"
-                                                matTooltip="De-activate Route">
-                                                <mat-icon>clear_all</mat-icon>
-                                            </button>
-                                            
-                                        </div>  
+                                <div style="display:flex;flex-wrap: wrap;">
+                                    <div style="flex:1 1 50%;" *ngIf="display.overlay.canModify">
+                                        <button mat-button 
+                                            (click)="modifyStart();popoverClosed()"
+                                            color="primary"
+                                            matTooltip="Modify">
+                                            <mat-icon>touch_app</mat-icon>
+                                            MOVE
+                                        </button> 
                                     </div>
-                                    <div style="text-align:right;">
-                                        <button mat-icon-button
+                                    <div style="flex:1 1 50%;" *ngIf="display.overlay.addWaypoint">
+                                        <button mat-button 
+                                            (click)="skres.showWaypointEditor(null, display.vessels.self.position);popoverClosed()"
+                                            color="primary"
+                                            matTooltip="Add Waypoint at vessel location">
+                                            <mat-icon>add_location</mat-icon>
+                                            WAYPOINT HERE
+                                        </button>
+                                    </div>
+                                    <div style="flex:1 1 50%;" *ngIf="display.overlay.addNote">
+                                        <button mat-button 
+                                            (click)="skres.showNoteEditor({region: { id: display.overlay.id, exists: true } });popoverClosed()"
+                                            color="primary"
+                                            matTooltip="Add Note">
+                                            <mat-icon>local_offer</mat-icon>
+                                            ADD
+                                        </button>                                                 
+                                    </div>
+                                    <div style="flex:1 1 50%;" *ngIf="display.overlay.canDelete">
+                                        <button mat-button 
+                                            (click)="resourceDelete(display.overlay.id);popoverClosed()"
+                                            color="warn"
+                                            matTooltip="Delete">
+                                            <mat-icon>delete</mat-icon>
+                                            DELETE
+                                        </button>
+                                    </div>
+                                    <div style="flex:1 1 50%;" *ngIf="display.overlay.gotoWaypoint">
+                                        <button mat-button 
+                                            (click)="navigateToWaypoint({id: display.overlay.id});popoverClosed()"
+                                            color="primary"
+                                            matTooltip="Navigate to Waypoint">
+                                            <mat-icon>near_me</mat-icon>
+                                            GO TO
+                                        </button>                                           
+                                    </div>
+                                    <div style="flex:1 1 50%;" *ngIf="display.overlay.activateRoute" >
+                                        <button mat-button 
+                                            (click)="routeActivate({id: display.overlay.id});popoverClosed()"
+                                            color="primary"
+                                            matTooltip="Make this the Active Route">
+                                            <mat-icon>select_all</mat-icon>
+                                            ACTIVE
+                                        </button>
+                                    </div>
+                                    <div style="flex:1 1 50%;" *ngIf="display.overlay.deactivateRoute">                                            
+                                        <button mat-button  
+                                            (click)="routeClearActive();popoverClosed()"
+                                            color="primary"
+                                            matTooltip="Clear Active Route">
+                                            <mat-icon>clear_all</mat-icon>
+                                            CLEAR
+                                        </button>
+                                    </div>
+                                    <div style="flex:1 1 50%;">
+                                        <button mat-button
                                             (click)="resourceProperties(display.overlay);popoverClosed()"
                                             *ngIf="display.overlay.showProperties && display.overlay.type!='ais'"
                                             matTooltip="Show Properties">
                                             <mat-icon>info_outline</mat-icon>
-                                        </button>                                                                          
-                                    </div>   
-                                </div>                             
+                                            INFO
+                                        </button>  
+                                    </div>                                                                        
+                                </div>                           
                             </ap-popover>
                             <!--AIS popover-->
                             <ap-popover *ngIf="this.display.overlay['type']=='ais';"
@@ -667,11 +672,12 @@
                                     <div style="flex:1 1 auto;">
                                     </div>
                                     <div style="text-align:right;">
-                                        <button mat-icon-button
+                                        <button mat-button
                                             (click)="aisProperties(display.overlay.id);display.overlay.show=false"
                                             *ngIf="display.overlay.showProperties"
                                             matTooltip="Show Properties">
                                             <mat-icon style="color:blue;">info_outline</mat-icon>
+                                            INFO
                                         </button>                                        
                                     </div>   
                                 </div>                             
@@ -877,7 +883,7 @@
                     </span>
                     <div *ngIf="draw.type=='Point'"
                         style="padding: 5px;">
-                        Click on the Map to drop the Waypoint.
+                        Click on the Map where to drop the feature.
                     </div>
                     <div *ngIf="draw.type=='LineString'"
                         style="padding: 5px;">
@@ -906,8 +912,8 @@
                             <ol style="margin-block-start: .2em;
                                     margin-block-end: .2em;
                                     padding-inline-start: 15px;">
-                                <li>Click and drag to move.</li>
-                                <li>Alt-Click to remove vertex.</li>
+                                <li>Click and drag to move point.</li>
+                                <li>Alt-Click to remove point from line.</li>
                             </ol>
                         </div> 
                     </div>                 

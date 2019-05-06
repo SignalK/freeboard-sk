@@ -275,13 +275,16 @@
                                 delete the route.<br>
                                 <i>Note: Deleting a route will also delete the associated Start and End Waypoints!</i>
                             </li>
-                            <li><b>Activate: </b> Clicking <i class="material-icons">select_all</i> sends a message to the server to set 
+                            <li><b>Active: </b> Clicking <i class="material-icons">select_all</i> sends a message to the server to set 
                                 this route as the <i>Active Route</i>.<br>
                                 The start of the route is set as the current destination. <br>
                                 Use the <i>Previous</i> and <i>Next</i> point options in the 
                                 <i class="material-icons">more_horiz</i> menu to 
                                 select the destination point.
                             </li>
+                            <li><b>Clear: </b> Clicking <i class="material-icons">clear_all</i> sends a message to the server to clear 
+                                the <i>Active Route</i>.
+                            </li>                            
                             <li><b>Properties</b> Click <i class="material-icons">info_outline</i> to edit route Name and Description.</li> 
                         </div>
                     </div>       
@@ -301,7 +304,7 @@
                                 <i>Note: A waypoint may be associated with a route. 
                                     so take care when deleting waypoints!</i>
                             </li>
-                            <li><b>Navigate To: </b> Clicking <i class="material-icons">near_me</i> sends a message to the server to set 
+                            <li><b>Go To: </b> Clicking <i class="material-icons">near_me</i> sends a message to the server to set 
                                 this waypoint as the target to navigate to. The server should then send 
                                 <a href="#navdata">navigation data</a> in relation to this location.
                             </li>                           
@@ -310,7 +313,7 @@
                     </div>  
                     <br>
                     Additionally, you can click on both Routes and Waypoints to display
-                    an information window available actions.<br>
+                    an information window with available actions.<br>
                     <img src="./img/route_popover.png"/>&nbsp;&nbsp;
                     <img src="./img/wpt_popover.png"/>
                     <br>&nbsp;<br>                   
@@ -636,7 +639,7 @@
                         <li><b>Notes Zoom Level</b>: 
                             Select the zoom level at which <i>NOTES</i> will appear on the map.
                         </li>       
-                        <li><b>Fetch Notes within</b>: 
+                        <li><b>Fetch Notes radius</b>: 
                             Select the radius from the centre of the displayed map within which <i>NOTES</i> 
                             will be retrived from the server.<br>
                             A request to fetch Notes is triggered when the map centre moves more than 

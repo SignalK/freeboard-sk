@@ -1,5 +1,6 @@
 import { Injectable } from '@angular/core';
-import { forkJoin, of } from 'rxjs';
+import { forkJoin, of, Subject, Observable } from 'rxjs';
+
 import { catchError } from 'rxjs/operators';
 
 import { SignalKClient } from 'signalk-client-angular';
@@ -11,7 +12,6 @@ import { AlertDialog, ConfirmDialog, LoginDialog } from '../app-ui';
 
 import { NoteDialog, RegionDialog } from './notes'
 import { ResourceDialog } from './resource-dialogs'
-import { HttpParams } from '@angular/common/http';
 
 // ** Signal K resource operations
 @Injectable({ providedIn: 'root' })
@@ -19,9 +19,15 @@ export class SKResources {
 
     private reOpen: {key: any, value: any };
 
+    private updateSource: Subject<any>;
+    public update$: Observable<any>;    
+
     constructor( public dialog: MatDialog,
         public signalk: SignalKClient, 
-        public app: AppInfo) { }
+        public app: AppInfo) { 
+            this.updateSource= new Subject<any>();
+            this.update$= this.updateSource.asObservable();            
+        }
 
 
     // **** CHARTS ****
@@ -690,6 +696,14 @@ export class SKResources {
         );        
     }    
 
+    // ** modify Region point coordinates **
+    updateRegionCoords(id:string, coords:Array<Array<[number,number]>>) {
+        let t= this.app.data.regions.filter( i=>{ if(i[0]==id) return true });
+        if(t.length==0) { return }
+        let region=t[0][1];
+        region['feature']['geometry']['coordinates']= coords;
+        this.createRegion({id: id, data: region});
+    }
 
     // **** NOTES ****
 
@@ -757,6 +771,10 @@ export class SKResources {
     private createNote(note:any) { 
         this.signalk.api.post(`/resources/notes`, note ).subscribe(
             res=> { 
+                if(res['statusCode']!=200) {
+                    this.reOpen= {key: null, value: null}
+                    this.showAlert('ERROR:', 'Server could not add Note!');
+                }
                 if(this.reOpen && this.reOpen.key) { 
                     this.showRelatedNotes(this.reOpen.value, this.reOpen.key);
                     this.reOpen= {key: null, value: null}
@@ -895,7 +913,7 @@ export class SKResources {
                 let notes= this.processNotes(res);
                 this.dialog.open(RegionDialog, {
                     disableClose: true,
-                    data: { notes: notes }
+                    data: { notes: notes, relatedBy: relatedBy }
                 }).afterClosed().subscribe( r=> {        
                     if(r.result) { 
                         if(relatedBy) { this.reOpen= {key: relatedBy, value: id} }
@@ -905,7 +923,12 @@ export class SKResources {
                                 this.showNoteEditor({id: r.id});
                                 break;
                             case 'add':
-                                this.showNoteEditor({region: {id: id, exists: true} });
+                                if(relatedBy=='region') {
+                                    this.showNoteEditor({region: {id: id, exists: true} });
+                                }
+                                if(relatedBy=='group') {
+                                    this.updateSource.next({action: 'new', mode: 'note', group: id})
+                                }                                
                                 break;
                             case 'delete':
                                 this.showNoteDelete({id: r.id});
@@ -937,6 +960,7 @@ export class SKResources {
         if(!e.id && e.position) { // add note at provided position
             data.title= 'Add Note:'; 
             note= new SKNote(); 
+            if(e.group) { note.group= e.group }
             note.position= {latitude: e.position[1], longitude: e.position[0]};    
             note.title= '';
             note.description= '';
@@ -953,19 +977,35 @@ export class SKResources {
             data.note= note;
             data.createRegion= (e.region.exists) ? false : true;
             this.openNoteForEdit(data);
-        }        
+        }              
         else {    // edit selected note details 
-            this.signalk.api.get(`/resources/notes/${e.id}`).subscribe(
-                res=> {
+            let resAttr= this.signalk.api.get(`/resources/notes/${e.id}/meta/_attr`).pipe( catchError(error => of(error)) );
+            let resNote= this.signalk.api.get(`/resources/notes/${e.id}`);
+            let res= forkJoin(resAttr, resNote);
+            res.subscribe(
+                res=> { 
+                    // ** note data 
                     data.noteId= e.id;
                     data.title= 'Edit Note:'; 
-                    data.note= res;
+                    data.note= res[1];
                     data.addNote=false;
-                    this.openNoteForEdit(data);               
+                    // ** note attributes
+                    if(typeof res[0]['error']==='undefined') { 
+                        if(!data.note.properties) { data.note.properties= {} }
+                        if(res['_mode']) {
+                            let mode= res['_mode'].toString();
+                            let ro= true;
+                            for(let i=0; i<mode.length; i++) {
+                                let m= ('000' + parseInt(mode[i]).toString(2)).slice(-3);
+                                if(m[1]=='0') { ro= ro && false }
+                            }
+                            data.note.properties.readOnly= ro;
+                        }
+                        else { data.note.properties.readOnly= true }
+                    }                      
+                    this.openNoteForEdit(data);  
                 },
-                err=> {
-                    this.showAlert('ERROR', 'Unable to retrieve Note!');
-                }
+                err=> { this.showAlert('ERROR', 'Unable to retrieve Note!') }
             );
         }
         
@@ -983,6 +1023,7 @@ export class SKResources {
                         if(r.data== 'url') { window.open(res['url'], 'note') }
                         if(r.data== 'edit') { this.showNoteEditor({id: e.id}) }
                         if(r.data== 'delete') { this.showNoteDelete({id: e.id}) }
+                        if(r.data== 'group') { this.showRelatedNotes(r.value, r.data) }
                     }
                 });  
             },
@@ -1012,6 +1053,15 @@ export class SKResources {
             }
         });         
     }
+
+    // ** modify Note position **
+    updateNotePosition(id:string, position:[number,number]) {
+        let t= this.app.data.notes.filter( i=>{ if(i[0]==id) return true });
+        if(t.length==0) { return }
+        let note=t[0][1];
+        note['position']= { latitude: position[1], longitude: position[0] };
+        this.updateNote(id, note);
+    }   
 
     // *******************************
 
@@ -1162,11 +1212,14 @@ export class SKVessel {
 export class SKNote {
     title: string;
     description: string;
+    position: any;
     region: string;
     geohash: string;   
     mimeType: string;
     url: string; 
-    position: any;
+    group: string;
+    authors: Array<any>;
+    properties: any= {};
     timestamp: string;
     source: string; 
 
@@ -1174,11 +1227,14 @@ export class SKNote {
         if(note) {
             if(note.title) { this.title= note.title }
             if(note.description) { this.description= note.description }
+            if(note.position) { this.position= note.position }
             if(note.region) { this.region= note.region }
             if(note.geohash) { this.geohash= note.geohash }
             if(note.mimeType) { this.mimeType= note.mimeType }
             if(note.url) { this.url= note.url }
-            if(note.position) { this.position= note.position }
+            if(note.group) { this.group= note.group }
+            if(note.authors && Array.isArray(note.authors) ) { this.authors= note.authors }
+            if(note.properties && typeof note.properties=== 'object' ) { this.properties= note.properties }
             if(note.timestamp) { this.timestamp= note.timestamp }
             if(note.source) { this.source= note.source }
             if(note.$source) { this.source= note.$source }

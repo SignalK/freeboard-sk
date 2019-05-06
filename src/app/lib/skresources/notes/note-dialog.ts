@@ -11,7 +11,8 @@ import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material';
 ***********************************/
 @Component({
 	selector: 'ap-notedialog',
-	templateUrl: `note-dialog.html`
+	templateUrl: `note-dialog.html`,
+    styleUrls: ['notes.css']
 })
 export class NoteDialog implements OnInit {
 
@@ -20,7 +21,10 @@ export class NoteDialog implements OnInit {
         @Inject(MAT_DIALOG_DATA) public data: any) {
 	}
 	
-    ngOnInit() { }
+    ngOnInit() { 
+        if(!this.data.note.properties) { this.data.note.properties= {} }
+        if(this.data.note.properties.readOnly) { this.data.editable=false }
+    }
     
     openNoteUrl() { window.open(this.data.note.url, 'note')}
 }

@@ -39,73 +39,96 @@
 </style>
 
 <div class="_ap-resource" *ngIf="!data.editable">
-    <h1 mat-dialog-title>
-        <mat-icon class="ap-confirm-icon" color="primary">local_offer</mat-icon>
-        Note Details
-    </h1>
+    <div style="display: flex;">
+        <div style="width:70px;"><mat-icon class="ap-confirm-icon" color="primary">local_offer</mat-icon></div>
+        <div mat-dialog-title style="flex: 1 1 auto;">Note Details</div>
+        <div>
+            <button mat-icon-button (click)="dialogRef.close({result:false})">
+                <mat-icon>close</mat-icon>
+            </button>                                             
+        </div>
+    </div>      
     <mat-dialog-content>        
-        <mat-card style="background-color: whitesmoke;">
+        <mat-card style="border: whitesmoke 1px solid;">
             <mat-card-content>
+                <p *ngIf="data.note.properties.draft" class="draft-watermark">Draft</p>
                 <div style="display:flex;flex-direction:column;">
                     <div style="padding-bottom: 5px;display:flex;">
                         <div style="font-weight:bold;vertical-align:top;">Title:</div>
                         <div style="padding-left: 10px;">
-                            {{data.note.title}}
+                            {{data.note?.title}}
                         </div>  
-                    </div>                      
+                    </div>         
+                    <div style="padding-bottom: 5px;display:flex;">
+                        <div style="font-weight:bold;vertical-align:top;">Group:</div>
+                        <div style="padding-left: 10px; flex: 1 1 auto;">
+                            {{data.note?.group}}
+                        </div>  
+                        <div *ngIf="data.note.group">
+                            <button mat-button (click)="dialogRef.close({result:true, data: 'group', value: data.note.group})"
+                                matTooltip="View Group Notes">
+                                <mat-icon color="primary">style</mat-icon>
+                            </button>                              
+                        </div>
+                    </div>                                    
                     <div style="flex: 1 1 auto;padding: 5px 0 5px 0;">
                         <div style="font-weight:bold;vertical-align:top;">Description:</div>
                         <div style="overflow-y:auto;height:150px;">
-                            {{data.note.description}}
+                            {{data.note?.description}}
                         </div>  
-                    </div>    
-                    <div style="display:flex;padding-bottom: 5px;">
-                        <div style="font-weight:bold;vertical-align:top;">URL:</div>
-                        <div style="flex: 1 1 auto;padding-left: 10px;">
-                            <a href="#" (click)="openNoteUrl()" style="color:blue;"
-                                matTooltip="Open Note link in browser window">
-                                <mat-icon color="primary">open_in_new</mat-icon>
-                                Open Link
-                            </a>
-                        </div>  
-                    </div>                             
-                    <div class="nosmall" style="font-size: 10pt;padding:5px 0 5px 0;">
+                    </div>                                 
+                    <div class="nosmall" *ngIf="data.note.position"
+                            style="font-size: 10pt;padding:5px 0 5px 0;">
                         <div style="width:45px;font-weight:bold;">Lat:</div>
-                        <div >{{data.note.position.latitude}}</div>
+                        <div >{{data.note?.position?.latitude}}</div>
                         &nbsp;
-                        <div style="width:45px;font-weight:bold;">Lng:</div>
-                        <div>{{data.note.position.longitude}}</div> 
+                        <div style="width:45px;font-weight:bold;">Lon:</div>
+                        <div>{{data.note?.position?.longitude}}</div> 
                     </div>    
+                    <div class="nosmall" style="font-size: 10pt;padding:5px 0 5px 0;">
+                        <div *ngIf="data.note.authors && data.note.authors.length!=0">
+                            <span style="font-weight:bold;">Author:</span>
+                            &nbsp;{{data.note?.authors[0]?.name}}
+                            &nbsp;&nbsp;
+                        </div>
+                        <div><i>{{data.note?.timestamp.slice(0,10)}}</i></div> 
+                    </div>                     
                 </div>
             </mat-card-content>
             <mat-card-actions>
-                <div style="text-align:right;">
-                    <button mat-icon-button (click)="dialogRef.close({result:true, data: 'edit'})"
-                        matTooltip="Edit Note">
-                        <mat-icon color="primary">edit</mat-icon>
-                    </button>  
-                    &nbsp;
-                    <button mat-icon-button (click)="dialogRef.close({result:true, data: 'delete'})"
-                        matTooltip="Delete Note">
-                        <mat-icon color="warn">delete</mat-icon>
-                    </button>        
-                </div>
+                <div style="display:flex;">
+                    <div style="flex: 1 1 auto;">
+                        <div *ngIf="data.note.url">
+                            <button mat-icon-button
+                                (click)="openNoteUrl()"
+                                matTooltip="Open Note link in browser window">
+                                <mat-icon color="primary">open_in_new</mat-icon>
+                            </button>
+                        </div>  
+                    </div>  
+                    <div style="text-align:right;" *ngIf="!data.note.properties.readOnly">
+                        <button mat-icon-button (click)="dialogRef.close({result:true, data: 'edit'})"
+                            matTooltip="Edit Note">
+                            <mat-icon color="primary">edit</mat-icon>
+                        </button>  
+                        &nbsp;
+                        <button mat-icon-button (click)="dialogRef.close({result:true, data: 'delete'})"
+                            matTooltip="Delete Note">
+                            <mat-icon color="warn">delete</mat-icon>
+                        </button>        
+                    </div>
+                </div>                   
             </mat-card-actions>
         </mat-card>
     </mat-dialog-content>
-    <mat-dialog-actions>
-        <div style="text-align:center;width:100%;">                   
-            <button mat-raised-button (click)="dialogRef.close({result:false})">
-                CLOSE
-            </button>          
-        </div>					
-    </mat-dialog-actions>
 </div>	
 
 <div class="_ap-resource" *ngIf="data.editable">
-    <div>
-        <h1 mat-dialog-title>{{(!data.title) ? (data.addMode) ? 'New Note:' : 'Edit Note:' : data.title}}</h1>
-    </div>
+    <div style="display: flex;">
+        <div mat-dialog-title style="flex: 1 1 auto;">
+            {{(!data.title) ? (data.addMode) ? 'New Note:' : 'Edit Note:' : data.title}}
+        </div>
+    </div>        
     <mat-dialog-content>
         <div style="display:flex;">
             <div class="ap-confirm-icon">
@@ -118,35 +141,52 @@
                             type="text" required
                             placeholder="Note Title"
                             [disabled]="false"
-                            [(ngModel)]="data.note.title">
+                            [(ngModel)]="data.note.title"/>
                         <mat-error *ngIf="inptitle.invalid && (inptitle.dirty || inptitle.touched)">
                             Please enter a title for the note
                         </mat-error>
                     </mat-form-field>
                 </div>
+                <div>                                     
+                    <mat-form-field>
+                        <input matInput #inpgroup="ngModel"
+                            type="text"
+                            placeholder="Group Name"
+                            [disabled]="false"
+                            [(ngModel)]="data.note.group"/>
+                    </mat-form-field>
+                </div>                
                 <div>
                     <mat-form-field>
                         <textarea matInput rows="7" #inpdesc="ngModel"
-                            placeholder="Note Details"
+                            placeholder="Description"
                             [(ngModel)]="data.note.description">
                         </textarea>
                     </mat-form-field>
                 </div>
                 <div>
-                    <mat-form-field hintLabel="Optional: Enter a url to additional content here">
+                    <mat-form-field hintLabel="Link to additional content.">
                         <input type="text" matInput 
                             placeholder="URL"
                             [(ngModel)]="data.note.url"/>
                     </mat-form-field>
                 </div>
-                
+                <div>
+                    <mat-slide-toggle color="primary"
+                        labelPosition="before"
+                        [checked]="data.note.properties.draft"
+                        (change)="data.note.properties.draft=$event.checked;">
+                        Draft: 
+                    </mat-slide-toggle>
+                </div>                
+
                 <div *ngIf="data.position" style="font-size: 10pt;">
                     <div style="display:flex;">
                         <div style="width:45px;font-weight:bold;">Lat:</div>
                         <div style="flex: 1 1 auto;">{{data.note.position.latitude}}</div>
                     </div>
                     <div style="display:flex;">
-                        <div style="width:45px;font-weight:bold;">Lng:</div>
+                        <div style="width:45px;font-weight:bold;">Lon:</div>
                         <div style="flex: 1 1 auto;">{{data.note.position.longitude}}</div>
                     </div>    
                 </div>                              

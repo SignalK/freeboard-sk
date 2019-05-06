@@ -11,16 +11,19 @@ import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material';
 ***********************************/
 @Component({
 	selector: 'ap-regiondialog',
-	templateUrl: `region-dialog.html`
+    templateUrl: `region-dialog.html`,
+    styleUrls: ['notes.css']
 })
 export class RegionDialog implements OnInit {
+
+    relatedBy:string;
 
     constructor(
         public dialogRef: MatDialogRef<RegionDialog>,
         @Inject(MAT_DIALOG_DATA) public data: any) {
 	}
 	
-    ngOnInit() { }
+    ngOnInit() { this.relatedBy= this.data.relatedBy[0].toUpperCase() + this.data.relatedBy.slice(1) }
     
     openNoteUrl(url:string) { window.open(url, 'note')}
 

@@ -54,7 +54,7 @@ import { AppInfo } from '../../app.info'
                                     <div style="flex: 1 1 auto;">{{data.position[1]}}</div>
                                 </div>
                                 <div style="display:flex;">
-                                    <div style="width:45px;font-weight:bold;">Lng:</div>
+                                    <div style="width:45px;font-weight:bold;">Lon:</div>
                                     <div style="flex: 1 1 auto;">{{data.position[0]}}</div>
                                 </div>    
                             </div>                        

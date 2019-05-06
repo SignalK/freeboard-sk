@@ -40,37 +40,44 @@
             </div>
         </div>
     
-        <div class="resources">
-            <mat-list style="background-color: white;">
-                <mat-list-item *ngFor="let r of filterList; let i= index;"
-                    style="border-bottom: silver 1px solid;">
-                    <div style="display: flex;width: 100%;">
-                        <div>
-                            <a style="cursor: pointer;"
-                                (click)="itemProperties(r[0])"
-                                matTooltip="Vessel Properties"
-                                matTooltipPosition="right">
-                                <mat-icon color="primary">info_outline</mat-icon>
-                            </a>                              
-                        </div>
-                        <div style="flex: 1 1 auto;padding-left: 7px;">
-                            <a style="cursor: pointer;"
-                                (click)="itemProperties(r[0])"
-                                matTooltip="Vessel Properties"
-                                matTooltipPosition="right">
-                                <b>{{(r[1].name) ? r[1].name : (r[1].mmsi) ? r[1].mmsi : 'Vessel-' + i}}</b>
-                            </a>                             
+        <div class="resources">   
+            <cdk-virtual-scroll-viewport itemSize="48" 
+                style="position: absolute;
+                    top: 10px;
+                    bottom: 0;
+                    left: 0;
+                    right: 0;">            
+                <mat-list style="background-color: white;">
+                    <mat-list-item *cdkVirtualFor="let r of filterList; let i= index;"
+                        style="border-bottom: silver 1px solid;">
+                        <div style="display: flex;width: 100%;">
+                            <div>
+                                <a style="cursor: pointer;"
+                                    (click)="itemProperties(r[0])"
+                                    matTooltip="Vessel Properties"
+                                    matTooltipPosition="right">
+                                    <mat-icon color="primary">info_outline</mat-icon>
+                                </a>                              
+                            </div>
+                            <div style="flex: 1 1 auto;padding-left: 7px;">
+                                <a style="cursor: pointer;"
+                                    (click)="itemProperties(r[0])"
+                                    matTooltip="Vessel Properties"
+                                    matTooltipPosition="right">
+                                    <b>{{(r[1].name) ? r[1].name : (r[1].mmsi) ? r[1].mmsi : 'Vessel-' + i}}</b>
+                                </a>                             
+                            </div>        
+                            <div style="text-align: right;">
+                                <mat-checkbox color="primary"
+                                    [checked]="r[2]"
+                                    (change)="itemSelect($event.checked, r[0])"
+                                    matTooltip="Show in Map"
+                                    matTooltipPosition="left">
+                                </mat-checkbox>
+                            </div>  
                         </div>        
-                        <div style="text-align: right;">
-                            <mat-checkbox color="primary"
-                                [checked]="r[2]"
-                                (change)="itemSelect($event.checked, r[0])"
-                                matTooltip="Show in Map"
-                                matTooltipPosition="left">
-                            </mat-checkbox>
-                        </div>  
-                    </div>        
-                </mat-list-item>
-            </mat-list>
+                    </mat-list-item>
+                </mat-list>
+            </cdk-virtual-scroll-viewport> 
         </div>
     </div>

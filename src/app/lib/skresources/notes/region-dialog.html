@@ -39,27 +39,46 @@
 </style>
 
 <div class="_ap-resource">
-    <h1 mat-dialog-title>
-        <mat-icon class="ap-confirm-icon" color="primary">360</mat-icon>
-        Related Notes
-    </h1>
+    <div style="display: flex;">
+        <div style="width:70px;"><mat-icon class="ap-confirm-icon" color="primary">360</mat-icon></div>
+        <div mat-dialog-title style="flex: 1 1 auto;">{{relatedBy}} Notes</div>
+        <div>
+            <button mat-icon-button (click)="dialogRef.close({result:false})">
+                <mat-icon>close</mat-icon>
+            </button>                               
+        </div>
+    </div>        
     <mat-dialog-content>        
         <div style="padding-bottom: 5px; overflow-y: auto;" *ngFor="let n of data.notes;">
-            <mat-card style="background-color: whitesmoke;">
+            <mat-card style="border: whitesmoke 1px solid;">
                 <mat-card-title>
                     <mat-icon>local_offer</mat-icon>
                     {{n[1].title}}
                 </mat-card-title>
-                <mat-card-content>
-                    <div style="padding-bottom: 5px;">{{n[1].description}}</div>
-                    <!--<div style="padding-bottom: 5px;font-style: italic;" 
-                        *ngIf="n[1].timestamp">
-                        {{n[1]?.timestamp}}
+                <mat-card-content style="margin-bottom: 0;">
+                    <p *ngIf="n[1].properties.draft" class="draft-watermark">Draft</p>
+                    <div style="display:flex;flex-direction:column;">
+                        <div style="padding-bottom: 5px;display:flex;">
+                            <div style="font-weight:bold;vertical-align:top;">Group:</div>
+                            <div style="padding-left: 10px;">
+                                {{n[1].group}}
+                            </div>  
+                        </div>    
+                        <div style="padding-bottom: 5px;">
+                            <div style="font-weight:bold;vertical-align:top;">Description:</div>
+                            <div>
+                                {{n[1].description}}
+                            </div>  
+                        </div>  
+                        <div style="padding-bottom: 5px;display:flex;">
+                            <div *ngIf="n[1].authors && n[1].authors.length!=0">
+                                <span style="font-weight:bold;">Author:</span>
+                                &nbsp;{{n[1].authors[0]?.name}}
+                                &nbsp;&nbsp;
+                            </div>
+                            <div><i>{{n[1].timestamp.slice(0,10)}}</i></div> 
+                        </div>                                                                    
                     </div>
-                    <div style="padding-bottom: 5px;font-style: italic;" 
-                        *ngIf="n[1].source">
-                        {{n[1]?.source}}
-                    </div>-->
                 </mat-card-content>
                 <mat-card-actions>
                     <div style="display:flex;">
@@ -72,7 +91,7 @@
                                 </button>
                             </div>  
                         </div>  
-                        <div style="text-align: right;">
+                        <div style="text-align: right;" *ngIf="!n[1].properties.readOnly">
                             <button mat-icon-button 
                                 (click)="editNote(n[0])"
                                 matTooltip="Edit Note">
@@ -93,13 +112,9 @@
     <mat-dialog-actions>
         <div style="text-align:center;width:100%;">    
             <button mat-raised-button (click)="addNote()">
-                <mat-icon color="primary">add</mat-icon>
-                ADD NOTE
-            </button>   
-            &nbsp;&nbsp;                           
-            <button mat-raised-button (click)="dialogRef.close({result:false})">
-                CLOSE
-            </button>          
+                <mat-icon color="primary">local_offer</mat-icon>
+                ADD
+            </button>       
         </div>					
     </mat-dialog-actions>
 </div>	

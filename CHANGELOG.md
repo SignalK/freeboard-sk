@@ -2,9 +2,9 @@
 
 ### v1.4.0
 
-- **Added:** Initial support for viewing / adding Notes.
+- **Added:** Support for viewing / adding Notes.
 
-- **Added:** Support for modifying `Waypoint` position and `Route` points.
+- **Added:** Support for moving `Waypoint` and `Note` position as well as modifying `Route` and `Region` vertices.
 
 - **Deprecated:** Option to use delta updates as a means of submitting resource changes.
 
