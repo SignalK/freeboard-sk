@@ -66,9 +66,7 @@
                         </div>    
                         <div style="padding-bottom: 5px;">
                             <div style="font-weight:bold;vertical-align:top;">Description:</div>
-                            <div>
-                                {{n[1].description}}
-                            </div>  
+                            <div [innerHTML]="n[1].description | addTarget: '_notes'"></div>  
                         </div>  
                         <div style="padding-bottom: 5px;display:flex;">
                             <div *ngIf="n[1].authors && n[1].authors.length!=0">
@@ -76,7 +74,7 @@
                                 &nbsp;{{n[1].authors[0]?.name}}
                                 &nbsp;&nbsp;
                             </div>
-                            <div><i>{{n[1].timestamp.slice(0,10)}}</i></div> 
+                            <div><i>{{n[1].timestamp?.slice(0,10)}}</i></div> 
                         </div>                                                                    
                     </div>
                 </mat-card-content>

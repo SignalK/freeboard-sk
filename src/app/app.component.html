@@ -233,6 +233,7 @@
 
             <!--instruments-->
             <mat-sidenav #sideright mode="over"position="end" 
+                (openedChange)="sideNavAction($event)"
                 style="background-color:transparent; width:350px;">
                 <div style="display:flex;flex-direction: column;position:relative;">
                     <mat-nav-list style="background-color: white;">	
@@ -250,7 +251,7 @@
                         <mat-divider></mat-divider>
                     </mat-nav-list>	 
                     <div style="position: fixed;bottom: 0;top: 48px;overflow:auto;-webkit-overfow-scrolling:touch;">
-                        <iframe 
+                        <iframe *ngIf="display.instrumentAppActive"
                             [src]="instUrl"
                             style="width:345px;height:100%;">
                         </iframe>
@@ -286,7 +287,7 @@
                 </chart-list>   
 
                 <note-list [notes]="app.data.notes" *ngIf="display.noteList"
-                    (select)="skres.showNoteInfo({id: $event})"
+                    (select)="noteSelected($event)"
                     (refresh)="skres.getNotes()"
                     (closed)="displayLeftMenu()">
                 </note-list>                 
@@ -620,6 +621,15 @@
                                             CLEAR
                                         </button>
                                     </div>
+                                    <div style="flex:1 1 50%;">
+                                        <button mat-button
+                                            (click)="skres.showRelatedNotes(display.overlay.showRelated, 'group');popoverClosed()"
+                                            *ngIf="display.overlay.showRelated && display.overlay.type!='ais'"
+                                            matTooltip="Notes in Group">
+                                            <mat-icon>style</mat-icon>
+                                            GROUP
+                                        </button>  
+                                    </div>                                      
                                     <div style="flex:1 1 50%;">
                                         <button mat-button
                                             (click)="resourceProperties(display.overlay);popoverClosed()"

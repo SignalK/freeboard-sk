@@ -9,6 +9,8 @@ import { MatDialogModule,
 
 import { NoteDialog } from './note-dialog';
 import { RegionDialog } from './region-dialog';
+// ** pipes **
+import { AddTargetPipe } from '../../ui/safe.pipe';
 
 @NgModule({
     imports: [
@@ -19,10 +21,10 @@ import { RegionDialog } from './region-dialog';
         MatFormFieldModule, MatInputModule
     ],
     declarations: [
-        NoteDialog, RegionDialog
+        NoteDialog, RegionDialog, AddTargetPipe
     ],
     exports: [
-        NoteDialog, RegionDialog
+        NoteDialog, RegionDialog, AddTargetPipe
     ],
     entryComponents: [
         NoteDialog, RegionDialog

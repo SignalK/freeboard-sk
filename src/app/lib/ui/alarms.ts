@@ -39,7 +39,7 @@ import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material';
                             </button>   
                             <button mat-raised-button color="accent" *ngIf="i.cancel"
                                 (click)="dialogRef.close({type: i.key, raise: false})">
-                                <mat-icon>alarm_on</mat-icon>
+                                <mat-icon>alarm_off</mat-icon>
                                 CANCEL ALARM
                             </button>                                               
                         </mat-card-actions>

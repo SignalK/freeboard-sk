@@ -39,7 +39,7 @@ export class NoteListComponent {
 
     toggleMapDisplay(value) { this.app.config.notes=value; this.app.saveConfig(); }    
 
-    viewNote(val) { this.select.emit(val) }
+    viewNote(val:string, isGroup:boolean=false) { this.select.emit( {id:val, isGroup: isGroup} ) }
 
     itemRefresh() { this.refresh.emit() }
 

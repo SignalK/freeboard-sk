@@ -26,5 +26,5 @@ export class NoteDialog implements OnInit {
         if(this.data.note.properties.readOnly) { this.data.editable=false }
     }
     
-    openNoteUrl() { window.open(this.data.note.url, 'note')}
+    openNoteUrl() { window.open(this.data.note.url, '_notes')}
 }

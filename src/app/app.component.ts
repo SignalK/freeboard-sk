@@ -33,6 +33,8 @@ export class AppComponent {
     public display= {
         badge: { hide: true, value: '!'},
         leftMenuPanel: false,
+        instrumentPanelOpen: true,
+        instrumentAppActive: true,
         routeList: false,
         waypointList: false,
         chartList: false,
@@ -194,6 +196,8 @@ export class AppComponent {
         this.subscriptions.push( this.signalk.stream.onMessage.subscribe( e=> { this.onMessage(e)} ) );
         this.subscriptions.push( this.signalk.stream.onClose.subscribe( e=> { this.onClose(e)} ) );
 
+        if(this.app.config.plugins.startOnOpen) { this.display.instrumentAppActive= false }
+
         this.connectSignalKServer(); 
 
         // ** periodically persist state
@@ -206,10 +210,17 @@ export class AppComponent {
 
         // ** respond to settings loaded / saved
         this.app.settings$.subscribe( value=> {
-            if(this.lastInstUrl!= this.app.config.plugins.instruments) {
-                this.lastInstUrl= this.app.config.plugins.instruments
-                this.instUrl= this.dom.bypassSecurityTrustResourceUrl(`${this.app.host}${this.app.config.plugins.instruments}`);
+            if(value.action=='save' && value.setting=='config'){
+                if(this.lastInstUrl!= this.app.config.plugins.instruments) {
+                    this.lastInstUrl= this.app.config.plugins.instruments
+                    this.instUrl= this.dom.bypassSecurityTrustResourceUrl(`${this.app.host}${this.app.config.plugins.instruments}`);
+                }
             }
+            // update instrument app state
+            if(this.app.config.plugins.startOnOpen) {
+                if(!this.display.instrumentPanelOpen) { this.display.instrumentAppActive= false }
+            }
+            else { this.display.instrumentAppActive= true }
         });   
         
         // ** respond to resources.update event
@@ -278,6 +289,13 @@ export class AppComponent {
 
     // ******************************************************
   
+    sideNavAction(e:boolean) {
+        this.display.instrumentPanelOpen= e;
+        if(this.app.config.plugins.startOnOpen) {
+            this.display.instrumentAppActive= e;
+        }
+    }
+
     openUrl(url:string, target:string='_blank') { window.open(url, target) }
 
     //** open about dialog **
@@ -821,6 +839,7 @@ export class AppComponent {
         this.display.overlay['id']=null;    
         this.display.overlay['type']=null;   
         this.display.overlay['showProperties']=false;
+        this.display.overlay['showRelated']=null;
         this.display.overlay['canDelete']=null;
         this.display.overlay['url']=null;
         this.display.overlay.content=[];
@@ -884,7 +903,8 @@ export class AppComponent {
                 this.display.overlay['canModify']=true;  
                 this.display.overlay.title= 'Note';  
                 info.push(['Title', item[0][1].title]);
-                if(item[0][1].url) { this.display.overlay['url']=item[0][1].url }             
+                if(item[0][1].url) { this.display.overlay['url']=item[0][1].url }   
+                if(item[0][1].group) { this.display.overlay['showRelated']= item[0][1].group }          
                 break;                
             case 'route':
                 item= this.app.data.routes.filter( i=>{ if(i[0]==t[1]) return true });
@@ -1177,7 +1197,11 @@ export class AppComponent {
         let d= GeoUtils.distanceTo(this.app.data.lastGet, this.app.config.map.center )
         this.app.debug(`distance: ${d}`);
         // ** if d is more than half the getRadius
-        if(d>= this.app.config.resources.notes.getRadius/2 ) { 
+        let cr= (this.app.config.units.distance=='ft') ? 
+            Convert.nauticalMilesToKm(this.app.config.resources.notes.getRadius) * 1000:
+            this.app.config.resources.notes.getRadius * 1000;
+
+        if(d>= cr/2 ) { 
             this.app.data.lastGet= this.app.config.map.center;
             return true; 
         }
@@ -1295,6 +1319,11 @@ export class AppComponent {
         );   
         this.app.saveConfig();
     }    
+
+    noteSelected(e:any) {
+        if(e.isGroup) { this.skres.showRelatedNotes(e.id, 'group') }
+        else { this.skres.showNoteInfo({id: e.id}) }
+    }
 
     // ** return local charts sorted by scale descending.
     chartsLocalByScale() {

@@ -70,12 +70,11 @@
                                 <mat-icon color="primary">style</mat-icon>
                             </button>                              
                         </div>
-                    </div>                                    
+                    </div>                       
                     <div style="flex: 1 1 auto;padding: 5px 0 5px 0;">
                         <div style="font-weight:bold;vertical-align:top;">Description:</div>
-                        <div style="overflow-y:auto;height:150px;">
-                            {{data.note?.description}}
-                        </div>  
+                        <div style="overflow-y:auto;height:150px;" target="notelink"
+                            [innerHTML]="data.note.description | addTarget: '_notes'"></div>  
                     </div>                                 
                     <div class="nosmall" *ngIf="data.note.position"
                             style="font-size: 10pt;padding:5px 0 5px 0;">
@@ -91,7 +90,7 @@
                             &nbsp;{{data.note?.authors[0]?.name}}
                             &nbsp;&nbsp;
                         </div>
-                        <div><i>{{data.note?.timestamp.slice(0,10)}}</i></div> 
+                        <div><i>{{data.note?.timestamp?.slice(0,10)}}</i></div> 
                     </div>                     
                 </div>
             </mat-card-content>

@@ -46,7 +46,8 @@
                     bottom: 0;
                     left: 0;
                     right: 0;">
-            <mat-card *cdkVirtualFor="let r of filterList; let i= index;">
+            <mat-card *cdkVirtualFor="let r of filterList; let i= index;"
+                    style="border-bottom: silver 1px outset;">
                 <div style="display: flex;">
                     <div style="flex: 1 1 auto;">
                         <div>
@@ -54,16 +55,28 @@
                             &nbsp;<b>{{r[1].title}}</b>
                         </div>
                     </div>        
-                    <div style="text-align: right;">
-                        <button mat-icon-button color="primary"
-                            (click)="viewNote(r[0])"
-                            matTooltip="View Note"
-                            matTooltipPosition="left">
-                                <mat-icon>info_outline</mat-icon>
-                        </button>
-                    </div>  
                 </div>
+                <mat-card-actions>
+                    <div style="display:flex;">
+                        <div style="flex: 1 1 auto; text-align:right;">
+                            <button mat-icon-button color="primary"
+                                *ngIf="r[1].group"
+                                (click)="viewNote(r[1].group, true)"
+                                matTooltip="View Group"
+                                matTooltipPosition="left">
+                                    <mat-icon>style</mat-icon>
+                            </button>                             
+                            <button mat-icon-button color="primary"
+                                (click)="viewNote(r[0])"
+                                matTooltip="View Note"
+                                matTooltipPosition="left">
+                                    <mat-icon>info_outline</mat-icon>
+                            </button>
+                        </div>
+                    </div>
+                </mat-card-actions>                
             </mat-card>
+
         </cdk-virtual-scroll-viewport>
     </div>
 </div>

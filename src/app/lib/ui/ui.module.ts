@@ -23,6 +23,7 @@ import { AisTargetsComponent } from './map/feature-ais.component';
 import { CompassComponent } from './compass.component';
 import { PiPVideoComponent } from './pip.component';
 
+
 @NgModule({
     imports: [
         CommonModule, FormsModule, MatTooltipModule,
@@ -34,8 +35,7 @@ import { PiPVideoComponent } from './pip.component';
         MsgBox, AlertDialog, ConfirmDialog, AboutDialog,
         FileInputComponent, TextDialComponent, LoginDialog, AlarmsDialog, AlarmComponent,
         PopoverComponent, PlaybackDialog, PiPVideoComponent,
-        GeometryCircleComponent, AisTargetsComponent, CompassComponent
-    ],
+        GeometryCircleComponent, AisTargetsComponent, CompassComponent    ],
     exports: [
         MsgBox, AlertDialog, ConfirmDialog, AboutDialog,
         FileInputComponent, TextDialComponent, LoginDialog, AlarmsDialog,

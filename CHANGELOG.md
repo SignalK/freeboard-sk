@@ -6,6 +6,10 @@
 
 - **Added:** Support for moving `Waypoint` and `Note` position as well as modifying `Route` and `Region` vertices.
 
+- **Added:** Setting to halt the selected Instrument App when the panel is hidden. This allows
+resources to be freed when instruments are not being displayed. Instrument App is re-started 
+each time the panel is opened.
+
 - **Deprecated:** Option to use delta updates as a means of submitting resource changes.
 
 - **Fix:** Disable `Add Waypoint at Vessel` menu item when no vessel position is available.

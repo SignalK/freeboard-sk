@@ -72,7 +72,8 @@ export class AppInfo extends Info {
             notes: false,           // display notes
             depthAlarm: { enabled: false, smoothing: 10000 },
             plugins: {
-                instruments: '/@signalk/instrumentpanel'
+                instruments: '/@signalk/instrumentpanel',
+                startOnOpen: false
             },
             units: {        // ** display units
                 distance: 'm',
@@ -92,8 +93,8 @@ export class AppInfo extends Info {
             },
             resources: {    // ** resource options
                 notes: {
-                    rootFilter: '', // param string to provide record filtering
-                    getRadius: 10000      // radius(m) within which to return notes
+                    rootFilter: '',     // param string to provide record filtering
+                    getRadius: 100      // radius (NM/km) within which to return notes
                 }
             }
         } 

@@ -25,7 +25,7 @@ export class RegionDialog implements OnInit {
 	
     ngOnInit() { this.relatedBy= this.data.relatedBy[0].toUpperCase() + this.data.relatedBy.slice(1) }
     
-    openNoteUrl(url:string) { window.open(url, 'note')}
+    openNoteUrl(url:string) { window.open(url, '_notes')}
 
     addNote() { this.dialogRef.close({result: true, data: 'add'}) }
 
