@@ -95,7 +95,8 @@ export class AppInfo extends Info {
                 notes: {
                     rootFilter: '',     // param string to provide record filtering
                     getRadius: 20,      // radius (NM/km) within which to return notes
-                    groupNameEdit: false
+                    groupNameEdit: false,
+                    groupRequiresPosition: false
                 }
             }
         } 
@@ -207,7 +208,14 @@ export class AppInfo extends Info {
                 this.config.selections.notesMinZoom=10;
             }   
             if(typeof this.config.resources === 'undefined') {
-                this.config.resources= { notes: { rootFilter: '', getRadius: 10000 } };
+                this.config.resources= { 
+                    notes: {
+                        rootFilter: '',     
+                        getRadius: 20,     
+                        groupNameEdit: false,
+                        groupRequiresPosition: false
+                    }
+                }
             }                              
         }
     }

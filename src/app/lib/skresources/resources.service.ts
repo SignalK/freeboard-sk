@@ -970,6 +970,16 @@ export class SKResources {
             data.note= note;
             this.openNoteForEdit(data);
         }
+        else if(!e.id && !e.position && e.group) { // add note in provided group with no position
+            data.title= 'Add Note to Group:'; 
+            note= new SKNote(); 
+            if(e.group) { note.group= e.group }
+            note.position= null;    
+            note.title= '';
+            note.description= '';
+            data.note= note;
+            this.openNoteForEdit(data);
+        }        
         else if(!e.id && e.region) { // add note to exisitng or new region
             data.title= 'Add Note to Region:'; 
             data.region= e.region; 

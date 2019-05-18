@@ -220,10 +220,20 @@
                                 <mat-checkbox #groupeditable color="primary"
                                     [(ngModel)]="app.config.resources.notes.groupNameEdit" 
                                     (change)="onFormChange($event, groupeditable)"
+                                    matTooltip="Allow group name editing."   
                                     label="after">
                                     Edit Group Names
                                 </mat-checkbox>                                        
-                            </div>  
+                            </div> 
+                            <div class="setting-card-row-item"> 
+                                <mat-checkbox #groupposition color="primary"
+                                    [(ngModel)]="app.config.resources.notes.groupRequiresPosition" 
+                                    (change)="onFormChange($event, groupposition)"
+                                    matTooltip="Require position information when adding notes to a group."
+                                    label="after">
+                                    Position Group Note
+                                </mat-checkbox>                                        
+                            </div>                              
                         </div>                                                                                       
                     </mat-card>
                 </div>
@@ -234,4 +244,3 @@
     </div>
 
 </div>
-    

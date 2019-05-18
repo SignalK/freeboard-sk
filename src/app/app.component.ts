@@ -50,7 +50,7 @@ export class AppComponent {
             bearingTrue: null,
             bearingMagnetic: null,
             xte: null,
-            position: [null, null],
+            position: null,
             pointIndex: -1,
             pointTotal: 0
         },
@@ -953,7 +953,14 @@ export class AppComponent {
 
     handleResourceUpdate(e:any) {
         // ** create note in group **
-        if(e.action=='new' && e.mode=='note') { this.drawStart(e.mode, {group: e.group}) }
+        if(e.action=='new' && e.mode=='note') { 
+            if(this.app.config.resources.notes.groupRequiresPosition) {
+                this.drawStart(e.mode, {group: e.group}) 
+            }
+            else { 
+                this.skres.showNoteEditor({group: e.group});                
+            }
+        }
     }
 
     // ******** DRAW / EDIT EVENTS ************

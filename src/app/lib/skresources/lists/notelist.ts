@@ -15,7 +15,8 @@ export class NoteListComponent {
     filterList= [];
     filterText= '';
     someSel: boolean= false;
-    showNotes: boolean= false;    
+    showNotes: boolean= false;  
+    draftOnly: boolean= false;  
 
     constructor(public app:AppInfo) { }
 
@@ -35,6 +36,7 @@ export class NoteListComponent {
             let y= b[1].title.toUpperCase();
             return  x<=y ? -1 : 1;
         });
+        if(this.draftOnly) { this.filterDraftOnly() }
     }
 
     toggleMapDisplay(value) { this.app.config.notes=value; this.app.saveConfig(); }    
@@ -50,7 +52,21 @@ export class NoteListComponent {
                 return i;
             }
         });
+        if(this.draftOnly) { this.filterDraftOnly() }
     }
 
+    filterDraftOnly() {
+        this.filterList= this.filterList.filter( i=> {
+            if(i[1].properties && i[1].properties.draft) {
+                return i;
+            }
+        });             
+    }
+
+    toggleDraftOnly() {
+        this.draftOnly= !this.draftOnly;
+        if(this.draftOnly) { this.filterDraftOnly() }
+        else { this.filterKeyUp('') }
+    }
 }
 
