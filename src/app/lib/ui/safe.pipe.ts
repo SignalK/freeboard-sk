@@ -28,7 +28,10 @@ export class AddTargetPipe implements PipeTransform {
     constructor(protected sanitizer: DomSanitizer) {}
 
     public transform(value: string, target: string): string {
-        let a= value.split('<a ');
-        return a.join(`<a target="${target}" `);
+        if(typeof value==='string') {
+            let a= value.split('<a ');
+            return a.join(`<a target="${target}" `);
+        }
+        else { return value }
     }
 }

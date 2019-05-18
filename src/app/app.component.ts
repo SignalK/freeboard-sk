@@ -866,11 +866,12 @@ export class AppComponent {
                 info= (list) ? list : [];          
                 break;            
             case 'region':
+                item= this.app.data.regions.filter( i=>{ if(i[0]==t[1]) return true });
                 this.display.overlay['type']='region';
                 this.display.overlay['id']= t[1];
                 this.display.overlay['showProperties']=true;
                 this.display.overlay['canDelete']=false;
-                this.display.overlay['canModify']=true;
+                this.display.overlay['canModify']=item[0][1].feature.geometry.type=='MultiPolygon' ? false : true;
                 this.display.overlay['addNote']=true;  
                 this.display.overlay.title= 'Region';  
                 break;
@@ -990,25 +991,21 @@ export class AppComponent {
         let c= f.getGeometry().getCoordinates();
         let pc:any;
         if(fid.split('.')[0]=='route') {
-            pc= c.map( i=> { 
-                return proj.transform(
-                    i, 
-                    this.app.config.map.mrid, 
-                    this.app.config.map.srid
-                );
-            });
+            pc= this.transformCoordsArray(c);
         }
-        if(fid.split('.')[0]=='region') {
-            let a= c[0].map( i=> { 
-                return proj.transform(
-                    i, 
-                    this.app.config.map.mrid, 
-                    this.app.config.map.srid
-                );
-            });
-            pc= [a];
+        else if(fid.split('.')[0]=='region') {
+            for(let e=0; e<c.length; e++) { 
+                if(this.isCoordsArray(c[e])) { c[e]= this.transformCoordsArray(c[e]) }
+                else { 
+                    for(let p=0; p<c[e].length; p++) { 
+                        if(this.isCoordsArray(c[e][p])) { c[e][p]= this.transformCoordsArray(c[e][p]) }
+                        else {  console.log('Invalid polygon coordinates!') }                           
+                    }
+                }
+            };
+            pc= c;
         }        
-        else {
+        else {  // point feature
             pc= proj.transform(
                 c, 
                 this.app.config.map.mrid, 
@@ -1017,7 +1014,22 @@ export class AppComponent {
         }
         this.draw.forSave['coords']= pc;
         this.app.debug(this.draw.forSave);
-    }    
+    }  
+    
+    isCoordsArray(ca: Array<any>) {
+        if(Array.isArray(ca)) { return (Array.isArray(ca[0]) && typeof ca[0][0]==='number') }
+        else { return false }
+    }
+
+    transformCoordsArray(ca) {
+        return ca.map( i=> { 
+            return proj.transform(
+                i, 
+                this.app.config.map.mrid, 
+                this.app.config.map.srid
+            );
+        });
+    }
 
     // ** Exit Draw / modify / measure mode **
     drawEnd() {

@@ -13,7 +13,7 @@ export class AppInfo extends Info {
 
     private DEV_SERVER= {
         host: null,     // host name || ip address
-        port: null,     // port number
+        port: null, // port number
         ssl: false       // true || false
     }
 
@@ -94,7 +94,8 @@ export class AppInfo extends Info {
             resources: {    // ** resource options
                 notes: {
                     rootFilter: '',     // param string to provide record filtering
-                    getRadius: 100      // radius (NM/km) within which to return notes
+                    getRadius: 20,      // radius (NM/km) within which to return notes
+                    groupNameEdit: false
                 }
             }
         } 

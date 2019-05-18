@@ -4,6 +4,8 @@
 import {Component, OnInit, Inject} from '@angular/core';
 import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material';
 
+import { AppInfo } from '../../../app.info';
+
 /********* NoteDialog **********
 	data: {
         note: <SKNote>
@@ -17,6 +19,7 @@ import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material';
 export class NoteDialog implements OnInit {
 
     constructor(
+        public app: AppInfo,
         public dialogRef: MatDialogRef<NoteDialog>,
         @Inject(MAT_DIALOG_DATA) public data: any) {
 	}

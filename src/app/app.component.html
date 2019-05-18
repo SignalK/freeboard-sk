@@ -482,7 +482,8 @@
                         [zIndex]="120" [renderBuffer]="200">
                         <aol-source-vector>
                             <div *ngFor="let r of app.data.regions; let i=index;">
-                                <aol-feature [id]="'region.'+ r[0]"> 
+                                <!--MultiPolygon-->
+                                <aol-feature [id]="'region.'+ r[0]" *ngIf="r[1].feature.geometry.type=='Polygon'"> 
                                     <aol-geometry-polygon>
                                         <aol-collection-coordinates
                                             [coordinates]="r[1].feature.geometry.coordinates[0]"
@@ -494,6 +495,19 @@
                                         <aol-style-fill [color]="[255,0,0,0.1]"></aol-style-fill>
                                     </aol-style>
                                 </aol-feature> 
+                                <!--MultiPolygon-->
+                                <aol-feature [id]="'region.'+ r[0]" *ngIf="r[1].feature.geometry.type=='MultiPolygon'"> 
+                                    <aol-geometry-polygon>
+                                        <aol-collection-coordinates
+                                            [coordinates]="r[1].feature.geometry.coordinates[0][0]"
+                                            [srid]="app.config.map.srid">
+                                        </aol-collection-coordinates>                                        
+                                    </aol-geometry-polygon>
+                                    <aol-style>
+                                        <aol-style-stroke [color]="'purple'"></aol-style-stroke>
+                                        <aol-style-fill [color]="[255,0,0,0.1]"></aol-style-fill>
+                                    </aol-style>
+                                </aol-feature>                                 
                             </div>                            
                             <div *ngFor="let w of app.data.notes; let i=index;">
                                 <aol-feature [id]="'note.'+ w[0]">
@@ -621,19 +635,17 @@
                                             CLEAR
                                         </button>
                                     </div>
-                                    <div style="flex:1 1 50%;">
+                                    <div style="flex:1 1 50%;" *ngIf="display.overlay.showRelated && display.overlay.type!='ais'">
                                         <button mat-button
                                             (click)="skres.showRelatedNotes(display.overlay.showRelated, 'group');popoverClosed()"
-                                            *ngIf="display.overlay.showRelated && display.overlay.type!='ais'"
                                             matTooltip="Notes in Group">
                                             <mat-icon>style</mat-icon>
                                             GROUP
                                         </button>  
                                     </div>                                      
-                                    <div style="flex:1 1 50%;">
+                                    <div style="flex:1 1 50%;" *ngIf="display.overlay.showProperties && display.overlay.type!='ais'">
                                         <button mat-button
                                             (click)="resourceProperties(display.overlay);popoverClosed()"
-                                            *ngIf="display.overlay.showProperties && display.overlay.type!='ais'"
                                             matTooltip="Show Properties">
                                             <mat-icon>info_outline</mat-icon>
                                             INFO
@@ -788,7 +800,7 @@
                             </aol-feature>    
                             
                             <!-- bearing Line-->
-                            <!-- base-->
+                            <!-- base -->
                             <aol-feature *ngIf="display.vesselLines.bearing[0] && app.config.anchor.raised">
                                 <aol-geometry-linestring>
                                     <aol-collection-coordinates
@@ -802,7 +814,7 @@
                                     </aol-style-stroke>                                  
                                 </aol-style>
                             </aol-feature>  
-                            <!-- highlight-->
+                            <!-- highlight -->
                             <aol-feature *ngIf="display.vesselLines.bearing[0] && app.config.anchor.raised">
                                 <aol-geometry-linestring>
                                     <aol-collection-coordinates
@@ -815,7 +827,23 @@
                                         [color]="'rgba(221, 149, 0, 1)'" [width]="2">
                                     </aol-style-stroke>
                                 </aol-style>
-                            </aol-feature>        
+                            </aol-feature>  
+                            <!-- marker -->
+                            <aol-feature *ngIf="display.navData.position && app.config.anchor.raised">
+                                <aol-geometry-point>
+                                    <aol-coordinate 
+                                        [x]="display.navData.position[0]" 
+                                        [y]="display.navData.position[1]" 
+                                        [srid]="app.config.map.srid">
+                                    </aol-coordinate>
+                                </aol-geometry-point>
+                                <aol-style>
+                                    <aol-style-circle [radius]="5">
+                                        <aol-style-stroke [color]="'white'" [width]="2"></aol-style-stroke>
+                                        <aol-style-fill [color]="'rgba(221, 149, 0, 1)'"></aol-style-fill>                                        
+                                    </aol-style-circle>
+                                </aol-style>
+                            </aol-feature>                                  
 
                             <!-- TWD Line -->
                             <aol-feature *ngIf="display.vesselLines.twd[0] && app.config.anchor.raised">

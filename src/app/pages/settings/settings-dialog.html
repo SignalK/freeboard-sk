@@ -214,7 +214,17 @@
                                         </button>                                                                           
                                 </mat-form-field>                            
                             </div>    
-                        </div>                                                                  
+                        </div>   
+                        <div class="setting-card-row">
+                            <div class="setting-card-row-item">
+                                <mat-checkbox #groupeditable color="primary"
+                                    [(ngModel)]="app.config.resources.notes.groupNameEdit" 
+                                    (change)="onFormChange($event, groupeditable)"
+                                    label="after">
+                                    Edit Group Names
+                                </mat-checkbox>                                        
+                            </div>  
+                        </div>                                                                                       
                     </mat-card>
                 </div>
             

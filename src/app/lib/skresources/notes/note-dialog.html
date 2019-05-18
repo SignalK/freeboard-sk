@@ -146,12 +146,11 @@
                         </mat-error>
                     </mat-form-field>
                 </div>
-                <div>                                     
+                <div *ngIf="app.config.resources.notes.groupNameEdit">                                     
                     <mat-form-field>
                         <input matInput #inpgroup="ngModel"
                             type="text"
                             placeholder="Group Name"
-                            [disabled]="false"
                             [(ngModel)]="data.note.group"/>
                     </mat-form-field>
                 </div>                

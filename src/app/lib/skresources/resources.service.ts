@@ -755,7 +755,10 @@ export class SKResources {
                     });
                     if(ra.length!=0) {
                         let r= ra[0][1];
-                        let c= GeoUtils.centreOfPolygon(r.feature.geometry.coordinates[0]);
+                        let pca= r.feature.geometry.type=='MultiPolygon' ? 
+                            r.feature.geometry.coordinates[0][0] :
+                            r.feature.geometry.coordinates[0]
+                        let c= GeoUtils.centreOfPolygon(pca);
                         i[1]['position']= {latitude: c[1], longitude: c[0]};
                     }
                 }            
@@ -773,7 +776,7 @@ export class SKResources {
             res=> { 
                 if(res['statusCode']!=200) {
                     this.reOpen= {key: null, value: null}
-                    this.showAlert('ERROR:', 'Server could not add Note!');
+                    this.showAlert(`ERROR: (${res['statusCode']})`, 'Server could not add Note!');
                 }
                 if(this.reOpen && this.reOpen.key) { 
                     this.showRelatedNotes(this.reOpen.value, this.reOpen.key);
@@ -799,7 +802,7 @@ export class SKResources {
                         }
                     });
                 }  
-                else { this.showAlert('ERROR:', 'Server could not add Note!') }                            
+                else { this.showAlert(`ERROR: (${err.status})`, err.statusText ? err.statusText : 'Server could not add Note!') }
             }
         );        
     }
@@ -831,7 +834,7 @@ export class SKResources {
                         }
                     });
                 } 
-                else { this.showAlert('ERROR:', 'Server could not update Note!') }                            
+                else { this.showAlert(`ERROR: (${err.status})`, err.statusText ? err.statusText : 'Server could not update Note!') }                            
             }
         );        
     } 
@@ -869,7 +872,7 @@ export class SKResources {
                         }
                     });
                 }
-                else { this.showAlert('ERROR:', 'Server could not delete Note!') }
+                else { this.showAlert(`ERROR: (${err.status})`, err.statusText ? err.statusText : 'Server could not delete Note!') }
             }
         );
     }

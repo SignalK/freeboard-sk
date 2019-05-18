@@ -4,7 +4,9 @@
 
 - **Added:** Support for viewing / adding Notes.
 
-- **Added:** Support for moving `Waypoint` and `Note` position as well as modifying `Route` and `Region` vertices.
+- **Added:** Support for moving `Waypoint` and `Note` position as well as modifying `Route` and `Region` vertices. 
+
+_Note: `MultiPolygon` regions are displayed on the map but are not currently supported for modification._
 
 - **Added:** Setting to halt the selected Instrument App when the panel is hidden. This allows
 resources to be freed when instruments are not being displayed. Instrument App is re-started 
