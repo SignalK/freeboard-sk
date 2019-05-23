@@ -10,7 +10,7 @@ import { MatDialogModule,
 import { NoteDialog } from './note-dialog';
 import { RegionDialog } from './region-dialog';
 // ** pipes **
-import { AddTargetPipe } from '../../ui/safe.pipe';
+import { AddTargetPipe } from './safe.pipe';
 
 import { CKEditorModule } from '@ckeditor/ckeditor5-angular';
 
