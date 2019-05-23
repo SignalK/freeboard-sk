@@ -168,17 +168,32 @@ export class SKResources {
             `/resources/routes/${rte['route'][0]}`, 
             rte['route'][1]
         ).subscribe( 
-            r=>{ 
-                this.getRoutes();
-                if(r['state']=='COMPLETED') { 
+            res=> { 
+                if(res['statusCode']>=400) {    // response status is error
+                    this.showAlert(`ERROR: (${res['statusCode']})`, res['message'] ? res['message'] : 'Server could not add Route!');
+                }
+                else if(res['statusCode']==202) { // pending
+                    this.pendingStatus(res).then( r=> {
+                        if(r['statusCode']>=400) {    // response status is error
+                            this.showAlert(`ERROR: (${r['statusCode']})`, r['message'] ? r['message'] : 'Server could not add Route!');
+                        } 
+                        else { 
+                            this.submitWaypoint(rte['wptStart'][0], rte['wptStart'][1], false);
+                            this.submitWaypoint(rte['wptEnd'][0], rte['wptEnd'][1], false);               
+                            this.app.config.selections.routes.push(rte['route'][0]);
+                            this.app.saveConfig();
+                            this.getRoutes();  
+                        }      
+                    });
+                } 
+                else if(res['statusCode']==200) { // complete
                     this.submitWaypoint(rte['wptStart'][0], rte['wptStart'][1], false);
                     this.submitWaypoint(rte['wptEnd'][0], rte['wptEnd'][1], false);               
-                    this.app.debug('SUCCESS: Route updated.');
                     this.app.config.selections.routes.push(rte['route'][0]);
-                    this.app.saveConfig();                                
-                }
-                else { this.showAlert('ERROR:', 'Server could not add Route!') }
-                },
+                    this.app.saveConfig();
+                    this.getRoutes();                        
+                }                
+            },
             err=> { 
                 //this.getRoutes();
                 if(err.status && err.status==401) { 
@@ -207,10 +222,19 @@ export class SKResources {
     private updateRoute(id:string, rte:any) {
         this.signalk.api.put(`/resources/routes/${id}`, rte)
         .subscribe( 
-            r=>{ 
-                this.getRoutes();
-                if(r['state']=='COMPLETED') { this.app.debug('SUCCESS: Route updated.') }
-                else { this.showAlert('ERROR:', 'Server could not update Route details!') }
+            res=> { 
+                if(res['statusCode']>=400) {    // response status is error
+                    this.showAlert(`ERROR: (${res['statusCode']})`, res['message'] ? res['message'] : 'Server could not update Route!');
+                }
+                else if(res['statusCode']==202) { // pending
+                    this.pendingStatus(res).then( r=> {
+                        if(r['statusCode']>=400) {    // response status is error
+                            this.showAlert(`ERROR: (${r['statusCode']})`, r['message'] ? r['message'] : 'Server could not update Route!');
+                        } 
+                        else { this.getRoutes() }      
+                    });
+                } 
+                else if(res['statusCode']==200) { this.getRoutes() }
             },
             err=> { 
                 this.getRoutes();
@@ -240,11 +264,22 @@ export class SKResources {
     private deleteRoute(id:string) {
         this.signalk.api.delete(`/resources/routes/${id}`)
         .subscribe( 
-            r=> {  
-                this.getRoutes();
-                this.getWaypoints();
-                if(r['state']=='COMPLETED') { this.app.debug('SUCCESS: Route deleted.') }
-                else { this.showAlert('ERROR:', 'Server could not delete Route!') }                            
+            res=> {  
+                if(res['statusCode']>=400) {    // response status is error
+                    this.showAlert(`ERROR: (${res['statusCode']})`, res['message'] ? res['message'] : 'Server could not delete Route!');
+                }
+                else if(res['statusCode']==202) { // pending
+                    this.pendingStatus(res).then( r=> {
+                        if(r['statusCode']>=400) {    // response status is error
+                            this.showAlert(`ERROR: (${r['statusCode']})`, r['message'] ? r['message'] : 'Server could not delete Route!');
+                        } 
+                        else { this.getWaypoints(); this.getRoutes(); }      
+                    });
+                } 
+                else if(res['statusCode']==200) { 
+                    this.getRoutes();
+                    this.getWaypoints(); 
+                }
             },
             err=> { 
                 if(err.status && err.status==401) { 
@@ -499,18 +534,25 @@ export class SKResources {
     // ** create / update waypoint on server **
     private submitWaypoint(id:string, wpt:SKWaypoint, isNew=false) {
         this.signalk.api.put(`/resources/waypoints/${id}`, wpt).subscribe( 
-            r=> { 
-                if(r['state']=='COMPLETED') { 
-                    this.app.debug('SUCCESS: Waypoint updated.');
+            res=> { 
+                if(res['statusCode']>=400) {    // response status is error
+                    this.showAlert(`ERROR: (${res['statusCode']})`, res['message'] ? res['message'] : 'Server could not update Waypoint!');
+                    this.getWaypoints(); 
+                }
+                else if(res['statusCode']==202) { // pending
+                    this.pendingStatus(res).then( r=> {
+                        if(r['statusCode']>=400) {    // response status is error
+                            this.showAlert(`ERROR: (${r['statusCode']})`, r['message'] ? r['message'] : 'Server could not update Waypoint!');
+                        } 
+                        else { this.getWaypoints() }      
+                    });
+                } 
+                else if(res['statusCode']==200) {
                     if(isNew) { 
                         this.app.config.selections.waypoints.push(id);
                         this.app.saveConfig();
                     }
                     this.getWaypoints();
-                }
-                else { 
-                    this.getWaypoints();
-                    this.showAlert('ERROR:', 'Server could not update Waypoint details!');
                 }
             },
             err=> { 
@@ -541,10 +583,19 @@ export class SKResources {
     private deleteWaypoint(id:string) {
         this.signalk.api.delete(`/resources/waypoints/${id}`)
         .subscribe( 
-            r=> {  
-                this.getWaypoints();
-                if(r['state']=='COMPLETED') { this.app.debug('SUCCESS: Waypoint deleted.') }
-                else { this.showAlert('ERROR:', 'Server could not delete Waypoint!') }                            
+            res=> {
+                if(res['statusCode']>=400) {    // response status is error
+                    this.showAlert(`ERROR: (${res['statusCode']})`, res['message'] ? res['message'] : 'Server could not delete Waypoint!');
+                }
+                else if(res['statusCode']==202) { // pending
+                    this.pendingStatus(res).then( r=> {
+                        if(r['statusCode']>=400) {    // response status is error
+                            this.showAlert(`ERROR: (${r['statusCode']})`, r['message'] ? r['message'] : 'Server could not delete Waypoint!');
+                        } 
+                        else { this.getWaypoints() }      
+                    });
+                } 
+                else if(res['statusCode']==200) { this.getWaypoints() }              
             },
             err=> { 
                 if(err.status && err.status==401) { 
@@ -668,10 +719,18 @@ export class SKResources {
             region.data
         ).subscribe( 
             res=>{ 
-                if(res['state']=='COMPLETED') { 
-                    if(note) { this.createNote(note) }
+                if(res['statusCode']>=400) {    // response status is error
+                    this.showAlert(`ERROR: (${res['statusCode']})`, res['message'] ? res['message'] : 'Server could not add Region!');
                 }
-                else { this.showAlert('ERROR:', 'Server could not add Region!') }
+                else if(res['statusCode']==202) { // pending
+                    this.pendingStatus(res).then( r=> {
+                        if(r['statusCode']>=400) {    // response status is error
+                            this.showAlert(`ERROR: (${r['statusCode']})`, r['message'] ? r['message'] : 'Server could not add Region!');
+                        }                        
+                        else { if(note) { this.createNote(note) } }
+                    });
+                } 
+                else if(res['statusCode']==200 && note) { this.createNote(note) }                
             },
             err=> { 
                 if(err.status && err.status==401) { 
@@ -694,6 +753,47 @@ export class SKResources {
                 else { this.showAlert('ERROR:', 'Server could not add Region!') }
             }
         );        
+    }  
+    
+    // ** delete Region on server **
+    private deleteRegion(id:string) {
+        this.signalk.api.delete(`/resources/regions/${id}`)
+        .subscribe( 
+            res=> {  
+                if(res['statusCode']>=400) {    // response status is error
+                    this.showAlert(`ERROR: (${res['statusCode']})`, res['message'] ? res['message'] : 'Server could not delete Region!');
+                }
+                else if(res['statusCode']==202) { // pending
+                    this.pendingStatus(res).then( r=> {
+                        if(r['statusCode']>=400) {    // response status is error
+                            this.showAlert(`ERROR: (${r['statusCode']})`, r['message'] ? r['message'] : 'Server could not delete Region!');
+                        }                        
+                        else { this.getNotes() }
+                    });
+                } 
+                else if(res['statusCode']==200) { this.getNotes() }                        
+            },
+            err=> { 
+                if(err.status && err.status==401) { 
+                    this.showAuth().subscribe( res=> {
+                        if(res.cancel) { this.authResult(false) }
+                        else { // ** authenticate
+                            this.signalk.login(res.user, res.pwd).subscribe(
+                                r=> {   // ** authenticated
+                                    this.authResult(true, r['token']);
+                                    this.deleteNote(id);
+                                },
+                                err=> {   // ** auth failed
+                                    this.authResult(false);
+                                    this.showAuth();
+                                }
+                            );
+                        }
+                    });
+                }
+                else { this.showAlert(`ERROR: (${err.status})`, err.statusText ? err.statusText : 'Server could not delete Region!') }
+            }
+        );
     }    
 
     // ** modify Region point coordinates **
@@ -703,6 +803,28 @@ export class SKResources {
         let region=t[0][1];
         region['feature']['geometry']['coordinates']= coords;
         this.createRegion({id: id, data: region});
+    }
+
+    // ** confirm Region Deletion **
+    showRegionDelete(e:any) {
+        // are there notes attached?
+        let ca= this.app.data.notes.map( i=>{ if(i[1].region==e.id) {return i[0]} } ).filter(i=> {return i});
+        if(ca.length==0){ 
+            this.dialog.open(ConfirmDialog, {
+                disableClose: true,
+                data: {
+                    message: 'Do you want to delete this Region?\nRegion will be removed from the server (if configured to permit this operation).',
+                    title: 'Delete Region:',
+                    button1Text: 'YES',
+                    button2Text: 'NO'
+                }
+            }).afterClosed().subscribe( ok=> {
+                if(ok) { this.deleteRegion(e.id) }
+            }); 
+        }
+        else {
+            this.showAlert('Message', 'Region cannot be deleted as Notes are attached!');
+        }        
     }
 
     // **** NOTES ****
@@ -774,15 +896,24 @@ export class SKResources {
     private createNote(note:any) { 
         this.signalk.api.post(`/resources/notes`, note ).subscribe(
             res=> { 
-                if(res['statusCode']!=200) {
+                if(res['statusCode']>=400) {    // response status is error
                     this.reOpen= {key: null, value: null}
-                    this.showAlert(`ERROR: (${res['statusCode']})`, 'Server could not add Note!');
+                    this.showAlert(`ERROR: (${res['statusCode']})`, res['message'] ? res['message'] : 'Server could not add Note!');
                 }
+                else if(res['statusCode']==202) { // pending
+                    this.pendingStatus(res).then( r=> {
+                        if(r['statusCode']>=400) {    // response status is error
+                            this.showAlert(`ERROR: (${r['statusCode']})`, r['message'] ? r['message'] : 'Server could not add Note!');
+                        }                        
+                        else { this.getNotes() }
+                    });
+                }
+                else if(res['statusCode']==200) { this.getNotes() } 
+
                 if(this.reOpen && this.reOpen.key) { 
                     this.showRelatedNotes(this.reOpen.value, this.reOpen.key);
                     this.reOpen= {key: null, value: null}
                 } 
-                this.getNotes();
             },
             err=> {
                 if(err.status && err.status==401) { 
@@ -810,11 +941,24 @@ export class SKResources {
     private updateNote(id:string, note:any) {
         this.signalk.api.put(`/resources/notes/${id}`, note ).subscribe(
             res=> { 
+                if(res['statusCode']>=400) {    // response status is error
+                    this.reOpen= {key: null, value: null}
+                    this.showAlert(`ERROR: (${res['statusCode']})`, res['message'] ? res['message'] : 'Server could not update Note!');
+                }
+                else if(res['statusCode']==202) { // pending
+                    this.pendingStatus(res).then( r=> {
+                        if(r['statusCode']>=400) {    // response status is error
+                            this.showAlert(`ERROR: (${r['statusCode']})`, r['message'] ? r['message'] : 'Server could not update Note!');
+                        }                        
+                        else { this.getNotes() }
+                    });
+                }  
+                else if(res['statusCode']==200) { this.getNotes() } 
+
                 if(this.reOpen && this.reOpen.key) { 
                     this.showRelatedNotes(this.reOpen.value, this.reOpen.key);
                     this.reOpen= {key: null, value: null}
-                } 
-                this.getNotes();
+                }
             },
             err=> {
                 if(err.status && err.status==401) { 
@@ -843,16 +987,25 @@ export class SKResources {
     private deleteNote(id:string) {
         this.signalk.api.delete(`/resources/notes/${id}`)
         .subscribe( 
-            r=> {  
-                this.getNotes();
-                if(r['state']=='COMPLETED') { 
-                    this.app.debug('SUCCESS: Note deleted.');
-                    if(this.reOpen && this.reOpen.key) { 
-                        this.showRelatedNotes(this.reOpen.value, this.reOpen.key);
-                        this.reOpen= {key: null, value: null}
-                    } 
+            res=> {  
+                if(res['statusCode']>=400) {    // response status is error
+                    this.reOpen= {key: null, value: null}
+                    this.showAlert(`ERROR: (${res['statusCode']})`, res['message'] ? res['message'] : 'Server could not delete Note!');
                 }
-                else { this.showAlert('ERROR:', 'Server could not delete Note!') }                            
+                else if(res['statusCode']==202) { // pending
+                    this.pendingStatus(res).then( r=> {
+                        if(r['statusCode']>=400) {    // response status is error
+                            this.showAlert(`ERROR: (${r['statusCode']})`, r['message'] ? r['message'] : 'Server could not delete Note!');
+                        }                        
+                        else { this.getNotes() }
+                    });
+                } 
+                else if(res['statusCode']==200) { this.getNotes() } 
+
+                if(this.reOpen && this.reOpen.key) { 
+                    this.showRelatedNotes(this.reOpen.value, this.reOpen.key);
+                    this.reOpen= {key: null, value: null}
+                }                          
             },
             err=> { 
                 if(err.status && err.status==401) { 
@@ -1077,6 +1230,50 @@ export class SKResources {
     }   
 
     // *******************************
+
+    // ** check pending request
+    private async pendingStatus(status:any, max:number=10, waitTime:number=1000) {
+        if(!status.href) { return { state: 'COMPLETED', statusCode: 200 } }
+        let pending: boolean= true;
+        let pollCount:number= 0;
+        let result:any;
+        while(pending) {
+            pollCount++;
+            let r= await this.poll(status.href, waitTime);
+            if( r['state'] && r['state']!='PENDING') {
+                pending=false;
+                result= r;
+            }
+            else {
+                if(pollCount>=max) { 
+                    pending=false;
+                    result= { 
+                        state: 'COMPLETED', 
+                        statusCode: 410, 
+                        message: `Max. number of ${max} status requests reached.`
+                    }                    
+                }
+            }
+        }
+        return result;
+    }
+    // ** poll pending operation **
+    private poll(href:string, waitTime:number=1000) {
+        return new Promise( (resolve, reject)=> {
+            setTimeout( ()=> {
+                this.signalk.get(href).subscribe( 
+                    res=> { resolve(res) },
+                    err=> { 
+                        resolve( { 
+                            state: 'ERROR', 
+                            statusCode: 404, 
+                            message: 'Server returned error when polling request status!'
+                        } );
+                    }
+                );
+            }, waitTime);
+        });
+    }
 
     // ** alert message **
     private showAlert(title:string, message:string) {

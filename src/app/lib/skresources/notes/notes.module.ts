@@ -12,13 +12,16 @@ import { RegionDialog } from './region-dialog';
 // ** pipes **
 import { AddTargetPipe } from '../../ui/safe.pipe';
 
+import { CKEditorModule } from '@ckeditor/ckeditor5-angular';
+
 @NgModule({
     imports: [
         CommonModule, FormsModule, MatDialogModule,
         MatCheckboxModule, MatCardModule, MatListModule,
         MatButtonModule, MatIconModule, MatTooltipModule, 
         MatSliderModule, MatSlideToggleModule, 
-        MatFormFieldModule, MatInputModule
+        MatFormFieldModule, MatInputModule,
+        CKEditorModule
     ],
     declarations: [
         NoteDialog, RegionDialog, AddTargetPipe

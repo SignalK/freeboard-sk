@@ -870,7 +870,7 @@ export class AppComponent {
                 this.display.overlay['type']='region';
                 this.display.overlay['id']= t[1];
                 this.display.overlay['showProperties']=true;
-                this.display.overlay['canDelete']=false;
+                this.display.overlay['canDelete']=true;
                 this.display.overlay['canModify']=item[0][1].feature.geometry.type=='MultiPolygon' ? false : true;
                 this.display.overlay['addNote']=true;  
                 this.display.overlay.title= 'Region';  
@@ -1256,7 +1256,10 @@ export class AppComponent {
                 break;   
             case 'note':
                 this.skres.showNoteDelete({id: id});
-                break;               
+                break;    
+            case 'region':
+                this.skres.showRegionDelete({id: id});
+                break;                              
         }    
     }      
 

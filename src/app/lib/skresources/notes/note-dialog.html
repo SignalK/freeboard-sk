@@ -154,14 +154,17 @@
                             [(ngModel)]="data.note.group"/>
                     </mat-form-field>
                 </div>                
+
                 <div>
-                    <mat-form-field>
-                        <textarea matInput rows="7" #inpdesc="ngModel"
-                            placeholder="Description"
-                            [(ngModel)]="data.note.description">
-                        </textarea>
-                    </mat-form-field>
+                    <ckeditor [editor]="Editor" 
+                        [config]="{ 
+                            placeholder: 'Enter note description here..',
+                            toolbar: [ 'bold', 'italic', 'link', '|', 'bulletedlist', 'numberedlist', '|', 'undo', 'redo'] 
+                        }"
+                        [(ngModel)]="data.note.description">
+                    </ckeditor>
                 </div>
+                
                 <div>
                     <mat-form-field hintLabel="Link to additional content.">
                         <input type="text" matInput 

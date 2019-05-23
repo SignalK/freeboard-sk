@@ -2,9 +2,11 @@
 
 ### v1.4.0
 
-- **Added:** Support for viewing / adding Notes.
+- **Added:** View / add `Notes`.
 
-- **Added:** Support for moving `Waypoint` and `Note` position as well as modifying `Route` and `Region` vertices. 
+- **Added:** Create `Regions` and add notes to a region.
+
+- **Added:** Move `Waypoint` and `Note` position as well as modifying `Route` and `Region` vertices. 
 
 _Note: `MultiPolygon` regions are displayed on the map but are not currently supported for modification._
 

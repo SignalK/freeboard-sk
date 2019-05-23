@@ -6,6 +6,8 @@ import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material';
 
 import { AppInfo } from '../../../app.info';
 
+import * as ClassicEditor from '@ckeditor/ckeditor5-build-classic';
+
 /********* NoteDialog **********
 	data: {
         note: <SKNote>
@@ -18,6 +20,8 @@ import { AppInfo } from '../../../app.info';
 })
 export class NoteDialog implements OnInit {
 
+    public Editor = ClassicEditor;
+
     constructor(
         public app: AppInfo,
         public dialogRef: MatDialogRef<NoteDialog>,
@@ -26,6 +30,7 @@ export class NoteDialog implements OnInit {
 	
     ngOnInit() { 
         if(!this.data.note.properties) { this.data.note.properties= {} }
+        if(typeof this.data.note.description ==='undefined') { this.data.note.description= '' }
         if(this.data.note.properties.readOnly) { this.data.editable=false }
     }
     

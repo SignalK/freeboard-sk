@@ -8,3 +8,7 @@
     left: 25%;
     bottom: 0;    
 }
+
+:host ::ng-deep .ck-editor__editable {
+    min-height: 120px;
+}
