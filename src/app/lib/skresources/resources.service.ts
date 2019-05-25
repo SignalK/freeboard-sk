@@ -905,15 +905,16 @@ export class SKResources {
                         if(r['statusCode']>=400) {    // response status is error
                             this.showAlert(`ERROR: (${r['statusCode']})`, r['message'] ? r['message'] : 'Server could not add Note!');
                         }                        
-                        else { this.getNotes() }
+                        else { 
+                            this.getNotes();
+                            this.reopenRelatedDialog();
+                        }
                     });
+                }  
+                else if(res['statusCode']==200) { 
+                    this.getNotes(); 
+                    this.reopenRelatedDialog();
                 }
-                else if(res['statusCode']==200) { this.getNotes() } 
-
-                if(this.reOpen && this.reOpen.key) { 
-                    this.showRelatedNotes(this.reOpen.value, this.reOpen.key);
-                    this.reOpen= {key: null, value: null}
-                } 
             },
             err=> {
                 if(err.status && err.status==401) { 
@@ -950,14 +951,15 @@ export class SKResources {
                         if(r['statusCode']>=400) {    // response status is error
                             this.showAlert(`ERROR: (${r['statusCode']})`, r['message'] ? r['message'] : 'Server could not update Note!');
                         }                        
-                        else { this.getNotes() }
+                        else { 
+                            this.getNotes();
+                            this.reopenRelatedDialog();
+                        }
                     });
                 }  
-                else if(res['statusCode']==200) { this.getNotes() } 
-
-                if(this.reOpen && this.reOpen.key) { 
-                    this.showRelatedNotes(this.reOpen.value, this.reOpen.key);
-                    this.reOpen= {key: null, value: null}
+                else if(res['statusCode']==200) { 
+                    this.getNotes(); 
+                    this.reopenRelatedDialog();
                 }
             },
             err=> {
@@ -997,15 +999,16 @@ export class SKResources {
                         if(r['statusCode']>=400) {    // response status is error
                             this.showAlert(`ERROR: (${r['statusCode']})`, r['message'] ? r['message'] : 'Server could not delete Note!');
                         }                        
-                        else { this.getNotes() }
+                        else { 
+                            this.getNotes();
+                            this.reopenRelatedDialog();
+                        }
                     });
-                } 
-                else if(res['statusCode']==200) { this.getNotes() } 
-
-                if(this.reOpen && this.reOpen.key) { 
-                    this.showRelatedNotes(this.reOpen.value, this.reOpen.key);
-                    this.reOpen= {key: null, value: null}
-                }                          
+                }  
+                else if(res['statusCode']==200) { 
+                    this.getNotes(); 
+                    this.reopenRelatedDialog();
+                }                         
             },
             err=> { 
                 if(err.status && err.status==401) { 
@@ -1054,12 +1057,18 @@ export class SKResources {
                 }                    
             }
             else {  // cancel
-                if(this.reOpen && this.reOpen.key) { 
-                    this.showRelatedNotes(this.reOpen.value, this.reOpen.key);
-                    this.reOpen= {key: null, value: null}
-                } 
+                this.reopenRelatedDialog();
             }
         });
+    }
+
+    // ** reopen last related dialog **
+    private reopenRelatedDialog(noReset:boolean=false) {
+        if(this.reOpen && this.reOpen.key) { 
+            this.showRelatedNotes(this.reOpen.value, this.reOpen.key);
+            if(noReset) { return }
+            else { this.reOpen= {key: null, value: null} }
+        }        
     }
 
     // ** Show Related Notes dialog **
@@ -1211,12 +1220,7 @@ export class SKResources {
             }
         }).afterClosed().subscribe( ok=> {
             if(ok) { this.deleteNote(e.id) }
-            else {
-                if(this.reOpen && this.reOpen.key) { 
-                    this.showRelatedNotes(this.reOpen.value, this.reOpen.key);
-                    this.reOpen= {key: null, value: null}
-                }                
-            }
+            else { this.reopenRelatedDialog() }
         });         
     }
 

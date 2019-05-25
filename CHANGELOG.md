@@ -20,6 +20,8 @@ each time the panel is opened.
 
 - **Fix:** Disable `Delete` button of Active Route in Route List.
 
+- **Fix:** Orientation of vessel display when only COG value (no HEADING value) is present.
+
 
 ### v1.3.2
 

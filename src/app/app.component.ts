@@ -1739,6 +1739,7 @@ export class AppComponent {
             d.cogMagnetic= v.value;
             if(this.app.useMagnetic) { d.cog= v.value }
         }
+    
         if( v.path=='navigation.headingTrue' ) { 
             d.headingTrue= v.value;
             if(!this.app.useMagnetic) { d.heading= v.value }
@@ -1747,6 +1748,9 @@ export class AppComponent {
             d.headingMagnetic= v.value;
             if(this.app.useMagnetic) { d.heading= v.value }         
         }
+
+        d.heading= (!d.heading && d.cog) ? d.cog : d.heading;
+
         if(v.path=='navigation.speedOverGround') { d.sog= v.value }
         if( v.path=='navigation.position') {
             d.position= [ v.value.longitude, v.value.latitude];                      
