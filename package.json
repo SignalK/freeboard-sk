@@ -59,7 +59,7 @@
     "ngx-openlayers": "^0.8.22",
     "protractor": "^5.4.2",
     "rxjs": "~6.4.0",
-    "signalk-client-angular": "^1.5.1",
+    "signalk-client-angular": "^1.5.2",
     "ts-node": "~8.0.2",
     "tslint": "~5.12.1",
     "typescript": "^3.2.4",
