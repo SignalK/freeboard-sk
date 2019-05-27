@@ -772,7 +772,7 @@ export class AppComponent {
             GeoUtils.destCoordinate(
                 this.display.vessels.self.position[1],
                 this.display.vessels.self.position[0],
-                this.display.vessels.self.heading,
+                this.display.map.vesselRotation,
                 sog * offset
             )
         ];
@@ -792,7 +792,7 @@ export class AppComponent {
 
         let ca= (this.app.config.map.northup) ? 
             this.display.vessels.self.wind.awa :
-            this.display.vessels.self.wind.awa + this.display.vessels.self.heading;
+            this.display.vessels.self.wind.awa + this.display.map.vesselRotation;
 
         this.display.vesselLines.awa= [
             this.display.vessels.self.position, 
@@ -800,7 +800,7 @@ export class AppComponent {
                 this.display.vessels.self.position[1],
                 this.display.vessels.self.position[0],
                 ca,
-                (this.display.vessels.self.heading) ? aws * offset : 0
+                (this.display.map.vesselRotation) ? aws * offset : 0
             )
         ];        
         
@@ -1214,7 +1214,7 @@ export class AppComponent {
         }
         // ** calc distance from new map center to lastGet
         let d= GeoUtils.distanceTo(this.app.data.lastGet, this.app.config.map.center )
-        this.app.debug(`distance: ${d}`);
+        this.app.debug(`distance map moved: ${d}`);
         // ** if d is more than half the getRadius
         let cr= (this.app.config.units.distance=='ft') ? 
             Convert.nauticalMilesToKm(this.app.config.resources.notes.getRadius) * 1000:
@@ -1671,7 +1671,7 @@ export class AppComponent {
         this.processVessel(d,v);
 
         // ** vessel on map rotation
-        this.display.map.vesselRotation= (typeof d.heading!== 'undefined') ? d.heading : (d.cog || 0);
+        this.display.map.vesselRotation= (!d.heading && typeof d.cog!== 'undefined') ? d.cog : (d.heading || 0);
 
         // ** add to true / magnetic selection list
         if( v.path=='navigation.headingMagnetic' && 
@@ -1748,8 +1748,6 @@ export class AppComponent {
             d.headingMagnetic= v.value;
             if(this.app.useMagnetic) { d.heading= v.value }         
         }
-
-        d.heading= (!d.heading && d.cog) ? d.cog : d.heading;
 
         if(v.path=='navigation.speedOverGround') { d.sog= v.value }
         if( v.path=='navigation.position') {

@@ -834,7 +834,7 @@ export class SKResources {
         let rf= (params) ? params : this.app.config.resources.notes.rootFilter;
         rf= this.processTokens(rf);
         if(rf && rf[0]!='?') { rf='?' + rf }
-        this.app.debug(rf);
+        this.app.debug(`${rf}`);
 
         let resRegions= this.getRegions(rf).pipe( catchError(error => of(error)) );
         let resNotes= this.signalk.api.get(`/resources/notes${rf}`);

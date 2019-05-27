@@ -1,6 +1,6 @@
 {
   "name": "@signalk/freeboard-sk",
-  "version": "1.4.0-rc5",
+  "version": "1.4.0",
   "description": "Openlayers chartplotter implementation for Signal K",
   "keywords": [
     "signalk-webapp"

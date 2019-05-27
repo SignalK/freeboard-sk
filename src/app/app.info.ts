@@ -13,8 +13,8 @@ export class AppInfo extends Info {
 
     private DEV_SERVER= {
         host: null,     // host name || ip address
-        port: null, // port number
-        ssl: false       // true || false
+        port: null,     // port number
+        ssl: false                       
     }
 
     public hostName;
@@ -93,7 +93,7 @@ export class AppInfo extends Info {
             },
             resources: {    // ** resource options
                 notes: {
-                    rootFilter: '',     // param string to provide record filtering
+                    rootFilter: '?position=%map:latitude%,%map:longitude%&dist=%note:radius%',     // param string to provide record filtering
                     getRadius: 20,      // radius (NM/km) within which to return notes
                     groupNameEdit: false,
                     groupRequiresPosition: false
@@ -210,7 +210,7 @@ export class AppInfo extends Info {
             if(typeof this.config.resources === 'undefined') {
                 this.config.resources= { 
                     notes: {
-                        rootFilter: '',     
+                        rootFilter: '?position=%map:latitude%,%map:longitude%&dist=%note:radius%',     
                         getRadius: 20,     
                         groupNameEdit: false,
                         groupRequiresPosition: false
