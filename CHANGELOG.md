@@ -1,10 +1,39 @@
 # CHANGELOG: Freeboard-SK
 
+### v1.4.0
+
+- **Added:** View / add `Notes`.
+
+- **Added:** Create `Regions` and add notes to a region.
+
+- **Added:** Move `Waypoint` and `Note` position as well as modifying `Route` and `Region` vertices. 
+
+_Note: `MultiPolygon` regions are displayed on the map but are not currently supported for modification._
+
+- **Added:** Setting to halt the selected Instrument App when the panel is hidden. This allows
+resources to be freed when instruments are not being displayed. Instrument App is re-started 
+each time the panel is opened.
+
+- **Deprecated:** Option to use delta updates as a means of submitting resource changes.
+
+- **Fix:** Disable `Add Waypoint at Vessel` menu item when no vessel position is available.
+
+- **Fix:** Disable `Delete` button of Active Route in Route List.
+
+- **Fix:** Orientation of vessel display when only COG value (no HEADING value) is present.
+
+
+### v1.3.2
+
+- **Update:** Update to `signalk-client-angular` v1.5.1
+
+
 ### v1.3.1
 
 - **Fix:** Issue where measured distance was not using Great Circle calculation. (Closes #69)
 
 - **Fix:** Issue where AIS target heading was not displayed correctly in popover.
+
 
 ### v1.3.0
 

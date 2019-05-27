@@ -1,12 +1,23 @@
 <div style="position: relative; width: 100%;">
 
+    <mat-menu #settingsMenu="matMenu">
+        <a mat-menu-item href="#sectDisplay">Display</a>
+        <a mat-menu-item href="#sectunits">Units & Values</a>
+        <a mat-menu-item href="#sectVessels">Vessels</a>
+        <a mat-menu-item href="#sectNotes">Notes</a>
+    </mat-menu>
+
     <mat-toolbar style="background-color: transparent;">
-        <span><mat-icon>settings</mat-icon></span>
+        <span>
+            <button mat-icon-button [matMenuTriggerFor]="settingsMenu">
+                <mat-icon>menu</mat-icon>
+            </button> 
+        </span>
         <span style="flex: 1 1 auto;text-align:center;">Settings</span>
         <span style="text-align:right;">
             <button mat-icon-button (click)="this.dialogRef.close();">
                 <mat-icon>close</mat-icon>
-            </button>
+            </button>           
         </span>
     </mat-toolbar>
 
@@ -14,7 +25,7 @@
 
         <div class="theme-panel">
             <div>
-                <div class="setting-group">
+                <div class="setting-group" id="sectDisplay">
                     <div class="setting-group-title">DISPLAY</div>
                     <mat-card class="setting-card">
                         <div class="setting-card-row" *ngIf="appList.length>1">
@@ -33,7 +44,19 @@
                                     </mat-select>                                        
                                 </mat-form-field>
                             </div> 
-                        </div>                
+                            <div class="setting-card-row-item">
+                                <mat-checkbox #startOnOpen color="primary"
+                                    [(ngModel)]="app.config.plugins.startOnOpen" 
+                                    (change)="onFormChange($event, startOnOpen)"
+                                    matTooltip="Stop instrument app when hidden"
+                                    label="after">
+                                    Halt App on hide
+                                </mat-checkbox>                                        
+                            </div>                             
+                        </div>                                           
+                    </mat-card>
+                    <br>
+                    <mat-card class="setting-card">
                         <div class="setting-card-row" style="padding-bottom: 10px;">
                             <div class="setting-card-row-item">
                                 <mat-checkbox #depthalarm color="primary"
@@ -51,7 +74,7 @@
                                             [(value)]="app.config.depthAlarm.smoothing" 
                                             (selectionChange)="onFormChange($event, depthsmoothing)"
                                             placeholder="Alarm Smoothing Time">
-                                        <mat-option *ngFor="let i of smoothing" [value]="i[0]">{{i[1]}}</mat-option>
+                                        <mat-option *ngFor="let i of smoothing | keyvalue" [value]="i.key">{{i.value}}</mat-option>
                                     </mat-select>                                        
                                 </mat-form-field>
                             </div> 
@@ -64,21 +87,21 @@
                                     Display Vessel Trail
                                 </mat-checkbox>                                        
                             </div>
-                        </div>                             
+                        </div>  
                     </mat-card>
                 </div>                  
 
-                <div class="setting-group">
+                <div class="setting-group" id="sectunits">
                     <div class="setting-group-title">UNITS &amp; VALUES</div>
                     <mat-card class="setting-card">
                         <div class="setting-card-row" style="padding-bottom: 10px;">
                             <div class="setting-card-row-item">
                                 <mat-form-field style="width:100%;">
-                                    <mat-select #distunits 
+                                    <mat-select #distunits id="distunits"
                                             [(value)]="app.config.units.distance" 
                                             (selectionChange)="onFormChange($event, distunits)"
                                             placeholder="Distance units">
-                                        <mat-option *ngFor="let i of distanceUnits" [value]="i[0]">{{i[1]}}</mat-option>
+                                        <mat-option *ngFor="let i of distanceUnits | keyvalue" [value]="i.key">{{i.value}}</mat-option>
                                     </mat-select>                                        
                                 </mat-form-field>
                             </div>          
@@ -89,7 +112,7 @@
                                             [(value)]="app.config.units.depth" 
                                             (selectionChange)="onFormChange($event, depthunits)"
                                             placeholder="Depth units">
-                                        <mat-option *ngFor="let i of depthUnits" [value]="i[0]">{{i[1]}}</mat-option>
+                                        <mat-option *ngFor="let i of depthUnits | keyvalue" [value]="i.key">{{i.value}}</mat-option>
                                     </mat-select>                                        
                                 </mat-form-field>
                             </div>                                             
@@ -108,7 +131,7 @@
                     </mat-card>
                 </div>
 
-                <div class="setting-group">
+                <div class="setting-group" id="sectVessels">
                     <div class="setting-group-title">OTHER VESSELS</div>
                     <mat-card class="setting-card">
                         <div class="setting-card-row" style="padding-bottom: 10px;">                            
@@ -118,7 +141,7 @@
                                             [(value)]="app.config.selections.aisWindApparent" 
                                             (selectionChange)="onFormChange($event, aiswindvector)"
                                             placeholder="Wind Vector Value">
-                                        <mat-option *ngFor="let i of aisWindVector" [value]="i[0]">{{i[1]}}</mat-option>
+                                        <mat-option *ngFor="let i of aisWindVector | keyvalue" [value]="i.key">{{i.value}}</mat-option>
                                     </mat-select>                                        
                                 </mat-form-field>
                             </div> 
@@ -129,7 +152,7 @@
                                             [(value)]="app.config.selections.aisWindMinZoom" 
                                             (selectionChange)="onFormChange($event, aiswindminzoom)"
                                             placeholder="Wind Vector Zoom Level">
-                                        <mat-option *ngFor="let i of aisWindMinZoom" [value]="i">{{i}}</mat-option>
+                                        <mat-option *ngFor="let i of minZoomList" [value]="i">{{i}}</mat-option>
                                     </mat-select>                                        
                                 </mat-form-field>
                             </div>                             
@@ -137,30 +160,87 @@
                         </div> 
                     </mat-card>
                 </div>
-
-                <div class="setting-group">
-                    <div class="setting-group-title">SERVER</div>
+            
+                <div class="setting-group" id="sectNotes">
+                    <div class="setting-group-title">RESOURCES: NOTES</div>
                     <mat-card class="setting-card">
                         <div class="setting-card-row">
                             <div class="setting-card-row-item">
-                                <b>Resource Updates:</b>
-                                <br>
-                                <mat-checkbox #useput color="primary"
-                                    [(ngModel)]="app.config.usePUT" 
-                                    (change)="onFormChange($event, useput)"
-                                    matTooltip="If unchecked Delta Update messages will be used (not recommended)"
+                                <mat-checkbox #shownotes color="primary"
+                                    [(ngModel)]="app.config.notes" 
+                                    (change)="onFormChange($event, shownotes)"
                                     label="after">
-                                    Use PUT
+                                    Display Notes on Map
                                 </mat-checkbox>                                        
-                            </div>                                                   
+                            </div>                            
+                            <div class="setting-card-row-item">
+                                <mat-form-field style="width:100%;">
+                                    <mat-select #notesminzoom
+                                            [disabled]="!app.config.notes"
+                                            [(value)]="app.config.selections.notesMinZoom" 
+                                            (selectionChange)="onFormChange($event, notesminzoom)"
+                                            placeholder="Notes Zoom Level">
+                                        <mat-option *ngFor="let i of minZoomList" [value]="i">{{i}}</mat-option>
+                                    </mat-select>                                        
+                                </mat-form-field>
+                            </div>                                                      
                         </div>
+                        <div class="setting-card-row">                         
+                            <div class="setting-card-row-item">
+                                <mat-form-field style="width:100%;">
+                                    <mat-select #notesgetradius id="notesgetradius"
+                                            [disabled]="!app.config.notes"
+                                            [(value)]="app.config.resources.notes.getRadius" 
+                                            (selectionChange)="onFormChange($event, notesgetradius)"
+                                            [placeholder]="'Fetch Notes radius: (' + distanceUnits.get(distunits.value) + ')'">
+                                        <mat-option *ngFor="let i of resRadiusList" [value]="i">{{i}}</mat-option>
+                                    </mat-select>                                        
+                                </mat-form-field>
+                            </div>                                                      
+                        </div>                        
+                        <div class="setting-card-row">
+                            <div class="setting-card-row-item">
+                                <mat-form-field style="width:100%;" floatLabel="always">
+                                    <mat-label>Notes fetch filter:</mat-label>
+                                    <input matInput type="text" #notesrootfilter
+                                        [(ngModel)]="app.config.resources.notes.rootFilter" 
+                                        (change)="onFormChange($event, notesrootfilter)"
+                                        placeholder="?radius=%note:radius%"
+                                        matTooltip="Filter to apply when retrieving notes"/>   
+                                        <button mat-button *ngIf="notesrootfilter.value"
+                                                matSuffix mat-icon-button 
+                                                (click)="notesrootfilter.value=''">
+                                            <mat-icon>close</mat-icon>
+                                        </button>                                                                           
+                                </mat-form-field>                            
+                            </div>    
+                        </div>   
+                        <div class="setting-card-row">
+                            <div class="setting-card-row-item">
+                                <mat-checkbox #groupeditable color="primary"
+                                    [(ngModel)]="app.config.resources.notes.groupNameEdit" 
+                                    (change)="onFormChange($event, groupeditable)"
+                                    matTooltip="Allow group name editing."   
+                                    label="after">
+                                    Edit Group Names
+                                </mat-checkbox>                                        
+                            </div> 
+                            <div class="setting-card-row-item"> 
+                                <mat-checkbox #groupposition color="primary"
+                                    [(ngModel)]="app.config.resources.notes.groupRequiresPosition" 
+                                    (change)="onFormChange($event, groupposition)"
+                                    matTooltip="Require position information when adding notes to a group."
+                                    label="after">
+                                    Position Group Note
+                                </mat-checkbox>                                        
+                            </div>                              
+                        </div>                                                                                       
                     </mat-card>
                 </div>
-
+            
             </div>
         </div>
         
     </div>
 
 </div>
-    

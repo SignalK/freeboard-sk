@@ -14,13 +14,15 @@ import { MsgBox, AlertDialog, ConfirmDialog, AboutDialog, LoginDialog } from './
 import { FileInputComponent } from './file-input.component';
 import { PopoverComponent } from './popover';
 import { TextDialComponent } from './dial-text';
-import { ResourceDialog, AISPropertiesDialog } from './resource-dialogs';
+
 import { PlaybackDialog } from './playback-dialog';
 import { AlarmsDialog, AlarmComponent } from './alarms';
 
-import { GeometryCircleComponent } from '../components/geom-circle.component';
-import { AisTargetsComponent } from '../components/feature-ais.component';
+import { GeometryCircleComponent } from './map/geom-circle.component';
+import { AisTargetsComponent } from './map/feature-ais.component';
 import { CompassComponent } from './compass.component';
+import { PiPVideoComponent } from './pip.component';
+
 
 @NgModule({
     imports: [
@@ -32,18 +34,18 @@ import { CompassComponent } from './compass.component';
     declarations: [
         MsgBox, AlertDialog, ConfirmDialog, AboutDialog,
         FileInputComponent, TextDialComponent, LoginDialog, AlarmsDialog, AlarmComponent,
-        PopoverComponent, ResourceDialog, AISPropertiesDialog, PlaybackDialog,
-        GeometryCircleComponent, AisTargetsComponent, CompassComponent
-    ],
+        PopoverComponent, PlaybackDialog, PiPVideoComponent,
+        GeometryCircleComponent, AisTargetsComponent, CompassComponent    ],
     exports: [
         MsgBox, AlertDialog, ConfirmDialog, AboutDialog,
         FileInputComponent, TextDialComponent, LoginDialog, AlarmsDialog,
-        PopoverComponent, ResourceDialog, AISPropertiesDialog, PlaybackDialog,
-        GeometryCircleComponent, AisTargetsComponent, CompassComponent, AlarmComponent,
+        PopoverComponent, PlaybackDialog, 
+        GeometryCircleComponent, AisTargetsComponent,  
+        CompassComponent, AlarmComponent, PiPVideoComponent
     ],
     entryComponents: [
         MsgBox, AlertDialog, ConfirmDialog, AboutDialog, LoginDialog,
-        ResourceDialog, AISPropertiesDialog, PlaybackDialog, AlarmsDialog
+        PlaybackDialog, AlarmsDialog
     ], 
     providers: []  
 })

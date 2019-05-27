@@ -1,7 +1,7 @@
 import { Component, OnInit, OnDestroy, OnChanges, Input } from '@angular/core';
 import { geom, proj, style, Feature } from 'openlayers';
 import { SourceVectorComponent } from 'ngx-openlayers';
-import {GeoUtils} from '../geoutils';
+import {GeoUtils} from '../../geoutils';
 
 
 @Component({

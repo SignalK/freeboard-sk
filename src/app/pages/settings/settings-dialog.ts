@@ -1,8 +1,8 @@
-import {Component, OnInit} from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { MatDialogRef } from '@angular/material';
 
 import { SignalKClient } from 'signalk-client-angular';
-import {AppInfo} from '../../app.info';
+import { AppInfo } from '../../app.info';
 
 
 //** HomePage **
@@ -13,23 +13,25 @@ import {AppInfo} from '../../app.info';
 })
 export class SettingsDialog implements OnInit {
 
-    distanceUnits= [ 
+    distanceUnits= new Map([ 
         ['m', 'Kilometres'], ['ft', 'Nautical Miles']
-    ];
+    ]);
 
-    depthUnits= [ 
+    depthUnits= new Map([ 
         ['m', 'metres'], ['ft', 'feet']
-    ];    
+    ]);    
 
     headingValue= [['navigation.headingTrue', 'True']];
 
-    aisWindVector= [ 
+    aisWindVector= new Map([ 
         [false, 'Wind True'], [true, 'Wind Apparent']
-    ];   
+    ]);   
     
-    aisWindMinZoom= [10,11,12,13,15,16,17];
+    minZoomList= [8,9,10,11,12,13,15,16,17];
 
-    smoothing= [ [5000,'5 secs'],[10000,'10 secs'],[20000,'20 secs'],[30000,'30 secs'] ];
+    resRadiusList= [ 5, 10,20, 50, 100, 150, 200, 500 ];
+
+    smoothing= new Map( [ [5000,'5 secs'],[10000,'10 secs'],[20000,'20 secs'],[30000,'30 secs'] ]);
 
     appList= [];
 
@@ -90,11 +92,9 @@ export class SettingsDialog implements OnInit {
     onFormChange(e, f) {
         if(!f.invalid) { 
             this.app.debug('Config Saved..');
-            this.app.saveConfig() 
+            this.app.saveConfig();
         } 
-        else {
-            this.app.debug('Form field error: Config NOT Saved!', "warn");
-        }
+        else { this.app.debug('Form field error: Config NOT Saved!', "warn") }
     }
 
 }

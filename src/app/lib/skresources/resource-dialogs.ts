@@ -54,7 +54,7 @@ import { AppInfo } from '../../app.info'
                                     <div style="flex: 1 1 auto;">{{data.position[1]}}</div>
                                 </div>
                                 <div style="display:flex;">
-                                    <div style="width:45px;font-weight:bold;">Lng:</div>
+                                    <div style="width:45px;font-weight:bold;">Lon:</div>
                                     <div style="flex: 1 1 auto;">{{data.position[0]}}</div>
                                 </div>    
                             </div>                        
@@ -91,9 +91,9 @@ import { AppInfo } from '../../app.info'
                 }
 
                 @media only screen
-                and (min-device-width : 768px)
-                and (max-device-width : 1024px),
-                only screen	and (min-width : 800px) { 
+                    and (min-device-width : 768px)
+                    and (max-device-width : 1024px),
+                    only screen	and (min-width : 800px) { 
                     .ap-confirm-icon {
                         min-width: 25%;
                         max-width: 25%;
@@ -105,7 +105,7 @@ import { AppInfo } from '../../app.info'
 			`]
 })
 export class ResourceDialog implements OnInit {
-	public icon;
+	public icon:string;
 
     constructor(
         public dialogRef: MatDialogRef<ResourceDialog>,
@@ -121,7 +121,8 @@ export class ResourceDialog implements OnInit {
         this.data.addMode= this.data.addMode || false;
         this.data.type= this.data.type || 'waypoint';
 
-        this.icon= this.data.type=='route' ? 'directions' : 
+        this.icon= (this.data.type=='route') ? 'directions' : 
+            (this.data.type=='note') ? 'local_offer' :
             this.data.addMode ? 'add_location' : 'edit_location';
     } 
 
@@ -216,9 +217,9 @@ export class ResourceDialog implements OnInit {
                 }
 
                 @media only screen
-                and (min-device-width : 768px)
-                and (max-device-width : 1024px),
-                only screen	and (min-width : 800px) { 
+                    and (min-device-width : 768px)
+                    and (max-device-width : 1024px),
+                    only screen	and (min-width : 800px) { 
                     .ap-confirm-icon {
                         min-width: 25%;
                         max-width: 25%;
@@ -239,9 +240,7 @@ export class AISPropertiesDialog implements OnInit {
         @Inject(MAT_DIALOG_DATA) public data: any) {
     }
     
-    ngOnInit() {
-        this.target= this.data.target;
-    }
+    ngOnInit() { this.target= this.data.target }
 
     formatDegrees(val: number) { 
         return (val ? `${Convert.radiansToDegrees(val).toFixed(1)} ${String.fromCharCode(186)}` : '0.0');
@@ -252,5 +251,3 @@ export class AISPropertiesDialog implements OnInit {
     }    
 	
 }
-
-

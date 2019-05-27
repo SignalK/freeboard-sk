@@ -1,8 +1,8 @@
 import {Component, OnInit, Inject} from '@angular/core';
 import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material';
 
-import { GPX, GPXRoute, GPXWaypoint, GPXTrack} from './gpx';
-import { SKResources, SKRoute, SKWaypoint } from '../sk-resources'
+import { GPX, GPXRoute, GPXWaypoint} from './gpx';
+import { SKResources } from '../skresources/'
 
 //** HomePage **
 @Component({
@@ -134,7 +134,7 @@ export class GPXImportDialog implements OnInit{
         this.skResources.waypoints.push( skObj.wptEnd);
     }    
 
-    // **return SKWaypoint from GPXWaypoint
+    // **build SKWaypoint array from GPXWaypoint
     transformWaypoint(pt: GPXWaypoint) {
         let wptObj= this.skres.buildWaypoint([pt.lon, pt.lat]);
         let wpt= wptObj[1];

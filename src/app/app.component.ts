@@ -4,19 +4,22 @@ import { DomSanitizer, SafeResourceUrl} from '@angular/platform-browser';
 
 import { AppInfo } from './app.info';
 import { MsgBox, AboutDialog, ConfirmDialog, AlertDialog, LoginDialog } from './lib/app-ui';
-import { ResourceDialog, AISPropertiesDialog } from './lib/ui/resource-dialogs';
 import { PlaybackDialog } from './lib/ui/playback-dialog';
 import { AlarmsDialog } from './lib/ui/alarms';
 import { SettingsDialog } from './pages';
 import { GPXImportDialog } from './lib/gpxload/gpxload.module';
 
 import { SignalKClient, Alarm, AlarmState } from 'signalk-client-angular';
-import { SKResources, SKWaypoint, SKVessel } from './lib/sk-resources';
+import { SKResources, SKWaypoint, SKVessel, SKNote, SKRegion,
+        ResourceDialog, AISPropertiesDialog, SKRoute } from './lib/skresources';
+
+import { NoteDialog  } from './lib/skresources';
+
 import { Convert } from './lib/convert';
 import { GeoUtils } from './lib/geoutils';
 
 import 'hammerjs';
-import { proj, coordinate, style } from 'openlayers';
+import { proj, coordinate, style, Collection } from 'openlayers';
 
 enum APP_MODE { REALTIME=0, PLAYBACK }
 
@@ -30,9 +33,12 @@ export class AppComponent {
     public display= {
         badge: { hide: true, value: '!'},
         leftMenuPanel: false,
+        instrumentPanelOpen: true,
+        instrumentAppActive: true,
         routeList: false,
         waypointList: false,
         chartList: false,
+        noteList: false,     
         aisList: false,
         anchorWatch: false,
         showSelf: false,
@@ -44,7 +50,7 @@ export class AppComponent {
             bearingTrue: null,
             bearingMagnetic: null,
             xte: null,
-            position: [null, null],
+            position: null,
             pointIndex: -1,
             pointTotal: 0
         },
@@ -74,7 +80,11 @@ export class AppComponent {
     public draw= {
         enabled: false,
         mode: null,
-        type: 'Point'
+        type: 'Point',
+        modify: false,
+        features: null,
+        forSave: null,
+        properties: {}
     }
 
     public measure= {
@@ -130,13 +140,15 @@ export class AppComponent {
             this.lastInstUrl= this.app.config.plugins.instruments;
             this.instUrl= dom.bypassSecurityTrustResourceUrl(`${this.app.host}${this.app.config.plugins.instruments}`);
             this.coord= coordinate;
+            /* draw styles */
             this.measure.style= new style.Style({
                 stroke: new style.Stroke({
                     color: 'purple', 
                     lineDash: [10,10],
                     width: 2
-                })   
+                })
             }); 
+            /* /draw styles */            
             // ** handle settings load / save events to manage True/magnetic values
             this.app.settings$.subscribe( r=> {
                 if(r.action=='load' && r.setting=='config') {
@@ -169,7 +181,7 @@ export class AppComponent {
                         this.app.data.trueMagChoice= this.app.config.selections.headingAttribute;
                     };
                 }    
-            });                
+            }); 
     }
 
     ngAfterViewInit() { if(this.app.data['firstRun']) { setTimeout( ()=> { this.showWelcome()}, 500) } }
@@ -184,6 +196,8 @@ export class AppComponent {
         this.subscriptions.push( this.signalk.stream.onMessage.subscribe( e=> { this.onMessage(e)} ) );
         this.subscriptions.push( this.signalk.stream.onClose.subscribe( e=> { this.onClose(e)} ) );
 
+        if(this.app.config.plugins.startOnOpen) { this.display.instrumentAppActive= false }
+
         this.connectSignalKServer(); 
 
         // ** periodically persist state
@@ -196,11 +210,21 @@ export class AppComponent {
 
         // ** respond to settings loaded / saved
         this.app.settings$.subscribe( value=> {
-            if(this.lastInstUrl!= this.app.config.plugins.instruments) {
-                this.lastInstUrl= this.app.config.plugins.instruments
-                this.instUrl= this.dom.bypassSecurityTrustResourceUrl(`${this.app.host}${this.app.config.plugins.instruments}`);
+            if(value.action=='save' && value.setting=='config'){
+                if(this.lastInstUrl!= this.app.config.plugins.instruments) {
+                    this.lastInstUrl= this.app.config.plugins.instruments
+                    this.instUrl= this.dom.bypassSecurityTrustResourceUrl(`${this.app.host}${this.app.config.plugins.instruments}`);
+                }
             }
-        });    
+            // update instrument app state
+            if(this.app.config.plugins.startOnOpen) {
+                if(!this.display.instrumentPanelOpen) { this.display.instrumentAppActive= false }
+            }
+            else { this.display.instrumentAppActive= true }
+        });   
+        
+        // ** respond to resources.update event
+        this.skres.update$.subscribe( value=> { this.handleResourceUpdate(value) });
     } 
 
     ngOnDestroy() {
@@ -231,6 +255,21 @@ export class AppComponent {
             dRef.afterClosed().subscribe( ()=>{ this.connectSignalKServer() } );
         });
     } 
+
+    // ** switch between realtime and history playback modes
+    switchMode(toMode: APP_MODE, query:any='none') {
+        this.app.debug(`switchMode from: ${this.mode} to ${toMode}`);
+        if(toMode== APP_MODE.PLAYBACK) { // ** history playback
+            this.app.db.saveTrail('self', this.app.data.trail);
+            this.app.data.trail= [];
+        }
+        else {  // ** realtime data
+            this.app.db.getTrail('self').then( t=> { 
+                this.app.data.trail= (t && t.value) ? t.value : [];
+            });
+        }
+        this.openSKStream(query, toMode);
+    }   
     
     // ** start trail / AIS timers
     startTimers() {
@@ -250,6 +289,15 @@ export class AppComponent {
 
     // ******************************************************
   
+    sideNavAction(e:boolean) {
+        this.display.instrumentPanelOpen= e;
+        if(this.app.config.plugins.startOnOpen) {
+            this.display.instrumentAppActive= e;
+        }
+    }
+
+    openUrl(url:string, target:string='_blank') { window.open(url, target) }
+
     //** open about dialog **
     openAbout() { 
         this.dialog.open(AboutDialog, {
@@ -270,7 +318,7 @@ export class AppComponent {
             disableClose: false,
             data: this.display.alarms
         }).afterClosed().subscribe( r=> {
-            if(!r) { return }
+            if(!r || typeof r.raise==='undefined') { return }
             if(r.raise) {
                 this.signalk.stream.raiseAlarm(
                     'self', 
@@ -280,21 +328,6 @@ export class AppComponent {
             }
             else { this.signalk.stream.clearAlarm('self', r.type) }
         });          
-    }
-
-    actionAlarm(action:string, id:string) { 
-        let alarm= this.display.alarms.get(id);
-        switch(action) {
-            case 'ack':
-                alarm.acknowledged=true;
-                break;
-            case 'mute':
-                alarm.muted=true;
-                break;
-            case 'clear':
-                this.display.alarms.delete(id);
-                break;
-        } 
     }
 
     //** open settings dialog **
@@ -356,7 +389,7 @@ export class AppComponent {
 
     // ** display Authentication required message then login dialog
     showAuthRequired() {
-        let dref= this.dialog.open(AlertDialog, {
+        this.dialog.open(AlertDialog, {
             disableClose: true,
             data: { message: 'Signal K Server requires authentication!\n\nPlease login and then RE-TRY last operation.', title: 'Login Required' }
         }).afterClosed().subscribe( r=> { this.showLogin() });             
@@ -364,7 +397,7 @@ export class AppComponent {
 
     // ** alert message
     showAlert(title:string, message:string) {
-        let dref= this.dialog.open(AlertDialog, {
+        this.dialog.open(AlertDialog, {
             disableClose: false,
             data: { message: message, title: title }
         });         
@@ -388,7 +421,7 @@ export class AppComponent {
             message+='- Set Anchor Watch alarms and display Depth alarms\n';
         }
         this.app.data['firstRun']=false;
-        let dref= this.dialog.open(MsgBox, {
+        this.dialog.open(MsgBox, {
             disableClose: true,
             data: { message: message, title: title, buttonText: 'Continue' }
         });         
@@ -432,21 +465,69 @@ export class AppComponent {
             }
         });
     }
+ 
 
-    // ** switch between realtime and history playback modes
-    switchMode(toMode: APP_MODE, query:any='none') {
-        this.app.debug(`switchMode from: ${this.mode} to ${toMode}`);
-        if(toMode== APP_MODE.PLAYBACK) { // ** history playback
-            this.app.db.saveTrail('self', this.app.data.trail);
-            this.app.data.trail= [];
+    // ********** TOOLBAR ACTIONS **********
+
+    displayLeftMenu( menulist:string='', show:boolean= false) {
+        this.display.leftMenuPanel= show;
+        this.display.routeList= false;
+        this.display.waypointList= false; 
+        this.display.chartList= false;
+        this.display.noteList= false;
+        this.display.aisList= false;
+        this.display.anchorWatch= false;
+        switch (menulist) {
+            case 'routeList': 
+                this.display.routeList= show;
+                break;
+            case 'waypointList': 
+                this.display.waypointList= show;
+                break;   
+            case 'chartList': 
+                this.display.chartList= show;
+                break;  
+            case 'noteList': 
+                this.display.noteList= show;
+                break;                                   
+            case 'anchorWatch': 
+                this.display.anchorWatch= show;
+                break;    
+            case 'aisList': 
+                this.display.aisList= show;
+                break;                                                   
+            default: 
+                this.display.leftMenuPanel= false;     
         }
-        else {  // ** realtime data
-            this.app.db.getTrail('self').then( t=> { 
-                this.app.data.trail= (t && t.value) ? t.value : [];
-            });
-        }
-        this.openSKStream(query, toMode);
-    }    
+    }
+
+    toggleMoveMap() { 
+        this.app.config.map.moveMap= !this.app.config.map.moveMap;
+        if(this.app.config.map.moveMap) { this.mapMove() }
+        this.app.saveConfig();
+    }
+
+    toggleNorthUp() { 
+        this.app.config.map.northUp= !this.app.config.map.northUp;
+        this.mapRotate();
+        this.app.saveConfig();
+    }
+
+    toggleAisTargets() { 
+        this.app.config.aisTargets= !this.app.config.aisTargets;
+        if(this.app.config.aisTargets) { this.processAIS(true) }
+        this.app.saveConfig();
+    }
+
+    toggleCourseData() { 
+        this.app.config.courseData= !this.app.config.courseData;
+        this.app.saveConfig();
+    }  
+    
+    toggleNotes() { 
+        this.app.config.notes= !this.app.config.notes;
+        this.app.saveConfig();
+    }  
 
     // **********  GPX File processing **********
     processGPX(e) {
@@ -463,58 +544,42 @@ export class AppComponent {
             let errCount=0;
             res.routes.forEach( rte=> {
                 subCount++;
-                if(this.app.config.usePUT) {
-                    this.signalk.api.put('self',`/resources/routes`, rte[0], rte[1])
-                    .subscribe( 
-                        r=> { 
-                            if(r['state']=='COMPLETED') { 
-                                this.app.debug('SUCCESS: Route added.');
-                                this.app.config.selections.routes.push(rte[0]);                        
-                            }
-                            else { errCount++ }
-                            subCount--;
-                            if(subCount==0) { this.gpxResult(errCount) }
-                        },
-                        e=> { 
-                            errCount++; subCount--; 
-                            if(subCount==0) { this.gpxResult(errCount) }
+                this.signalk.api.put(`/resources/routes/${rte[0]}`, rte[1])
+                .subscribe( 
+                    r=> { 
+                        if(r['state']=='COMPLETED') { 
+                            this.app.debug('SUCCESS: Route added.');
+                            this.app.config.selections.routes.push(rte[0]);                        
                         }
-                    );
-                }
-                else { 
-                    this.signalk.stream.sendUpdate('self', `/resources/routes/${rte[0]}`, rte[1]);
-                    if(subCount==res.waypoints.length + res.routes.length) { 
-                        this.gpxResult(errCount);
+                        else { errCount++ }
+                        subCount--;
+                        if(subCount==0) { this.gpxResult(errCount) }
+                    },
+                    e=> { 
+                        errCount++; subCount--; 
+                        if(subCount==0) { this.gpxResult(errCount) }
                     }
-                }
+                );
             });
 
             res.waypoints.forEach( wpt=> {
                 subCount++;            
-                if(this.app.config.usePUT) {
-                    this.signalk.api.put('self',`/resources/waypoints`, wpt[0], wpt[1])
-                    .subscribe( 
-                        r=>{ 
-                            if(r['state']=='COMPLETED') { 
-                                this.app.debug('SUCCESS: Waypoint added.');
-                                this.app.config.selections.waypoints.push(wpt[0]);
-                            }
-                            else { errCount++ }
-                            subCount--;
-                            if(subCount==0) { this.gpxResult(errCount) }
-                        },
-                        e=> { 
-                            errCount++; subCount--; 
-                            if(subCount==0) { this.gpxResult(errCount) }
+                this.signalk.api.put(`/resources/waypoints/${wpt[0]}`, wpt[1])
+                .subscribe( 
+                    r=>{ 
+                        if(r['state']=='COMPLETED') { 
+                            this.app.debug('SUCCESS: Waypoint added.');
+                            this.app.config.selections.waypoints.push(wpt[0]);
                         }
-                    );
-                }
-                else { 
-                    this.signalk.stream.sendUpdate('self', `resources.waypoints.${wpt[0]}`, wpt[1]);
-                    if(subCount==res.waypoints.length + res.routes.length) { 
-                        this.gpxResult(errCount);
+                        else { errCount++ }
+                        subCount--;
+                        if(subCount==0) { this.gpxResult(errCount) }
+                    },
+                    err=> { 
+                        errCount++; subCount--; 
+                        if(subCount==0) { this.gpxResult(errCount) }
                     }
-                }
+                );
             });
         });         
     }
@@ -571,6 +636,9 @@ export class AppComponent {
             this.isDirty=false;
         }
         else { this.isDirty=true }
+
+        // retrieve Notes
+        if(this.fetchNotes()) {this.skres.getNotes();this.app.debug(`fetching Notes...`) }
     }
    
     mapMouseClick(e:any) {
@@ -589,14 +657,61 @@ export class AppComponent {
                 `${(this.measure.totalDistance/1000).toFixed(2)} km` :
                 `${Convert.kmToNauticalMiles(this.measure.totalDistance/1000).toFixed(2)} NM`              
         }        
-        else if(!this.draw.enabled) {
+        else if(!this.draw.enabled && !this.draw.modify) {
+            let flist= [];
+            let fa= [];
+            // compile list of features at click location
             e.map.forEachFeatureAtPixel(e.pixel, (feature, layer)=> {
-                this.display.overlay.show= this.formatPopover( 
-                    feature.getId(),
-                    e.coordinate,
-                    this.app.config.map.mrid
-                );         
+                let id= feature.getId();
+                if(id) {
+                    let t= id.split('.');
+                    let icon: string;
+                    let text: string;
+                    switch(t[0]) {
+                        case 'note': icon="local_offer"; 
+                            text= this.app.data.notes.filter( i=>{ return (i[0]==t[1])? i[1].title : null })[0][1].title;
+                            break;
+                        case 'route': icon="directions"; 
+                            text= this.app.data.routes.filter( i=>{ return (i[0]==t[1])? i[1].name : null })[0][1].name;
+                            break;
+                        case 'waypoint': icon="location_on"; 
+                            text= this.app.data.waypoints.filter( i=>{ return (i[0]==t[1])? i[1].feature.properties.name : null })[0][1].feature.properties.name;
+                            break;
+                        case 'ais-vessels': icon="directions_boat"; 
+                            let v= this.display.vessels.aisTargets.get(`vessels.${t[1]}`);
+                            text= (v) ? v.name || v.mmsi || v.title : '';
+                            break;
+                        case 'vessels': icon="directions_boat"; 
+                            text= 'self'; 
+                            break;
+                        case 'region': icon="360"; text='Region'; break;
+                    }
+                    flist.push({
+                        id: id, 
+                        coord: e.coordinate, 
+                        mrid: this.app.config.map.mrid,
+                        icon: icon,
+                        text: text
+                    });
+                    fa.push(feature);
+                }  
             });
+            this.draw.features= new Collection(fa); // features collection for modify interaction
+            if(flist.length==1) {   // only 1 feature
+                this.formatPopover( 
+                    flist[0].id,
+                    flist[0].coord,
+                    flist[0].mrid
+                );  
+            }
+            else if(flist.length>1) { //show list of features
+                this.formatPopover( 
+                    'list.',
+                    e.coordinate,
+                    this.app.config.map.mrid,
+                    flist
+                );                  
+            }
         }
     }
     
@@ -618,7 +733,7 @@ export class AppComponent {
         }            
     }  
    
-    // ****** MAP functions *******
+    // ****** MAP handler functions *******
     // ** handle map zoom controls 
     mapZoom(zoomIn:boolean) {
         if(zoomIn) {
@@ -657,7 +772,7 @@ export class AppComponent {
             GeoUtils.destCoordinate(
                 this.display.vessels.self.position[1],
                 this.display.vessels.self.position[0],
-                this.display.vessels.self.heading,
+                this.display.map.vesselRotation,
                 sog * offset
             )
         ];
@@ -677,7 +792,7 @@ export class AppComponent {
 
         let ca= (this.app.config.map.northup) ? 
             this.display.vessels.self.wind.awa :
-            this.display.vessels.self.wind.awa + this.display.vessels.self.heading;
+            this.display.vessels.self.wind.awa + this.display.map.vesselRotation;
 
         this.display.vesselLines.awa= [
             this.display.vessels.self.position, 
@@ -685,7 +800,7 @@ export class AppComponent {
                 this.display.vessels.self.position[1],
                 this.display.vessels.self.position[0],
                 ca,
-                (this.display.vessels.self.heading) ? aws * offset : 0
+                (this.display.map.vesselRotation) ? aws * offset : 0
             )
         ];        
         
@@ -712,42 +827,23 @@ export class AppComponent {
         }
     }
 
-    toggleMoveMap() { 
-        this.app.config.map.moveMap= !this.app.config.map.moveMap;
-        if(this.app.config.map.moveMap) { this.mapMove() }
-        this.app.saveConfig();
-    }
-
-    toggleNorthUp() { 
-        this.app.config.map.northUp= !this.app.config.map.northUp;
-        this.mapRotate();
-        this.app.saveConfig();
-    }
-
-    toggleAisTargets() { 
-        this.app.config.aisTargets= !this.app.config.aisTargets;
-        if(this.app.config.aisTargets) { this.processAIS(true) }
-        this.app.saveConfig();
-    }
-
-    toggleCourseData() { 
-        this.app.config.courseData= !this.app.config.courseData;
-        this.app.saveConfig();
-    }    
-
     popoverClosed() { this.display.overlay.show= false }
 
-    formatPopover(id:string, coord:any, prj:any) {
+    formatPopover(id:string, coord:any, prj:any, list?:any) {
+        this.display.overlay['addNote']=null;  
         this.display.overlay['addWaypoint']=null;  
+        this.display.overlay['canModify']=false;  
         this.display.overlay['gotoWaypoint']=null;
         this.display.overlay['activateRoute']=null;
+        this.display.overlay['deactivateRoute']=null;
         this.display.overlay['id']=null;    
         this.display.overlay['type']=null;   
         this.display.overlay['showProperties']=false;
+        this.display.overlay['showRelated']=null;
         this.display.overlay['canDelete']=null;
+        this.display.overlay['url']=null;
         this.display.overlay.content=[];
-
-        if(!id) { return false }
+        if(!id) { this.display.overlay.show=false; return }
 
         let item= null;
         let info= [];        
@@ -757,9 +853,28 @@ export class AppComponent {
             coord, 
             prj, 
             this.app.config.map.srid
-        );        
-
+        );      
+ 
         switch(t[0]) {
+            case 'list':
+                this.display.overlay['type']='list';
+                this.display.overlay['id']= null;
+                this.display.overlay['showProperties']=false;
+                this.display.overlay['canDelete']=false;
+                this.display.overlay['addNote']=false;  
+                this.display.overlay.title= 'Features'; 
+                info= (list) ? list : [];          
+                break;            
+            case 'region':
+                item= this.app.data.regions.filter( i=>{ if(i[0]==t[1]) return true });
+                this.display.overlay['type']='region';
+                this.display.overlay['id']= t[1];
+                this.display.overlay['showProperties']=true;
+                this.display.overlay['canDelete']=true;
+                this.display.overlay['canModify']=item[0][1].feature.geometry.type=='MultiPolygon' ? false : true;
+                this.display.overlay['addNote']=true;  
+                this.display.overlay.title= 'Region';  
+                break;
             case 'vessels':
                 this.display.overlay.title= (this.display.vessels.self.name) ? 
                     this.display.vessels.self.name : 'Self'; 
@@ -779,14 +894,29 @@ export class AppComponent {
                 this.display.overlay.title= 'Vessel';  
                 info= this.display.vessels.aisTargets.get(aid);  
                 break;
+            case 'note':
+                item= this.app.data.notes.filter( i=>{ if(i[0]==t[1]) return true });
+                if(!item) { return false }
+                this.display.overlay['type']='note';
+                this.display.overlay['id']= t[1];
+                this.display.overlay['showProperties']=true;
+                this.display.overlay['canDelete']=true;
+                this.display.overlay['canModify']=true;  
+                this.display.overlay.title= 'Note';  
+                info.push(['Title', item[0][1].title]);
+                if(item[0][1].url) { this.display.overlay['url']=item[0][1].url }   
+                if(item[0][1].group) { this.display.overlay['showRelated']= item[0][1].group }          
+                break;                
             case 'route':
                 item= this.app.data.routes.filter( i=>{ if(i[0]==t[1]) return true });
                 if(!item) { return false }
+                this.display.overlay['canModify']=true;  
                 this.display.overlay['showProperties']=true;
                 this.display.overlay['type']='route';
                 this.display.overlay.title= 'Route';
                 this.display.overlay['id']=t[1];
                 this.display.overlay['activateRoute']=!item[0][3];
+                this.display.overlay['deactivateRoute']=item[0][3];
                 this.display.overlay['canDelete']= !item[0][3];
                 info.push(['Name', item[0][1].name]);
                 let d= (this.app.config.units.distance=='m') ?
@@ -800,6 +930,7 @@ export class AppComponent {
                 if(!item) { return false }
                 this.display.overlay['showProperties']=true;
                 this.display.overlay['gotoWaypoint']=!item[0][3];
+                this.display.overlay['canModify']=true;  
                 this.display.overlay['type']='waypoint';
                 this.display.overlay.title= 'Waypoint';   
                 this.display.overlay['canDelete']= (this.display.overlay['type']=='waypoint' && !this.display.overlay['addWaypoint']) ? true : false;
@@ -815,28 +946,170 @@ export class AppComponent {
                 break;       
         }
         this.display.overlay.content= info;
-        return true;
+        this.display.overlay.show=true;
+    }
+
+    // ******** RESOURCE handler functions ****
+
+    handleResourceUpdate(e:any) {
+        // ** create note in group **
+        if(e.action=='new' && e.mode=='note') { 
+            if(this.app.config.resources.notes.groupRequiresPosition) {
+                this.drawStart(e.mode, {group: e.group}) 
+            }
+            else { 
+                this.skres.showNoteEditor({group: e.group});                
+            }
+        }
     }
 
     // ******** DRAW / EDIT EVENTS ************
 
-    drawStart(mode:string) {
+    // ** trim the draw.features collection to the selected id **
+    trimDrawFeatureList(id:string) {
+        let sf= new Collection();
+        this.draw.features.forEach( e=> {
+            if(e.getId()==id) { sf.push(e) }
+        });
+        this.draw.features= sf;
+    }
+
+    // ** Enter modify mode **
+    modifyStart() {
+        this.draw.type= null
+        this.draw.mode= null;
+        this.draw.enabled= false;
+        this.draw.modify= true;
+    }
+
+    // ** modify start event **
+    handleModifyStart(e:any) {
+        if(!this.draw.forSave) { 
+            this.draw.forSave= { id: null, coords: null};
+            this.draw.forSave.id= e.features.getArray()[0].getId();
+        }
+        this.app.debug(this.draw.forSave);
+    }
+
+    // ** Modify end event **
+    handleModifyEnd(e:any) {
+        let f= e.features.getArray()[0];
+        let fid= f.getId();
+        let c= f.getGeometry().getCoordinates();
+        let pc:any;
+        if(fid.split('.')[0]=='route') {
+            pc= this.transformCoordsArray(c);
+        }
+        else if(fid.split('.')[0]=='region') {
+            for(let e=0; e<c.length; e++) { 
+                if(this.isCoordsArray(c[e])) { c[e]= this.transformCoordsArray(c[e]) }
+                else { 
+                    for(let p=0; p<c[e].length; p++) { 
+                        if(this.isCoordsArray(c[e][p])) { c[e][p]= this.transformCoordsArray(c[e][p]) }
+                        else {  console.log('Invalid polygon coordinates!') }                           
+                    }
+                }
+            };
+            pc= c;
+        }        
+        else {  // point feature
+            pc= proj.transform(
+                c, 
+                this.app.config.map.mrid, 
+                this.app.config.map.srid
+            );
+        }
+        this.draw.forSave['coords']= pc;
+        this.app.debug(this.draw.forSave);
+    }  
+    
+    isCoordsArray(ca: Array<any>) {
+        if(Array.isArray(ca)) { return (Array.isArray(ca[0]) && typeof ca[0][0]==='number') }
+        else { return false }
+    }
+
+    transformCoordsArray(ca) {
+        return ca.map( i=> { 
+            return proj.transform(
+                i, 
+                this.app.config.map.mrid, 
+                this.app.config.map.srid
+            );
+        });
+    }
+
+    // ** Exit Draw / modify / measure mode **
+    drawEnd() {
+        if(this.draw.modify && this.draw.forSave) {  // save changes
+            this.dialog.open(ConfirmDialog, {
+                disableClose: false,
+                data: { 
+                    message: `Do you want to save the changes made to ${this.draw.forSave.id.split('.')[0]}?`, 
+                    title: 'Save Changes' }
+            }).afterClosed().subscribe( res=> {
+                let r= this.draw.forSave.id.split('.');
+                if(res) {   // save changes
+                    if(r[0]=='route') { 
+                        this.skres.updateRouteCoords(r[1], this.draw.forSave.coords);
+                        this.updateNavData(this.draw.forSave.coords); 
+                    }
+                    if(r[0]=='waypoint') {
+                        this.skres.updateWaypointPosition(r[1], this.draw.forSave.coords);
+                        this.skres.setNextPoint({
+                            latitude: this.draw.forSave.coords[1], 
+                            longitude: this.draw.forSave.coords[0], 
+                        });  
+                    }
+                    if(r[0]=='note') { 
+                        this.skres.updateNotePosition(r[1], this.draw.forSave.coords);
+                    }         
+                    if(r[0]=='region') { 
+                        this.skres.updateRegionCoords(r[1], this.draw.forSave.coords);
+                    }                                 
+                }
+                else {
+                    if(r[0]=='route') { this.skres.getRoutes() }
+                    if(r[0]=='waypoint') { this.skres.getWaypoints() }
+                    if(r[0]=='note' || r[0]=='region') { this.skres.getNotes() }
+                }
+                this.draw.forSave= null;
+            });
+        }
+        // clean up
+        this.draw.enabled=false;
+        this.draw.modify=false;
+        this.draw.features= null;
+        this.measure.enabled=false;
+        this.display.overlay.show=false;
+    }
+
+    // ** Enter Draw mode **
+    drawStart(mode:string, props?:any) {
+        this.draw.properties= {};
         switch(mode) {
             case 'waypoint':
+            case 'note':
                 this.draw.type= 'Point'
                 this.draw.mode= mode;
                 this.draw.enabled= true;
+                if(props && props.group) { this.draw.properties= props }
                 break;
             case 'route':
                 this.draw.type= 'LineString'
                 this.draw.mode= mode;
                 this.draw.enabled= true;
-                break;                
+                break;    
+            case 'region':
+                this.draw.type= 'Polygon'
+                this.draw.mode= mode;
+                this.draw.enabled= true;
+                break;                              
             default: 
                 return;
         }
     }
 
+    // ** Draw end event **
     handleDrawEnd(e:any) {
         this.draw.enabled=false;
         let c:any;
@@ -846,8 +1119,13 @@ export class AppComponent {
                     e.feature.getGeometry().getCoordinates(), 
                     this.app.config.map.mrid, 
                     this.app.config.map.srid
-                );                 
-                this.waypointAdd({position: c});
+                );     
+                if(this.draw.mode=='note') { 
+                    let params= {position: c};
+                    if(this.draw.properties['group']) { params['group']= this.draw.properties['group'];}
+                    this.skres.showNoteEditor(params);
+                }          
+                else { this.skres.showWaypointEditor({position: c}) }
                 break;
             case 'LineString':
                 let rc= e.feature.getGeometry().getCoordinates();
@@ -858,17 +1136,34 @@ export class AppComponent {
                         this.app.config.map.srid
                     );
                 });
-                this.routeAdd({coordinates: c});
+                this.skres.showRouteNew({coordinates: c});
                 break;
+            case 'Polygon':  // region + Note
+                let p= e.feature.getGeometry().getCoordinates();
+                if(p.length==0) { return }
+                c= p[0].map( i=> { 
+                    return proj.transform(
+                        i, 
+                        this.app.config.map.mrid, 
+                        this.app.config.map.srid
+                    );
+                });
+                let region= new SKRegion();
+                let uuid= this.signalk.uuid.toSignalK();
+                region.feature.geometry.coordinates= [c];
+                this.skres.showNoteEditor({region: {id:uuid, data: region }})
+                break;                
         }
     }
 
+    // ** Enter Measure mode **
     measureStart() { 
         this.measure.enabled=true;
         this.measure.coords= [];
         this.measure.totalDistance= 0;
     }
 
+    // ** Measure end event **
     handleMeasure(e:any) {
          if(e.type=='drawstart') {         
             this.measure.geom= e.feature.getGeometry();
@@ -906,195 +1201,128 @@ export class AppComponent {
         else { return 0 }
     }
          
-    // ******** RESOURCE EVENTS ************
+    // ******** RESOURCE EVENTS ************  
 
-    displayLeftMenu( menulist:string='', show:boolean= false) {
-        this.display.leftMenuPanel= show;
-        this.display.routeList= false;
-        this.display.waypointList= false; 
-        this.display.chartList= false;
-        this.display.aisList= false;
-        this.display.anchorWatch= false;
-        switch (menulist) {
-            case 'routeList': 
-                this.display.routeList= show;
-                break;
-            case 'waypointList': 
-                this.display.waypointList= show;
-                break;   
-            case 'chartList': 
-                this.display.chartList= show;
-                break;  
-            case 'anchorWatch': 
-                this.display.anchorWatch= show;
-                break;    
-            case 'aisList': 
-                this.display.aisList= show;
-                break;                                                   
-            default: 
-                this.display.leftMenuPanel= false;     
+    // ** returns true if skres.getNotes() should be called
+    fetchNotes() {
+        this.app.debug(`lastGet: ${this.app.data.lastGet}`);
+        this.app.debug(`getRadius: ${this.app.config.resources.notes.getRadius}`);
+        if(this.app.config.map.zoomLevel < this.app.config.selections.notesMinZoom) { return false }
+        if(!this.app.data.lastGet) { 
+            this.app.data.lastGet= this.app.config.map.center;
+            return true; 
         }
+        // ** calc distance from new map center to lastGet
+        let d= GeoUtils.distanceTo(this.app.data.lastGet, this.app.config.map.center )
+        this.app.debug(`distance map moved: ${d}`);
+        // ** if d is more than half the getRadius
+        let cr= (this.app.config.units.distance=='ft') ? 
+            Convert.nauticalMilesToKm(this.app.config.resources.notes.getRadius) * 1000:
+            this.app.config.resources.notes.getRadius * 1000;
+
+        if(d>= cr/2 ) { 
+            this.app.data.lastGet= this.app.config.map.center;
+            return true; 
+        }
+        return false;    
     }
 
     // ** handle display resource properties **
     resourceProperties(r:any) {
         switch(r.type) {
             case 'waypoint': 
-                this.waypointAdd(r);
+                this.skres.showWaypointEditor(r);
                 break;
             case 'route': 
-                this.routeDetails(r);
-                break;                
+                this.skres.showRouteInfo(r);
+                break; 
+            case 'note':
+                this.skres.showNoteInfo(r);
+                break;               
+            case 'region':
+                this.skres.showRelatedNotes(r.id);
+                break;                   
         }
     }
 
-     // ** handle resource deletion **
+    // ** handle resource deletion **
     resourceDelete(id:string) {
         switch(this.display.overlay['type']) {
             case 'waypoint':
-                this.waypointDelete({id: id});
+                this.skres.showWaypointDelete({id: id});
                 break;
             case 'route':
-                this.routeDelete({id: id});
-                break;                
+                this.skres.showRouteDelete({id: id});
+                break;   
+            case 'note':
+                this.skres.showNoteDelete({id: id});
+                break;    
+            case 'region':
+                this.skres.showRegionDelete({id: id});
+                break;                              
         }    
-    }
+    }      
 
-    // ** view / update route details **
-    routeDetails(e:any) {
-        let t= this.app.data.routes.filter( i=>{ if(i[0]==e.id) return true });
-        if(t.length==0) { return }
-        let rte=t[0][1];
-        let resId= t[0][0];
-
-        this.dialog.open(ResourceDialog, {
-            disableClose: true,
-            data: {
-                title: 'Route Details:',
-                name: (rte['name']) ? rte['name'] : null,
-                comment: (rte['description']) ? rte['description'] : null,
-                type: 'route'
-            }
-        }).afterClosed().subscribe( r=> {
-            if(r.result) { // ** save / update route **
-                rte['description']= r.data.comment;
-                rte['name']= r.data.name;
-                if(this.app.config.usePUT) { // update
-                    this.signalk.api.put(
-                        'self',
-                        `/resources/routes`,
-                        resId, 
-                        rte
-                    ).subscribe( 
-                        r=>{ 
-                            this.skres.getRoutes();
-                            if(r['state']=='COMPLETED') { this.app.debug('SUCCESS: Route updated.') }
-                            else { this.showAlert('ERROR:', 'Server could not update Route details!') }
-                        },
-                        err=> { 
-                            this.skres.getRoutes();
-                            if(err.status && err.status==401) { this.showAuthRequired() }  
-                            else { this.showAlert('ERROR:', 'Server could not update Route details!') }
-                        }
-                    );
-                }
-                else { 
-                    this.signalk.stream.sendUpdate('self', `/resources/routes/${resId}`, rte);
-                    this.skres.getRoutes();
-                }
-            }
-        });
-    }
-
-    routeDelete(e:any) { 
-        let dref= this.dialog.open(ConfirmDialog, {
-            disableClose: true,
-            data: {
-                message: 'Do you want to delete this Route?\n \nRoute will be removed from the server (if configured to permit this operation).',
-                title: 'Delete Route:',
-                button1Text: 'YES',
-                button2Text: 'NO'
-            }
-        }); 
-        dref.afterClosed().subscribe( res=> {
-            if(res) {
-                if(this.app.config.usePUT) {
-                    this.signalk.api.put('self','resources.routes', e.id, null)
-                    .subscribe( 
-                        r=> {  
-                            this.skres.getRoutes();
-                            this.skres.getWaypoints();                            
-                            if(r['state']=='COMPLETED') { this.app.debug('SUCCESS: Route deleted.') }
-                            else { this.showAlert('ERROR:', 'Server could not delete Route!') }
-                        },
-                        err=> { 
-                            if(err.status && err.status==401) { this.showAuthRequired() }  
-                            else { this.showAlert('ERROR:', 'Server could not delete Route!') }
-                        }
-                    );
-                }
-                else { 
-                    this.signalk.stream.sendUpdate('self', `resources.routes.${e.id}`, null);
-                    this.skres.getRoutes();
-                    this.skres.getWaypoints();                    
-                }                       
-            }      
-        });        
-    }
-
-    routeAdd(e:any) {
-        if(!e.coordinates) { return }    
-        let res= this.skres.buildRoute(e.coordinates);
+    // ** set active route **
+    routeActivate(e:any) { 
+        let dt= new Date();
+        let t= this.app.data.routes
+            .map( i=> { if(i[0]==e.id) { return i }  })
+            .filter( i=>{ return i });
+        this.display.navData.pointIndex= 0;
+        this.display.navData.pointTotal= t[0][1].feature.geometry.coordinates.length;
+        let c= t[0][1].feature.geometry.coordinates[this.display.navData.pointIndex];
+        let startPoint= {latitude: c[1], longitude: c[0]};      
         
-        let dref= this.dialog.open(ResourceDialog, {
-            disableClose: true,
-            data: {
-                title: 'New Route:',
-                name: null,
-                comment: null,
-                type: 'route',
-                addMode: true
+        this.skres.activateRoute(e.id, startPoint);
+    }   
+
+    // ** clear active route **
+    routeClearActive() { 
+        this.display.navData.pointIndex= -1;
+        this.display.navData.pointTotal= 0;
+        this.skres.clearActiveRoute();
+    }      
+   
+    // ** Set active route as nextPoint **
+    routeNextPoint(i:number) {
+        let rte= this.app.data.routes
+            .map( i=> { if(i[3]) { return i } })
+            .filter( i=>{ return i } );
+        let c= rte[0][1].feature.geometry.coordinates;
+        if(i==-1) {
+            if(this.display.navData.pointIndex==-1) {
+                this.display.navData.pointIndex=0;
             }
-        });  
-        dref.afterClosed().subscribe( r=> {
-            if(r.result) { // ** save route **
-                res['route'][1]['description']= r.data.comment || '';
-                res['route'][1]['name']= r.data.name;
-                if(this.app.config.usePUT) {
-                    this.signalk.api.put(
-                        'self',
-                        `/resources/routes`,
-                        res['route'][0], 
-                        res['route'][1]
-                    ).subscribe( 
-                        r=>{ 
-                            this.skres.getRoutes();
-                            if(r['state']=='COMPLETED') { 
-                                this.submitWaypoint(res['wptStart'][0], res['wptStart'][1], false);
-                                this.submitWaypoint(res['wptEnd'][0], res['wptEnd'][1], false);               
-                                this.app.debug('SUCCESS: Route updated.');
-                                this.app.config.selections.routes.push(res['route'][0]);
-                                this.app.saveConfig();                                
-                            }
-                            else { this.showAlert('ERROR:', 'Server could not add Route!') }
-                            },
-                        err=> { 
-                            this.skres.getRoutes();
-                            if(err.status && err.status==401) { this.showAuthRequired() }  
-                            else { this.showAlert('ERROR:', 'Server could not add Route!') }
-                        }
-                    );
-                }
-                else { 
-                    this.signalk.stream.sendUpdate('self', `/resources/routes/${res['route'][0]}`, res['route'][1]);
-                    this.skres.getRoutes();
-                    this.submitWaypoint(res['wptStart'][0], res['wptStart'][1], false);
-                    this.submitWaypoint(res['wptEnd'][0], res['wptEnd'][1], false);               
-                    
-                }
+            else if(this.display.navData.pointIndex>0) {
+                this.display.navData.pointIndex--;
             }
-        });
+            else { return }
+        }
+        else { // +1
+            if(this.display.navData.pointIndex==-1) {
+                this.display.navData.pointIndex= c.length-1;
+            }
+            else if(this.display.navData.pointIndex<this.display.navData.pointTotal-1) {
+                this.display.navData.pointIndex++;
+            }
+            else { return }
+        }
+        let nextPoint= {
+            latitude: c[this.display.navData.pointIndex][1], 
+            longitude: c[this.display.navData.pointIndex][0], 
+        }
+        this.skres.setNextPoint(nextPoint);     
     }
+
+    // ** Set waypoint as nextPoint **
+    navigateToWaypoint(e:any) { 
+        let wpt= this.app.data.waypoints.map( i=>{ if(i[0]==e.id) {return i} } ).filter(i=> {return i});
+        this.skres.setNextPoint(wpt[0][1].position);
+    }
+
+        
+    // ***************************  
 
     routeSelected(e:any) {
         let t= this.app.data.routes.map(
@@ -1106,257 +1334,6 @@ export class AppComponent {
         this.app.saveConfig();
     }
 
-    routeActivate(e:any) { 
-        let dt= new Date();
-        let t= this.app.data.routes
-            .map( i=> { if(i[0]==e.id) { return i }  })
-            .filter( i=>{ return i });
-        this.display.navData.pointIndex= 0;
-        this.display.navData.pointTotal= t[0][1].feature.geometry.coordinates.length;
-        let c= t[0][1].feature.geometry.coordinates[this.display.navData.pointIndex];
-        let startPoint= {latitude: c[1], longitude: c[0]};        
-        if(this.app.config.usePUT) {
-            this.signalk.api.put('self', 'navigation/courseGreatCircle/activeRoute/href', `/resources/routes/${e.id}`)
-            .subscribe( 
-                r=> {
-                    this.signalk.api.put('self', 'navigation/courseGreatCircle/activeRoute/startTime', dt.toISOString())
-                    .subscribe( 
-                        r=> { 
-                            this.app.debug('Route activated');
-                            this.signalk.api.put('self', 
-                                'navigation/courseGreatCircle/nextPoint/position', 
-                                startPoint
-                            ).subscribe( r=> { this.app.debug('nextPoint set') } );                            
-
-                        },
-                        err=> { this.showAlert('ERROR:', 'Server could not Activate Route!') }
-                    );
-                },
-                err=> { 
-                    if(err.status && err.status==401) { this.showAuthRequired() }  
-                    else { this.showAlert('ERROR:', 'Server could not Activate Route!') }
-                }
-            );
-        }
-        else {
-            this.signalk.stream.sendUpdate('self', 'navigation.courseGreatCircle.activeRoute.href', `/resources/routes/${e.id}`);
-            this.signalk.stream.sendUpdate('self', 'navigation.courseGreatCircle.activeRoute.startTime', dt.toISOString());
-            this.signalk.stream.sendUpdate('self', 'navigation.courseGreatCircle.nextPoint.position', startPoint);
-        }
-    }   
-
-    routeClearActive() { 
-        if(this.app.config.usePUT) {
-            this.signalk.api.put('self', 'navigation/courseGreatCircle/activeRoute/href', null)
-            .subscribe( 
-                r=> { 
-                    this.app.debug('Active Route cleared');
-                    this.display.navData.pointIndex= -1;
-                    this.display.navData.pointTotal= 0;
-                    this.signalk.api.put('self', 
-                        'navigation/courseGreatCircle/nextPoint/position', 
-                        null
-                    ).subscribe( r=> { this.app.debug('nextPont cleared') } );               
-                },
-                err=> { 
-                    if(err.status && err.status==401) { this.showAuthRequired() }  
-                    else { this.showAlert('ERROR:', 'Server could not clear Active Route!') }
-                }
-            );
-        }
-        else {
-            this.display.navData.pointIndex= -1;
-            this.display.navData.pointTotal= 0;
-            this.signalk.stream.sendUpdate('self', 'navigation.courseGreatCircle.activeRoute.href', null);
-            this.signalk.stream.sendUpdate('self', 'navigation.courseGreatCircle.nextPoint.position', null);
-        }
-    }      
-    
-    routeNextPoint(i:number) {
-        let rte= this.app.data.routes
-            .map( i=> { if(i[3]) { return i } })
-            .filter( i=>{ return i } );
-        let c= rte[0][1].feature.geometry.coordinates;
-        if(i==-1) {
-            if(this.display.navData.pointIndex>0) {
-                this.display.navData.pointIndex--;
-            }
-            else { return }
-        }
-        else { // +1
-            if(this.display.navData.pointIndex<this.display.navData.pointTotal-1) {
-                this.display.navData.pointIndex++;
-            }
-            else { return }
-        }
-        let nextPoint= {
-            latitude: c[this.display.navData.pointIndex][1], 
-            longitude: c[this.display.navData.pointIndex][0], 
-        }
-        if(this.app.config.usePUT) {
-            this.signalk.api.put('self', 
-                'navigation/courseGreatCircle/nextPoint/position', 
-                nextPoint
-            ).subscribe( 
-                r=> { this.app.debug('nextPoint set') },
-                err=> { 
-                    if(err.status && err.status==401) { this.showAuthRequired() }  
-                    else { this.app.debug(err) }
-                }
-            );
-        }
-        else {
-            this.signalk.stream.sendUpdate('self', 'navigation/courseGreatCircle/nextPoint/position', nextPoint);
-        }        
-    }
-
-    waypointGoTo(e:any) { 
-        let wpt= this.app.data.waypoints.map( i=>{ if(i[0]==e.id) {return i} } ).filter(i=> {return i});
-        if(this.app.config.usePUT) {
-            this.signalk.api.put('self', 
-                'navigation/courseGreatCircle/nextPoint/position', 
-                wpt[0][1].position
-            ).subscribe( 
-                r=> { this.app.debug('Waypoint activated') },
-                err=> { 
-                    if(err.status && err.status==401) { this.showAuthRequired() }  
-                    else { 
-                        this.showAlert('ERROR:', 'Server could not set Waypoint!') 
-                        this.app.debug(err);
-                    }
-                }
-            );
-        }
-        else {
-            this.signalk.stream.sendUpdate('self', 'navigation/courseGreatCircle/nextPoint/position', e.position);
-        }
-    }    
-
-    waypointDelete(e:any) { 
-        let dref= this.dialog.open(ConfirmDialog, {
-            disableClose: true,
-            data: {
-                message: 'Do you want to delete this Waypoint?\nNote: Waypoint may be the Start or End of a route so proceed with care!\n \nWaypoint will be removed from the server (if configured to permit this operation).',
-                title: 'Delete Waypoint:',
-                button1Text: 'YES',
-                button2Text: 'NO'
-            }
-        }); 
-        dref.afterClosed().subscribe( res=> {
-            if(res) {
-                if(this.app.config.usePUT) {
-                    this.signalk.api.put('self','resources.waypoints', e.id, null)
-                    .subscribe( 
-                        r=> {  
-                            this.skres.getWaypoints();
-                            if(r['state']=='COMPLETED') { this.app.debug('SUCCESS: Waypoint deleted.') }
-                            else { this.showAlert('ERROR:', 'Server could not delete Waypoint!') }                            
-                        },
-                        err=> { 
-                            if(err.status && err.status==401) { this.showAuthRequired() }  
-                            else { this.showAlert('ERROR:', 'Server could not delete Waypoint!') }
-                        }
-                    );
-                }
-                else { 
-                    this.signalk.stream.sendUpdate('self', `resources.waypoints.${e.id}`, null);
-                    this.skres.getWaypoints();                    
-                }
-            }
-        });          
-    }
-
-    waypointAdd(e:any=null) {      
-        let resId= null; 
-        let title: string;
-        let wpt: SKWaypoint;
-        let addMode: boolean=true;
-
-        if(!e) {    // ** add at vessel location
-            wpt= new SKWaypoint(); 
-            wpt.feature.geometry.coordinates= this.display.vessels.self.position;
-            wpt.position.latitude= this.display.vessels.self.position[1];
-            wpt.position.longitude= this.display.vessels.self.position[0];    
-            title= 'New waypoint:';      
-            wpt.feature.properties['name']= '';
-            wpt.feature.properties['cmt']= '';
-        }
-        else if(!e.id && e.position) { // add at provided position
-            wpt= new SKWaypoint(); 
-            wpt.feature.geometry.coordinates= e.position;
-            wpt.position.latitude= e.position[1];
-            wpt.position.longitude= e.position[0];    
-            title= 'Drop waypoint:';      
-            wpt.feature.properties['name']= '';
-            wpt.feature.properties['cmt']= '';
-        }
-        else { // selected waypoint details
-            resId= e.id;
-            title= 'Waypoint Details:'; 
-            let w= this.app.data.waypoints.filter( i=>{ if(i[0]==resId) return true });
-            if(w.length==0) { return }
-            wpt=w[0][1];
-            addMode=false;
-        }
-
-        this.dialog.open(ResourceDialog, {
-            disableClose: true,
-            data: {
-                title: title,
-                name: (wpt.feature.properties['name']) ? wpt.feature.properties['name'] : null,
-                comment: (wpt.feature.properties['cmt']) ? wpt.feature.properties['cmt'] : null,
-                position: wpt.feature.geometry['coordinates'],
-                addMode: addMode
-            }
-        }).afterClosed().subscribe( r=> {
-            wpt.feature.properties['cmt']= r.data.comment || '';
-            wpt.feature.properties['name']= r.data.name || '';            
-            if(r.result) { // ** save / update waypoint **
-                let isNew= false;
-                if(!resId) { // add
-                    resId= this.signalk.uuid.toSignalK();
-                    isNew= true
-                }
-                this.submitWaypoint(resId, wpt, isNew);
-            }
-        });
-    }
-
-    submitWaypoint(id:string, wpt:SKWaypoint, isNew=false) {
-        if(this.app.config.usePUT) {
-            this.signalk.api.put(
-                'self',
-                `/resources/waypoints`,
-                id, 
-                wpt
-            ).subscribe( 
-                r=>{ 
-                    if(r['state']=='COMPLETED') { 
-                        this.app.debug('SUCCESS: Waypoint updated.');
-                        if(isNew) { 
-                            this.app.config.selections.waypoints.push(id);
-                            this.app.saveConfig();
-                        }
-                        this.skres.getWaypoints();
-                    }
-                    else { 
-                        this.skres.getWaypoints();
-                        this.showAlert('ERROR:', 'Server could not update Waypoint details!');
-                    }
-                },
-                err=> { 
-                    this.skres.getWaypoints();
-                    if(err.status && err.status==401) { this.showAuthRequired() }  
-                    else { this.showAlert('ERROR:', 'Server could not update Waypoint details!') }
-                }
-            );
-        }
-        else { 
-            this.signalk.stream.sendUpdate('self', `resources.waypoints.${id}`, wpt);
-            this.skres.getWaypoints();
-        }
-    }
-
     waypointSelected(e:any) {
         let t= this.app.data.waypoints.map( i=> { if(i[2]) { return i[0] }  });
         this.app.config.selections.waypoints= t.filter(
@@ -1364,6 +1341,19 @@ export class AppComponent {
         );   
         this.app.saveConfig();
     }    
+
+    noteSelected(e:any) {
+        if(e.isGroup) { this.skres.showRelatedNotes(e.id, 'group') }
+        else { this.skres.showNoteInfo({id: e.id}) }
+    }
+
+    // ** return local charts sorted by scale descending.
+    chartsLocalByScale() {
+        let c= (this.app.data.charts.length>2) ? this.app.data.charts.slice(2) : [];
+        // ** sort local maps by scale descending
+        c.sort( (a,b)=> { return b[1].scale > a[1].scale ? 1 : -1 } );
+        return c;
+    }
 
     chartSelected(e:any) {
         if(!e) { return }
@@ -1374,7 +1364,7 @@ export class AppComponent {
             i=> { return (i) ? true : false }
         );   
         this.app.saveConfig();
-    } 
+    }    
 
     aisSelected(e:any) {
         this.app.config.selections.aisTargets= e;
@@ -1395,15 +1385,8 @@ export class AppComponent {
         }
     }      
 
-    // ** return local charts sorted by scale descending.
-    chartsLocalByScale() {
-        let c= (this.app.data.charts.length>2) ? this.app.data.charts.slice(2) : [];
-        // ** sort local maps by scale descending
-        c.sort( (a,b)=> { return b[1].scale > a[1].scale ? 1 : -1 } );
-        return c;
-    }
 
-    // ******** Anchor Watch EVENTS ************
+    // ******** ANCHOR WATCH EVENTS ************
     anchorEvent(e:any) {
         if(e.action=='radius') {
             this.app.config.anchor.radius= e.radius;            
@@ -1503,7 +1486,22 @@ export class AppComponent {
         else { return true }      
     }
 
-    // ******** Alarm EVENTS ************
+    // ******** ALARM EVENTS ************
+    actionAlarm(action:string, id:string) { 
+        let alarm= this.display.alarms.get(id);
+        switch(action) {
+            case 'ack':
+                alarm.acknowledged=true;
+                break;
+            case 'mute':
+                alarm.muted=true;
+                break;
+            case 'clear':
+                this.display.alarms.delete(id);
+                break;
+        } 
+    }
+
     muteAlarm(id:string) { this.display.alarms.get(id)['muted']=true }
 
     acknowledgeAlarm(id:string) { this.display.alarms.get(id)['acknowledged']=true }
@@ -1551,7 +1549,8 @@ export class AppComponent {
                 // ** query for resources
                 this.skres.getRoutes();
                 this.skres.getWaypoints();
-                this.skres.getCharts();        
+                this.skres.getCharts();  
+                this.skres.getNotes();
                 // ** query anchor alarm status
                 this.getAnchorStatus();                
             },
@@ -1664,7 +1663,7 @@ export class AppComponent {
 
     }   
 
-    // ******** Process STREAM data **************
+    // ******** Process STREAM data update display **************
 
     displayVesselSelf(v: any) {
         let d= this.display.vessels.self;
@@ -1672,7 +1671,7 @@ export class AppComponent {
         this.processVessel(d,v);
 
         // ** vessel on map rotation
-        this.display.map.vesselRotation= (typeof d.heading!== 'undefined') ? d.heading : (d.cog || 0);
+        this.display.map.vesselRotation= (!d.heading && typeof d.cog!== 'undefined') ? d.cog : (d.heading || 0);
 
         // ** add to true / magnetic selection list
         if( v.path=='navigation.headingMagnetic' && 
@@ -1740,6 +1739,7 @@ export class AppComponent {
             d.cogMagnetic= v.value;
             if(this.app.useMagnetic) { d.cog= v.value }
         }
+    
         if( v.path=='navigation.headingTrue' ) { 
             d.headingTrue= v.value;
             if(!this.app.useMagnetic) { d.heading= v.value }
@@ -1748,6 +1748,7 @@ export class AppComponent {
             d.headingMagnetic= v.value;
             if(this.app.useMagnetic) { d.heading= v.value }         
         }
+
         if(v.path=='navigation.speedOverGround') { d.sog= v.value }
         if( v.path=='navigation.position') {
             d.position= [ v.value.longitude, v.value.latitude];                      
@@ -1915,19 +1916,25 @@ export class AppComponent {
         this.app.data.routes.forEach( i=> {
             if(i[0]==this.app.data.activeRoute) {
                 i[3]= true;
-                let c= i[1].feature.geometry.coordinates;
-                this.display.navData.pointTotal= c.length;
-                if(this.display.navData.position) {
-                    for(let i=0; i<c.length; i++) {
-                        if(c[i][0]==this.display.navData.position[0] &&
-                            c[i][1]==this.display.navData.position[1] ) {
-                            this.display.navData.pointIndex=i;
-                        }
-                    }  
-                }              
+                this.updateNavData(i[1].feature.geometry.coordinates);            
             }
             else { i[3]= false }
         });
+    }
+
+    // ** Update the nextPoint position from supplied coordinates list
+    updateNavData(coords: Array<[number,number]>) {
+        let idx=-1;
+        if(this.display.navData.position) {
+            for(let i=0; i<coords.length; i++) {
+                if(coords[i][0]==this.display.navData.position[0] &&
+                    coords[i][1]==this.display.navData.position[1] ) {
+                    idx=i;
+                }
+            }   
+        } 
+        this.display.navData.pointTotal= coords.length;
+        this.display.navData.pointIndex= idx;
     }
 
     // ** process vessel trail **

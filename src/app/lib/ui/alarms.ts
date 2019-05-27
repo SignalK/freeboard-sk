@@ -12,39 +12,40 @@ import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material';
 ***********************************/
 @Component({
 	selector: 'ap-alarmsdialog',
-	template: `
+    template: `
         <div class="_ap-alarms">
-            <div>
-                <h1 mat-dialog-title>Alarms</h1>
-            </div>
+            <div style="display: flex;">
+                <div style="width:70px;"><mat-icon color="primary">alarm_on</mat-icon></div>
+                <div mat-dialog-title style="flex: 1 1 auto;">Alarms</div>
+                <div>
+                    <button mat-icon-button (click)="dialogRef.close()">
+                        <mat-icon>close</mat-icon>
+                    </button>                               
+                </div>
+            </div>             
             <mat-dialog-content>
                 <div style="display:flex;flex-wrap:wrap;">
-                    <mat-card *ngFor="let i of alarms">
+                    <mat-card *ngFor="let i of alarms" style="border: silver 1px outset;">
                         <mat-card-title-group>
                             <img mat-card-avatar [src]="'./assets/img/alarms/' + i.key + '.png'"/>
                             <mat-card-title>{{i.title}}</mat-card-title>
                         </mat-card-title-group>
                         <mat-card-content> </mat-card-content>    
-                        <mat-card-actions>
-                            <button mat-raised-button color="warn" *ngIf="!i.cancel"
+                        <mat-card-actions style="text-align:center;">
+                            <button mat-flat-button color="warn" *ngIf="!i.cancel"
                                 (click)="dialogRef.close({type: i.key, raise: true, msg: i.subtitle})">
+                                <mat-icon>alarm_on</mat-icon>
                                 RAISE ALARM
                             </button>   
                             <button mat-raised-button color="accent" *ngIf="i.cancel"
                                 (click)="dialogRef.close({type: i.key, raise: false})">
+                                <mat-icon>alarm_off</mat-icon>
                                 CANCEL ALARM
                             </button>                                               
                         </mat-card-actions>
                     </mat-card>                                      
                 </div>             
             </mat-dialog-content>
-            <mat-dialog-actions>
-                <div style="text-align:center;width:100%;">
-                    <button mat-raised-button (click)="dialogRef.close()">
-                        CLOSE
-                    </button>
-                </div>					
-            </mat-dialog-actions>
         </div>	
     `,
     styles: [`  ._ap-alarms {

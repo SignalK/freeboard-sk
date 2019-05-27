@@ -41,24 +41,32 @@
     </div>
 
     <div class="resources">
-        <mat-card *ngFor="let r of filterList; let i= index;">
-            <div style="display: flex;">
-                <div style="flex: 1 1 auto;">
-                    <div>
-                        <mat-icon>{{ (i<2) ? 'language' : 'map'}}</mat-icon>
-                        &nbsp;<b>{{r[1].name}}</b>
-                    </div>
-                    <div>{{r[1].description}}</div>
-                </div>        
-                <div style="text-align: right;">
-                    <mat-checkbox color="primary"
-                        [checked]="r[2]"
-                        (change)="itemSelect($event.checked, r[0])"
-                        matTooltip="Show in Map"
-                        matTooltipPosition="left">
-                    </mat-checkbox>
-                </div>  
-            </div>
-        </mat-card>
+        <cdk-virtual-scroll-viewport itemSize="80" 
+                style="position: absolute;
+                    top: 10px;
+                    bottom: 0;
+                    left: 0;
+                    right: 0;">
+            <mat-card *cdkVirtualFor="let r of filterList; let i= index;"
+                    style="border-bottom: silver 1px outset;">
+                <div style="display: flex;">
+                    <div style="flex: 1 1 auto;">
+                        <div>
+                            <mat-icon>{{ (i<2) ? 'language' : 'map'}}</mat-icon>
+                            &nbsp;<b>{{r[1].name}}</b>
+                        </div>
+                        <div>{{r[1].description}}</div>
+                    </div>        
+                    <div style="text-align: right;">
+                        <mat-checkbox color="primary"
+                            [checked]="r[2]"
+                            (change)="itemSelect($event.checked, r[0])"
+                            matTooltip="Show in Map"
+                            matTooltipPosition="left">
+                        </mat-checkbox>
+                    </div>  
+                </div>
+            </mat-card>
+        </cdk-virtual-scroll-viewport>
     </div>
 </div>

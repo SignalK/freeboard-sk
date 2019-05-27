@@ -3,9 +3,9 @@
     width: 100%;
     min-height: 300px;
     max-height: 400px;
-    overflow-y: auto;    
+    overflow-y: auto;  
+    background-color: #f8f8f8;  
 }
-
 
 .settings .setting-group-title {
     font-weight: bold;

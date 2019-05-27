@@ -48,11 +48,12 @@
                 <li><a href="#server">Signal K Server</a></li>
                 <li><a href="#display">Display</a></li>
                 <li><a href="#navdata">Navigation</a></li>                  
-                <li><a href="#resources">Resources</a></li>   
-                <li><a href="#aistargets">Vessels</a></li> 
-                <li><a href="#anchor">Anchor Watch</a></li>
-                <li><a href="#alarms">Alarms</a></li>
-                <li><a href="#playback">Playback</a></li>
+                <li><a href="#resources">Resources</a></li> 
+                <li><a href="#menus">Menus</a></li>
+                <li><a href="#aistargets">- Vessels</a></li> 
+                <li><a href="#anchor">- Anchor Watch</a></li>
+                <li><a href="#alarms">- Alarms</a></li>
+                <li><a href="#playback">- Playback</a></li>
                 <li><a href="#settings">Settings</a></li>
                 <li><a href="https://github.com/SignalK/freeboard-sk/" target="_fb">
                     <i class="fi-social-github"></i> GitHub</a>
@@ -258,15 +259,16 @@
             <div class="panel" id="resources">
                 <h4>Resources</h4>
                 <p>
-                    Freeboard provides functionality for Route, Waypoint and Chart resources.
-                    <br>
+                    Freeboard provides functionality for in-built Signal K resource types:
+                    routes, waypoints, charts, notes and regions .
+                    <hr>
 
                     <li class="nobullet"><i class="material-icons">directions</i>
                         <b>Routes:</b>
                         Displays a list of available Routes.
                     </li> 
                     <br>
-                    <div style="display:flex;;flex-wrap: wrap;">
+                    <div style="display:flex;flex-wrap: wrap;">
                         <div><img src="./img/route_list.png" style="max-width:250px;"/></div>
                         <div style="padding-left:15px;">
                             <li><b>Filter Routes:</b> Type into the text box to filter the list of routes.</li>
@@ -275,23 +277,27 @@
                                 delete the route.<br>
                                 <i>Note: Deleting a route will also delete the associated Start and End Waypoints!</i>
                             </li>
-                            <li><b>Activate: </b> Clicking <i class="material-icons">select_all</i> sends a message to the server to set 
+                            <li><b>Active: </b> Clicking <i class="material-icons">select_all</i> sends a message to the server to set 
                                 this route as the <i>Active Route</i>.<br>
                                 The start of the route is set as the current destination. <br>
                                 Use the <i>Previous</i> and <i>Next</i> point options in the 
                                 <i class="material-icons">more_horiz</i> menu to 
                                 select the destination point.
                             </li>
+                            <li><b>Clear: </b> Clicking <i class="material-icons">clear_all</i> sends a message to the server to clear 
+                                the <i>Active Route</i>.
+                            </li>                            
                             <li><b>Properties</b> Click <i class="material-icons">info_outline</i> to edit route Name and Description.</li> 
                         </div>
                     </div>       
-                    <br>                                    
+                    <hr>  
+
                     <li class="nobullet"><i class="material-icons">location_on</i>
                         <b>Waypoints:</b>
                         Displays a list of available Waypoints.
                     </li>
                     <br>
-                    <div style="display:flex;;flex-wrap: wrap;">
+                    <div style="display:flex;flex-wrap: wrap;">
                         <div><img src="./img/waypoint_list.png" style="max-width:250px;"/></div>
                         <div style="padding-left:15px;">
                             <li><b>Filter Waypoints:</b> Type into the text box to filter the list of waypoints.</li>
@@ -301,7 +307,7 @@
                                 <i>Note: A waypoint may be associated with a route. 
                                     so take care when deleting waypoints!</i>
                             </li>
-                            <li><b>Navigate To: </b> Clicking <i class="material-icons">near_me</i> sends a message to the server to set 
+                            <li><b>Go To: </b> Clicking <i class="material-icons">near_me</i> sends a message to the server to set 
                                 this waypoint as the target to navigate to. The server should then send 
                                 <a href="#navdata">navigation data</a> in relation to this location.
                             </li>                           
@@ -310,24 +316,66 @@
                     </div>  
                     <br>
                     Additionally, you can click on both Routes and Waypoints to display
-                    an information window available actions.<br>
+                    an information window with available actions.<br>
+                    <div style="padding-left:15px;">
+                        <li>
+                            <b>Move:</b> 
+                            Clicking <i class="material-icons">touch_app</i> allows waypoints and route points to be re-positioned.
+                        </li>
+                    </div>                     
                     <img src="./img/route_popover.png"/>&nbsp;&nbsp;
-                    <img src="./img/wpt_popover.png"/>
-                    <br>&nbsp;<br>                   
-                    <li class="nobullet"><i class="material-icons">edit</i>
-                        <b>Draw Menu:</b>
-                        The Draw menu is where you will find options to:
-                        <li>Draw a Route</li>
-                        <li>Add Waypoint at the current Vessel position</li>
-                        <li>Drop Waypoint on the map</b></li>
-                        <li>Measure distances</li>
-                    </li>  
-                    <br>  
-                    <li class="nobullet"><i class="material-icons">menu</i>
-                        <b>Main Menu:</b>
-                        The Main menu contains links to the following additional features:
+                    <img src="./img/wpt_popover.png"/>    
+                    <hr>
+
+                    <li class="nobullet"><i class="material-icons">local_offer</i>
+                        <b>Notes:</b>
+                        Displays a list of available Notes.
                     </li> 
-                    <br>                                    
+                    <br>
+                    <div style="display:flex;flex-wrap: wrap;">
+                        <div><img src="./img/note_list.png" style="max-width:250px;"/></div>
+                        <div style="padding-left:15px;">
+                            <li><b>Filter Notes:</b> Type into the text box to filter the list of notes.</li>
+                            <li><b>Draft Notes: </b> Click <i class="material-icons">border_color</i> to display only 
+                                draft notes in the list.<br>
+                            <li><b>Display Notes:</b> Check the checkbox to display notes on the map.</li>
+     
+                            <li><b>Group: </b> Clicking <i class="material-icons">styles</i> will display a list of notes 
+                                in the same group.
+                            </li>
+                           
+                            <li><b>Properties</b> Click <i class="material-icons">info_outline</i> to open the 
+                                note information / editor screen.
+                            </li> 
+                        </div>
+                    </div>  
+                    <i>See <a href="#settings">Settings</a> for configuring note display.</i>
+                    <br>&nbsp;
+                    <div>
+                        <b>Note Properties:</b><br>
+                        Freeboard uses specfic key / value pairs that are defined within the 
+                        <code>properties: {}</code> block of a note:
+                        <br>&nbsp;
+                        <li>
+                            <b>draft</b> <i>(boolean)</i>: Indicates whether the note is in draft mode.
+                            Used by the server to determine the visibility or scope of where the note is made
+                            available.
+                        </li>
+                        <li>
+                            <b>readOnly</b> <i>(boolean)</i>: Used by Freeboard (when meta._attr is not available) 
+                            to determine whther the note is editable.
+                        </li>
+                        <br>
+                        <i>Example:</i>
+                        <code>
+                            properties: {
+                                draft: true,
+                                readOnly: false
+                            }
+                        </code>
+                    </div>     
+                    <hr>
+
                     <li class="nobullet"><i class="material-icons">map</i>
                         <b>Charts:</b> 
                         Displays a list of available Charts.
@@ -348,12 +396,49 @@
                             Charts are displayed in descending order of scale to ensure more detailed 
                             charts are on top.
                         </div>
-                    </div>  
-                    <br>                        
-                    <li class="nobullet"><img src="../img/gpx_black.png" style="width:36px;"/>
-                        <b>Load from GPX:</b>
-                        Load Route and Waypoint resources from GPX file. 
+                    </div> 
+                </p>                 
+            </div>	           
+
+            <div class="panel" id="menus">
+                <h4>Draw Menu</h4>
+                <p>
+                    <li class="nobullet"><i class="material-icons">edit</i>
+                        The Draw menu is where you will find options to:
                     </li>  
+                    <br>
+                    <div style="display:flex;flex-wrap: wrap;">
+                        <div><img src="./img/draw_menu.png" style="max-width:250px;"/></div>
+                        <div style="padding-left:15px;">                        
+                            <li>
+                                <b>Draw a Route</b>: Create a route by clicking locations on the map
+                            </li>
+                            <li>
+                                <b>Drop Waypoint</b>: Create a waypoint by clicking a location on the map
+                            </li>
+                            <li>
+                                <b>Add Note</b>: Create a note at a specific location by clicking on the map
+                            </li>
+                            <li>
+                                <b>Draw Region + Note</b>: Create a region and attach a <i>note</i> by 
+                                clicking locations on the map to define the region.
+                            </li>
+                            <li>
+                                <b>Measure</b>: Measure distances by clicking locations on the map.
+                            </li>
+                        </div>
+                    </div>                
+                </p>
+            </div>
+
+            <div class="panel" id="gpx">
+                <h4>Load from GPX</h4>
+                <p> 
+                    <li class="nobullet"><i class="material-icons">menu</i>
+                        <b>Main Menu:</b>
+                        Access the <img src="../img/gpx_black.png" style="width:36px;"/></i> 
+                        <b>Load from GPX</b> option from the Main menu.
+                    </li>                      
                     <br>
                     <div style="display:flex;flex-wrap: wrap;">
                         <div><img src="./img/gpx_load.png" style="max-width:250px;"/></div>
@@ -361,7 +446,7 @@
                             After selecting a GPX file from the Open File dialog you will be
                             presented with a screen that will allow you to select some or all
                             of the Route and Waypoint resources contained in the file.<br>
-        
+
                             <li><b>Waypoints:</b> Click the checkbox to select all Waypoints or
                                 expand the list and select the Waypoints to import.
                             </li>
@@ -372,17 +457,17 @@
                             After selecting the resources click <b>Load Selected</b> to load the
                             resources onto the Signal K server.
                         </div>
-                    </div>
-                </p>                 
-            </div>	           
+                    </div>    
+                </p>
+            </div>
 
             <div class="panel" id="anchor">
                 <h4>Anchor Watch</h4>
                 <p>
-                        <li class="nobullet"><i class="material-icons">menu</i>
-                            <b>Main Menu:</b>
-                            Access the <i class="fi-anchor" style="font-size:20pt;"></i> <b>Anchor Watch</b> option from the Main menu.
-                        </li> 
+                    <li class="nobullet"><i class="material-icons">menu</i>
+                        <b>Main Menu:</b>
+                        Access the <i class="fi-anchor" style="font-size:20pt;"></i> <b>Anchor Watch</b> option from the Main menu.
+                    </li> 
                 </p>
                 <div style="display:flex;flex-wrap: wrap;">
                     <div><img src="./img/anchor_watch.png" style="max-width:250px;"/></div>
@@ -561,7 +646,7 @@
                 <p>
                     <b>DISPLAY:</b><br>
                     This section provides choices about how information is displayed.<br>
-                    <img src="./img/settings_display.png" style="height:170px;"/>
+                    <img src="./img/settings_display.png" style="width:300px;"/>
                     <ul>
                         <li><b>Instrument Panel App</b>: 
                             Select from a list of installed applications the one you wish to
@@ -570,6 +655,12 @@
                                 within the space afforded by the instrument panel.
                             </i>
                         </li>
+                        <li><b>Halt App on hide</b>: 
+                            When checked the selected Intrument Panel App will be stopped when the Panel
+                            is hidden.<br>
+                            <i>To save resources on your device when  the instrument panel is hidden
+                                clear this checkbox.</i>
+                        </li>                        
                         <li><b>Show DEPTH Alarm Messages</b>: 
                             Check this box if you want received DEPTH notifications from the Signal K server
                             to be displayed as an alarm message.
@@ -589,7 +680,7 @@
                 <p>
                     <b>UNITS &amp; VALUES:</b><br>
                     This section provides choices about the units and values used when displaying data.<br>
-                    <img src="./img/settings_units.png" style="height:250px;"/><br>
+                    <img src="./img/settings_units.png" style="height:200px;"/><br>
 
                     <b>Distance Units</b>: 
                     <i>Kilometres</i> / <i>Nautical Miles</i>
@@ -616,7 +707,7 @@
                 <p>
                     <b>OTHER VESSELS:</b><br>
                     This section provides choices about the units and values used when displaying data.<br>
-                    <img src="./img/settings_other_vessels.png" style="height:250px;"/><br>
+                    <img src="./img/settings_other_vessels.png" style="height:200px;"/><br>
 
                     <b>Wind Vector</b>: <i>Wind True</i> / <i>Wind Apparent</i><br>
                     Value used to display wind vector for other vessels displayed on the map.
@@ -627,23 +718,48 @@
                 </p>                
                 
                 <p>
-                    <b>SERVER:</b><br>
-                    <img src="./img/settings_server.png" style="height:100px;"/>
+                    <b>RESOURCES: NOTES</b><br>
+                    <img src="./img/settings_resources_notes.png" style="height:200px;"/>
                     <ul>
-                        <li><b>Server Resource Updates</b>: 
-                            Un-check this box if you want to use <i>UPDATES</i> messages to send 
-                            information to the server rather than <i>PUT</i> requests.
-                        </li>        
+                        <li><b>Display Notes on Map</b>: 
+                            Un-check this box if you do not want to display <i>NOTES</i> on the map.
+                        </li>    
+                        <li><b>Notes Zoom Level</b>: 
+                            Select the zoom level at which <i>NOTES</i> will appear on the map.
+                        </li>       
+                        <li><b>Fetch Notes radius</b>: 
+                            Select the radius from the centre of the displayed map within which <i>NOTES</i> 
+                            will be retrived from the server.<br>
+                            A request to fetch Notes is triggered when the map centre moves more than 
+                            50% of this value. 
+                        </li>                          
+                        <li><b>Notes Fetch Filter</b>: 
+                            This field allows you to specify a parameter string that will be 
+                            used when fetching Notes from the Signal K server. This can be useful to reduce 
+                            the number of Notes records returned or to only return Notes in a particular area. <br>
+                            The string can contain <i>%Tokens%</i> to specify specific values.<br>
+                            <i>e.g. ?position=%map:longitude%,%map:latitude%&radius=%note:radius%</i>
+                        </li>   
+                        <li><b>Edit Group Names</b>: 
+                            By default the <i>group</i> attribute of a note will not be available 
+                            in the note editor screen.<br>
+                            Check this box if you want to be able to edit the <i>group</i> attribute.
+                        </li>       
+                        <li><b>Position Group Note</b>: 
+                            By default adding a new note to a <i>group</i> 
+                            will not prompt you for the psoition of the note.<br>
+                            Checking this box will prompt you to place the note by clicking
+                            on the map.
+                        </li>                                                                                          
                     </ul>
-                    This setting is <b>Checked</b> by default and should be left checked to ensure 
-                    Freeboard can respond to the success / failure of an action on the server.<br>
-                    
-                    Un-checking this option will cause UPDATES messages to be sent, which essentially 
-                    broadcasts the information and does not 
-                    elicit a specific response from the Signal K server regarding the sucess or failure
-                    of an operation.<br>
-                    This option can be used when the Signal K server does not accept requests for 
-                    the paths required for Freeboard functions.<br>
+
+                    <b>Parameter Tokens</b> are text enclosed in <b>%</b>.<br>
+                    Valid tokens include:
+                    <ul>
+                        <li><b>map:latitude</b>: Latitude at centre of Map</li>
+                        <li><b>map:longitude</b>: Longitude at centre of Map</li>
+                        <li><b>note:radius</b>: The value set in the <i>Fetch Notes within</i> field</li>
+                    </ul>
                 </p>                
             </div>
         

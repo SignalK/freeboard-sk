@@ -4,19 +4,17 @@
 import { Injectable } from '@angular/core';
 import { Info } from './lib/app-info';
 import { Subject } from 'rxjs';
-import {IndexedDB} from './lib/info/indexeddb';
+import { IndexedDB } from './lib/info/indexeddb';
 import { SignalKClient } from 'signalk-client-angular';
 
 
-@Injectable({
-    providedIn: 'root'
-})
+@Injectable({ providedIn: 'root' })
 export class AppInfo extends Info {
 
     private DEV_SERVER= {
         host: null,     // host name || ip address
         port: null,     // port number
-        ssl: false       // true || false
+        ssl: false                       
     }
 
     public hostName;
@@ -68,13 +66,14 @@ export class AppInfo extends Info {
                 radius: 40,
                 position: [0,0]
             },
-            usePUT: true,
-            vesselTrail: false,
-            aisTargets: true,
-            courseData: false,
+            vesselTrail: false,     // display trail
+            aisTargets: true,       // display ais targets
+            courseData: false,      // display course data
+            notes: false,           // display notes
             depthAlarm: { enabled: false, smoothing: 10000 },
             plugins: {
-                instruments: '/@signalk/instrumentpanel'
+                instruments: '/@signalk/instrumentpanel',
+                startOnOpen: false
             },
             units: {        // ** display units
                 distance: 'm',
@@ -85,10 +84,20 @@ export class AppInfo extends Info {
                 routes: [],
                 waypoints: [],
                 charts: ['openstreetmap','openseamap'],
+                notes: [],
                 headingAttribute: 'navigation.headingTrue',
                 aisTargets: null,
                 aisWindApparent: false,
-                aisWindMinZoom: 15
+                aisWindMinZoom: 15,
+                notesMinZoom: 10
+            },
+            resources: {    // ** resource options
+                notes: {
+                    rootFilter: '?position=%map:latitude%,%map:longitude%&dist=%note:radius%',     // param string to provide record filtering
+                    getRadius: 20,      // radius (NM/km) within which to return notes
+                    groupNameEdit: false,
+                    groupRequiresPosition: false
+                }
             }
         } 
 
@@ -97,12 +106,14 @@ export class AppInfo extends Info {
             waypoints: [],
             charts: [],
             alarms: [],
+            notes: [],
             selfId: null,
             activeRoute: null,
             trail: [],
             server: null,
             hasToken: false,
-            headingValues: []
+            headingValues: [],
+            lastGet: null,    // map position of last resources GET
         }
 
         /***************************************
@@ -186,12 +197,26 @@ export class AppInfo extends Info {
     handleSettingsEvent(value) {
         this.debug(value);
         if(value.action=='load' && value.setting=='config') {
+            if(typeof this.config.usePUT !== 'undefined') { delete this.config.usePUT }
             if(typeof this.config.selections.aisWindMinZoom === 'undefined') {
                 this.config.selections.aisWindMinZoom=15;
             }
             if(typeof this.config.selections.aisWindApparent === 'undefined') {
-                this.config.selections.aisWindMinZoom= false;
+                this.config.selections.aisWindApparent= false;
             }
+            if(typeof this.config.selections.notesMinZoom === 'undefined') {
+                this.config.selections.notesMinZoom=10;
+            }   
+            if(typeof this.config.resources === 'undefined') {
+                this.config.resources= { 
+                    notes: {
+                        rootFilter: '?position=%map:latitude%,%map:longitude%&dist=%note:radius%',     
+                        getRadius: 20,     
+                        groupNameEdit: false,
+                        groupRequiresPosition: false
+                    }
+                }
+            }                              
         }
     }
 

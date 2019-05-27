@@ -5,7 +5,7 @@ import { AppInfo } from '../../app.info';
 @Component({
     selector: 'anchor-watch',
     templateUrl: './anchorwatch.html',
-    styleUrls: ['./resourcelist.css']
+    styleUrls: ['./lists/resourcelist.css']
 })
 export class AnchorWatchComponent {
     @Input() radius: number;

@@ -1,5 +1,5 @@
 import {Component, Input, Output, EventEmitter } from '@angular/core';
-import { AppInfo } from '../../app.info';
+import { AppInfo } from '../../../app.info';
 
 //** AIS Dialog **
 @Component({

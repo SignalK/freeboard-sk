@@ -102,12 +102,16 @@
         </button>                
         <mat-divider></mat-divider>   
         <a mat-menu-item (click)="toggleCourseData()">
-                <mat-icon>{{app.config.courseData ? 'visibility_off' : 'visibility'}}</mat-icon>
-                <span>{{app.config.courseData ? 'Hide' : 'Show'}} Course Data</span>			
-            </a>	             
+            <mat-icon>{{app.config.courseData ? 'visibility_off' : 'compare_arrows'}}</mat-icon>
+            <span>{{app.config.courseData ? 'Hide' : 'Show'}} Course Data</span>			
+        </a>	             
         <a mat-menu-item (click)="toggleAisTargets()">
-            <mat-icon>{{app.config.aisTargets ? 'visibility_off' : 'visibility'}}</mat-icon>
+            <mat-icon>{{app.config.aisTargets ? 'visibility_off' : 'directions_boat'}}</mat-icon>
             <span>{{app.config.aisTargets ? 'Hide' : 'Show'}} Vessels</span>			
+        </a>     
+        <a mat-menu-item (click)="toggleNotes()">
+            <mat-icon>{{app.config.notes ? 'visibility_off' : 'local_offer'}}</mat-icon>
+            <span>{{app.config.notes ? 'Hide' : 'Show'}} Notes</span>			
         </a>	        
         <a mat-menu-item (click)="openSettings()">
             <mat-icon color="primary">settings</mat-icon>
@@ -120,8 +124,16 @@
             <mat-icon style="color:black;">straighten</mat-icon>
             <span>Measure</span>			
         </a>  
+        <a mat-menu-item (click)="drawStart('note')">
+            <mat-icon color="primary">local_offer</mat-icon>
+            <span>Add Note</span>			
+        </a>   
+        <a mat-menu-item (click)="drawStart('region')">
+            <mat-icon color="primary">tab_unselected</mat-icon>
+            <span>Draw Region + Note</span>			
+        </a>           
         <mat-divider></mat-divider>                   
-        <a mat-menu-item (click)="waypointAdd()">
+        <a mat-menu-item (click)="skres.showWaypointEditor(null,display.vessels.self.position)" *ngIf="display.showSelf">
             <mat-icon style="color:black;" >add_location</mat-icon>
             <span>Add Waypoint at Vessel</span>			
         </a>
@@ -133,7 +145,7 @@
         <a mat-menu-item (click)="drawStart('route')">
             <mat-icon color="primary">directions</mat-icon>
             <span>Draw Route</span>			
-        </a>                                       			
+        </a>                                         			
     </mat-menu>   
     <!--/context menus-->
 
@@ -168,6 +180,13 @@
                         <mat-icon>map</mat-icon>
                         &nbsp;Charts
                     </a>  
+
+                    <a mat-list-item 
+                        *ngIf="!draw.enabled || !measure.enabled"
+                        (click)="sidemenu.close();displayLeftMenu('noteList',true)">
+                        <mat-icon>local_offer</mat-icon>
+                        &nbsp;Notes
+                    </a>                   
                                         
                     <a mat-list-item 
                         *ngIf="!draw.enabled || !measure.enabled"
@@ -214,6 +233,7 @@
 
             <!--instruments-->
             <mat-sidenav #sideright mode="over"position="end" 
+                (openedChange)="sideNavAction($event)"
                 style="background-color:transparent; width:350px;">
                 <div style="display:flex;flex-direction: column;position:relative;">
                     <mat-nav-list style="background-color: white;">	
@@ -231,13 +251,62 @@
                         <mat-divider></mat-divider>
                     </mat-nav-list>	 
                     <div style="position: fixed;bottom: 0;top: 48px;overflow:auto;-webkit-overfow-scrolling:touch;">
-                        <iframe 
+                        <iframe *ngIf="display.instrumentAppActive"
                             [src]="instUrl"
                             style="width:345px;height:100%;">
                         </iframe>
                     </div>  
                 </div>             
             </mat-sidenav>
+
+            <!--left menu panel-->
+            <div class="leftMenuPanel" *ngIf="display.leftMenuPanel">
+                <route-list [routes]="app.data.routes" *ngIf="display.routeList"
+                    (select)="routeSelected($event)"
+                    (delete)="skres.showRouteDelete($event)"
+                    (activate)="routeActivate($event)"
+                    (deactivate)="routeClearActive()"
+                    (refresh)="skres.getRoutes()"
+                    (properties)="resourceProperties($event)"
+                    (closed)="displayLeftMenu()">
+                </route-list>
+
+                <waypoint-list [waypoints]="app.data.waypoints" *ngIf="display.waypointList"
+                    (select)="waypointSelected($event)"
+                    (delete)="skres.showWaypointDelete($event)"
+                    (goto)="navigateToWaypoint($event)"
+                    (refresh)="skres.getWaypoints()"
+                    (properties)="resourceProperties($event)"
+                    (closed)="displayLeftMenu()">
+                </waypoint-list>       
+                
+                <chart-list [charts]="app.data.charts" *ngIf="display.chartList"
+                    (select)="chartSelected($event)"
+                    (refresh)="skres.getCharts()"
+                    (closed)="displayLeftMenu()">
+                </chart-list>   
+
+                <note-list [notes]="app.data.notes" *ngIf="display.noteList"
+                    (select)="noteSelected($event)"
+                    (refresh)="skres.getNotes()"
+                    (closed)="displayLeftMenu()">
+                </note-list>                 
+
+                <ais-list [aisTargets]="display.vessels.aisTargets" *ngIf="display.aisList"
+                    (select)="aisSelected($event)"
+                    (properties)="aisProperties($event)"
+                    (closed)="displayLeftMenu()">
+                </ais-list>                   
+                
+                <anchor-watch *ngIf="display.anchorWatch"
+                    min="10" max="500" 
+                    [radius]="app.config.anchor.radius" 
+                    [feet]="(app.config.units.depth!='m') ? true : false"
+                    [raised]="app.config.anchor.raised"
+                    (change)="anchorEvent($event)"
+                    (closed)="displayLeftMenu()">
+                </anchor-watch>                     
+            </div>            
 
             <!--map panel-->
             <div style="display: relative; width: 100%; height: 100%;" 
@@ -261,13 +330,20 @@
                     <aol-interaction-default></aol-interaction-default>
                     <aol-interaction-draw *ngIf="draw.enabled"
                         [type]="draw.type"
-                        (onDrawEnd)="handleDrawEnd($event)"></aol-interaction-draw>
+                        (onDrawEnd)="handleDrawEnd($event)">
+                    </aol-interaction-draw>
                     <aol-interaction-draw *ngIf="measure.enabled"
                         [type]="'LineString'"
                         (onDrawStart)="handleMeasure($event)"
                         (onDrawEnd)="handleMeasure($event)"
                         [style]="measure.style">
-                    </aol-interaction-draw>                        
+                    </aol-interaction-draw>   
+                    
+                    <aol-interaction-modify *ngIf="draw.modify && draw.features"
+                        [features]="draw.features"
+                        (onModifyStart)="handleModifyStart($event)"
+                        (onModifyEnd)="handleModifyEnd($event)">
+                    </aol-interaction-modify>                 
                     
                     <aol-control-mouseposition class="ol-mouse-position"
                         [projection]="app.config.map.srid"
@@ -328,23 +404,54 @@
                     <!-- *** ROUTES *** -->
                     <aol-layer-vector [zIndex]="50"> 
                         <aol-source-vector>
-                        <div *ngFor="let r of app.data.routes; let i=index;">
-                            <aol-feature *ngIf="r[2]" [id]="'route.'+ r[0]">
-                                <aol-geometry-linestring>
-                                    <aol-collection-coordinates
-                                        [coordinates]="r[1].feature?.geometry?.coordinates"
-                                        [srid]="app.config.map.srid">
-                                    </aol-collection-coordinates>
-                                </aol-geometry-linestring>
-                                <aol-style>
-                                    <aol-style-stroke 
-                                        [color]="(r[3]) ? 'blue' : 'green'" 
-                                        [lineDash]="(r[3]) ? [1] : [20,5,5,5]"
-                                        [width]="2">
-                                    </aol-style-stroke>
-                                </aol-style>
-                            </aol-feature>
-                        </div>
+                            <div *ngFor="let r of app.data.routes; let i=index;">
+                                <aol-feature *ngIf="r[2]" [id]="'route.'+ r[0]">
+                                    <aol-geometry-linestring>
+                                        <aol-collection-coordinates
+                                            [coordinates]="r[1].feature?.geometry?.coordinates"
+                                            [srid]="app.config.map.srid">
+                                        </aol-collection-coordinates>
+                                    </aol-geometry-linestring>
+                                    <aol-style>
+                                        <aol-style-stroke 
+                                            [color]="(r[3]) ? 'blue' : 'green'" 
+                                            [lineDash]="(r[3]) ? [1] : [20,5,5,5]"
+                                            [width]="(r[3]) ? 4 : 2">
+                                        </aol-style-stroke>                                                                                                   
+                                    </aol-style>
+                                </aol-feature>
+                                <!-- start / end points -->
+                                <aol-feature *ngIf="r[2]"> 
+                                    <aol-geometry-point>
+                                        <aol-coordinate 
+                                            [x]="r[1].feature?.geometry?.coordinates[0][0]" 
+                                            [y]="r[1].feature?.geometry?.coordinates[0][1]" 
+                                            [srid]="app.config.map.srid">
+                                        </aol-coordinate>
+                                    </aol-geometry-point>
+                                    <aol-style>    
+                                        <aol-style-circle [radius]="5">
+                                            <aol-style-stroke [color]="'white'" [width]="2"></aol-style-stroke>
+                                            <aol-style-fill [color]="(r[3]) ? 'blue' : 'green'"></aol-style-fill>                                        
+                                        </aol-style-circle>                                                                                                     
+                                    </aol-style>                                
+                                </aol-feature>  
+                                <aol-feature *ngIf="r[2]"> 
+                                    <aol-geometry-point>
+                                        <aol-coordinate 
+                                            [x]="r[1].feature?.geometry?.coordinates[r[1].feature.geometry.coordinates.length-1][0]" 
+                                            [y]="r[1].feature?.geometry?.coordinates[r[1].feature.geometry.coordinates.length-1][1]" 
+                                            [srid]="app.config.map.srid">
+                                        </aol-coordinate>
+                                    </aol-geometry-point>
+                                    <aol-style>    
+                                        <aol-style-circle [radius]="5">
+                                            <aol-style-stroke [color]="'yellow'" [width]="2"></aol-style-stroke>
+                                            <aol-style-fill [color]="(r[3]) ? 'blue' : 'green'"></aol-style-fill>                                        
+                                        </aol-style-circle>                                                                                                     
+                                    </aol-style>                                
+                                </aol-feature>                                                             
+                            </div>
                         </aol-source-vector>
                     </aol-layer-vector>
                     <!-- *** /ROUTES *** -->  
@@ -400,16 +507,94 @@
                     </aol-layer-vector>
                     <!-- *** AIS TARGETS *** -->                    
 
+                    <!-- *** NOTES & REGIONS*** -->
+                    <aol-layer-vector 
+                        *ngIf="app.config.notes && app.config.map.zoomLevel>=app.config.selections.notesMinZoom" 
+                        [zIndex]="120" [renderBuffer]="200">
+                        <aol-source-vector>
+                            <div *ngFor="let r of app.data.regions; let i=index;">
+                                <!--MultiPolygon-->
+                                <aol-feature [id]="'region.'+ r[0]" *ngIf="r[1].feature.geometry.type=='Polygon'"> 
+                                    <aol-geometry-polygon>
+                                        <aol-collection-coordinates
+                                            [coordinates]="r[1].feature.geometry.coordinates[0]"
+                                            [srid]="app.config.map.srid">
+                                        </aol-collection-coordinates>                                        
+                                    </aol-geometry-polygon>
+                                    <aol-style>
+                                        <aol-style-stroke [color]="'red'"></aol-style-stroke>
+                                        <aol-style-fill [color]="[255,0,0,0.1]"></aol-style-fill>
+                                    </aol-style>
+                                </aol-feature> 
+                                <!--MultiPolygon-->
+                                <aol-feature [id]="'region.'+ r[0]" *ngIf="r[1].feature.geometry.type=='MultiPolygon'"> 
+                                    <aol-geometry-polygon>
+                                        <aol-collection-coordinates
+                                            [coordinates]="r[1].feature.geometry.coordinates[0][0]"
+                                            [srid]="app.config.map.srid">
+                                        </aol-collection-coordinates>                                        
+                                    </aol-geometry-polygon>
+                                    <aol-style>
+                                        <aol-style-stroke [color]="'purple'"></aol-style-stroke>
+                                        <aol-style-fill [color]="[255,0,0,0.1]"></aol-style-fill>
+                                    </aol-style>
+                                </aol-feature>                                 
+                            </div>                            
+                            <div *ngFor="let w of app.data.notes; let i=index;">
+                                <aol-feature [id]="'note.'+ w[0]">
+                                    <aol-geometry-point>
+                                        <aol-coordinate 
+                                            [x]="w[1].position.longitude" 
+                                            [y]="w[1].position.latitude" 
+                                            [srid]="app.config.map.srid">
+                                        </aol-coordinate>
+                                    </aol-geometry-point>
+                                    <aol-style>
+                                        <aol-style-icon 
+                                            [anchor]="[3.5, 3]"
+                                            [anchorXUnits]="'pixels'"
+                                            [anchorYUnits]= "'pixels'"
+                                            [src]="'./assets/img/note.png'"
+                                            [size]="[25,25]"
+                                            [scale]="1"
+                                            [rotateWithView]="false"
+                                            [rotation]="0">
+                                        </aol-style-icon>
+                                    </aol-style>
+                                </aol-feature>
+                            </div>
+                        </aol-source-vector> 
+                    </aol-layer-vector>
+                    <!-- *** NOTES *** -->    
+
                     <!-- *** popover *** -->
-                    <aol-overlay *ngIf="display.overlay.show">
+                    <aol-overlay *ngIf="display.overlay.show && !draw.modify">
                         <aol-coordinate
                             [x]="display.overlay.position[0]"
                             [y]="display.overlay.position[1]"
                             [srid]="app.config.map.srid">
                         </aol-coordinate>
                         <aol-content>
+                            <!--Feature LIST popover-->
+                            <ap-popover *ngIf="this.display.overlay['type']=='list';"
+                                [title]="display.overlay.title" 
+                                [canClose]="true"
+                                (close)="popoverClosed()">
+                                
+                                <mat-nav-list>
+                                    <mat-list-item *ngFor="let f of this.display.overlay['content']">
+                                        <a matLine href="#" (click)="trimDrawFeatureList(f.id); formatPopover(f.id, f.coord, f.mrid)">
+                                            <mat-icon [color]="(f.text=='self') ? 'warn' : '' ">
+                                                {{f.icon}}
+                                            </mat-icon>
+                                            {{(f.text=='self') ? this.display.vessels.self.name || 'Self' : f.text}}
+                                        </a>
+                                    </mat-list-item>
+                                </mat-nav-list>
+
+                            </ap-popover>                               
                             <!--resource popover-->
-                            <ap-popover *ngIf="this.display.overlay['type']!='ais';"
+                            <ap-popover *ngIf="this.display.overlay['type']!='ais' && this.display.overlay['type']!='list'"
                                 [title]="display.overlay.title" 
                                 [canClose]="!measure.enabled"
                                 (close)="popoverClosed()">
@@ -417,49 +602,87 @@
                                     <div style="font-weight:bold;">{{p[0]}}:</div>
                                     <div style="flex: 1 1 auto;text-align:right;">{{p[1]}}</div>
                                 </div>
-                                <div style="display:flex;">
-                                    <div style="flex:1 1 auto;">
-                                        <div>
-                                            <button mat-button *ngIf="display.overlay.addWaypoint"
-                                                (click)="waypointAdd();display.overlay.show=false"
-                                                color="primary"
-                                                matTooltip="Add Waypoint at vessel location">
-                                                <mat-icon>add_location</mat-icon>
-                                                WAYPOINT HERE
-                                            </button>
-
-                                            <button mat-icon-button *ngIf="display.overlay.canDelete"
-                                                (click)="resourceDelete(display.overlay.id);display.overlay.show=false"
-                                                color="warn"
-                                                matTooltip="Delete">
-                                                <mat-icon>delete</mat-icon>
-                                            </button>
-
-                                            <button mat-button *ngIf="display.overlay.gotoWaypoint"
-                                                (click)="waypointGoTo({id: display.overlay.id});display.overlay.show=false"
-                                                color="primary"
-                                                matTooltip="Navigate to Waypoint">
-                                                <mat-icon>near_me</mat-icon>
-                                            </button>                                           
-
-                                            <button mat-icon-button *ngIf="display.overlay.activateRoute" 
-                                                (click)="routeActivate({id: display.overlay.id});display.overlay.show=false"
-                                                color="primary"
-                                                matTooltip="Make this the Active Route">
-                                                <mat-icon>select_all</mat-icon>
-                                                Activate
-                                            </button>
-                                        </div>  
+                                <div style="display:flex;flex-wrap: wrap;">
+                                    <div style="flex:1 1 50%;" *ngIf="display.overlay.canModify">
+                                        <button mat-button 
+                                            (click)="modifyStart();popoverClosed()"
+                                            color="primary"
+                                            matTooltip="Modify">
+                                            <mat-icon>touch_app</mat-icon>
+                                            MOVE
+                                        </button> 
                                     </div>
-                                    <div style="text-align:right;">
-                                        <button mat-icon-button
-                                            (click)="resourceProperties(display.overlay);display.overlay.show=false"
-                                            *ngIf="display.overlay.showProperties && display.overlay.type!='ais'"
+                                    <div style="flex:1 1 50%;" *ngIf="display.overlay.addWaypoint">
+                                        <button mat-button 
+                                            (click)="skres.showWaypointEditor(null, display.vessels.self.position);popoverClosed()"
+                                            color="primary"
+                                            matTooltip="Add Waypoint at vessel location">
+                                            <mat-icon>add_location</mat-icon>
+                                            WAYPOINT HERE
+                                        </button>
+                                    </div>
+                                    <div style="flex:1 1 50%;" *ngIf="display.overlay.addNote">
+                                        <button mat-button 
+                                            (click)="skres.showNoteEditor({region: { id: display.overlay.id, exists: true } });popoverClosed()"
+                                            color="primary"
+                                            matTooltip="Add Note">
+                                            <mat-icon>local_offer</mat-icon>
+                                            ADD
+                                        </button>                                                 
+                                    </div>
+                                    <div style="flex:1 1 50%;" *ngIf="display.overlay.canDelete">
+                                        <button mat-button 
+                                            (click)="resourceDelete(display.overlay.id);popoverClosed()"
+                                            color="warn"
+                                            matTooltip="Delete">
+                                            <mat-icon>delete</mat-icon>
+                                            DELETE
+                                        </button>
+                                    </div>
+                                    <div style="flex:1 1 50%;" *ngIf="display.overlay.gotoWaypoint">
+                                        <button mat-button 
+                                            (click)="navigateToWaypoint({id: display.overlay.id});popoverClosed()"
+                                            color="primary"
+                                            matTooltip="Navigate to Waypoint">
+                                            <mat-icon>near_me</mat-icon>
+                                            GO TO
+                                        </button>                                           
+                                    </div>
+                                    <div style="flex:1 1 50%;" *ngIf="display.overlay.activateRoute" >
+                                        <button mat-button 
+                                            (click)="routeActivate({id: display.overlay.id});popoverClosed()"
+                                            color="primary"
+                                            matTooltip="Make this the Active Route">
+                                            <mat-icon>select_all</mat-icon>
+                                            ACTIVE
+                                        </button>
+                                    </div>
+                                    <div style="flex:1 1 50%;" *ngIf="display.overlay.deactivateRoute">                                            
+                                        <button mat-button  
+                                            (click)="routeClearActive();popoverClosed()"
+                                            color="primary"
+                                            matTooltip="Clear Active Route">
+                                            <mat-icon>clear_all</mat-icon>
+                                            CLEAR
+                                        </button>
+                                    </div>
+                                    <div style="flex:1 1 50%;" *ngIf="display.overlay.showRelated && display.overlay.type!='ais'">
+                                        <button mat-button
+                                            (click)="skres.showRelatedNotes(display.overlay.showRelated, 'group');popoverClosed()"
+                                            matTooltip="Notes in Group">
+                                            <mat-icon>style</mat-icon>
+                                            GROUP
+                                        </button>  
+                                    </div>                                      
+                                    <div style="flex:1 1 50%;" *ngIf="display.overlay.showProperties && display.overlay.type!='ais'">
+                                        <button mat-button
+                                            (click)="resourceProperties(display.overlay);popoverClosed()"
                                             matTooltip="Show Properties">
                                             <mat-icon>info_outline</mat-icon>
-                                        </button>                                      
-                                    </div>   
-                                </div>                             
+                                            INFO
+                                        </button>  
+                                    </div>                                                                        
+                                </div>                           
                             </ap-popover>
                             <!--AIS popover-->
                             <ap-popover *ngIf="this.display.overlay['type']=='ais';"
@@ -502,11 +725,12 @@
                                     <div style="flex:1 1 auto;">
                                     </div>
                                     <div style="text-align:right;">
-                                        <button mat-icon-button
+                                        <button mat-button
                                             (click)="aisProperties(display.overlay.id);display.overlay.show=false"
                                             *ngIf="display.overlay.showProperties"
                                             matTooltip="Show Properties">
                                             <mat-icon style="color:blue;">info_outline</mat-icon>
+                                            INFO
                                         </button>                                        
                                     </div>   
                                 </div>                             
@@ -607,6 +831,7 @@
                             </aol-feature>    
                             
                             <!-- bearing Line-->
+                            <!-- base -->
                             <aol-feature *ngIf="display.vesselLines.bearing[0] && app.config.anchor.raised">
                                 <aol-geometry-linestring>
                                     <aol-collection-coordinates
@@ -616,10 +841,40 @@
                                 </aol-geometry-linestring>
                                 <aol-style>
                                     <aol-style-stroke 
-                                        [color]="'rgba(221, 99, 0, 0.5)'" [width]="1">
+                                        [color]="'white'" [width]="6">
+                                    </aol-style-stroke>                                  
+                                </aol-style>
+                            </aol-feature>  
+                            <!-- highlight -->
+                            <aol-feature *ngIf="display.vesselLines.bearing[0] && app.config.anchor.raised">
+                                <aol-geometry-linestring>
+                                    <aol-collection-coordinates
+                                        [coordinates]="display.vesselLines.bearing"
+                                        [srid]="app.config.map.srid">
+                                    </aol-collection-coordinates>
+                                </aol-geometry-linestring>
+                                <aol-style>
+                                    <aol-style-stroke 
+                                        [color]="'rgba(221, 149, 0, 1)'" [width]="2">
                                     </aol-style-stroke>
                                 </aol-style>
-                            </aol-feature>        
+                            </aol-feature>  
+                            <!-- marker -->
+                            <aol-feature *ngIf="display.navData.position && app.config.anchor.raised">
+                                <aol-geometry-point>
+                                    <aol-coordinate 
+                                        [x]="display.navData.position[0]" 
+                                        [y]="display.navData.position[1]" 
+                                        [srid]="app.config.map.srid">
+                                    </aol-coordinate>
+                                </aol-geometry-point>
+                                <aol-style>
+                                    <aol-style-circle [radius]="5">
+                                        <aol-style-stroke [color]="'white'" [width]="2"></aol-style-stroke>
+                                        <aol-style-fill [color]="'rgba(221, 149, 0, 1)'"></aol-style-fill>                                        
+                                    </aol-style-circle>
+                                </aol-style>
+                            </aol-feature>                                  
 
                             <!-- TWD Line -->
                             <aol-feature *ngIf="display.vesselLines.twd[0] && app.config.anchor.raised">
@@ -684,7 +939,7 @@
             <!--/map panel-->
 
             <!-- Draw / Measure Help -->
-            <div *ngIf="draw.enabled || measure.enabled"
+            <div *ngIf="draw.enabled || draw.modify || measure.enabled"
                 style="position: absolute; top: 60px; left:10px; 
                     width:150px;
                     border: black 1px solid;
@@ -697,7 +952,7 @@
                     </span>
                     <div *ngIf="draw.type=='Point'"
                         style="padding: 5px;">
-                        Click on the Map to drop the Waypoint.
+                        Click on the Map where to drop the feature.
                     </div>
                     <div *ngIf="draw.type=='LineString'"
                         style="padding: 5px;">
@@ -708,7 +963,29 @@
                             <li>Click on the last Point to end drawing.</li>
                         </ol>
                     </div> 
+                    <div *ngIf="draw.type=='Polygon'"
+                        style="padding: 5px;">
+                        <ol style="margin-block-start: .2em;
+                                margin-block-end: .2em;
+                                padding-inline-start: 15px;">
+                            <li>Click on the Map to place a vertex of the Region.</li>
+                            <li>Click on the last point to end drawing.</li>
+                        </ol>
+                    </div>                     
                 </div>
+                <div *ngIf="draw.modify">
+                        <span style="font-weight:bold;padding: 5px;">
+                            <mat-icon>edit</mat-icon> Modify:
+                        </span>
+                        <div style="padding: 5px;">
+                            <ol style="margin-block-start: .2em;
+                                    margin-block-end: .2em;
+                                    padding-inline-start: 15px;">
+                                <li>Click and drag to move point.</li>
+                                <li>Alt-Click to remove point from line.</li>
+                            </ol>
+                        </div> 
+                    </div>                 
                 <div *ngIf="measure.enabled">
                     <span style="font-weight:bold;padding: 5px;">
                         <mat-icon>straighten</mat-icon> Measure:
@@ -725,57 +1002,15 @@
                 <div style="text-align: center;">
                 <!-- cancel Draw / Measure button -->
                 <a mat-raised-button
-                    color="warn" *ngIf="draw.enabled || measure.enabled"
-                    (click)="draw.enabled=false;measure.enabled=false;display.overlay.show=false;"
-                    [matTooltip]="(measure.enabled) ? 'Cancel Measure' : 'Cancel Draw'" 
+                    color="warn" *ngIf="draw.enabled || draw.modify || measure.enabled"
+                    (click)="drawEnd()"
+                    [matTooltip]="(measure.enabled) ? 'Cancel Measure' : (draw.modify) ? 'Cancel Editing' : 'Cancel Draw'" 
                     matTooltipPosition="left">
                     <mat-icon>close</mat-icon>
-                    CANCEL
+                    {{ (draw.modify) ? 'FINISH' : 'CANCEL'}}
                 </a>                      
                 </div>             
             </div>         
-
-            <!--left menu panel-->
-            <div class="leftMenuPanel" *ngIf="display.leftMenuPanel">
-                <route-list [routes]="app.data.routes" *ngIf="display.routeList"
-                    (select)="routeSelected($event)"
-                    (delete)="routeDelete($event)"
-                    (activate)="routeActivate($event)"
-                    (refresh)="skres.getRoutes()"
-                    (properties)="resourceProperties($event)"
-                    (closed)="displayLeftMenu()">
-                </route-list>
-
-                <waypoint-list [waypoints]="app.data.waypoints" *ngIf="display.waypointList"
-                    (select)="waypointSelected($event)"
-                    (delete)="waypointDelete($event)"
-                    (goto)="waypointGoTo($event)"
-                    (refresh)="skres.getWaypoints()"
-                    (properties)="resourceProperties($event)"
-                    (closed)="displayLeftMenu()">
-                </waypoint-list>       
-                
-                <chart-list [charts]="app.data.charts" *ngIf="display.chartList"
-                    (select)="chartSelected($event)"
-                    (refresh)="skres.getCharts()"
-                    (closed)="displayLeftMenu()">
-                </chart-list>   
-
-                <ais-list [aisTargets]="display.vessels.aisTargets" *ngIf="display.aisList"
-                    (select)="aisSelected($event)"
-                    (properties)="aisProperties($event)"
-                    (closed)="displayLeftMenu()">
-                </ais-list>                   
-                
-                <anchor-watch *ngIf="display.anchorWatch"
-                    min="10" max="500" 
-                    [radius]="app.config.anchor.radius" 
-                    [feet]="(app.config.units.depth!='m') ? true : false"
-                    [raised]="app.config.anchor.raised"
-                    (change)="anchorEvent($event)"
-                    (closed)="displayLeftMenu()">
-                </anchor-watch>                     
-            </div>
 
             <!-- *** Playback panel ***-->
             <div class="playbackPanel" *ngIf="mode==1">
@@ -784,6 +1019,7 @@
                 </div>
                 <div style="text-align:center;"> {{display.playback.time}}</div>
             </div>
+
             <!-- *** Alarm / Mode panel ***-->
 			<div class="alarmPanel">
                 <span *ngFor="let a of display.alarms | keyvalue" style="margin-bottom: 5px;">
