@@ -89,14 +89,18 @@ export class SKResources {
     // **** ROUTES ****
 
     // ** get routes from sk server
-    getRoutes() {
-        this.signalk.api.get('vessels/self/navigation/courseGreatCircle/activeRoute')
+    getRoutes(activeId?:string) {
+        let context= (activeId) ? 
+            activeId.split('.').join('/') : 'vessels/self';
+
+        this.signalk.api.get(`${context}/navigation/courseGreatCircle/activeRoute`)
         .subscribe( 
             r=> {
                 if(r['href'] && r['href'].value) {
                     let a= r['href'].value.split('/');
                     this.app.data.activeRoute= a[a.length-1];
-                }  
+                } 
+                else { this.app.data.activeRoute=null } 
                 this.retrieveRoutes();      
             },
             e=> { this.retrieveRoutes() }
@@ -194,8 +198,7 @@ export class SKResources {
                     this.getRoutes();                        
                 }                
             },
-            err=> { 
-                //this.getRoutes();
+            err=> {
                 if(err.status && err.status==401) { 
                     this.showAuth().subscribe( res=> {
                         if(res.cancel) { this.authResult(false) }
@@ -376,28 +379,25 @@ export class SKResources {
     }    
 
     // ** set activeRoute.href, startTime and nextPoint.position **
-    activateRoute(id:string, startPoint:any) { 
+    activateRoute(id:string, startPoint:any, activeId?:string) { 
+        let context= (activeId) ? activeId : 'self';
         let dt= new Date();    
         this.signalk.api.put(
-            'self', 
+            context, 
             'navigation/courseGreatCircle/activeRoute/href', 
             `/resources/routes/${id}`
         )
         .subscribe( 
             r=> {
                 this.signalk.api.put(
-                    'self', 
+                    context, 
                     'navigation/courseGreatCircle/activeRoute/startTime', 
                     dt.toISOString()
                 )
                 .subscribe( 
                     r=> { 
                         this.app.debug('Route activated');
-                        this.signalk.api.put('self', 
-                            'navigation/courseGreatCircle/nextPoint/position', 
-                            startPoint
-                        ).subscribe( r=> { this.app.debug('nextPoint set') } );                            
-
+                        this.setNextPoint(startPoint);
                     },
                     err=> { this.showAlert('ERROR:', 'Server could not Activate Route!') }
                 );
@@ -426,12 +426,13 @@ export class SKResources {
     }   
 
     // ** clear activeRoute.href, startTime and nextPoint.position **
-    clearActiveRoute() { 
-        this.signalk.api.put('self', 'navigation/courseGreatCircle/activeRoute/href', null)
+    clearActiveRoute(activeId?:string) { 
+        let context= (activeId) ? activeId : 'self';
+        this.signalk.api.put(context, 'navigation/courseGreatCircle/activeRoute/href', null)
         .subscribe( 
             r=> { 
                 this.app.debug('Active Route cleared');
-                this.signalk.api.put('self', 'navigation/courseGreatCircle/nextPoint/position', null)
+                this.signalk.api.put(context, 'navigation/courseGreatCircle/nextPoint/position', null)
                 .subscribe( r=> { this.app.debug('nextPont cleared') } );               
             },
             err=> { 
@@ -458,12 +459,12 @@ export class SKResources {
     }      
     
     // ** nextPoint.position **
-    setNextPoint(position:any) {
+    setNextPoint(pt:{latitude:number, longitude:number}) {
         this.signalk.api.put('self', 
             'navigation/courseGreatCircle/nextPoint/position', 
-            position
+            pt
         ).subscribe( 
-            r=> { this.app.debug('nextPoint set') },
+            r=> { this.app.debug('nextpoint/position set') },
             err=> { 
                 if(err.status && err.status==401) { 
                     this.showAuth().subscribe( res=> {
@@ -472,7 +473,7 @@ export class SKResources {
                             this.signalk.login(res.user, res.pwd).subscribe(
                                 r=> {   // ** authenticated
                                     this.authResult(true, r['token']);
-                                    this.setNextPoint(position);
+                                    this.setNextPoint(pt);
                                 },
                                 err=> {   // ** auth failed
                                     this.authResult(false);
@@ -1408,8 +1409,8 @@ export class SKVessel {
     id: string;
     position= [0,0];
     heading: number;
-    headingTrue: number= 0;
-    headingMagnetic: number= 0;
+    headingTrue: number= null;
+    headingMagnetic: number= null;
     cog: number;
     cogTrue: number= null;
     cogMagnetic: number= null;
@@ -1420,6 +1421,7 @@ export class SKVessel {
     state: string;   
     wind= { direction: null, mwd: null, twd: null, tws: null, awa: null, aws: null };
     lastUpdated= new Date();
+    orientation:number= 0;
 }
 
 // ** Signal K Note

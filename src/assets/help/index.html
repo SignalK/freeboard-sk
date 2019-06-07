@@ -216,6 +216,8 @@
                     <img src="./img/vessel_popover.png" style="height:150px;"/>
                     &nbsp;&nbsp;
                     <img src="./img/ais_popover.png" style="height:150px;"/>
+                    &nbsp;&nbsp;
+                    <img src="./img/ais_properties.png" style="height:150px;"/>
                 </P>                 
             </div>	
 
@@ -578,10 +580,24 @@
                         <li><b>Filter Vessels:</b> Type into the text box to filter the list of vessels.</li>
                         <li><b>Display Vessel:</b> Tick the checkbox to display the vessel on the map.</li>
                         <i>Freeboard by default will display all vessels</i><br>
-                        <li><i class="material-icons">info_outline</i>
-                            Click the list entry to display the vessel properties.
+                        <li>
+                            <i class="material-icons">info_outline</i>
+                            <b>Info:</b>
+                            Click this button to display the vessel properties.
                         </li>
-                        
+                        <li>
+                            <i class="material-icons">center_focus_weak</i>
+                            <b>Focus:</b> Click this button to set this vessel as the active vessel
+                            and direct all actions to this vessels path on the Signal K server.<br>
+                            <i>Note: Actions may fail if the Signal K server does not support PUTs to paths 
+                                other than `vessels/self`
+                            </i>
+                        </li>
+                        <li>
+                            <i class="material-icons">clear_all</i>
+                            <b>Unfocus:</b> Click this button to reset the active vessel
+                            to <i>self</i>.
+                        </li>                        
                     </div>
                 </div> 
                 <img src="./img/ais_properties.png"style="max-width:250px;"/><br>

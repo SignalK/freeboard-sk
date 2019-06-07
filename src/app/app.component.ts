@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, ViewChild } from '@angular/core';
 import { MatDialog } from '@angular/material';
 import { DomSanitizer, SafeResourceUrl} from '@angular/platform-browser';
 
@@ -10,10 +10,8 @@ import { SettingsDialog } from './pages';
 import { GPXImportDialog } from './lib/gpxload/gpxload.module';
 
 import { SignalKClient, Alarm, AlarmState } from 'signalk-client-angular';
-import { SKResources, SKWaypoint, SKVessel, SKNote, SKRegion,
-        ResourceDialog, AISPropertiesDialog, SKRoute } from './lib/skresources';
-
-import { NoteDialog  } from './lib/skresources';
+import { SKResources, SKVessel, SKRegion,
+         AISPropertiesDialog } from './lib/skresources';
 
 import { Convert } from './lib/convert';
 import { GeoUtils } from './lib/geoutils';
@@ -29,6 +27,8 @@ enum APP_MODE { REALTIME=0, PLAYBACK }
   styleUrls: ['./app.component.css']
 })
 export class AppComponent {
+
+    @ViewChild('sideright') sideright;
 
     public display= {
         badge: { hide: true, value: '!'},
@@ -56,10 +56,12 @@ export class AppComponent {
         },
         vessels: { 
             self: new SKVessel(), 
-            aisTargets: new Map()
+            aisTargets: new Map(),
+            activeId: null,
+            active: null
         },
         alarms: new Map(),
-        map: { center: [0,0], rotation: 0, minZoom: 1, maxZoom:28, vesselRotation: 0 },        
+        map: { center: [0,0], rotation: 0, minZoom: 1, maxZoom:28 },        
         vesselLines: {
             twd: [null,null],
             awa: [null,null],
@@ -137,9 +139,13 @@ export class AppComponent {
         public signalk: SignalKClient,
         public skres: SKResources,
         private dialog: MatDialog) { 
+            // set self to active vessel
+            this.display.vessels.active= this.display.vessels.self
+
             this.lastInstUrl= this.app.config.plugins.instruments;
             this.instUrl= dom.bypassSecurityTrustResourceUrl(`${this.app.host}${this.app.config.plugins.instruments}`);
             this.coord= coordinate;
+
             /* draw styles */
             this.measure.style= new style.Style({
                 stroke: new style.Stroke({
@@ -256,6 +262,33 @@ export class AppComponent {
         });
     } 
 
+    // ** set the active vessel to the supplied UUID **
+    switchActiveVessel(uuid: string=null) {
+        this.display.vessels.activeId= uuid;
+        if(!uuid) { this.display.vessels.active= this.display.vessels.self }
+        else {
+            let av= this.display.vessels.aisTargets.get(uuid);
+            if(!av) {
+                this.display.vessels.active= this.display.vessels.self;
+                this.display.vessels.activeId= null;
+            }
+            else { 
+                this.display.vessels.active= av;
+                // if instrument panel open - close it
+                this.sideright.close();
+            }
+        }
+        this.app.data.activeRoute= null;
+        this.clearTrail(true);
+        this.clearCourseData();
+        this.getAnchorStatus();
+        this.skres.getRoutes(uuid); // get activeroute from active vessel
+        this.display.alarms.clear(); // reset displayed alarm(s)
+
+        this.app.debug(`** Active vessel: ${this.display.vessels.activeId} `);
+        this.app.debug(this.display.vessels.active);
+    }
+
     // ** switch between realtime and history playback modes
     switchMode(toMode: APP_MODE, query:any='none') {
         this.app.debug(`switchMode from: ${this.mode} to ${toMode}`);
@@ -268,6 +301,7 @@ export class AppComponent {
                 this.app.data.trail= (t && t.value) ? t.value : [];
             });
         }
+        this.switchActiveVessel();
         this.openSKStream(query, toMode);
     }   
     
@@ -585,7 +619,7 @@ export class AppComponent {
     }
 
     gpxResult(errCount:number) {
-        this.skres.getRoutes();
+        this.skres.getRoutes(this.display.vessels.activeId);
         this.skres.getWaypoints();
         this.app.saveConfig();       
         if(errCount==0) { this.showAlert('GPX Load','GPX file resources loaded successfully.') }
@@ -747,14 +781,12 @@ export class AppComponent {
     mapRotate() {
         if(this.app.config.map.northUp) { this.display.map.rotation=0 }
         else { 
-            let h= (typeof this.display.vessels.self.heading === 'undefined') ? 
-                this.display.vessels.self.cog : this.display.vessels.self.heading;
-            this.display.map.rotation= 0- (h || 0); 
+            this.display.map.rotation= 0-this.display.vessels.active.orientation; 
         }
     }
 
     mapMove() { 
-        let t=this.display.vessels.self.position;
+        let t=this.display.vessels.active.position;
         t[0]+=0.0000000000001;
         this.display.map.center= t;
     }
@@ -764,67 +796,68 @@ export class AppComponent {
         let offset= (z<29) ? this.zoomOffsetLevel[z] : 60;
         let wMax= 10;   // ** max line length
 
-        // ** heading line **
-        let sog=(this.display.vessels.self.sog || 0);
+        // ** bearing line (active) **
+        let bpos= (this.display.navData.position && this.display.navData.position[0]) ? 
+            this.display.navData.position : this.display.vessels.active.position;
+        this.display.vesselLines.bearing= [
+            this.display.vessels.active.position, 
+            bpos
+        ]; 
+
+        // ** anchor line (active) **
+        if(!this.app.config.anchor.raised) {
+            this.display.vesselLines.anchor= [
+                this.app.config.anchor.position,
+                this.display.vessels.active.position
+            ];
+        }                     
+
+        // ** heading line (active) **
+        let sog=(this.display.vessels.active.sog || 0);
         if(sog>wMax) { sog=wMax }
         this.display.vesselLines.heading= [
-            this.display.vessels.self.position, 
+            this.display.vessels.active.position, 
             GeoUtils.destCoordinate(
-                this.display.vessels.self.position[1],
-                this.display.vessels.self.position[0],
-                this.display.map.vesselRotation,
+                this.display.vessels.active.position[1],
+                this.display.vessels.active.position[0],
+                this.display.vessels.active.orientation,
                 sog * offset
             )
         ];
 
-        // ** bearing line **
-        let bpos= (this.display.navData.position && this.display.navData.position[0]) ? 
-            this.display.navData.position : this.display.vessels.self.position;
-        this.display.vesselLines.bearing= [
-            this.display.vessels.self.position, 
-            bpos
-        ];  
-        
-        
-        // ** awa **
-        let aws= (this.display.vessels.self.wind.aws || 0);
+        // ** awa (focused) **
+        let aws= (this.display.vessels.active.wind.aws || 0);
         if(aws>wMax) { aws=wMax }
 
         let ca= (this.app.config.map.northup) ? 
-            this.display.vessels.self.wind.awa :
-            this.display.vessels.self.wind.awa + this.display.map.vesselRotation;
+            this.display.vessels.active.wind.awa :
+            this.display.vessels.active.wind.awa + this.display.vessels.active.orientation;
 
         this.display.vesselLines.awa= [
-            this.display.vessels.self.position, 
+            this.display.vessels.active.position, 
             GeoUtils.destCoordinate(
-                this.display.vessels.self.position[1],
-                this.display.vessels.self.position[0],
+                this.display.vessels.active.position[1],
+                this.display.vessels.active.position[0],
                 ca,
-                (this.display.map.vesselRotation) ? aws * offset : 0
+                (this.display.vessels.active.orientation) ? aws * offset : 0
             )
         ];        
         
-        // ** twd **
-        let tws= (this.display.vessels.self.wind.tws || 0);
+        // ** twd (focused) **
+        let tws= (this.display.vessels.active.wind.tws || 0);
         if(tws>wMax) { tws=wMax }
-        let wd= (this.app.useMagnetic) ? this.display.vessels.self.wind.mwd : this.display.vessels.self.wind.twd;
+        let wd= (this.app.useMagnetic) ? 
+            this.display.vessels.active.wind.mwd : 
+            this.display.vessels.active.wind.twd;
         this.display.vesselLines.twd= [
-            this.display.vessels.self.position, 
+            this.display.vessels.active.position, 
             GeoUtils.destCoordinate(
-                this.display.vessels.self.position[1],
-                this.display.vessels.self.position[0],
+                this.display.vessels.active.position[1],
+                this.display.vessels.active.position[0],
                 wd || 0,
                 (wd) ? tws * offset : 0
             )
         ];
-
-        // ** anchor line **
-        if(!this.app.config.anchor.raised) {
-            this.display.vesselLines.anchor= [
-                this.app.config.anchor.position,
-                this.display.vessels.self.position
-            ];
-        }
     }
 
     popoverClosed() { this.display.overlay.show= false }
@@ -842,11 +875,12 @@ export class AppComponent {
         this.display.overlay['showRelated']=null;
         this.display.overlay['canDelete']=null;
         this.display.overlay['url']=null;
+        this.display.overlay['isSelf']=false;
         this.display.overlay.content=[];
         if(!id) { this.display.overlay.show=false; return }
 
         let item= null;
-        let info= [];        
+        let info:any;        
         let t= id.split('.');
 
         this.display.overlay.position= proj.transform(
@@ -877,13 +911,12 @@ export class AppComponent {
                 break;
             case 'vessels':
                 this.display.overlay.title= (this.display.vessels.self.name) ? 
-                    this.display.vessels.self.name : 'Self'; 
-                info.push(['MMSI', this.display.vessels.self.mmsi]);
-                info.push(['Call Sign', this.display.vessels.self.callsign]);  
-                info.push(['State', this.display.vessels.self.state]);     
+                    this.display.vessels.self.name : 'Self';      
                 this.display.overlay['addWaypoint']=true;
-                this.display.overlay['type']='vessel';
+                this.display.overlay['type']= 'ais';
+                this.display.overlay['isSelf']=true;
                 this.display.overlay['showProperties']=false;
+                info= this.display.vessels.self;
                 break;
             case 'ais-vessels':
                 let aid= id.slice(4);
@@ -902,7 +935,8 @@ export class AppComponent {
                 this.display.overlay['showProperties']=true;
                 this.display.overlay['canDelete']=true;
                 this.display.overlay['canModify']=true;  
-                this.display.overlay.title= 'Note';  
+                this.display.overlay.title= 'Note'; 
+                info= [];
                 info.push(['Title', item[0][1].title]);
                 if(item[0][1].url) { this.display.overlay['url']=item[0][1].url }   
                 if(item[0][1].group) { this.display.overlay['showRelated']= item[0][1].group }          
@@ -918,6 +952,7 @@ export class AppComponent {
                 this.display.overlay['activateRoute']=!item[0][3];
                 this.display.overlay['deactivateRoute']=item[0][3];
                 this.display.overlay['canDelete']= !item[0][3];
+                info= [];
                 info.push(['Name', item[0][1].name]);
                 let d= (this.app.config.units.distance=='m') ?
                     [ (item[0][1].distance/1000).toFixed(1), 'km' ] :
@@ -934,6 +969,7 @@ export class AppComponent {
                 this.display.overlay['type']='waypoint';
                 this.display.overlay.title= 'Waypoint';   
                 this.display.overlay['canDelete']= (this.display.overlay['type']=='waypoint' && !this.display.overlay['addWaypoint']) ? true : false;
+                info= [];
                 if(item[0][1].feature.properties.name) {
                     info.push( ['Name', item[0][1].feature.properties.name] );
                 }
@@ -1068,7 +1104,7 @@ export class AppComponent {
                     }                                 
                 }
                 else {
-                    if(r[0]=='route') { this.skres.getRoutes() }
+                    if(r[0]=='route') { this.skres.getRoutes(this.display.vessels.activeId) }
                     if(r[0]=='waypoint') { this.skres.getWaypoints() }
                     if(r[0]=='note' || r[0]=='region') { this.skres.getNotes() }
                 }
@@ -1274,14 +1310,14 @@ export class AppComponent {
         let c= t[0][1].feature.geometry.coordinates[this.display.navData.pointIndex];
         let startPoint= {latitude: c[1], longitude: c[0]};      
         
-        this.skres.activateRoute(e.id, startPoint);
+        this.skres.activateRoute(e.id, startPoint, this.display.vessels.activeId);
     }   
 
     // ** clear active route **
     routeClearActive() { 
         this.display.navData.pointIndex= -1;
         this.display.navData.pointTotal= 0;
-        this.skres.clearActiveRoute();
+        this.skres.clearActiveRoute(this.display.vessels.activeId);
     }      
    
     // ** Set active route as nextPoint **
@@ -1388,9 +1424,12 @@ export class AppComponent {
 
     // ******** ANCHOR WATCH EVENTS ************
     anchorEvent(e:any) {
+        let context= (this.display.vessels.activeId) ? this.display.vessels.activeId : 'self';
         if(e.action=='radius') {
             this.app.config.anchor.radius= e.radius;            
-            this.signalk.api.put('self', '/navigation/anchor/maxRadius', 
+            this.signalk.api.put(
+                context, 
+                '/navigation/anchor/maxRadius', 
                 this.app.config.anchor.radius
             ).subscribe(
                 r=> { this.getAnchorStatus() },
@@ -1403,15 +1442,19 @@ export class AppComponent {
         }
         if(!e.raised) {  // ** drop anchor
             this.app.config.anchor.raised= false;
-            this.app.config.anchor.position= this.display.vessels.self.position;
-            this.signalk.api.put('self','/navigation/anchor/position', 
+            this.app.config.anchor.position= this.display.vessels.active.position;
+            this.signalk.api.put(
+                context,
+                '/navigation/anchor/position', 
                 {
                     latitude: this.app.config.anchor.position[1],
                     longitude: this.app.config.anchor.position[0]
                 }
             ).subscribe(
                 r=> { 
-                    this.signalk.api.put('self', '/navigation/anchor/maxRadius', 
+                    this.signalk.api.put(
+                        context, 
+                        '/navigation/anchor/maxRadius', 
                         this.app.config.anchor.radius
                     ).subscribe(
                         r=> { this.getAnchorStatus() },
@@ -1427,7 +1470,11 @@ export class AppComponent {
         else {  // ** raise anchor
             this.app.config.anchor.raised= true;
             this.display.alarms.delete('anchor');
-            this.signalk.api.put('self', '/navigation/anchor/position', null ).subscribe(
+            this.signalk.api.put(
+                context, 
+                '/navigation/anchor/position', 
+                null 
+            ).subscribe(
                 r=> { this.getAnchorStatus() },
                 err=> { 
                     this.parseAnchorError(err); 
@@ -1440,7 +1487,9 @@ export class AppComponent {
     // ** query anchor status
     getAnchorStatus() {
         this.app.debug('Retrieving anchor status...');
-        this.signalk.api.get('/vessels/self/navigation/anchor').subscribe(
+        let context= (this.display.vessels.activeId) ? 
+            this.display.vessels.activeId.split('.').join('/') : 'vessels/self';
+        this.signalk.api.get(`/${context}/navigation/anchor`).subscribe(
             r=> {
                 this.app.debug(r);
                 if(r['position'] && r['position']['value']) {
@@ -1453,7 +1502,7 @@ export class AppComponent {
                         this.app.config.anchor.raised= false;
                     }  
                     else { 
-                        this.app.config.anchor.position= this.display.vessels.self.position; 
+                        this.app.config.anchor.position= this.display.vessels.active.position; 
                         this.app.config.anchor.raised= true;
                     }
                 }
@@ -1530,12 +1579,14 @@ export class AppComponent {
     // ** query server for current values **
     queryAfterConnect() {
         // ** get vessel details
+        let context= (this.display.vessels.activeId) ? 
+            this.display.vessels.activeId.split('.').join('/') : 'vessels/self';
         this.signalk.api.getSelf().subscribe(
             r=> {  
                 this.display.vessels.self.mmsi= (r['mmsi']) ? r['mmsi'] : null;
                 this.display.vessels.self.name= (r['name']) ? r['name'] : null;
                 // ** query navigation status
-                this.signalk.api.get('/vessels/self/navigation').subscribe(
+                this.signalk.api.get(`/${context}/navigation`).subscribe(
                     r=> {
                         let c;
                         if( r['courseRhumbline'] ) { c= r['courseRhumbline'] }
@@ -1547,7 +1598,7 @@ export class AppComponent {
                     err=> { this.app.debug('No navigation data available!') }
                 ); 
                 // ** query for resources
-                this.skres.getRoutes();
+                this.skres.getRoutes(this.display.vessels.activeId);
                 this.skres.getWaypoints();
                 this.skres.getCharts();  
                 this.skres.getNotes();
@@ -1566,27 +1617,19 @@ export class AppComponent {
         this.signalk.stream.subscribe(
             'vessels.*',
             [
-                {"path":"uuid","period":10000,"policy":'fixed'},
-                {"path":"name","period":10000,"policy":'fixed'},
-                {"path":"communication.callsignVhf","period":10000,"policy":'fixed'},
-                {"path":"mmsi","period":10000,"policy":'fixed'},
-                {"path":"port","period":10000,"policy":'fixed'},
-                {"path":"flag","period":10000,"policy":'fixed'},
-                {"path":"navigation.position","period":10000,"policy":'fixed'},
-                {"path":"navigation.state","period":10000,"policy":'fixed'},
-                {"path":"navigation.courseOverGroundTrue*","period":10000,"policy":'fixed'},
-                {"path":"navigation.courseOverGroundMagnetic*","period":10000,"policy":'fixed'},
-                {"path":"navigation.headingMagnetic*","period":10000,"policy":'fixed'},
-                {"path":"navigation.headingTrue*","period":10000,"policy":'fixed'},
-                {"path":"navigation.speedOverGround","period":10000,"policy":'fixed'},
-                {"path":"environment.wind.*","period":10000,"policy":'fixed'},
+                {"path":"uuid","period":1000,"policy":'fixed'},
+                {"path":"name","period":1000,"policy":'fixed'},
+                {"path":"communication.callsignVhf","period":1000,"policy":'fixed'},
+                {"path":"mmsi","period":1000,"policy":'fixed'},
+                {"path":"port","period":1000,"policy":'fixed'},
+                {"path":"flag","period":1000,"policy":'fixed'},
+                {"path":"navigation.*","period":1000,"policy":'fixed'},
+                {"path":"environment.wind.*","period":1000,"policy":'fixed'}
             ]
         );
         this.signalk.stream.subscribe(
             "vessels.self",
             [
-                {"path":"navigation.*","period":1000,"policy":'fixed'},
-                {"path":"environment.wind.*","period":1000,"policy":'fixed'},
                 {"path":"notifications.*","period":1000}
             ]
         );         
@@ -1653,14 +1696,31 @@ export class AppComponent {
                 u.values.forEach( v=> {
                     if(this.signalk.stream.isSelf(e)) { this.displayVesselSelf(v) }
                     else { this.displayVesselOther(e.context, v) }
+
+                    // ** update active vessel map display **
+                    if( (this.signalk.stream.isSelf(e) && !this.display.vessels.activeId) ||
+                         e.context==this.display.vessels.activeId) {
+
+                        if( v.path=='navigation.position' && this.app.config.map.moveMap) {
+                            this.display.map.center= this.display.vessels.active.position;
+                        } 
+
+                        if(v.path.indexOf('navigation.courseRhumbline')!=-1 
+                            || v.path.indexOf('navigation.courseGreatCircle')!=-1)  { 
+                                this.processCourse(v); 
+                        }        
+                        // ** alarms **
+                        if(v.path.indexOf('notifications.')!=-1) { this.processAlarms(v) } 
+
+                        this.mapVesselLines();
+                        this.mapRotate();  
+                    }                    
                 });
             }); 
             return;
         }  
         // ** unkown message type
         this.display.onCloseWarning.type='other'
-
-
     }   
 
     // ******** Process STREAM data update display **************
@@ -1670,9 +1730,6 @@ export class AppComponent {
         let updateVlines= true;
         this.processVessel(d,v);
 
-        // ** vessel on map rotation
-        this.display.map.vesselRotation= (!d.heading && typeof d.cog!== 'undefined') ? d.cog : (d.heading || 0);
-
         // ** add to true / magnetic selection list
         if( v.path=='navigation.headingMagnetic' && 
             this.app.data.headingValues.indexOf(v.path)==-1) { 
@@ -1681,28 +1738,13 @@ export class AppComponent {
         // ** update vessel on map **
         if( v.path=='navigation.position') {
             this.display.showSelf= true;
-            // ** move map
-            if(this.app.config.map.moveMap) {
-                this.display.map.center= d.position;
-            } 
             // ** locate vessel popover
-            if(this.display.overlay.show && this.display.overlay['type']=='vessel') { 
+            if(this.display.overlay.show && this.display.overlay['isSelf']) { 
                 this.display.overlay.position= d.position 
             }                       
         }
         if(v.path=='navigation.state') { updateVlines= false; }
-        if(v.path.indexOf('navigation.courseRhumbline')!=-1 
-            || v.path.indexOf('navigation.courseGreatCircle')!=-1)  { 
-                this.processCourse(v); 
-        }
-        if(v.path=='communication.callsignVhf') { updateVlines= false; }   
-
-        // ** update map display **
-        if( updateVlines) { this.mapVesselLines() }
-        this.mapRotate();  
-
-        // ** alarms **
-        if(v.path.indexOf('notifications.')!=-1) { this.processAlarms(v) }                       
+        if(v.path=='communication.callsignVhf') { updateVlines= false }                       
     }
 
     displayVesselOther(id: string, v: any) {
@@ -1748,6 +1790,9 @@ export class AppComponent {
             d.headingMagnetic= v.value;
             if(this.app.useMagnetic) { d.heading= v.value }         
         }
+
+        d.orientation= (d.heading!=null) ? d.heading : 
+            (d.cog!=null) ? d.cog : 0;
 
         if(v.path=='navigation.speedOverGround') { d.sog= v.value }
         if( v.path=='navigation.position') {
@@ -1943,12 +1988,12 @@ export class AppComponent {
         // ** update vessel trail **
         let t= this.app.data.trail.slice(-1);
         if(t.length==0) { 
-            this.app.data.trail.push(this.display.vessels.self.position);
+            this.app.data.trail.push(this.display.vessels.active.position);
             return;
         }
-        if( this.display.vessels.self.position[0]!=t[0][0] ||
-                this.display.vessels.self.position[1]!=t[0][1] ) {
-            this.app.data.trail.push(this.display.vessels.self.position) 
+        if( this.display.vessels.active.position[0]!=t[0][0] ||
+                this.display.vessels.active.position[1]!=t[0][1] ) {
+            this.app.data.trail.push(this.display.vessels.active.position) 
         }
         this.app.data.trail= this.app.data.trail.slice(-5000);  
         let trailId= (this.mode==APP_MODE.PLAYBACK) ? 'history' : 'self';
@@ -1956,15 +2001,18 @@ export class AppComponent {
     }
 
     // ** delete vessel trail **
-    clearTrail() {
-        let dref= this.dialog.open(ConfirmDialog, {
-            disableClose: true,
-            data: { 
-                title: 'Clear Vessel Trail',
-                message: 'Do you want to delete the vessel trail?'
-            }
-        });     
-        dref.afterClosed().subscribe( res=> { if(res) this.app.data.trail=[] });    
+    clearTrail(noprompt:boolean=false) {
+        if(noprompt) { this.app.data.trail=[] }
+        else {
+            let dref= this.dialog.open(ConfirmDialog, {
+                disableClose: true,
+                data: { 
+                    title: 'Clear Vessel Trail',
+                    message: 'Do you want to delete the vessel trail?'
+                }
+            });     
+            dref.afterClosed().subscribe( res=> { if(res) this.app.data.trail=[] }); 
+        }   
     }
 
     // ** clear course / navigation data **

@@ -1,5 +1,16 @@
 # CHANGELOG: Freeboard-SK
 
+### v1.4.1
+
+- **Fixed:** AIS vessel icon orientation when only COG is available.
+
+- **Added:** Clicking on acknowledged alarm opens Alarms screen.
+
+- **Feature:** Initial support for selecting any vessel as the `active` vessel.
+
+_Note: Setting the focus on another vessel will direct all PUT requests destined to a `signalk/v1/api/vessels/` path to the selected vessel. Actions may fail if the server does not support PUT's to these paths._
+
+
 ### v1.4.0
 
 - **Added:** View / add `Notes`.

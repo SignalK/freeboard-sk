@@ -1,4 +1,4 @@
-import {Component, ElementRef, Input, Output, ViewChild, 
+import {Component, ElementRef, Input, ViewChild, 
 		Renderer2} from '@angular/core';
 
 //** Base class **

@@ -46,38 +46,58 @@
                     top: 10px;
                     bottom: 0;
                     left: 0;
-                    right: 0;">            
-                <mat-list style="background-color: white;">
-                    <mat-list-item *cdkVirtualFor="let r of filterList; let i= index;"
-                        style="border-bottom: silver 1px solid;">
-                        <div style="display: flex;width: 100%;">
+                    right: 0;">    
+
+                <mat-card *cdkVirtualFor="let r of filterList; let i= index;"
+                    style="border-bottom: silver 1px outset;">        
+
+                    <div style="display: flex;">
+                        <div style="flex: 1 1 auto;padding-left: 7px;">
+                            <a style="cursor: pointer;"
+                                (click)="itemProperties(r[0])"
+                                matTooltip="Vessel Properties"
+                                matTooltipPosition="right">
+                                <b>{{(r[1].name) ? r[1].name : (r[1].mmsi) ? r[1].mmsi : 'Vessel-' + i}}</b>
+                            </a>                             
+                        </div>        
+                        <div style="text-align: right;">
+                            <mat-checkbox color="primary"
+                                [checked]="r[2]"
+                                (change)="itemSelect($event.checked, r[0])"
+                                matTooltip="Show in Map"
+                                matTooltipPosition="left">
+                            </mat-checkbox>
+                        </div>  
+                    </div>         
+                    <mat-card-actions>
+                        <div style="display: flex;">
+                            <div style="flex: 1 1 auto;">
+                                <button mat-button *ngIf="r[0]!=focusId"
+                                    (click)="focus(r[0])"
+                                    matTooltip="Focus vessel">
+                                    <mat-icon color="primary">center_focus_weak</mat-icon>
+                                    FOCUS
+                                </button>   
+                                <button mat-button *ngIf="r[0]==focusId"
+                                    (click)="focus();"
+                                    color="primary"
+                                    matTooltip="Clear vessel focus">
+                                    <mat-icon color="primary">clear_all</mat-icon>
+                                    UNFOCUS
+                                </button>                                             
+                            </div> 
                             <div>
-                                <a style="cursor: pointer;"
+                                <button mat-button
                                     (click)="itemProperties(r[0])"
                                     matTooltip="Vessel Properties"
                                     matTooltipPosition="right">
                                     <mat-icon color="primary">info_outline</mat-icon>
-                                </a>                              
-                            </div>
-                            <div style="flex: 1 1 auto;padding-left: 7px;">
-                                <a style="cursor: pointer;"
-                                    (click)="itemProperties(r[0])"
-                                    matTooltip="Vessel Properties"
-                                    matTooltipPosition="right">
-                                    <b>{{(r[1].name) ? r[1].name : (r[1].mmsi) ? r[1].mmsi : 'Vessel-' + i}}</b>
-                                </a>                             
-                            </div>        
-                            <div style="text-align: right;">
-                                <mat-checkbox color="primary"
-                                    [checked]="r[2]"
-                                    (change)="itemSelect($event.checked, r[0])"
-                                    matTooltip="Show in Map"
-                                    matTooltipPosition="left">
-                                </mat-checkbox>
-                            </div>  
-                        </div>        
-                    </mat-list-item>
-                </mat-list>
+                                    INFO
+                            </button>                                                      
+                            </div>               
+                        </div>
+                    </mat-card-actions>
+                </mat-card>
             </cdk-virtual-scroll-viewport> 
         </div>
     </div>

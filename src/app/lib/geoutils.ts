@@ -66,14 +66,14 @@ export class GeoUtils {
     }
 
     //** Return the distance and bearing from source to destination
-    static toGo(srcpt, destpt) {
+    static toGo(srcpt:[number,number], destpt:[number,number]) {
         let brg= GeoUtils.bearingTo(srcpt, destpt);
         let dst= GeoUtils.distanceTo(srcpt, destpt);
         return { bearing: brg, distance: dst }
     }
 
     //** Calculate the great circle distance between two points in metres
-    static distanceTo(srcpt, destpt) {  
+    static distanceTo(srcpt:[number,number], destpt:[number,number]) {  
         const Rk= 6373; // mean radius of the earth (km) at 39 degrees from the equator
         let lat1= Convert.degreesToRadians(srcpt[1]);
         let lon1= Convert.degreesToRadians(srcpt[0]);
@@ -87,7 +87,7 @@ export class GeoUtils {
     }
 
     //** Calculate the bearing between two points in radians	
-    static bearingTo(srcpt, destpt) {
+    static bearingTo(srcpt:[number,number], destpt:[number,number]) {
         let lat1= Convert.degreesToRadians(srcpt[1]);
         let lat2= Convert.degreesToRadians(destpt[1]);
         let dLon= Convert.degreesToRadians(destpt[0]-srcpt[0]);

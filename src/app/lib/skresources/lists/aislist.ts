@@ -9,9 +9,11 @@ import { AppInfo } from '../../../app.info';
 })
 export class AISListComponent {
     @Input() aisTargets: any;
+    @Input() focusId: string;
     @Output() select: EventEmitter<any>= new EventEmitter();
     @Output() closed: EventEmitter<any>= new EventEmitter();
     @Output() properties: EventEmitter<any>= new EventEmitter();
+    @Output() focusVessel: EventEmitter<any>= new EventEmitter();
 
     aisAvailable= [];
     filterList= [];
@@ -93,5 +95,7 @@ export class AISListComponent {
             }
         });
     }
+
+    focus(id:string) { console.log('focus vessel'); this.focusVessel.emit(id) }
 
 }

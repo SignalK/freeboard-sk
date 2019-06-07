@@ -25,25 +25,28 @@ import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material';
             </div>             
             <mat-dialog-content>
                 <div style="display:flex;flex-wrap:wrap;">
-                    <mat-card *ngFor="let i of alarms" style="border: silver 1px outset;">
-                        <mat-card-title-group>
-                            <img mat-card-avatar [src]="'./assets/img/alarms/' + i.key + '.png'"/>
-                            <mat-card-title>{{i.title}}</mat-card-title>
-                        </mat-card-title-group>
-                        <mat-card-content> </mat-card-content>    
-                        <mat-card-actions style="text-align:center;">
-                            <button mat-flat-button color="warn" *ngIf="!i.cancel"
-                                (click)="dialogRef.close({type: i.key, raise: true, msg: i.subtitle})">
-                                <mat-icon>alarm_on</mat-icon>
-                                RAISE ALARM
-                            </button>   
-                            <button mat-raised-button color="accent" *ngIf="i.cancel"
-                                (click)="dialogRef.close({type: i.key, raise: false})">
-                                <mat-icon>alarm_off</mat-icon>
-                                CANCEL ALARM
-                            </button>                                               
-                        </mat-card-actions>
-                    </mat-card>                                      
+                    <div class="alarm-item" *ngFor="let i of alarms">
+                        <mat-card *ngIf="i.cancel || i.displayAlways"
+                                style="border: silver 1px outset;">
+                            <mat-card-title-group>
+                                <img mat-card-avatar [src]="'./assets/img/alarms/' + i.key + '.png'"/>
+                                <mat-card-title>{{i.title}}</mat-card-title>
+                            </mat-card-title-group>
+                            <mat-card-content> </mat-card-content>  
+                            <mat-card-actions style="text-align:center;">
+                                <button mat-flat-button color="warn" *ngIf="!i.cancel"
+                                    (click)="dialogRef.close({type: i.key, raise: true, msg: i.subtitle})">
+                                    <mat-icon>alarm_on</mat-icon>
+                                    RAISE ALARM
+                                </button>   
+                                <button mat-raised-button color="accent" *ngIf="i.cancel"
+                                    (click)="dialogRef.close({type: i.key, raise: false})">
+                                    <mat-icon>alarm_off</mat-icon>
+                                    CANCEL ALARM
+                                </button>                                               
+                            </mat-card-actions>
+                        </mat-card>  
+                    </div>                                  
                 </div>             
             </mat-dialog-content>
         </div>	
@@ -62,7 +65,10 @@ import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material';
                     font-size: 25pt;
                 }
                 .mat-card {
-                    width: 95%;
+                    border: blue 1px solid;
+                }
+                .alarm-item {
+                    width: 100%;                    
                 }
 
                 @media only screen and (min-width : 500px) { 
@@ -73,8 +79,8 @@ import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material';
                     .ap-confirm-icon .mat-icon { 
                         font-size: 40pt;
                     } 
-                    .mat-card {
-                        width: 40%;
+                    .alarm-item {
+                        width: 50%;
                     }                   
                 }                 	
 			`]
@@ -93,78 +99,94 @@ export class AlarmsDialog implements OnInit {
                 key: 'mob',
                 title: 'M.O.B.',
                 subtitle: 'Man Overboard!',
-                cancel: false
+                cancel: false,
+                displayAlways: true
             },
             {
                 key: 'sinking',
                 title: 'Sinking',
                 subtitle: 'Vessel sinking!',
-                cancel: false
+                cancel: false,
+                displayAlways: true
             },
             {
                 key: 'fire',
                 title: 'Fire',
                 subtitle: 'Fire onboard!',
-                cancel: false
+                cancel: false,
+                displayAlways: true
             },
             {
                 key: 'piracy',
                 title: 'Piracy',
                 subtitle: 'Pirates encountered!',
-                cancel: false
-            },            
-            {
-                key: 'collision',
-                title: 'Collision',
-                subtitle: 'Vessel collision!',
-                cancel: false
-            },
-            {
-                key: 'grounding',
-                title: 'Grounding',
-                subtitle: 'Vessel run aground!',
-                cancel: false
+                cancel: false,
+                displayAlways: true
             },
             {
                 key: 'abandon',
                 title: 'Abandon',
                 subtitle: 'Abandoned ship!',
-                cancel: false
+                cancel: false,
+                displayAlways: true
             },
             {
                 key: 'adrift',
                 title: 'Adrift',
                 subtitle: 'Vessel adrift!',
-                cancel: false
+                cancel: false,
+                displayAlways: true
             },
             {
                 key: 'flooding',
                 title: 'Flooding',
                 subtitle: 'Taking on Water!',
-                cancel: false
+                cancel: false,
+                displayAlways: false
             },
             {
                 key: 'listing',
                 title: 'Listing',
                 subtitle: 'Vessel listing!',
-                cancel: false
-            }                                                                                                                                                                                                                        
-        ]                                                                
+                cancel: false,
+                displayAlways: false
+            },            
+            {
+                key: 'collision',
+                title: 'Collision',
+                subtitle: 'Vessel collision!',
+                cancel: false,
+                displayAlways: false
+            },
+            {
+                key: 'grounding',
+                title: 'Grounding',
+                subtitle: 'Vessel run aground!',
+                cancel: false,
+                displayAlways: false
+            }                                                                                                                                                                                                                       
+        ];                                                                
 
         this.alarms.forEach( i=> {
             if(this.data.has(i.key)) {                                              
                 i.cancel= (this.data.get(i.key).state!='normal') ? true : false;
             }
-        })
-    }  
-	
+        });
+
+        this.alarms.sort( (a,b)=> { 
+            if(!a.cancel && b.cancel) { return 1 }
+            if(a.cancel && !b.cancel) { return -1 }
+            else { return 0 }
+        });
+    }  	
 }
 
 /********* AlarmComponent ********/
 @Component({
 	selector: 'ap-alarm',
     template: `
-        <span class="alarmAck" *ngIf="alarm.value.acknowledged">
+        <span class="alarmAck" *ngIf="alarm.value.acknowledged"
+                (click)="openDialog()">
             <img [src]="iconUrl" [matTooltip]="alarm.title"/>
         </span>
         <mat-card *ngIf="alarm.value.visual && !alarm.value.acknowledged">
@@ -173,7 +195,6 @@ export class AlarmsDialog implements OnInit {
                 <mat-card-subtitle>{{alarm.value.message}}</mat-card-subtitle>
                 <img style="height:50px;" [src]="iconUrl"/>
             </mat-card-title-group>
-
             <mat-card-actions>
                 <div style="display:flex;flex-wrap: wrap;">
                     <div>
@@ -209,6 +230,7 @@ export class AlarmComponent implements OnInit {
     @Output() acknowledge: EventEmitter<any>= new EventEmitter();
     @Output() mute: EventEmitter<any>= new EventEmitter();
     @Output() clear: EventEmitter<any>= new EventEmitter();
+    @Output() open: EventEmitter<any>= new EventEmitter();
 
     private stdAlarms= ['mob','sinking','fire','piracy','flooding','collision','grounding','listing','adrift','abandon'];
 
@@ -228,6 +250,8 @@ export class AlarmComponent implements OnInit {
     muteAlarm(key) { this.mute.emit(key) }
 
     clearAlarm(key) { this.clear.emit(key) }
+
+    openDialog() {  this.open.emit() }
 	
 }
 

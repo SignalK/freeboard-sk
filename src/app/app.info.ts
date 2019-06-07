@@ -13,7 +13,7 @@ export class AppInfo extends Info {
 
     private DEV_SERVER= {
         host: null,     // host name || ip address
-        port: null,     // port number
+        port: null,                 // port number
         ssl: false                       
     }
 

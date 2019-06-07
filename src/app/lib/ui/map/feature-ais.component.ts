@@ -19,8 +19,10 @@ export class AisTargetsComponent implements OnInit, OnDestroy, OnChanges {
     @Input() staleIds= [];
     @Input() removeIds= [];
     @Input() filterIds= [];
+    @Input() focusId: string;
     @Input() icon: string;
     @Input() inactiveIcon: string;
+    @Input() focusIcon: string;
     @Input() inactiveTime: number= 180000;  // in ms (3 mins)
     @Input() labelMinZoom: number= 10;
     @Input() vectorMinZoom: number= 15;
@@ -52,6 +54,7 @@ export class AisTargetsComponent implements OnInit, OnDestroy, OnChanges {
         if(changes.mapZoom) { this.handleZoom(changes.mapZoom) } 
         if(changes.filterIds) { this.updateFeatures(); this.updateVectors(); } 
         if(changes.vectorApparent) { this.updateVectors() } 
+        if(changes.focusId) { this.updateFeatures() }
     }
 
     formatlabel(label) { return (this.mapZoom < this.labelMinZoom) ? '' : label }
@@ -148,9 +151,8 @@ export class AisTargetsComponent implements OnInit, OnDestroy, OnChanges {
     }
 
     getWindDirection(ais) {
-        let h= ais.heading || ais.cog;
         return (this.vectorApparent) ? 
-            (ais.wind.awa && h) ? h + ais.wind.awa : null 
+            (typeof ais.wind.awa!=='undefined') ? ais.orientation + ais.wind.awa : null 
             : ais.wind.direction; 
     }
 
@@ -218,13 +220,12 @@ export class AisTargetsComponent implements OnInit, OnDestroy, OnChanges {
     // ** return style to set for target id
     setTargetStyle(id: any) {
         if(!id) { return }
-        let target= this.aisTargets.get(id);      
-        let rotation= (target.heading !=='undefined') ? target.heading : (target.cog || 0);
+        let target= this.aisTargets.get(id);
         let label= this.formatlabel( target.name || target.callsign || target.mmsi || '');
         let fstyle: any;
         // ** check if stale 
         let now= new Date().valueOf();
-        let icon= (target.lastUpdated< (now-this.inactiveTime) ) ? this.inactiveIcon : this.icon
+        let icon= (target.lastUpdated< (now-this.inactiveTime) ) ? this.inactiveIcon : this.icon;
         // ** if filtered
         if( (this.filterIds && Array.isArray(this.filterIds) ) && this.filterIds.indexOf(id)==-1 ) { 
             // hide feature
@@ -232,23 +233,40 @@ export class AisTargetsComponent implements OnInit, OnDestroy, OnChanges {
                 image: new style.Icon({
                     src: icon,
                     rotateWithView: true,
-                    rotation: rotation,
+                    rotation: target.orientation,
                     opacity: 0
                 })
-            }
+            }         
         }
         else { // show feature
-            fstyle= {
-                image: new style.Icon({
-                    src: icon,
-                    rotateWithView: true,
-                    rotation: rotation,
-                    opacity: 1
-                }),
-                text: new style.Text({
-                    text: label,
-                    offsetY: -12
-                })
+            if(id==this.focusId && this.focusIcon) {
+                fstyle= {                    
+                    image: new style.Icon({
+                        src: this.focusIcon,
+                        rotateWithView: true,
+                        rotation: target.orientation,
+                        opacity: 1,
+                        size: [50,50],
+                        scale: .75,
+                        anchor: [9.5,22.5],
+                        anchorXUnits: 'pixels',
+                        anchorYUnits: 'pixels'
+                    })
+                }
+            }
+            else {            
+                fstyle= {
+                    image: new style.Icon({
+                        src: icon,
+                        rotateWithView: true,
+                        rotation: target.orientation,
+                        opacity: 1
+                    }),
+                    text: new style.Text({
+                        text: label,
+                        offsetY: -12
+                    })
+                }
             }
         }
         return fstyle;

@@ -133,7 +133,7 @@
             <span>Draw Region + Note</span>			
         </a>           
         <mat-divider></mat-divider>                   
-        <a mat-menu-item (click)="skres.showWaypointEditor(null,display.vessels.self.position)" *ngIf="display.showSelf">
+        <a mat-menu-item (click)="skres.showWaypointEditor(null, display.vessels.active.position)" *ngIf="display.showSelf">
             <mat-icon style="color:black;" >add_location</mat-icon>
             <span>Add Waypoint at Vessel</span>			
         </a>
@@ -266,7 +266,7 @@
                     (delete)="skres.showRouteDelete($event)"
                     (activate)="routeActivate($event)"
                     (deactivate)="routeClearActive()"
-                    (refresh)="skres.getRoutes()"
+                    (refresh)="skres.getRoutes(display.vessels.activeId)"
                     (properties)="resourceProperties($event)"
                     (closed)="displayLeftMenu()">
                 </route-list>
@@ -293,9 +293,11 @@
                 </note-list>                 
 
                 <ais-list [aisTargets]="display.vessels.aisTargets" *ngIf="display.aisList"
+                    [focusId]="display.vessels.activeId"
                     (select)="aisSelected($event)"
                     (properties)="aisProperties($event)"
-                    (closed)="displayLeftMenu()">
+                    (closed)="displayLeftMenu()"
+                    (focusVessel)="switchActiveVessel($event)">
                 </ais-list>                   
                 
                 <anchor-watch *ngIf="display.anchorWatch"
@@ -313,7 +315,7 @@
                 (dragover)="mapDragOver($event)" (drop)="mapDrop($event)">
                 <!-- instrument sidebar open button -->
                 <button mat-mini-fab class="mapButton" style="top:10px;right:20px;"
-                    *ngIf="!draw.enabled && !measure.enabled"
+                    *ngIf="(!draw.enabled && !measure.enabled) && !display.vessels.activeId"
                     (click)="sideright.toggle()"
                     matTooltip="Instruments" matTooltipPosition="left">
                     <mat-icon>av_timer</mat-icon>
@@ -495,8 +497,10 @@
                                 [staleIds]="aisMgr.staleList"
                                 [removeIds]="aisMgr.removeList"
                                 [filterIds]="app.config.selections.aisTargets"
+                                [focusId]="display.vessels.activeId"
                                 icon="./assets/img/ais_active.png"
                                 inactiveIcon="./assets/img/ais_inactive.png"
+                                focusIcon="./assets/img/ship_red.png"
                                 [inactiveTime]="aisMgr.staleAge"
                                 [labelMinZoom]="10"
                                 [vectorMinZoom]="app.config.selections.aisWindMinZoom"
@@ -612,15 +616,6 @@
                                             MOVE
                                         </button> 
                                     </div>
-                                    <div style="flex:1 1 50%;" *ngIf="display.overlay.addWaypoint">
-                                        <button mat-button 
-                                            (click)="skres.showWaypointEditor(null, display.vessels.self.position);popoverClosed()"
-                                            color="primary"
-                                            matTooltip="Add Waypoint at vessel location">
-                                            <mat-icon>add_location</mat-icon>
-                                            WAYPOINT HERE
-                                        </button>
-                                    </div>
                                     <div style="flex:1 1 50%;" *ngIf="display.overlay.addNote">
                                         <button mat-button 
                                             (click)="skres.showNoteEditor({region: { id: display.overlay.id, exists: true } });popoverClosed()"
@@ -684,16 +679,12 @@
                                     </div>                                                                        
                                 </div>                           
                             </ap-popover>
-                            <!--AIS popover-->
+                            <!--AIS/Vessel popover-->
                             <ap-popover *ngIf="this.display.overlay['type']=='ais';"
                                 [title]="display.overlay.content.name || display.overlay.content.mmsi || display.overlay.title" 
                                 [canClose]="!measure.enabled"
                                 (close)="popoverClosed()">
                                 
-                                <div style="display:flex;">
-                                    <div style="font-weight:bold;">State:</div>
-                                    <div style="flex: 1 1 auto;text-align:right;">{{display.overlay.content.state}}</div>
-                                </div>
                                 <div style="display:flex;">
                                     <div style="font-weight:bold;">Latitude:</div>
                                     <div style="flex: 1 1 auto;text-align:right;">{{display.overlay.content.position[1].toFixed(6)}}</div>
@@ -702,36 +693,73 @@
                                     <div style="font-weight:bold;">Longitude:</div>
                                     <div style="flex: 1 1 auto;text-align:right;">{{display.overlay.content.position[0].toFixed(6)}}</div>
                                 </div>
-                                <div>
-                                    <ap-compass 
-                                        [heading]="(display.overlay.content.heading!= null) ? convert.radiansToDegrees(display.overlay.content.heading) : convert.radiansToDegrees(display.overlay.content.cog)"
-                                        [windtrue]="(display.overlay.content.wind.direction!= null) ? convert.radiansToDegrees(display.overlay.content.wind.direction) : null"
-                                        [windapparent]="(display.overlay.content.wind.awa!= null) ? convert.radiansToDegrees(display.overlay.content.wind.awa) : null"
-                                        [speed]="(display.overlay.content.sog!= null) ? convert.msecToKnots(display.overlay.content.sog) : null">
-                                    </ap-compass>                                    
-                                </div>   
                                 <div style="display:flex;">
-                                    <div style="background-color:olive;width:10px">&nbsp;</div>
-                                    <div style="font-weight:bold;padding-left: 5px;"> Wind ({{app.useMagnetic ? 'M' : 'T'}}):</div>
-                                    <div style="flex: 1 1 auto;text-align:right;">{{(display.overlay.content.wind.tws) ? convert.msecToKnots(display.overlay.content.wind.tws).toFixed(1) : '-'}} kn</div>
-                                </div>       
-                                <div style="display:flex;">
-                                    <div style="background-color:rgb(16, 75, 16);width:10px">&nbsp;</div>
-                                    <div style="font-weight:bold;padding-left: 5px;"> Wind (A):</div>
-                                    <div style="flex: 1 1 auto;text-align:right;">{{(display.overlay.content.wind.aws) ? convert.msecToKnots(display.overlay.content.wind.aws).toFixed(1) : '-'}} kn</div>
-                                </div>                                                                                                                                                                                                                                                                                                                                       
-                          
+                                    <div style="font-weight:bold;">State:</div>
+                                    <div style="flex: 1 1 auto;text-align:right;">{{display.overlay.content.state}}</div>
+                                </div>                                
+                                <div style="display:flex;flex-wrap:no-wrap;">
+                                    <div style="width:150px;">
+                                        <ap-compass 
+                                            [heading]="convert.radiansToDegrees(display.overlay.content.orientation)"
+                                            [windtrue]="(display.overlay.content.wind.direction!= null) ? convert.radiansToDegrees(display.overlay.content.wind.direction) : null"
+                                            [windapparent]="(display.overlay.content.wind.awa!= null) ? convert.radiansToDegrees(display.overlay.content.wind.awa) : null"
+                                            [speed]="(display.overlay.content.sog!= null) ? convert.msecToKnots(display.overlay.content.sog) : null">
+                                        </ap-compass>    
+                                    </div>                                
+                                    <div>    
+                                        &nbsp;<br>                              
+                                        <div>
+                                            <div style="border-left:olive 10px solid;padding-left: 5px;">
+                                                <span style="font-weight:bold"> Wind ({{app.useMagnetic ? 'M' : 'T'}}):</span>
+                                            </div>
+                                            <div style="flex: 1 1 auto;text-align:right;">
+                                                {{(display.overlay.content.wind.tws) ? 
+                                                    convert.msecToKnots(display.overlay.content.wind.tws).toFixed(1) : '-'}}&nbsp;kn
+                                            </div>
+                                        </div>       
+                                        <div>
+                                            <div style="border-left:rgb(16, 75, 16) 10px solid;;padding-left: 5px;">
+                                                <span style="font-weight:bold;"> Wind (A):</span>
+                                            </div>
+                                            <div style="flex: 1 1 auto;text-align:right;">
+                                                {{(display.overlay.content.wind.aws) ? 
+                                                    convert.msecToKnots(display.overlay.content.wind.aws).toFixed(1) : '-'}}&nbsp;kn
+                                            </div>
+                                        </div>                                                                                                                                                                                                                                                                                                                                       
+                                    </div>
+                                </div>
                                 <div style="display:flex;">
                                     <div style="flex:1 1 auto;">
                                     </div>
                                     <div style="text-align:right;">
+                                        <button mat-button *ngIf="display.overlay.addWaypoint"
+                                            (click)="skres.showWaypointEditor(null, display.vessels.active.position);popoverClosed()"
+                                            color="primary"
+                                            matTooltip="Add Waypoint at vessel location">
+                                            <mat-icon>add_location</mat-icon>
+                                            DROP WPT
+                                        </button>                                        
                                         <button mat-button
-                                            (click)="aisProperties(display.overlay.id);display.overlay.show=false"
+                                            *ngIf="display.vessels.activeId!=display.overlay.id"
+                                            (click)="switchActiveVessel(display.overlay.id)"
+                                            matTooltip="Focus vessel">
+                                            <mat-icon style="color:blue;">center_focus_weak</mat-icon>
+                                            FOCUS
+                                        </button>    
+                                        <button mat-button
+                                            *ngIf="display.vessels.activeId==display.overlay.id && !display.overlay.isSelf"
+                                            (click)="switchActiveVessel(null); display.overlay.show=false"
+                                            matTooltip="Clear vessel focus">
+                                            <mat-icon style="color:blue;">clear_all</mat-icon>
+                                            UNFOCUS
+                                        </button>                                                                                
+                                        <button mat-button
+                                            (click)="aisProperties(display.overlay.id); display.overlay.show=false"
                                             *ngIf="display.overlay.showProperties"
                                             matTooltip="Show Properties">
                                             <mat-icon style="color:blue;">info_outline</mat-icon>
                                             INFO
-                                        </button>                                        
+                                        </button>                                                                                                             
                                     </div>   
                                 </div>                             
                             </ap-popover>                            
@@ -805,11 +833,11 @@
                                         [anchor]="[9.5,22.5]"
                                         [anchorXUnits]="'pixels'"
                                         [anchorYUnits]= "'pixels'"
-                                        [src]="'./assets/img/ship_red.png'"
+                                        [src]="display.vessels.activeId ? './assets/img/ship_blur.png' : './assets/img/ship_red.png'"
                                         [size]="[50,50]"
                                         [scale]=".75"
                                         [rotateWithView]="true"
-                                        [rotation]="display.map.vesselRotation">
+                                        [rotation]="display.vessels.self.orientation">
                                     </aol-style-icon>                                   
                                 </aol-style>
                             </aol-feature>
@@ -1026,7 +1054,9 @@
                     <ap-alarm [alarm]="a" 
                         (mute)="actionAlarm('mute', $event)"
                         (acknowledge)="actionAlarm('ack', $event)"
-                        (clear)="actionAlarm('clear', $event)"></ap-alarm>
+                        (clear)="actionAlarm('clear', $event)"
+                        (open)=" openAlarmsDialog()">
+                    </ap-alarm>
                     <audio loop  src="./assets/sound/woop.mp3" *ngIf="a.value.sound"
                         [autoplay]="!a.value.muted || !a.value.acknowledged"
                         [muted]="a.value.muted || a.value.acknowledged"
