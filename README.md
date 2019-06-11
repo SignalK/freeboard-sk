@@ -3,62 +3,89 @@
 Freeboard is an Openlayers chartplotter implementation for Signal K.
 
 ## Features:
+---
 
-#### Chart Display:
+### Vessel / Chart Display:
 
-    - OpenStreetMap, OpenSeaMap, and WORLD chart outline (online only)
-    - Charts hosted on Signal K server via `/resources/charts` path
+Moving map display with the ability to use a combination of online and locally served charts.
 
-#### Resources:  Routes and Waypoints
-    - List / Select resources hosted on Signal K server via `/resources/routes`, `/resources/waypoints` paths
-    - Set an active Route
-    - Select destination point along and Active Route
-    - Select Waypoint as course destination
-    - Edit Route / Waypoint properties (Name, Description)
-    - Draw Route
-    - Add Waypoint at: Cursor or Vessel position
-    - Delete Waypoint(s) / Route(s) 
-    - Import Routes and Waypoints from GPX files
+Ability to select the active vessel and direct actions to it _(where supported by the server)_.
+    
+- North-up / Vessel-up 
+- Moving Map / Moving Vessel
+- Vessel Heading / Bearing lines
+- Wind True / Apparent display
+- Measure distance
 
+__Online:__
 
-#### Resources:  Notes and Regions
-    - Show / Hide Notes hosted on Signal K server via `/resources/notes` path
-    - Display on map the Region associated with note when accessing Note properties
+- OpenStreetMap / WORLD chart outline
+- OpenSeaMap
 
+__Offline:__
 
-#### Map Display:
+- MBTiles (or compatible) charts hosted on the Signal K server via `/resources/charts` path.
 
-    - North-up or Vessel-up 
-    - Moving Map or Moving Vessel
-    - Vessel Heading / Bearing lines
-    - Wind true direction / apparent angle lines
-    - Measure distance
+---
 
+### Resources:  
 
-#### Alarms:
+#### Routes and Waypoints
 
-    Displays both visual and audio alarm indication as specified by the received *Notification* message.
-
-    - Anchor Watch: set radius and raise / drop anchor
-    - Depth Notifications.
+- List / Select resources available via `/resources/routes`, `/resources/waypoints` paths
+- Set an active Route
+- Select destination point along and Active Route
+- Select a Waypoint as a destination
+- Draw Routes
+- Add Waypoint at: Cursor or Vessel position
+- Edit and delete Routes / Waypoints
+- Import Routes and Waypoints from GPX files
 
 
-#### Integration: 
+#### Notes and Regions
 
-Freeboard allows you to select installed *Applications* to use for the following:
+- Display Notes and Regions available via `/resources/notes` and  `/resources/regions` paths
+- View Note properties.
+- Draw Regions and add Notes to them.
+- Add, edit, move and delete Notes and associate them with Regions.
 
-- **Instrument panel**: *(default: `@SignalK/InstrumentPanel`)*
+---
 
-Selected application will be displayed in the Instrument panel drawer.
+### Alarms:
 
-_Freeboard was originally ported from (http://www.42.co.nz/freeboard) to use the Signal K communication protocols and server features._
+- Display alarms from received *Notification* messages _(visual and audio)_. 
+- Raise alarms such as `Man overboard`, etc.
 
+__Anchor Watch:__
+- Set anchor drag alarm
+
+---
+
+### History Playback
+
+Playback recorded time-series data captured on the Signal K server via the `playback` api.
+
+---
+
+### Instrument Panel: 
+
+Freeboard allows you to use your favourite instrumentation app installed on your Signal K server.
+
+Select from installed applications in the `settings` screen and they will displayed in the instrument panel drawer.
+
+_Instrument Panel `(@SignalK/InstrumentPanel)` will be displayed by default._ 
+
+---
+
+_**Freeboard-SK** is a port of http://www.42.co.nz/freeboard for use with Signal K communication protocols and server features._
+
+---
 
 ## System Requirements:
 
 For all Freeboard features to be fully functional, it requires that the Signal K server in use be able to provide the necessary services for the following paths:
 
-1. `reources/routes` and `resources/waypoints` - Serve resources as well as accept and persist resource data submitted to these paths.
+1. `reources/routes`, `resources/waypoints`, `resources/notes`, `resources/regions` - Serve resources as well as accept and persist resource data submitted to these paths.
 
 2. `resources/charts` - Serve chart resources.
 
@@ -72,7 +99,7 @@ For all Freeboard features to be fully functional, it requires that the Signal K
 
 7. **Playback History** - Implement the Signal K Playback api (`/signalk/v1/playback`)
 
-This function may be provided natively by the server or through the use of *plugins*.
+These functions may be provided natively by the server or through the use of *plugins*.
 
 For example the following plugins installed on the *Signal K node server* will enable full functionality:
 - @signalk/charts-plugin *(Charts provider)*
@@ -80,16 +107,19 @@ For example the following plugins installed on the *Signal K node server* will e
 - signalk-anchoralarm-plugin *(anchor alarm settings & notifications)*
 - signalk-simple-notifications *(depth alarm notifications)*
 
-### Integrated Apps on Server
+---
+
+### Integrate Instrument Apps
 ![Server Instruments](https://user-images.githubusercontent.com/38519157/46716813-00d27080-ccad-11e8-98a3-ab4b4f47df11.png)
 
-### Vessel up
+### Vessel Up Display
 ![Vessel Up](https://user-images.githubusercontent.com/38519157/46716759-cf59a500-ccac-11e8-9ac5-68a7f3429f4a.png)
 
-### North up
+### North Up Display
 ![North Up](https://user-images.githubusercontent.com/38519157/46716737-bc46d500-ccac-11e8-9d31-87cfffb1ad3b.PNG)
 
 
+---
 
 ## Development:
 
@@ -106,34 +136,36 @@ It is recommended that the Angular CLI be installed globally `npm i -g @angular/
 
 The Freeboard application will look to connect to a Signal K server at the *ip address:port* contained in the url of your browser. 
 
-During development, if a Signal K server is not running on your development device, you are able to specify the Signal K server you wish to connect to as follows:
+During development, if a Signal K server is not running on your development device, you are able to specify the Signal K server api / stream host you wish to connect to by editing the `DEV_SERVER` object in the `src/app.info.ts` file.
+```
+DEV_SERVER { 
+    host: '192.168.99.100', 
+    port; 3000, 
+    ssl: false 
+}
+```
 
-**In Development Mode** where application is served using:
-- `npm start`
-- `ng serve` 
-- Files generated by `ng build`
+_Note: These settings apply in **Development Mode** only!_
 
-the `DEV_SERVER { host, port, ssl }` object in the `src/app.info.ts` file determines where the application looks to find the Signal K server in devleopment mode.
+    - `npm start`
+    - `ng serve` 
+    - Files generated using `ng build`
 
-If `DEV_SERVER { host, port, ssl }` values are:
 
-- **Defined:** The application will look to connect to a Signal K server at the defined `host & port` values and using a secure protocol if `ssl=true`. 
+_They will __NOT__ apply when using **Production Mode**, the generated application will attempt to connect to a Signal K api / stream on the hosing server._
 
-- **NOT Defined:** The served application will look to connect to a Signal K server at the *ip address:port* contained in the url of yuor browser *(e.g. `localhost:4200`)*. 
+    - `ng serve --prod`
+    - Files generated by `ng build --prod`
 
-**Production Mode** is where the application is served using:
-- `ng serve --prod`
-- Files generated by `ng build --prod`
+---
 
-The served application will look to connect to a Signal K server at the *ip address:port* of the url hosting the application. 
-
-## Build:
+### Building a Release:
 
 #### Angular Build
 
 To build the Freeboard application use the `ng build --prod` command.
 
-Built application files are placed in the `/public` folder.
+Built application files for deployment are placed in the `/public` folder.
 
 #### NPM package
 
