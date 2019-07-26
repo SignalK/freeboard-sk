@@ -1,0 +1,83 @@
+
+.mapButton {
+    position: fixed;
+    z-index: 4900;
+}
+
+.alarmPanel {
+    position: absolute;
+    z-index: 4902;
+    top: 55px;
+    left: 33%;
+    right: auto;
+}
+
+.playbackPanel {
+    position: absolute;
+    z-index: 4900;
+    bottom: 150px; 
+    left: 10px; 
+    top: auto; 
+    width:100px; 
+    border: gray 1px solid;
+    border-radius: 5px;
+    background-color: white;
+    font-family: roboto;
+    text-align:center;
+}
+
+.navdataPanel {
+    position: absolute;
+    z-index: 4901;
+    bottom: 30px;
+    left: 0;
+    max-width:100%;
+    max-height: 100px;
+    text-align: center;
+    display: flex;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+}
+
+.control {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    margin: 20px;
+  }
+
+.ol-mouse-position {
+    position: fixed; 
+    bottom:10px; 
+    right:45%; 
+    color: rgb(30,30,30);
+    font-family:roboto; 
+    background-color: rgba(250,250,250,.7);    
+}
+
+.ol-zoom {
+    position: fixed; 
+    top:10px; 
+    left:100px; 
+    color: rgb(30,30,30);
+    font-family:roboto; 
+    background-color: transparent;  
+    height: 45px;
+}
+
+.nosmall {
+    display: block;
+} 
+
+@media only screen and (max-width: 650px) { 
+    .alarmPanel {
+        left: 15%;
+        right: 15%;
+    }   
+}
+
+@media only screen and (max-width: 400px) { 
+    .nosmall {
+        display: none;
+    }   
+}

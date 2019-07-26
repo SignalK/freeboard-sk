@@ -1,6 +1,10 @@
 # Freeboard
 
-Freeboard is an Openlayers chartplotter implementation for Signal K.
+Freeboard is a stateless, multi-station ready, Openlayers chartplotter for Signal K.
+
+Display and manage routes, waypoints, notes, alarms, notifications on your Signal K server
+from multiple clients.
+
 
 ## Features:
 ---
@@ -51,9 +55,12 @@ __Offline:__
 
 ---
 
-### Alarms:
+### Alarms and Notifications:
 
 - Display alarms from received *Notification* messages _(visual and audio)_. 
+    - Depth
+    - Closest Approach
+    - "Buddy" notifications
 - Raise alarms such as `Man overboard`, etc.
 
 __Anchor Watch:__
@@ -77,7 +84,7 @@ _Instrument Panel `(@SignalK/InstrumentPanel)` will be displayed by default._
 
 ---
 
-_**Freeboard-SK** is a port of http://www.42.co.nz/freeboard for use with Signal K communication protocols and server features._
+_**Freeboard** is a port of http://www.42.co.nz/freeboard for use with Signal K communication protocols and server features._
 
 ---
 
@@ -123,7 +130,7 @@ For example the following plugins installed on the *Signal K node server* will e
 
 ## Development:
 
-This is an Angular project generated with [Angular CLI](https://github.com/angular/angular-cli).
+Freeboard is an Angular project generated with [Angular CLI](https://github.com/angular/angular-cli).
 It is recommended that the Angular CLI be installed globally `npm i -g @angular/cli@latest` prior to following the steps below.
 
 1. Clone this repository.

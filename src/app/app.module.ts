@@ -5,30 +5,30 @@ import { HttpClientModule } from '@angular/common/http';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 // ***
 import { AngularOpenlayersModule } from 'ngx-openlayers';
-
+// ***
 import { AppComponent } from './app.component';
 import { AppMaterialModule } from './lib/app-material.module';
 import { AppUIModule } from './lib/app-ui';
-import { GPXLoadModule } from './lib/gpxload/gpxload.module';
 
-import { SignalKResourcesModule } from './lib/skresources/';
+import { SettingsModule, GPXLoadModule, AlarmsModule, 
+        SKStreamModule, SignalKResourcesModule, FBMapModule } from './modules';
 
-import { SettingsDialog } from './pages';
 
 @NgModule({
   declarations: [
-    AppComponent, SettingsDialog
+    AppComponent
   ],
   imports: [
     BrowserModule,
     BrowserAnimationsModule, 
     FormsModule, HttpClientModule,
-    AppMaterialModule, AppUIModule, SignalKResourcesModule,
-    GPXLoadModule, 
+    AppMaterialModule, AppUIModule, 
+    SignalKResourcesModule, FBMapModule,
+    GPXLoadModule, SettingsModule, AlarmsModule, SKStreamModule,
     AngularOpenlayersModule
   ],
-  entryComponents: [ SettingsDialog ],
+  entryComponents: [ ],
   providers: [],
-  bootstrap: [AppComponent]
+  bootstrap: [ AppComponent ]
 })
 export class AppModule { }

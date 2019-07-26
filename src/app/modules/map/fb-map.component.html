@@ -1,0 +1,541 @@
+<aol-map #aolMap [width]="'100%'" [height]="'100%'" 
+    [style.cursor]="(draw.enabled || measure.enabled) ? 'crosshair' : 'initial'"
+    (onClick)="onMapMouseClick($event)"
+    (onMoveEnd)="onMapMove($event)"
+    (onPointerMove)="onMapPointerMove($event)"
+    (onPointerDrag)="onMapPointerDrag($event)">
+                    
+    <aol-view [zoom]="fbMap.zoomLevel" [minZoom]="fbMap.minZoom" [rotation]="fbMap.rotation">
+        <aol-coordinate [srid]="fbMap.srid"
+            [x]="fbMap.center[0]" 
+            [y]="fbMap.center[1]">
+        </aol-coordinate>                      
+    </aol-view>
+    
+    <!-- Interactions -->
+    <aol-interaction-default></aol-interaction-default>
+
+    <aol-interaction-draw *ngIf="measure.enabled"
+        [type]="'LineString'"
+        (onDrawStart)="onMeasureStart($event)"
+        (onDrawEnd)="onMeasureEnd($event)"
+        [style]="measure.style">
+    </aol-interaction-draw>     
+
+    <aol-interaction-draw *ngIf="draw.enabled"
+        [type]="draw.type"
+        (onDrawEnd)="onDrawEnd($event)">
+    </aol-interaction-draw>
+
+    <aol-interaction-modify *ngIf="draw.modify && draw.features"
+        [features]="draw.features"
+        (onModifyStart)="onModifyStart($event)"
+        (onModifyEnd)="onModifyEnd($event)">
+    </aol-interaction-modify>                 
+    <!-- /Interactions -->
+
+    <!-- Controls -->
+    <aol-control-mouseposition class="ol-mouse-position"
+        [projection]="app.config.map.srid"
+        [coordinateFormat]="coord.createStringXY(4)">
+    </aol-control-mouseposition>
+
+    <aol-control>
+        <aol-content>
+            <div class="ol-zoom ol-control">
+                <button mat-mini-fab (click)="zoomMap(false)"
+                    [disabled]="app.config.map.zoomLevel==fbMap.minZoom"
+                    matTooltip="Zoom out">
+                    <mat-icon>remove</mat-icon>
+                </button> 
+                &nbsp;                               
+                <button mat-mini-fab (click)="zoomMap(true)"
+                    [disabled]="app.config.map.zoomLevel==fbMap.maxZoom"
+                    matTooltip="Zoom in">
+                    <mat-icon>add</mat-icon>
+                </button>
+            </div>
+        </aol-content>
+    </aol-control>   
+    <!-- /Controls -->
+
+
+    <!-- *** base maps *** -->
+    <aol-layer-tile [zIndex]="10"
+        *ngIf="app.data.charts.length!=0 && app.data.charts[0][2]">
+        <aol-source-osm></aol-source-osm>
+    </aol-layer-tile>
+    <aol-layer-tile [zIndex]="11"
+        *ngIf="app.data.charts.length!=0 && app.data.charts[1][2]">
+        <aol-source-xyz 
+            [url]="'https://tiles.openseamap.org/seamark/{z}/{x}/{y}.png'">
+        </aol-source-xyz>
+    </aol-layer-tile>
+    <!-- *** /base maps *** -->   
+
+    <!-- *** Charts *** -->
+    <div *ngFor="let c of skres.chartsLocalByScale(); let i=index;">
+    <aol-layer-tile [zIndex]="15 + i" *ngIf="c[2]">
+        <aol-source-xyz 
+            [minZoom]="c[1].minzoom"
+            [maxZoom]="c[1].maxzoom"
+            [url]="c[1].tilemapUrl">                           
+        </aol-source-xyz>
+    </aol-layer-tile>
+    </div>
+    <!-- *** /Charts *** -->  
+    
+    <!-- *** ROUTES *** -->
+    <aol-layer-vector [zIndex]="50"> 
+        <aol-source-vector>
+            <div *ngFor="let r of dfeat.routes; let i=index;"> 
+                <!-- route course-->              
+                <aol-feature *ngIf="r[2]" [id]="'route.'+ r[0]">
+                    <aol-geometry-linestring>
+                        <aol-collection-coordinates
+                            [coordinates]="r[1].feature?.geometry?.coordinates"
+                            [srid]="app.config.map.srid">
+                        </aol-collection-coordinates>
+                    </aol-geometry-linestring>
+                    <aol-style>
+                        <aol-style-stroke 
+                            [color]="(r[0]==activeRoute) ? 'blue' : 'green'" 
+                            [lineDash]="(r[0]==activeRoute) ? [1] : [20,5,5,5]"
+                            [width]="(r[0]==activeRoute) ? 4 : 2">
+                        </aol-style-stroke>                                                                                                   
+                    </aol-style>
+                </aol-feature>
+                <!-- start / end points -->
+                <aol-feature *ngIf="r[2]" [id]="'sptroute.'+ r[0]"> 
+                    <aol-geometry-point>
+                        <aol-coordinate 
+                            [x]="r[1].feature?.geometry?.coordinates[0][0]" 
+                            [y]="r[1].feature?.geometry?.coordinates[0][1]" 
+                            [srid]="app.config.map.srid">
+                        </aol-coordinate>
+                    </aol-geometry-point>
+                    <aol-style>    
+                        <aol-style-circle [radius]="5">
+                            <aol-style-stroke [color]="'white'" [width]="2"></aol-style-stroke>
+                            <aol-style-fill [color]="(r[0]==activeRoute) ? 'blue' : 'green'"></aol-style-fill>                                        
+                        </aol-style-circle>                                                                                                     
+                    </aol-style>                                
+                </aol-feature>  
+                <aol-feature *ngIf="r[2]" [id]="'eptroute.'+ r[0]"> 
+                    <aol-geometry-point>
+                        <aol-coordinate 
+                            [x]="r[1].feature?.geometry?.coordinates[r[1].feature.geometry.coordinates.length-1][0]" 
+                            [y]="r[1].feature?.geometry?.coordinates[r[1].feature.geometry.coordinates.length-1][1]" 
+                            [srid]="app.config.map.srid">
+                        </aol-coordinate>
+                    </aol-geometry-point>
+                    <aol-style>    
+                        <aol-style-circle [radius]="5">
+                            <aol-style-stroke [color]="'yellow'" [width]="2"></aol-style-stroke>
+                            <aol-style-fill [color]="(r[0]==activeRoute) ? 'blue' : 'green'"></aol-style-fill>                                        
+                        </aol-style-circle>                                                                                                     
+                    </aol-style>                                
+                </aol-feature>                                                                            
+            </div>
+        </aol-source-vector>
+    </aol-layer-vector>
+    <!-- *** /ROUTES *** -->      
+    
+    <!-- *** WAYPOINTS *** -->
+    <aol-layer-vector [zIndex]="90">
+        <aol-source-vector>
+        <div *ngFor="let w of dfeat.waypoints; let i=index;">
+            <aol-feature *ngIf="w[2]" [id]="'waypoint.'+ w[0]">
+                <aol-geometry-point>
+                    <aol-coordinate 
+                        [x]="w[1].feature.geometry.coordinates[0]" 
+                        [y]="w[1].feature.geometry.coordinates[1]" 
+                        [srid]="app.config.map.srid">
+                    </aol-coordinate>
+                </aol-geometry-point>
+                <aol-style>
+                    <aol-style-icon 
+                        [anchor]="[10.5, 25]"
+                        [anchorXUnits]="'pixels'"
+                        [anchorYUnits]= "'pixels'"
+                        [src]="'./assets/img/marker-gold.png'"
+                        [size]="[25,25]"
+                        [scale]="1"
+                        [rotateWithView]="false"
+                        [rotation]="0">
+                    </aol-style-icon>
+                </aol-style>
+            </aol-feature>
+        </div>
+        </aol-source-vector>
+    </aol-layer-vector>
+    <!-- *** /WAYPOINTS *** -->  
+
+    <!-- *** AIS TARGETS *** -->
+    <aol-layer-vector *ngIf="app.config.aisTargets" [zIndex]="120" [renderBuffer]="200">
+        <aol-source-vector>
+            <xol-ais-targets [aisTargets]="dfeat.ais"
+                [updateIds]="aisMgr.updateList"
+                [staleIds]="aisMgr.staleList"
+                [removeIds]="aisMgr.removeList"
+                [filterIds]="app.config.selections.aisTargets"
+                [focusId]="app.data.vessels.activeId"
+                icon="./assets/img/ais_active.png"
+                inactiveIcon="./assets/img/ais_inactive.png"
+                focusIcon="./assets/img/ship_red.png"
+                buddyIcon="./assets/img/ais_buddy.png"
+                [inactiveTime]="app.data.aisMgr.staleAge"
+                [labelMinZoom]="10"
+                [vectorMinZoom]="app.config.selections.aisWindMinZoom"
+                [vectorApparent]="app.config.selections.aisWindApparent"
+                [mapZoom]="app.config.map.zoomLevel">                               
+            </xol-ais-targets>
+        </aol-source-vector>
+    </aol-layer-vector>
+    <!-- *** AIS TARGETS *** -->   
+
+    <!-- *** NOTES & REGIONS *** -->
+    <aol-layer-vector 
+        *ngIf="app.config.notes && app.config.map.zoomLevel>=app.config.selections.notesMinZoom" 
+        [zIndex]="120" [renderBuffer]="200">
+        <aol-source-vector>
+            <div *ngFor="let r of dfeat.regions; let i=index;">
+                <!--MultiPolygon-->
+                <aol-feature [id]="'region.'+ r[0]" *ngIf="r[1].feature.geometry.type=='Polygon'"> 
+                    <aol-geometry-polygon>
+                        <aol-collection-coordinates
+                            [coordinates]="r[1].feature.geometry.coordinates[0]"
+                            [srid]="app.config.map.srid">
+                        </aol-collection-coordinates>                                        
+                    </aol-geometry-polygon>
+                    <aol-style>
+                        <aol-style-stroke [color]="'purple'"></aol-style-stroke>
+                        <aol-style-fill [color]="[255,0,255,0.1]"></aol-style-fill>
+                    </aol-style>
+                </aol-feature> 
+                <!--MultiPolygon-->
+                <aol-feature [id]="'region.'+ r[0]" *ngIf="r[1].feature.geometry.type=='MultiPolygon'"> 
+                    <aol-geometry-polygon>
+                        <aol-collection-coordinates
+                            [coordinates]="r[1].feature.geometry.coordinates[0][0]"
+                            [srid]="app.config.map.srid">
+                        </aol-collection-coordinates>                                        
+                    </aol-geometry-polygon>
+                    <aol-style>
+                        <aol-style-stroke [color]="'purple'"></aol-style-stroke>
+                        <aol-style-fill [color]="[255,0,255,0.1]"></aol-style-fill>
+                    </aol-style>
+                </aol-feature>                                 
+            </div>                            
+            <div *ngFor="let w of dfeat.notes; let i=index;">
+                <aol-feature [id]="'note.'+ w[0]">
+                    <aol-geometry-point>
+                        <aol-coordinate 
+                            [x]="w[1].position.longitude" 
+                            [y]="w[1].position.latitude" 
+                            [srid]="app.config.map.srid">
+                        </aol-coordinate>
+                    </aol-geometry-point>
+                    <aol-style>
+                        <aol-style-icon 
+                            [anchor]="[3.5, 3]"
+                            [anchorXUnits]="'pixels'"
+                            [anchorYUnits]= "'pixels'"
+                            [src]="'./assets/img/note.png'"
+                            [size]="[25,25]"
+                            [scale]="1"
+                            [rotateWithView]="false"
+                            [rotation]="0">
+                        </aol-style-icon>
+                    </aol-style>
+                </aol-feature>
+            </div>
+        </aol-source-vector> 
+    </aol-layer-vector>
+    <!-- *** /NOTES & REGIONS *** -->    
+
+    <!-- *** popover *** -->
+    <aol-overlay *ngIf="overlay.show && !draw.modify">
+        <aol-coordinate
+            [x]="overlay.position[0]"
+            [y]="overlay.position[1]"
+            [srid]="app.config.map.srid">
+        </aol-coordinate>
+        <aol-content>
+            <!--Measure popover-->
+            <ap-popover *ngIf="measure.enabled"
+                [title]="overlay.title" 
+                [canClose]="false"
+                [measure]="true"
+                (closed)="popoverClosed()">
+            </ap-popover>
+            <!--Feature LIST popover-->
+            <feature-list-popover *ngIf="this.overlay.type=='list';"
+                [title]="overlay.title" 
+                [features]="this.overlay.content"
+                (selected)="featureListSelection($event)"
+                (closed)="popoverClosed()">
+            </feature-list-popover>                               
+            <!--resource popover-->
+            <resource-popover *ngIf="overlay.type!='ais' && overlay.type!='list' && !measure.enabled"
+                [title]="overlay.title" 
+                [type]="overlay.type"
+                [resource]="overlay.resource"
+                [active]="(app.data.activeWaypoint) ? app.data.activeWaypoint : app.data.activeRoute"
+                [featureCount]="overlay.featureCount"
+                [units]="this.app.config.units.distance"
+                (modify)="startModify(); popoverClosed()"
+                (delete)="deleteFeature(overlay.id, overlay.type); popoverClosed()"
+                (addNote)="skres.showNoteEditor({region: { id: overlay.id, exists: true } }); popoverClosed()"
+                (activated)="setActiveFeature(); popoverClosed()"
+                (deactivated)="clearActiveFeature(); popoverClosed()"
+                (related)="skres.showRelatedNotes($event, 'group'); popoverClosed()"
+                (info)="skres.resourceProperties(overlay); popoverClosed()"                
+                (closed)="popoverClosed()">                      
+            </resource-popover>
+            <!--AIS/Vessel popover-->
+            <vessel-popover *ngIf="overlay.type=='ais';"
+                [vessel]="overlay.vessel"
+                [useMagnetic]="app.useMagnetic"
+                [isActive]="app.data.vessels.activeId==overlay.id"
+                [isSelf]="overlay.isSelf"
+                (info)="itemInfo(overlay.id, overlay.type, overlay.isSelf); popoverClosed()"
+                (focused)="setActiveVessel( ($event) ? overlay.id : null )"
+                (markPosition)="skres.showWaypointEditor(null, $event); popoverClosed()"
+                (closed)="popoverClosed()">                    
+            </vessel-popover>                            
+        </aol-content>
+    </aol-overlay>   
+    <!-- /*** popover *** -->  
+
+    <!-- ANCHOR WATCH -->  
+    <aol-layer-vector [zIndex]="49" *ngIf="!app.config.anchor.raised">
+        <aol-source-vector>
+            <aol-feature>
+                <xol-geometry-circle [radius]="app.config.anchor.radius"
+                    [center]="app.config.anchor.position">                                 
+                    <aol-style>
+                        <aol-style-fill [color]="'rgba(0, 255, 0, .3)'"></aol-style-fill>
+                        <aol-style-stroke 
+                            [color]="'red'" 
+                            [lineDash]="[5,5]"
+                            [width]="1">
+                        </aol-style-stroke>                                          
+                    </aol-style>
+                </xol-geometry-circle>
+            </aol-feature>
+
+            <aol-feature>
+                <aol-geometry-point>
+                    <aol-coordinate 
+                        [x]="app.config.anchor.position[0]" 
+                        [y]="app.config.anchor.position[1]" 
+                        [srid]="app.config.map.srid">
+                    </aol-coordinate>
+                </aol-geometry-point>
+                <aol-style>
+                    <aol-style-icon 
+                        [anchor]="[13,1]"
+                        [anchorXUnits]="'pixels'"
+                        [anchorYUnits]= "'pixels'"
+                        [src]="'./assets/img/anchor.png'"
+                        [size]="[26,26]"
+                        [scale]=".75"
+                        [rotateWithView]="false"
+                        [rotation]="0">
+                    </aol-style-icon>
+                </aol-style>
+            </aol-feature>
+
+            <aol-feature>
+                <aol-geometry-linestring>
+                    <aol-collection-coordinates
+                        [coordinates]="vesselLines.anchor"
+                        [srid]="app.config.map.srid">
+                    </aol-collection-coordinates>
+                </aol-geometry-linestring>
+                <aol-style>
+                    <aol-style-stroke [color]="'black'" [width]="2"></aol-style-stroke>                                   
+                </aol-style>
+            </aol-feature>
+        </aol-source-vector>
+    </aol-layer-vector>
+    <!-- ANCHOR WATCH --> 
+
+    <!-- CPA / TCPA -->  
+    <aol-layer-vector [zIndex]="50" *ngIf="dfeat.closest.id">
+        <aol-source-vector>
+            <aol-feature>
+                <aol-geometry-point>
+                    <aol-coordinate 
+                        [x]="dfeat.closest.position[0]" 
+                        [y]="dfeat.closest.position[1]" 
+                        [srid]="app.config.map.srid">
+                    </aol-coordinate>
+                </aol-geometry-point>
+                <aol-style>
+                    <aol-style-circle [radius]="10">
+                        <aol-style-stroke [color]="'red'" [lineDash]="[2,3]" [width]="2"></aol-style-stroke>
+                        <aol-style-fill [color]="'rgb(255,0,0,.2)'"></aol-style-fill>                                        
+                    </aol-style-circle>                                                                     
+                </aol-style>                                
+            </aol-feature>
+            <aol-feature>
+                <aol-geometry-linestring>
+                    <aol-collection-coordinates
+                        [coordinates]="[dfeat.closest.position, dfeat.self.position]"
+                        [srid]="app.config.map.srid">
+                    </aol-collection-coordinates>
+                </aol-geometry-linestring>
+                <aol-style>
+                    <aol-style-stroke [color]="'red'" [lineDash]="[2,3]" [width]="2"></aol-style-stroke>                                   
+                </aol-style>
+            </aol-feature>
+        </aol-source-vector>
+    </aol-layer-vector>
+    <!-- CPA / TCPA --> 
+
+    <!-- *** VESSEL SELF *** -->
+    <aol-layer-vector [zIndex]="210" *ngIf="app.data.vessels.showSelf">
+        <aol-source-vector>
+            <!-- vessel -->
+            <aol-feature [id]="''+app.data.selfId">
+                <aol-geometry-point>
+                    <aol-coordinate 
+                        [x]="dfeat.self.position[0]" 
+                        [y]="dfeat.self.position[1]" 
+                        [srid]="app.config.map.srid">
+                    </aol-coordinate>
+                </aol-geometry-point>
+                <aol-style>
+                    <aol-style-icon 
+                        [anchor]="[9.5,22.5]"
+                        [anchorXUnits]="'pixels'"
+                        [anchorYUnits]= "'pixels'"
+                        [src]="app.data.vessels.activeId ? './assets/img/ship_blur.png' : './assets/img/ship_red.png'"
+                        [size]="[50,50]"
+                        [scale]=".75"
+                        [rotateWithView]="true"
+                        [rotation]="dfeat.self.orientation">
+                    </aol-style-icon>                                   
+                </aol-style>
+            </aol-feature>
+            <!-- /vessel -->    
+
+            <!-- heading Line-->
+            <aol-feature *ngIf="vesselLines.heading[0] && app.config.anchor.raised">
+                <aol-geometry-linestring>
+                    <aol-collection-coordinates
+                        [coordinates]="vesselLines.heading"
+                        [srid]="app.config.map.srid">
+                    </aol-collection-coordinates>
+                </aol-geometry-linestring>
+                <aol-style>
+                    <aol-style-stroke 
+                        [color]="'rgba(221, 99, 0, 0.5)'" [width]="4">
+                    </aol-style-stroke>
+                </aol-style>
+            </aol-feature>    
+            
+            <!-- bearing Line-->
+            <!-- base -->
+            <aol-feature *ngIf="dfeat.navData.position && app.config.anchor.raised">
+                <aol-geometry-linestring>
+                    <aol-collection-coordinates
+                        [coordinates]="vesselLines.bearing"
+                        [srid]="app.config.map.srid">
+                    </aol-collection-coordinates>
+                </aol-geometry-linestring>
+                <aol-style>
+                    <aol-style-stroke 
+                        [color]="'white'" [width]="6">
+                    </aol-style-stroke>                                  
+                </aol-style>
+            </aol-feature>  
+            <!-- highlight -->
+            <aol-feature *ngIf="dfeat.navData.position && app.config.anchor.raised">
+                <aol-geometry-linestring>
+                    <aol-collection-coordinates
+                        [coordinates]="vesselLines.bearing"
+                        [srid]="app.config.map.srid">
+                    </aol-collection-coordinates>
+                </aol-geometry-linestring>
+                <aol-style>
+                    <aol-style-stroke 
+                        [color]="'rgba(221, 149, 0, 1)'" [width]="2">
+                    </aol-style-stroke>
+                </aol-style>
+            </aol-feature>  
+            <!-- marker -->
+            <aol-feature *ngIf="dfeat.navData.position && app.config.anchor.raised">
+                <aol-geometry-point>
+                    <aol-coordinate 
+                        [x]="dfeat.navData.position[0]" 
+                        [y]="dfeat.navData.position[1]" 
+                        [srid]="app.config.map.srid">
+                    </aol-coordinate>
+                </aol-geometry-point>
+                <aol-style>
+                    <aol-style-circle [radius]="5">
+                        <aol-style-stroke [color]="'white'" [width]="2"></aol-style-stroke>
+                        <aol-style-fill [color]="'rgba(221, 149, 0, 1)'"></aol-style-fill>                                        
+                    </aol-style-circle>
+                </aol-style>
+            </aol-feature>                                  
+
+            <!-- TWD Line -->
+            <aol-feature *ngIf="vesselLines.twd[0] && app.config.anchor.raised">
+                <aol-geometry-linestring>
+                    <aol-collection-coordinates
+                        [coordinates]="vesselLines.twd"
+                        [srid]="app.config.map.srid">
+                    </aol-collection-coordinates>
+                </aol-geometry-linestring>
+                <aol-style>
+                    <aol-style-stroke 
+                        [color]="'olive'" [width]="2">
+                    </aol-style-stroke>
+                </aol-style>
+            </aol-feature>    
+            
+            <!-- AWA Line -->
+            <aol-feature *ngIf="vesselLines.awa[0] && app.config.anchor.raised">
+                <aol-geometry-linestring>
+                    <aol-collection-coordinates
+                        [coordinates]="vesselLines.awa"
+                        [srid]="app.config.map.srid">
+                    </aol-collection-coordinates>
+                </aol-geometry-linestring>
+                <aol-style>
+                    <aol-style-stroke 
+                        [color]="'rgb(16, 75, 16)'" [width]="2">
+                    </aol-style-stroke>
+                </aol-style>
+            </aol-feature>                             
+
+        </aol-source-vector>
+    </aol-layer-vector>   
+    
+    <!-- *** VESSEL TRAIL *** -->
+    <aol-layer-vector [zIndex]="200" *ngIf="app.config.vesselTrail && app.data.vessels.showSelf">
+        <aol-source-vector>
+            <aol-feature>
+                <aol-geometry-linestring>
+                    <aol-collection-coordinates
+                        [coordinates]="app.data.trail"
+                        [srid]="app.config.map.srid">
+                    </aol-collection-coordinates>
+                </aol-geometry-linestring>
+                <aol-style>
+                    <aol-style-stroke 
+                        [color]="'red'" 
+                        [lineDash]="[2,2]"
+                        [width]="1">
+                    </aol-style-stroke>
+                </aol-style>
+            </aol-feature>
+        </aol-source-vector>
+    </aol-layer-vector>
+    <!-- *** /VESSEL TRAIL *** -->         
+
+</aol-map> 

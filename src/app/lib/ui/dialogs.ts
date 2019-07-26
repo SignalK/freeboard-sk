@@ -2,7 +2,8 @@
 ************************/
 
 import {Component, OnInit, Input, Inject} from '@angular/core';
-import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material';
+import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
+import { MAT_SNACK_BAR_DATA } from '@angular/material/snack-bar';
 
 /*********** MsgBox ***************
 	data: {
@@ -240,6 +241,8 @@ export class ConfirmDialog implements OnInit {
                         <span class="description">
                             {{data.description}}
                         </span>
+                        <br>
+                        <span>Version: {{data.version}}</span>
                         <br><br>
                     </div>
                 </div>
@@ -381,4 +384,32 @@ export class LoginDialog implements OnInit {
         this.result.pwd= password;   
         this.dialogRef.close(this.result);    
     }
+}
+
+/********* MessageBarComponent ****************
+    data: {
+        message: '',  
+        sound: 'Log in'
+    }
+***************************************/
+@Component({
+    selector: 'message-bar',
+    template: `
+        <div class="message-bar"> 
+            <mat-icon>message</mat-icon>&nbsp;&nbsp;
+            {{data.message}}
+        </div>
+        <audio src="./assets/sound/ding.mp3" *ngIf="data.sound"
+            [autoplay]="true">
+        </audio>
+    `,
+    styles: [`
+        .message-bar {
+            color: yellow;
+            font-family: roboto;
+        }
+    `],
+})
+export class MessageBarComponent {
+    constructor( @Inject(MAT_SNACK_BAR_DATA) public data: any ) { }
 }

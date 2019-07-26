@@ -1,0 +1,109 @@
+<div class="resourcelist">
+
+    <div class="title-block">
+        <div style="flex: 1 1 auto;">
+            <div class="title-text">Waypoints:</div>
+            <div>
+                <mat-form-field style="width:150px;">
+                    <input #ftext type="text" matInput style="background-color:white;"
+                        [value]="filterText"
+                        (keyup)="filterKeyUp(ftext.value)"
+                        placeholder="type to filter list">
+                    <button mat-button *ngIf="filterText" matSuffix mat-icon-button
+                        (click)="filterKeyUp('')">
+                        <mat-icon>close</mat-icon>
+                    </button>
+                </mat-form-field> 
+                &nbsp;&nbsp;
+                <button mat-icon-button 
+                    (click)="itemRefresh()"
+                    matTooltip="Reload Waypoints"
+                    matTooltipPosition="left">
+                    <mat-icon>refresh</mat-icon>
+                </button>              
+                <mat-checkbox #selall color="primary"
+                    [disabled]="waypoints.length==0"
+                    [checked]="allSel"
+                    [indeterminate]="someSel"
+                    (change)="selectAll($event.checked)"
+                    [matTooltip]="(!selall.checked || someSel) ? 'Select All' : 'Deselect All'"
+                    matTooltipPosition="right">
+                </mat-checkbox>                             
+            </div>
+        </div>
+        <div>
+            <button mat-icon-button 
+                (click)="close()"
+                matTooltip="Close Waypoint List"
+                matTooltipPosition="left">
+                <mat-icon>close</mat-icon>
+            </button>            
+        </div>
+    </div>
+
+    <div class="resources">
+        <div *ngIf="waypoints.length==0" style="text-align: center;">
+            <br><i>No Waypoints available.</i>
+        </div>        
+        <cdk-virtual-scroll-viewport itemSize="90" 
+                style="position: absolute;
+                    top: 10px;
+                    bottom: 0;
+                    left: 0;
+                    right: 0;">
+            <mat-card *cdkVirtualFor="let r of filterList; let i= index;"
+                    style="border-bottom: silver 1px outset;">
+                <div style="display: flex;">
+                    <div style="flex: 1 1 auto;">
+                        <div><b>{{(r[1].feature.properties.name) ? r[1].feature.properties.name : 'Wpt-' + r[0].slice(-6)}}</b></div>
+                    </div>        
+                    <div style="text-align: right;">
+                        <mat-checkbox color="primary"
+                            [checked]="r[2]"
+                            (change)="itemSelect($event.checked, r[0])"
+                            matTooltip="Show on Map"
+                            matTooltipPosition="left">
+                        </mat-checkbox>
+                    </div>  
+                </div>         
+                <mat-card-actions>
+                    <div style="display: flex;">
+                        <div>
+                            <button mat-icon-button 
+                                (click)="itemDelete(r[0])"
+                                matTooltip="Delete Waypoint"
+                                matTooltipPosition="right">
+                                <mat-icon color="warn">delete</mat-icon>
+                            </button>   
+                        </div>  
+                        <div style="flex: 1 1 auto;text-align:center;">
+                            <button *ngIf="!activeWaypoint || activeWaypoint!=r[0]"
+                                mat-button color="primary"
+                                (click)="itemGoTo(r[0])"
+                                matTooltip="Navigate to Waypoint"
+                                matTooltipPosition="below">
+                                <mat-icon color="primary">near_me</mat-icon>
+                                GO TO
+                            </button>                              
+                            <button *ngIf="activeWaypoint==r[0]"
+                                mat-button color="primary" 
+                                (click)="itemClearActive()"
+                                matTooltip="Clear Destination"
+                                matTooltipPosition="right">
+                                <mat-icon>clear_all</mat-icon> CLEAR
+                            </button>                              
+                        </div>                                              
+                        <div>
+                            <button mat-icon-button 
+                                (click)="itemProperties(r[0])"
+                                matTooltip="Waypoint Properties"
+                                matTooltipPosition="right">
+                                <mat-icon>info_outline</mat-icon>
+                            </button>                          
+                        </div>              
+                    </div>
+                </mat-card-actions>
+            </mat-card>
+        </cdk-virtual-scroll-viewport>
+    </div>
+</div>

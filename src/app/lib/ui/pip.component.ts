@@ -39,7 +39,7 @@ export class PiPVideoComponent implements OnInit {
     @Input() muted:boolean=true;
     @Output() resize:EventEmitter<any>= new EventEmitter();
     @Output() change:EventEmitter<any>= new EventEmitter();
-    @ViewChild('vid') vid: ElementRef;
+    @ViewChild('vid', {static: false}) vid: ElementRef;
 
     constructor() {}
 

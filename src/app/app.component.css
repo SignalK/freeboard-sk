@@ -116,9 +116,19 @@ mat-nav-list {
     height: 45px;
 }
 
+.nosmall {
+    display: block;
+} 
+
 @media only screen and (max-width: 650px) { 
     .alarmPanel {
         left: 15%;
         right: 15%;
-    }    
+    }   
+}
+
+@media only screen and (max-width: 400px) { 
+    .nosmall {
+        display: none;
+    }   
 }

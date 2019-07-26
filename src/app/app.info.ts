@@ -2,22 +2,27 @@
  * perform version checking etc. here
  * ************************************/
 import { Injectable } from '@angular/core';
+import { MatDialog } from '@angular/material/dialog';
+import { MatSnackBar } from '@angular/material/snack-bar';
+
+import { AlertDialog, ConfirmDialog, MessageBarComponent } from './lib/app-ui';
+
 import { Info } from './lib/app-info';
 import { Subject } from 'rxjs';
 import { IndexedDB } from './lib/info/indexeddb';
 import { SignalKClient } from 'signalk-client-angular';
-
+import { SKVessel } from './modules/skresources/resource-classes';
 
 @Injectable({ providedIn: 'root' })
 export class AppInfo extends Info {
 
     private DEV_SERVER= {
-        host: null,     // host name || ip address
-        port: null,                 // port number
+        host: '192.168.99.100',     // host name || ip address
+        port: 3000,                 // port number
         ssl: false                       
     }
 
-    public hostName;
+    public hostName:string;
     public hostPort: number;
     public hostSSL: boolean;
     public host= ''; 
@@ -28,7 +33,9 @@ export class AppInfo extends Info {
         return  (this.config.selections.headingAttribute=='navigation.headingMagnetic') ? true : false;
     }
 
-    constructor( public signalk: SignalKClient) {
+    constructor( public signalk: SignalKClient, 
+                private dialog: MatDialog,
+                private snackbar: MatSnackBar) {
         super();
 
         this.db= new AppDB();
@@ -41,14 +48,14 @@ export class AppInfo extends Info {
         this.host= (this.devMode) ? 
             `${this.hostSSL ? 'https:' : 'http:'}//${this.hostName}:${this.hostPort}` :
             `${window.location.protocol}//${window.location.host}`;
-            
+
         this.id='freeboard';
         this.name= "Freeboard";
         this.shortName= "freeboard";
         this.description= `Signal K Chart Plotter.`;
-        this.version= '1.0.0';
+        this.version= '1.5.0';
         this.url= 'https://github.com/signalk/freeboard-sk';
-        this.logo= "./assets/img/app_logo.png";  
+        this.logo= "./assets/img/app_logo.png";       
         
         this.config= {      // ** base config
             version: '',
@@ -105,15 +112,43 @@ export class AppInfo extends Info {
             routes: [],
             waypoints: [],
             charts: [],
-            alarms: [],
+            alarms: new Map(),
             notes: [],
             selfId: null,
             activeRoute: null,
+            activeWaypoint: null,
             trail: [],
             server: null,
             hasToken: false,
             headingValues: [],
-            lastGet: null,    // map position of last resources GET
+            lastGet: null,      // map position of last resources GET
+            vessels: {          // received vessel data
+                showSelf: false,
+                self: new SKVessel(), 
+                aisTargets: new Map(),
+                activeId: null,
+                active: null,
+                closest: {id: null, distance: null, timeTo: null, position: [0,0]}
+            },
+            aisMgr: {                   // manage aisTargets
+                maxAge: 540000,         // time since last update in ms (9 min)
+                staleAge: 360000,       // time since last update in ms (6 min)
+                updateList: [],
+                staleList: [],
+                removeList: []
+            },
+            navData: {
+                vmg: null,
+                dtg: null,
+                ttg: null,
+                bearing: {value: null, type: null},
+                bearingTrue: null,
+                bearingMagnetic: null,
+                xte: null,
+                position: null,
+                pointIndex: -1,
+                pointTotal: 0
+            }
         }
 
         /***************************************
@@ -218,6 +253,41 @@ export class AppInfo extends Info {
                 }
             }                              
         }
+    }
+
+    // ** display alert dialog
+    showAlert(title:string, message:string, btn?:string) {
+        return this.dialog.open(AlertDialog, {
+            disableClose: false,
+            data: { 
+                message: message, 
+                title: title,
+                buttonText: btn 
+            }
+        }).afterClosed();        
+    } 
+
+    // ** display message bar
+    showMessage(message:string, sound:boolean=false, duration:number=5000) {
+        this.snackbar.openFromComponent( MessageBarComponent, 
+            { 
+                duration: duration,
+                data: { message: message, sound: sound }
+            }
+        );        
+    } 
+    
+    // ** display confirm dialog **
+    showConfirm(message:string, title:string, btn1?:string, btn2?:string) {
+        return this.dialog.open(ConfirmDialog, {
+            disableClose: true,
+            data: { 
+                message: message, 
+                title: title,
+                button1Text: btn1,
+                button2Text: btn2
+            }
+        }).afterClosed();
     }
 
 }

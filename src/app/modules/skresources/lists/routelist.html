@@ -1,0 +1,112 @@
+<div class="resourcelist">
+
+    <div class="title-block">
+        <div style="flex: 1 1 auto;">
+            <div class="title-text">Routes:</div>
+            <div>
+                <mat-form-field style="width:150px;">
+                    <input #ftext type="text" matInput style="background-color:white;"
+                        [value]="filterText"
+                        (keyup)="filterKeyUp(ftext.value)"
+                        placeholder="type to filter list">
+                    <button mat-button *ngIf="filterText" matSuffix mat-icon-button
+                        (click)="filterKeyUp('')">
+                        <mat-icon>close</mat-icon>
+                    </button>
+                </mat-form-field> 
+                &nbsp;&nbsp;                    
+                <button mat-icon-button 
+                    (click)="itemRefresh()"
+                    matTooltip="Reload Routes"
+                    matTooltipPosition="left">
+                    <mat-icon>refresh</mat-icon>
+                </button>
+                <mat-checkbox #selall color="primary"
+                    [disabled]="routes.length==0"
+                    [checked]="allSel"
+                    [indeterminate]="someSel"
+                    (change)="selectAll($event.checked)"
+                    [matTooltip]="(!selall.checked || someSel) ? 'Select All' : 'Deselect All'"
+                    matTooltipPosition="right">
+                </mat-checkbox>                             
+            </div>
+        </div>
+        <div>
+            <button mat-icon-button 
+                (click)="close()"
+                matTooltip="Close Route List"
+                matTooltipPosition="left">
+                <mat-icon>close</mat-icon>
+            </button>            
+        </div>
+    </div>
+
+    <div class="resources">
+        <div *ngIf="routes.length==0" style="text-align: center;">
+            <br><i>No Routes available.</i>
+        </div>
+        <cdk-virtual-scroll-viewport itemSize="120" 
+                style="position: absolute;
+                    top: 10px;
+                    bottom: 0;
+                    left: 0;
+                    right: 0;">
+            <mat-card *cdkVirtualFor="let r of filterList; let i= index;"
+                    style="border-bottom: silver 1px outset;">        
+
+                <div style="display: flex;">
+                    <div style="flex: 1 1 auto;">
+                        <div><b>{{r[1].name}}</b></div>
+                        <div>{{r[1].description}}</div>
+                        <div><i>{{ app.config.units.distance!='m' ? 
+                                km2Nm(r[1].distance/1000).toFixed(2) + 'NM' :
+                                (r[1].distance/1000).toFixed(2) + 'km'}} </i></div>
+                    </div>        
+                    <div style="text-align: right;">
+                        <mat-checkbox color="primary"
+                            [checked]="r[2]"
+                            (change)="itemSelect($event.checked, r[0])"
+                            matTooltip="Show on Map"
+                            matTooltipPosition="left">
+                        </mat-checkbox>
+                    </div>  
+                </div>         
+                <mat-card-actions>
+                    <div style="display: flex;">
+                        <div style="flex: 1 1 auto;">
+                            <button mat-icon-button color="warn"
+                                (click)="itemDelete(r[0])"
+                                [disabled]="r[0]==activeRoute"
+                                matTooltip="Delete Route"
+                                matTooltipPosition="right">
+                                <mat-icon>delete</mat-icon>
+                            </button>  
+                            <button mat-button color="primary" 
+                                (click)="itemSetActive(r[0])"
+                                *ngIf="r[0]!=activeRoute"
+                                matTooltip="Set as Active Route"
+                                matTooltipPosition="right">
+                                <mat-icon>select_all</mat-icon> ACTIVE
+                            </button>          
+                            <button mat-button color="primary" 
+                                (click)="itemClearActive(r[0])"
+                                *ngIf="r[0]==activeRoute"
+                                matTooltip="Clear Active Route"
+                                matTooltipPosition="right">
+                                <mat-icon>clear_all</mat-icon> CLEAR
+                            </button>                                             
+                        </div> 
+                        <div>
+                            <button mat-icon-button 
+                                (click)="itemProperties(r[0])"
+                                matTooltip="Route Properties"
+                                matTooltipPosition="right">
+                                <mat-icon>info_outline</mat-icon>
+                            </button>                                                 
+                        </div>               
+                    </div>
+                </mat-card-actions>
+            </mat-card>
+        </cdk-virtual-scroll-viewport>
+    </div>
+</div>

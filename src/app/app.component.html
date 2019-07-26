@@ -48,19 +48,19 @@
         </button>          
         <hr>
         <button mat-icon-button (click)="toggleMoveMap()"
-            [disabled]="!display.showSelf"
+            [disabled]="!app.data.vessels.showSelf"
             [matTooltip]="app.config.map.moveMap ? 'Turn off Follow Vessel' : 'Follow Vessel' " 
             matTooltipPosition="right">
-            <mat-icon [style.color]="!display.showSelf ? 'silver' : app.config.map.moveMap ? 'yellow' : 'white'">
+            <mat-icon [style.color]="!app.data.vessels.showSelf ? 'silver' : app.config.map.moveMap ? 'yellow' : 'white'">
                 my_location
             </mat-icon>	
         </button> 
         <hr *ngIf="!app.config.map.moveMap">
         <button mat-icon-button *ngIf="!app.config.map.moveMap"
-            (click)="mapMove()"
-            [disabled]="!display.showSelf"
+            (click)="centerVessel()"
+            [disabled]="!app.data.vessels.showSelf"
             matTooltip="Center Vessel" matTooltipPosition="right">
-            <mat-icon [style.color]="!display.showSelf ? 'silver' : 'white'">
+            <mat-icon [style.color]="!app.data.vessels.showSelf ? 'silver' : 'white'">
                 center_focus_strong
             </mat-icon>			
         </button>        
@@ -90,7 +90,7 @@
             <span>Clear Trail</span>			
         </a>
         <button mat-menu-item 
-            (click)="routeClearActive()">
+            (click)="deactivateRoute()">
             <mat-icon>clear_all</mat-icon>
             <span *ngIf="app.data.activeRoute">Clear Active Route</span>
             <span *ngIf="!app.data.activeRoute">Clear Destination</span>			
@@ -133,7 +133,8 @@
             <span>Draw Region + Note</span>			
         </a>           
         <mat-divider></mat-divider>                   
-        <a mat-menu-item (click)="skres.showWaypointEditor(null, display.vessels.active.position)" *ngIf="display.showSelf">
+        <a mat-menu-item *ngIf="app.data.vessels.showSelf"
+            (click)="skres.showWaypointEditor(null, app.data.vessels.active.position)">
             <mat-icon style="color:black;" >add_location</mat-icon>
             <span>Add Waypoint at Vessel</span>			
         </a>
@@ -155,17 +156,26 @@
             <!--left menu-->
 			<mat-sidenav #sidemenu mode="over">
 				<mat-nav-list>	
-                    <a mat-list-item (click)="sidemenu.close();">                        
+                    <a mat-list-item (click)="sidemenu.close();">                      
                         <mat-icon>arrow_back</mat-icon>
-                        <h4 matLine>&nbsp;</h4>
+                        <span matLine>
+                            <a mat-icon-button
+                                (click)="openAbout()"
+                                matTooltip="About Freeboard"
+                                matTooltipPosition="right">
+                                <mat-icon color="primary">info_outline</mat-icon>
+                            </a>  
+                            
+                            <a mat-icon-button
+                                href="./assets/help/index.html"
+                                target="_blank"
+                                matTooltip="Open Help."
+                                matTooltipPosition="right">
+                                <mat-icon color="primary">help</mat-icon>
+                            </a> 
+                         </span> 
                     </a>
-                    <mat-divider></mat-divider>    
-
-                    <a mat-list-item
-                        (click)="sidemenu.close();showLogin(null, false)">
-                        <mat-icon>account_circle</mat-icon>
-                        &nbsp;{{app.data.hasToken ? 'Change User' : 'Login'}}
-                    </a>                      
+                    <mat-divider></mat-divider>                      
 
                     <ap-file-input [astext]="true" (chosen)="processGPX($event)">
                         <a mat-list-item>
@@ -186,8 +196,15 @@
                         (click)="sidemenu.close();displayLeftMenu('noteList',true)">
                         <mat-icon>local_offer</mat-icon>
                         &nbsp;Notes
-                    </a>                   
-                                        
+                    </a> 
+
+                    <a mat-list-item 
+                        (click)="sidemenu.close();displayLeftMenu('aisList',true)">
+                        <mat-icon>directions_boat</mat-icon>
+                        &nbsp;Vessels
+                    </a>                                        
+                        
+                    <mat-divider></mat-divider>
                     <a mat-list-item 
                         *ngIf="!draw.enabled || !measure.enabled"
                         (click)="sidemenu.close();displayLeftMenu('anchorWatch',true)">
@@ -195,13 +212,6 @@
                         &nbsp;Anchor Watch
                     </a>                     
 
-                    <a mat-list-item 
-                        (click)="sidemenu.close();displayLeftMenu('aisList',true)">
-                        <mat-icon>directions_boat</mat-icon>
-                        &nbsp;Vessels
-                    </a>  
-
-                    <mat-divider></mat-divider>
                     <a mat-list-item *ngIf="features.playbackAPI"
                         (click)="sidemenu.close();showPlaybackSettings();">
                         <mat-icon>history</mat-icon>
@@ -210,30 +220,21 @@
 
                     <mat-divider></mat-divider>
                     <a mat-list-item (click)="sidemenu.close();openSettings()">
-                        <mat-icon>settings</mat-icon>
+                        <mat-icon color="primary">settings</mat-icon>
                         &nbsp;Settings
-                    </a>  
-                    <a mat-list-item (click)="sidemenu.close()"
-                        href="./assets/help/index.html"
-                        target="_blank">
-                        <mat-icon>help</mat-icon>
-                        &nbsp;Help
-                    </a> 
-
-                    <mat-divider></mat-divider>
-					<a mat-list-item (click)="sidemenu.close();openAbout();">
-                        <mat-icon mat-list-avatar>
-                            <img src="assets/img/app_logo.png" style="width:42px;"/>
-                        </mat-icon>
-                        <h4 matLine>{{app.name}}</h4>
-                        <p matLine style="font-size: 8pt;">{{app.description}}</p>
-                    </a>                                                      		
+                    </a>   
+                    
+                    <a mat-list-item
+                        (click)="sidemenu.close();showLogin(null, false)">
+                        <mat-icon>account_circle</mat-icon>
+                        &nbsp;{{app.data.hasToken ? 'Change User' : 'Login'}}
+                    </a>                        
                 </mat-nav-list>               
             </mat-sidenav>
 
             <!--instruments-->
             <mat-sidenav #sideright mode="over"position="end" 
-                (openedChange)="sideNavAction($event)"
+                (openedChange)="rightSideNavAction($event)"
                 style="background-color:transparent; width:350px;">
                 <div style="display:flex;flex-direction: column;position:relative;">
                     <mat-nav-list style="background-color: white;">	
@@ -261,51 +262,58 @@
 
             <!--left menu panel-->
             <div class="leftMenuPanel" *ngIf="display.leftMenuPanel">
-                <route-list [routes]="app.data.routes" *ngIf="display.routeList"
-                    (select)="routeSelected($event)"
+                <route-list *ngIf="display.routeList"
+                    [routes]="app.data.routes" 
+                    [activeRoute]="app.data.activeRoute" 
+                    (select)="skres.routeSelected($event)"
                     (delete)="skres.showRouteDelete($event)"
-                    (activate)="routeActivate($event)"
-                    (deactivate)="routeClearActive()"
-                    (refresh)="skres.getRoutes(display.vessels.activeId)"
-                    (properties)="resourceProperties($event)"
+                    (activate)="activateRoute($event.id)"
+                    (deactivate)="deactivateRoute()"
+                    (refresh)="skres.getRoutes(app.data.vessels.activeId)"
+                    (properties)="skres.resourceProperties($event)"
                     (closed)="displayLeftMenu()">
                 </route-list>
 
-                <waypoint-list [waypoints]="app.data.waypoints" *ngIf="display.waypointList"
-                    (select)="waypointSelected($event)"
+                <waypoint-list *ngIf="display.waypointList"
+                    [waypoints]="app.data.waypoints" 
+                    [activeWaypoint]="app.data.activeWaypoint" 
+                    (select)="skres.waypointSelected($event)"
                     (delete)="skres.showWaypointDelete($event)"
-                    (goto)="navigateToWaypoint($event)"
+                    (goto)="skres.navigateToWaypoint($event)"
+                    (deactivate)="deactivateRoute()"
                     (refresh)="skres.getWaypoints()"
-                    (properties)="resourceProperties($event)"
+                    (properties)="skres.resourceProperties($event)"
                     (closed)="displayLeftMenu()">
                 </waypoint-list>       
                 
-                <chart-list [charts]="app.data.charts" *ngIf="display.chartList"
-                    (select)="chartSelected($event)"
+                <chart-list *ngIf="display.chartList"
+                    [charts]="app.data.charts" 
+                    (select)="skres.chartSelected($event)"
                     (refresh)="skres.getCharts()"
                     (closed)="displayLeftMenu()">
                 </chart-list>   
 
                 <note-list [notes]="app.data.notes" *ngIf="display.noteList"
-                    (select)="noteSelected($event)"
+                    (select)="skres.noteSelected($event)"
                     (refresh)="skres.getNotes()"
                     (closed)="displayLeftMenu()">
                 </note-list>                 
 
-                <ais-list [aisTargets]="display.vessels.aisTargets" *ngIf="display.aisList"
-                    [focusId]="display.vessels.activeId"
-                    (select)="aisSelected($event)"
-                    (properties)="aisProperties($event)"
+                <ais-list [aisTargets]="app.data.vessels.aisTargets" *ngIf="display.aisList"
+                    [focusId]="app.data.vessels.activeId"
+                    (select)="skres.aisSelected($event)"
+                    (properties)="vesselProperties({id: $event, type: 'ais'})"
                     (closed)="displayLeftMenu()"
                     (focusVessel)="switchActiveVessel($event)">
                 </ais-list>                   
                 
                 <anchor-watch *ngIf="display.anchorWatch"
                     min="10" max="500" 
+                    [disable]="!app.data.vessels.showSelf"
                     [radius]="app.config.anchor.radius" 
                     [feet]="(app.config.units.depth!='m') ? true : false"
                     [raised]="app.config.anchor.raised"
-                    (change)="anchorEvent($event)"
+                    (change)="alarmsFacade.anchorEvent($event, app.data.vessels.activeId, this.app.data.vessels.active.position)"
                     (closed)="displayLeftMenu()">
                 </anchor-watch>                     
             </div>            
@@ -314,653 +322,33 @@
             <div style="display: relative; width: 100%; height: 100%;" 
                 (dragover)="mapDragOver($event)" (drop)="mapDrop($event)">
                 <!-- instrument sidebar open button -->
-                <button mat-mini-fab class="mapButton" style="top:10px;right:20px;"
-                    *ngIf="(!draw.enabled && !measure.enabled) && !display.vessels.activeId"
+                <button mat-mini-fab class="mapButton nosmall" style="top:10px;right:20px;"
+                    *ngIf="(!draw.enabled && !measure.enabled) && !app.data.vessels.activeId"
                     (click)="sideright.toggle()"
                     matTooltip="Instruments" matTooltipPosition="left">
                     <mat-icon>av_timer</mat-icon>
                 </button>                  
 
-                <!-- *** MAP *** -->
-                <aol-map [width]="'100%'" [height]="'100%'" 
-                        [style.cursor]="draw.enabled ? 'crosshair' : 'initial'"
-                        (onMoveEnd)="mapMoveEvent($event)"
-                        (onPointerMove)="mapPointerMove($event)"
-                        (onPointerDrag)="mapPointerDrag($event)"
-                        (onClick)="mapMouseClick($event)">
-
-                    <aol-interaction-default></aol-interaction-default>
-                    <aol-interaction-draw *ngIf="draw.enabled"
-                        [type]="draw.type"
-                        (onDrawEnd)="handleDrawEnd($event)">
-                    </aol-interaction-draw>
-                    <aol-interaction-draw *ngIf="measure.enabled"
-                        [type]="'LineString'"
-                        (onDrawStart)="handleMeasure($event)"
-                        (onDrawEnd)="handleMeasure($event)"
-                        [style]="measure.style">
-                    </aol-interaction-draw>   
-                    
-                    <aol-interaction-modify *ngIf="draw.modify && draw.features"
-                        [features]="draw.features"
-                        (onModifyStart)="handleModifyStart($event)"
-                        (onModifyEnd)="handleModifyEnd($event)">
-                    </aol-interaction-modify>                 
-                    
-                    <aol-control-mouseposition class="ol-mouse-position"
-                        [projection]="app.config.map.srid"
-                        [coordinateFormat]="coord.createStringXY(4)">
-                    </aol-control-mouseposition>
-                    <aol-control>
-                        <aol-content>
-                            <div class="ol-zoom ol-control">
-                                <button mat-mini-fab (click)="mapZoom(false)"
-                                    [disabled]="app.config.map.zoomLevel==display.map.minZoom"
-                                    matTooltip="Zoom out">
-                                    <mat-icon>remove</mat-icon>
-                                </button> 
-                                &nbsp;                               
-                                <button mat-mini-fab (click)="mapZoom(true)"
-                                    [disabled]="app.config.map.zoomLevel==display.map.maxZoom"
-                                    matTooltip="Zoom in">
-                                    <mat-icon>add</mat-icon>
-                                </button>
-                            </div>
-                        </aol-content>
-                    </aol-control>                        
-
-                    <aol-view [zoom]="app.config.map.zoomLevel" [minZoom]="1"
-                            [rotation]="display.map.rotation">
-                        <aol-coordinate 
-                            [x]="display.map.center[0]" 
-                            [y]="display.map.center[1]" 
-                            [srid]="app.config.map.srid">
-                        </aol-coordinate>                      
-                    </aol-view>
-
-                    <!-- *** base maps *** -->
-                    <aol-layer-tile [zIndex]="10"
-                        *ngIf="app.data.charts.length!=0 && app.data.charts[0][2]">
-                        <aol-source-osm></aol-source-osm>
-                    </aol-layer-tile>
-                    <aol-layer-tile [zIndex]="11"
-                        *ngIf="app.data.charts.length!=0 && app.data.charts[1][2]">
-                        <aol-source-xyz 
-                            [url]="'https://tiles.openseamap.org/seamark/{z}/{x}/{y}.png'">
-                        </aol-source-xyz>
-                    </aol-layer-tile>  
-                    <!-- *** /base maps *** -->   
-
-                    <!-- *** Charts *** -->
-                    <div *ngFor="let c of chartsLocalByScale(); let i=index;">
-                        <aol-layer-tile [zIndex]="15 + i" *ngIf="c[2]">
-                            <aol-source-xyz 
-                                [minZoom]="c[1].minzoom"
-                                [maxZoom]="c[1].maxzoom"
-                                [url]="c[1].tilemapUrl">                           
-                            </aol-source-xyz>
-                        </aol-layer-tile>
-                    </div>
-                    <!-- *** Charts *** -->        
-                    
-                    <!-- *** ROUTES *** -->
-                    <aol-layer-vector [zIndex]="50"> 
-                        <aol-source-vector>
-                            <div *ngFor="let r of app.data.routes; let i=index;">
-                                <aol-feature *ngIf="r[2]" [id]="'route.'+ r[0]">
-                                    <aol-geometry-linestring>
-                                        <aol-collection-coordinates
-                                            [coordinates]="r[1].feature?.geometry?.coordinates"
-                                            [srid]="app.config.map.srid">
-                                        </aol-collection-coordinates>
-                                    </aol-geometry-linestring>
-                                    <aol-style>
-                                        <aol-style-stroke 
-                                            [color]="(r[3]) ? 'blue' : 'green'" 
-                                            [lineDash]="(r[3]) ? [1] : [20,5,5,5]"
-                                            [width]="(r[3]) ? 4 : 2">
-                                        </aol-style-stroke>                                                                                                   
-                                    </aol-style>
-                                </aol-feature>
-                                <!-- start / end points -->
-                                <aol-feature *ngIf="r[2]"> 
-                                    <aol-geometry-point>
-                                        <aol-coordinate 
-                                            [x]="r[1].feature?.geometry?.coordinates[0][0]" 
-                                            [y]="r[1].feature?.geometry?.coordinates[0][1]" 
-                                            [srid]="app.config.map.srid">
-                                        </aol-coordinate>
-                                    </aol-geometry-point>
-                                    <aol-style>    
-                                        <aol-style-circle [radius]="5">
-                                            <aol-style-stroke [color]="'white'" [width]="2"></aol-style-stroke>
-                                            <aol-style-fill [color]="(r[3]) ? 'blue' : 'green'"></aol-style-fill>                                        
-                                        </aol-style-circle>                                                                                                     
-                                    </aol-style>                                
-                                </aol-feature>  
-                                <aol-feature *ngIf="r[2]"> 
-                                    <aol-geometry-point>
-                                        <aol-coordinate 
-                                            [x]="r[1].feature?.geometry?.coordinates[r[1].feature.geometry.coordinates.length-1][0]" 
-                                            [y]="r[1].feature?.geometry?.coordinates[r[1].feature.geometry.coordinates.length-1][1]" 
-                                            [srid]="app.config.map.srid">
-                                        </aol-coordinate>
-                                    </aol-geometry-point>
-                                    <aol-style>    
-                                        <aol-style-circle [radius]="5">
-                                            <aol-style-stroke [color]="'yellow'" [width]="2"></aol-style-stroke>
-                                            <aol-style-fill [color]="(r[3]) ? 'blue' : 'green'"></aol-style-fill>                                        
-                                        </aol-style-circle>                                                                                                     
-                                    </aol-style>                                
-                                </aol-feature>                                                             
-                            </div>
-                        </aol-source-vector>
-                    </aol-layer-vector>
-                    <!-- *** /ROUTES *** -->  
-                    
-                    <!-- *** WAYPOINTS *** -->
-                    <aol-layer-vector [zIndex]="90">
-                        <aol-source-vector>
-                        <div *ngFor="let w of app.data.waypoints; let i=index;">
-                            <aol-feature *ngIf="w[2]" [id]="'waypoint.'+ w[0]">
-                                <aol-geometry-point>
-                                    <aol-coordinate 
-                                        [x]="w[1].feature.geometry.coordinates[0]" 
-                                        [y]="w[1].feature.geometry.coordinates[1]" 
-                                        [srid]="app.config.map.srid">
-                                    </aol-coordinate>
-                                </aol-geometry-point>
-                                <aol-style>
-                                    <aol-style-icon 
-                                        [anchor]="[10.5, 25]"
-                                        [anchorXUnits]="'pixels'"
-                                        [anchorYUnits]= "'pixels'"
-                                        [src]="'./assets/img/marker-gold.png'"
-                                        [size]="[25,25]"
-                                        [scale]="1"
-                                        [rotateWithView]="false"
-                                        [rotation]="0">
-                                    </aol-style-icon>
-                                </aol-style>
-                            </aol-feature>
-                        </div>
-                        </aol-source-vector>
-                    </aol-layer-vector>
-                    <!-- *** /WAYPOINTS *** -->     
-                    
-                    <!-- *** AIS TARGETS *** -->
-                    <aol-layer-vector *ngIf="app.config.aisTargets"
-                        [zIndex]="120" [renderBuffer]="200">
-                        <aol-source-vector>
-                            <xol-ais-targets [aisTargets]="display.vessels.aisTargets"
-                                [updateIds]="aisMgr.updateList"
-                                [staleIds]="aisMgr.staleList"
-                                [removeIds]="aisMgr.removeList"
-                                [filterIds]="app.config.selections.aisTargets"
-                                [focusId]="display.vessels.activeId"
-                                icon="./assets/img/ais_active.png"
-                                inactiveIcon="./assets/img/ais_inactive.png"
-                                focusIcon="./assets/img/ship_red.png"
-                                [inactiveTime]="aisMgr.staleAge"
-                                [labelMinZoom]="10"
-                                [vectorMinZoom]="app.config.selections.aisWindMinZoom"
-                                [vectorApparent]="app.config.selections.aisWindApparent"
-                                [mapZoom]="app.config.map.zoomLevel">                               
-                            </xol-ais-targets>
-                        </aol-source-vector>
-                    </aol-layer-vector>
-                    <!-- *** AIS TARGETS *** -->                    
-
-                    <!-- *** NOTES & REGIONS*** -->
-                    <aol-layer-vector 
-                        *ngIf="app.config.notes && app.config.map.zoomLevel>=app.config.selections.notesMinZoom" 
-                        [zIndex]="120" [renderBuffer]="200">
-                        <aol-source-vector>
-                            <div *ngFor="let r of app.data.regions; let i=index;">
-                                <!--MultiPolygon-->
-                                <aol-feature [id]="'region.'+ r[0]" *ngIf="r[1].feature.geometry.type=='Polygon'"> 
-                                    <aol-geometry-polygon>
-                                        <aol-collection-coordinates
-                                            [coordinates]="r[1].feature.geometry.coordinates[0]"
-                                            [srid]="app.config.map.srid">
-                                        </aol-collection-coordinates>                                        
-                                    </aol-geometry-polygon>
-                                    <aol-style>
-                                        <aol-style-stroke [color]="'purple'"></aol-style-stroke>
-                                        <aol-style-fill [color]="[255,0,255,0.1]"></aol-style-fill>
-                                    </aol-style>
-                                </aol-feature> 
-                                <!--MultiPolygon-->
-                                <aol-feature [id]="'region.'+ r[0]" *ngIf="r[1].feature.geometry.type=='MultiPolygon'"> 
-                                    <aol-geometry-polygon>
-                                        <aol-collection-coordinates
-                                            [coordinates]="r[1].feature.geometry.coordinates[0][0]"
-                                            [srid]="app.config.map.srid">
-                                        </aol-collection-coordinates>                                        
-                                    </aol-geometry-polygon>
-                                    <aol-style>
-                                        <aol-style-stroke [color]="'purple'"></aol-style-stroke>
-                                        <aol-style-fill [color]="[255,0,255,0.1]"></aol-style-fill>
-                                    </aol-style>
-                                </aol-feature>                                 
-                            </div>                            
-                            <div *ngFor="let w of app.data.notes; let i=index;">
-                                <aol-feature [id]="'note.'+ w[0]">
-                                    <aol-geometry-point>
-                                        <aol-coordinate 
-                                            [x]="w[1].position.longitude" 
-                                            [y]="w[1].position.latitude" 
-                                            [srid]="app.config.map.srid">
-                                        </aol-coordinate>
-                                    </aol-geometry-point>
-                                    <aol-style>
-                                        <aol-style-icon 
-                                            [anchor]="[3.5, 3]"
-                                            [anchorXUnits]="'pixels'"
-                                            [anchorYUnits]= "'pixels'"
-                                            [src]="'./assets/img/note.png'"
-                                            [size]="[25,25]"
-                                            [scale]="1"
-                                            [rotateWithView]="false"
-                                            [rotation]="0">
-                                        </aol-style-icon>
-                                    </aol-style>
-                                </aol-feature>
-                            </div>
-                        </aol-source-vector> 
-                    </aol-layer-vector>
-                    <!-- *** NOTES *** -->    
-
-                    <!-- *** popover *** -->
-                    <aol-overlay *ngIf="display.overlay.show && !draw.modify">
-                        <aol-coordinate
-                            [x]="display.overlay.position[0]"
-                            [y]="display.overlay.position[1]"
-                            [srid]="app.config.map.srid">
-                        </aol-coordinate>
-                        <aol-content>
-                            <!--Feature LIST popover-->
-                            <ap-popover *ngIf="this.display.overlay['type']=='list';"
-                                [title]="display.overlay.title" 
-                                [canClose]="true"
-                                (close)="popoverClosed()">
-                                
-                                <mat-nav-list>
-                                    <mat-list-item *ngFor="let f of this.display.overlay['content']">
-                                        <a matLine href="#" (click)="trimDrawFeatureList(f.id); formatPopover(f.id, f.coord, f.mrid)">
-                                            <mat-icon [color]="(f.text=='self') ? 'warn' : '' ">
-                                                {{f.icon}}
-                                            </mat-icon>
-                                            {{(f.text=='self') ? this.display.vessels.self.name || 'Self' : f.text}}
-                                        </a>
-                                    </mat-list-item>
-                                </mat-nav-list>
-
-                            </ap-popover>                               
-                            <!--resource popover-->
-                            <ap-popover *ngIf="this.display.overlay['type']!='ais' && this.display.overlay['type']!='list'"
-                                [title]="display.overlay.title" 
-                                [canClose]="!measure.enabled"
-                                (close)="popoverClosed()">
-                                <div *ngFor="let p of display.overlay.content" style="display:flex;">
-                                    <div style="font-weight:bold;">{{p[0]}}:</div>
-                                    <div style="flex: 1 1 auto;text-align:right;">{{p[1]}}</div>
-                                </div>
-                                <div style="display:flex;flex-wrap: wrap;">
-                                    <div style="flex:1 1 50%;" *ngIf="display.overlay.canModify">
-                                        <button mat-button 
-                                            (click)="modifyStart();popoverClosed()"
-                                            color="primary"
-                                            matTooltip="Modify">
-                                            <mat-icon>touch_app</mat-icon>
-                                            MOVE
-                                        </button> 
-                                    </div>
-                                    <div style="flex:1 1 50%;" *ngIf="display.overlay.addNote">
-                                        <button mat-button 
-                                            (click)="skres.showNoteEditor({region: { id: display.overlay.id, exists: true } });popoverClosed()"
-                                            color="primary"
-                                            matTooltip="Add Note">
-                                            <mat-icon>local_offer</mat-icon>
-                                            ADD
-                                        </button>                                                 
-                                    </div>
-                                    <div style="flex:1 1 50%;" *ngIf="display.overlay.canDelete">
-                                        <button mat-button 
-                                            (click)="resourceDelete(display.overlay.id);popoverClosed()"
-                                            color="warn"
-                                            matTooltip="Delete">
-                                            <mat-icon>delete</mat-icon>
-                                            DELETE
-                                        </button>
-                                    </div>
-                                    <div style="flex:1 1 50%;" *ngIf="display.overlay.gotoWaypoint">
-                                        <button mat-button 
-                                            (click)="navigateToWaypoint({id: display.overlay.id});popoverClosed()"
-                                            color="primary"
-                                            matTooltip="Navigate to Waypoint">
-                                            <mat-icon>near_me</mat-icon>
-                                            GO TO
-                                        </button>                                           
-                                    </div>
-                                    <div style="flex:1 1 50%;" *ngIf="display.overlay.activateRoute" >
-                                        <button mat-button 
-                                            (click)="routeActivate({id: display.overlay.id});popoverClosed()"
-                                            color="primary"
-                                            matTooltip="Make this the Active Route">
-                                            <mat-icon>select_all</mat-icon>
-                                            ACTIVE
-                                        </button>
-                                    </div>
-                                    <div style="flex:1 1 50%;" *ngIf="display.overlay.deactivateRoute">                                            
-                                        <button mat-button  
-                                            (click)="routeClearActive();popoverClosed()"
-                                            color="primary"
-                                            matTooltip="Clear Active Route">
-                                            <mat-icon>clear_all</mat-icon>
-                                            CLEAR
-                                        </button>
-                                    </div>
-                                    <div style="flex:1 1 50%;" *ngIf="display.overlay.showRelated && display.overlay.type!='ais'">
-                                        <button mat-button
-                                            (click)="skres.showRelatedNotes(display.overlay.showRelated, 'group');popoverClosed()"
-                                            matTooltip="Notes in Group">
-                                            <mat-icon>style</mat-icon>
-                                            GROUP
-                                        </button>  
-                                    </div>                                      
-                                    <div style="flex:1 1 50%;" *ngIf="display.overlay.showProperties && display.overlay.type!='ais'">
-                                        <button mat-button
-                                            (click)="resourceProperties(display.overlay);popoverClosed()"
-                                            matTooltip="Show Properties">
-                                            <mat-icon>info_outline</mat-icon>
-                                            INFO
-                                        </button>  
-                                    </div>                                                                        
-                                </div>                           
-                            </ap-popover>
-                            <!--AIS/Vessel popover-->
-                            <ap-popover *ngIf="this.display.overlay['type']=='ais';"
-                                [title]="display.overlay.content.name || display.overlay.content.mmsi || display.overlay.title" 
-                                [canClose]="!measure.enabled"
-                                (close)="popoverClosed()">
-                                
-                                <div style="display:flex;">
-                                    <div style="font-weight:bold;">Latitude:</div>
-                                    <div style="flex: 1 1 auto;text-align:right;">{{display.overlay.content.position[1].toFixed(6)}}</div>
-                                </div>
-                                <div style="display:flex;">
-                                    <div style="font-weight:bold;">Longitude:</div>
-                                    <div style="flex: 1 1 auto;text-align:right;">{{display.overlay.content.position[0].toFixed(6)}}</div>
-                                </div>
-                                <div style="display:flex;">
-                                    <div style="font-weight:bold;">State:</div>
-                                    <div style="flex: 1 1 auto;text-align:right;">{{display.overlay.content.state}}</div>
-                                </div>                                
-                                <div style="display:flex;flex-wrap:no-wrap;">
-                                    <div style="width:150px;">
-                                        <ap-compass 
-                                            [heading]="convert.radiansToDegrees(display.overlay.content.orientation)"
-                                            [windtrue]="(display.overlay.content.wind.direction!= null) ? convert.radiansToDegrees(display.overlay.content.wind.direction) : null"
-                                            [windapparent]="(display.overlay.content.wind.awa!= null) ? convert.radiansToDegrees(display.overlay.content.wind.awa) : null"
-                                            [speed]="(display.overlay.content.sog!= null) ? convert.msecToKnots(display.overlay.content.sog) : null">
-                                        </ap-compass>    
-                                    </div>                                
-                                    <div>    
-                                        &nbsp;<br>                              
-                                        <div>
-                                            <div style="border-left:olive 10px solid;padding-left: 5px;">
-                                                <span style="font-weight:bold"> Wind ({{app.useMagnetic ? 'M' : 'T'}}):</span>
-                                            </div>
-                                            <div style="flex: 1 1 auto;text-align:right;">
-                                                {{(display.overlay.content.wind.tws) ? 
-                                                    convert.msecToKnots(display.overlay.content.wind.tws).toFixed(1) : '-'}}&nbsp;kn
-                                            </div>
-                                        </div>       
-                                        <div>
-                                            <div style="border-left:rgb(16, 75, 16) 10px solid;;padding-left: 5px;">
-                                                <span style="font-weight:bold;"> Wind (A):</span>
-                                            </div>
-                                            <div style="flex: 1 1 auto;text-align:right;">
-                                                {{(display.overlay.content.wind.aws) ? 
-                                                    convert.msecToKnots(display.overlay.content.wind.aws).toFixed(1) : '-'}}&nbsp;kn
-                                            </div>
-                                        </div>                                                                                                                                                                                                                                                                                                                                       
-                                    </div>
-                                </div>
-                                <div style="display:flex;">
-                                    <div style="flex:1 1 auto;">
-                                    </div>
-                                    <div style="text-align:right;">
-                                        <button mat-button *ngIf="display.overlay.addWaypoint"
-                                            (click)="skres.showWaypointEditor(null, display.vessels.active.position);popoverClosed()"
-                                            color="primary"
-                                            matTooltip="Add Waypoint at vessel location">
-                                            <mat-icon>add_location</mat-icon>
-                                            DROP WPT
-                                        </button>                                        
-                                        <button mat-button
-                                            *ngIf="display.vessels.activeId!=display.overlay.id"
-                                            (click)="switchActiveVessel(display.overlay.id)"
-                                            matTooltip="Focus vessel">
-                                            <mat-icon style="color:blue;">center_focus_weak</mat-icon>
-                                            FOCUS
-                                        </button>    
-                                        <button mat-button
-                                            *ngIf="display.vessels.activeId==display.overlay.id && !display.overlay.isSelf"
-                                            (click)="switchActiveVessel(null); display.overlay.show=false"
-                                            matTooltip="Clear vessel focus">
-                                            <mat-icon style="color:blue;">clear_all</mat-icon>
-                                            UNFOCUS
-                                        </button>                                                                                
-                                        <button mat-button
-                                            (click)="aisProperties(display.overlay.id); display.overlay.show=false"
-                                            *ngIf="display.overlay.showProperties"
-                                            matTooltip="Show Properties">
-                                            <mat-icon style="color:blue;">info_outline</mat-icon>
-                                            INFO
-                                        </button>                                                                                                             
-                                    </div>   
-                                </div>                             
-                            </ap-popover>                            
-                        </aol-content>
-                    </aol-overlay>   
-                    <!-- /*** popover *** -->   
-                    
-                    <!-- ANCHOR WATCH -->  
-                    <aol-layer-vector [zIndex]="49" *ngIf="!app.config.anchor.raised">
-                        <aol-source-vector>
-                            <aol-feature>
-                                <xol-geometry-circle [radius]="app.config.anchor.radius"
-                                    [center]="app.config.anchor.position">                                 
-                                    <aol-style>
-                                        <aol-style-fill [color]="'rgba(0, 255, 0, .3)'"></aol-style-fill>                                        
-                                    </aol-style>
-                                </xol-geometry-circle>
-                            </aol-feature>
-               
-                            <aol-feature>
-                                <aol-geometry-point>
-                                    <aol-coordinate 
-                                        [x]="app.config.anchor.position[0]" 
-                                        [y]="app.config.anchor.position[1]" 
-                                        [srid]="app.config.map.srid">
-                                    </aol-coordinate>
-                                </aol-geometry-point>
-                                <aol-style>
-                                    <aol-style-icon 
-                                        [anchor]="[13,1]"
-                                        [anchorXUnits]="'pixels'"
-                                        [anchorYUnits]= "'pixels'"
-                                        [src]="'./assets/img/anchor.png'"
-                                        [size]="[26,26]"
-                                        [scale]=".75"
-                                        [rotateWithView]="false"
-                                        [rotation]="0">
-                                    </aol-style-icon>
-                                </aol-style>
-                            </aol-feature>
-
-                            <aol-feature>
-                                <aol-geometry-linestring>
-                                    <aol-collection-coordinates
-                                        [coordinates]="display.vesselLines.anchor"
-                                        [srid]="app.config.map.srid">
-                                    </aol-collection-coordinates>
-                                </aol-geometry-linestring>
-                                <aol-style>
-                                    <aol-style-stroke [color]="'black'" [width]="2"></aol-style-stroke>                                   
-                                </aol-style>
-                            </aol-feature>
-                        </aol-source-vector>
-                    </aol-layer-vector>
-                    <!-- ANCHOR WATCH --> 
-
-                    <!-- *** VESSEL SELF *** -->
-                    <aol-layer-vector [zIndex]="210" *ngIf="display.showSelf">
-                        <aol-source-vector>
-                            <!-- vessel -->
-                            <aol-feature [id]="''+app.data.selfId">
-                                <aol-geometry-point>
-                                    <aol-coordinate 
-                                        [x]="display.vessels.self.position[0]" 
-                                        [y]="display.vessels.self.position[1]" 
-                                        [srid]="app.config.map.srid">
-                                    </aol-coordinate>
-                                </aol-geometry-point>
-                                <aol-style>
-                                    <aol-style-icon 
-                                        [anchor]="[9.5,22.5]"
-                                        [anchorXUnits]="'pixels'"
-                                        [anchorYUnits]= "'pixels'"
-                                        [src]="display.vessels.activeId ? './assets/img/ship_blur.png' : './assets/img/ship_red.png'"
-                                        [size]="[50,50]"
-                                        [scale]=".75"
-                                        [rotateWithView]="true"
-                                        [rotation]="display.vessels.self.orientation">
-                                    </aol-style-icon>                                   
-                                </aol-style>
-                            </aol-feature>
-                            <!-- /vessel -->    
-
-                            <!-- heading Line-->
-                            <aol-feature *ngIf="display.vesselLines.heading[0] && app.config.anchor.raised">
-                                <aol-geometry-linestring>
-                                    <aol-collection-coordinates
-                                        [coordinates]="display.vesselLines.heading"
-                                        [srid]="app.config.map.srid">
-                                    </aol-collection-coordinates>
-                                </aol-geometry-linestring>
-                                <aol-style>
-                                    <aol-style-stroke 
-                                        [color]="'rgba(221, 99, 0, 0.5)'" [width]="4">
-                                    </aol-style-stroke>
-                                </aol-style>
-                            </aol-feature>    
-                            
-                            <!-- bearing Line-->
-                            <!-- base -->
-                            <aol-feature *ngIf="display.vesselLines.bearing[0] && app.config.anchor.raised">
-                                <aol-geometry-linestring>
-                                    <aol-collection-coordinates
-                                        [coordinates]="display.vesselLines.bearing"
-                                        [srid]="app.config.map.srid">
-                                    </aol-collection-coordinates>
-                                </aol-geometry-linestring>
-                                <aol-style>
-                                    <aol-style-stroke 
-                                        [color]="'white'" [width]="6">
-                                    </aol-style-stroke>                                  
-                                </aol-style>
-                            </aol-feature>  
-                            <!-- highlight -->
-                            <aol-feature *ngIf="display.vesselLines.bearing[0] && app.config.anchor.raised">
-                                <aol-geometry-linestring>
-                                    <aol-collection-coordinates
-                                        [coordinates]="display.vesselLines.bearing"
-                                        [srid]="app.config.map.srid">
-                                    </aol-collection-coordinates>
-                                </aol-geometry-linestring>
-                                <aol-style>
-                                    <aol-style-stroke 
-                                        [color]="'rgba(221, 149, 0, 1)'" [width]="2">
-                                    </aol-style-stroke>
-                                </aol-style>
-                            </aol-feature>  
-                            <!-- marker -->
-                            <aol-feature *ngIf="display.navData.position && app.config.anchor.raised">
-                                <aol-geometry-point>
-                                    <aol-coordinate 
-                                        [x]="display.navData.position[0]" 
-                                        [y]="display.navData.position[1]" 
-                                        [srid]="app.config.map.srid">
-                                    </aol-coordinate>
-                                </aol-geometry-point>
-                                <aol-style>
-                                    <aol-style-circle [radius]="5">
-                                        <aol-style-stroke [color]="'white'" [width]="2"></aol-style-stroke>
-                                        <aol-style-fill [color]="'rgba(221, 149, 0, 1)'"></aol-style-fill>                                        
-                                    </aol-style-circle>
-                                </aol-style>
-                            </aol-feature>                                  
-
-                            <!-- TWD Line -->
-                            <aol-feature *ngIf="display.vesselLines.twd[0] && app.config.anchor.raised">
-                                <aol-geometry-linestring>
-                                    <aol-collection-coordinates
-                                        [coordinates]="display.vesselLines.twd"
-                                        [srid]="app.config.map.srid">
-                                    </aol-collection-coordinates>
-                                </aol-geometry-linestring>
-                                <aol-style>
-                                    <aol-style-stroke 
-                                        [color]="'olive'" [width]="2">
-                                    </aol-style-stroke>
-                                </aol-style>
-                            </aol-feature>    
-                            
-                            <!-- AWA Line -->
-                            <aol-feature *ngIf="display.vesselLines.awa[0] && app.config.anchor.raised">
-                                <aol-geometry-linestring>
-                                    <aol-collection-coordinates
-                                        [coordinates]="display.vesselLines.awa"
-                                        [srid]="app.config.map.srid">
-                                    </aol-collection-coordinates>
-                                </aol-geometry-linestring>
-                                <aol-style>
-                                    <aol-style-stroke 
-                                        [color]="'rgb(16, 75, 16)'" [width]="2">
-                                    </aol-style-stroke>
-                                </aol-style>
-                            </aol-feature>                             
-
-                        </aol-source-vector>
-                    </aol-layer-vector>   
-                    
-                    <!-- *** VESSEL TRAIL *** -->
-                    <aol-layer-vector [zIndex]="200" 
-                        *ngIf="app.config.vesselTrail && display.showSelf">
-                        <aol-source-vector>
-                            <aol-feature>
-                                <aol-geometry-linestring>
-                                    <aol-collection-coordinates
-                                        [coordinates]="app.data.trail"
-                                        [srid]="app.config.map.srid">
-                                    </aol-collection-coordinates>
-                                </aol-geometry-linestring>
-                                <aol-style>
-                                    <aol-style-stroke 
-                                        [color]="'red'" 
-                                        [lineDash]="[2,2]"
-                                        [width]="1">
-                                    </aol-style-stroke>
-                                </aol-style>
-                            </aol-feature>
-                        </aol-source-vector>
-                    </aol-layer-vector>
-                    <!-- *** /VESSEL TRAIL *** -->                      
-
-                </aol-map> 
+                <!-- MAP -->
+                <fb-map
+                    [mapCenter]="display.map.center"
+                    [mapZoom]="app.config.map.zoomLevel"
+                    [northUp]="app.config.map.northUp"
+                    [movingMap]="app.config.map.moveMap"
+                    [measureMode]="measure.enabled"
+                    [activeRoute]="app.data.activeRoute"
+                    (measureEnd)="measure.enabled=false"
+                    [drawMode]="draw.mode"
+                    (drawEnd)="handleDrawEnd($event)"
+                    [modifyMode]="draw.modify"
+                    (modifyStart)="handleModifyStart($event)"
+                    (modifyEnd)="handleModifyEnd($event)"
+                    (activate)="activateRoute($event)"
+                    (deactivate)="deactivateRoute()"
+                    (exitedMovingMap)="toggleMoveMap($event)"
+                    (focusVessel)="switchActiveVessel($event)"
+                    (info)="vesselProperties($event)">
+                </fb-map>
                 <!-- *** /MAP *** -->               
 
             </div>
@@ -978,11 +366,11 @@
                     <span style="font-weight:bold;padding: 5px;">
                         <mat-icon>edit</mat-icon> Drawing Help:
                     </span>
-                    <div *ngIf="draw.type=='Point'"
+                    <div *ngIf="draw.mode=='waypoint' || draw.mode=='note'"
                         style="padding: 5px;">
                         Click on the Map where to drop the feature.
                     </div>
-                    <div *ngIf="draw.type=='LineString'"
+                    <div *ngIf="draw.mode=='route'"
                         style="padding: 5px;">
                         <ol style="margin-block-start: .2em;
                                 margin-block-end: .2em;
@@ -991,7 +379,7 @@
                             <li>Click on the last Point to end drawing.</li>
                         </ol>
                     </div> 
-                    <div *ngIf="draw.type=='Polygon'"
+                    <div *ngIf="draw.mode=='region'"
                         style="padding: 5px;">
                         <ol style="margin-block-start: .2em;
                                 margin-block-end: .2em;
@@ -1031,7 +419,7 @@
                 <!-- cancel Draw / Measure button -->
                 <a mat-raised-button
                     color="warn" *ngIf="draw.enabled || draw.modify || measure.enabled"
-                    (click)="drawEnd()"
+                    (click)="cancelDraw()"
                     [matTooltip]="(measure.enabled) ? 'Cancel Measure' : (draw.modify) ? 'Cancel Editing' : 'Cancel Draw'" 
                     matTooltipPosition="left">
                     <mat-icon>close</mat-icon>
@@ -1050,12 +438,13 @@
 
             <!-- *** Alarm / Mode panel ***-->
 			<div class="alarmPanel">
-                <span *ngFor="let a of display.alarms | keyvalue" style="margin-bottom: 5px;">
+                <span *ngFor="let a of alarmsFacade.alarms | keyvalue" style="margin-bottom: 5px;">
                     <ap-alarm [alarm]="a" 
-                        (mute)="actionAlarm('mute', $event)"
-                        (acknowledge)="actionAlarm('ack', $event)"
-                        (clear)="actionAlarm('clear', $event)"
-                        (open)=" openAlarmsDialog()">
+                        (mute)="alarmsFacade.muteAlarm($event)"
+                        (acknowledge)="alarmsFacade.acknowledgeAlarm($event)"
+                        (unacknowledge)="alarmsFacade.unAcknowledgeAlarm($event)"
+                        (clear)="alarmsFacade.clearAlarm($event)"
+                        (open)=" openAlarmsDialog($event)">
                     </ap-alarm>
                     <audio loop  src="./assets/sound/woop.mp3" *ngIf="a.value.sound"
                         [autoplay]="!a.value.muted || !a.value.acknowledged"
@@ -1065,18 +454,18 @@
             </div>
 
             <!-- *** Nav data panel ***-->
-            <div class="navdataPanel" *ngIf="app.config.courseData || app.data.activeRoute">
-                <div *ngIf="app.data.activeRoute">
+            <div class="navdataPanel" *ngIf="app.config.courseData && display.navDataPanel.show">
+                <div *ngIf="display.navDataPanel.nextPointCtrl">
                     <div style="display: flex; flex-wrap: nowrap;" >
                         <div>
-                            <button [disabled]="display.navData.pointIndex==0"
+                            <button [disabled]="app.data.navData.pointIndex==0"
                                 (click)="routeNextPoint(-1)">
                                 <mat-icon>navigate_before</mat-icon><br>
                                 <span>Prev</span>			
                             </button>
                         </div>
                         <div>                          
-                            <button [disabled]="display.navData.pointIndex>=display.navData.pointTotal-1"
+                            <button [disabled]="app.data.navData.pointIndex>=app.data.navData.pointTotal-1"
                                 (click)="routeNextPoint(1)">
                                 <mat-icon>navigate_next</mat-icon><br>
                                 <span>Next</span>			
@@ -1084,34 +473,34 @@
                         </div>            
                     </div>   
                     <div style="background-color: rgb(221,221,221);font-family:roboto;"> 
-                        {{display.navData.pointIndex+1}} of {{display.navData.pointTotal}}
+                        {{app.data.navData.pointIndex+1}} of {{app.data.navData.pointTotal}}
                     </div>      
                 </div>
 
-                <div *ngIf="app.config.courseData" style="display: flex; flex-wrap: nowrap;">                             
-                    <ap-dial-text *ngIf="display.navData.vmg"
+                <div style="display: flex; flex-wrap: nowrap;">  <!--*ngIf="app.config.courseData"-->                           
+                    <ap-dial-text *ngIf="app.data.navData.vmg"
                         [title]="'VMG'"
-                        [value]="display.navData.vmg.toFixed(1)"
+                        [value]="app.data.navData.vmg.toFixed(1)"
                         [units]="(app.config.units.speed=='kn') ? 'knots' : 'm/sec'">
                     </ap-dial-text>
-                    <ap-dial-text *ngIf="display.navData.bearing.value"
+                    <ap-dial-text *ngIf="app.data.navData.bearing.value"
                         [title]="'BRG'"
-                        [value]="display.navData.bearing.value.toFixed(1)"
-                        [units]="(display.navData.bearing.type=='M') ? 'deg (M)' : 'deg (T)'">
+                        [value]="app.data.navData.bearing.value.toFixed(1)"
+                        [units]="(app.data.navData.bearing.type=='M') ? 'deg (M)' : 'deg (T)'">
                     </ap-dial-text>     
-                    <ap-dial-text *ngIf="display.navData.dtg"
+                    <ap-dial-text *ngIf="app.data.navData.dtg"
                         [title]="'DTG'"
-                        [value]="display.navData.dtg.toFixed(1)"
+                        [value]="app.data.navData.dtg.toFixed(1)"
                         [units]="(app.config.units.distance=='m') ? 'km' : 'NM'">
                     </ap-dial-text>                               
-                    <ap-dial-text *ngIf="display.navData.ttg"
+                    <ap-dial-text *ngIf="app.data.navData.ttg"
                         [title]="'TTG'"
-                        [value]="display.navData.ttg.toFixed(1)"
+                        [value]="app.data.navData.ttg.toFixed(1)"
                         [units]="'mins'">
                     </ap-dial-text>    
-                    <ap-dial-text *ngIf="display.navData.xte"
+                    <ap-dial-text *ngIf="app.data.navData.xte"
                         [title]="'XTE'"
-                        [value]="display.navData.xte.toFixed(3)"
+                        [value]="app.data.navData.xte.toFixed(3)"
                         [units]="(app.config.units.distance=='m') ? 'km' : 'NM'">
                     </ap-dial-text>   
                 </div>                           

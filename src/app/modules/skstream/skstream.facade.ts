@@ -1,0 +1,283 @@
+/** Signal K Stream Provider abstraction Facade
+ * ************************************/
+import { Injectable } from '@angular/core';
+import { Observable, Subject } from 'rxjs';
+
+import { AppInfo } from '../../app.info';
+import { SignalKClient } from 'signalk-client-angular';
+import { SKStreamProvider } from './skstream.service';
+import { SKVessel } from '../skresources/resource-classes';
+import { AlarmsFacade } from '../alarms/alarms.facade';
+import { Convert } from '../../lib/convert';
+import { SKResources } from '../skresources';
+
+export enum SKSTREAM_MODE { REALTIME=0, PLAYBACK }
+
+@Injectable({ providedIn: 'root' })
+export class SKStreamFacade  {
+
+   // **************** ATTRIBUTES ***************************
+    private onConnect:Subject<any>= new Subject();
+    private onClose:Subject<any>= new Subject();
+    private onError:Subject<any>= new Subject();
+    private onMessage:Subject<any>= new Subject();
+    private vesselsUpdate:Subject<any>= new Subject();
+    private navDataUpdate:Subject<any>= new Subject();
+   // *******************************************************    
+
+    constructor(private app: AppInfo, 
+                private signalk: SignalKClient,
+                private alarmsFacade: AlarmsFacade,
+                private skres: SKResources,
+                private stream: SKStreamProvider) {
+
+        // ** SIGNAL K STREAM **
+        this.stream.message$().subscribe(
+            (msg:any)=> {
+                if(msg.action=='open') { this.onConnect.next(msg) }  
+                else if(msg.action=='close') { this.onClose.next(msg) }  
+                else if(msg.action=='error') { this.onError.next(msg) }
+                else { 
+                    this.onMessage.next(msg);
+                    this.parseUpdate(msg);
+                }                             
+            }
+        );
+    }
+    // ** SKStream WebSocket messages **
+    connect$(): Observable<any> { return this.onConnect.asObservable() }
+    close$(): Observable<any> { return this.onClose.asObservable() }
+    error$(): Observable<any> { return this.onError.asObservable() }
+    delta$(): Observable<any> { return this.onMessage.asObservable() }
+
+    // ** Data centric messages
+    vessels$(): Observable<any> { return this.vesselsUpdate.asObservable() }
+    navdata$(): Observable<any> { return this.navDataUpdate.asObservable() }
+
+
+    terminate() { this.stream.terminate() }
+
+    close() { this.stream.close() }
+
+    post(msg:any) { this.stream.postMessage(msg) }
+
+    // ** open Signal K Stream 
+    open(options:any=null, toMode: SKSTREAM_MODE=SKSTREAM_MODE.REALTIME) { //}, restart:boolean=false) { 
+        if(options && options.startTime) { 
+            let url= this.signalk.server.endpoints['v1']['signalk-ws'].replace('stream', 'playback');
+            this.stream.postMessage({ 
+                cmd: 'open',
+                options: { 
+                    url: url,
+                    subscribe: 'none',
+                    token: null,
+                    playback: true,
+                    playbackOptions: options
+                }
+            });                  
+        }
+        else {
+            this.stream.postMessage({ 
+                cmd: 'open',
+                options: { 
+                    url: this.signalk.server.endpoints['v1']['signalk-ws'],
+                    subscribe: 'none',
+                    token: null
+                }
+            });                            
+        }
+    }
+
+    // ** subscribe to signal k paths
+    subscribe() {
+        this.stream.postMessage({
+            cmd: 'subscribe',
+            options: {
+                context: 'vessels.*',
+                path: [
+                    {"path":"buddy","period":1000,"policy":'fixed'},
+                    {"path":"uuid","period":1000,"policy":'fixed'},
+                    {"path":"name","period":1000,"policy":'fixed'},
+                    {"path":"communication.callsignVhf","period":1000,"policy":'fixed'},
+                    {"path":"mmsi","period":1000,"policy":'fixed'},
+                    {"path":"port","period":1000,"policy":'fixed'},
+                    {"path":"flag","period":1000,"policy":'fixed'},
+                    {"path":"navigation.*","period":1000,"policy":'fixed'},
+                    {"path":"environment.wind.*","period":1000,"policy":'fixed'}
+                ]
+            }
+        });
+        this.stream.postMessage({
+            cmd: 'subscribe',
+            options: {
+                context: "vessels.self",
+                path: [
+                    {"path":"notifications.*","period":1000}
+                ]
+            }
+        });       
+    }
+
+    // ** parse delta message and update Vessel Data -> vesselsUpdate.next()
+    private parseUpdate(msg:any) {
+        if(msg.action=='update') { // delta message
+
+            this.parseVesselSelf(msg.result.self);
+
+            this.parseVesselOther(msg.result.aisTargets);
+
+            /*msg.result.aisTargets.forEach( (value, key)=> {
+                this.parseVesselOther(key, value);               
+            });  */               
+
+            // ** update active vessel map display **
+            this.app.data.vessels.active= (this.app.data.vessels.activeId) ?
+                this.app.data.vessels.aisTargets.get(this.app.data.vessels.activeId) :
+                this.app.data.vessels.self;
+
+            this.processCourse(this.app.data.vessels.active); 
+
+            // processAIS
+            this.app.data.aisMgr.updateList= msg.result.aisStatus.updated;
+            this.app.data.staleList= msg.result.aisStatus.updated;
+            this.app.data.aisMgr.removeList= msg.result.aisStatus.expired;             
+      
+            this.vesselsUpdate.next();
+        }
+    }
+
+    private parseVesselSelf(v:SKVessel) {
+        this.app.data.vessels.self= v;
+        this.processVessel(this.app.data.vessels.self);
+
+        // ** add to true / magnetic selection list
+        if( v.headingMagnetic!=null && 
+            this.app.data.headingValues.indexOf('navigation.headingMagnetic')==-1) { 
+                this.app.data.headingValues.push('navigation.headingMagnetic');           
+        }                
+    }
+
+    //private parseVesselOther(id:string, v:SKVessel) {
+    private parseVesselOther(otherVessels:any) {
+        //this.app.data.vessels.aisTargets.set(id, v ); 
+        this.app.data.vessels.aisTargets= otherVessels;
+        this.app.data.vessels.aisTargets.forEach( (value, key)=> {
+            //let cv= this.app.data.vessels.aisTargets.get(id);
+            //this.processVessel(cv);
+            this.processVessel(value);
+            // locate / hide CPA
+            //if(`vessels.${this.app.data.vessels.closest.id}`==id) { 
+            if(`vessels.${this.app.data.vessels.closest.id}`==key) { 
+                //if(!cv.closestApproach) { 
+                if(!value.closestApproach) { 
+                    this.alarmsFacade.updateAlarm('cpa', null);
+                    this.app.data.vessels.closest= {id: null, distance: null, timeTo: null, position: [0,0]}
+                }
+                //else { this.app.data.vessels.closest.position= cv.position }
+                else { this.app.data.vessels.closest.position= value.position }
+            }
+        });
+    }
+
+    // ** process vessel data and true / magnetic preference **
+    private processVessel(d:SKVessel) { 
+        d.cog= (this.app.useMagnetic) ? d.cogMagnetic : d.cogTrue;
+        d.heading= (this.app.useMagnetic) ? d.headingMagnetic : d.headingTrue;
+        d.wind.direction= (this.app.useMagnetic) ? d.wind.mwd : d.wind.twd;
+        d.orientation= (d.heading!=null) ? d.heading : (d.cog!=null) ? d.cog : 0;
+    }
+
+    // ** process course data
+    private processCourse(v: SKVessel) {
+        // ** active route **
+        if(typeof v['course.activeRoute.href']!=='undefined') { 
+            this.processActiveRoute(v['course.activeRoute.href']);    
+        }
+        
+        // ** course **
+        if(v['course.crossTrackError']) {
+            this.app.data.navData.xte= (this.app.config.units.distance=='m') ? 
+                v['course.crossTrackError']/1000 : 
+                Convert.kmToNauticalMiles(v['course.crossTrackError']/1000);                  
+        }
+
+        // ** next point **
+        if(typeof v['course.nextPoint.position']!=='undefined') {
+            this.app.data.navData.position= (v['course.nextPoint.position']) ?
+                [ v['course.nextPoint.position'].longitude, v['course.nextPoint.position'].latitude ] 
+                : null;
+            if(this.app.data.activeRoute && this.app.data.navData.position) {
+                let t= this.app.data.routes
+                    .filter( i=>{ if(i[0]==this.app.data.activeRoute) { return i } });
+                if(t.length!=0) {
+                    let c= t[0][1].feature.geometry.coordinates;
+                    for(let i=0; i<c.length;++i) {
+                        if(c[i][0]==this.app.data.navData.position[0] &&
+                            c[i][1]==this.app.data.navData.position[1] ) {
+                            this.app.data.navData.pointIndex=i;
+                        }
+                    }
+                }
+            }
+        }           
+        if(v['course.nextPoint.distance']) {  
+            this.app.data.navData.dtg= (this.app.config.units.distance=='m') ? 
+            v['course.nextPoint.distance']/1000 : 
+            Convert.kmToNauticalMiles(v['course.nextPoint.distance']/1000);                
+        }
+        if(v['course.nextPoint.bearingTrue']) { 
+            this.app.data.navData.bearingTrue= Convert.radiansToDegrees(v['course.nextPoint.bearingTrue']);
+            if(!this.app.useMagnetic) {
+                this.app.data.navData.bearing.value= this.app.data.navData.bearingTrue;
+                this.app.data.navData.bearing.type= 'T';
+            } 
+        }
+        if(v['course.nextPoint.bearingMagnetic']) { 
+            this.app.data.navData.bearingMagnetic= Convert.radiansToDegrees(v['course.nextPoint.bearingMagnetic']);
+            if(this.app.useMagnetic) {
+                this.app.data.navData.bearing.value= this.app.data.navData.bearingMagnetic;
+                this.app.data.navData.bearing.type= 'M';
+            }                 
+        }
+        if(v['course.nextPoint.velocityMadeGood']) {  
+            this.app.data.navData.vmg= (this.app.config.units.speed=='kn') ? 
+                Convert.msecToKnots(v['course.nextPoint.velocityMadeGood']) : 
+                v['course.nextPoint.velocityMadeGood'];
+        }
+        if(v['course.nextPoint.timeToGo']) { 
+            this.app.data.navData.ttg= v['course.nextPoint.timeToGo']/60;
+        } 
+        this.navDataUpdate.next();       
+    }  
+       
+    // ** set active route / update route array **
+    public processActiveRoute(value: any) {
+        let car: string;
+        if(!value) { car= null }
+        else {
+            let a= value.split('/');
+            car= a[a.length-1];
+        }
+        if(car== this.app.data.activeRoute) { return }
+        this.app.data.activeRoute= car; 
+        if(car) { this.app.data.activeWaypoint= null } 
+        this.app.debug(`updating activeRoute= ${this.app.data.activeRoute}`);
+        this.updateNavData( this.skres.getActiveRouteCoords() );
+    }
+
+    // ** Update the nextPoint position from supplied coordinates list
+    public updateNavData(coords: Array<[number,number]>) {
+        let idx=-1;
+        if(this.app.data.navData.position) {
+            for(let i=0; i<coords.length; i++) {
+                if(coords[i][0]==this.app.data.navData.position[0] &&
+                    coords[i][1]==this.app.data.navData.position[1] ) {
+                    idx=i;
+                }
+            }   
+        } 
+        this.app.data.navData.pointTotal= coords.length;
+        this.app.data.navData.pointIndex= idx;
+    }    
+
+}

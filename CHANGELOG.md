@@ -1,4 +1,16 @@
-# CHANGELOG: Freeboard-SK
+# CHANGELOG: Freeboard
+
+### v1.5.0
+
+- **Update:** Updated to Angular 8.
+
+- **Update:** Moved Signal K stream processing to Web Worker.
+
+- **Added:** Display `Closest Approach` notifications and show vessel on map 
+_(for node server requires signalk-derived-data plugin v 1.23.0 or greater)_.
+
+- **Added:** Display notifications sent from `signalk-buddylist-plugin`. 
+
 
 ### v1.4.1
 
