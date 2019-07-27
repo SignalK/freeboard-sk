@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter, ChangeDetectionStrategy, SimpleChange } from '@angular/core';
+import { Component, Input, Output, EventEmitter, ChangeDetectionStrategy } from '@angular/core';
 
 @Component({
     selector: 'anchor-watch',
@@ -22,7 +22,7 @@ export class AnchorWatchComponent {
 
     ngOnInit() { this.display.sliderColor=(!this.raised) ? 'warn' : 'primary' }
 
-    ngOnChanges(changes: SimpleChange) { this.display.sliderColor=(!this.raised) ? 'warn' : 'primary' }
+    ngOnChanges(changes) { this.display.sliderColor=(!this.raised) ? 'warn' : 'primary' }
 
     setRadius(e:any) {
         this.radius= (this.feet) ? this.ftToM(e.value) : e.value;

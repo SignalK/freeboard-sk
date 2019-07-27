@@ -529,8 +529,8 @@ export class SKResources {
                 this.activeRouteSource.next({action: 'clear', value: null});
                 this.app.debug('res.clearActiveRoute()');
                 if(!saveNextPoint) {
-                    this.signalk.api.put(context, 'navigation/courseGreatCircle/nextPoint/position', null)
-                    .subscribe( r=> { this.app.debug('res.clearActiveRoute() -> nextPoint set to null') } );  
+                    this.app.debug('clearing nextPoint -> res.setNextPoint(null)');
+                    this.setNextPoint(null);
                 }             
             },
             err=> { 
@@ -541,7 +541,7 @@ export class SKResources {
                             this.signalk.login(res.user, res.pwd).subscribe(
                                 r=> {   // ** authenticated
                                     this.authResult(true, r['token']);
-                                    this.clearActiveRoute();
+                                    this.clearActiveRoute(activeId, saveNextPoint);
                                 },
                                 err=> {   // ** auth failed
                                     this.authResult(false);

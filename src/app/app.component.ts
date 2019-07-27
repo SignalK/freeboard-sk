@@ -529,7 +529,7 @@ export class AppComponent {
     // ** handle display vessel properties **
     public vesselProperties(e:any) {
         let v: any;
-        if(e.type=='self') { v= this.app.data.vessels.self }
+        if(e.type=='self') { v= this.app.data.vessels.selfProperties }
         else { v= this.app.data.vessels.aisTargets.get(e.id) }
         if(v) {
             this.dialog.open(AISPropertiesDialog, {
@@ -741,8 +741,8 @@ export class AppComponent {
             this.app.data.vessels.activeId.split('.').join('/') : 'vessels/self';
         this.signalk.api.getSelf().subscribe(
             r=> {  
-                this.app.data.vessels.self.mmsi= (r['mmsi']) ? r['mmsi'] : null;
-                this.app.data.vessels.self.name= (r['name']) ? r['name'] : null;
+                this.app.data.vessels.selfProperties.mmsi= (r['mmsi']) ? r['mmsi'] : null;
+                this.app.data.vessels.selfProperties.name= (r['name']) ? r['name'] : null;
                 // ** query navigation status
                 this.signalk.api.get(`/${context}/navigation`).subscribe(
                     r=> {

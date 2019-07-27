@@ -17,8 +17,8 @@ import { SKVessel } from './modules/skresources/resource-classes';
 export class AppInfo extends Info {
 
     private DEV_SERVER= {
-        host: '192.168.99.100',     // host name || ip address
-        port: 3000,                 // port number
+        host: null,     // host name || ip address
+        port: null,                 // port number
         ssl: false                       
     }
 
@@ -124,6 +124,7 @@ export class AppInfo extends Info {
             lastGet: null,      // map position of last resources GET
             vessels: {          // received vessel data
                 showSelf: false,
+                selfProperties: { name: null, mmsi: null, callsign: null },
                 self: new SKVessel(), 
                 aisTargets: new Map(),
                 activeId: null,

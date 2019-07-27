@@ -454,7 +454,7 @@
             </div>
 
             <!-- *** Nav data panel ***-->
-            <div class="navdataPanel" *ngIf="app.config.courseData && display.navDataPanel.show">
+            <div class="navdataPanel" >
                 <div *ngIf="display.navDataPanel.nextPointCtrl">
                     <div style="display: flex; flex-wrap: nowrap;" >
                         <div>
@@ -477,7 +477,8 @@
                     </div>      
                 </div>
 
-                <div style="display: flex; flex-wrap: nowrap;">  <!--*ngIf="app.config.courseData"-->                           
+                <div *ngIf="app.config.courseData && display.navDataPanel.show"
+                        style="display: flex; flex-wrap: nowrap;">                           
                     <ap-dial-text *ngIf="app.data.navData.vmg"
                         [title]="'VMG'"
                         [value]="app.data.navData.vmg.toFixed(1)"

@@ -234,7 +234,6 @@ export class GPX {
         this.init();
         // ** xml to Json
         let xjs= this.x2js.toJson(gpxstr);
-        //console.log(xjs);
         if(!xjs) { return false }
     
         //** parse header **

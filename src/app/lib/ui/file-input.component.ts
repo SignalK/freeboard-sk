@@ -109,9 +109,7 @@ export class FileInputComponent {
         }
         else {
             // When all files are done This forces a change detection
-            //console.log('detecting changes');
             this.changeDetectorRef.detectChanges();
-            //console.log(files);
         }
     }    
 
@@ -122,11 +120,9 @@ export class FileInputComponent {
         }
 
         if( file.type.indexOf('text')!=-1 || this.astext) {
-            //console.log('read as text');
             reader.readAsText(file);
         }
-        else {
-            //console.log('read as base64');
+        else {  // read as base64
             reader.readAsDataURL(file);
         }
     }  

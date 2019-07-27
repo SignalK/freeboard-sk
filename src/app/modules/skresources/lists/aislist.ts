@@ -88,7 +88,6 @@ export class AISListComponent {
 
     filterKeyUp(e) {
         this.filterText=e;
-        console.log(this.filterText);
         this.filterList= this.aisAvailable.filter( i=> {
             let n= (i[1].name) ? i[1].name.toUpperCase() : i[1].mmsi;
             if(n.toLowerCase().indexOf(this.filterText.toLowerCase())!=-1) {

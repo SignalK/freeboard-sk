@@ -104,7 +104,6 @@ export class SettingsFacade  {
                     description: '', 
                     url: null
                 });
-                console.log(this.list.applications);
             },
             err=> { this.app.debug('ERROR retrieving AppList!') }
         );

@@ -40,9 +40,6 @@ export class Convert {
             a= (rx>180) ? rx-360 : rx;
         }
         else { a= res }
-        /*console.log('direction: ' + direction);
-        console.log('HDG: ' + ref);
-        console.log('angle: ' + a);*/
         return a;
     }    
 

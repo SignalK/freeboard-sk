@@ -803,7 +803,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
     // ********************************************************
 
     // Returns distance from last point 
-    private measureDistanceToAdd(pt?:any) {
+    private measureDistanceToAdd(pt?:[number,number]) {
         if(pt && this.measure.coords.length>0) { // return distance between last point in array and pt
             return GeoUtils.distanceTo(
                 this.measure.coords[this.measure.coords.length-1],
@@ -819,12 +819,12 @@ export class FBMapComponent implements OnInit, OnDestroy {
         else { return 0 }
     }   
 
-    private isCoordsArray(ca: Array<any>) {
+    private isCoordsArray(ca:Array<[number,number]>) {
         if(Array.isArray(ca)) { return (Array.isArray(ca[0]) && typeof ca[0][0]==='number') }
         else { return false }
     }
 
-    private transformCoordsArray(ca) {
+    private transformCoordsArray(ca:Array<[number,number]>) {
         return ca.map( i=> { 
             return proj.transform(
                 i, 

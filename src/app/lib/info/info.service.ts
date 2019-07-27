@@ -54,7 +54,7 @@ export class Info {
     }
 
     //** write debug information to console in devMode only **
-    debug(e, mode: string='log') {
+    debug(e:any, mode: string='log') {
         if(this.devMode) {
             switch(mode) {
                 case 'info':
