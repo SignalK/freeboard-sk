@@ -203,21 +203,17 @@ export class SKStreamFacade  {
 
         // ** next point **
         if(typeof v['course.nextPoint.position']!=='undefined') {
-            this.app.data.navData.position= (v['course.nextPoint.position']) ?
+            let np= (v['course.nextPoint.position']) ?
                 [ v['course.nextPoint.position'].longitude, v['course.nextPoint.position'].latitude ] 
                 : null;
+
+            if( !np && !this.app.data.navData.position) { return } //unchanged 
+            if( np && this.app.data.navData.position) {
+                if(np[0]==this.app.data.navData.position[0] && np[1]==this.app.data.navData.position[1]) { return } //unchanged 
+            }
+            this.app.data.navData.position= np;
             if(this.app.data.activeRoute && this.app.data.navData.position) {
-                let t= this.app.data.routes
-                    .filter( i=>{ if(i[0]==this.app.data.activeRoute) { return i } });
-                if(t.length!=0) {
-                    let c= t[0][1].feature.geometry.coordinates;
-                    for(let i=0; i<c.length;++i) {
-                        if(c[i][0]==this.app.data.navData.position[0] &&
-                            c[i][1]==this.app.data.navData.position[1] ) {
-                            this.app.data.navData.pointIndex=i;
-                        }
-                    }
-                }
+                this.updateNavData( this.skres.getActiveRouteCoords() );
             }
         }           
         if(v['course.nextPoint.distance']) {  

@@ -31,7 +31,7 @@ measure: boolean= measure mode;
                 <div class="arrow" style="left:50%;"></div>
             </div>	
 			`,
-    styleUrls: ['./popover.css']
+    styleUrls: ['./popover.component.css']
 })
 export class PopoverComponent {
     @Input() title: string;
@@ -294,7 +294,7 @@ id: string - resource id
             </div>                                         
         </ap-popover>  
 	`,
-    styleUrls: [`./popover.css`]
+    styleUrls: [`./popover.component.css`]
 })
 export class ResourcePopoverComponent {
     @Input() title: string;

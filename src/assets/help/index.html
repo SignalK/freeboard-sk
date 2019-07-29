@@ -566,14 +566,33 @@
                 <li>Depth</li>
                 <li>Anchor - see <a href="#anchor">Anchor Watch</a></a></li>
                 <li>Closest Approach</li>
+                <img src="./img/closest_approach.png" style="width:250px;"/><br>     
                 <li>Buddy - <i>via signalk-buddylist-plugin</i></li>
-
-                <img src="./img/closest_approach.png" style="width:250px;"/>               
+                <img src="./img/buddy.png" style="width:250px;"/>            
     
             </div>            
             
             <div class="panel" id="aistargets">
                 <h4>Vessels</h4>
+                <p>
+                    Freeboard displays vessels with the following icons:
+                    <div style="display:flex;">
+                        <div style="width:30px;text-align: center;"><img src="../img/ship_red.png" style="width:12px;"/></div>
+                        <div>Vessel associated Signal K "self"</div>
+                    </div>
+                    <div style="display:flex;">
+                        <div style="width:30px;text-align: center;"><img src="../img/ais_active.png" style="width:24px;"/></div>
+                        <div> Vessel with updated data (&lt;6 mins since last update)</div>
+                    </div>
+                    <div style="display:flex;">
+                        <div style="width:30px;text-align: center;"><img src="../img/ais_inactive.png" style="width:24px;"/></div>
+                        <div>Vessel with stale data (&gt;6 mins since last update)</div>
+                    </div>
+                    <div style="display:flex;">
+                        <div style="width:30px;text-align: center;"><img src="../img/ais_buddy.png" style="width:24px;"/></div>
+                        <div>Vessel marked as "Buddy"</div>
+                    </div>                                                            
+                </p>
                 <p>
                     Freeboard provides the ability to de-clutter the screen of vessels in the following ways:
                     <li>Show / Hide Vessels layer on the map</li>

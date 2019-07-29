@@ -197,6 +197,9 @@ export class FBMapComponent implements OnInit, OnDestroy {
         }                           
         if(changes && changes.modifyMode && !changes.modifyMode.firstChange ) {
             this.interactionMode(INTERACTION_MODE.MODIFY, changes.modifyMode.currentValue);
+        }  
+        if(changes && changes.measureMode) {
+            if(changes.measureMode.currentValue) { this.overlay.type= 'measure' };
         }        
     }
 

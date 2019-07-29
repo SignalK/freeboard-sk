@@ -196,9 +196,11 @@ export class SKResources {
                 this.app.data.routes.push([ 
                     i[0], 
                     new SKRoute(i[1]), 
-                    (this.app.config.selections.routes.indexOf(i[0])==-1) ? false : true,
-                    (i[0]==this.app.data.activeRoute) ? true : false
+                    (this.app.config.selections.routes.indexOf(i[0])==-1) ? false : true
                 ]);
+                if(i[0]==this.app.data.activeRoute) { 
+                    this.app.data.navData.pointTotal= i[1].feature.geometry.coordinates.length;
+                }
             });
             // ** clean up selections
             let k= Object.keys(res);
@@ -396,8 +398,9 @@ export class SKResources {
 
 
     // ** return array of route coordinates **
-    getActiveRouteCoords() {
-        let rte= this.app.data.routes.filter( r=> { if(r[0]==this.app.data.activeRoute) { return r } } );
+    getActiveRouteCoords(routeId?:string) {
+        if(!routeId) { routeId= this.app.data.activeRoute }
+        let rte= this.app.data.routes.filter( r=> { if(r[0]==routeId) { return r } } );
         if(rte.length==0) { return [] }
         else { return rte[0][1].feature.geometry.coordinates }
     }

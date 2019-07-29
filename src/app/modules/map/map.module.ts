@@ -14,7 +14,8 @@ import { AngularOpenlayersModule } from 'ngx-openlayers';
 
 // ** components **
 import { PopoverComponent, FeatureListPopoverComponent, 
-        VesselPopoverComponent, ResourcePopoverComponent } from './popover';
+        VesselPopoverComponent, ResourcePopoverComponent } from './popover.component';
+import { RouteNextPointComponent } from './nextpoint.component';
 import { GeometryCircleComponent } from './geom-circle.component';
 import { AisTargetsComponent } from './feature-ais.component';
 import { FBMapComponent } from './fb-map.component';
@@ -29,13 +30,13 @@ import { CompassComponent } from './compass.component';
       ],    
     declarations: [
         PopoverComponent, FeatureListPopoverComponent, VesselPopoverComponent,
-        ResourcePopoverComponent,
+        ResourcePopoverComponent, RouteNextPointComponent,
         CompassComponent, FBMapComponent,
         GeometryCircleComponent, AisTargetsComponent    
     ],
     exports: [ 
         PopoverComponent, FeatureListPopoverComponent, VesselPopoverComponent,
-        ResourcePopoverComponent,
+        ResourcePopoverComponent, RouteNextPointComponent,
         CompassComponent, FBMapComponent,
         GeometryCircleComponent, AisTargetsComponent
     ],

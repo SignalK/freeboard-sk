@@ -204,16 +204,17 @@ export class AppComponent {
 
     // ** RESOURCES event handlers **
     private handleResourceUpdate(e:any) {
-        // ** handle routes get
-        if(e.action=='get' && e.mode=='route') { this.updateNavPanel(e) }
+        // ** handle routes get and update NavData based on activeRoute
+        if(e.action=='get' && e.mode=='route') { 
+            this.stream.updateNavData( this.skres.getActiveRouteCoords() );
+            this.updateNavPanel(e);
+        }
         // ** create note in group **
         if(e.action=='new' && e.mode=='note') { 
             if(this.app.config.resources.notes.groupRequiresPosition) {
                 this.drawStart(e.mode, {group: e.group}) 
             }
-            else { 
-                this.skres.showNoteEditor({group: e.group});                
-            }
+            else { this.skres.showNoteEditor({group: e.group}) }
         }
     }   
     
@@ -501,27 +502,28 @@ export class AppComponent {
     // ** Set active route as nextPoint **
     public routeNextPoint(i:number) {
         let c= this.skres.getActiveRouteCoords();
+        let idx:number;
         if(i==-1) {
             if(this.app.data.navData.pointIndex==-1) {
-                this.app.data.navData.pointIndex=0;
+                idx=0;
             }
             else if(this.app.data.navData.pointIndex>0) {
-                this.app.data.navData.pointIndex--;
+                idx= this.app.data.navData.pointIndex-1;
             }
             else { return }
         }
         else { // +1
             if(this.app.data.navData.pointIndex==-1) {
-                this.app.data.navData.pointIndex= c.length-1;
+                idx== c.length-1;
             }
             else if(this.app.data.navData.pointIndex<this.app.data.navData.pointTotal-1) {
-                this.app.data.navData.pointIndex++;
+                idx= this.app.data.navData.pointIndex+1;
             }
             else { return }
         }
         let nextPoint= {
-            latitude: c[this.app.data.navData.pointIndex][1], 
-            longitude: c[this.app.data.navData.pointIndex][0], 
+            latitude: c[idx][1], 
+            longitude: c[idx][0], 
         }
         this.skres.setNextPoint(nextPoint);     
     }     
@@ -743,20 +745,8 @@ export class AppComponent {
             r=> {  
                 this.app.data.vessels.selfProperties.mmsi= (r['mmsi']) ? r['mmsi'] : null;
                 this.app.data.vessels.selfProperties.name= (r['name']) ? r['name'] : null;
-                // ** query navigation status
-                this.signalk.api.get(`/${context}/navigation`).subscribe(
-                    r=> {
-                        let c;
-                        if( r['courseRhumbline'] ) { c= r['courseRhumbline'] }
-                        if( r['courseGreatCircle'] ) { c= r['courseGreatCircle'] }
-                        if( c && c['activeRoute'] && c['activeRoute']['href']) { 
-                            this.stream.processActiveRoute( c['activeRoute']['href'].value );
-                        }          
-                    },
-                    err=> { this.app.debug('No navigation data available!') }
-                ); 
                 // ** query for resources
-                this.skres.getRoutes(this.app.data.vessels.activeId);
+                this.skres.getRoutes(this.app.data.vessels.activeId); // + get ActiveRoute Info. See associated message handler
                 this.skres.getWaypoints();
                 this.skres.getCharts();  
                 this.skres.getNotes();
@@ -845,9 +835,7 @@ export class AppComponent {
             if(msg.mode=='route' && msg.action=='get') { 
                 this.display.navDataPanel.show= (this.app.data.activeRoute) ? true : false;
             }
-        }
-        if(this.app.data.activeRoute) { this.stream.updateNavData(this.skres.getActiveRouteCoords()) }
-        
+        }        
         this.display.navDataPanel.show= (this.app.data.navData.position) ? true : false;
         this.display.navDataPanel.nextPointCtrl= (this.app.data.activeRoute) ? true : false;
     }

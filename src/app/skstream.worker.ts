@@ -2,6 +2,7 @@
 
 import { SignalKStreamWorker, Alarm, AlarmState } from 'signalk-worker-angular';
 import { SKVessel } from './modules/skresources/resource-classes';
+import { Convert } from './lib/convert';
 
 class WorkerMessageBase {
     action:string=null;
@@ -34,7 +35,7 @@ let timers= [];
 let updateReceived:boolean= false;
 
 // ** settings **
-let msgInterval:number= 1000;
+let msgInterval:number= 500;
 let useMagnetic:boolean= false;
 let playbackMode:boolean= false;
 let playbackTime:string;
@@ -321,7 +322,7 @@ function processVessel(d: SKVessel, v:any, isSelf:boolean=false) {
     if(v.path=='communication.callsignVhf') { d.callsign= v.value }  
 
     if(v.path=='environment.wind.angleTrueGround' || v.path=='environment.wind.angleTrueWater') { 
-        d.wind.twd= v.value;
+        d.wind.twd= Convert.angleToDirection(v.value, d.heading);
     }   
     if(v.path=='environment.wind.directionTrue') { d.wind.twd= v.value }
     if(!useMagnetic && typeof d.wind.twd!=='undefined') { d.wind.direction= d.wind.twd }

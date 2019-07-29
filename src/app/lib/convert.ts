@@ -14,30 +14,32 @@ export class Convert {
     //** convert radians to degrees
     static  radiansToDegrees(val=0) { return val * 180 / Math.PI; }
 
-    // ** return Direction 0-360 for given angle from the suplied reference value -ive = port **
-    static angleToDirection(angle, ref) {
-        let r= parseFloat(ref);
-        let a= parseFloat(angle);
-        if(isNaN(r) || isNaN(a)) { return null }
-        let res= r + a;
-        if(res>360) { return res - 360 }
-        else if( res<0 ) { return 360 + res }
+    /** return Direction 0-360 (radians) for given angle (radians) 
+     * from the suplied reference value(radians) -ive = port **
+    */
+    static angleToDirection(angle:number, ref:number) {
+        let p= Math.PI * 2;
+        if(!ref) { ref=0 }
+        if(!angle) { angle=0 }
+        if(isNaN(ref) || isNaN(angle)) { return null }
+        let res= ref + angle;
+        if(res>p) { return res - p }
+        else if( res<0 ) { return p + res }
         else { return res }
     }
 
-    // ** return Angle (-180 to 180) for given direction from the suplied reference value **
+    // ** return Angle (-180 to 180 in radians) for given direction from the suplied reference value (radians) **
     static directionToAngle(direction, ref) {
-        let r= parseFloat(ref);
-        let d= parseFloat(direction);
-        if(isNaN(r) || isNaN(d)) { return null }
-        let res= r - d;
-        let a;
-        if(res>0) {
-            a= (res>180) ? 360-res : 0-res;
-        }
+        let p= Math.PI * 2;
+        if(!ref) { ref=0 }
+        if(!direction) { direction=0 }
+        if(isNaN(ref) || isNaN(direction)) { return null }
+        let res= ref - direction;
+        let a:number;
+        if(res>0) { a= (res>Math.PI) ? p-res : 0-res }
         else if( res<0 ) {
             let rx= Math.abs(res);
-            a= (rx>180) ? rx-360 : rx;
+            a= (rx> Math.PI) ? rx-p : rx;
         }
         else { a= res }
         return a;
