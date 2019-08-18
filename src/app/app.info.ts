@@ -19,13 +19,13 @@ export class AppInfo extends Info {
     private DEV_SERVER= {
         host: null,     // host name || ip address
         port: null,                 // port number
-        ssl: false                       
-    }
+        ssl: false
+    };
 
-    public hostName:string;
+    public hostName: string;
     public hostPort: number;
     public hostSSL: boolean;
-    public host= ''; 
+    public host= '';
 
     public db: AppDB;
 
@@ -33,7 +33,7 @@ export class AppInfo extends Info {
         return  (this.config.selections.headingAttribute=='navigation.headingMagnetic') ? true : false;
     }
 
-    constructor( public signalk: SignalKClient, 
+    constructor( public signalk: SignalKClient,
                 private dialog: MatDialog,
                 private snackbar: MatSnackBar) {
         super();
@@ -53,7 +53,7 @@ export class AppInfo extends Info {
         this.name= "Freeboard";
         this.shortName= "freeboard";
         this.description= `Signal K Chart Plotter.`;
-        this.version= '1.5.0';
+        this.version= '1.5.1';
         this.url= 'https://github.com/signalk/freeboard-sk';
         this.logo= "./assets/img/app_logo.png";       
         

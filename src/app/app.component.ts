@@ -538,7 +538,8 @@ export class AppComponent {
                 disableClose: true,
                 data: {
                     title: 'Vessel Properties',
-                    target: v
+                    target: v,
+                    id: e.id
                 }
             });
         }

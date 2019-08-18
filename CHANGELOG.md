@@ -1,5 +1,12 @@
 # CHANGELOG: Freeboard
 
+### v1.5.1
+
+- **Update:** Added `Last Updated` time back to vessel popup. 
+
+- **Update:** Vessel `Info` dialog displays additonal information e.g. Dimensions, Port, Flag, etc.
+
+
 ### v1.5.0
 
 - **Update:** Updated to Angular 8.

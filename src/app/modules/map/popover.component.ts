@@ -111,9 +111,11 @@ isSelf: boolean - true if vessel 'self'
                 <div style="flex: 1 1 auto;text-align:right;">{{vessel.position[0].toFixed(6)}}</div>
             </div>
             <div style="display:flex;">
-                <div style="font-weight:bold;">State:</div>
-                <div style="flex: 1 1 auto;text-align:right;">{{vessel.state}}</div>
-            </div>                                
+                <div style="font-weight:bold;">Last Update:</div>
+                <div style="flex: 1 1 auto;text-align:right;">
+                    {{timeLastUpdate}} {{timeAgo}}
+                </div>
+            </div>                                         
             <div style="display:flex;flex-wrap:no-wrap;">
                 <div style="width:150px;">
                     <ap-compass 
@@ -193,6 +195,8 @@ export class VesselPopoverComponent {
     
     _title: string;
     convert= Convert;
+    timeLastUpdate: string;
+    timeAgo: string;    // last update in minutes ago
 
     constructor() {}
 
@@ -201,6 +205,12 @@ export class VesselPopoverComponent {
         else {
             this._title= this.title || this.vessel.name || this.vessel.mmsi || this.vessel.callsign || 'Vessel:';
         }
+    }
+
+    ngOnChanges() { 
+        this.timeLastUpdate= `${this.vessel.lastUpdated.getHours()}:${('00' + this.vessel.lastUpdated.getMinutes()).slice(-2)}`;
+        let td= (new Date().valueOf() - this.vessel.lastUpdated.valueOf()) / 1000;
+        this.timeAgo= (td<60) ? '' : `(${Math.floor(td/60)} min ago)`;
     }
 
     handleMarkPosition() { this.markPosition.emit(this.vessel.position) }

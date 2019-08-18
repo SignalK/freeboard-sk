@@ -2,6 +2,7 @@
 ********************************/
 
 import {Component, OnInit, Inject} from '@angular/core';
+import { SignalKClient } from 'signalk-client-angular';
 import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 
 import { Convert } from '../../lib/convert'
@@ -131,7 +132,8 @@ export class ResourceDialog implements OnInit {
 /********* AISPropertiesDialog **********
 	data: {
         title: "<string>" title text,
-        target: "<SKVessel>" vessel
+        target: "<SKVessel>" vessel,
+        id: <string> vessel id
     }
 ***********************************/
 @Component({
@@ -150,46 +152,38 @@ export class ResourceDialog implements OnInit {
                         <div style="width:45%;font-weight:bold;">Name:</div>
                         <div style="flex: 1 1 auto;">{{target.name}}</div>
                     </div>   
+                    <div style="display:flex;" *ngIf="vInfo.flag">
+                        <div style="width:45%;font-weight:bold;">Flag:</div>
+                        <div style="flex: 1 1 auto;">{{vInfo.flag}}</div>
+                    </div>  
+                    <div style="display:flex;" *ngIf="vInfo.port">
+                        <div style="width:45%;font-weight:bold;">Port:</div>
+                        <div style="flex: 1 1 auto;">{{vInfo.port}}</div>
+                    </div>                       
                     <div style="display:flex;">
                         <div style="width:45%;font-weight:bold;">MMSI:</div>
                         <div style="flex: 1 1 auto;">{{target.mmsi}}</div>
-                    </div>                              
+                    </div>                                              
                     <div style="display:flex;">
                         <div style="width:45%;font-weight:bold;">Call sign:</div>
                         <div style="flex: 1 1 auto;">{{target.callsign}}</div>
                     </div>    
-                    <!--<div style="display:flex;">
+                    <div style="display:flex;">
                         <div style="width:45%;font-weight:bold;">State:</div>
                         <div style="flex: 1 1 auto;">{{target.state}}</div>
                     </div>                     
-                    <div style="display:flex;" *ngIf="target.position">
-                        <div style="width:45%;font-weight:bold;">Latitude:</div>
-                        <div style="flex: 1 1 auto;">{{target.position[1].toFixed(6)}}</div>
+                    <div style="display:flex;" *ngIf="vInfo.length">
+                        <div style="width:45%;font-weight:bold;">Dimensions:</div>
+                        <div style="flex: 1 1 auto;">{{vInfo.length}} x {{vInfo.beam}}</div>
                     </div>       
-                    <div style="display:flex;" *ngIf="target.position">
-                        <div style="width:45%;font-weight:bold;">Longitude:</div>
-                        <div style="flex: 1 1 auto;">{{target.position[0].toFixed(6)}}</div>
+                    <div style="display:flex;" *ngIf="vInfo.destination">
+                        <div style="width:45%;font-weight:bold;">Destination:</div>
+                        <div style="flex: 1 1 auto;">{{vInfo.destination}}</div>
                     </div>  
-                    <div style="display:flex;">
-                        <div style="width:45%;font-weight:bold;">Heading ({{app.useMagnetic ? 'M' : 'T'}}):</div>
-                        <div style="flex: 1 1 auto;">{{formatDegrees(target.heading)}}</div>
-                    </div>                      
-                    <div style="display:flex;">
-                        <div style="width:45%;font-weight:bold;">COG ({{app.useMagnetic ? 'M' : 'T'}}):</div>
-                        <div style="flex: 1 1 auto;">{{formatDegrees(target.cog)}}</div>
-                    </div>     
-                    <div style="display:flex;">
-                        <div style="width:45%;font-weight:bold;">SOG:</div>
-                        <div style="flex: 1 1 auto;">{{formatKnots(target.sog)}}</div>
-                    </div>      
-                    <div style="display:flex;">
-                        <div style="width:45%;font-weight:bold;">Wind ({{app.useMagnetic ? 'M' : 'T'}}):</div>
-                        <div style="flex: 1 1 auto;">{{formatKnots(target.wind.tws)}} ({{formatDegrees(target.wind.direction)}})</div>
-                    </div>       
-                    <div style="display:flex;">
-                        <div style="width:45%;font-weight:bold;">Wind (A):</div>
-                        <div style="flex: 1 1 auto;">{{formatKnots(target.wind.aws)}} ({{formatDegrees(target.wind.awa)}})</div>
-                    </div>-->                                 
+                    <div style="display:flex;" *ngIf="vInfo.eta">
+                        <div style="width:45%;font-weight:bold;">ETA:</div>
+                        <div style="flex: 1 1 auto;">{{vInfo.eta.toLocaleString()}}</div>
+                    </div>                                
                 </div>
             </mat-dialog-content>
             <mat-dialog-actions>
@@ -232,14 +226,27 @@ export class ResourceDialog implements OnInit {
 export class AISPropertiesDialog implements OnInit {
 
     public target: any;
+    public vInfo= {
+        length: null,
+        beam: null,
+        shipType: null,
+        destination: null,
+        eta: null,
+        flag: null,
+        port: null
+    }
 
     constructor(
         public app: AppInfo,
+        private sk: SignalKClient,
         public dialogRef: MatDialogRef<ResourceDialog>,
         @Inject(MAT_DIALOG_DATA) public data: any) {
     }
     
-    ngOnInit() { this.target= this.data.target }
+    ngOnInit() { 
+        this.target= this.data.target;
+        this.getVesselInfo();
+    }
 
     formatDegrees(val: number) { 
         return (val ? `${Convert.radiansToDegrees(val).toFixed(1)} ${String.fromCharCode(186)}` : '0.0');
@@ -248,5 +255,39 @@ export class AISPropertiesDialog implements OnInit {
     formatKnots(val: number) { 
         return (val ? `${Convert.msecToKnots(val).toFixed(1)} kn` : '0.0');
     }    
+
+    getVesselInfo() {
+        if(!this.data.id) { return }
+        if(this.data.id.indexOf('vessels.')!=-1) {
+            this.data.id= this.data.id.split('.')[1];
+        }
+        this.sk.api.get(`vessels/${this.data.id}`).subscribe(
+            v=> { 
+                if(typeof v['flag']!=='undefined') { this.vInfo.flag= v['flag'] } 
+                if(typeof v['port']!=='undefined') { this.vInfo.port= v['port'] } 
+                if(typeof v['destination']!=='undefined') {
+                    if(typeof v['destination']['commonName']!=='undefined') {
+                        this.vInfo.destination= v['destination']['commonName'];
+                    }                    
+                    if(typeof v['destination']['eta']!=='undefined') {
+                        this.vInfo.eta= v['destination']['eta'];
+                    } 
+                }                
+                if(typeof v['design']!=='undefined') {
+                    if(typeof v['design']['length']!=='undefined' 
+                            && v['design']['length']['value']['overall']) {
+                        this.vInfo.length= v['design']['length']['value']['overall'];
+                    }
+                    if(typeof v['design']['beam']!=='undefined') {
+                        this.vInfo.beam= v['design']['beam']['value'];
+                    }                    
+                    if(typeof v['design']['aisShipType']!=='undefined') {
+                        this.vInfo.shipType= v['design']['aisShipType']['value']['name'];
+                    } 
+                }
+
+            }
+        )
+    }
 	
 }
