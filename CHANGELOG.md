@@ -1,5 +1,10 @@
 # CHANGELOG: Freeboard
 
+### v1.5.2
+
+- **Fixed:** Display of `callsign` and `destination` in vessel information dialog. 
+
+
 ### v1.5.1
 
 - **Update:** Added `Last Updated` time back to vessel popup. 
