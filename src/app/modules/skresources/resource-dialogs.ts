@@ -150,8 +150,12 @@ export class ResourceDialog implements OnInit {
                 <div style="display:flex;flex-direction: column;">
                     <div style="display:flex;">
                         <div style="width:45%;font-weight:bold;">Name:</div>
-                        <div style="flex: 1 1 auto;">{{target.name}}</div>
+                        <div style="flex: 1 1 auto;">{{vInfo.name}}</div>
                     </div>   
+                    <div style="display:flex;">
+                        <div style="width:45%;font-weight:bold;">MMSI:</div>
+                        <div style="flex: 1 1 auto;">{{vInfo.mmsi}}</div>
+                    </div>                     
                     <div style="display:flex;" *ngIf="vInfo.flag">
                         <div style="width:45%;font-weight:bold;">Flag:</div>
                         <div style="flex: 1 1 auto;">{{vInfo.flag}}</div>
@@ -159,23 +163,29 @@ export class ResourceDialog implements OnInit {
                     <div style="display:flex;" *ngIf="vInfo.port">
                         <div style="width:45%;font-weight:bold;">Port:</div>
                         <div style="flex: 1 1 auto;">{{vInfo.port}}</div>
-                    </div>                       
-                    <div style="display:flex;">
-                        <div style="width:45%;font-weight:bold;">MMSI:</div>
-                        <div style="flex: 1 1 auto;">{{target.mmsi}}</div>
-                    </div>                                              
-                    <div style="display:flex;">
+                    </div>                                             
+                    <div style="display:flex;" *ngIf="vInfo.callsign">
                         <div style="width:45%;font-weight:bold;">Call sign:</div>
-                        <div style="flex: 1 1 auto;">{{target.callsign}}</div>
-                    </div>    
-                    <div style="display:flex;">
-                        <div style="width:45%;font-weight:bold;">State:</div>
-                        <div style="flex: 1 1 auto;">{{target.state}}</div>
-                    </div>                     
+                        <div style="flex: 1 1 auto;">{{vInfo.callsign}}</div>
+                    </div>                       
                     <div style="display:flex;" *ngIf="vInfo.length">
                         <div style="width:45%;font-weight:bold;">Dimensions:</div>
-                        <div style="flex: 1 1 auto;">{{vInfo.length}} x {{vInfo.beam}}</div>
+                        <div style="flex: 1 1 auto;">
+                            {{vInfo.length}} x {{vInfo.beam}}
+                        </div>
+                    </div>     
+                    <div style="display:flex;" *ngIf="vInfo.draft">
+                        <div style="width:45%;font-weight:bold;">Draft:</div>
+                        <div style="flex: 1 1 auto;">{{vInfo.draft}}</div>
                     </div>       
+                    <div style="display:flex;" *ngIf="vInfo.height">
+                        <div style="width:45%;font-weight:bold;">Height:</div>
+                        <div style="flex: 1 1 auto;">{{vInfo.height}}</div>
+                    </div>                                        
+                    <div style="display:flex;" *ngIf="vInfo.state">
+                        <div style="width:45%;font-weight:bold;">State:</div>
+                        <div style="flex: 1 1 auto;">{{vInfo.state}}</div>
+                    </div>                      
                     <div style="display:flex;" *ngIf="vInfo.destination">
                         <div style="width:45%;font-weight:bold;">Destination:</div>
                         <div style="flex: 1 1 auto;">{{vInfo.destination}}</div>
@@ -227,11 +237,17 @@ export class AISPropertiesDialog implements OnInit {
 
     public target: any;
     public vInfo= {
+        name: null,
+        mmsi: null,
+        callsign: null,
         length: null,
         beam: null,
+        draft: null,
+        height: null,
         shipType: null,
         destination: null,
         eta: null,
+        state: null,
         flag: null,
         port: null
     }
@@ -256,21 +272,34 @@ export class AISPropertiesDialog implements OnInit {
         return (val ? `${Convert.msecToKnots(val).toFixed(1)} kn` : '0.0');
     }    
 
-    getVesselInfo() {
-        if(!this.data.id) { return }
-        if(this.data.id.indexOf('vessels.')!=-1) {
-            this.data.id= this.data.id.split('.')[1];
-        }
-        this.sk.api.get(`vessels/${this.data.id}`).subscribe(
+    private getVesselInfo() {
+        let path: string;
+        if(!this.data.id) { path='vessels/self' }
+        else { path= this.data.id.split('.').join('/') }
+
+        this.sk.api.get(path).subscribe(
             v=> { 
+                if(typeof v['name']!=='undefined') { this.vInfo.name= v['name'] } 
+                if(typeof v['mmsi']!=='undefined') { this.vInfo.mmsi= v['mmsi'] } 
                 if(typeof v['flag']!=='undefined') { this.vInfo.flag= v['flag'] } 
                 if(typeof v['port']!=='undefined') { this.vInfo.port= v['port'] } 
-                if(typeof v['destination']!=='undefined') {
-                    if(typeof v['destination']['commonName']!=='undefined') {
-                        this.vInfo.destination= v['destination']['commonName'];
-                    }                    
-                    if(typeof v['destination']['eta']!=='undefined') {
-                        this.vInfo.eta= v['destination']['eta'];
+                if(typeof v['communication']!=='undefined') {
+                    if(typeof v['communication']['callsignVhf']!=='undefined') {
+                        this.vInfo.callsign= v['communication']['callsignVhf'];
+                    }
+                }                 
+                if(typeof v['navigation']!=='undefined') {
+                    if(typeof v['navigation']['destination']!=='undefined') {
+                        if(typeof v['navigation']['destination']['commonName']!=='undefined') {
+                            this.vInfo.destination= v['navigation']['destination']['commonName']['value'];
+                        }                    
+                        if(typeof v['navigation']['destination']['eta']!=='undefined') {
+                            this.vInfo.eta= v['navigation']['destination']['eta'];
+                        } 
+                    }
+                    if(typeof v['navigation']['state']!=='undefined'
+                            && typeof v['navigation']['state']['value']!=='undefined') {
+                        this.vInfo.state= v['navigation']['state']['value'];
                     } 
                 }                
                 if(typeof v['design']!=='undefined') {
@@ -280,7 +309,19 @@ export class AISPropertiesDialog implements OnInit {
                     }
                     if(typeof v['design']['beam']!=='undefined') {
                         this.vInfo.beam= v['design']['beam']['value'];
-                    }                    
+                    }   
+                    if(typeof v['design']['draft']!=='undefined' 
+                            && v['design']['draft']['value']) {
+                        if(typeof v['design']['draft']['value']['maximum']!=='undefined') {
+                            this.vInfo.draft= `${v['design']['draft']['value']['maximum']} (max)`;
+                        }       
+                        else if(typeof v['design']['draft']['value']['current']!=='undefined') {
+                            this.vInfo.draft= `${v['design']['draft']['value']['current']} (current)`;
+                        }                        
+                    }  
+                    if(typeof v['design']['airHeight']!=='undefined') {
+                        this.vInfo.height= v['design']['airHeight']['value'];
+                    }                                     
                     if(typeof v['design']['aisShipType']!=='undefined') {
                         this.vInfo.shipType= v['design']['aisShipType']['value']['name'];
                     } 
