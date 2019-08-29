@@ -294,7 +294,7 @@ export class AISPropertiesDialog implements OnInit {
                             this.vInfo.destination= v['navigation']['destination']['commonName']['value'];
                         }                    
                         if(typeof v['navigation']['destination']['eta']!=='undefined') {
-                            this.vInfo.eta= v['navigation']['destination']['eta'];
+                            this.vInfo.eta= new Date(v['navigation']['destination']['eta']['value']).toUTCString();
                         } 
                     }
                     if(typeof v['navigation']['state']!=='undefined'
