@@ -9,6 +9,7 @@ import { MatCardModule } from '@angular/material/card';
 import { MatListModule } from '@angular/material/list';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatMenuModule } from '@angular/material/menu';
 
 import { AngularOpenlayersModule } from 'ngx-openlayers';
 
@@ -26,7 +27,7 @@ import { CompassComponent } from './compass.component';
     imports: [
         CommonModule, MatTooltipModule, MatListModule,
         MatIconModule, MatButtonModule, MatTooltipModule,
-        MatCardModule, AngularOpenlayersModule
+        MatCardModule, MatMenuModule, AngularOpenlayersModule
       ],    
     declarations: [
         PopoverComponent, FeatureListPopoverComponent, VesselPopoverComponent,

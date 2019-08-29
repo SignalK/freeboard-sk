@@ -1,5 +1,6 @@
 <aol-map #aolMap [width]="'100%'" [height]="'100%'" 
     [style.cursor]="(draw.enabled || measure.enabled) ? 'crosshair' : 'initial'"
+    (contextmenu)="onMapRightClick($event)"
     (onClick)="onMapMouseClick($event)"
     (onMoveEnd)="onMapMove($event)"
     (onPointerMove)="onMapPointerMove($event)"
@@ -539,3 +540,26 @@
     <!-- *** /VESSEL TRAIL *** -->         
 
 </aol-map> 
+
+<!-- context menu -->
+<div style="visibility: hidden; position: fixed"
+    [style.left]="contextMenuPosition.x"
+    [style.top]="contextMenuPosition.y"
+    [matMenuTriggerFor]="contextMenu">
+</div>
+<mat-menu #contextMenu="matMenu" (contextmenu)="$event.preventDefault()">
+	<ng-template matMenuContent let-item="item">
+        <button mat-menu-item 
+            (click)="onContextMenuAction('add_wpt', item)"
+            (contextmenu)="$event.preventDefault();">
+            <mat-icon color="primary">add_location</mat-icon>
+            Add Waypoint here
+        </button>
+        <button mat-menu-item 
+            (contextmenu)="$event.preventDefault();"
+            (click)="onContextMenuAction('nav_to', item)">
+            <mat-icon color="primary">near_me</mat-icon>
+            Navigate to here
+        </button>
+	</ng-template>
+</mat-menu>

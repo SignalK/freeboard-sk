@@ -1,4 +1,5 @@
 import { Component, OnInit, OnDestroy, Input, Output, EventEmitter, ViewChild } from '@angular/core';
+import { MatMenuTrigger } from '@angular/material';
 
 import { proj, coordinate, style, Collection } from 'openlayers';
 import { Convert } from '../../lib/convert';
@@ -48,8 +49,8 @@ export class FBMapComponent implements OnInit, OnDestroy {
     @Output() exitedMovingMap: EventEmitter<boolean>= new EventEmitter();
     @Output() focusVessel: EventEmitter<string>= new EventEmitter();
     
-
     @ViewChild('aolMap', {static: true}) aolMap; 
+    @ViewChild(MatMenuTrigger, {static: true}) contextMenu: MatMenuTrigger;
 
     // ** draw interaction data 
     public draw= {
@@ -143,6 +144,12 @@ export class FBMapComponent implements OnInit, OnDestroy {
     private isDirty: boolean=false;
     public coord= coordinate;
 
+    private mouse= {
+        pixel: null,
+        coords: null
+    }
+    contextMenuPosition = { x: '0px', y: '0px' };    
+
     private obsList= [];
     
     constructor(
@@ -164,7 +171,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
                     this.fbMap.movingMap= this.app.config.map.moveMap;
                 }
             })
-        );       
+        );     
     }
 
     ngOnDestroy() { 
@@ -269,6 +276,34 @@ export class FBMapComponent implements OnInit, OnDestroy {
 
     // ********** MAP EVENT HANDLERS *****************    
 
+    // ** handle context menu choices **
+    public onContextMenuAction(action:string, e:any) {
+        switch(action) {
+            case 'add_wpt': 
+                this.skres.showWaypointEditor({position: e});
+                break;
+            case 'nav_to':
+                if(this.app.data.activeRoute) { 
+                    this.skres.clearActiveRoute(this.app.data.vessels.activeId, true);
+                }
+                this.app.data.activeWaypoint= null;
+                this.skres.setNextPoint({
+                    latitude: e[1], 
+                    longitude: e[0]
+                });
+                break; 
+        }
+    }
+
+    // ** handle mouse right click - show context menu **
+    public onMapRightClick(e:any) { 
+        e.preventDefault(); 
+        this.contextMenuPosition.x= e.clientX + 'px';
+        this.contextMenuPosition.y= e.clientY + 'px';
+        this.contextMenu.menuData= { 'item': this.mouse.coords };
+        this.contextMenu.openMenu();        
+    }
+
     public onMapMove(e:any) {
         let v= e.map.getView();
         let z= Math.round(v.getZoom());
@@ -295,6 +330,12 @@ export class FBMapComponent implements OnInit, OnDestroy {
     }
 
     public onMapPointerMove(e:any) {
+        this.mouse.pixel= e.pixel;
+        this.mouse.coords= proj.transform(
+            e.coordinate, 
+            this.app.config.map.mrid, 
+            this.app.config.map.srid
+        );
         if(this.measure.enabled && this.measure.coords.length!=0) {
             let c= proj.transform(
                 e.coordinate, 
