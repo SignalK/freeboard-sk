@@ -139,6 +139,23 @@
                         </li>                        
                     </ul>
                 </p> 
+                <hr>
+                <h5>Node Server Plug-ins:</h5>
+                <p>
+                    When using Signal K node server you will need to install plug-ins to 
+                    provide the required server functionality.
+                </p>
+                <p>
+                    Following is a list of recommended plugins that will enable the
+                    required server functionality:
+                    <li>@signalk/charts-plugin - Charts provider</li>
+                    <li>GPXLoad (v1.1.1 or later) - Routes, Waypoints, active route provider</li>
+                    <li>signalk-anchoralarm-plugin - Anchor Watch provider</li>
+                    <li>signalk-simple-notifications - Depth alarm provider</li>
+                    <li>ca-reports / sk-resources-fs - Notes / Regions provider</li>
+                    <li>signalk-derived-data (v1.23.0 or later) - Course data, closest approach</li>
+                    <li>signalk-buddylist-plugin - Buddy vessel notifications</li>
+                </p>
             </div>
 
             <div class="panel" id="display">
@@ -248,7 +265,19 @@
                     <i>navigation.courseGreatCircle</i> or 
                     <i>navigation.courseRhumbline</i> paths when received
                         from the server.                        
-                </p>   
+                </p>  
+                
+                <p>
+                    You can set a destination in the following ways:
+                    <ol>
+                        <li><b>Activate a Route:</b> Once activaed select a point along the route.</li>
+                        <li><b>Go To Waypoint:</b> Select a waypoint as a destination.</li>
+                        <li><b>Navigate to here:</b> 
+                            Right click anywhere on the map and select the option from the menu.<br>
+                            <img src="./img/context_menu.png" style="max-width:190px;"/>
+                        </li>
+                    </ol>
+                </p>
                 <p>To display course data when it is available from the server,
                     click <i class="material-icons">more_horiz</i> and
                     select <b>Show Course Data</b>.
