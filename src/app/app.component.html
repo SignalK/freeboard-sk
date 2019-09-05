@@ -154,7 +154,8 @@
 	<div class="view" theme-main>
 		<mat-sidenav-container hasBackdrop="false">
             <!--left menu-->
-			<mat-sidenav #sidemenu mode="over">
+            <mat-sidenav #sidemenu mode="over"
+                (openedChange)="leftSideNavAction($event)">
 				<mat-nav-list>	
                     <a mat-list-item (click)="sidemenu.close();">                      
                         <mat-icon>arrow_back</mat-icon>
@@ -331,12 +332,14 @@
 
                 <!-- MAP -->
                 <fb-map
+                    [setFocus]="display.map.setFocus"
                     [mapCenter]="display.map.center"
                     [mapZoom]="app.config.map.zoomLevel"
                     [northUp]="app.config.map.northUp"
                     [movingMap]="app.config.map.moveMap"
                     [measureMode]="measure.enabled"
                     [activeRoute]="app.data.activeRoute"
+                    (measureStart)="measureStart()"
                     (measureEnd)="measure.enabled=false"
                     [drawMode]="draw.mode"
                     (drawEnd)="handleDrawEnd($event)"

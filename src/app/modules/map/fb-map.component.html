@@ -542,7 +542,8 @@
 </aol-map> 
 
 <!-- context menu -->
-<div style="visibility: hidden; position: fixed"
+<div
+    style="visibility: hidden; position: fixed"
     [style.left]="contextMenuPosition.x"
     [style.top]="contextMenuPosition.y"
     [matMenuTriggerFor]="contextMenu">
@@ -550,16 +551,30 @@
 <mat-menu #contextMenu="matMenu" (contextmenu)="$event.preventDefault()">
 	<ng-template matMenuContent let-item="item">
         <button mat-menu-item 
+            (contextmenu)="$event.preventDefault();"
+            (click)="onContextMenuAction('nav_to', item)">
+            <mat-icon color="primary">near_me</mat-icon>
+            Navigate to here
+        </button>      
+        <mat-divider></mat-divider>  
+        <button mat-menu-item 
             (click)="onContextMenuAction('add_wpt', item)"
             (contextmenu)="$event.preventDefault();">
             <mat-icon color="primary">add_location</mat-icon>
             Add Waypoint here
         </button>
-        <button mat-menu-item 
-            (contextmenu)="$event.preventDefault();"
-            (click)="onContextMenuAction('nav_to', item)">
-            <mat-icon color="primary">near_me</mat-icon>
-            Navigate to here
-        </button>
+        <button mat-menu-item *ngIf="app.config.map.zoomLevel>=app.config.selections.notesMinZoom"
+            (click)="onContextMenuAction('add_note', item)"
+            (contextmenu)="$event.preventDefault();">
+            <mat-icon style="color:orange">local_offer</mat-icon>
+            Add Note here
+        </button>  
+        <mat-divider></mat-divider>  
+        <button mat-menu-item
+            (click)="onContextMenuAction('measure', item)"
+            (contextmenu)="$event.preventDefault();">
+            <mat-icon>straighten</mat-icon>
+            Measure
+        </button>              
 	</ng-template>
 </mat-menu>

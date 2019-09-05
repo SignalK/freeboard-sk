@@ -7,7 +7,7 @@ import { AboutDialog, LoginDialog } from './lib/app-ui';
 import { PlaybackDialog } from './lib/ui/playback-dialog';
 
 import { SettingsDialog, AlarmsFacade, AlarmsDialog, 
-        SKStreamFacade, SKSTREAM_MODE, SKResources, SKVessel, 
+        SKStreamFacade, SKSTREAM_MODE, SKResources, 
         SKRegion, AISPropertiesDialog, GPXImportDialog } from './modules';
 
 import { SignalKClient } from 'signalk-client-angular';
@@ -39,7 +39,7 @@ export class AppComponent {
             nextPointCtrl: false
         },
         playback: { time: null },
-        map: { center: [0,0] }
+        map: { center: [0,0], setFocus: false }
     }
 
     public draw= {
@@ -263,14 +263,25 @@ export class AppComponent {
         else { this.display.instrumentAppActive= true }        
     }
 
+    // ** trigger focus of the map so keyboard controls work
+    private focusMap() { 
+        this.display.map.setFocus= true;
+        // reset value to ensure change detection
+        setTimeout( ()=> { this.display.map.setFocus= false }, 1000);
+    }
 
     // ********* SIDENAV ACTIONS *************
   
+    public leftSideNavAction(e:boolean) {
+        if(!e) { this.focusMap() }  // set when closed
+    }
+
     public rightSideNavAction(e:boolean) {
         this.display.instrumentPanelOpen= e;
         if(this.app.config.plugins.startOnOpen) {
             this.display.instrumentAppActive= e;
         }
+        if(!e) { this.focusMap() }  // set when closed
     }
 
     public displayLeftMenu( menulist:string='', show:boolean= false) {
@@ -303,6 +314,7 @@ export class AppComponent {
             default: 
                 this.display.leftMenuPanel= false;     
         }
+        if(!show) { this.focusMap() }
     }    
 
     // ********* MAIN MENU ACTIONS *************
@@ -318,11 +330,14 @@ export class AppComponent {
                 logo: this.app.logo,  
                 url: this.app.url
             }
-        });  
+        }).afterClosed().subscribe( ()=>this.focusMap() );  
     }  
 
     // ** open settings dialog **
-    public openSettings() {  this.dialog.open( SettingsDialog, { disableClose: false }) }      
+    public openSettings() {  
+        this.dialog.open( SettingsDialog, { disableClose: false })
+        .afterClosed().subscribe( ()=>this.focusMap() );
+    }      
 
     // ** GPX File processing **
     public processGPX(e:any) {
@@ -338,6 +353,7 @@ export class AppComponent {
             this.skres.getWaypoints();  
             if(errCount==0) { this.app.showAlert('GPX Load','GPX file resources loaded successfully.') }
             else { this.app.showAlert('GPX Load','Completed with errors!\nNot all resources were loaded.') }
+            this.focusMap();
         });       
     }
 
@@ -386,6 +402,7 @@ export class AppComponent {
                     }
                 }
             }
+            this.focusMap();
         });        
     }
 
@@ -399,13 +416,17 @@ export class AppComponent {
             else {  // cancel: restarts realtime mode
                 this.switchMode(SKSTREAM_MODE.REALTIME);
             }
+            this.focusMap();
         });
     }
  
 
     // ********** TOOLBAR ACTIONS **********
 
-    public openAlarmsDialog() { this.dialog.open(AlarmsDialog, { disableClose: true }) }
+    public openAlarmsDialog() { 
+        this.dialog.open(AlarmsDialog, { disableClose: true })
+        .afterClosed().subscribe( ()=> this.focusMap() );
+    }
 
     public toggleMoveMap(exit:boolean=false) { 
         let doSave:boolean= (!this.app.config.map.moveMap && exit) ? false : true;
@@ -525,13 +546,14 @@ export class AppComponent {
             latitude: c[idx][1], 
             longitude: c[idx][0], 
         }
-        this.skres.setNextPoint(nextPoint);     
+        this.skres.setNextPoint(nextPoint);  
+        this.focusMap();   
     }     
 
     // ** handle display vessel properties **
     public vesselProperties(e:any) {
         let v: any;
-        if(e.type=='self') { v= this.app.data.vessels.selfProperties }
+        if(e.type=='self') { v= this.app.data.vessels.self }
         else { v= this.app.data.vessels.aisTargets.get(e.id) }
         if(v) {
             this.dialog.open(AISPropertiesDialog, {
@@ -541,7 +563,7 @@ export class AppComponent {
                     target: v,
                     id: e.id
                 }
-            });
+            }).afterClosed().subscribe( ()=> this.focusMap() );
         }
     }   
     
@@ -716,6 +738,7 @@ export class AppComponent {
                     if(r[0]=='note' || r[0]=='region') { this.skres.getNotes() }
                 }
                 this.draw.forSave= null;
+                this.focusMap();
             });
         }
         // clean up
@@ -744,8 +767,7 @@ export class AppComponent {
             this.app.data.vessels.activeId.split('.').join('/') : 'vessels/self';
         this.signalk.api.getSelf().subscribe(
             r=> {  
-                this.app.data.vessels.selfProperties.mmsi= (r['mmsi']) ? r['mmsi'] : null;
-                this.app.data.vessels.selfProperties.name= (r['name']) ? r['name'] : null;
+                this.stream.post({ cmd: 'vessel', options: {context: 'self', name: r['name']} });
                 // ** query for resources
                 this.skres.getRoutes(this.app.data.vessels.activeId); // + get ActiveRoute Info. See associated message handler
                 this.skres.getWaypoints();

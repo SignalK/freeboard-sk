@@ -1,5 +1,18 @@
 # CHANGELOG: Freeboard
 
+### v1.6.0
+- **Added:** `Context menu` when you right click on map with `Navigate to here`,  
+`Add Waypoint here`, `Add Note here` and `Measure` options.
+
+- **Added:** Enable / support map keyboard control.
+
+- **Update:** Added `wind.speedOverGround` as a TWS source. 
+
+- **Fixed:** Display format of `ETA` in vessel information dialog. 
+
+- **Fixed:** Vessel name of `self` not being displayed in vessel popup.
+
+
 ### v1.5.2
 
 - **Fixed:** Display of `callsign` and `destination` in vessel information dialog. 

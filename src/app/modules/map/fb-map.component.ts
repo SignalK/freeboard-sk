@@ -31,6 +31,7 @@ enum INTERACTION_MODE {
     styleUrls: ['./fb-map.component.css']
 })
 export class FBMapComponent implements OnInit, OnDestroy {
+    @Input() setFocus: boolean;
     @Input() mapCenter: [number,number]= [0,0];
     @Input() mapZoom: number= 1;
     @Input() movingMap: boolean= false;
@@ -39,6 +40,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
     @Input() drawMode: string= null;
     @Input() modifyMode: boolean= false;
     @Input() activeRoute: string;
+    @Output() measureStart: EventEmitter<boolean>= new EventEmitter();
     @Output() measureEnd: EventEmitter<boolean>= new EventEmitter();
     @Output() drawEnd: EventEmitter<any>= new EventEmitter();
     @Output() modifyStart: EventEmitter<any>= new EventEmitter();
@@ -146,7 +148,8 @@ export class FBMapComponent implements OnInit, OnDestroy {
 
     private mouse= {
         pixel: null,
-        coords: null
+        coords: null,
+        xy: null
     }
     contextMenuPosition = { x: '0px', y: '0px' };    
 
@@ -157,7 +160,11 @@ export class FBMapComponent implements OnInit, OnDestroy {
             public skres: SKResources, 
             private skstream: SKStreamFacade) { }
 
-    ngAfterViewInit() { setTimeout( ()=> this.aolMap.instance.updateSize(), 100 ) }              
+    ngAfterViewInit() { 
+        setTimeout( ()=> this.aolMap.instance.updateSize(), 100 );
+        this.aolMap.instance.a.tabIndex=0;
+        this.aolMap.instance.a.focus();
+    }              
 
     ngOnInit() { 
         // ** STREAM VESSELS update event
@@ -180,6 +187,9 @@ export class FBMapComponent implements OnInit, OnDestroy {
     }
 
     ngOnChanges(changes) {
+        if(changes.setFocus && changes.setFocus.currentValue==true) { 
+            this.aolMap.instance.a.focus(); 
+        }
         if(changes && changes.mapCenter) {
             this.fbMap.center= (changes.mapCenter.currentValue) ? changes.mapCenter.currentValue : this.fbMap.center;
         }    
@@ -282,6 +292,9 @@ export class FBMapComponent implements OnInit, OnDestroy {
             case 'add_wpt': 
                 this.skres.showWaypointEditor({position: e});
                 break;
+            case 'add_note':
+                this.skres.showNoteEditor({position: e});
+                break;
             case 'nav_to':
                 if(this.app.data.activeRoute) { 
                     this.skres.clearActiveRoute(this.app.data.vessels.activeId, true);
@@ -292,6 +305,9 @@ export class FBMapComponent implements OnInit, OnDestroy {
                     longitude: e[0]
                 });
                 break; 
+            case 'measure':
+                this.measureStart.emit(true);
+                break;
         }
     }
 
@@ -301,7 +317,14 @@ export class FBMapComponent implements OnInit, OnDestroy {
         this.contextMenuPosition.x= e.clientX + 'px';
         this.contextMenuPosition.y= e.clientY + 'px';
         this.contextMenu.menuData= { 'item': this.mouse.coords };
-        this.contextMenu.openMenu();        
+        if(this.measureMode) { this.onMeasureClick(this.mouse.xy) }
+        else if(!this.modifyMode) { 
+            this.contextMenu.openMenu();   
+            document.getElementsByClassName('cdk-overlay-backdrop')[0].addEventListener('contextmenu', (offEvent: any) => {
+                offEvent.preventDefault();  // prevent default context menu for overlay
+                this.contextMenu.closeMenu();
+            }); 
+        }
     }
 
     public onMapMove(e:any) {
@@ -331,6 +354,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
 
     public onMapPointerMove(e:any) {
         this.mouse.pixel= e.pixel;
+        this.mouse.xy= e.coordinate;
         this.mouse.coords= proj.transform(
             e.coordinate, 
             this.app.config.map.mrid, 
@@ -357,21 +381,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
     }
 
     public onMapMouseClick(e:any) {
-        if(this.measure.enabled) {
-            let c= proj.transform(
-                e.coordinate,
-                this.app.config.map.mrid, 
-                this.app.config.map.srid
-            ); 
-            this.measure.coords.push(c);
-            this.overlay.position= c;
-
-            let l= this.measureDistanceToAdd();
-            this.measure.totalDistance+= l;
-            this.overlay.title= (this.app.config.units.distance=='m') ? 
-                `${(this.measure.totalDistance/1000).toFixed(2)} km` :
-                `${Convert.kmToNauticalMiles(this.measure.totalDistance/1000).toFixed(2)} NM`              
-        }        
+        if(this.measure.enabled) { this.onMeasureClick(e.coordinate) }  
         else if(!this.draw.enabled && !this.draw.modify) {
             let flist= new Map();
             let fa= [];
@@ -413,7 +423,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
                             break;
                         case 'vessels': icon="directions_boat"; 
                             addToFeatureList= true;
-                            text= 'self'; 
+                            text= this.dfeat.self.name + ' (self)' || 'self'; 
                             break;
                         case 'region': 
                             addToFeatureList= true;
@@ -467,6 +477,22 @@ export class FBMapComponent implements OnInit, OnDestroy {
         this.overlay.position= c;
         this.overlay.title= '0';
         this.overlay.show= true;  
+    }
+
+    public onMeasureClick(pt:[number,number]) {
+        let c= proj.transform(
+            pt,
+            this.app.config.map.mrid, 
+            this.app.config.map.srid
+        ); 
+        this.measure.coords.push(c);
+        this.overlay.position= c;
+
+        let l= this.measureDistanceToAdd();
+        this.measure.totalDistance+= l;
+        this.overlay.title= (this.app.config.units.distance=='m') 
+            ? `${(this.measure.totalDistance/1000).toFixed(2)} km` 
+            : `${Convert.kmToNauticalMiles(this.measure.totalDistance/1000).toFixed(2)} NM`;           
     }
 
     public onMeasureEnd(e?:any) {
