@@ -18,7 +18,7 @@ export class AppInfo extends Info {
 
     private DEV_SERVER= {
         host: null,     // host name || ip address
-        port: null,                 // port number
+        port: 3000,     // port number
         ssl: false
     };
 
@@ -124,7 +124,6 @@ export class AppInfo extends Info {
             lastGet: null,      // map position of last resources GET
             vessels: {          // received vessel data
                 showSelf: false,
-                selfProperties: { name: null, mmsi: null, callsign: null },
                 self: new SKVessel(), 
                 aisTargets: new Map(),
                 activeId: null,

@@ -62,7 +62,7 @@ features: Array<any> - list of features
             <mat-nav-list>
                 <mat-list-item *ngFor="let f of features">
                     <a matLine href="#" (click)="handleSelect(f)">
-                        <mat-icon [color]="(f.text=='self') ? 'warn' : '' ">
+                        <mat-icon [color]="(f.text.indexOf('self')!=-1) ? 'warn' : '' ">
                             {{f.icon}}
                         </mat-icon>
                         {{f.text}}

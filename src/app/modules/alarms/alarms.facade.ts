@@ -108,7 +108,7 @@ export class AlarmsFacade  {
         context= (!context || context=='self') ? 'vessels/self' : context;
         this.signalk.api.get(`/${context}/navigation/anchor`).subscribe(
             r=> {
-                this.app.debug(r);
+                this.app.debug(`Anchor Status: ${r}`);
                 if(r['position'] && r['position']['value']) {
                     let p= r['position']['value'];
                     if(typeof p.latitude!= 'undefined' && typeof p.longitude!= 'undefined') {

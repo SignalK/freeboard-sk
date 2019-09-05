@@ -98,7 +98,7 @@ addEventListener('message', ({ data }) => { handleCommand(data) });
 
 /** handle posted Message from APP: 
     { 
-        cmd: 'open' | 'close' | 'subscribe' | 'settings' | 'alarm',
+        cmd: 'open' | 'close' | 'subscribe' | 'settings' | 'alarm' | 'vessel',
         options: {..}
     }
  * **************************/
@@ -130,7 +130,17 @@ function handleCommand(data: any) {
         case 'alarm':
             console.log('Worker: alarm action...');
             actionAlarm(data.options);
-            break;                                             
+            break;   
+        //** { cmd: 'vessel', options: {context: string, name: string} }       
+        case 'vessel':
+            console.log('Worker: vessel setting...');
+            if(data.options) {
+                let v:SKVessel;
+                if(data.options.context=='self') { v= vessels.self }
+                else { v= vessels.aisTargets.get(data.options.context) }
+                if(v && data.options.name) { v.name= data.options.name }
+            }
+            break;                                                        
     } 
 }
 
@@ -321,6 +331,7 @@ function processVessel(d: SKVessel, v:any, isSelf:boolean=false) {
     if(v.path=='navigation.state') { d.state= v.value }
     if(v.path=='communication.callsignVhf') { d.callsign= v.value }  
 
+    // ** environment.wind **
     if(v.path=='environment.wind.angleTrueGround' || v.path=='environment.wind.angleTrueWater') { 
         d.wind.twd= Convert.angleToDirection(v.value, d.heading);
     }   
@@ -331,9 +342,13 @@ function processVessel(d: SKVessel, v:any, isSelf:boolean=false) {
         d.wind.mwd= v.value;
         if(useMagnetic) { d.wind.direction= v.value }
     }
-    if(v.path=='environment.wind.speedTrue') { d.wind.tws= v.value }
+    if(v.path=='environment.wind.speedTrue') { d.wind.speedTrue= v.value }
+    if(v.path=='environment.wind.speedOverGround') { d.wind.sog= v.value }
+    d.wind.tws= (d.wind.speedTrue==null && d.wind.sog!==null) ? d.wind.sog : d.wind.speedTrue;
+
     if(v.path=='environment.wind.angleApparent') { d.wind.awa= v.value }
     if(v.path=='environment.wind.speedApparent') { d.wind.aws= v.value }
+
 
     if(v.path.indexOf('navigation.courseRhumbline')!=-1 
             || v.path.indexOf('navigation.courseGreatCircle')!=-1)  { 
