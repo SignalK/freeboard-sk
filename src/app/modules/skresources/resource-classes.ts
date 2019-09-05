@@ -96,7 +96,11 @@ export class SKVessel {
     mmsi: string;
     callsign: string; 
     state: string;   
-    wind= { direction: null, mwd: null, twd: null, tws: null, awa: null, aws: null };
+    wind= { 
+        direction: null, mwd: null, twd: null, 
+        tws: null, speedTrue: null, sog: null,
+        awa: null, aws: null 
+    };
     lastUpdated= new Date();
     orientation:number= 0;
     buddy:boolean= false;

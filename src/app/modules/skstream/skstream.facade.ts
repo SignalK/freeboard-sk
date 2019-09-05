@@ -124,11 +124,7 @@ export class SKStreamFacade  {
 
             this.parseVesselSelf(msg.result.self);
 
-            this.parseVesselOther(msg.result.aisTargets);
-
-            /*msg.result.aisTargets.forEach( (value, key)=> {
-                this.parseVesselOther(key, value);               
-            });  */               
+            this.parseVesselOther(msg.result.aisTargets);         
 
             // ** update active vessel map display **
             this.app.data.vessels.active= (this.app.data.vessels.activeId) ?
@@ -159,21 +155,14 @@ export class SKStreamFacade  {
 
     //private parseVesselOther(id:string, v:SKVessel) {
     private parseVesselOther(otherVessels:any) {
-        //this.app.data.vessels.aisTargets.set(id, v ); 
         this.app.data.vessels.aisTargets= otherVessels;
         this.app.data.vessels.aisTargets.forEach( (value, key)=> {
-            //let cv= this.app.data.vessels.aisTargets.get(id);
-            //this.processVessel(cv);
             this.processVessel(value);
-            // locate / hide CPA
-            //if(`vessels.${this.app.data.vessels.closest.id}`==id) { 
             if(`vessels.${this.app.data.vessels.closest.id}`==key) { 
-                //if(!cv.closestApproach) { 
                 if(!value.closestApproach) { 
                     this.alarmsFacade.updateAlarm('cpa', null);
                     this.app.data.vessels.closest= {id: null, distance: null, timeTo: null, position: [0,0]}
                 }
-                //else { this.app.data.vessels.closest.position= cv.position }
                 else { this.app.data.vessels.closest.position= value.position }
             }
         });
