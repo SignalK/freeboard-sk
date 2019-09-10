@@ -104,7 +104,8 @@ export class AppInfo extends Info {
                     getRadius: 20,      // radius (NM/km) within which to return notes
                     groupNameEdit: false,
                     groupRequiresPosition: false
-                }
+                },
+                video: {}
             }
         } 
 
@@ -251,7 +252,12 @@ export class AppInfo extends Info {
                         groupRequiresPosition: false
                     }
                 }
-            }                              
+            }  
+            else {
+                if(typeof this.config.resources.video === 'undefined') {  
+                    this.config.resources.video= { enable: false, url: null};
+                }  
+            }             
         }
     }
 

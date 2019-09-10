@@ -112,7 +112,8 @@
         <a mat-menu-item (click)="toggleNotes()">
             <mat-icon>{{app.config.notes ? 'visibility_off' : 'local_offer'}}</mat-icon>
             <span>{{app.config.notes ? 'Hide' : 'Show'}} Notes</span>			
-        </a>	        
+        </a>      
+        <mat-divider></mat-divider>          
         <a mat-menu-item (click)="openSettings()">
             <mat-icon color="primary">settings</mat-icon>
             <span>Settings</span>			
@@ -153,6 +154,7 @@
 	<!-- content -->
 	<div class="view" theme-main>
 		<mat-sidenav-container hasBackdrop="false">
+
             <!--left menu-->
             <mat-sidenav #sidemenu mode="over"
                 (openedChange)="leftSideNavAction($event)">
@@ -322,6 +324,11 @@
             <!--map panel-->
             <div style="display: relative; width: 100%; height: 100%;" 
                 (dragover)="mapDragOver($event)" (drop)="mapDrop($event)">
+
+                <pip-video *ngIf="app.config.resources.video.enable && app.config.resources.video.url.length!=0"
+                    [src]="vidUrl" [muted]="true">
+                </pip-video>
+
                 <!-- instrument sidebar open button -->
                 <button mat-mini-fab class="mapButton nosmall" style="top:10px;right:20px;"
                     *ngIf="(!draw.enabled && !measure.enabled) && !app.data.vessels.activeId"

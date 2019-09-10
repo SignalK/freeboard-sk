@@ -238,6 +238,37 @@
                     </mat-card>
                 </div>
             
+                <div class="setting-group" id="sectVideo">
+                    <div class="setting-group-title">RESOURCES: VIDEO</div>
+                    <mat-card class="setting-card"> 
+                        <div class="setting-card-row">
+                            <div class="setting-card-row-item">
+                                <mat-checkbox #enablevideo color="primary"
+                                    [(ngModel)]="facade.settings.resources.video.enable" 
+                                    (change)="onFormChange($event, enablevideo)"
+                                    label="after">
+                                    Enable Video
+                                </mat-checkbox>                                        
+                            </div>                                                                                 
+                            <div class="setting-card-row-item">
+                                <mat-form-field style="width:100%;" floatLabel="always">
+                                    <mat-label>url:</mat-label>
+                                    <input matInput type="text" #videourl=ngModel
+                                        required
+                                        [disabled]="!facade.settings.resources.video.enable"
+                                        [(ngModel)]="facade.settings.resources.video.url" 
+                                        (change)="onFormChange($event, videourl)"
+                                        placeholder="Video stream url"
+                                        matTooltip="Enter URL of video stream"/>  
+                                    <mat-error *ngIf="videourl.invalid">
+                                        Value required.
+                                    </mat-error>                                                                     
+                                </mat-form-field>                            
+                            </div>    
+                        </div>                                                                                                     
+                    </mat-card>
+                </div>
+                
             </div>
         </div>
         

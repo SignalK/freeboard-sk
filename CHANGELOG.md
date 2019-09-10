@@ -8,6 +8,8 @@
 
 - **Update:** Added `wind.speedOverGround` as a TWS source. 
 
+- **Added:** Initial support for Picture in Picture from video stream for compatible browsers.
+
 - **Fixed:** Display format of `ETA` in vessel information dialog. 
 
 - **Fixed:** Vessel name of `self` not being displayed in vessel popup.

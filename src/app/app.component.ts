@@ -59,8 +59,11 @@ export class AppComponent {
 
     private timers= [];
 
+    // ** external resources **
     private lastInstUrl: string;
     public instUrl: SafeResourceUrl;
+    private lastVideoUrl: string;
+    public vidUrl: SafeResourceUrl;
     
     public convert= Convert;
     private obsList= [];    // observables array
@@ -88,8 +91,10 @@ export class AppComponent {
         if(this.app.config.plugins.startOnOpen) { this.display.instrumentAppActive= false }
 
         this.lastInstUrl= this.app.config.plugins.instruments;
-        this.instUrl= this.dom.bypassSecurityTrustResourceUrl(`${this.app.host}${this.app.config.plugins.instruments}`);            
-
+        this.instUrl= this.dom.bypassSecurityTrustResourceUrl(`${this.app.host}${this.app.config.plugins.instruments}`);
+        this.lastVideoUrl= this.app.config.resources.video.url;
+        this.vidUrl= this.dom.bypassSecurityTrustResourceUrl(`${this.app.config.resources.video.url}`);
+        
         // ** connect to signalk server and intialise
         this.connectSignalKServer(); 
 
@@ -254,7 +259,11 @@ export class AppComponent {
             if(this.lastInstUrl!= this.app.config.plugins.instruments) {
                 this.lastInstUrl= this.app.config.plugins.instruments
                 this.instUrl= this.dom.bypassSecurityTrustResourceUrl(`${this.app.host}${this.app.config.plugins.instruments}`);
-            }                
+            }
+            if(this.lastVideoUrl!= this.app.config.resources.video.url) {
+                this.lastVideoUrl= this.app.config.resources.video.url
+                this.vidUrl= this.dom.bypassSecurityTrustResourceUrl(`${this.app.config.resources.video.url}`);            
+            }
         }    
         // update instrument app state
         if(this.app.config.plugins.startOnOpen) {
@@ -473,7 +482,7 @@ export class AppComponent {
     public toggleNotes() { 
         this.app.config.notes= !this.app.config.notes;
         this.app.saveConfig();
-    }     
+    }
 
     // ** delete vessel trail **
     public clearTrail(noprompt:boolean=false) {

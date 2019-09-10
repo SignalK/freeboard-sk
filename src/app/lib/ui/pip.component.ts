@@ -7,26 +7,37 @@ interface PiPVideoElement extends HTMLVideoElement {
 
 //** Picture in Picture video component **
 @Component({
-    selector:	    'pip-video',
-    template: 	    `
+    selector: 'pip-video',
+    template: `
         <div style="border: gray 1px solid;border-radius:5px;display:none;">
-            <video #vid [src]="vidUrl" [muted]="muted"></video>
+            <video #vid [src]="vidUrl" [muted]="muted" autoplay></video>
         </div>
         <div class="pip-video">
             <button mat-icon-button [style.display]="src ? 'block' : 'none'"
-                [matTooltip]="pipMode ? 'Close Video' : 'Show Video'"
+                matTooltip="Show Video"
+                matTooltipPosition="left"
                 [disabled]="pipMode" (click)="initPiP()">
-                <mat-icon>{{pipMode ? 'videocam_off' : 'videocam'}}</mat-icon>
+                <mat-icon>videocam</mat-icon>
             </button>   
-            <button mat-icon-button [style.display]="pipMode ? 'block' : 'none'"
+            <!--<button mat-icon-button [style.display]="pipMode ? 'block' : 'none'"
                 matTooltip="Mute Audio"
                 (click)="toggleMute()">
                 <mat-icon>{{muted ? 'volume_off' : 'volume_mute'}}</mat-icon>
-            </button>                
+            </button>-->                
         </div>
     `,
-    styles: 	    [`
-        .pip-video { display:flex; max-width:85px; }
+    styles: [`
+        .pip-video { 
+            display:flex; 
+            max-width:85px; 
+            z-index: 200;
+            position: absolute;
+            top: 80px;
+            right: 19px;
+            background-color: white;
+            border: gray 1px solid;
+            border-radius: 5px;
+        }
     `]
 })
 export class PiPVideoComponent implements OnInit {
@@ -39,7 +50,7 @@ export class PiPVideoComponent implements OnInit {
     @Input() muted:boolean=true;
     @Output() resize:EventEmitter<any>= new EventEmitter();
     @Output() change:EventEmitter<any>= new EventEmitter();
-    @ViewChild('vid', {static: false}) vid: ElementRef;
+    @ViewChild('vid', {static: true}) vid: ElementRef;
 
     constructor() {}
 
@@ -60,7 +71,6 @@ export class PiPVideoComponent implements OnInit {
 
         this.pipVideo.addEventListener('leavepictureinpicture', (event:any)=> {
             this.pipMode= false;
-            //this.muted= true;
             this.pipVideo.pause();
             this.pipWindow.removeEventListener('resize', this.onPipWindowResize );
             this.change.emit(this.pipMode);
@@ -81,6 +91,7 @@ export class PiPVideoComponent implements OnInit {
         try {
             await this.pipVideo.requestPictureInPicture(); 
             this.pipMode= true;     
+            this.vid.nativeElement.play();
         }
         catch(e) {
             this.pipMode= false;
