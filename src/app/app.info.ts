@@ -105,7 +105,10 @@ export class AppInfo extends Info {
                     groupNameEdit: false,
                     groupRequiresPosition: false
                 },
-                video: {}
+                video: {
+                    enable: false, 
+                    url: null
+                }
             }
         } 
 

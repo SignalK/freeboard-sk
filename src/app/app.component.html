@@ -325,7 +325,7 @@
             <div style="display: relative; width: 100%; height: 100%;" 
                 (dragover)="mapDragOver($event)" (drop)="mapDrop($event)">
 
-                <pip-video *ngIf="app.config.resources.video.enable && app.config.resources.video.url.length!=0"
+                <pip-video *ngIf="app.config.resources.video.enable && app.config.resources.video.url"
                     [src]="vidUrl" [muted]="true">
                 </pip-video>
 
