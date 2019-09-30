@@ -1,5 +1,14 @@
 # CHANGELOG: Freeboard
 
+### v1.7.0
+- **Added:** `Dark mode` configuration setting to allow: 1) follow the `prefers-color-scheme` css media setting, 2) turn on Dark Mode or 3) turn off Dark mode.  
+
+- **Added:** `Fullscreen mode` support. 
+
+- **Added:** Configuration to select `preferred` Signal K paths to use for
+vessel heading, True Wind speed and direction from available paths.
+
+
 ### v1.6.0
 - **Added:** `Context menu` when you right click on map with `Navigate to here`,  
 `Add Waypoint here`, `Add Note here` and `Measure` options.
