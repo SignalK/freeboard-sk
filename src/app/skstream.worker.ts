@@ -27,6 +27,19 @@ class UpdateMessage extends WorkerMessageBase {
     }
 }
 
+// ** preference source paths **
+const prefSourcePaths= [
+    'environment.wind.speedTrue',
+    'environment.wind.speedOverGround',
+    'environment.wind.angleTrueGround',
+    'environment.wind.angleTrueWater',    
+    'environment.wind.directionTrue',
+    'environment.wind.directionMagnetic',
+    'navigation.courseOverGroundTrue',
+    'navigation.courseOverGroundMagnetic',
+    'navigation.headingTrue',
+    'navigation.headingMagnetic'
+];
 
 let vessels;
 let stream:SignalKStreamWorker;
@@ -35,8 +48,8 @@ let timers= [];
 let updateReceived:boolean= false;
 
 // ** settings **
+let preferredPaths= {};
 let msgInterval:number= 500;
-let useMagnetic:boolean= false;
 let playbackMode:boolean= false;
 let playbackTime:string;
 let aisMgr= {
@@ -52,7 +65,8 @@ function initVessels() {
     vessels= { 
         self: new SKVessel(), 
         aisTargets: new Map(),
-        aisStatus: { updated:[], stale:[], expired:[] }
+        aisStatus: { updated:[], stale:[], expired:[] },
+        paths: {}
     }
     // flag to indicate at least one position data message received
     vessels.self['positionReceived']= false;
@@ -121,7 +135,7 @@ function handleCommand(data: any) {
             console.log('Worker: subscribing to paths...');
             stream.subscribe(data.options.context, data.options.path);
             break;              
-        //** { cmd: 'settings' , options: {useMagnetic: boolean, interval: number} }              
+        //** { cmd: 'settings' , options: {..}              
         case 'settings':
             console.log('Worker: settings...');
             applySettings(data.options);
@@ -145,13 +159,17 @@ function handleCommand(data: any) {
 }
 
 function applySettings(opt:any={}) {
-    if(typeof opt.useMagnetic!=='undefined') { useMagnetic= opt.useMagnetic }
     if(opt.interval && typeof opt.interval==='number') { 
         msgInterval= opt.interval;
         clearTimers();
         startTimers();
     } 
-    playbackMode= (opt.playback) ? true : false;   
+    playbackMode= (opt.playback) ? true : false;
+    if(opt.selections) {    // Preferred path selection
+        if(typeof opt.selections.preferredPaths!=='undefined') { 
+            preferredPaths= opt.selections.preferredPaths;
+        }
+    }
 }
 
 // **************************************
@@ -291,64 +309,71 @@ function selectVessel(id: string):SKVessel {
     return vessels.aisTargets.get(id);         
 }
 
-// ** process comon vessel data and true / magnetic preference **
+// ** process common vessel data and true / magnetic preference **
 function processVessel(d: SKVessel, v:any, isSelf:boolean=false) {
 
     d.lastUpdated= new Date();
+
+    // ** record received preferred path names for selection
+    if(isSelf) { 
+        if(prefSourcePaths.indexOf(v.path)!=-1) { vessels.paths[v.path]= v.value } 
+    }    
 
     if( v.path=='' ) { 
         if(typeof v.value.name!= 'undefined') { d.name= v.value.name }
         if(typeof v.value.mmsi!= 'undefined') { d.mmsi= v.value.mmsi }
         if(typeof v.value.buddy!= 'undefined') { d.buddy= v.value.buddy }
     } 
+    if(v.path=='communication.callsignVhf') { d.callsign= v.value }
 
-    if(v.path=='navigation.courseOverGroundTrue') { 
-        d.cogTrue= v.value;
-        if(!useMagnetic) { d.cog= v.value }
-    }
-    if(v.path=='navigation.courseOverGroundMagnetic') { 
-        d.cogMagnetic= v.value;
-        if(useMagnetic) { d.cog= v.value }
-    }
-
-    if( v.path=='navigation.headingTrue' ) { 
-        d.headingTrue= v.value;
-        if(!useMagnetic) { d.heading= v.value }
-    } 
-    if( v.path=='navigation.headingMagnetic' ) { 
-        d.headingMagnetic= v.value;
-        if(useMagnetic) { d.heading= v.value }         
-    }
-
-    d.orientation= (d.heading!=null) ? d.heading : 
-        (d.cog!=null) ? d.cog : 0;
-
-    if(v.path=='navigation.speedOverGround') { d.sog= v.value }
     if( v.path=='navigation.position') {
         if(isSelf) { d['positionReceived']=true }
         d.position= [ v.value.longitude, v.value.latitude];                      
     }        
     if(v.path=='navigation.state') { d.state= v.value }
-    if(v.path=='communication.callsignVhf') { d.callsign= v.value }  
+    if(v.path=='navigation.speedOverGround') { d.sog= v.value }
 
-    // ** environment.wind **
-    if(v.path=='environment.wind.angleTrueGround' || v.path=='environment.wind.angleTrueWater') { 
-        d.wind.twd= Convert.angleToDirection(v.value, d.heading);
-    }   
-    if(v.path=='environment.wind.directionTrue') { d.wind.twd= v.value }
-    if(!useMagnetic && typeof d.wind.twd!=='undefined') { d.wind.direction= d.wind.twd }
+    // ** cog **
+    if(v.path=='navigation.courseOverGroundTrue') { d.cogTrue= v.value }
+    if(v.path=='navigation.courseOverGroundMagnetic') { d.cogMagnetic= v.value }
 
-    if(v.path=='environment.wind.directionMagnetic') { 
-        d.wind.mwd= v.value;
-        if(useMagnetic) { d.wind.direction= v.value }
+    // ** heading **
+    if(v.path=='navigation.headingTrue' ) { d.headingTrue= v.value } 
+    if(v.path=='navigation.headingMagnetic' ) { d.headingMagnetic= v.value }
+    // ** ensure a value due to use in wind angle calc
+    d.heading= (d.heading==null && d.cog!=null) ? d.cog : d.heading;
+
+    // ** use preferred heading value for orientation **
+    if(typeof preferredPaths['heading']!=='undefined' && v.path==preferredPaths['heading']) {
+        d.orientation= v.value;
     }
-    if(v.path=='environment.wind.speedTrue') { d.wind.speedTrue= v.value }
-    if(v.path=='environment.wind.speedOverGround') { d.wind.sog= v.value }
-    d.wind.tws= (d.wind.speedTrue==null && d.wind.sog!==null) ? d.wind.sog : d.wind.speedTrue;
-
+        
+    // ** environment.wind **
     if(v.path=='environment.wind.angleApparent') { d.wind.awa= v.value }
     if(v.path=='environment.wind.speedApparent') { d.wind.aws= v.value }
 
+    // ** tws **
+    if(v.path=='environment.wind.speedTrue') { d.wind.speedTrue= v.value }
+    if(v.path=='environment.wind.speedOverGround') { d.wind.sog= v.value }
+    
+    // ** use preferred path value for tws **
+    if(typeof preferredPaths['tws']!=='undefined' && v.path==preferredPaths['tws']) {
+        d.wind.tws= v.value;
+    }
+
+    // ** wind direction **
+    if(v.path=='environment.wind.directionTrue') { d.wind.twd= v.value }
+    if(v.path=='environment.wind.directionMagnetic') { d.wind.mwd= v.value }
+
+    // ** use preferred path value for twd **
+    if(typeof preferredPaths['twd']!=='undefined' && v.path==preferredPaths['twd']) {
+        d.wind.direction= (v.path=='environment.wind.angleTrueGround' || v.path=='environment.wind.angleTrueWater') 
+            ? Convert.angleToDirection(v.value, d.heading)
+            : v.value;    
+    }     
+    
+    // ** environment.mode
+    if(v.path=='environment.mode') { d.mode= v.value }
 
     if(v.path.indexOf('navigation.courseRhumbline')!=-1 
             || v.path.indexOf('navigation.courseGreatCircle')!=-1)  { 

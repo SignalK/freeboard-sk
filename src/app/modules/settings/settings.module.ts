@@ -6,6 +6,7 @@ import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatCheckboxModule } from '@angular/material/checkbox';
+import { MatRadioModule } from '@angular/material/radio';
 import { MatDialogModule } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
@@ -19,20 +20,21 @@ import { MatMenuModule } from '@angular/material/menu';
 import { MatToolbarModule } from '@angular/material/toolbar';
 
 import { SettingsDialog } from './settings-dialog';
+import { SignalKPathsComponent } from './components/signalk-paths.component';
 
 @NgModule({
     imports: [
         CommonModule, HttpClientModule, FormsModule, MatDialogModule,
-        MatCheckboxModule, MatCardModule, MatListModule,
+        MatCheckboxModule, MatRadioModule, MatCardModule, MatListModule,
         MatButtonModule, MatIconModule, MatTooltipModule, 
         MatSliderModule, MatSlideToggleModule, MatSelectModule,
         MatFormFieldModule, MatInputModule, MatMenuModule, MatToolbarModule
     ],
     declarations: [
-        SettingsDialog
+        SettingsDialog, SignalKPathsComponent
     ],
     exports: [
-        SettingsDialog
+        SettingsDialog, SignalKPathsComponent
     ],
     entryComponents: [
         SettingsDialog

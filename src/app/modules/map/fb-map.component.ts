@@ -660,16 +660,13 @@ export class FBMapComponent implements OnInit, OnDestroy {
         // ** twd (focused) **
         let tws= (this.dfeat.active.wind.tws || 0);
         if(tws>wMax) { tws=wMax }
-        let wd= (this.app.useMagnetic) ? 
-            this.dfeat.active.wind.mwd : 
-            this.dfeat.active.wind.twd;
         this.vesselLines.twd= [
             this.dfeat.active.position, 
             GeoUtils.destCoordinate(
                 this.dfeat.active.position[1],
                 this.dfeat.active.position[0],
-                wd || 0,
-                (wd) ? tws * offset : 0
+                this.dfeat.active.wind.direction || 0,
+                (this.dfeat.active.wind.direction) ? tws * offset : 0
             )
         ];
     }

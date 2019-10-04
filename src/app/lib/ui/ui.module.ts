@@ -15,9 +15,10 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatStepperModule } from '@angular/material/stepper';
 
 // ** components **
-import { MsgBox, AlertDialog, ConfirmDialog, 
+import { MsgBox, AlertDialog, ConfirmDialog, WelcomeDialog,
         AboutDialog, LoginDialog, MessageBarComponent } from './dialogs';
 import { FileInputComponent } from './file-input.component';
 import { TextDialComponent } from './dial-text';
@@ -30,12 +31,12 @@ import { PiPVideoComponent } from './pip.component';
         CommonModule, FormsModule, MatTooltipModule,
         MatDialogModule, MatIconModule, MatButtonModule, MatTooltipModule,
         MatFormFieldModule, MatInputModule, MatSelectModule,
-        MatDatepickerModule, MatNativeDateModule, MatCardModule
+        MatDatepickerModule, MatNativeDateModule, MatCardModule, MatStepperModule
       ],    
     declarations: [
         MsgBox, AlertDialog, ConfirmDialog, AboutDialog,
         FileInputComponent, TextDialComponent, LoginDialog,  
-        MessageBarComponent, 
+        MessageBarComponent, WelcomeDialog,
         PlaybackDialog, PiPVideoComponent
     ],
     exports: [
@@ -45,7 +46,7 @@ import { PiPVideoComponent } from './pip.component';
     ],
     entryComponents: [
         MsgBox, AlertDialog, ConfirmDialog, AboutDialog, LoginDialog,
-        PlaybackDialog, MessageBarComponent
+        PlaybackDialog, MessageBarComponent, WelcomeDialog
     ], 
     providers: []  
 })

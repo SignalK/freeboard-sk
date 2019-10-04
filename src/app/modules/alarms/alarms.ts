@@ -231,10 +231,11 @@ export class AlarmsDialog implements OnInit {
             <img [src]="iconUrl" [matTooltip]="alarm.title"/>
         </span>
         <mat-card *ngIf="alarm.value.visual && !alarm.value.acknowledged">
-            <mat-card-title-group>
-                <mat-card-subtitle style="color:black;">{{alarm.value.message}}</mat-card-subtitle>
-                <img style="height:50px;" [src]="iconUrl" />
-            </mat-card-title-group>
+            <div style="display:flex; flex-wrap:nowrap;">
+                <div style="flex:1 1 auto;padding-right:5px;">{{alarm.value.message}}</div>
+                <div><img style="height:50px;" [src]="iconUrl" /></div>
+            </div>
+            
             <mat-card-actions>
                 <div style="display:flex;flex-wrap: wrap;">
                     <div>

@@ -4,13 +4,56 @@
 @include mat-core();
 
 // Define a theme.
-//$primary: mat-palette($mat-teal, 700,800,900);
-$primary: mat-palette($mat-indigo, 500);
-//$accent:  mat-palette($mat-deep-orange, 500, 600, 700);
-$accent:  mat-palette($mat-amber, 400);
-$warn:    mat-palette($mat-red);
-
-$theme: mat-light-theme($primary, $accent);
+$primary:   mat-palette($mat-indigo, 500);
+$accent:    mat-palette($mat-amber, 400);
+$warn:      mat-palette($mat-red);
+$theme:     mat-light-theme($primary, $accent, $warn);
 
 // Include all theme styles for the components.
 @include angular-material-theme($theme);
+
+// Define an alternate dark theme.
+.dark-theme {
+    $dark-primary:  mat-palette($mat-light-blue);
+    $dark-accent:   mat-palette($mat-amber, A400, A100, A700);
+    $dark-warn:     mat-palette($mat-red);
+    $dark-theme:    mat-dark-theme($dark-primary, $dark-accent, $dark-warn);
+  
+    @include angular-material-theme($dark-theme);
+}
+
+
+@mixin popover-theme($theme) {
+    $primary: map-get($theme, primary);
+    $accent: map-get($theme, accent);
+    $warn: map-get($theme, warn);
+    $background: map-get($theme, background);
+    $background-color:  map-get($background, background);
+
+    .popover-title {
+        border-bottom: 1px solid $light-primary-text;
+    }   
+
+    .popover > .arrow:after {
+        border-color: transparent;
+    }
+    .popover.top > .arrow {
+        border-top-color: $background-color;
+    }    
+    .popover.top > .arrow:after {
+        border-top-color: $background-color;
+    }     
+}
+
+@mixin popover-typography($config) {
+    .popover {
+        font: {
+            family: mat-font-family($config, body-1);
+            size: mat-font-size($config, body-1);
+            weight: mat-font-weight($config, body-1);
+        }
+    }
+}  
+
+// Include theme styles for custom components.
+@include popover-theme($theme);

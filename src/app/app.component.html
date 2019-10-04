@@ -1,509 +1,525 @@
-<div class="appframe">
-    <!-- TOOLBAR-->
-    <div class="mainToolBar">
-        <button mat-icon-button 
-            [disabled]="draw.enabled || measure.enabled"
-            matTooltip="Menu" matTooltipPosition="right"
-            (click)="sidemenu.toggle()">
-            <mat-icon  style="color:white"
-                [matBadge]="display.badge.value" 
-                matBadgeOverlap="true" matBadgeColor="warn"
-                [matBadgeHidden]="display.badge.hide">menu</mat-icon>
-        </button>
-        <hr>     
-        <button mat-icon-button 
-            matTooltip="Alarms" matTooltipPosition="right"
-            (click)="sidemenu.close(); openAlarmsDialog()">
-            <mat-icon style="color: orangered">warning</mat-icon>
-        </button>
-        <hr>                                                   
-        <button mat-icon-button
-            [disabled]="draw.enabled || measure.enabled"
-            matTooltip="Routes" matTooltipPosition="right"
-            (click)="sidemenu.close();displayLeftMenu('routeList',true)">
-            <mat-icon style="color:white;">directions</mat-icon>
-        </button>   
-        <hr> 	
-        <button mat-icon-button 
-            [disabled]="draw.enabled || measure.enabled"
-            matTooltip="Waypoints" matTooltipPosition="right"
-            (click)="sidemenu.close();displayLeftMenu('waypointList',true)">
-            <mat-icon style="color:white;">location_on</mat-icon>
-        </button>                      
-        <hr>
-        <button mat-icon-button 
-            [disabled]="draw.enabled || measure.enabled"
-            matTooltip="Draw / Measure" matTooltipPosition="right"
-            (click)="sidemenu.close();"
-            [matMenuTriggerFor]="editmenu">
-            <mat-icon style="color:white">edit</mat-icon>
-        </button>                 
-        <hr> 	        
-        <button mat-icon-button (click)="toggleNorthUp()"
-            [matTooltip]="app.config.map.northUp ? 'Show Heading Up' : 'Show North Up'"
-            matTooltipPosition="right">
-            <mat-icon [style.color]="app.config.map.northUp ? 'white' : 'yellow'">
-                {{app.config.map.northUp ? 'navigation' : 'explore'}}
-            </mat-icon>			
-        </button>          
-        <hr>
-        <button mat-icon-button (click)="toggleMoveMap()"
-            [disabled]="!app.data.vessels.showSelf"
-            [matTooltip]="app.config.map.moveMap ? 'Turn off Follow Vessel' : 'Follow Vessel' " 
-            matTooltipPosition="right">
-            <mat-icon [style.color]="!app.data.vessels.showSelf ? 'silver' : app.config.map.moveMap ? 'yellow' : 'white'">
-                my_location
-            </mat-icon>	
-        </button> 
-        <hr *ngIf="!app.config.map.moveMap">
-        <button mat-icon-button *ngIf="!app.config.map.moveMap"
-            (click)="centerVessel()"
-            [disabled]="!app.data.vessels.showSelf"
-            matTooltip="Center Vessel" matTooltipPosition="right">
-            <mat-icon [style.color]="!app.data.vessels.showSelf ? 'silver' : 'white'">
-                center_focus_strong
-            </mat-icon>			
-        </button>        
-        <hr>
-        <button mat-icon-button 
-            [disabled]="draw.enabled || measure.enabled"
-            matTooltip="More actions" matTooltipPosition="right"
-            (click)="sidemenu.close();"
-            [matMenuTriggerFor]="settingsmenu">
-            <mat-icon style="color:white">more_horiz</mat-icon>
-        </button>      
-        <!-- Playback mode -->
-        <hr *ngIf="mode==1" >
-        <button mat-icon-button *ngIf="mode==1" 
-            matTooltip="Exit playback mode"  matTooltipPosition="right"
-            (click)="showSelectMode()">
-            <mat-icon style="color:red;">cancel</mat-icon>
-        </button>
-    </div>
-    <!-- /TOOLBAR-->
+<div [ngClass]="{'dark-theme': app.config.darkMode.enabled}">
+    <div class="appframe mat-app-background">
+        <!-- TOOLBAR-->
+        <div class="mainToolBar">
+            <button mat-icon-button 
+                [disabled]="draw.enabled || measure.enabled"
+                matTooltip="Menu" matTooltipPosition="right"
+                (click)="sidemenu.toggle()">
+                <mat-icon  style="color:white"
+                    [matBadge]="display.badge.value" 
+                    matBadgeOverlap="true" matBadgeColor="warn"
+                    [matBadgeHidden]="display.badge.hide">menu</mat-icon>
+            </button>
+            <hr>     
+            <button mat-icon-button 
+                matTooltip="Alarms" matTooltipPosition="right"
+                (click)="sidemenu.close(); openAlarmsDialog()">
+                <mat-icon style="color: orangered">warning</mat-icon>
+            </button>
+            <hr>                                                   
+            <button mat-icon-button
+                [disabled]="draw.enabled || measure.enabled"
+                matTooltip="Routes" matTooltipPosition="right"
+                (click)="sidemenu.close();displayLeftMenu('routeList',true)">
+                <mat-icon style="color:white;">directions</mat-icon>
+            </button>   
+            <hr> 	
+            <button mat-icon-button 
+                [disabled]="draw.enabled || measure.enabled"
+                matTooltip="Waypoints" matTooltipPosition="right"
+                (click)="sidemenu.close();displayLeftMenu('waypointList',true)">
+                <mat-icon style="color:white;">location_on</mat-icon>
+            </button>                      
+            <hr>
+            <button mat-icon-button 
+                [disabled]="draw.enabled || measure.enabled"
+                matTooltip="Draw / Measure" matTooltipPosition="right"
+                (click)="sidemenu.close();"
+                [matMenuTriggerFor]="editmenu">
+                <mat-icon style="color:white">edit</mat-icon>
+            </button>                 
+            <hr> 	        
+            <button mat-icon-button (click)="toggleNorthUp()"
+                [matTooltip]="app.config.map.northUp ? 'Show Heading Up' : 'Show North Up'"
+                matTooltipPosition="right">
+                <mat-icon [style.color]="app.config.map.northUp ? 'white' : 'yellow'">
+                    {{app.config.map.northUp ? 'navigation' : 'explore'}}
+                </mat-icon>			
+            </button>          
+            <hr>
+            <button mat-icon-button (click)="toggleMoveMap()"
+                [disabled]="!app.data.vessels.showSelf"
+                [matTooltip]="app.config.map.moveMap ? 'Turn off Follow Vessel' : 'Follow Vessel' " 
+                matTooltipPosition="right">
+                <mat-icon [style.color]="!app.data.vessels.showSelf ? 'silver' : app.config.map.moveMap ? 'yellow' : 'white'">
+                    my_location
+                </mat-icon>	
+            </button> 
+            <hr *ngIf="!app.config.map.moveMap">
+            <button mat-icon-button *ngIf="!app.config.map.moveMap"
+                (click)="centerVessel()"
+                [disabled]="!app.data.vessels.showSelf"
+                matTooltip="Center Vessel" matTooltipPosition="right">
+                <mat-icon [style.color]="!app.data.vessels.showSelf ? 'silver' : 'white'">
+                    center_focus_strong
+                </mat-icon>			
+            </button>        
+            <hr>
+            <button mat-icon-button 
+                [disabled]="draw.enabled || measure.enabled"
+                matTooltip="More actions" matTooltipPosition="right"
+                (click)="sidemenu.close();"
+                [matMenuTriggerFor]="settingsmenu">
+                <mat-icon style="color:white">more_horiz</mat-icon>
+            </button>      
+            <!-- Playback mode -->
+            <hr *ngIf="mode==1" >
+            <button mat-icon-button *ngIf="mode==1" 
+                matTooltip="Exit playback mode"  matTooltipPosition="right"
+                (click)="showSelectMode()">
+                <mat-icon style="color:red;">cancel</mat-icon>
+            </button>
+        </div>
+        <!-- /TOOLBAR-->
 
-    <!--context menus-->
-    <mat-menu #settingsmenu="matMenu">   
-        <a mat-menu-item *ngIf="app.config.vesselTrail && app.data.trail.length!=0" 
-            (click)="clearTrail()">
-            <mat-icon>clear_all</mat-icon>
-            <span>Clear Trail</span>			
-        </a>
-        <button mat-menu-item 
-            (click)="deactivateRoute()">
-            <mat-icon>clear_all</mat-icon>
-            <span *ngIf="app.data.activeRoute">Clear Active Route</span>
-            <span *ngIf="!app.data.activeRoute">Clear Destination</span>			
-        </button>     
-        <button mat-menu-item 
-            (click)="clearCourseData()">
-            <mat-icon>clear_all</mat-icon>
-            <span>Clear Course Data</span>			
-        </button>                
-        <mat-divider></mat-divider>   
-        <a mat-menu-item (click)="toggleCourseData()">
-            <mat-icon>{{app.config.courseData ? 'visibility_off' : 'compare_arrows'}}</mat-icon>
-            <span>{{app.config.courseData ? 'Hide' : 'Show'}} Course Data</span>			
-        </a>	             
-        <a mat-menu-item (click)="toggleAisTargets()">
-            <mat-icon>{{app.config.aisTargets ? 'visibility_off' : 'directions_boat'}}</mat-icon>
-            <span>{{app.config.aisTargets ? 'Hide' : 'Show'}} Vessels</span>			
-        </a>     
-        <a mat-menu-item (click)="toggleNotes()">
-            <mat-icon>{{app.config.notes ? 'visibility_off' : 'local_offer'}}</mat-icon>
-            <span>{{app.config.notes ? 'Hide' : 'Show'}} Notes</span>			
-        </a>      
-        <mat-divider></mat-divider>          
-        <a mat-menu-item (click)="openSettings()">
-            <mat-icon color="primary">settings</mat-icon>
-            <span>Settings</span>			
-        </a>			
-    </mat-menu> 
+        <!--context menus-->
+        <mat-menu #settingsmenu="matMenu">   
+            <a mat-menu-item *ngIf="app.config.vesselTrail && app.data.trail.length!=0" 
+                (click)="clearTrail()">
+                <mat-icon>clear_all</mat-icon>
+                <span>Clear Trail</span>			
+            </a>
+            <button mat-menu-item 
+                (click)="deactivateRoute()">
+                <mat-icon>clear_all</mat-icon>
+                <span *ngIf="app.data.activeRoute">Clear Active Route</span>
+                <span *ngIf="!app.data.activeRoute">Clear Destination</span>			
+            </button>     
+            <button mat-menu-item 
+                (click)="clearCourseData()">
+                <mat-icon>clear_all</mat-icon>
+                <span>Clear Course Data</span>			
+            </button>                
+            <mat-divider></mat-divider>   
+            <a mat-menu-item (click)="toggleCourseData()">
+                <mat-icon>{{app.config.courseData ? 'visibility_off' : 'compare_arrows'}}</mat-icon>
+                <span>{{app.config.courseData ? 'Hide' : 'Show'}} Course Data</span>			
+            </a>	             
+            <a mat-menu-item (click)="toggleAisTargets()">
+                <mat-icon>{{app.config.aisTargets ? 'visibility_off' : 'directions_boat'}}</mat-icon>
+                <span>{{app.config.aisTargets ? 'Hide' : 'Show'}} Vessels</span>			
+            </a>     
+            <a mat-menu-item (click)="toggleNotes()">
+                <mat-icon>{{app.config.notes ? 'visibility_off' : 'local_offer'}}</mat-icon>
+                <span>{{app.config.notes ? 'Hide' : 'Show'}} Notes</span>			
+            </a>      
+            <mat-divider></mat-divider>          
+            <a mat-menu-item (click)="openSettings()">
+                <mat-icon color="primary">settings</mat-icon>
+                <span>Settings</span>			
+            </a>			
+        </mat-menu> 
 
-    <mat-menu #editmenu="matMenu">
-        <a mat-menu-item (click)="measureStart()">
-            <mat-icon style="color:black;">straighten</mat-icon>
-            <span>Measure</span>			
-        </a>  
-        <a mat-menu-item (click)="drawStart('note')">
-            <mat-icon color="primary">local_offer</mat-icon>
-            <span>Add Note</span>			
-        </a>   
-        <a mat-menu-item (click)="drawStart('region')">
-            <mat-icon color="primary">tab_unselected</mat-icon>
-            <span>Draw Region + Note</span>			
-        </a>           
-        <mat-divider></mat-divider>                   
-        <a mat-menu-item *ngIf="app.data.vessels.showSelf"
-            (click)="skres.showWaypointEditor(null, app.data.vessels.active.position)">
-            <mat-icon style="color:black;" >add_location</mat-icon>
-            <span>Add Waypoint at Vessel</span>			
-        </a>
-        <a mat-menu-item (click)="drawStart('waypoint')">
-            <mat-icon color="primary">edit_location</mat-icon>
-            <span>Drop Waypoint</span>			
-        </a>                    
-        <mat-divider></mat-divider>   
-        <a mat-menu-item (click)="drawStart('route')">
-            <mat-icon color="primary">directions</mat-icon>
-            <span>Draw Route</span>			
-        </a>                                         			
-    </mat-menu>   
-    <!--/context menus-->
+        <mat-menu #editmenu="matMenu">
+            <a mat-menu-item (click)="measureStart()">
+                <mat-icon>straighten</mat-icon>
+                <span>Measure</span>			
+            </a>  
+            <a mat-menu-item (click)="drawStart('note')">
+                <mat-icon color="primary">local_offer</mat-icon>
+                <span>Add Note</span>			
+            </a>   
+            <a mat-menu-item (click)="drawStart('region')">
+                <mat-icon color="primary">tab_unselected</mat-icon>
+                <span>Draw Region + Note</span>			
+            </a>           
+            <mat-divider></mat-divider>                   
+            <a mat-menu-item *ngIf="app.data.vessels.showSelf"
+                (click)="skres.showWaypointEditor(null, app.data.vessels.active.position)">
+                <mat-icon>add_location</mat-icon>
+                <span>Add Waypoint at Vessel</span>			
+            </a>
+            <a mat-menu-item (click)="drawStart('waypoint')">
+                <mat-icon color="primary">edit_location</mat-icon>
+                <span>Drop Waypoint</span>			
+            </a>                    
+            <mat-divider></mat-divider>   
+            <a mat-menu-item (click)="drawStart('route')">
+                <mat-icon color="primary">directions</mat-icon>
+                <span>Draw Route</span>			
+            </a>                                         			
+        </mat-menu>   
+        <!--/context menus-->
 
-	<!-- content -->
-	<div class="view" theme-main>
-		<mat-sidenav-container hasBackdrop="false">
+        <!-- content -->
+        <div class="view" theme-main>
+            <mat-sidenav-container hasBackdrop="false">
 
-            <!--left menu-->
-            <mat-sidenav #sidemenu mode="over"
-                (openedChange)="leftSideNavAction($event)">
-				<mat-nav-list>	
-                    <a mat-list-item (click)="sidemenu.close();">                      
-                        <mat-icon>arrow_back</mat-icon>
-                        <span matLine>
-                            <a mat-icon-button
-                                (click)="openAbout()"
-                                matTooltip="About Freeboard"
-                                matTooltipPosition="right">
-                                <mat-icon color="primary">info_outline</mat-icon>
-                            </a>  
-                            
-                            <a mat-icon-button
-                                href="./assets/help/index.html"
-                                target="_blank"
-                                matTooltip="Open Help."
-                                matTooltipPosition="right">
-                                <mat-icon color="primary">help</mat-icon>
-                            </a> 
-                         </span> 
-                    </a>
-                    <mat-divider></mat-divider>                      
-
-                    <ap-file-input [astext]="true" (chosen)="processGPX($event)">
-                        <a mat-list-item>
-                            <mat-icon><img src="./assets/img/gpx_black.png" style="width:25px;"/></mat-icon>
-                            &nbsp;Load from GPX
-                        </a>                  
-                    </ap-file-input>   
-
-                    <a mat-list-item 
-                        *ngIf="!draw.enabled || !measure.enabled"
-                        (click)="sidemenu.close();displayLeftMenu('chartList',true)">
-                        <mat-icon>map</mat-icon>
-                        &nbsp;Charts
-                    </a>  
-
-                    <a mat-list-item 
-                        *ngIf="!draw.enabled || !measure.enabled"
-                        (click)="sidemenu.close();displayLeftMenu('noteList',true)">
-                        <mat-icon>local_offer</mat-icon>
-                        &nbsp;Notes
-                    </a> 
-
-                    <a mat-list-item 
-                        (click)="sidemenu.close();displayLeftMenu('aisList',true)">
-                        <mat-icon>directions_boat</mat-icon>
-                        &nbsp;Vessels
-                    </a>                                        
-                        
-                    <mat-divider></mat-divider>
-                    <a mat-list-item 
-                        *ngIf="!draw.enabled || !measure.enabled"
-                        (click)="sidemenu.close();displayLeftMenu('anchorWatch',true)">
-                        <mat-icon><i class="fi-anchor"></i></mat-icon>
-                        &nbsp;Anchor Watch
-                    </a>                     
-
-                    <a mat-list-item *ngIf="features.playbackAPI"
-                        (click)="sidemenu.close();showPlaybackSettings();">
-                        <mat-icon>history</mat-icon>
-                        &nbsp;Playback History
-                    </a> 
-
-                    <mat-divider></mat-divider>
-                    <a mat-list-item (click)="sidemenu.close();openSettings()">
-                        <mat-icon color="primary">settings</mat-icon>
-                        &nbsp;Settings
-                    </a>   
-                    
-                    <a mat-list-item
-                        (click)="sidemenu.close();showLogin(null, false)">
-                        <mat-icon>account_circle</mat-icon>
-                        &nbsp;{{app.data.hasToken ? 'Change User' : 'Login'}}
-                    </a>                        
-                </mat-nav-list>               
-            </mat-sidenav>
-
-            <!--instruments-->
-            <mat-sidenav #sideright mode="over"position="end" 
-                (openedChange)="rightSideNavAction($event)"
-                style="background-color:transparent; width:350px;">
-                <div style="display:flex;flex-direction: column;position:relative;">
-                    <mat-nav-list style="background-color: white;">	
-                        <a mat-list-item (click)="sideright.toggle();">
-                            <mat-icon>arrow_forward</mat-icon>
-                            &nbsp;&nbsp;&nbsp;&nbsp;
-                            <a mat-icon-button [href]="instUrl" 
-                                *ngIf="app.config.plugins.instruments"
-                                target="_blank" color="primary"
-                                matTooltip="Open Instruments in window."
-                                matTooltipPosition="right">
-                                <mat-icon>open_in_new</mat-icon>
-                            </a>                           
+                <!--left menu-->
+                <mat-sidenav #sidemenu mode="over"
+                    (openedChange)="leftSideNavAction($event)">
+                    <mat-nav-list>	
+                        <a mat-list-item (click)="sidemenu.close();">                      
+                            <mat-icon>arrow_back</mat-icon>
+                            <span matLine>
+                                <a mat-icon-button
+                                    (click)="openAbout()"
+                                    matTooltip="About Freeboard"
+                                    matTooltipPosition="right">
+                                    <mat-icon color="primary">info_outline</mat-icon>
+                                </a>  
+                                
+                                <a mat-icon-button
+                                    href="./assets/help/index.html"
+                                    target="_blank"
+                                    matTooltip="Open Help."
+                                    matTooltipPosition="right">
+                                    <mat-icon color="primary">help</mat-icon>
+                                </a>                          
+                            </span> 
                         </a>
+                        <mat-divider></mat-divider>                      
+
+                        <ap-file-input [astext]="true" (chosen)="processGPX($event)">
+                            <a mat-list-item>
+                                <mat-icon>streetview</mat-icon>
+                                &nbsp;Load from GPX
+                            </a>                  
+                        </ap-file-input>   
+
+                        <a mat-list-item 
+                            *ngIf="!draw.enabled || !measure.enabled"
+                            (click)="sidemenu.close();displayLeftMenu('chartList',true)">
+                            <mat-icon>map</mat-icon>
+                            &nbsp;Charts
+                        </a>  
+
+                        <a mat-list-item 
+                            *ngIf="!draw.enabled || !measure.enabled"
+                            (click)="sidemenu.close();displayLeftMenu('noteList',true)">
+                            <mat-icon>local_offer</mat-icon>
+                            &nbsp;Notes
+                        </a> 
+
+                        <a mat-list-item 
+                            (click)="sidemenu.close();displayLeftMenu('aisList',true)">
+                            <mat-icon>directions_boat</mat-icon>
+                            &nbsp;Vessels
+                        </a>                                        
+                            
                         <mat-divider></mat-divider>
-                    </mat-nav-list>	 
-                    <div style="position: fixed;bottom: 0;top: 48px;overflow:auto;-webkit-overfow-scrolling:touch;">
-                        <iframe *ngIf="display.instrumentAppActive"
-                            [src]="instUrl"
-                            style="width:345px;height:100%;">
-                        </iframe>
-                    </div>  
-                </div>             
-            </mat-sidenav>
+                        <a mat-list-item 
+                            *ngIf="!draw.enabled || !measure.enabled"
+                            (click)="sidemenu.close();displayLeftMenu('anchorWatch',true)">
+                            <mat-icon><i class="fi-anchor"></i></mat-icon>
+                            &nbsp;Anchor Watch
+                        </a>                     
 
-            <!--left menu panel-->
-            <div class="leftMenuPanel" *ngIf="display.leftMenuPanel">
-                <route-list *ngIf="display.routeList"
-                    [routes]="app.data.routes" 
-                    [activeRoute]="app.data.activeRoute" 
-                    (select)="skres.routeSelected($event)"
-                    (delete)="skres.showRouteDelete($event)"
-                    (activate)="activateRoute($event.id)"
-                    (deactivate)="deactivateRoute()"
-                    (refresh)="skres.getRoutes(app.data.vessels.activeId)"
-                    (properties)="skres.resourceProperties($event)"
-                    (closed)="displayLeftMenu()">
-                </route-list>
+                        <a mat-list-item *ngIf="features.playbackAPI"
+                            (click)="sidemenu.close();showPlaybackSettings();">
+                            <mat-icon>history</mat-icon>
+                            &nbsp;Playback History
+                        </a> 
 
-                <waypoint-list *ngIf="display.waypointList"
-                    [waypoints]="app.data.waypoints" 
-                    [activeWaypoint]="app.data.activeWaypoint" 
-                    (select)="skres.waypointSelected($event)"
-                    (delete)="skres.showWaypointDelete($event)"
-                    (goto)="skres.navigateToWaypoint($event)"
-                    (deactivate)="deactivateRoute()"
-                    (refresh)="skres.getWaypoints()"
-                    (properties)="skres.resourceProperties($event)"
-                    (closed)="displayLeftMenu()">
-                </waypoint-list>       
-                
-                <chart-list *ngIf="display.chartList"
-                    [charts]="app.data.charts" 
-                    (select)="skres.chartSelected($event)"
-                    (refresh)="skres.getCharts()"
-                    (closed)="displayLeftMenu()">
-                </chart-list>   
+                        <mat-divider></mat-divider>
+                        <a mat-list-item (click)="sidemenu.close();openSettings()">
+                            <mat-icon color="primary">settings</mat-icon>
+                            &nbsp;Settings
+                        </a>   
+                        
+                        <a mat-list-item
+                            (click)="sidemenu.close();showLogin(null, false)">
+                            <mat-icon>account_circle</mat-icon>
+                            &nbsp;{{app.data.hasToken ? 'Change User' : 'Login'}}
+                        </a>                        
+                    </mat-nav-list>               
+                </mat-sidenav>
 
-                <note-list [notes]="app.data.notes" *ngIf="display.noteList"
-                    (select)="skres.noteSelected($event)"
-                    (refresh)="skres.getNotes()"
-                    (closed)="displayLeftMenu()">
-                </note-list>                 
+                <!--instruments-->
+                <mat-sidenav #sideright mode="over" position="end" 
+                    (openedChange)="rightSideNavAction($event)"
+                    style="width:350px;">
+                    <div style="display:flex;flex-direction: column;position:relative;">
+                        <mat-nav-list >	
+                            <a mat-list-item (click)="sideright.toggle();">
+                                <mat-icon>arrow_forward</mat-icon>
+                                &nbsp;&nbsp;&nbsp;&nbsp;
+                                <a mat-icon-button [href]="instUrl" 
+                                    *ngIf="app.config.plugins.instruments"
+                                    target="_blank" color="primary"
+                                    matTooltip="Open Instruments in window."
+                                    matTooltipPosition="right">
+                                    <mat-icon>open_in_new</mat-icon>
+                                </a>                           
+                            </a>
+                            <mat-divider></mat-divider>
+                        </mat-nav-list>	 
+                        <div style="position: fixed;bottom: 0;top: 48px;overflow:auto;-webkit-overfow-scrolling:touch;">
+                            <iframe *ngIf="display.instrumentAppActive"
+                                [src]="instUrl"
+                                style="width:345px;height:100%;">
+                            </iframe>
+                        </div>  
+                    </div>             
+                </mat-sidenav>
 
-                <ais-list [aisTargets]="app.data.vessels.aisTargets" *ngIf="display.aisList"
-                    [focusId]="app.data.vessels.activeId"
-                    (select)="skres.aisSelected($event)"
-                    (properties)="vesselProperties({id: $event, type: 'ais'})"
-                    (closed)="displayLeftMenu()"
-                    (focusVessel)="switchActiveVessel($event)">
-                </ais-list>                   
-                
-                <anchor-watch *ngIf="display.anchorWatch"
-                    min="10" max="500" 
-                    [disable]="!app.data.vessels.showSelf"
-                    [radius]="app.config.anchor.radius" 
-                    [feet]="(app.config.units.depth!='m') ? true : false"
-                    [raised]="app.config.anchor.raised"
-                    (change)="alarmsFacade.anchorEvent($event, app.data.vessels.activeId, this.app.data.vessels.active.position)"
-                    (closed)="displayLeftMenu()">
-                </anchor-watch>                     
-            </div>            
+                <!--left menu panel-->
+                <div class="leftMenuPanel" *ngIf="display.leftMenuPanel">
+                    <route-list *ngIf="display.routeList"
+                        [routes]="app.data.routes" 
+                        [activeRoute]="app.data.activeRoute" 
+                        (select)="skres.routeSelected($event)"
+                        (delete)="skres.showRouteDelete($event)"
+                        (activate)="activateRoute($event.id)"
+                        (deactivate)="deactivateRoute()"
+                        (refresh)="skres.getRoutes(app.data.vessels.activeId)"
+                        (properties)="skres.resourceProperties($event)"
+                        (closed)="displayLeftMenu()">
+                    </route-list>
 
-            <!--map panel-->
-            <div style="display: relative; width: 100%; height: 100%;" 
-                (dragover)="mapDragOver($event)" (drop)="mapDrop($event)">
+                    <waypoint-list *ngIf="display.waypointList"
+                        [waypoints]="app.data.waypoints" 
+                        [activeWaypoint]="app.data.activeWaypoint" 
+                        (select)="skres.waypointSelected($event)"
+                        (delete)="skres.showWaypointDelete($event)"
+                        (goto)="skres.navigateToWaypoint($event)"
+                        (deactivate)="deactivateRoute()"
+                        (refresh)="skres.getWaypoints()"
+                        (properties)="skres.resourceProperties($event)"
+                        (closed)="displayLeftMenu()">
+                    </waypoint-list>       
+                    
+                    <chart-list *ngIf="display.chartList"
+                        [charts]="app.data.charts" 
+                        (select)="skres.chartSelected($event)"
+                        (refresh)="skres.getCharts()"
+                        (closed)="displayLeftMenu()">
+                    </chart-list>   
 
-                <pip-video *ngIf="app.config.resources.video.enable && app.config.resources.video.url"
-                    [src]="vidUrl" [muted]="true">
-                </pip-video>
+                    <note-list [notes]="app.data.notes" *ngIf="display.noteList"
+                        (select)="skres.noteSelected($event)"
+                        (refresh)="skres.getNotes()"
+                        (closed)="displayLeftMenu()">
+                    </note-list>                 
 
-                <!-- instrument sidebar open button -->
-                <button mat-mini-fab class="mapButton nosmall" style="top:10px;right:20px;"
-                    *ngIf="(!draw.enabled && !measure.enabled) && !app.data.vessels.activeId"
-                    (click)="sideright.toggle()"
-                    matTooltip="Instruments" matTooltipPosition="left">
-                    <mat-icon>av_timer</mat-icon>
-                </button>                  
+                    <ais-list [aisTargets]="app.data.vessels.aisTargets" *ngIf="display.aisList"
+                        [focusId]="app.data.vessels.activeId"
+                        (select)="skres.aisSelected($event)"
+                        (properties)="vesselProperties({id: $event, type: 'ais'})"
+                        (closed)="displayLeftMenu()"
+                        (focusVessel)="switchActiveVessel($event)">
+                    </ais-list>                   
+                    
+                    <anchor-watch *ngIf="display.anchorWatch"
+                        min="10" max="500" 
+                        [disable]="!app.data.vessels.showSelf"
+                        [radius]="app.config.anchor.radius" 
+                        [feet]="(app.config.units.depth!='m') ? true : false"
+                        [raised]="app.config.anchor.raised"
+                        (change)="alarmsFacade.anchorEvent($event, app.data.vessels.activeId, this.app.data.vessels.active.position)"
+                        (closed)="displayLeftMenu()">
+                    </anchor-watch>                     
+                </div>            
 
-                <!-- MAP -->
-                <fb-map
-                    [setFocus]="display.map.setFocus"
-                    [mapCenter]="display.map.center"
-                    [mapZoom]="app.config.map.zoomLevel"
-                    [northUp]="app.config.map.northUp"
-                    [movingMap]="app.config.map.moveMap"
-                    [measureMode]="measure.enabled"
-                    [activeRoute]="app.data.activeRoute"
-                    (measureStart)="measureStart()"
-                    (measureEnd)="measure.enabled=false"
-                    [drawMode]="draw.mode"
-                    (drawEnd)="handleDrawEnd($event)"
-                    [modifyMode]="draw.modify"
-                    (modifyStart)="handleModifyStart($event)"
-                    (modifyEnd)="handleModifyEnd($event)"
-                    (activate)="activateRoute($event)"
-                    (deactivate)="deactivateRoute()"
-                    (exitedMovingMap)="toggleMoveMap($event)"
-                    (focusVessel)="switchActiveVessel($event)"
-                    (info)="vesselProperties($event)">
-                </fb-map>
-                <!-- *** /MAP *** -->               
+                <!--map panel-->
+                <div style="display: relative; width: 100%; height: 100%;" 
+                    (dragover)="mapDragOver($event)" (drop)="mapDrop($event)">
 
-            </div>
-            <!--/map panel-->
-
-            <!-- Draw / Measure Help -->
-            <div *ngIf="draw.enabled || draw.modify || measure.enabled"
-                style="position: absolute; top: 60px; left:10px; 
-                    width:150px;
-                    border: black 1px solid;
-                    background-color: rgba(250,250,250,.6);
-                    font-family:roboto; font-size: 10pt;">
-
-                <div *ngIf="draw.enabled">
-                    <span style="font-weight:bold;padding: 5px;">
-                        <mat-icon>edit</mat-icon> Drawing Help:
-                    </span>
-                    <div *ngIf="draw.mode=='waypoint' || draw.mode=='note'"
-                        style="padding: 5px;">
-                        Click on the Map where to drop the feature.
+                    <!-- utilities panel -->
+                    <div class="rightUtilsPanel">
+                        <button *ngIf="display.fullscreen.enabled"
+                            style="top:10px;right:90px;"
+                            (click)="toggleFullscreen()"
+                            matTooltip="Go Fullscreen"
+                            matTooltipPosition="left">
+                            <mat-icon>
+                                {{(display.fullscreen.active) ? 'fullscreen_exit ': 'fullscreen'}}
+                            </mat-icon>
+                        </button>                            
+                        <br>&nbsp;
+                        <pip-video *ngIf="app.config.resources.video.enable && app.config.resources.video.url"
+                            [src]="vidUrl" [muted]="true"
+                            (click)="focusMap()">
+                        </pip-video>
                     </div>
-                    <div *ngIf="draw.mode=='route'"
-                        style="padding: 5px;">
-                        <ol style="margin-block-start: .2em;
-                                margin-block-end: .2em;
-                                padding-inline-start: 15px;">
-                            <li>Click on the Map to place a point along the Route.</li>
-                            <li>Click on the last Point to end drawing.</li>
-                        </ol>
-                    </div> 
-                    <div *ngIf="draw.mode=='region'"
-                        style="padding: 5px;">
-                        <ol style="margin-block-start: .2em;
-                                margin-block-end: .2em;
-                                padding-inline-start: 15px;">
-                            <li>Click on the Map to place a vertex of the Region.</li>
-                            <li>Click on the last point to end drawing.</li>
-                        </ol>
-                    </div>                     
+                    
+
+                    <!-- instrument sidebar open button -->
+                    <button mat-mini-fab class="mapButton nosmall" style="top:10px;right:20px;"
+                        *ngIf="(!draw.enabled && !measure.enabled) && !app.data.vessels.activeId"
+                        (click)="sideright.toggle()"
+                        matTooltip="Instruments" matTooltipPosition="below">
+                        <mat-icon>av_timer</mat-icon>
+                    </button>
+
+                    <!-- MAP -->
+                    <fb-map
+                        [setFocus]="display.map.setFocus"
+                        [mapCenter]="display.map.center"
+                        [mapZoom]="app.config.map.zoomLevel"
+                        [northUp]="app.config.map.northUp"
+                        [movingMap]="app.config.map.moveMap"
+                        [measureMode]="measure.enabled"
+                        [activeRoute]="app.data.activeRoute"
+                        (measureStart)="measureStart()"
+                        (measureEnd)="measure.enabled=false"
+                        [drawMode]="draw.mode"
+                        (drawEnd)="handleDrawEnd($event)"
+                        [modifyMode]="draw.modify"
+                        (modifyStart)="handleModifyStart($event)"
+                        (modifyEnd)="handleModifyEnd($event)"
+                        (activate)="activateRoute($event)"
+                        (deactivate)="deactivateRoute()"
+                        (exitedMovingMap)="toggleMoveMap($event)"
+                        (focusVessel)="switchActiveVessel($event)"
+                        (info)="vesselProperties($event)">
+                    </fb-map>
+                    <!-- *** /MAP *** -->               
+
                 </div>
-                <div *ngIf="draw.modify">
+                <!--/map panel-->
+
+                <!-- Draw / Measure Help -->
+                <div *ngIf="draw.enabled || draw.modify || measure.enabled"
+                    class="mat-app-background"
+                    style="position: absolute; top: 60px; left:10px; 
+                        width:150px;
+                        border: black 1px solid;
+                        font-family:roboto; font-size: 10pt;">
+
+                    <div *ngIf="draw.enabled">
                         <span style="font-weight:bold;padding: 5px;">
-                            <mat-icon>edit</mat-icon> Modify:
+                            <mat-icon>edit</mat-icon> Drawing Help:
+                        </span>
+                        <div *ngIf="draw.mode=='waypoint' || draw.mode=='note'"
+                            style="padding: 5px;">
+                            Click on the Map where to drop the feature.
+                        </div>
+                        <div *ngIf="draw.mode=='route'"
+                            style="padding: 5px;">
+                            <ol style="margin-block-start: .2em;
+                                    margin-block-end: .2em;
+                                    padding-inline-start: 15px;">
+                                <li>Click on the Map to place a point along the Route.</li>
+                                <li>Click on the last Point to end drawing.</li>
+                            </ol>
+                        </div> 
+                        <div *ngIf="draw.mode=='region'"
+                            style="padding: 5px;">
+                            <ol style="margin-block-start: .2em;
+                                    margin-block-end: .2em;
+                                    padding-inline-start: 15px;">
+                                <li>Click on the Map to place a vertex of the Region.</li>
+                                <li>Click on the last point to end drawing.</li>
+                            </ol>
+                        </div>                     
+                    </div>
+                    <div *ngIf="draw.modify">
+                            <span style="font-weight:bold;padding: 5px;">
+                                <mat-icon>edit</mat-icon> Modify:
+                            </span>
+                            <div style="padding: 5px;">
+                                <ol style="margin-block-start: .2em;
+                                        margin-block-end: .2em;
+                                        padding-inline-start: 15px;">
+                                    <li>Click and drag to move point.</li>
+                                    <li>Alt-Click to remove point from line.</li>
+                                </ol>
+                            </div> 
+                        </div>                 
+                    <div *ngIf="measure.enabled">
+                        <span style="font-weight:bold;padding: 5px;">
+                            <mat-icon>straighten</mat-icon> Measure:
                         </span>
                         <div style="padding: 5px;">
                             <ol style="margin-block-start: .2em;
                                     margin-block-end: .2em;
                                     padding-inline-start: 15px;">
-                                <li>Click and drag to move point.</li>
-                                <li>Alt-Click to remove point from line.</li>
+                                <li>Click on the Map to start measuring.</li>
+                                <li>Click on the last Point to end measuring.</li>
                             </ol>
                         </div> 
-                    </div>                 
-                <div *ngIf="measure.enabled">
-                    <span style="font-weight:bold;padding: 5px;">
-                        <mat-icon>straighten</mat-icon> Measure:
-                    </span>
-                    <div style="padding: 5px;">
-                        <ol style="margin-block-start: .2em;
-                                margin-block-end: .2em;
-                                padding-inline-start: 15px;">
-                            <li>Click on the Map to start measuring.</li>
-                            <li>Click on the last Point to end measuring.</li>
-                        </ol>
-                    </div> 
-                </div>   
-                <div style="text-align: center;">
-                <!-- cancel Draw / Measure button -->
-                <a mat-raised-button
-                    color="warn" *ngIf="draw.enabled || draw.modify || measure.enabled"
-                    (click)="cancelDraw()"
-                    [matTooltip]="(measure.enabled) ? 'Cancel Measure' : (draw.modify) ? 'Cancel Editing' : 'Cancel Draw'" 
-                    matTooltipPosition="left">
-                    <mat-icon>close</mat-icon>
-                    {{ (draw.modify) ? 'FINISH' : 'CANCEL'}}
-                </a>                      
-                </div>             
-            </div>         
+                    </div>   
+                    <div style="text-align: center;">
+                    <!-- cancel Draw / Measure button -->
+                    <a mat-raised-button
+                        color="warn" *ngIf="draw.enabled || draw.modify || measure.enabled"
+                        (click)="cancelDraw()"
+                        [matTooltip]="(measure.enabled) ? 'Cancel Measure' : (draw.modify) ? 'Cancel Editing' : 'Cancel Draw'" 
+                        matTooltipPosition="left">
+                        <mat-icon>close</mat-icon>
+                        {{ (draw.modify) ? 'FINISH' : 'CANCEL'}}
+                    </a>                      
+                    </div>             
+                </div>         
 
-            <!-- *** Playback panel ***-->
-            <div class="playbackPanel" *ngIf="mode==1">
-                <div style="background-color: #eeee; color:gray;border-radius: 5px;">
-                    <mat-icon color="accent">access_time</mat-icon> <b>Playback:</b>
+                <!-- *** Playback panel ***-->
+                <div class="playbackPanel mat-app-background" *ngIf="mode==1">
+                    <div style="border-radius: 5px;">
+                        <mat-icon color="accent">access_time</mat-icon> <b>Playback:</b>
+                    </div>
+                    <div style="text-align:center;"> {{display.playback.time}}</div>
                 </div>
-                <div style="text-align:center;"> {{display.playback.time}}</div>
-            </div>
 
-            <!-- *** Alarm / Mode panel ***-->
-			<div class="alarmPanel">
-                <span *ngFor="let a of alarmsFacade.alarms | keyvalue" style="margin-bottom: 5px;">
-                    <ap-alarm [alarm]="a" 
-                        (mute)="alarmsFacade.muteAlarm($event)"
-                        (acknowledge)="alarmsFacade.acknowledgeAlarm($event)"
-                        (unacknowledge)="alarmsFacade.unAcknowledgeAlarm($event)"
-                        (clear)="alarmsFacade.clearAlarm($event)"
-                        (open)=" openAlarmsDialog($event)">
-                    </ap-alarm>
-                    <audio loop  src="./assets/sound/woop.mp3" *ngIf="a.value.sound"
-                        [autoplay]="!a.value.muted || !a.value.acknowledged"
-                        [muted]="a.value.muted || a.value.acknowledged"
-                    ></audio>
-                </span>
-            </div>
+                <!-- *** Alarm / Mode panel ***-->
+                <div class="alarmPanel">
+                    <span *ngFor="let a of alarmsFacade.alarms | keyvalue" style="margin-bottom: 5px;">
+                        <ap-alarm [alarm]="a" 
+                            (mute)="alarmsFacade.muteAlarm($event)"
+                            (acknowledge)="alarmsFacade.acknowledgeAlarm($event)"
+                            (unacknowledge)="alarmsFacade.unAcknowledgeAlarm($event)"
+                            (clear)="alarmsFacade.clearAlarm($event)"
+                            (open)=" openAlarmsDialog($event)">
+                        </ap-alarm>
+                        <audio loop  src="./assets/sound/woop.mp3" *ngIf="a.value.sound"
+                            [autoplay]="!a.value.muted || !a.value.acknowledged"
+                            [muted]="a.value.muted || a.value.acknowledged"
+                        ></audio>
+                    </span>
+                </div>
 
-            <!-- *** Nav data panel ***-->
-            <div class="navdataPanel" >
-                <route-nextpoint *ngIf="display.navDataPanel.nextPointCtrl"
-                    [index]="app.data.navData.pointIndex"
-                    [total]="app.data.navData.pointTotal"
-                    (selected)="routeNextPoint($event)">
-                </route-nextpoint>
+                <!-- *** Nav data panel ***-->
+                <div class="navdataPanel" >
+                    <route-nextpoint *ngIf="display.navDataPanel.nextPointCtrl"
+                        [index]="app.data.navData.pointIndex"
+                        [total]="app.data.navData.pointTotal"
+                        (selected)="routeNextPoint($event)">
+                    </route-nextpoint>
 
-                <div *ngIf="app.config.courseData && display.navDataPanel.show"
-                        style="display: flex; flex-wrap: nowrap;">                           
-                    <ap-dial-text *ngIf="app.data.navData.vmg"
-                        [title]="'VMG'"
-                        [value]="app.data.navData.vmg.toFixed(1)"
-                        [units]="(app.config.units.speed=='kn') ? 'knots' : 'm/sec'">
-                    </ap-dial-text>
-                    <ap-dial-text *ngIf="app.data.navData.bearing.value"
-                        [title]="'BRG'"
-                        [value]="app.data.navData.bearing.value.toFixed(1)"
-                        [units]="(app.data.navData.bearing.type=='M') ? 'deg (M)' : 'deg (T)'">
-                    </ap-dial-text>     
-                    <ap-dial-text *ngIf="app.data.navData.dtg"
-                        [title]="'DTG'"
-                        [value]="app.data.navData.dtg.toFixed(1)"
-                        [units]="(app.config.units.distance=='m') ? 'km' : 'NM'">
-                    </ap-dial-text>                               
-                    <ap-dial-text *ngIf="app.data.navData.ttg"
-                        [title]="'TTG'"
-                        [value]="app.data.navData.ttg.toFixed(1)"
-                        [units]="'mins'">
-                    </ap-dial-text>    
-                    <ap-dial-text *ngIf="app.data.navData.xte"
-                        [title]="'XTE'"
-                        [value]="app.data.navData.xte.toFixed(3)"
-                        [units]="(app.config.units.distance=='m') ? 'km' : 'NM'">
-                    </ap-dial-text>   
-                </div>                           
-            </div>
-		
-		</mat-sidenav-container>
-	</div>
-	<!-- /content -->
-	
+                    <div *ngIf="app.config.courseData && display.navDataPanel.show"
+                            style="display: flex; flex-wrap: nowrap;">                           
+                        <ap-dial-text *ngIf="app.data.navData.vmg"
+                            [title]="'VMG'"
+                            [value]="app.data.navData.vmg.toFixed(1)"
+                            [units]="(app.config.units.speed=='kn') ? 'knots' : 'm/sec'">
+                        </ap-dial-text>
+                        <ap-dial-text *ngIf="app.data.navData.bearing.value"
+                            [title]="'BRG'"
+                            [value]="app.data.navData.bearing.value.toFixed(1)"
+                            [units]="(app.data.navData.bearing.type=='M') ? 'deg (M)' : 'deg (T)'">
+                        </ap-dial-text>     
+                        <ap-dial-text *ngIf="app.data.navData.dtg"
+                            [title]="'DTG'"
+                            [value]="app.data.navData.dtg.toFixed(1)"
+                            [units]="(app.config.units.distance=='m') ? 'km' : 'NM'">
+                        </ap-dial-text>                               
+                        <ap-dial-text *ngIf="app.data.navData.ttg"
+                            [title]="'TTG'"
+                            [value]="app.data.navData.ttg.toFixed(1)"
+                            [units]="'mins'">
+                        </ap-dial-text>    
+                        <ap-dial-text *ngIf="app.data.navData.xte"
+                            [title]="'XTE'"
+                            [value]="app.data.navData.xte.toFixed(3)"
+                            [units]="(app.config.units.distance=='m') ? 'km' : 'NM'">
+                        </ap-dial-text>   
+                    </div>                           
+                </div>
+            
+            </mat-sidenav-container>
+        </div>
+        <!-- /content -->
+        
+    </div>
 </div>
-

@@ -15,7 +15,7 @@ measure: boolean= measure mode;
     selector: 'ap-popover',
     changeDetection: ChangeDetectionStrategy.OnPush,
 	template: `
-            <div class="popover top in" [ngClass]="{'measure': measure}">
+            <div class="popover top in mat-app-background" [ngClass]="{'measure': measure}">
                 <div class="popover-title">
                     <div style="flex: 1 1 auto;overflow-x: auto;">{{title}}</div>
                     <div style="">
@@ -28,10 +28,10 @@ measure: boolean= measure mode;
                 <div class="popover-content">
                     <ng-content></ng-content>
                 </div>
-                <div class="arrow" style="left:50%;"></div>
+                <div class="arrow" style="left:50%;" *ngIf="!measure"></div>
             </div>	
 			`,
-    styleUrls: ['./popover.component.css']
+    styleUrls: ['./popover.component.scss']
 })
 export class PopoverComponent {
     @Input() title: string;
@@ -161,19 +161,19 @@ isSelf: boolean - true if vessel 'self'
                     <button mat-button *ngIf="!isActive"
                         (click)="focusVessel(true)"
                         matTooltip="Focus vessel">
-                        <mat-icon style="color:blue;">center_focus_weak</mat-icon>
+                        <mat-icon color="primary">center_focus_weak</mat-icon>
                         FOCUS
                     </button>    
                     <button mat-button *ngIf="isActive && !isSelf"
                         (click)="focusVessel(false)"
                         matTooltip="Clear vessel focus">
-                        <mat-icon style="color:blue;">clear_all</mat-icon>
+                        <mat-icon color="primary">clear_all</mat-icon>
                         UNFOCUS
                     </button>                                                                                
                     <button mat-button
                         (click)="handleInfo()"
                         matTooltip="Show Properties">
-                        <mat-icon style="color:blue;">info_outline</mat-icon>
+                        <mat-icon color="primary">info_outline</mat-icon>
                         INFO
                     </button>                                                                                                             
                 </div>   
@@ -304,7 +304,7 @@ id: string - resource id
             </div>                                         
         </ap-popover>  
 	`,
-    styleUrls: [`./popover.component.css`]
+    styleUrls: [`./popover.component.scss`]
 })
 export class ResourcePopoverComponent {
     @Input() title: string;

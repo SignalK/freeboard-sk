@@ -2,13 +2,11 @@
     min-width: 150px;
     position: relative;
     height: 100%;
-    background-color: rgb(200,200,200,.9);
 }
 
 .resourcelist .title-block {
     padding-left: 5px;
     display: flex;
-    background-color: whitesmoke;
 }
 
 .resourcelist .title-block .title-text {
@@ -24,4 +22,13 @@
     right: 0;
     bottom: 0;
     top: 80px;
+}
+
+.resourcelist .vscroller {
+    position: absolute;
+    top: 10px;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    border-top: silver 1px outset;
 }

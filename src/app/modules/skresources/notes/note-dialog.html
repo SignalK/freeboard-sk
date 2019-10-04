@@ -20,6 +20,9 @@
     .nosmall { 
         display: none;
     }
+    :host ::ng-deep .ck.ck-editor__main>.ck-editor__editable {
+        color: black;
+    }
     @media only screen
         and (min-device-width : 768px)
         and (max-device-width : 1024px),
@@ -156,7 +159,7 @@
                 </div>                
 
                 <div>
-                    <ckeditor [editor]="Editor" 
+                    <ckeditor [editor]="Editor"
                         [config]="{ 
                             toolbar: [ 'bold', 'italic', 'link', '|', 'bulletedlist', 'numberedlist', '|', 'undo', 'redo'] 
                         }"

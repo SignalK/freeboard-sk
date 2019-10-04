@@ -5,273 +5,318 @@
         <a mat-menu-item href="#sectunits">Units & Values</a>
         <a mat-menu-item href="#sectVessels">Vessels</a>
         <a mat-menu-item href="#sectNotes">Notes</a>
+        <a mat-menu-item href="#sectVideo">Video</a>
     </mat-menu>
 
     <mat-toolbar style="background-color: transparent;">
         <span>
-            <button mat-icon-button [matMenuTriggerFor]="settingsMenu">
+            <button mat-icon-button *ngIf="!display.paths"
+                [matMenuTriggerFor]="settingsMenu">
                 <mat-icon>menu</mat-icon>
             </button> 
         </span>
-        <span style="flex: 1 1 auto;text-align:center;">Settings</span>
+        <span [ngSwitch]="display.paths"
+            style="flex: 1 1 auto;text-align:center;">
+            <span *ngSwitchCase="false">Settings</span>
+            <span *ngSwitchCase="true">Preferred Paths</span>
+        </span>
         <span style="text-align:right;">
-            <button mat-icon-button (click)="this.dialogRef.close();">
+            <button mat-icon-button *ngIf="!display.paths"
+                (click)="this.dialogRef.close();">
                 <mat-icon>close</mat-icon>
             </button>           
         </span>
     </mat-toolbar>
 
-    <div class="theme-page settings">
-
+    <div class="theme-page settings" style="overflow-y: auto;" *ngIf="!display.paths">
         <div class="theme-panel">
-            <div>
-                <div class="setting-group" id="sectDisplay">
-                    <div class="setting-group-title">DISPLAY</div>
-                    <mat-card class="setting-card">
-                        <div class="setting-card-row" *ngIf="facade.list.applications.length>1">
-                            <div class="setting-card-row-item">
-                                <mat-form-field style="width:100%;">
-                                    <mat-select #instruments 
-                                            [(value)]="facade.settings.plugins.instruments" 
-                                            (selectionChange)="onFormChange($event, instruments)"
-                                            placeholder="Select Instruments App">
-                                        <mat-option *ngFor="let i of facade.list.applications" 
-                                                [value]="i.url"
-                                                [matTooltip]="i.description"
-                                                matTooltipPosition="right">
-                                            {{i.name}}
-                                        </mat-option>
-                                    </mat-select>                                        
-                                </mat-form-field>
-                            </div> 
-                            <div class="setting-card-row-item">
-                                <mat-checkbox #startOnOpen color="primary"
-                                    [(ngModel)]="facade.settings.plugins.startOnOpen" 
-                                    (change)="onFormChange($event, startOnOpen)"
-                                    matTooltip="Stop instrument app when hidden"
-                                    label="after">
-                                    Halt App on hide
-                                </mat-checkbox>                                        
-                            </div>                             
-                        </div>                                           
-                    </mat-card>
-                    <br>
-                    <mat-card class="setting-card">
-                        <div class="setting-card-row" style="padding-bottom: 10px;">
-                            <div class="setting-card-row-item">
-                                <mat-checkbox #depthalarm color="primary"
-                                    [(ngModel)]="facade.settings.depthAlarm.enabled" 
-                                    (change)="onFormChange($event, depthalarm)"
-                                    label="after">
-                                    Show DEPTH Alarms
-                                </mat-checkbox>                                        
-                            </div>                          
-                            <div class="setting-card-row-item">
-                                <mat-form-field style="width:100%;">
-                                    <mat-select #depthsmoothing 
-                                            matTooltip="Period of time out of alarm state before re-triggering."
-                                            [disabled]="!facade.settings.depthAlarm.enabled"
-                                            [(value)]="facade.settings.depthAlarm.smoothing" 
-                                            (selectionChange)="onFormChange($event, depthsmoothing)"
-                                            placeholder="Alarm Smoothing Time">
-                                        <mat-option *ngFor="let i of facade.alarmOptions.smoothing | keyvalue" [value]="i.key">{{i.value}}</mat-option>
-                                    </mat-select>                                        
-                                </mat-form-field>
-                            </div> 
-                            <br>
-                            <div class="setting-card-row-item">
-                                <mat-checkbox #vesseltrail color="primary"
-                                    [(ngModel)]="facade.settings.vesselTrail" 
-                                    (change)="onFormChange($event, vesseltrail)"
-                                    label="after">
-                                    Display Vessel Trail
-                                </mat-checkbox>                                        
-                            </div>
-                        </div>  
-                    </mat-card>
-                </div>                  
-
-                <div class="setting-group" id="sectunits">
-                    <div class="setting-group-title">UNITS &amp; VALUES</div>
-                    <mat-card class="setting-card">
-                        <div class="setting-card-row" style="padding-bottom: 10px;">
-                            <div class="setting-card-row-item">
-                                <mat-form-field style="width:100%;">
-                                    <mat-select #distunits id="distunits"
-                                            [(value)]="facade.settings.units.distance" 
-                                            (selectionChange)="onFormChange($event, distunits)"
-                                            placeholder="Distance units">
-                                        <mat-option *ngFor="let i of facade.availableUnits.distance | keyvalue" [value]="i.key">{{i.value}}</mat-option>
-                                    </mat-select>                                        
-                                </mat-form-field>
-                            </div>          
-
-                            <div class="setting-card-row-item">
-                                <mat-form-field style="width:100%;">
-                                    <mat-select #depthunits 
-                                            [(value)]="facade.settings.units.depth" 
-                                            (selectionChange)="onFormChange($event, depthunits)"
-                                            placeholder="Depth units">
-                                        <mat-option *ngFor="let i of facade.availableUnits.depth | keyvalue" [value]="i.key">{{i.value}}</mat-option>
-                                    </mat-select>                                        
-                                </mat-form-field>
-                            </div>                                             
-
-                            <div class="setting-card-row-item" *ngIf="facade.preferredValues.heading.length!=0">
-                                <mat-form-field style="width:100%;">
-                                    <mat-select #headingattrib 
-                                            [(value)]="facade.settings.selections.headingAttribute" 
-                                            (selectionChange)="onFormChange($event, headingattrib)"
-                                            placeholder="Use True / Magnetic Values">
-                                        <mat-option *ngFor="let i of facade.preferredValues.heading" [value]="i[0]">{{i[1]}}</mat-option>
-                                    </mat-select>                                        
-                                </mat-form-field>
-                            </div> 
-                        </div>
-                    </mat-card>
-                </div>
-
-                <div class="setting-group" id="sectVessels">
-                    <div class="setting-group-title">OTHER VESSELS</div>
-                    <mat-card class="setting-card">
-                        <div class="setting-card-row" style="padding-bottom: 10px;">                            
-                            <div class="setting-card-row-item">
-                                <mat-form-field style="width:100%;">
-                                    <mat-select #aiswindvector
-                                            [(value)]="facade.settings.selections.aisWindApparent" 
-                                            (selectionChange)="onFormChange($event, aiswindvector)"
-                                            placeholder="Wind Vector Value">
-                                        <mat-option *ngFor="let i of facade.preferredValues.wind | keyvalue" [value]="i.key">{{i.value}}</mat-option>
-                                    </mat-select>                                        
-                                </mat-form-field>
-                            </div> 
-
-                            <div class="setting-card-row-item">
-                                <mat-form-field style="width:100%;">
-                                    <mat-select #aiswindminzoom
-                                            [(value)]="facade.settings.selections.aisWindMinZoom" 
-                                            (selectionChange)="onFormChange($event, aiswindminzoom)"
-                                            placeholder="Wind Vector Zoom Level">
-                                        <mat-option *ngFor="let i of facade.list.minZoom" [value]="i">{{i}}</mat-option>
-                                    </mat-select>                                        
-                                </mat-form-field>
-                            </div>                             
-
+            <div class="setting-group" id="sectDisplay">
+                <div class="setting-group-title">DISPLAY</div>
+                <mat-card class="setting-card">
+                    <div class="setting-card-row" *ngIf="facade.list.applications.length>1">
+                        <div class="setting-card-row-item">
+                            <mat-form-field style="width:100%;">
+                                <mat-select #instruments 
+                                        [(value)]="facade.settings.plugins.instruments" 
+                                        (selectionChange)="onFormChange($event, instruments)"
+                                        placeholder="Select Instruments App">
+                                    <mat-option *ngFor="let i of facade.list.applications" 
+                                            [value]="i.url"
+                                            [matTooltip]="i.description"
+                                            matTooltipPosition="right">
+                                        {{i.name}}
+                                    </mat-option>
+                                </mat-select>                                        
+                            </mat-form-field>
                         </div> 
-                    </mat-card>
-                </div>
-            
-                <div class="setting-group" id="sectNotes">
-                    <div class="setting-group-title">RESOURCES: NOTES</div>
-                    <mat-card class="setting-card">
-                        <div class="setting-card-row">
-                            <div class="setting-card-row-item">
-                                <mat-checkbox #shownotes color="primary"
-                                    [(ngModel)]="facade.settings.notes" 
-                                    (change)="onFormChange($event, shownotes)"
-                                    label="after">
-                                    Display Notes on Map
-                                </mat-checkbox>                                        
-                            </div>                            
-                            <div class="setting-card-row-item">
-                                <mat-form-field style="width:100%;">
-                                    <mat-select #notesminzoom
-                                            [disabled]="!facade.settings.notes"
-                                            [(value)]="facade.settings.selections.notesMinZoom" 
-                                            (selectionChange)="onFormChange($event, notesminzoom)"
-                                            placeholder="Notes Zoom Level">
-                                        <mat-option *ngFor="let i of facade.list.minZoom" [value]="i">{{i}}</mat-option>
-                                    </mat-select>                                        
-                                </mat-form-field>
-                            </div>                                                      
+                        <div class="setting-card-row-item">
+                            <mat-form-field style="width:100%;" floatLabel="always">
+                                <mat-label>parameters:</mat-label>
+                                <input matInput type="text" #instparams=ngModel
+                                    [disabled]="facade.settings.plugins.instruments==null"
+                                    [(ngModel)]="facade.settings.plugins.parameters" 
+                                    (change)="onFormChange($event, instparams)"
+                                    placeholder="e.g. ?layout=mylayout"
+                                    matTooltip="Enter parameters to pass to Instrument App"/>                                                                      
+                            </mat-form-field>
+                        </div>                         
+                        <div class="setting-card-row-item">
+                            <mat-checkbox #startOnOpen color="primary"
+                                [(ngModel)]="facade.settings.plugins.startOnOpen" 
+                                (change)="onFormChange($event, startOnOpen)"
+                                matTooltip="Stop instrument app when hidden"
+                                label="after">
+                                Halt App on hide
+                            </mat-checkbox>                                        
+                        </div>                             
+                    </div>                                           
+                </mat-card>
+                <br>
+                <mat-card class="setting-card">
+                    <div class="setting-card-row" style="padding-bottom: 10px;">
+                        <div class="setting-card-row-item">
+                            <mat-checkbox #depthalarm color="primary"
+                                [(ngModel)]="facade.settings.depthAlarm.enabled" 
+                                (change)="onFormChange($event, depthalarm)"
+                                label="after">
+                                Show DEPTH Alarms
+                            </mat-checkbox>                                        
+                        </div>                          
+                        <div class="setting-card-row-item">
+                            <mat-form-field style="width:100%;">
+                                <mat-select #depthsmoothing 
+                                        matTooltip="Period of time out of alarm state before re-triggering."
+                                        [disabled]="!facade.settings.depthAlarm.enabled"
+                                        [(value)]="facade.settings.depthAlarm.smoothing" 
+                                        (selectionChange)="onFormChange($event, depthsmoothing)"
+                                        placeholder="Alarm Smoothing Time">
+                                    <mat-option *ngFor="let i of facade.alarmOptions.smoothing | keyvalue" [value]="i.key">{{i.value}}</mat-option>
+                                </mat-select>                                        
+                            </mat-form-field>
+                        </div> 
+                        <br>
+                        <div class="setting-card-row-item">
+                            <mat-checkbox #vesseltrail color="primary"
+                                [(ngModel)]="facade.settings.vesselTrail" 
+                                (change)="onFormChange($event, vesseltrail)"
+                                label="after">
+                                Display Vessel Trail
+                            </mat-checkbox>                                        
+                        </div>                                                
+                    </div>  
+                </mat-card>
+                <mat-card class="setting-card">
+                    <div class="setting-card-row" style="padding-bottom: 10px;">
+                        <div class="setting-card-row-item">
+                            <mat-form-field style="width:100%;">
+                                <mat-select #darkmode 
+                                        matTooltip="Dark Mode setting."
+                                        [(value)]="facade.settings.darkMode.source" 
+                                        (selectionChange)="onFormChange($event, darkmode)"
+                                        placeholder="Dark Mode setting">
+                                    <mat-option *ngFor="let i of facade.darkModeOptions | keyvalue" [value]="i.key">{{i.value}}</mat-option>
+                                </mat-select>                                        
+                            </mat-form-field>                                      
                         </div>
-                        <div class="setting-card-row">                         
-                            <div class="setting-card-row-item">
-                                <mat-form-field style="width:100%;">
-                                    <mat-select #notesgetradius id="notesgetradius"
-                                            [disabled]="!facade.settings.notes"
-                                            [(value)]="facade.settings.resources.notes.getRadius" 
-                                            (selectionChange)="onFormChange($event, notesgetradius)"
-                                            [placeholder]="'Fetch Notes radius: (' + facade.availableUnits.distance.get(distunits.value) + ')'">
-                                        <mat-option *ngFor="let i of facade.list.resourceRadius" [value]="i">{{i}}</mat-option>
-                                    </mat-select>                                        
-                                </mat-form-field>
-                            </div>                                                      
-                        </div>                        
-                        <div class="setting-card-row">
-                            <div class="setting-card-row-item">
-                                <mat-form-field style="width:100%;" floatLabel="always">
-                                    <mat-label>Notes fetch filter:</mat-label>
-                                    <input matInput type="text" #notesrootfilter
-                                        [(ngModel)]="facade.settings.resources.notes.rootFilter" 
-                                        (change)="onFormChange($event, notesrootfilter)"
-                                        placeholder="?radius=%note:radius%"
-                                        matTooltip="Filter to apply when retrieving notes"/>   
-                                        <button mat-button *ngIf="notesrootfilter.value"
-                                                matSuffix mat-icon-button 
-                                                (click)="notesrootfilter.value=''">
-                                            <mat-icon>close</mat-icon>
-                                        </button>                                                                           
-                                </mat-form-field>                            
-                            </div>    
-                        </div>   
-                        <div class="setting-card-row">
-                            <div class="setting-card-row-item">
-                                <mat-checkbox #groupeditable color="primary"
-                                    [(ngModel)]="facade.settings.resources.notes.groupNameEdit" 
-                                    (change)="onFormChange($event, groupeditable)"
-                                    matTooltip="Allow group name editing."   
-                                    label="after">
-                                    Edit Group Names
-                                </mat-checkbox>                                        
-                            </div> 
-                            <div class="setting-card-row-item"> 
-                                <mat-checkbox #groupposition color="primary"
-                                    [(ngModel)]="facade.settings.resources.notes.groupRequiresPosition" 
-                                    (change)="onFormChange($event, groupposition)"
-                                    matTooltip="Require position information when adding notes to a group."
-                                    label="after">
-                                    Position Group Note
-                                </mat-checkbox>                                        
-                            </div>                              
-                        </div>                                                                                       
-                    </mat-card>
-                </div>
-            
-                <div class="setting-group" id="sectVideo">
-                    <div class="setting-group-title">RESOURCES: VIDEO</div>
-                    <mat-card class="setting-card"> 
-                        <div class="setting-card-row">
-                            <div class="setting-card-row-item">
-                                <mat-checkbox #enablevideo color="primary"
-                                    [(ngModel)]="facade.settings.resources.video.enable" 
-                                    (change)="onFormChange($event, enablevideo)"
-                                    label="after">
-                                    Enable Video
-                                </mat-checkbox>                                        
-                            </div>                                                                                 
-                            <div class="setting-card-row-item">
-                                <mat-form-field style="width:100%;" floatLabel="always">
-                                    <mat-label>url:</mat-label>
-                                    <input matInput type="text" #videourl=ngModel
-                                        required
-                                        [disabled]="!facade.settings.resources.video.enable"
-                                        [(ngModel)]="facade.settings.resources.video.url" 
-                                        (change)="onFormChange($event, videourl)"
-                                        placeholder="Video stream url"
-                                        matTooltip="Enter URL of video stream"/>  
-                                    <mat-error *ngIf="videourl.invalid">
-                                        Value required.
-                                    </mat-error>                                                                     
-                                </mat-form-field>                            
-                            </div>    
-                        </div>                                                                                                     
-                    </mat-card>
-                </div>
-                
+                    </div>
+                </mat-card>                       
+            </div>                  
+
+            <div class="setting-group" id="sectunits">
+                <div class="setting-group-title">UNITS &amp; VALUES</div>
+                <mat-card class="setting-card">
+                    <div class="setting-card-row" style="padding-bottom: 10px;">
+                        <div class="setting-card-row-item">
+                            <mat-form-field style="width:100%;">
+                                <mat-select #distunits id="distunits"
+                                        [(value)]="facade.settings.units.distance" 
+                                        (selectionChange)="onFormChange($event, distunits)"
+                                        placeholder="Distance units">
+                                    <mat-option *ngFor="let i of facade.availableUnits.distance | keyvalue" [value]="i.key">{{i.value}}</mat-option>
+                                </mat-select>                                        
+                            </mat-form-field>
+                        </div>          
+
+                        <div class="setting-card-row-item">
+                            <mat-form-field style="width:100%;">
+                                <mat-select #depthunits 
+                                        [(value)]="facade.settings.units.depth" 
+                                        (selectionChange)="onFormChange($event, depthunits)"
+                                        placeholder="Depth units">
+                                    <mat-option *ngFor="let i of facade.availableUnits.depth | keyvalue" [value]="i.key">{{i.value}}</mat-option>
+                                </mat-select>                                        
+                            </mat-form-field>
+                        </div>                                             
+                        <div class="setting-card-row-item">
+                            <div style="height:65px;">
+                                <button mat-raised-button color="primary"
+                                    matTooltip="Select preferred path to source values from."
+                                    (click)="display.paths=true">
+                                    PREFERRED PATHS
+                                </button>
+                            </div>
+                        </div>
+                        <div class="setting-card-row-item" *ngIf="facade.preferredValues.heading.length!=0">
+                            <mat-form-field style="width:100%;">
+                                <mat-select #headingattrib 
+                                        matTooltip="Preferred value type for paths not in Preferred Paths above"
+                                        [(value)]="facade.settings.selections.headingAttribute" 
+                                        (selectionChange)="onFormChange($event, headingattrib)"
+                                        placeholder="Prefer True / Magnetic values">
+                                    <mat-option *ngFor="let i of facade.preferredValues.heading" [value]="i[0]">{{i[1]}}</mat-option>
+                                </mat-select>                                        
+                            </mat-form-field>
+                        </div> 
+                    </div>
+                </mat-card>
+            </div>
+
+            <div class="setting-group" id="sectVessels">
+                <div class="setting-group-title">OTHER VESSELS</div>
+                <mat-card class="setting-card">
+                    <div class="setting-card-row" style="padding-bottom: 10px;">                            
+                        <div class="setting-card-row-item">
+                            <mat-form-field style="width:100%;">
+                                <mat-select #aiswindvector
+                                        [(value)]="facade.settings.selections.aisWindApparent" 
+                                        (selectionChange)="onFormChange($event, aiswindvector)"
+                                        placeholder="Wind Vector Value">
+                                    <mat-option *ngFor="let i of facade.preferredValues.wind | keyvalue" [value]="i.key">{{i.value}}</mat-option>
+                                </mat-select>                                        
+                            </mat-form-field>
+                        </div> 
+
+                        <div class="setting-card-row-item">
+                            <mat-form-field style="width:100%;">
+                                <mat-select #aiswindminzoom
+                                        [(value)]="facade.settings.selections.aisWindMinZoom" 
+                                        (selectionChange)="onFormChange($event, aiswindminzoom)"
+                                        placeholder="Wind Vector Zoom Level">
+                                    <mat-option *ngFor="let i of facade.list.minZoom" [value]="i">{{i}}</mat-option>
+                                </mat-select>                                        
+                            </mat-form-field>
+                        </div>                             
+
+                    </div> 
+                </mat-card>
+            </div>
+        
+            <div class="setting-group" id="sectNotes">
+                <div class="setting-group-title">RESOURCES: NOTES</div>
+                <mat-card class="setting-card">
+                    <div class="setting-card-row">
+                        <div class="setting-card-row-item">
+                            <mat-checkbox #shownotes color="primary"
+                                [(ngModel)]="facade.settings.notes" 
+                                (change)="onFormChange($event, shownotes)"
+                                label="after">
+                                Display Notes on Map
+                            </mat-checkbox>                                        
+                        </div>                            
+                        <div class="setting-card-row-item">
+                            <mat-form-field style="width:100%;">
+                                <mat-select #notesminzoom
+                                        [disabled]="!facade.settings.notes"
+                                        [(value)]="facade.settings.selections.notesMinZoom" 
+                                        (selectionChange)="onFormChange($event, notesminzoom)"
+                                        placeholder="Notes Zoom Level">
+                                    <mat-option *ngFor="let i of facade.list.minZoom" [value]="i">{{i}}</mat-option>
+                                </mat-select>                                        
+                            </mat-form-field>
+                        </div>                                                      
+                    </div>
+                    <div class="setting-card-row">                         
+                        <div class="setting-card-row-item">
+                            <mat-form-field style="width:100%;">
+                                <mat-select #notesgetradius id="notesgetradius"
+                                        [disabled]="!facade.settings.notes"
+                                        [(value)]="facade.settings.resources.notes.getRadius" 
+                                        (selectionChange)="onFormChange($event, notesgetradius)"
+                                        [placeholder]="'Fetch Notes radius: (' + facade.availableUnits.distance.get(distunits.value) + ')'">
+                                    <mat-option *ngFor="let i of facade.list.resourceRadius" [value]="i">{{i}}</mat-option>
+                                </mat-select>                                        
+                            </mat-form-field>
+                        </div>                                                      
+                    </div>                        
+                    <div class="setting-card-row">
+                        <div class="setting-card-row-item">
+                            <mat-form-field style="width:100%;" floatLabel="always">
+                                <mat-label>Notes fetch filter:</mat-label>
+                                <input matInput type="text" #notesrootfilter
+                                    [(ngModel)]="facade.settings.resources.notes.rootFilter" 
+                                    (change)="onFormChange($event, notesrootfilter)"
+                                    placeholder="?radius=%note:radius%"
+                                    matTooltip="Filter to apply when retrieving notes"/>   
+                                    <button mat-button *ngIf="notesrootfilter.value"
+                                            matSuffix mat-icon-button 
+                                            (click)="notesrootfilter.value=''">
+                                        <mat-icon>close</mat-icon>
+                                    </button>                                                                           
+                            </mat-form-field>                            
+                        </div>    
+                    </div>   
+                    <div class="setting-card-row">
+                        <div class="setting-card-row-item">
+                            <mat-checkbox #groupeditable color="primary"
+                                [(ngModel)]="facade.settings.resources.notes.groupNameEdit" 
+                                (change)="onFormChange($event, groupeditable)"
+                                matTooltip="Allow group name editing."   
+                                label="after">
+                                Edit Group Names
+                            </mat-checkbox>                                        
+                        </div> 
+                        <div class="setting-card-row-item"> 
+                            <mat-checkbox #groupposition color="primary"
+                                [(ngModel)]="facade.settings.resources.notes.groupRequiresPosition" 
+                                (change)="onFormChange($event, groupposition)"
+                                matTooltip="Require position information when adding notes to a group."
+                                label="after">
+                                Position Group Note
+                            </mat-checkbox>                                        
+                        </div>                              
+                    </div>                                                                                       
+                </mat-card>
+            </div>
+        
+            <div class="setting-group" id="sectVideo">
+                <div class="setting-group-title">RESOURCES: VIDEO</div>
+                <mat-card class="setting-card"> 
+                    <div class="setting-card-row">
+                        <div class="setting-card-row-item">
+                            <mat-checkbox #enablevideo color="primary"
+                                [(ngModel)]="facade.settings.resources.video.enable" 
+                                (change)="onFormChange($event, enablevideo)"
+                                label="after">
+                                Enable Video
+                            </mat-checkbox>                                        
+                        </div>                                                                                 
+                        <div class="setting-card-row-item">
+                            <mat-form-field style="width:100%;" floatLabel="always">
+                                <mat-label>url:</mat-label>
+                                <input matInput type="text" #videourl=ngModel
+                                    required
+                                    [disabled]="!facade.settings.resources.video.enable"
+                                    [(ngModel)]="facade.settings.resources.video.url" 
+                                    (change)="onFormChange($event, videourl)"
+                                    placeholder="Video stream url"
+                                    matTooltip="Enter URL of video stream"/>  
+                                <mat-error *ngIf="videourl.invalid">
+                                    Value required.
+                                </mat-error>                                                                     
+                            </mat-form-field>                            
+                        </div>    
+                    </div>                                                                                                     
+                </mat-card>
             </div>
         </div>
-        
+    </div>
+
+    <div class="theme-page settings" style="overflow: hidden;" *ngIf="display.paths">
+        <div class="theme-panel">
+            <signalk-preferred-paths title="Preferred Paths"
+                (chosen)="onPreferredPaths($event)">
+            </signalk-preferred-paths>  
+        </div>
     </div>
 
 </div>

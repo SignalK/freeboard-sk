@@ -1,11 +1,11 @@
 <div class="resourcelist">
 
-    <div class="title-block">
+    <mat-card class="title-block">
         <div style="flex: 1 1 auto;">
             <div class="title-text">Waypoints:</div>
             <div>
                 <mat-form-field style="width:150px;">
-                    <input #ftext type="text" matInput style="background-color:white;"
+                    <input #ftext type="text" matInput
                         [value]="filterText"
                         (keyup)="filterKeyUp(ftext.value)"
                         placeholder="type to filter list">
@@ -39,18 +39,13 @@
                 <mat-icon>close</mat-icon>
             </button>            
         </div>
-    </div>
+    </mat-card>
 
     <div class="resources">
         <div *ngIf="waypoints.length==0" style="text-align: center;">
             <br><i>No Waypoints available.</i>
         </div>        
-        <cdk-virtual-scroll-viewport itemSize="90" 
-                style="position: absolute;
-                    top: 10px;
-                    bottom: 0;
-                    left: 0;
-                    right: 0;">
+        <cdk-virtual-scroll-viewport itemSize="90" class="vscroller">
             <mat-card *cdkVirtualFor="let r of filterList; let i= index;"
                     style="border-bottom: silver 1px outset;">
                 <div style="display: flex;">

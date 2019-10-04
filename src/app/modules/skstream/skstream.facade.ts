@@ -11,6 +11,7 @@ import { AlarmsFacade } from '../alarms/alarms.facade';
 import { Convert } from '../../lib/convert';
 import { SKResources } from '../skresources';
 
+
 export enum SKSTREAM_MODE { REALTIME=0, PLAYBACK }
 
 @Injectable({ providedIn: 'root' })
@@ -43,6 +44,10 @@ export class SKStreamFacade  {
                 }                             
             }
         );
+
+        // ** SETTINGS - handle settings load / save events
+        this.app.settings$.subscribe( r=> this.handleSettingsEvent(r) );        
+
     }
     // ** SKStream WebSocket messages **
     connect$(): Observable<any> { return this.onConnect.asObservable() }
@@ -103,7 +108,8 @@ export class SKStreamFacade  {
                     {"path":"port","period":1000,"policy":'fixed'},
                     {"path":"flag","period":1000,"policy":'fixed'},
                     {"path":"navigation.*","period":1000,"policy":'fixed'},
-                    {"path":"environment.wind.*","period":1000,"policy":'fixed'}
+                    {"path":"environment.wind.*","period":1000,"policy":'fixed'},
+                    {"path":"environment.mode","period":1000,"policy":'fixed'}
                 ]
             }
         });
@@ -124,7 +130,9 @@ export class SKStreamFacade  {
 
             this.parseVesselSelf(msg.result.self);
 
-            this.parseVesselOther(msg.result.aisTargets);         
+            this.parseVesselOther(msg.result.aisTargets);    
+            
+            this.app.data.vessels.prefAvailablePaths= msg.result.paths;
 
             // ** update active vessel map display **
             this.app.data.vessels.active= (this.app.data.vessels.activeId) ?
@@ -144,20 +152,15 @@ export class SKStreamFacade  {
 
     private parseVesselSelf(v:SKVessel) {
         this.app.data.vessels.self= v;
-        this.processVessel(this.app.data.vessels.self);
-
-        // ** add to true / magnetic selection list
-        if( v.headingMagnetic!=null && 
-            this.app.data.headingValues.indexOf('navigation.headingMagnetic')==-1) { 
-                this.app.data.headingValues.push('navigation.headingMagnetic');           
-        }                
+        this.processVessel(this.app.data.vessels.self);              
     }
 
-    //private parseVesselOther(id:string, v:SKVessel) {
     private parseVesselOther(otherVessels:any) {
         this.app.data.vessels.aisTargets= otherVessels;
         this.app.data.vessels.aisTargets.forEach( (value, key)=> {
             this.processVessel(value);
+            value.wind.direction= (this.app.useMagnetic) ? value.wind.mwd : value.wind.twd;
+            value.orientation= (value.heading!=null) ? value.heading : (value.cog!=null) ? value.cog : 0;
             if(`vessels.${this.app.data.vessels.closest.id}`==key) { 
                 if(!value.closestApproach) { 
                     this.alarmsFacade.updateAlarm('cpa', null);
@@ -172,8 +175,6 @@ export class SKStreamFacade  {
     private processVessel(d:SKVessel) { 
         d.cog= (this.app.useMagnetic) ? d.cogMagnetic : d.cogTrue;
         d.heading= (this.app.useMagnetic) ? d.headingMagnetic : d.headingTrue;
-        d.wind.direction= (this.app.useMagnetic) ? d.wind.mwd : d.wind.twd;
-        d.orientation= (d.heading!=null) ? d.heading : (d.cog!=null) ? d.cog : 0;
     }
 
     // ** process course data
@@ -265,4 +266,14 @@ export class SKStreamFacade  {
         this.app.data.navData.pointIndex= idx;
     }    
 
+    // handle settings (config.selections)
+    private handleSettingsEvent(value:any) {
+        if(value.setting=='config') {
+            console.log('streamFacade.settingsEvent');
+            this.stream.postMessage({ 
+                cmd: 'settings',
+                options: { selections: this.app.config.selections }
+            });
+        }        
+    }
 }

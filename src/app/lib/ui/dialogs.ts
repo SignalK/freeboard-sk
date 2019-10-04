@@ -1,7 +1,7 @@
 /** Dialog Components **
 ************************/
 
-import {Component, OnInit, Input, Inject} from '@angular/core';
+import {Component, OnInit, Inject} from '@angular/core';
 import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { MAT_SNACK_BAR_DATA } from '@angular/material/snack-bar';
 
@@ -405,11 +405,106 @@ export class LoginDialog implements OnInit {
     `,
     styles: [`
         .message-bar {
-            color: yellow;
             font-family: roboto;
         }
     `],
 })
 export class MessageBarComponent {
     constructor( @Inject(MAT_SNACK_BAR_DATA) public data: any ) { }
+}
+
+/********* WelcomeDialog ****************
+    data: { 
+        buttonText: string,
+        content: []
+    }
+***************************************/
+@Component({
+    selector: 'ap-welcome-dialog',
+    template: `
+        <div class="welcome">
+            <mat-horizontal-stepper [linear]="false" #stepper>
+                <mat-step *ngFor="let c of data.content; let i= index;">
+                    <div style="text-align:center;">
+                        <h3>{{c.title}}</h3>
+                    </div>
+                    <div style="display:flex;">
+                        <div style="min-width:50px;text-align:left;padding-top: 15%;">
+                            <button mat-icon-button *ngIf="i!= 0 && data.content.length>1"
+                                (click)="currentPage= currentPage-1"
+                                color="primary" matStepperPrevious>
+                                <mat-icon>keyboard_arrow_left</mat-icon>
+                            </button>
+                        </div>
+                        <div style="flex: 1 1 auto;" [innerHTML]="c.message"></div>
+                        <div style="min-width:50px;text-align:right;padding-top: 15%;">
+                            <button mat-icon-button *ngIf="i!= data.content.length-1"
+                                (click)="currentPage= currentPage+1"
+                                color="primary" matStepperNext>
+                                <mat-icon >keyboard_arrow_right</mat-icon>
+                            </button>                    
+                        </div>   
+                    </div>                               
+                </mat-step>
+            </mat-horizontal-stepper>
+            <div style="text-align:center;font-size:10pt;font-family:roboto;">
+                <mat-icon *ngFor="let c of data.content; let i=index;"
+                    [style.color]="(currentPage-1==i) ? 'blue' : 'gray'"
+                    style="font-size:8pt;width:12px;">
+                    fiber_manual_record
+                </mat-icon>
+            </div>
+            <div style="text-align:center;">
+                <button mat-raised-button color="primary"
+                    (click)="dialogRef.close(data.showPrefs)">
+                    {{data.buttonText}}
+                </button>  
+                <br>&nbsp;
+            </div>         
+        </div>    
+    `,
+    styles: [`
+        .welcome h1 { font-weight: normal !important; }
+        .welcome-row {
+            display: -webkit-box;      
+            display: -moz-box;         
+            display: -ms-flexbox;      
+            display: -webkit-flex; 		
+            display: flex;
+            flex-direction: row;
+            flex-wrap: nowrap;
+            justify-content: flex-start;
+            align-content: stretch;
+            font-family: Arial, Helvetica, sans-serif;
+        }
+        .welcome-row .item.stretch {
+            text-align:center;
+            width:100%;
+        }
+        .welcome-row .item {
+            padding-left:5px;
+        }	
+        .welcome-row img {
+            width: 42px; 
+        } 	
+        .welcome-row .description {
+            
+            font-size: 12pt;
+        }    
+    `]
+})
+export class WelcomeDialog  {
+
+    public currentPage:number= 1;
+
+    constructor(
+        public dialogRef: MatDialogRef<WelcomeDialog>,
+        @Inject(MAT_DIALOG_DATA) public data: any) { }
+
+    ngOnInit() { 
+        let sh= document.getElementsByClassName('mat-horizontal-stepper-header-container');
+        sh[0]['style']['display']= 'none'; 
+        let dc= document.getElementsByClassName('mat-dialog-container');
+        dc[0]['style']['padding']= 0; 
+    }
 }

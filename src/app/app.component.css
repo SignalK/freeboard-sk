@@ -50,6 +50,15 @@ mat-nav-list {
     background-color: rgba(200,200,200,.4);   
 }
 
+.rightUtilsPanel { 
+    max-width:55px; 
+    z-index: 200;
+    position: absolute;
+    top: 100px;
+    right: 19px;
+    background-color: transparent;
+}
+
 .mapButton {
     position: fixed;
     z-index: 4900;
@@ -72,7 +81,6 @@ mat-nav-list {
     width:100px; 
     border: gray 1px solid;
     border-radius: 5px;
-    background-color: white;
     font-family: roboto;
     text-align:center;
 }
@@ -88,6 +96,7 @@ mat-nav-list {
     display: flex;
     flex-wrap: nowrap;
     overflow-x: auto;
+    border: gray 1px solid;
 }
 
 .control {

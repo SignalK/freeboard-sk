@@ -1,6 +1,8 @@
 import { Component, ViewChild } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
 import { DomSanitizer, SafeResourceUrl} from '@angular/platform-browser';
+import {OverlayContainer} from '@angular/cdk/overlay';
+import {MediaMatcher} from '@angular/cdk/layout';
 
 import { AppInfo } from './app.info';
 import { AboutDialog, LoginDialog } from './lib/app-ui';
@@ -24,6 +26,7 @@ export class AppComponent {
     @ViewChild('sideright', {static: false}) sideright;
 
     public display= {
+        fullscreen: { active: false, enabled: document.fullscreenEnabled},
         badge: { hide: true, value: '!'},
         leftMenuPanel: false,
         instrumentPanelOpen: true,
@@ -61,6 +64,7 @@ export class AppComponent {
 
     // ** external resources **
     private lastInstUrl: string;
+    private lastInstParams: string;
     public instUrl: SafeResourceUrl;
     private lastVideoUrl: string;
     public vidUrl: SafeResourceUrl;
@@ -76,22 +80,35 @@ export class AppComponent {
                 public skres: SKResources,
                 public signalk: SignalKClient,
                 private dom: DomSanitizer,
+                private overlayContainer: OverlayContainer,
+                private mediaMatcher: MediaMatcher,
                 private dialog: MatDialog) { 
         // set self to active vessel
-        this.app.data.vessels.active= this.app.data.vessels.self
+        this.app.data.vessels.active= this.app.data.vessels.self;
     }
 
    // ********* LIFECYCLE ****************
 
-    ngAfterViewInit() { if(this.app.data['firstRun']) { setTimeout( ()=> { this.showWelcome()}, 500) } }
+    ngAfterViewInit() { setTimeout( 
+        ()=> { 
+            let wr= this.app.showWelcome();
+            if(wr) {
+                wr.afterClosed().subscribe( r=> { if(r) this.openSettings(r) })
+            }
+        }, 500) 
+    }
 
     ngOnInit() {
         // ** apply loaded app config	
         this.display.map.center= this.app.config.map.center;
         if(this.app.config.plugins.startOnOpen) { this.display.instrumentAppActive= false }
 
+        // overlay dark-theme
+        this.setDarkTheme();
+
         this.lastInstUrl= this.app.config.plugins.instruments;
-        this.instUrl= this.dom.bypassSecurityTrustResourceUrl(`${this.app.host}${this.app.config.plugins.instruments}`);
+        this.lastInstParams= this.app.config.plugins.parameters;
+        this.instUrl= this.dom.bypassSecurityTrustResourceUrl(this.formatInstrumentsUrl());
         this.lastVideoUrl= this.app.config.resources.video.url;
         this.vidUrl= this.dom.bypassSecurityTrustResourceUrl(`${this.app.config.resources.video.url}`);
         
@@ -127,6 +144,17 @@ export class AppComponent {
                 }
             )
         );
+
+        // fullscreen event handlers
+        document.addEventListener('fullscreenchange', ()=> {
+            console.log(document.fullscreenElement)
+            if(document.fullscreenElement){ this.display.fullscreen.active=true }
+            else { this.display.fullscreen.active=false }
+        });
+        document.addEventListener('fullscreenerror', e=> {
+            console.warn(e);
+            this.display.fullscreen.active=false;
+        });        
     } 
 
     ngOnDestroy() {
@@ -137,26 +165,40 @@ export class AppComponent {
         this.obsList.forEach( i=> i.unsubscribe() );
     }
 
-    // ** show welcome message on first run **
-    private showWelcome() {
-        let title: string= 'Welcome to Freeboard';
-        let message: string;
-        if(this.app.data.server && this.app.data.server.id=='signalk-server-node') {
-            message='Node version of Signal K server detected!\n\n';
-            message+='For all Freeboard features to operate ensure the server has plugins ';
-            message+='that can service the following Signal K API paths:\n';
-            message+='- resources/routes, resources/waypoints\n';
-            message+='- resources/charts\n';
-            message+='- navigation/anchor, navigation/courseGreatCircle/activeRoute';
+    // ********* DISPLAY / APPEARANCE ****************
+    public toggleFullscreen() { 
+        let docel = document.documentElement;
+        let fscreen = docel.requestFullscreen || docel['webkitRequestFullScreen'] 
+                || docel['mozRequestFullscreen'] || docel['msRequestFullscreen'];
+        if(fscreen) {
+            if(!document.fullscreenElement) { fscreen.call(docel) }
+            else { if(document.exitFullscreen) document.exitFullscreen() }
+            this.focusMap();
+        }
+    }
+
+    private setDarkTheme() {
+        let mq= this.mediaMatcher.matchMedia('prefers-color-scheme: dark)');
+
+        if( (this.app.config.darkMode.source==0 && mq.matches) ||
+            (this.app.config.darkMode.source==1 && this.app.data.vessels.self.mode=='night') ) { 
+
+            this.overlayContainer.getContainerElement().classList.add('dark-theme');
+            this.app.config.darkMode.enabled= true; 
         }
         else {
-            message='- View Routes, Waypoints and Charts available on your Signal K server\n';
-            message+='- Add, delete and manage Routes and Waypoints\n';
-            message+='- Set Anchor Watch alarms and display Depth alarms\n';
+            this.overlayContainer.getContainerElement().classList.remove('dark-theme');
+            this.app.config.darkMode.enabled= false;
         }
-        this.app.data['firstRun']=false;
-        this.app.showAlert(message, title, 'Continue');         
     }
+
+    private formatInstrumentsUrl() {
+        let url:string= `${this.app.host}${this.app.config.plugins.instruments}`;
+        return (this.app.config.plugins.parameters) ?
+            url + `/${this.app.config.plugins.parameters}` : url;
+    }
+
+    // ************************************************
 
     // ** establish connection to server
     private connectSignalKServer() {
@@ -230,6 +272,7 @@ export class AppComponent {
             this.app.data.trueMagChoice= this.app.config.selections.headingAttribute;
         }
         if(e.action=='save' && e.setting=='config') {
+            this.setDarkTheme();  // **  set theme **
             if(this.app.data.trueMagChoice!= this.app.config.selections.headingAttribute) {
                 this.app.debug('True / Magnetic selection changed..');
                 this.app.data.vessels.self.heading= this.app.useMagnetic ? 
@@ -256,9 +299,11 @@ export class AppComponent {
                 this.app.data.trueMagChoice= this.app.config.selections.headingAttribute;
             };
 
-            if(this.lastInstUrl!= this.app.config.plugins.instruments) {
-                this.lastInstUrl= this.app.config.plugins.instruments
-                this.instUrl= this.dom.bypassSecurityTrustResourceUrl(`${this.app.host}${this.app.config.plugins.instruments}`);
+            if(this.lastInstUrl!= this.app.config.plugins.instruments ||
+                    this.lastInstParams!= this.app.config.plugins.parameters) {
+                this.lastInstUrl= this.app.config.plugins.instruments;
+                this.lastInstParams= this.app.config.plugins.parameters;
+                this.instUrl= this.dom.bypassSecurityTrustResourceUrl(this.formatInstrumentsUrl());
             }
             if(this.lastVideoUrl!= this.app.config.resources.video.url) {
                 this.lastVideoUrl= this.app.config.resources.video.url
@@ -343,8 +388,8 @@ export class AppComponent {
     }  
 
     // ** open settings dialog **
-    public openSettings() {  
-        this.dialog.open( SettingsDialog, { disableClose: false })
+    public openSettings(prefs: boolean= false) {  
+        this.dialog.open( SettingsDialog, { disableClose: true, data: {openPrefs: prefs } })
         .afterClosed().subscribe( ()=>this.focusMap() );
     }      
 
@@ -852,7 +897,10 @@ export class AppComponent {
                 let d= new Date(e.timestamp);
                 this.display.playback.time= `${d.toDateString().slice(4)} ${d.toTimeString().slice(0,8)}`;
             }   
-            else { this.display.playback.time= null }   
+            else { 
+                this.display.playback.time= null;
+                this.setDarkTheme();
+            }   
         }  
     }   
 

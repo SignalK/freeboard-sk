@@ -105,6 +105,7 @@ export class SKVessel {
     orientation:number= 0;
     buddy:boolean= false;
     closestApproach:any= null;
+    mode:string= 'day';
 }
 
 // ** Signal K Note

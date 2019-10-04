@@ -1,12 +1,16 @@
 # CHANGELOG: Freeboard
 
 ### v1.7.0
-- **Added:** `Dark mode` configuration setting to allow: 1) follow the `prefers-color-scheme` css media setting, 2) turn on Dark Mode or 3) turn off Dark mode.  
+- **Added:** `Dark mode` configuration setting to: 
+    1) Follow the OS setting via the `prefers-color-scheme` css media attribute
+    2) Follow the Signal K `environment.mode` value.  
 
 - **Added:** `Fullscreen mode` support. 
 
-- **Added:** Configuration to select `preferred` Signal K paths to use for
-vessel heading, True Wind speed and direction from available paths.
+- **Added:** Configuration to select `preferred Signal K paths` to use for
+vessel `heading`, `True Wind speed` and `direction` from the available paths.
+
+- **Added:** Configuration to provide parameters the Instrument Panel App. These are appended to url as a query string.
 
 
 ### v1.6.0

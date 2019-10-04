@@ -5,7 +5,7 @@ import { Injectable } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 
-import { AlertDialog, ConfirmDialog, MessageBarComponent } from './lib/app-ui';
+import { AlertDialog, ConfirmDialog, WelcomeDialog, MessageBarComponent } from './lib/app-ui';
 
 import { Info } from './lib/app-info';
 import { Subject } from 'rxjs';
@@ -53,12 +53,13 @@ export class AppInfo extends Info {
         this.name= "Freeboard";
         this.shortName= "freeboard";
         this.description= `Signal K Chart Plotter.`;
-        this.version= '1.6.0';
+        this.version= '1.7.0';
         this.url= 'https://github.com/signalk/freeboard-sk';
         this.logo= "./assets/img/app_logo.png";       
         
         this.config= {      // ** base config
             version: '',
+            darkMode: { enabled: false,  source: 0 },  // source: 0= browser default, 1= Signal K mode)
             map: {          // ** map config
                 zoomLevel: 2,
                 center: [0, 0],
@@ -80,7 +81,8 @@ export class AppInfo extends Info {
             depthAlarm: { enabled: false, smoothing: 10000 },
             plugins: {
                 instruments: '/@signalk/instrumentpanel',
-                startOnOpen: false
+                startOnOpen: false,
+                parameters: null
             },
             units: {        // ** display units
                 distance: 'm',
@@ -93,6 +95,11 @@ export class AppInfo extends Info {
                 charts: ['openstreetmap','openseamap'],
                 notes: [],
                 headingAttribute: 'navigation.headingTrue',
+                preferredPaths: {
+                    tws: 'environment.wind.speedTrue',
+                    twd: 'environment.wind.directionTrue',
+                    heading: 'navigation.courseOverGroundTrue'
+                },
                 aisTargets: null,
                 aisWindApparent: false,
                 aisWindMinZoom: 15,
@@ -124,7 +131,6 @@ export class AppInfo extends Info {
             trail: [],
             server: null,
             hasToken: false,
-            headingValues: [],
             lastGet: null,      // map position of last resources GET
             vessels: {          // received vessel data
                 showSelf: false,
@@ -132,7 +138,8 @@ export class AppInfo extends Info {
                 aisTargets: new Map(),
                 activeId: null,
                 active: null,
-                closest: {id: null, distance: null, timeTo: null, position: [0,0]}
+                closest: {id: null, distance: null, timeTo: null, position: [0,0]},
+                prefAvailablePaths: {}  // preference paths available from source
             },
             aisMgr: {                   // manage aisTargets
                 maxAge: 540000,         // time since last update in ms (9 min)
@@ -217,7 +224,7 @@ export class AppInfo extends Info {
             let lconfig=(this.state.loadConfig());       
             let ldata=(this.state.loadData());    
             // transform config / data as required here    
-
+            this.data['updatedRun']= version;
             // apply to this.config / this.data
         }
         else if( version.result && version.result=='new' ) {
@@ -245,7 +252,20 @@ export class AppInfo extends Info {
             }
             if(typeof this.config.selections.notesMinZoom === 'undefined') {
                 this.config.selections.notesMinZoom=10;
+            } 
+            if(typeof this.config.selections.preferredPaths === 'undefined') {
+                this.config.selections.preferredPaths= {
+                    tws: 'environment.wind.speedTrue',
+                    twd: 'environment.wind.directionTrue',
+                    heading: 'navigation.courseOverGroundTrue'
+                }
             }   
+            if(typeof this.config.darkMode === 'undefined') { 
+                this.config.darkMode= { enabled: false,  source: 0 };
+            }  
+            if(typeof this.config.plugins.parameters === 'undefined') { 
+                this.config.plugins.parameters= null;
+            }  
             if(typeof this.config.resources === 'undefined') {
                 this.config.resources= { 
                     notes: {
@@ -257,12 +277,86 @@ export class AppInfo extends Info {
                 }
             }  
             else {
-                if(typeof this.config.resources.video === 'undefined') {  
+                if(typeof this.config.resources.video === 'undefined') { 
                     this.config.resources.video= { enable: false, url: null};
                 }  
             }             
         }
     }
+
+    // ** display Welcome dialog
+    showWelcome() {
+        const WelcomeMessages= {
+            'welcome': {
+                title: 'Welcome to Freeboard',
+                message: `Freeboard is your Signal K chartplotter WebApp from which
+                    you can manage routes, waypoints, notes, alarms, 
+                    notifications and more.`
+            },
+            'signalk-server-node': {
+                title: 'Node Server',
+                message: `When using the Node version of Signal K server please
+                    ensure plugins are installed that can service the 
+                    following Signal K API paths:
+                    <ul>
+                    <li>resources/routes, resources/waypoints</li>
+                    <li>resources/charts</li>
+                    <li>navigation/anchor</li>
+                    <li>navigation/courseGreatCircle/activeRoute</li>
+                    </ul>`
+            },
+            'preferred-paths': {
+                title: 'Set Paths',
+                message: `Freeboard now allows you select a preferred Signal K path for 
+                    displaying:
+                    <ul>
+                    <li>Vessel heading</li>
+                    <li>True Wind Speed / Direction</li>
+                    </ul>
+                    from the available paths received from the server. 
+                    See <a href="assets/help/index.html#settings-paths" target="help">HELP</a> 
+                    for more details.`
+            },
+            'whats-new': [
+            ]            
+        }
+
+        let btnText:string= 'Get Started'
+        let messages: Array<any>= []
+        let showPrefs: boolean= false;
+
+        if( this.data.firstRun || this.data.updatedRun) {
+            if(this.data.firstRun) { 
+                messages.push( WelcomeMessages['welcome'] ); 
+                if(this.data.server && this.data.server.id) {
+                    messages.push( WelcomeMessages[ this.data.server.id] ); 
+                    showPrefs= true;
+                }
+                messages.push( WelcomeMessages['preferred-paths'] ); 
+            }
+            else {
+                let ver= this.data.updatedRun.previous.split('.');
+                if(ver[0]==1 && ver[1]<7) {
+                    messages.push( WelcomeMessages['preferred-paths'] );
+                    showPrefs= true;
+                }
+                if(WelcomeMessages['whats-new'] && WelcomeMessages['whats-new'].length>0) {
+                    messages= messages.concat( WelcomeMessages['whats-new'] );
+                }
+                btnText= 'Got it'
+            } 
+
+            if(messages.length==0) { return }
+            return this.dialog.open(WelcomeDialog, {
+                disableClose: true,
+                data: { 
+                    buttonText: btnText,
+                    content: messages,
+                    showPrefs: showPrefs
+                }
+            });   
+        }     
+    } 
 
     // ** display alert dialog
     showAlert(title:string, message:string, btn?:string) {

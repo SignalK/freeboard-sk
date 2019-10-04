@@ -21,7 +21,9 @@ export class SettingsFacade  {
     }   
 
     preferredValues= {
-        heading: [],
+        heading: [ 
+            ['navigation.headingTrue', 'True'], ['navigation.headingMagnetic', 'Magnetic']
+        ],
         wind: new Map([ 
             [false, 'Wind True'], [true, 'Wind Apparent']
         ])
@@ -36,6 +38,8 @@ export class SettingsFacade  {
     alarmOptions= {
         smoothing: new Map( [ [5000,'5 secs'],[10000,'10 secs'],[20000,'20 secs'],[30000,'30 secs'] ])
     }
+
+    darkModeOptions= new Map( [ [0,'Use OS setting'], [1,'Use Signal K Mode'] ]);  
 
     // *****************************************************
     settings:any= this.app.config;
@@ -61,17 +65,7 @@ export class SettingsFacade  {
     }
 
     // refresh dynamic data from sources
-    refresh() {
-        // refresh app list
-        this.getApps();
-        // update heading options
-        this.preferredValues.heading= [['navigation.headingTrue', 'True']];
-        this.app.data.headingValues.forEach( i=>{
-            if(i=='navigation.headingMagnetic') {
-                this.preferredValues.heading.push(['navigation.headingMagnetic', 'Magnetic'] );
-            }
-        }); 
-    }
+    refresh() { this.getApps() }
 
     // ** populate applications list **
     private getApps() {
