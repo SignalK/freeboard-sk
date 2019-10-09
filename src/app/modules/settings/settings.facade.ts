@@ -43,6 +43,7 @@ export class SettingsFacade  {
 
     // *****************************************************
     settings:any= this.app.config;
+    data:any= this.app.data;
 
     update$() { return this.app.settings$ }
     saved$() { return this.configSavedSource.asObservable() }

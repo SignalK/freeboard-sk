@@ -237,7 +237,7 @@
                 </mat-sidenav>
 
                 <!--instruments-->
-                <mat-sidenav #sideright mode="over" position="end" 
+                <mat-sidenav #sideright *ngIf="app.data.optAppPanel" mode="over" position="end" 
                     (openedChange)="rightSideNavAction($event)"
                     style="width:350px;">
                     <div style="display:flex;flex-direction: column;position:relative;">
@@ -346,8 +346,9 @@
                     
 
                     <!-- instrument sidebar open button -->
-                    <button mat-mini-fab class="mapButton nosmall" style="top:10px;right:20px;"
-                        *ngIf="(!draw.enabled && !measure.enabled) && !app.data.vessels.activeId"
+                    <button mat-mini-fab *ngIf="app.data.optAppPanel && (!draw.enabled && !measure.enabled) && !app.data.vessels.activeId"
+                        class="mapButton nosmall" 
+                        style="top:10px;right:20px;"
                         (click)="sideright.toggle()"
                         matTooltip="Instruments" matTooltipPosition="below">
                         <mat-icon>av_timer</mat-icon>

@@ -198,8 +198,12 @@ export class AppInfo extends Info {
                         break;                        
                 }
             }
-        });            
-        this.init();    
+        }); 
+        
+        this.init();  
+        // ** detect if launched in iframe **
+        try {this.data.optAppPanel= (window.self== window.top) }
+        catch(e) { this.data.optAppPanel=false }
 
         /***************************************
          * trigger app version check

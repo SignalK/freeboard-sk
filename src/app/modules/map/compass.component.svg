@@ -573,14 +573,16 @@
    <!-- Apparent wind direction pointer -->
    <g id="gLoPointer" class="vessel" [ngClass]="{'hide': windapparent==null || windapparent==undefined}">
 	    <g transform="rotate(0 100 100)" #needlelo id="needlelo">
-		    <path d="M 100,79 l 5,-69 -10,0 5,69 z" id="loPointer" />
+		    <!--<path d="M 100,79 l 5,-69 -10,0 5,69 z" id="loPointer" />-->
+            <path d="M 100,79 l 6,-49 -6,-20 -6,20 6,49 z" id="loPointer" />
 	    </g>
    </g>
    
    <!-- True Wind direction pointer -->
    <g id="gHiPointer" class="vessel" [ngClass]="{'hide': windtrue==null || windtrue==undefined}">
 	    <g transform="rotate(0 100 100)" #needlehi id="needlehi">
-		    <path d="M 100,79 l 5,-69 -10,0 5,69 z" id="hiPointer" />
+		    <!--<path d="M 100,79 l 5,-69 -10,0 5,69 z" id="hiPointer" />-->
+            <path d="M 100,79 l 5,-49 -5,-10 -5,10 5,49 z" id="hiPointer" />
 	    </g>
    </g>   
    

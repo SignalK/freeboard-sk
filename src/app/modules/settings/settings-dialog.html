@@ -32,7 +32,7 @@
         <div class="theme-panel">
             <div class="setting-group" id="sectDisplay">
                 <div class="setting-group-title">DISPLAY</div>
-                <mat-card class="setting-card">
+                <mat-card class="setting-card" *ngIf="facade.data.optAppPanel">
                     <div class="setting-card-row" *ngIf="facade.list.applications.length>1">
                         <div class="setting-card-row-item">
                             <mat-form-field style="width:100%;">
