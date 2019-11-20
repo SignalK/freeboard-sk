@@ -162,3 +162,14 @@ export class SKRegion {
         }
     }     
 }
+
+// ** AtoN Data **
+export class SKAtoN {
+    id: string;
+    position= [0,0];
+    name: string;
+    mmsi: string;
+    lastUpdated= new Date();
+    type: {id: number, name:string};
+    properties= {};
+}

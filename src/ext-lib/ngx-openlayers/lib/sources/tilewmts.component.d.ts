@@ -1,0 +1,35 @@
+import { AfterContentInit, SimpleChanges, OnChanges } from '@angular/core';
+import { LayerTileComponent } from '../layers/layertile.component';
+import { SourceComponent } from './source.component';
+import { TileGridWMTSComponent } from '../tilegridwmts.component';
+import { WMTS } from 'ol/source';
+import { WMTS as TileGridWMTS } from 'ol/tilegrid';
+import { WMTSRequestEncoding } from 'ol/source';
+import { ProjectionLike } from 'ol/proj';
+import { LoadFunction } from 'ol/Tile';
+export declare class SourceTileWMTSComponent extends SourceComponent implements AfterContentInit, OnChanges {
+    instance: WMTS;
+    cacheSize?: number;
+    crossOrigin?: string;
+    tileGrid: TileGridWMTS;
+    projection: ProjectionLike;
+    reprojectionErrorThreshold?: number;
+    requestEncoding?: WMTSRequestEncoding | string;
+    layer: string;
+    style: string;
+    tileClass?: any;
+    tilePixelRatio?: number;
+    version?: string;
+    format?: string;
+    matrixSet: string;
+    dimensions?: Object;
+    url?: string;
+    tileLoadFunction?: LoadFunction;
+    urls?: string[];
+    wrapX?: boolean;
+    tileGridWMTS: TileGridWMTSComponent;
+    constructor(layer: LayerTileComponent);
+    ngOnChanges(changes: SimpleChanges): void;
+    setLayerSource(): void;
+    ngAfterContentInit(): void;
+}

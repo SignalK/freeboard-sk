@@ -121,7 +121,16 @@ export class SKStreamFacade  {
                     {"path":"notifications.*","period":1000}
                 ]
             }
-        });       
+        });
+        this.stream.postMessage({
+            cmd: 'subscribe',
+            options: {
+                context: "atons.*",
+                path: [
+                    {"path":"*","period":5000}
+                ]
+            }
+        });              
     }
 
     // ** parse delta message and update Vessel Data -> vesselsUpdate.next()
@@ -144,7 +153,10 @@ export class SKStreamFacade  {
             // processAIS
             this.app.data.aisMgr.updateList= msg.result.aisStatus.updated;
             this.app.data.staleList= msg.result.aisStatus.updated;
-            this.app.data.aisMgr.removeList= msg.result.aisStatus.expired;             
+            this.app.data.aisMgr.removeList= msg.result.aisStatus.expired; 
+            
+            // process AtoNs
+            this.app.data.atons= msg.result.atons;
       
             this.vesselsUpdate.next();
         }

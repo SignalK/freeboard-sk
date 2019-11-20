@@ -255,7 +255,7 @@ export class AISPropertiesDialog implements OnInit {
     constructor(
         public app: AppInfo,
         private sk: SignalKClient,
-        public dialogRef: MatDialogRef<ResourceDialog>,
+        public dialogRef: MatDialogRef<AISPropertiesDialog>,
         @Inject(MAT_DIALOG_DATA) public data: any) {
     }
     
@@ -330,5 +330,96 @@ export class AISPropertiesDialog implements OnInit {
             }
         )
     }
+	
+}
+
+
+/********* AtoNPropertiesDialog **********
+	data: {
+        title: "<string>" title text,
+        target: "<SKAtoN>" adi to navigation,
+        id: <string> vessel id
+    }
+***********************************/
+@Component({
+	selector: 'ap-atondialog',
+	template: `
+        <div class="_ap-aton">
+            <div>
+                <h1 mat-dialog-title>
+                    <mat-icon class="ap-confirm-icon" color="primary">beenhere</mat-icon>
+                    {{data.title}}
+                </h1>
+            </div>
+            <mat-dialog-content>
+                <div style="display:flex;flex-direction: column;">
+                    <div style="display:flex;">
+                        <div style="width:45%;font-weight:bold;">Name:</div>
+                        <div style="flex: 1 1 auto;">{{data.target.name}}</div>
+                    </div>   
+                    <div style="display:flex;">
+                        <div style="width:45%;font-weight:bold;">MMSI:</div>
+                        <div style="flex: 1 1 auto;">{{data.target.mmsi}}</div>
+                    </div>    
+                    <div style="display:flex;">
+                        <div style="width:45%;font-weight:bold;">Type:</div>
+                        <div style="flex: 1 1 auto;">{{data.target.type.name}}</div>
+                    </div> 
+                    <!--<div style="display:flex;" *ngFor="let p of data.target.properties | keyvalue">
+                        <div style="width:45%;font-weight:bold;">{{p.key}}:</div>
+                        <div style="flex: 1 1 auto;">{{p.value}}</div>
+                    </div>-->
+                    <signalk-details-list [details]=" data.target.properties"></signalk-details-list>          
+                </div>
+            </mat-dialog-content>
+            <mat-dialog-actions>
+                <div style="text-align:center;width:100%;">
+                    <button mat-raised-button (click)="dialogRef.close()">
+                        CLOSE
+                    </button>
+                </div>					
+            </mat-dialog-actions>
+        </div>	
+    `,
+    styles: [`  ._ap-aton {
+                    font-family: arial;
+                    min-width: 300px;
+                }
+                .ap-confirm-icon { 
+                    min-width: 35px;
+                    max-width: 35px;
+                    color: darkorange;
+                    text-align: left;                    
+                }
+                .ap-confirm-icon .mat-icon { 
+                    font-size: 25pt;
+                }
+
+                @media only screen
+                    and (min-device-width : 768px)
+                    and (max-device-width : 1024px),
+                    only screen	and (min-width : 800px) { 
+                    .ap-confirm-icon {
+                        min-width: 25%;
+                        max-width: 25%;
+                    }
+                    .ap-confirm-icon .mat-icon { 
+                        font-size: 40pt;
+                    }                    
+                }                 	
+			`]
+})
+export class AtoNPropertiesDialog implements OnInit {
+
+    public target: any;
+
+    constructor(
+        public dialogRef: MatDialogRef<AtoNPropertiesDialog>,
+        @Inject(MAT_DIALOG_DATA) public data: any) {
+    }
+    
+    ngOnInit() { 
+        this.target= this.data.target;
+    } 
 	
 }

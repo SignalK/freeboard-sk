@@ -53,7 +53,7 @@ export class AppInfo extends Info {
         this.name= "Freeboard";
         this.shortName= "freeboard";
         this.description= `Signal K Chart Plotter.`;
-        this.version= '1.7.0';
+        this.version= '1.8.0';
         this.url= 'https://github.com/signalk/freeboard-sk';
         this.logo= "./assets/img/app_logo.png";       
         
@@ -76,7 +76,7 @@ export class AppInfo extends Info {
             },
             vesselTrail: false,     // display trail
             aisTargets: true,       // display ais targets
-            courseData: false,      // display course data
+            courseData: true,      // display course data
             notes: false,           // display notes
             depthAlarm: { enabled: false, smoothing: 10000 },
             plugins: {
@@ -103,7 +103,8 @@ export class AppInfo extends Info {
                 aisTargets: null,
                 aisWindApparent: false,
                 aisWindMinZoom: 15,
-                notesMinZoom: 10
+                notesMinZoom: 10,
+                pluginFavourites: []
             },
             resources: {    // ** resource options
                 notes: {
@@ -120,6 +121,11 @@ export class AppInfo extends Info {
         } 
 
         this.data= {        // ** received data
+            grib: {
+                hasProvider: false,
+                values: { wind: null, temperature: null}
+            },
+            atons: new Map(),
             routes: [],
             waypoints: [],
             charts: [],
@@ -264,8 +270,8 @@ export class AppInfo extends Info {
                     heading: 'navigation.courseOverGroundTrue'
                 }
             }   
-            if(typeof this.config.darkMode === 'undefined') { 
-                this.config.darkMode= { enabled: false,  source: 0 };
+            if(typeof this.config.selections.pluginFavourites === 'undefined') {
+                this.config.selections['pluginFavourites']= [];
             }  
             if(typeof this.config.plugins.parameters === 'undefined') { 
                 this.config.plugins.parameters= null;

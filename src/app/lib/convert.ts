@@ -6,8 +6,10 @@ export class Convert {
 
     constructor() {}
     // ******* Temperature **********
-    static  celciusToKelvin(val=0) { return val + 273.15; }
-    static  kelvinToCelcius(val=0) { return val - 273.15; }
+    static  celciusToKelvin(val:number=0) { return val + 273.15 }
+    static  kelvinToCelcius(val:number=0) { return val - 273.15 }
+    static  kelvinToFarenheit(val:number=0) { return  val*(9/5)-459.67 }
+    
 
     //******** Angles ***************
     static  degreesToRadians(val=0) {  return val * Math.PI/180; }

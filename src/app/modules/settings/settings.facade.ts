@@ -32,7 +32,8 @@ export class SettingsFacade  {
     list= {
         minZoom: [8,9,10,11,12,13,15,16,17],
         resourceRadius: [ 5, 10,20, 50, 100, 150, 200, 500 ],
-        applications: []
+        applications: [],
+        favourites: []
     }
 
     alarmOptions= {
@@ -99,10 +100,19 @@ export class SettingsFacade  {
                     description: '', 
                     url: null
                 });
+
+                this.buildFavouritesList();
             },
             err=> { this.app.debug('ERROR retrieving AppList!') }
         );
     } 
+
+    // ** favourites **
+    buildFavouritesList() { 
+        this.list.favourites= this.list.applications.slice(1); 
+        let i= this.app.config.selections.pluginFavourites.indexOf(this.app.config.plugins.instruments);
+        if(i!=-1) { this.app.config.selections.pluginFavourites.splice(i,1) }
+    }
 
     applySettings() {
         this.app.debug('Saving Settings..');

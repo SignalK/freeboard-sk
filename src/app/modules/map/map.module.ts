@@ -14,14 +14,18 @@ import { MatMenuModule } from '@angular/material/menu';
 import { AngularOpenlayersModule } from 'ngx-openlayers';
 
 // ** components **
-import { PopoverComponent, FeatureListPopoverComponent, 
+import { PopoverComponent, FeatureListPopoverComponent, AtoNPopoverComponent,
         VesselPopoverComponent, ResourcePopoverComponent } from './popover.component';
 import { RouteNextPointComponent } from './nextpoint.component';
-import { GeometryCircleComponent } from './geom-circle.component';
-import { AisTargetsComponent } from './feature-ais.component';
-import { FBMapComponent } from './fb-map.component';
-
 import { CompassComponent } from './compass.component';
+
+import { AisTargetsComponent } from './components/feature-ais.component';
+import { AtoNsComponent } from './components/feature-atons.component';
+import { LayerHeatmapComponent } from './components/layer-heatmap.component';
+import { LayerWindVectorComponent } from './components/layer-windvector.component';
+import { LayerColormapComponent } from './components/layer-colormap.component';
+
+import { FBMapComponent } from './fb-map.component';
 
 @NgModule({
     imports: [
@@ -31,18 +35,21 @@ import { CompassComponent } from './compass.component';
       ],    
     declarations: [
         PopoverComponent, FeatureListPopoverComponent, VesselPopoverComponent,
-        ResourcePopoverComponent, RouteNextPointComponent,
-        CompassComponent, FBMapComponent,
-        GeometryCircleComponent, AisTargetsComponent    
+        ResourcePopoverComponent, RouteNextPointComponent, AtoNPopoverComponent,
+        CompassComponent, FBMapComponent, LayerHeatmapComponent, LayerColormapComponent,
+        AisTargetsComponent, AtoNsComponent, LayerWindVectorComponent
     ],
     exports: [ 
         PopoverComponent, FeatureListPopoverComponent, VesselPopoverComponent,
-        ResourcePopoverComponent, RouteNextPointComponent,
-        CompassComponent, FBMapComponent,
-        GeometryCircleComponent, AisTargetsComponent
+        ResourcePopoverComponent, RouteNextPointComponent, AtoNPopoverComponent,
+        CompassComponent, FBMapComponent, LayerHeatmapComponent, LayerColormapComponent,
+        AisTargetsComponent, AtoNsComponent, LayerWindVectorComponent
     ],
     entryComponents: [], 
     providers: []  
 })
 export class FBMapModule {}
 
+export { WindVector } from './components/layer-windvector.component';
+export { HeatmapValue } from './components/layer-heatmap.component';
+export { ColormapValue, ColormapGradient } from './components/layer-colormap.component';

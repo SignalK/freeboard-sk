@@ -67,14 +67,21 @@
                                 <mat-icon>border_color</mat-icon>
                             </button> 
                         </div>
-                        <div style="flex: 1 1 auto; text-align:right;">
+                        <div style="flex: 1 1 auto; text-align:right;">                          
                             <button mat-icon-button color="primary"
                                 *ngIf="r[1].group"
                                 (click)="viewNote(r[1].group, true)"
                                 matTooltip="View Group"
                                 matTooltipPosition="left">
                                     <mat-icon>style</mat-icon>
-                            </button>                             
+                            </button> 
+                            <button mat-icon-button color="primary"
+                                [disabled]="app.config.map.moveMap"
+                                (click)="emitCenter(r[1].position)"
+                                matTooltip="Center Note"
+                                matTooltipPosition="left">
+                                    <mat-icon>center_focus_strong</mat-icon>
+                            </button>                              
                             <button mat-icon-button color="primary"
                                 (click)="viewNote(r[0])"
                                 matTooltip="View Note"

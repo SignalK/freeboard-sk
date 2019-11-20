@@ -18,13 +18,31 @@ body {
 b { font-weight: 500; }
 
 .loading {	/*loading screen */
-    font-size: 36pt;
-    font-family: licenseplate;
+    font-size:12pt;
+    font-family: Arial, Helvetica, sans-serif;
     position: absolute;
     top: 25%;
-    left: 25%;
+    left: 0;
+    right:0;
     margin-right: auto;
     color: black;
+    text-align: center;
+}
+
+.loading img {
+    border: 5px rgba(200,200,200,0) solid; 
+    border-radius: 100px;
+    animation: colorchange 1s;
+    animation-iteration-count: infinite;
+}
+
+@keyframes colorchange
+{
+    0%      {border:3px solid rgba(8, 85, 178, .1);}
+    25%     {border:3px solid #7AB7FF;}
+    50%     {border:3px solid rgba(8, 85, 178, 1);}
+    75%     {border:3px solid #7AB7FF;}
+    100%    {border:3px solid rgba(8, 85, 178, .1);}
 }
 
 .theme-page {

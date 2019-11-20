@@ -10,7 +10,8 @@ import { PlaybackDialog } from './lib/ui/playback-dialog';
 
 import { SettingsDialog, AlarmsFacade, AlarmsDialog, 
         SKStreamFacade, SKSTREAM_MODE, SKResources, 
-        SKRegion, AISPropertiesDialog, GPXImportDialog } from './modules';
+        SKRegion, AISPropertiesDialog, AtoNPropertiesDialog, 
+        GPXImportDialog} from './modules';
 
 import { SignalKClient } from 'signalk-client-angular';
 import { Convert } from './lib/convert';
@@ -26,6 +27,7 @@ export class AppComponent {
     @ViewChild('sideright', {static: false}) sideright;
 
     public display= {
+        bottomSheet: { show: false, title: '' },
         fullscreen: { active: false, enabled: document.fullscreenEnabled},
         badge: { hide: true, value: '!'},
         leftMenuPanel: false,
@@ -67,6 +69,7 @@ export class AppComponent {
     private lastInstParams: string;
     public instUrl: SafeResourceUrl;
     private lastVideoUrl: string;
+    private selFavourite: number= -1;
     public vidUrl: SafeResourceUrl;
     
     public convert= Convert;
@@ -194,8 +197,74 @@ export class AppComponent {
 
     private formatInstrumentsUrl() {
         let url:string= `${this.app.host}${this.app.config.plugins.instruments}`;
-        return (this.app.config.plugins.parameters) ?
-            url + `/${this.app.config.plugins.parameters}` : url;
+        let params:string= (this.app.config.plugins.parameters)
+            ? (this.app.config.plugins.parameters.length>0 && 
+                this.app.config.plugins.parameters[0]!=='?')    
+                ? `?${this.app.config.plugins.parameters}` 
+                : this.app.config.plugins.parameters
+            : '';
+        return (params) ? `${url}/${params}` : url;
+    }
+
+    // ** select prev/next favourite plugin **
+    public selectPlugin(next:boolean=false) {
+        if(next) {
+            if( this.selFavourite==-1) { this.selFavourite=0 }
+            else if(this.selFavourite==this.app.config.selections.pluginFavourites.length-1) { 
+                this.selFavourite=-1; 
+            }
+            else { this.selFavourite++ }
+        }
+        else {
+            if( this.selFavourite==-1) { 
+                this.selFavourite=this.app.config.selections.pluginFavourites.length-1;
+            }
+            else if(this.selFavourite==0) { this.selFavourite=-1 }
+            else { this.selFavourite-- }
+        }
+        let url:string= (this.selFavourite==-1) ? this.formatInstrumentsUrl()
+            : `${this.app.host}${this.app.config.selections.pluginFavourites[this.selFavourite]}`;
+
+        this.instUrl= this.dom.bypassSecurityTrustResourceUrl(url);
+    }    
+
+    // ** show bottom sheet **
+    public openBottomSheet() { 
+        this.display.bottomSheet.show=true;  
+        this.display.bottomSheet.title= 'GRIB Data';
+    }
+
+    // ** close bottom sheet **
+    public closeBottomSheet() {
+        this.display.bottomSheet.show=false;
+        this.app.data.grib.values.wind= null;
+        this.app.data.grib.values.temperature= null;
+        this.skres.getGRIBData();   // clear grib data from map
+        this.focusMap();
+    }
+
+    // ** get / display supported GRIB layers **
+    public selectGRIB(e:any) {
+        let params:string= '';
+        if(typeof e.content.Temperature!=='undefined') {
+            if(e.content.Temperature==null) { this.app.data.grib.values.temperature= null }
+            else { 
+                params= (params.length==0) 
+                    ?  `:${e.content.Temperature}` 
+                    :  `${params}-${e.content.Temperature}`;
+            }
+        }
+        if(typeof e.content.Wind!=='undefined') {
+            if(e.content.Wind==null) { this.app.data.grib.values.wind= null }
+            else { 
+                params= (params.length==0) 
+                    ?  `:${e.content.Wind}` 
+                    :  `${params}-${e.content.Wind}`;
+            }
+        }
+
+        if(params.length==0) { this.skres.getGRIBData() }
+        else { this.skres.getGRIBData(e.id + params) }
     }
 
     // ************************************************
@@ -507,6 +576,16 @@ export class AppComponent {
 
     // ***** OPTIONS MENU ACTONS *******  
 
+    public centerResource(position:[number,number], zoomTo:boolean=false) { 
+        position[0]+=0.0000000000001;
+        this.display.map.center= position;
+        if(zoomTo) { 
+            if(this.app.config.map.zoomLevel<this.app.config.selections.notesMinZoom) {
+                this.app.config.map.zoomLevel=this.app.config.selections.notesMinZoom;
+            }
+        }
+    }
+
     public centerVessel() { 
         let t=this.app.data.vessels.active.position;
         t[0]+=0.0000000000001;
@@ -607,17 +686,32 @@ export class AppComponent {
     // ** handle display vessel properties **
     public vesselProperties(e:any) {
         let v: any;
-        if(e.type=='self') { v= this.app.data.vessels.self }
-        else { v= this.app.data.vessels.aisTargets.get(e.id) }
-        if(v) {
-            this.dialog.open(AISPropertiesDialog, {
-                disableClose: true,
-                data: {
-                    title: 'Vessel Properties',
-                    target: v,
-                    id: e.id
-                }
-            }).afterClosed().subscribe( ()=> this.focusMap() );
+        if(e.type=='aton') { 
+            v= this.app.data.atons.get(e.id);
+            if(v) {
+                this.dialog.open(AtoNPropertiesDialog, {
+                    disableClose: true,
+                    data: {
+                        title: 'AtoN Properties',
+                        target: v,
+                        id: e.id
+                    }
+                }).afterClosed().subscribe( ()=> this.focusMap() );
+            }         
+        }
+        else {
+            v= (e.type=='self') ? this.app.data.vessels.self 
+                : this.app.data.vessels.aisTargets.get(e.id);
+            if(v) {
+                this.dialog.open(AISPropertiesDialog, {
+                    disableClose: true,
+                    data: {
+                        title: 'Vessel Properties',
+                        target: v,
+                        id: e.id
+                    }
+                }).afterClosed().subscribe( ()=> this.focusMap() );
+            }
         }
     }   
     
@@ -828,7 +922,11 @@ export class AppComponent {
                 this.skres.getCharts();  
                 this.skres.getNotes();
                 // ** query anchor alarm status
-                this.alarmsFacade.queryAnchorStatus(this.app.data.vessels.activeId, this.app.data.vessels.active.position);              
+                this.alarmsFacade.queryAnchorStatus(this.app.data.vessels.activeId, this.app.data.vessels.active.position);
+                this.skres.getGRIBList().subscribe( 
+                    r=> { this.app.data.grib.hasProvider= true },
+                    err=> { this.app.data.grib.hasProvider= false }
+                );
             },
             err=> { 
                 if(err.status && err.status==401) { this.showLogin(null, false, true) }  

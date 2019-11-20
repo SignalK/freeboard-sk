@@ -1,7 +1,7 @@
 /// <reference lib="webworker" />
 
 import { SignalKStreamWorker, Alarm, AlarmState } from 'signalk-worker-angular';
-import { SKVessel } from './modules/skresources/resource-classes';
+import { SKVessel, SKAtoN } from './modules/skresources/resource-classes';
 import { Convert } from './lib/convert';
 
 class WorkerMessageBase {
@@ -42,6 +42,7 @@ const prefSourcePaths= [
 ];
 
 let vessels;
+let atons;
 let stream:SignalKStreamWorker;
 let unsubscribe:Array<any>= [];
 let timers= [];
@@ -66,7 +67,8 @@ function initVessels() {
         self: new SKVessel(), 
         aisTargets: new Map(),
         aisStatus: { updated:[], stale:[], expired:[] },
-        paths: {}
+        paths: {},
+        atons: new Map()
     }
     // flag to indicate at least one position data message received
     vessels.self['positionReceived']= false;
@@ -244,13 +246,18 @@ function parseStreamMessage(data:any) {
         data.updates.forEach(u => {
             u.values.forEach( v=> {
                 playbackTime= u.timestamp;
-                if(stream.isSelf(data)) { 
-                    processVessel( vessels.self, v, true),
-                    processNotifications(v);
+                if(data.context.indexOf('aton')!=-1) {  // aton
+                    processAtoN(data.context, v);
                 }
-                else { 
-                    vessels.aisStatus.updated.push(data.context);
-                    processVessel( selectVessel(data.context), v);
+                else { // vessel
+                    if(stream.isSelf(data)) { 
+                        processVessel( vessels.self, v, true),
+                        processNotifications(v);
+                    }
+                    else { 
+                        vessels.aisStatus.updated.push(data.context);
+                        processVessel( selectVessel(data.context), v);
+                    }
                 }
             });
         });
@@ -441,4 +448,25 @@ function processAIS() {
             vessels.aisStatus.stale.push(k); 
         } 
     });
+}
+
+// process AtoN values
+function processAtoN(id:string, v:any) {
+    if( !vessels.atons.has(id) ) {
+        let aton= new SKAtoN();
+        aton.id= id;
+        aton.position= null;
+        vessels.atons.set(id, aton );
+    }
+    let d= vessels.atons.get(id);        
+    if( v.path=='' ) { 
+        if(typeof v.value.name!= 'undefined') { d.name= v.value.name }
+        if(typeof v.value.mmsi!= 'undefined') { d.mmsi= v.value.mmsi }
+        if(typeof v.value.atonType!= 'undefined') { d.type= v.value.atonType }
+    } 
+    else if(v.path=='atonType') { d.type= v.value }
+    else if( v.path=='navigation.position') {
+        d.position= [ v.value.longitude, v.value.latitude];                      
+    } 
+    else { d.properties[v.path]= v.value }  
 }

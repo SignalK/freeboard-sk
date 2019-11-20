@@ -12,7 +12,7 @@ import { SettingsFacade } from './settings.facade';
 })
 export class SettingsDialog implements OnInit {
 
-    public display= { paths: false }
+    public display= { paths: false, favourites: false }
      
     constructor( 
         public facade: SettingsFacade,
@@ -37,6 +37,12 @@ export class SettingsDialog implements OnInit {
             this.facade.settings.selections.preferredPaths= e.value;
             this.facade.applySettings();
         }
+    }
+
+    onFavSelected(e:any, f:any) {
+        this.facade.settings.selections.pluginFavourites= f.selectedOptions.selected.map(i=> i.value );
+        console.log(this.facade.settings.selections.pluginFavourites);
+        this.facade.applySettings();
     }
 
 }

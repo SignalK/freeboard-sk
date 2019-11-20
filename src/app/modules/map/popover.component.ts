@@ -3,7 +3,7 @@
 
 import { Component, Input, Output, EventEmitter, ChangeDetectionStrategy } from '@angular/core';
 
-import { SKVessel } from '../skresources/resource-classes';
+import { SKVessel, SKAtoN } from '../skresources/resource-classes';
 import { Convert } from '../../lib/convert';
 
 /*********** Popover ***************
@@ -423,6 +423,82 @@ export class ResourcePopoverComponent {
     emitInfo() { this.info.emit() }
 
     emitRelated() { this.related.emit(this.resource[1].group) }
+
+    handleClose() { this.closed.emit() }
+}
+
+/*********** AtoN Popover ***************
+title: string -  title text,
+aton: SKAtoN - aton data
+*************************************************/
+@Component({
+    selector: 'aton-popover',
+    changeDetection: ChangeDetectionStrategy.OnPush,
+    template: `
+        <ap-popover
+            [title]="_title" 
+            [canClose]="true"
+            (closed)="handleClose()">
+            
+            <div style="display:flex;">
+                <div style="font-weight:bold;">Type:</div>
+                <div style="flex: 1 1 auto;text-align:right;">{{aton.type.name}}</div>
+            </div>
+            <div style="display:flex;">
+                <div style="font-weight:bold;">Latitude:</div>
+                <div style="flex: 1 1 auto;text-align:right;">{{aton.position[1].toFixed(6)}}</div>
+            </div>
+            <div style="display:flex;">
+                <div style="font-weight:bold;">Longitude:</div>
+                <div style="flex: 1 1 auto;text-align:right;">{{aton.position[0].toFixed(6)}}</div>
+            </div>
+            <div style="display:flex;">
+                <div style="font-weight:bold;">Last Update:</div>
+                <div style="flex: 1 1 auto;text-align:right;">
+                    {{timeLastUpdate}} {{timeAgo}}
+                </div>
+            </div>         
+            <div style="display:flex;">
+                <div style="flex:1 1 auto;">&nbsp;</div>
+                <div class="popover-action-button">
+                    <button mat-button
+                        (click)="handleInfo()"
+                        matTooltip="Show Properties">
+                        <mat-icon color="primary">info_outline</mat-icon>
+                        INFO
+                    </button>  
+                </div> 
+            </div>
+        </ap-popover>  
+	`,
+    styleUrls: []
+})
+export class AtoNPopoverComponent {
+    @Input() title: string;
+    @Input() aton: SKAtoN;
+    @Output() info: EventEmitter<string>= new EventEmitter();
+    @Output() closed: EventEmitter<any>= new EventEmitter();
+    
+    _title: string;
+    timeLastUpdate: string;
+    timeAgo: string;    // last update in minutes ago
+
+    constructor() {}
+
+    ngOnInit() { 
+        if(!this.aton) { this.handleClose() } 
+        else {
+            this._title= this.title || this.aton.name || this.aton.mmsi || 'AtoN:';
+        }
+    }
+
+    ngOnChanges() { 
+        this.timeLastUpdate= `${this.aton.lastUpdated.getHours()}:${('00' + this.aton.lastUpdated.getMinutes()).slice(-2)}`;
+        let td= (new Date().valueOf() - this.aton.lastUpdated.valueOf()) / 1000;
+        this.timeAgo= (td<60) ? '' : `(${Math.floor(td/60)} min ago)`;
+    }
+    
+    handleInfo() { this.info.emit(this.aton.id) }
 
     handleClose() { this.closed.emit() }
 }

@@ -1,4 +1,5 @@
 import { Component, OnInit, Input, Output, EventEmitter, ChangeDetectionStrategy } from '@angular/core';
+import { AppInfo } from '../../../app.info';
 
 @Component({
     selector: 'waypoint-list',
@@ -16,13 +17,14 @@ export class WaypointListComponent {
     @Output() refresh: EventEmitter<any>= new EventEmitter();
     @Output() properties: EventEmitter<any>= new EventEmitter();
     @Output() closed: EventEmitter<any>= new EventEmitter();
+    @Output() center: EventEmitter<any>= new EventEmitter();
 
     filterList= [];
     filterText: string= '';
     someSel: boolean= false;
     allSel: boolean= false;    
 
-    constructor() { }
+    constructor(public app: AppInfo) { }
 
     ngOnInit() { this.initItems() }
 
@@ -65,6 +67,8 @@ export class WaypointListComponent {
         this.checkSelections();
         this.select.emit({id: id, value: e}); 
     }
+
+    emitCenter(position) { this.center.emit([position.longitude, position.latitude]) }
 
     itemProperties(id) { this.properties.emit({id: id, type: 'waypoint'}) }
 

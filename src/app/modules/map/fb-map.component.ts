@@ -1,7 +1,12 @@
 import { Component, OnInit, OnDestroy, Input, Output, EventEmitter, ViewChild } from '@angular/core';
 import { MatMenuTrigger } from '@angular/material';
 
-import { proj, coordinate, style, Collection } from 'openlayers';
+//import { proj, coordinate, style, Collection } from 'openlayers';
+import { createStringXY } from 'ol/coordinate';
+import { transform, transformExtent } from 'ol/proj';
+import { Style, Stroke } from 'ol/style';
+import { Collection } from 'ol';
+
 import { Convert } from '../../lib/convert';
 import { GeoUtils } from '../../lib/geoutils';
 
@@ -71,8 +76,8 @@ export class FBMapComponent implements OnInit, OnDestroy {
         enabled: false,
         end: false,
         geom: null,
-        style: new style.Style({
-            stroke: new style.Stroke({
+        style: new Style({
+            stroke: new Stroke({
                 color: 'purple', 
                 lineDash: [10,10],
                 width: 2
@@ -118,11 +123,13 @@ export class FBMapComponent implements OnInit, OnDestroy {
         center: [0, 0],
         zoomLevel: 1,
         movingMap: false,
-        northUp: true
+        northUp: true,
+        extent: null
     }
 
     // ** map feature data
     dfeat= {
+        atons: [],
         routes: [],
         waypoints: [],
         charts: [],
@@ -132,19 +139,29 @@ export class FBMapComponent implements OnInit, OnDestroy {
         ais: new Map(),         // other vessels
         active: new SKVessel(),  // focussed vessel
         navData: {position: null},
-        closest: {id: null, position: [0,0]}
+        closest: {id: null, position: [0,0]},
+        grib: { wind: [], temperature: [] },    // GRIB data
+        heatmap: []     // values to display on colormap / heatmap
     }
 
-    // AIS target management
+    // ** AIS target management
     aisMgr= {
         updateList: [],
         staleList: [],
         removeList: []
     }
 
+    // ** map layer display
+    display= { 
+        layer: {
+            notes: false,
+            wind: false,
+            colormap: false,
+            heatmap: false
+        }
+    }
     private saveTimer: any;
     private isDirty: boolean=false;
-    public coord= coordinate;
 
     private mouse= {
         pixel: null,
@@ -162,8 +179,11 @@ export class FBMapComponent implements OnInit, OnDestroy {
 
     ngAfterViewInit() { 
         setTimeout( ()=> this.aolMap.instance.updateSize(), 100 );
-        this.aolMap.instance.a.tabIndex=0;
-        this.aolMap.instance.a.focus();
+        this.aolMap.host.nativeElement.firstChild.tabIndex=0;
+        this.aolMap.host.nativeElement.firstChild.focus();
+        if(!this.app.config.map.mrid) { 
+            this.app.config.map.mrid= this.aolMap.instance.getView().getProjection().getCode();
+        }
     }              
 
     ngOnInit() { 
@@ -176,6 +196,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
             this.app.settings$.subscribe( r=> {               
                 if(r.action=='save' && r.setting=='config') {  
                     this.fbMap.movingMap= this.app.config.map.moveMap;
+                    this.renderMapContents();
                 }
             })
         );     
@@ -188,7 +209,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
 
     ngOnChanges(changes) {
         if(changes.setFocus && changes.setFocus.currentValue==true) { 
-            this.aolMap.instance.a.focus(); 
+            this.aolMap.host.nativeElement.firstChild.focus();
         }
         if(changes && changes.mapCenter) {
             this.fbMap.center= (changes.mapCenter.currentValue) ? changes.mapCenter.currentValue : this.fbMap.center;
@@ -240,6 +261,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
     }
 
     // ********** EVENT HANDLERS *****************  
+    private checkedAtoNs:boolean= false;
 
     private onVessels() {
         this.dfeat.self= this.app.data.vessels.self;
@@ -265,6 +287,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
                 this.overlay.position= this.overlay['vessel'].position;
             }
         }  
+        if(!this.checkedAtoNs && this.app.data.atons.size!=0) { this.renderAtoNs(); this.checkedAtoNs=true; }
         this.drawVesselLines();
         this.rotateMap();  
         if(this.fbMap.movingMap) { this.centerVessel() }    
@@ -281,10 +304,14 @@ export class FBMapComponent implements OnInit, OnDestroy {
                 this.dfeat.notes= this.app.data.notes;
                 this.dfeat.regions= this.app.data.regions;
             }
+            if(value.mode=='grib') { this.renderGRIB() }
         }
     }    
 
     // ********** MAP EVENT HANDLERS *****************    
+
+    // Coordinate Format function (pointer position)
+    pointerXYString() { return createStringXY(4) }
 
     // ** handle context menu choices **
     public onContextMenuAction(action:string, e:any) {
@@ -327,14 +354,22 @@ export class FBMapComponent implements OnInit, OnDestroy {
         }
     }
 
+    // ** handle map move **
     public onMapMove(e:any) {
         let v= e.map.getView();
+        if(!this.app.config.map.mrid) { this.app.config.map.mrid= v.getProjection().getCode() }
+        
         let z= Math.round(v.getZoom());
         this.app.config.map.zoomLevel=z;
         this.app.debug(`Zoom: ${z}`);
 
-        if(!this.app.config.map.mrid) { this.app.config.map.mrid= v.getProjection().getCode() }
-        let center = proj.transform(
+        this.fbMap.extent= transformExtent(
+           v.calculateExtent(e.map.getSize()),
+            this.app.config.map.mrid, 
+            this.app.config.map.srid
+        );
+
+        let center = transform(
             v.getCenter(), 
             this.app.config.map.mrid, 
             this.app.config.map.srid
@@ -348,20 +383,20 @@ export class FBMapComponent implements OnInit, OnDestroy {
         }
         else { this.isDirty=true }
 
-        // retrieve Notes
-        if(this.fetchNotes()) {this.skres.getNotes();this.app.debug(`fetching Notes...`) }
+        // render map features
+        this.renderMapContents()
     }
 
     public onMapPointerMove(e:any) {
         this.mouse.pixel= e.pixel;
         this.mouse.xy= e.coordinate;
-        this.mouse.coords= proj.transform(
+        this.mouse.coords= transform(
             e.coordinate, 
             this.app.config.map.mrid, 
             this.app.config.map.srid
         );
         if(this.measure.enabled && this.measure.coords.length!=0) {
-            let c= proj.transform(
+            let c= transform(
                 e.coordinate, 
                 this.app.config.map.mrid, 
                 this.app.config.map.srid
@@ -386,65 +421,74 @@ export class FBMapComponent implements OnInit, OnDestroy {
             let flist= new Map();
             let fa= [];
             // compile list of features at click location
-            e.map.forEachFeatureAtPixel(e.pixel, (feature, layer)=> {
-                let id= feature.getId();
-                let addToFeatureList: boolean= false;
-                let notForModify: boolean= false;
-                if(id) {
-                    let t= id.split('.');
-                    let icon: string;
-                    let text: string;
-                    switch(t[0]) {
-                        case 'note': icon="local_offer"; 
-                            addToFeatureList= true;
-                            text= this.app.data.notes.filter( i=>{ return (i[0]==t[1])? i[1].title : null })[0][1].title;
-                            break;
-                        case 'sptroute':    // route start / end points
-                        case 'eptroute':
-                            icon="directions"; 
-                            t[0]='route';
-                            id= t.join('.');
-                            addToFeatureList= true;
-                            notForModify= true;
-                            text= this.app.data.routes.filter( i=>{ return (i[0]==t[1])? i[1].name : null })[0][1].name;
-                            break;                            
-                        case 'route': icon="directions"; 
-                            addToFeatureList= true;
-                            text= this.app.data.routes.filter( i=>{ return (i[0]==t[1])? i[1].name : null })[0][1].name;
-                            break;
-                        case 'waypoint': icon="location_on"; 
-                            addToFeatureList= true;
-                            text= this.app.data.waypoints.filter( i=>{ return (i[0]==t[1])? i[1].feature.properties.name : null })[0][1].feature.properties.name;
-                            break;
-                        case 'ais-vessels': icon="directions_boat"; 
-                            addToFeatureList= true;
-                            let v= this.dfeat.ais.get(`vessels.${t[1]}`);
-                            text= (v) ? v.name || v.mmsi || v.title : '';
-                            break;
-                        case 'vessels': icon="directions_boat"; 
-                            addToFeatureList= true;
-                            text= this.dfeat.self.name + ' (self)' || 'self'; 
-                            break;
-                        case 'region': 
-                            addToFeatureList= true;
-                            icon="360"; text='Region'; break;
-                    }
-                    if(addToFeatureList && !flist.has(id)) {
-                        flist.set(id, {
-                            id: id, 
-                            coord: e.coordinate, 
-                            mrid: this.app.config.map.mrid,
-                            icon: icon,
-                            text: text
-                        });
-                        if(notForModify) { // get route feature when end points clicked
-                            let f= layer.getSource().getFeatureById(id);
-                            if(f) { fa.push(f) } 
+            e.map.forEachFeatureAtPixel(
+                e.pixel, 
+                (feature, layer)=> {
+                    let id= feature.getId();
+                    let addToFeatureList: boolean= false;
+                    let notForModify: boolean= false;
+                    if(id) {
+                        let t= id.split('.');
+                        let icon: string;
+                        let text: string;
+                        switch(t[0]) {
+                            case 'note': icon="local_offer"; 
+                                addToFeatureList= true;
+                                text= this.app.data.notes.filter( i=>{ return (i[0]==t[1])? i[1].title : null })[0][1].title;
+                                break;
+                            case 'sptroute':    // route start / end points
+                            case 'eptroute':
+                                icon="directions"; 
+                                t[0]='route';
+                                id= t.join('.');
+                                addToFeatureList= true;
+                                notForModify= true;
+                                text= this.app.data.routes.filter( i=>{ return (i[0]==t[1])? i[1].name : null })[0][1].name;
+                                break;                            
+                            case 'route': icon="directions"; 
+                                addToFeatureList= true;
+                                text= this.app.data.routes.filter( i=>{ return (i[0]==t[1])? i[1].name : null })[0][1].name;
+                                break;
+                            case 'waypoint': icon="location_on"; 
+                                addToFeatureList= true;
+                                text= this.app.data.waypoints.filter( i=>{ return (i[0]==t[1])? i[1].feature.properties.name : null })[0][1].feature.properties.name;
+                                break;
+                            case 'atons': icon="beenhere"; 
+                                addToFeatureList= true;
+                                let aton= this.app.data.atons.get(id);
+                                text= (aton) ? aton.name || aton.mmsi : '';
+                                break;                            
+                            case 'ais-vessels': icon="directions_boat"; 
+                                addToFeatureList= true;
+                                let v= this.dfeat.ais.get(`vessels.${t[1]}`);
+                                text= (v) ? v.name || v.mmsi || v.title : '';
+                                break;
+                            case 'vessels': icon="directions_boat"; 
+                                addToFeatureList= true;
+                                text= this.dfeat.self.name + ' (self)' || 'self'; 
+                                break;
+                            case 'region': 
+                                addToFeatureList= true;
+                                icon="360"; text='Region'; break;
                         }
-                        else { fa.push(feature) }
-                    }
-                }  
-            });
+                        if(addToFeatureList && !flist.has(id)) {
+                            flist.set(id, {
+                                id: id, 
+                                coord: e.coordinate, 
+                                mrid: this.app.config.map.mrid,
+                                icon: icon,
+                                text: text
+                            });
+                            if(notForModify) { // get route feature when end points clicked
+                                let f= layer.getSource().getFeatureById(id);
+                                if(f) { fa.push(f) } 
+                            }
+                            else { fa.push(feature) }
+                        }
+                    }  
+                }, 
+                { hitTolerance: 5 }
+            );
             this.draw.features= new Collection(fa); // features collection for modify interaction
             if(flist.size==1) {   // only 1 feature
                 let v= flist.values().next().value;
@@ -468,7 +512,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
     // ** Map Interaction events **
     public onMeasureStart(e:any) {
         this.measure.geom= e.feature.getGeometry();
-        let c= proj.transform(
+        let c= transform(
             this.measure.geom.getLastCoordinate(), 
             this.app.config.map.mrid, 
             this.app.config.map.srid
@@ -480,7 +524,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
     }
 
     public onMeasureClick(pt:[number,number]) {
-        let c= proj.transform(
+        let c= transform(
             pt,
             this.app.config.map.mrid, 
             this.app.config.map.srid
@@ -507,7 +551,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
         let c:any;
         switch(this.draw.type) {
             case 'Point':
-                this.draw.coordinates= proj.transform(
+                this.draw.coordinates= transform(
                     e.feature.getGeometry().getCoordinates(), 
                     this.app.config.map.mrid, 
                     this.app.config.map.srid
@@ -516,7 +560,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
             case 'LineString':
                 let rc= e.feature.getGeometry().getCoordinates();
                 c= rc.map( i=> { 
-                    return proj.transform(
+                    return transform(
                         i, 
                         this.app.config.map.mrid, 
                         this.app.config.map.srid
@@ -528,7 +572,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
                 let p= e.feature.getGeometry().getCoordinates();
                 if(p.length==0) { this.draw.coordinates= [] }
                 c= p[0].map( i=> { 
-                    return proj.transform(
+                    return transform(
                         i, 
                         this.app.config.map.mrid, 
                         this.app.config.map.srid
@@ -568,7 +612,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
             pc= c;
         }        
         else {  // point feature
-            pc= proj.transform(
+            pc= transform(
                 c, 
                 this.app.config.map.mrid, 
                 this.app.config.map.srid
@@ -682,7 +726,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
         this.overlay.id=null;    
         this.overlay.type=null;
         this.overlay.featureCount= this.draw.features.getLength(); 
-        this.overlay.position= proj.transform(
+        this.overlay.position= transform(
             coord, 
             prj, 
             this.app.config.map.srid
@@ -713,6 +757,13 @@ export class FBMapComponent implements OnInit, OnDestroy {
                 this.overlay['vessel']= this.dfeat.ais.get(aid);
                 this.overlay.show=true;
                 return;
+            case 'atons':
+                    this.overlay['type']= 'aton';
+                    if(!this.app.data.atons.has(id)) { return false }
+                    this.overlay['id']= id;
+                    this.overlay['aton']= this.app.data.atons.get(id);
+                    this.overlay.show=true;
+                    return;                
             case 'region':
                 item= this.app.data.regions.filter( i=>{ if(i[0]==t[1]) return true });
                 if(!item) { return false }
@@ -893,7 +944,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
 
     private transformCoordsArray(ca:Array<[number,number]>) {
         return ca.map( i=> { 
-            return proj.transform(
+            return transform(
                 i, 
                 this.app.config.map.mrid, 
                 this.app.config.map.srid
@@ -901,8 +952,17 @@ export class FBMapComponent implements OnInit, OnDestroy {
         });
     }       
 
+    // ** called by onMapMove() to render features within map extent
+    private renderMapContents() {
+        if(this.fetchNotes()) {this.skres.getNotes();this.app.debug(`fetching Notes...`) }
+        this.renderAtoNs();
+        this.renderGRIB();
+    }
+
     // ** returns true if skres.getNotes() should be called
     private fetchNotes() {
+        this.display.layer.notes= (this.app.config.notes && this.app.config.map.zoomLevel>=this.app.config.selections.notesMinZoom);
+
         this.app.debug(`lastGet: ${this.app.data.lastGet}`);
         this.app.debug(`getRadius: ${this.app.config.resources.notes.getRadius}`);
         if(this.app.config.map.zoomLevel < this.app.config.selections.notesMinZoom) { return false }
@@ -923,5 +983,32 @@ export class FBMapComponent implements OnInit, OnDestroy {
             return true; 
         }
         return false;    
-    }       
+    }  
+    
+    // filter AtoNs within map extent to render
+    private renderAtoNs() {
+        this.dfeat.atons= [];
+        this.app.data.atons.forEach( v=> {
+            if(GeoUtils.inBounds(v.position, this.fbMap.extent)) {
+                this.dfeat.atons.push(v);
+            }
+        })
+    }
+
+    // filter GRIB resources within map extent to render
+    private renderGRIB() {
+        if(this.app.data.grib.values.wind) {
+            this.dfeat.grib.wind= this.app.data.grib.values.wind.filter( i=> {
+                return (GeoUtils.inBounds(i.coord, this.fbMap.extent));
+            });
+        }
+        this.display.layer.wind= (this.dfeat.grib.wind.length>0 && this.app.config.map.zoomLevel>=4);
+
+        if(this.app.data.grib.values.temperature) {
+            this.dfeat.heatmap= this.app.data.grib.values.temperature.filter( i=> {
+                return (GeoUtils.inBounds(i.coord, this.fbMap.extent));
+            });
+        }
+        this.display.layer.colormap= (this.dfeat.heatmap.length>0 && this.app.config.map.zoomLevel>=4);
+    }
 }

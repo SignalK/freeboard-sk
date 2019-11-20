@@ -38,7 +38,7 @@
     <!-- Controls -->
     <aol-control-mouseposition class="ol-mouse-position"
         [projection]="app.config.map.srid"
-        [coordinateFormat]="coord.createStringXY(4)">
+        [coordinateFormat]="pointerXYString()">
     </aol-control-mouseposition>
 
     <aol-control>
@@ -85,6 +85,43 @@
     </aol-layer-tile>
     </div>
     <!-- *** /Charts *** -->  
+
+    <!-- *** AtoNs *** -->
+    <aol-layer-vector [zIndex]="45" [renderBuffer]="200">
+        <aol-source-vector>
+            <xol-aton-targets 
+                [atons]="dfeat.atons"
+                [minZoomLevel]="10"
+                [mapZoom]="app.config.map.zoomLevel">                               
+            </xol-aton-targets>
+        </aol-source-vector>
+    </aol-layer-vector>
+    <!-- *** /AtoNs *** -->     
+  
+    <!-- *** Heatmap *** -->
+    <xol-layer-heatmap *ngIf="display.layer.heatmap"
+        [zIndex]="47"
+        [values]="dfeat.heatmap"
+        [blur]="15" [radius]="5"
+        [map]="aolMap">
+    </xol-layer-heatmap>
+    <!-- *** /Heatmap *** -->
+
+    <!-- *** Colormap *** -->
+    <xol-layer-colormap *ngIf="display.layer.colormap"
+        [zIndex]="48"
+        [values]="dfeat.heatmap"
+        [map]="aolMap">
+    </xol-layer-colormap>
+    <!-- *** /Colormap *** -->        
+
+    <!-- *** Wind Vector *** -->
+    <xol-layer-windvector *ngIf="display.layer.wind"
+        [zIndex]="49"
+        [values]="dfeat.grib.wind"
+        [map]="aolMap">
+    </xol-layer-windvector>
+    <!-- *** /Wind Vector *** -->         
     
     <!-- *** ROUTES *** -->
     <aol-layer-vector [zIndex]="50"> 
@@ -197,15 +234,15 @@
 
     <!-- *** NOTES & REGIONS *** -->
     <aol-layer-vector 
-        *ngIf="app.config.notes && app.config.map.zoomLevel>=app.config.selections.notesMinZoom" 
+        *ngIf="display.layer.notes" 
         [zIndex]="120" [renderBuffer]="200">
         <aol-source-vector>
             <div *ngFor="let r of dfeat.regions; let i=index;">
-                <!--MultiPolygon-->
+                <!--Polygon-->
                 <aol-feature [id]="'region.'+ r[0]" *ngIf="r[1].feature.geometry.type=='Polygon'"> 
                     <aol-geometry-polygon>
                         <aol-collection-coordinates
-                            [coordinates]="r[1].feature.geometry.coordinates[0]"
+                            [coordinates]="r[1].feature.geometry.coordinates"
                             [srid]="app.config.map.srid">
                         </aol-collection-coordinates>                                        
                     </aol-geometry-polygon>
@@ -216,12 +253,12 @@
                 </aol-feature> 
                 <!--MultiPolygon-->
                 <aol-feature [id]="'region.'+ r[0]" *ngIf="r[1].feature.geometry.type=='MultiPolygon'"> 
-                    <aol-geometry-polygon>
+                    <aol-geometry-multipolygon>
                         <aol-collection-coordinates
-                            [coordinates]="r[1].feature.geometry.coordinates[0][0]"
+                            [coordinates]="r[1].feature.geometry.coordinates"
                             [srid]="app.config.map.srid">
                         </aol-collection-coordinates>                                        
-                    </aol-geometry-polygon>
+                    </aol-geometry-multipolygon>
                     <aol-style>
                         <aol-style-stroke [color]="'purple'"></aol-style-stroke>
                         <aol-style-fill [color]="[255,0,255,0.1]"></aol-style-fill>
@@ -304,7 +341,13 @@
                 (focused)="setActiveVessel( ($event) ? overlay.id : null )"
                 (markPosition)="skres.showWaypointEditor(null, $event); popoverClosed()"
                 (closed)="popoverClosed()">                    
-            </vessel-popover>                            
+            </vessel-popover>      
+            <!--AtoN popover-->
+            <aton-popover *ngIf="overlay.type=='aton'"
+                [aton]="overlay.aton"
+                (info)="itemInfo(overlay.id, overlay.type); popoverClosed()"
+                (closed)="popoverClosed()">                    
+            </aton-popover>                                   
         </aol-content>
     </aol-overlay>   
     <!-- /*** popover *** -->  
@@ -313,8 +356,12 @@
     <aol-layer-vector [zIndex]="49" *ngIf="!app.config.anchor.raised">
         <aol-source-vector>
             <aol-feature>
-                <xol-geometry-circle [radius]="app.config.anchor.radius"
-                    [center]="app.config.anchor.position">                                 
+                <aol-geometry-circle [radius]="app.config.anchor.radius">  
+                    <aol-coordinate 
+                        [x]="app.config.anchor.position[0]" 
+                        [y]="app.config.anchor.position[1]" 
+                        [srid]="app.config.map.srid">
+                    </aol-coordinate>                               
                     <aol-style>
                         <aol-style-fill [color]="'rgba(0, 255, 0, .3)'"></aol-style-fill>
                         <aol-style-stroke 
@@ -323,7 +370,7 @@
                             [width]="1">
                         </aol-style-stroke>                                          
                     </aol-style>
-                </xol-geometry-circle>
+                </aol-geometry-circle>
             </aol-feature>
 
             <aol-feature>

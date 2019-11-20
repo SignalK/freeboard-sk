@@ -25,6 +25,8 @@ import { TextDialComponent } from './dial-text';
 import { PlaybackDialog } from './playback-dialog';
 import { PiPVideoComponent } from './pip.component';
 
+import { SignalKDetailsComponent } from './signalk-details.component';
+
 
 @NgModule({
     imports: [
@@ -37,12 +39,12 @@ import { PiPVideoComponent } from './pip.component';
         MsgBox, AlertDialog, ConfirmDialog, AboutDialog,
         FileInputComponent, TextDialComponent, LoginDialog,  
         MessageBarComponent, WelcomeDialog,
-        PlaybackDialog, PiPVideoComponent
+        PlaybackDialog, PiPVideoComponent, SignalKDetailsComponent
     ],
     exports: [
         MsgBox, AlertDialog, ConfirmDialog, AboutDialog, MessageBarComponent,
         FileInputComponent, TextDialComponent, LoginDialog, 
-        PlaybackDialog, PiPVideoComponent
+        PlaybackDialog, PiPVideoComponent, SignalKDetailsComponent
     ],
     entryComponents: [
         MsgBox, AlertDialog, ConfirmDialog, AboutDialog, LoginDialog,

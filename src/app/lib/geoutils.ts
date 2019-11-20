@@ -111,7 +111,13 @@ export class GeoUtils {
             low[0] + ((high[0] - low[0]) / 2),
             low[1] + ((high[1] - low[1]) / 2)
         ];
-    }     
+    } 
+
+    // returns true if point is inside the supplied extent
+    static inBounds( point: [number,number], extent: [number,number,number,number]) {
+        return (point[0]>extent[0] && point[0]<extent[2])
+            && (point[1]>extent[1] && point[1]<extent[3]); 
+    }    
    
 }
 

@@ -242,16 +242,36 @@
                     style="width:350px;">
                     <div style="display:flex;flex-direction: column;position:relative;">
                         <mat-nav-list >	
-                            <a mat-list-item (click)="sideright.toggle();">
-                                <mat-icon>arrow_forward</mat-icon>
+                            <a mat-list-item >
+                                <a mat-icon-button (click)="sideright.toggle();">
+                                    <mat-icon>arrow_forward</mat-icon>
+                                </a>
                                 &nbsp;&nbsp;&nbsp;&nbsp;
-                                <a mat-icon-button [href]="instUrl" 
+                                <a mat-icon-button [href]="instUrl"
+                                    (click)="sideright.toggle();" 
                                     *ngIf="app.config.plugins.instruments"
                                     target="_blank" color="primary"
                                     matTooltip="Open Instruments in window."
                                     matTooltipPosition="right">
                                     <mat-icon>open_in_new</mat-icon>
-                                </a>                           
+                                </a>   
+                                &nbsp;&nbsp;
+                                <a mat-icon-button
+                                    (click)="selectPlugin()" 
+                                    [disabled]="app.config.selections.pluginFavourites.length==0"
+                                    color="primary"
+                                    matTooltip="Previous plugin"
+                                    matTooltipPosition="below">
+                                    <mat-icon>arrow_back_ios</mat-icon>
+                                </a>                                 
+                                <a mat-icon-button
+                                    (click)="selectPlugin(true)" 
+                                    [disabled]="app.config.selections.pluginFavourites.length==0"
+                                    color="primary"
+                                    matTooltip="Next plugin"
+                                    matTooltipPosition="below">
+                                    <mat-icon>arrow_forward_ios</mat-icon>
+                                </a>                                                         
                             </a>
                             <mat-divider></mat-divider>
                         </mat-nav-list>	 
@@ -287,6 +307,7 @@
                         (deactivate)="deactivateRoute()"
                         (refresh)="skres.getWaypoints()"
                         (properties)="skres.resourceProperties($event)"
+                        (center)="centerResource($event, true)"
                         (closed)="displayLeftMenu()">
                     </waypoint-list>       
                     
@@ -300,6 +321,7 @@
                     <note-list [notes]="app.data.notes" *ngIf="display.noteList"
                         (select)="skres.noteSelected($event)"
                         (refresh)="skres.getNotes()"
+                        (center)="centerResource($event, true)"
                         (closed)="displayLeftMenu()">
                     </note-list>                 
 
@@ -337,7 +359,15 @@
                                 {{(display.fullscreen.active) ? 'fullscreen_exit ': 'fullscreen'}}
                             </mat-icon>
                         </button>                            
-                        <br>&nbsp;
+                        <br>&nbsp;<br>
+                        <button *ngIf="app.data.grib.hasProvider"
+                            style="top:10px;right:90px;"
+                            (click)="openBottomSheet()"
+                            matTooltip="GRIB data"
+                            matTooltipPosition="left">
+                            <mat-icon>filter_drama</mat-icon>
+                        </button>                            
+                        <br>&nbsp;                        
                         <pip-video *ngIf="app.config.resources.video.enable && app.config.resources.video.url"
                             [src]="vidUrl" [muted]="true"
                             (click)="focusMap()">
@@ -376,7 +406,7 @@
                         (focusVessel)="switchActiveVessel($event)"
                         (info)="vesselProperties($event)">
                     </fb-map>
-                    <!-- *** /MAP *** -->               
+                    <!-- *** /MAP *** -->     
 
                 </div>
                 <!--/map panel-->
@@ -517,6 +547,24 @@
                         </ap-dial-text>   
                     </div>                           
                 </div>
+
+                <!-- *** Bottom sheet panel ***-->
+                <div class="mat-app-background bottomSheet" *ngIf="display.bottomSheet.show">
+                    <div style="display:flex;">
+                        <div class="title">
+                            {{display.bottomSheet.title}}
+                        </div>
+                        <div>
+                            <button mat-icon-button (click)="closeBottomSheet()">
+                                <mat-icon>close</mat-icon>
+                            </button>
+                        </div>
+                    </div>
+                    <div>
+                        <mat-divider></mat-divider>
+                        <grib-panel (change)="selectGRIB($event)"></grib-panel>    
+                    </div>        
+                </div>                
             
             </mat-sidenav-container>
         </div>

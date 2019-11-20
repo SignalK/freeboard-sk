@@ -1,5 +1,16 @@
 # CHANGELOG: Freeboard
 
+### v1.8.0
+- **Added:** Display `Aids to Navigation` _(AtoN)_ on map. Show AtoN properties. 
+
+- **Added:** Center `Note` or `Waypoint` on map from list display. 
+
+- **Added:** Ability to mark WebApps as favourites and switch between them in the `Instrument Panel`. 
+
+- **Added:** Experimental support for `GRIB2JSON` formatted resources at the path `./resources/grib`.
+
+- **Update:** OpenLayers 5.
+
 ### v1.7.0
 - **Added:** Alternate color scheme (`Dark mode`) configuration setting with options to use either the: 
     1) Device OS setting via the `prefers-color-scheme` css media attribute

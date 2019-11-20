@@ -9,7 +9,7 @@ import { AppInfo } from '../../../app.info';
 @Component({
     selector: 'signalk-preferred-paths',
 	changeDetection: ChangeDetectionStrategy.OnPush,
-	styleUrls: ['./signalk-paths.component.css'],
+	styleUrls: ['./signalk-preferredpaths.component.css'],
     template:  `
     <mat-card>
         <mat-card-content>
@@ -52,7 +52,7 @@ import { AppInfo } from '../../../app.info';
     </mat-card>
     `
 })
-export class SignalKPathsComponent  {
+export class SignalKPreferredPathsComponent {
     @Input() title:string= '';
     @Output() chosen:any= new EventEmitter<any>();
 

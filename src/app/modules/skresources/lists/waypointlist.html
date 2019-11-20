@@ -49,8 +49,10 @@
             <mat-card *cdkVirtualFor="let r of filterList; let i= index;"
                     style="border-bottom: silver 1px outset;">
                 <div style="display: flex;">
-                    <div style="flex: 1 1 auto;">
-                        <div><b>{{(r[1].feature.properties.name) ? r[1].feature.properties.name : 'Wpt-' + r[0].slice(-6)}}</b></div>
+                    <div style="flex: 1 1 auto; width: 215px;">
+                        <div style="text-overflow: ellipsis; overflow-x: hidden;">
+                            <b>{{(r[1].feature.properties.name) ? r[1].feature.properties.name : 'Wpt-' + r[0].slice(-6)}}</b>
+                        </div>
                     </div>        
                     <div style="text-align: right;">
                         <mat-checkbox color="primary"
@@ -89,6 +91,13 @@
                             </button>                              
                         </div>                                              
                         <div>
+                            <button mat-icon-button color="primary"
+                                [disabled]="app.config.map.moveMap"
+                                (click)="emitCenter(r[1].position)"
+                                matTooltip="Center Note"
+                                matTooltipPosition="left">
+                                    <mat-icon>center_focus_strong</mat-icon>
+                            </button>                             
                             <button mat-icon-button 
                                 (click)="itemProperties(r[0])"
                                 matTooltip="Waypoint Properties"

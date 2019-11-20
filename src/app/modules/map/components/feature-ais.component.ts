@@ -1,7 +1,11 @@
 import { Component, OnInit, OnDestroy, OnChanges, Input, ChangeDetectionStrategy } from '@angular/core';
-import { geom, proj, style, Feature } from 'openlayers';
+import { GeoUtils } from '../../../lib/geoutils';
+
+import { Point, LineString } from 'ol/geom';
+import { transform } from 'ol/proj';
+import { Style, Stroke, Icon, Text } from 'ol/style';
+import { Feature } from 'ol';
 import { SourceVectorComponent } from 'ngx-openlayers';
-import {GeoUtils} from '../../lib/geoutils';
 
 
 @Component({
@@ -83,16 +87,16 @@ export class AisTargetsComponent implements OnInit, OnDestroy, OnChanges {
             let f=layer.getFeatureById('ais-'+ id);
             if(f) { //update vessel
                 if(ais.position) {
-                    f.setGeometry( new geom.Point( proj.transform( ais.position, this.srid, this.mrid ) ) );
-                    f.setStyle( new style.Style( this.setTargetStyle(id) ) );
+                    f.setGeometry( new Point( transform( ais.position, this.srid, this.mrid ) ) );
+                    f.setStyle( new Style( this.setTargetStyle(id) ) );
                 }
                 else { layer.removeFeature(f) }
             }
             else {  //create vessel
                 if(ais.position) {
-                    f= new Feature( new geom.Point( proj.transform( ais.position, this.srid, this.mrid ) ) );
+                    f= new Feature( new Point( transform( ais.position, this.srid, this.mrid ) ) );
                     f.setId('ais-'+ id);
-                    f.setStyle( new style.Style( this.setTargetStyle(id) ) );
+                    f.setStyle( new Style( this.setTargetStyle(id) ) );
                     layer.addFeature(f);
                 }
             }   
@@ -106,22 +110,22 @@ export class AisTargetsComponent implements OnInit, OnDestroy, OnChanges {
             );
             if(wf) { // update vector
                 if(ais.position && windDirection) { 
-                    wf.setGeometry( new geom.LineString( [
-                        proj.transform( ais.position, this.srid, this.mrid ),
-                        proj.transform( windc, this.srid, this.mrid )
+                    wf.setGeometry( new LineString( [
+                        transform( ais.position, this.srid, this.mrid ),
+                        transform( windc, this.srid, this.mrid )
                     ]) );
-                    wf.setStyle( new style.Style( this.setVectorStyle(id) ) );
+                    wf.setStyle( new Style( this.setVectorStyle(id) ) );
                 }
                 else { layer.removeFeature(wf) }
             }
             else { // create vector
                 if(ais.position && windDirection) {
-                    wf= new Feature( new geom.LineString( [
-                            proj.transform( ais.position, this.srid, this.mrid ),
-                            proj.transform( windc, this.srid, this.mrid )
+                    wf= new Feature( new LineString( [
+                            transform( ais.position, this.srid, this.mrid ),
+                            transform( windc, this.srid, this.mrid )
                     ]) );
                     wf.setId('wind-'+ id);
-                    wf.setStyle( new style.Style( this.setVectorStyle(id) ) );
+                    wf.setStyle( new Style( this.setVectorStyle(id) ) );
                     layer.addFeature(wf);
                 }
             }                     
@@ -134,7 +138,7 @@ export class AisTargetsComponent implements OnInit, OnDestroy, OnChanges {
         let layer= this.host.instance;
         ids.forEach( id=> {
             let f=layer.getFeatureById('ais-'+ id);
-            if(f) { f.setStyle( new style.Style( this.setTargetStyle(id) ) ) }                      
+            if(f) { f.setStyle( new Style( this.setTargetStyle(id) ) ) }                      
         });
     }    
 
@@ -172,16 +176,16 @@ export class AisTargetsComponent implements OnInit, OnDestroy, OnChanges {
                         ais.position[1], ais.position[0], windDirection, 
                         this.zoomOffsetLevel[this.mapZoom]
                     );                     
-                    f.setGeometry( new geom.LineString( [
-                        proj.transform( ais.position, this.srid, this.mrid ),
-                        proj.transform( windc, this.srid, this.mrid )
+                    f.setGeometry( new LineString( [
+                        transform( ais.position, this.srid, this.mrid ),
+                        transform( windc, this.srid, this.mrid )
                     ]) );
                 }             
-                f.setStyle( new style.Style( this.setVectorStyle(fid) ) );
+                f.setStyle( new Style( this.setVectorStyle(fid) ) );
                 // ** align vessel position
                 let vf=layer.getFeatureById('ais-'+ fid);
                 if(vf && ais.position) {
-                    vf.setGeometry( new geom.Point( proj.transform( ais.position, this.srid, this.mrid ) ) );
+                    vf.setGeometry( new Point( transform( ais.position, this.srid, this.mrid ) ) );
                 }
             }
         });       
@@ -197,7 +201,7 @@ export class AisTargetsComponent implements OnInit, OnDestroy, OnChanges {
             `rgba(${rgb},0)` : `rgba(${rgb},1)`;
         }
         let fstyle= {                    
-            stroke: new style.Stroke({
+            stroke: new Stroke({
                 width: 2,
                 color: color,
             })
@@ -212,7 +216,7 @@ export class AisTargetsComponent implements OnInit, OnDestroy, OnChanges {
         layer.forEachFeature( f=> {
             let fid= f.getId().toString();
             if(fid.slice(0,3)=='ais') { //vessel features
-                f.setStyle( new style.Style( this.setTargetStyle(fid.slice(4)) ) );
+                f.setStyle( new Style( this.setTargetStyle(fid.slice(4)) ) );
             }
         });
     }
@@ -231,7 +235,7 @@ export class AisTargetsComponent implements OnInit, OnDestroy, OnChanges {
         if( (this.filterIds && Array.isArray(this.filterIds) ) && this.filterIds.indexOf(id)==-1 ) { 
             // hide feature
             fstyle= {                    
-                image: new style.Icon({
+                image: new Icon({
                     src: icon,
                     rotateWithView: true,
                     rotation: target.orientation,
@@ -242,7 +246,7 @@ export class AisTargetsComponent implements OnInit, OnDestroy, OnChanges {
         else { // show feature
             if(id==this.focusId && this.focusIcon) {
                 fstyle= {                    
-                    image: new style.Icon({
+                    image: new Icon({
                         src: this.focusIcon,
                         rotateWithView: true,
                         rotation: target.orientation,
@@ -257,13 +261,13 @@ export class AisTargetsComponent implements OnInit, OnDestroy, OnChanges {
             }
             else {            
                 fstyle= {
-                    image: new style.Icon({
+                    image: new Icon({
                         src: icon,
                         rotateWithView: true,
                         rotation: target.orientation,
                         opacity: 1
                     }),
-                    text: new style.Text({
+                    text: new Text({
                         text: label,
                         offsetY: -12
                     })

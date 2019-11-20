@@ -20,7 +20,7 @@ import { MatMenuModule } from '@angular/material/menu';
 import { MatToolbarModule } from '@angular/material/toolbar';
 
 import { SettingsDialog } from './settings-dialog';
-import { SignalKPathsComponent } from './components/signalk-paths.component';
+import { SignalKPreferredPathsComponent } from './components/signalk-preferredpaths.component';
 
 @NgModule({
     imports: [
@@ -31,10 +31,10 @@ import { SignalKPathsComponent } from './components/signalk-paths.component';
         MatFormFieldModule, MatInputModule, MatMenuModule, MatToolbarModule
     ],
     declarations: [
-        SettingsDialog, SignalKPathsComponent
+        SettingsDialog, SignalKPreferredPathsComponent
     ],
     exports: [
-        SettingsDialog, SignalKPathsComponent
+        SettingsDialog, SignalKPreferredPathsComponent
     ],
     entryComponents: [
         SettingsDialog

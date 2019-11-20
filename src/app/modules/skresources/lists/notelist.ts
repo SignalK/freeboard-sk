@@ -12,6 +12,7 @@ export class NoteListComponent {
     @Output() select: EventEmitter<any>= new EventEmitter();
     @Output() refresh: EventEmitter<any>= new EventEmitter();
     @Output() closed: EventEmitter<any>= new EventEmitter();
+    @Output() center: EventEmitter<any>= new EventEmitter();
 
     filterList= [];
     filterText= '';
@@ -45,6 +46,8 @@ export class NoteListComponent {
     viewNote(val:string, isGroup:boolean=false) { this.select.emit( {id:val, isGroup: isGroup} ) }
 
     itemRefresh() { this.refresh.emit() }
+
+    emitCenter(position) { this.center.emit([position.longitude, position.latitude]) }
 
     filterKeyUp(e) {
         this.filterText=e;

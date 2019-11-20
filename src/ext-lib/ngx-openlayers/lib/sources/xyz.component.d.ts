@@ -1,0 +1,36 @@
+import { AfterContentInit, OnChanges, SimpleChanges, EventEmitter } from '@angular/core';
+import { XYZ } from 'ol/source';
+import { LayerTileComponent } from '../layers/layertile.component';
+import { SourceComponent } from './source.component';
+import { TileGridComponent } from '../tilegrid.component';
+import { SourceRasterComponent } from './raster.component';
+import { Size } from 'ol/size';
+import { TileSourceEvent } from 'ol/source/Tile';
+import TileGrid from 'ol/tilegrid/TileGrid';
+import { LoadFunction, UrlFunction } from 'ol/Tile';
+export declare class SourceXYZComponent extends SourceComponent implements AfterContentInit, OnChanges {
+    instance: XYZ;
+    cacheSize: number;
+    crossOrigin: string;
+    opaque: boolean;
+    projection: string;
+    reprojectionErrorThreshold: number;
+    minZoom: number;
+    maxZoom: number;
+    tileGrid: TileGrid;
+    tileLoadFunction?: LoadFunction;
+    tilePixelRatio: number;
+    tileSize: number | Size;
+    tileUrlFunction?: UrlFunction;
+    url: string;
+    urls: string[];
+    wrapX: boolean;
+    tileGridXYZ: TileGridComponent;
+    tileLoadStart: EventEmitter<TileSourceEvent>;
+    tileLoadEnd: EventEmitter<TileSourceEvent>;
+    tileLoadError: EventEmitter<TileSourceEvent>;
+    constructor(layer: LayerTileComponent, raster?: SourceRasterComponent);
+    ngAfterContentInit(): void;
+    ngOnChanges(changes: SimpleChanges): void;
+    init(): void;
+}

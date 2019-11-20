@@ -38,7 +38,7 @@
                             <mat-form-field style="width:100%;">
                                 <mat-select #instruments 
                                         [(value)]="facade.settings.plugins.instruments" 
-                                        (selectionChange)="onFormChange($event, instruments)"
+                                        (selectionChange)="onFormChange($event, instruments);facade.buildFavouritesList()"
                                         placeholder="Select Instruments App">
                                     <mat-option *ngFor="let i of facade.list.applications" 
                                             [value]="i.url"
@@ -68,8 +68,33 @@
                                 label="after">
                                 Halt App on hide
                             </mat-checkbox>                                        
-                        </div>                             
-                    </div>                                           
+                        </div>  
+                        <div class="setting-card-row-item">
+                            <button mat-raised-button 
+                                (click)="display.favourites=true"
+                                matTooltip="Favourite Apps"
+                                label="after">
+                                <mat-icon color="primary">star</mat-icon>
+                                FAVOURITES
+                            </button>                                        
+                        </div>                                                     
+                    </div>
+                    <div class="setting-card-row" *ngIf="display.favourites">
+                        <div class="setting-card-row-item">
+                            <div style="font-style:italic;">Select Favourite Apps:</div>
+                            <mat-divider></mat-divider>
+                            <mat-selection-list #favs 
+                                (selectionChange)="onFavSelected($event, favs)">
+                                <mat-list-option *ngFor="let fav of facade.list.favourites"
+                                    color="primary"
+                                    [disabled]="fav.url==facade.settings.plugins.instruments"
+                                    [selected]="facade.settings.selections.pluginFavourites.includes(fav.url)"
+                                    [value]="fav.url">
+                                    {{fav.name}}
+                                </mat-list-option>
+                            </mat-selection-list>
+                        </div>
+                    </div>                                                          
                 </mat-card>
                 <br>
                 <mat-card class="setting-card">
@@ -149,9 +174,10 @@
                         </div>                                             
                         <div class="setting-card-row-item">
                             <div style="height:65px;">
-                                <button mat-raised-button color="primary"
+                                <button mat-raised-button
                                     matTooltip="Select preferred path to source values from."
                                     (click)="display.paths=true">
+                                    <mat-icon color="primary">settings_input_svideo</mat-icon>
                                     PREFERRED PATHS
                                 </button>
                             </div>
