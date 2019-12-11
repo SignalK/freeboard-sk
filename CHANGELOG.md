@@ -8,6 +8,7 @@
 - **Added:** Ability to mark WebApps as favourites and switch between them in the `Instrument Panel`. 
 
 - **Added:** Experimental support for `GRIB2JSON` formatted resources at the path `./resources/grib`.
+_(Requires `freeboard-sk-helper` plugin)_
 
 - **Update:** OpenLayers 5.
 

@@ -17,7 +17,7 @@ import { SKVessel } from './modules/skresources/resource-classes';
 export class AppInfo extends Info {
 
     private DEV_SERVER= {
-        host: null,     // host name || ip address
+        host: '192.168.99.100',     // host name || ip address
         port: 3000,     // port number
         ssl: false
     };
@@ -305,15 +305,13 @@ export class AppInfo extends Info {
             },
             'signalk-server-node': {
                 title: 'Node Server',
-                message: `When using the Node version of Signal K server please
+                message: `When using the Node version of Signal K server you will need to
                     ensure plugins are installed that can service the 
-                    following Signal K API paths:
-                    <ul>
-                    <li>resources/routes, resources/waypoints</li>
-                    <li>resources/charts</li>
-                    <li>navigation/anchor</li>
-                    <li>navigation/courseGreatCircle/activeRoute</li>
-                    </ul>`
+                    required Signal K API paths:<br>
+                    e.g. <i>resources/routes, resources/waypoints, etc</i>.
+
+                    See <a href="assets/help/index.html" target="help">HELP</a> 
+                    for more details.`
             },
             'preferred-paths': {
                 title: 'Set Paths',
@@ -328,6 +326,16 @@ export class AppInfo extends Info {
                     for more details.`
             },
             'whats-new': [
+                {
+                    type: 'signalk-server-node',
+                    title: 'Plugins',
+                    message: `New <b>feeboard-sk-helper</b> plugin.<br>
+                        This new plugin replaces the course data provider previously
+                        contained in GPXLoad plugin.<br>&nbsp;<br>
+                        See this <a href="https://www.npmjs.com/package/gpxload" target="npm">LINK</a> 
+                        for more details.`
+                      
+                }             
             ]            
         }
 
@@ -351,7 +359,13 @@ export class AppInfo extends Info {
                     showPrefs= true;
                 }
                 if(WelcomeMessages['whats-new'] && WelcomeMessages['whats-new'].length>0) {
-                    messages= messages.concat( WelcomeMessages['whats-new'] );
+                    WelcomeMessages['whats-new'].forEach( msg=> {
+                        if(msg.type) {
+                            if( (this.data.server && this.data.server.id) 
+                                && msg.type==this.data.server.id) { messages.push(msg) }
+                        }
+                        else { messages.push( msg);}
+                    })
                 }
                 btnText= 'Got it'
             } 
