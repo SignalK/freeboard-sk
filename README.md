@@ -109,8 +109,9 @@ For all Freeboard features to be fully functional, it requires that the Signal K
 These functions may be provided natively by the server or through the use of *plugins*.
 
 For example the following plugins installed on the *Signal K node server* will enable full functionality:
+- freeeboard-sk-helper _(Course information)_
+- sk-resources-fs _(Routes, Waypoints, Notes & Regions provider)_
 - @signalk/charts-plugin *(Charts provider)*
-- GPXLoad (v1.1.1 or later) *(Routes & Waypoints provider)*
 - signalk-anchoralarm-plugin *(anchor alarm settings & notifications)*
 - signalk-simple-notifications *(depth alarm notifications)*
 
