@@ -360,7 +360,7 @@
                             </mat-icon>
                         </button>                            
                         <br>&nbsp;<br>
-                        <button *ngIf="app.data.grib.hasProvider"
+                        <button *ngIf="app.data.grib.hasProvider && app.config.experiments"
                             style="top:10px;right:90px;"
                             (click)="openBottomSheet()"
                             matTooltip="GRIB data"
@@ -562,7 +562,11 @@
                     </div>
                     <div>
                         <mat-divider></mat-divider>
-                        <grib-panel (change)="selectGRIB($event)"></grib-panel>    
+                        <grib-panel 
+                            [zoomLevel]="app.config.map.zoomLevel" 
+                            [minZoom]="4"
+                            (change)="selectGRIB($event)">
+                        </grib-panel>    
                     </div>        
                 </div>                
             

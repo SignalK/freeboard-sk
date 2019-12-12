@@ -52,4 +52,4 @@ export class FBMapModule {}
 
 export { WindVector } from './components/layer-windvector.component';
 export { HeatmapValue } from './components/layer-heatmap.component';
-export { ColormapValue, ColormapGradient } from './components/layer-colormap.component';
+export { ColormapValue } from './components/layer-colormap.component';

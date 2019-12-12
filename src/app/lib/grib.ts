@@ -1,6 +1,12 @@
-import { Convert } from 'src/app/lib/convert';
+import { Convert } from './convert';
 
 // ** GRIB reource processing class **
+
+export interface ColorGradient {
+    lo: number | null;     // ** range low value
+    hi: number | null;     // ** range hi value
+    color: Array<number> | string;  // ** color value
+}
 
 export const GRIB_PATH:string= 'resources/grib';
 
@@ -8,6 +14,15 @@ export const GRIB_CATEGORIES= new Map([
     [0, {name: 'Temperature', params: [0]} ],
     [2, {name: 'Wind', params: [2,3] } ]
 ]);
+
+export const TEMPERATURE_GRADIENT: Array<ColorGradient>= [
+    {lo: null, hi: 0, color: 'blue' },
+    {lo: 0, hi: 10, color: 'lightgreen' },
+    {lo: 10, hi: 20, color: 'yellow' },
+    {lo: 20, hi: 30, color: 'orange' },
+    {lo: 30, hi: null, color: 'red' }
+];
+
 
 export class Grib {
 

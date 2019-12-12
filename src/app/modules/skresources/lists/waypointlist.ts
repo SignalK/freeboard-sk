@@ -1,5 +1,5 @@
 import { Component, OnInit, Input, Output, EventEmitter, ChangeDetectionStrategy } from '@angular/core';
-import { AppInfo } from '../../../app.info';
+import { AppInfo } from 'src/app/app.info';
 
 @Component({
     selector: 'waypoint-list',

@@ -7,10 +7,11 @@ import { transform, transformExtent } from 'ol/proj';
 import { Style, Stroke } from 'ol/style';
 import { Collection } from 'ol';
 
-import { Convert } from '../../lib/convert';
-import { GeoUtils } from '../../lib/geoutils';
+import { Convert } from 'src/app/lib/convert';
+import { GeoUtils } from 'src/app/lib/geoutils';
+import { TEMPERATURE_GRADIENT } from 'src/app/lib/grib';
 
-import { AppInfo } from '../../app.info'
+import { AppInfo } from 'src/app/app.info'
 import { SKResources } from '../skresources/resources.service';
 import { SKVessel } from '../skresources/resource-classes';
 import { SKStreamFacade } from '../skstream/skstream.facade';
@@ -141,6 +142,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
         navData: {position: null},
         closest: {id: null, position: [0,0]},
         grib: { wind: [], temperature: [] },    // GRIB data
+        colorGradient: TEMPERATURE_GRADIENT,
         heatmap: []     // values to display on colormap / heatmap
     }
 

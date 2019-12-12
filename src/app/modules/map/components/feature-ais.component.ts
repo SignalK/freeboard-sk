@@ -1,5 +1,5 @@
 import { Component, OnInit, OnDestroy, OnChanges, Input, ChangeDetectionStrategy } from '@angular/core';
-import { GeoUtils } from '../../../lib/geoutils';
+import { GeoUtils } from 'src/app/lib/geoutils';
 
 import { Point, LineString } from 'ol/geom';
 import { transform } from 'ol/proj';

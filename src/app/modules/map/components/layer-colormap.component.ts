@@ -8,17 +8,12 @@ import { Style, Fill, Stroke } from 'ol/style';
 import {asArray} from 'ol/color';
 
 import { MapComponent } from 'ngx-openlayers';
+import { ColorGradient } from 'src/app/lib/grib'
 
 
 export interface ColormapValue {
     coord: [number,number]; // ** [x,y]
     value: number;          // ** radians
-}
-
-export interface ColormapGradient {
-    lo: number | null;     // ** range low value
-    hi: number | null;     // ** range hi value
-    color: Array<number> | string;  // ** color value
 }
 
 @Component({
@@ -30,7 +25,7 @@ export class LayerColormapComponent implements OnInit, OnDestroy, OnChanges {
     @Input() map: MapComponent;
     @Input() zIndex: number;
     @Input() values: Array<ColormapValue>= [];
-    @Input() gradient: Array<ColormapGradient>= [
+    @Input() gradient: Array<ColorGradient>= [
         {lo: null, hi: 0, color: 'blue' },
         {lo: 0, hi: 10, color: 'cyan' },
         {lo: 10, hi: 20, color: 'yellow' },

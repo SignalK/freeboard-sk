@@ -24,9 +24,9 @@ import { NoteListComponent } from  './lists/notelist';
 import { AISListComponent } from  './lists/aislist';
 
 import { ResourceDialog, AISPropertiesDialog, AtoNPropertiesDialog } from './resource-dialogs';
-import { GRIBPanel } from './grib/grib-components';
+import { GRIBPanel, GRIBGradient } from './grib/grib-components';
 import { SKNotesModule } from './notes';
-import { AppUIModule } from '../../lib/ui/ui.module';
+import { AppUIModule } from 'src/app/lib/ui/ui.module';
 
 @NgModule({
     imports: [
@@ -40,13 +40,13 @@ import { AppUIModule } from '../../lib/ui/ui.module';
         RouteListComponent, WaypointListComponent, ChartListComponent,
         AISListComponent, NoteListComponent, 
         ResourceDialog, AISPropertiesDialog, AtoNPropertiesDialog,
-        GRIBPanel
+        GRIBPanel, GRIBGradient
     ],
     exports: [
         RouteListComponent, WaypointListComponent, ChartListComponent,
         AISListComponent, NoteListComponent,
         ResourceDialog, AISPropertiesDialog, AtoNPropertiesDialog,
-        SKNotesModule, GRIBPanel
+        SKNotesModule, GRIBPanel, GRIBGradient
     ],
     entryComponents: [
         ResourceDialog, AISPropertiesDialog, AtoNPropertiesDialog
@@ -59,4 +59,3 @@ export * from './resource-dialogs';
 export * from './resource-classes';
 export * from './notes';
 export * from './grib/grib-components';
-export * from './grib/grib';

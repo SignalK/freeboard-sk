@@ -4,7 +4,7 @@ Signal K preferred paths component
 ***********************************/
 import {Component, Input, Output, EventEmitter, ChangeDetectionStrategy } from '@angular/core';
 
-import { AppInfo } from '../../../app.info';
+import { AppInfo } from 'src/app/app.info';
 
 @Component({
     selector: 'signalk-preferred-paths',
@@ -12,8 +12,9 @@ import { AppInfo } from '../../../app.info';
 	styleUrls: ['./signalk-preferredpaths.component.css'],
     template:  `
     <mat-card>
-        <mat-card-content>
-            <div style="max-height:300px;overflow-y:auto;">
+        <mat-card-content style="display:flex;">
+            <div style="flex: 1 1 auto;"></div>
+            <div>
                 <div class="sk-details" *ngFor="let item of pathChoices | keyvalue">
                     <div class="title">
                         <div>{{item.value.name}}</div>
@@ -32,7 +33,8 @@ import { AppInfo } from '../../../app.info';
                         </div>
                     </div>             						
                 </div>
-            </div> 
+            </div>
+            <div style="flex: 1 1 auto;"></div> 
         </mat-card-content>
         <mat-card-actions>
             <div style="text-align:center;">

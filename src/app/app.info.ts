@@ -17,7 +17,7 @@ import { SKVessel } from './modules/skresources/resource-classes';
 export class AppInfo extends Info {
 
     private DEV_SERVER= {
-        host: '192.168.99.100',     // host name || ip address
+        host: null,     // host name || ip address
         port: 3000,     // port number
         ssl: false
     };
@@ -58,6 +58,7 @@ export class AppInfo extends Info {
         this.logo= "./assets/img/app_logo.png";       
         
         this.config= {      // ** base config
+            experiments: false,
             version: '',
             darkMode: { enabled: false,  source: 0 },  // source: 0= browser default, 1= Signal K mode)
             map: {          // ** map config
@@ -328,13 +329,14 @@ export class AppInfo extends Info {
             'whats-new': [
                 {
                     type: 'signalk-server-node',
-                    title: 'Plugins',
-                    message: `New <b>feeboard-sk-helper</b> plugin.<br>
-                        This new plugin replaces the course data provider previously
-                        contained in GPXLoad plugin.<br>&nbsp;<br>
-                        See this <a href="https://www.npmjs.com/package/gpxload" target="npm">LINK</a> 
+                    title: 'Plugin News',
+                    message: `<b>Action Required:</b><br>
+                        There have been changes to the <b>GPXLoad</b> plugin that will impact 
+                        Freeboard operations with resources (Routes, Waypoints, Notes, etc) and
+                        course information.
+                        <br>&nbsp;<br>
+                        Please <a href="https://www.npmjs.com/package/gpxload" target="npm">visit this link</a> 
                         for more details.`
-                      
                 }             
             ]            
         }

@@ -458,7 +458,12 @@ export class AppComponent {
 
     // ** open settings dialog **
     public openSettings(prefs: boolean= false) {  
-        this.dialog.open( SettingsDialog, { disableClose: true, data: {openPrefs: prefs } })
+        this.dialog.open( SettingsDialog, { 
+            disableClose: true, 
+            data: {openPrefs: prefs },
+            maxWidth: '90vw',
+            minWidth: '90vw'
+        })
         .afterClosed().subscribe( ()=>this.focusMap() );
     }      
 

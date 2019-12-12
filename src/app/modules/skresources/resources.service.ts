@@ -4,14 +4,14 @@ import { forkJoin, of, Subject, Observable } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 
 import { SignalKClient } from 'signalk-client-angular';
-import { AppInfo } from '../../app.info';
-import { GeoUtils, GeoHash } from  '../../lib/geoutils'
+import { AppInfo } from 'src/app/app.info';
+import { GeoUtils, GeoHash } from  'src/app/lib/geoutils'
 
-import { LoginDialog } from '../../lib/app-ui';
+import { LoginDialog } from 'src/app/lib/app-ui';
 import { NoteDialog, RegionDialog } from './notes'
 import { ResourceDialog } from './resource-dialogs'
 import { SKChart, SKRoute, SKWaypoint, SKRegion, SKNote } from './resource-classes'
-import { GRIB_PATH, Grib } from './grib/grib'
+import { GRIB_PATH, Grib } from 'src/app/lib/grib'
 
 interface IActiveRoute {
     action: string;

@@ -13,6 +13,13 @@ import { SettingsFacade } from './settings.facade';
 export class SettingsDialog implements OnInit {
 
     public display= { paths: false, favourites: false }
+    public menuItems= [
+       {href: "#sectDisplay", text: 'Display'},
+       {href: "#sectunits", text: 'Units & Values'},
+       {href: "#sectVessels", text: 'Vessels'},
+       {href: "#sectNotes", text: 'Notes'},
+       {href: "#sectVideo", text: 'Video'}
+    ];
      
     constructor( 
         public facade: SettingsFacade,
@@ -25,6 +32,8 @@ export class SettingsDialog implements OnInit {
     }
 
     ngOnDestroy() { }
+
+    toggleFavourites() { this.display.favourites= (this.display.favourites) ? false : true }
 
     onFormChange(e:any, f:any) {
         if(!f.invalid) { this.facade.applySettings() } 

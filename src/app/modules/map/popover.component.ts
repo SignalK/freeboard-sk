@@ -4,7 +4,7 @@
 import { Component, Input, Output, EventEmitter, ChangeDetectionStrategy } from '@angular/core';
 
 import { SKVessel, SKAtoN } from '../skresources/resource-classes';
-import { Convert } from '../../lib/convert';
+import { Convert } from 'src/app/lib/convert';
 
 /*********** Popover ***************
 title: string -  title text,
@@ -62,7 +62,7 @@ features: Array<any> - list of features
             <mat-nav-list>
                 <mat-list-item *ngFor="let f of features">
                     <a matLine href="#" (click)="handleSelect(f)">
-                        <mat-icon [color]="(f.text.indexOf('self')!=-1) ? 'warn' : '' ">
+                        <mat-icon [color]="(f.text && f.text.indexOf('self')!=-1) ? 'warn' : '' ">
                             {{f.icon}}
                         </mat-icon>
                         {{f.text}}

@@ -17,7 +17,6 @@ import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatSliderModule } from '@angular/material/slider';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatMenuModule } from '@angular/material/menu';
-import { MatToolbarModule } from '@angular/material/toolbar';
 
 import { SettingsDialog } from './settings-dialog';
 import { SignalKPreferredPathsComponent } from './components/signalk-preferredpaths.component';
@@ -28,7 +27,7 @@ import { SignalKPreferredPathsComponent } from './components/signalk-preferredpa
         MatCheckboxModule, MatRadioModule, MatCardModule, MatListModule,
         MatButtonModule, MatIconModule, MatTooltipModule, 
         MatSliderModule, MatSlideToggleModule, MatSelectModule,
-        MatFormFieldModule, MatInputModule, MatMenuModule, MatToolbarModule
+        MatFormFieldModule, MatInputModule, MatMenuModule
     ],
     declarations: [
         SettingsDialog, SignalKPreferredPathsComponent

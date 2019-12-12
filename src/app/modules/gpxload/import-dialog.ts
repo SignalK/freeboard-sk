@@ -1,8 +1,6 @@
 import {Component, OnInit, Inject} from '@angular/core';
 import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 
-//import { GPX, GPXRoute, GPXWaypoint} from './gpx';
-//import { SKResources } from '../../lib/skresources/'
 import { GPXLoadFacade } from './gpxload.facade'
 
 //** HomePage **

@@ -4,7 +4,7 @@
 import {Component, OnInit, Inject} from '@angular/core';
 import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 
-import { AppInfo } from '../../../app.info';
+import { AppInfo } from 'src/app/app.info';
 
 import * as ClassicEditor from '@ckeditor/ckeditor5-build-classic';
 

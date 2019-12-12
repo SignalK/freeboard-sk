@@ -5,8 +5,8 @@ import {Component, OnInit, Inject} from '@angular/core';
 import { SignalKClient } from 'signalk-client-angular';
 import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 
-import { Convert } from '../../lib/convert'
-import { AppInfo } from '../../app.info'
+import { Convert } from 'src/app/lib/convert'
+import { AppInfo } from 'src/app/app.info'
 
 /********* ResourceDialog **********
 	data: {

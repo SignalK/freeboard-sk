@@ -3,7 +3,7 @@
 import { Injectable } from '@angular/core';
 import { Subject, forkJoin, Observable } from 'rxjs';
 
-import { AppInfo } from '../../app.info';
+import { AppInfo } from 'src/app/app.info';
 import { SignalKClient } from 'signalk-client-angular';
 import { SKStreamProvider } from '../skstream/skstream.service';
 

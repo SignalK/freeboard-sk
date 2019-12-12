@@ -1,9 +1,9 @@
 /** GRIB Components **
 ********************************/
 
-import { Component, OnInit, EventEmitter, Output } from '@angular/core';
+import { Component, OnInit, EventEmitter, Output, Input } from '@angular/core';
 import { SKResources } from '../resources.service';
-import { GRIB_CATEGORIES } from './grib';
+import { GRIB_CATEGORIES, TEMPERATURE_GRADIENT, ColorGradient } from 'src/app/lib/grib';
 
 /********* GRIBPanel **********/
 @Component({
@@ -40,18 +40,22 @@ import { GRIB_CATEGORIES } from './grib';
                     </div>                                        
                 </div>        
                 <div style="padding-left:5px;">
-                    <div *ngFor="let i of display.content | keyvalue">
+                    <div *ngFor="let i of display.content | keyvalue" style="display:flex;">
                         <mat-checkbox color="primary" 
                             [disabled]="selections[i.key].disabled"
                             [checked]="selections[i.key].selected"
                             (change)="checkChange($event, i.key, i.value.index)">
-                            {{i.key}}
+                            {{i.key}}&nbsp;
                         </mat-checkbox>
+                        <grib-gradient *ngIf="i.value.gradient && !selections[i.key].disabled"
+                            [values]="i.value.gradient">
+                        </grib-gradient>                        
                     </div>
                 </div>
             </div>	
             <div class="pad"></div>	
         </div>	
+        <div *ngIf="zoomLevel<minZoom" >*Zoom In to display</div>
     `,
     styles: [`  .grib-panel {
                     font-family: roboto;
@@ -80,6 +84,8 @@ export class GRIBPanel implements OnInit {
     }
     public selections= {}; // selected entries
 
+    @Input() zoomLevel:number;
+    @Input() minZoom:number= 10;
     @Output() change:EventEmitter<any>= new EventEmitter();
 
     constructor(private skres: SKResources) { }
@@ -88,8 +94,9 @@ export class GRIBPanel implements OnInit {
     ngOnInit() { 
         // initialise selections
         GRIB_CATEGORIES.forEach( v=> { 
-            this.selections[v.name]= {selected: false, disabled: true }
-            this.display.content[v.name]= {}
+            this.selections[v.name]= {selected: false, disabled: true };
+            this.display.content[v.name]= {};
+            if(v.name=='Temperature') { this.display.content[v.name]['gradient']= TEMPERATURE_GRADIENT };
         });
         this.refresh();
     } 
@@ -115,7 +122,8 @@ export class GRIBPanel implements OnInit {
         // disable check boxes / init content
         GRIB_CATEGORIES.forEach( v=> { 
             this.selections[v.name].disabled= true;
-            this.display.content[v.name]= {index: null, type: null} 
+            this.display.content[v.name]['index']= null;
+            this.display.content[v.name]['type']= null;
         });
         // check for supported content
         let eidx:number= 0;
@@ -183,5 +191,46 @@ export class GRIBPanel implements OnInit {
         this.change.emit({id: this.gribActive[0], content: content})  
         
     }
+
+}
+
+/********* GRIBGradient **********/
+@Component({
+	selector: 'grib-gradient',
+	template: `
+        <div class="grib-gradient">
+            <div class="cell" *ngFor="let i of values"
+                [style.background-color]="i.color">
+                {{(i.hi!=null) ? '&lt;' + i.hi : ''}}
+                {{(i.hi==null) ? '&gt;' + i.lo : ''}}
+            </div>	
+        </div>	
+    `,
+    styles: [`  
+        .grib-gradient {
+            font-family: roboto;
+            display: flex;
+            border: gray 1px solid;
+        }
+        .grib-gradient > .cell {
+            text-align: center;
+            min-width: 30px;
+            font-size: 10pt;
+        }
+        @media only screen
+            and (min-device-width : 768px)
+            and (max-device-width : 1024px),
+            only screen	and (min-width : 800px) {                  
+        }                 	
+	`]
+})
+export class GRIBGradient implements OnInit {
+    
+    @Input() values:Array<ColorGradient>= [];
+
+    constructor() { }
+	
+	//** lifecycle: events **
+    ngOnInit() { } 
 
 }

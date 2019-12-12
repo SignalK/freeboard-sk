@@ -1,6 +1,6 @@
 import { Component, OnInit, Input, Output, EventEmitter, ChangeDetectionStrategy } from '@angular/core';
-import { AppInfo } from '../../../app.info';
-import { Convert } from '../../../lib/convert';
+import { AppInfo } from 'src/app/app.info';
+import { Convert } from 'src/app/lib/convert';
 
 @Component({
     selector: 'route-list',

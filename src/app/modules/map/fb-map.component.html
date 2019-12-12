@@ -111,6 +111,7 @@
     <xol-layer-colormap *ngIf="display.layer.colormap"
         [zIndex]="48"
         [values]="dfeat.heatmap"
+        [gradient]="dfeat.colorGradient"
         [map]="aolMap">
     </xol-layer-colormap>
     <!-- *** /Colormap *** -->        

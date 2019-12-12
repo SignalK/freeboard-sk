@@ -6,7 +6,7 @@ import { Point } from 'ol/geom';
 import { transform } from 'ol/proj';
 import { Style, Icon } from 'ol/style';
 import { MapComponent } from 'ngx-openlayers';
-import { Convert } from '../../../lib/convert';
+import { Convert } from 'src/app/lib/convert';
 
 export interface WindVector {
     coord: [number,number]; // ** [x,y]

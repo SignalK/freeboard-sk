@@ -3,7 +3,7 @@
 import { Injectable } from '@angular/core';
 import { Subject } from 'rxjs';
 
-import { AppInfo } from '../../app.info';
+import { AppInfo } from 'src/app/app.info';
 
 interface IWorkerCommand {
     options: any;
