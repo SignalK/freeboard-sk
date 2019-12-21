@@ -1,5 +1,14 @@
 # CHANGELOG: Freeboard
 
+### v1.8.1
+
+- **Fixed:** When adding a waypoint it was not "selected" for display when a PENDING 202 response is received.
+
+- **Fixed:** Map button rendering issues in iOS.
+
+- **Fixed:** Issue where OS dark mode was not always being detected correctly.
+
+
 ### v1.8.0
 - **Added:** Display `Aids to Navigation` _(AtoN)_ on map. Show AtoN properties. 
 
