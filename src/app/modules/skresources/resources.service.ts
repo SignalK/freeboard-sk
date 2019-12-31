@@ -422,7 +422,6 @@ export class SKResources {
         this.updateRoute(id, rte);
     }
 
-
     // ** return array of route coordinates **
     getActiveRouteCoords(routeId?:string) {
         if(!routeId) { routeId= this.app.data.activeRoute }
@@ -672,6 +671,10 @@ export class SKResources {
                     this.getWaypoints(); 
                 }
                 else if(res['statusCode']==202) { // pending
+                    if(isNew) { 
+                        this.app.config.selections.waypoints.push(id);
+                        this.app.saveConfig();
+                    }
                     this.pendingStatus(res).then( r=> {
                         if(r['statusCode']>=400) {    // response status is error
                             this.app.showAlert(`ERROR: (${r['statusCode']})`, r['message'] ? r['message'] : 'Server could not update Waypoint!');

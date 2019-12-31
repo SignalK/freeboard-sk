@@ -50,8 +50,8 @@
             <mat-card *cdkVirtualFor="let r of filterList; let i= index;"
                     style="border-bottom: silver 1px outset;">
                 <div style="display: flex;">
-                    <div style="flex: 1 1 auto;">
-                        <div>
+                    <div style="flex: 1 1 auto; width: 215px;">
+                        <div style="text-overflow: ellipsis; overflow-x: hidden;">
                             <mat-icon>local_offer</mat-icon>
                             &nbsp;<b>{{r[1].title}}</b>
                         </div>

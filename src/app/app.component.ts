@@ -2,7 +2,6 @@ import { Component, ViewChild } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
 import { DomSanitizer, SafeResourceUrl} from '@angular/platform-browser';
 import {OverlayContainer} from '@angular/cdk/overlay';
-import {MediaMatcher} from '@angular/cdk/layout';
 
 import { AppInfo } from './app.info';
 import { AboutDialog, LoginDialog } from './lib/app-ui';
@@ -84,7 +83,6 @@ export class AppComponent {
                 public signalk: SignalKClient,
                 private dom: DomSanitizer,
                 private overlayContainer: OverlayContainer,
-                private mediaMatcher: MediaMatcher,
                 private dialog: MatDialog) { 
         // set self to active vessel
         this.app.data.vessels.active= this.app.data.vessels.self;
@@ -181,7 +179,7 @@ export class AppComponent {
     }
 
     private setDarkTheme() {
-        let mq= this.mediaMatcher.matchMedia('prefers-color-scheme: dark)');
+        let mq= window.matchMedia("(prefers-color-scheme: dark)");
 
         if( (this.app.config.darkMode.source==0 && mq.matches) ||
             (this.app.config.darkMode.source==1 && this.app.data.vessels.self.mode=='night') ) { 

@@ -47,15 +47,22 @@
         </div>
         <cdk-virtual-scroll-viewport itemSize="120" class="vscroller">
             <mat-card *cdkVirtualFor="let r of filterList; let i= index;"
-                    style="border-bottom: silver 1px outset;">        
+                    style="border-bottom: silver 1px outset;">     
 
                 <div style="display: flex;">
-                    <div style="flex: 1 1 auto;">
-                        <div><b>{{r[1].name}}</b></div>
-                        <div>{{r[1].description}}</div>
-                        <div><i>{{ app.config.units.distance!='m' ? 
+                    <div style="flex: 1 1 auto; width: 215px;">
+                        <div style="text-overflow: ellipsis; overflow-x: hidden;">
+                            <b>{{r[1].name}}</b>
+                        </div>
+                        <div style="text-overflow: ellipsis; overflow-x: hidden;">
+                            {{r[1].description}}
+                        </div>
+                        <div>
+                            <i>{{ app.config.units.distance!='m' ? 
                                 km2Nm(r[1].distance/1000).toFixed(2) + 'NM' :
-                                (r[1].distance/1000).toFixed(2) + 'km'}} </i></div>
+                                (r[1].distance/1000).toFixed(2) + 'km'}} 
+                            </i>
+                        </div>
                     </div>        
                     <div style="text-align: right;">
                         <mat-checkbox color="primary"

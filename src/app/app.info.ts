@@ -17,7 +17,7 @@ import { SKVessel } from './modules/skresources/resource-classes';
 export class AppInfo extends Info {
 
     private DEV_SERVER= {
-        host: null,     // host name || ip address
+        host: '192.168.86.32',     // host name || ip address
         port: 3000,     // port number
         ssl: false
     };
@@ -53,7 +53,7 @@ export class AppInfo extends Info {
         this.name= "Freeboard";
         this.shortName= "freeboard";
         this.description= `Signal K Chart Plotter.`;
-        this.version= '1.8.0';
+        this.version= '1.8.1';
         this.url= 'https://github.com/signalk/freeboard-sk';
         this.logo= "./assets/img/app_logo.png";       
         

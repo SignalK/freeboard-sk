@@ -4,6 +4,9 @@
 
 - **Fixed:** When adding a waypoint it was not "selected" for display when a PENDING 202 response is received.
 
+- **Fixed:** Route, Note and Chart list display issue where a long name would
+cause the "selection checkbox" not to be displayed.
+
 - **Fixed:** Map button rendering issues in iOS.
 
 - **Fixed:** Issue where OS dark mode was not always being detected correctly.

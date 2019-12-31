@@ -26,7 +26,12 @@ interface PiPVideoElement extends HTMLVideoElement {
             </button>-->                
         </div>
     `,
-    styles: []
+    styles: [`
+        button {
+            width: 40px;
+            height: 33px;
+        }
+    `]
 })
 export class PiPVideoComponent implements OnInit {
     
