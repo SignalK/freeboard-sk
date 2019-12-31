@@ -45,12 +45,14 @@
             <mat-card *cdkVirtualFor="let r of filterList; let i= index;"
                     style="border-bottom: silver 1px outset;">
                 <div style="display: flex;">
-                    <div style="flex: 1 1 auto;">
-                        <div>
+                    <div style="flex: 1 1 auto; width: 215px;">
+                        <div style="text-overflow: ellipsis; overflow-x: hidden;">
                             <mat-icon>{{ (i<2) ? 'language' : 'map'}}</mat-icon>
                             &nbsp;<b>{{r[1].name}}</b>
                         </div>
-                        <div>{{r[1].description}}</div>
+                        <div style="text-overflow: ellipsis; overflow-x: hidden;">
+                            {{r[1].description}}
+                        </div>
                     </div>        
                     <div style="text-align: right;">
                         <mat-checkbox color="primary"
