@@ -1,5 +1,9 @@
 # CHANGELOG: Freeboard
 
+### v1.8.2
+
+- **Change**: Created Routes (Draw or from GPX import) no longer create Waypoint records for first and last route coordinates. `start` and `end` attributes are set to `null`.
+
 ### v1.8.1
 
 - **Fixed:** When adding a waypoint it was not "selected" for display when a PENDING 202 response is received.
