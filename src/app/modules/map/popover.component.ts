@@ -5,6 +5,7 @@ import { Component, Input, Output, EventEmitter, ChangeDetectionStrategy } from 
 
 import { SKVessel, SKAtoN } from '../skresources/resource-classes';
 import { Convert } from 'src/app/lib/convert';
+import { GeoUtils } from 'src/app/lib/geoutils';
 
 /*********** Popover ***************
 title: string -  title text,
@@ -104,11 +105,11 @@ isSelf: boolean - true if vessel 'self'
             
             <div style="display:flex;">
                 <div style="font-weight:bold;">Latitude:</div>
-                <div style="flex: 1 1 auto;text-align:right;">{{vessel.position[1].toFixed(6)}}</div>
+                <div style="flex: 1 1 auto;text-align:right;">{{position[1].toFixed(6)}}</div>
             </div>
             <div style="display:flex;">
                 <div style="font-weight:bold;">Longitude:</div>
-                <div style="flex: 1 1 auto;text-align:right;">{{vessel.position[0].toFixed(6)}}</div>
+                <div style="flex: 1 1 auto;text-align:right;">{{position[0].toFixed(6)}}</div>
             </div>
             <div style="display:flex;">
                 <div style="font-weight:bold;">Last Update:</div>
@@ -198,6 +199,8 @@ export class VesselPopoverComponent {
     timeLastUpdate: string;
     timeAgo: string;    // last update in minutes ago
 
+    position:any=[0,0];
+
     constructor() {}
 
     ngOnInit() { 
@@ -207,7 +210,13 @@ export class VesselPopoverComponent {
         }
     }
 
-    ngOnChanges() { 
+    ngOnChanges(changes) { 
+        this.position= [
+            changes.vessel.currentValue.position[0],
+            changes.vessel.currentValue.position[1]
+        ];
+        //let pos= GeoUtils.normaliseCoords(this.position);
+        this.position= GeoUtils.normaliseCoords(this.position);
         this.timeLastUpdate= `${this.vessel.lastUpdated.getHours()}:${('00' + this.vessel.lastUpdated.getMinutes()).slice(-2)}`;
         let td= (new Date().valueOf() - this.vessel.lastUpdated.valueOf()) / 1000;
         this.timeAgo= (td<60) ? '' : `(${Math.floor(td/60)} min ago)`;
@@ -239,7 +248,12 @@ id: string - resource id
             
             <div *ngFor="let p of properties" style="display:flex;">
                 <div style="font-weight:bold;">{{p[0]}}:</div>
-                <div style="flex: 1 1 auto;text-align:right;">{{p[1]}}</div>
+                <div style="flex: 1 1 auto;text-align:right;
+                            white-space:nowrap;
+                            overflow-x:hidden;
+                            text-overflow:ellipsis;">
+                    {{p[1]}}
+                </div>
             </div>
 
             <div style="display:flex;flex-wrap: wrap;">

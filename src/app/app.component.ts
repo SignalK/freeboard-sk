@@ -4,16 +4,17 @@ import { DomSanitizer, SafeResourceUrl} from '@angular/platform-browser';
 import {OverlayContainer} from '@angular/cdk/overlay';
 
 import { AppInfo } from './app.info';
-import { AboutDialog, LoginDialog } from './lib/app-ui';
-import { PlaybackDialog } from './lib/ui/playback-dialog';
+import { AboutDialog, LoginDialog } from 'src/app/lib/app-ui';
+import { PlaybackDialog } from 'src/app/lib/ui/playback-dialog';
 
 import { SettingsDialog, AlarmsFacade, AlarmsDialog, 
         SKStreamFacade, SKSTREAM_MODE, SKResources, 
         SKRegion, AISPropertiesDialog, AtoNPropertiesDialog, 
-        GPXImportDialog} from './modules';
+        GPXImportDialog} from 'src/app/modules';
 
 import { SignalKClient } from 'signalk-client-angular';
-import { Convert } from './lib/convert';
+import { Convert } from 'src/app/lib/convert';
+import { GeoUtils } from 'src/app/lib/geoutils';
 import 'hammerjs';
 
 @Component({
@@ -73,7 +74,7 @@ export class AppComponent {
     
     public convert= Convert;
     private obsList= [];    // observables array
-    private streamOptions= {options: null, toMode: null};
+    private streamOptions= {options: null, toMode: null};  
     
     constructor(
                 public app: AppInfo, 
@@ -846,7 +847,7 @@ export class AppComponent {
             case 'region':  // region + Note
                 let region= new SKRegion();
                 let uuid= this.signalk.uuid.toSignalK();
-                region.feature.geometry.coordinates= [e.coordinates];
+                region.feature.geometry.coordinates= [GeoUtils.normaliseCoords(e.coordinates)];
                 this.skres.showNoteEditor({region: {id:uuid, data: region }})
                 break;                
         }
@@ -871,10 +872,13 @@ export class AppComponent {
                     }
                     if(r[0]=='waypoint') {
                         this.skres.updateWaypointPosition(r[1], this.draw.forSave.coords);
-                        this.skres.setNextPoint({
-                            latitude: this.draw.forSave.coords[1], 
-                            longitude: this.draw.forSave.coords[0], 
-                        });  
+                        // if waypoint the target destination update nextPoint
+                        if(r[1]==this.app.data.activeWaypoint) {
+                            this.skres.setNextPoint({
+                                latitude: this.draw.forSave.coords[1], 
+                                longitude: this.draw.forSave.coords[0], 
+                            });  
+                        }
                     }
                     if(r[0]=='note') { 
                         this.skres.updateNotePosition(r[1], this.draw.forSave.coords);

@@ -36,10 +36,10 @@
     <!-- /Interactions -->
 
     <!-- Controls -->
-    <aol-control-mouseposition class="ol-mouse-position"
-        [projection]="app.config.map.srid"
-        [coordinateFormat]="pointerXYString()">
-    </aol-control-mouseposition>
+    <div class="ol-mouse-position">
+        Lon: {{mouse.coords[0].toFixed(4)}}&nbsp;
+        Lat: {{mouse.coords[1].toFixed(4)}}
+    </div>
 
     <aol-control>
         <aol-content>
@@ -68,7 +68,7 @@
     </aol-layer-tile>
     <aol-layer-tile [zIndex]="11"
         *ngIf="app.data.charts.length!=0 && app.data.charts[1][2]">
-        <aol-source-xyz 
+        <aol-source-xyz
             [url]="'https://tiles.openseamap.org/seamark/{z}/{x}/{y}.png'">
         </aol-source-xyz>
     </aol-layer-tile>
@@ -183,29 +183,29 @@
     <!-- *** WAYPOINTS *** -->
     <aol-layer-vector [zIndex]="90">
         <aol-source-vector>
-        <div *ngFor="let w of dfeat.waypoints; let i=index;">
-            <aol-feature *ngIf="w[2]" [id]="'waypoint.'+ w[0]">
-                <aol-geometry-point>
-                    <aol-coordinate 
-                        [x]="w[1].feature.geometry.coordinates[0]" 
-                        [y]="w[1].feature.geometry.coordinates[1]" 
-                        [srid]="app.config.map.srid">
-                    </aol-coordinate>
-                </aol-geometry-point>
-                <aol-style>
-                    <aol-style-icon 
-                        [anchor]="[10.5, 25]"
-                        [anchorXUnits]="'pixels'"
-                        [anchorYUnits]= "'pixels'"
-                        [src]="'./assets/img/marker-gold.png'"
-                        [size]="[25,25]"
-                        [scale]="1"
-                        [rotateWithView]="false"
-                        [rotation]="0">
-                    </aol-style-icon>
-                </aol-style>
-            </aol-feature>
-        </div>
+            <div *ngFor="let w of dfeat.waypoints; let i=index;">
+                <aol-feature *ngIf="w[2]" [id]="'waypoint.'+ w[0]">
+                    <aol-geometry-point>
+                        <aol-coordinate 
+                            [x]="w[1].feature.geometry.coordinates[0]" 
+                            [y]="w[1].feature.geometry.coordinates[1]" 
+                            [srid]="app.config.map.srid">
+                        </aol-coordinate>
+                    </aol-geometry-point>
+                    <aol-style>
+                        <aol-style-icon 
+                            [anchor]="[10.5, 25]"
+                            [anchorXUnits]="'pixels'"
+                            [anchorYUnits]= "'pixels'"
+                            [src]="'./assets/img/marker-gold.png'"
+                            [size]="[25,25]"
+                            [scale]="1"
+                            [rotateWithView]="false"
+                            [rotation]="0">
+                        </aol-style-icon>
+                    </aol-style>
+                </aol-feature>
+            </div>
         </aol-source-vector>
     </aol-layer-vector>
     <!-- *** /WAYPOINTS *** -->  
@@ -432,7 +432,7 @@
             <aol-feature>
                 <aol-geometry-linestring>
                     <aol-collection-coordinates
-                        [coordinates]="[dfeat.closest.position, dfeat.self.position]"
+                        [coordinates]="vesselLines.cpa"
                         [srid]="app.config.map.srid">
                     </aol-collection-coordinates>
                 </aol-geometry-linestring>
@@ -571,7 +571,7 @@
             <aol-feature>
                 <aol-geometry-linestring>
                     <aol-collection-coordinates
-                        [coordinates]="app.data.trail"
+                        [coordinates]="vesselLines.trail"
                         [srid]="app.config.map.srid">
                     </aol-collection-coordinates>
                 </aol-geometry-linestring>

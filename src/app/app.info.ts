@@ -17,7 +17,7 @@ import { SKVessel } from './modules/skresources/resource-classes';
 export class AppInfo extends Info {
 
     private DEV_SERVER= {
-        host: '192.168.86.32',     // host name || ip address
+        host: '192.168.86.32', //'172.17.0.1', // host name || ip address
         port: 3000,     // port number
         ssl: false
     };

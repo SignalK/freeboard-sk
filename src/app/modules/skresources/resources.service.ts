@@ -237,47 +237,22 @@ export class SKResources {
         });
     }
 
-    // ** build and return object containing: SKRoute,  start & end SKWaypoint objects from supplied coordinates
+    // ** build and return object containing: SKRoute
     buildRoute(coordinates):any {
         let rte= new SKRoute();
-        let wStart= new SKWaypoint();
-        let wEnd= new SKWaypoint();
-
-        let rteUuid= this.signalk.uuid.toSignalK();  
-        let wStartUuid= this.signalk.uuid.toSignalK();  
-        let wEndUuid= this.signalk.uuid.toSignalK(); 
-
-        rte.feature.geometry.coordinates= coordinates;
+        let rteUuid= this.signalk.uuid.toSignalK();
+        rte.feature.geometry.coordinates= GeoUtils.normaliseCoords(coordinates);
         for(let i=0;i<coordinates.length-1;++i) { 
             rte.distance+= GeoUtils.distanceTo(coordinates[i], coordinates[i+1]);
         }
-        rte.start= wStartUuid;
-        rte.end= wEndUuid;  
-
-        wStart.feature.geometry.coordinates= rte.feature.geometry.coordinates[0];
-        wStart.position= { 
-            latitude: wStart.feature.geometry.coordinates[1],
-            longitude: wStart.feature.geometry.coordinates[0]
-        }
-        let l= rte.feature.geometry.coordinates.length;
-        wEnd.feature.geometry.coordinates= rte.feature.geometry.coordinates[l-1];
-        wEnd.position= { 
-            latitude: wEnd.feature.geometry.coordinates[1],
-            longitude: wEnd.feature.geometry.coordinates[0]
-        }        
-        return {
-            route: [rteUuid, rte],
-            wptStart: [rte.start, wStart],
-            wptEnd: [rte.end, wEnd]
-        }
+        rte.start= null;
+        rte.end= null;
+        return [rteUuid, rte]
     }
 
     // ** create route on server **
     private createRoute(rte:any) {
-        this.signalk.api.put(
-            `/resources/routes/${rte['route'][0]}`, 
-            rte['route'][1]
-        ).subscribe( 
+        this.signalk.api.put(`/resources/routes/${rte[0]}`, rte[1]).subscribe( 
             res=> { 
                 if(res['statusCode']>=400) {    // response status is error
                     this.app.showAlert(`ERROR: (${res['statusCode']})`, res['message'] ? res['message'] : 'Server could not add Route!');
@@ -288,18 +263,14 @@ export class SKResources {
                             this.app.showAlert(`ERROR: (${r['statusCode']})`, r['message'] ? r['message'] : 'Server could not add Route!');
                         } 
                         else { 
-                            this.submitWaypoint(rte['wptStart'][0], rte['wptStart'][1], false);
-                            this.submitWaypoint(rte['wptEnd'][0], rte['wptEnd'][1], false);               
-                            this.app.config.selections.routes.push(rte['route'][0]);
+                            this.app.config.selections.routes.push(rte[0]);
                             this.app.saveConfig();
                             this.getRoutes();  
                         }      
                     });
                 } 
                 else if(res['statusCode']==200) { // complete
-                    this.submitWaypoint(rte['wptStart'][0], rte['wptStart'][1], false);
-                    this.submitWaypoint(rte['wptEnd'][0], rte['wptEnd'][1], false);               
-                    this.app.config.selections.routes.push(rte['route'][0]);
+                    this.app.config.selections.routes.push(rte[0]);
                     this.app.saveConfig();
                     this.getRoutes();                        
                 }                
@@ -382,13 +353,10 @@ export class SKResources {
                         if(r['statusCode']>=400) {    // response status is error
                             this.app.showAlert(`ERROR: (${r['statusCode']})`, r['message'] ? r['message'] : 'Server could not delete Route!');
                         } 
-                        else { this.getWaypoints(); this.getRoutes(); }      
+                        else { this.getRoutes() }      
                     });
                 } 
-                else if(res['statusCode']==200) { 
-                    this.getRoutes();
-                    this.getWaypoints(); 
-                }
+                else if(res['statusCode']==200) { this.getRoutes() }
             },
             err=> { 
                 if(err.status && err.status==401) { 
@@ -418,7 +386,7 @@ export class SKResources {
         let t= this.app.data.routes.filter( i=>{ if(i[0]==id) return true });
         if(t.length==0) { return }
         let rte=t[0][1];
-        rte['feature']['geometry']['coordinates']= coords;
+        rte['feature']['geometry']['coordinates']= GeoUtils.normaliseCoords(coords);
         this.updateRoute(id, rte);
     }
 
@@ -470,8 +438,8 @@ export class SKResources {
             }
         }).afterClosed().subscribe( r=> {
             if(r.result) { // ** create route **
-                res['route'][1]['description']= r.data.comment || '';
-                res['route'][1]['name']= r.data.name;
+                res[1]['description']= r.data.comment || '';
+                res[1]['name']= r.data.name;
                 this.createRoute(res);
             }
         });
@@ -624,7 +592,7 @@ export class SKResources {
         let wpt= new SKWaypoint();
         let wptUuid= this.signalk.uuid.toSignalK();  
 
-        wpt.feature.geometry.coordinates= coordinates;
+        wpt.feature.geometry.coordinates= GeoUtils.normaliseCoords(coordinates);
         wpt.position= { 
             latitude: coordinates[1],
             longitude: coordinates[0]
@@ -760,8 +728,11 @@ export class SKResources {
         let t= this.app.data.waypoints.filter( i=>{ if(i[0]==id) return true });
         if(t.length==0) { return }
         let wpt=t[0][1];
-        wpt['position']= { latitude: position[1], longitude: position[0] };
-        wpt['feature']['geometry']['coordinates']= position;
+        wpt['feature']['geometry']['coordinates']= GeoUtils.normaliseCoords(position);
+        wpt['position']= { 
+            latitude: wpt['feature']['geometry']['coordinates'][1], 
+            longitude: wpt['feature']['geometry']['coordinates'][0] 
+        };
         this.submitWaypoint(id, wpt);
     }    
 
@@ -775,18 +746,18 @@ export class SKResources {
         if(!e) {    // ** add at vessel location
             if(!position) { return }
             wpt= new SKWaypoint(); 
-            wpt.feature.geometry.coordinates= position;
-            wpt.position.latitude= position[1];
-            wpt.position.longitude= position[0];    
+            wpt.feature.geometry.coordinates= GeoUtils.normaliseCoords(position);
+            wpt.position.latitude= wpt.feature.geometry.coordinates[1];
+            wpt.position.longitude= wpt.feature.geometry.coordinates[0];    
             title= 'New waypoint:';      
             wpt.feature.properties['name']= '';
             wpt.feature.properties['cmt']= '';
         }
         else if(!e.id && e.position) { // add at provided position
             wpt= new SKWaypoint(); 
-            wpt.feature.geometry.coordinates= e.position;
-            wpt.position.latitude= e.position[1];
-            wpt.position.longitude= e.position[0];    
+            wpt.feature.geometry.coordinates= GeoUtils.normaliseCoords(e.position);
+            wpt.position.latitude= wpt.feature.geometry.coordinates[1];
+            wpt.position.longitude= wpt.feature.geometry.coordinates[0];    
             title= 'Drop waypoint:';      
             wpt.feature.properties['name']= '';
             wpt.feature.properties['cmt']= '';
@@ -931,7 +902,7 @@ export class SKResources {
         let t= this.app.data.regions.filter( i=>{ if(i[0]==id) return true });
         if(t.length==0) { return }
         let region=t[0][1];
-        region['feature']['geometry']['coordinates']= coords;
+        region['feature']['geometry']['coordinates']= GeoUtils.normaliseCoords(coords);
         this.createRegion({id: id, data: region});
     }
 
@@ -961,11 +932,15 @@ export class SKResources {
         if(rf && rf[0]!='?') { rf='?' + rf }
         this.app.debug(`${rf}`);
 
-        let resRegions:Observable<any>= of('none');
-        try { resRegions= this.getRegions(rf).pipe( catchError(error => of(error)) ); }
-        catch(e) { console.warn('getRegions() failed...') }
+        let req= [];
+        let resRegions= this.getRegions(rf);
+        if(resRegions) { 
+            resRegions.pipe( catchError(error => of(error)) );
+            req.push(resRegions);
+        }
         let resNotes= this.signalk.api.get(`/resources/notes${rf}`);
-        let res= forkJoin(resRegions, resNotes);
+        req.push(resNotes);
+        let res= forkJoin(req);
         res.subscribe(
             res=> { 
                 if(typeof res[0]['error']==='undefined') { 
@@ -1254,6 +1229,7 @@ export class SKResources {
             data.title= 'Add Note:'; 
             note= new SKNote(); 
             if(e.group) { note.group= e.group }
+            e.position= GeoUtils.normaliseCoords(e.position);
             note.position= {latitude: e.position[1], longitude: e.position[0]};    
             note.title= '';
             note.description= '';
@@ -1354,6 +1330,7 @@ export class SKResources {
         let t= this.app.data.notes.filter( i=>{ if(i[0]==id) return true });
         if(t.length==0) { return }
         let note=t[0][1];
+        position= GeoUtils.normaliseCoords(position);
         note['position']= { latitude: position[1], longitude: position[0] };
         this.updateNote(id, note);
     }   

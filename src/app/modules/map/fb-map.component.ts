@@ -21,9 +21,36 @@ interface IResource {
     type: string;
 }
 
+interface IOverlay {
+        id: string,
+        type: string,
+        position: any;
+        show: boolean,
+        title: string;
+        content: any;
+        featureCount: number;
+}
+
+interface IFeatureData {
+    atons: Array<any>;
+    routes: Array<any>;
+    waypoints: Array<any>;
+    charts: Array<any>;
+    notes: Array<any>;
+    regions: Array<any>;
+    self: SKVessel;   //self vessel
+    ais: Map<string,any>;        // other vessels
+    active: SKVessel;  // focussed vessel
+    navData: any;
+    closest: any;
+    grib: any    // GRIB data
+    colorGradient: any;
+    heatmap: Array<any>;     // values to display on colormap / heatmap
+}
+
 const MAP_SRID:string= 'EPSG:4326';
 const MAP_MAX_ZOOM:number= 28;
-const MAP_MIN_ZOOM:number= 1;
+const MAP_MIN_ZOOM:number= 2;
 
 enum INTERACTION_MODE {
     MEASURE,
@@ -46,6 +73,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
     @Input() drawMode: string= null;
     @Input() modifyMode: boolean= false;
     @Input() activeRoute: string;
+    @Input() vesselTrail: Array<[number,number]>= [];
     @Output() measureStart: EventEmitter<boolean>= new EventEmitter();
     @Output() measureEnd: EventEmitter<boolean>= new EventEmitter();
     @Output() drawEnd: EventEmitter<any>= new EventEmitter();
@@ -93,10 +121,12 @@ export class FBMapComponent implements OnInit, OnDestroy {
         awa: [null,null],
         bearing: [null,null],
         heading: [null,null],
-        anchor: []
+        anchor: [],
+        trail: [],
+        cpa: [] 
     }
 
-    public overlay= {
+    public overlay:IOverlay = {
         id: null,
         type: null,
         position: [0,0],
@@ -129,7 +159,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
     }
 
     // ** map feature data
-    dfeat= {
+    dfeat: IFeatureData= {
         atons: [],
         routes: [],
         waypoints: [],
@@ -167,7 +197,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
 
     private mouse= {
         pixel: null,
-        coords: null,
+        coords: [0,0],
         xy: null
     }
     contextMenuPosition = { x: '0px', y: '0px' };    
@@ -210,6 +240,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
     }
 
     ngOnChanges(changes) {
+        if(changes.vesselTrail) { this.drawVesselLines() }        
         if(changes.setFocus && changes.setFocus.currentValue==true) { 
             this.aolMap.host.nativeElement.firstChild.focus();
         }
@@ -290,7 +321,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
             }
         }  
         if(!this.checkedAtoNs && this.app.data.atons.size!=0) { this.renderAtoNs(); this.checkedAtoNs=true; }
-        this.drawVesselLines();
+        this.drawVesselLines(true);
         this.rotateMap();  
         if(this.fbMap.movingMap) { this.centerVessel() }    
     }
@@ -299,12 +330,39 @@ export class FBMapComponent implements OnInit, OnDestroy {
         this.app.debug('skres.update$ -> map.onResourceUpdate()');
         this.app.debug(value);
         if(value.action=='get') {
-            if(value.mode=='route') { this.dfeat.routes= this.app.data.routes }
+            if(value.mode=='route') { 
+                this.dfeat.routes= [];
+                this.app.data.routes.forEach( r=> {
+                    let i= JSON.parse(JSON.stringify(r));
+                    let c= this.mapifyCoords(i[1].feature.geometry.coordinates);
+                    i[1].feature.geometry.coordinates=c;
+                    this.dfeat.routes.push(i);
+                });
+            }
             if(value.mode=='waypoint') { this.dfeat.waypoints= this.app.data.waypoints }
             if(value.mode=='chart') { this.dfeat.charts= this.app.data.charts }
             if(value.mode=='note') { 
                 this.dfeat.notes= this.app.data.notes;
-                this.dfeat.regions= this.app.data.regions;
+                this.dfeat.regions= [];
+                this.app.data.regions.forEach( r=> {
+                    if(r[1].feature.geometry.type=='Polygon') {
+                        let i= JSON.parse(JSON.stringify(r));
+                        i[1].feature.geometry.coordinates.forEach(p=> {
+                            p= this.mapifyCoords(p);
+                        });
+                        this.dfeat.regions.push(i);
+                    }
+                    else if(r[1].feature.geometry.type=='MultiPolygon') {
+                        let i= JSON.parse(JSON.stringify(r));
+                        i[1].feature.geometry.coordinates.forEach(mp=> {
+                            mp.forEach(p=> {
+                                p= this.mapifyCoords(p);
+                            });
+                        });
+                        this.dfeat.regions.push(i);
+                    }                    
+                });
+
             }
             if(value.mode=='grib') { this.renderGRIB() }
         }
@@ -376,7 +434,17 @@ export class FBMapComponent implements OnInit, OnDestroy {
             this.app.config.map.mrid, 
             this.app.config.map.srid
         );
-        this.app.config.map.center= center;
+        if(center[0]>180 || center[0]<-180) {
+            this.app.config.map.center= GeoUtils.normaliseCoords(center);
+            v.setCenter(
+                transform(
+                    this.app.config.map.center, 
+                    this.app.config.map.srid,
+                    this.app.config.map.mrid
+                )
+            );
+        }
+        else { this.app.config.map.center= center }
 
         this.drawVesselLines();
         if(!this.fbMap.movingMap) { 
@@ -392,10 +460,12 @@ export class FBMapComponent implements OnInit, OnDestroy {
     public onMapPointerMove(e:any) {
         this.mouse.pixel= e.pixel;
         this.mouse.xy= e.coordinate;
-        this.mouse.coords= transform(
-            e.coordinate, 
-            this.app.config.map.mrid, 
-            this.app.config.map.srid
+        this.mouse.coords= GeoUtils.normaliseCoords(
+            transform(
+                e.coordinate, 
+                this.app.config.map.mrid, 
+                this.app.config.map.srid
+            )
         );
         if(this.measure.enabled && this.measure.coords.length!=0) {
             let c= transform(
@@ -418,6 +488,8 @@ export class FBMapComponent implements OnInit, OnDestroy {
     }
 
     public onMapMouseClick(e:any) {
+        // normalise coordinates
+
         if(this.measure.enabled) { this.onMeasureClick(e.coordinate) }  
         else if(!this.draw.enabled && !this.draw.modify) {
             let flist= new Map();
@@ -651,26 +723,38 @@ export class FBMapComponent implements OnInit, OnDestroy {
         this.fbMap.center= t;
     }  
 
-    public drawVesselLines() {
+    public drawVesselLines(vesselUpdate:boolean=false) {
         let z= this.app.config.map.zoomLevel;
         let offset= (z<29) ? this.zoomOffsetLevel[z] : 60;
         let wMax= 10;   // ** max line length
 
+        // vessel trail
+        if(this.app.data.trail) {
+            this.vesselLines.trail= [].concat(this.app.data.trail);
+            if(vesselUpdate) {
+                this.vesselLines.trail.push(this.dfeat.active.position);
+            }
+            this.vesselLines.trail= this.mapifyCoords(this.vesselLines.trail);
+        }
+
         // ** bearing line (active) **
         let bpos= (this.dfeat.navData.position && this.dfeat.navData.position[0]) ? 
             this.dfeat.navData.position : this.dfeat.active.position;
-        this.vesselLines.bearing= [
-            this.dfeat.active.position, 
-            bpos
-        ]; 
+        this.vesselLines.bearing= this.mapifyCoords(
+            [this.dfeat.active.position, bpos]
+        ); 
 
         // ** anchor line (active) **
         if(!this.app.config.anchor.raised) {
-            this.vesselLines.anchor= [
-                this.app.config.anchor.position,
-                this.dfeat.active.position
-            ];
-        }                     
+            this.vesselLines.anchor= this.mapifyCoords(
+                [this.app.config.anchor.position, this.dfeat.active.position]
+            );
+        }          
+        
+        // ** CPA line **
+        this.vesselLines.cpa= this.mapifyCoords(
+            [this.dfeat.closest.position, this.dfeat.self.position]
+        );        
 
         // ** heading line (active) **
         let sog=(this.dfeat.active.sog || 0);
@@ -952,7 +1036,23 @@ export class FBMapComponent implements OnInit, OnDestroy {
                 this.app.config.map.srid
             );
         });
-    }       
+    } 
+    
+    // update line coords for map display (dateline crossing)
+    private mapifyCoords(coords) {
+        if(coords.length==0) { return coords }
+        let dlCrossing= 0;
+        let last= coords[0];
+        for(let i=0; i< coords.length; i++) {         
+            if( GeoUtils.inDLCrossingZone(coords[i]) || GeoUtils.inDLCrossingZone(last) ) {
+                dlCrossing= (last[0]>0 && coords[i][0]<0) ? 1 
+                    : (last[0]<0 && coords[i][0]>0) ? -1 : 0;
+                if(dlCrossing==1) { coords[i][0]= coords[i][0] + 360}
+                if(dlCrossing==-1) { coords[i][0]= Math.abs(coords[i][0])-360 }
+            } 
+        }
+        return coords;
+    }   
 
     // ** called by onMapMove() to render features within map extent
     private renderMapContents() {
