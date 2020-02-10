@@ -13,7 +13,7 @@ interface PiPVideoElement extends HTMLVideoElement {
             <video #vid [src]="vidUrl" [muted]="muted" autoplay></video>
         </div>
         <div>
-            <button [style.display]="src ? 'block' : 'none'"
+            <button mat-icon-button [style.display]="src ? 'block' : 'none'"
                 matTooltip="Show Video"
                 matTooltipPosition="left"
                 [disabled]="pipMode" (click)="initPiP()">
