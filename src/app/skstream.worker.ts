@@ -3,6 +3,7 @@
 import { SignalKStreamWorker, Alarm, AlarmState } from 'signalk-worker-angular';
 import { SKVessel, SKAtoN } from './modules/skresources/resource-classes';
 import { Convert } from './lib/convert';
+import { GeoUtils } from './lib/geoutils';
 
 class WorkerMessageBase {
     action:string=null;
@@ -335,7 +336,7 @@ function processVessel(d: SKVessel, v:any, isSelf:boolean=false) {
 
     if( v.path=='navigation.position') {
         if(isSelf) { d['positionReceived']=true }
-        d.position= [ v.value.longitude, v.value.latitude];                      
+        d.position= GeoUtils.normaliseCoords([ v.value.longitude, v.value.latitude]);
     }        
     if(v.path=='navigation.state') { d.state= v.value }
     if(v.path=='navigation.speedOverGround') { d.sog= v.value }
