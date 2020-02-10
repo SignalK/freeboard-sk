@@ -88,7 +88,7 @@ export class GPXLoadFacade  {
     // ** transform and upload route
     transformRoute(r: GPXRoute) {
         let skObj= this.skres.buildRoute( r.rtept.map( pt=> { return [pt.lon, pt.lat] }) );
-        let rte= skObj.route[1];
+        let rte= skObj[1];
 
         rte.name= r.name;
         rte.description= r.desc;
@@ -98,53 +98,20 @@ export class GPXLoadFacade  {
         if(r.number) { rte.feature.properties['number']=r.number }
         if(r.type) { rte.feature.properties['type']=r.type }  
 
-        skObj.wptStart[1]['feature']['properties']['name']= `${r.name} start`;
-        skObj.wptEnd[1]['feature']['properties']['name']= `${r.name} end`;
-
         this.subCount++;
-        this.signalk.api.put(`/resources/routes/${skObj.route[0]}`, skObj.route[1])
+        this.signalk.api.put(`/resources/routes/${skObj[0]}`, skObj[1])
         .subscribe( 
             r=> { 
                 this.subCount--;
                 if(r['state']=='COMPLETED') { 
                     this.app.debug('SUCCESS: Route added.');
-                    this.app.config.selections.routes.push(skObj.route[0]);                        
+                    this.app.config.selections.routes.push(skObj[0]);                        
                 }
                 else { this.errorCount++ }
                 this.checkComplete();
             },
             err=> { this.errorCount++; this.subCount--; this.checkComplete() }
-        );    
-        
-        this.subCount++;
-        this.signalk.api.put(`/resources/waypoints/${skObj.wptStart[0]}`, skObj.wptStart[1])
-        .subscribe( 
-            r=>{ 
-                this.subCount--;
-                if(r['state']=='COMPLETED') { 
-                    this.app.debug('SUCCESS: Waypoint added.');
-                    this.app.config.selections.waypoints.push(skObj.wptStart[0]);
-                }
-                else { this.errorCount++ }
-                this.checkComplete();
-            },
-            err=> { this.errorCount++; this.subCount--; this.checkComplete() }
-        );      
-        
-        this.subCount++;
-        this.signalk.api.put(`/resources/waypoints/${skObj.wptEnd[0]}`, skObj.wptEnd[1])
-        .subscribe( 
-            r=>{ 
-                this.subCount--;
-                if(r['state']=='COMPLETED') { 
-                    this.app.debug('SUCCESS: Waypoint added.');
-                    this.app.config.selections.waypoints.push(skObj.wptEnd[0]);
-                }
-                else { this.errorCount++ }
-                this.checkComplete();
-            },
-            err=> { this.errorCount++; this.subCount--; this.checkComplete() }
-        );          
+        );        
     }    
     
     // ** transform and upload waypoint

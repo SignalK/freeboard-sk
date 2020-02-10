@@ -37,7 +37,7 @@ export class GPX {
         
     //** return a formatted string of GPX data suitable for writing to a file **
     toXML() {    
-        let xml= `<?xml version="1.1" encoding="UTF-8"?>\r\n` +
+        let xml= `<?xml version="1.0" encoding="UTF-8"?>\r\n` +
             `<gpx xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" ` +
                 `version="${this.version}" ` +
                 `xmlns="http://www.topografix.com/GPX/1/1" ` +
