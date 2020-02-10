@@ -4,6 +4,13 @@
 
 - **Change**: Created Routes (Draw or from GPX import) no longer create Waypoint records for first and last route coordinates. `start` and `end` attributes are set to `null`.
 
+- **Change**: Map center is now restricted to coordinates betwwen -180 and 180. 
+
+- **Fix**: Cursor position display showing values <-180 and >180
+
+- **Fix**: Moving a waypoint would set it as the active destination regardless of whether it was set or not.
+
+
 ### v1.8.1
 
 - **Fixed:** When adding a waypoint it was not "selected" for display when a PENDING 202 response is received.
