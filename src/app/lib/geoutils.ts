@@ -99,25 +99,61 @@ export class GeoUtils {
 
     //** Calculate the centre of polygon	
     static centreOfPolygon(coords:Array<[number,number]>) { 
-        let high= [-180,-90]; 
-        let low= [180,90];
+        let high:[number,number]= [-180,-90]; 
+        let low:[number,number]= [180,90];
         coords.forEach( c=> {
             low[0]= (c[0]<low[0]) ? c[0] : low[0];
             low[1]= (c[1]<low[1]) ? c[1] : low[1];
             high[0]= (c[0]>high[0]) ? c[0] : high[0];
             high[1]= (c[1]>high[1]) ? c[1] : high[1];            
         });
+        if(GeoUtils.inDLCrossingZone(low) || GeoUtils.inDLCrossingZone(high) ) {
+            let dlCrossing= (low[0]>0 && high[0]<0) ? 1 
+                : (low[0]<0 && high[0]>0) ? -1 : 0;
+            if(dlCrossing==1) { high[0]= high[0] + 360}
+            if(dlCrossing==-1) { high[0]= Math.abs(high[0])-360 }
+        }
         return [
             low[0] + ((high[0] - low[0]) / 2),
             low[1] + ((high[1] - low[1]) / 2)
         ];
     } 
 
+
+    /** DateLine Crossing:
+     * returns true if point is in the zone for dateline transition 
+     * zoneValue: lower end of 180 to xx range within which Longitude must fall for retun value to be true
+    **/
+    static inDLCrossingZone(coord:[number,number], zoneValue:number= 170) {
+        return (Math.abs(coord[0])>=zoneValue) ? true : false;
+    }
+
     // returns true if point is inside the supplied extent
     static inBounds( point: [number,number], extent: [number,number,number,number]) {
         return (point[0]>extent[0] && point[0]<extent[2])
             && (point[1]>extent[1] && point[1]<extent[3]); 
-    }    
+    }  
+
+    // ensure -180<coords<180
+    static normaliseCoords(coords:[number,number])  // Point
+    static normaliseCoords(coords:Array<[number,number]>)  //LineString
+    static normaliseCoords(coords:Array<Array<[number,number]>>)  // MultiLineString
+    static normaliseCoords(coords:any) {
+        if( !Array.isArray(coords) ) { return [0,0] }
+        if(typeof coords[0]=='number') {
+            if(coords[0]>180) {
+                while(coords[0]>180) { coords[0]= coords[0]-360 }
+            }
+            else if(coords[0]<-180) {
+                while(coords[0]<-180) { coords[0]= 360 + coords[0] }
+            }
+            return coords;
+        }
+        else if(Array.isArray(coords[0]) ) { 
+            coords.forEach( c=> c=this.normaliseCoords(c) );
+            return coords;
+        }
+    }      
    
 }
 
