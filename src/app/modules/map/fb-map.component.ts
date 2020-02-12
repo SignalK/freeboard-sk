@@ -429,22 +429,11 @@ export class FBMapComponent implements OnInit, OnDestroy {
             this.app.config.map.srid
         );
 
-        let center = transform(
+        this.app.config.map.center= transform(
             v.getCenter(), 
             this.app.config.map.mrid, 
             this.app.config.map.srid
         );
-        if(center[0]>180 || center[0]<-180) {
-            this.app.config.map.center= GeoUtils.normaliseCoords(center);
-            v.setCenter(
-                transform(
-                    this.app.config.map.center, 
-                    this.app.config.map.srid,
-                    this.app.config.map.mrid
-                )
-            );
-        }
-        else { this.app.config.map.center= center }
 
         this.drawVesselLines();
         if(!this.fbMap.movingMap) { 
@@ -488,8 +477,6 @@ export class FBMapComponent implements OnInit, OnDestroy {
     }
 
     public onMapMouseClick(e:any) {
-        // normalise coordinates
-
         if(this.measure.enabled) { this.onMeasureClick(e.coordinate) }  
         else if(!this.draw.enabled && !this.draw.modify) {
             let flist= new Map();

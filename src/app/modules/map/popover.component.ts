@@ -215,7 +215,6 @@ export class VesselPopoverComponent {
             changes.vessel.currentValue.position[0],
             changes.vessel.currentValue.position[1]
         ];
-        //let pos= GeoUtils.normaliseCoords(this.position);
         this.position= GeoUtils.normaliseCoords(this.position);
         this.timeLastUpdate= `${this.vessel.lastUpdated.getHours()}:${('00' + this.vessel.lastUpdated.getMinutes()).slice(-2)}`;
         let td= (new Date().valueOf() - this.vessel.lastUpdated.valueOf()) / 1000;
