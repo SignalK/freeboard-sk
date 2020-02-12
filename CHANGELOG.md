@@ -4,7 +4,7 @@
 
 - **Change**: Created Routes (Draw or from GPX import) no longer create Waypoint records for first and last route coordinates. `start` and `end` attributes are set to `null`.
 
-- **Change**: Map center is now restricted to coordinates betwwen -180 and 180. 
+- **Change**: Normalise coordinates (between -180 and 180) for map actions to cater for map wrapping. 
 
 - **Fix**: Cursor position display showing values <-180 and >180
 
