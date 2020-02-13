@@ -319,6 +319,12 @@ export class FBMapComponent implements OnInit, OnDestroy {
                 this.overlay['vessel']= this.dfeat.ais.get(this.overlay['id']);
                 this.overlay.position= this.overlay['vessel'].position;
             }
+            if( this.fbMap.extent[0]<180 && this.fbMap.extent[2]>180 ) {
+                // if dateline is in view adjust overlay position to stay with vessel
+                if(this.overlay.position[0]<0 && this.overlay.position[0]>-180) { 
+                    this.overlay.position[0]= this.overlay.position[0] + 360;
+                }
+            }          
         }  
         if(!this.checkedAtoNs && this.app.data.atons.size!=0) { this.renderAtoNs(); this.checkedAtoNs=true; }
         this.drawVesselLines(true);
