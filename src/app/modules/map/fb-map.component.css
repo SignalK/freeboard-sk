@@ -44,7 +44,8 @@
     align-items: center;
     justify-content: flex-start;
     margin: 20px;
-  }
+}
+
 
 .ol-mouse-position {
     position: fixed; 

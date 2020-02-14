@@ -404,6 +404,23 @@ export class FBMapComponent implements OnInit, OnDestroy {
         }
     }
 
+    // ** handle Map Tile load events **
+    public onMapTileEvent(e:any) {
+        //console.log(`tile event:`, e);
+    }
+    // ** handle error connecting to online map source **
+    public onMapSourceConnectionError(e:any) {
+        let mapsel= this.app.config.selections.charts;
+        if(mapsel.includes('openstreetmap') || mapsel.includes('openseamap') ) {
+            this.app.showAlert(
+                'Map Service Unavailable: ', 
+                `Unable to display Open Street / Sea Maps!\n
+                Please check your Internet connection or select maps from the local network.\n
+                `
+            );
+        }
+    }
+
     // ** handle mouse right click - show context menu **
     public onMapRightClick(e:any) { 
         e.preventDefault(); 

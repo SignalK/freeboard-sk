@@ -54,7 +54,6 @@ b { font-weight: 500; }
     color: inherit;
 }
 
-
 /*xs*/
 @media only screen and (max-width: 599px),
 only screen and (min-width: 600px) and (max-width: 959px),
