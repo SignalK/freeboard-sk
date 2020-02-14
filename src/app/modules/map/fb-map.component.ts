@@ -195,7 +195,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
     private saveTimer: any;
     private isDirty: boolean=false;
 
-    private mouse= {
+    public mouse= {
         pixel: null,
         coords: [0,0],
         xy: null
