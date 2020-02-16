@@ -209,10 +209,7 @@ export class SKStreamFacade  {
                 [ v['course.nextPoint.position'].longitude, v['course.nextPoint.position'].latitude ] 
                 : null;
 
-            if( !np && !this.app.data.navData.position) { return } //unchanged 
-            if( np && this.app.data.navData.position) {
-                if(np[0]==this.app.data.navData.position[0] && np[1]==this.app.data.navData.position[1]) { return } //unchanged 
-            }
+            if( !np && !this.app.data.navData.position) { return }
             this.app.data.navData.position= np;
             if(this.app.data.activeRoute && this.app.data.navData.position) {
                 this.updateNavData( this.skres.getActiveRouteCoords() );

@@ -1,5 +1,10 @@
 # CHANGELOG: Freeboard
 
+### v1.8.3
+
+- **Fix**: Issue where navigation data (bearing, DTG, etc to destination) was not being updated.
+
+
 ### v1.8.2
 
 - **Change**: Created Routes (Draw or from GPX import) no longer create Waypoint records for first and last route coordinates. `start` and `end` attributes are set to `null`.
