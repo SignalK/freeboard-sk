@@ -1,5 +1,12 @@
 # CHANGELOG: Freeboard
 
+### v1.8.next
+
+- **Update**: Support node server fix to correct `aton` delta context (corrected from `atons`).
+
+- **Update**: Support node server implementation of `apps/list`.
+
+
 ### v1.8.3
 
 - **Fix**: Issue where navigation data (bearing, DTG, etc to destination) was not being updated.

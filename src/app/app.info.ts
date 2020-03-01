@@ -17,7 +17,7 @@ import { SKVessel } from './modules/skresources/resource-classes';
 export class AppInfo extends Info {
 
     private DEV_SERVER= {
-        host: '192.168.86.32', //'172.17.0.1', // host name || ip address
+        host: '172.17.0.1', //'192.168.86.32', // host name || ip address
         port: 3000,     // port number
         ssl: false
     };
@@ -53,7 +53,7 @@ export class AppInfo extends Info {
         this.name= "Freeboard";
         this.shortName= "freeboard";
         this.description= `Signal K Chart Plotter.`;
-        this.version= '1.8.3';
+        this.version= '1.8.4';
         this.url= 'https://github.com/signalk/freeboard-sk';
         this.logo= "./assets/img/app_logo.png";       
         
@@ -325,7 +325,7 @@ export class AppInfo extends Info {
                     from the available paths received from the server. 
                     See <a href="assets/help/index.html#settings-paths" target="help">HELP</a> 
                     for more details.`
-            },
+            }/*,
             'whats-new': [
                 {
                     type: 'signalk-server-node',
@@ -338,7 +338,7 @@ export class AppInfo extends Info {
                         Please <a href="https://www.npmjs.com/package/gpxload" target="npm">visit this link</a> 
                         for more details.`
                 }             
-            ]            
+            ] */           
         }
 
         let btnText:string= 'Get Started'

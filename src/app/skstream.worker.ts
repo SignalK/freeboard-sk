@@ -255,7 +255,7 @@ function parseStreamMessage(data:any) {
                         processVessel( vessels.self, v, true),
                         processNotifications(v);
                     }
-                    else { 
+                    else { // other vessel
                         vessels.aisStatus.updated.push(data.context);
                         processVessel( selectVessel(data.context), v);
                     }

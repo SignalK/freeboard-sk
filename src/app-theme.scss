@@ -22,7 +22,6 @@ $theme:     mat-light-theme($primary, $accent, $warn);
     @include angular-material-theme($dark-theme);
 }
 
-
 @mixin popover-theme($theme) {
     $primary: map-get($theme, primary);
     $accent: map-get($theme, accent);
