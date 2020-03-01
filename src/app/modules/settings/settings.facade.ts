@@ -80,18 +80,27 @@ export class SettingsFacade  {
             (a: Array<any>)=> {
                 this.list.applications= a.map( i=> { 
                     if(i.name=='@signalk/freeboard-sk') { return null }
-                    if(!i._location) { // npm linked app
+                    if(!i._location && !i.location) { // npm linked app
                         return {
                             name: i.name,
                             description: i.description, 
                             url: `/${i.name}`
                         }                    
                     }
-                    let x= i._location.indexOf('/signalk-server/');
-                    return {
-                        name: i.name,
-                        description: i.description, 
-                        url: (x==-1) ? i._location : i._location.slice(15)
+                    if(typeof i._location!=='undefined') { // legacywebapps list
+                        let x= i._location.indexOf('/signalk-server/');
+                        return {
+                            name: i.name,
+                            description: i.description, 
+                            url: (x==-1) ? i._location : i._location.slice(15)
+                        }
+                    }
+                    else if(typeof i.location!=='undefined') {
+                        return {
+                            name: i.name,
+                            description: i.description, 
+                            url: i.location
+                        }                        
                     }
                 }).filter(e=> {return e} );
 
