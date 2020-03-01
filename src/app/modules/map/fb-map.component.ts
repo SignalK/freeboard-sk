@@ -537,7 +537,9 @@ export class FBMapComponent implements OnInit, OnDestroy {
                                 addToFeatureList= true;
                                 text= this.app.data.waypoints.filter( i=>{ return (i[0]==t[1])? i[1].feature.properties.name : null })[0][1].feature.properties.name;
                                 break;
-                            case 'atons': icon="beenhere"; 
+                            case 'atons': 
+                            case 'aton': 
+                                icon="beenhere"; 
                                 addToFeatureList= true;
                                 let aton= this.app.data.atons.get(id);
                                 text= (aton) ? aton.name || aton.mmsi : '';
@@ -854,12 +856,13 @@ export class FBMapComponent implements OnInit, OnDestroy {
                 this.overlay.show=true;
                 return;
             case 'atons':
-                    this.overlay['type']= 'aton';
-                    if(!this.app.data.atons.has(id)) { return false }
-                    this.overlay['id']= id;
-                    this.overlay['aton']= this.app.data.atons.get(id);
-                    this.overlay.show=true;
-                    return;                
+            case 'aton':
+                this.overlay['type']= 'aton';
+                if(!this.app.data.atons.has(id)) { return false }
+                this.overlay['id']= id;
+                this.overlay['aton']= this.app.data.atons.get(id);
+                this.overlay.show=true;
+                return;                
             case 'region':
                 item= this.app.data.regions.filter( i=>{ if(i[0]==t[1]) return true });
                 if(!item) { return false }
