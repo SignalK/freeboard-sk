@@ -1,6 +1,6 @@
 # CHANGELOG: Freeboard
 
-### v1.8.next
+### v1.8.4
 
 - **Update**: Support node server fix to correct `aton` delta context (corrected from `atons`).
 
