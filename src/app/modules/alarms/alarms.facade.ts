@@ -102,37 +102,25 @@ export class AlarmsFacade  {
         }
     }
 
+    // ** update anchor status from received vessel data**
+    updateAnchorStatus() { this.parseAnchorStatus(this.app.data.vessels.self.anchor) }
+
     // ** query anchor status
     queryAnchorStatus(context:string, position?:[number,number]) {
         this.app.debug('Retrieving anchor status...');
         context= (!context || context=='self') ? 'vessels/self' : context;
         this.signalk.api.get(`/${context}/navigation/anchor`).subscribe(
-            r=> {
-                this.app.debug(`Anchor Status: ${r}`);
-                if(r['position'] && r['position']['value']) {
-                    let p= r['position']['value'];
-                    if(typeof p.latitude!= 'undefined' && typeof p.longitude!= 'undefined') {
-                        this.app.config.anchor.position= [
-                            p.longitude,
-                            p.latitude
-                        ]
-                        this.app.config.anchor.raised= false;
-                    }  
-                    else { 
-                        if(position) { this.app.config.anchor.position= position }
-                        this.app.config.anchor.raised= true;
-                    }
+            r=> { 
+                let aData= { position: null, maxRadius: null };
+                if(r['position']) {
+                    aData.position=(typeof r['position']['value']!=='undefined') 
+                        ? r['position']['value'] : null;
                 }
-                if(r['maxRadius'] && r['maxRadius']['value']) { 
-                    this.app.config.anchor.radius= r['maxRadius']['value'];
-                }    
-                // ** emit anchorStatus$ **
-                this.anchorSource.next({
-                    action: 'query',
-                    error: false,
-                    result: this.app.config.anchor
-                });
-                this.app.saveConfig(); 
+                if(r['maxRadius']) {
+                    aData.maxRadius= (typeof r['maxRadius']['value']== 'number')
+                        ? r['maxRadius']['value'] : null;
+                }
+                this.parseAnchorStatus(aData, position); 
             },
             err=> { 
                 this.app.config.anchor.position= [0,0];
@@ -159,6 +147,33 @@ export class AlarmsFacade  {
                 result: e.status
             });  
         }    
+    }
+
+    // ** process anchor status
+    parseAnchorStatus(r:any, position?:[number,number]) {
+        this.app.debug(`Anchor Status:`);
+        this.app.debug(r);
+        if(r.position && typeof r.position.latitude!= 'undefined' && typeof r.position.longitude!= 'undefined') {
+            this.app.config.anchor.position= [
+                r.position.longitude,
+                r.position.latitude
+            ]
+            this.app.config.anchor.raised= false;
+        }  
+        else { 
+            if(position) { this.app.config.anchor.position= position }
+            this.app.config.anchor.raised= true;
+        }
+        
+        if(typeof r.maxRadius=='number') { this.app.config.anchor.radius= r.maxRadius }    
+        
+        // ** emit anchorStatus$ **
+        this.anchorSource.next({
+            action: 'query',
+            error: false,
+            result: this.app.config.anchor
+        });
+        //this.app.saveConfig(); 
     }
 
     // ******** ALARM ACTIONS ************

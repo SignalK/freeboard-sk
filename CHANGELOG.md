@@ -1,5 +1,10 @@
 # CHANGELOG: Freeboard
 
+### v1.8.5
+
+- **Fix**: `navigation.anchor` delta messages (maxRadius, raise / lower) not being processed.
+
+
 ### v1.8.4
 
 - **Update**: Support node server fix to correct `aton` delta context (corrected from `atons`).

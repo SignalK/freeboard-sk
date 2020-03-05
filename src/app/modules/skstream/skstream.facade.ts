@@ -164,7 +164,8 @@ export class SKStreamFacade  {
 
     private parseVesselSelf(v:SKVessel) {
         this.app.data.vessels.self= v;
-        this.processVessel(this.app.data.vessels.self);              
+        this.processVessel(this.app.data.vessels.self);
+        this.alarmsFacade.updateAnchorStatus();                  
     }
 
     private parseVesselOther(otherVessels:any) {

@@ -391,6 +391,11 @@ function processVessel(d: SKVessel, v:any, isSelf:boolean=false) {
     if(v.path.indexOf('navigation.closestApproach')!=-1) {   
         d.closestApproach= v.value
     }   
+
+    // ** anchor radius / position **
+    if(v.path=='navigation.anchor.position') { d.anchor.position= v.value }
+    if(v.path=='navigation.anchor.maxRadius') { d.anchor.maxRadius= v.value }
+    if(v.path=='navigation.anchor.currentRadius') { d.anchor.radius= v.value }
 }
 
 // ** process notification messages **
