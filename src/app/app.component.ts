@@ -1,5 +1,6 @@
 import { Component, ViewChild } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
+import { MatBottomSheet } from '@angular/material/bottom-sheet';
 import { DomSanitizer, SafeResourceUrl} from '@angular/platform-browser';
 import {OverlayContainer} from '@angular/cdk/overlay';
 
@@ -9,7 +10,7 @@ import { PlaybackDialog } from 'src/app/lib/ui/playback-dialog';
 
 import { SettingsDialog, AlarmsFacade, AlarmsDialog, 
         SKStreamFacade, SKSTREAM_MODE, SKResources, 
-        SKRegion, AISPropertiesDialog, AtoNPropertiesDialog, 
+        SKRegion, AISPropertiesModal, AtoNPropertiesModal, 
         GPXImportDialog} from 'src/app/modules';
 
 import { SignalKClient } from 'signalk-client-angular';
@@ -84,6 +85,7 @@ export class AppComponent {
                 public signalk: SignalKClient,
                 private dom: DomSanitizer,
                 private overlayContainer: OverlayContainer,
+                private bottomSheet: MatBottomSheet,
                 private dialog: MatDialog) { 
         // set self to active vessel
         this.app.data.vessels.active= this.app.data.vessels.self;
@@ -91,13 +93,15 @@ export class AppComponent {
 
    // ********* LIFECYCLE ****************
 
-    ngAfterViewInit() { setTimeout( 
-        ()=> { 
-            let wr= this.app.showWelcome();
-            if(wr) {
-                wr.afterClosed().subscribe( r=> { if(r) this.openSettings(r) })
-            }
-        }, 500) 
+    ngAfterViewInit() { 
+        setTimeout( 
+            ()=> { 
+                let wr= this.app.showWelcome();
+                if(wr) {
+                    wr.afterClosed().subscribe( r=> { if(r) this.openSettings(r) })
+                }
+            }, 500
+        );      
     }
 
     ngOnInit() {
@@ -693,28 +697,28 @@ export class AppComponent {
         if(e.type=='aton') { 
             v= this.app.data.atons.get(e.id);
             if(v) {
-                this.dialog.open(AtoNPropertiesDialog, {
+                this.bottomSheet.open(AtoNPropertiesModal, {
                     disableClose: true,
                     data: {
                         title: 'AtoN Properties',
                         target: v,
                         id: e.id
                     }
-                }).afterClosed().subscribe( ()=> this.focusMap() );
+                }).afterDismissed().subscribe( ()=> this.focusMap() );
             }         
         }
         else {
             v= (e.type=='self') ? this.app.data.vessels.self 
                 : this.app.data.vessels.aisTargets.get(e.id);
             if(v) {
-                this.dialog.open(AISPropertiesDialog, {
+                this.bottomSheet.open(AISPropertiesModal, {
                     disableClose: true,
                     data: {
                         title: 'Vessel Properties',
                         target: v,
                         id: e.id
                     }
-                }).afterClosed().subscribe( ()=> this.focusMap() );
+                }).afterDismissed().subscribe( ()=> this.focusMap() );
             }
         }
     }   

@@ -4,6 +4,7 @@
 import {Component, OnInit, Inject} from '@angular/core';
 import { SignalKClient } from 'signalk-client-angular';
 import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
+import { MatBottomSheetRef, MAT_BOTTOM_SHEET_DATA } from '@angular/material/bottom-sheet';
 
 import { Convert } from 'src/app/lib/convert'
 import { AppInfo } from 'src/app/app.info'
@@ -129,7 +130,7 @@ export class ResourceDialog implements OnInit {
 
 }
 
-/********* AISPropertiesDialog **********
+/********* AISPropertiesModal **********
 	data: {
         title: "<string>" title text,
         target: "<SKVessel>" vessel,
@@ -137,103 +138,86 @@ export class ResourceDialog implements OnInit {
     }
 ***********************************/
 @Component({
-	selector: 'ap-aisdialog',
+	selector: 'ap-ais-sheet',
 	template: `
         <div class="_ap-ais">
-            <div>
-                <h1 mat-dialog-title>
-                    <mat-icon class="ap-confirm-icon" color="primary">directions_boat</mat-icon>
+            <mat-toolbar>
+                <span>
+                    <mat-icon color="primary"> directions_boat</mat-icon>
+                </span>
+                <span style="flex: 1 1 auto; padding-left:20px;text-align:center;">
                     {{data.title}}
-                </h1>
-            </div>
-            <mat-dialog-content>
+                </span>
+                <span>
+                    <button mat-icon-button (click)="modalRef.dismiss()"
+                        matTooltip="Close" matTooltipPosition="below">
+                        <mat-icon>keyboard_arrow_down</mat-icon>
+                    </button>
+                </span>
+            </mat-toolbar>   
+
+            <mat-card>
                 <div style="display:flex;flex-direction: column;">
                     <div style="display:flex;">
-                        <div style="width:45%;font-weight:bold;">Name:</div>
+                        <div class="key-label">Name:</div>
                         <div style="flex: 1 1 auto;">{{vInfo.name}}</div>
                     </div>   
                     <div style="display:flex;">
-                        <div style="width:45%;font-weight:bold;">MMSI:</div>
+                        <div class="key-label">MMSI:</div>
                         <div style="flex: 1 1 auto;">{{vInfo.mmsi}}</div>
                     </div>                     
                     <div style="display:flex;" *ngIf="vInfo.flag">
-                        <div style="width:45%;font-weight:bold;">Flag:</div>
+                        <div class="key-label">Flag:</div>
                         <div style="flex: 1 1 auto;">{{vInfo.flag}}</div>
                     </div>  
                     <div style="display:flex;" *ngIf="vInfo.port">
-                        <div style="width:45%;font-weight:bold;">Port:</div>
+                        <div class="key-label">Port:</div>
                         <div style="flex: 1 1 auto;">{{vInfo.port}}</div>
                     </div>                                             
                     <div style="display:flex;" *ngIf="vInfo.callsign">
-                        <div style="width:45%;font-weight:bold;">Call sign:</div>
+                        <div class="key-label">Call sign:</div>
                         <div style="flex: 1 1 auto;">{{vInfo.callsign}}</div>
                     </div>                       
                     <div style="display:flex;" *ngIf="vInfo.length">
-                        <div style="width:45%;font-weight:bold;">Dimensions:</div>
+                        <div class="key-label">Dimensions:</div>
                         <div style="flex: 1 1 auto;">
                             {{vInfo.length}} x {{vInfo.beam}}
                         </div>
                     </div>     
                     <div style="display:flex;" *ngIf="vInfo.draft">
-                        <div style="width:45%;font-weight:bold;">Draft:</div>
+                        <div class="key-label">Draft:</div>
                         <div style="flex: 1 1 auto;">{{vInfo.draft}}</div>
                     </div>       
                     <div style="display:flex;" *ngIf="vInfo.height">
-                        <div style="width:45%;font-weight:bold;">Height:</div>
+                        <div sclass="key-label">Height:</div>
                         <div style="flex: 1 1 auto;">{{vInfo.height}}</div>
                     </div>                                        
                     <div style="display:flex;" *ngIf="vInfo.state">
-                        <div style="width:45%;font-weight:bold;">State:</div>
+                        <div class="key-label">State:</div>
                         <div style="flex: 1 1 auto;">{{vInfo.state}}</div>
                     </div>                      
                     <div style="display:flex;" *ngIf="vInfo.destination">
-                        <div style="width:45%;font-weight:bold;">Destination:</div>
+                        <div class="key-label">Destination:</div>
                         <div style="flex: 1 1 auto;">{{vInfo.destination}}</div>
                     </div>  
                     <div style="display:flex;" *ngIf="vInfo.eta">
-                        <div style="width:45%;font-weight:bold;">ETA:</div>
+                        <div class="key-label">ETA:</div>
                         <div style="flex: 1 1 auto;">{{vInfo.eta.toLocaleString()}}</div>
                     </div>                                
                 </div>
-            </mat-dialog-content>
-            <mat-dialog-actions>
-                <div style="text-align:center;width:100%;">
-                    <button mat-raised-button (click)="dialogRef.close()">
-                        CLOSE
-                    </button>
-                </div>					
-            </mat-dialog-actions>
+            </mat-card>
         </div>	
     `,
     styles: [`  ._ap-ais {
                     font-family: arial;
-                    min-width: 300px;
-                }
-                .ap-confirm-icon { 
-                    min-width: 35px;
-                    max-width: 35px;
-                    color: darkorange;
-                    text-align: left;                    
-                }
-                .ap-confirm-icon .mat-icon { 
-                    font-size: 25pt;
-                }
-
-                @media only screen
-                    and (min-device-width : 768px)
-                    and (max-device-width : 1024px),
-                    only screen	and (min-width : 800px) { 
-                    .ap-confirm-icon {
-                        min-width: 25%;
-                        max-width: 25%;
-                    }
-                    .ap-confirm-icon .mat-icon { 
-                        font-size: 40pt;
-                    }                    
-                }                 	
+                } 
+                ._ap-ais .key-label {
+                    width:150px;
+                    font-weight:bold;
+                }             	
 			`]
 })
-export class AISPropertiesDialog implements OnInit {
+export class AISPropertiesModal implements OnInit {
 
     public target: any;
     public vInfo= {
@@ -255,8 +239,8 @@ export class AISPropertiesDialog implements OnInit {
     constructor(
         public app: AppInfo,
         private sk: SignalKClient,
-        public dialogRef: MatDialogRef<AISPropertiesDialog>,
-        @Inject(MAT_DIALOG_DATA) public data: any) {
+        public modalRef: MatBottomSheetRef<AISPropertiesModal>,
+        @Inject(MAT_BOTTOM_SHEET_DATA) public data: any) {
     }
     
     ngOnInit() { 
@@ -334,7 +318,7 @@ export class AISPropertiesDialog implements OnInit {
 }
 
 
-/********* AtoNPropertiesDialog **********
+/********* AtoNPropertiesModal **********
 	data: {
         title: "<string>" title text,
         target: "<SKAtoN>" adi to navigation,
@@ -345,77 +329,61 @@ export class AISPropertiesDialog implements OnInit {
 	selector: 'ap-atondialog',
 	template: `
         <div class="_ap-aton">
-            <div>
-                <h1 mat-dialog-title>
-                    <mat-icon class="ap-confirm-icon" color="primary">beenhere</mat-icon>
+            <mat-toolbar>
+                <span>
+                    <mat-icon color="primary"> beenhere</mat-icon>
+                </span>
+                <span style="flex: 1 1 auto; padding-left:20px;text-align:center;">
                     {{data.title}}
-                </h1>
-            </div>
-            <mat-dialog-content>
+                </span>
+                <span>
+                    <button mat-icon-button (click)="modalRef.dismiss()"
+                        matTooltip="Close" matTooltipPosition="below">
+                        <mat-icon>keyboard_arrow_down</mat-icon>
+                    </button>
+                </span>
+            </mat-toolbar>          
+
+            <mat-card>
                 <div style="display:flex;flex-direction: column;">
                     <div style="display:flex;">
-                        <div style="width:45%;font-weight:bold;">Name:</div>
+                        <div class="key-label">Name:</div>
                         <div style="flex: 1 1 auto;">{{data.target.name}}</div>
                     </div>   
                     <div style="display:flex;">
-                        <div style="width:45%;font-weight:bold;">MMSI:</div>
+                        <div class="key-label">MMSI:</div>
                         <div style="flex: 1 1 auto;">{{data.target.mmsi}}</div>
                     </div>    
                     <div style="display:flex;">
-                        <div style="width:45%;font-weight:bold;">Type:</div>
+                        <div class="key-label">Type:</div>
                         <div style="flex: 1 1 auto;">{{data.target.type.name}}</div>
                     </div> 
                     <!--<div style="display:flex;" *ngFor="let p of data.target.properties | keyvalue">
-                        <div style="width:45%;font-weight:bold;">{{p.key}}:</div>
+                        <div class="key-label">{{p.key}}:</div>
                         <div style="flex: 1 1 auto;">{{p.value}}</div>
                     </div>-->
                     <signalk-details-list [details]=" data.target.properties"></signalk-details-list>          
                 </div>
-            </mat-dialog-content>
-            <mat-dialog-actions>
-                <div style="text-align:center;width:100%;">
-                    <button mat-raised-button (click)="dialogRef.close()">
-                        CLOSE
-                    </button>
-                </div>					
-            </mat-dialog-actions>
+            </mat-card>
         </div>	
     `,
     styles: [`  ._ap-aton {
                     font-family: arial;
                     min-width: 300px;
                 }
-                .ap-confirm-icon { 
-                    min-width: 35px;
-                    max-width: 35px;
-                    color: darkorange;
-                    text-align: left;                    
-                }
-                .ap-confirm-icon .mat-icon { 
-                    font-size: 25pt;
-                }
-
-                @media only screen
-                    and (min-device-width : 768px)
-                    and (max-device-width : 1024px),
-                    only screen	and (min-width : 800px) { 
-                    .ap-confirm-icon {
-                        min-width: 25%;
-                        max-width: 25%;
-                    }
-                    .ap-confirm-icon .mat-icon { 
-                        font-size: 40pt;
-                    }                    
+                ._ap-aton .key-label {
+                    width:150px;
+                    font-weight:bold;
                 }                 	
 			`]
 })
-export class AtoNPropertiesDialog implements OnInit {
+export class AtoNPropertiesModal implements OnInit {
 
     public target: any;
 
     constructor(
-        public dialogRef: MatDialogRef<AtoNPropertiesDialog>,
-        @Inject(MAT_DIALOG_DATA) public data: any) {
+        public modalRef: MatBottomSheetRef<AtoNPropertiesModal>,
+        @Inject(MAT_BOTTOM_SHEET_DATA) public data: any) {
     }
     
     ngOnInit() { 
@@ -423,3 +391,4 @@ export class AtoNPropertiesDialog implements OnInit {
     } 
 	
 }
+

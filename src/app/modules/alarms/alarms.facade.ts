@@ -151,8 +151,6 @@ export class AlarmsFacade  {
 
     // ** process anchor status
     parseAnchorStatus(r:any, position?:[number,number]) {
-        this.app.debug(`Anchor Status:`);
-        this.app.debug(r);
         if(r.position && typeof r.position.latitude!= 'undefined' && typeof r.position.longitude!= 'undefined') {
             this.app.config.anchor.position= [
                 r.position.longitude,

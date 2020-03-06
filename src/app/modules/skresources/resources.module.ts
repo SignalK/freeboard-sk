@@ -15,6 +15,8 @@ import { MatListModule } from '@angular/material/list';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatSliderModule } from '@angular/material/slider';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatBottomSheetModule } from '@angular/material/bottom-sheet';
+import { MatToolbarModule } from '@angular/material/toolbar';
 import { ScrollDispatchModule } from '@angular/cdk/scrolling';
 
 import { RouteListComponent } from  './lists/routelist';
@@ -23,7 +25,7 @@ import { ChartListComponent } from  './lists/chartlist';
 import { NoteListComponent } from  './lists/notelist';
 import { AISListComponent } from  './lists/aislist';
 
-import { ResourceDialog, AISPropertiesDialog, AtoNPropertiesDialog } from './resource-dialogs';
+import { ResourceDialog, AISPropertiesModal, AtoNPropertiesModal } from './resource-dialogs';
 import { GRIBPanel, GRIBGradient } from './grib/grib-components';
 import { SKNotesModule } from './notes';
 import { AppUIModule } from 'src/app/lib/ui/ui.module';
@@ -32,24 +34,25 @@ import { AppUIModule } from 'src/app/lib/ui/ui.module';
     imports: [
         CommonModule, HttpClientModule, FormsModule, MatDialogModule,
         MatCheckboxModule, MatCardModule, MatListModule, MatSelectModule,
-        MatButtonModule, MatIconModule, MatTooltipModule, 
+        MatButtonModule, MatIconModule, MatTooltipModule, MatBottomSheetModule,
         MatSliderModule, MatSlideToggleModule, ScrollDispatchModule,
-        MatFormFieldModule, MatInputModule, SKNotesModule, AppUIModule
+        MatFormFieldModule, MatInputModule, MatToolbarModule,
+        SKNotesModule, AppUIModule
     ],
     declarations: [
         RouteListComponent, WaypointListComponent, ChartListComponent,
         AISListComponent, NoteListComponent, 
-        ResourceDialog, AISPropertiesDialog, AtoNPropertiesDialog,
+        ResourceDialog, AISPropertiesModal, AtoNPropertiesModal,
         GRIBPanel, GRIBGradient
     ],
     exports: [
         RouteListComponent, WaypointListComponent, ChartListComponent,
         AISListComponent, NoteListComponent,
-        ResourceDialog, AISPropertiesDialog, AtoNPropertiesDialog,
+        ResourceDialog, AISPropertiesModal, AtoNPropertiesModal,
         SKNotesModule, GRIBPanel, GRIBGradient
     ],
     entryComponents: [
-        ResourceDialog, AISPropertiesDialog, AtoNPropertiesDialog
+        ResourceDialog, AISPropertiesModal, AtoNPropertiesModal
     ]
 })
 export class SignalKResourcesModule { }
