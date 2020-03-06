@@ -2,7 +2,7 @@
 
 ### v1.8.5
 
-- **Fix**: `navigation.anchor` delta messages (maxRadius, raise / lower) not being processed.
+- **Update**: `navigation.anchor` delta messages (maxRadius, raise / lower) not being processed.
 
 
 ### v1.8.4
