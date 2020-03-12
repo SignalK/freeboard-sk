@@ -11,7 +11,7 @@ import { PlaybackDialog } from 'src/app/lib/ui/playback-dialog';
 import { SettingsDialog, AlarmsFacade, AlarmsDialog, 
         SKStreamFacade, SKSTREAM_MODE, SKResources, 
         SKRegion, AISPropertiesModal, AtoNPropertiesModal, 
-        GPXImportDialog} from 'src/app/modules';
+        ActiveResourcePropertiesModal, GPXImportDialog} from 'src/app/modules';
 
 import { SignalKClient } from 'signalk-client-angular';
 import { Convert } from 'src/app/lib/convert';
@@ -691,10 +691,29 @@ export class AppComponent {
         this.focusMap();   
     }     
 
-    // ** handle display vessel properties **
-    public vesselProperties(e:any) {
+    // ** show feature (vessel/AtoN/ActiveRoute) properties **
+    public featureProperties(e:any) {
         let v: any;
-        if(e.type=='aton') { 
+        if(e.type=='dest') { 
+            let dtype= e.id.split('.')[1];
+            if(dtype=='point') { // Point
+                v= this.skres.buildWaypoint(this.app.data.navData.position);
+            }
+            else {  // route
+                v= this.app.data.routes.filter(i=>{ return e.id== i[0] ? true : false })[0];
+            }
+            if(v) {
+                this.bottomSheet.open(ActiveResourcePropertiesModal, {
+                    disableClose: true,
+                    data: {
+                        title: 'Destination Properties',
+                        resource: v,
+                        type: dtype
+                    }
+                }).afterDismissed().subscribe( ()=> this.focusMap() );
+            }         
+        }
+        else if(e.type=='aton') { 
             v= this.app.data.atons.get(e.id);
             if(v) {
                 this.bottomSheet.open(AtoNPropertiesModal, {

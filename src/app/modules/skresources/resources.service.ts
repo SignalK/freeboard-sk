@@ -471,6 +471,7 @@ export class SKResources {
         )
         .subscribe( 
             r=> {
+                this.app.data.activeWaypoint= null;
                 this.app.data.activeRoute= id;
                 this.app.data.navData.pointIndex= 0;
                 this.app.data.navData.pointTotal= t[0][1].feature.geometry.coordinates.length;

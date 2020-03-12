@@ -25,7 +25,8 @@ import { ChartListComponent } from  './lists/chartlist';
 import { NoteListComponent } from  './lists/notelist';
 import { AISListComponent } from  './lists/aislist';
 
-import { ResourceDialog, AISPropertiesModal, AtoNPropertiesModal } from './resource-dialogs';
+import { ResourceDialog, AISPropertiesModal, AtoNPropertiesModal,
+        ActiveResourcePropertiesModal} from './resource-dialogs';
 import { GRIBPanel, GRIBGradient } from './grib/grib-components';
 import { SKNotesModule } from './notes';
 import { AppUIModule } from 'src/app/lib/ui/ui.module';
@@ -43,16 +44,19 @@ import { AppUIModule } from 'src/app/lib/ui/ui.module';
         RouteListComponent, WaypointListComponent, ChartListComponent,
         AISListComponent, NoteListComponent, 
         ResourceDialog, AISPropertiesModal, AtoNPropertiesModal,
+        ActiveResourcePropertiesModal,
         GRIBPanel, GRIBGradient
     ],
     exports: [
         RouteListComponent, WaypointListComponent, ChartListComponent,
         AISListComponent, NoteListComponent,
         ResourceDialog, AISPropertiesModal, AtoNPropertiesModal,
+        ActiveResourcePropertiesModal,
         SKNotesModule, GRIBPanel, GRIBGradient
     ],
     entryComponents: [
-        ResourceDialog, AISPropertiesModal, AtoNPropertiesModal
+        ResourceDialog, AISPropertiesModal, AtoNPropertiesModal,
+        ActiveResourcePropertiesModal
     ]
 })
 export class SignalKResourcesModule { }

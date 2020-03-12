@@ -328,7 +328,7 @@
                     <ais-list [aisTargets]="app.data.vessels.aisTargets" *ngIf="display.aisList"
                         [focusId]="app.data.vessels.activeId"
                         (select)="skres.aisSelected($event)"
-                        (properties)="vesselProperties({id: $event, type: 'ais'})"
+                        (properties)="featureProperties({id: $event, type: 'ais'})"
                         (closed)="displayLeftMenu()"
                         (focusVessel)="switchActiveVessel($event)">
                     </ais-list>                   
@@ -409,7 +409,7 @@
                         (deactivate)="deactivateRoute()"
                         (exitedMovingMap)="toggleMoveMap($event)"
                         (focusVessel)="switchActiveVessel($event)"
-                        (info)="vesselProperties($event)">
+                        (info)="featureProperties($event)">
                     </fb-map>
                     <!-- *** /MAP *** -->     
 

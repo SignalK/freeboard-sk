@@ -4,6 +4,9 @@
 
 - **Update**: `navigation.anchor` delta messages (maxRadius, raise / lower) not being processed.
 
+- **Update**: Destination point / active route point info display. 
+
+- **Fix**: Context menu on touch devices not getting correct location.
 
 ### v1.8.4
 

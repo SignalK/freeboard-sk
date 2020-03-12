@@ -211,7 +211,7 @@
                             [anchor]="[10.5, 25]"
                             [anchorXUnits]="'pixels'"
                             [anchorYUnits]= "'pixels'"
-                            [src]="'./assets/img/marker-gold.png'"
+                            [src]="(app.data.activeWaypoint==w[0]) ? './assets/img/marker-blue.png' : './assets/img/marker-gold.png'"
                             [size]="[25,25]"
                             [scale]="1"
                             [rotateWithView]="false"
@@ -529,7 +529,7 @@
                     </aol-style-stroke>
                 </aol-style>
             </aol-feature>  
-            <!-- marker -->
+            <!-- marker base-->
             <aol-feature *ngIf="dfeat.navData.position && app.config.anchor.raised">
                 <aol-geometry-point>
                     <aol-coordinate 
@@ -544,7 +544,30 @@
                         <aol-style-fill [color]="'rgba(221, 149, 0, 1)'"></aol-style-fill>                                        
                     </aol-style-circle>
                 </aol-style>
-            </aol-feature>                                  
+            </aol-feature>
+            <!-- marker flag-->
+            <aol-feature id="dest.point"
+                    *ngIf="!app.data.activeWaypoint && dfeat.navData.position && app.config.anchor.raised">
+                <aol-geometry-point>
+                    <aol-coordinate 
+                        [x]="dfeat.navData.position[0]" 
+                        [y]="dfeat.navData.position[1]" 
+                        [srid]="app.config.map.srid">
+                    </aol-coordinate>
+                </aol-geometry-point>
+                <aol-style>
+                    <aol-style-icon
+                        [anchor]="[10.5, 25]"
+                        [anchorXUnits]="'pixels'"
+                        [anchorYUnits]= "'pixels'"
+                        [src]="'./assets/img/marker-blue.png'"
+                        [size]="[25,25]"
+                        [scale]="1"
+                        [rotateWithView]="false"
+                        [rotation]="0">
+                    </aol-style-icon>
+                </aol-style>
+            </aol-feature>                                              
 
             <!-- TWD Line -->
             <aol-feature *ngIf="vesselLines.twd[0] && app.config.anchor.raised">

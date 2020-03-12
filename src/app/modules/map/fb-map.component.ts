@@ -429,6 +429,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
         this.contextMenu.menuData= { 'item': this.mouse.coords };
         if(this.measureMode) { this.onMeasureClick(this.mouse.xy) }
         else if(!this.modifyMode) { 
+            if(!this.mouse.xy) { return }
             this.contextMenu.openMenu();   
             document.getElementsByClassName('cdk-overlay-backdrop')[0].addEventListener('contextmenu', (offEvent: any) => {
                 offEvent.preventDefault();  // prevent default context menu for overlay
@@ -516,7 +517,13 @@ export class FBMapComponent implements OnInit, OnDestroy {
                         let icon: string;
                         let text: string;
                         switch(t[0]) {
-                            case 'note': icon="local_offer"; 
+                            case 'dest':
+                                addToFeatureList= true;
+                                icon= "flag";
+                                text= "Destination";
+                                break;
+                            case 'note': 
+                                icon= "local_offer"; 
                                 addToFeatureList= true;
                                 text= this.app.data.notes.filter( i=>{ return (i[0]==t[1])? i[1].title : null })[0][1].title;
                                 break;
@@ -578,11 +585,16 @@ export class FBMapComponent implements OnInit, OnDestroy {
             this.draw.features= new Collection(fa); // features collection for modify interaction
             if(flist.size==1) {   // only 1 feature
                 let v= flist.values().next().value;
-                this.formatPopover( 
-                    v['id'],
-                    v['coord'],
-                    v['mrid']
-                );  
+                if(v['id'].indexOf('dest')!=-1) {
+                    this.itemInfo(v['id'], 'dest');
+                }
+                else {
+                    this.formatPopover( 
+                        v['id'],
+                        v['coord'],
+                        v['mrid']
+                    );
+                } 
             }
             else if(flist.size>1) { //show list of features
                 this.formatPopover( 
@@ -750,7 +762,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
         }
 
         // ** bearing line (active) **
-        let bpos= (this.dfeat.navData.position && this.dfeat.navData.position[0]) ? 
+        let bpos= (this.dfeat.navData.position && typeof this.dfeat.navData.position[0]=='number') ? 
             this.dfeat.navData.position : this.dfeat.active.position;
         this.vesselLines.bearing= this.mapifyCoords(
             [this.dfeat.active.position, bpos]
@@ -910,7 +922,11 @@ export class FBMapComponent implements OnInit, OnDestroy {
             if(e.getId()==feature.id) { sf.push(e) }
         });
         this.draw.features= sf;
-        this.formatPopover(feature.id, feature.coord, feature.mrid)        
+        if(feature.id.indexOf('dest')!=-1) {
+            this.itemInfo(feature.id, 'dest');
+            this.overlay.show= false;
+        }
+        else { this.formatPopover(feature.id, feature.coord, feature.mrid) }
     }    
 
     // ** delete selected feature **

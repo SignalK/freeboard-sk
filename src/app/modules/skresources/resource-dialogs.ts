@@ -8,6 +8,7 @@ import { MatBottomSheetRef, MAT_BOTTOM_SHEET_DATA } from '@angular/material/bott
 
 import { Convert } from 'src/app/lib/convert'
 import { AppInfo } from 'src/app/app.info'
+import { SKResources } from './resources.service';
 
 /********* ResourceDialog **********
 	data: {
@@ -138,7 +139,7 @@ export class ResourceDialog implements OnInit {
     }
 ***********************************/
 @Component({
-	selector: 'ap-ais-sheet',
+	selector: 'ap-ais-modal',
 	template: `
         <div class="_ap-ais">
             <mat-toolbar>
@@ -321,12 +322,11 @@ export class AISPropertiesModal implements OnInit {
 /********* AtoNPropertiesModal **********
 	data: {
         title: "<string>" title text,
-        target: "<SKAtoN>" adi to navigation,
-        id: <string> vessel id
+        target: "<SKAtoN>" aid to navigation
     }
 ***********************************/
 @Component({
-	selector: 'ap-atondialog',
+	selector: 'ap-aton-modal',
 	template: `
         <div class="_ap-aton">
             <mat-toolbar>
@@ -392,3 +392,122 @@ export class AtoNPropertiesModal implements OnInit {
 	
 }
 
+/********* ActiveResourcePropertiesModal **********
+	data: {
+        title: "<string>" title text,
+        type: 'dest' | 'route' resource type,
+        resource: "<SKWaypoint | SKRoute>" active resource info
+    }
+***********************************/
+@Component({
+	selector: 'ap-dest-modal',
+	template: `
+        <div class="_ap-dest" style="display:flex;flex-direction:column;">
+            <div>
+                <mat-toolbar>
+                    <span>
+                        <mat-icon color="primary"> {{data.type=='point' ? 'flag' : 'directions'}}</mat-icon>
+                    </span>
+                    <span style="flex: 1 1 auto; padding-left:20px;text-align:center;
+                                text-overflow: ellipsis;white-space: nowrap;
+                                overflow: hidden;">
+                        {{data.title}}
+                    </span>
+                    <span>
+                        <button mat-icon-button (click)="modalRef.dismiss()"
+                            matTooltip="Close" matTooltipPosition="below">
+                            <mat-icon>keyboard_arrow_down</mat-icon>
+                        </button>
+                    </span>
+                </mat-toolbar> 
+            </div>         
+
+            <div style="flex: 1 1 auto;position:relative;overflow:hidden;min-height:200px;">
+                <div style="top:0;left:0;right:0;bottom:0;position:absolute;
+                    overflow:auto;">
+                    <mat-card *ngFor="let pt of points; let i=index;">
+                        <div style="display:flex;" (click)="selectPoint(i)"
+                            [style.cursor]="(points.length>1) ? 'pointer': 'initial'">
+                            <div style="width:35px;">
+                                <mat-icon color="warn" *ngIf="selIndex==i">flag</mat-icon>
+                            </div>
+                            <div style="flex: 1 1 auto;">
+                                <div style="display:flex;">
+                                    <div class="key-label">Lat:</div>
+                                    <div style="flex: 1 1 auto;">{{pt[1]}}</div>
+                                </div>   
+                                <div style="display:flex;">
+                                    <div class="key-label">Lon:</div>
+                                    <div style="flex: 1 1 auto;">{{pt[0]}}</div>
+                                </div> 
+                            </div>                            
+                        </div>
+                    </mat-card>
+                </div>
+            </div>
+        </div>	
+    `,
+    styles: [`  ._ap-dest {
+                    font-family: arial;
+                    min-width: 300px;
+                }
+                ._ap-dest .key-label {
+                    width:50px;
+                    font-weight:bold;
+                }  
+                ._ap-dest .selected {
+                    background-color: silver;
+                }                	
+			`]
+})
+export class ActiveResourcePropertiesModal implements OnInit {
+
+    public points: Array<[number,number]>= [];
+    public selIndex:number=-1;
+
+    constructor(
+        public app: AppInfo,
+        private skres: SKResources,
+        public modalRef: MatBottomSheetRef<ActiveResourcePropertiesModal>,
+        @Inject(MAT_BOTTOM_SHEET_DATA) public data: any) {
+    }
+    
+    ngOnInit() {
+        console.log('data:', this.data);
+        
+        if(this.data.resource[1].feature && this.data.resource[1].feature.geometry.coordinates) {
+            if(this.data.type=='route'){
+                this.points= this.data.resource[1].feature.geometry.coordinates;
+                this.data.title= (this.data.resource[1].name) ? `
+                    ${this.data.resource[1].name} Points` : 'Route Points';        
+            }
+            else {
+                if(this.app.data.activeRoute) {
+                    let rte= this.app.data.routes.filter(i=> { 
+                        return (i[0]==this.app.data.activeRoute) ? true : false;
+                    })[0];
+                    if(rte.length!=0) {
+                        this.points= rte[1].feature.geometry.coordinates;
+                        this.data.title= (rte[1].name) ? `${rte[1].name} Points` : 'Active Route Points';
+                        this.selIndex= this.app.data.navData.pointIndex;
+                    }
+                }
+                else { 
+                    this.data.title= (this.data.title) ? this.data.title : 'Destination';
+                    this.points= [this.data.resource[1].feature.geometry.coordinates];
+                }
+            }
+        }
+    } 
+
+    selectPoint(idx:number) { 
+        if(this.points.length<2) { return }
+        let nextPoint= {
+            latitude: this.points[idx][1], 
+            longitude: this.points[idx][0], 
+        }
+        this.selIndex= idx;
+        this.skres.setNextPoint(nextPoint);          
+    }
+	
+}
