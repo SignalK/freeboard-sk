@@ -713,6 +713,19 @@ export class AppComponent {
                 }).afterDismissed().subscribe( ()=> this.focusMap() );
             }         
         }
+        else if(e.type=='route') { 
+            v= this.app.data.routes.filter(i=>{ return e.id== i[0] ? true : false })[0];
+            if(v) {
+                this.bottomSheet.open(ActiveResourcePropertiesModal, {
+                    disableClose: true,
+                    data: {
+                        title: 'Route Properties',
+                        resource: v,
+                        type: e.type
+                    }
+                }).afterDismissed().subscribe( ()=> this.focusMap() );
+            }         
+        }        
         else if(e.type=='aton') { 
             v= this.app.data.atons.get(e.id);
             if(v) {

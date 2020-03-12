@@ -295,6 +295,7 @@
                         (deactivate)="deactivateRoute()"
                         (refresh)="skres.getRoutes(app.data.vessels.activeId)"
                         (properties)="skres.resourceProperties($event)"
+                        (points)="featureProperties({id:$event.id, type:'route'})"
                         (closed)="displayLeftMenu()">
                     </route-list>
 

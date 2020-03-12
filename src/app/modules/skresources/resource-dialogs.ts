@@ -427,7 +427,7 @@ export class AtoNPropertiesModal implements OnInit {
                     overflow:auto;">
                     <mat-card *ngFor="let pt of points; let i=index;">
                         <div style="display:flex;" (click)="selectPoint(i)"
-                            [style.cursor]="(points.length>1) ? 'pointer': 'initial'">
+                            [style.cursor]="(points.length>1 && selIndex!=-1) ? 'pointer': 'initial'">
                             <div style="width:35px;">
                                 <mat-icon color="warn" *ngIf="selIndex==i">flag</mat-icon>
                             </div>
@@ -479,7 +479,10 @@ export class ActiveResourcePropertiesModal implements OnInit {
             if(this.data.type=='route'){
                 this.points= this.data.resource[1].feature.geometry.coordinates;
                 this.data.title= (this.data.resource[1].name) ? `
-                    ${this.data.resource[1].name} Points` : 'Route Points';        
+                    ${this.data.resource[1].name} Points` : 'Route Points'; 
+                if(this.data.resource[0]==this.app.data.activeRoute) {
+                    this.selIndex= this.app.data.navData.pointIndex;
+                }                    
             }
             else {
                 if(this.app.data.activeRoute) {
@@ -501,7 +504,7 @@ export class ActiveResourcePropertiesModal implements OnInit {
     } 
 
     selectPoint(idx:number) { 
-        if(this.points.length<2) { return }
+        if(this.points.length<2 || this.selIndex<0) { return }
         let nextPoint= {
             latitude: this.points[idx][1], 
             longitude: this.points[idx][0], 

@@ -343,7 +343,8 @@
                 (activated)="setActiveFeature(); popoverClosed()"
                 (deactivated)="clearActiveFeature(); popoverClosed()"
                 (related)="skres.showRelatedNotes($event, 'group'); popoverClosed()"
-                (info)="skres.resourceProperties(overlay); popoverClosed()"                
+                (info)="skres.resourceProperties(overlay); popoverClosed()"   
+                (points)="itemInfo(overlay.id, overlay.type); popoverClosed()"             
                 (closed)="popoverClosed()">                      
             </resource-popover>
             <!--AIS/Vessel popover-->

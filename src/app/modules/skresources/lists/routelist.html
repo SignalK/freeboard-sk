@@ -83,6 +83,12 @@
                                 matTooltipPosition="right">
                                 <mat-icon>delete</mat-icon>
                             </button>  
+                            <button mat-icon-button color="accent" 
+                                (click)="itemViewPoints(r[0])"
+                                matTooltip="Route Waypoints"
+                                matTooltipPosition="right">
+                                <mat-icon>flag</mat-icon>
+                            </button>                              
                             <button mat-button color="primary" 
                                 (click)="itemSetActive(r[0])"
                                 *ngIf="r[0]!=activeRoute"

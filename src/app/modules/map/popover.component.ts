@@ -280,7 +280,7 @@ id: string - resource id
                             <mat-icon>delete</mat-icon>
                             DELETE
                     </button>
-                </div>
+                </div>               
                 <div class="popover-action-button" *ngIf="ctrl.canActivate && !ctrl.isActive">
                     <button mat-button color="primary"
                         (click)="emitActive(true)"
@@ -305,7 +305,15 @@ id: string - resource id
                         <mat-icon>style</mat-icon>
                         GROUP
                     </button>  
-                </div>                                      
+                </div>  
+                <div class="popover-action-button" *ngIf="ctrl.showPointsButton">
+                    <button mat-button
+                        (click)="emitPoints()"
+                        matTooltip="Route Waypoints">
+                            <mat-icon>flag</mat-icon>
+                            POINTS
+                    </button>
+                </div>                                                     
                 <div class="popover-action-button" *ngIf="ctrl.showInfoButton">
                     <button mat-button
                         (click)="emitInfo()"
@@ -334,6 +342,7 @@ export class ResourcePopoverComponent {
     @Output() related: EventEmitter<any>= new EventEmitter();
     @Output() info: EventEmitter<string>= new EventEmitter();
     @Output() closed: EventEmitter<any>= new EventEmitter();
+    @Output() points: EventEmitter<any>= new EventEmitter();
     
     properties: Array<any>  // ** resource properties
     ctrl= {
@@ -342,6 +351,7 @@ export class ResourcePopoverComponent {
         showDeleteButton: false,
         showAddNoteButton: false,
         showRelatedButton: false,
+        showPointsButton: false,
         canActivate: false,
         isActive: false,
         activeText: 'ACTIVE'
@@ -385,6 +395,7 @@ export class ResourcePopoverComponent {
         this.ctrl.canActivate= true;
         this.ctrl.showInfoButton= true;
         this.ctrl.showModifyButton= true; 
+        this.ctrl.showPointsButton= true;
         this.ctrl.showDeleteButton= (this.ctrl.isActive) ? false : true;
         this.properties= [];   
         this.properties.push(['Name', this.resource[1].name]);
@@ -432,6 +443,8 @@ export class ResourcePopoverComponent {
         if(activate) { this.activated.emit() }
         else { this.deactivated.emit() }
     }
+
+    emitPoints() { this.points.emit() }
     
     emitInfo() { this.info.emit() }
 

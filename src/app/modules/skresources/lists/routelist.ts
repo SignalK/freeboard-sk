@@ -17,6 +17,7 @@ export class RouteListComponent {
     @Output() deactivate: EventEmitter<any>= new EventEmitter();
     @Output() refresh: EventEmitter<any>= new EventEmitter();
     @Output() properties: EventEmitter<any>= new EventEmitter();
+    @Output() points: EventEmitter<any>= new EventEmitter();
     @Output() closed: EventEmitter<any>= new EventEmitter();
 
     filterList= [];
@@ -69,6 +70,7 @@ export class RouteListComponent {
     }
 
     itemProperties(id:string) { this.properties.emit({id: id, type: 'route'}) }
+    itemViewPoints(id:string) { this.points.emit({id: id}) }
 
     itemSetActive(id:string) { this.activate.emit({id: id}) } 
     itemClearActive(id:string) { this.deactivate.emit({id: id}) } 
