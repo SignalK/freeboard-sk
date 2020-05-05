@@ -571,7 +571,7 @@
             </aol-feature>                                              
 
             <!-- TWD Line -->
-            <aol-feature *ngIf="vesselLines.twd[0] && app.config.anchor.raised">
+            <aol-feature *ngIf="app.config.vesselWindVectors && vesselLines.twd[0] && app.config.anchor.raised">
                 <aol-geometry-linestring>
                     <aol-collection-coordinates
                         [coordinates]="vesselLines.twd"
@@ -586,7 +586,7 @@
             </aol-feature>    
             
             <!-- AWA Line -->
-            <aol-feature *ngIf="vesselLines.awa[0] && app.config.anchor.raised">
+            <aol-feature *ngIf="app.config.vesselWindVectors && vesselLines.awa[0] && app.config.anchor.raised">
                 <aol-geometry-linestring>
                     <aol-collection-coordinates
                         [coordinates]="vesselLines.awa"

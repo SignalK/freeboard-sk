@@ -128,6 +128,15 @@
                             </div> 
                             <br>
                             <div class="setting-card-row-item">
+                                <mat-checkbox #vesselwindvectors color="primary"
+                                    [(ngModel)]="facade.settings.vesselWindVectors" 
+                                    (change)="onFormChange($event, vesselwindvectors)"
+                                    label="after">
+                                    Display Vessel Wind Vectors
+                                </mat-checkbox>                                        
+                            </div>                             
+                            <br>
+                            <div class="setting-card-row-item">
                                 <mat-checkbox #vesseltrail color="primary"
                                     [(ngModel)]="facade.settings.vesselTrail" 
                                     (change)="onFormChange($event, vesseltrail)"

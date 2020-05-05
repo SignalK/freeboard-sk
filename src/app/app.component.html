@@ -231,7 +231,7 @@
                         <a mat-list-item
                             (click)="sidemenu.close();showLogin(null, false)">
                             <mat-icon>account_circle</mat-icon>
-                            &nbsp;{{app.data.hasToken ? 'Change User' : 'Login'}}
+                            &nbsp;{{app.data.loggedIn ? 'Change User' : 'Login'}}
                         </a>                        
                     </mat-nav-list>               
                 </mat-sidenav>

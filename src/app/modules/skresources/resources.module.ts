@@ -3,6 +3,8 @@ import { CommonModule } from '@angular/common';
 import { HttpClientModule } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
 
+import { DragDropModule } from '@angular/cdk/drag-drop';
+
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatCheckboxModule } from '@angular/material/checkbox';
@@ -17,7 +19,7 @@ import { MatSliderModule } from '@angular/material/slider';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatBottomSheetModule } from '@angular/material/bottom-sheet';
 import { MatToolbarModule } from '@angular/material/toolbar';
-import { ScrollDispatchModule } from '@angular/cdk/scrolling';
+import { ScrollingModule } from '@angular/cdk/scrolling';
 
 import { RouteListComponent } from  './lists/routelist';
 import { WaypointListComponent } from  './lists/waypointlist';
@@ -36,8 +38,8 @@ import { AppUIModule } from 'src/app/lib/ui/ui.module';
         CommonModule, HttpClientModule, FormsModule, MatDialogModule,
         MatCheckboxModule, MatCardModule, MatListModule, MatSelectModule,
         MatButtonModule, MatIconModule, MatTooltipModule, MatBottomSheetModule,
-        MatSliderModule, MatSlideToggleModule, ScrollDispatchModule,
-        MatFormFieldModule, MatInputModule, MatToolbarModule,
+        MatSliderModule, MatSlideToggleModule, ScrollingModule,
+        MatFormFieldModule, MatInputModule, MatToolbarModule, DragDropModule,
         SKNotesModule, AppUIModule
     ],
     declarations: [

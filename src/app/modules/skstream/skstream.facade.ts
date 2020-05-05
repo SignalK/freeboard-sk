@@ -109,7 +109,8 @@ export class SKStreamFacade  {
                     {"path":"flag","period":1000,"policy":'fixed'},
                     {"path":"navigation.*","period":1000,"policy":'fixed'},
                     {"path":"environment.wind.*","period":1000,"policy":'fixed'},
-                    {"path":"environment.mode","period":1000,"policy":'fixed'}
+                    {"path":"environment.mode","period":1000,"policy":'fixed'},
+                    {"path":"resources.*","period":1000,"policy":'fixed'}
                 ]
             }
         });
@@ -165,7 +166,7 @@ export class SKStreamFacade  {
     private parseVesselSelf(v:SKVessel) {
         this.app.data.vessels.self= v;
         this.processVessel(this.app.data.vessels.self);
-        this.alarmsFacade.updateAnchorStatus();                  
+        this.alarmsFacade.updateAnchorStatus();               
     }
 
     private parseVesselOther(otherVessels:any) {

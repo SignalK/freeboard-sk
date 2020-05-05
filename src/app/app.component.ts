@@ -276,18 +276,20 @@ export class AppComponent {
     private connectSignalKServer() {
         this.app.data.selfId= null;
         this.app.data.server= null;
-        this.signalk.connect(this.app.hostName, this.app.hostPort, this.app.hostSSL)
-        .then( ()=> { 
-            this.app.data.server= this.signalk.server.info; 
-            this.openSKStream();
-        })
-        .catch( err=> {
-            this.app.showAlert(
-                'Connection Error:',  
-                'Unable to contact Signal K server!', 
-                'Try Again'
-            ).subscribe( ()=>{ this.connectSignalKServer() } );
-        });
+        this.signalk.connect(this.app.hostName, this.app.hostPort, this.app.hostSSL).subscribe( 
+            ()=> {
+                this.app.loadSettingsfromServer();
+                this.app.data.server= this.signalk.server.info; 
+                this.openSKStream();
+            },
+            ()=> {
+                this.app.showAlert(
+                    'Connection Error:',  
+                    'Unable to contact Signal K server!', 
+                    'Try Again'
+                ).subscribe( ()=>{ this.connectSignalKServer() } );
+            }
+        );
     } 
 
     // ** start trail / AIS timers
@@ -500,10 +502,14 @@ export class AppComponent {
                         this.signalk.authToken= r['token'];
                         this.app.db.saveAuthToken(r['token']);
                         this.app.data.hasToken= true; // hide login menu item
+                        this.app.loadSettingsfromServer();
                         if(onConnect) { this.queryAfterConnect() }
                     },
                     err=> {   // ** auth failed
                         this.app.data.hasToken= false; // show login menu item
+                        this.app.db.saveAuthToken(null);
+                        this.signalk.authToken= null;
+                        this.signalk.isLoggedIn().subscribe( r=> {this.app.data.loggedIn= r});
                         if(onConnect) { 
                             this.app.showConfirm(
                                 'Invalid Username or Password.', 
@@ -524,6 +530,7 @@ export class AppComponent {
             }
             else { 
                 this.app.data.hasToken= false; // show login menu item
+                this.signalk.isLoggedIn().subscribe( r=> {this.app.data.loggedIn= r});
                 if(onConnect) { this.showLogin(null, false, true) }
                 else {
                     if(cancelWarning) {
@@ -708,7 +715,8 @@ export class AppComponent {
                     data: {
                         title: 'Destination Properties',
                         resource: v,
-                        type: dtype
+                        type: dtype,
+                        skres: this.skres
                     }
                 }).afterDismissed().subscribe( ()=> this.focusMap() );
             }         
@@ -721,7 +729,8 @@ export class AppComponent {
                     data: {
                         title: 'Route Properties',
                         resource: v,
-                        type: e.type
+                        type: e.type,
+                        skres: this.skres
                     }
                 }).afterDismissed().subscribe( ()=> this.focusMap() );
             }         

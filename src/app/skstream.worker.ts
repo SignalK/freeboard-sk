@@ -282,6 +282,7 @@ function postUpdate(immediate:boolean=false) {
         msg.timestamp= (playbackMode) ? playbackTime : vessels.self.lastUpdated.toISOString();
         postMessage(msg); 
         vessels.aisStatus= { updated:[], stale:[], expired:[] };
+        vessels.self.resourceUpdates= [];
     }
 }
 
@@ -388,14 +389,16 @@ function processVessel(d: SKVessel, v:any, isSelf:boolean=false) {
         d['course.' + v.path.split('.').slice(2).join('.')]= v.value;
     } 
 
-    if(v.path.indexOf('navigation.closestApproach')!=-1) {   
-        d.closestApproach= v.value
-    }   
+    // ** closest approach **
+    if(v.path.indexOf('navigation.closestApproach')!=-1) { d.closestApproach= v.value }   
 
     // ** anchor radius / position **
     if(v.path=='navigation.anchor.position') { d.anchor.position= v.value }
     if(v.path=='navigation.anchor.maxRadius') { d.anchor.maxRadius= v.value }
     if(v.path=='navigation.anchor.currentRadius') { d.anchor.radius= v.value }
+
+    // ** resource deltas **
+    if(v.path.indexOf('resources.')!=-1) { d.resourceUpdates.push(v) } 
 }
 
 // ** process notification messages **

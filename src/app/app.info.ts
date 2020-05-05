@@ -13,11 +13,77 @@ import { IndexedDB } from './lib/info/indexeddb';
 import { SignalKClient } from 'signalk-client-angular';
 import { SKVessel } from './modules/skresources/resource-classes';
 
+// ** Configuration template** 
+const FreeboardConfig= {      
+    experiments: false,
+    version: '',
+    darkMode: { enabled: false,  source: 0 },  // source: 0= browser default, 1= Signal K mode)
+    map: {          // ** map config
+        zoomLevel: 2,
+        center: [0, 0],
+        rotation: 0,
+        mrid: null,
+        srid: 'EPSG:4326',
+        moveMap: false,
+        northUp: true
+    },
+    anchor: {       // ** anchor watch
+        raised: true,
+        radius: 40,
+        position: [0,0]
+    },
+    vesselTrail: false,     // display trail
+    vesselWindVectors: true,    // display vessel TWD, AWD vectors
+    aisTargets: true,       // display ais targets
+    courseData: true,      // display course data
+    notes: false,           // display notes
+    depthAlarm: { enabled: false, smoothing: 10000 },
+    plugins: {
+        instruments: '/@signalk/instrumentpanel',
+        startOnOpen: false,
+        parameters: null
+    },
+    units: {        // ** display units
+        distance: 'm',
+        depth: 'm',
+        speed: 'kn'
+    },
+    selections: {   // ** saved selections 
+        routes: [],
+        waypoints: [],
+        charts: ['openstreetmap','openseamap'],
+        notes: [],
+        headingAttribute: 'navigation.headingTrue',
+        preferredPaths: {
+            tws: 'environment.wind.speedTrue',
+            twd: 'environment.wind.directionTrue',
+            heading: 'navigation.courseOverGroundTrue'
+        },
+        aisTargets: null,
+        aisWindApparent: false,
+        aisWindMinZoom: 15,
+        notesMinZoom: 10,
+        pluginFavourites: []
+    },
+    resources: {    // ** resource options
+        notes: {
+            rootFilter: '?position=%map:latitude%,%map:longitude%&dist=%note:radius%',     // param string to provide record filtering
+            getRadius: 20,      // radius (NM/km) within which to return notes
+            groupNameEdit: false,
+            groupRequiresPosition: false
+        },
+        video: {
+            enable: false, 
+            url: null
+        }
+    }
+} 
+
 @Injectable({ providedIn: 'root' })
 export class AppInfo extends Info {
 
     private DEV_SERVER= {
-        host: '172.17.0.1', //'192.168.86.32', //'172.17.0.1', // host name || ip address
+        host: '192.168.86.32', //'172.17.0.1', // host name || ip address
         port: 3000,     // port number
         ssl: false
     };
@@ -53,75 +119,18 @@ export class AppInfo extends Info {
         this.name= "Freeboard";
         this.shortName= "freeboard";
         this.description= `Signal K Chart Plotter.`;
-        this.version= '1.8.5';
+        this.version= '1.9.0';
         this.url= 'https://github.com/signalk/freeboard-sk';
-        this.logo= "./assets/img/app_logo.png";       
+        this.logo= "./assets/img/app_logo.png";   
         
-        this.config= {      // ** base config
-            experiments: false,
-            version: '',
-            darkMode: { enabled: false,  source: 0 },  // source: 0= browser default, 1= Signal K mode)
-            map: {          // ** map config
-                zoomLevel: 2,
-                center: [0, 0],
-                rotation: 0,
-                mrid: null,
-                srid: 'EPSG:4326',
-                moveMap: false,
-                northUp: true
-            },
-            anchor: {       // ** anchor watch
-                raised: true,
-                radius: 40,
-                position: [0,0]
-            },
-            vesselTrail: false,     // display trail
-            aisTargets: true,       // display ais targets
-            courseData: true,      // display course data
-            notes: false,           // display notes
-            depthAlarm: { enabled: false, smoothing: 10000 },
-            plugins: {
-                instruments: '/@signalk/instrumentpanel',
-                startOnOpen: false,
-                parameters: null
-            },
-            units: {        // ** display units
-                distance: 'm',
-                depth: 'm',
-                speed: 'kn'
-            },
-            selections: {   // ** saved selections 
-                routes: [],
-                waypoints: [],
-                charts: ['openstreetmap','openseamap'],
-                notes: [],
-                headingAttribute: 'navigation.headingTrue',
-                preferredPaths: {
-                    tws: 'environment.wind.speedTrue',
-                    twd: 'environment.wind.directionTrue',
-                    heading: 'navigation.courseOverGroundTrue'
-                },
-                aisTargets: null,
-                aisWindApparent: false,
-                aisWindMinZoom: 15,
-                notesMinZoom: 10,
-                pluginFavourites: []
-            },
-            resources: {    // ** resource options
-                notes: {
-                    rootFilter: '?position=%map:latitude%,%map:longitude%&dist=%note:radius%',     // param string to provide record filtering
-                    getRadius: 20,      // radius (NM/km) within which to return notes
-                    groupNameEdit: false,
-                    groupRequiresPosition: false
-                },
-                video: {
-                    enable: false, 
-                    url: null
-                }
-            }
-        } 
-
-        this.data= {        // ** received data
+        this.signalk.setAppId(this.id);     // server stored data appId
+        this.signalk.setAppVersion('1.0.0');  // server stored data version
+        
+        // base config
+        this.config= JSON.parse(JSON.stringify(FreeboardConfig));
+        // ** received data
+        this.data= {
+            loggedIn: false,
             grib: {
                 hasProvider: false,
                 values: { wind: null, temperature: null}
@@ -232,8 +241,8 @@ export class AppInfo extends Info {
         if( version.result && version.result=='update' ) {
             this.debug('Upgrade result....new version detected');
             // side-load persisted config / data 
-            let lconfig=(this.state.loadConfig());       
-            let ldata=(this.state.loadData());    
+            //let lconfig=(this.state.loadConfig());       
+            //let ldata=(this.state.loadData());    
             // transform config / data as required here    
             this.data['updatedRun']= version;
             // apply to this.config / this.data
@@ -254,45 +263,102 @@ export class AppInfo extends Info {
     handleSettingsEvent(value) {
         this.debug(value);
         if(value.action=='load' && value.setting=='config') {
-            if(typeof this.config.usePUT !== 'undefined') { delete this.config.usePUT }
-            if(typeof this.config.selections.aisWindMinZoom === 'undefined') {
-                this.config.selections.aisWindMinZoom=15;
-            }
-            if(typeof this.config.selections.aisWindApparent === 'undefined') {
-                this.config.selections.aisWindApparent= false;
-            }
-            if(typeof this.config.selections.notesMinZoom === 'undefined') {
-                this.config.selections.notesMinZoom=10;
-            } 
-            if(typeof this.config.selections.preferredPaths === 'undefined') {
-                this.config.selections.preferredPaths= {
-                    tws: 'environment.wind.speedTrue',
-                    twd: 'environment.wind.directionTrue',
-                    heading: 'navigation.courseOverGroundTrue'
-                }
-            }   
-            if(typeof this.config.selections.pluginFavourites === 'undefined') {
-                this.config.selections['pluginFavourites']= [];
-            }  
-            if(typeof this.config.plugins.parameters === 'undefined') { 
-                this.config.plugins.parameters= null;
-            }  
-            if(typeof this.config.resources === 'undefined') {
-                this.config.resources= { 
-                    notes: {
-                        rootFilter: '?position=%map:latitude%,%map:longitude%&dist=%note:radius%',     
-                        getRadius: 20,     
-                        groupNameEdit: false,
-                        groupRequiresPosition: false
-                    }
-                }
-            }  
-            else {
-                if(typeof this.config.resources.video === 'undefined') { 
-                    this.config.resources.video= { enable: false, url: null};
-                }  
-            }             
+            this.cleanConfig(this.config);
         }
+    }
+
+    // ** get user settings from server **
+    loadSettingsfromServer() {
+        this.signalk.isLoggedIn().subscribe( 
+            r=> {
+                this.data.loggedIn= r;
+                if(r) { // ** get server stored config for logged in user **
+                    this.signalk.appDataGet('/').subscribe(
+                        (settings:any)=> {
+                            this.cleanConfig(settings);
+                            if(this.validateConfig(settings)) { 
+                                this.config= settings;
+                                this.saveConfig();
+                            }
+                        },
+                        ()=> console.info('applicationData: Unable to retrieve settings from server!')
+                    );   
+                }                     
+            },
+            ()=> { this.data.loggedIn=false }
+        );
+    }    
+
+    // ** overloaded saveConfig() **
+    saveConfig() {
+        super.saveConfig();
+        if(this.data.loggedIn) {
+            this.signalk.appDataSet('/', this.config).subscribe(
+                ()=> this.debug('saveConfig: config saved to server.'),
+                ()=> this.debug('saveConfig: Cannot save config to server!')
+            );                
+        }
+    }
+
+    // ** clean loaded config /settings keys **
+    cleanConfig(settings:any) {
+        this.debug('Cleaning config keys...');
+        if(typeof settings.usePUT !== 'undefined') { delete settings.usePUT }
+        if(typeof settings.vesselWindVectors=='undefined') {
+            settings.vesselWindVectors= true;
+        }  
+
+        if(typeof settings.selections === 'undefined') { settings.selections={} } 
+        if(typeof settings.selections.aisWindMinZoom === 'undefined') {
+            settings.selections.aisWindMinZoom=15;
+        }
+        if(typeof settings.selections.aisWindApparent === 'undefined') {
+            settings.selections.aisWindApparent= false;
+        }
+        if(typeof settings.selections.notesMinZoom === 'undefined') {
+            settings.selections.notesMinZoom=10;
+        } 
+        if(typeof settings.selections.preferredPaths === 'undefined') {
+            settings.selections.preferredPaths= {
+                tws: 'environment.wind.speedTrue',
+                twd: 'environment.wind.directionTrue',
+                heading: 'navigation.courseOverGroundTrue'
+            }
+        }   
+        if(typeof settings.selections.pluginFavourites === 'undefined') {
+            settings.selections['pluginFavourites']= [];
+        }  
+
+        if(typeof settings.plugins === 'undefined') { settings.plugins= {} }
+        if(typeof settings.plugins.parameters === 'undefined') { 
+            settings.plugins.parameters= null;
+        }  
+        
+        if(typeof settings.resources === 'undefined') {
+            settings.resources= { 
+                notes: {
+                    rootFilter: '?position=%map:latitude%,%map:longitude%&dist=%note:radius%',     
+                    getRadius: 20,     
+                    groupNameEdit: false,
+                    groupRequiresPosition: false
+                }
+            }
+        }  
+        else {
+            if(typeof settings.resources.video === 'undefined') { 
+                settings.resources.video= { enable: false, url: null};
+            }  
+        }
+    }
+
+    // ** validate settings against base config **
+    validateConfig(settings:any):boolean {
+        let result:boolean= true;
+        let skeys= Object.keys(settings);
+        Object.keys(FreeboardConfig).forEach( i=> {
+            if(!skeys.includes(i)) { result=false }
+        });
+        return result;
     }
 
     // ** display Welcome dialog

@@ -106,7 +106,8 @@ export class SKVessel {
     buddy:boolean= false;
     closestApproach:any= null;
     mode:string= 'day';
-    anchor= { maxRadius: null, radius: null, position: null }
+    anchor= { maxRadius: null, radius: null, position: null };
+    resourceUpdates: Array<any>= [];
 }
 
 // ** Signal K Note

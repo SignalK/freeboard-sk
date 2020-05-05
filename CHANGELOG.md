@@ -1,5 +1,22 @@
 # CHANGELOG: Freeboard
 
+### v1.9
+
+- **Added**: Configuration setting to hide vessel wind vectors.
+
+- **Added**: Storing user _Settings_ on the server. 
+    
+    Settings are __stored__ on the server automatically when user is logged in.
+
+    Settings from the server are __applied__:
+    - During Freeboard startup _(if user is already authenticated on the server)_
+    - After _Log In_ or _Changing User_ via the Freeboard UI.
+
+- **Update**: Re-order route points by drag and drop within route _Points_ screen.
+
+- **Update**: Version __1.7__ of __signalk-client-angular__ which adds support for `applicationData` API in _node-server v1.27.0_.
+
+
 ### v1.8.5
 
 - **Update**: `navigation.anchor` delta messages (maxRadius, raise / lower) not being processed.

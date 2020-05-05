@@ -5,10 +5,10 @@ import {Component, OnInit, Inject} from '@angular/core';
 import { SignalKClient } from 'signalk-client-angular';
 import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { MatBottomSheetRef, MAT_BOTTOM_SHEET_DATA } from '@angular/material/bottom-sheet';
-
+import { CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop';
 import { Convert } from 'src/app/lib/convert'
 import { AppInfo } from 'src/app/app.info'
-import { SKResources } from './resources.service';
+//import { SKResources } from './resources.service';
 
 /********* ResourceDialog **********
 	data: {
@@ -397,6 +397,7 @@ export class AtoNPropertiesModal implements OnInit {
         title: "<string>" title text,
         type: 'dest' | 'route' resource type,
         resource: "<SKWaypoint | SKRoute>" active resource info
+        skres: pointer to SKResources service
     }
 ***********************************/
 @Component({
@@ -414,7 +415,7 @@ export class AtoNPropertiesModal implements OnInit {
                         {{data.title}}
                     </span>
                     <span>
-                        <button mat-icon-button (click)="modalRef.dismiss()"
+                        <button mat-icon-button (click)="close()"
                             matTooltip="Close" matTooltipPosition="below">
                             <mat-icon>keyboard_arrow_down</mat-icon>
                         </button>
@@ -424,12 +425,17 @@ export class AtoNPropertiesModal implements OnInit {
 
             <div style="flex: 1 1 auto;position:relative;overflow:hidden;min-height:200px;">
                 <div style="top:0;left:0;right:0;bottom:0;position:absolute;
-                    overflow:auto;">
-                    <mat-card *ngFor="let pt of points; let i=index;">
+                    overflow:auto;" cdkDropList (cdkDropListDropped)="drop($event)">
+                    <mat-card *ngFor="let pt of points; let i=index;" cdkDrag>
+                        <div class="point-drop-placeholder" *cdkDragPlaceholder></div>
+
                         <div style="display:flex;" (click)="selectPoint(i)"
                             [style.cursor]="(points.length>1 && selIndex!=-1) ? 'pointer': 'initial'">
+                            
                             <div style="width:35px;">
-                                <mat-icon color="warn" *ngIf="selIndex==i">flag</mat-icon>
+                                <mat-icon color="warn" *ngIf="selIndex==i && !orderChanged">
+                                    flag
+                                </mat-icon>
                             </div>
                             <div style="flex: 1 1 auto;">
                                 <div style="display:flex;">
@@ -440,7 +446,11 @@ export class AtoNPropertiesModal implements OnInit {
                                     <div class="key-label">Lon:</div>
                                     <div style="flex: 1 1 auto;">{{pt[0]}}</div>
                                 </div> 
-                            </div>                            
+                            </div>   
+                            <div cdkDragHandle matTooltip="Drag to re-order points">
+                                <mat-icon *ngIf="data.type=='route'">drag_indicator</mat-icon>  
+                            </div>  
+
                         </div>
                     </mat-card>
                 </div>
@@ -457,24 +467,36 @@ export class AtoNPropertiesModal implements OnInit {
                 }  
                 ._ap-dest .selected {
                     background-color: silver;
-                }                	
+                }   
+                .point-drop-placeholder {
+                    background: #ccc;
+                    border: dotted 3px #999;
+                    min-height: 90px;
+                    transition: transform 250ms cubic-bezier(0, 0, 0.2, 1);
+                }  
+                .cdk-drag-preview {
+                    box-sizing: border-box;
+                    border-radius: 4px;
+                    box-shadow: 0 5px 5px -3px rgba(0, 0, 0, 0.2),
+                                0 8px 10px 1px rgba(0, 0, 0, 0.14),
+                                0 3px 14px 2px rgba(0, 0, 0, 0.12);
+                  }                           	
 			`]
 })
 export class ActiveResourcePropertiesModal implements OnInit {
 
     public points: Array<[number,number]>= [];
-    public selIndex:number=-1;
+    public selIndex: number=- 1;
+    public orderChanged: boolean= false;
 
     constructor(
         public app: AppInfo,
-        private skres: SKResources,
         public modalRef: MatBottomSheetRef<ActiveResourcePropertiesModal>,
         @Inject(MAT_BOTTOM_SHEET_DATA) public data: any) {
     }
     
     ngOnInit() {
-        console.log('data:', this.data);
-        
+        //console.log('data:', this.data);     
         if(this.data.resource[1].feature && this.data.resource[1].feature.geometry.coordinates) {
             if(this.data.type=='route'){
                 this.points= this.data.resource[1].feature.geometry.coordinates;
@@ -504,13 +526,34 @@ export class ActiveResourcePropertiesModal implements OnInit {
     } 
 
     selectPoint(idx:number) { 
-        if(this.points.length<2 || this.selIndex<0) { return }
+        if(this.points.length<2 || this.selIndex<0 || this.orderChanged) { return }
         let nextPoint= {
             latitude: this.points[idx][1], 
             longitude: this.points[idx][0], 
         }
         this.selIndex= idx;
-        this.skres.setNextPoint(nextPoint);          
+        if(this.data.skres) { this.data.skres.setNextPoint(nextPoint) }          
+    }
+
+    drop(e:CdkDragDrop<any>) {
+        if(this.data.type=='route') {
+            moveItemInArray(this.points, e.previousIndex, e.currentIndex);
+            this.orderChanged= true;
+        }
+    }
+
+    close() {
+        if(this.orderChanged) {
+            this.app.showConfirm(
+                'Route points have been changed.\n\nSave changes to server?',
+                'Route Changed'
+            ).subscribe( r=> {
+                if(r && this.data.skres) { 
+                    this.data.skres.updateRouteCoords(this.data.resource[0], this.points);
+                }
+            })
+        }
+        this.modalRef.dismiss();
     }
 	
 }
