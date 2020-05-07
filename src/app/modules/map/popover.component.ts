@@ -6,6 +6,7 @@ import { Component, Input, Output, EventEmitter, ChangeDetectionStrategy } from 
 import { SKVessel, SKAtoN } from '../skresources/resource-classes';
 import { Convert } from 'src/app/lib/convert';
 import { GeoUtils } from 'src/app/lib/geoutils';
+import { AppInfo } from 'src/app/app.info';
 
 /*********** Popover ***************
 title: string -  title text,
@@ -105,11 +106,15 @@ isSelf: boolean - true if vessel 'self'
             
             <div style="display:flex;">
                 <div style="font-weight:bold;">Latitude:</div>
-                <div style="flex: 1 1 auto;text-align:right;">{{position[1].toFixed(6)}}</div>
+                <div style="flex: 1 1 auto;text-align:right;"
+                    [innerText]="position[1] | coords : app.config.selections.positionFormat : true">
+                </div>
             </div>
             <div style="display:flex;">
                 <div style="font-weight:bold;">Longitude:</div>
-                <div style="flex: 1 1 auto;text-align:right;">{{position[0].toFixed(6)}}</div>
+                <div style="flex: 1 1 auto;text-align:right;"
+                    [innerText]="position[0] | coords : app.config.selections.positionFormat">
+                </div>
             </div>
             <div style="display:flex;">
                 <div style="font-weight:bold;">Last Update:</div>
@@ -201,7 +206,7 @@ export class VesselPopoverComponent {
 
     position:any=[0,0];
 
-    constructor() {}
+    constructor(public app: AppInfo) {}
 
     ngOnInit() { 
         if(!this.vessel) { this.handleClose() } 
@@ -247,12 +252,22 @@ id: string - resource id
             
             <div *ngFor="let p of properties" style="display:flex;">
                 <div style="font-weight:bold;">{{p[0]}}:</div>
-                <div style="flex: 1 1 auto;text-align:right;
+                <div *ngIf="p[0]!='Latitude' && p[0]!='Longitude'"
+                        style="flex: 1 1 auto;text-align:right;
                             white-space:nowrap;
                             overflow-x:hidden;
                             text-overflow:ellipsis;">
                     {{p[1]}}
                 </div>
+                <div *ngIf="p[0]=='Latitude'"
+                    style="flex: 1 1 auto;text-align:right;"
+                    [innerText]="p[1] | coords : app.config.selections.positionFormat : true">
+                </div>
+                <div *ngIf="p[0]=='Longitude'"
+                    style="flex: 1 1 auto;text-align:right;"
+                    [innerText]="p[1] | coords : app.config.selections.positionFormat">
+                </div>
+              
             </div>
 
             <div style="display:flex;flex-wrap: wrap;">
@@ -357,7 +372,7 @@ export class ResourcePopoverComponent {
         activeText: 'ACTIVE'
     }
 
-    constructor() {}
+    constructor(public app:AppInfo) {}
 
     ngOnChanges() { 
         this.parse();
@@ -385,8 +400,8 @@ export class ResourcePopoverComponent {
         if(this.resource[1].feature.properties.cmt) {
             this.properties.push( ['Desc.', this.resource[1].feature.properties.cmt] );
         }
-        this.properties.push(['Latitude', this.resource[1]['position']['latitude'].toFixed(6)]); 
-        this.properties.push(['Longitude', this.resource[1]['position']['longitude'].toFixed(6)]);                 
+        this.properties.push(['Latitude', this.resource[1]['position']['latitude'] ]); 
+        this.properties.push(['Longitude', this.resource[1]['position']['longitude'] ]);                 
     }
 
     parseRoute() {
@@ -470,14 +485,20 @@ aton: SKAtoN - aton data
                 <div style="font-weight:bold;">Type:</div>
                 <div style="flex: 1 1 auto;text-align:right;">{{aton.type.name}}</div>
             </div>
+
             <div style="display:flex;">
                 <div style="font-weight:bold;">Latitude:</div>
-                <div style="flex: 1 1 auto;text-align:right;">{{aton.position[1].toFixed(6)}}</div>
+                <div style="flex: 1 1 auto;text-align:right;"
+                    [innerText]="aton.position[1] | coords : app.config.selections.positionFormat : true">
+                </div>
             </div>
             <div style="display:flex;">
                 <div style="font-weight:bold;">Longitude:</div>
-                <div style="flex: 1 1 auto;text-align:right;">{{aton.position[0].toFixed(6)}}</div>
+                <div style="flex: 1 1 auto;text-align:right;"
+                    [innerText]="aton.position[0] | coords : app.config.selections.positionFormat">
+                </div>
             </div>
+
             <div style="display:flex;">
                 <div style="font-weight:bold;">Last Update:</div>
                 <div style="flex: 1 1 auto;text-align:right;">
@@ -509,7 +530,7 @@ export class AtoNPopoverComponent {
     timeLastUpdate: string;
     timeAgo: string;    // last update in minutes ago
 
-    constructor() {}
+    constructor(public app:AppInfo) {}
 
     ngOnInit() { 
         if(!this.aton) { this.handleClose() } 

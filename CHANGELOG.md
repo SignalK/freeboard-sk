@@ -4,6 +4,8 @@
 
 - **Added**: Configuration setting to hide vessel wind vectors.
 
+- **Added**: Configuration setting to select position display format.
+
 - **Added**: Storing user _Settings_ on the server. 
     
     Settings are __stored__ on the server automatically when user is logged in.

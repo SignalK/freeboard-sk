@@ -32,6 +32,7 @@ import { ResourceDialog, AISPropertiesModal, AtoNPropertiesModal,
 import { GRIBPanel, GRIBGradient } from './grib/grib-components';
 import { SKNotesModule } from './notes';
 import { AppUIModule } from 'src/app/lib/ui/ui.module';
+import { UtilitiesModule } from 'src/app/modules/utils/utils.module';
 
 @NgModule({
     imports: [
@@ -40,7 +41,7 @@ import { AppUIModule } from 'src/app/lib/ui/ui.module';
         MatButtonModule, MatIconModule, MatTooltipModule, MatBottomSheetModule,
         MatSliderModule, MatSlideToggleModule, ScrollingModule,
         MatFormFieldModule, MatInputModule, MatToolbarModule, DragDropModule,
-        SKNotesModule, AppUIModule
+        SKNotesModule, AppUIModule, UtilitiesModule
     ],
     declarations: [
         RouteListComponent, WaypointListComponent, ChartListComponent,

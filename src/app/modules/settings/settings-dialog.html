@@ -187,7 +187,20 @@
                                         <mat-option *ngFor="let i of facade.availableUnits.depth | keyvalue" [value]="i.key">{{i.value}}</mat-option>
                                     </mat-select>                                        
                                 </mat-form-field>
-                            </div>                                             
+                            </div> 
+
+                            <div class="setting-card-row-item" *ngIf="facade.preferredValues.coords.length!=0">
+                                <mat-form-field style="width:100%;">
+                                    <mat-select #positionformat 
+                                            matTooltip="Display position in this format"
+                                            [(value)]="facade.settings.selections.positionFormat" 
+                                            (selectionChange)="onFormChange($event, positionformat)"
+                                            placeholder="Position display format">
+                                        <mat-option *ngFor="let i of facade.preferredValues.coords" [value]="i[0]">{{i[1]}}</mat-option>
+                                    </mat-select>                                        
+                                </mat-form-field>
+                            </div>                             
+                            
                             <div class="setting-card-row-item">
                                 <div style="height:65px;">
                                     <button mat-raised-button

@@ -9,8 +9,8 @@ import { SignalKClient } from 'signalk-client-angular';
 @Injectable({ providedIn: 'root' })
 export class SettingsFacade  {
 
-   // **************** Settings Dialog Support ***************************
-	
+    // **************** Settings Dialog Support ***************************
+    private symDegree= String.fromCharCode(186);
     availableUnits= {
         distance: new Map([ 
             ['m', 'Kilometres'], ['ft', 'Nautical Miles']
@@ -26,7 +26,12 @@ export class SettingsFacade  {
         ],
         wind: new Map([ 
             [false, 'Wind True'], [true, 'Wind Apparent']
-        ])
+        ]),
+        coords: [ 
+            ['XY','-28.12345'],
+            ['SHDd',`S-28.12345${this.symDegree}`],['HDd',`S 28.12345${this.symDegree}`],
+            ['HDMS',`S 28${this.symDegree}15'46"123`],['DHMS',`28S15'46"123`] 
+        ]       
     }
 
     list= {
@@ -40,7 +45,8 @@ export class SettingsFacade  {
         smoothing: new Map( [ [5000,'5 secs'],[10000,'10 secs'],[20000,'20 secs'],[30000,'30 secs'] ])
     }
 
-    darkModeOptions= new Map( [ [0,'Use OS setting'], [1,'Use Signal K Mode'] ]);  
+    darkModeOptions= new Map( [ [0,'Use OS setting'], [1,'Use Signal K Mode'] ]);
+       
 
     // *****************************************************
     settings:any= this.app.config;

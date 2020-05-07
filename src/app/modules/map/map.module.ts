@@ -26,11 +26,12 @@ import { LayerWindVectorComponent } from './components/layer-windvector.componen
 import { LayerColormapComponent } from './components/layer-colormap.component';
 
 import { FBMapComponent } from './fb-map.component';
+import { UtilitiesModule } from 'src/app/modules/utils/utils.module';
 
 @NgModule({
     imports: [
         CommonModule, MatTooltipModule, MatListModule,
-        MatIconModule, MatButtonModule, MatTooltipModule,
+        MatIconModule, MatButtonModule, MatTooltipModule, UtilitiesModule,
         MatCardModule, MatMenuModule, AngularOpenlayersModule
       ],    
     declarations: [

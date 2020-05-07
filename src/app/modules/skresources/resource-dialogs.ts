@@ -8,7 +8,6 @@ import { MatBottomSheetRef, MAT_BOTTOM_SHEET_DATA } from '@angular/material/bott
 import { CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop';
 import { Convert } from 'src/app/lib/convert'
 import { AppInfo } from 'src/app/app.info'
-//import { SKResources } from './resources.service';
 
 /********* ResourceDialog **********
 	data: {
@@ -54,11 +53,15 @@ import { AppInfo } from 'src/app/app.info'
                             <div *ngIf="data.position[0]" style="font-size: 10pt;">
                                 <div style="display:flex;">
                                     <div style="width:45px;font-weight:bold;">Lat:</div>
-                                    <div style="flex: 1 1 auto;">{{data.position[1]}}</div>
+                                    <div style="flex: 1 1 auto;"
+                                        [innerText]="data.position[1] | coords : app.config.selections.positionFormat: true">
+                                    </div>
                                 </div>
                                 <div style="display:flex;">
                                     <div style="width:45px;font-weight:bold;">Lon:</div>
-                                    <div style="flex: 1 1 auto;">{{data.position[0]}}</div>
+                                    <div style="flex: 1 1 auto;"
+                                        [innerText]="data.position[0] | coords : app.config.selections.positionFormat">
+                                    </div>
                                 </div>    
                             </div>                        
                         </div>                                
@@ -111,6 +114,7 @@ export class ResourceDialog implements OnInit {
 	public icon:string;
 
     constructor(
+        public app:AppInfo,
         public dialogRef: MatDialogRef<ResourceDialog>,
         @Inject(MAT_DIALOG_DATA) public data: any) {
 	}
@@ -190,7 +194,7 @@ export class ResourceDialog implements OnInit {
                         <div style="flex: 1 1 auto;">{{vInfo.draft}}</div>
                     </div>       
                     <div style="display:flex;" *ngIf="vInfo.height">
-                        <div sclass="key-label">Height:</div>
+                        <div class="key-label">Height:</div>
                         <div style="flex: 1 1 auto;">{{vInfo.height}}</div>
                     </div>                                        
                     <div style="display:flex;" *ngIf="vInfo.state">
@@ -440,11 +444,15 @@ export class AtoNPropertiesModal implements OnInit {
                             <div style="flex: 1 1 auto;">
                                 <div style="display:flex;">
                                     <div class="key-label">Lat:</div>
-                                    <div style="flex: 1 1 auto;">{{pt[1]}}</div>
+                                    <div style="flex: 1 1 auto;"
+                                        [innerText]="pt[1] | coords : app.config.selections.positionFormat: true">
+                                    </div>
                                 </div>   
                                 <div style="display:flex;">
                                     <div class="key-label">Lon:</div>
-                                    <div style="flex: 1 1 auto;">{{pt[0]}}</div>
+                                    <div style="flex: 1 1 auto;"
+                                        [innerText]="pt[0] | coords : app.config.selections.positionFormat">
+                                    </div>
                                 </div> 
                             </div>   
                             <div cdkDragHandle matTooltip="Drag to re-order points">

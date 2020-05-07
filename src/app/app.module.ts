@@ -13,7 +13,6 @@ import { AppUIModule } from './lib/app-ui';
 import { SettingsModule, GPXLoadModule, AlarmsModule, 
         SKStreamModule, SignalKResourcesModule, FBMapModule } from './modules';
 
-
 @NgModule({
   declarations: [
     AppComponent
@@ -23,11 +22,11 @@ import { SettingsModule, GPXLoadModule, AlarmsModule,
     BrowserAnimationsModule, 
     FormsModule, HttpClientModule,
     AppMaterialModule, AppUIModule, 
-    SignalKResourcesModule, FBMapModule,
+    SignalKResourcesModule, FBMapModule, 
     GPXLoadModule, SettingsModule, AlarmsModule, SKStreamModule,
     AngularOpenlayersModule
   ],
-  entryComponents: [ ],
+  exports: [],
   providers: [],
   bootstrap: [ AppComponent ]
 })

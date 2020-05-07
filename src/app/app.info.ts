@@ -59,6 +59,7 @@ const FreeboardConfig= {
             twd: 'environment.wind.directionTrue',
             heading: 'navigation.courseOverGroundTrue'
         },
+        positionFormat: 'XY',
         aisTargets: null,
         aisWindApparent: false,
         aisWindMinZoom: 15,
@@ -327,7 +328,10 @@ export class AppInfo extends Info {
         }   
         if(typeof settings.selections.pluginFavourites === 'undefined') {
             settings.selections['pluginFavourites']= [];
-        }  
+        } 
+        if(typeof settings.selections.positionFormat === 'undefined') {
+            settings.selections['positionFormat']= 'XY';
+        }         
 
         if(typeof settings.plugins === 'undefined') { settings.plugins= {} }
         if(typeof settings.plugins.parameters === 'undefined') { 

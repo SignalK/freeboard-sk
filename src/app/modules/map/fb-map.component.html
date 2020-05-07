@@ -41,8 +41,12 @@
 
     <!-- Controls -->
     <div class="ol-mouse-position">
-        Lon: {{mouse.coords[0].toFixed(4)}}&nbsp;
-        Lat: {{mouse.coords[1].toFixed(4)}}
+        
+        <span *ngIf="app.config.selections.positionFormat=='XY'">Lat:&nbsp;</span>
+        <span [innerText]="mouse.coords[1] | coords : app.config.selections.positionFormat : true"></span>
+        &nbsp; 
+        <span *ngIf="app.config.selections.positionFormat=='XY'">Lon:&nbsp;</span>    
+        <span [innerText]="mouse.coords[0] | coords : app.config.selections.positionFormat"></span>
     </div>
 
     <aol-control>
