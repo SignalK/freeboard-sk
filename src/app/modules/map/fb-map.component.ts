@@ -335,7 +335,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
     private onResourceUpdate(value:any) {
         this.app.debug('skres.update$ -> map.onResourceUpdate()');
         this.app.debug(value);
-        if(value.action=='get') {
+        if(value.action=='get' || value.action=='selected') {
             if(value.mode=='route') { 
                 this.dfeat.routes= [];
                 this.app.data.routes.forEach( r=> {

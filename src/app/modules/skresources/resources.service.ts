@@ -44,6 +44,7 @@ export class SKResources {
             i=> { return (i) ? true : false }
         );      
         this.app.saveConfig();
+        this.updateSource.next({action: 'selected', mode: 'route'});  
     }    
 
     waypointSelected(e:any) {
@@ -52,16 +53,19 @@ export class SKResources {
             i=> { return (i) ? true : false }
         );   
         this.app.saveConfig();
+        this.updateSource.next({action: 'selected', mode: 'waypoint'});  
     }     
 
     noteSelected(e:any) {
         if(e.isGroup) { this.showRelatedNotes(e.id, 'group') }
         else { this.showNoteInfo({id: e.id}) }
+        this.updateSource.next({action: 'selected', mode: 'note'});  
     }
 
     aisSelected(e:any) {
         this.app.config.selections.aisTargets= e;
         this.app.saveConfig();
+        this.updateSource.next({action: 'selected', mode: 'ais'});  
     } 
 
     chartSelected(e:any) {
@@ -73,6 +77,7 @@ export class SKResources {
             i=> { return (i) ? true : false }
         );   
         this.app.saveConfig();
+        this.updateSource.next({action: 'selected', mode: 'chart'});  
     }    
     
     // ** return local charts sorted by scale descending.
