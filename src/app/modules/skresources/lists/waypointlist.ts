@@ -17,7 +17,7 @@ export class WaypointListComponent {
     @Output() refresh: EventEmitter<any>= new EventEmitter();
     @Output() properties: EventEmitter<any>= new EventEmitter();
     @Output() closed: EventEmitter<any>= new EventEmitter();
-    @Output() center: EventEmitter<any>= new EventEmitter();
+    @Output() center: EventEmitter<[number,number]>= new EventEmitter();
 
     filterList= [];
     filterText: string= '';
@@ -53,14 +53,14 @@ export class WaypointListComponent {
         this.someSel= (c && u) ? true : false;        
     } 
     
-    selectAll(value) {
+    selectAll(value:boolean) {
         this.waypoints.forEach( i=> { i[2]=value} );
         this.someSel= false;
         this.allSel= (value) ? true : false;
         this.select.emit({id: 'all', value: value});
     }    
 
-    itemSelect(e, id) { 
+    itemSelect(e, id:string) { 
         this.waypoints.forEach( i=> { 
             if(i[0]==id) { i[2]=e }
         });
@@ -70,11 +70,11 @@ export class WaypointListComponent {
 
     emitCenter(position) { this.center.emit([position.longitude, position.latitude]) }
 
-    itemProperties(id) { this.properties.emit({id: id, type: 'waypoint'}) }
+    itemProperties(id:string) { this.properties.emit({id: id, type: 'waypoint'}) }
 
-    itemDelete(id) { this.delete.emit({id: id}) }  
+    itemDelete(id:string) { this.delete.emit({id: id}) }  
 
-    itemGoTo(id) { this.goto.emit({id: id}) }  
+    itemGoTo(id:string) { this.goto.emit({id: id}) }  
 
     itemClearActive() { this.deactivate.emit({id: null}) }
     

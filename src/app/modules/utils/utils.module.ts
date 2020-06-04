@@ -4,11 +4,12 @@
 import { NgModule } from '@angular/core';
 
 import  { CoordsPipe } from './coords.pipe'
+import  { ReversePipe } from './reverse.pipe'
 
 @NgModule({
     imports: [],    
-    declarations: [ CoordsPipe ],
-    exports: [ CoordsPipe ],
+    declarations: [ CoordsPipe, ReversePipe ],
+    exports: [ CoordsPipe, ReversePipe ],
     entryComponents: [ ], 
     providers: []  
 })

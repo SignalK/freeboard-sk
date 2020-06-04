@@ -50,7 +50,6 @@ export class SettingsDialog implements OnInit {
 
     onFavSelected(e:any, f:any) {
         this.facade.settings.selections.pluginFavourites= f.selectedOptions.selected.map(i=> i.value );
-        console.log(this.facade.settings.selections.pluginFavourites);
         this.facade.applySettings();
     }
 

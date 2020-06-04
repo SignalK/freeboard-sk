@@ -12,7 +12,7 @@ export class NoteListComponent {
     @Output() select: EventEmitter<any>= new EventEmitter();
     @Output() refresh: EventEmitter<any>= new EventEmitter();
     @Output() closed: EventEmitter<any>= new EventEmitter();
-    @Output() center: EventEmitter<any>= new EventEmitter();
+    @Output() pan: EventEmitter<{center:[number,number], zoomLevel:number}>= new EventEmitter();
 
     filterList= [];
     filterText= '';
@@ -41,13 +41,17 @@ export class NoteListComponent {
         if(this.draftOnly) { this.filterDraftOnly() }
     }
 
-    toggleMapDisplay(value) { this.app.config.notes=value; this.app.saveConfig(); }    
+    toggleMapDisplay(value:boolean) { this.app.config.notes=value; this.app.saveConfig(); }    
 
     viewNote(val:string, isGroup:boolean=false) { this.select.emit( {id:val, isGroup: isGroup} ) }
 
     itemRefresh() { this.refresh.emit() }
 
-    emitCenter(position) { this.center.emit([position.longitude, position.latitude]) }
+    emitCenter(position) { 
+        let zoomTo= (this.app.config.map.zoomLevel<this.app.config.selections.notesMinZoom) ?
+            this.app.config.selections.notesMinZoom : null;
+        this.pan.emit({center: [position.longitude, position.latitude], zoomLevel: zoomTo});
+    }
 
     filterKeyUp(e) {
         this.filterText=e;

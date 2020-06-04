@@ -153,7 +153,7 @@ export class AppComponent {
 
         // fullscreen event handlers
         document.addEventListener('fullscreenchange', ()=> {
-            console.log(document.fullscreenElement)
+            //console.log(document.fullscreenElement)
             if(document.fullscreenElement){ this.display.fullscreen.active=true }
             else { this.display.fullscreen.active=false }
         });
@@ -591,14 +591,10 @@ export class AppComponent {
 
     // ***** OPTIONS MENU ACTONS *******  
 
-    public centerResource(position:[number,number], zoomTo:boolean=false) { 
+    public centerResource(position:[number,number], zoomTo?:number) { 
         position[0]+=0.0000000000001;
         this.display.map.center= position;
-        if(zoomTo) { 
-            if(this.app.config.map.zoomLevel<this.app.config.selections.notesMinZoom) {
-                this.app.config.map.zoomLevel=this.app.config.selections.notesMinZoom;
-            }
-        }
+        if(typeof zoomTo==='number') { this.app.config.map.zoomLevel=zoomTo }
     }
 
     public centerVessel() { 

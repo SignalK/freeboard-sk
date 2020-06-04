@@ -322,7 +322,6 @@ export class AISPropertiesModal implements OnInit {
 	
 }
 
-
 /********* AtoNPropertiesModal **********
 	data: {
         title: "<string>" title text,
@@ -488,7 +487,7 @@ export class AtoNPropertiesModal implements OnInit {
                     box-shadow: 0 5px 5px -3px rgba(0, 0, 0, 0.2),
                                 0 8px 10px 1px rgba(0, 0, 0, 0.14),
                                 0 3px 14px 2px rgba(0, 0, 0, 0.12);
-                  }                           	
+                }                           	
 			`]
 })
 export class ActiveResourcePropertiesModal implements OnInit {
@@ -564,4 +563,267 @@ export class ActiveResourcePropertiesModal implements OnInit {
         this.modalRef.dismiss();
     }
 	
+}
+
+/********* ChartInfoDialog **********
+	data: {
+        chart: "<SKChart>"
+    }
+***********************************/
+@Component({
+	selector: 'ap-chartproperties',
+	template: `
+        <div class="_ap-chartinfo">
+            <div style="display:flex;line-height:2.3em;">
+                <div>
+                    <mat-icon color="primary">{{isLocal(data.tilemapUrl)}}</mat-icon>
+                </div>
+                <div style="flex: 1 1 auto; padding-left:20px;text-align:center;
+                            font-weight: bold;font-size: 16pt;">
+                    Chart Properties
+                </div>
+                <div>
+                    <button mat-icon-button (click)="dialogRef.close()"
+                        matTooltip="Close" matTooltipPosition="below">
+                        <mat-icon>close</mat-icon>
+                    </button>
+                </div>
+            </div>   
+            <mat-card>                      
+                <div style="display:flex;flex-direction: column;">
+                    <div style="display:flex;">
+                        <div class="key-label">Name:</div>
+                        <div style="flex: 1 1 auto;">{{data.name}}</div>
+                    </div>   
+                    <div style="display:flex;">
+                        <div class="key-label">Description:</div>
+                        <div style="flex: 1 1 auto;">{{data.description}}</div>
+                    </div>                     
+                    <div style="display:flex;">
+                        <div class="key-label">Scale:</div>
+                        <div style="flex: 1 1 auto;">{{data.scale}}</div>
+                    </div> 
+                    <div style="display:flex;">
+                        <div class="key-label">Zoom:</div>
+                        <div style="flex: 1 1 auto;">
+                            <div style="flex: 1 1 auto;">
+                                <u><i>Min: </i></u>
+                                {{data.minZoom}}, 
+                                <u><i>Max: </i></u>
+                                {{data.maxZoom}}
+                            </div>                                                  
+                        </div>
+                    </div>                      
+                    <div style="display:flex;" *ngIf="data.bounds">
+                        <div class="key-label">Bounds:</div>
+                        <div style="flex: 1 1 auto; border: gray 1px solid;
+                                max-width: 220px;font-size: 10pt;">
+                            <div style="text-align:right;">
+                                <span style="flex: 1 1 auto;"
+                                    [innerText]="data.bounds[3] | coords : 'HDd' : true">
+                                </span><br>
+                                <span style="flex: 1 1 auto;"
+                                    [innerText]="data.bounds[2] | coords : 'HDd'">
+                                </span>
+                            </div>                                  
+                            <div>
+                                <span style="flex: 1 1 auto;"
+                                    [innerText]="data.bounds[1] | coords : 'HDd' : true">
+                                </span><br>
+                                <span style="flex: 1 1 auto;"
+                                    [innerText]="data.bounds[0] | coords : 'HDd'">
+                                </span>
+                            </div>                                                 
+                        </div>
+                    </div>                      
+                    <div style="display:flex;">
+                        <div class="key-label">Region:</div>
+                        <div style="flex: 1 1 auto;">{{data.region}}</div>
+                    </div>
+                    <div style="display:flex;">
+                        <div class="key-label">Format:</div>
+                        <div style="flex: 1 1 auto;">{{data.chartFormat}}</div>
+                    </div>
+                    <div style="display:flex;">
+                        <div class="key-label">Type:</div>
+                        <div style="flex: 1 1 auto;">{{data.type}}</div>
+                    </div>                     
+                    <div style="display:flex;">
+                        <div class="key-label">Layers:</div>
+                        <div style="flex: 1 1 auto;">{{data.chartLayers}}</div>
+                    </div>      
+                    <div style="display:flex;">
+                        <div class="key-label">URL:</div>
+                        <div style="flex: 1 1 auto;overflow-x: auto;">{{data.tilemapUrl}}</div>
+                    </div>                                                                                                                   
+                </div>
+            </mat-card>
+        </div>	
+    `,
+    styles: [`  ._ap-chartinfo {
+                    font-family: arial;
+                    min-width: 300px;
+                }
+                .ap-confirm-icon { 
+                    min-width: 35px;
+                    max-width: 35px;
+                    color: darkorange;
+                    text-align: left;                    
+                }
+                .ap-confirm-icon .mat-icon { 
+                    font-size: 25pt;
+                }
+
+                ._ap-chartinfo .key-label {
+                    width:150px;
+                    font-weight:500;
+                }  
+
+                @media only screen
+                    and (min-device-width : 768px)
+                    and (max-device-width : 1024px),
+                    only screen	and (min-width : 800px) { 
+                    .ap-confirm-icon {
+                        min-width: 25%;
+                        max-width: 25%;
+                    }
+                    .ap-confirm-icon .mat-icon { 
+                        font-size: 40pt;
+                    }                    
+                }                 	
+			`]
+})
+export class ChartInfoDialog implements OnInit {
+	public icon:string;
+
+    constructor(
+        public app:AppInfo,
+        public dialogRef: MatDialogRef<ChartInfoDialog>,
+        @Inject(MAT_DIALOG_DATA) public data: any) {
+	}
+	
+	//** lifecycle: events **
+    ngOnInit(){ } 
+
+    isLocal(url:string) { return (url && url.indexOf('signalk')!=-1) ? 'map' : 'language' }
+}
+
+/********* ChartLayersDialog ***********/
+@Component({
+	selector: 'ap-chartlayers',
+	template: `
+        <div class="_ap-chartlayers">
+            <div style="display:flex;line-height:2.3em;">
+                <div>
+                    <mat-icon color="primary">layers</mat-icon>
+                </div>
+                <div style="flex: 1 1 auto; padding-left:20px;text-align:center;
+                            font-weight: 500;font-size: 16pt;">
+                    Chart Layers
+                </div>
+                <div>
+                    <button mat-icon-button (click)="close()"
+                        matTooltip="Close" matTooltipPosition="below">
+                        <mat-icon>close</mat-icon>
+                    </button>
+                </div>
+            </div>  
+            <div style="font-style:italic; border-bottom:gray 1px solid;">
+                Top Layer
+            </div>
+            <div style="flex: 1 1 auto;position:relative;overflow:hidden;min-height:400px;">
+                <div style="top:0;left:0;right:0;bottom:0;position:absolute;
+                    overflow:auto;" cdkDropList (cdkDropListDropped)="drop($event)">
+                    <mat-card *ngFor="let ch of chartList; let i=index;" cdkDrag>
+                        <div class="point-drop-placeholder" *cdkDragPlaceholder></div>
+
+                        <div style="display:flex;" [style.cursor]="(i>0) ? 'pointer': 'initial'"> 
+                            <div style="width:35px;">
+                                <mat-icon color="warn">{{isLocal(ch[1].tilemapUrl)}}</mat-icon>
+                            </div>
+                            <div style="flex: 1 1 auto;text-overflow: ellipsis;
+                                        white-space: pre;overflow-x: hidden;">
+                                {{ch[1].name}}
+                            </div>   
+                            <div cdkDragHandle matTooltip="Drag to re-order charts">
+                                <mat-icon>drag_indicator</mat-icon>  
+                            </div>  
+                        </div>
+                    </mat-card>
+                </div>
+            </div>
+            <div style="font-style:italic; border-top:gray 1px solid;">
+                Base Layer (e.g. World Map)
+            </div>
+        </div>	
+    `,
+    styles: [`  ._ap-chartlayers {
+                    font-family: roboto;
+                }
+                .ap-confirm-icon { 
+                    min-width: 35px;
+                    max-width: 35px;
+                    color: darkorange;
+                    text-align: left;                    
+                }
+                .ap-confirm-icon .mat-icon { 
+                    font-size: 25pt;
+                }
+                .point-drop-placeholder {
+                    background: #ccc;
+                    border: dotted 3px #999;
+                    min-height: 80px;
+                    transition: transform 250ms cubic-bezier(0, 0, 0.2, 1);
+                }  
+                .cdk-drag-preview {
+                    box-sizing: border-box;
+                    border-radius: 4px;
+                    box-shadow: 0 5px 5px -3px rgba(0, 0, 0, 0.2),
+                                0 8px 10px 1px rgba(0, 0, 0, 0.14),
+                                0 3px 14px 2px rgba(0, 0, 0, 0.12);
+                }                  
+
+                @media only screen
+                    and (min-device-width : 768px)
+                    and (max-device-width : 1024px),
+                    only screen	and (min-width : 800px) { 
+
+                    ._ap-chartlayers {
+                        width: 50vw;
+                    }
+                    .ap-confirm-icon {
+                        min-width: 25%;
+                        max-width: 25%;
+                    }
+                    .ap-confirm-icon .mat-icon { 
+                        font-size: 40pt;
+                    }                    
+                }                 	
+			`]
+})
+export class ChartLayersDialog implements OnInit {
+
+    constructor(
+        public app:AppInfo,
+        public dialogRef: MatDialogRef<ChartLayersDialog> ) {
+    }
+
+    chartList= [];
+    
+	//** lifecycle: events **
+    ngOnInit() {
+        this.chartList= this.app.data.charts.slice().reverse();
+    }
+
+    drop(e:CdkDragDrop<any>) {
+        moveItemInArray(this.chartList, e.previousIndex, e.currentIndex);
+        // update and save config
+        this.app.data.charts= this.chartList.slice().reverse();
+        this.app.config.selections.chartOrder= this.app.data.charts.map( i=> { return i[0] });
+        this.app.saveConfig();
+    }
+
+    close() { this.dialogRef.close() } 
+    
+    isLocal(url:string) { return (url && url.indexOf('signalk')!=-1) ? 'map' : 'language' }
 }

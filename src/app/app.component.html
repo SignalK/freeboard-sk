@@ -308,7 +308,7 @@
                         (deactivate)="deactivateRoute()"
                         (refresh)="skres.getWaypoints()"
                         (properties)="skres.resourceProperties($event)"
-                        (center)="centerResource($event, true)"
+                        (center)="centerResource($event)"
                         (closed)="displayLeftMenu()">
                     </waypoint-list>       
                     
@@ -322,7 +322,7 @@
                     <note-list [notes]="app.data.notes" *ngIf="display.noteList"
                         (select)="skres.noteSelected($event)"
                         (refresh)="skres.getNotes()"
-                        (center)="centerResource($event, true)"
+                        (pan)="centerResource($event.center, $event.zoomLevel)"
                         (closed)="displayLeftMenu()">
                     </note-list>                 
 

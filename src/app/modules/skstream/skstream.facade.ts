@@ -280,7 +280,7 @@ export class SKStreamFacade  {
     // handle settings (config.selections)
     private handleSettingsEvent(value:any) {
         if(value.setting=='config') {
-            console.log('streamFacade.settingsEvent');
+            //console.log('streamFacade.settingsEvent');
             this.stream.postMessage({ 
                 cmd: 'settings',
                 options: { selections: this.app.config.selections }

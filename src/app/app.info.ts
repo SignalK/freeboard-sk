@@ -53,6 +53,7 @@ const FreeboardConfig= {
         waypoints: [],
         charts: ['openstreetmap','openseamap'],
         notes: [],
+        chartOrder: [],  // chart layer ordering
         headingAttribute: 'navigation.headingTrue',
         preferredPaths: {
             tws: 'environment.wind.speedTrue',
@@ -120,7 +121,7 @@ export class AppInfo extends Info {
         this.name= "Freeboard";
         this.shortName= "freeboard";
         this.description= `Signal K Chart Plotter.`;
-        this.version= '1.9.0';
+        this.version= '1.10.0';
         this.url= 'https://github.com/signalk/freeboard-sk';
         this.logo= "./assets/img/app_logo.png";   
         
@@ -331,8 +332,11 @@ export class AppInfo extends Info {
         } 
         if(typeof settings.selections.positionFormat === 'undefined') {
             settings.selections['positionFormat']= 'XY';
-        }         
-
+        }
+        if(typeof settings.selections.chartOrder === 'undefined') {
+            settings.selections['chartOrder']= [];
+        } 
+                
         if(typeof settings.plugins === 'undefined') { settings.plugins= {} }
         if(typeof settings.plugins.parameters === 'undefined') { 
             settings.plugins.parameters= null;

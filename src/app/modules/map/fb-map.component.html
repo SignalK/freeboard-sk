@@ -66,41 +66,30 @@
             </div>
         </aol-content>
     </aol-control>   
-    <!-- /Controls -->
-
-
-    <!-- *** base maps *** -->
-    <aol-layer-tile [zIndex]="10"
-        *ngIf="app.data.charts.length!=0 && app.data.charts[0][2]">
-        <aol-source-osm
-            (tileLoadStart)="onMapTileEvent($event)"
-            (tileLoadEnd)="onMapTileEvent($event)"
-            (tileLoadError)="onMapTileEvent($event)">
-        </aol-source-osm>
-    </aol-layer-tile>
-    <aol-layer-tile [zIndex]="11"
-        *ngIf="app.data.charts.length!=0 && app.data.charts[1][2]">
-        <aol-source-xyz
-            (tileLoadStart)="onMapTileEvent($event)"
-            (tileLoadEnd)="onMapTileEvent($event)"
-            (tileLoadError)="onMapTileEvent($event)"        
-            [url]="'https://tiles.openseamap.org/seamark/{z}/{x}/{y}.png'">
-        </aol-source-xyz>
-    </aol-layer-tile>
-    <!-- *** /base maps *** -->   
+    <!-- /Controls --> 
 
     <!-- *** Charts *** -->
-    <div *ngFor="let c of skres.chartsLocalByScale(); let i=index;">
-    <aol-layer-tile [zIndex]="15 + i" *ngIf="c[2]">
-        <aol-source-xyz 
-            (tileLoadStart)="onMapTileEvent($event)"
-            (tileLoadEnd)="onMapTileEvent($event)"
-            (tileLoadError)="onMapTileEvent($event)"
-            [minZoom]="c[1].minzoom"
-            [maxZoom]="c[1].maxzoom"
-            [url]="c[1].tilemapUrl">                           
-        </aol-source-xyz>
-    </aol-layer-tile>
+    <div *ngFor="let c of this.app.data.charts; let i=index;">
+
+        <aol-layer-tile [zIndex]="10 + i" *ngIf="c[0]=='openstreetmap' && c[2]">
+            <aol-source-osm
+                (tileLoadStart)="onMapTileEvent($event)"
+                (tileLoadEnd)="onMapTileEvent($event)"
+                (tileLoadError)="onMapTileEvent($event)">
+            </aol-source-osm>
+        </aol-layer-tile>
+
+        <aol-layer-tile [zIndex]="10 + i" *ngIf="c[0]!='openstreetmap' && c[2]">
+            <aol-source-xyz 
+                (tileLoadStart)="onMapTileEvent($event)"
+                (tileLoadEnd)="onMapTileEvent($event)"
+                (tileLoadError)="onMapTileEvent($event)"
+                [minZoom]="c[1].minzoom"
+                [maxZoom]="c[1].maxzoom"
+                [url]="c[1].tilemapUrl">                           
+            </aol-source-xyz>
+        </aol-layer-tile>
+
     </div>
     <!-- *** /Charts *** -->  
 

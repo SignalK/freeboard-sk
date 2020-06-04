@@ -52,31 +52,43 @@ export class SKWaypoint {
 
 // ** Signal K chart
 export class SKChart {
+    identifier: string;
     name: string;
     description: string;
-    identifier: number;
     tilemapUrl: string;
     region: string;
     geohash: any;
     chartUrl: string;
     scale: number;
-    chartLayers: Array<any>;
-    bounds: Array<any>;
+    chartLayers: Array<string>;
+    bounds: Array<number>;
     chartFormat: string;
+    minZoom: number= 0;
+    maxZoom: number= 24;
+    type: string;
 
     constructor(chart?) {
         if(chart) {
-            this.name= (chart.name) ? chart.name : null;
-            this.description= (chart.description) ? chart.description : null;
             this.identifier= (chart.identifier) ? chart.identifier : null;
-            this.tilemapUrl= (chart.tilemapUrl) ? chart.tilemapUrl : null;
+            this.name= (chart.name) ? chart.name : null;
+            // refine name
+            this.name= (this.identifier && this.identifier!=this.name) ? 
+                this.identifier + ' - ' + this.name 
+                : this.name;
+            this.description= (chart.description) ? chart.description : null;
             this.region= (chart.region) ? chart.region : null;
             this.geohash= (chart.geohash) ? chart.geohash : null;
             this.chartUrl= (chart.chartUrl) ? chart.chartUrl : null;
-            this.scale= (chart.scale) ? chart.scale : null;
             this.chartLayers= (chart.chartLayers) ? chart.chartLayers : null;
             this.bounds= (chart.bounds) ? chart.bounds : null;
-            this.chartFormat= (chart.chartFormat) ? chart.chartFormat : null;
+            this.chartFormat= (chart.format) ? chart.format : null;
+            this.minZoom= (chart.minzoom) ? chart.minzoom : this.minZoom;
+            this.maxZoom= (chart.maxzoom) ? chart.maxzoom : this.maxZoom;
+            this.type= (chart.type) ? chart.type : null;
+            this.tilemapUrl= (chart.tilemapUrl) ? chart.tilemapUrl : null;
+            this.scale= (chart.scale) ? 
+                isNaN(chart.scale) ? 25000 : parseInt(chart.scale)
+                : 250000;    
         }
     }
 }

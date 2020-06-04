@@ -7,20 +7,26 @@
                 <mat-form-field style="width:150px;">
                     <input #ftext type="text" matInput
                         [value]="filterText"
-                        (keyup)="filterKeyUp(ftext.value)"
+                        (keyup)="buildFilterList(ftext.value)"
                         placeholder="type to filter list">
                     <button mat-button *ngIf="filterText" matSuffix mat-icon-button
-                        (click)="filterKeyUp('')">
+                        (click)="buildFilterList('')">
                         <mat-icon>close</mat-icon>
                     </button>
-                </mat-form-field> 
-                &nbsp;&nbsp;                    
+                </mat-form-field>                   
                 <button mat-icon-button 
                     (click)="itemRefresh()"
                     matTooltip="Reload Charts"
                     matTooltipPosition="left">
                     <mat-icon>refresh</mat-icon>
-                </button>   
+                </button>  
+                <button mat-icon-button 
+                    (click)="showChartLayers()"
+                    matTooltip="Re-order Charts"
+                    matTooltipPosition="left">
+                    <mat-icon>layers</mat-icon>
+                </button>
+                &nbsp;               
                 <mat-checkbox #selall color="primary"
                     [checked]="allSel"
                     [indeterminate]="someSel"
@@ -47,7 +53,7 @@
                 <div style="display: flex;">
                     <div style="flex: 1 1 auto; width: 215px;">
                         <div style="text-overflow: ellipsis; overflow-x: hidden;">
-                            <mat-icon>{{ (i<2) ? 'language' : 'map'}}</mat-icon>
+                            <mat-icon>{{isLocal(r[1].tilemapUrl)}}</mat-icon>
                             &nbsp;<b>{{r[1].name}}</b>
                         </div>
                         <div style="text-overflow: ellipsis; overflow-x: hidden;">
@@ -63,6 +69,18 @@
                         </mat-checkbox>
                     </div>  
                 </div>
+                <mat-card-actions>
+                    <div style="display: flex;">                                            
+                        <div style="width: 100%;text-align:right;">                            
+                            <button mat-icon-button 
+                                (click)="itemProperties(r[0])"
+                                matTooltip="Chart Properties"
+                                matTooltipPosition="right">
+                                <mat-icon>info_outline</mat-icon>
+                            </button>                          
+                        </div>              
+                    </div>
+                </mat-card-actions>                
             </mat-card>
         </cdk-virtual-scroll-viewport>
     </div>

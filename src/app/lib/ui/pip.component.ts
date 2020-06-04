@@ -50,7 +50,7 @@ export class PiPVideoComponent implements OnInit {
 
     ngOnInit() {     
         if (!('pictureInPictureEnabled' in document)) {
-            console.log('The Picture-in-Picture Web API is not available.');
+            //console.log('The Picture-in-Picture Web API is not available.');
             this.pipMode=true; // disable button by mimicing pipMode
         }       
         

@@ -1,5 +1,10 @@
 # CHANGELOG: Freeboard
 
+### v1.10
+
+- **Added**: Ability to order the chart layer position via drag and drop. Addresses the issue where charts are not visible as they are "below" other charts.
+
+
 ### v1.9
 
 - **Added**: Configuration setting to hide vessel wind vectors.

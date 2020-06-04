@@ -12,6 +12,7 @@ import { NoteDialog, RegionDialog } from './notes'
 import { ResourceDialog } from './resource-dialogs'
 import { SKChart, SKRoute, SKWaypoint, SKRegion, SKNote } from './resource-classes'
 import { GRIB_PATH, Grib } from 'src/app/lib/grib'
+import { moveItemInArray } from '@angular/cdk/drag-drop';
 
 interface IActiveRoute {
     action: string;
@@ -78,15 +79,7 @@ export class SKResources {
         );   
         this.app.saveConfig();
         this.updateSource.next({action: 'selected', mode: 'chart'});  
-    }    
-    
-    // ** return local charts sorted by scale descending.
-    chartsLocalByScale() {
-        let c= (this.app.data.charts.length>2) ? this.app.data.charts.slice(2) : [];
-        // ** sort local maps by scale descending
-        c.sort( (a,b)=> { return b[1].scale > a[1].scale ? 1 : -1 } );
-        return c;
-    }  
+    }
     
     // ** Set waypoint as nextPoint **
     navigateToWaypoint(e:any) { 
@@ -141,59 +134,101 @@ export class SKResources {
 
     // **** CHARTS ****
 
-    // ** get charts from sk server
-    getCharts() {
-        let baseCharts= [
-            ['openstreetmap', {
+    private OSMCharts= [
+        [
+            'openstreetmap',
+            new SKChart({
                 name: 'World Map',
-                description: 'Open Street Map',
-                tilemapUrl: null,
-                chartUrl: null
-            }, true],
-            ['openseamap', {
+                description: 'Open Street Map'
+            }),
+            true
+        ],        
+        [
+            'openseamap', 
+            new SKChart({
                 name: 'Sea Map',
                 description: 'Open Sea Map',
-                tilemapUrl: null,
-                chartUrl: null
-            }, true]
-        ];
+                tilemapUrl: 'https://tiles.openseamap.org/seamark/{z}/{x}/{y}.png',
+                minzoom: 12,
+                maxzoom: 18,
+                bounds: [-180, -90, 180, 90]
+            }), 
+            true
+        ],     
+    ];
 
-        baseCharts.forEach(i=> {
-            i[2]= (this.app.config.selections.charts.indexOf(i[0])==-1) ? false : true;            
-        })
-        
+    // ** get charts from sk server
+    getCharts() {
+        // ** fetch charts from server
         this.signalk.api.get('/resources/charts')
         .subscribe( 
             res=> { 
-                this.app.data.charts= baseCharts.slice(0); 
+                this.app.data.charts= [];
+                // add OSeaMap
+                this.OSMCharts[1][2]= (this.app.config.selections.charts.includes('openseamap')) ? true : false;
+                this.app.data.charts.push(this.OSMCharts[1]); 
+
                 let r= Object.entries(res);
                 if(r.length>0) {   
-                    // ** sort by name **
-                    r.sort( (a,b)=> { return (b[1]['name'] < a[1]['name']) ? 1 : -1 });
+                    // ** process attributes
                     r.forEach( i=> {
-                        if(i[1]['tilemapUrl'][0]=='/' || i[1]['tilemapUrl'].slice(0,4)!='http') { // ** ensure host is in url
+                        // ** ensure host is in url
+                        if(i[1]['tilemapUrl'][0]=='/' || i[1]['tilemapUrl'].slice(0,4)!='http') {
                             i[1]['tilemapUrl']= this.app.host + i[1]['tilemapUrl'];
                         }
-                        if(!i[1]['scale']) { i[1]['scale']= 250000 }
-                        i[1]['name']= (i[1]['identifier'] && i[1]['identifier']!=i[1]['name']) ? 
-                             i[1]['identifier'] + ' - ' + i[1]['name'] : i[1]['name'];
-                        
                         this.app.data.charts.push([ 
                             i[0], 
                             new SKChart(i[1]),
-                            (this.app.config.selections.charts.indexOf(i[0])==-1) ? false : true 
+                            (this.app.config.selections.charts.includes(i[0])) ? true : false 
                         ]);
                     });
+                    // ** sort by scale
+                    this.sortByScaleDesc();
+
+                    // insert OStreetM at start of list
+                    this.OSMCharts[0][2]= (this.app.config.selections.charts.includes('openstreetmap')) ? true : false;
+                    this.app.data.charts.unshift(this.OSMCharts[0]);
+
                     // ** clean up selections
                     this.app.config.selections.charts= this.app.data.charts.map( 
                         i=>{ return (i[2]) ? i[0] : null }
-                    ).filter(i=> { return i});
+                    ).filter(i=> { return i });
+                    
+                    // arrange the chart layers
+                    this.arrangeChartLayers();
+
+                    // emit update
                     this.updateSource.next({action: 'get', mode: 'chart'});
                 }               
             },
-            err=> { this.app.data.charts= baseCharts.slice(0) }
+            err=> { this.app.data.charts= this.OSMCharts.slice(0) }
         )
-    }    
+    }
+    
+    // ** sort charts by scale descending .
+    private sortByScaleDesc() {
+        this.app.data.charts.sort( 
+            (a,b)=> { return (b[1].scale - a[1].scale) } 
+        );
+    }
+
+    // ** arrange charts by layer order.
+    public arrangeChartLayers() {
+        let chartOrder= this.app.config.selections.chartOrder;
+        if(chartOrder && Array.isArray(chartOrder) && chartOrder.length!=0) {
+            for(let destidx=0; destidx<chartOrder.length; destidx++) {
+                let srcidx: number= -1;
+                let idx: number= 0;
+                this.app.data.charts.forEach( c=>{
+                    if(c[0]== chartOrder[destidx]) { srcidx= idx }
+                    idx++;
+                });
+                if(srcidx!=-1) {
+                    moveItemInArray(this.app.data.charts, srcidx, destidx+1);
+                }
+            }   
+        }
+    }      
 
 
     // **** ROUTES ****
