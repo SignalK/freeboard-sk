@@ -33,10 +33,10 @@ const FreeboardConfig= {
         position: [0,0]
     },
     vesselTrail: false,     // display trail
-    vesselWindVectors: true,    // display vessel TWD, AWD vectors
+    vesselWindVectors: true,// display vessel TWD, AWD vectors
     aisTargets: true,       // display ais targets
-    courseData: true,      // display course data
-    notes: false,           // display notes
+    courseData: true,       // display course data
+    notes: true,            // display notes
     depthAlarm: { enabled: false, smoothing: 10000 },
     plugins: {
         instruments: '/@signalk/instrumentpanel',
@@ -51,6 +51,7 @@ const FreeboardConfig= {
     selections: {   // ** saved selections 
         routes: [],
         waypoints: [],
+        tracks: [],
         charts: ['openstreetmap','openseamap'],
         notes: [],
         chartOrder: [],  // chart layer ordering
@@ -85,7 +86,7 @@ const FreeboardConfig= {
 export class AppInfo extends Info {
 
     private DEV_SERVER= {
-        host: '192.168.86.32', //'172.17.0.1', // host name || ip address
+        host: '172.17.0.1', // '192.168.86.32', //'172.17.0.1', // host name || ip address
         port: 3000,     // port number
         ssl: false
     };
@@ -121,7 +122,7 @@ export class AppInfo extends Info {
         this.name= "Freeboard";
         this.shortName= "freeboard";
         this.description= `Signal K Chart Plotter.`;
-        this.version= '1.10.0';
+        this.version= '1.11.0';
         this.url= 'https://github.com/signalk/freeboard-sk';
         this.logo= "./assets/img/app_logo.png";   
         
@@ -312,13 +313,13 @@ export class AppInfo extends Info {
 
         if(typeof settings.selections === 'undefined') { settings.selections={} } 
         if(typeof settings.selections.aisWindMinZoom === 'undefined') {
-            settings.selections.aisWindMinZoom=15;
+            settings.selections.aisWindMinZoom= 15;
         }
         if(typeof settings.selections.aisWindApparent === 'undefined') {
             settings.selections.aisWindApparent= false;
         }
         if(typeof settings.selections.notesMinZoom === 'undefined') {
-            settings.selections.notesMinZoom=10;
+            settings.selections.notesMinZoom= 10;
         } 
         if(typeof settings.selections.preferredPaths === 'undefined') {
             settings.selections.preferredPaths= {
@@ -336,6 +337,9 @@ export class AppInfo extends Info {
         if(typeof settings.selections.chartOrder === 'undefined') {
             settings.selections['chartOrder']= [];
         } 
+        if(typeof settings.selections.tracks === 'undefined') {
+            settings.selections.tracks= [];
+        }        
                 
         if(typeof settings.plugins === 'undefined') { settings.plugins= {} }
         if(typeof settings.plugins.parameters === 'undefined') { 

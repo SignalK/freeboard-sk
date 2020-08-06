@@ -1,5 +1,13 @@
 # CHANGELOG: Freeboard
 
+### v1.11
+
+- **Added**: North indicator on map.
+
+- **Added**: GPX Track import support `Experiment` (requires `freeboard-sk-helper`).
+
+- **Fixed**: Issue where map was not rotated until `Heading Up` was de-selected and re-selected if application was started in `Heading Up` mode.
+
 ### v1.10
 
 - **Added**: Ability to order the chart layer position via drag and drop. Addresses the issue where charts are not visible as they are "below" other charts.

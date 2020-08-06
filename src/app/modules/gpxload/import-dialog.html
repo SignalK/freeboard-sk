@@ -31,10 +31,10 @@
                     <div>
                         <button mat-raised-button color="primary"
                             matTooltip="Load all selected resources" matTooltipPosition="below"
-                            [disabled]="!display.loadRoutesOK && !display.loadWaypointsOK"  
+                            [disabled]="!display.loadRoutesOK && !display.loadWaypointsOK && !display.loadTracksOK"  
                             (click)="load()">
                                 <mat-icon>file_upload</mat-icon>
-                                &nbsp;Load<span class="txtSelect"> Selected</span>&nbsp;
+                                &nbsp;Load&nbsp;
                         </button>                      
                     </div>   
                 </div>         
@@ -66,7 +66,7 @@
                                     (change)="checkWpt($event.checked, -1)"
                                     (click)="$event.cancelBubble=true"
                                     matTooltip="Select all Waypoints" matTooltipPosition="before"
-                                    color="accent"></mat-checkbox>                            
+                                    color="primary"></mat-checkbox>                            
                             </span>
                         </div>
                     </mat-panel-description>
@@ -84,11 +84,11 @@
                                     <i>{{w.description}}</i>
                                 </div>                         
                                 <div class="check"> 
-                                    <mat-slide-toggle color="primary"
-                                        matTooltip="Select this Waypoint" matTooltipPosition="below"
+                                    <mat-checkbox color="primary"
                                         [checked]="selWaypoints[i]"
-                                        #wval (change)="checkWpt(wval.checked, i)">
-                                    </mat-slide-toggle>  
+                                        #wval (change)="checkWpt(wval.checked, i)"
+                                        matTooltip="Select Waypoint" matTooltipPosition="below">
+                                    </mat-checkbox>                                      
                                 </div>      
                             </div>
                         </div>     
@@ -141,11 +141,11 @@
                                     {{r.length}}
                                 </div>
                                 <div class="check">                            
-                                    <mat-slide-toggle color="primary"
+                                    <mat-checkbox color="primary"
                                         matTooltip="Select this Route" matTooltipPosition="below"
                                         [checked]="selRoutes[i]"
                                         #rval (change)="checkRte(rval.checked, i)">
-                                    </mat-slide-toggle>  
+                                    </mat-checkbox>                                      
                                 </div>      
                             </div>
                             
@@ -154,6 +154,63 @@
                 </div>  
             </mat-expansion-panel>       
         </div>
+
+        <!-- Tracks -->
+        <div class="card-group" *ngIf="gpxData.tracks.length!=0 && app.config.experiments">
+            <mat-expansion-panel #pnlWpt
+                [expanded]="display.expand.tracks"
+                (opened)="display.expand.tracks=true"
+                (closed)="display.expand.tracks=false">
+                <mat-expansion-panel-header>
+                    <mat-panel-title>
+                        <mat-icon color="warn">show_chart</mat-icon>
+                        &nbsp;&nbsp;
+                        <b>Tracks:</b> 
+                    </mat-panel-title>
+                    <mat-panel-description>
+                        <div style="display:flex;width:100%;">
+                            <span class="pnlSelectedItems">
+                                ({{display.selCount.tracks}} of {{gpxData?.tracks.length}}) 
+                            </span>
+                            <span class="pnlSelect">
+                                <mat-checkbox 
+                                    [indeterminate]="display.someTrkChecked"
+                                    [checked]="display.allTracksChecked"
+                                    [disabled]="gpxData.tracks.length==0"
+                                    (change)="checkTrk($event.checked, -1)"
+                                    (click)="$event.cancelBubble=true"
+                                    matTooltip="Select all Tracks" matTooltipPosition="before"
+                                    color="primary"></mat-checkbox>                            
+                            </span>
+                        </div>
+                    </mat-panel-description>
+                </mat-expansion-panel-header>
+
+                <div class="list-container-scrollable">
+                    <mat-card class="row" *ngFor="let t of gpxData.tracks;let i=index">
+                        <div class="rgrid" >
+                            <div class="row">
+                                <div class="name">
+                                    <mat-icon color="warn">show_chart</mat-icon>
+                                    {{t.name}}
+                                </div>
+                                <div class="">
+                                    <i>{{t.description}}</i>
+                                </div>                         
+                                <div class="check"> 
+                                    <mat-checkbox color="primary"
+                                        matTooltip="Select this Track" matTooltipPosition="below"
+                                        [checked]="selTracks[i]"
+                                        #tval (change)="checkTrk(tval.checked, i)">
+                                    </mat-checkbox>                                     
+                                </div>      
+                            </div>
+                        </div>     
+                    </mat-card>            
+                </div> 
+            </mat-expansion-panel>
+        </div> 
+
     </div>
 
 </div>

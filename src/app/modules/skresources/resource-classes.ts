@@ -70,11 +70,7 @@ export class SKChart {
     constructor(chart?) {
         if(chart) {
             this.identifier= (chart.identifier) ? chart.identifier : null;
-            this.name= (chart.name) ? chart.name : null;
-            // refine name
-            this.name= (this.identifier && this.identifier!=this.name) ? 
-                this.identifier + ' - ' + this.name 
-                : this.name;
+            this.name= (chart.name) ? chart.name : this.identifier;
             this.description= (chart.description) ? chart.description : null;
             this.region= (chart.region) ? chart.region : null;
             this.geohash= (chart.geohash) ? chart.geohash : null;
@@ -187,3 +183,22 @@ export class SKAtoN {
     type: {id: number, name:string};
     properties= {};
 }
+
+// ** Signal K Track
+export class SKTrack {
+    feature= {          
+        type: 'Feature',
+        geometry: {
+            type: 'MultiLineString',
+            coordinates: []
+        },
+        properties: {},
+        id: ''
+    };
+
+    constructor(trk?) {
+        if(trk) {
+            if(trk.feature) { this.feature= trk.feature }
+        }
+    }
+} 

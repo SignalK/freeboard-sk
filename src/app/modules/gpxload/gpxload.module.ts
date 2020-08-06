@@ -13,7 +13,6 @@ import { MatExpansionModule } from '@angular/material/expansion';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
-import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 
@@ -26,7 +25,7 @@ import { GPXImportDialog } from './import-dialog';
     imports: [
         CommonModule, FormsModule, 
         MatDialogModule, MatIconModule, MatButtonModule, MatCardModule,
-        MatExpansionModule, MatSlideToggleModule, MatCheckboxModule,
+        MatExpansionModule, MatCheckboxModule,
         MatTooltipModule, MatToolbarModule,
         MatFormFieldModule, MatInputModule
       ],    

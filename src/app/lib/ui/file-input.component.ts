@@ -13,7 +13,7 @@ import { Component, Input, Output, ChangeDetectorRef, EventEmitter } from '@angu
 export class FileInputComponent {
     @Input() disabled: boolean= false;
     @Input() multiple: boolean= false;
-    @Input() maxfilesize: number= 1000 * 1024;   //** 1MB default
+    @Input() maxfilesize: number= null;   //** 1MB default
     @Input() accept: string= '';    // ** html input attribute value
     @Input() astext: boolean= false;  // ** return text instead of base64
     @Input() preview: boolean= false;

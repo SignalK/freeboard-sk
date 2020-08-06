@@ -2,6 +2,7 @@ import {Component, OnInit, Inject} from '@angular/core';
 import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 
 import { GPXLoadFacade } from './gpxload.facade'
+import { AppInfo } from 'src/app/app.info';
 
 //** HomePage **
 @Component({
@@ -14,29 +15,35 @@ export class GPXImportDialog implements OnInit{
     public gpxData= {
         name: '',
         routes: [],
-        waypoints: []
+        waypoints: [],
+        tracks: []
     }
 
     public selRoutes=[];
     public selectedRoute= null;
-    public selWaypoints=[];  
+    public selWaypoints=[];
+    public selTracks=[]; 
 
     public display= {
         notValid: false,
         allRoutesChecked: false,
         allWaypointsChecked: false,
+        allTracksChecked: false,
         someWptChecked: false,
-        someRteChecked: false,       
+        someRteChecked: false,
+        someTrkChecked: false,  
         loadRoutesOK: false,
         loadWaypointsOK: false,
+        loadTracksOK: false,
         routeViewer: false,
-        selCount: { routes: 0, waypoints: 0 },
-        expand: { routes: false, waypoints: false }
+        selCount: { routes: 0, waypoints: 0, tracks: 0 },
+        expand: { routes: false, waypoints: false, tracks: false }
     }
 
     private unsubscribe= [];
     
     constructor(
+        public app: AppInfo,
         public facade: GPXLoadFacade,
         public dialogRef: MatDialogRef<GPXImportDialog>,
         @Inject(MAT_DIALOG_DATA) public data: any) {
@@ -63,7 +70,8 @@ export class GPXImportDialog implements OnInit{
     load() {
         this.facade.uploadToServer( {
             rte: { selected: this.selRoutes },
-            wpt: { selected: this.selWaypoints }
+            wpt: { selected: this.selWaypoints },
+            trk: { selected: this.selTracks }
         });
     }      
 
@@ -74,8 +82,11 @@ export class GPXImportDialog implements OnInit{
         this.display.allWaypointsChecked= false;
         this.display.loadWaypointsOK= false;
         this.selWaypoints= []; 
-        this.display.selCount= { routes: 0, waypoints: 0 }; 
-        this.display.expand= { routes: false, waypoints: false };      
+        this.display.allTracksChecked= false;
+        this.display.loadTracksOK= false;
+        this.selTracks= [];         
+        this.display.selCount= { routes: 0, waypoints: 0, tracks: 0 }; 
+        this.display.expand= { routes: false, waypoints: false, tracks: false };      
         this.display.notValid=false;
 
         this.gpxData= this.facade.parseFileData(data); 
@@ -93,11 +104,12 @@ export class GPXImportDialog implements OnInit{
             this.display.loadRoutesOK=true;
         }
 
-        this.gpxData.waypoints.forEach( w=> { this.selWaypoints.push(false) });     
+        this.gpxData.waypoints.forEach( w=> { this.selWaypoints.push(false) });
+        this.gpxData.tracks.forEach( w=> { this.selTracks.push(false) });  
     }
    
     // ** select Route idx=-1 -> check all
-    checkRte(checked, idx=-1) {
+    checkRte(checked:boolean, idx:number=-1) {
         let selcount=0;
         if(idx!=-1) {
             this.selRoutes[idx]= checked;
@@ -122,7 +134,7 @@ export class GPXImportDialog implements OnInit{
     }  
     
     // ** select Waypoint idx=-1 -> check all
-    checkWpt(checked, idx=-1) {
+    checkWpt(checked:boolean, idx:number=-1) {
         let selcount=0;
         if(idx!=-1) {
             this.selWaypoints[idx]= checked;
@@ -146,4 +158,28 @@ export class GPXImportDialog implements OnInit{
             this.display.allWaypointsChecked || selcount==0) ? false : true;         
     }   
        
+    // ** select Track idx=-1 -> check all
+    checkTrk(checked:boolean, idx:number=-1) {
+        let selcount=0;
+        if(idx!=-1) {
+            this.selTracks[idx]= checked;
+            this.display.loadTracksOK= checked;
+            for(let c of this.selTracks) {
+                if(c) { selcount++ }
+            }
+            this.display.loadTracksOK= (selcount!=0) ? true : false;
+            this.display.selCount.tracks= selcount;  
+            this.display.allTracksChecked= (selcount==this.selTracks.length);        
+        }
+        else {
+            for(let i=0;i<this.selTracks.length;i++) {
+                this.selTracks[i]=checked;
+                this.display.loadTracksOK=checked;
+                this.display.allTracksChecked=checked;
+            }   
+            this.display.selCount.tracks= (checked) ? this.selTracks.length : 0;         
+        }
+        this.display.someTrkChecked= ( 
+            this.display.allTracksChecked || selcount==0) ? false : true;         
+    }       
 }

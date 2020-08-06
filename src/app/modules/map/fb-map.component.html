@@ -47,6 +47,8 @@
         &nbsp; 
         <span *ngIf="app.config.selections.positionFormat=='XY'">Lon:&nbsp;</span>    
         <span [innerText]="mouse.coords[0] | coords : app.config.selections.positionFormat"></span>
+        &nbsp;
+        <span [innerText]="'Zm: ' + app.config.map.zoomLevel"></span>
     </div>
 
     <aol-control>
@@ -71,7 +73,8 @@
     <!-- *** Charts *** -->
     <div *ngFor="let c of this.app.data.charts; let i=index;">
 
-        <aol-layer-tile [zIndex]="10 + i" *ngIf="c[0]=='openstreetmap' && c[2]">
+        <aol-layer-tile *ngIf="c[0]=='openstreetmap' && c[2]"
+                [zIndex]="10 + i" >
             <aol-source-osm
                 (tileLoadStart)="onMapTileEvent($event)"
                 (tileLoadEnd)="onMapTileEvent($event)"
@@ -79,7 +82,9 @@
             </aol-source-osm>
         </aol-layer-tile>
 
-        <aol-layer-tile [zIndex]="10 + i" *ngIf="c[0]!='openstreetmap' && c[2]">
+        <aol-layer-tile *ngIf="c[0]!='openstreetmap' && c[2]"
+                [zIndex]="10 + i" 
+                preload="0">
             <aol-source-xyz 
                 (tileLoadStart)="onMapTileEvent($event)"
                 (tileLoadEnd)="onMapTileEvent($event)"
@@ -129,10 +134,38 @@
         [values]="dfeat.grib.wind"
         [map]="aolMap">
     </xol-layer-windvector>
-    <!-- *** /Wind Vector *** -->         
+    <!-- *** /Wind Vector *** -->  
+    
+    <!-- *** TRACKS *** -->
+    <aol-layer-vector [zIndex]="50">
+        <aol-source-vector>    
+            <div *ngFor="let t of dfeat.tracks; let i=index;">
+                <aol-feature [id]="'track.'+ t.feature.id">
+                    <aol-geometry-multilinestring>
+                        <aol-collection-coordinates
+                            [coordinates]="t.feature.geometry.coordinates"
+                            [srid]="app.config.map.srid">
+                        </aol-collection-coordinates>                      
+                    </aol-geometry-multilinestring>
+                    <aol-style>
+                        <aol-style-stroke 
+                            [color]="'rgb(146,11,153)'" 
+                            [lineDash]="[5,5]"
+                            [width]="2">
+                        </aol-style-stroke>
+                        <aol-style-text 
+                            [textAlign]="center"
+                            [text]="t.feature.properties.name">
+                        </aol-style-text>                        
+                    </aol-style>
+                </aol-feature>   
+            </div>               
+        </aol-source-vector>
+    </aol-layer-vector>
+    <!-- *** TRACKS *** -->
     
     <!-- *** ROUTES *** -->
-    <aol-layer-vector [zIndex]="50"> 
+    <aol-layer-vector [zIndex]="60"> 
         <aol-source-vector>
             <div *ngFor="let r of dfeat.routes; let i=index;"> 
                 <!-- route course-->              
@@ -616,7 +649,7 @@
             </aol-feature>
         </aol-source-vector>
     </aol-layer-vector>
-    <!-- *** /VESSEL TRAIL *** -->         
+    <!-- *** /VESSEL TRAIL *** -->
 
 </aol-map> 
 

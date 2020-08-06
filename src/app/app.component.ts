@@ -11,7 +11,8 @@ import { PlaybackDialog } from 'src/app/lib/ui/playback-dialog';
 import { SettingsDialog, AlarmsFacade, AlarmsDialog, 
         SKStreamFacade, SKSTREAM_MODE, SKResources, 
         SKRegion, AISPropertiesModal, AtoNPropertiesModal, 
-        ActiveResourcePropertiesModal, GPXImportDialog} from 'src/app/modules';
+        ActiveResourcePropertiesModal, GPXImportDialog,
+        TracksModal } from 'src/app/modules';
 
 import { SignalKClient } from 'signalk-client-angular';
 import { Convert } from 'src/app/lib/convert';
@@ -172,6 +173,14 @@ export class AppComponent {
     }
 
     // ********* DISPLAY / APPEARANCE ****************
+    
+    // ** return the map orientation **
+    getOrientation() {
+        return (this.app.config.map.northUp) ?
+            'rotate(' + 0 + 'deg)' :
+            'rotate(' + (0-this.app.data.vessels.active.orientation) + 'rad)';
+    }
+
     public toggleFullscreen() { 
         let docel = document.documentElement;
         let fscreen = docel.requestFullscreen || docel['webkitRequestFullScreen'] 
@@ -231,10 +240,23 @@ export class AppComponent {
         this.instUrl= this.dom.bypassSecurityTrustResourceUrl(url);
     }    
 
-    // ** show bottom sheet **
-    public openBottomSheet() { 
-        this.display.bottomSheet.show=true;  
-        this.display.bottomSheet.title= 'GRIB Data';
+    // ** display selected experiment UI **
+    public openExperiment(choice:string) {
+        
+        switch(choice) {
+            case 'grib':
+                this.display.bottomSheet.show=true;  
+                this.display.bottomSheet.title= 'GRIB Data';                
+                break;
+            case 'tracks':
+                this.bottomSheet.open(TracksModal, {
+                    disableClose: true,
+                    data: { title: 'Tracks', skres: this.skres }
+                }).afterDismissed().subscribe( ()=> {
+                    this.focusMap(); 
+                });
+                break;
+        }
     }
 
     // ** close bottom sheet **
@@ -743,7 +765,7 @@ export class AppComponent {
                     }
                 }).afterDismissed().subscribe( ()=> this.focusMap() );
             }         
-        }
+        }       
         else {
             v= (e.type=='self') ? this.app.data.vessels.self 
                 : this.app.data.vessels.aisTargets.get(e.id);
@@ -969,6 +991,7 @@ export class AppComponent {
                 this.skres.getWaypoints();
                 this.skres.getCharts();  
                 this.skres.getNotes();
+                this.skres.getTracks(true);
                 // ** query anchor alarm status
                 this.alarmsFacade.queryAnchorStatus(this.app.data.vessels.activeId, this.app.data.vessels.active.position);
                 this.skres.getGRIBList().subscribe( 

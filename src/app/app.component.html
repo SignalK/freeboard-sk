@@ -361,15 +361,8 @@
                                 </mat-icon>
                             </button>                         
                         </div>                        
-                        <br>&nbsp;<br>   
-                        <div *ngIf="app.data.grib.hasProvider && app.config.experiments">
-                            <button mat-icon-button
-                                (click)="openBottomSheet()"
-                                matTooltip="GRIB data"
-                                matTooltipPosition="left">
-                                <mat-icon>filter_drama</mat-icon>
-                            </button>                        
-                        </div>   
+                        <br>&nbsp;<br>
+                        <fb-experiments (selected)="openExperiment($event)"></fb-experiments>                   
                         <br>&nbsp;<br>    
                         <div *ngIf="app.config.resources.video.enable && app.config.resources.video.url">
                             <pip-video
@@ -379,7 +372,6 @@
                         </div>
                     </div>
                     
-
                     <!-- instrument sidebar open button -->
                     <button mat-mini-fab *ngIf="app.data.optAppPanel && (!draw.enabled && !measure.enabled) && !app.data.vessels.activeId"
                         class="mapButton nosmall" 
@@ -415,6 +407,14 @@
                     <!-- *** /MAP *** -->     
 
                 </div>
+
+                <!-- North Arrow -->
+                <div style="position: absolute; top: 60px; left:10px; 
+                        width:50px;">
+                    <img #northArrow src="./assets/img/north_arrow.svg" 
+                        [style.transform]="getOrientation()"
+                        style="width:50px;"/>            
+                </div>                      
                 <!--/map panel-->
 
                 <!-- Draw / Measure Help -->

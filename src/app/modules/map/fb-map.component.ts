@@ -38,6 +38,7 @@ interface IFeatureData {
     charts: Array<any>;
     notes: Array<any>;
     regions: Array<any>;
+    tracks: Array<any>;
     self: SKVessel;   //self vessel
     ais: Map<string,any>;        // other vessels
     active: SKVessel;  // focussed vessel
@@ -166,6 +167,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
         charts: [],
         notes: [],
         regions: [],
+        tracks: [],
         self: new SKVessel(),   //self vessel
         ais: new Map(),         // other vessels
         active: new SKVessel(),  // focussed vessel
@@ -256,7 +258,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
             else { this.stopSaveTimer() }            
             this.centerVessel();
         }    
-        if(changes && changes.northUp && !changes.northUp.firstChange ) {
+        if(changes && changes.northUp) {
             this.fbMap.northUp= changes.northUp.currentValue;
             this.rotateMap();
         }                
@@ -337,13 +339,11 @@ export class FBMapComponent implements OnInit, OnDestroy {
         this.app.debug(value);
         if(value.action=='get' || value.action=='selected') {
             if(value.mode=='route') { 
-                this.dfeat.routes= [];
-                this.app.data.routes.forEach( r=> {
-                    let i= JSON.parse(JSON.stringify(r));
-                    let c= this.mapifyCoords(i[1].feature.geometry.coordinates);
-                    i[1].feature.geometry.coordinates=c;
-                    this.dfeat.routes.push(i);
-                });
+                this.dfeat.routes= this.app.data.routes.filter( r=> {
+                    let c= this.mapifyCoords(r[1].feature.geometry.coordinates);
+                    r[1].feature.geometry.coordinates= c;
+                    return true;
+                });           
             }
             if(value.mode=='waypoint') { this.dfeat.waypoints= this.app.data.waypoints }
             if(value.mode=='chart') { this.dfeat.charts= this.app.data.charts }
@@ -371,6 +371,16 @@ export class FBMapComponent implements OnInit, OnDestroy {
 
             }
             if(value.mode=='grib') { this.renderGRIB() }
+            if(value.mode=='track') { 
+                this.dfeat.tracks= this.app.data.tracks.filter( t=> {
+                    let lines= [];
+                    t.feature.geometry.coordinates.forEach( line=> {
+                        lines.push( this.mapifyCoords(line) );
+                    })
+                    t.feature.geometry.coordinates= lines;
+                    return true;
+                });
+            }
         }
     }    
 

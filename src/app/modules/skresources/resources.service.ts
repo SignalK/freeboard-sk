@@ -10,7 +10,7 @@ import { GeoUtils, GeoHash } from  'src/app/lib/geoutils'
 import { LoginDialog } from 'src/app/lib/app-ui';
 import { NoteDialog, RegionDialog } from './notes'
 import { ResourceDialog } from './resource-dialogs'
-import { SKChart, SKRoute, SKWaypoint, SKRegion, SKNote } from './resource-classes'
+import { SKChart, SKRoute, SKWaypoint, SKRegion, SKNote, SKTrack } from './resource-classes'
 import { GRIB_PATH, Grib } from 'src/app/lib/grib'
 import { moveItemInArray } from '@angular/cdk/drag-drop';
 
@@ -80,6 +80,8 @@ export class SKResources {
         this.app.saveConfig();
         this.updateSource.next({action: 'selected', mode: 'chart'});  
     }
+
+    trackSelected() { this.updateSource.next({action: 'selected', mode: 'track'}) }
     
     // ** Set waypoint as nextPoint **
     navigateToWaypoint(e:any) { 
@@ -131,6 +133,89 @@ export class SKResources {
         }
     }
 
+    // **** TRACKS ****
+
+    /** get track(s) from sk server
+     * selected: true= only include selected tracks
+     * noUpdate: true= suppress updateSource event
+    */
+    getTracks(selected:boolean=false, noUpdate:boolean=false) { 
+        let path= `/resources/tracks`;
+        this.signalk.api.get(path).subscribe( 
+            res=> { 
+                this.app.data.tracks= [];
+                let r= Object.entries(res).forEach( r=> {
+                    let t= new SKTrack(r[1]);
+                    t.feature.id= r[0].toString();
+                    if(selected) {
+                        if(this.app.config.selections.tracks.includes(r[0]) ) {
+                            this.app.data.tracks.push(t);
+                        }
+                    }
+                    else { this.app.data.tracks.push(t) }
+                });
+                // ** clean up selections
+                let k= Object.keys(res);
+                this.app.config.selections.tracks= this.app.config.selections.tracks.map( i=> {
+                    return k.indexOf(i)!=-1 ? i : null;
+                }).filter(i=> { return i});                  
+                
+                if(!noUpdate) { this.updateSource.next({action: 'get', mode: 'track'}) }
+            }
+        );
+    }
+
+    // ** delete track on server **
+    private deleteTrack(id:string) {
+        this.signalk.api.delete(`/resources/tracks/${id}`)
+        .subscribe( 
+            res=> {  
+                if(res['statusCode']>=400) {    // response status is error
+                    this.app.showAlert(`ERROR: (${res['statusCode']})`, res['message'] ? res['message'] : 'Server could not delete Track!');
+                }
+                else if(res['statusCode']==202) { // pending
+                    this.pendingStatus(res).then( r=> {
+                        if(r['statusCode']>=400) {    // response status is error
+                            this.app.showAlert(`ERROR: (${r['statusCode']})`, r['message'] ? r['message'] : 'Server could not delete Track!');
+                        } 
+                        else { this.getTracks(true) }      
+                    });
+                } 
+                else if(res['statusCode']==200) { this.getTracks(true) }
+            },
+            err=> { 
+                if(err.status && err.status==401) { 
+                    this.showAuth().subscribe( res=> {
+                        if(res.cancel) { this.authResult(false) }
+                        else { // ** authenticate
+                            this.signalk.login(res.user, res.pwd).subscribe(
+                                r=> {   // ** authenticated
+                                    this.authResult(true, r['token']);
+                                    this.deleteTrack(id);
+                                },
+                                err=> {   // ** auth failed
+                                    this.authResult(false);
+                                    this.showAuth();
+                                }
+                            );
+                        }
+                    });
+                } 
+                else { this.app.showAlert('ERROR:', 'Server could not delete Track!') }
+            }
+        );  
+    }   
+    
+   // ** Confirm Track Deletion **
+   showTrackDelete(id:string) { 
+        return this.app.showConfirm(
+                'Do you want to delete this Track?\n \nTrack will be removed from the server (if configured to permit this operation).',
+                'Delete Track:',
+                'YES',
+                'NO'
+        );          
+    }      
+    
 
     // **** CHARTS ****
 

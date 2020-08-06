@@ -6,7 +6,7 @@ import { Subject, Observable } from 'rxjs';
 import { AppInfo } from 'src/app/app.info';
 import { SignalKClient } from 'signalk-client-angular';
 import { SKResources } from '../skresources/';
-import { GPX, GPXRoute, GPXWaypoint} from './gpx';
+import { GPX, GPXRoute, GPXWaypoint, GPXTrack, GPXTrackSegment } from './gpx';
 
 @Injectable({ providedIn: 'root' })
 export class GPXLoadFacade  {
@@ -36,7 +36,8 @@ export class GPXLoadFacade  {
         let gpxData= {
             name: '',
             routes: [],
-            waypoints: []
+            waypoints: [],
+            tracks: []
         }    
         this.gpx= new GPX();     
     
@@ -58,7 +59,15 @@ export class GPXLoadFacade  {
                 description: (w['desc']) ? w['desc'] : (w['cmt']) ? w['cmt'] : ''
             });
             idx++;
-        });        
+        });    
+        idx=1;
+        this.gpx.trk.forEach( t=> {
+            gpxData.tracks.push( {
+                name: (t['name']) ? t['name'] :  `Trk: ${idx}`,
+                description: (t['desc']) ? t['desc'] : (t['cmt']) ? t['cmt'] : ''
+            });
+            idx++;
+        });              
         return gpxData;       
     }    
     
@@ -74,6 +83,10 @@ export class GPXLoadFacade  {
         for(let i=0; i<res.wpt.selected.length; i++) {
             if(res.wpt.selected[i]) { this.transformWaypoint(this.gpx.wpt[i]) }
         }
+
+        for(let i=0; i<res.trk.selected.length; i++) {
+            if(res.trk.selected[i]) { this.transformTrack(this.gpx.trk[i]) }
+        }        
     }
 
     // ** check all submissions are resolved and emit upload$
@@ -152,5 +165,45 @@ export class GPXLoadFacade  {
             err=> { this.errorCount++; this.subCount--; this.checkComplete() }
         );      
     }   
+
+    // ** transform and upload track
+    transformTrack(gpxtrk: GPXTrack) {
+        let trk= {
+            feature: { 
+                type: 'Feature',
+                geometry:{ type: 'MultiLineString', coordinates: [] },
+                properties: {},
+                id: ''
+            }
+        };
+        if(gpxtrk.trkseg) { 
+            gpxtrk.trkseg.forEach( (tseg:GPXTrackSegment)=> {
+                let line= [];
+                tseg.trkpt.forEach( (pt:GPXWaypoint)=> {
+                    line.push([pt.lon, pt.lat]);
+                });
+                trk.feature.geometry.coordinates.push(line);
+            });
+        }        
+        if(gpxtrk.name && gpxtrk.name.length!=0) { trk.feature.properties['name']=gpxtrk.name } 
+        if(gpxtrk.desc && gpxtrk.desc.length!=0) { trk.feature.properties['description']=gpxtrk.desc } 
+        if(gpxtrk.cmt) { trk.feature.properties['cmt']=gpxtrk.cmt }
+        if(gpxtrk.src) { trk.feature.properties['src']=gpxtrk.src }
+        if(gpxtrk.type) { trk.feature.properties['type']=gpxtrk.type }
+
+        this.subCount++;
+        this.signalk.api.post(`/resources/tracks`, trk)
+        .subscribe( 
+            r=>{ 
+                this.subCount--;
+                if(r['state']=='COMPLETED') { 
+                    this.app.debug('SUCCESS: Track added.');
+                }
+                else { this.errorCount++ }
+                this.checkComplete();
+            },
+            err=> { this.errorCount++; this.subCount--; this.checkComplete() }
+        );      
+    }     
 
 }
