@@ -38,7 +38,7 @@ import { Convert } from 'src/app/lib/convert';
                         <mat-label>Arrival Circle radius
                             ({{(app.config.units.distance=='m') ? app.config.units.distance : 'NM'}}):
                         </mat-label>
-                        <input matInput type="number" id="arrivalCircle"
+                        <input matInput type="number" #arrivalCircle id="arrivalCircle"
                             min="0"
                             [value]="frmArrivalCircle"
                             (change)="onFormChange($event, arrivalCircle)"
@@ -130,7 +130,7 @@ export class CourseSettingsModal implements OnInit {
     closeModal() { this.modalRef.dismiss() }    
 
     onFormChange(e:any, f:any) {
-        if(f && !f.invalid) { 
+        if(false) { //f && !f.invalid) { 
             // f.value
         } 
         else { 
