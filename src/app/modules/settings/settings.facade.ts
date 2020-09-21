@@ -45,7 +45,11 @@ export class SettingsFacade  {
         smoothing: new Map( [ [5000,'5 secs'],[10000,'10 secs'],[20000,'20 secs'],[30000,'30 secs'] ])
     }
 
-    darkModeOptions= new Map( [ [0,'Use OS setting'], [1,'Use Signal K Mode'] ]);
+    darkModeOptions= new Map( [ 
+        [0,'Use OS setting'], 
+        [1,'Use Signal K Mode'], 
+        [-1,'On'] 
+    ]);
        
 
     // *****************************************************

@@ -216,6 +216,45 @@ export class SKResources {
         );          
     }      
     
+    /** get vessel trail from sk server */
+    getVesselTrail() { 
+        let reqUrl= '/self/track?'
+        let lastDay= this.signalk.api.get(`${reqUrl}timespan=23h&resolution=1m&timespanOffset=1h`);
+        let lastHour= this.signalk.api.get(`${reqUrl}timespan=1h&resolution=5s`);
+        let res= forkJoin([lastDay, lastHour]);
+        let trail= [];
+        res.subscribe(
+            (res:any)=> { 
+                // lastDay
+                if(typeof res[0].error==='undefined') {
+                    if(res[0].type && res[0].type=='MultiLineString') {
+                        if (res[0].coordinates && Array.isArray(res[0].coordinates)) {
+                            res[0].coordinates.forEach( l=> { // -> 60min segments
+                                while(l.length>60) {
+                                    let ls= l.slice(0,60);
+                                    trail.push(ls);
+                                    l= l.slice(59); // ensure segments join 
+                                    // offset first point so OL renders
+                                    l[0]= [l[0][0]+0.000000005, l[0][1]+0.000000005];
+                                }
+                                if(l.length!=0) { trail.push(l) }
+                            });
+                        } 
+                    }
+                }                        
+                // lastHour
+                if(typeof res[1].error==='undefined') {
+                    if(res[1].type && res[1].type=='MultiLineString') {
+                        if (res[1].coordinates && Array.isArray(res[1].coordinates)) {
+                            res[1].coordinates.forEach( l=> { trail.push(l) } );
+                        } 
+                    }
+                }
+                this.updateSource.next({action: 'get', mode: 'trail', data: trail });
+            },
+            ()=> { this.updateSource.next({action: 'get', mode: 'trail', data: trail }) }
+        );
+    }    
 
     // **** CHARTS ****
 

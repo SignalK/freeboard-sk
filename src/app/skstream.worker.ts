@@ -433,7 +433,13 @@ function processNotifications(v:any, vessel?:string) {
     if(v.path.indexOf('notifications.buddy')!=-1) {
         type= seg[1];
         data.context= seg[2];
-    }     
+    } 
+    
+    // ** arrivalCircle **
+    if(v.path.indexOf('notifications.arrivalCircleEntered')!=-1) {
+        type= seg[1];
+        data.context= seg[2];
+    }
     
     if(type) { 
         let msg= new NotificationMessage(type);

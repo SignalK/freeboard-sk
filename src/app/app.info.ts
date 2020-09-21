@@ -17,7 +17,7 @@ import { SKVessel } from './modules/skresources/resource-classes';
 const FreeboardConfig= {      
     experiments: false,
     version: '',
-    darkMode: { enabled: false,  source: 0 },  // source: 0= browser default, 1= Signal K mode)
+    darkMode: { enabled: false,  source: 0 },  // source: 0= browser default, 1= Signal K mode, -1=manual)
     map: {          // ** map config
         zoomLevel: 2,
         center: [0, 0],
@@ -86,7 +86,7 @@ const FreeboardConfig= {
 export class AppInfo extends Info {
 
     private DEV_SERVER= {
-        host: '172.17.0.1', // '192.168.86.32', //'172.17.0.1', // host name || ip address
+        host: '172.17.0.1', //'192.168.86.32', //'172.17.0.1', // host name || ip address
         port: 3000,     // port number
         ssl: false
     };
@@ -122,7 +122,7 @@ export class AppInfo extends Info {
         this.name= "Freeboard";
         this.shortName= "freeboard";
         this.description= `Signal K Chart Plotter.`;
-        this.version= '1.11.0';
+        this.version= '1.12.0';
         this.url= 'https://github.com/signalk/freeboard-sk';
         this.logo= "./assets/img/app_logo.png";   
         
@@ -177,7 +177,8 @@ export class AppInfo extends Info {
                 xte: null,
                 position: null,
                 pointIndex: -1,
-                pointTotal: 0
+                pointTotal: 0,
+                arrivalCircle: null
             }
         }
 
@@ -373,6 +374,12 @@ export class AppInfo extends Info {
         return result;
     }
 
+    // ** show Help at specified anchor
+    showHelp(anchor?:string) {
+        let url= `./assets/help/index.html${(anchor) ? '#' + anchor : ''}`
+        window.open(url, 'help');
+    }
+
     // ** display Welcome dialog
     showWelcome() {
         const WelcomeMessages= {
@@ -403,20 +410,42 @@ export class AppInfo extends Info {
                     from the available paths received from the server. 
                     See <a href="assets/help/index.html#settings-paths" target="help">HELP</a> 
                     for more details.`
-            }/*,
+            },
             'whats-new': [
                 {
                     type: 'signalk-server-node',
-                    title: 'Plugin News',
-                    message: `<b>Action Required:</b><br>
-                        There have been changes to the <b>GPXLoad</b> plugin that will impact 
-                        Freeboard operations with resources (Routes, Waypoints, Notes, etc) and
-                        course information.
+                    title: 'Vessel Trail',
+                    message: `
+                        Freeboard will now display vessel trail stored on the Signal K server 
+                        made available by the <b><i>signalk-to-influxdb</i></b> plugin.
                         <br>&nbsp;<br>
-                        Please <a href="https://www.npmjs.com/package/gpxload" target="npm">visit this link</a> 
+                        This will happen automatically when you have selected
+                        <b>Display Vessel trail</b> in <b><i>Settings</i></b>.<br>
+                        <br>&nbsp;<br>
+                        For best results install the latest <b><i>signalk-to-influxdb</i></b> plugin.`
+                },
+                {
+                    type: 'signalk-server-node',
+                    title: 'Arrival Circle',
+                    message: `
+                        When navigating to a destination you can now define an Arrival Circle radius 
+                        which when set will trigger <i>arrivalCircleEntered</i> notifications.
+                        <br>&nbsp;<br>
+                        <img src="./assets/help/img/course_data.png" style="width:150px;"/>`
+                },                
+                {
+                    type: 'signalk-server-node',
+                    title: 'Experiments',
+                    message: `
+                        Experiments are a means for testing out potential new features
+                        in Freeboard.
+                        <br>&nbsp;<br>
+                        You can enable Experiments in <b><i>Settings</i></b>.
+                        <br>&nbsp;<br>
+                        Check out <a href="assets/help/index.html#experiments" target="help">HELP</a> 
                         for more details.`
-                }             
-            ] */           
+                }                         
+            ]           
         }
 
         let btnText:string= 'Get Started'

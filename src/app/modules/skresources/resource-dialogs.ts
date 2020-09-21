@@ -867,10 +867,10 @@ export class ChartLayersDialog implements OnInit {
                     </div>
                     <div style="flex:1 1 auto;">
                         <div class="key-label">
-                            {{trk[1].feature.properties.name}}
+                            {{trk[1].feature?.properties?.name}}
                         </div>
                         <div class="key-desc">
-                            {{trk[1].feature.properties.description}}
+                            {{trk[1].feature?.properties?.description}}
                         </div>
                     </div>
                     <div style="width:45px;">

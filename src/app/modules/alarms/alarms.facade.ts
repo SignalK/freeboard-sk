@@ -208,8 +208,8 @@ export class AlarmsFacade  {
         else if(notification.state!=='normal') {
             if( !alarm ) {  // create alarm entry
                 this.alarms.set(id, {
-                    sound: (notification.method.indexOf('sound')!=-1) ? true : false,
-                    visual: (notification.method.indexOf('visual')!=-1) ? true : false,
+                    sound: (notification.method.includes('sound')!=-1) ? true : false,
+                    visual: (notification.method.includes('visual')!=-1) ? true : false,
                     state: notification.state,
                     message: notification.message,
                     isSmoothing: false
@@ -234,10 +234,10 @@ export class AlarmsFacade  {
             case 'buddy':
                 this.app.showMessage(
                     msg.result.value.message, 
-                    (msg.result.value.method.indexOf('sound')!=-1) ? true : false,
+                    (msg.result.value.method.includes('sound')!=-1) ? true : false,
                     5000
                 ); 
-                break;
+                break;          
             case 'closestApproach':
                 this.updateClosestApproach(msg);
                 this.closestApproachSource.next(msg);

@@ -149,7 +149,7 @@ export class SKStreamFacade  {
                 this.app.data.vessels.aisTargets.get(this.app.data.vessels.activeId) :
                 this.app.data.vessels.self;
 
-            this.processCourse(this.app.data.vessels.active); 
+            this.processCourse(this.app.data.vessels.active);
 
             // processAIS
             this.app.data.aisMgr.updateList= msg.result.aisStatus.updated;
@@ -166,7 +166,7 @@ export class SKStreamFacade  {
     private parseVesselSelf(v:SKVessel) {
         this.app.data.vessels.self= v;
         this.processVessel(this.app.data.vessels.self);
-        this.alarmsFacade.updateAnchorStatus();               
+        this.alarmsFacade.updateAnchorStatus();             
     }
 
     private parseVesselOther(otherVessels:any) {
@@ -199,7 +199,7 @@ export class SKStreamFacade  {
         }
         
         // ** course **
-        if(v['course.crossTrackError']) {
+        if(typeof v['course.crossTrackError']!=='undefined') {
             this.app.data.navData.xte= (this.app.config.units.distance=='m') ? 
                 v['course.crossTrackError']/1000 : 
                 Convert.kmToNauticalMiles(v['course.crossTrackError']/1000);                  
@@ -217,34 +217,39 @@ export class SKStreamFacade  {
                 this.updateNavData( this.skres.getActiveRouteCoords() );
             }
         }           
-        if(v['course.nextPoint.distance']) {  
+        if(typeof v['course.nextPoint.distance']!=='undefined') {  
             this.app.data.navData.dtg= (this.app.config.units.distance=='m') ? 
             v['course.nextPoint.distance']/1000 : 
             Convert.kmToNauticalMiles(v['course.nextPoint.distance']/1000);                
         }
-        if(v['course.nextPoint.bearingTrue']) { 
+        if(typeof v['course.nextPoint.bearingTrue']!=='undefined') { 
             this.app.data.navData.bearingTrue= Convert.radiansToDegrees(v['course.nextPoint.bearingTrue']);
             if(!this.app.useMagnetic) {
                 this.app.data.navData.bearing.value= this.app.data.navData.bearingTrue;
                 this.app.data.navData.bearing.type= 'T';
             } 
         }
-        if(v['course.nextPoint.bearingMagnetic']) { 
+        if(typeof v['course.nextPoint.bearingMagnetic']!=='undefined') { 
             this.app.data.navData.bearingMagnetic= Convert.radiansToDegrees(v['course.nextPoint.bearingMagnetic']);
             if(this.app.useMagnetic) {
                 this.app.data.navData.bearing.value= this.app.data.navData.bearingMagnetic;
                 this.app.data.navData.bearing.type= 'M';
             }                 
         }
-        if(v['course.nextPoint.velocityMadeGood']) {  
+        if(typeof v['course.nextPoint.velocityMadeGood']!=='undefined') {  
             this.app.data.navData.vmg= (this.app.config.units.speed=='kn') ? 
                 Convert.msecToKnots(v['course.nextPoint.velocityMadeGood']) : 
                 v['course.nextPoint.velocityMadeGood'];
         }
-        if(v['course.nextPoint.timeToGo']) { 
+        if(typeof v['course.nextPoint.timeToGo']!=='undefined') { 
             this.app.data.navData.ttg= v['course.nextPoint.timeToGo']/60;
         } 
-        this.navDataUpdate.next();       
+        // ** experiment - arrivalCircle **
+        if(typeof v['course.nextPoint.arrivalCircle']!=='undefined') { 
+            this.app.data.navData.arrivalCircle= v['course.nextPoint.arrivalCircle'];
+        }
+               
+        this.navDataUpdate.next();
     }  
        
     // ** set active route / update route array **

@@ -10,9 +10,9 @@ import { PlaybackDialog } from 'src/app/lib/ui/playback-dialog';
 
 import { SettingsDialog, AlarmsFacade, AlarmsDialog, 
         SKStreamFacade, SKSTREAM_MODE, SKResources, 
-        SKRegion, AISPropertiesModal, AtoNPropertiesModal, 
-        ActiveResourcePropertiesModal, GPXImportDialog,
-        TracksModal } from 'src/app/modules';
+        SKRoute, SKWaypoint, SKTrack, SKRegion, AISPropertiesModal, AtoNPropertiesModal, 
+        ActiveResourcePropertiesModal, GPXImportDialog, GeoJSONImportDialog,
+        TracksModal, CourseSettingsModal } from 'src/app/modules';
 
 import { SignalKClient } from 'signalk-client-angular';
 import { Convert } from 'src/app/lib/convert';
@@ -196,7 +196,8 @@ export class AppComponent {
         let mq= window.matchMedia("(prefers-color-scheme: dark)");
 
         if( (this.app.config.darkMode.source==0 && mq.matches) ||
-            (this.app.config.darkMode.source==1 && this.app.data.vessels.self.mode=='night') ) { 
+            (this.app.config.darkMode.source==1 && this.app.data.vessels.self.mode=='night') ||
+            this.app.config.darkMode.source==-1 ) { 
 
             this.overlayContainer.getContainerElement().classList.add('dark-theme');
             this.app.config.darkMode.enabled= true; 
@@ -241,11 +242,11 @@ export class AppComponent {
     }    
 
     // ** display selected experiment UI **
-    public openExperiment(choice:string) {
+    public openExperiment(e:any) {
         
-        switch(choice) {
+        switch(e.choice) {
             case 'grib':
-                this.display.bottomSheet.show=true;  
+                this.display.bottomSheet.show= true;  
                 this.display.bottomSheet.title= 'GRIB Data';                
                 break;
             case 'tracks':
@@ -255,6 +256,9 @@ export class AppComponent {
                 }).afterDismissed().subscribe( ()=> {
                     this.focusMap(); 
                 });
+                break;
+            case 'geojson':
+                this.processGeoJSON(e.value);
                 break;
         }
     }
@@ -292,6 +296,20 @@ export class AppComponent {
         else { this.skres.getGRIBData(e.id + params) }
     }
 
+    // ** display course settings screen **
+    public openCourseSettings() {
+        this.bottomSheet.open(CourseSettingsModal, {
+            disableClose: true,
+            data: { title: 'Course Settings' }
+        }).afterDismissed().subscribe( ()=> {
+            this.focusMap(); 
+        });
+    }
+
+    public setAutoPilot() {
+        console.log('auto-pilot:', 'N/A');
+    }
+
     // ************************************************
 
     // ** establish connection to server
@@ -327,8 +345,8 @@ export class AppComponent {
         this.timers= [];
     }
 
-    // ** process vessel trail **
-    private processTrail() {
+    // ** process local vessel trail **
+    private processTrail(trailData?:Array<any>) {
         if(!this.app.config.vesselTrail) { return }
         // ** update vessel trail **
         let t= this.app.data.trail.slice(-1);
@@ -340,7 +358,16 @@ export class AppComponent {
                 this.app.data.vessels.active.position[1]!=t[0][1] ) {
             this.app.data.trail.push(this.app.data.vessels.active.position) 
         }
-        this.app.data.trail= this.app.data.trail.slice(-5000);  
+        if(!trailData || trailData.length==0) {    // no server trail data supplied
+            if(this.app.data.trail.length>720) { this.skres.getVesselTrail() }
+            this.app.data.trail= this.app.data.trail.slice(-5000); 
+        }
+        else {  // use server trail data, keep minimal local trail data 
+            let lastseg= trailData.slice(-1);
+            let lastpt= (lastseg.length!=0) ? lastseg[0].slice(-1) : 
+                (trailData.length>1) ? trailData[trailData.length-2].slice(-1) : [];
+            this.app.data.trail= lastpt;
+        } 
         let trailId= (this.mode==SKSTREAM_MODE.PLAYBACK) ? 'history' : 'self';
         this.app.db.saveTrail(trailId, this.app.data.trail);
     }    
@@ -352,6 +379,10 @@ export class AppComponent {
             this.stream.updateNavData( this.skres.getActiveRouteCoords() );
             this.updateNavPanel(e);
         }
+        // ** trail retrieved from server **
+        if(e.action=='get' && e.mode=='trail') { 
+            this.processTrail(e.data);
+        }        
         // ** create note in group **
         if(e.action=='new' && e.mode=='note') { 
             if(this.app.config.resources.notes.groupRequiresPosition) {
@@ -504,13 +535,29 @@ export class AppComponent {
             }
         }).afterClosed().subscribe( errCount=> {
             if(errCount<0) { return } // cancelled
-            this.skres.getRoutes(this.app.data.vessels.activeId);
-            this.skres.getWaypoints();  
+            this.fetchResources();             
             if(errCount==0) { this.app.showAlert('GPX Load','GPX file resources loaded successfully.') }
             else { this.app.showAlert('GPX Load','Completed with errors!\nNot all resources were loaded.') }
             this.focusMap();
         });       
     }
+
+    // process GeoJSON file
+    processGeoJSON(e:any) { 
+        this.dialog.open(GeoJSONImportDialog, {
+            disableClose: true,
+            data: { 
+                fileData: e.data,
+                fileName: e.name
+            }
+        }).afterClosed().subscribe( errCount=> {
+            if(errCount<0) { return } // cancelled
+            this.fetchResources();             
+            if(errCount==0) { this.app.showAlert('GeoJSON Load','GeoJSON features loaded successfully.') }
+            else { this.app.showAlert('GeoJSON Load','Completed with errors!\nNot all features were loaded.') }
+            this.focusMap();
+        });        
+    }        
 
     // ** show login dialog **
     public showLogin(message?:string, cancelWarning:boolean=true, onConnect?:boolean) {
@@ -648,7 +695,12 @@ export class AppComponent {
             this.app.showConfirm(
                 'Clear Vessel Trail',
                 'Do you want to delete the vessel trail?'
-            ).subscribe( res=> { if(res) this.app.data.trail=[] }); 
+            ).subscribe( res=> { 
+                if(res) { 
+                    this.app.data.trail= [];
+                    this.skres.getVesselTrail();
+                }
+            }); 
         }   
     }
 
@@ -968,6 +1020,14 @@ export class AppComponent {
 
     // ******** SIGNAL K STREAM *************
 
+    // ** fetch resources from server **
+    fetchResources() {   
+        this.skres.getRoutes(this.app.data.vessels.activeId); // + get ActiveRoute Info. See associated message handler
+        this.skres.getWaypoints();
+        this.skres.getCharts();  
+        this.skres.getNotes();  
+    } 
+
     // ** open WS Stream 
     private openSKStream(options:any=null, toMode: SKSTREAM_MODE=SKSTREAM_MODE.REALTIME, restart:boolean=false) { 
         if(restart) {
@@ -986,12 +1046,9 @@ export class AppComponent {
         this.signalk.api.getSelf().subscribe(
             r=> {  
                 this.stream.post({ cmd: 'vessel', options: {context: 'self', name: r['name']} });
-                // ** query for resources
-                this.skres.getRoutes(this.app.data.vessels.activeId); // + get ActiveRoute Info. See associated message handler
-                this.skres.getWaypoints();
-                this.skres.getCharts();  
-                this.skres.getNotes();
+                this.fetchResources();  // ** get resources from server
                 this.skres.getTracks(true);
+                this.skres.getVesselTrail();  //trail from server
                 // ** query anchor alarm status
                 this.alarmsFacade.queryAnchorStatus(this.app.data.vessels.activeId, this.app.data.vessels.active.position);
                 this.skres.getGRIBList().subscribe( 
@@ -1070,6 +1127,7 @@ export class AppComponent {
                 this.display.playback.time= null;
                 this.setDarkTheme();
             }   
+            this.updateNavPanel();
         }  
     }   
 
