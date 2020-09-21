@@ -4,7 +4,7 @@ import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { GPXLoadFacade } from './gpxload.facade'
 import { AppInfo } from 'src/app/app.info';
 
-//** HomePage **
+//** GPXLoad dialog **
 @Component({
     selector:	    'import-dialog',
     templateUrl: 	'./import-dialog.html',

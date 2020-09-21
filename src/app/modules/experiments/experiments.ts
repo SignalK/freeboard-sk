@@ -16,7 +16,14 @@ import { AppInfo } from 'src/app/app.info';
             <a mat-menu-item (click)="handleSelect('tracks')">
                 <mat-icon color="warn">show_chart</mat-icon>
                 <span>Tracks</span>			
-            </a>  
+            </a>
+            <ap-file-input [astext]="true" (chosen)="handleSelect('geojson', $event)">
+                <a mat-menu-item>
+                <mat-icon><img src="./assets/img/geojson.jpg" style="width:27px;height:24px;"/></mat-icon>
+                    Load GeoJSON
+                </a>                  
+            </ap-file-input>   
+
         </mat-menu>
 
         <div class="expButton" *ngIf="app.config.experiments">
@@ -40,13 +47,13 @@ import { AppInfo } from 'src/app/app.info';
     `]
 })
 export class ExperimentsComponent implements OnInit {
-    @Output() selected: EventEmitter<string>= new EventEmitter();
+    @Output() selected: EventEmitter<any>= new EventEmitter();
 
     constructor(public app: AppInfo) {}
     
     ngOnInit() {}
 
-    handleSelect(choice:string) { this.selected.emit(choice) }
+    handleSelect(choice:string, value?:any) { this.selected.emit({choice: choice, value: value}) }
 	
 }
 

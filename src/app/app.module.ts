@@ -10,8 +10,8 @@ import { AppComponent } from './app.component';
 import { AppMaterialModule } from './lib/app-material.module';
 import { AppUIModule } from './lib/app-ui';
 
-import { SettingsModule, GPXLoadModule, AlarmsModule, ExperimentsModule,
-        SKStreamModule, SignalKResourcesModule, FBMapModule } from './modules';
+import { SettingsModule, GPXLoadModule, GeoJSONModule, AlarmsModule, ExperimentsModule,
+        SKStreamModule, SignalKResourcesModule, FBMapModule, CourseModule } from './modules';
 
 @NgModule({
   declarations: [
@@ -22,8 +22,9 @@ import { SettingsModule, GPXLoadModule, AlarmsModule, ExperimentsModule,
     BrowserAnimationsModule, 
     FormsModule, HttpClientModule,
     AppMaterialModule, AppUIModule, ExperimentsModule,
-    SignalKResourcesModule, FBMapModule, 
-    GPXLoadModule, SettingsModule, AlarmsModule, SKStreamModule,
+    SignalKResourcesModule, FBMapModule, CourseModule,
+    GPXLoadModule, GeoJSONModule, SettingsModule, 
+    AlarmsModule, SKStreamModule,
     AngularOpenlayersModule
   ],
   exports: [],

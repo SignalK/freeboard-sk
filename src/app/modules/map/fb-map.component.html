@@ -596,6 +596,25 @@
                 </aol-style>
             </aol-feature>                                              
 
+            <!-- arrival circle -->
+            <aol-feature *ngIf="app.data.navData.arrivalCircle && dfeat.navData.position">
+                <aol-geometry-circle [radius]="app.data.navData.arrivalCircle">  
+                    <aol-coordinate 
+                        [x]="dfeat.navData.position[0]" 
+                        [y]="dfeat.navData.position[1]" 
+                        [srid]="app.config.map.srid">
+                    </aol-coordinate>                               
+                    <aol-style>
+                        <aol-style-fill [color]="'rgba(255, 255, 255, .1)'"></aol-style-fill>
+                        <aol-style-stroke 
+                            [color]="'rgba(242, 153, 10, 1)'"
+                            [width]="2"
+                            [lineDash]="[5,5]">
+                        </aol-style-stroke>                                          
+                    </aol-style>
+                </aol-geometry-circle>
+            </aol-feature>
+
             <!-- TWD Line -->
             <aol-feature *ngIf="app.config.vesselWindVectors && vesselLines.twd[0] && app.config.anchor.raised">
                 <aol-geometry-linestring>
@@ -630,7 +649,8 @@
     </aol-layer-vector>   
     
     <!-- *** VESSEL TRAIL *** -->
-    <aol-layer-vector [zIndex]="200" *ngIf="app.config.vesselTrail && app.data.vessels.showSelf">
+    <aol-layer-vector [zIndex]="200" [renderBuffer]="200"
+            *ngIf="app.config.vesselTrail && app.data.vessels.showSelf">
         <aol-source-vector>
             <aol-feature>
                 <aol-geometry-linestring>
@@ -641,12 +661,28 @@
                 </aol-geometry-linestring>
                 <aol-style>
                     <aol-style-stroke 
-                        [color]="'red'" 
+                        [color]="'rgb(252, 3, 132)'" 
                         [lineDash]="[2,2]"
                         [width]="1">
                     </aol-style-stroke>
                 </aol-style>
             </aol-feature>
+            <!-- trail from server -->
+            <aol-feature> 
+                <aol-geometry-multilinestring>
+                    <aol-collection-coordinates
+                        [coordinates]="dfeat.trail"
+                        [srid]="app.config.map.srid">
+                    </aol-collection-coordinates>                      
+                </aol-geometry-multilinestring>
+                <aol-style>
+                    <aol-style-stroke 
+                        [color]="'rgb(252, 3, 132)'" 
+                        [lineDash]="[4,4]"
+                        [width]="1">
+                    </aol-style-stroke>                        
+                </aol-style>
+            </aol-feature>               
         </aol-source-vector>
     </aol-layer-vector>
     <!-- *** /VESSEL TRAIL *** -->

@@ -43,7 +43,7 @@
 
         <!-- Waypoints -->
         <div class="card-group" *ngIf="gpxData.waypoints.length!=0">
-            <mat-expansion-panel #pnlWpt
+            <mat-expansion-panel
                 [expanded]="display.expand.waypoints"
                 (opened)="display.expand.waypoints=true"
                 (closed)="display.expand.waypoints=false">
@@ -157,7 +157,7 @@
 
         <!-- Tracks -->
         <div class="card-group" *ngIf="gpxData.tracks.length!=0 && app.config.experiments">
-            <mat-expansion-panel #pnlWpt
+            <mat-expansion-panel
                 [expanded]="display.expand.tracks"
                 (opened)="display.expand.tracks=true"
                 (closed)="display.expand.tracks=false">

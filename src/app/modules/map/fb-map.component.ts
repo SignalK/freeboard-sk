@@ -39,6 +39,7 @@ interface IFeatureData {
     notes: Array<any>;
     regions: Array<any>;
     tracks: Array<any>;
+    trail: Array<any>;
     self: SKVessel;   //self vessel
     ais: Map<string,any>;        // other vessels
     active: SKVessel;  // focussed vessel
@@ -168,6 +169,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
         notes: [],
         regions: [],
         tracks: [],
+        trail: [],
         self: new SKVessel(),   //self vessel
         ais: new Map(),         // other vessels
         active: new SKVessel(),  // focussed vessel
@@ -381,6 +383,11 @@ export class FBMapComponent implements OnInit, OnDestroy {
                     return true;
                 });
             }
+            if(value.mode=='trail') { 
+                this.dfeat.trail= value.data.map( line=> {
+                    return this.mapifyCoords(line);
+                });
+            }            
         }
     }    
 
