@@ -3,7 +3,7 @@ import { MatMenuTrigger } from '@angular/material/menu';
 
 //import { proj, coordinate, style, Collection } from 'openlayers';
 import { createStringXY } from 'ol/coordinate';
-import { transform, transformExtent } from 'ol/proj';
+import { transform, transformExtent, fromLonLat } from 'ol/proj';
 import { Style, Stroke } from 'ol/style';
 import { Collection } from 'ol';
 
@@ -152,7 +152,6 @@ export class FBMapComponent implements OnInit, OnDestroy {
         srid: MAP_SRID,
         minZoom: MAP_MIN_ZOOM,
         maxZoom: MAP_MAX_ZOOM,
-        rotation: 0,
         center: [0, 0],
         zoomLevel: 1,
         movingMap: false,
@@ -217,6 +216,8 @@ export class FBMapComponent implements OnInit, OnDestroy {
         setTimeout( ()=> this.aolMap.instance.updateSize(), 100 );
         this.aolMap.host.nativeElement.firstChild.tabIndex=0;
         this.aolMap.host.nativeElement.firstChild.focus();
+        this.aolMap.instance.loadTilesWhileAnimating = true;
+        this.aolMap.instance.loadTilesWhileInteracting = true;
         if(!this.app.config.map.mrid) { 
             this.app.config.map.mrid= this.aolMap.instance.getView().getProjection().getCode();
         }
@@ -249,7 +250,9 @@ export class FBMapComponent implements OnInit, OnDestroy {
             this.aolMap.host.nativeElement.firstChild.focus();
         }
         if(changes && changes.mapCenter) {
-            this.fbMap.center= (changes.mapCenter.currentValue) ? changes.mapCenter.currentValue : this.fbMap.center;
+            if (changes.mapCenter.currentValue) {
+                this.updateCenterAndRotation(true, changes.mapCenter.currentValue);
+            }
         }    
         if(changes && changes.mapZoom) {
             this.fbMap.zoomLevel= (changes.mapZoom.currentValue) ? changes.mapZoom.currentValue : this.fbMap.zoomLevel;
@@ -258,11 +261,11 @@ export class FBMapComponent implements OnInit, OnDestroy {
             this.fbMap.movingMap= changes.movingMap.currentValue;
             if(this.fbMap.movingMap) { this.startSaveTimer() }
             else { this.stopSaveTimer() }            
-            this.centerVessel();
+            this.updateCenterAndRotation(true);
         }    
         if(changes && changes.northUp) {
             this.fbMap.northUp= changes.northUp.currentValue;
-            this.rotateMap();
+            this.updateCenterAndRotation(true);
         }                
         if(changes && changes.measureMode && !changes.measureMode.firstChange ) {
             this.interactionMode(INTERACTION_MODE.MEASURE, changes.measureMode.currentValue);
@@ -332,8 +335,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
         }  
         if(!this.checkedAtoNs && this.app.data.atons.size!=0) { this.renderAtoNs(); this.checkedAtoNs=true; }
         this.drawVesselLines(true);
-        this.rotateMap();  
-        if(this.fbMap.movingMap) { this.centerVessel() }    
+        this.updateCenterAndRotation(false);
     }
 
     private onResourceUpdate(value:any) {
@@ -750,19 +752,34 @@ export class FBMapComponent implements OnInit, OnDestroy {
     }
 
     // ** orient map heading up / north up **
-    public rotateMap() {
-        if(this.fbMap.northUp) { this.fbMap.rotation=0 }
-        else { 
-            this.fbMap.rotation= 0-this.dfeat.active.orientation; 
+    public updateCenterAndRotation(forceUpdate:boolean, override_center:[number,number]=undefined) {
+        // Find desired rotation
+        let rotation = 0 - this.dfeat.active.orientation;
+        if(this.fbMap.northUp) {
+            rotation = 0;
         }
-    }
+        // Force update, stopping any current animation
+        if ( forceUpdate ) {
+            this.aolMap.instance.getView().cancelAnimations();
+        }
+        // Do not animate if already animating
+        else if ( this.aolMap.instance.getView().getAnimating() ) {
+            return;
+        }
 
-    // ** center map to active vessel position
-    public centerVessel() { 
-        let t=this.dfeat.active.position;
-        t[0]+=0.0000000000001;
-        this.fbMap.center= t;
-    }  
+        let center = override_center
+        // ** center map to active vessel position
+        if (this.fbMap.movingMap) {
+            let t = this.dfeat.active.position;
+            t[0] += 0.0000000000001;
+            center = fromLonLat(t);
+        }
+
+        this.aolMap.instance.getView().animate({
+          rotation: rotation,
+          center: center
+        });
+    }
 
     public drawVesselLines(vesselUpdate:boolean=false) {
         let z= this.app.config.map.zoomLevel;
