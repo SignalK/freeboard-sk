@@ -350,16 +350,20 @@ export class AppComponent {
         if(!this.app.config.vesselTrail) { return }
         // ** update vessel trail **
         let t= this.app.data.trail.slice(-1);
-        if(t.length==0) { 
-            this.app.data.trail.push(this.app.data.vessels.active.position);
-            return;
-        }
-        if( this.app.data.vessels.active.position[0]!=t[0][0] ||
-                this.app.data.vessels.active.position[1]!=t[0][1] ) {
-            this.app.data.trail.push(this.app.data.vessels.active.position) 
+        if(this.app.data.vessels.showSelf) {
+            if(t.length==0 ) { 
+                this.app.data.trail.push(this.app.data.vessels.active.position);
+                return;
+            }
+            if( this.app.data.vessels.active.position[0]!=t[0][0] ||
+                    this.app.data.vessels.active.position[1]!=t[0][1] ) {
+                this.app.data.trail.push(this.app.data.vessels.active.position);
+            }
         }
         if(!trailData || trailData.length==0) {    // no server trail data supplied
-            if(this.app.data.trail.length>720) { this.skres.getVesselTrail() }
+            if(this.app.data.trail.length%60==0 && this.app.data.serverTrail) { 
+                this.skres.getVesselTrail();    // request trail from server
+            }
             this.app.data.trail= this.app.data.trail.slice(-5000); 
         }
         else {  // use server trail data, keep minimal local trail data 
@@ -690,15 +694,19 @@ export class AppComponent {
 
     // ** delete vessel trail **
     public clearTrail(noprompt:boolean=false) {
-        if(noprompt) { this.app.data.trail=[] }
+        if(noprompt) { 
+            if(!this.app.data.serverTrail) { this.app.data.trail=[] }
+            else { this.skres.getVesselTrail() }
+        }
         else {
+            if(!this.app.data.serverTrail)
             this.app.showConfirm(
                 'Clear Vessel Trail',
                 'Do you want to delete the vessel trail?'
             ).subscribe( res=> { 
                 if(res) { 
-                    this.app.data.trail= [];
-                    this.skres.getVesselTrail();
+                    if(!this.app.data.serverTrail) { this.app.data.trail=[] }
+                    else { this.skres.getVesselTrail() }
                 }
             }); 
         }   
