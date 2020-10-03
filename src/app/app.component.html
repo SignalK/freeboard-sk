@@ -86,9 +86,9 @@
         <!--context menus-->
         <mat-menu #settingsmenu="matMenu">   
             <a mat-menu-item *ngIf="app.config.vesselTrail && app.data.trail.length!=0" 
-                (click)="clearTrail()">
+                (click)="clearTrail(app.data.serverTrail)">
                 <mat-icon>clear_all</mat-icon>
-                <span>Clear Trail</span>			
+                <span>{{app.data.serverTrail ? 'Refresh' : 'Clear'}} Trail</span>			
             </a>
             <button mat-menu-item 
                 (click)="deactivateRoute()">
