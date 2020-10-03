@@ -8,6 +8,8 @@
 
 - **Added**: PUT to `navigation.courseGreatCircle.previousPoint.position` with position of vessel when activating a destination to navigate to.
 
+- **Fix**: Issue where saved settings were being reset when new version detected.
+
 - **Experiment**: Load resources from GeoJSON feature collection.
 
 ### v1.11
