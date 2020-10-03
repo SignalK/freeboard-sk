@@ -245,9 +245,8 @@ export class AppInfo extends Info {
 		
         if( version.result && version.result=='update' ) {
             this.debug('Upgrade result....new version detected');
-            // side-load persisted config / data 
-            //let lconfig=(this.state.loadConfig());       
-            //let ldata=(this.state.loadData());    
+            this.loadConfig();
+            this.loadData();
             // transform config / data as required here    
             this.data['updatedRun']= version;
             // apply to this.config / this.data
