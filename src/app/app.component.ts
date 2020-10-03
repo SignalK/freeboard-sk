@@ -144,7 +144,7 @@ export class AppComponent {
                         else { 
                             this.app.showAlert(
                                 'Anchor Watch:', 
-                                'Server returned an error. This function may not be supported by yor server.'
+                                'Server returned an error. This function may not be supported by your server.'
                             );
                         }
                     }
