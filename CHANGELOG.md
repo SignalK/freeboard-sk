@@ -2,9 +2,11 @@
 
 ### v1.12
 
-- **Added**: Display vessel trail from server provided by `signalk-to-influxdb` (v1.8.0 or higher).
+- **Added**: Display vessel trail from server provided by `signalk-to-influxdb (v1.8.0)`.
 
-- **Added**: Define an Arrival Circle for current destination (uses `navigation.courseGreatCircle.nextPoint.arrivalCircle`). Notifcation (`notification.arrivalCircleEntered`) generated when approaching destination (requires `freeboard-sk-helper`).
+- **Added**: Define an Arrival Circle for current destination (PUT to `navigation.courseGreatCircle.nextPoint.arrivalCircle`). Will display notifcation (`notification.arrivalCircleEntered`) when approaching destination (requires `freeboard-sk-helper v1.21.0`).
+
+- **Added**: PUT to `navigation.courseGreatCircle.previousPoint.position` with position of vessel when activating a destination to navigate to.
 
 - **Experiment**: Load resources from GeoJSON feature collection.
 
