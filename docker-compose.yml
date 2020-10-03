@@ -1,0 +1,23 @@
+version: '3.7'
+services:
+  signalk_server:
+    image: signalk/signalk-server
+    container_name: signalk_server
+    # build:
+    #   context: ../signalk-server
+    ports:
+      - 3000:3000
+    init: true
+    entrypoint: bin/signalk-server
+    command: --sample-nmea0183-data
+  freeboard_sk:
+    build:
+      context: .
+    command: ng serve --host 0.0.0.0
+    ports:
+      - 4200:4200
+    depends_on:
+      - signalk_server
+    volumes:
+      - .:/app/
+      - /app/node_modules
