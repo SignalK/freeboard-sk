@@ -148,6 +148,7 @@ export class AppInfo extends Info {
             activeRoute: null,
             activeWaypoint: null,
             trail: [],
+            serverTrail: false,
             server: null,
             hasToken: false,
             lastGet: null,      // map position of last resources GET

@@ -219,7 +219,7 @@ export class SKResources {
     /** get vessel trail from sk server */
     getVesselTrail() { 
         let reqUrl= '/self/track?'
-        let lastDay= this.signalk.api.get(`${reqUrl}timespan=23h&resolution=1m&timespanOffset=1h`);
+        let lastDay= this.signalk.api.get(`${reqUrl}timespan=23h&resolution=1m&timespanOffset=1`);
         let lastHour= this.signalk.api.get(`${reqUrl}timespan=1h&resolution=5s`);
         let res= forkJoin([lastDay, lastHour]);
         let trail= [];
@@ -250,9 +250,14 @@ export class SKResources {
                         } 
                     }
                 }
+                if(!this.app.data.serverTrail) { this.app.data.serverTrail= true }
                 this.updateSource.next({action: 'get', mode: 'trail', data: trail });
             },
-            ()=> { this.updateSource.next({action: 'get', mode: 'trail', data: trail }) }
+            (err:any)=> { 
+                console.warn(err);
+                this.app.data.serverTrail= false;
+                this.updateSource.next({action: 'get', mode: 'trail', data: trail });
+            }
         );
     }    
 
@@ -725,7 +730,16 @@ export class SKResources {
         ).subscribe( 
             r=> { 
                 this.activeRouteSource.next({action: 'next', value: pt});
-                this.app.debug('res.setNextpoint()');
+                this.app.debug('res.setNextPoint()');
+                // ** set vessel location as previous point **
+                if(pt && this.app.data.vessels.active.positionReceived) { 
+                    this.setPreviousPoint({
+                        latitude: this.app.data.vessels.active.position[1],
+                        longitude: this.app.data.vessels.active.position[0]
+                        
+                    });
+                }
+                else { this.setPreviousPoint(null) }
             },
             err=> { 
                 if(err.status && err.status==401) { 
@@ -748,7 +762,39 @@ export class SKResources {
                 else { this.app.debug(err) }
             }
         );      
-    }    
+    }
+
+    // ** previousPoint.position **
+    private setPreviousPoint(pt:{latitude:number, longitude:number}) {
+        this.signalk.api.put('self', 
+            'navigation/courseGreatCircle/previousPoint/position', 
+            pt
+        ).subscribe( 
+            r=> { 
+                this.app.debug('res.setPreviousPoint()');
+            },
+            err=> { 
+                if(err.status && err.status==401) { 
+                    this.showAuth().subscribe( res=> {
+                        if(res.cancel) { this.authResult(false) }
+                        else { // ** authenticate
+                            this.signalk.login(res.user, res.pwd).subscribe(
+                                r=> {   // ** authenticated
+                                    this.authResult(true, r['token']);
+                                    this.setPreviousPoint(pt);
+                                },
+                                err=> {   // ** auth failed
+                                    this.authResult(false);
+                                    this.showAuth();
+                                }
+                            );
+                        }
+                    });
+                } 
+                else { this.app.debug(err) }
+            }
+        );      
+    }
 
     // **** WAYPOINTS ****
 
