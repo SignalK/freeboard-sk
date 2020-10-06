@@ -230,13 +230,23 @@ class ViewComponent {
         if (!this.instance) {
             return;
         }
+        /** @type {?} */
+        let args = {};
         for (const key in changes) {
             if (changes.hasOwnProperty(key)) {
                 switch (key) {
+                    case 'rotation':
+                        if (this.zoomAnimation) {
+                            args[key] = changes[key].currentValue;
+                        }
+                        else {
+                            properties[key] = changes[key].currentValue;
+                        }
+                        break;
                     case 'zoom':
                         /** Work-around: setting the zoom via setProperties does not work. */
                         if (this.zoomAnimation) {
-                            this.instance.animate({ zoom: changes[key].currentValue });
+                            args[key] = changes[key].currentValue;
                         }
                         else {
                             this.instance.setZoom(changes[key].currentValue);
@@ -247,12 +257,16 @@ class ViewComponent {
                         this.host.instance.setView(this.instance);
                         break;
                     default:
+                        properties[key] = changes[key].currentValue;
                         break;
                 }
-                properties[key] = changes[key].currentValue;
+                if (this.zoomAnimation && (typeof args['zoom'] !== 'undefined' ||
+                    typeof args['rotation'] !== 'undefined')) {
+                    this.instance.animate(args);
+                }
             }
         }
-        // console.log('changes detected in aol-view, setting new properties: ', properties);
+        //console.log('changes detected in aol-view, setting new properties: ', properties);
         this.instance.setProperties(properties, false);
     }
     /**
