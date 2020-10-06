@@ -73,7 +73,7 @@
                                     label="after">
                                     Halt App on hide
                                 </mat-checkbox>                                        
-                            </div>  
+                            </div>                             
                             <div class="setting-card-row-item">
                                 <button mat-raised-button 
                                     (click)="toggleFavourites()"
@@ -143,11 +143,21 @@
                                     label="after">
                                     Display Vessel Trail
                                 </mat-checkbox>                                        
-                            </div>                                                
+                            </div>
+                            <br>
+                            <div class="setting-card-row-item">
+                                <mat-checkbox #mapAnimate color="primary"
+                                    [(ngModel)]="facade.settings.map.animate" 
+                                    (change)="onFormChange($event, mapAnimate)"
+                                    matTooltip="Animate Map movement"
+                                    label="after">
+                                    Animate Map
+                                </mat-checkbox>                                        
+                            </div>                                                                                                     
                         </div>  
                     </mat-card>
                     <mat-card class="setting-card">
-                        <div class="setting-card-row" style="padding-bottom: 10px;">
+                        <div class="setting-card-row" style="padding-bottom: 10px;">                          
                             <div class="setting-card-row-item">
                                 <mat-form-field style="width:100%;">
                                     <mat-select #darkmode 
@@ -159,7 +169,7 @@
                                     </mat-select>                                        
                                 </mat-form-field>                                      
                             </div>
-                        </div>                        
+                        </div>                   
                     </mat-card>                       
                 </div>                  
 
