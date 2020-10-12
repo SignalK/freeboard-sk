@@ -25,7 +25,8 @@ const FreeboardConfig= {
         mrid: null,
         srid: 'EPSG:4326',
         moveMap: false,
-        northUp: true
+        northUp: true,
+        animate: false
     },
     anchor: {       // ** anchor watch
         raised: true,
