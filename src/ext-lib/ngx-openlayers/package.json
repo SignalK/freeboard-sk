@@ -1,25 +1,49 @@
 {
-  "name": "ngx-openlayers",
-  "version": "1.0.11-ajp",
-  "standard-version": {
-    "postchangelog": "cp projects/ngx-openlayers/CHANGELOG.md dist/ngx-openlayers/CHANGELOG.md"
+  "_from": "file:ngx-openlayers-1.0.0-next.11.tgz",
+  "_id": "ngx-openlayers@1.0.0-next.11",
+  "_inBundle": false,
+  "_integrity": "sha512-uDna1b9eZs6bsUT4eu0OCS+m7zr9gTGo5V3oA8Nz6Xo5wCPzPeHT840eHxtbAHLoxOjBIGKnw8cqsHnYqNNFMA==",
+  "_location": "/ngx-openlayers",
+  "_phantomChildren": {},
+  "_requested": {
+    "type": "file",
+    "where": "C:\\Users\\Adrian.LENU0272\\dev\\angular\\ngx-test",
+    "raw": "ngx-openlayers-1.0.0-next.11.tgz",
+    "rawSpec": "ngx-openlayers-1.0.0-next.11.tgz",
+    "saveSpec": "file:ngx-openlayers-1.0.0-next.11.tgz",
+    "fetchSpec": "C:\\Users\\Adrian.LENU0272\\dev\\angular\\ngx-test\\ngx-openlayers-1.0.0-next.11.tgz"
   },
+  "_requiredBy": [
+    "#USER",
+    "/"
+  ],
+  "_resolved": "C:\\Users\\Adrian.LENU0272\\dev\\angular\\ngx-test\\ngx-openlayers-1.0.0-next.11.tgz",
+  "_shasum": "ec51c96424a2fb6792fbacee24dd142d0baa92d4",
+  "_spec": "ngx-openlayers-1.0.0-next.11.tgz",
+  "_where": "C:\\Users\\Adrian.LENU0272\\dev\\angular\\ngx-test",
+  "bundleDependencies": false,
+  "dependencies": {
+    "tslib": "^1.9.0"
+  },
+  "deprecated": false,
+  "es2015": "fesm2015/ngx-openlayers.js",
+  "esm2015": "esm2015/ngx-openlayers.js",
+  "esm5": "esm5/ngx-openlayers.js",
+  "fesm2015": "fesm2015/ngx-openlayers.js",
+  "fesm5": "fesm5/ngx-openlayers.js",
+  "main": "bundles/ngx-openlayers.umd.js",
+  "metadata": "ngx-openlayers.metadata.json",
+  "module": "fesm5/ngx-openlayers.js",
+  "name": "ngx-openlayers",
   "peerDependencies": {
     "@angular/common": "^6.0.0-rc.0 || ^6.0.0 || ^7.0.0",
     "@angular/core": "^6.0.0-rc.0 || ^6.0.0 || ^7.0.0",
     "ol": "^5.3.1"
   },
-  "dependencies": {
-    "tslib": "^1.9.0"
+  "sideEffects": false,
+  "standard-version": {
+    "postchangelog": "cp projects/ngx-openlayers/CHANGELOG.md dist/ngx-openlayers/CHANGELOG.md"
   },
-  "main": "bundles/ngx-openlayers.umd.js",
-  "module": "fesm5/ngx-openlayers.js",
-  "es2015": "fesm2015/ngx-openlayers.js",
-  "esm5": "esm5/ngx-openlayers.js",
-  "esm2015": "esm2015/ngx-openlayers.js",
-  "fesm5": "fesm5/ngx-openlayers.js",
-  "fesm2015": "fesm2015/ngx-openlayers.js",
   "typings": "ngx-openlayers.d.ts",
-  "metadata": "ngx-openlayers.metadata.json",
-  "sideEffects": false
+  "version": "1.0.0-next.11"
 }
