@@ -5,7 +5,6 @@ import { Injectable, isDevMode } from '@angular/core';
 import { Subject, Observable } from 'rxjs';
 
 import { State } from './state.service';
-import { Platform } from './platform.service';
 
 @Injectable()
 export class Info {
@@ -24,7 +23,6 @@ export class Info {
     public config: any;     //** holds app configuration settings **
     public data: any;       //** holds app data **
     public state: State;  
-    public platform: Platform;  
 
     // Observables
     private upgradedSource: Subject<any>;
@@ -35,7 +33,6 @@ export class Info {
 
     constructor() {
         this.state= new State();  
-        this.platform= new Platform();
         this.devMode= isDevMode();
         //** default configuration and data **
         this.config= {};

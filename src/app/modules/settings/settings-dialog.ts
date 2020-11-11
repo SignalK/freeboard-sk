@@ -20,6 +20,8 @@ export class SettingsDialog implements OnInit {
        {href: "#sectNotes", text: 'Notes'},
        {href: "#sectVideo", text: 'Video'}
     ];
+
+    private saveOnClose: boolean= false;
      
     constructor( 
         public facade: SettingsFacade,
@@ -33,11 +35,17 @@ export class SettingsDialog implements OnInit {
 
     ngOnDestroy() { }
 
+    // ** handle dialog close action
+    handleClose() { this.dialogRef.close(this.saveOnClose) }
+
     toggleFavourites() { this.display.favourites= (this.display.favourites) ? false : true }
 
-    onFormChange(e:any, f:any) {
-        if(!f.invalid) { this.facade.applySettings() } 
-        else { console.warn('SETTINGS:','Form field invalid: Config NOT Saved!') }
+    onFormChange(e:any, f:any, deferSave:boolean= false) {
+        if(deferSave) { this.saveOnClose= true }
+        else {
+            if(!f.invalid) { this.facade.applySettings() } 
+            else { console.warn('SETTINGS:','Form field invalid: Config NOT Saved!') }
+        }
     }
 
     onPreferredPaths(e:any) { 

@@ -362,7 +362,9 @@ export class AppComponent {
         }
         if(!trailData || trailData.length==0) {    // no server trail data supplied
             if(this.app.data.trail.length%60==0 && this.app.data.serverTrail) { 
-                this.skres.getVesselTrail();    // request trail from server
+                if(this.app.config.selections.trailFromServer) {
+                    this.skres.getVesselTrail();    // request trail from server
+                }
             }
             this.app.data.trail= this.app.data.trail.slice(-5000); 
         }
@@ -440,6 +442,13 @@ export class AppComponent {
                 this.lastVideoUrl= this.app.config.resources.video.url
                 this.vidUrl= this.dom.bypassSecurityTrustResourceUrl(`${this.app.config.resources.video.url}`);            
             }
+            // ** trail **
+            if(this.app.config.vesselTrail) {   // show trail
+                if(this.app.config.selections.trailFromServer) {
+                    this.skres.getVesselTrail();
+                }
+                else { this.app.data.serverTrail= false }
+            }         
         }    
         // update instrument app state
         if(this.app.config.plugins.startOnOpen) {
@@ -526,7 +535,10 @@ export class AppComponent {
             maxWidth: '90vw',
             minWidth: '90vw'
         })
-        .afterClosed().subscribe( ()=>this.focusMap() );
+        .afterClosed().subscribe( (doSave)=> {
+            this.focusMap();
+            if(doSave) { this.app.saveConfig() }
+        });
     }      
 
     // ** GPX File processing **
@@ -696,7 +708,11 @@ export class AppComponent {
     public clearTrail(noprompt:boolean=false) {
         if(noprompt) { 
             if(!this.app.data.serverTrail) { this.app.data.trail=[] }
-            else { this.skres.getVesselTrail() }
+            else { 
+                if(this.app.config.selections.trailFromServer) {
+                    this.skres.getVesselTrail();    // request trail from server
+                }
+            }
         }
         else {
             if(!this.app.data.serverTrail)
@@ -706,7 +722,11 @@ export class AppComponent {
             ).subscribe( res=> { 
                 if(res) { 
                     if(!this.app.data.serverTrail) { this.app.data.trail=[] }
-                    else { this.skres.getVesselTrail() }
+                    else {                 
+                        if(this.app.config.selections.trailFromServer) {
+                            this.skres.getVesselTrail();    // request trail from server
+                        }
+                    }
                 }
             }); 
         }   
@@ -1056,7 +1076,9 @@ export class AppComponent {
                 this.stream.post({ cmd: 'vessel', options: {context: 'self', name: r['name']} });
                 this.fetchResources();  // ** get resources from server
                 this.skres.getTracks(true);
-                this.skres.getVesselTrail();  //trail from server
+                if(this.app.config.selections.trailFromServer) {
+                    this.skres.getVesselTrail();    // request trail from server
+                }
                 // ** query anchor alarm status
                 this.alarmsFacade.queryAnchorStatus(this.app.data.vessels.activeId, this.app.data.vessels.active.position);
                 this.skres.getGRIBList().subscribe( 

@@ -125,7 +125,8 @@ export class FBMapComponent implements OnInit, OnDestroy {
         heading: [null,null],
         anchor: [],
         trail: [],
-        cpa: [] 
+        cpa: [],
+        xtePath: []
     }
 
     public overlay:IOverlay = {
@@ -173,7 +174,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
         self: new SKVessel(),   //self vessel
         ais: new Map(),         // other vessels
         active: new SKVessel(),  // focussed vessel
-        navData: {position: null},
+        navData: {position: null, startPosition: null},
         closest: {id: null, position: [0,0]},
         grib: { wind: [], temperature: [] },    // GRIB data
         colorGradient: TEMPERATURE_GRADIENT,
@@ -233,6 +234,9 @@ export class FBMapComponent implements OnInit, OnDestroy {
                 if(r.action=='save' && r.setting=='config') {  
                     this.fbMap.movingMap= this.app.config.map.moveMap;
                     this.renderMapContents();
+                    if(!this.app.config.selections.trailFromServer) {
+                        this.dfeat.trail= [];
+                    }
                 }
             })
         );     
@@ -305,6 +309,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
         this.dfeat.ais= this.app.data.vessels.aisTargets;
         this.dfeat.active= this.app.data.vessels.active;
         this.dfeat.navData.position= this.app.data.navData.position;
+        this.dfeat.navData.startPosition= this.app.data.navData.startPosition;
         this.dfeat.closest= {
             id: this.app.data.vessels.closest.id,
             position: this.app.data.vessels.closest.position
@@ -777,6 +782,18 @@ export class FBMapComponent implements OnInit, OnDestroy {
             }
             this.vesselLines.trail= this.mapifyCoords(this.vesselLines.trail);
         }
+
+        // ** xtePath **
+        let xtePath= null;
+        if( (this.dfeat.navData.startPosition && typeof this.dfeat.navData.startPosition[0]=='number') 
+            &&  (this.dfeat.navData.position && typeof this.dfeat.navData.position[0]=='number')
+        ) {
+            this.vesselLines.xtePath= this.mapifyCoords([
+                this.dfeat.navData.startPosition,
+                this.dfeat.navData.position
+            ]); 
+        }
+        else { this.vesselLines.xtePath }
 
         // ** bearing line (active) **
         let bpos= (this.dfeat.navData.position && typeof this.dfeat.navData.position[0]=='number') ? 

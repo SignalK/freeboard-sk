@@ -135,7 +135,10 @@ export class SettingsFacade  {
 
     applySettings() {
         this.app.debug('Saving Settings..');
-        this.app.saveConfig();        
+        if(!this.app.config.vesselTrail) {
+            this.app.config.selections.trailFromServer= false;
+        }
+        this.app.saveConfig();    
     }
     
 }

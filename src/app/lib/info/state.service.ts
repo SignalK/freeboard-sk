@@ -1,5 +1,5 @@
 /* ******************************
-* Application Platform Service **
+* Application LoaclStorage Service **
 * ******************************/
 import {Injectable} from '@angular/core';
 

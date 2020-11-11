@@ -18,7 +18,7 @@
     </div>
     <div style="text-align:right;">
         <button mat-icon-button *ngIf="!display.paths"
-            (click)="this.dialogRef.close();">
+            (click)="handleClose()">
             <mat-icon>close</mat-icon>
         </button>           
     </div>
@@ -132,19 +132,10 @@
                                     [(ngModel)]="facade.settings.vesselWindVectors" 
                                     (change)="onFormChange($event, vesselwindvectors)"
                                     label="after">
-                                    Display Vessel Wind Vectors
+                                    Display Wind Vectors
                                 </mat-checkbox>                                        
                             </div>                             
-                            <br>
-                            <div class="setting-card-row-item">
-                                <mat-checkbox #vesseltrail color="primary"
-                                    [(ngModel)]="facade.settings.vesselTrail" 
-                                    (change)="onFormChange($event, vesseltrail)"
-                                    label="after">
-                                    Display Vessel Trail
-                                </mat-checkbox>                                        
-                            </div>
-                            <br>
+                            <!--<br>                         
                             <div class="setting-card-row-item">
                                 <mat-checkbox #mapAnimate color="primary"
                                     [(ngModel)]="facade.settings.map.animate" 
@@ -153,8 +144,47 @@
                                     label="after">
                                     Animate Map
                                 </mat-checkbox>                                        
-                            </div>                                                                                                     
+                            </div>-->                                                                                                    
                         </div>  
+                    </mat-card>
+
+                    <mat-card class="setting-card">
+                        <fieldset>
+                            <legend>
+                                <mat-checkbox #vesseltrail color="primary"
+                                    [(ngModel)]="facade.settings.vesselTrail" 
+                                    (change)="onFormChange($event, vesseltrail)"
+                                    label="after">
+                                    Display Vessel Trail
+                                </mat-checkbox>                                        
+                            </legend>
+                            <div class="setting-card-row" style="padding-bottom: 10px;">
+                                <div class="setting-card-row-item">
+                                    <mat-checkbox #trailFromServer color="primary"
+                                        [disabled]="!facade.settings.vesselTrail"
+                                        [(ngModel)]="facade.settings.selections.trailFromServer" 
+                                        (change)="onFormChange($event, trailFromServer)"
+                                        matTooltip="Select to source trail data from the server"
+                                        label="after">
+                                        Get Trail from server
+                                    </mat-checkbox>                                        
+                                    &nbsp;&nbsp;
+
+                                    <mat-slider #trailDuration
+                                        thumbLabel
+                                        tickInterval="1"
+                                        min="1"
+                                        max="96"
+                                        color="primary"
+                                        [disabled]="!facade.settings.selections.trailFromServer || !facade.settings.vesselTrail"
+                                        [(ngModel)]="facade.settings.selections.trailDuration" 
+                                        (change)="onFormChange($event, trailDuration, true)">
+                                    </mat-slider>
+                                    Length ({{facade.settings.selections.trailDuration}} hrs)                      
+                                </div>
+                            </div>
+                        </fieldset>
+
                     </mat-card>
                     <mat-card class="setting-card">
                         <div class="setting-card-row" style="padding-bottom: 10px;">                          

@@ -67,7 +67,9 @@ const FreeboardConfig= {
         aisWindApparent: false,
         aisWindMinZoom: 15,
         notesMinZoom: 10,
-        pluginFavourites: []
+        pluginFavourites: [],
+        trailFromServer: false,
+        trailDuration: 24    // number of hours of trail to fetch from server
     },
     resources: {    // ** resource options
         notes: {
@@ -87,7 +89,7 @@ const FreeboardConfig= {
 export class AppInfo extends Info {
 
     private DEV_SERVER= {
-        host: '172.17.0.1', //'192.168.86.32', //'172.17.0.1', // host name || ip address
+        host: '192.168.86.32', //'172.17.0.1', // host name || ip address
         port: 3000,     // port number
         ssl: false
     };
@@ -123,7 +125,7 @@ export class AppInfo extends Info {
         this.name= "Freeboard";
         this.shortName= "freeboard";
         this.description= `Signal K Chart Plotter.`;
-        this.version= '1.12.0';
+        this.version= '1.13.0';
         this.url= 'https://github.com/signalk/freeboard-sk';
         this.logo= "./assets/img/app_logo.png";   
         
@@ -149,7 +151,7 @@ export class AppInfo extends Info {
             activeRoute: null,
             activeWaypoint: null,
             trail: [],
-            serverTrail: false,
+            serverTrail: false,  // trail received from server
             server: null,
             hasToken: false,
             lastGet: null,      // map position of last resources GET
@@ -180,7 +182,8 @@ export class AppInfo extends Info {
                 position: null,
                 pointIndex: -1,
                 pointTotal: 0,
-                arrivalCircle: null
+                arrivalCircle: null,
+                startPosition: null
             }
         }
 
@@ -341,8 +344,11 @@ export class AppInfo extends Info {
         } 
         if(typeof settings.selections.tracks === 'undefined') {
             settings.selections.tracks= [];
-        }        
-                
+        } 
+        if(typeof settings.selections.trailDuration === 'undefined') {
+            settings.selections.trailDuration= 24;
+        } 
+        
         if(typeof settings.plugins === 'undefined') { settings.plugins= {} }
         if(typeof settings.plugins.parameters === 'undefined') { 
             settings.plugins.parameters= null;
@@ -411,41 +417,31 @@ export class AppInfo extends Info {
                     from the available paths received from the server. 
                     See <a href="assets/help/index.html#settings-paths" target="help">HELP</a> 
                     for more details.`
+            },                
+            'experiments': {
+                title: 'Experiments',
+                message: `
+                    Experiments are a means for testing out potential new features
+                    in Freeboard.
+                    <br>&nbsp;<br>
+                    You can enable Experiments in <b><i>Settings</i></b>.
+                    <br>&nbsp;<br>
+                    Check out <a href="assets/help/index.html#experiments" target="help">HELP</a> 
+                    for more details.`
             },
             'whats-new': [
                 {
                     type: 'signalk-server-node',
                     title: 'Vessel Trail',
                     message: `
-                        Freeboard will now display vessel trail stored on the Signal K server 
-                        made available by the <b><i>signalk-to-influxdb</i></b> plugin.
+                        You can now select whether to display vessel trail from the:
+                        <li>Local cache</li>
+                        <li>Signal K server and set how much trail data to retrieve<br>
+                            <i>(requires signalk-to-influxdb plugin)</i>
+                        </li>
                         <br>&nbsp;<br>
-                        This will happen automatically when you have selected
-                        <b>Display Vessel trail</b> in <b><i>Settings</i></b>.<br>
-                        <br>&nbsp;<br>
-                        For best results install the latest <b><i>signalk-to-influxdb</i></b> plugin.`
-                },
-                {
-                    type: 'signalk-server-node',
-                    title: 'Arrival Circle',
-                    message: `
-                        When navigating to a destination you can now define an Arrival Circle radius 
-                        which when set will trigger <i>arrivalCircleEntered</i> notifications.
-                        <br>&nbsp;<br>
-                        <img src="./assets/help/img/course_data.png" style="width:150px;"/>`
-                },                
-                {
-                    type: 'signalk-server-node',
-                    title: 'Experiments',
-                    message: `
-                        Experiments are a means for testing out potential new features
-                        in Freeboard.
-                        <br>&nbsp;<br>
-                        You can enable Experiments in <b><i>Settings</i></b>.
-                        <br>&nbsp;<br>
-                        Check out <a href="assets/help/index.html#experiments" target="help">HELP</a> 
-                        for more details.`
-                }                         
+                        <b>Display Vessel trail</b> in <b><i>Settings</i></b>.<br>`
+                }                      
             ]           
         }
 

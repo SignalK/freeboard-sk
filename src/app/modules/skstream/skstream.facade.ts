@@ -205,7 +205,7 @@ export class SKStreamFacade  {
                 Convert.kmToNauticalMiles(v['course.crossTrackError']/1000);                  
         }
 
-        // ** next point **
+        // ** nextPoint **
         if(typeof v['course.nextPoint.position']!=='undefined') {
             let np= (v['course.nextPoint.position']) ?
                 [ v['course.nextPoint.position'].longitude, v['course.nextPoint.position'].latitude ] 
@@ -244,6 +244,15 @@ export class SKStreamFacade  {
         if(typeof v['course.nextPoint.timeToGo']!=='undefined') { 
             this.app.data.navData.ttg= v['course.nextPoint.timeToGo']/60;
         } 
+
+        // ** previousPoint **
+        if(typeof v['course.previousPoint.position']!=='undefined') {
+            let np= (v['course.previousPoint.position']) ?
+                [ v['course.previousPoint.position'].longitude, v['course.previousPoint.position'].latitude ] 
+                : null;
+            this.app.data.navData.startPosition= np;
+        } 
+
         // ** experiment - arrivalCircle **
         if(typeof v['course.nextPoint.arrivalCircle']!=='undefined') { 
             this.app.data.navData.arrivalCircle= v['course.nextPoint.arrivalCircle'];

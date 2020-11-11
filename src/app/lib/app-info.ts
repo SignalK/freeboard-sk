@@ -2,9 +2,8 @@
  * Public API Surface of app-info
  */
 
- // ** app state / platform services **
+ // ** app state services **
 export * from './info/info.service';
-export * from './info/platform.service';
 export * from './info/state.service';
 
 // ** app storage services **

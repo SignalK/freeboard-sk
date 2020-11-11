@@ -5,7 +5,7 @@
 <aol-map #aolMap [width]="'100%'" [height]="'100%'" 
     [style.cursor]="(draw.enabled || measure.enabled) ? 'crosshair' : 'initial'"
     [loadTilesWhileAnimating]="app.config.map.animate"
-    [loadTilesWhileInteracting]="app.config.map.animate"
+    [loadTilesWhileInteracting]="true"
     (contextmenu)="onMapRightClick($event)"
     (onClick)="onMapMouseClick($event)"
     (onMoveEnd)="onMapMove($event)"
@@ -492,6 +492,24 @@
     <!-- *** VESSEL SELF *** -->
     <aol-layer-vector [zIndex]="210" *ngIf="app.data.vessels.showSelf">
         <aol-source-vector>
+
+            <!-- xte path -->
+            <aol-feature *ngIf="dfeat.navData.startPosition && dfeat.navData.position && app.config.anchor.raised">
+                <aol-geometry-linestring>
+                    <aol-collection-coordinates
+                        [coordinates]="vesselLines.xtePath"
+                        [srid]="app.config.map.srid">
+                    </aol-collection-coordinates>
+                </aol-geometry-linestring>
+                <aol-style>
+                    <aol-style-stroke 
+                        [color]="'gray'" 
+                        [width]="1"
+                        [lineDash]="[5,5]">
+                    </aol-style-stroke>                                  
+                </aol-style>
+            </aol-feature>  
+
             <!-- vessel -->
             <aol-feature [id]="''+app.data.selfId">
                 <aol-geometry-point>

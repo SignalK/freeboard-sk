@@ -219,37 +219,52 @@ export class SKResources {
     /** get vessel trail from sk server */
     getVesselTrail() { 
         let reqUrl= '/self/track?'
-        let lastDay= this.signalk.api.get(`${reqUrl}timespan=23h&resolution=1m&timespanOffset=1`);
-        let lastHour= this.signalk.api.get(`${reqUrl}timespan=1h&resolution=5s`);
-        let res= forkJoin([lastDay, lastHour]);
+        let trkReq= [];
+        let duration= this.app.config.selections.trailDuration;
+        if(duration>24) { // beyond last 24hrs
+            trkReq.push( this.signalk.api.get(`${reqUrl}timespan=${duration-24}h&resolution=5m&timespanOffset=24`) );
+            trkReq.push( this.signalk.api.get(`${reqUrl}timespan=23h&resolution=1m&timespanOffset=1`) );  
+        }
+        if(duration>1 && duration<25){ // last 24hrs
+            trkReq.push( this.signalk.api.get(`${reqUrl}timespan=${duration-1}h&resolution=1m&timespanOffset=1`) );    
+        }
+        // lastHour
+        trkReq.push( this.signalk.api.get(`${reqUrl}timespan=1h&resolution=5s`) );
+            
+        let res= forkJoin(trkReq); //[lastDay, lastHour]
         let trail= [];
         res.subscribe(
             (res:any)=> { 
-                // lastDay
-                if(typeof res[0].error==='undefined') {
-                    if(res[0].type && res[0].type=='MultiLineString') {
-                        if (res[0].coordinates && Array.isArray(res[0].coordinates)) {
-                            res[0].coordinates.forEach( l=> { // -> 60min segments
-                                while(l.length>60) {
-                                    let ls= l.slice(0,60);
-                                    trail.push(ls);
-                                    l= l.slice(59); // ensure segments join 
-                                    // offset first point so OL renders
-                                    l[0]= [l[0][0]+0.000000005, l[0][1]+0.000000005];
-                                }
-                                if(l.length!=0) { trail.push(l) }
-                            });
-                        } 
+                let idx: number =0;
+                let lastIdx= trkReq.length-1;
+                res.forEach( r=> {
+                    if(typeof r.error==='undefined') {
+                        if(idx!= lastIdx) { 
+                            if(r.type && r.type=='MultiLineString') {
+                                if (r.coordinates && Array.isArray(r.coordinates)) {
+                                    r.coordinates.forEach( l=> { // -> 60min segments
+                                        while(l.length>60) {
+                                            let ls= l.slice(0,60);
+                                            trail.push(ls);
+                                            l= l.slice(59); // ensure segments join 
+                                            // offset first point so OL renders
+                                            l[0]= [l[0][0]+0.000000005, l[0][1]+0.000000005];
+                                        }
+                                        if(l.length!=0) { trail.push(l) }
+                                    });
+                                } 
+                            }
+                        }
+                        else { //last Hour
+                            if(r.type && r.type=='MultiLineString') {
+                                if (r.coordinates && Array.isArray(r.coordinates)) {
+                                    r.coordinates.forEach( l=> { trail.push(l) } );
+                                } 
+                            }
+                        }
                     }
-                }                        
-                // lastHour
-                if(typeof res[1].error==='undefined') {
-                    if(res[1].type && res[1].type=='MultiLineString') {
-                        if (res[1].coordinates && Array.isArray(res[1].coordinates)) {
-                            res[1].coordinates.forEach( l=> { trail.push(l) } );
-                        } 
-                    }
-                }
+                    idx++;
+                });
                 if(!this.app.data.serverTrail) { this.app.data.serverTrail= true }
                 this.updateSource.next({action: 'get', mode: 'trail', data: trail });
             },
@@ -313,22 +328,22 @@ export class SKResources {
                     });
                     // ** sort by scale
                     this.sortByScaleDesc();
+                }
+                // insert OStreetM at start of list
+                this.OSMCharts[0][2]= (this.app.config.selections.charts.includes('openstreetmap')) ? true : false;
+                this.app.data.charts.unshift(this.OSMCharts[0]);
 
-                    // insert OStreetM at start of list
-                    this.OSMCharts[0][2]= (this.app.config.selections.charts.includes('openstreetmap')) ? true : false;
-                    this.app.data.charts.unshift(this.OSMCharts[0]);
+                // ** clean up selections
+                this.app.config.selections.charts= this.app.data.charts.map( 
+                    i=>{ return (i[2]) ? i[0] : null }
+                ).filter(i=> { return i });
+                
+                // arrange the chart layers
+                this.arrangeChartLayers();
 
-                    // ** clean up selections
-                    this.app.config.selections.charts= this.app.data.charts.map( 
-                        i=>{ return (i[2]) ? i[0] : null }
-                    ).filter(i=> { return i });
-                    
-                    // arrange the chart layers
-                    this.arrangeChartLayers();
-
-                    // emit update
-                    this.updateSource.next({action: 'get', mode: 'chart'});
-                }               
+                // emit update
+                this.updateSource.next({action: 'get', mode: 'chart'});
+                               
             },
             err=> { this.app.data.charts= this.OSMCharts.slice(0) }
         )
