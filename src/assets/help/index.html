@@ -827,18 +827,26 @@
                         </li>                                
                         <li><b>Display Vessel Trail</b>: 
                             Check this box if you want to display the vessel trail.<br>
-                            Freeboard will display the vessel trail in one of two methods:
-                            <ol>
-                                <li>If vessel trail data is available from the server at the path 
-                                    <i>signalk/v1/api/self/track</i> Freeboard will attempt to retrieve
-                                    the last 1 hour of trail at 5 second intervals and the previous 
-                                    23 hours at a 1 minute interval.
-                                </li>
+                            By default Freeboard will display the vessel trail using a local cache 
+                            maintaining up to 5000 points at a 5 second interval.
+                            <ul>
                                 <li>
-                                    If data is not available from the server then Freeboard maintains up to 
-                                    5000 points at a 5 second interval.
+                                    <b>Get Trail from Server</b>: Check this to retrieve
+                                    vessel trail data from the server at the path 
+                                    <i>signalk/v1/api/self/track</i>.<br> 
                                 </li>
-                            </ol>
+                                 <li>
+                                    Use the slider to set the length of track to retrieve from the server 
+                                    in hours. Time is relative to the current time.<br>
+
+                                    Freeboard will attempt to retrieve track from the server in the following way:
+                                    <ul>
+                                        <li>time < (now - 24hrs) => 5 minute intervals.</li>
+                                        <li>(now - 1hr) < time > (now - 24hrs) => 1 minute intervals.</li>
+                                        <li>time > (now - 1hr) => 5 second intervals.</li>
+                                    </ul>
+                                </li>
+                            </ul>
                         </li>   
                         <li><b>Dark Mode Setting</b>: 
                             Use this setting to control the display theme (Light or Dark).<br>
