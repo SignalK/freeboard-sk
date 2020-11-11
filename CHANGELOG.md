@@ -1,5 +1,14 @@
 # CHANGELOG: Freeboard
 
+### v1.13
+
+- **Added**: Display of path line between `previousPoint` and destination (`nextPoint`).
+
+- **Added**: Additional vessel trail settings to select the length of trail retrieved from the server.
+
+- **Fix**: Issue where default world map was not displayed if server returned no charts.
+
+
 ### v1.12
 
 - **Added**: Display vessel trail from server provided by `signalk-to-influxdb (v1.8.0)`.
