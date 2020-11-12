@@ -15,6 +15,7 @@ import { AppInfo } from 'src/app/app.info'
 import { SKResources } from '../skresources/resources.service';
 import { SKVessel } from '../skresources/resource-classes';
 import { SKStreamFacade } from '../skstream/skstream.facade';
+import { OverlayContainer } from '@angular/cdk/overlay';
 
 interface IResource {
     id: string;
@@ -525,6 +526,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
     public onMapMouseClick(e:any) {
         if(this.measure.enabled) { this.onMeasureClick(e.coordinate) }  
         else if(!this.draw.enabled && !this.draw.modify) {
+            if(!this.app.config.popoverMulti) { this.overlay.show= false }
             let flist= new Map();
             let fa= [];
             // compile list of features at click location
@@ -1014,6 +1016,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
             }
         }
         else if(mode==INTERACTION_MODE.DRAW) {
+            this.overlay.show= false;
             if(!value) {   // end draw mode
                 if(this.draw.enabled) { this.drawEnd.emit({mode:'ended'}) }
                 this.draw.enabled= false; 

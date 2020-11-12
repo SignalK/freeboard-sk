@@ -59,7 +59,7 @@ features: Array<any> - list of features
     template: `
         <ap-popover
                 [title]="title" 
-                [canClose]="true"
+                [canClose]="canClose"
                 (closed)="handleClose()">    
             <mat-nav-list>
                 <mat-list-item *ngFor="let f of features">
@@ -78,6 +78,7 @@ features: Array<any> - list of features
 export class FeatureListPopoverComponent {
     @Input() title: string;
     @Input() features: Array<any>= [];
+    @Input() canClose: boolean;
     @Output() closed: EventEmitter<any>= new EventEmitter();
     @Output() selected: EventEmitter<any>= new EventEmitter();
 
@@ -101,7 +102,7 @@ isSelf: boolean - true if vessel 'self'
     template: `
         <ap-popover
             [title]="_title" 
-            [canClose]="true"
+            [canClose]="canClose"
             (closed)="handleClose()">
             
             <div style="display:flex;">
@@ -194,6 +195,7 @@ export class VesselPopoverComponent {
     @Input() useMagnetic: string;
     @Input() isActive: boolean;
     @Input() isSelf: boolean;
+    @Input() canClose: boolean;
     @Output() info: EventEmitter<string>= new EventEmitter();
     @Output() closed: EventEmitter<any>= new EventEmitter();
     @Output() focused: EventEmitter<boolean>= new EventEmitter();
@@ -247,7 +249,7 @@ id: string - resource id
     template: `
         <ap-popover
             [title]="title" 
-            [canClose]="true"
+            [canClose]="canClose"
             (closed)="handleClose()">
             
             <div *ngFor="let p of properties" style="display:flex;">
@@ -349,6 +351,7 @@ export class ResourcePopoverComponent {
     @Input() active: boolean;
     @Input() featureCount: number= 0;
     @Input() units: string= 'm';
+    @Input() canClose: boolean;
     @Output() modify: EventEmitter<any>= new EventEmitter();
     @Output() delete: EventEmitter<any>= new EventEmitter();
     @Output() addNote: EventEmitter<any>= new EventEmitter();
@@ -478,7 +481,7 @@ aton: SKAtoN - aton data
     template: `
         <ap-popover
             [title]="_title" 
-            [canClose]="true"
+            [canClose]="canClose"
             (closed)="handleClose()">
             
             <div style="display:flex;">
@@ -523,6 +526,7 @@ aton: SKAtoN - aton data
 export class AtoNPopoverComponent {
     @Input() title: string;
     @Input() aton: SKAtoN;
+    @Input() canClose: boolean;
     @Output() info: EventEmitter<string>= new EventEmitter();
     @Output() closed: EventEmitter<any>= new EventEmitter();
     

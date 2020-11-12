@@ -134,7 +134,17 @@
                                     label="after">
                                     Display Wind Vectors
                                 </mat-checkbox>                                        
-                            </div>                             
+                            </div>      
+                            <br>                         
+                            <div class="setting-card-row-item">
+                                <mat-checkbox #popoverMulti color="primary"
+                                    [(ngModel)]="facade.settings.popoverMulti" 
+                                    (change)="onFormChange($event, popoverMulti)"
+                                    matTooltip="Add close button to popovers"
+                                    label="after">
+                                    Popovers: Use close button
+                                </mat-checkbox>                                        
+                            </div>                                                     
                             <!--<br>                         
                             <div class="setting-card-row-item">
                                 <mat-checkbox #mapAnimate color="primary"

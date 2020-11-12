@@ -38,6 +38,7 @@ const FreeboardConfig= {
     aisTargets: true,       // display ais targets
     courseData: true,       // display course data
     notes: true,            // display notes
+    popoverMulti: false,    // close popovers using cose button
     depthAlarm: { enabled: false, smoothing: 10000 },
     plugins: {
         instruments: '/@signalk/instrumentpanel',
@@ -89,7 +90,7 @@ const FreeboardConfig= {
 export class AppInfo extends Info {
 
     private DEV_SERVER= {
-        host: '192.168.86.32', //'172.17.0.1', // host name || ip address
+        host: '172.17.0.1',  //'192.168.86.32', //'172.17.0.1', // host name || ip address
         port: 3000,     // port number
         ssl: false
     };

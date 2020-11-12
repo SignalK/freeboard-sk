@@ -354,6 +354,7 @@
             </ap-popover>
             <!--Feature LIST popover-->
             <feature-list-popover *ngIf="this.overlay.type=='list'"
+                [canClose]="app.config.popoverMulti"
                 [title]="overlay.title" 
                 [features]="this.overlay.content"
                 (selected)="featureListSelection($event)"
@@ -361,6 +362,7 @@
             </feature-list-popover>                               
             <!--resource popover-->
             <resource-popover *ngIf="overlay.type!='ais' && overlay.type!='list' && overlay.type!='measure'"
+                [canClose]="app.config.popoverMulti"
                 [title]="overlay.title" 
                 [type]="overlay.type"
                 [resource]="overlay.resource"
@@ -379,6 +381,7 @@
             </resource-popover>
             <!--AIS/Vessel popover-->
             <vessel-popover *ngIf="overlay.type=='ais'"
+                [canClose]="app.config.popoverMulti"
                 [vessel]="overlay.vessel"
                 [useMagnetic]="app.useMagnetic"
                 [isActive]="app.data.vessels.activeId==overlay.id"
@@ -390,6 +393,7 @@
             </vessel-popover>      
             <!--AtoN popover-->
             <aton-popover *ngIf="overlay.type=='aton'"
+                [canClose]="app.config.popoverMulti"
                 [aton]="overlay.aton"
                 (info)="itemInfo(overlay.id, overlay.type); popoverClosed()"
                 (closed)="popoverClosed()">                    
