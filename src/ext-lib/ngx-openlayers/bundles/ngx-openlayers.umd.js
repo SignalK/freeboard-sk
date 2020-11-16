@@ -120,7 +120,7 @@
         MapComponent.decorators = [
             { type: core.Component, args: [{
                         selector: 'aol-map',
-                        template: "\n    <div [style.width]=\"width\" [style.height]=\"height\"></div>\n    <ng-content></ng-content>\n  "
+                        template: "\n    <div [style.width]=\"width\" [style.height]=\"height\" tabindex=\"-1\"></div>\n    <ng-content></ng-content>\n  "
                     }] }
         ];
         /** @nocollapse */
@@ -203,13 +203,23 @@
                 if (!this.instance) {
                     return;
                 }
+                /** @type {?} */
+                var args = {};
                 for (var key in changes) {
                     if (changes.hasOwnProperty(key)) {
                         switch (key) {
+                            case 'rotation':
+                                if (this.zoomAnimation) {
+                                    args[key] = changes[key].currentValue;
+                                }
+                                else {
+                                    properties[key] = changes[key].currentValue;
+                                }
+                                break;
                             case 'zoom':
                                 /** Work-around: setting the zoom via setProperties does not work. */
                                 if (this.zoomAnimation) {
-                                    this.instance.animate({ zoom: changes[key].currentValue });
+                                    args[key] = changes[key].currentValue;
                                 }
                                 else {
                                     this.instance.setZoom(changes[key].currentValue);
@@ -220,12 +230,16 @@
                                 this.host.instance.setView(this.instance);
                                 break;
                             default:
+                                properties[key] = changes[key].currentValue;
                                 break;
                         }
-                        properties[key] = changes[key].currentValue;
+                        if (this.zoomAnimation && (typeof args['zoom'] !== 'undefined' ||
+                            typeof args['rotation'] !== 'undefined')) {
+                            this.instance.animate(args);
+                        }
                     }
                 }
-                // console.log('changes detected in aol-view, setting new properties: ', properties);
+                //console.log('changes detected in aol-view, setting new properties: ', properties);
                 this.instance.setProperties(properties, false);
             };
         /**
@@ -3742,6 +3756,62 @@
      * @fileoverview added by tsickle
      * @suppress {checkTypes,constantProperty,extraRequire,missingOverride,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
      */
+    var FreeboardInteractionComponent = /** @class */ (function () {
+        function FreeboardInteractionComponent(map) {
+            this.map = map;
+            this.interactions = [];
+        }
+        /**
+         * @return {?}
+         */
+        FreeboardInteractionComponent.prototype.ngOnInit = /**
+         * @return {?}
+         */
+            function () {
+                var _this = this;
+                this.interactions.push(new interaction.DragPan(this));
+                this.interactions.push(new interaction.DragZoom(this));
+                this.interactions.push(new interaction.PinchZoom(this));
+                this.interactions.push(new interaction.MouseWheelZoom(this));
+                this.interactions.push(new interaction.KeyboardPan(this));
+                this.interactions.push(new interaction.KeyboardZoom(this));
+                this.interactions.forEach(( /**
+                 * @param {?} i
+                 * @return {?}
+                 */function (i) { return _this.map.instance.addInteraction(i); }));
+            };
+        /**
+         * @return {?}
+         */
+        FreeboardInteractionComponent.prototype.ngOnDestroy = /**
+         * @return {?}
+         */
+            function () {
+                var _this = this;
+                this.interactions.forEach(( /**
+                 * @param {?} i
+                 * @return {?}
+                 */function (i) { return _this.map.instance.removeInteraction(i); }));
+            };
+        FreeboardInteractionComponent.decorators = [
+            { type: core.Component, args: [{
+                        selector: 'aol-interaction-freeboard',
+                        template: ''
+                    }] }
+        ];
+        /** @nocollapse */
+        FreeboardInteractionComponent.ctorParameters = function () {
+            return [
+                { type: MapComponent }
+            ];
+        };
+        return FreeboardInteractionComponent;
+    }());
+
+    /**
+     * @fileoverview added by tsickle
+     * @suppress {checkTypes,constantProperty,extraRequire,missingOverride,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+     */
     var DoubleClickZoomInteractionComponent = /** @class */ (function () {
         function DoubleClickZoomInteractionComponent(map) {
             this.map = map;
@@ -4659,6 +4729,7 @@
         TileGridComponent,
         TileGridWMTSComponent,
         DefaultInteractionComponent,
+        FreeboardInteractionComponent,
         DoubleClickZoomInteractionComponent,
         DragAndDropInteractionComponent,
         DragBoxInteractionComponent,
@@ -4749,6 +4820,7 @@
     exports.TileGridComponent = TileGridComponent;
     exports.TileGridWMTSComponent = TileGridWMTSComponent;
     exports.DefaultInteractionComponent = DefaultInteractionComponent;
+    exports.FreeboardInteractionComponent = FreeboardInteractionComponent;
     exports.DoubleClickZoomInteractionComponent = DoubleClickZoomInteractionComponent;
     exports.DragAndDropInteractionComponent = DragAndDropInteractionComponent;
     exports.DragBoxInteractionComponent = DragBoxInteractionComponent;

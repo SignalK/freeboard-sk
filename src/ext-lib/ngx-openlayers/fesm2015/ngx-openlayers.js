@@ -31,7 +31,7 @@ import 'ol/geom/GeometryType';
 import 'ol/interaction/Draw';
 import 'ol/interaction/Select';
 import 'ol/events/condition';
-import { defaults as defaults$1, DoubleClickZoom, DragAndDrop, DragBox, DragPan, DragRotate, DragRotateAndZoom, DragZoom, MouseWheelZoom, PinchZoom, Draw, Select, Modify, Translate } from 'ol/interaction';
+import { defaults as defaults$1, DragPan, DragZoom, PinchZoom, MouseWheelZoom, KeyboardPan, KeyboardZoom, DoubleClickZoom, DragAndDrop, DragBox, DragRotate, DragRotateAndZoom, Draw, Select, Modify, Translate } from 'ol/interaction';
 import { Graticule, VectorTile as VectorTile$1, Feature, Overlay } from 'ol';
 import { defaults, Control, Attribution, FullScreen, OverviewMap, Rotate, ScaleLine, Zoom, ZoomSlider, ZoomToExtent } from 'ol/control';
 import { Component, ElementRef, Input, Output, EventEmitter, SkipSelf, Optional, forwardRef, Host, ContentChild, ContentChildren, NgModule } from '@angular/core';
@@ -151,7 +151,7 @@ MapComponent.decorators = [
     { type: Component, args: [{
                 selector: 'aol-map',
                 template: `
-    <div [style.width]="width" [style.height]="height"></div>
+    <div [style.width]="width" [style.height]="height" tabindex="-1"></div>
     <ng-content></ng-content>
   `
             }] }
@@ -230,13 +230,23 @@ class ViewComponent {
         if (!this.instance) {
             return;
         }
+        /** @type {?} */
+        let args = {};
         for (const key in changes) {
             if (changes.hasOwnProperty(key)) {
                 switch (key) {
+                    case 'rotation':
+                        if (this.zoomAnimation) {
+                            args[key] = changes[key].currentValue;
+                        }
+                        else {
+                            properties[key] = changes[key].currentValue;
+                        }
+                        break;
                     case 'zoom':
                         /** Work-around: setting the zoom via setProperties does not work. */
                         if (this.zoomAnimation) {
-                            this.instance.animate({ zoom: changes[key].currentValue });
+                            args[key] = changes[key].currentValue;
                         }
                         else {
                             this.instance.setZoom(changes[key].currentValue);
@@ -247,12 +257,16 @@ class ViewComponent {
                         this.host.instance.setView(this.instance);
                         break;
                     default:
+                        properties[key] = changes[key].currentValue;
                         break;
                 }
-                properties[key] = changes[key].currentValue;
+                if (this.zoomAnimation && (typeof args['zoom'] !== 'undefined' ||
+                    typeof args['rotation'] !== 'undefined')) {
+                    this.instance.animate(args);
+                }
             }
         }
-        // console.log('changes detected in aol-view, setting new properties: ', properties);
+        //console.log('changes detected in aol-view, setting new properties: ', properties);
         this.instance.setProperties(properties, false);
     }
     /**
@@ -3474,6 +3488,56 @@ DefaultInteractionComponent.ctorParameters = () => [
  * @fileoverview added by tsickle
  * @suppress {checkTypes,constantProperty,extraRequire,missingOverride,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
  */
+class FreeboardInteractionComponent {
+    /**
+     * @param {?} map
+     */
+    constructor(map) {
+        this.map = map;
+        this.interactions = [];
+    }
+    /**
+     * @return {?}
+     */
+    ngOnInit() {
+        this.interactions.push(new DragPan(this));
+        this.interactions.push(new DragZoom(this));
+        this.interactions.push(new PinchZoom(this));
+        this.interactions.push(new MouseWheelZoom(this));
+        this.interactions.push(new KeyboardPan(this));
+        this.interactions.push(new KeyboardZoom(this));
+        this.interactions.forEach((/**
+         * @param {?} i
+         * @return {?}
+         */
+        i => this.map.instance.addInteraction(i)));
+    }
+    /**
+     * @return {?}
+     */
+    ngOnDestroy() {
+        this.interactions.forEach((/**
+         * @param {?} i
+         * @return {?}
+         */
+        i => this.map.instance.removeInteraction(i)));
+    }
+}
+FreeboardInteractionComponent.decorators = [
+    { type: Component, args: [{
+                selector: 'aol-interaction-freeboard',
+                template: ''
+            }] }
+];
+/** @nocollapse */
+FreeboardInteractionComponent.ctorParameters = () => [
+    { type: MapComponent }
+];
+
+/**
+ * @fileoverview added by tsickle
+ * @suppress {checkTypes,constantProperty,extraRequire,missingOverride,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
+ */
 class DoubleClickZoomInteractionComponent {
     /**
      * @param {?} map
@@ -4319,6 +4383,7 @@ const COMPONENTS = [
     TileGridComponent,
     TileGridWMTSComponent,
     DefaultInteractionComponent,
+    FreeboardInteractionComponent,
     DoubleClickZoomInteractionComponent,
     DragAndDropInteractionComponent,
     DragBoxInteractionComponent,
@@ -4352,6 +4417,6 @@ AngularOpenlayersModule.decorators = [
  * @suppress {checkTypes,constantProperty,extraRequire,missingOverride,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
  */
 
-export { MapComponent, ViewComponent, GraticuleComponent, LayerGroupComponent, LayerImageComponent, LayerTileComponent, LayerVectorComponent, LayerVectorTileComponent, SourceOsmComponent, SourceBingmapsComponent, SourceClusterComponent, SourceUTFGridComponent, SourceVectorComponent, SourceXYZComponent, SourceVectorTileComponent, SourceTileWMSComponent, SourceTileWMTSComponent, SourceTileJSONComponent, SourceGeoJSONComponent, SourceImageStaticComponent, SourceImageWMSComponent, SourceRasterComponent, SourceImageArcGISRestComponent, FeatureComponent, GeometryLinestringComponent, GeometryMultiLinestringComponent, GeometryMultiPointComponent, GeometryMultiPolygonComponent, GeometryPointComponent, GeometryPolygonComponent, GeometryCircleComponent, CoordinateComponent, CollectionCoordinatesComponent, StyleComponent, StyleCircleComponent, StyleFillComponent, StyleIconComponent, StyleStrokeComponent, StyleTextComponent, DefaultControlComponent, ControlComponent, ControlAttributionComponent, ControlFullScreenComponent, ControlMousePositionComponent, ControlOverviewMapComponent, ControlRotateComponent, ControlScaleLineComponent, ControlZoomComponent, ControlZoomSliderComponent, ControlZoomToExtentComponent, FormatMVTComponent, TileGridComponent, TileGridWMTSComponent, DefaultInteractionComponent, DoubleClickZoomInteractionComponent, DragAndDropInteractionComponent, DragBoxInteractionComponent, DragPanInteractionComponent, DragRotateInteractionComponent, DragRotateAndZoomInteractionComponent, DragZoomInteractionComponent, MouseWheelZoomInteractionComponent, PinchZoomInteractionComponent, DrawInteractionComponent, SelectInteractionComponent, ModifyInteractionComponent, TranslateInteractionComponent, OverlayComponent, ContentComponent, AttributionsComponent, AttributionComponent, AngularOpenlayersModule, FormatComponent as ɵc, SimpleGeometryComponent as ɵd, LayerComponent as ɵa, SourceComponent as ɵb };
+export { MapComponent, ViewComponent, GraticuleComponent, LayerGroupComponent, LayerImageComponent, LayerTileComponent, LayerVectorComponent, LayerVectorTileComponent, SourceOsmComponent, SourceBingmapsComponent, SourceClusterComponent, SourceUTFGridComponent, SourceVectorComponent, SourceXYZComponent, SourceVectorTileComponent, SourceTileWMSComponent, SourceTileWMTSComponent, SourceTileJSONComponent, SourceGeoJSONComponent, SourceImageStaticComponent, SourceImageWMSComponent, SourceRasterComponent, SourceImageArcGISRestComponent, FeatureComponent, GeometryLinestringComponent, GeometryMultiLinestringComponent, GeometryMultiPointComponent, GeometryMultiPolygonComponent, GeometryPointComponent, GeometryPolygonComponent, GeometryCircleComponent, CoordinateComponent, CollectionCoordinatesComponent, StyleComponent, StyleCircleComponent, StyleFillComponent, StyleIconComponent, StyleStrokeComponent, StyleTextComponent, DefaultControlComponent, ControlComponent, ControlAttributionComponent, ControlFullScreenComponent, ControlMousePositionComponent, ControlOverviewMapComponent, ControlRotateComponent, ControlScaleLineComponent, ControlZoomComponent, ControlZoomSliderComponent, ControlZoomToExtentComponent, FormatMVTComponent, TileGridComponent, TileGridWMTSComponent, DefaultInteractionComponent, FreeboardInteractionComponent, DoubleClickZoomInteractionComponent, DragAndDropInteractionComponent, DragBoxInteractionComponent, DragPanInteractionComponent, DragRotateInteractionComponent, DragRotateAndZoomInteractionComponent, DragZoomInteractionComponent, MouseWheelZoomInteractionComponent, PinchZoomInteractionComponent, DrawInteractionComponent, SelectInteractionComponent, ModifyInteractionComponent, TranslateInteractionComponent, OverlayComponent, ContentComponent, AttributionsComponent, AttributionComponent, AngularOpenlayersModule, FormatComponent as ɵc, SimpleGeometryComponent as ɵd, LayerComponent as ɵa, SourceComponent as ɵb };
 
 //# sourceMappingURL=ngx-openlayers.js.map
