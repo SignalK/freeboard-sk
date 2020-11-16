@@ -217,7 +217,6 @@ export class FBMapComponent implements OnInit, OnDestroy {
 
     ngAfterViewInit() { 
         setTimeout( ()=> this.aolMap.instance.updateSize(), 100 );
-        this.aolMap.host.nativeElement.firstChild.tabIndex=0;
         this.aolMap.host.nativeElement.firstChild.focus();
         if(!this.app.config.map.mrid) { 
             this.app.config.map.mrid= this.aolMap.instance.getView().getProjection().getCode();

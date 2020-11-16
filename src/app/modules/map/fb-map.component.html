@@ -22,7 +22,17 @@
     </aol-view>
     
     <!-- Interactions -->
-    <aol-interaction-default></aol-interaction-default>
+    <aol-interaction-freeboard>
+        <!--
+        This set of interactions includes:
+        DragPan
+        PinchZoom
+        KeyboardPan
+        KeyboardZoom
+        MouseWheelZoom
+        DragZoom        
+        -->
+    </aol-interaction-freeboard>
 
     <aol-interaction-draw *ngIf="measure.enabled"
         [type]="'LineString'"
