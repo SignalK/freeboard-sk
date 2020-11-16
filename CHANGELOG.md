@@ -10,6 +10,8 @@
 
 - **Fix**: Issue where default world map was not displayed if server returned no charts.
 
+- **Fix**: Remove map rotate interactions to ensure map orientation remains correct.
+
 
 ### v1.12
 
