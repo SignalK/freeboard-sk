@@ -39,6 +39,7 @@ const FreeboardConfig= {
     courseData: true,       // display course data
     notes: true,            // display notes
     popoverMulti: false,    // close popovers using cose button
+    mapDoubleClick: false,  // true=zoom
     depthAlarm: { enabled: false, smoothing: 10000 },
     plugins: {
         instruments: '/@signalk/instrumentpanel',

@@ -33,6 +33,7 @@
         DragZoom        
         -->
     </aol-interaction-freeboard>
+    <aol-interaction-doubleclickzoom *ngIf="app.config.mapDoubleClick"></aol-interaction-doubleclickzoom>
 
     <aol-interaction-draw *ngIf="measure.enabled"
         [type]="'LineString'"
