@@ -6,7 +6,9 @@
 
 - **Added**: Additional vessel trail settings to select the length of trail retrieved from the server.
 
-- **Added**: Settings to select the close behaviour of map popovers.
+- **Added**: Setting to enable / disable close button on map popovers.
+
+- **Added**: Setting to enable / disable double click to zoom the map.
 
 - **Fix**: Issue where default world map was not displayed if server returned no charts.
 
