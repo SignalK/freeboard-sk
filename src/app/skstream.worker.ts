@@ -245,6 +245,7 @@ function parseStreamMessage(data:any) {
     else if(stream.isDelta(data)) {  // update
         updateReceived= true;
         data.updates.forEach(u => {
+            if(!u.values) { return }
             u.values.forEach( v=> {
                 playbackTime= u.timestamp;
                 if(data.context.indexOf('aton')!=-1) {  // aton
@@ -399,6 +400,11 @@ function processVessel(d: SKVessel, v:any, isSelf:boolean=false) {
 
     // ** resource deltas **
     if(v.path.indexOf('resources.')!=-1) { d.resourceUpdates.push(v) } 
+
+    // ** steering.autopilot **
+    if(v.path=='steering.autopilot.state') { d.autopilot.state= v.value }
+    if(v.path=='steering.autopilot.mode') { d.autopilot.mode= v.value } 
+
 }
 
 // ** process notification messages **
