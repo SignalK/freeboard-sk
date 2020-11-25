@@ -110,7 +110,8 @@ export class SKStreamFacade  {
                     {"path":"navigation.*","period":1000,"policy":'fixed'},
                     {"path":"environment.wind.*","period":1000,"policy":'fixed'},
                     {"path":"environment.mode","period":1000,"policy":'fixed'},
-                    {"path":"resources.*","period":1000,"policy":'fixed'}
+                    {"path":"resources.*","period":1000,"policy":'fixed'},
+                    {"path":"steering.autopilot.*","period":1000,"policy":'fixed'}
                 ]
             }
         });

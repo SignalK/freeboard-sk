@@ -116,6 +116,7 @@ export class SKVessel {
     mode:string= 'day';
     anchor= { maxRadius: null, radius: null, position: null };
     resourceUpdates: Array<any>= [];
+    autopilot: { [key:string]: any }= {};
 }
 
 // ** Signal K Note

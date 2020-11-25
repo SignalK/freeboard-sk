@@ -527,9 +527,12 @@
                     <div *ngIf="app.config.courseData && display.navDataPanel.show"
                             style="display: flex; flex-wrap: nowrap;">    
                         <div class="mat-app-background">
-                            <button mat-button matTooltip="Auto-Pilot" 
-                                [disabled]="true" (click)="setAutoPilot()">
-                                <mat-icon>alt_route</mat-icon>
+                            <button mat-button 
+                                [matTooltip]="display.navDataPanel.apModeText"
+                                [disabled]="!app.data.vessels.self.autopilot.state" 
+                                >
+                                <mat-icon [color]="display.navDataPanel.apModeColor"
+                                >alt_route</mat-icon>
                             </button><br>
                             <button mat-button matTooltip="Course Settings" 
                                 (click)="openCourseSettings()">

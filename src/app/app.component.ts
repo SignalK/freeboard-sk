@@ -43,7 +43,9 @@ export class AppComponent {
         anchorWatch: false,
         navDataPanel: {
             show: false,
-            nextPointCtrl: false
+            nextPointCtrl: false,
+            apModeColor: '',
+            apModeText: ''
         },
         playback: { time: null },
         map: { center: [0,0], setFocus: false }
@@ -304,10 +306,6 @@ export class AppComponent {
         }).afterDismissed().subscribe( ()=> {
             this.focusMap(); 
         });
-    }
-
-    public setAutoPilot() {
-        console.log('auto-pilot:', 'N/A');
     }
 
     // ************************************************
@@ -1175,6 +1173,20 @@ export class AppComponent {
         }        
         this.display.navDataPanel.show= (this.app.data.navData.position) ? true : false;
         this.display.navDataPanel.nextPointCtrl= (this.app.data.activeRoute) ? true : false;
+        //autopilot
+        let apModeOk= ['auto', 'noDrift', 'wind', 'depthContour', 'route', 'directControl'];
+        if(this.app.data.vessels.self.autopilot.state=='standby') {
+            this.display.navDataPanel.apModeColor= 'accent';
+        }
+        else if(this.app.data.vessels.self.autopilot.state=='alarm') {
+            this.display.navDataPanel.apModeColor= 'warn';
+        }
+        else if(apModeOk.includes(this.app.data.vessels.self.autopilot.state) ) {
+            this.display.navDataPanel.apModeColor= 'primary';
+        }
+        else { this.display.navDataPanel.apModeColor= '' }
+        this.display.navDataPanel.apModeText= (this.app.data.vessels.self.autopilot.state) ? 
+            'Autopilot: ' + this.app.data.vessels.self.autopilot.state : ''
     }
 
 }
