@@ -14,6 +14,8 @@
 
 - **Fix**: Remove map rotate interactions to ensure map orientation remains correct.
 
+- **Fix**: Delta message handling to cater for meta deltas (server v1.37).
+
 
 ### v1.12
 
