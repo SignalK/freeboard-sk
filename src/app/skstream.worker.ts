@@ -336,7 +336,7 @@ function processVessel(d: SKVessel, v:any, isSelf:boolean=false) {
     } 
     if(v.path=='communication.callsignVhf') { d.callsign= v.value }
 
-    if( v.path=='navigation.position') {
+    if( v.path=='navigation.position' && v.value) {
         if(isSelf) { d['positionReceived']=true }
         d.position= GeoUtils.normaliseCoords([ v.value.longitude, v.value.latitude]);
     }        

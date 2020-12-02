@@ -305,7 +305,12 @@ export class FBMapComponent implements OnInit, OnDestroy {
     private checkedAtoNs:boolean= false;
 
     private onVessels() {
+        //store last position incase new position is null
+        let lastPos= this.dfeat.self.position;
         this.dfeat.self= this.app.data.vessels.self;
+        if(!this.dfeat.self.position || !Array.isArray(this.dfeat.self.position)) {
+            this.dfeat.self.position= lastPos;
+        }
         this.dfeat.ais= this.app.data.vessels.aisTargets;
         this.dfeat.active= this.app.data.vessels.active;
         this.dfeat.navData.position= this.app.data.navData.position;
