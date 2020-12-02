@@ -1,5 +1,10 @@
 # CHANGELOG: Freeboard
 
+### v1.13.1
+
+- **Fix**: Handling of receiving `navigation.position` with a `null` value.
+
+
 ### v1.13
 
 - **Added**: Display of path line between `previousPoint` and destination (`nextPoint`).
