@@ -156,7 +156,7 @@
         </div>
 
         <!-- Tracks -->
-        <div class="card-group" *ngIf="gpxData.tracks.length!=0 && app.config.experiments">
+        <div class="card-group" *ngIf="gpxData.tracks.length!=0 && app.config.resources.paths.includes('tracks')">
             <mat-expansion-panel
                 [expanded]="display.expand.tracks"
                 (opened)="display.expand.tracks=true"

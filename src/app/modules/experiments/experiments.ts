@@ -12,18 +12,7 @@ import { AppInfo } from 'src/app/app.info';
             <a mat-menu-item (click)="handleSelect('grib')">
                 <mat-icon>filter_drama</mat-icon>
                 <span>GRIB Data</span>			
-            </a>  
-            <a mat-menu-item (click)="handleSelect('tracks')">
-                <mat-icon color="warn">show_chart</mat-icon>
-                <span>Tracks</span>			
             </a>
-            <ap-file-input [astext]="true" (chosen)="handleSelect('geojson', $event)">
-                <a mat-menu-item>
-                <mat-icon><img src="./assets/img/geojson.jpg" style="width:27px;height:24px;"/></mat-icon>
-                    Load GeoJSON
-                </a>                  
-            </ap-file-input>   
-
         </mat-menu>
 
         <div class="expButton" *ngIf="app.config.experiments">

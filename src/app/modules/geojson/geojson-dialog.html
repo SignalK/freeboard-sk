@@ -1,6 +1,6 @@
 <div class="geojsonload-dialog">
     <mat-toolbar style="background-color: transparent;">
-        <span class="dialog-icon"><mat-icon><img src="./assets/img/geojson.jpg" style="height: 35px;"/></mat-icon></span>
+        <span class="dialog-icon"><mat-icon>public</mat-icon></span>
         <span style="flex: 1 1 auto;text-align:center;">Load GeoJSON</span>
         <span style="text-align:right;">
             <button mat-icon-button (click)="this.dialogRef.close(-1);">
@@ -89,7 +89,7 @@
         </div>
 
         <!-- Tracks -->
-        <div class="card-group" *ngIf="geoData.tracks.length!=0 && app.config.experiments">
+        <div class="card-group" *ngIf="geoData.tracks.length!=0 && app.config.resources.paths.includes('tracks')">
             <mat-card>
                 <div class="pnlRow">
                     <div class="pnlGeoType">
