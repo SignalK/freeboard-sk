@@ -71,7 +71,8 @@ const FreeboardConfig= {
         notesMinZoom: 10,
         pluginFavourites: [],
         trailFromServer: false,
-        trailDuration: 24    // number of hours of trail to fetch from server
+        trailDuration: 24,   // number of hours of trail to fetch from server,
+        resourceSets: {}    // additional resources
     },
     resources: {    // ** resource options
         notes: {
@@ -83,7 +84,8 @@ const FreeboardConfig= {
         video: {
             enable: false, 
             url: null
-        }
+        },
+        paths: []
     }
 } 
 
@@ -127,7 +129,7 @@ export class AppInfo extends Info {
         this.name= "Freeboard";
         this.shortName= "freeboard";
         this.description= `Signal K Chart Plotter.`;
-        this.version= '1.13.1';
+        this.version= '1.14.0';
         this.url= 'https://github.com/signalk/freeboard-sk';
         this.logo= "./assets/img/app_logo.png";   
         
@@ -149,6 +151,7 @@ export class AppInfo extends Info {
             charts: [],
             alarms: new Map(),
             notes: [],
+            resourceSets: {},   // additional resource sets
             selfId: null,
             activeRoute: null,
             activeWaypoint: null,
@@ -350,6 +353,9 @@ export class AppInfo extends Info {
         if(typeof settings.selections.trailDuration === 'undefined') {
             settings.selections.trailDuration= 24;
         } 
+        if(typeof settings.selections.resourceSets === 'undefined') {
+            settings.selections.resourceSets= {};
+        } 
         
         if(typeof settings.plugins === 'undefined') { settings.plugins= {} }
         if(typeof settings.plugins.parameters === 'undefined') { 
@@ -369,7 +375,10 @@ export class AppInfo extends Info {
         else {
             if(typeof settings.resources.video === 'undefined') { 
                 settings.resources.video= { enable: false, url: null};
-            }  
+            }
+            if(typeof settings.resources.paths === 'undefined') { 
+                settings.resources.paths= [];
+            } 
         }
     }
 
@@ -434,16 +443,35 @@ export class AppInfo extends Info {
             'whats-new': [
                 {
                     type: 'signalk-server-node',
-                    title: 'Vessel Trail',
+                    title: 'Display / Upload Custom Resources',
                     message: `
-                        You can now select whether to display vessel trail from the:
-                        <li>Local cache</li>
-                        <li>Signal K server and set how much trail data to retrieve<br>
-                            <i>(requires signalk-to-influxdb plugin)</i>
-                        </li>
+                        This update includes the ability to Upload / Display your own GeoJSON formatted data
+                        on the map as additional layers.
                         <br>&nbsp;<br>
-                        <b>Display Vessel trail</b> in <b><i>Settings</i></b>.<br>`
-                }                      
+                        This will require you to configure the <b>sk-resources-fs</b> plugin
+                        <i>(v1.3.0 or later)</i> to setup the required path(s).
+                        <br>&nbsp;<br>
+                        <b>Head to the <i>Resources section </i> </b> in <b><i>Settings</i></b>.
+                        <br>&nbsp;<br>
+                        Check out <a href="assets/help/index.html#resourcepaths" target="help">HELP</a> 
+                        for more details.`
+                },
+                {
+                    type: 'signalk-server-node',
+                    title: 'Experiments',
+                    message: `
+                        <b>Experiments go mainstream!</b>
+                        <br>&nbsp;<br>
+                        You'll notice a change in the menus and toolbar due some experimental features moving
+                        into the main product.
+                        <br>&nbsp;<br>
+                        The <i class="material-icons">layers</i> toolbar button now provides access to all
+                        Resource types (including Routes, Waypoints, etc) and their associated controls.
+                        <br>&nbsp;<br>
+                        <b>Load GeoJSON FIle</b> can now be found in the main menu and
+                        <b>Tracks</b> can be found under <i class="material-icons">layers</i> layers.
+                        `
+                }                    
             ]           
         }
 

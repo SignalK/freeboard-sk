@@ -38,7 +38,8 @@ export class SettingsFacade  {
         minZoom: [8,9,10,11,12,13,15,16,17],
         resourceRadius: [ 5, 10,20, 50, 100, 150, 200, 500 ],
         applications: [],
-        favourites: []
+        favourites: [],
+        resourcePaths: []
     }
 
     alarmOptions= {
@@ -77,7 +78,22 @@ export class SettingsFacade  {
     }
 
     // refresh dynamic data from sources
-    refresh() { this.getApps() }
+    refresh() { 
+        this.getApps();
+        this.getResourcePaths();
+    }
+
+    // ** populate list of available non-standard resource paths
+    private getResourcePaths() {
+        this.signalk.api.get('resources').subscribe(
+            (r:Array<string>)=> { 
+                this.list.resourcePaths= r.filter( i=> { 
+                    return !['routes','waypoints','notes','regions','charts'].includes(i);
+                }).sort();
+            },
+            ()=> this.list.resourcePaths= []
+        );
+    }
 
     // ** populate applications list **
     private getApps() {

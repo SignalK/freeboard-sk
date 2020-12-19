@@ -2,7 +2,7 @@ import { Component, ViewChild } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
 import { MatBottomSheet } from '@angular/material/bottom-sheet';
 import { DomSanitizer, SafeResourceUrl} from '@angular/platform-browser';
-import {OverlayContainer} from '@angular/cdk/overlay';
+import { OverlayContainer } from '@angular/cdk/overlay';
 
 import { AppInfo } from './app.info';
 import { AboutDialog, LoginDialog } from 'src/app/lib/app-ui';
@@ -10,9 +10,10 @@ import { PlaybackDialog } from 'src/app/lib/ui/playback-dialog';
 
 import { SettingsDialog, AlarmsFacade, AlarmsDialog, 
         SKStreamFacade, SKSTREAM_MODE, SKResources, 
-        SKRoute, SKWaypoint, SKTrack, SKRegion, AISPropertiesModal, AtoNPropertiesModal, 
+        SKOtherResources, SKRegion, AISPropertiesModal, AtoNPropertiesModal, 
         ActiveResourcePropertiesModal, GPXImportDialog, GeoJSONImportDialog,
-        TracksModal, CourseSettingsModal } from 'src/app/modules';
+        TracksModal, ResourceSetModal, CourseSettingsModal,
+        ResourceImportDialog } from 'src/app/modules';
 
 import { SignalKClient } from 'signalk-client-angular';
 import { Convert } from 'src/app/lib/convert';
@@ -85,6 +86,7 @@ export class AppComponent {
                 public alarmsFacade: AlarmsFacade,
                 private stream: SKStreamFacade,
                 public skres: SKResources,
+                public skOtherRes: SKOtherResources,
                 public signalk: SignalKClient,
                 private dom: DomSanitizer,
                 private overlayContainer: OverlayContainer,
@@ -258,10 +260,17 @@ export class AppComponent {
                 }).afterDismissed().subscribe( ()=> {
                     this.focusMap(); 
                 });
-                break;
-            case 'geojson':
-                this.processGeoJSON(e.value);
-                break;
+                break;             
+            default:
+                if(this.app.config.resources.paths.includes(e.choice)) {
+                    this.bottomSheet.open(ResourceSetModal, {
+                        disableClose: true,
+                        data: { path: e.choice, skres: this.skOtherRes }
+                    }).afterDismissed().subscribe( ()=> {
+                        this.focusMap(); 
+                    });
+                    
+                }
         }
     }
 
@@ -571,7 +580,19 @@ export class AppComponent {
             else { this.app.showAlert('GeoJSON Load','Completed with errors!\nNot all features were loaded.') }
             this.focusMap();
         });        
-    }        
+    }   
+    
+    // Upload Resources
+    uploadResources() { 
+        this.dialog.open(ResourceImportDialog, {
+            disableClose: true,
+            data: {}
+        }).afterClosed().subscribe( res=> {
+            if(!res) { return } // cancelled    
+            this.skres.createResource(res.path, res.data);        
+            this.focusMap();
+        });        
+    }
 
     // ** show login dialog **
     public showLogin(message?:string, cancelWarning:boolean=true, onConnect?:boolean) {
@@ -1046,13 +1067,22 @@ export class AppComponent {
 
     // ******** SIGNAL K STREAM *************
 
-    // ** fetch resources from server **
-    fetchResources() {   
+    // ** fetch resource types from server **
+    fetchResources(allTypes:boolean=false) {   
         this.skres.getRoutes(this.app.data.vessels.activeId); // + get ActiveRoute Info. See associated message handler
         this.skres.getWaypoints();
         this.skres.getCharts();  
-        this.skres.getNotes();  
+        this.skres.getNotes();
+        if(allTypes) { this.fetchOtherResources(true) }
     } 
+
+    // ** fetch non-standard resources from server **
+    fetchOtherResources(onlySelected:boolean=false) {  
+        this.skres.getTracks(onlySelected);
+        this.app.config.resources.paths.forEach( i=> {
+            this.skOtherRes.getItems(i, onlySelected);
+        });
+    }
 
     // ** open WS Stream 
     private openSKStream(options:any=null, toMode: SKSTREAM_MODE=SKSTREAM_MODE.REALTIME, restart:boolean=false) { 
@@ -1072,8 +1102,7 @@ export class AppComponent {
         this.signalk.api.getSelf().subscribe(
             r=> {  
                 this.stream.post({ cmd: 'vessel', options: {context: 'self', name: r['name']} });
-                this.fetchResources();  // ** get resources from server
-                this.skres.getTracks(true);
+                this.fetchResources(true);  // ** fettch all resource types from server
                 if(this.app.config.selections.trailFromServer) {
                     this.skres.getVesselTrail();    // request trail from server
                 }

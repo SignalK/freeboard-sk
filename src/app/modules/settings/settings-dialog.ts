@@ -18,7 +18,8 @@ export class SettingsDialog implements OnInit {
        {href: "#sectunits", text: 'Units & Values'},
        {href: "#sectVessels", text: 'Vessels'},
        {href: "#sectNotes", text: 'Notes'},
-       {href: "#sectVideo", text: 'Video'}
+       {href: "#sectVideo", text: 'Video'},
+       {href: "#sectResLayers", text: 'Resources'}
     ];
 
     private saveOnClose: boolean= false;
@@ -58,6 +59,16 @@ export class SettingsDialog implements OnInit {
 
     onFavSelected(e:any, f:any) {
         this.facade.settings.selections.pluginFavourites= f.selectedOptions.selected.map(i=> i.value );
+        this.facade.applySettings();
+    }
+
+    onResPathSelected(e:any, f:any) {
+        this.facade.settings.resources.paths= f.selectedOptions.selected.map(i=> i.value );
+        //ensure all selected paths have relevant 'selections' entry
+        this.facade.settings.resources.paths.forEach( i=> {
+            if( i in this.facade.settings.selections.resourceSets) { /* already has selection array */ }
+            else { this.facade.settings.selections.resourceSets[i]= [] } //create selection array
+        })
         this.facade.applySettings();
     }
 

@@ -13,7 +13,7 @@ import { TEMPERATURE_GRADIENT } from 'src/app/lib/grib';
 
 import { AppInfo } from 'src/app/app.info'
 import { SKResources } from '../skresources/resources.service';
-import { SKVessel } from '../skresources/resource-classes';
+import { SKChart, SKVessel } from '../skresources/resource-classes';
 import { SKStreamFacade } from '../skstream/skstream.facade';
 import { OverlayContainer } from '@angular/cdk/overlay';
 
@@ -280,6 +280,13 @@ export class FBMapComponent implements OnInit, OnDestroy {
         if(changes && changes.measureMode) {
             if(changes.measureMode.currentValue) { this.overlay.type= 'measure' };
         }        
+    }
+
+    // format WMS parameters
+    wmsParams(chart: SKChart) {
+        return {
+            LAYERS: (chart.chartLayers) ? chart.chartLayers.join(',') : ''
+        }
     }
 
     // ** periodically persist state (used in movingMap mode)

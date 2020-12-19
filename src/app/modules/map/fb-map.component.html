@@ -97,10 +97,10 @@
             </aol-source-osm>
         </aol-layer-tile>
 
-        <aol-layer-tile *ngIf="c[0]!='openstreetmap' && c[2]"
+        <aol-layer-tile *ngIf="c[0]!='openstreetmap' && c[2]" [ngSwitch]="c[1].type"
                 [zIndex]="10 + i" 
                 preload="0">
-            <aol-source-xyz 
+            <aol-source-xyz *ngSwitchCase="'tilelayer'"
                 (tileLoadStart)="onMapTileEvent($event)"
                 (tileLoadEnd)="onMapTileEvent($event)"
                 (tileLoadError)="onMapTileEvent($event)"
@@ -108,10 +108,14 @@
                 [maxZoom]="c[1].maxzoom"
                 [url]="c[1].tilemapUrl">                           
             </aol-source-xyz>
+            <aol-source-tilewms *ngSwitchCase="'WMS'"
+                [url]="c[1].tilemapUrl"
+                [params]="wmsParams(c[1])"
+            ></aol-source-tilewms>
         </aol-layer-tile>
 
     </div>
-    <!-- *** /Charts *** -->  
+    <!-- *** /Charts *** -->
 
     <!-- *** AtoNs *** -->
     <aol-layer-vector [zIndex]="45" [renderBuffer]="200">
@@ -149,10 +153,10 @@
         [values]="dfeat.grib.wind"
         [map]="aolMap">
     </xol-layer-windvector>
-    <!-- *** /Wind Vector *** -->  
+    <!-- *** /Wind Vector *** --> 
     
     <!-- *** TRACKS *** -->
-    <aol-layer-vector [zIndex]="50">
+    <aol-layer-vector [zIndex]="50" *ngIf="app.config.resources.paths.includes('tracks')">
         <aol-source-vector>    
             <div *ngFor="let t of dfeat.tracks; let i=index;">
                 <aol-feature [id]="'track.'+ t.feature.id">
@@ -177,10 +181,19 @@
             </div>               
         </aol-source-vector>
     </aol-layer-vector>
-    <!-- *** TRACKS *** -->
+    <!-- *** /TRACKS *** -->
+
+    <!-- *** RESOURCE SETS *** -->
+    <div *ngFor="let resSet of app.data.resourceSets | keyvalue; let idx= index">
+        <fb-resource-set [zIndex]="51+idx" *ngIf="resSet.key!='tracks'"
+            [items]="resSet.value"
+            [selected]="app.config.selections.resourceSets[resSet.key]">
+        </fb-resource-set>
+    </div>
+    <!-- /RESOURCE SETS-->    
     
     <!-- *** ROUTES *** -->
-    <aol-layer-vector [zIndex]="60"> 
+    <aol-layer-vector [zIndex]="80"> 
         <aol-source-vector>
             <div *ngFor="let r of dfeat.routes; let i=index;"> 
                 <!-- route course-->              

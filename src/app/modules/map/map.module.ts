@@ -24,6 +24,8 @@ import { AtoNsComponent } from './components/feature-atons.component';
 import { LayerHeatmapComponent } from './components/layer-heatmap.component';
 import { LayerWindVectorComponent } from './components/layer-windvector.component';
 import { LayerColormapComponent } from './components/layer-colormap.component';
+import { ResourceSetComponent} from './components/resource-set.component';
+
 
 import { FBMapComponent } from './fb-map.component';
 import { UtilitiesModule } from 'src/app/modules/utils/utils.module';
@@ -38,13 +40,13 @@ import { UtilitiesModule } from 'src/app/modules/utils/utils.module';
         PopoverComponent, FeatureListPopoverComponent, VesselPopoverComponent,
         ResourcePopoverComponent, RouteNextPointComponent, AtoNPopoverComponent,
         CompassComponent, FBMapComponent, LayerHeatmapComponent, LayerColormapComponent,
-        AisTargetsComponent, AtoNsComponent, LayerWindVectorComponent
+        AisTargetsComponent, AtoNsComponent, LayerWindVectorComponent, ResourceSetComponent
     ],
     exports: [ 
         PopoverComponent, FeatureListPopoverComponent, VesselPopoverComponent,
         ResourcePopoverComponent, RouteNextPointComponent, AtoNPopoverComponent,
         CompassComponent, FBMapComponent, LayerHeatmapComponent, LayerColormapComponent,
-        AisTargetsComponent, AtoNsComponent, LayerWindVectorComponent
+        AisTargetsComponent, AtoNsComponent, LayerWindVectorComponent, ResourceSetComponent
     ],
     entryComponents: [], 
     providers: []  

@@ -49,7 +49,7 @@
                                                 [value]="i.url"
                                                 [matTooltip]="i.description"
                                                 matTooltipPosition="right">
-                                            {{i.name}}
+                                                {{i.name}}
                                         </mat-option>
                                     </mat-select>                                        
                                 </mat-form-field>
@@ -431,6 +431,28 @@
                         </div>                                                                                                     
                     </mat-card>
                 </div>
+
+                <div class="setting-group" id="sectResLayers">
+                    <div class="setting-group-title">RESOURCES: LAYERS</div>
+                    <mat-card class="setting-card">
+                        <div class="setting-card-row">
+                            <div class="setting-card-row-item">
+                                <div style="font-style:italic;">
+                                    path: ./resources/&lt;name&gt;
+                                </div>
+                                <mat-selection-list #respath 
+                                    (selectionChange)="onResPathSelected($event, respath)">
+                                    <mat-list-option *ngFor="let f of facade.list.resourcePaths"
+                                        color="primary"
+                                        [selected]="facade.settings.resources.paths.includes(f)"
+                                        [value]="f">
+                                        {{f}}
+                                    </mat-list-option>
+                                </mat-selection-list>                                                              
+                            </div>                                                      
+                        </div>
+                    </mat-card>
+                </div>                
 
                 <div class="setting-group" id="sectExperiments">
                     <div class="setting-card-row-item">

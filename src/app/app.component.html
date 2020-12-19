@@ -17,21 +17,15 @@
                 (click)="sidemenu.close(); openAlarmsDialog()">
                 <mat-icon style="color: orangered">warning</mat-icon>
             </button>
-            <hr>                                                   
+            <hr>   
             <button mat-icon-button
                 [disabled]="draw.enabled || measure.enabled"
-                matTooltip="Routes" matTooltipPosition="right"
-                (click)="sidemenu.close();displayLeftMenu('routeList',true)">
-                <mat-icon style="color:white;">directions</mat-icon>
+                matTooltip="Routes, Waypoints, Notes, etc." matTooltipPosition="right"
+                (click)="sidemenu.close();"
+                [matMenuTriggerFor]="layersmenu">
+                <mat-icon style="color:rgb(0,255,0);">layers</mat-icon>
             </button>   
-            <hr> 	
-            <button mat-icon-button 
-                [disabled]="draw.enabled || measure.enabled"
-                matTooltip="Waypoints" matTooltipPosition="right"
-                (click)="sidemenu.close();displayLeftMenu('waypointList',true)">
-                <mat-icon style="color:white;">location_on</mat-icon>
-            </button>                      
-            <hr>
+            <hr>        
             <button mat-icon-button 
                 [disabled]="draw.enabled || measure.enabled"
                 matTooltip="Draw / Measure" matTooltipPosition="right"
@@ -84,6 +78,46 @@
         <!-- /TOOLBAR-->
 
         <!--context menus-->
+        <mat-menu #layersmenu="matMenu">   
+            <button mat-menu-item
+                (click)="sidemenu.close();displayLeftMenu('routeList',true)">
+                <mat-icon color="primary">directions</mat-icon>
+                &nbsp;Routes
+            </button>   
+            <button mat-menu-item 
+                (click)="sidemenu.close();displayLeftMenu('waypointList',true)">
+                <mat-icon color="accent">location_on</mat-icon>
+                &nbsp;Waypoints
+            </button>  
+            <button mat-menu-item 
+                (click)="sidemenu.close();displayLeftMenu('noteList',true)">
+                <mat-icon>local_offer</mat-icon>
+                &nbsp;Notes
+            </button>   
+            <button mat-menu-item 
+                (click)="sidemenu.close();displayLeftMenu('chartList',true)">
+                <mat-icon>map</mat-icon>
+                &nbsp;Charts
+            </button>     
+            <div *ngIf="app.config.resources.paths.length!=0">
+                <mat-divider></mat-divider>
+                <div *ngFor="let p of app.config.resources.paths.sort()" [ngSwitch]="p">
+                    <button *ngSwitchCase="'tracks'"
+                        mat-menu-item
+                        (click)="openExperiment({choice: p, value: null})">
+                        <mat-icon color="warn">show_chart</mat-icon>
+                        <span>Tracks</span>			
+                    </button>  
+                    <button *ngSwitchDefault
+                        mat-menu-item 
+                        (click)="sidemenu.close();openExperiment({choice: p, value: null})">
+                        <mat-icon>category</mat-icon>
+                        &nbsp;{{p}}
+                    </button>
+                </div>
+            </div>     
+        </mat-menu>
+
         <mat-menu #settingsmenu="matMenu">   
             <a mat-menu-item *ngIf="app.config.vesselTrail && app.data.trail.length!=0" 
                 (click)="clearTrail(app.data.serverTrail)">
@@ -183,23 +217,21 @@
                         <ap-file-input [astext]="true" (chosen)="processGPX($event)">
                             <a mat-list-item>
                                 <mat-icon>streetview</mat-icon>
-                                &nbsp;Load from GPX
+                                &nbsp;Load GPX
                             </a>                  
                         </ap-file-input>   
 
-                        <a mat-list-item 
-                            *ngIf="!draw.enabled || !measure.enabled"
-                            (click)="sidemenu.close();displayLeftMenu('chartList',true)">
-                            <mat-icon>map</mat-icon>
-                            &nbsp;Charts
-                        </a>  
+                        <ap-file-input [astext]="true" (chosen)="processGeoJSON($event)">
+                            <a mat-list-item>
+                                <mat-icon>public</mat-icon>
+                                &nbsp;Load GeoJSON
+                            </a>                  
+                        </ap-file-input>
 
-                        <a mat-list-item 
-                            *ngIf="!draw.enabled || !measure.enabled"
-                            (click)="sidemenu.close();displayLeftMenu('noteList',true)">
-                            <mat-icon>local_offer</mat-icon>
-                            &nbsp;Notes
-                        </a> 
+                        <a mat-list-item (click)="sidemenu.close();uploadResources()">
+                            <mat-icon>category</mat-icon>
+                            &nbsp;Load Resource
+                        </a>                       
 
                         <a mat-list-item 
                             (click)="sidemenu.close();displayLeftMenu('aisList',true)">
