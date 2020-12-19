@@ -334,10 +334,17 @@
             </div>               
 
             <div class="panel" id="resources">
-                <h4>Resources</h4>
+                <h4><i class="material-icons">layers</i> Resources / Layers</h4>
                 <p>
                     Freeboard provides functionality for in-built Signal K resource types:
-                    routes, waypoints, charts, notes and regions .
+                    routes, waypoints, charts, notes and regions.
+                    <br>
+                    Each resource type is displayed in a separate map layer which can be controlled from 
+                    the <i class="material-icons">layers</i> toolbar button.
+                    <br>
+                    The menu displayed when clicked will contain options for the Signal K specified resources
+                    (Routes, Waypoints, Notes, Charts)
+                    as well as additional available resource paths enabled in Settings.
                     <hr>
 
                     <li class="nobullet"><i class="material-icons">directions</i>
@@ -480,7 +487,7 @@
                         <div><img src="./img/chart_list.png" style="max-width:250px;"/></div>
                         <div style="padding-left:15px;">
                             <li><b>Filter Charts:</b> Type into the text box to filter the list of charts.</li>
-                            <li><b>Chart Layers:</b> Click <i class="material-icons">layers</i> to 
+                            <li><b>Re-order charts:</b> Click <i class="material-icons">import_export</i> to 
                                 arrange the chart stack to ensure charts are displayed in the correct order.
                                 Drag and drop the charts within the list to chage the order.
                             </li>
@@ -559,7 +566,117 @@
                             After selecting the resources click <b>Load Selected</b> to load the
                             resources onto the Signal K server.
                         </div>
-                    </div>    
+                    </div>   
+                    <br>
+                    <i>For Track data see <a href="#resourcepaths">Resource Paths</a></i>
+                </p>
+            </div>
+
+            <div class="panel" id="geojson">
+                <h4><i class="material-icons">public</i>Load from GeoJSON</h4>
+                Freeboard can import GeoJSON features contained in a <i>FeatureCollection</i>
+                as Signal K Route, Waypoint, Note, Region resources using files containg data
+                the format outlined below.<br>
+
+                A GeoJSON <i>FeatureCollection</i> is  used to define the features to import.<br>
+                The following GeoJSON features are supported and are mapped to one of the Signal K resource types:
+                <table>
+                    <thead>
+                        <tr>
+                            <td>GeoJSON feature type</td>
+                            <td></td>
+                            <td>Signal K Resource type</td>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>LineString</td>
+                            <td><i class="material-icons">arrow_forward</i></td>
+                            <td>Route</td>
+                        </tr>
+                        <tr>
+                            <td>Point</td>
+                            <td><i class="material-icons">arrow_forward</i></td>
+                            <td>Waypoint</td>
+                        </tr>
+                        <tr>
+                            <td>Polygon</td>
+                            <td><i class="material-icons">arrow_forward</i></td>
+                            <td>Region</td>
+                        </tr>
+                        <tr>
+                            <td>MultiPolygon</td>
+                            <td><i class="material-icons">arrow_forward</i></td>
+                            <td>Region</td>
+                        </tr>
+                        <tr>
+                            <td>MultiLineString</td>
+                            <td><i class="material-icons">arrow_forward</i></td>
+                            <td>Track</td>
+                        </tr>                                                                                                                
+                    </tbody>
+                </table>
+
+                Additionally the feature <i>properties</i> object can be used
+                to specify Signal K resource properties such as <i>name</i> or 
+                <i>description</i>.
+                <br>&nbsp;<br>
+                <i>Example:</i><br>
+<pre>
+<samp>
+{
+    "type": "FeatureCollection",
+    "features": [
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "LineString",
+                "coordinates": [..]
+            },
+            "properties": {
+                "name": "myRoute",
+                "description": "a GeoJSON route"
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [..]
+            },
+            "properties": {..}
+        }
+    ]
+}
+</samp>
+</pre>
+                <br>&nbsp;<br>
+                <i>For Track data see <a href="#resourcepaths">Resource Paths</a></i>
+                <br>&nbsp;<br>
+                Check out the Freeboard <a target="_blank" href="https://github.com/SignalK/freeboard-sk/wiki">WIKI</a>
+                for more details.
+            </div>     
+            
+            <div class="panel" id="resourceset">
+                <h4><i class="material-icons">category</i>Load Resource</h4>
+                Freeboard allows you to upload resource data stored in files to `non-standard` resource paths that accept 
+                `PUT` or `POST` requests. 
+                <br>&nbsp;<br>
+                To upload data:
+                <li>
+                    Select the <i class="material-icons">category</i>Load Resource menu option.
+                </li>
+                <li>
+                    Select the desired destination path from the drop-down list.<br>
+                    <i>Note: only paths detected under `signalk/v1/api/resources` are listed.</i>
+                </li>
+                <li>Click and select (or drop) the file containing the resource data.</li>
+                <li>Click <b>Load</b> to upload the fiel contents to the server.</li>
+                <b>Important: <i>Freeboard does not attempt to validate the file contents in any way so please
+                    ensure you are uploading appropirate content for the selected destination.
+                </i></b>
+                <p>For information about using `ResourceSets` see <a href="#resourcepaths">Resource Paths</a> in 
+                   in <i>Settings</i>.
                 </p>
             </div>
 
@@ -978,8 +1095,92 @@
                     Click this button to open the video stream. 
                     The stream will start to play 
                     and the video window can be moved, resized and playback controlled 
-                    using the controls provided by the browser.<br>                    
-                </p>                 
+                    using the controls provided by the browser.
+                </p> 
+          
+                <p id="resourcepaths">
+                    <b>RESOURCES: PATHS</b><br>
+                    Freeboard provides the ability display feature data contained in compliant 
+                    JSON format layers on the map.
+
+                    The available resource paths are listed in this section and can be selected to enable them 
+                    for use with Freeboard.
+
+                    <i>Note: This functionality requires that you have configured the <b>sk-resources-fs</b>
+                    plugin to serve the required resource paths.</i>
+
+                    <br>&nbsp;<br>
+                    Two types of resource data is supported:
+                    <ol>
+                        <li>Tracks</li>
+                        <li>ResourceSets</li>
+                    </ol>
+
+                    <br>
+
+                    <h5>Tracks:</h5> 
+                    The Track data structure supported by Freeboard is generated via the <b>Load from GPX</b>
+                    functionality.<br>
+                    What Freeboard requires is that the <i>/signalk/vi/api/resources/tracks</i> path is available 
+                    from which to write and retrieve track data.<br>
+                    This requires the following action:
+                    <li>
+                        Configure the 
+                        <b>sk-resources-fs</b> plugin (v1.3.0 or later) to serve the <b>tracks</b> path.</li>
+                    <li>
+                        Re-start the Signal K server 
+                    </li>
+                    <li>
+                        Once the server has re-started <b>Tracks</b> will appear in the list of available 
+                        resource paths. 
+                    </li>
+                    <li>
+                        Select <b>Tracks</b> and this will display the <i class="material-icons">show_chart</i>
+                        <b>Tracks</b> entry in the <i class="material-icons">layers</i>
+                        layers list.
+                    </li>
+                    
+                    <br>&nbsp;<br>
+                    <h5>Resource Sets:</h5> 
+                    Data from all other resource paths that you enable in Freeboard Settings will be 
+                    treated as ResourceSets.<br>
+
+                    ResourceSets are a non-standard Signal K resource format that can be created to form 
+                    collections of features that can be displayed in layers on the map. They are a JSON 
+                    file with a specific structure which can be created using any text editor.<br>
+                    
+                    The JSON structure chosen aligns closely with the current Signal K resource 
+                    specification and adopts the use of GeoJSON FeatureCollection.<br>
+
+                    <br>
+                    The ResourceSet file should be stored on the Signal K server in the folder used 
+                    as the source for that path.<br>
+                    The file name should be a valid uuid <i>(e.g. 0d95e282-3e1f-4521-8c30-8288addbdb69)</i>.<br>
+<pre>
+<samp>
+{
+    "type": "ResourceSet",
+    "name": "My resource set name",
+    "description": "Description of my resource set",
+    "styles": { 
+        "default": {
+            "width": <number of pixels>,
+            "stroke": "<valid css color value>",
+            "fill": "<valid css color value>"
+        }
+    },
+    "values": { 
+        "type": "FeatureCollection",
+        "features": [ ..GeoJSON Features... ]
+    }
+}
+</samp>
+</pre>
+                    
+                    Check out the Freeboard 
+                    <a target="_blank" href="https://github.com/SignalK/freeboard-sk/wiki">Wiki</a>
+                    for more details regarding the file format.                   
+                </p>
             </div>
             <div class="panel" id="experiments">
                 <h4><i class="material-icons">science</i> Experiments</h4>
@@ -998,81 +1199,6 @@
                 <p>
                     Current experiments include:<br>
                     <li>GRIB wind / temperature data display</li>
-                    <li>Import GPX Track data</li>
-                    <li>Import GeoJSON features as Signal K resources</li>
-                </p>
-                <p id="geojson">
-                    Files used for importing GeoJSON features must contain a <i>FeatureCollection</i>
-                    defining the features to import.<br>
-                    The following GeoJSON features are supported:
-                    <table>
-                        <thead>
-                            <tr>
-                                <td>GeoJSON feature type</td>
-                                <td></td>
-                                <td>Signal K Resource type</td>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td>LineString</td>
-                                <td><i class="material-icons">arrow_forward</i></td>
-                                <td>Route</td>
-                            </tr>
-                            <tr>
-                                <td>Point</td>
-                                <td><i class="material-icons">arrow_forward</i></td>
-                                <td>Waypoint</td>
-                            </tr>
-                            <tr>
-                                <td>Polygon</td>
-                                <td><i class="material-icons">arrow_forward</i></td>
-                                <td>Region</td>
-                            </tr>
-                            <tr>
-                                <td>MultiPolygon</td>
-                                <td><i class="material-icons">arrow_forward</i></td>
-                                <td>Region</td>
-                            </tr>
-                            <tr>
-                                <td>MultiLineString</td>
-                                <td><i class="material-icons">arrow_forward</i></td>
-                                <td>Track</td>
-                            </tr>                                                                                                                
-                        </tbody>
-                    </table>
-
-                    Additionally the feature <i>properties</i> object can be used
-                    to specify Signal K resource properties such as <i>name</i> or 
-                    <i>description</i>.
-                    <br>&nbsp;<br>
-                    <i>Example:</i><br>
-                    <code>
-                        {
-                            "type": "FeatureCollection",
-                            "features": [
-                                {
-                                    "type": "Feature",
-                                    "geometry": {
-                                        "type": "LineString",
-                                        "coordinates": [..]
-                                    },
-                                    "properties": {
-                                        "name": "myRoute",
-                                        "description": "a GeoJSON route"
-                                    }
-                                },
-                                {
-                                   "type": "Feature",
-                                   "geometry": {
-                                       "type": "Point",
-                                       "coordinates": [..]
-                                    },
-                                    "properties": {..}
-                                }
-                            ]
-                        }
-                    </code>
                 </p>
             </div>
         
