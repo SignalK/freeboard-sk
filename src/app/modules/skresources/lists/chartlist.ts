@@ -1,7 +1,8 @@
-import { Component, Input, Output, EventEmitter, ChangeDetectionStrategy } from '@angular/core';
+import { Component, Input, Output, OnInit, EventEmitter, ChangeDetectionStrategy } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog'
+import { CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop';
 import { AppInfo } from 'src/app/app.info';
-import { ChartInfoDialog, ChartLayersDialog} from '../resource-dialogs';
+import { ChartInfoDialog } from '../resource-dialogs';
 
 @Component({
     selector: 'chart-list',
@@ -19,6 +20,8 @@ export class ChartListComponent {
     filterText= '';
     someSel: boolean= false;
     allSel: boolean= false;    
+
+    displayChartLayers: boolean= false;
 
     constructor(private app: AppInfo, private dialog: MatDialog) { }
 
@@ -86,6 +89,112 @@ export class ChartListComponent {
         this.dialog.open( ChartInfoDialog, { data: ch });
     }
 
-    showChartLayers() { this.dialog.open(ChartLayersDialog) }
+    showChartLayers(show:boolean=false) { this.displayChartLayers= show } //this.dialog.open(ChartLayersDialog) }
+}
+
+/********* ChartLayersList***********/
+@Component({
+	selector: 'ap-chartlayers',
+	template: `
+        <div class="_ap-chartlayers">
+            <div>
+                <mat-card style="display:flex;line-height:2.3em;">
+                    <div style="flex: 1 1 auto; padding-left:20px;text-align:center;
+                            font-size: 10pt;font-style:italic;">
+                            (drag to re-order)
+                    </div>
+                    <div style="font-style:italic; border-bottom:gray 1px solid;">
+                        Top Layer
+                    </div>                
+                </mat-card>  
+            </div>
+            <div style="flex: 1 1 auto;position:relative;">
+                <div style="overflow:hidden;height:100%;">
+                    <div style="overflow:auto;" cdkDropList (cdkDropListDropped)="drop($event)">
+                        <mat-card *ngFor="let ch of chartList; let i=index;" cdkDrag>
+                            <div class="point-drop-placeholder" *cdkDragPlaceholder></div>
+
+                            <div style="display:flex;" [style.cursor]="(i>0) ? 'pointer': 'initial'"> 
+                                <div style="width:35px;">
+                                    <mat-icon color="">{{isLocal(ch[1].tilemapUrl)}}</mat-icon>
+                                </div>
+                                <div style="flex: 1 1 auto;text-overflow: ellipsis;
+                                            white-space: pre;overflow-x: hidden;">
+                                    {{ch[1].name}}
+                                </div>   
+                                <div cdkDragHandle matTooltip="Drag to re-order charts">
+                                    <mat-icon>drag_indicator</mat-icon>  
+                                </div>  
+                            </div>
+                        </mat-card>
+                    </div>
+                </div>
+            </div>
+            <div>
+                <mat-card style="display:flex;line-height:2.3em;">
+                    <div></div>
+                    <div style="flex: 1 1 auto; padding-left:20px;text-align:center;font-size: 10pt;
+                                font-style: italic;">
+                        (e.g. World Map)
+                    </div>
+                    <div style="font-style:italic; border-bottom:gray 1px solid;">
+                        Base Layer 
+                    </div>
+                </mat-card>
+            </div>
+        </div>	
+    `,
+    styles: [`  ._ap-chartlayers {
+                    font-family: roboto;
+                    border: red 0px solid;
+                    display: flex;
+                    flex-direction: column;
+                }
+                .ap-confirm-icon { 
+                    min-width: 35px;
+                    max-width: 35px;
+                    color: darkorange;
+                    text-align: left;                    
+                }
+                .ap-confirm-icon .mat-icon { 
+                    font-size: 25pt;
+                }
+                .point-drop-placeholder {
+                    background: #ccc;
+                    border: dotted 3px #999;
+                    min-height: 80px;
+                    transition: transform 250ms cubic-bezier(0, 0, 0.2, 1);
+                }
+                .cdk-drag-preview {
+                    background-color: whitesmoke;
+                    box-sizing: border-box;
+                    border-radius: 4px;
+                    box-shadow: 0 5px 5px -3px rgba(0, 0, 0, 0.2),
+                                0 8px 10px 1px rgba(0, 0, 0, 0.14),
+                                0 3px 14px 2px rgba(0, 0, 0, 0.12);
+                }              	
+			`]
+})
+export class ChartLayers implements OnInit {
+
+    constructor( public app:AppInfo ) {
+    }
+
+    chartList= [];
+    
+	//** lifecycle: events **
+    ngOnInit() {
+        this.chartList= this.app.data.charts.slice().reverse();
+    }
+
+    drop(e:CdkDragDrop<any>) {
+        moveItemInArray(this.chartList, e.previousIndex, e.currentIndex);
+        // update and save config
+        this.app.data.charts= this.chartList.slice().reverse();
+        this.app.config.selections.chartOrder= this.app.data.charts.map( i=> { return i[0] });
+        this.app.saveConfig();
+    }
+    
+    isLocal(url:string) { return (url && url.indexOf('signalk')!=-1) ? 'map' : 'language' }
 }
 
