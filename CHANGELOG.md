@@ -1,5 +1,18 @@
 # CHANGELOG: Freeboard
 
+### v1.14.0
+
+- **Added**: Display ResourceSet data from user-defined resoource paths.
+
+- **Added**: Upload data to user-defined resoource paths.
+
+- **Update**: Consolidate resource layer display under one toolbar button.
+
+- **Update**: Moved Load GeoJSON and Tracks display out from under experiments.
+
+- **Update**: Move chart re-ordering to within the chart list (closes #88).
+
+
 ### v1.13.1
 
 - **Fix**: Handling of receiving `navigation.position` with a `null` value.
