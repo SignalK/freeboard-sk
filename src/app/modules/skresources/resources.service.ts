@@ -133,6 +133,52 @@ export class SKResources {
         }
     }
 
+    // ** GENERIC RESOURCES ** 
+
+    // ** Generic Resource on server **
+    createResource(path:string, data:any) {
+        this.signalk.api.post(`/resources/${path}`, data).subscribe( 
+            res=> { 
+                if(res['statusCode']>=400) {    // response status is error
+                    this.app.showAlert(`ERROR: (${res['statusCode']})`, res['message'] ? res['message'] : 'Server could not add Resource!');
+                }
+                else if(res['statusCode']==202) { // pending
+                    this.pendingStatus(res).then( r=> {
+                        if(r['statusCode']>=400) {    // response status is error
+                            this.app.showAlert(`ERROR: (${r['statusCode']})`, r['message'] ? r['message'] : 'Server could not add Resource!');
+                        } 
+                        else { 
+                            this.app.showAlert('SUCCESS:', 'Resource loaded successfully.');
+                        }      
+                    });
+                } 
+                else if(res['statusCode']==200) { // complete
+                    this.app.showAlert('SUCCESS:', 'Resource loaded successfully.');                        
+                }                
+            },
+            err=> {
+                if(err.status && err.status==401) { 
+                    this.showAuth().subscribe( res=> {
+                        if(res.cancel) { this.authResult(false) }
+                        else { // ** authenticate
+                            this.signalk.login(res.user, res.pwd).subscribe(
+                                r=> {   // ** authenticated
+                                    this.authResult(true, r['token']);
+                                    this.createResource(path, data);
+                                },
+                                err=> {   // ** auth failed
+                                    this.authResult(false);
+                                    this.showAuth();
+                                }
+                            );
+                        }
+                    });
+                }
+                else { this.app.showAlert('ERROR:', 'Server could not add Resource!') }
+            }
+        );
+    }
+
     // **** TRACKS ****
 
     /** get track(s) from sk server

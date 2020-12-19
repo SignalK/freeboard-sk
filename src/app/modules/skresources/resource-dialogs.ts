@@ -8,6 +8,7 @@ import { CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop';
 import { Convert } from 'src/app/lib/convert'
 import { AppInfo } from 'src/app/app.info'
 import { SignalKClient } from 'signalk-client-angular';
+import { SKResourceSet } from './sets/resource-set';
 
 /********* ResourceDialog **********
 	data: {
@@ -707,126 +708,6 @@ export class ChartInfoDialog implements OnInit {
     isLocal(url:string) { return (url && url.indexOf('signalk')!=-1) ? 'map' : 'language' }
 }
 
-/********* ChartLayersDialog ***********/
-@Component({
-	selector: 'ap-chartlayers',
-	template: `
-        <div class="_ap-chartlayers">
-            <div style="display:flex;line-height:2.3em;">
-                <div>
-                    <mat-icon color="primary">layers</mat-icon>
-                </div>
-                <div style="flex: 1 1 auto; padding-left:20px;text-align:center;
-                            font-weight: 500;font-size: 16pt;">
-                    Chart Layers
-                </div>
-                <div>
-                    <button mat-icon-button (click)="close()"
-                        matTooltip="Close" matTooltipPosition="below">
-                        <mat-icon>close</mat-icon>
-                    </button>
-                </div>
-            </div>  
-            <div style="font-style:italic; border-bottom:gray 1px solid;">
-                Top Layer
-            </div>
-            <div style="flex: 1 1 auto;position:relative;overflow:hidden;min-height:400px;">
-                <div style="top:0;left:0;right:0;bottom:0;position:absolute;
-                    overflow:auto;" cdkDropList (cdkDropListDropped)="drop($event)">
-                    <mat-card *ngFor="let ch of chartList; let i=index;" cdkDrag>
-                        <div class="point-drop-placeholder" *cdkDragPlaceholder></div>
-
-                        <div style="display:flex;" [style.cursor]="(i>0) ? 'pointer': 'initial'"> 
-                            <div style="width:35px;">
-                                <mat-icon color="warn">{{isLocal(ch[1].tilemapUrl)}}</mat-icon>
-                            </div>
-                            <div style="flex: 1 1 auto;text-overflow: ellipsis;
-                                        white-space: pre;overflow-x: hidden;">
-                                {{ch[1].name}}
-                            </div>   
-                            <div cdkDragHandle matTooltip="Drag to re-order charts">
-                                <mat-icon>drag_indicator</mat-icon>  
-                            </div>  
-                        </div>
-                    </mat-card>
-                </div>
-            </div>
-            <div style="font-style:italic; border-top:gray 1px solid;">
-                Base Layer (e.g. World Map)
-            </div>
-        </div>	
-    `,
-    styles: [`  ._ap-chartlayers {
-                    font-family: roboto;
-                }
-                .ap-confirm-icon { 
-                    min-width: 35px;
-                    max-width: 35px;
-                    color: darkorange;
-                    text-align: left;                    
-                }
-                .ap-confirm-icon .mat-icon { 
-                    font-size: 25pt;
-                }
-                .point-drop-placeholder {
-                    background: #ccc;
-                    border: dotted 3px #999;
-                    min-height: 80px;
-                    transition: transform 250ms cubic-bezier(0, 0, 0.2, 1);
-                }  
-                .cdk-drag-preview {
-                    box-sizing: border-box;
-                    border-radius: 4px;
-                    box-shadow: 0 5px 5px -3px rgba(0, 0, 0, 0.2),
-                                0 8px 10px 1px rgba(0, 0, 0, 0.14),
-                                0 3px 14px 2px rgba(0, 0, 0, 0.12);
-                }                  
-
-                @media only screen
-                    and (min-device-width : 768px)
-                    and (max-device-width : 1024px),
-                    only screen	and (min-width : 800px) { 
-
-                    ._ap-chartlayers {
-                        width: 50vw;
-                    }
-                    .ap-confirm-icon {
-                        min-width: 25%;
-                        max-width: 25%;
-                    }
-                    .ap-confirm-icon .mat-icon { 
-                        font-size: 40pt;
-                    }                    
-                }                 	
-			`]
-})
-export class ChartLayersDialog implements OnInit {
-
-    constructor(
-        public app:AppInfo,
-        public dialogRef: MatDialogRef<ChartLayersDialog> ) {
-    }
-
-    chartList= [];
-    
-	//** lifecycle: events **
-    ngOnInit() {
-        this.chartList= this.app.data.charts.slice().reverse();
-    }
-
-    drop(e:CdkDragDrop<any>) {
-        moveItemInArray(this.chartList, e.previousIndex, e.currentIndex);
-        // update and save config
-        this.app.data.charts= this.chartList.slice().reverse();
-        this.app.config.selections.chartOrder= this.app.data.charts.map( i=> { return i[0] });
-        this.app.saveConfig();
-    }
-
-    close() { this.dialogRef.close() } 
-    
-    isLocal(url:string) { return (url && url.indexOf('signalk')!=-1) ? 'map' : 'language' }
-}
-
 /********* TracksModal **********
 	data: {
         title: "<string>" title text
@@ -845,13 +726,19 @@ export class ChartLayersDialog implements OnInit {
                         (click)="clearSelections()">
                         <mat-icon>check_box_outline_blank</mat-icon>
                     </button>
+
+                    <button mat-icon-button
+                        matTooltip="Fetch track entries" matTooltipPosition="right"
+                        (click)="getTracks()">
+                        <mat-icon color="primary">refresh</mat-icon>
+                    </button>                    
                 </span>
                 <span style="flex: 1 1 auto; padding-left:20px;text-align:center;">
                     {{data.title}}
                 </span>
                 <span>
                     <button mat-icon-button (click)="closeModal()"
-                        matTooltip="Close" matTooltipPosition="below">
+                        matTooltip="Close" matTooltipPosition="left">
                         <mat-icon>keyboard_arrow_down</mat-icon>
                     </button>
                 </span>
@@ -875,6 +762,8 @@ export class ChartLayersDialog implements OnInit {
                     </div>
                     <div style="width:45px;">
                         <button mat-icon-button color="warn"
+                            matTooltip="Delete Track"
+                            matTooltipPosition="left"
                             (click)="handleDelete(trk[0], idx)">
                             <mat-icon>delete</mat-icon>
                         </button>
@@ -990,5 +879,148 @@ export class TracksModal implements OnInit {
                 true : false;
         });        
         if(this.data.skres) { this.data.skres.trackSelected() }  
+    }
+}
+
+/********* ResourceSetModal **********
+	data: {
+        path: "<string>" resource path
+        skres: SKResource
+    }
+***********************************/
+@Component({
+	selector: 'ap-resourceset-modal',
+	template: `
+        <div class="_ap-resource-set">
+            <mat-toolbar>
+                <span>
+                    <button mat-icon-button 
+                        [disabled]="app.config.selections.resourceSets[data.path].length==0"
+                        matTooltip="Clear selections" matTooltipPosition="right"
+                        (click)="clearSelections()">
+                        <mat-icon>check_box_outline_blank</mat-icon>
+                    </button>
+                    
+                    <button mat-icon-button
+                        matTooltip="Fetch resource entries" matTooltipPosition="right"
+                        (click)="getItems()">
+                        <mat-icon color="primary">refresh</mat-icon>
+                    </button>
+                </span>
+                <span style="flex: 1 1 auto; padding-left:20px;text-align:center;">
+                    {{title}}
+                </span>
+                <span>
+                    <button mat-icon-button (click)="closeModal()"
+                        matTooltip="Close" matTooltipPosition="left">
+                        <mat-icon>keyboard_arrow_down</mat-icon>
+                    </button>
+                </span>
+            </mat-toolbar>          
+
+            <mat-card *ngFor="let res of resList; let idx= index">
+                <div style="display:flex;flex-wrap:no-wrap;">
+                    <div style="width:45px;">
+                        <mat-checkbox color="primary"
+                            [checked]="selRes[idx]"
+                            (change)="handleCheck($event.checked, res.id, idx)"
+                        ></mat-checkbox>
+                    </div>
+                    <div style="flex:1 1 auto;">
+                        <div class="key-label">
+                            {{res.name}}
+                        </div>
+                        <div class="key-desc">
+                            {{res.description}}
+                        </div>
+                    </div>
+                    <div style="width:45px;">
+                    </div>                    
+                </div>
+            </mat-card>
+        </div>	
+    `,
+    styles: [`  ._ap-resource-set {
+                    font-family: arial;
+                    min-width: 300px;
+                }
+                ._ap-resource-set  .key-label {
+                    font-weight: 500;
+                }  
+                ._ap-resource-set  .key-desc {
+                    font-style: italic;
+                }                                	
+			`]
+})
+export class ResourceSetModal implements OnInit {
+
+    public resList:any;
+    public selRes= [];
+    public title= 'Resources: ';
+
+    constructor(
+        public app: AppInfo,
+        private cdr: ChangeDetectorRef,
+        private sk: SignalKClient,        
+        public modalRef: MatBottomSheetRef<TracksModal>,
+        @Inject(MAT_BOTTOM_SHEET_DATA) public data: any) {
+    }
+    
+    ngOnInit() { 
+        if(this.data.path!=='undefined') { this.title+= this.data.path }
+        this.getItems();
+    } 
+
+    closeModal() { this.modalRef.dismiss() }    
+
+    getItems() {
+        this.sk.api.get(`resources/${this.data.path}`).subscribe(
+            (resSet:any)=> { 
+                this.resList= this.data.skres.processItems(resSet); 
+                this.selRes= [];             
+                for(let i=0;i<this.resList.length;i++) {
+                    this.selRes.push( 
+                        (this.app.config.selections.resourceSets[this.data.path].includes(this.resList[i].id)) ?
+                        true : false
+                    );
+                }
+                this.cdr.detectChanges();             
+            },
+            ()=> { 
+                this.resList= [];
+                this.selRes= [];
+                this.cdr.detectChanges();
+            }
+        );        
+    } 
+
+    handleCheck(checked:boolean, id:string, idx:number) {
+        this.selRes[idx]=checked;
+        if(checked) {
+            this.app.config.selections.resourceSets[this.data.path].push(id);
+        }
+        else {
+            let i= this.app.config.selections.resourceSets[this.data.path].indexOf(id);
+            if(i!=-1) { this.app.config.selections.resourceSets[this.data.path].splice(i,1) }
+        }
+        this.app.saveConfig();
+        this.updateItems();
+    }
+
+    clearSelections() {
+        this.selRes= [];
+        for(let i=0;i<this.resList.length;i++) {
+            this.selRes[i]= false;
+        }          
+        this.app.config.selections.resourceSets[this.data.path]= [];
+        this.app.saveConfig();
+        this.updateItems();
+    }
+    
+    updateItems() {
+        this.app.data.resourceSets[this.data.path]= this.resList.filter( t=> {
+            return (this.app.config.selections.resourceSets[this.data.path].includes(t.id) ) ?
+                true : false;
+        });        
     }
 }
