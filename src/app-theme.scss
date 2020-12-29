@@ -56,3 +56,8 @@ $theme:     mat-light-theme($primary, $accent, $warn);
 
 // Include theme styles for custom components.
 @include popover-theme($theme);
+
+// std elements
+a {
+    color: mat-color($primary);
+}
