@@ -430,7 +430,7 @@
     <aol-layer-vector [zIndex]="49" *ngIf="!app.config.anchor.raised">
         <aol-source-vector>
             <aol-feature>
-                <aol-geometry-circle [radius]="app.config.anchor.radius">  
+                <aol-geometry-circle [radius]="app.config.anchor.radius * 1.852">  
                     <aol-coordinate 
                         [x]="app.config.anchor.position[0]" 
                         [y]="app.config.anchor.position[1]" 
