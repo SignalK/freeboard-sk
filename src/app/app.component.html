@@ -368,9 +368,10 @@
                     <anchor-watch *ngIf="display.anchorWatch"
                         min="10" max="500" 
                         [disable]="!app.data.vessels.showSelf"
-                        [radius]="app.config.anchor.radius" 
+                        [sliderValue]="app.config.anchorRadius"
+                        [radius]="app.data.anchor.radius" 
                         [feet]="(app.config.units.depth!='m') ? true : false"
-                        [raised]="app.config.anchor.raised"
+                        [raised]="app.data.anchor.raised"
                         (change)="alarmsFacade.anchorEvent($event, app.data.vessels.activeId, this.app.data.vessels.active.position)"
                         (closed)="displayLeftMenu()">
                     </anchor-watch>                     
@@ -433,7 +434,8 @@
                         (deactivate)="deactivateRoute()"
                         (exitedMovingMap)="toggleMoveMap($event)"
                         (focusVessel)="switchActiveVessel($event)"
-                        (info)="featureProperties($event)">
+                        (info)="featureProperties($event)"
+                        (anchor)="sidemenu.close();displayLeftMenu('anchorWatch',true)">
                     </fb-map>
                     <!-- *** /MAP *** -->     
 

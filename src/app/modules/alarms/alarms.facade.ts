@@ -46,54 +46,35 @@ export class AlarmsFacade  {
     // ******** ANCHOR WATCH EVENTS ************
     anchorEvent(e:any, context?:string, position?:[number,number]) {
         context= (context) ? context : 'self';
-        if(e.action=='radius') {
-            this.app.config.anchor.radius= e.radius;            
-            this.signalk.api.put(
-                context, 
-                '/navigation/anchor/maxRadius', 
-                this.app.config.anchor.radius
-            ).subscribe(
-                r=> { this.queryAnchorStatus(context, position) },
-                err=> { 
-                    this.parseAnchorError(err, 'radius'); 
-                    this.queryAnchorStatus(context, position);  
-                }
-            );               
-            return;
-        }
         if(!e.raised) {  // ** drop anchor
-            this.app.config.anchor.raised= false;
-            this.app.config.anchor.position= position;
-
+            this.app.config.anchorRadius= e.radius;
             let aPosition= this.signalk.api.put(
                 context,
                 '/navigation/anchor/position', 
                 {
-                    latitude: this.app.config.anchor.position[1],
-                    longitude: this.app.config.anchor.position[0]
+                    latitude: position[1],
+                    longitude: position[0]
                 }
             );
             let aRadius= this.signalk.api.put(
                 context, 
                 '/navigation/anchor/maxRadius', 
-                this.app.config.anchor.radius
+                e.radius
             );
-            let res= forkJoin(aPosition, aRadius);
+            let res= forkJoin([aPosition, aRadius]);
             res.subscribe(
-                r=> { this.queryAnchorStatus(context, position) },
+                ()=> { this.app.saveConfig() },
                 err=> { this.parseAnchorError(err, 'drop'); this.queryAnchorStatus(context, position); }
-            ); 
-                                                   
+            );                                     
         }
         else {  // ** raise anchor
-            this.app.config.anchor.raised= true;
             this.app.data.alarms.delete('anchor');
             this.signalk.api.put(
                 context, 
                 '/navigation/anchor/position', 
                 null 
             ).subscribe(
-                r=> { this.queryAnchorStatus(context, position) },
+                ()=> { },
                 err=> { 
                     this.parseAnchorError(err, 'raise'); 
                     this.queryAnchorStatus(context, position); 
@@ -123,8 +104,8 @@ export class AlarmsFacade  {
                 this.parseAnchorStatus(aData, position); 
             },
             err=> { 
-                this.app.config.anchor.position= [0,0];
-                this.app.config.anchor.raised= true;
+                this.app.data.anchor.position= [0,0];
+                this.app.data.anchor.raised= true;
             }
         ); 
     }
@@ -151,27 +132,26 @@ export class AlarmsFacade  {
 
     // ** process anchor status
     parseAnchorStatus(r:any, position?:[number,number]) {
-        if(r.position && typeof r.position.latitude!= 'undefined' && typeof r.position.longitude!= 'undefined') {
-            this.app.config.anchor.position= [
+        if(r.position && typeof r.position.latitude== 'number' && typeof r.position.longitude== 'number') {
+            this.app.data.anchor.position= [
                 r.position.longitude,
                 r.position.latitude
             ]
-            this.app.config.anchor.raised= false;
+            this.app.data.anchor.raised= false;
         }  
         else { 
-            if(position) { this.app.config.anchor.position= position }
-            this.app.config.anchor.raised= true;
+            if(position) { this.app.data.anchor.position= position }
+            this.app.data.anchor.raised= true;
         }
         
-        if(typeof r.maxRadius=='number') { this.app.config.anchor.radius= r.maxRadius }    
+        if(typeof r.maxRadius=='number') { this.app.data.anchor.radius= r.maxRadius }    
         
         // ** emit anchorStatus$ **
         this.anchorSource.next({
             action: 'query',
             error: false,
-            result: this.app.config.anchor
+            result: this.app.data.anchor
         });
-        //this.app.saveConfig(); 
     }
 
     // ******** ALARM ACTIONS ************

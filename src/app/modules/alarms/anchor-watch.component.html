@@ -17,36 +17,47 @@
 
     <div class="content">    
         <mat-card>
-            <div style="display: flex;">
-                <div style="flex: 1 1 auto;">
-                    <div style="width: 150px;text-align: center;">
-                        <mat-slider [color]="display.sliderColor"
-                            [disabled]="!raised || disable"
-                            [min]="(this.feet) ? mToFt(min) : min" 
-                            [max]="(this.feet) ? mToFt(max) : max" step="1" 
-                            [value]="(this.feet) ? mToFt(radius) : radius"
-                            thumbLabel tickInterval="1"
-                            (change)="setRadius($event)">
-                        </mat-slider>
-                    </div>
-                    <div style="width: 150px;height:150px;color:black;
-                        background-image: url('./assets/img/anchor-radius.png');
-                        background-position: top left;
-                        background-size:cover; 
-                        ">
-                        <b style="position: fixed;top: 145px;left: 62px;width:35px;text-align:right;">
-                            {{(this.feet) ? mToFt(radius) : radius}} 
-                        </b>
-                        <b style="position: fixed;top: 145px;left:102px;text-align:left;">
-                            {{(feet) ? 'ft' : 'm'}}
-                        </b>                       
-                    </div>                    
-                </div>        
-                <div style="text-align: right;"></div>  
+            <div>
+                <b>Status:</b>
             </div>
+            <div style="width: 150px;height:150px;color:black;
+                background-position: top left;
+                background-size:cover;"
+                [style.backgroundImage]="bgImage">
+                <b style="position: fixed;top: 125px;left: 69px;width:35px;text-align:right;">
+                    {{(feet) ? mToFt(radius) : radius}} 
+                </b>
+                <b style="position: fixed;top: 125px;left:109px;text-align:left;">
+                    {{(feet) ? 'ft' : 'm'}}
+                </b>                                         
+            </div>  
+            <div>
+                <!--<anchor-status [radius]="radius"] [raised]="raised"></anchor-status>-->
+            </div>  
+            
+            <div>
+                <br>
+                <b>Set Radius:</b>
+            </div>
+            <div style="display: flex;">
+                <div>
+                    <mat-slider [color]="display.sliderColor"
+                        [disabled]="!raised || disable"
+                        [min]="(this.feet) ? mToFt(min) : min" 
+                        [max]="(this.feet) ? mToFt(max) : max" step="1" 
+                        [value]="(this.feet) ? mToFt(sliderValue) : sliderValue"
+                        thumbLabel tickInterval="1"
+                        (change)="setRadius($event)">
+                    </mat-slider>
+                </div>
+                <div style="flex: 1;font-size: 10pt;line-height: 3em;text-align: right;">
+                    {{(feet) ? mToFt(msg.radius) : msg.radius}}  {{(feet) ? 'ft' : 'm'}}
+                </div>
+            </div>
+
             <mat-card-actions>
                 <div style="display: flex;">
-                    <div>&nbsp;</div>
+                    <div></div>
                     <div style="flex: 1 1 auto;text-align:right;">
                             RAISE 
                         <mat-slide-toggle color="warn"

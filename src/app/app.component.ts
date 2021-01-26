@@ -177,7 +177,7 @@ export class AppComponent {
     }
 
     // ********* DISPLAY / APPEARANCE ****************
-    
+
     // ** return the map orientation **
     getOrientation() {
         return (this.app.config.map.northUp) ?
@@ -1102,7 +1102,7 @@ export class AppComponent {
         this.signalk.api.getSelf().subscribe(
             r=> {  
                 this.stream.post({ cmd: 'vessel', options: {context: 'self', name: r['name']} });
-                this.fetchResources(true);  // ** fettch all resource types from server
+                this.fetchResources(true);  // ** fetch all resource types from server
                 if(this.app.config.selections.trailFromServer) {
                     this.skres.getVesselTrail();    // request trail from server
                 }
@@ -1183,6 +1183,9 @@ export class AppComponent {
             else { 
                 this.display.playback.time= null;
                 this.setDarkTheme();
+                if(e.result.self.resourceUpdates && e.result.self.resourceUpdates.length!=0) {
+                    this.skres.processDelta(e.result.self.resourceUpdates);
+                }
             }   
             this.updateNavPanel();
         }  
