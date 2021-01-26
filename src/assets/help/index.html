@@ -941,30 +941,7 @@
                             state has returned to <i>Normal</i>, this is the 
                             length of time that the notification must remain in <i>Normal</i> state
                             before the alarm is re-triggered.
-                        </li>                                
-                        <li><b>Display Vessel Trail</b>: 
-                            Check this box if you want to display the vessel trail.<br>
-                            By default Freeboard will display the vessel trail using a local cache 
-                            maintaining up to 5000 points at a 5 second interval.
-                            <ul>
-                                <li>
-                                    <b>Get Trail from Server</b>: Check this to retrieve
-                                    vessel trail data from the server at the path 
-                                    <i>signalk/v1/api/self/track</i>.<br> 
-                                </li>
-                                 <li>
-                                    Use the slider to set the length of track to retrieve from the server 
-                                    in hours. Time is relative to the current time.<br>
-
-                                    Freeboard will attempt to retrieve track from the server in the following way:
-                                    <ul>
-                                        <li>time < (now - 24hrs) => 5 minute intervals.</li>
-                                        <li>(now - 1hr) < time > (now - 24hrs) => 1 minute intervals.</li>
-                                        <li>time > (now - 1hr) => 5 second intervals.</li>
-                                    </ul>
-                                </li>
-                            </ul>
-                        </li>   
+                        </li>                                  
                         <li><b>Dark Mode Setting</b>: 
                             Use this setting to control the display theme (Light or Dark).<br>
                             <ul>
@@ -982,6 +959,17 @@
                                 </li>                                
                             </ul>
                         </li>                         
+                    </ul>
+                    <b>MAP:</b><br>
+                    <ul>
+                        <li>
+                            <b>Popover close with button</b>: 
+                            Select this option in order to a close a popover using a button rather than just clicking outside of it.
+                        </li>
+                        <li>
+                            <b>Double click to Zoom</b>: 
+                            Select this option to enable zooming the map with a double click.
+                        </li>
                     </ul>
                 </p>		
 
@@ -1017,16 +1005,56 @@
                 </p>	
                 
                 <p>
-                    <b>OTHER VESSELS:</b><br>
-                    This section provides choices about the units and values used when displaying data.<br>
+                    <b>VESSEL:</b><br>
+                    This section provides choices when displaying data for 
+                    the vessel.<br>
                     <img src="./img/settings_other_vessels.png" style="height:200px;"/><br>
 
-                    <b>Wind Vector</b>: <i>Wind True</i> / <i>Wind Apparent</i><br>
-                    Value used to display wind vector for other vessels displayed on the map.
-                    <br>
-                    <b>Wind Vector Zoom Level</b>: <br>
-                    The minimum Zoom level at which other vessels wind vector will be displayed. <i>(Default=15)</i>
-                    <br>                    
+                    <li>
+                        <b>Display Wind Vectors</b>: Select to display wind vectors for the vessel on the map.
+                    </li>
+
+                    <ul>
+                        <li>
+                            <b>Display Vessel Trail</b>: 
+                            Check this box if you want to display the vessel trail.<br>
+                            By default Freeboard will display the vessel trail using a local cache 
+                            maintaining up to 5000 points at a 5 second interval.
+                            <ul>
+                                <li>
+                                    <b>Get Trail from Server</b>: Check this to retrieve
+                                    vessel trail data from the server at the path 
+                                    <i>signalk/v1/api/self/track</i>.<br> 
+                                </li>
+                                <li>
+                                    Use the slider to set the length of track to retrieve from the server 
+                                    in hours. Time is relative to the current time.<br>
+
+                                    Freeboard will attempt to retrieve track from the server in the following way:
+                                    <ul>
+                                        <li>time < (now - 24hrs) => 5 minute intervals.</li>
+                                        <li>(now - 1hr) < time > (now - 24hrs) => 1 minute intervals.</li>
+                                        <li>time > (now - 1hr) => 5 second intervals.</li>
+                                    </ul>
+                                </li>
+                            </ul>
+                        </li>
+                    </ul>
+                    <b>OTHER VESSELS:</b><br>
+                    This section provides choices when displaying data for 
+                    other vessels.<br>
+                    <li>
+                        <b>Wind Vector Value</b>: <i>Wind True</i> / <i>Wind Apparent</i>
+                        Value used to display wind vector for other vessels displayed on the map.
+                    </li>
+                    <li>    
+                        <b>Wind / Track Zoom Level</b>:
+                        The minimum Zoom level at which other vessels wind vector and track will be displayed. <i>(Default=15)</i>
+                    </li>  
+                    <li>    
+                        <b>Show Track</b>:
+                        Select to display track of other vessels on map. Note: length of track is limited in length to approx 1hr of data.
+                    </li>                   
                 </p>                
                 
                 <p>
