@@ -28,11 +28,6 @@ const FreeboardConfig= {
         northUp: true,
         animate: false
     },
-    anchor: {       // ** anchor watch
-        raised: true,
-        radius: 40,
-        position: [0,0]
-    },
     vesselTrail: false,     // display trail
     vesselWindVectors: true,// display vessel TWD, AWD vectors
     aisTargets: true,       // display ais targets
@@ -41,6 +36,7 @@ const FreeboardConfig= {
     popoverMulti: false,    // close popovers using cose button
     mapDoubleClick: false,  // true=zoom
     depthAlarm: { enabled: false, smoothing: 10000 },
+    anchorRadius: 40,       // most recent anchor radius setting
     plugins: {
         instruments: '/@signalk/instrumentpanel',
         startOnOpen: false,
@@ -68,6 +64,7 @@ const FreeboardConfig= {
         aisTargets: null,
         aisWindApparent: false,
         aisWindMinZoom: 15,
+        aisShowTrack: false,
         notesMinZoom: 10,
         pluginFavourites: [],
         trailFromServer: false,
@@ -129,7 +126,7 @@ export class AppInfo extends Info {
         this.name= "Freeboard";
         this.shortName= "freeboard";
         this.description= `Signal K Chart Plotter.`;
-        this.version= '1.14.0';
+        this.version= '1.14.1';
         this.url= 'https://github.com/signalk/freeboard-sk';
         this.logo= "./assets/img/app_logo.png";   
         
@@ -189,6 +186,11 @@ export class AppInfo extends Info {
                 pointTotal: 0,
                 arrivalCircle: null,
                 startPosition: null
+            },
+            anchor: {       // ** anchor watch
+                raised: true,
+                radius: 0,
+                position: [0,0]
             }
         }
 
@@ -317,9 +319,19 @@ export class AppInfo extends Info {
     cleanConfig(settings:any) {
         this.debug('Cleaning config keys...');
         if(typeof settings.usePUT !== 'undefined') { delete settings.usePUT }
-        if(typeof settings.vesselWindVectors=='undefined') {
+        if(typeof settings.anchor !== 'undefined') { delete settings.anchor}
+
+        if(typeof settings.anchorRadius === 'undefined') { 
+            settings.anchorRadius= 40;
+        }
+        
+        if(typeof settings.vesselWindVectors === 'undefined') {
             settings.vesselWindVectors= true;
         }  
+
+        if(typeof settings.aisShowTrack === 'undefined') {
+            settings.aisShowTrack= false;
+        }
 
         if(typeof settings.selections === 'undefined') { settings.selections={} } 
         if(typeof settings.selections.aisWindMinZoom === 'undefined') {

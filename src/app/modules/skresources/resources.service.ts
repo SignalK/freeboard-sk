@@ -36,6 +36,26 @@ export class SKResources {
     public update$(): Observable<any> { return this.updateSource.asObservable() }; 
     public activeRoute$(): Observable<IActiveRoute> { return this.activeRouteSource.asObservable() }; 
 
+    // ** process Resource Delta message **
+    processDelta(e:Array<any>) {
+        if(!Array.isArray(e)) { return }
+        let actions= {
+            routes: false,
+            waypoints: false,
+            notes: false,
+            regions: false
+        }
+        e.forEach( i=> {
+            let r= i.path.split('.');
+            console.log('type:', r[1], 'id:', r[2]);
+            actions[r[1]]= true;
+        });
+        console.log('skres.processDelta():', actions);
+        if(actions['routes']) {this.getRoutes() }
+        if(actions['waypoints']) {this.getWaypoints() }
+        if(actions['notes'] || actions['regions']) { this.getNotes() }
+    }
+
     // ** UI methods **
     routeSelected(e:any) {
         let t= this.app.data.routes.map(
@@ -495,14 +515,14 @@ export class SKResources {
                         else { 
                             this.app.config.selections.routes.push(rte[0]);
                             this.app.saveConfig();
-                            this.getRoutes();  
+                            //this.getRoutes();  
                         }      
                     });
                 } 
                 else if(res['statusCode']==200) { // complete
                     this.app.config.selections.routes.push(rte[0]);
                     this.app.saveConfig();
-                    this.getRoutes();                        
+                    //this.getRoutes();                        
                 }                
             },
             err=> {
@@ -541,10 +561,10 @@ export class SKResources {
                         if(r['statusCode']>=400) {    // response status is error
                             this.app.showAlert(`ERROR: (${r['statusCode']})`, r['message'] ? r['message'] : 'Server could not update Route!');
                         } 
-                        else { this.getRoutes() }      
+                        //else { this.getRoutes() }      
                     });
                 } 
-                else if(res['statusCode']==200) { this.getRoutes() }
+                //else if(res['statusCode']==200) { this.getRoutes() }
             },
             err=> { 
                 this.getRoutes();
@@ -583,10 +603,10 @@ export class SKResources {
                         if(r['statusCode']>=400) {    // response status is error
                             this.app.showAlert(`ERROR: (${r['statusCode']})`, r['message'] ? r['message'] : 'Server could not delete Route!');
                         } 
-                        else { this.getRoutes() }      
+                        //else { this.getRoutes() }      
                     });
                 } 
-                else if(res['statusCode']==200) { this.getRoutes() }
+                //else if(res['statusCode']==200) { this.getRoutes() }
             },
             err=> { 
                 if(err.status && err.status==401) { 
@@ -919,7 +939,7 @@ export class SKResources {
                         if(r['statusCode']>=400) {    // response status is error
                             this.app.showAlert(`ERROR: (${r['statusCode']})`, r['message'] ? r['message'] : 'Server could not update Waypoint!');
                         } 
-                        else { this.getWaypoints() }      
+                        //else { this.getWaypoints() }      
                     });
                 } 
                 else if(res['statusCode']==200) {
@@ -927,7 +947,7 @@ export class SKResources {
                         this.app.config.selections.waypoints.push(id);
                         this.app.saveConfig();
                     }
-                    this.getWaypoints();
+                    //this.getWaypoints();
                 }
             },
             err=> { 
@@ -967,10 +987,10 @@ export class SKResources {
                         if(r['statusCode']>=400) {    // response status is error
                             this.app.showAlert(`ERROR: (${r['statusCode']})`, r['message'] ? r['message'] : 'Server could not delete Waypoint!');
                         } 
-                        else { this.getWaypoints() }      
+                        //else { this.getWaypoints() }      
                     });
                 } 
-                else if(res['statusCode']==200) { this.getWaypoints() }              
+                //else if(res['statusCode']==200) { this.getWaypoints() }              
             },
             err=> { 
                 if(err.status && err.status==401) { 
@@ -1141,10 +1161,10 @@ export class SKResources {
                         if(r['statusCode']>=400) {    // response status is error
                             this.app.showAlert(`ERROR: (${r['statusCode']})`, r['message'] ? r['message'] : 'Server could not delete Region!');
                         }                        
-                        else { this.getNotes() }
+                        //else { this.getNotes() }
                     });
                 } 
-                else if(res['statusCode']==200) { this.getNotes() }                        
+                //else if(res['statusCode']==200) { this.getNotes() }                        
             },
             err=> { 
                 if(err.status && err.status==401) { 
@@ -1281,13 +1301,13 @@ export class SKResources {
                             this.app.showAlert(`ERROR: (${r['statusCode']})`, r['message'] ? r['message'] : 'Server could not add Note!');
                         }                        
                         else { 
-                            this.getNotes();
+                            //this.getNotes();
                             this.reopenRelatedDialog();
                         }
                     });
                 }  
                 else if(res['statusCode']==200) { 
-                    this.getNotes(); 
+                    //this.getNotes(); 
                     this.reopenRelatedDialog();
                 }
             },
@@ -1327,13 +1347,13 @@ export class SKResources {
                             this.app.showAlert(`ERROR: (${r['statusCode']})`, r['message'] ? r['message'] : 'Server could not update Note!');
                         }                        
                         else { 
-                            this.getNotes();
+                            //this.getNotes();
                             this.reopenRelatedDialog();
                         }
                     });
                 }  
                 else if(res['statusCode']==200) { 
-                    this.getNotes(); 
+                    //this.getNotes(); 
                     this.reopenRelatedDialog();
                 }
             },
@@ -1375,13 +1395,13 @@ export class SKResources {
                             this.app.showAlert(`ERROR: (${r['statusCode']})`, r['message'] ? r['message'] : 'Server could not delete Note!');
                         }                        
                         else { 
-                            this.getNotes();
+                            //this.getNotes();
                             this.reopenRelatedDialog();
                         }
                     });
                 }  
                 else if(res['statusCode']==200) { 
-                    this.getNotes(); 
+                    //this.getNotes(); 
                     this.reopenRelatedDialog();
                 }                         
             },

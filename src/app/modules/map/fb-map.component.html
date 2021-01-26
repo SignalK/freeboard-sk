@@ -295,6 +295,7 @@
                 [labelMinZoom]="10"
                 [vectorMinZoom]="app.config.selections.aisWindMinZoom"
                 [vectorApparent]="app.config.selections.aisWindApparent"
+                [showTrack]="app.config.aisShowTrack"
                 [mapZoom]="app.config.map.zoomLevel">                               
             </xol-ais-targets>
         </aol-source-vector>
@@ -427,13 +428,13 @@
     <!-- /*** popover *** -->  
 
     <!-- ANCHOR WATCH -->  
-    <aol-layer-vector [zIndex]="49" *ngIf="!app.config.anchor.raised">
+    <aol-layer-vector [zIndex]="49" *ngIf="!app.data.anchor.raised">
         <aol-source-vector>
             <aol-feature>
-                <aol-geometry-circle [radius]="app.config.anchor.radius">  
+                <aol-geometry-circle [radius]="mapifyRadius(app.data.anchor.radius, app.data.anchor.position)">  
                     <aol-coordinate 
-                        [x]="app.config.anchor.position[0]" 
-                        [y]="app.config.anchor.position[1]" 
+                        [x]="app.data.anchor.position[0]" 
+                        [y]="app.data.anchor.position[1]"
                         [srid]="app.config.map.srid">
                     </aol-coordinate>                               
                     <aol-style>
@@ -450,8 +451,8 @@
             <aol-feature>
                 <aol-geometry-point>
                     <aol-coordinate 
-                        [x]="app.config.anchor.position[0]" 
-                        [y]="app.config.anchor.position[1]" 
+                        [x]="app.data.anchor.position[0]" 
+                        [y]="app.data.anchor.position[1]" 
                         [srid]="app.config.map.srid">
                     </aol-coordinate>
                 </aol-geometry-point>
@@ -522,7 +523,7 @@
         <aol-source-vector>
 
             <!-- xte path -->
-            <aol-feature *ngIf="dfeat.navData.startPosition && dfeat.navData.position && app.config.anchor.raised">
+            <aol-feature *ngIf="dfeat.navData.startPosition && dfeat.navData.position && app.data.anchor.raised">
                 <aol-geometry-linestring>
                     <aol-collection-coordinates
                         [coordinates]="vesselLines.xtePath"
@@ -563,7 +564,7 @@
             <!-- /vessel -->    
 
             <!-- heading Line-->
-            <aol-feature *ngIf="vesselLines.heading[0] && app.config.anchor.raised">
+            <aol-feature *ngIf="vesselLines.heading[0] && app.data.anchor.raised">
                 <aol-geometry-linestring>
                     <aol-collection-coordinates
                         [coordinates]="vesselLines.heading"
@@ -579,7 +580,7 @@
             
             <!-- bearing Line-->
             <!-- base -->
-            <aol-feature *ngIf="dfeat.navData.position && app.config.anchor.raised">
+            <aol-feature *ngIf="dfeat.navData.position && app.data.anchor.raised">
                 <aol-geometry-linestring>
                     <aol-collection-coordinates
                         [coordinates]="vesselLines.bearing"
@@ -593,7 +594,7 @@
                 </aol-style>
             </aol-feature>  
             <!-- highlight -->
-            <aol-feature *ngIf="dfeat.navData.position && app.config.anchor.raised">
+            <aol-feature *ngIf="dfeat.navData.position && app.data.anchor.raised">
                 <aol-geometry-linestring>
                     <aol-collection-coordinates
                         [coordinates]="vesselLines.bearing"
@@ -607,7 +608,7 @@
                 </aol-style>
             </aol-feature>  
             <!-- marker base-->
-            <aol-feature *ngIf="dfeat.navData.position && app.config.anchor.raised">
+            <aol-feature *ngIf="dfeat.navData.position && app.data.anchor.raised">
                 <aol-geometry-point>
                     <aol-coordinate 
                         [x]="dfeat.navData.position[0]" 
@@ -624,7 +625,7 @@
             </aol-feature>
             <!-- marker flag-->
             <aol-feature id="dest.point"
-                    *ngIf="!app.data.activeWaypoint && dfeat.navData.position && app.config.anchor.raised">
+                    *ngIf="!app.data.activeWaypoint && dfeat.navData.position && app.data.anchor.raised">
                 <aol-geometry-point>
                     <aol-coordinate 
                         [x]="dfeat.navData.position[0]" 
@@ -666,7 +667,7 @@
             </aol-feature>
 
             <!-- TWD Line -->
-            <aol-feature *ngIf="app.config.vesselWindVectors && vesselLines.twd[0] && app.config.anchor.raised">
+            <aol-feature *ngIf="app.config.vesselWindVectors && vesselLines.twd[0] && app.data.anchor.raised">
                 <aol-geometry-linestring>
                     <aol-collection-coordinates
                         [coordinates]="vesselLines.twd"
@@ -681,7 +682,7 @@
             </aol-feature>    
             
             <!-- AWA Line -->
-            <aol-feature *ngIf="app.config.vesselWindVectors && vesselLines.awa[0] && app.config.anchor.raised">
+            <aol-feature *ngIf="app.config.vesselWindVectors && vesselLines.awa[0] && app.data.anchor.raised">
                 <aol-geometry-linestring>
                     <aol-collection-coordinates
                         [coordinates]="vesselLines.awa"
@@ -773,6 +774,13 @@
             (contextmenu)="$event.preventDefault();">
             <mat-icon>straighten</mat-icon>
             Measure
-        </button>              
+        </button>     
+        <mat-divider></mat-divider>  
+        <button mat-menu-item
+            (click)="onContextMenuAction('anchor', item)"
+            (contextmenu)="$event.preventDefault();">
+            <mat-icon><i class="fi-anchor"></i></mat-icon>
+            Anchor Watch
+        </button>           
 	</ng-template>
 </mat-menu>

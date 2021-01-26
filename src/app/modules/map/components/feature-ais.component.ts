@@ -1,8 +1,8 @@
 import { Component, OnInit, OnDestroy, OnChanges, Input, ChangeDetectionStrategy } from '@angular/core';
 import { GeoUtils } from 'src/app/lib/geoutils';
 
-import { Point, LineString } from 'ol/geom';
-import { transform } from 'ol/proj';
+import { Point, LineString, MultiLineString } from 'ol/geom';
+import { fromLonLat } from 'ol/proj';
 import { Style, Stroke, Icon, Text } from 'ol/style';
 import { Feature } from 'ol';
 import { SourceVectorComponent } from 'ngx-openlayers';
@@ -34,6 +34,7 @@ export class AisTargetsComponent implements OnInit, OnDestroy, OnChanges {
     @Input() vectorMinZoom: number= 15;
     @Input() vectorApparent: boolean= false;
     @Input() mapZoom: number;
+    @Input() showTrack: boolean= true;
     
 
     private mrid= 'EPSG:3857';
@@ -61,6 +62,7 @@ export class AisTargetsComponent implements OnInit, OnDestroy, OnChanges {
         if(changes.filterIds) { this.updateFeatures(); this.updateVectors(); } 
         if(changes.vectorApparent) { this.updateVectors() } 
         if(changes.focusId) { this.updateFeatures() }
+        if(changes.showTrack) { this.updateTracks() }
     }
 
     formatlabel(label) { return (this.mapZoom < this.labelMinZoom) ? '' : label }
@@ -75,6 +77,7 @@ export class AisTargetsComponent implements OnInit, OnDestroy, OnChanges {
         }
         if( doFeatureUpdate) { this.updateFeatures() }
         this.updateVectors();
+        this.updateTracks();
     }
 
     updateTargets(ids:Array<string>) {
@@ -87,14 +90,14 @@ export class AisTargetsComponent implements OnInit, OnDestroy, OnChanges {
             let f=layer.getFeatureById('ais-'+ id);
             if(f) { //update vessel
                 if(ais.position) {
-                    f.setGeometry( new Point( transform( ais.position, this.srid, this.mrid ) ) );
+                    f.setGeometry( new Point( fromLonLat(ais.position) ) );
                     f.setStyle( new Style( this.setTargetStyle(id) ) );
                 }
                 else { layer.removeFeature(f) }
             }
             else {  //create vessel
                 if(ais.position) {
-                    f= new Feature( new Point( transform( ais.position, this.srid, this.mrid ) ) );
+                    f= new Feature( new Point( fromLonLat(ais.position) ) );
                     f.setId('ais-'+ id);
                     f.setStyle( new Style( this.setTargetStyle(id) ) );
                     layer.addFeature(f);
@@ -111,8 +114,8 @@ export class AisTargetsComponent implements OnInit, OnDestroy, OnChanges {
             if(wf) { // update vector
                 if(ais.position && windDirection) { 
                     wf.setGeometry( new LineString( [
-                        transform( ais.position, this.srid, this.mrid ),
-                        transform( windc, this.srid, this.mrid )
+                        fromLonLat(ais.position),
+                        fromLonLat(windc)
                     ]) );
                     wf.setStyle( new Style( this.setVectorStyle(id) ) );
                 }
@@ -121,14 +124,43 @@ export class AisTargetsComponent implements OnInit, OnDestroy, OnChanges {
             else { // create vector
                 if(ais.position && windDirection) {
                     wf= new Feature( new LineString( [
-                            transform( ais.position, this.srid, this.mrid ),
-                            transform( windc, this.srid, this.mrid )
+                        fromLonLat(ais.position),
+                        fromLonLat(windc)
                     ]) );
                     wf.setId('wind-'+ id);
                     wf.setStyle( new Style( this.setVectorStyle(id) ) );
                     layer.addFeature(wf);
                 }
-            }                     
+            }
+            // ** ais track **
+            let tk=layer.getFeatureById('track-'+ id);
+            // ** handle dateline crossing **
+            let tc= ais.track.map( mls=> {
+                let lines= [];
+                mls.forEach( line=> lines.push( GeoUtils.mapifyCoords(line) ) )
+                return lines;
+            });
+            // **transform track coordinates**
+            let tfc= tc.map( line=> { 
+                let coords= [];
+                line.forEach( i=> coords.push(fromLonLat(i)) );
+                return coords;
+            });
+            if(tk) { // update track
+                if(ais.position) { 
+                    tk.getGeometry().setCoordinates( tfc );
+                    tk.setStyle( new Style( this.setTrackStyle(id) ) );
+                }
+                else { layer.removeFeature(tk) }
+            }
+            else { // create track
+                if(ais.position) {
+                    tk= new Feature( new MultiLineString(tfc) );
+                    tk.setId('track-'+ id);
+                    tk.setStyle( new Style( this.setTrackStyle(id) ) );
+                    layer.addFeature(tk);
+                }
+            }                                 
         });
     }
 
@@ -150,6 +182,8 @@ export class AisTargetsComponent implements OnInit, OnDestroy, OnChanges {
             let f=layer.getFeatureById('ais-'+ id);
             if(f) { layer.removeFeature(f) }
             f=layer.getFeatureById('wind-'+ id);
+            if(f) { layer.removeFeature(f) }
+            f=layer.getFeatureById('track-'+ id);
             if(f) { layer.removeFeature(f) }
         });   
     }
@@ -177,15 +211,15 @@ export class AisTargetsComponent implements OnInit, OnDestroy, OnChanges {
                         this.zoomOffsetLevel[this.mapZoom]
                     );                     
                     f.setGeometry( new LineString( [
-                        transform( ais.position, this.srid, this.mrid ),
-                        transform( windc, this.srid, this.mrid )
+                        fromLonLat(ais.position),
+                        fromLonLat(windc)
                     ]) );
                 }             
                 f.setStyle( new Style( this.setVectorStyle(fid) ) );
                 // ** align vessel position
                 let vf=layer.getFeatureById('ais-'+ fid);
                 if(vf && ais.position) {
-                    vf.setGeometry( new Point( transform( ais.position, this.srid, this.mrid ) ) );
+                    vf.setGeometry( new Point( fromLonLat(ais.position) ) );
                 }
             }
         });       
@@ -200,13 +234,12 @@ export class AisTargetsComponent implements OnInit, OnDestroy, OnChanges {
             color= ( (this.filterIds && Array.isArray(this.filterIds) ) && this.filterIds.indexOf(id)==-1 ) ?
             `rgba(${rgb},0)` : `rgba(${rgb},1)`;
         }
-        let fstyle= {                    
+        return {                    
             stroke: new Stroke({
                 width: 2,
-                color: color,
+                color: color
             })
-        }
-        return fstyle;
+        };
     }     
 
     // ** render the AIS features with updated styles
@@ -275,6 +308,37 @@ export class AisTargetsComponent implements OnInit, OnDestroy, OnChanges {
             }
         }
         return fstyle;
-    }    
+    }  
+    
+    // ** render the AIS track
+    updateTracks() {
+        if(!this.host.instance) { return }
+        let layer= this.host.instance;
+        layer.forEachFeature( f=> {
+            let fid= f.getId().toString();
+            if(fid.slice(0,5)=='track') { //vessel track
+                f.setStyle( new Style( this.setTrackStyle(fid.slice(6)) ) );
+            }
+        });        
+    }
+
+    // ** return style to set for AIS track
+    setTrackStyle(id: any) {
+        let color: string;
+        let rgb= '255, 0, 255';
+        if(this.mapZoom<this.vectorMinZoom) { color=`rgba(${rgb},0)` }
+        if(!this.showTrack) { color=`rgba(${rgb},0)` }
+        else {  // ** if filtered
+            color= ( (this.filterIds && Array.isArray(this.filterIds) ) && this.filterIds.indexOf(id)==-1 ) ?
+            `rgba(${rgb},0)` : `rgba(${rgb},1)`;
+        }
+        return {                    
+            stroke: new Stroke({
+                width: 1,
+                color: color,
+                lineDash: [2,2]
+            })
+        };
+    }  
 
 }

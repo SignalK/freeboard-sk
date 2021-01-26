@@ -314,11 +314,20 @@
                                     <mat-select #aiswindminzoom
                                             [(value)]="facade.settings.selections.aisWindMinZoom" 
                                             (selectionChange)="onFormChange($event, aiswindminzoom)"
-                                            placeholder="Wind Vector Zoom Level">
+                                            placeholder="Wind / Track Zoom Level">
                                         <mat-option *ngFor="let i of facade.list.minZoom" [value]="i">{{i}}</mat-option>
                                     </mat-select>                                        
                                 </mat-form-field>
-                            </div>                             
+                            </div>   
+                            
+                            <div class="setting-card-row-item">
+                                <mat-checkbox #aisShowTrack color="primary"
+                                    [(ngModel)]="facade.settings.aisShowTrack" 
+                                    (change)="onFormChange($event, aisShowTrack)"
+                                    label="after">
+                                    Show Track
+                                </mat-checkbox>                                        
+                            </div> 
 
                         </div> 
                     </mat-card>

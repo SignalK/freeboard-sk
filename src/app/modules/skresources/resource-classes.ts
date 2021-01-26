@@ -92,7 +92,7 @@ export class SKChart {
 // ** Vessel Data **
 export class SKVessel {
     id: string;
-    position= [0,0];
+    position:[number,number]= [0,0];
     heading: number;
     headingTrue: number= null;
     headingMagnetic: number= null;
@@ -117,6 +117,7 @@ export class SKVessel {
     anchor= { maxRadius: null, radius: null, position: null };
     resourceUpdates: Array<any>= [];
     autopilot: { [key:string]: any }= {};
+    track: Array<Array<[number,number]>>= [];
 }
 
 // ** Signal K Note

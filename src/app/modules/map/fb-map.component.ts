@@ -3,7 +3,7 @@ import { MatMenuTrigger } from '@angular/material/menu';
 
 //import { proj, coordinate, style, Collection } from 'openlayers';
 import { createStringXY } from 'ol/coordinate';
-import { transform, transformExtent } from 'ol/proj';
+import { transform, transformExtent, getPointResolution, fromLonLat } from 'ol/proj';
 import { Style, Stroke } from 'ol/style';
 import { Collection } from 'ol';
 
@@ -15,7 +15,6 @@ import { AppInfo } from 'src/app/app.info'
 import { SKResources } from '../skresources/resources.service';
 import { SKChart, SKVessel } from '../skresources/resource-classes';
 import { SKStreamFacade } from '../skstream/skstream.facade';
-import { OverlayContainer } from '@angular/cdk/overlay';
 
 interface IResource {
     id: string;
@@ -87,9 +86,15 @@ export class FBMapComponent implements OnInit, OnDestroy {
     @Output() info: EventEmitter<IResource>= new EventEmitter();
     @Output() exitedMovingMap: EventEmitter<boolean>= new EventEmitter();
     @Output() focusVessel: EventEmitter<string>= new EventEmitter();
+    @Output() anchor: EventEmitter<boolean>= new EventEmitter();
     
     @ViewChild('aolMap', {static: true}) aolMap; 
     @ViewChild(MatMenuTrigger, {static: true}) contextMenu: MatMenuTrigger;
+
+    // ** adjust radius to render the correct radius on ground at given position.
+    mapifyRadius(radius: number, position: [number,number]) {
+        return radius / getPointResolution('EPSG:3857', 1, fromLonLat(position));
+    }
 
     // ** draw interaction data 
     public draw= {
@@ -359,7 +364,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
         if(value.action=='get' || value.action=='selected') {
             if(value.mode=='route') { 
                 this.dfeat.routes= this.app.data.routes.filter( r=> {
-                    let c= this.mapifyCoords(r[1].feature.geometry.coordinates);
+                    let c= GeoUtils.mapifyCoords(r[1].feature.geometry.coordinates);
                     r[1].feature.geometry.coordinates= c;
                     return true;
                 });           
@@ -373,7 +378,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
                     if(r[1].feature.geometry.type=='Polygon') {
                         let i= JSON.parse(JSON.stringify(r));
                         i[1].feature.geometry.coordinates.forEach(p=> {
-                            p= this.mapifyCoords(p);
+                            p= GeoUtils.mapifyCoords(p);
                         });
                         this.dfeat.regions.push(i);
                     }
@@ -381,7 +386,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
                         let i= JSON.parse(JSON.stringify(r));
                         i[1].feature.geometry.coordinates.forEach(mp=> {
                             mp.forEach(p=> {
-                                p= this.mapifyCoords(p);
+                                p= GeoUtils.mapifyCoords(p);
                             });
                         });
                         this.dfeat.regions.push(i);
@@ -394,7 +399,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
                 this.dfeat.tracks= this.app.data.tracks.filter( t=> {
                     let lines= [];
                     t.feature.geometry.coordinates.forEach( line=> {
-                        lines.push( this.mapifyCoords(line) );
+                        lines.push( GeoUtils.mapifyCoords(line) );
                     })
                     t.feature.geometry.coordinates= lines;
                     return true;
@@ -402,7 +407,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
             }
             if(value.mode=='trail') { 
                 this.dfeat.trail= value.data.map( line=> {
-                    return this.mapifyCoords(line);
+                    return GeoUtils.mapifyCoords(line);
                 });
             }            
         }
@@ -434,6 +439,9 @@ export class FBMapComponent implements OnInit, OnDestroy {
                 break; 
             case 'measure':
                 this.measureStart.emit(true);
+                break;
+            case 'anchor':
+                this.anchor.emit(true);
                 break;
         }
     }
@@ -793,7 +801,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
             if(vesselUpdate) {
                 this.vesselLines.trail.push(this.dfeat.active.position);
             }
-            this.vesselLines.trail= this.mapifyCoords(this.vesselLines.trail);
+            this.vesselLines.trail= GeoUtils.mapifyCoords(this.vesselLines.trail);
         }
 
         // ** xtePath **
@@ -801,7 +809,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
         if( (this.dfeat.navData.startPosition && typeof this.dfeat.navData.startPosition[0]=='number') 
             &&  (this.dfeat.navData.position && typeof this.dfeat.navData.position[0]=='number')
         ) {
-            this.vesselLines.xtePath= this.mapifyCoords([
+            this.vesselLines.xtePath= GeoUtils.mapifyCoords([
                 this.dfeat.navData.startPosition,
                 this.dfeat.navData.position
             ]); 
@@ -811,19 +819,19 @@ export class FBMapComponent implements OnInit, OnDestroy {
         // ** bearing line (active) **
         let bpos= (this.dfeat.navData.position && typeof this.dfeat.navData.position[0]=='number') ? 
             this.dfeat.navData.position : this.dfeat.active.position;
-        this.vesselLines.bearing= this.mapifyCoords(
+        this.vesselLines.bearing= GeoUtils.mapifyCoords(
             [this.dfeat.active.position, bpos]
         ); 
 
         // ** anchor line (active) **
-        if(!this.app.config.anchor.raised) {
-            this.vesselLines.anchor= this.mapifyCoords(
-                [this.app.config.anchor.position, this.dfeat.active.position]
+        if(!this.app.data.anchor.raised) {
+            this.vesselLines.anchor= GeoUtils.mapifyCoords(
+                [this.app.data.anchor.position, this.dfeat.active.position]
             );
         }          
         
         // ** CPA line **
-        this.vesselLines.cpa= this.mapifyCoords(
+        this.vesselLines.cpa= GeoUtils.mapifyCoords(
             [this.dfeat.closest.position, this.dfeat.self.position]
         );        
 
@@ -1113,23 +1121,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
                 this.app.config.map.srid
             );
         });
-    } 
-    
-    // update line coords for map display (dateline crossing)
-    private mapifyCoords(coords) {
-        if(coords.length==0) { return coords }
-        let dlCrossing= 0;
-        let last= coords[0];
-        for(let i=0; i< coords.length; i++) {         
-            if( GeoUtils.inDLCrossingZone(coords[i]) || GeoUtils.inDLCrossingZone(last) ) {
-                dlCrossing= (last[0]>0 && coords[i][0]<0) ? 1 
-                    : (last[0]<0 && coords[i][0]>0) ? -1 : 0;
-                if(dlCrossing==1) { coords[i][0]= coords[i][0] + 360}
-                if(dlCrossing==-1) { coords[i][0]= Math.abs(coords[i][0])-360 }
-            } 
-        }
-        return coords;
-    }   
+    }
 
     // ** called by onMapMove() to render features within map extent
     private renderMapContents() {

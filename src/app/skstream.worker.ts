@@ -323,6 +323,7 @@ function selectVessel(id: string):SKVessel {
 function processVessel(d: SKVessel, v:any, isSelf:boolean=false) {
 
     d.lastUpdated= new Date();
+    let maxAISTrack: number= 20;
 
     // ** record received preferred path names for selection
     if(isSelf) { 
@@ -337,8 +338,21 @@ function processVessel(d: SKVessel, v:any, isSelf:boolean=false) {
     if(v.path=='communication.callsignVhf') { d.callsign= v.value }
 
     if( v.path=='navigation.position' && v.value) {
-        if(isSelf) { d['positionReceived']=true }
         d.position= GeoUtils.normaliseCoords([ v.value.longitude, v.value.latitude]);
+        if(isSelf) { d['positionReceived']=true }
+        else {
+            // ** append ais track up to value of maxAISTrack **
+            if(d.track && d.track.length==0) { d.track.push([d.position]) }
+            else {
+                let l= d.track[d.track.length-1].length;
+                let lastPoint=  d.track[d.track.length-1][l-1];
+                if(lastPoint[0]!=d.position[0] && lastPoint[1]!=d.position[1]) {
+                    d.track[d.track.length-1].push(d.position);
+                }
+            }
+            d.track[d.track.length-1]= d.track[d.track.length-1].slice(0-maxAISTrack);
+        }
+        
     }        
     if(v.path=='navigation.state') { d.state= v.value }
     if(v.path=='navigation.speedOverGround') { d.sog= v.value }
@@ -403,7 +417,7 @@ function processVessel(d: SKVessel, v:any, isSelf:boolean=false) {
 
     // ** steering.autopilot **
     if(v.path=='steering.autopilot.state') { d.autopilot.state= v.value }
-    if(v.path=='steering.autopilot.mode') { d.autopilot.mode= v.value } 
+    if(v.path=='steering.autopilot.mode') { d.autopilot.mode= v.value }
 
 }
 

@@ -128,6 +128,22 @@ export class GeoUtils {
         return (Math.abs(coord[0])>=zoneValue) ? true : false;
     }
 
+    // update line coords for map display (including dateline crossing)
+    static mapifyCoords(coords) {
+        if(coords.length==0) { return coords }
+        let dlCrossing= 0;
+        let last= coords[0];
+        for(let i=0; i< coords.length; i++) {         
+            if( GeoUtils.inDLCrossingZone(coords[i]) || GeoUtils.inDLCrossingZone(last) ) {
+                dlCrossing= (last[0]>0 && coords[i][0]<0) ? 1 
+                    : (last[0]<0 && coords[i][0]>0) ? -1 : 0;
+                if(dlCrossing==1) { coords[i][0]= coords[i][0] + 360}
+                if(dlCrossing==-1) { coords[i][0]= Math.abs(coords[i][0])-360 }
+            } 
+        }
+        return coords;
+    }   
+
     // returns true if point is inside the supplied extent
     static inBounds( point: [number,number], extent: [number,number,number,number]) {
         return (point[0]>extent[0] && point[0]<extent[2])
