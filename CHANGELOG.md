@@ -1,5 +1,12 @@
 # CHANGELOG: Freeboard
 
+### v1.14.1
+
+- **Added**: Display track for AIS vessels.
+
+- **Update**: Removed some annoying rendering issues when using the Anchor Watch screen.
+
+
 ### v1.14.0
 
 - **Added**: Display ResourceSet data from user-defined resoource paths.
