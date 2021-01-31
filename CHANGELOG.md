@@ -1,5 +1,12 @@
 # CHANGELOG: Freeboard
 
+### v1.14.2
+
+- **Update**: Allow anchor watch radius to be changed when anchor is down.
+
+- **Update**: Preload map tiles up to zoom level 15.
+
+
 ### v1.14.1
 
 - **Added**: Display track for AIS vessels.
