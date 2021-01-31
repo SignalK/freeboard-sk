@@ -30,10 +30,7 @@
                 <b style="position: fixed;top: 125px;left:109px;text-align:left;">
                     {{(feet) ? 'ft' : 'm'}}
                 </b>                                         
-            </div>  
-            <div>
-                <!--<anchor-status [radius]="radius"] [raised]="raised"></anchor-status>-->
-            </div>  
+            </div>   
             
             <div>
                 <br>
@@ -42,7 +39,7 @@
             <div style="display: flex;">
                 <div>
                     <mat-slider [color]="display.sliderColor"
-                        [disabled]="!raised || disable"
+                        [disabled]="disable"
                         [min]="(this.feet) ? mToFt(min) : min" 
                         [max]="(this.feet) ? mToFt(max) : max" step="1" 
                         [value]="(this.feet) ? mToFt(sliderValue) : sliderValue"

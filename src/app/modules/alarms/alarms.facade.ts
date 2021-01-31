@@ -46,7 +46,21 @@ export class AlarmsFacade  {
     // ******** ANCHOR WATCH EVENTS ************
     anchorEvent(e:any, context?:string, position?:[number,number]) {
         context= (context) ? context : 'self';
-        if(!e.raised) {  // ** drop anchor
+        if(e.raised===null) { //send raidus value only
+            this.app.config.anchorRadius= e.radius;
+            this.signalk.api.put(
+                context, 
+                '/navigation/anchor/maxRadius', 
+                e.radius
+            ).subscribe(
+                ()=> { this.app.saveConfig() },
+                err=> { 
+                    this.parseAnchorError(err, 'raise'); 
+                    this.queryAnchorStatus(context, position); 
+                }
+            );
+        }
+        else if(!e.raised) {  // ** drop anchor
             this.app.config.anchorRadius= e.radius;
             let aPosition= this.signalk.api.put(
                 context,
@@ -64,7 +78,10 @@ export class AlarmsFacade  {
             let res= forkJoin([aPosition, aRadius]);
             res.subscribe(
                 ()=> { this.app.saveConfig() },
-                err=> { this.parseAnchorError(err, 'drop'); this.queryAnchorStatus(context, position); }
+                err=> { 
+                    this.parseAnchorError(err, 'drop'); 
+                    this.queryAnchorStatus(context, position); 
+                }
             );                                     
         }
         else {  // ** raise anchor

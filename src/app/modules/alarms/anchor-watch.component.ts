@@ -39,6 +39,10 @@ export class AnchorWatchComponent {
         console.log( 'raw:', e.value);
         console.log( 'converted:', (this.feet) ? this.ftToM(e.value) : e.value);
         this.msg.radius= (this.feet) ? this.ftToM(e.value) : e.value;
+        if(!this.raised) {
+            this.msg.raised= null;  // set radius change only
+            this.change.emit(this.msg);
+        }
     }
 
     dropAnchor(e:any) {
