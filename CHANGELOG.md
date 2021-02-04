@@ -4,8 +4,6 @@
 
 - **Update**: Allow anchor watch radius to be changed when anchor is down.
 
-- **Update**: Preload map tiles up to zoom level 15.
-
 
 ### v1.14.1
 
