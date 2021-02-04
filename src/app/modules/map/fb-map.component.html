@@ -99,7 +99,7 @@
 
         <aol-layer-tile *ngIf="c[0]!='openstreetmap' && c[2]" [ngSwitch]="c[1].type"
                 [zIndex]="10 + i" 
-                preload="15">
+                preload="0">
             <aol-source-xyz *ngSwitchCase="'tilelayer'"
                 (tileLoadStart)="onMapTileEvent($event)"
                 (tileLoadEnd)="onMapTileEvent($event)"

@@ -46,7 +46,7 @@ export class AlarmsFacade  {
     // ******** ANCHOR WATCH EVENTS ************
     anchorEvent(e:any, context?:string, position?:[number,number]) {
         context= (context) ? context : 'self';
-        if(e.raised===null) { //send raidus value only
+        if(e.raised===null) { //send radius value only
             this.app.config.anchorRadius= e.radius;
             this.signalk.api.put(
                 context, 
