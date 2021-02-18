@@ -1,6 +1,6 @@
 {
   "name": "ngx-openlayers",
-  "version": "1.0.11-ajp",
+  "version": "1.0.11-ajp-2",
   "standard-version": {
     "postchangelog": "cp projects/ngx-openlayers/CHANGELOG.md dist/ngx-openlayers/CHANGELOG.md"
   },
