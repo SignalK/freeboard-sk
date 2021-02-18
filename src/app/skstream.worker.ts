@@ -172,6 +172,12 @@ function applySettings(opt:any={}) {
         if(typeof opt.selections.preferredPaths!=='undefined') { 
             preferredPaths= opt.selections.preferredPaths;
         }
+        if(typeof opt.selections.aisMaxAge!=='undefined') { 
+            aisMgr.maxAge= opt.selections.aisMaxAge;
+        }
+        if(typeof opt.selections.aisStaleAge!=='undefined') { 
+            aisMgr.staleAge= opt.selections.aisStaleAge;
+        }
     }
 }
 

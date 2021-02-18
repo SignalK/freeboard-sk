@@ -63,6 +63,7 @@ export class AisTargetsComponent implements OnInit, OnDestroy, OnChanges {
         if(changes.vectorApparent) { this.updateVectors() } 
         if(changes.focusId) { this.updateFeatures() }
         if(changes.showTrack) { this.updateTracks() }
+        if(changes.inactiveTime) { this.updateFeatures() }
     }
 
     formatlabel(label) { return (this.mapZoom < this.labelMinZoom) ? '' : label }

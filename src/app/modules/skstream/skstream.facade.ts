@@ -154,7 +154,7 @@ export class SKStreamFacade  {
 
             // processAIS
             this.app.data.aisMgr.updateList= msg.result.aisStatus.updated;
-            this.app.data.staleList= msg.result.aisStatus.updated;
+            this.app.data.aisMgr.staleList= msg.result.aisStatus.stale;
             this.app.data.aisMgr.removeList= msg.result.aisStatus.expired; 
             
             // process AtoNs

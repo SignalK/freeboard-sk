@@ -297,7 +297,31 @@
 
                     <div class="setting-group-title">OTHER VESSELS</div>
                     <mat-card class="setting-card">
-                        <div class="setting-card-row" style="padding-bottom: 10px;">                            
+                        <div class="setting-card-row" style="padding-bottom: 10px;">   
+                            
+                            
+                            <div class="setting-card-row-item">
+                                <mat-form-field style="width:100%;">
+                                    <mat-select #aisstaleage
+                                            [(value)]="facade.settings.selections.aisStaleAge" 
+                                            (selectionChange)="onFormChange($event, aisstaleage)"
+                                            placeholder="Mark AIS target inactive after">
+                                        <mat-option *ngFor="let i of facade.list.aisTimeouts | keyvalue" [value]="i.key">{{i.value}}</mat-option>
+                                    </mat-select>                                        
+                                </mat-form-field>
+                            </div> 
+
+                            <div class="setting-card-row-item">
+                                <mat-form-field style="width:100%;">
+                                    <mat-select #aismaxage
+                                            [(value)]="facade.settings.selections.aisMaxAge" 
+                                            (selectionChange)="onFormChange($event, aismaxage)"
+                                            placeholder="Remove AIS target after">
+                                        <mat-option *ngFor="let i of facade.list.aisTimeouts | keyvalue" [value]="i.key">{{i.value}}</mat-option>
+                                    </mat-select>                                        
+                                </mat-form-field>
+                            </div>                             
+
                             <div class="setting-card-row-item">
                                 <mat-form-field style="width:100%;">
                                     <mat-select #aiswindvector

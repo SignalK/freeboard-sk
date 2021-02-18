@@ -65,6 +65,8 @@ const FreeboardConfig= {
         aisWindApparent: false,
         aisWindMinZoom: 15,
         aisShowTrack: false,
+        aisMaxAge: 540000,         // time since last update in ms (9 min)
+        aisStaleAge: 360000,       // time since last update in ms (6 min)
         notesMinZoom: 10,
         pluginFavourites: [],
         trailFromServer: false,
@@ -126,7 +128,7 @@ export class AppInfo extends Info {
         this.name= "Freeboard";
         this.shortName= "freeboard";
         this.description= `Signal K Chart Plotter.`;
-        this.version= '1.14.2';
+        this.version= '1.15.0';
         this.url= 'https://github.com/signalk/freeboard-sk';
         this.logo= "./assets/img/app_logo.png";   
         
@@ -167,8 +169,6 @@ export class AppInfo extends Info {
                 prefAvailablePaths: {}  // preference paths available from source
             },
             aisMgr: {                   // manage aisTargets
-                maxAge: 540000,         // time since last update in ms (9 min)
-                staleAge: 360000,       // time since last update in ms (6 min)
                 updateList: [],
                 staleList: [],
                 removeList: []
@@ -368,6 +368,12 @@ export class AppInfo extends Info {
         if(typeof settings.selections.resourceSets === 'undefined') {
             settings.selections.resourceSets= {};
         } 
+        if(typeof settings.selections.aisMaxAge === 'undefined') {
+            settings.selections.aisMaxAge= 540000;
+        } 
+        if(typeof settings.selections.aisStaleAge === 'undefined') {
+            settings.selections.aisStaleAge= 360000;
+        } 
         
         if(typeof settings.plugins === 'undefined') { settings.plugins= {} }
         if(typeof settings.plugins.parameters === 'undefined') { 
@@ -455,19 +461,13 @@ export class AppInfo extends Info {
             'whats-new': [
                 {
                     type: 'signalk-server-node',
-                    title: 'Display / Upload Custom Resources',
+                    title: 'AIS display settings',
                     message: `
-                        This update includes the ability to Upload / Display your own GeoJSON formatted data
-                        on the map as additional layers.
+                        You can now select the time intervals where AIS
+                        vessels can be marked as Inactive and removed from the map.
                         <br>&nbsp;<br>
-                        This will require you to configure the <b>sk-resources-fs</b> plugin
-                        <i>(v1.3.0 or later)</i> to setup the required path(s).
-                        <br>&nbsp;<br>
-                        <b>Head to the <i>Resources section </i> </b> in <b><i>Settings</i></b>.
-                        <br>&nbsp;<br>
-                        Check out <a href="assets/help/index.html#resourcepaths" target="help">HELP</a> 
-                        for more details.`
-                },
+                        You can configure this in the <b>Vessels</b> section in <b><i>Settings</i></b>.`
+                }/*,
                 {
                     type: 'signalk-server-node',
                     title: 'Experiments',
@@ -483,7 +483,7 @@ export class AppInfo extends Info {
                         <b>Load GeoJSON FIle</b> can now be found in the main menu and
                         <b>Tracks</b> can be found under <i class="material-icons">layers</i> layers.
                         `
-                }                    
+                }  */                  
             ]           
         }
 

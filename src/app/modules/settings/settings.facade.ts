@@ -39,7 +39,8 @@ export class SettingsFacade  {
         resourceRadius: [ 5, 10,20, 50, 100, 150, 200, 500 ],
         applications: [],
         favourites: [],
-        resourcePaths: []
+        resourcePaths: [],
+        aisTimeouts: new Map( [ [60000,'1 min'],[120000,'2 min'],[180000,'3 min'],[360000,'6 min'],[540000,'9 min'] ])
     }
 
     alarmOptions= {
