@@ -1,5 +1,5 @@
 import { AfterContentInit } from '@angular/core';
-import { VectorTile } from 'ol';
+import { VectorTile } from 'ol/source';
 import Feature from 'ol/format/Feature';
 import TileGrid from 'ol/tilegrid/TileGrid';
 import { LayerVectorTileComponent } from '../layers/layervectortile.component';

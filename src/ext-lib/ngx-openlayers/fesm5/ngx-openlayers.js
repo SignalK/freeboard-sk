@@ -32,11 +32,11 @@ import 'ol/interaction/Draw';
 import 'ol/interaction/Select';
 import 'ol/events/condition';
 import { defaults as defaults$1, DragPan, DragZoom, PinchZoom, MouseWheelZoom, KeyboardPan, KeyboardZoom, DoubleClickZoom, DragAndDrop, DragBox, DragRotate, DragRotateAndZoom, Draw, Select, Modify, Translate } from 'ol/interaction';
-import { Graticule, VectorTile as VectorTile$1, Feature, Overlay } from 'ol';
+import { Graticule, Feature, Overlay } from 'ol';
 import { defaults, Control, Attribution, FullScreen, OverviewMap, Rotate, ScaleLine, Zoom, ZoomSlider, ZoomToExtent } from 'ol/control';
 import { __extends } from 'tslib';
 import { Component, ElementRef, Input, Output, EventEmitter, SkipSelf, Optional, forwardRef, Host, ContentChild, ContentChildren, NgModule } from '@angular/core';
-import { Raster, XYZ, OSM, BingMaps, Vector as Vector$1, Cluster, WMTS as WMTS$1, TileWMS, TileJSON, ImageStatic, ImageWMS, ImageArcGISRest, UTFGrid } from 'ol/source';
+import { Raster, XYZ, OSM, BingMaps, Vector as Vector$1, Cluster, WMTS as WMTS$1, VectorTile as VectorTile$1, TileWMS, TileJSON, ImageStatic, ImageWMS, ImageArcGISRest, UTFGrid } from 'ol/source';
 
 /**
  * @fileoverview added by tsickle

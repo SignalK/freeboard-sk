@@ -1401,7 +1401,7 @@
                 this.format = this.formatComponent.instance;
                 this.tileGrid = this.tileGridComponent.instance;
                 // console.log('creating ol.source.VectorTile instance with:', this);
-                this.instance = new ol.VectorTile(this);
+                this.instance = new source.VectorTile(this);
                 this.host.instance.setSource(this.instance);
             };
         SourceVectorTileComponent.decorators = [
