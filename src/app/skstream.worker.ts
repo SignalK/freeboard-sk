@@ -1,7 +1,7 @@
 /// <reference lib="webworker" />
 
 import { SignalKStreamWorker, Alarm, AlarmState } from 'signalk-worker-angular';
-import { SKVessel, SKAtoN } from './modules/skresources/resource-classes';
+import { SKVessel, SKAtoN, SKAircraft } from './modules/skresources/resource-classes';
 import { Convert } from './lib/convert';
 import { GeoUtils } from './lib/geoutils';
 
@@ -43,7 +43,6 @@ const prefSourcePaths= [
 ];
 
 let vessels;
-let atons;
 let stream:SignalKStreamWorker;
 let unsubscribe:Array<any>= [];
 let timers= [];
@@ -57,7 +56,8 @@ let playbackTime:string;
 let aisMgr= {
     maxAge: 540000,         // time since last update in ms (9 min)
     staleAge: 360000,       // time since last update in ms (6 min)
-    lastTick: new Date().valueOf()
+    lastTick: new Date().valueOf(),
+    maxTrack: 20            // max point count in track
 }
 
 
@@ -69,7 +69,8 @@ function initVessels() {
         aisTargets: new Map(),
         aisStatus: { updated:[], stale:[], expired:[] },
         paths: {},
-        atons: new Map()
+        atons: new Map(),
+        aircraft: new Map()
     }
     // flag to indicate at least one position data message received
     vessels.self['positionReceived']= false;
@@ -253,9 +254,19 @@ function parseStreamMessage(data:any) {
         data.updates.forEach(u => {
             if(!u.values) { return }
             u.values.forEach( v=> {
+                //console.log(data.context)
                 playbackTime= u.timestamp;
-                if(data.context.indexOf('aton')!=-1) {  // aton
+                if(data.context.indexOf('aton')!=-1 ||
+                    data.context.indexOf('shore')!=-1) {  // aton | shore.*
                     processAtoN(data.context, v);
+                }
+                /*else if(data.context=='vessels.urn:mrn:imo:mmsi:230017390') {  // aircraft
+                    vessels.aisStatus.updated.push('aircraft.urn:mrn:imo:mmsi:230017390');
+                    processAircraft('aircraft.urn:mrn:imo:mmsi:230017390', v);
+                }*/
+                else if(data.context.indexOf('aircraft')!=-1) {  // aircraft
+                    vessels.aisStatus.updated.push(data.context);
+                    processAircraft(data.context, v);
                 }
                 else { // vessel
                     if(stream.isSelf(data)) { 
@@ -282,7 +293,7 @@ function parseStreamMessage(data:any) {
 //** POST message to App**
 function postUpdate(immediate:boolean=false) { 
     if(!msgInterval || immediate) {
-        processAIS();
+        processAISStatus();
         let msg= new UpdateMessage();
         msg.playback= playbackMode;
         msg.result= vessels;
@@ -327,9 +338,7 @@ function selectVessel(id: string):SKVessel {
 
 // ** process common vessel data and true / magnetic preference **
 function processVessel(d: SKVessel, v:any, isSelf:boolean=false) {
-
     d.lastUpdated= new Date();
-    let maxAISTrack: number= 20;
 
     // ** record received preferred path names for selection
     if(isSelf) { 
@@ -346,19 +355,7 @@ function processVessel(d: SKVessel, v:any, isSelf:boolean=false) {
     if( v.path=='navigation.position' && v.value) {
         d.position= GeoUtils.normaliseCoords([ v.value.longitude, v.value.latitude]);
         if(isSelf) { d['positionReceived']=true }
-        else {
-            // ** append ais track up to value of maxAISTrack **
-            if(d.track && d.track.length==0) { d.track.push([d.position]) }
-            else {
-                let l= d.track[d.track.length-1].length;
-                let lastPoint=  d.track[d.track.length-1][l-1];
-                if(lastPoint[0]!=d.position[0] && lastPoint[1]!=d.position[1]) {
-                    d.track[d.track.length-1].push(d.position);
-                }
-            }
-            d.track[d.track.length-1]= d.track[d.track.length-1].slice(0-maxAISTrack);
-        }
-        
+        else { appendTrack(d) } 
     }        
     if(v.path=='navigation.state') { d.state= v.value }
     if(v.path=='navigation.speedOverGround') { d.sog= v.value }
@@ -476,8 +473,8 @@ function processNotifications(v:any, vessel?:string) {
     
 }
 
-// ** process / cleanup stale / obsolete AIS targets
-function processAIS() {
+// ** process / cleanup stale / obsolete AIS vessels, aircraft targets
+function processAISStatus() {
     let now= new Date().valueOf();
     vessels.aisTargets.forEach( (v, k)=> {
         //if not present then mark for deletion
@@ -489,14 +486,33 @@ function processAIS() {
             vessels.aisStatus.stale.push(k); 
         } 
     });
+    vessels.aircraft.forEach( (v, k)=> {
+        //if not present then mark for deletion
+        if(v.lastUpdated< (now-aisMgr.maxAge) ) {
+            vessels.aisStatus.expired.push(k);
+            vessels.aircraft.delete(k);
+        }
+        else if(v.lastUpdated< (now-aisMgr.staleAge) ) { //if stale then mark inactive
+            vessels.aisStatus.stale.push(k); 
+        } 
+    });    
 }
 
 // process AtoN values
 function processAtoN(id:string, v:any) {
+    let isBaseStation: boolean= false;
+    if(id.indexOf('shore.basestations')!=-1) {
+        id= 'atons.' + id;
+        isBaseStation= true;
+    }
     if( !vessels.atons.has(id) ) {
         let aton= new SKAtoN();
         aton.id= id;
         aton.position= null;
+        if(isBaseStation) { 
+            aton.type.id= -1;
+            aton.type.name= 'Basestation';
+        }
         vessels.atons.set(id, aton );
     }
     let d= vessels.atons.get(id);        
@@ -509,5 +525,42 @@ function processAtoN(id:string, v:any) {
     else if( v.path=='navigation.position') {
         d.position= [ v.value.longitude, v.value.latitude];                      
     } 
+    else { 
+        d.properties[v.path]= v.value;
+    }  
+}
+
+function processAircraft (id:string, v:any) {
+    if( !vessels.aircraft.has(id) ) {
+        let aircraft= new SKAircraft();
+        aircraft.id= id;
+        aircraft.position= null;
+        vessels.aircraft.set(id, aircraft);
+    }
+    let d= vessels.aircraft.get(id);        
+    if( v.path=='' ) { 
+        if(typeof v.value.name!= 'undefined') { d.name= v.value.name }
+        if(typeof v.value.mmsi!= 'undefined') { d.mmsi= v.value.mmsi }
+    } 
+    else if(v.path=='communication.callsignVhf') { d.callsign= v.value }
+    else if( v.path=='navigation.position' && v.value) {
+        d.position= GeoUtils.normaliseCoords([ v.value.longitude, v.value.latitude]);   
+        appendTrack(d);
+    }
+    else if (v.path=='navigation.courseOverGroundTrue') { d.orientation= v.value }
+    else if(v.path=='navigation.speedOverGround') { d.sog= v.value }
     else { d.properties[v.path]= v.value }  
+}
+
+// ** append track data to up to value of maxTrack **
+function appendTrack( d: SKAircraft | SKVessel) {
+    if(d.track && d.track.length==0) { d.track.push([d.position]) }
+    else {
+        let l= d.track[d.track.length-1].length;
+        let lastPoint=  d.track[d.track.length-1][l-1];
+        if(lastPoint[0]!=d.position[0] && lastPoint[1]!=d.position[1]) {
+            d.track[d.track.length-1].push(d.position);
+        }
+    }
+    d.track[d.track.length-1]= d.track[d.track.length-1].slice(0-aisMgr.maxTrack); 
 }

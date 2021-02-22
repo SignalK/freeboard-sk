@@ -67,7 +67,7 @@ export class SKStreamFacade  {
     post(msg:any) { this.stream.postMessage(msg) }
 
     // ** open Signal K Stream 
-    open(options:any=null, toMode: SKSTREAM_MODE=SKSTREAM_MODE.REALTIME) { //}, restart:boolean=false) { 
+    open(options:any=null, toMode: SKSTREAM_MODE=SKSTREAM_MODE.REALTIME) {
         if(options && options.startTime) { 
             let url= this.signalk.server.endpoints['v1']['signalk-ws'].replace('stream', 'playback');
             this.stream.postMessage({ 
@@ -132,7 +132,16 @@ export class SKStreamFacade  {
                     {"path":"*","period":5000}
                 ]
             }
-        });              
+        });
+        this.stream.postMessage({
+            cmd: 'subscribe',
+            options: {
+                context: "shore.basestations*",
+                path: [
+                    {"path":"*","period":5000}
+                ]
+            }
+        });           
     }
 
     // ** parse delta message and update Vessel Data -> vesselsUpdate.next()
@@ -159,6 +168,9 @@ export class SKStreamFacade  {
             
             // process AtoNs
             this.app.data.atons= msg.result.atons;
+
+            // process Aircraft
+            this.app.data.aircraft= msg.result.aircraft;
       
             this.vesselsUpdate.next();
         }

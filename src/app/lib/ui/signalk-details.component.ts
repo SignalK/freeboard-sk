@@ -15,8 +15,8 @@ import {Component, Input, ChangeDetectionStrategy} from '@angular/core';
             </div>            
             <div class="content">
                 <div class="item" *ngFor="let item of items">
-                    <span *ngIf="item[0]==0" class="sectionname">{{item[1]}}</span>
-                    <div *ngIf="item[0]!=0" class="pathvalue">
+                    <span *ngIf="item[0]==0 && item[2]==null" class="sectionname">{{item[1]}}</span>
+                    <div *ngIf=" item[2]!=null" class="pathvalue">
                         <div class="path" [matTooltip]="item[1]">{{item[1]}}</div>
                         <div class="value" [matTooltip]="item[2]">{{item[2]}}</div>
                     </div>
@@ -49,7 +49,8 @@ export class SignalKDetailsComponent  {
         let result= []; 
         u.forEach( i=> {
             let p= i[0].split('.');
-            if(p.length==1) { result.push([ 0, '', p[0], null ]) }
+            if(p.length==1) { 
+                result.push([ 0, '', p[0], typeof i[1]!=='object' ? i[1] : null ]) }
             else {
                 let pp= p.slice(0, p.length-1).join('.');
                 result.push([ p.length-1, pp, p[p.length-1], i[1] ]);

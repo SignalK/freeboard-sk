@@ -9,11 +9,11 @@ import { SourceVectorComponent } from 'ngx-openlayers';
 
 
 @Component({
-    selector: 'xol-ais-targets',
+    selector: 'xol-ais-vessels',
     changeDetection: ChangeDetectionStrategy.OnPush,
     template: `<ng-content></ng-content>`
 })
-export class AisTargetsComponent implements OnInit, OnDestroy, OnChanges {
+export class AisVesselsComponent implements OnInit, OnDestroy, OnChanges {
     public componentType = 'feature';
     public instance: Feature;
 
@@ -86,6 +86,7 @@ export class AisTargetsComponent implements OnInit, OnDestroy, OnChanges {
         if(!this.host.instance) { return }
         let layer= this.host.instance;
         ids.forEach( id=> {
+            if(id.indexOf('vessels')!=0) { return }
             let ais= this.aisTargets.get(id);
             // ** vessel **
             let f=layer.getFeatureById('ais-'+ id);

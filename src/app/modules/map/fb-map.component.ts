@@ -32,6 +32,7 @@ interface IOverlay {
 }
 
 interface IFeatureData {
+    aircraft: Map<string,any>;
     atons: Array<any>;
     routes: Array<any>;
     waypoints: Array<any>;
@@ -169,6 +170,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
 
     // ** map feature data
     dfeat: IFeatureData= {
+        aircraft: new Map(),
         atons: [],
         routes: [],
         waypoints: [],
@@ -324,6 +326,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
             this.dfeat.self.position= lastPos;
         }
         this.dfeat.ais= this.app.data.vessels.aisTargets;
+        this.dfeat.aircraft= this.app.data.aircraft;
         this.dfeat.active= this.app.data.vessels.active;
         this.dfeat.navData.position= this.app.data.navData.position;
         this.dfeat.navData.startPosition= this.app.data.navData.startPosition;
@@ -606,6 +609,12 @@ export class FBMapComponent implements OnInit, OnDestroy {
                             case 'region': 
                                 addToFeatureList= true;
                                 icon="360"; text='Region'; break;
+                            case 'aircraft':
+                                icon="airplanemode_active"; 
+                                addToFeatureList= true;
+                                let aircraft= this.app.data.aircraft.get(id);
+                                text= (aircraft) ? aircraft.name || aircraft.mmsi : '';
+                                break;  
                         }
                         if(addToFeatureList && !flist.has(id)) {
                             flist.set(id, {
@@ -929,7 +938,14 @@ export class FBMapComponent implements OnInit, OnDestroy {
                 this.overlay['id']= id;
                 this.overlay['aton']= this.app.data.atons.get(id);
                 this.overlay.show=true;
-                return;                
+                return;      
+            case 'aircraft':
+                this.overlay['type']= 'aircraft';
+                if(!this.app.data.aircraft.has(id)) { return false }
+                this.overlay['id']= id;
+                this.overlay['aircraft']= this.app.data.aircraft.get(id);
+                this.overlay.show=true;
+                return;                           
             case 'region':
                 item= this.app.data.regions.filter( i=>{ if(i[0]==t[1]) return true });
                 if(!item) { return false }
@@ -969,7 +985,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
         }
     }   
 
-    // ** handle seletion from the FeatureList popover */
+    // ** handle selection from the FeatureList popover */
     public featureListSelection(feature:any) {
         // trim the draw.features collection to the selected feature.id 
         let sf= new Collection();

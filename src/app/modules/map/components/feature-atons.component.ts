@@ -7,7 +7,7 @@ import { Feature } from 'ol';
 import { SourceVectorComponent } from 'ngx-openlayers';
 
 @Component({
-    selector: 'xol-aton-targets',
+    selector: 'xol-atons',
     changeDetection: ChangeDetectionStrategy.OnPush,
     template: `<ng-content></ng-content>`
 })
@@ -48,7 +48,7 @@ export class AtoNsComponent implements OnInit, OnDestroy, OnChanges {
             f.setId(v.id);
             f.setStyle( new Style( {
                 image: new RegularShape({
-                    points: 4,
+                    points: (v.type.name=='Basestation') ? 3 : 4,
                     radius: 10,
                     stroke: new Stroke({ color: 'black', width: 1 }),
                     fill: new Fill({ color: 'transparent' })                   

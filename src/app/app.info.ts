@@ -144,6 +144,7 @@ export class AppInfo extends Info {
                 hasProvider: false,
                 values: { wind: null, temperature: null}
             },
+            aircraft: new Map(),
             atons: new Map(),
             routes: [],
             waypoints: [],

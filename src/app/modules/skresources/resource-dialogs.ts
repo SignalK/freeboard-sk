@@ -396,6 +396,79 @@ export class AtoNPropertiesModal implements OnInit {
 	
 }
 
+/********* AtoNPropertiesModal **********
+	data: {
+        title: "<string>" title text,
+        target: "<SKAtoN>" aid to navigation
+    }
+***********************************/
+@Component({
+	selector: 'ap-aircraft-modal',
+	template: `
+        <div class="_ap-aircraft">
+            <mat-toolbar>
+                <span>
+                    <mat-icon color="primary"> airplanemode_active</mat-icon>
+                </span>
+                <span style="flex: 1 1 auto; padding-left:20px;text-align:center;">
+                    {{data.title}}
+                </span>
+                <span>
+                    <button mat-icon-button (click)="modalRef.dismiss()"
+                        matTooltip="Close" matTooltipPosition="below">
+                        <mat-icon>keyboard_arrow_down</mat-icon>
+                    </button>
+                </span>
+            </mat-toolbar>          
+
+            <mat-card>
+                <div style="display:flex;flex-direction: column;">
+                    <div style="display:flex;">
+                        <div class="key-label">Name:</div>
+                        <div style="flex: 1 1 auto;">{{data.target.name}}</div>
+                    </div>   
+                    <div style="display:flex;">
+                        <div class="key-label">MMSI:</div>
+                        <div style="flex: 1 1 auto;">{{data.target.mmsi}}</div>
+                    </div>    
+                    <div style="display:flex;">
+                        <div class="key-label">Call sign:</div>
+                        <div style="flex: 1 1 auto;">{{data.target.callsign}}</div>
+                    </div> 
+                    <!--<div style="display:flex;" *ngFor="let p of data.target.properties | keyvalue">
+                        <div class="key-label">{{p.key}}:</div>
+                        <div style="flex: 1 1 auto;">{{p.value}}</div>
+                    </div>-->
+                    <signalk-details-list [details]=" data.target.properties"></signalk-details-list>          
+                </div>
+            </mat-card>
+        </div>	
+    `,
+    styles: [`  ._ap-aircraft {
+                    font-family: arial;
+                    min-width: 300px;
+                }
+                ._ap-aircraft .key-label {
+                    width:150px;
+                    font-weight:bold;
+                }                 	
+			`]
+})
+export class AircraftPropertiesModal implements OnInit {
+
+    public target: any;
+
+    constructor(
+        public modalRef: MatBottomSheetRef<AircraftPropertiesModal>,
+        @Inject(MAT_BOTTOM_SHEET_DATA) public data: any) {
+    }
+    
+    ngOnInit() { 
+        this.target= this.data.target;
+    } 
+	
+}
+
 /********* ActiveResourcePropertiesModal **********
 	data: {
         title: "<string>" title text,

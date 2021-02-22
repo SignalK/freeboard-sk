@@ -10,7 +10,7 @@ import { PlaybackDialog } from 'src/app/lib/ui/playback-dialog';
 
 import { SettingsDialog, AlarmsFacade, AlarmsDialog, 
         SKStreamFacade, SKSTREAM_MODE, SKResources, 
-        SKOtherResources, SKRegion, AISPropertiesModal, AtoNPropertiesModal, 
+        SKOtherResources, SKRegion, AISPropertiesModal, AtoNPropertiesModal, AircraftPropertiesModal, 
         ActiveResourcePropertiesModal, GPXImportDialog, GeoJSONImportDialog,
         TracksModal, ResourceSetModal, CourseSettingsModal,
         ResourceImportDialog } from 'src/app/modules';
@@ -864,7 +864,20 @@ export class AppComponent {
                     }
                 }).afterDismissed().subscribe( ()=> this.focusMap() );
             }         
-        }       
+        }   
+        else if(e.type=='aircraft') { 
+            v= this.app.data.aircraft.get(e.id);
+            if(v) {
+                this.bottomSheet.open(AircraftPropertiesModal, {
+                    disableClose: true,
+                    data: {
+                        title: 'Aircraft Properties',
+                        target: v,
+                        id: e.id
+                    }
+                }).afterDismissed().subscribe( ()=> this.focusMap() );
+            }         
+        }             
         else {
             v= (e.type=='self') ? this.app.data.vessels.self 
                 : this.app.data.vessels.aisTargets.get(e.id);

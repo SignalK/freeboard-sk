@@ -120,11 +120,11 @@
     <!-- *** AtoNs *** -->
     <aol-layer-vector [zIndex]="45" [renderBuffer]="200">
         <aol-source-vector>
-            <xol-aton-targets 
+            <xol-atons 
                 [atons]="dfeat.atons"
                 [minZoomLevel]="10"
                 [mapZoom]="app.config.map.zoomLevel">                               
-            </xol-aton-targets>
+            </xol-atons>
         </aol-source-vector>
     </aol-layer-vector>
     <!-- *** /AtoNs *** -->     
@@ -281,7 +281,7 @@
     <!-- *** AIS TARGETS *** -->
     <aol-layer-vector *ngIf="app.config.aisTargets" [zIndex]="120" [renderBuffer]="200">
         <aol-source-vector>
-            <xol-ais-targets [aisTargets]="dfeat.ais"
+            <xol-ais-vessels [aisTargets]="dfeat.ais"
                 [updateIds]="aisMgr.updateList"
                 [staleIds]="aisMgr.staleList"
                 [removeIds]="aisMgr.removeList"
@@ -297,10 +297,29 @@
                 [vectorApparent]="app.config.selections.aisWindApparent"
                 [showTrack]="app.config.aisShowTrack"
                 [mapZoom]="app.config.map.zoomLevel">                               
-            </xol-ais-targets>
+            </xol-ais-vessels>
         </aol-source-vector>
     </aol-layer-vector>
     <!-- *** AIS TARGETS *** -->   
+
+    <!-- *** Aircraft TARGETS *** -->
+    <aol-layer-vector *ngIf="app.config.aisTargets" [zIndex]="121" [renderBuffer]="200">
+        <aol-source-vector>
+            <xol-aircraft [aircraft]="dfeat.aircraft"
+                [updateIds]="aisMgr.updateList"
+                [staleIds]="aisMgr.staleList"
+                [removeIds]="aisMgr.removeList"
+                icon="./assets/img/aircraft_active.png"
+                inactiveIcon="./assets/img/aircraft_inactive.png"
+                [inactiveTime]="app.config.selections.aisStaleAge"
+                [labelMinZoom]="10"
+                [trackMinZoom]="app.config.selections.aisWindMinZoom"
+                [showTrack]="app.config.aisShowTrack"
+                [mapZoom]="app.config.map.zoomLevel">                               
+            </xol-aircraft>
+        </aol-source-vector>
+    </aol-layer-vector>
+    <!-- *** Aircraft TARGETS *** -->      
 
     <!-- *** NOTES & REGIONS *** -->
     <aol-layer-vector 
@@ -422,7 +441,14 @@
                 [aton]="overlay.aton"
                 (info)="itemInfo(overlay.id, overlay.type); popoverClosed()"
                 (closed)="popoverClosed()">                    
-            </aton-popover>                                   
+            </aton-popover>
+            <!--Aircraft popover-->
+            <aircraft-popover *ngIf="overlay.type=='aircraft'"
+                [canClose]="app.config.popoverMulti"
+                [aircraft]="overlay.aircraft"
+                (info)="itemInfo(overlay.id, overlay.type); popoverClosed()"
+                (closed)="popoverClosed()">                    
+            </aircraft-popover>                                         
         </aol-content>
     </aol-overlay>   
     <!-- /*** popover *** -->  

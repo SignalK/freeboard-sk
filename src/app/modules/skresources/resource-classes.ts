@@ -92,7 +92,7 @@ export class SKChart {
 // ** Vessel Data **
 export class SKVessel {
     id: string;
-    position:[number,number]= [0,0];
+    position= [0,0];
     heading: number;
     headingTrue: number= null;
     headingMagnetic: number= null;
@@ -117,7 +117,7 @@ export class SKVessel {
     anchor= { maxRadius: null, radius: null, position: null };
     resourceUpdates: Array<any>= [];
     autopilot: { [key:string]: any }= {};
-    track: Array<Array<[number,number]>>= [];
+    track= [];
 }
 
 // ** Signal K Note
@@ -154,7 +154,7 @@ export class SKNote {
     }    
 } 
 
-// ** Signal K Region
+// ** Signal K Region **
 export class SKRegion {
     geohash: string;   
     feature= {          
@@ -175,17 +175,6 @@ export class SKRegion {
     }     
 }
 
-// ** AtoN Data **
-export class SKAtoN {
-    id: string;
-    position= [0,0];
-    name: string;
-    mmsi: string;
-    lastUpdated= new Date();
-    type: {id: number, name:string};
-    properties= {};
-}
-
 // ** Signal K Track
 export class SKTrack {
     feature= {          
@@ -204,3 +193,32 @@ export class SKTrack {
         }
     }
 } 
+
+// ** AIS Base class **
+class AISBase {
+    id: string;
+    lastUpdated= new Date();
+    name: string;
+    mmsi: string;
+    position= [0,0];
+    properties= {};
+}
+
+// ** AtoN class **
+export class SKAtoN extends AISBase {
+    type: {id: number, name:string}= {id: -1, name: ''};
+    constructor() { super () }
+}
+
+// ** SaR class **
+export class SKSaR extends AISBase {
+    constructor() { super () }
+}
+
+// ** Aircraft Data **
+export class SKAircraft extends AISBase {
+    orientation: number= 0;
+    sog: number= 0;
+    callsign: string;
+    track= [];
+}

@@ -14,13 +14,14 @@ import { MatMenuModule } from '@angular/material/menu';
 import { AngularOpenlayersModule } from 'ngx-openlayers';
 
 // ** components **
-import { PopoverComponent, FeatureListPopoverComponent, AtoNPopoverComponent,
+import { PopoverComponent, FeatureListPopoverComponent, AtoNPopoverComponent, AircraftPopoverComponent,
         VesselPopoverComponent, ResourcePopoverComponent } from './popover.component';
 import { RouteNextPointComponent } from './nextpoint.component';
 import { CompassComponent } from './compass.component';
 
-import { AisTargetsComponent } from './components/feature-ais.component';
+import { AisVesselsComponent } from './components/feature-ais.component';
 import { AtoNsComponent } from './components/feature-atons.component';
+import { AircraftComponent } from './components/feature-aircraft.component';
 import { LayerHeatmapComponent } from './components/layer-heatmap.component';
 import { LayerWindVectorComponent } from './components/layer-windvector.component';
 import { LayerColormapComponent } from './components/layer-colormap.component';
@@ -38,15 +39,17 @@ import { UtilitiesModule } from 'src/app/modules/utils/utils.module';
       ],    
     declarations: [
         PopoverComponent, FeatureListPopoverComponent, VesselPopoverComponent,
-        ResourcePopoverComponent, RouteNextPointComponent, AtoNPopoverComponent,
+        ResourcePopoverComponent, RouteNextPointComponent, AtoNPopoverComponent, AircraftPopoverComponent,
         CompassComponent, FBMapComponent, LayerHeatmapComponent, LayerColormapComponent,
-        AisTargetsComponent, AtoNsComponent, LayerWindVectorComponent, ResourceSetComponent
+        AisVesselsComponent, AtoNsComponent, AircraftComponent,
+        LayerWindVectorComponent, ResourceSetComponent
     ],
     exports: [ 
         PopoverComponent, FeatureListPopoverComponent, VesselPopoverComponent,
-        ResourcePopoverComponent, RouteNextPointComponent, AtoNPopoverComponent,
+        ResourcePopoverComponent, RouteNextPointComponent, AtoNPopoverComponent, AircraftPopoverComponent,
         CompassComponent, FBMapComponent, LayerHeatmapComponent, LayerColormapComponent,
-        AisTargetsComponent, AtoNsComponent, LayerWindVectorComponent, ResourceSetComponent
+        AisVesselsComponent, AtoNsComponent, AircraftComponent,
+        LayerWindVectorComponent, ResourceSetComponent
     ],
     entryComponents: [], 
     providers: []  

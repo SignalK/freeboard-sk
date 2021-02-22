@@ -27,7 +27,7 @@ import { ChartListComponent, ChartLayers } from  './lists/chartlist';
 import { NoteListComponent } from  './lists/notelist';
 import { AISListComponent } from  './lists/aislist';
 
-import { ResourceDialog, AISPropertiesModal, AtoNPropertiesModal,
+import { ResourceDialog, AISPropertiesModal, AtoNPropertiesModal, AircraftPropertiesModal,
         ActiveResourcePropertiesModal, ChartInfoDialog,
         TracksModal, ResourceSetModal } from './resource-dialogs';
 import { ResourceImportDialog } from './sets/resource-upload-dialog';
@@ -48,19 +48,19 @@ import { UtilitiesModule } from 'src/app/modules/utils/utils.module';
     declarations: [
         RouteListComponent, WaypointListComponent, ChartListComponent,
         AISListComponent, NoteListComponent, 
-        ResourceDialog, AISPropertiesModal, AtoNPropertiesModal,
+        ResourceDialog, AISPropertiesModal, AtoNPropertiesModal, AircraftPropertiesModal,
         ActiveResourcePropertiesModal, ChartInfoDialog, ChartLayers,
         GRIBPanel, GRIBGradient, TracksModal, ResourceSetModal, ResourceImportDialog
     ],
     exports: [
         RouteListComponent, WaypointListComponent, ChartListComponent,
         AISListComponent, NoteListComponent,
-        ResourceDialog, AISPropertiesModal, AtoNPropertiesModal,
+        ResourceDialog, AISPropertiesModal, AtoNPropertiesModal, AircraftPropertiesModal,
         ActiveResourcePropertiesModal, ChartInfoDialog, ChartLayers,
         SKNotesModule, GRIBPanel, GRIBGradient, TracksModal, ResourceSetModal, ResourceImportDialog
     ],
     entryComponents: [
-        ResourceDialog, AISPropertiesModal, AtoNPropertiesModal,
+        ResourceDialog, AISPropertiesModal, AtoNPropertiesModal, AircraftPropertiesModal,
         ActiveResourcePropertiesModal, ChartInfoDialog, 
         TracksModal, ResourceSetModal, ResourceImportDialog
     ]
