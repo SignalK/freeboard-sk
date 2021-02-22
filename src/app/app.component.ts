@@ -853,18 +853,30 @@ export class AppComponent {
             }         
         }        
         else if(e.type=='aton') { 
-            v= this.app.data.atons.get(e.id);
+            let title:string;
+            let icon:string;
+            if(e.id.slice(0,3)=='sar') {
+                v= this.app.data.sar.get(e.id);
+                title= 'SaR Properties';
+                icon= 'tour';
+            }
+            else { 
+                v= this.app.data.atons.get(e.id);
+                title= 'AtoN Properties';
+                icon= 'beenhere';
+            }
             if(v) {
                 this.bottomSheet.open(AtoNPropertiesModal, {
                     disableClose: true,
                     data: {
-                        title: 'AtoN Properties',
+                        title: title,
                         target: v,
-                        id: e.id
+                        id: e.id,
+                        icon: icon
                     }
                 }).afterDismissed().subscribe( ()=> this.focusMap() );
             }         
-        }   
+        }        
         else if(e.type=='aircraft') { 
             v= this.app.data.aircraft.get(e.id);
             if(v) {

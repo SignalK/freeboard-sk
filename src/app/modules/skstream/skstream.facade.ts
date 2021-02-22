@@ -169,6 +169,9 @@ export class SKStreamFacade  {
             // process AtoNs
             this.app.data.atons= msg.result.atons;
 
+            // process SaR
+            this.app.data.sar= msg.result.sar;
+
             // process Aircraft
             this.app.data.aircraft= msg.result.aircraft;
       

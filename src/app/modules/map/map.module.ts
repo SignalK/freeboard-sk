@@ -22,6 +22,7 @@ import { CompassComponent } from './compass.component';
 import { AisVesselsComponent } from './components/feature-ais.component';
 import { AtoNsComponent } from './components/feature-atons.component';
 import { AircraftComponent } from './components/feature-aircraft.component';
+import { SaRComponent } from './components/feature-sar.component';
 import { LayerHeatmapComponent } from './components/layer-heatmap.component';
 import { LayerWindVectorComponent } from './components/layer-windvector.component';
 import { LayerColormapComponent } from './components/layer-colormap.component';
@@ -41,14 +42,14 @@ import { UtilitiesModule } from 'src/app/modules/utils/utils.module';
         PopoverComponent, FeatureListPopoverComponent, VesselPopoverComponent,
         ResourcePopoverComponent, RouteNextPointComponent, AtoNPopoverComponent, AircraftPopoverComponent,
         CompassComponent, FBMapComponent, LayerHeatmapComponent, LayerColormapComponent,
-        AisVesselsComponent, AtoNsComponent, AircraftComponent,
+        AisVesselsComponent, AtoNsComponent, AircraftComponent, SaRComponent,
         LayerWindVectorComponent, ResourceSetComponent
     ],
     exports: [ 
         PopoverComponent, FeatureListPopoverComponent, VesselPopoverComponent,
         ResourcePopoverComponent, RouteNextPointComponent, AtoNPopoverComponent, AircraftPopoverComponent,
         CompassComponent, FBMapComponent, LayerHeatmapComponent, LayerColormapComponent,
-        AisVesselsComponent, AtoNsComponent, AircraftComponent,
+        AisVesselsComponent, AtoNsComponent, AircraftComponent, SaRComponent,
         LayerWindVectorComponent, ResourceSetComponent
     ],
     entryComponents: [], 

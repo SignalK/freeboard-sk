@@ -88,6 +88,7 @@ export class AisVesselsComponent implements OnInit, OnDestroy, OnChanges {
         ids.forEach( id=> {
             if(id.indexOf('vessels')!=0) { return }
             let ais= this.aisTargets.get(id);
+            if(!ais) { return }
             // ** vessel **
             let f=layer.getFeatureById('ais-'+ id);
             if(f) { //update vessel

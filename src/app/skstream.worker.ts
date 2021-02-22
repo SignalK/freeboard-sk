@@ -70,7 +70,8 @@ function initVessels() {
         aisStatus: { updated:[], stale:[], expired:[] },
         paths: {},
         atons: new Map(),
-        aircraft: new Map()
+        aircraft: new Map(),
+        sar: new Map()
     }
     // flag to indicate at least one position data message received
     vessels.self['positionReceived']= false;
@@ -260,10 +261,15 @@ function parseStreamMessage(data:any) {
                     data.context.indexOf('shore')!=-1) {  // aton | shore.*
                     processAtoN(data.context, v);
                 }
-                /*else if(data.context=='vessels.urn:mrn:imo:mmsi:230017390') {  // aircraft
+                /* **** Testing only ****
+                else if(data.context=='vessels.urn:mrn:imo:mmsi:230017390') {  // aircraft
                     vessels.aisStatus.updated.push('aircraft.urn:mrn:imo:mmsi:230017390');
                     processAircraft('aircraft.urn:mrn:imo:mmsi:230017390', v);
-                }*/
+                }*/              
+                else if(data.context.indexOf('sar')!=-1) {  // search and rescue
+                    vessels.aisStatus.updated.push(data.context);
+                    processSaR(data.context, v);
+                }
                 else if(data.context.indexOf('aircraft')!=-1) {  // aircraft
                     vessels.aisStatus.updated.push(data.context);
                     processAircraft(data.context, v);
@@ -473,7 +479,7 @@ function processNotifications(v:any, vessel?:string) {
     
 }
 
-// ** process / cleanup stale / obsolete AIS vessels, aircraft targets
+// ** process / cleanup stale / obsolete AIS vessels, aircraft, SaR targets
 function processAISStatus() {
     let now= new Date().valueOf();
     vessels.aisTargets.forEach( (v, k)=> {
@@ -494,14 +500,31 @@ function processAISStatus() {
         }
         else if(v.lastUpdated< (now-aisMgr.staleAge) ) { //if stale then mark inactive
             vessels.aisStatus.stale.push(k); 
+        }         
+    });   
+    vessels.sar.forEach( (v, k)=> {
+        //if not present then mark for deletion
+        if(v.lastUpdated< (now-aisMgr.maxAge) ) {
+            vessels.aisStatus.expired.push(k);
+            vessels.sar.delete(k);
+        }
+        else if(v.lastUpdated< (now-aisMgr.staleAge) ) { //if stale then mark inactive
+            vessels.aisStatus.stale.push(k); 
         } 
-    });    
+    }); 
 }
 
 // process AtoN values
 function processAtoN(id:string, v:any) {
     let isBaseStation: boolean= false;
     if(id.indexOf('shore.basestations')!=-1) {
+        /* **** Testing only ****
+        if(id=='shore.basestations.urn:mrn:imo:mmsi:2300048') {  // sar
+            vessels.aisStatus.updated.push('sar.urn:mrn:imo:mmsi:2300048');
+            processSaR('sar.urn:mrn:imo:mmsi:2300048', v);
+            return;
+        } 
+        */
         id= 'atons.' + id;
         isBaseStation= true;
     }
@@ -528,6 +551,28 @@ function processAtoN(id:string, v:any) {
     else { 
         d.properties[v.path]= v.value;
     }  
+}
+
+// process SaR values
+function processSaR (id:string, v:any) {
+    if( !vessels.sar.has(id) ) {
+        let sar= new SKAtoN();
+        sar.id= id;
+        sar.position= null;
+        sar.type.id= -1;
+        sar.type.name= 'SaR Beacon';
+        vessels.sar.set(id, sar);
+    }
+    let d= vessels.sar.get(id);        
+    if( v.path=='' ) { 
+        if(typeof v.value.name!= 'undefined') { d.name= v.value.name }
+        if(typeof v.value.mmsi!= 'undefined') { d.mmsi= v.value.mmsi }
+    } 
+    else if(v.path=='communication.callsignVhf') { d.callsign= v.value }
+    else if( v.path=='navigation.position' && v.value) {
+        d.position= GeoUtils.normaliseCoords([ v.value.longitude, v.value.latitude]);
+    }
+    else { d.properties[v.path]= v.value }  
 }
 
 function processAircraft (id:string, v:any) {

@@ -34,6 +34,7 @@ interface IOverlay {
 interface IFeatureData {
     aircraft: Map<string,any>;
     atons: Array<any>;
+    sar: Map<string,any>;
     routes: Array<any>;
     waypoints: Array<any>;
     charts: Array<any>;
@@ -172,6 +173,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
     dfeat: IFeatureData= {
         aircraft: new Map(),
         atons: [],
+        sar: new Map(),
         routes: [],
         waypoints: [],
         charts: [],
@@ -327,6 +329,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
         }
         this.dfeat.ais= this.app.data.vessels.aisTargets;
         this.dfeat.aircraft= this.app.data.aircraft;
+        this.dfeat.sar= this.app.data.sar;
         this.dfeat.active= this.app.data.vessels.active;
         this.dfeat.navData.position= this.app.data.navData.position;
         this.dfeat.navData.startPosition= this.app.data.navData.startPosition;
@@ -596,7 +599,13 @@ export class FBMapComponent implements OnInit, OnDestroy {
                                 addToFeatureList= true;
                                 let aton= this.app.data.atons.get(id);
                                 text= (aton) ? aton.name || aton.mmsi : '';
-                                break;                            
+                                break;           
+                            case 'sar': 
+                                icon="tour"; 
+                                addToFeatureList= true;
+                                let sar= this.app.data.sar.get(id);
+                                text= (sar) ? sar.name || sar.mmsi : 'SaR Beacon';
+                                break;                                                    
                             case 'ais-vessels': icon="directions_boat"; 
                                 addToFeatureList= true;
                                 let v= this.dfeat.ais.get(`vessels.${t[1]}`);
@@ -938,7 +947,14 @@ export class FBMapComponent implements OnInit, OnDestroy {
                 this.overlay['id']= id;
                 this.overlay['aton']= this.app.data.atons.get(id);
                 this.overlay.show=true;
-                return;      
+                return;    
+            case 'sar':
+                this.overlay['type']= 'aton';
+                if(!this.app.data.sar.has(id)) { return false }
+                this.overlay['id']= id;
+                this.overlay['aton']= this.app.data.sar.get(id);
+                this.overlay.show=true;
+                return;                    
             case 'aircraft':
                 this.overlay['type']= 'aircraft';
                 if(!this.app.data.aircraft.has(id)) { return false }

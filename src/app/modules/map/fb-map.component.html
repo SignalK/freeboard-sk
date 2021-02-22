@@ -319,7 +319,24 @@
             </xol-aircraft>
         </aol-source-vector>
     </aol-layer-vector>
-    <!-- *** Aircraft TARGETS *** -->      
+    <!-- *** Aircraft TARGETS *** -->
+
+    <!-- *** SaR TARGETS *** -->
+    <aol-layer-vector *ngIf="app.config.aisTargets" [zIndex]="122" [renderBuffer]="200">
+        <aol-source-vector>
+            <xol-sar [sar]="dfeat.sar"
+                [updateIds]="aisMgr.updateList"
+                [staleIds]="aisMgr.staleList"
+                [removeIds]="aisMgr.removeList"
+                icon="./assets/img/sar_active.png"
+                inactiveIcon=""
+                [inactiveTime]="app.config.selections.aisStaleAge"
+                [labelMinZoom]="10"
+                [mapZoom]="app.config.map.zoomLevel">                               
+            </xol-sar>
+        </aol-source-vector>
+    </aol-layer-vector>
+    <!-- *** SaR TARGETS *** -->      
 
     <!-- *** NOTES & REGIONS *** -->
     <aol-layer-vector 

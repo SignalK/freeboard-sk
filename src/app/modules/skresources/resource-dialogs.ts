@@ -335,7 +335,7 @@ export class AISPropertiesModal implements OnInit {
         <div class="_ap-aton">
             <mat-toolbar>
                 <span>
-                    <mat-icon color="primary"> beenhere</mat-icon>
+                    <mat-icon color="primary"> {{data.icon}}</mat-icon>
                 </span>
                 <span style="flex: 1 1 auto; padding-left:20px;text-align:center;">
                     {{data.title}}
@@ -396,7 +396,7 @@ export class AtoNPropertiesModal implements OnInit {
 	
 }
 
-/********* AtoNPropertiesModal **********
+/********* AircraftPropertiesModal **********
 	data: {
         title: "<string>" title text,
         target: "<SKAtoN>" aid to navigation

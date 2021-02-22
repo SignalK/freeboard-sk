@@ -144,8 +144,6 @@ export class AppInfo extends Info {
                 hasProvider: false,
                 values: { wind: null, temperature: null}
             },
-            aircraft: new Map(),
-            atons: new Map(),
             routes: [],
             waypoints: [],
             charts: [],
@@ -169,7 +167,10 @@ export class AppInfo extends Info {
                 closest: {id: null, distance: null, timeTo: null, position: [0,0]},
                 prefAvailablePaths: {}  // preference paths available from source
             },
-            aisMgr: {                   // manage aisTargets
+            aircraft: new Map(),    // received AIS aircraft data
+            atons: new Map(),       // received AIS AtoN data
+            sar: new Map(),         // received AIS SaR data
+            aisMgr: {               // manage aisTargets
                 updateList: [],
                 staleList: [],
                 removeList: []
