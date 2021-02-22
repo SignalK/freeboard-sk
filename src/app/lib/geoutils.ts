@@ -146,8 +146,17 @@ export class GeoUtils {
 
     // returns true if point is inside the supplied extent
     static inBounds( point: [number,number], extent: [number,number,number,number]) {
-        return (point[0]>extent[0] && point[0]<extent[2])
-            && (point[1]>extent[1] && point[1]<extent[3]); 
+        let dlExtent= JSON.parse(JSON.stringify(extent));
+        let dlPoint= [point[0],point[1]];
+        // extent crosses date line?
+        if (dlExtent[0] > 0 && dlExtent[2] < 0) {
+            dlExtent[2] = 360 + dlExtent[2]
+            if (dlPoint[0] < 0) {
+                dlPoint[0] = 360 + dlPoint[0]
+            }
+        }
+        return (dlPoint[0]>dlExtent[0] && dlPoint[0]<dlExtent[2])
+            && (dlPoint[1]>dlExtent[1] && dlPoint[1]<dlExtent[3]); 
     }  
 
     // ensure -180<coords<180
