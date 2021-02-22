@@ -80,6 +80,7 @@ export class SettingsFacade  {
 
     // refresh dynamic data from sources
     refresh() { 
+        this.settings= this.app.config;
         this.getApps();
         this.getResourcePaths();
     }
