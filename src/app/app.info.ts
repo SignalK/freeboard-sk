@@ -8,7 +8,7 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { AlertDialog, ConfirmDialog, WelcomeDialog, MessageBarComponent } from './lib/app-ui';
 
 import { Info } from './lib/app-info';
-import { Subject } from 'rxjs';
+import { Subject, Observable } from 'rxjs';
 import { IndexedDB } from './lib/info/indexeddb';
 import { SignalKClient } from 'signalk-client-angular';
 import { SKVessel } from './modules/skresources/resource-classes';
@@ -285,7 +285,8 @@ export class AppInfo extends Info {
     }
 
     // ** get user settings from server **
-    loadSettingsfromServer() {
+    loadSettingsfromServer(): Observable<boolean> {
+        let sub: Subject<boolean>= new Subject();
         this.signalk.isLoggedIn().subscribe( 
             r=> {
                 this.data.loggedIn= r;
@@ -296,14 +297,23 @@ export class AppInfo extends Info {
                             if(this.validateConfig(settings)) { 
                                 this.config= settings;
                                 this.saveConfig();
+                                sub.next(true);
                             }
                         },
-                        ()=> console.info('applicationData: Unable to retrieve settings from server!')
+                        ()=> {
+                            console.info('applicationData: Unable to retrieve settings from server!');
+                            sub.next(false);
+                        }
                     );   
                 }                     
             },
-            ()=> { this.data.loggedIn=false }
+            ()=> { 
+                this.data.loggedIn=false;
+                console.info('Unable to get loginStatus!');
+                sub.next(false);
+            }
         );
+        return sub.asObservable();
     }    
 
     // ** overloaded saveConfig() **

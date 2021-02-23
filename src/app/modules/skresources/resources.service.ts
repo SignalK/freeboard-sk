@@ -56,6 +56,27 @@ export class SKResources {
         if(actions['notes'] || actions['regions']) { this.getNotes() }
     }
 
+    // ** update resource selection data from config (used post server config load)
+    alignResourceSelections(saveConfig: boolean=false) {
+        // charts
+        this.app.data.charts.forEach( i=> { 
+            i[2]= this.app.config.selections.charts.includes(i[0]) ? true : false;
+        });
+        // routes
+        this.app.data.routes.forEach( i=> { 
+            i[2]= this.app.config.selections.routes.includes(i[0]) ? true : false;
+        });
+        // waypoints
+        this.app.data.waypoints.forEach( i=> { 
+            i[2]= this.app.config.selections.waypoints.includes(i[0]) ? true : false;
+        });    
+ 
+        if(saveConfig) { this.app.saveConfig() }
+        this.updateSource.next({action: 'selected', mode: 'chart'});
+        this.updateSource.next({action: 'selected', mode: 'route'});
+        this.updateSource.next({action: 'selected', mode: 'waypoint'});
+    }
+
     // ** UI methods **
     routeSelected(e:any) {
         let t= this.app.data.routes.map(

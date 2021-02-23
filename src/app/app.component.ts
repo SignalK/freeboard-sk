@@ -325,7 +325,12 @@ export class AppComponent {
         this.app.data.server= null;
         this.signalk.connect(this.app.hostName, this.app.hostPort, this.app.hostSSL).subscribe( 
             ()=> {
-                this.app.loadSettingsfromServer();
+                this.app.loadSettingsfromServer().subscribe( r=> {
+                    let msg= (r) ? 'Settings loaded from server.' :
+                    'Error loading Settings from server!';
+                    console.log(msg);
+                    if(r) { this.skres.alignResourceSelections() }
+                });
                 this.app.data.server= this.signalk.server.info; 
                 this.openSKStream();
             },
@@ -606,7 +611,12 @@ export class AppComponent {
                         this.signalk.authToken= r['token'];
                         this.app.db.saveAuthToken(r['token']);
                         this.app.data.hasToken= true; // hide login menu item
-                        this.app.loadSettingsfromServer();
+                        this.app.loadSettingsfromServer().subscribe( r=> {
+                            let msg= (r) ? 'Settings loaded from server.' :
+                            'Error loading Settings from server!';
+                            console.log(msg);
+                             if(r) { this.skres.alignResourceSelections() }
+                        });
                         if(onConnect) { this.queryAfterConnect() }
                     },
                     err=> {   // ** auth failed
