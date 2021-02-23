@@ -325,6 +325,8 @@ export class AppComponent {
         this.app.data.server= null;
         this.signalk.connect(this.app.hostName, this.app.hostPort, this.app.hostSSL).subscribe( 
             ()=> {
+                this.signalk.authToken= this.app.getToken();
+
                 this.app.loadSettingsfromServer().subscribe( r=> {
                     let msg= (r) ? 'Settings loaded from server.' :
                     'Error loading Settings from server!';
@@ -608,9 +610,7 @@ export class AppComponent {
             if(!res.cancel) {
                 this.signalk.login(res.user, res.pwd).subscribe(
                     r=> {   // ** authenticated
-                        this.signalk.authToken= r['token'];
-                        this.app.db.saveAuthToken(r['token']);
-                        this.app.data.hasToken= true; // hide login menu item
+                        this.app.persistToken(r['token']);
                         this.app.loadSettingsfromServer().subscribe( r=> {
                             let msg= (r) ? 'Settings loaded from server.' :
                             'Error loading Settings from server!';
@@ -620,9 +620,7 @@ export class AppComponent {
                         if(onConnect) { this.queryAfterConnect() }
                     },
                     err=> {   // ** auth failed
-                        this.app.data.hasToken= false; // show login menu item
-                        this.app.db.saveAuthToken(null);
-                        this.signalk.authToken= null;
+                        this.app.persistToken(null);
                         this.signalk.isLoggedIn().subscribe( r=> {this.app.data.loggedIn= r});
                         if(onConnect) { 
                             this.app.showConfirm(

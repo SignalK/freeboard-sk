@@ -1704,9 +1704,7 @@ export class SKResources {
 
     // ** record authentication result state **
     private authResult(ok:boolean=false, token:string=null) {
-        this.signalk.authToken= token;
-        this.app.db.saveAuthToken(token); 
-        this.app.data.hasToken= ok;
+        this.app.persistToken(token);
     }
     
     // ** process url tokens

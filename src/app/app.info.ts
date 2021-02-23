@@ -218,13 +218,6 @@ export class AppInfo extends Info {
                                     this.data.trail= (t && t.value) ? t.value : [];
                                 });
                             }
-                            this.db.getAuthToken()
-                            .then( t=> { 
-                                if(t && t.value) {
-                                    this.signalk.authToken= t.value;
-                                    this.data.hasToken= true;
-                                }
-                            });
                         }
                         break;
                     case 'trail_save':
@@ -249,6 +242,30 @@ export class AppInfo extends Info {
             this.loadData();            
         }
     } 
+
+    // persist auth token for session
+    persistToken(value:string) {
+        if(value) {
+            this.signalk.authToken= value;
+            document.cookie = `sktoken=${value}; SameSite=Strict`;
+            this.data.hasToken= true; // hide login menu item
+        }
+        else {
+            this.data.hasToken= false; // show login menu item
+            this.signalk.authToken= null;
+        }
+    }
+    
+    // return auth token for session
+    getToken(): string {
+        let tk= new Map();
+        let ca= document.cookie.split(';').map( i=> { 
+            let c= i.split('='); 
+            tk.set(c[0],c[1]);
+        });
+        if(tk.has('sktoken')) { return tk.get('sktoken') }
+        else { return null }
+    }
 
     // ** handle App version upgrade **
     handleUpgradeEvent(version) { 
@@ -293,6 +310,7 @@ export class AppInfo extends Info {
                 if(r) { // ** get server stored config for logged in user **
                     this.signalk.appDataGet('/').subscribe(
                         (settings:any)=> {
+                            if(Object.keys(settings).length==0) { return }
                             this.cleanConfig(settings);
                             if(this.validateConfig(settings)) { 
                                 this.config= settings;
@@ -619,21 +637,6 @@ export class AppDB {
                 );
             }
         );
-    } 
-
-    // ** retrieve token **
-    getAuthToken() { return this.db.getByIndex('trail', 'uuid_idx', 'token') }
-
-	// ** save token **
-	saveAuthToken(token) {
-        this.db.update( 'trail', {uuid: 'token', value: token}).then(
-            () => { }, 
-            (e)=> { 
-                this.db.add( 'trail', {uuid: 'token', value: token}).then( 
-                    () => { }, 
-                    e=> { }
-                );
-            }
-        );
-    }    
+    }
+   
 }
