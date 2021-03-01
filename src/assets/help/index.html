@@ -1008,7 +1008,7 @@
                     <b>VESSEL:</b><br>
                     This section provides choices when displaying data for 
                     the vessel.<br>
-                    <img src="./img/settings_other_vessels.png" style="height:200px;"/><br>
+                    <img src="./img/settings_other_vessels.png" style="height:350px;"/><br>
 
                     <li>
                         <b>Display Wind Vectors</b>: Select to display wind vectors for the vessel on the map.
@@ -1043,6 +1043,14 @@
                     <b>OTHER VESSELS:</b><br>
                     This section provides choices when displaying data for 
                     other vessels.<br>
+                    <li>
+                        <b>Mark AIS Target inactive after</b>: 
+                        Maximum time (in minutes) elapsed between updates before the vessel is displayed as inactive.
+                    </li>
+                    <li>
+                        <b>Remove AIS Target after</b>: 
+                        Maximum time (in minutes) elapsed between updates before the vessel is removed from map. 
+                    </li>
                     <li>
                         <b>Wind Vector Value</b>: <i>Wind True</i> / <i>Wind Apparent</i>
                         Value used to display wind vector for other vessels displayed on the map.
@@ -1210,6 +1218,51 @@
                     for more details regarding the file format.                   
                 </p>
             </div>
+
+
+            <div>
+                <p>
+                    <b>SIGNAL K CONNECTION:</b><br>
+                    This section allows you to set parameters for the information received via the 
+                    Signal K stream connection providing control over the volume and type of data 
+                    to be displayed.<br>
+                    <i>Note: The Signal K data stream can deliver a large volume of data depending on the 
+                        data sources you have connected. The processing of large quantities of data can have a 
+                        significant impact on application performance when many items are displayed on the map.
+                    </i><br>
+                   
+                    <img src="./img/settings_signalk.png" style="height:350px;"/><br>
+
+                    <h5>Filter Stream Data:</h5>
+                    Use the options in this section to select which data types you want Freeboard to display.<br>
+                    
+                    <li>
+                        <b>Vessels</b>: Display vessels (other than your own) on the map. <i>(Default is checked)</i>
+                    </li>
+
+                    <li>
+                        <b>Aids to Navigation</b>: Display AtoNs on the map. <i>(Default is checked)</i>
+                    </li>
+
+                    <li>
+                        <b>Aircraft</b>: Display aircraft on the map. <i>(Default is unchecked)</i>
+                    </li>
+                    
+                    <li>
+                        <b>Search and Rescue</b>: Display SaR beacons on the map. <i>(Default is unchecked)</i>
+                    </li>
+
+                    <li>
+                        <b>Max Distance from Vessel</b>: Set the distance from your vessel that targets must be within
+                        to be displayed on the map.<br>
+                        The distance represents the radius of a bounding box around your vessel.<br>
+                        Select none to include all received targets.
+                        <i>(Default is None)</i>
+                    </li>
+
+                </p>    
+            </div>
+
             <div class="panel" id="experiments">
                 <h4><i class="material-icons">science</i> Experiments</h4>
                 <p>
