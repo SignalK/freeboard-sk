@@ -125,6 +125,7 @@ export class SaRComponent implements OnInit, OnDestroy, OnChanges {
     setTargetStyle(id: string) {
         if(!id) { return }
         let target= this.sar.get(id);
+        if(!target) { return }
         let label= this.formatlabel( target.name || target.callsign || target.mmsi || '');
         let fstyle: any;
         // ** check if stale 

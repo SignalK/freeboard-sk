@@ -298,8 +298,7 @@
                     <div class="setting-group-title">OTHER VESSELS</div>
                     <mat-card class="setting-card">
                         <div class="setting-card-row" style="padding-bottom: 10px;">   
-                            
-                            
+
                             <div class="setting-card-row-item">
                                 <mat-form-field style="width:100%;">
                                     <mat-select #aisstaleage
@@ -331,7 +330,7 @@
                                         <mat-option *ngFor="let i of facade.preferredValues.wind | keyvalue" [value]="i.key">{{i.value}}</mat-option>
                                     </mat-select>                                        
                                 </mat-form-field>
-                            </div> 
+                            </div>                           
 
                             <div class="setting-card-row-item">
                                 <mat-form-field style="width:100%;">
@@ -342,8 +341,8 @@
                                         <mat-option *ngFor="let i of facade.list.minZoom" [value]="i">{{i}}</mat-option>
                                     </mat-select>                                        
                                 </mat-form-field>
-                            </div>   
-                            
+                            </div>  
+
                             <div class="setting-card-row-item">
                                 <mat-checkbox #aisShowTrack color="primary"
                                     [(ngModel)]="facade.settings.aisShowTrack" 
@@ -485,7 +484,77 @@
                             </div>                                                      
                         </div>
                     </mat-card>
-                </div>                
+                </div>     
+                
+                <div class="setting-group" id="sectSKConnection">
+                    <div class="setting-group-title">SIGNAL K: CONNECTION</div>
+                    <mat-card class="setting-card">
+                        <div class="setting-card-row">
+                            <fieldset>
+                                <legend> Filter Stream data: </legend>
+                                <span style="font-size: smaller;">
+                                    Check to include Signal K schema groups on display.<br>
+                                    <i>Use to manage display performance.</i>
+                                </span>
+                                <div class="setting-card-row-item">
+                                    <mat-checkbox #skfiltervessels color="primary"
+                                        [(ngModel)]="facade.settings.selections.signalk.vessels" 
+                                        (change)="onFormChange($event, skfiltervessels)"
+                                        matToolTip="Check to receive other vessel data"
+                                        label="after">
+                                        Vessels (other than Self)
+                                    </mat-checkbox>                                        
+                                </div>  
+                                <div class="setting-card-row-item">
+                                    <mat-checkbox #skfilteratons color="primary"
+                                        [(ngModel)]="facade.settings.selections.signalk.atons" 
+                                        (change)="onFormChange($event, skfilteratons)"
+                                        matToolTip="Check to receive AtoN data"
+                                        matTooltipPosition="below"
+                                        label="after">
+                                        Aids to Navigation (AtoN)
+                                    </mat-checkbox>                                        
+                                </div>  
+                                <div class="setting-card-row-item">
+                                    <mat-checkbox #skfilterairsraft color="primary"
+                                        [(ngModel)]="facade.settings.selections.signalk.aircraft" 
+                                        (change)="onFormChange($event, skfilterairsraft)"
+                                        matTooltip="Check to receive aircraft data"
+                                        matTooltipPosition="below"
+                                        label="after">
+                                        Aircraft
+                                    </mat-checkbox>                                        
+                                </div>  
+                                <div class="setting-card-row-item">
+                                    <mat-checkbox #skfiltersar color="primary"
+                                        [(ngModel)]="facade.settings.selections.signalk.sar" 
+                                        (change)="onFormChange($event, skfiltersar)"
+                                        matToolTip="Check to receive SaR data"
+                                        matTooltipPosition="below"
+                                        label="after">
+                                        Search and Rescue (SaR)
+                                    </mat-checkbox>                                        
+                                </div>  
+
+                                <div class="setting-card-row-item">
+                                    <br>
+                                    <mat-form-field style="width:100%;">
+                                        <mat-select #skmaxradius
+                                                [(value)]="facade.settings.selections.signalk.maxRadius" 
+                                                (selectionChange)="onFormChange($event, skmaxradius)"
+                                                placeholder="Max. distance from vessel"
+                                                matToolTip="Only include AIS targets within this distance"
+                                                matTooltipPosition="below">
+                                            <mat-option *ngFor="let i of facade.list.aisMaxRadius | keyvalue" [value]="i.key">{{i.value}}</mat-option>
+                                        </mat-select>                                        
+                                    </mat-form-field>
+                                </div> 
+    
+                            </fieldset>
+ 
+                        </div>
+                    </mat-card>
+                </div>
 
                 <div class="setting-group" id="sectExperiments">
                     <div class="setting-card-row-item">
@@ -498,6 +567,7 @@
                         </mat-checkbox>                                        
                     </div> 
                 </div>
+
             </div>
         </div>
 
@@ -508,6 +578,7 @@
                 </signalk-preferred-paths>  
             </div>
         </div>
+
     </div>
 
 </div>

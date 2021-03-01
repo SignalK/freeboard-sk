@@ -1,9 +1,31 @@
 /// <reference lib="webworker" />
 
-import { SignalKStreamWorker, Alarm, AlarmState } from 'signalk-worker-angular';
+import { SignalKStreamWorker, Alarm } from 'signalk-worker-angular';
 import { SKVessel, SKAtoN, SKAircraft } from './modules/skresources/resource-classes';
 import { Convert } from './lib/convert';
-import { GeoUtils } from './lib/geoutils';
+import { GeoUtils, Extent } from './lib/geoutils';
+
+type AisIds = Array<string>;
+
+interface ResultPayload { 
+    self: SKVessel; 
+    aisTargets: Map<string, any>;
+    aisStatus: { 
+        updated: AisIds;
+        stale: AisIds; 
+        expired: AisIds
+    };
+    paths: { [key:string]: string },
+    atons: Map<string, any>;
+    aircraft: Map<string, any>;
+    sar: Map<string, any>;
+}
+
+interface AisStatus { 
+    updated: { [key:string]: boolean };
+    stale: { [key:string]: boolean }; 
+    expired: { [key:string]: boolean };
+};
 
 class WorkerMessageBase {
     action:string=null;
@@ -42,11 +64,18 @@ const prefSourcePaths= [
     'navigation.headingMagnetic'
 ];
 
-let vessels;
-let stream:SignalKStreamWorker;
-let unsubscribe:Array<any>= [];
+let vessels: ResultPayload;                        // post message payload
+let stream: SignalKStreamWorker;
+let unsubscribe: Array<any>= [];
 let timers= [];
-let updateReceived:boolean= false;
+let updateReceived: boolean= false;
+
+// ** AIS target management **
+let targetFilter: {[key:string] : any }
+let targetExtent: Extent= [0,0,0,0];    // ais target extent
+let extRecalcInterval: number= 60;    // number of message posts before re-calc of targetExtent
+let extRecalcCounter :number= 0;
+let targetStatus: AisStatus;         // per interval ais target status
 
 // ** settings **
 let preferredPaths= {};
@@ -63,11 +92,16 @@ let aisMgr= {
 
 // *******************************************************************
 
+// ** Initialise message data structures **
 function initVessels() {
     vessels= { 
         self: new SKVessel(), 
         aisTargets: new Map(),
-        aisStatus: { updated:[], stale:[], expired:[] },
+        aisStatus: { 
+            updated: [],
+            stale: [],
+            expired: [] 
+        },
         paths: {},
         atons: new Map(),
         aircraft: new Map(),
@@ -75,6 +109,17 @@ function initVessels() {
     }
     // flag to indicate at least one position data message received
     vessels.self['positionReceived']= false;
+
+    initAisTargetStatus();
+}
+
+// ** Initialise ais target status data structure **
+function initAisTargetStatus() {
+    targetStatus = {      
+        updated: {},
+        stale: {},
+        expired: {}
+    }
 }
 
 /** handle stream event and POST Message to App**
@@ -168,19 +213,25 @@ function applySettings(opt:any={}) {
         msgInterval= opt.interval;
         clearTimers();
         startTimers();
+        extRecalcInterval= (1 / (msgInterval/1000)) * 60;
     } 
     playbackMode= (opt.playback) ? true : false;
     if(opt.selections) {    // Preferred path selection
         if(typeof opt.selections.preferredPaths!=='undefined') { 
             preferredPaths= opt.selections.preferredPaths;
         }
-        if(typeof opt.selections.aisMaxAge!=='undefined') { 
+        if(opt.selections.aisMaxAge && typeof opt.selections.aisMaxAge==='number') { 
             aisMgr.maxAge= opt.selections.aisMaxAge;
         }
-        if(typeof opt.selections.aisStaleAge!=='undefined') { 
+        if(opt.selections.aisStaleAge && typeof opt.selections.aisStaleAge==='number') { 
             aisMgr.staleAge= opt.selections.aisStaleAge;
         }
+        if(typeof opt.selections.signalk.maxRadius==='number') { 
+            targetFilter= opt.selections.signalk;
+        }
+        console.log('Worker: AIS Filter...', targetFilter);
     }
+    
 }
 
 // **************************************
@@ -255,34 +306,43 @@ function parseStreamMessage(data:any) {
         data.updates.forEach(u => {
             if(!u.values) { return }
             u.values.forEach( v=> {
-                //console.log(data.context)
                 playbackTime= u.timestamp;
-                if(data.context.indexOf('aton')!=-1 ||
-                    data.context.indexOf('shore')!=-1) {  // aton | shore.*
-                    processAtoN(data.context, v);
-                }
-                /* **** Testing only ****
-                else if(data.context=='vessels.urn:mrn:imo:mmsi:230017390') {  // aircraft
-                    vessels.aisStatus.updated.push('aircraft.urn:mrn:imo:mmsi:230017390');
-                    processAircraft('aircraft.urn:mrn:imo:mmsi:230017390', v);
-                }*/              
-                else if(data.context.indexOf('sar')!=-1) {  // search and rescue
-                    vessels.aisStatus.updated.push(data.context);
-                    processSaR(data.context, v);
-                }
-                else if(data.context.indexOf('aircraft')!=-1) {  // aircraft
-                    vessels.aisStatus.updated.push(data.context);
-                    processAircraft(data.context, v);
-                }
-                else { // vessel
-                    if(stream.isSelf(data)) { 
-                        processVessel( vessels.self, v, true),
-                        processNotifications(v);
-                    }
-                    else { // other vessel
-                        vessels.aisStatus.updated.push(data.context);
-                        processVessel( selectVessel(data.context), v);
-                    }
+                if(!data.context) { return }
+                switch(data.context.split('.')[0]) {
+                    case 'shore':       // shore
+                        data.context= 'atons.' + data.context;
+                    case 'atons':       // aids to navigation
+                        if(targetFilter.atons) {
+                            processAtoN(data.context, v);  
+                        }
+                        filterContext(data.context, vessels.atons, targetFilter.atons);
+                        break;          
+                    case 'sar':  // search and rescue
+                        if(targetFilter.sar) {
+                            processSaR(data.context, v);
+                        }
+                        filterContext(data.context, vessels.sar, targetFilter.sar);                                        
+                        break;
+                    case 'aircraft':  // aircraft
+                        if(targetFilter.aircraft) {
+                            processAircraft(data.context, v);
+                        }
+                        filterContext(data.context, vessels.aircraft, targetFilter.aircraft);                                        
+                        break;
+
+                    case 'vessels':  // aircraft
+                        if(stream.isSelf(data)) {   // self
+                            processVessel( vessels.self, v, true),
+                            processNotifications(v);
+                        }
+                        else { // other vessels
+                            if(targetFilter.vessels) {
+                                let oVessel= selectVessel(data.context);
+                                processVessel(oVessel, v);
+                            }
+                            filterContext(data.context, vessels.aisTargets, targetFilter.vessels);
+                        }
+                        break;
                 }
             });
         });
@@ -294,19 +354,62 @@ function parseStreamMessage(data:any) {
             result: data
         });
     }
-}     
+}    
+
+// ** parse and filter a context update
+function filterContext(context: string, group: Map<string, any>, enabled: boolean) {
+    if(enabled) {
+        if(targetFilter.maxRadius) {
+            let obj= group.get(context);
+            if(obj && obj['positionReceived'] &&
+                GeoUtils.inBounds(obj.position, targetExtent)) {
+                targetStatus.updated[context]= true;
+            }
+            else { 
+                group.delete(context);
+                targetStatus.expired[context]= true;
+            }
+        }
+        else { 
+            targetStatus.updated[context]= true;
+        }
+    }
+    else { 
+        if(group.size!=0) {
+            group.forEach( (v,k) => {
+                targetStatus.expired[k]=true;
+            });
+            group.clear();
+        }
+    } 
+}
 
 //** POST message to App**
 function postUpdate(immediate:boolean=false) { 
     if(!msgInterval || immediate) {
-        processAISStatus();
         let msg= new UpdateMessage();
         msg.playback= playbackMode;
+        vessels.aisStatus.updated= Object.keys(targetStatus.updated);
+        vessels.aisStatus.stale= Object.keys(targetStatus.stale);
+        vessels.aisStatus.expired= Object.keys(targetStatus.expired);
         msg.result= vessels;
         msg.timestamp= (playbackMode) ? playbackTime : vessels.self.lastUpdated.toISOString();
         postMessage(msg); 
-        vessels.aisStatus= { updated:[], stale:[], expired:[] };
+        initAisTargetStatus();
         vessels.self.resourceUpdates= [];
+        // cleanup and extent calc
+        if(extRecalcCounter==0) {
+            processAISStatus();
+            if(vessels.self['positionReceived']) {
+                targetExtent= GeoUtils.calcMapifiedExtent(
+                    vessels.self.position,
+                    targetFilter.maxRadius
+                );
+                extRecalcCounter++;
+                //console.log('** AIS status & targetExtent**', targetExtent);
+            }
+        }
+        extRecalcCounter= (extRecalcCounter>=extRecalcInterval) ? 0 : extRecalcCounter+1;
     }
 }
 
@@ -360,8 +463,8 @@ function processVessel(d: SKVessel, v:any, isSelf:boolean=false) {
 
     if( v.path=='navigation.position' && v.value) {
         d.position= GeoUtils.normaliseCoords([ v.value.longitude, v.value.latitude]);
-        if(isSelf) { d['positionReceived']=true }
-        else { appendTrack(d) } 
+        d['positionReceived']=true;
+        if(!isSelf) { appendTrack(d) } 
     }        
     if(v.path=='navigation.state') { d.state= v.value }
     if(v.path=='navigation.speedOverGround') { d.sog= v.value }
@@ -485,47 +588,39 @@ function processAISStatus() {
     vessels.aisTargets.forEach( (v, k)=> {
         //if not present then mark for deletion
         if(v.lastUpdated< (now-aisMgr.maxAge) ) {
-            vessels.aisStatus.expired.push(k);
+            targetStatus.expired[k]= true;
             vessels.aisTargets.delete(k);
         }
         else if(v.lastUpdated< (now-aisMgr.staleAge) ) { //if stale then mark inactive
-            vessels.aisStatus.stale.push(k); 
+            targetStatus.stale[k]= true;
         } 
     });
     vessels.aircraft.forEach( (v, k)=> {
         //if not present then mark for deletion
         if(v.lastUpdated< (now-aisMgr.maxAge) ) {
-            vessels.aisStatus.expired.push(k);
+            targetStatus.expired[k]= true;
             vessels.aircraft.delete(k);
         }
         else if(v.lastUpdated< (now-aisMgr.staleAge) ) { //if stale then mark inactive
-            vessels.aisStatus.stale.push(k); 
+            targetStatus.stale[k]= true;
         }         
     });   
     vessels.sar.forEach( (v, k)=> {
         //if not present then mark for deletion
         if(v.lastUpdated< (now-aisMgr.maxAge) ) {
-            vessels.aisStatus.expired.push(k);
+            targetStatus.expired[k]= true;
             vessels.sar.delete(k);
         }
         else if(v.lastUpdated< (now-aisMgr.staleAge) ) { //if stale then mark inactive
-            vessels.aisStatus.stale.push(k); 
+            targetStatus.stale[k]= true;
         } 
-    }); 
+    });
 }
 
 // process AtoN values
-function processAtoN(id:string, v:any) {
+function processAtoN(id:string, v:any): string {
     let isBaseStation: boolean= false;
     if(id.indexOf('shore.basestations')!=-1) {
-        /* **** Testing only ****
-        if(id=='shore.basestations.urn:mrn:imo:mmsi:2300048') {  // sar
-            vessels.aisStatus.updated.push('sar.urn:mrn:imo:mmsi:2300048');
-            processSaR('sar.urn:mrn:imo:mmsi:2300048', v);
-            return;
-        } 
-        */
-        id= 'atons.' + id;
         isBaseStation= true;
     }
     if( !vessels.atons.has(id) ) {
@@ -546,11 +641,14 @@ function processAtoN(id:string, v:any) {
     } 
     else if(v.path=='atonType') { d.type= v.value }
     else if( v.path=='navigation.position') {
-        d.position= [ v.value.longitude, v.value.latitude];                      
+        d.position= [ v.value.longitude, v.value.latitude];   
+        d['positionReceived']=true;                   
     } 
     else { 
         d.properties[v.path]= v.value;
     }  
+
+    return id;
 }
 
 // process SaR values
@@ -571,6 +669,7 @@ function processSaR (id:string, v:any) {
     else if(v.path=='communication.callsignVhf') { d.callsign= v.value }
     else if( v.path=='navigation.position' && v.value) {
         d.position= GeoUtils.normaliseCoords([ v.value.longitude, v.value.latitude]);
+        d['positionReceived']=true;
     }
     else { d.properties[v.path]= v.value }  
 }
@@ -589,7 +688,8 @@ function processAircraft (id:string, v:any) {
     } 
     else if(v.path=='communication.callsignVhf') { d.callsign= v.value }
     else if( v.path=='navigation.position' && v.value) {
-        d.position= GeoUtils.normaliseCoords([ v.value.longitude, v.value.latitude]);   
+        d.position= GeoUtils.normaliseCoords([ v.value.longitude, v.value.latitude]);
+        d['positionReceived']=true;  
         appendTrack(d);
     }
     else if (v.path=='navigation.courseOverGroundTrue') { d.orientation= v.value }

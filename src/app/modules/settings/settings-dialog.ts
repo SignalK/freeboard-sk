@@ -19,7 +19,8 @@ export class SettingsDialog implements OnInit {
        {href: "#sectVessels", text: 'Vessels'},
        {href: "#sectNotes", text: 'Notes'},
        {href: "#sectVideo", text: 'Video'},
-       {href: "#sectResLayers", text: 'Resources'}
+       {href: "#sectResLayers", text: 'Resources'},
+       {href: "#sectSKConnection", text: 'Signal K'}
     ];
 
     private saveOnClose: boolean= false;

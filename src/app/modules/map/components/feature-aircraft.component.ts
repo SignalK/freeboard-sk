@@ -151,7 +151,7 @@ export class AircraftComponent implements OnInit, OnDestroy, OnChanges {
         layer.forEachFeature( f=> {
             let fid= f.getId().toString();
             if(fid.slice(0,8)=='aircraft') { //aircraft features
-                f.setStyle( new Style( this.setTargetStyle(fid.slice(4)) ) );
+                f.setStyle( new Style( this.setTargetStyle(fid) ) );
             }
         });
     }
@@ -160,6 +160,7 @@ export class AircraftComponent implements OnInit, OnDestroy, OnChanges {
     setTargetStyle(id: string) {
         if(!id) { return }
         let target= this.aircraft.get(id);
+        if(!target) { return }
         let label= this.formatlabel( target.name || target.callsign || target.mmsi || '');
         let fstyle: any;
         // ** check if stale 

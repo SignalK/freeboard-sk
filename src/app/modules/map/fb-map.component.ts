@@ -33,7 +33,7 @@ interface IOverlay {
 
 interface IFeatureData {
     aircraft: Map<string,any>;
-    atons: Array<any>;
+    atons: Map<string,any>;
     sar: Map<string,any>;
     routes: Array<any>;
     waypoints: Array<any>;
@@ -172,7 +172,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
     // ** map feature data
     dfeat: IFeatureData= {
         aircraft: new Map(),
-        atons: [],
+        atons: new Map(),
         sar: new Map(),
         routes: [],
         waypoints: [],
@@ -318,7 +318,6 @@ export class FBMapComponent implements OnInit, OnDestroy {
     }
 
     // ********** EVENT HANDLERS *****************  
-    private checkedAtoNs:boolean= false;
 
     private onVessels() {
         //store last position incase new position is null
@@ -330,6 +329,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
         this.dfeat.ais= this.app.data.vessels.aisTargets;
         this.dfeat.aircraft= this.app.data.aircraft;
         this.dfeat.sar= this.app.data.sar;
+        this.dfeat.atons= this.app.data.atons;
         this.dfeat.active= this.app.data.vessels.active;
         this.dfeat.navData.position= this.app.data.navData.position;
         this.dfeat.navData.startPosition= this.app.data.navData.startPosition;
@@ -342,14 +342,23 @@ export class FBMapComponent implements OnInit, OnDestroy {
         // ** update vessel on map **
         if(this.dfeat.self['positionReceived']) { this.app.data.vessels.showSelf= true } 
         // ** locate vessel popover
-        if(this.overlay.show && this.overlay['type']=='ais') {
+        if(this.overlay.show && ['ais','aton','aircraft'].includes(this.overlay['type'])) {
             if(this.overlay['isSelf']) { 
                 this.overlay.position= this.dfeat.self.position;
                 this.overlay['vessel']= this.dfeat.self;
             }
             else { 
-                this.overlay['vessel']= this.dfeat.ais.get(this.overlay['id']);
-                this.overlay.position= this.overlay['vessel'].position;
+                if( (this.overlay['type']=='ais' && !this.dfeat.ais.has(this.overlay['id']) ) || 
+                    (this.overlay['type']=='atons' && !this.dfeat.atons.has(this.overlay['id']) ) || 
+                    (this.overlay['type']=='aircraft' && !this.dfeat.aircraft.has(this.overlay['id']) ) ) { 
+                    this.overlay.show= false;
+                }
+                else {
+                    if(this.overlay['type']=='ais') {
+                        this.overlay['vessel']= this.dfeat.ais.get(this.overlay['id']);
+                        this.overlay.position= this.overlay['vessel'].position;
+                    }
+                }
             }
             if( this.fbMap.extent[0]<180 && this.fbMap.extent[2]>180 ) {
                 // if dateline is in view adjust overlay position to stay with vessel
@@ -357,8 +366,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
                     this.overlay.position[0]= this.overlay.position[0] + 360;
                 }
             }          
-        }  
-        if(!this.checkedAtoNs && this.app.data.atons.size!=0) { this.renderAtoNs(); this.checkedAtoNs=true; }
+        }
         this.drawVesselLines(true);
         this.rotateMap();  
         if(this.fbMap.movingMap) { this.centerVessel() }    
@@ -1158,7 +1166,6 @@ export class FBMapComponent implements OnInit, OnDestroy {
     // ** called by onMapMove() to render features within map extent
     private renderMapContents() {
         if(this.fetchNotes()) {this.skres.getNotes();this.app.debug(`fetching Notes...`) }
-        this.renderAtoNs();
         this.renderGRIB();
     }
 
@@ -1186,16 +1193,6 @@ export class FBMapComponent implements OnInit, OnDestroy {
             return true; 
         }
         return false;    
-    }  
-    
-    // filter AtoNs within map extent to render
-    private renderAtoNs() {
-        this.dfeat.atons= [];
-        this.app.data.atons.forEach( v=> {
-            if(GeoUtils.inBounds(v.position, this.fbMap.extent)) {
-                this.dfeat.atons.push(v);
-            }
-        })
     }
 
     // filter GRIB resources within map extent to render

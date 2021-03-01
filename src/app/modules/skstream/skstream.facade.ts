@@ -129,19 +129,37 @@ export class SKStreamFacade  {
             options: {
                 context: "atons.*",
                 path: [
-                    {"path":"*","period":5000}
+                    {"path":"*","period":60000}
                 ]
             }
         });
         this.stream.postMessage({
             cmd: 'subscribe',
             options: {
-                context: "shore.basestations*",
+                context: "shore.basestations.*",
                 path: [
-                    {"path":"*","period":5000}
+                    {"path":"*","period":60000}
                 ]
             }
-        });           
+        });     
+        this.stream.postMessage({
+            cmd: 'subscribe',
+            options: {
+                context: "sar.*",
+                path: [
+                    {"path":"*","period":60000}
+                ]
+            }
+        });    
+        this.stream.postMessage({
+            cmd: 'subscribe',
+            options: {
+                context: "aircraft.*",
+                path: [
+                    {"path":"*","period":30000}
+                ]
+            }
+        });               
     }
 
     // ** parse delta message and update Vessel Data -> vesselsUpdate.next()

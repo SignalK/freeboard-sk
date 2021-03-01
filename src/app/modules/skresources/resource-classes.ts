@@ -1,5 +1,7 @@
 // **** RESOURCE CLASSES **********
 
+import { GeoUtils, Position } from "src/app/lib/geoutils";
+
 // ** Signal K route
 export class SKRoute {
     name: string;
@@ -92,7 +94,7 @@ export class SKChart {
 // ** Vessel Data **
 export class SKVessel {
     id: string;
-    position= [0,0];
+    position:Position= [0,0];
     heading: number;
     headingTrue: number= null;
     headingMagnetic: number= null;
@@ -200,7 +202,7 @@ class AISBase {
     lastUpdated= new Date();
     name: string;
     mmsi: string;
-    position= [0,0];
+    position: Position= [0,0];
     properties= {};
 }
 
@@ -221,4 +223,5 @@ export class SKAircraft extends AISBase {
     sog: number= 0;
     callsign: string;
     track= [];
+    constructor() { super () }
 }

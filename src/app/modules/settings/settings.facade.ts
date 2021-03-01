@@ -40,7 +40,8 @@ export class SettingsFacade  {
         applications: [],
         favourites: [],
         resourcePaths: [],
-        aisTimeouts: new Map( [ [60000,'1 min'],[120000,'2 min'],[180000,'3 min'],[360000,'6 min'],[540000,'9 min'] ])
+        aisTimeouts: new Map( [ [60000,'1 min'],[120000,'2 min'],[180000,'3 min'],[360000,'6 min'],[540000,'9 min'] ]),
+        aisMaxRadius: new Map( [ [0,'None'],[10000,'5 NM (10km)'],[20000,'10 NM (20km)'],[30000,'15 NM (30km)'],[40000,'20 NM (40km)'],[50000,'25 NM (50km)'],[75000,'40 NM (75km)'],[100000,'55 NM (100km)'] ])
     }
 
     alarmOptions= {

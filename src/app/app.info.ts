@@ -71,7 +71,14 @@ const FreeboardConfig= {
         pluginFavourites: [],
         trailFromServer: false,
         trailDuration: 24,   // number of hours of trail to fetch from server,
-        resourceSets: {}    // additional resources
+        resourceSets: {},    // additional resources
+        signalk: {              // signal k connection options
+            vessels: true,
+            atons: true,
+            aircraft: false,
+            sar: false,
+            maxRadius: 0,        // max radius within which AIS targets are displayed
+        }
     },
     resources: {    // ** resource options
         notes: {
@@ -403,7 +410,16 @@ export class AppInfo extends Info {
         } 
         if(typeof settings.selections.aisStaleAge === 'undefined') {
             settings.selections.aisStaleAge= 360000;
-        } 
+        }
+        if(typeof settings.selections.signalk === 'undefined') {
+            settings.selections.signalk= {
+                vessels: true,
+                atons: true,
+                aircraft: false,
+                sar: false,
+                maxRadius: 0
+            }
+        }
         
         if(typeof settings.plugins === 'undefined') { settings.plugins= {} }
         if(typeof settings.plugins.parameters === 'undefined') { 
@@ -467,7 +483,7 @@ export class AppInfo extends Info {
             },
             'preferred-paths': {
                 title: 'Set Paths',
-                message: `Freeboard now allows you select a preferred Signal K path for 
+                message: `Freeboard allows you select a preferred Signal K path for 
                     displaying:
                     <ul>
                     <li>Vessel heading</li>
@@ -491,29 +507,30 @@ export class AppInfo extends Info {
             'whats-new': [
                 {
                     type: 'signalk-server-node',
-                    title: 'AIS display settings',
+                    title: 'New Targets and Thresholds',
                     message: `
-                        You can now select the time intervals where AIS
-                        vessels can be marked as Inactive and removed from the map.
+                        Freeboard will now display <b>Aircraft</b> and <b>SaR</b> targets.
                         <br>&nbsp;<br>
-                        You can configure this in the <b>Vessels</b> section in <b><i>Settings</i></b>.`
-                }/*,
+                        Additionally, you can now configure the time thresholds 
+                        where Vessels and Aircraft
+                        are marked as <b>Inactive</b> and <b>Expired</b> to control 
+                        their display and removal from the map.
+                        <br>&nbsp;<br>
+                        Head to the <b>Vessels</b> section in <b><i>Settings</i></b>.`
+                },
                 {
                     type: 'signalk-server-node',
-                    title: 'Experiments',
+                    title: 'Signal K Connection',
                     message: `
-                        <b>Experiments go mainstream!</b>
+                        <b>Specify the Signal K context types you want Freeboard to process
+                        from the stream connection.</b>
                         <br>&nbsp;<br>
-                        You'll notice a change in the menus and toolbar due some experimental features moving
-                        into the main product.
+                        You can now control the volume of Signal K stream data processed 
+                        by selecting which context types to display and their proximity to the vessel.
                         <br>&nbsp;<br>
-                        The <i class="material-icons">layers</i> toolbar button now provides access to all
-                        Resource types (including Routes, Waypoints, etc) and their associated controls.
-                        <br>&nbsp;<br>
-                        <b>Load GeoJSON FIle</b> can now be found in the main menu and
-                        <b>Tracks</b> can be found under <i class="material-icons">layers</i> layers.
+                        Head to the <b>Signal K</b> section in <b><i>Settings</i></b>.
                         `
-                }  */                  
+                }                 
             ]           
         }
 

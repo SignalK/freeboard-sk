@@ -4,6 +4,10 @@
 
 import { Convert } from './convert';
 
+export type Extent = [number,number,number,number]; // coords [swlon,swlat,nelon,nelat] of a bounding box
+
+export type Position = [number, number, number?]; // [lon,lat, alt]
+
 export class GeoUtils {
 
     constructor() {}
@@ -21,7 +25,7 @@ export class GeoUtils {
     * direct formula by T. Vincenty, Direct and Inverse Solutions of Geodesics on
     * the Ellipsoid with application of nested equations, Survey Review, vol XXII
     * no 176, 1975 <http://www.ngs.noaa.gov/PUBS_LIB/inverse.pdf> */
-    static destCoordinate(lat1, lon1, brng, dist): [number,number] {
+    static destCoordinate(lat1, lon1, brng, dist): Position {
         let a = 6378137, b = 6356752.3142, f = 1 / 298.257223563, // WGS-84
         // ellipsiod
         s = dist, alpha1 = brng, sinAlpha1 = Math.sin(alpha1), cosAlpha1 = Math
@@ -66,14 +70,14 @@ export class GeoUtils {
     }
 
     //** Return the distance and bearing from source to destination
-    static toGo(srcpt:[number,number], destpt:[number,number]) {
+    static toGo(srcpt:Position, destpt:Position) {
         let brg= GeoUtils.bearingTo(srcpt, destpt);
         let dst= GeoUtils.distanceTo(srcpt, destpt);
         return { bearing: brg, distance: dst }
     }
 
     //** Calculate the great circle distance between two points in metres
-    static distanceTo(srcpt:[number,number], destpt:[number,number]) {  
+    static distanceTo(srcpt:Position, destpt:Position) {  
         const Rk= 6373; // mean radius of the earth (km) at 39 degrees from the equator
         let lat1= Convert.degreesToRadians(srcpt[1]);
         let lon1= Convert.degreesToRadians(srcpt[0]);
@@ -87,7 +91,7 @@ export class GeoUtils {
     }
 
     //** Calculate the bearing between two points in radians	
-    static bearingTo(srcpt:[number,number], destpt:[number,number]) {
+    static bearingTo(srcpt:Position, destpt:Position) {
         let lat1= Convert.degreesToRadians(srcpt[1]);
         let lat2= Convert.degreesToRadians(destpt[1]);
         let dLon= Convert.degreesToRadians(destpt[0]-srcpt[0]);
@@ -98,7 +102,7 @@ export class GeoUtils {
     }   
 
     //** Calculate the centre of polygon	
-    static centreOfPolygon(coords:Array<[number,number]>) { 
+    static centreOfPolygon(coords:Array<Position>) { 
         let high:[number,number]= [-180,-90]; 
         let low:[number,number]= [180,90];
         coords.forEach( c=> {
@@ -124,12 +128,12 @@ export class GeoUtils {
      * returns true if point is in the zone for dateline transition 
      * zoneValue: lower end of 180 to xx range within which Longitude must fall for retun value to be true
     **/
-    static inDLCrossingZone(coord:[number,number], zoneValue:number= 170) {
+    static inDLCrossingZone(coord:Position, zoneValue:number= 170) {
         return (Math.abs(coord[0])>=zoneValue) ? true : false;
     }
 
     // update line coords for map display (including dateline crossing)
-    static mapifyCoords(coords) {
+    static mapifyCoords(coords:Array<any>) {
         if(coords.length==0) { return coords }
         let dlCrossing= 0;
         let last= coords[0];
@@ -145,11 +149,11 @@ export class GeoUtils {
     }   
 
     // returns true if point is inside the supplied extent
-    static inBounds( point: [number,number], extent: [number,number,number,number]) {
+    static inBounds( point: Position, extent: Extent) {
         let dlExtent= JSON.parse(JSON.stringify(extent));
         let dlPoint= [point[0],point[1]];
         // extent crosses date line?
-        if (dlExtent[0] > 0 && dlExtent[2] < 0) {
+        if(dlExtent[0] > 0 && dlExtent[2] < 0) {
             dlExtent[2] = 360 + dlExtent[2]
             if (dlPoint[0] < 0) {
                 dlPoint[0] = 360 + dlPoint[0]
@@ -159,11 +163,26 @@ export class GeoUtils {
             && (dlPoint[1]>dlExtent[1] && dlPoint[1]<dlExtent[3]); 
     }  
 
+    // returns mapified extent centered at point with boundary radius meters from center
+    static calcMapifiedExtent(point: Position, radius: number): Extent {
+        const latScale= 111111; // 1 deg of lat in meters
+        let lonScale= latScale * Math.cos(Convert.degreesToRadians(point[1]));
+        let ext:Extent = [0,0,0,0];
+
+        // latitude bounds
+        ext[1]= point[1] + (0-Math.abs(radius)) / latScale;
+        ext[3]= point[1] + Math.abs(radius) / latScale;
+        // longitude bounds
+        ext[0]= point[0] + (0-Math.abs(radius)) / lonScale;
+        ext[2]= point[0] + Math.abs(radius) / lonScale;
+        return ext;
+    }
+
     // ensure -180<coords<180
-    static normaliseCoords(coords:[number,number])  // Point
-    static normaliseCoords(coords:Array<[number,number]>)  //LineString
-    static normaliseCoords(coords:Array<Array<[number,number]>>)  // MultiLineString
-    static normaliseCoords(coords:any) {
+    static normaliseCoords(coords:Position)  // Point
+    static normaliseCoords(coords:Array<Position>)  //LineString
+    static normaliseCoords(coords:Array<Array<Position>>)  // MultiLineString
+    static normaliseCoords(coords:any): any {
         if( !Array.isArray(coords) ) { return [0,0] }
         if(typeof coords[0]=='number') {
             if(coords[0]>180) {
@@ -178,8 +197,7 @@ export class GeoUtils {
             coords.forEach( c=> c=this.normaliseCoords(c) );
             return coords;
         }
-    }      
-   
+    }
 }
 
 export class GeoHash {
@@ -192,7 +210,7 @@ export class GeoHash {
     /** Encodes latitude/longitude to geohash, to specified precision 
      * returns: string
     */
-    encode(lat:number, lon:number, precision:number=12):string {
+    encode(lat: number, lon: number, precision: number=12):string {
         if (isNaN(lat) || isNaN(lon) || isNaN(precision)) throw new Error('Invalid geohash');
 
         let idx = 0; // index into base32 map
@@ -241,7 +259,7 @@ export class GeoHash {
     /* Returns bounds of specified geohash.
      * returns: {sw: [longitude,latitude], ne: [longitude,latitude]}
     */
-    decode(geohash) {
+    decode(geohash: string) {
         if (geohash.length === 0) throw new Error('Invalid geohash');
         geohash = geohash.toLowerCase();
     
@@ -286,7 +304,7 @@ export class GeoHash {
     /* return approximate centre of geohash cell 
      * returns: [lon, lat]
     */
-    center(geohash) {
+    center(geohash: string) {
         let bounds = this.decode(geohash); 
         // now just determine the centre of the cell...
         let latMin = bounds.sw[1], lonMin = bounds.sw[0];
@@ -308,7 +326,7 @@ export class GeoHash {
      * direction: string - <N,S,E,W>.
      * return: string - Geocode of adjacent cell.
     */
-    adjacent(geohash:string, direction:string='n'):string {
+    adjacent(geohash: string, direction: string='n') :string {
         geohash = geohash.toLowerCase();
         direction = direction.toLowerCase();
 
@@ -344,7 +362,7 @@ export class GeoHash {
     /* Returns all 8 adjacent cells to specified geohash.
      * returns: { n,ne,e,se,s,sw,w,nw: string }
      */
-    neighbours(geohash) {
+    neighbours(geohash: string) {
         return {
             'n':  this.adjacent(geohash, 'n'),
             'ne': this.adjacent(this.adjacent(geohash, 'n'), 'e'),

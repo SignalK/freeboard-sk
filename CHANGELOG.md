@@ -1,5 +1,23 @@
 # CHANGELOG: Freeboard
 
+### v1.15.0
+
+- **Add**: Add settings to define the maximum time elasped between updates to mark AIS vessels
+as inactive and for removal from map. (closes #93)
+
+- **Add**: Support display of additonal targets (aircraft, SaR, shore.basestations)
+
+- **Add**: Settings to select target types to display on the map and their scope (distance from vessel).
+
+- **Fix**: Issue where config loaded from server not correctly displayed in Settings screen.
+
+- **Fix**: Apply resource selections after config loaded from server.
+
+- **Fix**: Auth persistance upon session refresh.
+
+- **Fix**: Android map touch panning / zooming issue related to touch events.
+
+
 ### v1.14.2
 
 - **Update**: Allow anchor watch radius to be changed when anchor is down.

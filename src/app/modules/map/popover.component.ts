@@ -218,6 +218,10 @@ export class VesselPopoverComponent {
     }
 
     ngOnChanges(changes) { 
+        if(!changes.vessel.currentValue) { 
+            this.handleClose();
+            return;
+        }
         this.position= [
             changes.vessel.currentValue.position[0],
             changes.vessel.currentValue.position[1]
@@ -544,6 +548,10 @@ export class AtoNPopoverComponent {
     }
 
     ngOnChanges() { 
+        if(!this.aton) { 
+            this.handleClose();
+            return;
+        }
         this.timeLastUpdate= `${this.aton.lastUpdated.getHours()}:${('00' + this.aton.lastUpdated.getMinutes()).slice(-2)}`;
         let td= (new Date().valueOf() - this.aton.lastUpdated.valueOf()) / 1000;
         this.timeAgo= (td<60) ? '' : `(${Math.floor(td/60)} min ago)`;
@@ -632,6 +640,10 @@ export class AircraftPopoverComponent {
     }
 
     ngOnChanges() { 
+        if(!this.aircraft) { 
+            this.handleClose();
+            return;
+        }
         this.timeLastUpdate= `${this.aircraft.lastUpdated.getHours()}:${('00' + this.aircraft.lastUpdated.getMinutes()).slice(-2)}`;
         let td= (new Date().valueOf() - this.aircraft.lastUpdated.valueOf()) / 1000;
         this.timeAgo= (td<60) ? '' : `(${Math.floor(td/60)} min ago)`;
