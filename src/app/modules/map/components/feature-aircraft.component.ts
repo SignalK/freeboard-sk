@@ -28,9 +28,7 @@ export class AircraftComponent implements OnInit, OnDestroy, OnChanges {
     @Input() inactiveIcon: string;
     @Input() inactiveTime: number= 180000;  // in ms (3 mins)
     @Input() labelMinZoom: number= 10;
-    @Input() trackMinZoom: number= 10;
     @Input() mapZoom: number;
-    @Input() showTrack: boolean= true;
     
     private mrid= 'EPSG:3857';
     private srid= 'EPSG:4326';
@@ -46,7 +44,6 @@ export class AircraftComponent implements OnInit, OnDestroy, OnChanges {
         if(changes.updateIds) { this.updateTargets(changes.updateIds.currentValue) } 
         if(changes.staleIds) { this.markStaleTargets( changes.staleIds.currentValue) } 
         if(changes.mapZoom) { this.handleZoom(changes.mapZoom) } 
-        if(changes.showTrack) { this.updateTracks() }
         if(changes.inactiveTime) { this.updateFeatures() }
     }
 
@@ -61,7 +58,6 @@ export class AircraftComponent implements OnInit, OnDestroy, OnChanges {
             }                                     
         }
         if( doFeatureUpdate) { this.updateFeatures() }
-        this.updateTracks();
     }
 
     updateTargets(ids:Array<string>) {
@@ -88,36 +84,7 @@ export class AircraftComponent implements OnInit, OnDestroy, OnChanges {
                     f.setStyle( new Style( this.setTargetStyle(id) ) );
                     layer.addFeature(f);
                 }
-            }   
-            // ** ais track **
-            let tk=layer.getFeatureById('track-'+ id);
-            // ** handle dateline crossing **
-            let tc= ais.track.map( mls=> {
-                let lines= [];
-                mls.forEach( line=> lines.push( GeoUtils.mapifyCoords(line) ) )
-                return lines;
-            });
-            // **transform track coordinates**
-            let tfc= tc.map( line=> { 
-                let coords= [];
-                line.forEach( i=> coords.push(fromLonLat(i)) );
-                return coords;
-            });
-            if(tk) { // update track
-                if(ais.position) { 
-                    tk.getGeometry().setCoordinates( tfc );
-                    tk.setStyle( new Style( this.setTrackStyle() ) );
-                }
-                else { layer.removeFeature(tk) }
-            }
-            else { // create track
-                if(ais.position) {
-                    tk= new Feature( new MultiLineString(tfc) );
-                    tk.setId('track-'+ id);
-                    tk.setStyle( new Style( this.setTrackStyle() ) );
-                    layer.addFeature(tk);
-                }
-            }                               
+            }                              
         });
     }
 
@@ -180,34 +147,6 @@ export class AircraftComponent implements OnInit, OnDestroy, OnChanges {
             })
         }
         return fstyle;
-    }  
-    
-    // ** render the track
-    updateTracks() {
-        if(!this.host.instance) { return }
-        let layer= this.host.instance;
-        layer.forEachFeature( f=> {
-            let fid= f.getId().toString();
-            if(fid.slice(0,5)=='track') { //aircraft track
-                f.setStyle( new Style( this.setTrackStyle() ) );
-            }
-        });        
-    }
-
-    // ** return style to set for track
-    setTrackStyle() {
-        let color: string;
-        let rgb= '255, 0, 255';
-        if(this.mapZoom<this.trackMinZoom) { color=`rgba(${rgb},0)` }
-        else { color= (this.showTrack) ? `rgba(${rgb},1)` : `rgba(${rgb},0)` }
-
-        return {                    
-            stroke: new Stroke({
-                width: 1,
-                color: color,
-                lineDash: [2,2]
-            })
-        };
-    }  
+    } 
 
 }

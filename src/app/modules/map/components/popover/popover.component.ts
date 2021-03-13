@@ -3,7 +3,7 @@
 
 import { Component, Input, Output, EventEmitter, ChangeDetectionStrategy } from '@angular/core';
 
-import { SKVessel, SKAtoN, SKAircraft } from '../skresources/resource-classes';
+import { SKVessel, SKAtoN, SKAircraft } from 'src/app/modules/skresources/resource-classes';
 import { Convert } from 'src/app/lib/convert';
 import { GeoUtils } from 'src/app/lib/geoutils';
 import { AppInfo } from 'src/app/app.info';
@@ -218,15 +218,17 @@ export class VesselPopoverComponent {
     }
 
     ngOnChanges(changes) { 
-        if(!changes.vessel.currentValue) { 
-            this.handleClose();
-            return;
+        if(changes.vessel) {
+            if(!changes.vessel.currentValue) { 
+                this.handleClose();
+                return;
+            }
+            this.position= [
+                changes.vessel.currentValue.position[0],
+                changes.vessel.currentValue.position[1]
+            ];
+            this.position= GeoUtils.normaliseCoords(this.position);
         }
-        this.position= [
-            changes.vessel.currentValue.position[0],
-            changes.vessel.currentValue.position[1]
-        ];
-        this.position= GeoUtils.normaliseCoords(this.position);
         this.timeLastUpdate= `${this.vessel.lastUpdated.getHours()}:${('00' + this.vessel.lastUpdated.getMinutes()).slice(-2)}`;
         let td= (new Date().valueOf() - this.vessel.lastUpdated.valueOf()) / 1000;
         this.timeAgo= (td<60) ? '' : `(${Math.floor(td/60)} min ago)`;

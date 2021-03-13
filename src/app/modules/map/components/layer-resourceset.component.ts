@@ -5,7 +5,7 @@ import { AppInfo } from 'src/app/app.info';
 @Component({
     selector: 'fb-resource-set',
     changeDetection: ChangeDetectionStrategy.OnPush,
-    templateUrl: `./resource-set.component.html`
+    templateUrl: `./layer-resourceset.component.html`
 })
 export class ResourceSetComponent implements OnInit, OnDestroy, OnChanges {
 

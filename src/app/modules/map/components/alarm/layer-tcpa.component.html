@@ -1,0 +1,30 @@
+<aol-layer-vector [zIndex]="zIndex">
+    <aol-source-vector>
+        <aol-feature>
+            <aol-geometry-point>
+                <aol-coordinate 
+                    [x]="targetPosition[0]" 
+                    [y]="targetPosition[1]" 
+                    [srid]="srid">
+                </aol-coordinate>
+            </aol-geometry-point>
+            <aol-style>
+                <aol-style-circle [radius]="10">
+                    <aol-style-stroke [color]="'red'" [lineDash]="[2,3]" [width]="2"></aol-style-stroke>
+                    <aol-style-fill [color]="'rgb(255,0,0,.2)'"></aol-style-fill>                                        
+                </aol-style-circle>                                                                     
+            </aol-style>                                
+        </aol-feature>
+        <aol-feature>
+            <aol-geometry-linestring>
+                <aol-collection-coordinates
+                    [coordinates]="lineCoords"
+                    [srid]="srid">
+                </aol-collection-coordinates>
+            </aol-geometry-linestring>
+            <aol-style>
+                <aol-style-stroke [color]="'red'" [lineDash]="[2,3]" [width]="2"></aol-style-stroke>                                   
+            </aol-style>
+        </aol-feature>
+    </aol-source-vector>
+</aol-layer-vector>

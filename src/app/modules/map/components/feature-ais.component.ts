@@ -34,8 +34,6 @@ export class AisVesselsComponent implements OnInit, OnDestroy, OnChanges {
     @Input() vectorMinZoom: number= 15;
     @Input() vectorApparent: boolean= false;
     @Input() mapZoom: number;
-    @Input() showTrack: boolean= true;
-    
 
     private mrid= 'EPSG:3857';
     private srid= 'EPSG:4326';
@@ -62,7 +60,6 @@ export class AisVesselsComponent implements OnInit, OnDestroy, OnChanges {
         if(changes.filterIds) { this.updateFeatures(); this.updateVectors(); } 
         if(changes.vectorApparent) { this.updateVectors() } 
         if(changes.focusId) { this.updateFeatures() }
-        if(changes.showTrack) { this.updateTracks() }
         if(changes.inactiveTime) { this.updateFeatures() }
     }
 
@@ -78,7 +75,6 @@ export class AisVesselsComponent implements OnInit, OnDestroy, OnChanges {
         }
         if( doFeatureUpdate) { this.updateFeatures() }
         this.updateVectors();
-        this.updateTracks();
     }
 
     updateTargets(ids:Array<string>) {
@@ -134,36 +130,7 @@ export class AisVesselsComponent implements OnInit, OnDestroy, OnChanges {
                     wf.setStyle( new Style( this.setVectorStyle(id) ) );
                     layer.addFeature(wf);
                 }
-            }
-            // ** ais track **
-            let tk=layer.getFeatureById('track-'+ id);
-            // ** handle dateline crossing **
-            let tc= ais.track.map( mls=> {
-                let lines= [];
-                mls.forEach( line=> lines.push( GeoUtils.mapifyCoords(line) ) )
-                return lines;
-            });
-            // **transform track coordinates**
-            let tfc= tc.map( line=> { 
-                let coords= [];
-                line.forEach( i=> coords.push(fromLonLat(i)) );
-                return coords;
-            });
-            if(tk) { // update track
-                if(ais.position) { 
-                    tk.getGeometry().setCoordinates( tfc );
-                    tk.setStyle( new Style( this.setTrackStyle(id) ) );
-                }
-                else { layer.removeFeature(tk) }
-            }
-            else { // create track
-                if(ais.position) {
-                    tk= new Feature( new MultiLineString(tfc) );
-                    tk.setId('track-'+ id);
-                    tk.setStyle( new Style( this.setTrackStyle(id) ) );
-                    layer.addFeature(tk);
-                }
-            }                                 
+            }                               
         });
     }
 
@@ -312,37 +279,6 @@ export class AisVesselsComponent implements OnInit, OnDestroy, OnChanges {
             }
         }
         return fstyle;
-    }  
-    
-    // ** render the AIS track
-    updateTracks() {
-        if(!this.host.instance) { return }
-        let layer= this.host.instance;
-        layer.forEachFeature( f=> {
-            let fid= f.getId().toString();
-            if(fid.slice(0,5)=='track') { //vessel track
-                f.setStyle( new Style( this.setTrackStyle(fid.slice(6)) ) );
-            }
-        });        
     }
-
-    // ** return style to set for AIS track
-    setTrackStyle(id: any) {
-        let color: string;
-        let rgb= '255, 0, 255';
-        if(this.mapZoom<this.vectorMinZoom) { color=`rgba(${rgb},0)` }
-        if(!this.showTrack) { color=`rgba(${rgb},0)` }
-        else {  // ** if filtered
-            color= ( (this.filterIds && Array.isArray(this.filterIds) ) && this.filterIds.indexOf(id)==-1 ) ?
-            `rgba(${rgb},0)` : `rgba(${rgb},1)`;
-        }
-        return {                    
-            stroke: new Stroke({
-                width: 1,
-                color: color,
-                lineDash: [2,2]
-            })
-        };
-    }  
 
 }

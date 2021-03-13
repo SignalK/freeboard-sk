@@ -160,7 +160,7 @@ export class AppInfo extends Info {
             selfId: null,
             activeRoute: null,
             activeWaypoint: null,
-            trail: [],
+            trail: [],          // self vessel track / trail
             serverTrail: false,  // trail received from server
             server: null,
             hasToken: false,
@@ -169,6 +169,7 @@ export class AppInfo extends Info {
                 showSelf: false,
                 self: new SKVessel(), 
                 aisTargets: new Map(),
+                aisTracks: new Map(),   // AIS targets track (tracks plugin)
                 activeId: null,
                 active: null,
                 closest: {id: null, distance: null, timeTo: null, position: [0,0]},
@@ -248,7 +249,7 @@ export class AppInfo extends Info {
             this.loadConfig();
             this.loadData();            
         }
-    } 
+    }
 
     // persist auth token for session
     persistToken(value:string) {

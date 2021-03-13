@@ -158,7 +158,7 @@
     </xol-layer-windvector>
     <!-- *** /Wind Vector *** --> 
     
-    <!-- *** TRACKS *** -->
+    <!-- *** SELF VESSEL TRACKS *** -->
     <aol-layer-vector [zIndex]="50" *ngIf="app.config.resources.paths.includes('tracks')">
         <aol-source-vector>    
             <div *ngFor="let t of dfeat.tracks; let i=index;">
@@ -184,11 +184,25 @@
             </div>               
         </aol-source-vector>
     </aol-layer-vector>
-    <!-- *** /TRACKS *** -->
+    <!-- *** /SELF VESSEL TRACKS *** -->
+
+    <!-- *** AIS TRACKS *** -->
+    <aol-layer-vector [zIndex]="51" *ngIf="app.config.aisTargets">
+        <aol-source-vector>
+            <xol-tracks [tracks]="app.data.vessels.aisTracks"
+                [updateIds]="aisMgr.updateList"
+                [removeIds]="aisMgr.removeList"
+                [showTracks]="app.config.aisShowTrack"
+                [minZoom]="10"
+                [mapZoom]="app.config.map.zoomLevel">                               
+            </xol-tracks>
+        </aol-source-vector>
+    </aol-layer-vector>
+    <!-- *** AIS TRACKS *** -->
 
     <!-- *** RESOURCE SETS *** -->
     <div *ngFor="let resSet of app.data.resourceSets | keyvalue; let idx= index">
-        <fb-resource-set [zIndex]="51+idx" *ngIf="resSet.key!='tracks'"
+        <fb-resource-set [zIndex]="52+idx" *ngIf="resSet.key!='tracks'"
             [items]="resSet.value"
             [selected]="app.config.selections.resourceSets[resSet.key]">
         </fb-resource-set>
@@ -298,12 +312,11 @@
                 [labelMinZoom]="10"
                 [vectorMinZoom]="app.config.selections.aisWindMinZoom"
                 [vectorApparent]="app.config.selections.aisWindApparent"
-                [showTrack]="app.config.aisShowTrack"
                 [mapZoom]="app.config.map.zoomLevel">                               
             </xol-ais-vessels>
         </aol-source-vector>
     </aol-layer-vector>
-    <!-- *** AIS TARGETS *** -->   
+    <!-- *** AIS TARGETS *** app.config.aisShowTrack -->   
 
     <!-- *** Aircraft TARGETS *** -->
     <aol-layer-vector *ngIf="app.config.aisTargets" [zIndex]="121" [renderBuffer]="200">
@@ -316,8 +329,6 @@
                 inactiveIcon="./assets/img/aircraft_inactive.png"
                 [inactiveTime]="app.config.selections.aisStaleAge"
                 [labelMinZoom]="10"
-                [trackMinZoom]="app.config.selections.aisWindMinZoom"
-                [showTrack]="app.config.aisShowTrack"
                 [mapZoom]="app.config.map.zoomLevel">                               
             </xol-aircraft>
         </aol-source-vector>
@@ -474,95 +485,20 @@
     <!-- /*** popover *** -->  
 
     <!-- ANCHOR WATCH -->  
-    <aol-layer-vector [zIndex]="49" *ngIf="!app.data.anchor.raised">
-        <aol-source-vector>
-            <aol-feature>
-                <aol-geometry-circle [radius]="mapifyRadius(app.data.anchor.radius, app.data.anchor.position)">  
-                    <aol-coordinate 
-                        [x]="app.data.anchor.position[0]" 
-                        [y]="app.data.anchor.position[1]"
-                        [srid]="app.config.map.srid">
-                    </aol-coordinate>                               
-                    <aol-style>
-                        <aol-style-fill [color]="'rgba(0, 255, 0, .3)'"></aol-style-fill>
-                        <aol-style-stroke 
-                            [color]="'red'" 
-                            [lineDash]="[5,5]"
-                            [width]="1">
-                        </aol-style-stroke>                                          
-                    </aol-style>
-                </aol-geometry-circle>
-            </aol-feature>
-
-            <aol-feature>
-                <aol-geometry-point>
-                    <aol-coordinate 
-                        [x]="app.data.anchor.position[0]" 
-                        [y]="app.data.anchor.position[1]" 
-                        [srid]="app.config.map.srid">
-                    </aol-coordinate>
-                </aol-geometry-point>
-                <aol-style>
-                    <aol-style-icon 
-                        [anchor]="[13,1]"
-                        [anchorXUnits]="'pixels'"
-                        [anchorYUnits]= "'pixels'"
-                        [src]="'./assets/img/anchor.png'"
-                        [size]="[26,26]"
-                        [scale]=".75"
-                        [rotateWithView]="false"
-                        [rotation]="0">
-                    </aol-style-icon>
-                </aol-style>
-            </aol-feature>
-
-            <aol-feature>
-                <aol-geometry-linestring>
-                    <aol-collection-coordinates
-                        [coordinates]="vesselLines.anchor"
-                        [srid]="app.config.map.srid">
-                    </aol-collection-coordinates>
-                </aol-geometry-linestring>
-                <aol-style>
-                    <aol-style-stroke [color]="'black'" [width]="2"></aol-style-stroke>                                   
-                </aol-style>
-            </aol-feature>
-        </aol-source-vector>
-    </aol-layer-vector>
+    <fb-anchor-alarm [zIndex]="49" *ngIf="!app.data.anchor.raised"
+        [srid]="app.config.map.srid"
+        [radius]="app.data.anchor.radius"
+        [anchorPosition]="app.data.anchor.position"
+        [lineCoords]="vesselLines.anchor">
+    </fb-anchor-alarm>
     <!-- ANCHOR WATCH --> 
 
     <!-- CPA / TCPA -->  
-    <aol-layer-vector [zIndex]="50" *ngIf="dfeat.closest.id">
-        <aol-source-vector>
-            <aol-feature>
-                <aol-geometry-point>
-                    <aol-coordinate 
-                        [x]="dfeat.closest.position[0]" 
-                        [y]="dfeat.closest.position[1]" 
-                        [srid]="app.config.map.srid">
-                    </aol-coordinate>
-                </aol-geometry-point>
-                <aol-style>
-                    <aol-style-circle [radius]="10">
-                        <aol-style-stroke [color]="'red'" [lineDash]="[2,3]" [width]="2"></aol-style-stroke>
-                        <aol-style-fill [color]="'rgb(255,0,0,.2)'"></aol-style-fill>                                        
-                    </aol-style-circle>                                                                     
-                </aol-style>                                
-            </aol-feature>
-            <aol-feature>
-                <aol-geometry-linestring>
-                    <aol-collection-coordinates
-                        [coordinates]="vesselLines.cpa"
-                        [srid]="app.config.map.srid">
-                    </aol-collection-coordinates>
-                </aol-geometry-linestring>
-                <aol-style>
-                    <aol-style-stroke [color]="'red'" [lineDash]="[2,3]" [width]="2"></aol-style-stroke>                                   
-                </aol-style>
-            </aol-feature>
-        </aol-source-vector>
-    </aol-layer-vector>
-    <!-- CPA / TCPA --> 
+    <fb-tcpa-alarm [zIndex]="50" *ngIf="dfeat.closest.id"
+        [srid]="app.config.map.srid"
+        [targetPosition]="dfeat.closest.position"
+        [lineCoords]="vesselLines.cpa">
+    </fb-tcpa-alarm>
 
     <!-- *** VESSEL SELF *** -->
     <aol-layer-vector [zIndex]="210" *ngIf="app.data.vessels.showSelf">
@@ -694,23 +630,11 @@
             </aol-feature>                                              
 
             <!-- arrival circle -->
-            <aol-feature *ngIf="app.data.navData.arrivalCircle && dfeat.navData.position">
-                <aol-geometry-circle [radius]="app.data.navData.arrivalCircle">  
-                    <aol-coordinate 
-                        [x]="dfeat.navData.position[0]" 
-                        [y]="dfeat.navData.position[1]" 
-                        [srid]="app.config.map.srid">
-                    </aol-coordinate>                               
-                    <aol-style>
-                        <aol-style-fill [color]="'rgba(255, 255, 255, .1)'"></aol-style-fill>
-                        <aol-style-stroke 
-                            [color]="'rgba(242, 153, 10, 1)'"
-                            [width]="2"
-                            [lineDash]="[5,5]">
-                        </aol-style-stroke>                                          
-                    </aol-style>
-                </aol-geometry-circle>
-            </aol-feature>
+            <fb-arrival-circle *ngIf="app.data.navData.arrivalCircle && dfeat.navData.position"
+                [radius]="app.data.navData.arrivalCircle"
+                [position]="dfeat.navData.position"
+                [srid]="app.config.map.srid">
+            </fb-arrival-circle>
 
             <!-- TWD Line -->
             <aol-feature *ngIf="app.config.vesselWindVectors && vesselLines.twd[0] && app.data.anchor.raised">

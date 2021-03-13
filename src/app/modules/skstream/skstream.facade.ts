@@ -179,11 +179,6 @@ export class SKStreamFacade  {
 
             this.processCourse(this.app.data.vessels.active);
 
-            // processAIS
-            this.app.data.aisMgr.updateList= msg.result.aisStatus.updated;
-            this.app.data.aisMgr.staleList= msg.result.aisStatus.stale;
-            this.app.data.aisMgr.removeList= msg.result.aisStatus.expired; 
-            
             // process AtoNs
             this.app.data.atons= msg.result.atons;
 
@@ -192,7 +187,25 @@ export class SKStreamFacade  {
 
             // process Aircraft
             this.app.data.aircraft= msg.result.aircraft;
-      
+
+            // processAIS
+            this.app.data.aisMgr.updateList= msg.result.aisStatus.updated;
+            this.app.data.aisMgr.staleList= msg.result.aisStatus.stale;
+            this.app.data.aisMgr.removeList= msg.result.aisStatus.expired; 
+
+            // process AIS tracks
+            this.app.data.aisMgr.updateList.forEach( id=> {
+                let v= id.indexOf('aircraft')!=-1 ?
+                    this.app.data.aircraft.get(id) :
+                    this.app.data.vessels.aisTargets.get(id);
+                if(v) {
+                    this.app.data.vessels.aisTracks.set(id, v.track);
+                }
+            });
+            this.app.data.aisMgr.removeList.forEach( id=> {
+                this.app.data.vessels.aisTracks.delete(id);
+            });
+            
             this.vesselsUpdate.next();
         }
     }

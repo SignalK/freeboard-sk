@@ -1,7 +1,7 @@
 /*******************************
     GeoUtils Class Module       
 *******************************/
-
+import { getPointResolution, fromLonLat } from 'ol/proj';
 import { Convert } from './convert';
 
 export type Extent = [number,number,number,number]; // coords [swlon,swlat,nelon,nelat] of a bounding box
@@ -147,6 +147,12 @@ export class GeoUtils {
         }
         return coords;
     }   
+
+    // ** return adjusted radius to correctly render circle on ground at given position.
+    static mapifyRadius(radius:number, position:Position): number {
+        if(typeof radius=== 'undefined' || typeof position=== 'undefined') { return radius }
+        return radius / getPointResolution('EPSG:3857', 1, fromLonLat(position));
+    }
 
     // returns true if point is inside the supplied extent
     static inBounds( point: Position, extent: Extent) {

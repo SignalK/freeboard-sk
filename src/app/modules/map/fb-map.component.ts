@@ -1,14 +1,13 @@
 import { Component, OnInit, OnDestroy, Input, Output, EventEmitter, ViewChild } from '@angular/core';
 import { MatMenuTrigger } from '@angular/material/menu';
 
-//import { proj, coordinate, style, Collection } from 'openlayers';
 import { createStringXY } from 'ol/coordinate';
-import { transform, transformExtent, getPointResolution, fromLonLat } from 'ol/proj';
+import { transform, transformExtent, toLonLat } from 'ol/proj';
 import { Style, Stroke } from 'ol/style';
 import { Collection } from 'ol';
 
 import { Convert } from 'src/app/lib/convert';
-import { GeoUtils } from 'src/app/lib/geoutils';
+import { GeoUtils, Position } from 'src/app/lib/geoutils';
 import { TEMPERATURE_GRADIENT } from 'src/app/lib/grib';
 
 import { AppInfo } from 'src/app/app.info'
@@ -40,8 +39,8 @@ interface IFeatureData {
     charts: Array<any>;
     notes: Array<any>;
     regions: Array<any>;
-    tracks: Array<any>;
-    trail: Array<any>;
+    tracks: Array<any>;     // self track(s) from server
+    trail: Array<any>;      // self trail (appended to tracks)     
     self: SKVessel;   //self vessel
     ais: Map<string,any>;        // other vessels
     active: SKVessel;  // focussed vessel
@@ -69,7 +68,7 @@ enum INTERACTION_MODE {
 })
 export class FBMapComponent implements OnInit, OnDestroy {
     @Input() setFocus: boolean;
-    @Input() mapCenter: [number,number]= [0,0];
+    @Input() mapCenter: Position= [0,0];
     @Input() mapZoom: number= 1;
     @Input() movingMap: boolean= false;
     @Input() northUp: boolean= true;
@@ -77,12 +76,12 @@ export class FBMapComponent implements OnInit, OnDestroy {
     @Input() drawMode: string= null;
     @Input() modifyMode: boolean= false;
     @Input() activeRoute: string;
-    @Input() vesselTrail: Array<[number,number]>= [];
+    @Input() vesselTrail: Array<Position>= [];
     @Output() measureStart: EventEmitter<boolean>= new EventEmitter();
     @Output() measureEnd: EventEmitter<boolean>= new EventEmitter();
     @Output() drawEnd: EventEmitter<any>= new EventEmitter();
     @Output() modifyStart: EventEmitter<any>= new EventEmitter();
-    @Output() modifyEnd: EventEmitter<Array<[number,number]>>= new EventEmitter();
+    @Output() modifyEnd: EventEmitter<Array<Position>>= new EventEmitter();
     @Output() activate: EventEmitter<string>= new EventEmitter();
     @Output() deactivate: EventEmitter<string>= new EventEmitter();
     @Output() info: EventEmitter<IResource>= new EventEmitter();
@@ -92,11 +91,6 @@ export class FBMapComponent implements OnInit, OnDestroy {
     
     @ViewChild('aolMap', {static: true}) aolMap; 
     @ViewChild(MatMenuTrigger, {static: true}) contextMenu: MatMenuTrigger;
-
-    // ** adjust radius to render the correct radius on ground at given position.
-    mapifyRadius(radius: number, position: [number,number]) {
-        return radius / getPointResolution('EPSG:3857', 1, fromLonLat(position));
-    }
 
     // ** draw interaction data 
     public draw= {
@@ -179,8 +173,8 @@ export class FBMapComponent implements OnInit, OnDestroy {
         charts: [],
         notes: [],
         regions: [],
-        tracks: [],
-        trail: [],
+        tracks: [],     // self track(s) from server
+        trail: [],      // self trail (appended to tracks)
         self: new SKVessel(),   //self vessel
         ais: new Map(),         // other vessels
         active: new SKVessel(),  // focussed vessel
@@ -409,7 +403,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
 
             }
             if(value.mode=='grib') { this.renderGRIB() }
-            if(value.mode=='track') { 
+            if(value.mode=='track') {  // vessel track from server 
                 this.dfeat.tracks= this.app.data.tracks.filter( t=> {
                     let lines= [];
                     t.feature.geometry.coordinates.forEach( line=> {
@@ -509,11 +503,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
             this.app.config.map.srid
         );
 
-        this.app.config.map.center= transform(
-            v.getCenter(), 
-            this.app.config.map.mrid, 
-            this.app.config.map.srid
-        );
+        this.app.config.map.center= toLonLat(v.getCenter());
 
         this.drawVesselLines();
         if(!this.fbMap.movingMap) { 
@@ -529,21 +519,10 @@ export class FBMapComponent implements OnInit, OnDestroy {
     public onMapPointerMove(e:any) {
         this.mouse.pixel= e.pixel;
         this.mouse.xy= e.coordinate;
-        this.mouse.coords= GeoUtils.normaliseCoords(
-            transform(
-                e.coordinate, 
-                this.app.config.map.mrid, 
-                this.app.config.map.srid
-            )
-        );
+        this.mouse.coords= GeoUtils.normaliseCoords( toLonLat(e.coordinate) );
         if(this.measure.enabled && this.measure.coords.length!=0) {
-            let c= transform(
-                e.coordinate, 
-                this.app.config.map.mrid, 
-                this.app.config.map.srid
-            ); 
-            this.overlay.position= c;  
-
+            let c= toLonLat(e.coordinate); 
+            this.overlay.position= c;
             let l= this.measure.totalDistance + this.measureDistanceToAdd(c);
             this.overlay.title= (this.app.config.units.distance=='m') ? 
                 `${(l/1000).toFixed(2)} km` :
@@ -679,23 +658,15 @@ export class FBMapComponent implements OnInit, OnDestroy {
     // ** Map Interaction events **
     public onMeasureStart(e:any) {
         this.measure.geom= e.feature.getGeometry();
-        let c= transform(
-            this.measure.geom.getLastCoordinate(), 
-            this.app.config.map.mrid, 
-            this.app.config.map.srid
-        );  
-        this.formatPopover(null,null,null);          
+        let c= toLonLat(this.measure.geom.getLastCoordinate());
+         this.formatPopover(null,null,null);          
         this.overlay.position= c;
         this.overlay.title= '0';
         this.overlay.show= true;  
     }
 
-    public onMeasureClick(pt:[number,number]) {
-        let c= transform(
-            pt,
-            this.app.config.map.mrid, 
-            this.app.config.map.srid
-        ); 
+    public onMeasureClick(pt:Position) {
+        let c= toLonLat(pt);
         this.measure.coords.push(c);
         this.overlay.position= c;
 
@@ -718,33 +689,17 @@ export class FBMapComponent implements OnInit, OnDestroy {
         let c:any;
         switch(this.draw.type) {
             case 'Point':
-                this.draw.coordinates= transform(
-                    e.feature.getGeometry().getCoordinates(), 
-                    this.app.config.map.mrid, 
-                    this.app.config.map.srid
-                );     
+                this.draw.coordinates= toLonLat(e.feature.getGeometry().getCoordinates());
                 break;
             case 'LineString':
                 let rc= e.feature.getGeometry().getCoordinates();
-                c= rc.map( i=> { 
-                    return transform(
-                        i, 
-                        this.app.config.map.mrid, 
-                        this.app.config.map.srid
-                    );
-                });
+                c= rc.map( i=> { return toLonLat(i) });
                 this.draw.coordinates= c;
                 break;
             case 'Polygon':  // region + Note
                 let p= e.feature.getGeometry().getCoordinates();
                 if(p.length==0) { this.draw.coordinates= [] }
-                c= p[0].map( i=> { 
-                    return transform(
-                        i, 
-                        this.app.config.map.mrid, 
-                        this.app.config.map.srid
-                    );
-                });
+                c= p[0].map( i=> { return toLonLat(i) });
                 this.draw.coordinates= c;
                 break;                
         }
@@ -779,11 +734,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
             pc= c;
         }        
         else {  // point feature
-            pc= transform(
-                c, 
-                this.app.config.map.mrid, 
-                this.app.config.map.srid
-            );
+            pc= toLonLat(c);
         }
         this.draw.forSave['coords']= pc;
         this.modifyEnd.emit(this.draw.forSave)
@@ -1132,7 +1083,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
     // ********************************************************
 
     // Returns distance from last point 
-    private measureDistanceToAdd(pt?:[number,number]) {
+    private measureDistanceToAdd(pt?:Position) {
         if(pt && this.measure.coords.length>0) { // return distance between last point in array and pt
             return GeoUtils.distanceTo(
                 this.measure.coords[this.measure.coords.length-1],
@@ -1148,19 +1099,13 @@ export class FBMapComponent implements OnInit, OnDestroy {
         else { return 0 }
     }   
 
-    private isCoordsArray(ca:Array<[number,number]>) {
+    private isCoordsArray(ca:Array<Position>) {
         if(Array.isArray(ca)) { return (Array.isArray(ca[0]) && typeof ca[0][0]==='number') }
         else { return false }
     }
 
-    private transformCoordsArray(ca:Array<[number,number]>) {
-        return ca.map( i=> { 
-            return transform(
-                i, 
-                this.app.config.map.mrid, 
-                this.app.config.map.srid
-            );
-        });
+    private transformCoordsArray(ca:Array<Position>) {
+        return ca.map( i=> { return toLonLat(i) });
     }
 
     // ** called by onMapMove() to render features within map extent
