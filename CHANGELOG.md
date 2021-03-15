@@ -1,5 +1,9 @@
 # CHANGELOG: Freeboard
 
+### v1.15.1
+
+- **Fix**: OpenSeaMap chart display issue (closes #94).
+
 ### v1.15.0
 
 - **Add**: Add settings to define the maximum time elasped between updates to mark AIS vessels

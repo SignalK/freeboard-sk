@@ -57,7 +57,6 @@
 
     <!-- Controls -->
     <div class="ol-mouse-position">
-        
         <span *ngIf="app.config.selections.positionFormat=='XY'">Lat:&nbsp;</span>
         <span [innerText]="mouse.coords[1] | coords : app.config.selections.positionFormat : true"></span>
         &nbsp; 

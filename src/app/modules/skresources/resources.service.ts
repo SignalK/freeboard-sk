@@ -382,7 +382,8 @@ export class SKResources {
                 tilemapUrl: 'https://tiles.openseamap.org/seamark/{z}/{x}/{y}.png',
                 minzoom: 12,
                 maxzoom: 18,
-                bounds: [-180, -90, 180, 90]
+                bounds: [-180, -90, 180, 90],
+                type: 'tilelayer'
             }), 
             true
         ],     
@@ -395,7 +396,7 @@ export class SKResources {
         .subscribe( 
             res=> { 
                 this.app.data.charts= [];
-                // add OSeaMap
+                // add OpenSeaMap
                 this.OSMCharts[1][2]= (this.app.config.selections.charts.includes('openseamap')) ? true : false;
                 this.app.data.charts.push(this.OSMCharts[1]); 
 

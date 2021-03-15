@@ -50,7 +50,7 @@
 .ol-mouse-position {
     position: fixed; 
     bottom:10px; 
-    right:45%; 
+    left:25%; 
     color: rgb(30,30,30);
     font-family:roboto; 
     background-color: rgba(250,250,250,.7);    
@@ -74,11 +74,17 @@
     .alarmPanel {
         left: 15%;
         right: 15%;
-    }   
+    }  
+    .ol-mouse-position {
+        left:20%;   
+    } 
 }
 
 @media only screen and (max-width: 400px) { 
     .nosmall {
         display: none;
     }   
+    .ol-mouse-position {
+        left:15%;   
+    }
 }
