@@ -109,14 +109,18 @@ export class GPXLoadFacade  {
         if(r.cmt) { rte.feature.properties['cmt']=r.cmt }
         if(r.src) { rte.feature.properties['src']=r.src }
         if(r.number) { rte.feature.properties['number']=r.number }
-        if(r.type) { rte.feature.properties['type']=r.type }  
+        if(r.type) { rte.feature.properties['type']=r.type }
+        rte.feature.properties['points']= {};
+        rte.feature.properties.points['names']= r.rtept.map( pt=> { 
+            return pt.name;
+        });
 
         this.subCount++;
         this.signalk.api.put(`/resources/routes/${skObj[0]}`, skObj[1])
         .subscribe( 
             r=> { 
                 this.subCount--;
-                if(r['state']=='COMPLETED') { 
+                if(Math.floor(r['statusCode']/100)==2) { 
                     this.app.debug('SUCCESS: Route added.');
                     this.app.config.selections.routes.push(skObj[0]);                        
                 }
@@ -155,7 +159,7 @@ export class GPXLoadFacade  {
         .subscribe( 
             r=>{ 
                 this.subCount--;
-                if(r['state']=='COMPLETED') { 
+                if(Math.floor(r['statusCode']/100)==2) { 
                     this.app.debug('SUCCESS: Waypoint added.');
                     this.app.config.selections.waypoints.push(wptObj[0]);
                 }
@@ -196,7 +200,7 @@ export class GPXLoadFacade  {
         .subscribe( 
             r=>{ 
                 this.subCount--;
-                if(r['state']=='COMPLETED') { 
+                if(Math.floor(r['statusCode']/100)==2) { 
                     this.app.debug('SUCCESS: Track added.');
                 }
                 else { this.errorCount++ }
