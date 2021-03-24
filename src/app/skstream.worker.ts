@@ -461,7 +461,8 @@ function processVessel(d: SKVessel, v:any, isSelf:boolean=false) {
     } 
     if(v.path=='communication.callsignVhf') { d.callsign= v.value }
 
-    if( v.path=='navigation.position' && v.value) {
+    if( v.path=='navigation.position' && v.value) { // position is not null
+        if(typeof v.value.longitude==='undefined') { return } // invalid 
         d.position= GeoUtils.normaliseCoords([ v.value.longitude, v.value.latitude]);
         d['positionReceived']=true;
         if(!isSelf) { appendTrack(d) } 
@@ -512,7 +513,7 @@ function processVessel(d: SKVessel, v:any, isSelf:boolean=false) {
     if(v.path=='environment.mode') { d.mode= v.value }
 
     if(v.path.indexOf('navigation.courseRhumbline')!=-1 
-            || v.path.indexOf('navigation.courseGreatCircle')!=-1)  { 
+            || v.path.indexOf('navigation.courseGreatCircle')!=-1)  {
         d['course.' + v.path.split('.').slice(2).join('.')]= v.value;
     } 
 
