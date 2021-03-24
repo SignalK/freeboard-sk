@@ -662,6 +662,14 @@ export class SKResources {
         this.updateRoute(id, rte);
     }
 
+    updateRouteWptNames(id:string, wptNames:Array<[string]>) {
+        let t= this.app.data.routes.filter( i=>{ if(i[0]==id) return true });
+        if(t.length==0) { return }
+        let rte=t[0][1];
+        rte['feature']['properties']['wptNames']= wptNames;
+        this.updateRoute(id, rte);
+    }
+
     // ** return array of route coordinates **
     getActiveRouteCoords(routeId?:string) {
         if(!routeId) { routeId= this.app.data.activeRoute }

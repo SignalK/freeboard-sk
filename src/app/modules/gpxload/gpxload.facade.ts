@@ -1,12 +1,12 @@
 /** Settings abstraction Facade
  * ************************************/
-import { Injectable } from '@angular/core';
-import { Subject, Observable } from 'rxjs';
+import {Injectable} from '@angular/core';
+import {Observable, Subject} from 'rxjs';
 
-import { AppInfo } from 'src/app/app.info';
-import { SignalKClient } from 'signalk-client-angular';
-import { SKResources } from '../skresources/';
-import { GPX, GPXRoute, GPXWaypoint, GPXTrack, GPXTrackSegment } from './gpx';
+import {AppInfo} from 'src/app/app.info';
+import {SignalKClient} from 'signalk-client-angular';
+import {SKResources} from '../skresources/';
+import {GPX, GPXRoute, GPXTrack, GPXTrackSegment, GPXWaypoint} from './gpx';
 
 @Injectable({ providedIn: 'root' })
 export class GPXLoadFacade  {
@@ -16,7 +16,7 @@ export class GPXLoadFacade  {
     private subCount:number=0;
 
     private uploadSource: Subject<number>;
-    public uploaded$: Observable<any>;   
+    public uploaded$: Observable<any>;
     private gpx:GPX
 
    // *******************************************************    
@@ -109,7 +109,12 @@ export class GPXLoadFacade  {
         if(r.cmt) { rte.feature.properties['cmt']=r.cmt }
         if(r.src) { rte.feature.properties['src']=r.src }
         if(r.number) { rte.feature.properties['number']=r.number }
-        if(r.type) { rte.feature.properties['type']=r.type }  
+        if(r.type) { rte.feature.properties['type']=r.type }
+
+        // Add list ow waypoints names
+        rte.feature.properties['wptNames'] = r.rtept.map(pt => {
+            return pt.name
+        })
 
         this.subCount++;
         this.signalk.api.put(`/resources/routes/${skObj[0]}`, skObj[1])

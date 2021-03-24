@@ -515,6 +515,12 @@ export class AircraftPropertiesModal implements OnInit {
                                 </mat-icon>
                             </div>
                             <div style="flex: 1 1 auto;">
+                                <div *ngIf="wptNames" style="display:flex;">
+                                    <div class="key-label">Name:</div>
+                                    <div style="flex: 1 1 auto;"
+                                         [innerText]="wptNames[i]">
+                                    </div>
+                                </div>   
                                 <div style="display:flex;">
                                     <div class="key-label">Lat:</div>
                                     <div style="flex: 1 1 auto;"
@@ -567,6 +573,7 @@ export class AircraftPropertiesModal implements OnInit {
 export class ActiveResourcePropertiesModal implements OnInit {
 
     public points: Array<[number,number]>= [];
+    public wptNames: Array<[string]>= [];
     public selIndex: number=- 1;
     public orderChanged: boolean= false;
 
@@ -580,6 +587,8 @@ export class ActiveResourcePropertiesModal implements OnInit {
         if(this.data.resource[1].feature && this.data.resource[1].feature.geometry.coordinates) {
             if(this.data.type=='route'){
                 this.points= this.data.resource[1].feature.geometry.coordinates;
+                this.wptNames = this.data.resource[1].feature.properties.wptNames;
+
                 this.data.title= (this.data.resource[1].name) ? `
                     ${this.data.resource[1].name} Points` : 'Route Points'; 
                 if(this.data.resource[0]==this.app.data.activeRoute) {
@@ -618,6 +627,8 @@ export class ActiveResourcePropertiesModal implements OnInit {
     drop(e:CdkDragDrop<any>) {
         if(this.data.type=='route') {
             moveItemInArray(this.points, e.previousIndex, e.currentIndex);
+            if(this.wptNames)
+                moveItemInArray(this.wptNames, e.previousIndex, e.currentIndex);
             this.orderChanged= true;
         }
     }
@@ -630,6 +641,8 @@ export class ActiveResourcePropertiesModal implements OnInit {
             ).subscribe( r=> {
                 if(r && this.data.skres) { 
                     this.data.skres.updateRouteCoords(this.data.resource[0], this.points);
+                    if(this.wptNames)
+                        this.data.skres.updateRouteWptNames(this.data.resource[0], this.wptNames);
                 }
             })
         }
