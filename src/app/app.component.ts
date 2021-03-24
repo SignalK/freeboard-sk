@@ -396,7 +396,7 @@ export class AppComponent {
     private handleResourceUpdate(e:any) {
         // ** handle routes get and update NavData based on activeRoute
         if(e.action=='get' && e.mode=='route') { 
-            this.stream.updateNavData( this.skres.getActiveRouteCoords() );
+            this.stream.setNavData( this.skres.getActiveRouteCoords() );
             this.updateNavPanel(e);
         }
         // ** trail retrieved from server **
@@ -784,6 +784,7 @@ export class AppComponent {
         else {
             this.skres.setNextPoint(null);
             this.app.data.activeWaypoint= null;
+            this.app.data.navData.pointNames= [];
         }
         
     }   
@@ -843,7 +844,10 @@ export class AppComponent {
                         type: dtype,
                         skres: this.skres
                     }
-                }).afterDismissed().subscribe( ()=> this.focusMap() );
+                }).afterDismissed().subscribe( (deactivate: boolean)=> { 
+                    if(deactivate) { this.deactivateRoute() }
+                    this.focusMap();
+                });
             }         
         }
         else if(e.type=='route') { 
@@ -1063,7 +1067,7 @@ export class AppComponent {
                 if(res) {   // save changes
                     if(r[0]=='route') { 
                         this.skres.updateRouteCoords(r[1], this.draw.forSave.coords);
-                        this.stream.updateNavData(this.draw.forSave.coords); 
+                        this.stream.setNavData(this.draw.forSave.coords); 
                     }
                     if(r[0]=='waypoint') {
                         this.skres.updateWaypointPosition(r[1], this.draw.forSave.coords);
@@ -1226,18 +1230,11 @@ export class AppComponent {
 
     // ** Update NavData Panel display **
     private updateNavPanel(msg?:any) {
-        if(msg) {
-            if(msg.action=='clear') { this.display.navDataPanel.show= false }
-            if(msg.action=='next') { 
-                this.display.navDataPanel.show= (msg.value) ? true : false;
-                this.app.data.navData.position= msg.value;
-            }
-            if(msg.mode=='route' && msg.action=='get') { 
-                this.display.navDataPanel.show= (this.app.data.activeRoute) ? true : false;
-            }
-        }        
-        this.display.navDataPanel.show= (this.app.data.navData.position) ? true : false;
+        this.display.navDataPanel.show= (this.app.data.activeRoute || 
+            this.app.data.activeWaypoint || this.app.data.navData.position) ? true : false;
+        
         this.display.navDataPanel.nextPointCtrl= (this.app.data.activeRoute) ? true : false;
+
         //autopilot
         let apModeOk= ['auto', 'noDrift', 'wind', 'depthContour', 'route', 'directControl'];
         if(this.app.data.vessels.self.autopilot.state=='standby') {

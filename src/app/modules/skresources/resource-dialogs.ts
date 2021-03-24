@@ -5,10 +5,10 @@ import { Component, OnInit, Inject, ChangeDetectorRef } from '@angular/core';
 import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { MatBottomSheetRef, MAT_BOTTOM_SHEET_DATA } from '@angular/material/bottom-sheet';
 import { CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop';
-import { Convert } from 'src/app/lib/convert'
-import { AppInfo } from 'src/app/app.info'
+import { Convert } from 'src/app/lib/convert';
+import { Position } from 'src/app/lib/geoutils';
+import { AppInfo } from 'src/app/app.info';
 import { SignalKClient } from 'signalk-client-angular';
-import { SKResourceSet } from './sets/resource-set';
 
 /********* ResourceDialog **********
 	data: {
@@ -484,7 +484,12 @@ export class AircraftPropertiesModal implements OnInit {
             <div>
                 <mat-toolbar>
                     <span>
-                        <mat-icon color="primary"> {{data.type=='point' ? 'flag' : 'directions'}}</mat-icon>
+                        <button mat-button color="primary"
+                            (click)="deactivate()" 
+                            [matTooltip]="clearButtonText">
+                            <mat-icon>clear_all</mat-icon>
+                            Clear
+                        </button>
                     </span>
                     <span style="flex: 1 1 auto; padding-left:20px;text-align:center;
                                 text-overflow: ellipsis;white-space: nowrap;
@@ -526,7 +531,13 @@ export class AircraftPropertiesModal implements OnInit {
                                     <div style="flex: 1 1 auto;"
                                         [innerText]="pt[0] | coords : app.config.selections.positionFormat">
                                     </div>
-                                </div> 
+                                </div>
+                                <div style="display:flex;" *ngIf="i<pointNames.length">
+                                    <div class="key-label">Name:</div>
+                                    <div style="flex: 1 1 auto;"
+                                        [innerText]="pointNames[i]">
+                                    </div>
+                                </div>
                             </div>   
                             <div cdkDragHandle matTooltip="Drag to re-order points">
                                 <mat-icon *ngIf="data.type=='route'">drag_indicator</mat-icon>  
@@ -566,9 +577,11 @@ export class AircraftPropertiesModal implements OnInit {
 })
 export class ActiveResourcePropertiesModal implements OnInit {
 
-    public points: Array<[number,number]>= [];
+    public points: Array<Position>= [];
+    public pointNames: Array<string>= [];
     public selIndex: number=- 1;
     public orderChanged: boolean= false;
+    public clearButtonText: string= 'Clear Route';
 
     constructor(
         public app: AppInfo,
@@ -584,7 +597,12 @@ export class ActiveResourcePropertiesModal implements OnInit {
                     ${this.data.resource[1].name} Points` : 'Route Points'; 
                 if(this.data.resource[0]==this.app.data.activeRoute) {
                     this.selIndex= this.app.data.navData.pointIndex;
-                }                    
+                }
+                if(this.data.resource[1].feature.properties.points &&  
+                        this.data.resource[1].feature.properties.points.names && 
+                        Array.isArray(this.data.resource[1].feature.properties.points.names)) {
+                    this.pointNames= this.data.resource[1].feature.properties.points.names;
+                }           
             }
             else {
                 if(this.app.data.activeRoute) {
@@ -600,6 +618,7 @@ export class ActiveResourcePropertiesModal implements OnInit {
                 else { 
                     this.data.title= (this.data.title) ? this.data.title : 'Destination';
                     this.points= [this.data.resource[1].feature.geometry.coordinates];
+                    this.clearButtonText= 'Clear Destination';
                 }
             }
         }
@@ -635,6 +654,9 @@ export class ActiveResourcePropertiesModal implements OnInit {
         }
         this.modalRef.dismiss();
     }
+
+    // ** deactivate route / clear destination
+    deactivate() { this.modalRef.dismiss(true) }
 	
 }
 

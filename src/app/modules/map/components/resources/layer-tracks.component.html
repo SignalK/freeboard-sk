@@ -1,0 +1,25 @@
+<aol-layer-vector [zIndex]="zIndex">
+    <aol-source-vector>    
+        <div *ngFor="let t of tracks; let i=index;">
+            <aol-feature [id]="'track.'+ t.feature.id">
+                <aol-geometry-multilinestring>
+                    <aol-collection-coordinates
+                        [coordinates]="t.feature.geometry.coordinates"
+                        [srid]="srid">
+                    </aol-collection-coordinates>                      
+                </aol-geometry-multilinestring>
+                <aol-style>
+                    <aol-style-stroke 
+                        [color]="'rgb(146,11,153)'" 
+                        [lineDash]="[5,5]"
+                        [width]="2">
+                    </aol-style-stroke>
+                    <aol-style-text 
+                        [textAlign]="center"
+                        [text]="showLabel() ? t.feature.properties.name : ' '">
+                    </aol-style-text>                        
+                </aol-style>
+            </aol-feature>   
+        </div>               
+    </aol-source-vector>
+</aol-layer-vector>

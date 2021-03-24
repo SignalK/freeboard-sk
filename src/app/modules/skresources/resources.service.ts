@@ -5,7 +5,7 @@ import { catchError } from 'rxjs/operators';
 
 import { SignalKClient } from 'signalk-client-angular';
 import { AppInfo } from 'src/app/app.info';
-import { GeoUtils, GeoHash } from  'src/app/lib/geoutils'
+import { GeoUtils, GeoHash, Position } from  'src/app/lib/geoutils'
 
 import { LoginDialog } from 'src/app/lib/app-ui';
 import { NoteDialog, RegionDialog } from './notes'
@@ -47,10 +47,8 @@ export class SKResources {
         }
         e.forEach( i=> {
             let r= i.path.split('.');
-            console.log('type:', r[1], 'id:', r[2]);
             actions[r[1]]= true;
         });
-        console.log('skres.processDelta():', actions);
         if(actions['routes']) {this.getRoutes() }
         if(actions['waypoints']) {this.getWaypoints() }
         if(actions['notes'] || actions['regions']) { this.getNotes() }
@@ -498,6 +496,11 @@ export class SKResources {
                 ]);
                 if(i[0]==this.app.data.activeRoute) { 
                     this.app.data.navData.pointTotal= i[1].feature.geometry.coordinates.length;
+                    this.app.data.navData.pointNames= (
+                        i[1].feature.properties.points && 
+                        i[1].feature.properties.points.names &&
+                        Array.isArray(i[1].feature.properties.points.names) ) ? 
+                            i[1].feature.properties.points.names : [];
                 }
             });
             // ** clean up selections
@@ -510,7 +513,7 @@ export class SKResources {
     }
 
     // ** build and return object containing: SKRoute
-    buildRoute(coordinates):any {
+    buildRoute(coordinates: Array<Position>):any {
         let rte= new SKRoute();
         let rteUuid= this.signalk.uuid.toSignalK();
         rte.feature.geometry.coordinates= GeoUtils.normaliseCoords(coordinates);
@@ -654,7 +657,7 @@ export class SKResources {
     }   
 
     // ** modify Route point coordinates **
-    updateRouteCoords(id:string, coords:Array<[number,number]>) {
+    updateRouteCoords(id:string, coords:Array<Position>) {
         let t= this.app.data.routes.filter( i=>{ if(i[0]==id) return true });
         if(t.length==0) { return }
         let rte=t[0][1];
@@ -744,8 +747,13 @@ export class SKResources {
         .subscribe( 
             r=> {
                 this.app.data.activeWaypoint= null;
-                this.app.data.activeRoute= id;
                 this.app.data.navData.pointIndex= 0;
+                this.app.data.navData.pointNames= (
+                    t[0][1].feature.properties.points && 
+                    t[0][1].feature.properties.points.names &&
+                    Array.isArray(t[0][1].feature.properties.points.names) ) ? 
+                        t[0][1].feature.properties.points.names : [];
+
                 this.app.data.navData.pointTotal= t[0][1].feature.geometry.coordinates.length;
                 this.activeRouteSource.next({action: 'set', value: id});
                 this.app.debug('res.activateRoute()');
@@ -791,10 +799,8 @@ export class SKResources {
 
         this.signalk.api.put(context, 'navigation/courseGreatCircle/activeRoute/href', null)
         .subscribe( 
-            r=> { 
-                this.app.data.activeRoute= null;
+            r=> {
                 this.app.data.navData.pointIndex= -1;
-                this.app.data.navData.pointTotal= 0;
                 this.activeRouteSource.next({action: 'clear', value: null});
                 this.app.debug('res.clearActiveRoute()');
                 if(!saveNextPoint) {
@@ -832,10 +838,10 @@ export class SKResources {
             pt
         ).subscribe( 
             r=> { 
-                this.activeRouteSource.next({action: 'next', value: pt});
-                this.app.debug('res.setNextPoint()');
+                this.app.debug(`res.setNextPoint()`);
                 // ** set vessel location as previous point **
                 if(pt && this.app.data.vessels.active.positionReceived) { 
+                    this.activeRouteSource.next({action: 'next', value: pt});
                     this.setPreviousPoint({
                         latitude: this.app.data.vessels.active.position[1],
                         longitude: this.app.data.vessels.active.position[0]
@@ -902,7 +908,7 @@ export class SKResources {
     // **** WAYPOINTS ****
 
     // ** build and return SKWaypoint object with supplied coordinates
-    buildWaypoint(coordinates):any {
+    buildWaypoint(coordinates: Position):any {
         let wpt= new SKWaypoint();
         let wptUuid= this.signalk.uuid.toSignalK();  
 
@@ -1038,7 +1044,7 @@ export class SKResources {
     }
 
     // ** modify waypoint point coordinates **
-    updateWaypointPosition(id:string, position:[number,number]) {
+    updateWaypointPosition(id:string, position:Position) {
         let t= this.app.data.waypoints.filter( i=>{ if(i[0]==id) return true });
         if(t.length==0) { return }
         let wpt=t[0][1];
@@ -1051,7 +1057,7 @@ export class SKResources {
     }    
 
     // ** Display waypoint properties Dialog **
-    showWaypointEditor(e:any=null, position:[number,number]=null) {      
+    showWaypointEditor(e:any=null, position:Position=null) {      
         let resId= null; 
         let title: string;
         let wpt: SKWaypoint;
@@ -1212,7 +1218,7 @@ export class SKResources {
     }    
 
     // ** modify Region point coordinates **
-    updateRegionCoords(id:string, coords:Array<Array<[number,number]>>) {
+    updateRegionCoords(id:string, coords:Array<Array<Position>>) {
         let t= this.app.data.regions.filter( i=>{ if(i[0]==id) return true });
         if(t.length==0) { return }
         let region=t[0][1];
@@ -1640,7 +1646,7 @@ export class SKResources {
     }
 
     // ** modify Note position **
-    updateNotePosition(id:string, position:[number,number]) {
+    updateNotePosition(id:string, position:Position) {
         let t= this.app.data.notes.filter( i=>{ if(i[0]==id) return true });
         if(t.length==0) { return }
         let note=t[0][1];

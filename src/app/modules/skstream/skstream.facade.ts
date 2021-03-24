@@ -258,10 +258,12 @@ export class SKStreamFacade  {
                 [ v['course.nextPoint.position'].longitude, v['course.nextPoint.position'].latitude ] 
                 : null;
 
-            if( !np && !this.app.data.navData.position) { return }
-            this.app.data.navData.position= np;
-            if(this.app.data.activeRoute && this.app.data.navData.position) {
-                this.updateNavData( this.skres.getActiveRouteCoords() );
+            if(!np && !this.app.data.navData.position) { }
+            else {
+                this.app.data.navData.position= np;
+                if(this.app.data.activeRoute && this.app.data.navData.position) {
+                    this.setNavData( this.skres.getActiveRouteCoords() );
+                }
             }
         }           
         if(typeof v['course.nextPoint.distance']!=='undefined') {  
@@ -304,7 +306,7 @@ export class SKStreamFacade  {
         if(typeof v['course.nextPoint.arrivalCircle']!=='undefined') { 
             this.app.data.navData.arrivalCircle= v['course.nextPoint.arrivalCircle'];
         }
-               
+        
         this.navDataUpdate.next();
     }  
        
@@ -319,12 +321,11 @@ export class SKStreamFacade  {
         if(car== this.app.data.activeRoute) { return }
         this.app.data.activeRoute= car; 
         if(car) { this.app.data.activeWaypoint= null } 
-        this.app.debug(`updating activeRoute= ${this.app.data.activeRoute}`);
-        this.updateNavData( this.skres.getActiveRouteCoords() );
+        this.setNavData( this.skres.getActiveRouteCoords() );
     }
 
-    // ** Update the nextPoint position from supplied coordinates list
-    public updateNavData(coords: Array<[number,number]>) {
+    // ** set the nextPoint position from supplied coordinates list
+    public setNavData(coords: Array<[number,number]>) {
         let idx=-1;
         if(this.app.data.navData.position) {
             for(let i=0; i<coords.length; i++) {

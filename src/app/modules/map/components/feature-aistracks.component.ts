@@ -2,7 +2,7 @@ import { Component, OnInit, OnDestroy, OnChanges, Input, ChangeDetectionStrategy
         SimpleChange, SimpleChanges } from '@angular/core';
 import { GeoUtils } from 'src/app/lib/geoutils';
 
-import { Point, LineString, MultiLineString } from 'ol/geom';
+import { MultiLineString } from 'ol/geom';
 import { fromLonLat } from 'ol/proj';
 import { Style, Stroke, Icon, Text } from 'ol/style';
 import { Feature } from 'ol';
@@ -10,11 +10,11 @@ import { SourceVectorComponent } from 'ngx-openlayers';
 
 
 @Component({
-    selector: 'xol-tracks',
+    selector: 'ais-tracks',
     changeDetection: ChangeDetectionStrategy.OnPush,
     template: `<ng-content></ng-content>`
 })
-export class TracksComponent implements OnInit, OnDestroy, OnChanges {
+export class AisTracksComponent implements OnInit, OnDestroy, OnChanges {
     public componentType = 'feature';
     public instance: Feature;
 

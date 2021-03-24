@@ -12,7 +12,7 @@ export interface HeatmapValue {
 }
 
 @Component({
-    selector: 'xol-layer-heatmap',
+    selector: 'fb-grib-heatmap',
     template: `<ng-content></ng-content>`
 })
 export class LayerHeatmapComponent implements OnInit, OnDestroy, OnChanges {

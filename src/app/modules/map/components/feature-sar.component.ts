@@ -10,7 +10,7 @@ import { SourceVectorComponent } from 'ngx-openlayers';
 
 
 @Component({
-    selector: 'xol-sar',
+    selector: 'ais-sar',
     changeDetection: ChangeDetectionStrategy.OnPush,
     template: `<ng-content></ng-content>`
 })

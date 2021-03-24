@@ -440,6 +440,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
                     this.skres.clearActiveRoute(this.app.data.vessels.activeId, true);
                 }
                 this.app.data.activeWaypoint= null;
+                this.app.data.navData.pointNames= [];
                 this.skres.setNextPoint({
                     latitude: e[1], 
                     longitude: e[0]
@@ -600,7 +601,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
                                 break;
                             case 'vessels': icon="directions_boat"; 
                                 addToFeatureList= true;
-                                text= this.dfeat.self.name + ' (self)' || 'self'; 
+                                text= this.dfeat.self.name ? this.dfeat.self.name + ' (self)' : 'self'; 
                                 break;
                             case 'region': 
                                 addToFeatureList= true;

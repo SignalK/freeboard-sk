@@ -13,7 +13,7 @@ export class SKRoute {
         type: 'Feature',
         geometry: {
             type: 'LineString',
-            coordinates: [ [0,0], [0,0] ]
+            coordinates: []
         },
         properties: {},
         id: ''

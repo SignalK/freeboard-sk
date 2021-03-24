@@ -5,7 +5,25 @@ import { Position, GeoUtils } from 'src/app/lib/geoutils';
 @Component({
     selector: 'fb-arrival-circle',
     changeDetection: ChangeDetectionStrategy.OnPush,
-	templateUrl:  './feature-arrivalcircle.component.html'
+	template: `
+        <aol-feature>
+            <aol-geometry-circle [radius]="mapifiedRadius">  
+                <aol-coordinate 
+                    [x]="position[0]" 
+                    [y]="position[1]" 
+                    [srid]="srid">
+                </aol-coordinate>                               
+                <aol-style>
+                    <aol-style-fill [color]="'rgba(255, 255, 255, .1)'"></aol-style-fill>
+                    <aol-style-stroke 
+                        [color]="'rgba(242, 153, 10, 1)'"
+                        [width]="2"
+                        [lineDash]="[5,5]">
+                    </aol-style-stroke>                                          
+                </aol-style>
+            </aol-geometry-circle>
+        </aol-feature>
+    `
 })
 export class ArrivalCircleComponent  {
     @Input() radius: number;

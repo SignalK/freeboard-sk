@@ -15,7 +15,7 @@ export interface WindVector {
 }
 
 @Component({
-    selector: 'xol-layer-windvector',
+    selector: 'fb-grib-windvector',
     template: `<ng-content></ng-content>`
 })
 export class LayerWindVectorComponent implements OnInit, OnDestroy, OnChanges {

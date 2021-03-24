@@ -9,7 +9,7 @@ import { SourceVectorComponent } from 'ngx-openlayers';
 
 
 @Component({
-    selector: 'xol-ais-vessels',
+    selector: 'ais-vessels',
     changeDetection: ChangeDetectionStrategy.OnPush,
     template: `<ng-content></ng-content>`
 })

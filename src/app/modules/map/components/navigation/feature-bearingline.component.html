@@ -1,0 +1,71 @@
+<!-- base -->
+<aol-feature>
+    <aol-geometry-linestring>
+        <aol-collection-coordinates
+            [coordinates]="lineCoords"
+            [srid]="srid">
+        </aol-collection-coordinates>
+    </aol-geometry-linestring>
+    <aol-style>
+        <aol-style-stroke 
+            [color]="'white'" [width]="6">
+        </aol-style-stroke>                                  
+    </aol-style>
+</aol-feature>  
+<!-- highlight -->
+<aol-feature>
+    <aol-geometry-linestring>
+        <aol-collection-coordinates
+            [coordinates]="lineCoords"
+            [srid]="srid">
+        </aol-collection-coordinates>
+    </aol-geometry-linestring>
+    <aol-style>
+        <aol-style-stroke 
+            [color]="'rgba(221, 149, 0, 1)'" [width]="2">
+        </aol-style-stroke>
+    </aol-style>
+</aol-feature>  
+<!-- marker base-->
+<aol-feature>
+    <aol-geometry-point>
+        <aol-coordinate 
+            [x]="marker[0]" 
+            [y]="marker[1]" 
+            [srid]="srid">
+        </aol-coordinate>
+    </aol-geometry-point>
+    <aol-style>
+        <aol-style-circle [radius]="5">
+            <aol-style-stroke [color]="'white'" [width]="2"></aol-style-stroke>
+            <aol-style-fill [color]="'rgba(221, 149, 0, 1)'"></aol-style-fill>                                        
+        </aol-style-circle>
+    </aol-style>
+</aol-feature>
+<!-- marker flag-->
+<aol-feature id="dest.point" *ngIf="showMarker">
+    <aol-geometry-point>
+        <aol-coordinate 
+            [x]="marker[0]" 
+            [y]="marker[1]"  
+            [srid]="srid">
+        </aol-coordinate>
+    </aol-geometry-point>
+    <aol-style>
+        <aol-style-icon
+            [anchor]="[10.5, 25]"
+            [anchorXUnits]="'pixels'"
+            [anchorYUnits]= "'pixels'"
+            [src]="'./assets/img/marker-blue.png'"
+            [size]="[25,25]"
+            [scale]="1"
+            [rotateWithView]="false"
+            [rotation]="0">
+        </aol-style-icon>
+        <aol-style-text *ngIf="markerName"
+            [textAlign]="center"
+            [offsetY]="-27"
+            [text]="showLabel() ? markerName : ' '">
+        </aol-style-text>   
+    </aol-style>
+</aol-feature> 

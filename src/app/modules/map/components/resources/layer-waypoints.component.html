@@ -1,0 +1,32 @@
+<aol-layer-vector [zIndex]="zIndex">
+    <aol-source-vector>
+        <div *ngFor="let w of waypoints; let i=index;">
+            <aol-feature *ngIf="w[2]" [id]="'waypoint.'+ w[0]">
+                <aol-geometry-point>
+                    <aol-coordinate 
+                        [x]="w[1].feature.geometry.coordinates[0]" 
+                        [y]="w[1].feature.geometry.coordinates[1]" 
+                        [srid]="srid">
+                    </aol-coordinate>
+                </aol-geometry-point>
+                <aol-style>
+                    <aol-style-icon 
+                        [anchor]="[10.5, 25]"
+                        [anchorXUnits]="'pixels'"
+                        [anchorYUnits]= "'pixels'"
+                        [src]="activeWaypoint==w[0] ? './assets/img/marker-blue.png' : './assets/img/marker-gold.png'"
+                        [size]="[25,25]"
+                        [scale]="1"
+                        [rotateWithView]="false"
+                        [rotation]="0">
+                    </aol-style-icon>
+                    <aol-style-text
+                        [textAlign]="center"
+                        [offsetY]="-27"
+                        [text]="showLabel() ? w[1].feature.properties.name : ' '">
+                    </aol-style-text> 
+                </aol-style>
+            </aol-feature>
+        </div>
+    </aol-source-vector>
+</aol-layer-vector>

@@ -20,19 +20,30 @@ import { CompassComponent } from './components/popover/compass.component';
 
 import { RouteNextPointComponent } from './components/navigation/nextpoint.component';
 import { ArrivalCircleComponent } from './components/navigation/feature-arrivalcircle.component';
+import { XTEPathComponent } from './components/navigation/feature-xtepath.component';
+import { BearingLineComponent } from './components/navigation/feature-bearingline.component';
+
+import { TWDVectorComponent, AWAVectorComponent, HeadingLineComponent } from './components/vessel/feature-vessellines.component';
+import { VesselComponent, VesselTrailComponent } from './components/vessel/feature-vessel.component';
 
 import { AnchorAlarmComponent } from './components/alarm/layer-anchor.component';
 import { TCPAAlarmComponent } from './components/alarm/layer-tcpa.component';
 
-import { AisVesselsComponent } from './components/feature-ais.component';
+import { LayerHeatmapComponent } from './components/grib/layer-heatmap.component';
+import { LayerWindVectorComponent } from './components/grib/layer-windvector.component';
+import { LayerColormapComponent } from './components/grib/layer-colormap.component';
+
+import { NotesComponent } from './components/resources/layer-notes.component';
+import { WaypointsComponent } from './components/resources/layer-waypoints.component';
+import { RoutesComponent } from './components/resources/layer-routes.component';
+import { TracksComponent } from './components/resources/layer-tracks.component';
+import { ResourceSetComponent} from './components/resources/layer-resourceset.component';
+
+import { AisVesselsComponent } from './components/feature-aisvessels.component';
 import { AtoNsComponent } from './components/feature-atons.component';
 import { AircraftComponent } from './components/feature-aircraft.component';
-import { TracksComponent } from './components/feature-tracks.component';
+import { AisTracksComponent } from './components/feature-aistracks.component';
 import { SaRComponent } from './components/feature-sar.component';
-import { LayerHeatmapComponent } from './components/layer-heatmap.component';
-import { LayerWindVectorComponent } from './components/layer-windvector.component';
-import { LayerColormapComponent } from './components/layer-colormap.component';
-import { ResourceSetComponent} from './components/layer-resourceset.component';
 
 import { FBMapComponent } from './fb-map.component';
 import { UtilitiesModule } from 'src/app/modules/utils/utils.module';
@@ -47,23 +58,27 @@ import { UtilitiesModule } from 'src/app/modules/utils/utils.module';
         PopoverComponent, FeatureListPopoverComponent, VesselPopoverComponent,
         ResourcePopoverComponent, RouteNextPointComponent, AtoNPopoverComponent, AircraftPopoverComponent,
         CompassComponent, FBMapComponent, LayerHeatmapComponent, LayerColormapComponent,
-        AisVesselsComponent, AtoNsComponent, AircraftComponent, SaRComponent, TracksComponent,
+        AisVesselsComponent, AtoNsComponent, AircraftComponent, SaRComponent, AisTracksComponent,
         LayerWindVectorComponent, ResourceSetComponent, AnchorAlarmComponent, ArrivalCircleComponent,
-        TCPAAlarmComponent
+        TCPAAlarmComponent, XTEPathComponent, BearingLineComponent, 
+        TWDVectorComponent, AWAVectorComponent, HeadingLineComponent, VesselComponent, VesselTrailComponent,
+        NotesComponent, WaypointsComponent, RoutesComponent, TracksComponent
     ],
     exports: [ 
         PopoverComponent, FeatureListPopoverComponent, VesselPopoverComponent,
         ResourcePopoverComponent, RouteNextPointComponent, AtoNPopoverComponent, AircraftPopoverComponent,
         CompassComponent, FBMapComponent, LayerHeatmapComponent, LayerColormapComponent,
-        AisVesselsComponent, AtoNsComponent, AircraftComponent, SaRComponent, TracksComponent,
+        AisVesselsComponent, AtoNsComponent, AircraftComponent, SaRComponent, AisTracksComponent,
         LayerWindVectorComponent, ResourceSetComponent, AnchorAlarmComponent, ArrivalCircleComponent,
-        TCPAAlarmComponent
+        TCPAAlarmComponent, XTEPathComponent, BearingLineComponent, 
+        TWDVectorComponent, AWAVectorComponent, HeadingLineComponent, VesselComponent, VesselTrailComponent,
+        NotesComponent, WaypointsComponent, RoutesComponent, TracksComponent
     ],
     entryComponents: [], 
     providers: []  
 })
 export class FBMapModule {}
 
-export { WindVector } from './components/layer-windvector.component';
-export { HeatmapValue } from './components/layer-heatmap.component';
-export { ColormapValue } from './components/layer-colormap.component';
+export { WindVector } from './components/grib/layer-windvector.component';
+export { HeatmapValue } from './components/grib/layer-heatmap.component';
+export { ColormapValue } from './components/grib/layer-colormap.component';

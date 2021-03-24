@@ -7,7 +7,7 @@ import { Feature } from 'ol';
 import { SourceVectorComponent } from 'ngx-openlayers';
 
 @Component({
-    selector: 'xol-atons',
+    selector: 'fb-context-atons',
     changeDetection: ChangeDetectionStrategy.OnPush,
     template: `<ng-content></ng-content>`
 })

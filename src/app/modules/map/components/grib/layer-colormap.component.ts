@@ -17,7 +17,7 @@ export interface ColormapValue {
 }
 
 @Component({
-    selector: 'xol-layer-colormap',
+    selector: 'fb-grib-colormap',
     template: `<ng-content></ng-content>`
 })
 export class LayerColormapComponent implements OnInit, OnDestroy, OnChanges {

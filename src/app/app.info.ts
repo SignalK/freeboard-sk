@@ -135,7 +135,7 @@ export class AppInfo extends Info {
         this.name= "Freeboard";
         this.shortName= "freeboard";
         this.description= `Signal K Chart Plotter.`;
-        this.version= '1.15.1';
+        this.version= '1.15.2';
         this.url= 'https://github.com/signalk/freeboard-sk';
         this.logo= "./assets/img/app_logo.png";   
         
@@ -195,7 +195,8 @@ export class AppInfo extends Info {
                 pointIndex: -1,
                 pointTotal: 0,
                 arrivalCircle: null,
-                startPosition: null
+                startPosition: null,
+                pointNames: []
             },
             anchor: {       // ** anchor watch
                 raised: true,

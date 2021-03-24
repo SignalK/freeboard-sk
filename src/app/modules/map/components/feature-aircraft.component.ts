@@ -10,7 +10,7 @@ import { SourceVectorComponent } from 'ngx-openlayers';
 
 
 @Component({
-    selector: 'xol-aircraft',
+    selector: 'ais-aircraft',
     changeDetection: ChangeDetectionStrategy.OnPush,
     template: `<ng-content></ng-content>`
 })
