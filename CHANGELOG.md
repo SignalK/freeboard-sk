@@ -1,5 +1,11 @@
 # CHANGELOG: Freeboard
 
+### v1.15.2
+
+- **Fix**: GPXLoad not correctly handling 202 PENDING response.
+
+- **Add**: Include GPX route point names in the Route GeoJSON properties.
+
 ### v1.15.1
 
 - **Fix**: OpenSeaMap chart display issue (closes #94).
