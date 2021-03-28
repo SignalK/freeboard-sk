@@ -509,30 +509,15 @@ export class AppInfo extends Info {
             'whats-new': [
                 {
                     type: 'signalk-server-node',
-                    title: 'New Targets and Thresholds',
+                    title: 'GPX Route Point Names',
                     message: `
-                        Freeboard will now display <b>Aircraft</b> and <b>SaR</b> targets.
+                        Freeboard will now display <b>Waypoint</b> names as well as active <b>Route</b> 
+                        point names on the map.
                         <br>&nbsp;<br>
-                        Additionally, you can now configure the time thresholds 
-                        where Vessels and Aircraft
-                        are marked as <b>Inactive</b> and <b>Expired</b> to control 
-                        their display and removal from the map.
-                        <br>&nbsp;<br>
-                        Head to the <b>Vessels</b> section in <b><i>Settings</i></b>.`
-                },
-                {
-                    type: 'signalk-server-node',
-                    title: 'Signal K Connection',
-                    message: `
-                        <b>Specify the Signal K context types you want Freeboard to process
-                        from the stream connection.</b>
-                        <br>&nbsp;<br>
-                        You can now control the volume of Signal K stream data processed 
-                        by selecting which context types to display and their proximity to the vessel.
-                        <br>&nbsp;<br>
-                        Head to the <b>Signal K</b> section in <b><i>Settings</i></b>.
-                        `
-                }                 
+                        Importing Routes from a GPX file will now persist point names from the file
+                        in the route properties.
+                    `
+                }                
             ]           
         }
 
