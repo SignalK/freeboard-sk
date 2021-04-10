@@ -1,6 +1,6 @@
 {
   "name": "@signalk/freeboard-sk",
-  "version": "1.15.2",
+  "version": "1.15.3",
   "description": "Openlayers chartplotter implementation for Signal K",
   "keywords": [
     "signalk-webapp",
@@ -8,13 +8,14 @@
   ],
   "repository": "https://github.com/SignalK/freeboard-sk",
   "scripts": {
-    "prepare": "ng build --prod",
     "ng": "ng",
     "start": "ng serve",
     "build": "ng build",
     "test": "ng test",
     "lint": "ng lint",
-    "e2e": "ng e2e"
+    "e2e": "ng e2e",
+    "build:prod": "ng build --prod --output-hashing all",
+    "prepare": "npm run build:prod"
   },
   "author": "AdrianP",
   "contributors": [

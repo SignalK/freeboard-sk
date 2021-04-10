@@ -1,5 +1,9 @@
 # CHANGELOG: Freeboard
 
+### v1.15.3
+
+- **Fix**: Add `no-cache` directive to index.html to enforce loading from the server to address loading screen not disappearing after version update.
+
 ### v1.15.2
 
 - **Fix**: GPXLoad not correctly handling 202 PENDING response.
