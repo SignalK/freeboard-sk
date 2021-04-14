@@ -3,7 +3,7 @@ import { MatMenuTrigger } from '@angular/material/menu';
 
 import { createStringXY } from 'ol/coordinate';
 import { transform, transformExtent, toLonLat } from 'ol/proj';
-import { Style, Stroke } from 'ol/style';
+import { Style, Stroke, Fill } from 'ol/style';
 import { Collection } from 'ol';
 
 import { Convert } from 'src/app/lib/convert';
@@ -549,7 +549,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
                     let id= feature.getId();
                     let addToFeatureList: boolean= false;
                     let notForModify: boolean= false;
-                    if(id) {
+                    if(id && typeof id === 'string') {
                         let t= id.split('.');
                         let icon: string;
                         let text: string;
@@ -1107,6 +1107,20 @@ export class FBMapComponent implements OnInit, OnDestroy {
 
     private transformCoordsArray(ca:Array<Position>) {
         return ca.map( i=> { return toLonLat(i) });
+    }
+
+    // apply default chart style (vectortile)
+    applyStyle(...params) {
+        return new Style({
+            fill: new Fill({
+                color: '#e0d10e',
+                opacity: 0.8,
+            }),
+                stroke: new Stroke({
+                color: '#444',
+                width: 1,
+            })
+        });
     }
 
     // ** called by onMapMove() to render features within map extent

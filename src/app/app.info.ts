@@ -67,6 +67,7 @@ const FreeboardConfig= {
         aisShowTrack: false,
         aisMaxAge: 540000,         // time since last update in ms (9 min)
         aisStaleAge: 360000,       // time since last update in ms (6 min)
+        aisProfile: 0,             // ais display profile
         notesMinZoom: 10,
         pluginFavourites: [],
         trailFromServer: false,
@@ -135,7 +136,7 @@ export class AppInfo extends Info {
         this.name= "Freeboard";
         this.shortName= "freeboard";
         this.description= `Signal K Chart Plotter.`;
-        this.version= '1.15.3';
+        this.version= '1.16.0';
         this.url= 'https://github.com/signalk/freeboard-sk';
         this.logo= "./assets/img/app_logo.png";   
         
@@ -413,6 +414,9 @@ export class AppInfo extends Info {
         if(typeof settings.selections.aisStaleAge === 'undefined') {
             settings.selections.aisStaleAge= 360000;
         }
+        if(typeof settings.selections.aisProfile === 'undefined') {
+            settings.selections.aisProfile= 0;
+        }
         if(typeof settings.selections.signalk === 'undefined') {
             settings.selections.signalk= {
                 vessels: true,
@@ -509,13 +513,12 @@ export class AppInfo extends Info {
             'whats-new': [
                 {
                     type: 'signalk-server-node',
-                    title: 'GPX Route Point Names',
+                    title: 'VectorTile charts',
                     message: `
-                        Freeboard will now display <b>Waypoint</b> names as well as active <b>Route</b> 
-                        point names on the map.
+                        Freeboard now has initial support for displaying VectorTile charts 
+                        with a default style.
                         <br>&nbsp;<br>
-                        Importing Routes from a GPX file will now persist point names from the file
-                        in the route properties.
+                        Charts with a format attribute of "pbf" or "mvt" will be rendered as vector tiles.
                     `
                 }                
             ]           

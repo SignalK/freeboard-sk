@@ -86,7 +86,7 @@
     <!-- /Controls --> 
 
     <!-- *** Charts *** -->
-    <div *ngFor="let c of this.app.data.charts; let i=index;">
+    <div *ngFor="let c of app.data.charts; let i=index;">
 
         <aol-layer-tile *ngIf="c[0]=='openstreetmap' && c[2]"
                 [zIndex]="10 + i" >
@@ -97,22 +97,46 @@
             </aol-source-osm>
         </aol-layer-tile>
 
-        <aol-layer-tile *ngIf="c[0]!='openstreetmap' && c[2]" [ngSwitch]="c[1].type"
+        <div *ngIf="c[0]!='openstreetmap' && c[2]">
+            <aol-layer-vectortile *ngIf="c[1].chartFormat=='pbf' || c[1].chartFormat=='mvt'"
                 [zIndex]="10 + i" 
+                [style]="applyStyle"
                 preload="0">
-            <aol-source-xyz *ngSwitchCase="'tilelayer'"
-                (tileLoadStart)="onMapTileEvent($event)"
-                (tileLoadEnd)="onMapTileEvent($event)"
-                (tileLoadError)="onMapTileEvent($event)"
-                [minZoom]="c[1].minzoom"
-                [maxZoom]="c[1].maxzoom"
-                [url]="c[1].tilemapUrl">                           
-            </aol-source-xyz>
-            <aol-source-tilewms *ngSwitchCase="'WMS'"
-                [url]="c[1].tilemapUrl"
-                [params]="wmsParams(c[1])"
-            ></aol-source-tilewms>
-        </aol-layer-tile>
+                <aol-source-vectortile
+                        (tileLoadStart)="onMapTileEvent($event)"
+                        (tileLoadEnd)="onMapTileEvent($event)"
+                        (tileLoadError)="onMapTileEvent($event)"
+                        [url]="c[1].tilemapUrl">                           
+                    <aol-format-mvt
+                        [layers]="c[1].chartLayers ? c[1].chartLayers : null">
+                    </aol-format-mvt>
+                    <aol-tilegrid
+                        [minZoom]="c[1].minzoom"
+                        [maxZoom]="c[1].maxzoom">
+                    </aol-tilegrid>
+                </aol-source-vectortile>
+            </aol-layer-vectortile>
+
+            <aol-layer-tile *ngIf="c[1].chartFormat!='pbf' && c[1].chartFormat!='mvt'" [ngSwitch]="c[1].type"
+                    [zIndex]="10 + i" 
+                    preload="0">
+
+                <aol-source-xyz *ngSwitchCase="'tilelayer'"
+                    (tileLoadStart)="onMapTileEvent($event)"
+                    (tileLoadEnd)="onMapTileEvent($event)"
+                    (tileLoadError)="onMapTileEvent($event)"
+                    [minZoom]="c[1].minzoom"
+                    [maxZoom]="c[1].maxzoom"
+                    [url]="c[1].tilemapUrl">                           
+                </aol-source-xyz>
+
+                <aol-source-tilewms *ngSwitchCase="'WMS'"
+                    [url]="c[1].tilemapUrl"
+                    [params]="wmsParams(c[1])"
+                ></aol-source-tilewms>
+            
+            </aol-layer-tile>
+        </div>
 
     </div>
     <!-- *** /Charts *** -->
@@ -206,26 +230,30 @@
     </fb-waypoints>
 
     <!-- *** AIS TARGETS *** -->
-    <aol-layer-vector *ngIf="app.config.aisTargets" [zIndex]="120" [renderBuffer]="200">
-        <aol-source-vector>
-            <ais-vessels [aisTargets]="dfeat.ais"
-                [updateIds]="aisMgr.updateList"
-                [staleIds]="aisMgr.staleList"
-                [removeIds]="aisMgr.removeList"
-                [filterIds]="app.config.selections.aisTargets"
-                [focusId]="app.data.vessels.activeId"
-                icon="./assets/img/ais_active.png"
-                inactiveIcon="./assets/img/ais_inactive.png"
-                focusIcon="./assets/img/ship_red.png"
-                buddyIcon="./assets/img/ais_buddy.png"
-                [inactiveTime]="app.config.selections.aisStaleAge"
-                [labelMinZoom]="10"
-                [vectorMinZoom]="app.config.selections.aisWindMinZoom"
-                [vectorApparent]="app.config.selections.aisWindApparent"
-                [mapZoom]="app.config.map.zoomLevel">                               
-            </ais-vessels>
-        </aol-source-vector>
-    </aol-layer-vector>
+    <div *ngIf="app.config.aisTargets" [ngSwitch]="app.config.selections.aisProfile">
+        <!--default profile-->
+        <aol-layer-vector *ngSwitchCase="0"
+            [zIndex]="120" [renderBuffer]="200">
+            <aol-source-vector>
+                <ais-vessels [aisTargets]="dfeat.ais"
+                    [updateIds]="aisMgr.updateList"
+                    [staleIds]="aisMgr.staleList"
+                    [removeIds]="aisMgr.removeList"
+                    [filterIds]="app.config.selections.aisTargets"
+                    [focusId]="app.data.vessels.activeId"
+                    icon="./assets/img/ais_active.png"
+                    inactiveIcon="./assets/img/ais_inactive.png"
+                    focusIcon="./assets/img/ship_red.png"
+                    buddyIcon="./assets/img/ais_buddy.png"
+                    [inactiveTime]="app.config.selections.aisStaleAge"
+                    [labelMinZoom]="10"
+                    [vectorMinZoom]="app.config.selections.aisWindMinZoom"
+                    [vectorApparent]="app.config.selections.aisWindApparent"
+                    [mapZoom]="app.config.map.zoomLevel">                               
+                </ais-vessels>
+            </aol-source-vector>
+        </aol-layer-vector>
+    </div>
     <!-- *** AIS TARGETS *** -->   
 
     <!-- *** Aircraft TARGETS *** -->
@@ -313,17 +341,20 @@
                 (closed)="popoverClosed()">                      
             </resource-popover>
             <!--AIS/Vessel popover-->
-            <vessel-popover *ngIf="overlay.type=='ais'"
-                [canClose]="app.config.popoverMulti"
-                [vessel]="overlay.vessel"
-                [useMagnetic]="app.useMagnetic"
-                [isActive]="app.data.vessels.activeId==overlay.id"
-                [isSelf]="overlay.isSelf"
-                (info)="itemInfo(overlay.id, overlay.type, overlay.isSelf); popoverClosed()"
-                (focused)="setActiveVessel( ($event) ? overlay.id : null )"
-                (markPosition)="skres.showWaypointEditor(null, $event); popoverClosed()"
-                (closed)="popoverClosed()">                    
-            </vessel-popover>      
+            <div *ngIf="overlay.type=='ais'" [ngSwitch]="app.config.selections.aisProfile">
+                <!--default profile-->
+                <vessel-popover *ngSwitchCase="0"
+                    [canClose]="app.config.popoverMulti"
+                    [vessel]="overlay.vessel"
+                    [useMagnetic]="app.useMagnetic"
+                    [isActive]="app.data.vessels.activeId==overlay.id"
+                    [isSelf]="overlay.isSelf"
+                    (info)="itemInfo(overlay.id, overlay.type, overlay.isSelf); popoverClosed()"
+                    (focused)="setActiveVessel( ($event) ? overlay.id : null )"
+                    (markPosition)="skres.showWaypointEditor(null, $event); popoverClosed()"
+                    (closed)="popoverClosed()">                    
+                </vessel-popover>
+            </div>  
             <!--AtoN popover-->
             <aton-popover *ngIf="overlay.type=='aton'"
                 [canClose]="app.config.popoverMulti"

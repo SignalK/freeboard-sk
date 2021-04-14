@@ -352,6 +352,17 @@
                                 </mat-checkbox>                                        
                             </div> 
 
+                            <div class="setting-card-row-item">
+                                <mat-form-field style="width:100%;">
+                                    <mat-select #aisprofile
+                                            [(value)]="facade.settings.selections.aisProfile" 
+                                            (selectionChange)="onFormChange($event, aisprofile)"
+                                            placeholder="Display Profile">
+                                        <mat-option *ngFor="let i of facade.list.aisProfiles | keyvalue" [value]="i.key">{{i.value}}</mat-option>
+                                    </mat-select>                                        
+                                </mat-form-field>
+                            </div> 
+
                         </div> 
                     </mat-card>
                 </div>
