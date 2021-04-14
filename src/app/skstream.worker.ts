@@ -70,6 +70,9 @@ let unsubscribe: Array<any>= [];
 let timers= [];
 let updateReceived: boolean= false;
 
+let apiUrl: string;     // path to Signal K api
+let hasTrackPlugin:boolean= false;
+
 // ** AIS target management **
 let targetFilter: {[key:string] : any }
 let targetExtent: Extent= [0,0,0,0];    // ais target extent
@@ -248,12 +251,63 @@ function closeStream(fromCommand:boolean=false, state?:number) {
     });    
 }
 
+// fetch from api endpoint
+function apiGet(url:string):Promise<any> {
+    return new Promise( (resolve, reject)=> {
+        let reader: ReadableStreamDefaultReader;
+        let result: string;
+        const pump= ()=> {  // pump data from stream
+            return reader.read().then(({ done, value })=> {
+                if(done) { return result }
+                result= new TextDecoder().decode(value);
+                return pump();
+            });
+        }
+        fetch(`${url}`).then( (r:Response)=> {
+                reader= r.body.getReader();
+                pump().then( (s:string)=> {
+                    try { 
+                        let j= JSON.parse(s);
+                        resolve(j);
+                    }
+                    catch { reject(s) };
+                });
+            }
+        ).catch( (err:any)=> { reject(err) });
+    });
+}
+
+// fetch vessel tracks
+function getTracks() {
+    apiGet(apiUrl + '/tracks')
+    .then( r=> { 
+        //console.info('resolved:', r);
+        hasTrackPlugin= true;
+        // update ais vessels track data
+        Object.entries(r).forEach( (t:any)=> {
+            if(vessels.aisTargets.has(t[0]) ) {
+                let v= vessels.aisTargets.get(t[0]);
+                v.track= t[1].coordinates;
+                appendTrack(v);
+            }
+        }); 
+    })
+    .catch( ()=> { hasTrackPlugin= false });
+}
+
 function openStream(opt:any) {
     if(stream) { return }
     if(!opt.url) { 
         postMessage({action: 'error', result: 'Valid options not provided!'});
         return;
     }
+    // compose apiUrl
+    let u= opt.url.split('/');
+    u.pop();
+    u.push('api');
+    u[0]= (u[0]=='wss:') ? 'https:' : 'http:';
+    apiUrl= u.join('/');
+
     initVessels();
     stream= new SignalKStreamWorker();     
     unsubscribe.push(stream.onConnect.subscribe( r=> handleStreamEvent(
@@ -276,7 +330,10 @@ function openStream(opt:any) {
         let url = `${opt.url}${(st) ? st : ''}${(pbr) ? pbr : ''}`;
         stream.open(url, opt.playbackOptions.subscribe, opt.token);
     }   
-    else { stream.open(opt.url, opt.subscribe, opt.token) }
+    else { 
+        stream.open(opt.url, opt.subscribe, opt.token);
+        getTracks();
+    }
 }
 
 function actionAlarm(opt:any) {
@@ -425,6 +482,7 @@ function startTimers() {
             }
         }, msgInterval) ); 
     }
+    timers.push( setInterval( ()=> getTracks(), 60000 ) );
 }
 
 // ** clear message timers
