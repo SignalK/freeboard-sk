@@ -14,9 +14,9 @@ import { MatMenuModule } from '@angular/material/menu';
 import { AngularOpenlayersModule } from 'ngx-openlayers';
 
 // ** components **
-import { PopoverComponent, FeatureListPopoverComponent, AtoNPopoverComponent, AircraftPopoverComponent,
-        VesselPopoverComponent, ResourcePopoverComponent } from './components/popover/popover.component';
-import { CompassComponent } from './components/popover/compass.component';
+import { CompassComponent, PopoverComponent, FeatureListPopoverComponent, 
+        AtoNPopoverComponent, AircraftPopoverComponent, ResourcePopoverComponent,
+        VesselPopoverComponent } from './components/popover/';
 
 import { RouteNextPointComponent } from './components/navigation/nextpoint.component';
 import { ArrivalCircleComponent } from './components/navigation/feature-arrivalcircle.component';

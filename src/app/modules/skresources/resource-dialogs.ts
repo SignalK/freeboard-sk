@@ -399,7 +399,7 @@ export class AtoNPropertiesModal implements OnInit {
 /********* AircraftPropertiesModal **********
 	data: {
         title: "<string>" title text,
-        target: "<SKAtoN>" aid to navigation
+        target: "<SKAircraft>" aid to navigation
     }
 ***********************************/
 @Component({
@@ -484,7 +484,7 @@ export class AircraftPropertiesModal implements OnInit {
             <div>
                 <mat-toolbar>
                     <span>
-                        <button mat-button color="primary"
+                        <button mat-button color="primary" *ngIf="showClearButton"
                             (click)="deactivate()" 
                             [matTooltip]="clearButtonText">
                             <mat-icon>clear_all</mat-icon>
@@ -583,6 +583,8 @@ export class ActiveResourcePropertiesModal implements OnInit {
     public orderChanged: boolean= false;
     public clearButtonText: string= 'Clear Route';
 
+    private showClearButton: boolean= false;
+
     constructor(
         public app: AppInfo,
         public modalRef: MatBottomSheetRef<ActiveResourcePropertiesModal>,
@@ -591,6 +593,9 @@ export class ActiveResourcePropertiesModal implements OnInit {
     
     ngOnInit() {   
         if(this.data.resource[1].feature && this.data.resource[1].feature.geometry.coordinates) {
+            if(this.app.data.navData.position) {
+                this.showClearButton= true;
+            }
             if(this.data.type=='route'){
                 this.points= this.data.resource[1].feature.geometry.coordinates;
                 this.data.title= (this.data.resource[1].name) ? `
@@ -806,7 +811,7 @@ export class ChartInfoDialog implements OnInit {
 /********* TracksModal **********
 	data: {
         title: "<string>" title text
-        skres: SKResource
+        skres: SKTrack
     }
 ***********************************/
 @Component({
