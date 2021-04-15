@@ -254,26 +254,9 @@ function closeStream(fromCommand:boolean=false, state?:number) {
 // fetch from api endpoint
 function apiGet(url:string):Promise<any> {
     return new Promise( (resolve, reject)=> {
-        let reader: ReadableStreamDefaultReader;
-        let result: string;
-        const pump= ()=> {  // pump data from stream
-            return reader.read().then(({ done, value })=> {
-                if(done) { return result }
-                result= new TextDecoder().decode(value);
-                return pump();
-            });
-        }
         fetch(`${url}`).then( (r:Response)=> {
-                reader= r.body.getReader();
-                pump().then( (s:string)=> {
-                    try { 
-                        let j= JSON.parse(s);
-                        resolve(j);
-                    }
-                    catch { reject(s) };
-                });
-            }
-        ).catch( (err:any)=> { reject(err) });
+            r.json().then( j=> resolve(j) ).catch( err=> reject(err) );
+        }).catch( (err:any)=> { reject(err) });
     });
 }
 
@@ -281,7 +264,6 @@ function apiGet(url:string):Promise<any> {
 function getTracks() {
     apiGet(apiUrl + '/tracks')
     .then( r=> { 
-        //console.info('resolved:', r);
         hasTrackPlugin= true;
         // update ais vessels track data
         Object.entries(r).forEach( (t:any)=> {
@@ -292,7 +274,7 @@ function getTracks() {
             }
         }); 
     })
-    .catch( ()=> { hasTrackPlugin= false });
+    .catch( (err)=> {hasTrackPlugin= false });
 }
 
 function openStream(opt:any) {
@@ -482,7 +464,11 @@ function startTimers() {
             }
         }, msgInterval) ); 
     }
-    timers.push( setInterval( ()=> getTracks(), 60000 ) );
+    timers.push( 
+        setInterval( ()=> {
+            if(hasTrackPlugin) { getTracks() } 
+        }, 60000 ) 
+    );
 }
 
 // ** clear message timers
