@@ -481,7 +481,32 @@
                     <li class="nobullet"><i class="material-icons">map</i>
                         <b>Charts:</b> 
                         Displays a list of available Charts.
-                    </li>  
+                    </li>
+                    <div>
+                        <b>Note:</b> Freeboard requires that the <i>@signalk/charts-plugin</i> be installed 
+                        and configured on the Signal K server for charts to be available.
+                        <p>
+                            Freeboard supports the following chart types:
+                            <ul>
+                                <li>
+                                    <b>Image Tiles:</b> The most popular format for serving maps, uses a collection of image tiles 
+                                    (usually in .png or .jpg) format loaded using X,Y & Z identifiers <i>e.g. http://host_path/{z}/{x}/{y}.png</i>
+                                </li>
+                                <li>
+                                    <b>Vector Tiles:</b> Provided in a similar way to Image Tiles, the
+                                    tiles contain vector information rather than a raster image. 
+                                    This makes them smaller in size and the tiles are "drawn" on to the display.<br>
+                                    Vector tiles normally require a related "STYLE" to display the elements with specific colors, etc.<br>
+                                    <i><b>Note:</b> Currently Freeboard applies a very 
+                                        basic style to color lines and fill polygons. 
+                                    </i>
+                                </li>
+                                <li>
+                                    <b>WMS:</b> A Web Map Service which serves geo-referenced image tiles.
+                                </li>
+                            </ul>
+                        </p>
+                    </div>
                     <br>
                     <div style="display:flex;flex-wrap: wrap;">
                         <div><img src="./img/chart_list.png" style="max-width:250px;"/></div>
