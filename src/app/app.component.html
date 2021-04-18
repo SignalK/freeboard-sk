@@ -402,6 +402,14 @@
                                 (click)="focusMap()">
                             </pip-video>
                         </div>
+                        <div class="fab-container">
+                            <button mat-mini-fab color="accent"
+                                (click)="skres.showWaypointEditor(null, app.data.vessels.self.position)"
+                                matTooltip="Mark Vessel position"
+                                matTooltipPosition="left">
+                                <mat-icon>add_location</mat-icon>
+                            </button>
+                        </div>
                     </div>
                     
                     <!-- instrument sidebar open button -->

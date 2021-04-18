@@ -59,7 +59,7 @@ mat-nav-list {
     background-color: transparent;
 }
 
-.rightUtilsPanel > div { 
+.rightUtilsPanel > div:not(.fab-container) { 
     border-radius:5px;
     width:40px; height:40px;
     background-color:rgb(200,200,200);
