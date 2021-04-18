@@ -1,5 +1,14 @@
 # CHANGELOG: Freeboard
 
+### v1.16.0
+
+- **Add**: Initial support for VectorTile chart types. Charts with a format attribute of "pbf" or "mvt" will be rendered as vector tiles and displayed with a default style. 
+
+- **Add**: Vessel display profiles. Ability to select alternative ways to display vessel information. 
+
+- **Add**: Support for @signalk/tracks plugin. 
+
+
 ### v1.15.3
 
 - **Fix**: Add `no-cache` directive to index.html to enforce loading from the server to address loading screen not disappearing after version update.
