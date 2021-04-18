@@ -262,7 +262,8 @@ function apiGet(url:string):Promise<any> {
 
 // fetch vessel tracks
 function getTracks() {
-    apiGet(apiUrl + '/tracks')
+    let filter: string= (targetFilter && targetFilter.maxRadius) ? `?radius=${targetFilter.maxRadius}` : '';
+    apiGet(apiUrl + '/tracks' + filter)
     .then( r=> { 
         hasTrackPlugin= true;
         // update ais vessels track data
