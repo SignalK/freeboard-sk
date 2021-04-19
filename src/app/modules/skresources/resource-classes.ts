@@ -120,6 +120,7 @@ export class SKVessel {
     resourceUpdates: Array<any>= [];
     autopilot: { [key:string]: any }= {};
     track= [];
+    properties= {};
 }
 
 // ** Signal K Note

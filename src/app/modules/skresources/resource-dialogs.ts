@@ -209,7 +209,8 @@ export class ResourceDialog implements OnInit {
                     <div style="display:flex;" *ngIf="vInfo.eta">
                         <div class="key-label">ETA:</div>
                         <div style="flex: 1 1 auto;">{{vInfo.eta.toLocaleString()}}</div>
-                    </div>                                
+                    </div>     
+                    <signalk-details-list [details]=" data.target.properties"></signalk-details-list>                          
                 </div>
             </mat-card>
         </div>	
@@ -361,11 +362,7 @@ export class AISPropertiesModal implements OnInit {
                     <div style="display:flex;">
                         <div class="key-label">Type:</div>
                         <div style="flex: 1 1 auto;">{{data.target.type.name}}</div>
-                    </div> 
-                    <!--<div style="display:flex;" *ngFor="let p of data.target.properties | keyvalue">
-                        <div class="key-label">{{p.key}}:</div>
-                        <div style="flex: 1 1 auto;">{{p.value}}</div>
-                    </div>-->
+                    </div>
                     <signalk-details-list [details]=" data.target.properties"></signalk-details-list>          
                 </div>
             </mat-card>

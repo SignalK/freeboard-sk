@@ -504,24 +504,64 @@ function processVessel(d: SKVessel, v:any, isSelf:boolean=false) {
         if(typeof v.value.mmsi!= 'undefined') { d.mmsi= v.value.mmsi }
         if(typeof v.value.buddy!= 'undefined') { d.buddy= v.value.buddy }
     } 
-    if(v.path=='communication.callsignVhf') { d.callsign= v.value }
+    else if(v.path=='communication.callsignVhf') { d.callsign= v.value }
 
-    if( v.path=='navigation.position' && v.value) { // position is not null
+    else if( v.path=='navigation.position' && v.value) { // position is not null
         if(typeof v.value.longitude==='undefined') { return } // invalid 
         d.position= GeoUtils.normaliseCoords([ v.value.longitude, v.value.latitude]);
         d['positionReceived']=true;
         if(!isSelf) { appendTrack(d) } 
     }        
-    if(v.path=='navigation.state') { d.state= v.value }
-    if(v.path=='navigation.speedOverGround') { d.sog= v.value }
+    else if(v.path=='navigation.state') { d.state= v.value }
+    else if(v.path=='navigation.speedOverGround') { d.sog= v.value }
 
     // ** cog **
-    if(v.path=='navigation.courseOverGroundTrue') { d.cogTrue= v.value }
-    if(v.path=='navigation.courseOverGroundMagnetic') { d.cogMagnetic= v.value }
+    else if(v.path=='navigation.courseOverGroundTrue') { d.cogTrue= v.value }
+    else if(v.path=='navigation.courseOverGroundMagnetic') { d.cogMagnetic= v.value }
 
     // ** heading **
-    if(v.path=='navigation.headingTrue' ) { d.headingTrue= v.value } 
-    if(v.path=='navigation.headingMagnetic' ) { d.headingMagnetic= v.value }
+    else if(v.path=='navigation.headingTrue' ) { d.headingTrue= v.value } 
+    else if(v.path=='navigation.headingMagnetic' ) { d.headingMagnetic= v.value }
+        
+    // ** environment.wind **
+    else if(v.path=='environment.wind.angleApparent') { d.wind.awa= v.value }
+    else if(v.path=='environment.wind.speedApparent') { d.wind.aws= v.value }
+
+    // ** tws **
+    else if(v.path=='environment.wind.speedTrue') { d.wind.speedTrue= v.value }
+    else if(v.path=='environment.wind.speedOverGround') { d.wind.sog= v.value }
+
+    // ** wind direction **
+    else if(v.path=='environment.wind.directionTrue') { d.wind.twd= v.value }
+    else if(v.path=='environment.wind.directionMagnetic') { d.wind.mwd= v.value }   
+    
+    // ** environment.mode
+    else if(v.path=='environment.mode') { d.mode= v.value }
+
+    else if(v.path.indexOf('navigation.courseRhumbline')!=-1 
+            || v.path.indexOf('navigation.courseGreatCircle')!=-1)  {
+        d['course.' + v.path.split('.').slice(2).join('.')]= v.value;
+    } 
+
+    // ** closest approach **
+    else if(v.path.indexOf('navigation.closestApproach')!=-1) { d.closestApproach= v.value }   
+
+    // ** anchor radius / position **
+    else if(v.path=='navigation.anchor.position') { d.anchor.position= v.value }
+    else if(v.path=='navigation.anchor.maxRadius') { d.anchor.maxRadius= v.value }
+    else if(v.path=='navigation.anchor.currentRadius') { d.anchor.radius= v.value }
+
+    // ** resource deltas **
+    else if(v.path.indexOf('resources.')!=-1) { d.resourceUpdates.push(v) } 
+
+    // ** steering.autopilot **
+    else if(v.path=='steering.autopilot.state') { d.autopilot.state= v.value }
+    else if(v.path=='steering.autopilot.mode') { d.autopilot.mode= v.value }
+
+    else { 
+        d.properties[v.path]= v.value;
+    }
+    
     // ** ensure a value due to use in wind angle calc
     d.heading= (d.heading==null && d.cog!=null) ? d.cog : d.heading;
 
@@ -529,53 +569,16 @@ function processVessel(d: SKVessel, v:any, isSelf:boolean=false) {
     if(typeof preferredPaths['heading']!=='undefined' && v.path==preferredPaths['heading']) {
         d.orientation= v.value;
     }
-        
-    // ** environment.wind **
-    if(v.path=='environment.wind.angleApparent') { d.wind.awa= v.value }
-    if(v.path=='environment.wind.speedApparent') { d.wind.aws= v.value }
-
-    // ** tws **
-    if(v.path=='environment.wind.speedTrue') { d.wind.speedTrue= v.value }
-    if(v.path=='environment.wind.speedOverGround') { d.wind.sog= v.value }
-    
     // ** use preferred path value for tws **
     if(typeof preferredPaths['tws']!=='undefined' && v.path==preferredPaths['tws']) {
         d.wind.tws= v.value;
     }
-
-    // ** wind direction **
-    if(v.path=='environment.wind.directionTrue') { d.wind.twd= v.value }
-    if(v.path=='environment.wind.directionMagnetic') { d.wind.mwd= v.value }
-
     // ** use preferred path value for twd **
     if(typeof preferredPaths['twd']!=='undefined' && v.path==preferredPaths['twd']) {
         d.wind.direction= (v.path=='environment.wind.angleTrueGround' || v.path=='environment.wind.angleTrueWater') 
             ? Convert.angleToDirection(v.value, d.heading)
             : v.value;    
-    }     
-    
-    // ** environment.mode
-    if(v.path=='environment.mode') { d.mode= v.value }
-
-    if(v.path.indexOf('navigation.courseRhumbline')!=-1 
-            || v.path.indexOf('navigation.courseGreatCircle')!=-1)  {
-        d['course.' + v.path.split('.').slice(2).join('.')]= v.value;
-    } 
-
-    // ** closest approach **
-    if(v.path.indexOf('navigation.closestApproach')!=-1) { d.closestApproach= v.value }   
-
-    // ** anchor radius / position **
-    if(v.path=='navigation.anchor.position') { d.anchor.position= v.value }
-    if(v.path=='navigation.anchor.maxRadius') { d.anchor.maxRadius= v.value }
-    if(v.path=='navigation.anchor.currentRadius') { d.anchor.radius= v.value }
-
-    // ** resource deltas **
-    if(v.path.indexOf('resources.')!=-1) { d.resourceUpdates.push(v) } 
-
-    // ** steering.autopilot **
-    if(v.path=='steering.autopilot.state') { d.autopilot.state= v.value }
-    if(v.path=='steering.autopilot.mode') { d.autopilot.mode= v.value }
+    }  
 
 }
 
