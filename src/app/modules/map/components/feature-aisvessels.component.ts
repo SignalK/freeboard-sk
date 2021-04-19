@@ -1,7 +1,7 @@
-import { Component, OnInit, OnDestroy, OnChanges, Input, ChangeDetectionStrategy } from '@angular/core';
+import { Component, OnInit, OnDestroy, OnChanges, Input, ChangeDetectionStrategy, SimpleChanges } from '@angular/core';
 import { GeoUtils } from 'src/app/lib/geoutils';
 
-import { Point, LineString, MultiLineString } from 'ol/geom';
+import { Point, LineString } from 'ol/geom';
 import { fromLonLat } from 'ol/proj';
 import { Style, Stroke, Icon, Text } from 'ol/style';
 import { Feature } from 'ol';
@@ -19,7 +19,7 @@ export class AisVesselsComponent implements OnInit, OnDestroy, OnChanges {
 
     @Input() id: string|number|undefined;
 
-    @Input() aisTargets: any;
+    @Input() aisTargets: Map<string, any>;
     @Input() updateIds= [];
     @Input() staleIds= [];
     @Input() removeIds= [];
@@ -52,15 +52,26 @@ export class AisVesselsComponent implements OnInit, OnDestroy, OnChanges {
 
     ngOnDestroy() { this.host.instance.clear(true) }
 
-    ngOnChanges(changes) { 
-        if(changes.removeIds) { this.removeTargets( changes.removeIds.currentValue) } 
-        if(changes.updateIds) { this.updateTargets(changes.updateIds.currentValue) } 
-        if(changes.staleIds) { this.markStaleTargets( changes.staleIds.currentValue) } 
-        if(changes.mapZoom) { this.handleZoom(changes.mapZoom) } 
-        if(changes.filterIds) { this.updateFeatures(); this.updateVectors(); } 
-        if(changes.vectorApparent) { this.updateVectors() } 
-        if(changes.focusId) { this.updateFeatures() }
-        if(changes.inactiveTime) { this.updateFeatures() }
+    ngOnChanges(changes:SimpleChanges) { 
+        if(changes.aisTargets && changes.aisTargets.firstChange) { 
+            if(this.aisTargets) {
+                let ids: Array<string>= [];
+                this.aisTargets.forEach( (v:any,k:string)=> { 
+                    ids.push(k);
+                });
+                this.updateTargets(ids);
+            }
+        }
+        else {
+            if(changes.removeIds) { this.removeTargets( changes.removeIds.currentValue) } 
+            if(changes.updateIds) { this.updateTargets(changes.updateIds.currentValue) } 
+            if(changes.staleIds) { this.markStaleTargets( changes.staleIds.currentValue) } 
+            if(changes.mapZoom) { this.handleZoom(changes.mapZoom) } 
+            if(changes.filterIds) { this.updateFeatures(); this.updateVectors(); } 
+            if(changes.vectorApparent) { this.updateVectors() } 
+            if(changes.focusId) { this.updateFeatures() }
+            if(changes.inactiveTime) { this.updateFeatures() }
+        }
     }
 
     formatlabel(label) { return (this.mapZoom < this.labelMinZoom) ? '' : label }
