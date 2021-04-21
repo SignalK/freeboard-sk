@@ -12,7 +12,7 @@ import { TEMPERATURE_GRADIENT } from 'src/app/lib/grib';
 
 import { AppInfo } from 'src/app/app.info'
 import { SKResources } from '../skresources/resources.service';
-import { SKChart, SKVessel } from '../skresources/resource-classes';
+import { SKChart, SKVessel, SKAtoN, SKAircraft, SKSaR } from '../skresources/resource-classes';
 import { SKStreamFacade } from '../skstream/skstream.facade';
 
 interface IResource {
@@ -31,9 +31,9 @@ interface IOverlay {
 }
 
 interface IFeatureData {
-    aircraft: Map<string,any>;
-    atons: Map<string,any>;
-    sar: Map<string,any>;
+    aircraft: Map<string,SKAircraft>;
+    atons: Map<string,SKAtoN>;
+    sar: Map<string,SKSaR>;
     routes: Array<any>;
     waypoints: Array<any>;
     charts: Array<any>;
@@ -42,7 +42,7 @@ interface IFeatureData {
     tracks: Array<any>;     // self track(s) from server
     trail: Array<any>;      // self trail (appended to tracks)     
     self: SKVessel;   //self vessel
-    ais: Map<string,any>;        // other vessels
+    ais: Map<string,SKVessel>;        // other vessels
     active: SKVessel;  // focussed vessel
     navData: any;
     closest: any;
@@ -597,7 +597,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
                             case 'ais-vessels': icon="directions_boat"; 
                                 addToFeatureList= true;
                                 let v= this.dfeat.ais.get(`vessels.${t[1]}`);
-                                text= (v) ? v.name || v.mmsi || v.title : '';
+                                text= (v) ? v.name || v.mmsi: '';
                                 break;
                             case 'vessels': icon="directions_boat"; 
                                 addToFeatureList= true;

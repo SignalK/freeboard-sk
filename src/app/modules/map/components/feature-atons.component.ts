@@ -1,10 +1,11 @@
-import { Component, OnInit, OnDestroy, OnChanges, Input, ChangeDetectionStrategy } from '@angular/core';
+import { Component, OnInit, OnDestroy, OnChanges, Input, ChangeDetectionStrategy, SimpleChanges } from '@angular/core';
 
 import { Point } from 'ol/geom';
 import { transform, fromLonLat } from 'ol/proj';
 import { Style, Stroke, Text, Fill, RegularShape } from 'ol/style';
 import { Feature } from 'ol';
 import { SourceVectorComponent } from 'ngx-openlayers';
+import { SKAtoN } from 'src/app/modules/skresources/resource-classes';
 
 @Component({
     selector: 'fb-context-atons',
@@ -15,7 +16,7 @@ export class AtoNsComponent implements OnInit, OnDestroy, OnChanges {
     public componentType = 'feature';
     public instance: Feature;
 
-    @Input() atons: any; //Array<any>= [];
+    @Input() atons: Map<string,SKAtoN>;
     @Input() updateIds= [];
     @Input() removeIds= [];
     @Input() mapZoom: number;
@@ -30,10 +31,21 @@ export class AtoNsComponent implements OnInit, OnDestroy, OnChanges {
 
     ngOnDestroy() { this.host.instance.clear(true) }
 
-    ngOnChanges(changes) { 
-        if(changes.removeIds) { this.removeTargets( changes.removeIds.currentValue) } 
-        if(changes.updateIds) { this.updateTargets(changes.updateIds.currentValue) } 
-        if(changes.mapZoom) { this.handleZoom(changes.mapZoom) }
+    ngOnChanges(changes:SimpleChanges) { 
+        if(changes.atons && changes.atons.firstChange) { 
+            if(this.atons) {
+                let ids: Array<string>= [];
+                this.atons.forEach( (v:any,k:string)=> { 
+                    ids.push(k);
+                });
+                this.updateTargets(ids);
+            }
+        }
+        else {
+            if(changes.removeIds) { this.removeTargets( changes.removeIds.currentValue) } 
+            if(changes.updateIds) { this.updateTargets(changes.updateIds.currentValue) } 
+            if(changes.mapZoom) { this.handleZoom(changes.mapZoom) }
+        }
     }
 
     handleZoom(zoom) {

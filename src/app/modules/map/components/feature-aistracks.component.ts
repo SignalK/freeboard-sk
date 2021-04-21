@@ -20,7 +20,7 @@ export class AisTracksComponent implements OnInit, OnDestroy, OnChanges {
 
     @Input() id: string|number|undefined;
 
-    @Input() tracks: any;
+    @Input() tracks: Map<string,any>;
     @Input() updateIds= [];
     @Input() removeIds= [];
     @Input() minZoom: number= 10;
@@ -36,11 +36,11 @@ export class AisTracksComponent implements OnInit, OnDestroy, OnChanges {
 
     ngOnDestroy() { this.host.instance.clear(true) }
 
-    ngOnChanges(changes: SimpleChanges) { 
+    ngOnChanges(changes: SimpleChanges) {
         if(changes.removeIds) { this.removeFeatures( changes.removeIds.currentValue) } 
         if(changes.updateIds) { this.updateFeatures(changes.updateIds.currentValue) } 
         if(changes.mapZoom) { this.handleZoom(changes.mapZoom) }
-        if(changes.minZoom || changes.showTracks) { this.updateFeatureStyle() }
+        if(changes.minZoom || changes.showTracks) { this.updateFeatureStyle() }    
     }
 
     handleZoom(zoom: SimpleChange) {

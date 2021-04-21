@@ -6,6 +6,7 @@ import { fromLonLat } from 'ol/proj';
 import { Style, Stroke, Icon, Text } from 'ol/style';
 import { Feature } from 'ol';
 import { SourceVectorComponent } from 'ngx-openlayers';
+import { SKVessel } from 'src/app/modules/skresources';
 
 
 @Component({
@@ -19,7 +20,7 @@ export class AisVesselsComponent implements OnInit, OnDestroy, OnChanges {
 
     @Input() id: string|number|undefined;
 
-    @Input() aisTargets: Map<string, any>;
+    @Input() aisTargets: Map<string, SKVessel>;
     @Input() updateIds= [];
     @Input() staleIds= [];
     @Input() removeIds= [];
@@ -245,7 +246,7 @@ export class AisVesselsComponent implements OnInit, OnDestroy, OnChanges {
         // ** check if stale 
         let now= new Date().valueOf();
         let icon= (target.buddy && this.buddyIcon) ? this.buddyIcon: this.icon;
-        icon= (target.lastUpdated< (now-this.inactiveTime) ) ? this.inactiveIcon : icon;
+        icon= ( (target.lastUpdated as any)< (now-this.inactiveTime) ) ? this.inactiveIcon : icon;
         // ** if filtered
         if( (this.filterIds && Array.isArray(this.filterIds) ) && this.filterIds.indexOf(id)==-1 ) { 
             // hide feature

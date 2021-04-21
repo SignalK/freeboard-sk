@@ -7,6 +7,7 @@ import { fromLonLat } from 'ol/proj';
 import { Style, Stroke, Icon, Text } from 'ol/style';
 import { Feature } from 'ol';
 import { SourceVectorComponent } from 'ngx-openlayers';
+import { SKSaR } from 'src/app/modules/skresources';
 
 
 @Component({
@@ -20,7 +21,7 @@ export class SaRComponent implements OnInit, OnDestroy, OnChanges {
 
     @Input() id: string|number|undefined;
 
-    @Input() sar: any;
+    @Input() sar: Map<string,SKSaR>
     @Input() updateIds= [];
     @Input() staleIds= [];
     @Input() removeIds= [];
@@ -40,11 +41,22 @@ export class SaRComponent implements OnInit, OnDestroy, OnChanges {
     ngOnDestroy() { this.host.instance.clear(true) }
 
     ngOnChanges(changes: SimpleChanges) { 
-        if(changes.removeIds) { this.removeTargets( changes.removeIds.currentValue) } 
-        if(changes.updateIds) { this.updateTargets(changes.updateIds.currentValue) } 
-        if(changes.staleIds) { this.markStaleTargets( changes.staleIds.currentValue) } 
-        if(changes.mapZoom) { this.handleZoom(changes.mapZoom) } 
-        if(changes.inactiveTime) { this.updateFeatures() }
+        if(changes.sar && changes.sar.firstChange) { 
+            if(this.sar) {
+                let ids: Array<string>= [];
+                this.sar.forEach( (v:any,k:string)=> { 
+                    ids.push(k);
+                });
+                this.updateTargets(ids);
+            }
+        }
+        else {
+            if(changes.removeIds) { this.removeTargets( changes.removeIds.currentValue) } 
+            if(changes.updateIds) { this.updateTargets(changes.updateIds.currentValue) } 
+            if(changes.staleIds) { this.markStaleTargets( changes.staleIds.currentValue) } 
+            if(changes.mapZoom) { this.handleZoom(changes.mapZoom) } 
+            if(changes.inactiveTime) { this.updateFeatures() }
+        }
     }
 
     formatlabel(label:string) { return (this.mapZoom < this.labelMinZoom) ? '' : label }
@@ -126,11 +138,11 @@ export class SaRComponent implements OnInit, OnDestroy, OnChanges {
         if(!id) { return }
         let target= this.sar.get(id);
         if(!target) { return }
-        let label= this.formatlabel( target.name || target.callsign || target.mmsi || '');
+        let label= this.formatlabel( target.name || target.mmsi || '');
         let fstyle: any;
         // ** check if stale 
         let now= new Date().valueOf();
-        let icon= (target.lastUpdated< (now-this.inactiveTime) ) ? 
+        let icon= ( (target.lastUpdated as any)< (now-this.inactiveTime) ) ? 
             (this.inactiveIcon) ? this.inactiveIcon : this.icon :
             this.icon;
         // ** show feature

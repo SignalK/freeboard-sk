@@ -1,13 +1,12 @@
 import { Component, OnInit, OnDestroy, OnChanges, Input, ChangeDetectionStrategy, 
         SimpleChange, SimpleChanges } from '@angular/core';
-import { GeoUtils } from 'src/app/lib/geoutils';
 
 import { Point, LineString, MultiLineString } from 'ol/geom';
 import { fromLonLat } from 'ol/proj';
 import { Style, Stroke, Icon, Text } from 'ol/style';
 import { Feature } from 'ol';
 import { SourceVectorComponent } from 'ngx-openlayers';
-
+import { SKAircraft } from 'src/app/modules/skresources/resource-classes';
 
 @Component({
     selector: 'ais-aircraft',
@@ -20,7 +19,7 @@ export class AircraftComponent implements OnInit, OnDestroy, OnChanges {
 
     @Input() id: string|number|undefined;
 
-    @Input() aircraft: any;
+    @Input() aircraft: Map<string,SKAircraft>;
     @Input() updateIds= [];
     @Input() staleIds= [];
     @Input() removeIds= [];
@@ -40,11 +39,22 @@ export class AircraftComponent implements OnInit, OnDestroy, OnChanges {
     ngOnDestroy() { this.host.instance.clear(true) }
 
     ngOnChanges(changes: SimpleChanges) { 
-        if(changes.removeIds) { this.removeTargets( changes.removeIds.currentValue) } 
-        if(changes.updateIds) { this.updateTargets(changes.updateIds.currentValue) } 
-        if(changes.staleIds) { this.markStaleTargets( changes.staleIds.currentValue) } 
-        if(changes.mapZoom) { this.handleZoom(changes.mapZoom) } 
-        if(changes.inactiveTime) { this.updateFeatures() }
+        if(changes.aircraft && changes.aircraft.firstChange) { 
+            if(this.aircraft) {
+                let ids: Array<string>= [];
+                this.aircraft.forEach( (v:any,k:string)=> { 
+                    ids.push(k);
+                });
+                this.updateTargets(ids);
+            }
+        }
+        else {
+            if(changes.removeIds) { this.removeTargets( changes.removeIds.currentValue) } 
+            if(changes.updateIds) { this.updateTargets(changes.updateIds.currentValue) } 
+            if(changes.staleIds) { this.markStaleTargets( changes.staleIds.currentValue) } 
+            if(changes.mapZoom) { this.handleZoom(changes.mapZoom) } 
+            if(changes.inactiveTime) { this.updateFeatures() }
+        }
     }
 
     formatlabel(label:string) { return (this.mapZoom < this.labelMinZoom) ? '' : label }
@@ -132,7 +142,7 @@ export class AircraftComponent implements OnInit, OnDestroy, OnChanges {
         let fstyle: any;
         // ** check if stale 
         let now= new Date().valueOf();
-        let icon= (target.lastUpdated< (now-this.inactiveTime) ) ? this.inactiveIcon : this.icon;
+        let icon= ( (target.lastUpdated as any)< (now-this.inactiveTime) ) ? this.inactiveIcon : this.icon;
         // ** show feature
         fstyle= {
             image: new Icon({

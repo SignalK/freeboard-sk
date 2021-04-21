@@ -13,37 +13,28 @@ import { MatMenuModule } from '@angular/material/menu';
 
 import { AngularOpenlayersModule } from 'ngx-openlayers';
 
-// ** components **
+// ** popver **
 import { CompassComponent, PopoverComponent, FeatureListPopoverComponent, 
-        AtoNPopoverComponent, AircraftPopoverComponent, ResourcePopoverComponent,
-        VesselPopoverComponent } from './components/popover/';
+        AtoNPopoverComponent, AircraftPopoverComponent, ResourcePopoverComponent } from './components/popover/';
+// ** navigation **
+import { RouteNextPointComponent, ArrivalCircleComponent, XTEPathComponent, 
+        BearingLineComponent } from './components/navigation';
+// ** vessel **
+import { TWDVectorComponent, AWAVectorComponent, HeadingLineComponent, 
+        VesselComponent, VesselTrailComponent } from './components/vessel';
+// ** alarm **
+import { AnchorAlarmComponent, TCPAAlarmComponent } from './components/alarm';
+// ** resources **
+import { NotesComponent, WaypointsComponent, RoutesComponent, TracksComponent,
+        ResourceSetComponent} from './components/resources';
+// top level Groups
+import { AtoNsComponent, AircraftComponent, AisTracksComponent, SaRComponent } from './components';
 
-import { RouteNextPointComponent } from './components/navigation/nextpoint.component';
-import { ArrivalCircleComponent } from './components/navigation/feature-arrivalcircle.component';
-import { XTEPathComponent } from './components/navigation/feature-xtepath.component';
-import { BearingLineComponent } from './components/navigation/feature-bearingline.component';
+// ** profiles 
+import { AisVesselsComponent, VesselPopoverComponent } from './components/profiles/default';
 
-import { TWDVectorComponent, AWAVectorComponent, HeadingLineComponent } from './components/vessel/feature-vessellines.component';
-import { VesselComponent, VesselTrailComponent } from './components/vessel/feature-vessel.component';
-
-import { AnchorAlarmComponent } from './components/alarm/layer-anchor.component';
-import { TCPAAlarmComponent } from './components/alarm/layer-tcpa.component';
-
-import { LayerHeatmapComponent } from './components/grib/layer-heatmap.component';
-import { LayerWindVectorComponent } from './components/grib/layer-windvector.component';
-import { LayerColormapComponent } from './components/grib/layer-colormap.component';
-
-import { NotesComponent } from './components/resources/layer-notes.component';
-import { WaypointsComponent } from './components/resources/layer-waypoints.component';
-import { RoutesComponent } from './components/resources/layer-routes.component';
-import { TracksComponent } from './components/resources/layer-tracks.component';
-import { ResourceSetComponent} from './components/resources/layer-resourceset.component';
-
-import { AisVesselsComponent } from './components/feature-aisvessels.component';
-import { AtoNsComponent } from './components/feature-atons.component';
-import { AircraftComponent } from './components/feature-aircraft.component';
-import { AisTracksComponent } from './components/feature-aistracks.component';
-import { SaRComponent } from './components/feature-sar.component';
+// ** expriment: GRIB **
+import { LayerHeatmapComponent, LayerWindVectorComponent, LayerColormapComponent } from './components/grib';
 
 import { FBMapComponent } from './fb-map.component';
 import { UtilitiesModule } from 'src/app/modules/utils/utils.module';

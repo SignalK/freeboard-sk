@@ -580,7 +580,7 @@ export class ActiveResourcePropertiesModal implements OnInit {
     public orderChanged: boolean= false;
     public clearButtonText: string= 'Clear Route';
 
-    private showClearButton: boolean= false;
+    public showClearButton: boolean= false;
 
     constructor(
         public app: AppInfo,
