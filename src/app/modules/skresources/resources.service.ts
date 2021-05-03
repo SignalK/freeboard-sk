@@ -354,7 +354,7 @@ export class SKResources {
                 this.updateSource.next({action: 'get', mode: 'trail', data: trail });
             },
             (err:any)=> { 
-                console.warn(err);
+                console.warn('Unable to fetch vessel trail from server.');
                 this.app.data.serverTrail= false;
                 this.updateSource.next({action: 'get', mode: 'trail', data: trail });
             }
@@ -1578,30 +1578,13 @@ export class SKResources {
             this.openNoteForEdit(data);
         }              
         else {    // edit selected note details 
-            let resAttr= this.signalk.api.get(`/resources/notes/${e.id}/meta/_attr`).pipe( catchError(error => of(error)) );
-            let resNote= this.signalk.api.get(`/resources/notes/${e.id}`);
-            let res= forkJoin(resAttr, resNote);
-            res.subscribe(
+            this.signalk.api.get(`/resources/notes/${e.id}`).subscribe(
                 res=> { 
                     // ** note data 
                     data.noteId= e.id;
                     data.title= 'Edit Note:'; 
-                    data.note= res[1];
-                    data.addNote=false;
-                    // ** note attributes
-                    if(typeof res[0]['error']==='undefined') { 
-                        if(!data.note.properties) { data.note.properties= {} }
-                        if(res['_mode']) {
-                            let mode= res['_mode'].toString();
-                            let ro= true;
-                            for(let i=0; i<mode.length; i++) {
-                                let m= ('000' + parseInt(mode[i]).toString(2)).slice(-3);
-                                if(m[1]=='0') { ro= ro && false }
-                            }
-                            data.note.properties.readOnly= ro;
-                        }
-                        else { data.note.properties.readOnly= true }
-                    }                      
+                    data.note= res;
+                    data.addNote=false;                
                     this.openNoteForEdit(data);  
                 },
                 err=> { this.app.showAlert('ERROR', 'Unable to retrieve Note!') }
