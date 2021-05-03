@@ -4,9 +4,9 @@
 import {Component, OnInit, Inject} from '@angular/core';
 import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 
+import { AngularEditorConfig } from '@kolkov/angular-editor';
 import { AppInfo } from 'src/app/app.info';
 
-import * as ClassicEditor from '@ckeditor/ckeditor5-build-classic';
 
 /********* NoteDialog **********
 	data: {
@@ -20,7 +20,65 @@ import * as ClassicEditor from '@ckeditor/ckeditor5-build-classic';
 })
 export class NoteDialog implements OnInit {
 
-    public Editor = ClassicEditor;
+    private editorHiddenButtons= [
+        [
+            //'undo',
+            //'redo',
+            //'bold',
+            //'italic',
+            //'underline',
+            'strikeThrough',
+            'subscript',
+            'superscript',
+            'justifyLeft',
+            'justifyCenter',
+            'justifyRight',
+            'justifyFull',
+            'indent',
+            'outdent',
+            'insertUnorderedList',
+            'insertOrderedList',
+            'heading',
+            'fontName'
+        ],
+        [
+            'fontSize',
+            //'textColor',
+            'backgroundColor',
+            'customClasses',
+            'link',
+            'unlink',
+            'insertImage',
+            'insertVideo',
+            'insertHorizontalRule',
+            'removeFormat',
+            'toggleEditorMode'
+        ]
+    ];
+
+    public editorConfig: AngularEditorConfig = {
+        editable: true,
+        spellcheck: false,
+        height: 'auto',
+        minHeight: '0',
+        maxHeight: 'auto',
+        width: 'auto',
+        minWidth: '0',
+        translate: 'no',
+        enableToolbar: true,
+        showToolbar: true,
+        placeholder: 'Enter text here...',
+        defaultParagraphSeparator: '',
+        defaultFontName: '',
+        defaultFontSize: '',
+        fonts: [
+            {class: 'roboto', name: 'Default'}
+        ],
+        customClasses: [],
+        sanitize: true,
+        toolbarPosition: 'top',
+        toolbarHiddenButtons: this.editorHiddenButtons
+    };
 
     constructor(
         public app: AppInfo,

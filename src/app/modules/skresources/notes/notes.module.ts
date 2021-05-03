@@ -19,7 +19,7 @@ import { RegionDialog } from './region-dialog';
 // ** pipes **
 import { AddTargetPipe } from './safe.pipe';
 
-import { CKEditorModule } from '@ckeditor/ckeditor5-angular';
+import { AngularEditorModule } from '@kolkov/angular-editor';
 
 @NgModule({
     imports: [
@@ -28,7 +28,7 @@ import { CKEditorModule } from '@ckeditor/ckeditor5-angular';
         MatButtonModule, MatIconModule, MatTooltipModule, 
         MatSliderModule, MatSlideToggleModule, 
         MatFormFieldModule, MatInputModule,
-        CKEditorModule
+        AngularEditorModule
     ],
     declarations: [
         NoteDialog, RegionDialog, AddTargetPipe

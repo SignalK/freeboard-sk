@@ -6,9 +6,12 @@
     position: absolute;
     z-index: 0;
     left: 25%;
-    bottom: 0;    
+    bottom: 0;
+    opacity: .4;   
 }
 
-:host ::ng-deep .ck-editor__editable {
-    min-height: 120px;
+
+:host ::ng-deep .angular-editor-textarea b {
+    font-weight: bold;
 }
+
