@@ -144,10 +144,11 @@ function handleStreamEvent({action, msg}) {
                 result: msg.target.readyState});
             break;
         case 'onClose':
+            console.warn('streamEvent: ', msg);
             closeStream(false);
             break;
         case 'onError':
-            console.warn(msg); 
+            console.warn('streamEvent: ', msg); 
             postMessage({
                 action: 'error', 
                 playback: playbackMode,
@@ -174,33 +175,33 @@ function handleCommand(data: any) {
     switch(data.cmd) {
         // { cmd: 'open', options: { url: string, subscribe: string, token: string} }       
         case 'open':
-            console.log('Worker: opening stream...');
+            console.log('Worker control: opening stream...');
             applySettings(data.options);
             openStream(data.options);
             break;
         //** { cmd: 'close', options: {terminate: boolean} }       
         case 'close':
-            console.log('Worker: closing stream...');
+            console.log('Worker control: closing stream...');
             closeStream(true);
             break;  
         //** { cmd: 'subscribe' , options: {context: string, path: Array<any>} }           
         case 'subscribe':
-            console.log('Worker: subscribing to paths...');
+            console.log('Worker control: subscribing to paths...');
             stream.subscribe(data.options.context, data.options.path);
             break;              
         //** { cmd: 'settings' , options: {..}              
         case 'settings':
-            console.log('Worker: settings...');
+            console.log('Worker control: settings...');
             applySettings(data.options);
             break;   
         //** { cmd: 'alarm', options: {raise: boolean, type: string, msg: string, state: string} }       
         case 'alarm':
-            console.log('Worker: alarm action...');
+            console.log('Worker control: alarm action...');
             actionAlarm(data.options);
             break;   
         //** { cmd: 'vessel', options: {context: string, name: string} }       
         case 'vessel':
-            console.log('Worker: vessel setting...');
+            console.log('Worker control: vessel setting...');
             if(data.options) {
                 let v:SKVessel;
                 if(data.options.context=='self') { v= vessels.self }
@@ -262,7 +263,9 @@ function apiGet(url:string):Promise<any> {
 
 // fetch vessel tracks
 function getTracks() {
-    let filter: string= (targetFilter && targetFilter.maxRadius) ? `?radius=${targetFilter.maxRadius}` : '';
+    let filter: string= (targetFilter && targetFilter.maxRadius) ? 
+        `?radius=${targetFilter.maxRadius}` : 
+        `?radius=10000`;    // default radius if none supplied
     apiGet(apiUrl + '/tracks' + filter)
     .then( r=> { 
         hasTrackPlugin= true;
@@ -538,8 +541,15 @@ function processVessel(d: SKVessel, v:any, isSelf:boolean=false) {
     // ** environment.mode
     else if(v.path=='environment.mode') { d.mode= v.value }
 
-    else if(v.path.indexOf('navigation.courseRhumbline')!=-1 
-            || v.path.indexOf('navigation.courseGreatCircle')!=-1)  {
+    // ** course great circle / rhumb line - use preferred
+    else if(v.path.indexOf('navigation.courseRhumbline')!=-1 && 
+        typeof preferredPaths['course']!=='undefined' && 
+        v.path.split('.').slice(0,2).join('.') == preferredPaths['course'] ) {
+        d['course.' + v.path.split('.').slice(2).join('.')]= v.value;
+    } 
+    else if(v.path.indexOf('navigation.courseGreatCircle')!=-1 && 
+        typeof preferredPaths['course']!=='undefined' && 
+        v.path.split('.').slice(0,2).join('.') == preferredPaths['course'] ) {
         d['course.' + v.path.split('.').slice(2).join('.')]= v.value;
     } 
 

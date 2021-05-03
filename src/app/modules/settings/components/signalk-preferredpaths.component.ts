@@ -89,6 +89,15 @@ export class SignalKPreferredPathsComponent {
             ],
             available: [],
             current: ''            
+        },
+        course: {
+            name: 'Course',
+            choices: [
+                'navigation.courseGreatCircle',
+                'navigation.courseRhumbline'
+            ],
+            available: [],
+            current: ''            
         }
     }
 
@@ -106,6 +115,7 @@ export class SignalKPreferredPathsComponent {
         this.pathChoices.tws.current= this.app.config.selections.preferredPaths.tws;
         this.pathChoices.twd.current= this.app.config.selections.preferredPaths.twd;
         this.pathChoices.heading.current= this.app.config.selections.preferredPaths.heading;
+        this.pathChoices.course.current= this.app.config.selections.preferredPaths.course;
 
         let u= Object.entries(this.pathChoices);
         u.forEach( x=> {
