@@ -4,9 +4,13 @@
 
 - **Add**: Initial support for VectorTile chart types. Charts with a format attribute of "pbf" or "mvt" will be rendered as vector tiles and displayed with a default style. 
 
-- **Add**: Vessel display profiles. Ability to select alternative ways to display vessel information. 
+- **Add**: Capability to support for selecting between alternative AIS (other vessels) profiles. 
 
 - **Add**: Support for @signalk/tracks plugin. 
+
+- **Update**: Replaced note editor component. 
+
+- **Fix**: Issue where fetching note for edit was non-responsive due to invalid meta request. 
 
 
 ### v1.15.3
