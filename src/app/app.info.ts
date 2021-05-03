@@ -58,7 +58,8 @@ const FreeboardConfig= {
         preferredPaths: {
             tws: 'environment.wind.speedTrue',
             twd: 'environment.wind.directionTrue',
-            heading: 'navigation.courseOverGroundTrue'
+            heading: 'navigation.courseOverGroundTrue',
+            course: 'navigation.courseGreatCircle'
         },
         positionFormat: 'XY',
         aisTargets: null,
@@ -387,9 +388,13 @@ export class AppInfo extends Info {
             settings.selections.preferredPaths= {
                 tws: 'environment.wind.speedTrue',
                 twd: 'environment.wind.directionTrue',
-                heading: 'navigation.courseOverGroundTrue'
+                heading: 'navigation.courseOverGroundTrue',
+                course: 'navigation.courseGreatCircle'
             }
-        }   
+        }  
+        if(typeof settings.selections.preferredPaths.course === 'undefined') {
+            settings.selections.preferredPaths.course= 'navigation.courseGreatCircle';
+        }
         if(typeof settings.selections.pluginFavourites === 'undefined') {
             settings.selections['pluginFavourites']= [];
         } 

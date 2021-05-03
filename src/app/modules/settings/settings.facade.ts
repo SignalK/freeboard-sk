@@ -31,7 +31,7 @@ export class SettingsFacade  {
             ['XY','-28.12345'],
             ['SHDd',`S-28.12345${this.symDegree}`],['HDd',`S 28.12345${this.symDegree}`],
             ['HDMS',`S 28${this.symDegree}15'46"123`],['DHMS',`28S15'46"123`] 
-        ]       
+        ]      
     }
 
     list= {

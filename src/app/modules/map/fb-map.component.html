@@ -117,9 +117,10 @@
                 </aol-source-vectortile>
             </aol-layer-vectortile>
 
-            <aol-layer-tile *ngIf="c[1].chartFormat!='pbf' && c[1].chartFormat!='mvt'" [ngSwitch]="c[1].type"
-                    [zIndex]="10 + i" 
-                    preload="0">
+            <aol-layer-tile *ngIf="c[1].chartFormat!='pbf' && c[1].chartFormat!='mvt'" 
+                [ngSwitch]="c[1].type"
+                [zIndex]="10 + i" 
+                preload="0">
 
                 <aol-source-xyz *ngSwitchCase="'tilelayer'"
                     (tileLoadStart)="onMapTileEvent($event)"
