@@ -267,7 +267,7 @@ function getTracks() {
         `?radius=${targetFilter.maxRadius}` : 
         `?radius=10000`;    // default radius if none supplied
     apiGet(apiUrl + '/tracks' + filter)
-    .then( r=> { 
+    .then( r=> {
         hasTrackPlugin= true;
         // update ais vessels track data
         Object.entries(r).forEach( (t:any)=> {
@@ -276,9 +276,12 @@ function getTracks() {
                 v.track= t[1].coordinates;
                 appendTrack(v);
             }
-        }); 
+        });
     })
-    .catch( (err)=> {hasTrackPlugin= false });
+    .catch( (err)=> { 
+        hasTrackPlugin= false; 
+        console.warn('Unable to fetch AIS tracks!'); 
+    });
 }
 
 function openStream(opt:any) {
@@ -470,6 +473,7 @@ function startTimers() {
     }
     timers.push( 
         setInterval( ()=> {
+            console.warn('hasTrackPlugin', hasTrackPlugin);
             if(hasTrackPlugin) { getTracks() } 
         }, 60000 ) 
     );
