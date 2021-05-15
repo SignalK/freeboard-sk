@@ -4,7 +4,7 @@
 
 - **Add**: Initial support for VectorTile chart types. Charts with a format attribute of "pbf" or "mvt" will be rendered as vector tiles and displayed with a default style. 
 
-- **Add**: Capability to support for selecting between alternative AIS (other vessels) profiles. 
+- **Add**: Initial support for selecting alternative AIS (other vessels) profiles. 
 
 - **Add**: Support for @signalk/tracks plugin. 
 
