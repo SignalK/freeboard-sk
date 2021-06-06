@@ -51,6 +51,16 @@ import { SignalKClient } from 'signalk-client-angular';
                                     </textarea>
                                 </mat-form-field>
                             </div>
+                            <div *ngIf="data.type=='waypoint'">
+                                <mat-form-field style="width:100%;" hintLabel="Signal K Type">
+                                    <mat-select #resourcetype
+                                            [(value)]="data.skType">
+                                        <mat-option *ngFor="let i of resourceTypeList" [value]="i.type">
+                                            <mat-icon><img [src]="i.icon"/></mat-icon> {{i.name}}
+                                        </mat-option>
+                                    </mat-select>                                        
+                                </mat-form-field>
+                            </div>
                             <div *ngIf="data.position[0]" style="font-size: 10pt;">
                                 <div style="display:flex;">
                                     <div style="width:45px;font-weight:bold;">Lat:</div>
@@ -114,6 +124,11 @@ import { SignalKClient } from 'signalk-client-angular';
 export class ResourceDialog implements OnInit {
 	public icon:string;
 
+    public resourceTypeList= [
+        {type: '', name: 'Waypoint', icon: './assets/img/marker-gold.png'},
+        {type: 'pseudoAtoN', name: 'Pseudo AtoN', icon: './assets/img/marker-red.png'}
+    ]
+
     constructor(
         public app:AppInfo,
         public dialogRef: MatDialogRef<ResourceDialog>,
@@ -128,6 +143,7 @@ export class ResourceDialog implements OnInit {
         this.data.position= this.data.position || [null,null];
         this.data.addMode= this.data.addMode || false;
         this.data.type= this.data.type || 'waypoint';
+        this.data.skType= this.data.skType || '';
 
         this.icon= (this.data.type=='route') ? 'directions' : 
             (this.data.type=='note') ? 'local_offer' :

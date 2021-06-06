@@ -14,7 +14,7 @@
                         [anchor]="[10.5, 25]"
                         [anchorXUnits]="'pixels'"
                         [anchorYUnits]= "'pixels'"
-                        [src]="activeWaypoint==w[0] ? './assets/img/marker-blue.png' : './assets/img/marker-gold.png'"
+                        [src]="activeWaypoint==w[0] ? './assets/img/marker-blue.png' : (w[1].feature.properties.skType=='pseudoAtoN') ? './assets/img/marker-red.png' : './assets/img/marker-gold.png'"
                         [size]="[25,25]"
                         [scale]="1"
                         [rotateWithView]="false"

@@ -1098,11 +1098,14 @@ export class SKResources {
                 name: (wpt.feature.properties['name']) ? wpt.feature.properties['name'] : null,
                 comment: (wpt.feature.properties['cmt']) ? wpt.feature.properties['cmt'] : null,
                 position: wpt.feature.geometry['coordinates'],
-                addMode: addMode
+                addMode: addMode,
+                skType: (typeof wpt.feature.properties['skType']!== 'undefined') ? wpt.feature.properties['skType'] : null
             }
         }).afterClosed().subscribe( r=> {
             wpt.feature.properties['cmt']= r.data.comment || '';
-            wpt.feature.properties['name']= r.data.name || '';            
+            wpt.feature.properties['name']= r.data.name || '';  
+            if(r.data.skType) { wpt.feature.properties['skType']= r.data.skType }
+            else { delete(wpt.feature.properties['skType']) }          
             if(r.result) { // ** save / update waypoint **
                 let isNew= false;
                 if(!resId) { // add
