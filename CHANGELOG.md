@@ -1,5 +1,11 @@
 # CHANGELOG: Freeboard
 
+### v1.16.1
+
+- **Add**: PseudoAtoN Waypoint type. 
+
+- **Fix**: Various rendering issues when in dark mode.
+
 ### v1.16.0
 
 - **Add**: Initial support for VectorTile chart types. Charts with a format attribute of "pbf" or "mvt" will be rendered as vector tiles and displayed with a default style. 
