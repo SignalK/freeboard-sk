@@ -137,7 +137,7 @@ export class AppInfo extends Info {
         this.name= "Freeboard";
         this.shortName= "freeboard";
         this.description= `Signal K Chart Plotter.`;
-        this.version= '1.16.1';
+        this.version= '1.16.2';
         this.url= 'https://github.com/signalk/freeboard-sk';
         this.logo= "./assets/img/app_logo.png";   
         
@@ -252,6 +252,24 @@ export class AppInfo extends Info {
             this.loadConfig();
             this.loadData();            
         }
+
+        // ** check for internet connection **
+        window.fetch('https://tiles.openseamap.org/seamark/')
+        .then( (r:any)=> {
+            console.info('Internet connection detected.');
+        })
+        .catch((e:any)=> {
+            console.warn('No Internet connection detected!');
+            let mapsel= this.config.selections.charts;
+            if(mapsel.includes('openstreetmap') || mapsel.includes('openseamap') ) {
+                this.showAlert(
+                    'Internet Map Service Unavailable: ', 
+                    `Unable to display Open Street / Sea Maps!\n
+                    Please check your Internet connection or select maps from the local network.\n
+                    `
+                );
+            }
+        })
     }
 
     // persist auth token for session

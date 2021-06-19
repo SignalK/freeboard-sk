@@ -1,7 +1,3 @@
-<img style="width:0;height:0;display:none;" 
-    [src]="'https://tiles.openseamap.org/seamark/'"
-    (error)="onMapSourceConnectionError($event)"/>
-
 <aol-map #aolMap [width]="'100%'" [height]="'100%'" 
     [style.cursor]="(draw.enabled || measure.enabled) ? 'crosshair' : 'initial'"
     [style.touch-action]="'none'"
