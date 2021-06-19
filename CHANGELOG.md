@@ -1,8 +1,18 @@
 # CHANGELOG: Freeboard
 
+### v1.16.2
+
+- **Update**: Waypoint list to identify `PsuedoAtoN` resources . 
+
+- **Fix**: Internet connection test made non-blocking. (closes #96)
+
+- **Fix**: Resource list refresh to honour applied filter.
+
+- **Fix**: Waypoint / Note visibility on map when selections changed.
+
 ### v1.16.1
 
-- **Add**: PseudoAtoN Waypoint type. 
+- **Add**: `PseudoAtoN` Waypoint type. 
 
 - **Fix**: Various rendering issues when in dark mode.
 
