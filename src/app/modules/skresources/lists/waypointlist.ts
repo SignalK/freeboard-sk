@@ -33,12 +33,9 @@ export class WaypointListComponent {
     close() { this.closed.emit() }
 
     initItems() {         
-        this.filterList= this.waypoints;
-        this.filterList.sort( (a,b)=>{ 
-            let x=a[1].feature.properties.name || 'zzz';
-            let y= b[1].feature.properties.name || 'zzz';
-            return  x.toUpperCase()<=y.toUpperCase() ? -1 : 1;
-        });
+        
+        this.doFilter();
+        this.sortFilter();
         this.checkSelections();
     }    
 
@@ -82,12 +79,30 @@ export class WaypointListComponent {
 
     filterKeyUp(e) {
         this.filterText=e;
-        this.filterList= this.waypoints.filter( i=> {
-            if(i[1].feature.properties.name) {
-                if(i[1].feature.properties.name.toLowerCase().indexOf(this.filterText.toLowerCase())!=-1) {
-                    return i;
+        this.doFilter();
+        this.sortFilter();
+    }
+
+    doFilter() {
+        if(this.filterText.length==0) { 
+            this.filterList= this.waypoints;
+        }
+        else {
+            this.filterList= this.waypoints.filter( i=> {
+                if(i[1].feature.properties.name) {
+                    if(i[1].feature.properties.name.toLowerCase().indexOf(this.filterText.toLowerCase())!=-1) {
+                        return i;
+                    }
                 }
-            }
+            });
+        }
+    }
+
+    sortFilter() {
+        this.filterList.sort( (a,b)=>{ 
+            let x=a[1].feature.properties.name || 'zzz';
+            let y= b[1].feature.properties.name || 'zzz';
+            return  x.toUpperCase()<=y.toUpperCase() ? -1 : 1;
         });
     }
 

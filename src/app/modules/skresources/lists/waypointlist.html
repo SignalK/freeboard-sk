@@ -51,6 +51,9 @@
                 <div style="display: flex;">
                     <div style="flex: 1 1 auto; width: 215px;">
                         <div style="text-overflow: ellipsis; overflow-x: hidden;">
+                            <mat-icon [color]="r[1].feature.properties.skType=='pseudoAtoN' ? 'warn' : 'accent'">
+                                room
+                            </mat-icon>
                             <b>{{(r[1].feature.properties.name) ? r[1].feature.properties.name : 'Wpt-' + r[0].slice(-6)}}</b>
                         </div>
                     </div>        
@@ -66,11 +69,12 @@
                 <mat-card-actions>
                     <div style="display: flex;">
                         <div>
-                            <button mat-icon-button 
+                            <button mat-icon-button color="warn"
+                                [disabled]="activeWaypoint==r[0]"
                                 (click)="itemDelete(r[0])"
-                                matTooltip="Delete Waypoint"
+                                [matTooltip]="r[1].feature.properties.skType ? 'Delete ' + r[1].feature.properties.skType : 'Delete Waypoint'"
                                 matTooltipPosition="right">
-                                <mat-icon color="warn">delete</mat-icon>
+                                <mat-icon >delete</mat-icon>
                             </button>   
                         </div>  
                         <div style="flex: 1 1 auto;text-align:center;">

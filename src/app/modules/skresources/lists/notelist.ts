@@ -32,12 +32,8 @@ export class NoteListComponent {
     close() { this.closed.emit() }
 
     initItems() {
-        this.filterList= this.notes;
-        this.filterList.sort( (a,b)=>{ 
-            let x=a[1].title.toUpperCase();
-            let y= b[1].title.toUpperCase();
-            return  x<=y ? -1 : 1;
-        });
+        this.doFilter();
+        this.sortFilter();
         if(this.draftOnly) { this.filterDraftOnly() }
     }
 
@@ -55,12 +51,8 @@ export class NoteListComponent {
 
     filterKeyUp(e) {
         this.filterText=e;
-        this.filterList= this.notes.filter( i=> {
-            if(i[1].title.toLowerCase().indexOf(this.filterText.toLowerCase())!=-1) {
-                return i;
-            }
-        });
-        if(this.draftOnly) { this.filterDraftOnly() }
+        this.doFilter();
+        this.sortFilter();
     }
 
     filterDraftOnly() {
@@ -75,6 +67,23 @@ export class NoteListComponent {
         this.draftOnly= !this.draftOnly;
         if(this.draftOnly) { this.filterDraftOnly() }
         else { this.filterKeyUp('') }
+    }
+
+    doFilter() {
+        this.filterList= this.notes.filter( i=> {
+            if(i[1].title.toLowerCase().indexOf(this.filterText.toLowerCase())!=-1) {
+                return i;
+            }
+        });
+        if(this.draftOnly) { this.filterDraftOnly() }
+    }
+
+    sortFilter() {
+        this.filterList.sort( (a,b)=>{ 
+            let x=a[1].title.toUpperCase();
+            let y= b[1].title.toUpperCase();
+            return  x<=y ? -1 : 1;
+        });
     }
 }
 

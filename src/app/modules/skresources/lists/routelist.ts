@@ -34,12 +34,8 @@ export class RouteListComponent {
     close() { this.closed.emit() }
 
     initItems() {   
-        this.filterList= this.routes;
-        this.filterList.sort( (a,b)=>{ 
-            let x=a[1].name.toUpperCase();
-            let y= b[1].name.toUpperCase();
-            return  x<=y ? -1 : 1;
-        });
+        this.doFilter();
+        this.sortFilter();
         this.checkSelections();
     }
 
@@ -79,12 +75,30 @@ export class RouteListComponent {
     
     itemRefresh() { this.refresh.emit() }
 
-    filterKeyUp(e:string) {
+    filterKeyUp(e) {
         this.filterText=e;
-        this.filterList= this.routes.filter( i=> {
-            if(i[1].name.toLowerCase().indexOf(this.filterText.toLowerCase())!=-1) {
-                return i;
-            }
+        this.doFilter();
+        this.sortFilter();
+    }
+
+    doFilter() {
+        if(this.filterText.length==0) { 
+            this.filterList= this.routes;
+        }
+        else {
+            this.filterList= this.routes.filter( i=> {
+                if(i[1].name.toLowerCase().indexOf(this.filterText.toLowerCase())!=-1) {
+                    return i;
+                }
+            });
+        }
+    }
+
+    sortFilter() {
+        this.filterList.sort( (a,b)=>{ 
+            let x=a[1].name.toUpperCase();
+            let y= b[1].name.toUpperCase();
+            return  x<=y ? -1 : 1;
         });
     }
 
