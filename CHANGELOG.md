@@ -1,8 +1,12 @@
 # CHANGELOG: Freeboard
 
+### v1.16.3
+
+- **Update**: Auto-reconnect to Signal K server if stream connection is lost. (closes #97)
+
 ### v1.16.2
 
-- **Update**: Waypoint list to identify `PsuedoAtoN` resources . 
+- **Update**: Waypoint list to identify `PsuedoAtoN` resources. 
 
 - **Fix**: Internet connection test made non-blocking. (closes #96)
 
