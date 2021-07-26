@@ -1168,6 +1168,8 @@ export class AppComponent {
     }
 
     // ** handle connection closure
+    private reconnecting: boolean= false;
+    
     private onClose(e?:any) {
         this.app.debug('onClose: STREAM connection closed...');
         this.app.debug(e);
@@ -1180,19 +1182,30 @@ export class AppComponent {
             if(e.playback) { 
                 data.buttonText= 'OK'
                 data.message= 'Unable to open Playback connection.';
-            }
-            else { data.message= 'Connection to the Signal K server has been closed.'}  
 
-            this.app.showAlert(
-                data.message,
-                data.title,
-                data.buttonText
-            ).subscribe( ()=>{ 
-                if(this.mode==SKSTREAM_MODE.REALTIME) { this.switchMode(this.mode) } 
-                else { this.showPlaybackSettings() }
-            });
+                this.app.showAlert(
+                    data.message,
+                    data.title,
+                    data.buttonText
+                ).subscribe( ()=>{ 
+                    if(this.mode==SKSTREAM_MODE.REALTIME) { this.switchMode(this.mode) } 
+                    else { this.showPlaybackSettings() }
+                });                
+            }
+            else { 
+                if(!this.reconnecting) {
+                    this.reconnecting= true;
+                    setTimeout( 
+                        ()=> { 
+                            this.reconnecting= false;
+                            this.openSKStream(this.streamOptions.options, this.mode);
+                        },
+                        5000
+                    )
+                }
+            }
         }  
-    }
+    } 
     
     // ** handle error message
     private onError(e:any) { 
