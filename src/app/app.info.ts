@@ -137,7 +137,7 @@ export class AppInfo extends Info {
         this.name= "Freeboard";
         this.shortName= "freeboard";
         this.description= `Signal K Chart Plotter.`;
-        this.version= '1.16.2';
+        this.version= '1.16.3';
         this.url= 'https://github.com/signalk/freeboard-sk';
         this.logo= "./assets/img/app_logo.png";   
         
@@ -536,12 +536,14 @@ export class AppInfo extends Info {
             'whats-new': [
                 {
                     type: 'signalk-server-node',
-                    title: 'VectorTile charts',
+                    title: 'Deprecation Notice',
                     message: `
-                        Freeboard now has initial support for displaying VectorTile charts 
-                        with a default style.
+                        Not all experiments are destined to reach the main product 
+                        and the GRIB experiment will be removed in the next release.
                         <br>&nbsp;<br>
-                        Charts with a format attribute of "pbf" or "mvt" will be rendered as vector tiles.
+                        GRIB wind and temperature overlays required GRIB2JSON formatted data hosted
+                        on the Signal K server by the freeboard-sk-helper plugin. This is better suited 
+                        to a tile data source akin to charts.
                     `
                 }                
             ]           
