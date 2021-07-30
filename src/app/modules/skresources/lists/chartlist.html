@@ -94,6 +94,9 @@
                 </mat-card-actions>                
             </mat-card>
         </cdk-virtual-scroll-viewport>
-        <ap-chartlayers *ngIf="displayChartLayers" (closed)="showChartLayers(false)"></ap-chartlayers>
+        <ap-chartlayers *ngIf="displayChartLayers" 
+            (changed)="handleOrderChange($event)"
+            (closed)="showChartLayers(false)">
+        </ap-chartlayers>
     </div>
 </div>

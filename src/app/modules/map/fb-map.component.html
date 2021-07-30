@@ -1,70 +1,45 @@
-<aol-map #aolMap [width]="'100%'" [height]="'100%'" 
-    [style.cursor]="(draw.enabled || measure.enabled) ? 'crosshair' : 'initial'"
-    [style.touch-action]="'none'"
-    [loadTilesWhileAnimating]="app.config.map.animate"
-    [loadTilesWhileInteracting]="true"
+<ol-map [style.cursor]="(draw.enabled || measure.enabled) ? 'crosshair' : 'initial'"
+    [logo]="false" 
+    [olInteractions]= "fbMap.interactions"
+    [olControls]= "fbMap.controls"
+    [setFocus]="fbMap.focus"
+
+    (mapSingleClick)="onMapMouseClick($event)"
+    (mapMoveEnd)="onMapMove($event)"
+    (mapPointerMove)="onMapPointerMove($event)"
+    (mapPointerDrag)="onMapPointerDrag($event)"
     (contextmenu)="onMapRightClick($event)"
-    (onClick)="onMapMouseClick($event)"
-    (onMoveEnd)="onMapMove($event)"
-    (onPointerMove)="onMapPointerMove($event)"
-    (onPointerDrag)="onMapPointerDrag($event)">
-                    
-    <aol-view [zoom]="fbMap.zoomLevel" [minZoom]="fbMap.minZoom" 
-        [zoomAnimation]="app.config.map.animate"
-        [rotation]="fbMap.rotation">
-        <aol-coordinate [srid]="fbMap.srid"
-            [x]="fbMap.center[0]" 
-            [y]="fbMap.center[1]">
-        </aol-coordinate>                      
-    </aol-view>
-    
-    <!-- Interactions -->
-    <aol-interaction-freeboard>
-        <!--
-        This set of interactions includes:
-        DragPan
-        PinchZoom
-        KeyboardPan
-        KeyboardZoom
-        MouseWheelZoom
-        DragZoom        
-        -->
-    </aol-interaction-freeboard>
-    <aol-interaction-doubleclickzoom *ngIf="app.config.mapDoubleClick"></aol-interaction-doubleclickzoom>
 
-    <aol-interaction-draw *ngIf="measure.enabled"
+    olView
+    [zoom]="fbMap.zoomLevel"
+    [center]="fbMap.center"
+    [rotation]="fbMap.rotation"
+    [minZoom]="fbMap.minZoom"
+    [enableAnimation]="false">
+
+    <!-- Draw / modify -->
+    <ol-draw *ngIf="measure.enabled"
         [type]="'LineString'"
-        (onDrawStart)="onMeasureStart($event)"
-        (onDrawEnd)="onMeasureEnd($event)"
+        (drawStart)="onMeasureStart($event)"
+        (drawEnd)="onMeasureEnd($event)"
         [style]="measure.style">
-    </aol-interaction-draw>     
+    </ol-draw>
 
-    <aol-interaction-draw *ngIf="draw.enabled"
+    <ol-draw *ngIf="draw.enabled"
         [type]="draw.type"
-        (onDrawEnd)="onDrawEnd($event)">
-    </aol-interaction-draw>
+        (drawEnd)="onDrawEnd($event)">
+    </ol-draw>
 
-    <aol-interaction-modify *ngIf="draw.modify && draw.features"
+    <ol-modify *ngIf="draw.modify && draw.features"
         [features]="draw.features"
-        (onModifyStart)="onModifyStart($event)"
-        (onModifyEnd)="onModifyEnd($event)">
-    </aol-interaction-modify>                 
-    <!-- /Interactions -->
+        (modifyStart)="onModifyStart($event)"
+        (modifyEnd)="onModifyEnd($event)">
+    </ol-modify>
 
-    <!-- Controls -->
-    <div class="ol-mouse-position">
-        <span *ngIf="app.config.selections.positionFormat=='XY'">Lat:&nbsp;</span>
-        <span [innerText]="mouse.coords[1] | coords : app.config.selections.positionFormat : true"></span>
-        &nbsp; 
-        <span *ngIf="app.config.selections.positionFormat=='XY'">Lon:&nbsp;</span>    
-        <span [innerText]="mouse.coords[0] | coords : app.config.selections.positionFormat"></span>
-        &nbsp;
-        <span [innerText]="'Zm: ' + app.config.map.zoomLevel"></span>
-    </div>
-
-    <aol-control>
-        <aol-content>
-            <div class="ol-zoom ol-control">
+    <!-- Zoom control -->
+    <ol-control>
+        <ol-content>
+            <div class="ol-zoom">
                 <button mat-mini-fab (click)="zoomMap(false)"
                     [disabled]="app.config.map.zoomLevel==fbMap.minZoom"
                     matTooltip="Zoom out">
@@ -77,383 +52,301 @@
                     <mat-icon>add</mat-icon>
                 </button>
             </div>
-        </aol-content>
-    </aol-control>   
-    <!-- /Controls --> 
+        </ol-content>
+    </ol-control>
 
-    <!-- *** Charts *** -->
-    <div *ngFor="let c of app.data.charts; let i=index;">
+    <!-- Cursor position control -->
+    <ol-control>
+        <ol-content>
+            <div class="ol-mouse-position">
+                <span style="background-color: rgba(250,250,250,.7); padding: 0 5px 0 5px;">
+                    <span *ngIf="app.config.selections.positionFormat=='XY'">Lat:&nbsp;</span>
+                    <span [innerText]="mouse.coords[1] | coords : app.config.selections.positionFormat : true"></span>
+                    &nbsp; 
+                    <span *ngIf="app.config.selections.positionFormat=='XY'">Lon:&nbsp;</span>    
+                    <span [innerText]="mouse.coords[0] | coords : app.config.selections.positionFormat"></span>
+                    &nbsp;
+                    <span [innerText]="'Zm: ' + app.config.map.zoomLevel"></span>
+                </span>  
+            </div>
+        </ol-content>
+    </ol-control>
 
-        <aol-layer-tile *ngIf="c[0]=='openstreetmap' && c[2]"
-                [zIndex]="10 + i" >
-            <aol-source-osm
-                (tileLoadStart)="onMapTileEvent($event)"
-                (tileLoadEnd)="onMapTileEvent($event)"
-                (tileLoadError)="onMapTileEvent($event)">
-            </aol-source-osm>
-        </aol-layer-tile>
+    <!-- Charts -->
+    <fb-charts 
+        [zIndex]="10"
+        [charts]="dfeat.charts">
+    </fb-charts>
 
-        <div *ngIf="c[0]!='openstreetmap' && c[2]">
-            <aol-layer-vectortile *ngIf="c[1].chartFormat=='pbf' || c[1].chartFormat=='mvt'"
-                [zIndex]="10 + i" 
-                [style]="applyStyle"
-                preload="0">
-                <aol-source-vectortile
-                        (tileLoadStart)="onMapTileEvent($event)"
-                        (tileLoadEnd)="onMapTileEvent($event)"
-                        (tileLoadError)="onMapTileEvent($event)"
-                        [url]="c[1].tilemapUrl">                           
-                    <aol-format-mvt
-                        [layers]="c[1].chartLayers ? c[1].chartLayers : null">
-                    </aol-format-mvt>
-                    <aol-tilegrid
-                        [minZoom]="c[1].minzoom"
-                        [maxZoom]="c[1].maxzoom">
-                    </aol-tilegrid>
-                </aol-source-vectortile>
-            </aol-layer-vectortile>
-
-            <aol-layer-tile *ngIf="c[1].chartFormat!='pbf' && c[1].chartFormat!='mvt'" 
-                [ngSwitch]="c[1].type"
-                [zIndex]="10 + i" 
-                preload="0">
-
-                <aol-source-xyz *ngSwitchCase="'tilelayer'"
-                    (tileLoadStart)="onMapTileEvent($event)"
-                    (tileLoadEnd)="onMapTileEvent($event)"
-                    (tileLoadError)="onMapTileEvent($event)"
-                    [minZoom]="c[1].minzoom"
-                    [maxZoom]="c[1].maxzoom"
-                    [url]="c[1].tilemapUrl">                           
-                </aol-source-xyz>
-
-                <aol-source-tilewms *ngSwitchCase="'WMS'"
-                    [url]="c[1].tilemapUrl"
-                    [params]="wmsParams(c[1])"
-                ></aol-source-tilewms>
-            
-            </aol-layer-tile>
-        </div>
-
-    </div>
-    <!-- *** /Charts *** -->
-
-    <!-- *** AtoNs *** -->
-    <aol-layer-vector [zIndex]="45" [renderBuffer]="200">
-        <aol-source-vector>
-            <fb-context-atons 
-                [atons]="dfeat.atons"
-                [updateIds]="aisMgr.updateList"
-                [removeIds]="aisMgr.removeList"
-                [minZoomLevel]="10"
-                [mapZoom]="app.config.map.zoomLevel">                               
-            </fb-context-atons>
-        </aol-source-vector>
-    </aol-layer-vector>
-    <!-- *** /AtoNs *** -->     
-  
-    <!-- *** Heatmap *** -->
-    <fb-grib-heatmap *ngIf="display.layer.heatmap"
-        [zIndex]="47"
-        [values]="dfeat.heatmap"
-        [blur]="15" [radius]="5"
-        [map]="aolMap">
-    </fb-grib-heatmap>
-    <!-- *** /Heatmap *** -->
-
-    <!-- *** Colormap *** -->
-    <fb-grib-colormap *ngIf="display.layer.colormap"
-        [zIndex]="48"
-        [values]="dfeat.heatmap"
-        [gradient]="dfeat.colorGradient"
-        [map]="aolMap">
-    </fb-grib-colormap>
-    <!-- *** /Colormap *** -->        
-
-    <!-- *** Wind Vector *** -->
-    <fb-grib-windvector *ngIf="display.layer.wind"
-        [zIndex]="49"
-        [values]="dfeat.grib.wind"
-        [map]="aolMap">
-    </fb-grib-windvector>
-    <!-- *** /Wind Vector *** --> 
-    
-    <!-- *** Resource TRACKS *** -->
+    <!-- Tracks -->
     <fb-tracks *ngIf="app.config.resources.paths.includes('tracks')"
-        [zIndex]="50"
-        [tracks]="dfeat.tracks"
-        [labelMinZoom]="10"
-        [mapZoom]="app.config.map.zoomLevel"
-        [srid]="app.config.map.srid">
+        [tracks]= "dfeat.tracks"
+        [labelMinZoom]= "0"
+        [mapZoom]= "app.config.map.zoomLevel"
+        [zIndex]= "50">
     </fb-tracks>
 
-    <!-- *** AIS TRACKS *** -->
-    <aol-layer-vector [zIndex]="51" *ngIf="app.config.aisTargets">
-        <aol-source-vector>
-            <ais-tracks [tracks]="app.data.vessels.aisTracks"
-                [updateIds]="aisMgr.updateList"
-                [removeIds]="aisMgr.removeList"
-                [showTracks]="app.config.aisShowTrack"
-                [minZoom]="10"
-                [mapZoom]="app.config.map.zoomLevel">                               
-            </ais-tracks>
-        </aol-source-vector>
-    </aol-layer-vector>
-    <!-- *** AIS TRACKS *** -->
-
-    <!-- *** RESOURCE SETS *** -->
-    <div *ngFor="let resSet of app.data.resourceSets | keyvalue; let idx= index">
-        <fb-resource-set [zIndex]="52+idx" *ngIf="resSet.key!='tracks'"
-            [items]="resSet.value"
-            [selected]="app.config.selections.resourceSets[resSet.key]">
-        </fb-resource-set>
-    </div>
-    <!-- /RESOURCE SETS-->    
-    
-    <!-- *** ROUTES *** -->
-    <fb-routes [zIndex]="80"
-        [routes]="dfeat.routes"
-        [activeRoute]="activeRoute"
-        [srid]="app.config.map.srid">
-    </fb-routes> 
-    
-    <!-- *** WAYPOINTS *** -->
-    <fb-waypoints [zIndex]="90"
-        [waypoints]="dfeat.waypoints"
-        [activeWaypoint]="app.data.activeWaypoint"
-        [labelMinZoom]="10"
+    <!-- AIS target tracks -->
+    <sk-target-tracks *ngIf="app.config.aisTargets"
+        [tracks]="app.data.vessels.aisTracks"
+        [updateIds]="aisMgr.updateList"
+        [removeIds]="aisMgr.removeList"
+        [showTracks]="app.config.aisShowTrack"
+        [minZoom]="10"
         [mapZoom]="app.config.map.zoomLevel"
-        [srid]="app.config.map.srid">
+        zIndex= "51">
+    </sk-target-tracks>
+
+    <!-- Resource Sets -->
+    <div *ngFor="let resSet of app.data.resourceSets | keyvalue; let idx= index">
+        <fb-resource-sets *ngIf="resSet.key!='tracks'"
+            [resourceSets]= "resSet.value"
+            [selected]= "app.config.selections.resourceSets[resSet.key]"
+            [labelMinZoom]= "10"
+            [mapZoom]= "fbMap.zoomLevel"
+            [zIndex]= "52+idx">
+        </fb-resource-sets>
+    </div>
+
+    <!-- Routes -->
+    <fb-routes 
+        [routes]="dfeat.routes"
+        [routeStyles]=""
+        [activeRoute]="activeRoute"
+        [zIndex]= "80">
+    </fb-routes>
+
+    <!-- Waypoints -->
+    <fb-waypoints 
+        [waypoints]="dfeat.waypoints"
+        [waypointStyles]="featureStyles.waypoint"
+        [activeWaypoint]="app.data.activeWaypoint"
+        [labelMinZoom]= "10"
+        [mapZoom]= "fbMap.zoomLevel"
+        [zIndex]= "90">
     </fb-waypoints>
 
-    <!-- *** AIS TARGETS *** -->
+    <!-- Signal K targets -->
+    <!-- AtoN targets -->
+    <sk-targets 
+        [targets]= "dfeat.atons"
+        [targetStyles]= "featureStyles.aton"
+        targetType="aton"
+        [updateIds]="aisMgr.updateList"
+        [removeIds]="aisMgr.removeList"
+        [labelMinZoom]= "10"
+        [mapZoom]= "app.config.map.zoomLevel"
+        [zIndex]= "45">
+    </sk-targets>
+
+    <!-- shore.basestations targets -->
+    <sk-targets 
+        [targets]= "dfeat.atons"
+        [targetStyles]= "featureStyles.basestation"
+        targetType="shore.basestations"
+        [updateIds]="aisMgr.updateList"
+        [removeIds]="aisMgr.removeList"
+        [labelMinZoom]= "10"
+        [mapZoom]= "app.config.map.zoomLevel"
+        [zIndex]= "45">
+    </sk-targets>   
+
+    <!-- AIS Vessel targets -->
     <div *ngIf="app.config.aisTargets" [ngSwitch]="app.config.selections.aisProfile">
-        <!--default profile-->
-        <aol-layer-vector *ngSwitchCase="0"
-            [zIndex]="120" [renderBuffer]="200">
-            <aol-source-vector>
-                <ais-vessels [aisTargets]="dfeat.ais"
-                    [updateIds]="aisMgr.updateList"
-                    [staleIds]="aisMgr.staleList"
-                    [removeIds]="aisMgr.removeList"
-                    [filterIds]="app.config.selections.aisTargets"
-                    [focusId]="app.data.vessels.activeId"
-                    icon="./assets/img/ais_active.png"
-                    inactiveIcon="./assets/img/ais_inactive.png"
-                    focusIcon="./assets/img/ship_red.png"
-                    buddyIcon="./assets/img/ais_buddy.png"
-                    [inactiveTime]="app.config.selections.aisStaleAge"
-                    [labelMinZoom]="10"
-                    [vectorMinZoom]="app.config.selections.aisWindMinZoom"
-                    [vectorApparent]="app.config.selections.aisWindApparent"
-                    [mapZoom]="app.config.map.zoomLevel">                               
-                </ais-vessels>
-            </aol-source-vector>
-        </aol-layer-vector>
+        <sk-ais-vessels *ngSwitchCase="0"
+            [targets]= "dfeat.ais"
+            [targetStyles]="featureStyles.aisVessel"
+            [mapZoom]= "app.config.map.zoomLevel"
+            [labelMinZoom]= "10"
+            [showVector]="true"
+            [vectorMinZoom]="app.config.selections.aisWindMinZoom"
+            [vectorApparent]="app.config.selections.aisWindApparent"
+            [focusId]="app.data.vessels.activeId"
+            [filterIds]="app.config.selections.aisTargets"
+            [updateIds]="aisMgr.updateList"
+            [staleIds]="aisMgr.staleList"
+            [removeIds]="aisMgr.removeList"
+            [inactiveTime]="app.config.selections.aisStaleAge"
+            [zIndex]= "120">
+        </sk-ais-vessels>
     </div>
-    <!-- *** AIS TARGETS *** -->   
 
-    <!-- *** Aircraft TARGETS *** -->
-    <aol-layer-vector *ngIf="app.config.aisTargets" [zIndex]="121" [renderBuffer]="200">
-        <aol-source-vector>
-            <ais-aircraft [aircraft]="dfeat.aircraft"
-                [updateIds]="aisMgr.updateList"
-                [staleIds]="aisMgr.staleList"
-                [removeIds]="aisMgr.removeList"
-                icon="./assets/img/aircraft_active.png"
-                inactiveIcon="./assets/img/aircraft_inactive.png"
-                [inactiveTime]="app.config.selections.aisStaleAge"
-                [labelMinZoom]="10"
-                [mapZoom]="app.config.map.zoomLevel">                               
-            </ais-aircraft>
-        </aol-source-vector>
-    </aol-layer-vector>
-    <!-- *** Aircraft TARGETS *** -->
+    <!-- Aircraft targets -->
+    <sk-targets *ngIf="app.config.aisTargets" 
+        [targets]= "dfeat.aircraft"
+        [targetStyles]= "featureStyles.aircraft"
+        targetType="aircraft"
+        [labelMinZoom]= "10"
+        [mapZoom]= "app.config.map.zoomLevel"
+        [updateIds]="aisMgr.updateList"
+        [staleIds]="aisMgr.staleList"
+        [removeIds]="aisMgr.removeList"
+        [inactiveTime]="app.config.selections.aisStaleAge"
+        [zIndex]= "121">
+    </sk-targets>
 
-    <!-- *** SaR TARGETS *** -->
-    <aol-layer-vector *ngIf="app.config.aisTargets" [zIndex]="122" [renderBuffer]="200">
-        <aol-source-vector>
-            <ais-sar [sar]="dfeat.sar"
-                [updateIds]="aisMgr.updateList"
-                [staleIds]="aisMgr.staleList"
-                [removeIds]="aisMgr.removeList"
-                icon="./assets/img/sar_active.png"
-                inactiveIcon=""
-                [inactiveTime]="app.config.selections.aisStaleAge"
-                [labelMinZoom]="10"
-                [mapZoom]="app.config.map.zoomLevel">                               
-            </ais-sar>
-        </aol-source-vector>
-    </aol-layer-vector>
-    <!-- *** SaR TARGETS *** -->      
+    <!-- SAR targets -->
+    <sk-targets *ngIf="app.config.aisTargets" 
+        [targets]= "dfeat.sar"
+        [targetStyles]= "featureStyles.sar"
+        targetType="sar"
+        [labelMinZoom]= "10"
+        [mapZoom]= "app.config.map.zoomLevel"
+        [updateIds]="aisMgr.updateList"
+        [staleIds]="aisMgr.staleList"
+        [removeIds]="aisMgr.removeList"
+        [inactiveTime]="app.config.selections.aisStaleAge"
+        [zIndex]= "122">
+    </sk-targets>
 
-    <!-- *** NOTES & REGIONS *** -->
-    <fb-notes-regions *ngIf="display.layer.notes" 
-        [zIndex]="120" 
+    <!-- Signal K targets -->
+
+    <!-- Regions -->
+    <fb-regions *ngIf="display.layer.notes"
         [regions]="dfeat.regions"
+        [regionStyles]=""
+        [zIndex]= "120">
+    </fb-regions>
+
+    <!-- Notes -->
+    <fb-notes *ngIf="display.layer.notes"
         [notes]="dfeat.notes"
-        [srid]="app.config.map.srid">
-    </fb-notes-regions>  
+        [noteStyles]="featureStyles.note"
+        [zIndex]= "121">
+    </fb-notes>
 
-    <!-- *** popover *** -->
-    <aol-overlay *ngIf="overlay.show && !draw.modify">
-        <aol-coordinate
-            [x]="overlay.position[0]"
-            [y]="overlay.position[1]"
-            [srid]="app.config.map.srid">
-        </aol-coordinate>
-        <aol-content>
-            <!--Measure popover-->
-            <ap-popover *ngIf="measure.enabled"
-                [title]="overlay.title" 
-                [canClose]="false"
-                [measure]="true"
-                (closed)="popoverClosed()">
-            </ap-popover>
-            <!--Feature LIST popover-->
-            <feature-list-popover *ngIf="this.overlay.type=='list'"
-                [canClose]="app.config.popoverMulti"
-                [title]="overlay.title" 
-                [features]="this.overlay.content"
-                (selected)="featureListSelection($event)"
-                (closed)="popoverClosed()">
-            </feature-list-popover>                               
-            <!--resource popover-->
-            <resource-popover *ngIf="overlay.type!='ais' && overlay.type!='list' && overlay.type!='measure'"
-                [canClose]="app.config.popoverMulti"
-                [title]="overlay.title" 
-                [type]="overlay.type"
-                [resource]="overlay.resource"
-                [active]="(app.data.activeWaypoint) ? app.data.activeWaypoint : app.data.activeRoute"
-                [featureCount]="overlay.featureCount"
-                [units]="this.app.config.units.distance"
-                (modify)="startModify(); popoverClosed()"
-                (delete)="deleteFeature(overlay.id, overlay.type); popoverClosed()"
-                (addNote)="skres.showNoteEditor({region: { id: overlay.id, exists: true } }); popoverClosed()"
-                (activated)="setActiveFeature(); popoverClosed()"
-                (deactivated)="clearActiveFeature(); popoverClosed()"
-                (related)="skres.showRelatedNotes($event, 'group'); popoverClosed()"
-                (info)="skres.resourceProperties(overlay); popoverClosed()"   
-                (points)="itemInfo(overlay.id, overlay.type); popoverClosed()"             
-                (closed)="popoverClosed()">                      
-            </resource-popover>
-            <!--AIS/Vessel popover-->
-            <div *ngIf="overlay.type=='ais'" [ngSwitch]="app.config.selections.aisProfile">
-                <!--default profile-->
-                <vessel-popover *ngSwitchCase="0"
-                    [canClose]="app.config.popoverMulti"
-                    [vessel]="overlay.vessel"
-                    [useMagnetic]="app.useMagnetic"
-                    [isActive]="app.data.vessels.activeId==overlay.id"
-                    [isSelf]="overlay.isSelf"
-                    (info)="itemInfo(overlay.id, overlay.type, overlay.isSelf); popoverClosed()"
-                    (focused)="setActiveVessel( ($event) ? overlay.id : null )"
-                    (markPosition)="skres.showWaypointEditor(null, $event); popoverClosed()"
-                    (closed)="popoverClosed()">                    
-                </vessel-popover>
-            </div>  
-            <!--AtoN popover-->
-            <aton-popover *ngIf="overlay.type=='aton'"
-                [canClose]="app.config.popoverMulti"
-                [aton]="overlay.aton"
-                (info)="itemInfo(overlay.id, overlay.type); popoverClosed()"
-                (closed)="popoverClosed()">                    
-            </aton-popover>
-            <!--Aircraft popover-->
-            <aircraft-popover *ngIf="overlay.type=='aircraft'"
-                [canClose]="app.config.popoverMulti"
-                [aircraft]="overlay.aircraft"
-                (info)="itemInfo(overlay.id, overlay.type); popoverClosed()"
-                (closed)="popoverClosed()">                    
-            </aircraft-popover>                                         
-        </aol-content>
-    </aol-overlay>   
-    <!-- /*** popover *** -->  
+    <!-- Popovers -->
+    <ol-overlay *ngIf="overlay.show && !draw.modify"
+        [position]="overlay.position"
+        [positioning]="'top-center'">
 
-    <!-- ANCHOR WATCH -->  
-    <fb-anchor-alarm [zIndex]="49" *ngIf="!app.data.anchor.raised"
-        [srid]="app.config.map.srid"
+        <ap-popover *ngIf="measure.enabled"
+            [title]="overlay.title" 
+            [canClose]="false"
+            [measure]="true"
+            (closed)="popoverClosed()">
+        </ap-popover>
+
+        <feature-list-popover *ngIf="this.overlay.type=='list'"
+            [canClose]="app.config.popoverMulti"
+            [title]="overlay.title" 
+            [features]="this.overlay.content"
+            (selected)="featureListSelection($event)"
+            (closed)="popoverClosed()">
+        </feature-list-popover>                               
+
+        <resource-popover *ngIf="overlay.type!='ais' && overlay.type!='list' && overlay.type!='measure'"
+            [canClose]="app.config.popoverMulti"
+            [title]="overlay.title" 
+            [type]="overlay.type"
+            [resource]="overlay.resource"
+            [active]="(app.data.activeWaypoint) ? app.data.activeWaypoint : app.data.activeRoute"
+            [featureCount]="overlay.featureCount"
+            [units]="this.app.config.units.distance"
+            (modify)="startModify(); popoverClosed()"
+            (delete)="deleteFeature(overlay.id, overlay.type); popoverClosed()"
+            (addNote)="skres.showNoteEditor({region: { id: overlay.id, exists: true } }); popoverClosed()"
+            (activated)="setActiveFeature(); popoverClosed()"
+            (deactivated)="clearActiveFeature(); popoverClosed()"
+            (related)="skres.showRelatedNotes($event, 'group'); popoverClosed()"
+            (info)="skres.resourceProperties(overlay); popoverClosed()"   
+            (points)="itemInfo(overlay.id, overlay.type); popoverClosed()"             
+            (closed)="popoverClosed()">                      
+        </resource-popover>
+
+        <div *ngIf="overlay.type=='ais'" [ngSwitch]="app.config.selections.aisProfile">
+
+            <vessel-popover *ngSwitchCase="0"
+                [canClose]="app.config.popoverMulti"
+                [vessel]="overlay.vessel"
+                [useMagnetic]="app.useMagnetic"
+                [isActive]="app.data.vessels.activeId==overlay.id"
+                [isSelf]="overlay.isSelf"
+                (info)="itemInfo(overlay.id, overlay.type, overlay.isSelf); popoverClosed()"
+                (focused)="setActiveVessel( ($event) ? overlay.id : null )"
+                (markPosition)="skres.showWaypointEditor(null, $event); popoverClosed()"
+                (closed)="popoverClosed()">                    
+            </vessel-popover>
+        </div>  
+
+        <aton-popover *ngIf="overlay.type=='aton'"
+            [canClose]="app.config.popoverMulti"
+            [aton]="overlay.aton"
+            (info)="itemInfo(overlay.id, overlay.type); popoverClosed()"
+            (closed)="popoverClosed()">                    
+        </aton-popover>
+
+        <aircraft-popover *ngIf="overlay.type=='aircraft'"
+            [canClose]="app.config.popoverMulti"
+            [aircraft]="overlay.aircraft"
+            (info)="itemInfo(overlay.id, overlay.type); popoverClosed()"
+            (closed)="popoverClosed()">                    
+        </aircraft-popover>
+
+    </ol-overlay>
+
+    <!-- Alarms -->
+    <fb-anchor-alarm *ngIf="!app.data.anchor.raised"
         [radius]="app.data.anchor.radius"
         [anchorPosition]="app.data.anchor.position"
-        [lineCoords]="vesselLines.anchor">
+        [lineCoords]="vesselLines.anchor"
+        [anchorStyles]= "featureStyles.anchor"
+        [zIndex]= "49">
     </fb-anchor-alarm>
-    <!-- ANCHOR WATCH --> 
 
-    <!-- CPA / TCPA -->  
-    <fb-tcpa-alarm [zIndex]="50" *ngIf="dfeat.closest.id"
-        [srid]="app.config.map.srid"
+    <fb-cpa-alarm *ngIf="dfeat.closest.id"
         [targetPosition]="dfeat.closest.position"
-        [lineCoords]="vesselLines.cpa">
-    </fb-tcpa-alarm>
+        [lineCoords]="vesselLines.cpa"
+        [zIndex]= "50">
+    </fb-cpa-alarm>
 
-    <!-- *** VESSEL SELF *** -->
-    <aol-layer-vector [zIndex]="210" *ngIf="app.data.vessels.showSelf">
-        <aol-source-vector>
+    <!-- Vessel / destination -->
+    <fb-xte-path *ngIf="dfeat.navData.startPosition && dfeat.navData.position && app.data.anchor.raised"
+        [color]=""
+        [lineCoords]="vesselLines.xtePath"
+        [zIndex]= "212"
+        [visible]= "true"
+        [layerProperties]="">
+    </fb-xte-path>
 
-            <!-- xte path -->
-            <fb-xte-path *ngIf="dfeat.navData.startPosition && dfeat.navData.position && app.data.anchor.raised"   
-                [lineCoords]="vesselLines.xtePath"
-                [srid]="app.config.map.srid">
-            </fb-xte-path>
+    <fb-bearing-line *ngIf="dfeat.navData.position && app.data.anchor.raised"
+        [marker]="dfeat.navData.position"
+        [lineCoords]="vesselLines.bearing"
+        [showMarker]="!app.data.activeWaypoint"
+        [markerName]="app.data.navData.destpointName"
+        [bearingStyles]="featureStyles.destination"
+        [labelMinZoom]= "10"
+        [mapZoom]= "app.config.map.zoomLevel"
+        [zIndex]= "212">
+    </fb-bearing-line>
 
-            <!-- vessel -->
-            <fb-vessel [id]="'' + app.data.selfId"
-                [activeId]="app.data.vessels.activeId"
-                [position]="dfeat.self.position"
-                [heading]="dfeat.self.orientation"
-                [srid]="app.config.map.srid">
-            </fb-vessel>
-            <!-- /vessel -->    
+    <fb-arrival-circle *ngIf="app.data.navData.arrivalCircle && dfeat.navData.position"
+        [radius]="app.data.navData.arrivalCircle"
+        [position]="dfeat.navData.position"
+        [zIndex]= "212">
+    </fb-arrival-circle>
 
-            <!-- heading Line-->
-            <fb-heading-line *ngIf="vesselLines.heading[0] && app.data.anchor.raised"
-                [lineCoords]="vesselLines.heading"
-                [srid]="app.config.map.srid">
-            </fb-heading-line>
-            
-            <!-- bearing Line-->
-            <fb-bearing-line *ngIf="dfeat.navData.position && app.data.anchor.raised"
-                [lineCoords]="vesselLines.bearing"
-                [marker]="dfeat.navData.position"
-                [markerName]="(app.data.navData.pointNames.length!=0) ? 
-                    app.data.navData.pointNames[app.data.navData.pointIndex==-1 ? 0 : app.data.navData.pointIndex] : ''"
-                [showMarker]="!app.data.activeWaypoint"
-                [labelMinZoom]="10"
-                [mapZoom]="app.config.map.zoomLevel"
-                [srid]="app.config.map.srid">
-            </fb-bearing-line>                                           
+    <!-- Vessel (self) -->
+    <fb-vessel
+        [position]="dfeat.self.position"
+        [heading]="dfeat.self.orientation"
+        [id]="'' + app.data.selfId"
+        [activeId]="app.data.vessels.activeId"
+        [vesselLines]="vesselLines"
+        [showWind]="app.config.vesselWindVectors"
+        [vesselStyles]="featureStyles.vessel"
+        [zIndex]= "213">
+    </fb-vessel>
 
-            <!-- arrival circle -->
-            <fb-arrival-circle *ngIf="app.data.navData.arrivalCircle && dfeat.navData.position"
-                [radius]="app.data.navData.arrivalCircle"
-                [position]="dfeat.navData.position"
-                [srid]="app.config.map.srid">
-            </fb-arrival-circle>
-
-            <!-- TWD Line -->
-            <fb-twd-vector *ngIf="app.config.vesselWindVectors && vesselLines.awa[0] && app.data.anchor.raised"
-                [lineCoords]="vesselLines.twd"
-                [srid]="app.config.map.srid">
-            </fb-twd-vector>
-            
-            <!-- AWA Line -->
-            <fb-awa-vector *ngIf="app.config.vesselWindVectors && vesselLines.awa[0] && app.data.anchor.raised"
-                [lineCoords]="vesselLines.awa"
-                [srid]="app.config.map.srid">
-            </fb-awa-vector>                           
-
-        </aol-source-vector>
-    </aol-layer-vector>   
-    
-    <!-- *** VESSEL TRAIL *** -->
     <fb-vessel-trail *ngIf="app.config.vesselTrail && app.data.vessels.showSelf"
-        [zIndex]="200"
         [localTrail]="vesselLines.trail"
         [serverTrail]="dfeat.trail"
-        [srid]="app.config.map.srid">
+        [trailStyles]=""
+        [zIndex]= "200">
     </fb-vessel-trail>
 
-</aol-map> 
+</ol-map>
+            
 
 <!-- context menu -->
 <div
@@ -489,7 +382,13 @@
             (contextmenu)="$event.preventDefault();">
             <mat-icon>straighten</mat-icon>
             Measure
-        </button>     
+        </button>
+        <button mat-menu-item
+            (click)="onContextMenuAction('trail2route', item)"
+            (contextmenu)="$event.preventDefault();">
+            <mat-icon>insights</mat-icon>
+            Trail to Route
+        </button>
         <mat-divider></mat-divider>  
         <button mat-menu-item
             (click)="onContextMenuAction('anchor', item)"

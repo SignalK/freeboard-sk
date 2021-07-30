@@ -12,6 +12,11 @@ $theme:     mat-light-theme($primary, $accent, $warn);
 // Include all theme styles for the components.
 @include angular-material-theme($theme);
 
+// std elements
+a {
+    color: mat-color($primary);
+}
+
 // Define an alternate dark theme.
 .dark-theme {
     $dark-primary:  mat-palette($mat-light-blue);
@@ -19,6 +24,11 @@ $theme:     mat-light-theme($primary, $accent, $warn);
     $dark-warn:     mat-palette($mat-red);
     $dark-theme:    mat-dark-theme($dark-primary, $dark-accent, $dark-warn);
   
+    // std elements
+    a {
+        color: mat-color($accent);
+    }
+    
     @include angular-material-theme($dark-theme);
 }
 
@@ -57,7 +67,3 @@ $theme:     mat-light-theme($primary, $accent, $warn);
 // Include theme styles for custom components.
 @include popover-theme($theme);
 
-// std elements
-a {
-    color: mat-color($primary);
-}

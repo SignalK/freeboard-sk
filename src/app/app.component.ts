@@ -13,12 +13,12 @@ import { SettingsDialog, AlarmsFacade, AlarmsDialog,
         SKOtherResources, SKRegion, AISPropertiesModal, AtoNPropertiesModal, AircraftPropertiesModal, 
         ActiveResourcePropertiesModal, GPXImportDialog, GeoJSONImportDialog,
         TracksModal, ResourceSetModal, CourseSettingsModal,
-        ResourceImportDialog } from 'src/app/modules';
+        ResourceImportDialog, Trail2RouteDialog } from 'src/app/modules';
 
 import { SignalKClient } from 'signalk-client-angular';
 import { Convert } from 'src/app/lib/convert';
 import { GeoUtils } from 'src/app/lib/geoutils';
-import 'hammerjs';
+import { Observable, Subject } from 'rxjs';
 
 @Component({
   selector: 'app-root',
@@ -30,7 +30,7 @@ export class AppComponent {
     @ViewChild('sideright', {static: false}) sideright;
 
     public display= {
-        bottomSheet: { show: false, title: '' },
+        //bottomSheet: { show: false, title: '' },
         fullscreen: { active: false, enabled: document.fullscreenEnabled},
         badge: { hide: true, value: '!'},
         leftMenuPanel: false,
@@ -49,7 +49,8 @@ export class AppComponent {
             apModeText: ''
         },
         playback: { time: null },
-        map: { center: [0,0], setFocus: false }
+        map: { center: [0,0], setFocus: false },
+        audio: { state: '' }
     }
 
     public draw= {
@@ -68,6 +69,8 @@ export class AppComponent {
     public mode: SKSTREAM_MODE= SKSTREAM_MODE.REALTIME;   // current mode
 
     private timers= [];
+
+    private audioContext: AudioContext;
 
     // ** external resources **
     private lastInstUrl: string;
@@ -109,7 +112,18 @@ export class AppComponent {
         );      
     }
 
+    enableAudio() { if(this.audioContext) { this.audioContext.resume() } }
+
     ngOnInit() {
+        // ** audio context handing ** 
+        this.audioContext = new AudioContext();
+        this.display.audio.state= this.audioContext.state;
+        this.app.debug('audio state:', this.display.audio.state);
+        this.audioContext.addEventListener('statechange', ()=> {
+            this.app.debug('audio statechange:', this.audioContext.state);
+            this.display.audio.state= this.audioContext.state;
+        });
+
         // ** apply loaded app config	
         this.display.map.center= this.app.config.map.center;
         if(this.app.config.plugins.startOnOpen) { this.display.instrumentAppActive= false }
@@ -245,15 +259,27 @@ export class AppComponent {
         this.instUrl= this.dom.bypassSecurityTrustResourceUrl(url);
     }    
 
+    // ** create route from vessel trail **
+    public trailToRoute() {   
+        this.dialog.open(Trail2RouteDialog, {
+            disableClose: true,
+            data: { trail: this.app.data.trail }
+        }).afterClosed().subscribe( r=> {
+            if(r.result) {
+                this.skres.showRouteNew({coordinates: r.data});
+            }
+            this.focusMap();
+        });
+    }
+
     // ** display selected experiment UI **
-    public openExperiment(e:any) {
-        
+    public openExperiment(e:any) {   
         switch(e.choice) {
-            case 'grib':
+            /*case 'grib':
                 this.display.bottomSheet.show= true;  
                 this.display.bottomSheet.title= 'GRIB Data';                
-                break;
-            case 'tracks':
+                break;*/
+            case 'tracks':  // tracks
                 this.bottomSheet.open(TracksModal, {
                     disableClose: true,
                     data: { title: 'Tracks', skres: this.skres }
@@ -261,7 +287,7 @@ export class AppComponent {
                     this.focusMap(); 
                 });
                 break;             
-            default:
+            default:  // resource set
                 if(this.app.config.resources.paths.includes(e.choice)) {
                     this.bottomSheet.open(ResourceSetModal, {
                         disableClose: true,
@@ -269,22 +295,21 @@ export class AppComponent {
                     }).afterDismissed().subscribe( ()=> {
                         this.focusMap(); 
                     });
-                    
                 }
         }
     }
 
     // ** close bottom sheet **
-    public closeBottomSheet() {
-        this.display.bottomSheet.show=false;
-        this.app.data.grib.values.wind= null;
-        this.app.data.grib.values.temperature= null;
-        this.skres.getGRIBData();   // clear grib data from map
+    /*public closeBottomSheet() {
+        //this.display.bottomSheet.show=false;
+        //this.app.data.grib.values.wind= null;
+        //this.app.data.grib.values.temperature= null;
+        //this.skres.getGRIBData();   // clear grib data from map
         this.focusMap();
-    }
+    }*/
 
     // ** get / display supported GRIB layers **
-    public selectGRIB(e:any) {
+    /*public selectGRIB(e:any) {
         let params:string= '';
         if(typeof e.content.Temperature!=='undefined') {
             if(e.content.Temperature==null) { this.app.data.grib.values.temperature= null }
@@ -305,7 +330,7 @@ export class AppComponent {
 
         if(params.length==0) { this.skres.getGRIBData() }
         else { this.skres.getGRIBData(e.id + params) }
-    }
+    }*/
 
     // ** display course settings screen **
     public openCourseSettings() {
@@ -326,7 +351,6 @@ export class AppComponent {
         this.signalk.connect(this.app.hostName, this.app.hostPort, this.app.hostSSL).subscribe( 
             ()=> {
                 this.signalk.authToken= this.app.getToken();
-
                 this.app.loadSettingsfromServer().subscribe( r=> {
                     let msg= (r) ? 'Settings loaded from server.' :
                     'Error loading Settings from server!';
@@ -472,7 +496,7 @@ export class AppComponent {
     }
 
     // ** trigger focus of the map so keyboard controls work
-    private focusMap() { 
+    public focusMap() { 
         this.display.map.setFocus= true;
         // reset value to ensure change detection
         setTimeout( ()=> { this.display.map.setFocus= false }, 1000);
@@ -602,7 +626,8 @@ export class AppComponent {
     }
 
     // ** show login dialog **
-    public showLogin(message?:string, cancelWarning:boolean=true, onConnect?:boolean) {
+    public showLogin(message?:string, cancelWarning:boolean=true, onConnect?:boolean):Observable<any> {
+        let lis:Subject<boolean>= new Subject();
         this.dialog.open(LoginDialog, {
             disableClose: true,
             data: { message: message || 'Login to Signal K server.'}
@@ -618,6 +643,8 @@ export class AppComponent {
                              if(r) { this.skres.alignResourceSelections() }
                         });
                         if(onConnect) { this.queryAfterConnect() }
+                        this.app.data.loggedIn= true;
+                        lis.next(true);
                     },
                     err=> {   // ** auth failed
                         this.app.persistToken(null);
@@ -650,10 +677,12 @@ export class AppComponent {
                             'Login Cancelled:', 
                             `Update operations are NOT available until you have authenticated to the Signal K server.`);
                     }
+                    lis.next(false);
                 }
             }
             this.focusMap();
-        });        
+        });   
+        return lis.asObservable();     
     }
 
     public showPlaybackSettings() {
@@ -674,8 +703,15 @@ export class AppComponent {
     // ********** TOOLBAR ACTIONS **********
 
     public openAlarmsDialog() { 
-        this.dialog.open(AlarmsDialog, { disableClose: true })
-        .afterClosed().subscribe( ()=> this.focusMap() );
+        if(this.app.data.loginRequired && !this.app.data.loggedIn) {
+            this.showLogin(null,false,false).subscribe( r=> {
+                if(r) { this.openAlarmsDialog() }
+            });
+        }
+        else {
+            this.dialog.open(AlarmsDialog, { disableClose: true })
+            .afterClosed().subscribe( ()=> this.focusMap() );
+        }
     }
 
     public toggleMoveMap(exit:boolean=false) { 
@@ -820,6 +856,12 @@ export class AppComponent {
             latitude: c[idx][1], 
             longitude: c[idx][0], 
         }
+        if(Array.isArray(this.app.data.navData.pointNames) && this.app.data.navData.pointNames.length!=0) {
+            let idx= (this.app.data.navData.pointIndex==-1) ? 0 : this.app.data.navData.pointIndex;
+            this.app.data.navData.destpointName= this.app.data.navData.pointNames[idx];
+        }
+        else { this.app.data.navData.destpointName= '' }
+
         this.skres.setNextPoint(nextPoint);  
         this.focusMap();   
     }     
@@ -1050,7 +1092,6 @@ export class AppComponent {
                 this.skres.showNoteEditor({region: {id:uuid, data: region }})
                 break;                
         }
-        //e.mode=='ended' // draw mode was ended by user
         // clean up
         this.draw.mode=null;
         this.draw.modify=false;
@@ -1133,6 +1174,11 @@ export class AppComponent {
 
     // ** query server for current values **
     private queryAfterConnect() {
+        // ** get login status
+        this.signalk.getLoginStatus().subscribe( r=> {
+            this.app.data.loginRequired= r.authenticationRequired ?? false;
+        });
+        this.signalk.isLoggedIn().subscribe( r=> {this.app.data.loggedIn= r});
         // ** get vessel details
         let context= (this.app.data.vessels.activeId) ? 
             this.app.data.vessels.activeId.split('.').join('/') : 'vessels/self';
@@ -1145,10 +1191,10 @@ export class AppComponent {
                 }
                 // ** query anchor alarm status
                 this.alarmsFacade.queryAnchorStatus(this.app.data.vessels.activeId, this.app.data.vessels.active.position);
-                this.skres.getGRIBList().subscribe( 
+                /*this.skres.getGRIBList().subscribe( 
                     r=> { this.app.data.grib.hasProvider= true },
                     err=> { this.app.data.grib.hasProvider= false }
-                );
+                );*/
             },
             err=> { 
                 if(err.status && err.status==401) { this.showLogin(null, false, true) }  
@@ -1168,8 +1214,6 @@ export class AppComponent {
     }
 
     // ** handle connection closure
-    private reconnecting: boolean= false;
-    
     private onClose(e?:any) {
         this.app.debug('onClose: STREAM connection closed...');
         this.app.debug(e);
@@ -1205,7 +1249,9 @@ export class AppComponent {
                 }
             }
         }  
-    } 
+    }
+
+    private reconnecting: boolean= false;
     
     // ** handle error message
     private onError(e:any) { 
@@ -1214,7 +1260,7 @@ export class AppComponent {
     }
     
     // ** handle delta message received
-    private onMessage(e: any) { 
+    private onMessage(e:any) { 
         if(e.action=='hello') { // ** hello message
             this.app.debug(e); 
             if(e.playback) { this.mode= SKSTREAM_MODE.PLAYBACK }

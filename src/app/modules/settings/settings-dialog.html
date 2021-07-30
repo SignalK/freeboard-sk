@@ -1,6 +1,6 @@
 <div mat-dialog-title style="display:flex;">
     <mat-menu #settingsMenu="matMenu">
-        <a mat-menu-item *ngFor="let i of menuItems" [href]="i.href">
+        <a mat-menu-item *ngFor="let i of menuItems" (click)="jumpTo(i.id, true)">
             {{i.text}}
         </a>
     </mat-menu>
@@ -27,7 +27,7 @@
 <div mat-dialog-content style="display:flex;">
     <div class="left-settings-menu" *ngIf="!display.paths">
         <mat-nav-list>
-            <a mat-list-item *ngFor="let i of menuItems" [href]="i.href">
+            <a mat-list-item *ngFor="let i of menuItems" (click)="jumpTo(i.id)">
                 {{i.text}}
             </a>
         </mat-nav-list>
@@ -182,7 +182,7 @@
                                
                 </div>                  
 
-                <div class="setting-group" id="sectunits">
+                <div class="setting-group" id="sectUnits">
                     <div class="setting-group-title">UNITS &amp; VALUES</div>
                     <mat-card class="setting-card">
                         <div class="setting-card-row" style="padding-bottom: 10px;">

@@ -3,8 +3,6 @@
 import { Injectable } from '@angular/core';
 import { Subject } from 'rxjs';
 
-import { AppInfo } from 'src/app/app.info';
-
 interface IWorkerCommand {
     options: any;
     cmd: string;
@@ -16,8 +14,8 @@ export class SKStreamProvider  {
     private worker: Worker;
     private messageSource= new Subject<any>();
 
-    constructor(private app: AppInfo) { 
-        this.worker= new Worker('../../skstream.worker', { type: 'module' });
+    constructor() { 
+        this.worker= new Worker(new URL('./skstream.worker', import.meta.url));
         this.worker.onmessage = ({ data }) => { this.handleMessage(data) };
     }
 
@@ -29,7 +27,7 @@ export class SKStreamProvider  {
     terminate() {
         if(this.worker) {
             this.close(true);
-            this.app.debug('Terminating Worker....');
+            console.log('Terminating Worker....');
             this.worker.terminate();  
             this.worker= undefined;        
         }
@@ -37,7 +35,7 @@ export class SKStreamProvider  {
 
     close(terminate:boolean=false) {
         if(this.worker) {
-            this.app.debug('Closing Worker Stream....');
+            console.log('Closing Worker Stream....');
             this.worker.postMessage({ cmd: 'close', options: {terminate: terminate} });            
         }        
     }

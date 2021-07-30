@@ -4,7 +4,7 @@ import { forkJoin, of, Subject, Observable } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 
 import { SignalKClient } from 'signalk-client-angular';
-import { AppInfo } from 'src/app/app.info';
+import { AppInfo, OSM} from 'src/app/app.info';
 import { GeoUtils, GeoHash, Position } from  'src/app/lib/geoutils'
 
 import { LoginDialog } from 'src/app/lib/app-ui';
@@ -117,6 +117,10 @@ export class SKResources {
             i=> { return (i) ? true : false }
         );   
         this.app.saveConfig();
+        this.updateSource.next({action: 'selected', mode: 'chart'});  
+    }
+
+    chartOrder(e:any) {
         this.updateSource.next({action: 'selected', mode: 'chart'});  
     }
 
@@ -362,31 +366,7 @@ export class SKResources {
     }    
 
     // **** CHARTS ****
-
-    private OSMCharts= [
-        [
-            'openstreetmap',
-            new SKChart({
-                name: 'World Map',
-                description: 'Open Street Map'
-            }),
-            true
-        ],        
-        [
-            'openseamap', 
-            new SKChart({
-                name: 'Sea Map',
-                description: 'Open Sea Map',
-                tilemapUrl: 'https://tiles.openseamap.org/seamark/{z}/{x}/{y}.png',
-                minzoom: 12,
-                maxzoom: 18,
-                bounds: [-180, -90, 180, 90],
-                type: 'tilelayer'
-            }), 
-            true
-        ],     
-    ];
-
+    OSMCharts= [].concat(OSM);
     // ** get charts from sk server
     getCharts() {
         // ** fetch charts from server
@@ -431,7 +411,16 @@ export class SKResources {
                 this.updateSource.next({action: 'get', mode: 'chart'});
                                
             },
-            err=> { this.app.data.charts= this.OSMCharts.slice(0) }
+            err=> { 
+                let dc= [];
+                // insert OStreetM at start of list
+                this.OSMCharts[0][2]= (this.app.config.selections.charts.includes('openstreetmap')) ? true : false;
+                dc.push(this.OSMCharts[0]);
+                // add OpenSeaMap
+                this.OSMCharts[1][2]= (this.app.config.selections.charts.includes('openseamap')) ? true : false;
+                dc.push(this.OSMCharts[1]); 
+                this.app.data.charts= dc; 
+            }
         )
     }
     

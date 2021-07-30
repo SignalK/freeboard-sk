@@ -17,7 +17,7 @@ export class IndexedDB {
             let request = this.utils.indexedDB.open(this.dbWrapper.dbName, version);
             request.onsuccess = function (e) {
                 self.dbWrapper.db = request.result;
-                resolve();
+                resolve(e);
             };
 
             request.onerror = function (e) {
@@ -153,7 +153,7 @@ export class IndexedDB {
                         reject(e);
                     },
                     complete: (e: Event) => {
-                        resolve();
+                        resolve(e);
                     },
                     abort: (e: Event) => {
                         reject(e);
@@ -176,7 +176,7 @@ export class IndexedDB {
                         reject(e);
                     },
                     complete: (e: Event) => {
-                        resolve();
+                        resolve(e);
                     },
                     abort: (e: Event) => {
                         reject(e);
@@ -187,7 +187,7 @@ export class IndexedDB {
 
             request.onsuccess = (evt: Event) => {
                 cursorCallback(evt);
-                resolve();
+                resolve(evt);
             };
         });
     }
@@ -203,7 +203,7 @@ export class IndexedDB {
                         reject(e);
                     },
                     complete: (e: Event) => {
-                        resolve();
+                        resolve(e);
                     },
                     abort: (e: Event) => {
                         reject(e);
@@ -211,7 +211,7 @@ export class IndexedDB {
                 }),
                 objectStore = transaction.objectStore(storeName);
             objectStore.clear();
-            resolve();
+            resolve(null);
         });
     }
 

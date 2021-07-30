@@ -1075,7 +1075,7 @@ export class ResourceSetModal implements OnInit {
         public app: AppInfo,
         private cdr: ChangeDetectorRef,
         private sk: SignalKClient,        
-        public modalRef: MatBottomSheetRef<TracksModal>,
+        public modalRef: MatBottomSheetRef<ResourceSetModal>,
         @Inject(MAT_BOTTOM_SHEET_DATA) public data: any) {
     }
     
@@ -1118,6 +1118,7 @@ export class ResourceSetModal implements OnInit {
         }
         this.app.saveConfig();
         this.updateItems();
+        this.data.skres.resourceSelected();
     }
 
     clearSelections() {
@@ -1128,6 +1129,7 @@ export class ResourceSetModal implements OnInit {
         this.app.config.selections.resourceSets[this.data.path]= [];
         this.app.saveConfig();
         this.updateItems();
+        this.data.skres.resourceSelected();
     }
     
     updateItems() {

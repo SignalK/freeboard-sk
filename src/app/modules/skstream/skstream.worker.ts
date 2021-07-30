@@ -1,9 +1,9 @@
 /// <reference lib="webworker" />
 
 import { SignalKStreamWorker, Alarm } from 'signalk-worker-angular';
-import { SKVessel, SKAtoN, SKAircraft } from './modules/skresources/resource-classes';
-import { Convert } from './lib/convert';
-import { GeoUtils, Extent } from './lib/geoutils';
+import { SKVessel, SKAtoN, SKAircraft } from '../skresources/resource-classes';
+import { Convert } from '../../lib/convert';
+import { GeoUtils, Extent } from '../../lib/geoutils';
 
 type AisIds = Array<string>;
 
@@ -208,7 +208,14 @@ function handleCommand(data: any) {
                 else { v= vessels.aisTargets.get(data.options.context) }
                 if(v && data.options.name) { v.name= data.options.name }
             }
-            break;                                                        
+            break;
+        //** { cmd: 'auth', options: {token: string} }       
+        case 'auth':
+            console.log('Worker control: auth token...');
+            if(data.options) {
+                stream.authToken= data.options.token;
+            }
+            break;                                                       
     } 
 }
 
@@ -337,7 +344,6 @@ function actionAlarm(opt:any) {
 
 // ** process Signal K message **
 function parseStreamMessage(data:any) {
-
     if(stream.isHello(data)) {  // hello
         postMessage({
             action: 'hello', 
@@ -356,24 +362,23 @@ function parseStreamMessage(data:any) {
                 if(!data.context) { return }
                 switch(data.context.split('.')[0]) {
                     case 'shore':       // shore
-                        data.context= 'atons.' + data.context;
                     case 'atons':       // aids to navigation
-                        if(targetFilter.atons) {
+                        if(targetFilter?.atons) {
                             processAtoN(data.context, v);  
                         }
-                        filterContext(data.context, vessels.atons, targetFilter.atons);
+                        filterContext(data.context, vessels.atons, targetFilter?.atons);
                         break;          
                     case 'sar':  // search and rescue
-                        if(targetFilter.sar) {
+                        if(targetFilter?.sar) {
                             processSaR(data.context, v);
                         }
-                        filterContext(data.context, vessels.sar, targetFilter.sar);                                        
+                        filterContext(data.context, vessels.sar, targetFilter?.sar);                                        
                         break;
                     case 'aircraft':  // aircraft
-                        if(targetFilter.aircraft) {
+                        if( targetFilter?.aircraft) {
                             processAircraft(data.context, v);
                         }
-                        filterContext(data.context, vessels.aircraft, targetFilter.aircraft);                                        
+                        filterContext(data.context, vessels.aircraft, targetFilter?.aircraft);                                        
                         break;
 
                     case 'vessels':  // aircraft
@@ -382,11 +387,11 @@ function parseStreamMessage(data:any) {
                             processNotifications(v);
                         }
                         else { // other vessels
-                            if(targetFilter.vessels) {
+                            if(targetFilter?.vessels) {
                                 let oVessel= selectVessel(data.context);
                                 processVessel(oVessel, v);
                             }
-                            filterContext(data.context, vessels.aisTargets, targetFilter.vessels);
+                            filterContext(data.context, vessels.aisTargets, targetFilter?.vessels);
                         }
                         break;
                 }
@@ -446,7 +451,7 @@ function postUpdate(immediate:boolean=false) {
         // cleanup and extent calc
         if(extRecalcCounter==0) {
             processAISStatus();
-            if(vessels.self['positionReceived']) {
+            if(vessels.self['positionReceived'] && targetFilter?.maxRadius) {
                 targetExtent= GeoUtils.calcMapifiedExtent(
                     vessels.self.position,
                     targetFilter.maxRadius

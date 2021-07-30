@@ -9,9 +9,12 @@ import { AppInfo } from 'src/app/app.info';
 	selector: 'fb-experiments',
     template: `
         <mat-menu #experimentsmenu="matMenu">
-            <a mat-menu-item (click)="handleSelect('grib')">
+            <!--<a mat-menu-item (click)="handleSelect('grib')">
                 <mat-icon>filter_drama</mat-icon>
                 <span>GRIB Data</span>			
+            </a>-->
+            <a mat-menu-item>
+                <span>None Available</span>	
             </a>
         </mat-menu>
 

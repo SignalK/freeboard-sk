@@ -15,6 +15,7 @@ export class ChartListComponent {
     @Output() select: EventEmitter<any>= new EventEmitter();
     @Output() refresh: EventEmitter<any>= new EventEmitter();
     @Output() closed: EventEmitter<any>= new EventEmitter();
+    @Output() orderChange: EventEmitter<any>= new EventEmitter();
 
     filterList= [];
     filterText= '';
@@ -89,7 +90,9 @@ export class ChartListComponent {
         this.dialog.open( ChartInfoDialog, { data: ch });
     }
 
-    showChartLayers(show:boolean=false) { this.displayChartLayers= show } //this.dialog.open(ChartLayersDialog) }
+    showChartLayers(show:boolean=false) { this.displayChartLayers= show }
+
+    handleOrderChange(e:any) { this.orderChange.emit(e) }
 }
 
 /********* ChartLayersList***********/
@@ -177,6 +180,8 @@ export class ChartListComponent {
 })
 export class ChartLayers implements OnInit {
 
+    @Output() changed: EventEmitter<any>= new EventEmitter();
+
     constructor( public app:AppInfo ) {
     }
 
@@ -193,6 +198,8 @@ export class ChartLayers implements OnInit {
         this.app.data.charts= this.chartList.slice().reverse();
         this.app.config.selections.chartOrder= this.app.data.charts.map( i=> { return i[0] });
         this.app.saveConfig();
+        this.changed.emit(this.app.config.selections.chartOrder);
+        
     }
     
     isLocal(url:string) { return (url && url.indexOf('signalk')!=-1) ? 'map' : 'language' }

@@ -6,7 +6,9 @@ export * from './alarms/alarms.module'
 export * from './skresources/resources.module'
 export * from './map/map.module'
 export * from './utils/utils.module'
-export * from './experiments/experiments.module'
 export * from './course/course.module'
-
+export * from './trail2route/trail2route.module'
 export * from './skstream/skstream.module'
+
+export * from './experiments/experiments.module'
+

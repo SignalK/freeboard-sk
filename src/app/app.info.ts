@@ -12,6 +12,8 @@ import { Subject, Observable } from 'rxjs';
 import { IndexedDB } from './lib/info/indexeddb';
 import { SignalKClient } from 'signalk-client-angular';
 import { SKVessel } from './modules/skresources/resource-classes';
+import { SKChart } from './modules/skresources/resource-classes';
+import { SKStreamProvider } from './modules/skstream/skstream.service';
 
 // ** Configuration template** 
 const FreeboardConfig= {      
@@ -97,6 +99,31 @@ const FreeboardConfig= {
     }
 } 
 
+// ** default OSM charts **
+export const OSM= [
+    [
+        'openstreetmap',
+        new SKChart({
+            name: 'World Map',
+            description: 'Open Street Map'
+        }),
+        true
+    ],        
+    [
+        'openseamap', 
+        new SKChart({
+            name: 'Sea Map',
+            description: 'Open Sea Map',
+            tilemapUrl: 'https://tiles.openseamap.org/seamark/{z}/{x}/{y}.png',
+            minzoom: 12,
+            maxzoom: 18,
+            bounds: [-180, -90, 180, 90],
+            type: 'tilelayer'
+        }), 
+        true
+    ],     
+];
+
 @Injectable({ providedIn: 'root' })
 export class AppInfo extends Info {
 
@@ -118,6 +145,7 @@ export class AppInfo extends Info {
     }
 
     constructor( public signalk: SignalKClient,
+                private stream: SKStreamProvider,
                 private dialog: MatDialog,
                 private snackbar: MatSnackBar) {
         super();
@@ -137,7 +165,7 @@ export class AppInfo extends Info {
         this.name= "Freeboard";
         this.shortName= "freeboard";
         this.description= `Signal K Chart Plotter.`;
-        this.version= '1.16.3';
+        this.version= '1.17.0';
         this.url= 'https://github.com/signalk/freeboard-sk';
         this.logo= "./assets/img/app_logo.png";   
         
@@ -149,13 +177,14 @@ export class AppInfo extends Info {
         // ** received data
         this.data= {
             loggedIn: false,
-            grib: {
+            loginRequired: false,
+            /*grib: {
                 hasProvider: false,
                 values: { wind: null, temperature: null}
-            },
+            },*/
             routes: [],
             waypoints: [],
-            charts: [],
+            charts: [].concat(OSM),
             alarms: new Map(),
             notes: [],
             resourceSets: {},   // additional resource sets
@@ -198,7 +227,8 @@ export class AppInfo extends Info {
                 pointTotal: 0,
                 arrivalCircle: null,
                 startPosition: null,
-                pointNames: []
+                pointNames: [],
+                destPointName: ''
             },
             anchor: {       // ** anchor watch
                 raised: true,
@@ -254,7 +284,7 @@ export class AppInfo extends Info {
         }
 
         // ** check for internet connection **
-        window.fetch('https://tiles.openseamap.org/seamark/')
+        window.fetch('https://tile.openstreetmap.org') //'https://tiles.openseamap.org/seamark/')
         .then( (r:any)=> {
             console.info('Internet connection detected.');
         })
@@ -276,12 +306,24 @@ export class AppInfo extends Info {
     persistToken(value:string) {
         if(value) {
             this.signalk.authToken= value;
+            this.stream.postMessage({ 
+                cmd: 'auth',
+                options: { 
+                    token: value
+                }
+            });
             document.cookie = `sktoken=${value}; SameSite=Strict`;
             this.data.hasToken= true; // hide login menu item
         }
         else {
             this.data.hasToken= false; // show login menu item
             this.signalk.authToken= null;
+            this.stream.postMessage({ 
+                cmd: 'auth',
+                options: { 
+                    token: null
+                }
+            });
         }
     }
     
@@ -536,14 +578,29 @@ export class AppInfo extends Info {
             'whats-new': [
                 {
                     type: 'signalk-server-node',
-                    title: 'Deprecation Notice',
+                    title: 'Web Audio Autoplay',
                     message: `
-                        Not all experiments are destined to reach the main product 
-                        and the GRIB experiment will be removed in the next release.
+                        Browsers suspend the playing of audio until there has been user interaction
+                        preventing alarm audio from being heard.<br>
+                        Freeboard now shows when web audio is suspended and allows it to be enabled.
+                    `
+                },
+                {
+                    type: 'signalk-server-node',
+                    title: 'Trail to Route',
+                    message: `
+                        You can now transform your vessel trail to a route.<br>
+                        Select <i>Trail to Route</i> from the <b>...</b> menu.
                         <br>&nbsp;<br>
-                        GRIB wind and temperature overlays required GRIB2JSON formatted data hosted
-                        on the Signal K server by the freeboard-sk-helper plugin. This is better suited 
-                        to a tile data source akin to charts.
+                        Check out <a href="assets/help/index.html#display" target="help">HELP</a> 
+                        for more details.
+                    `
+                },
+                {
+                    type: 'signalk-server-node',
+                    title: 'GRIB Experiment',
+                    message: `
+                        The GRIB Experiment has been deprecated and is no longer avaialable.
                     `
                 }                
             ]           

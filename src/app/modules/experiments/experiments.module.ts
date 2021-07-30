@@ -11,12 +11,12 @@ import { MatMenuModule } from '@angular/material/menu';
 import { AppUIModule } from 'src/app/lib/app-ui';
 
 // ** components **
-import { ExperimentsComponent } from './experiments';
+import { ExperimentsComponent } from './experiments'
 
 @NgModule({
     imports: [
         CommonModule, MatMenuModule,
-        MatIconModule, MatButtonModule, 
+        MatIconModule, MatButtonModule,
         MatTooltipModule, AppUIModule
       ],    
     declarations: [

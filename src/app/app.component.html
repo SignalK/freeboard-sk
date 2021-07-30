@@ -124,6 +124,11 @@
                 <mat-icon>clear_all</mat-icon>
                 <span>{{app.data.serverTrail ? 'Refresh' : 'Clear'}} Trail</span>			
             </a>
+            <a mat-menu-item *ngIf="app.config.vesselTrail && app.data.trail.length!=0" 
+                (click)="trailToRoute()">
+                <mat-icon>insights</mat-icon>
+                <span>Trail to Route</span>			
+            </a>
             <button mat-menu-item 
                 (click)="deactivateRoute()">
                 <mat-icon>clear_all</mat-icon>
@@ -346,6 +351,7 @@
                     <chart-list *ngIf="display.chartList"
                         [charts]="app.data.charts" 
                         (select)="skres.chartSelected($event)"
+                        (orderChange)="skres.chartOrder($event)"
                         (refresh)="skres.getCharts()"
                         (closed)="displayLeftMenu()">
                     </chart-list>   
@@ -380,6 +386,18 @@
                 <!--map panel-->
                 <div style="display: relative; width: 100%; height: 100%;" 
                     (dragover)="mapDragOver($event)" (drop)="mapDrop($event)">
+
+                    <div *ngIf="display.audio.state!='running'" style="z-index:1000;position: absolute; top: 10px; right:70px;">
+                        <button (click)="enableAudio()" style="display:flex;">
+                            <div>
+                                <mat-icon color="warn">volume_off</mat-icon>
+                            </div>
+                            <div>
+                                Web Audio off<br>
+                                Click to enable.
+                            </div>
+                        </button>
+                    </div>
 
                     <!-- utilities panel -->
                     <div class="rightUtilsPanel">
@@ -431,6 +449,7 @@
                         [vesselTrail]="app.data.trail"
                         [measureMode]="measure.enabled"
                         [activeRoute]="app.data.activeRoute"
+                        [dblClickZoom]="app.config.mapDoubleClick"
                         (measureStart)="measureStart()"
                         (measureEnd)="measure.enabled=false"
                         [drawMode]="draw.mode"
@@ -443,11 +462,11 @@
                         (exitedMovingMap)="toggleMoveMap($event)"
                         (focusVessel)="switchActiveVessel($event)"
                         (info)="featureProperties($event)"
-                        (anchor)="sidemenu.close();displayLeftMenu('anchorWatch',true)">
+                        (anchor)="sidemenu.close();displayLeftMenu('anchorWatch',true)"
+                        (trail2route)="trailToRoute()">
                     </fb-map>
-                    <!-- *** /MAP *** -->     
-
                 </div>
+                <!--/map panel-->
 
                 <!-- North Arrow -->
                 <div style="position: absolute; top: 60px; left:10px; 
@@ -455,8 +474,7 @@
                     <img #northArrow src="./assets/img/north_arrow.svg" 
                         [style.transform]="getOrientation()"
                         style="width:50px;"/>            
-                </div>                      
-                <!--/map panel-->
+                </div>
 
                 <!-- Draw / Measure Help -->
                 <div *ngIf="draw.enabled || draw.modify || measure.enabled"
@@ -502,7 +520,7 @@
                                         margin-block-end: .2em;
                                         padding-inline-start: 15px;">
                                     <li>Click and drag to move point.</li>
-                                    <li>Alt-Click to remove point from line.</li>
+                                    <li>Ctrl-Click to remove point from line.</li>
                                 </ol>
                             </div> 
                         </div>                 
@@ -544,11 +562,11 @@
                 <div class="alarmPanel">
                     <span *ngFor="let a of alarmsFacade.alarms | keyvalue" style="margin-bottom: 5px;">
                         <ap-alarm [alarm]="a" 
-                            (mute)="alarmsFacade.muteAlarm($event)"
-                            (acknowledge)="alarmsFacade.acknowledgeAlarm($event)"
-                            (unacknowledge)="alarmsFacade.unAcknowledgeAlarm($event)"
-                            (clear)="alarmsFacade.clearAlarm($event)"
-                            (open)=" openAlarmsDialog($event)">
+                            (mute)="alarmsFacade.muteAlarm($event);focusMap()"
+                            (acknowledge)="alarmsFacade.acknowledgeAlarm($event);focusMap()"
+                            (unacknowledge)="alarmsFacade.unAcknowledgeAlarm($event);focusMap()"
+                            (clear)="alarmsFacade.clearAlarm($event);focusMap()"
+                            (open)=" openAlarmsDialog()">
                         </ap-alarm>
                         <audio loop *ngIf="a.value.sound"
                             [src]="(['nominal','warn'].includes(a.value.state)) ? './assets/sound/ding.mp3' : './assets/sound/woop.mp3'" 
@@ -610,7 +628,7 @@
                 </div>
 
                 <!-- *** Bottom sheet panel ***-->
-                <div class="mat-app-background bottomSheet" *ngIf="display.bottomSheet.show">
+                <!--<div class="mat-app-background bottomSheet" *ngIf="display.bottomSheet.show">
                     <div style="display:flex;">
                         <div class="title">
                             {{display.bottomSheet.title}}
@@ -627,9 +645,9 @@
                             [zoomLevel]="app.config.map.zoomLevel" 
                             [minZoom]="4"
                             (change)="selectGRIB($event)">
-                        </grib-panel>    
+                        </grib-panel>   
                     </div>        
-                </div>                
+                </div> -->             
             
             </mat-sidenav-container>
         </div>

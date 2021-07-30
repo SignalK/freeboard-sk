@@ -35,7 +35,15 @@ export class SKStreamFacade  {
         // ** SIGNAL K STREAM **
         this.stream.message$().subscribe(
             (msg:any)=> {
-                if(msg.action=='open') { this.onConnect.next(msg) }  
+                if(msg.action=='open') { 
+                    this.post({ 
+                        cmd: 'auth',
+                        options: { 
+                            token: this.app.getToken()
+                        }
+                    });
+                    this.onConnect.next(msg);
+                }  
                 else if(msg.action=='close') { this.onClose.next(msg) }  
                 else if(msg.action=='error') { this.onError.next(msg) }
                 else { 

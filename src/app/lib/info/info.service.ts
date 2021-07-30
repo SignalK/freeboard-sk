@@ -51,24 +51,10 @@ export class Info {
     }
 
     //** write debug information to console in devMode only **
-    debug(e:any, mode: string='log') {
+    debug(...e:any) {
+        e.unshift('debug:');
         if(this.devMode) {
-            switch(mode) {
-                case 'info':
-                    console.info(e);
-                    break;
-                 case 'warn':
-                    console.warn(e);
-                    break;
-                case 'error':
-                    console.error(e);  
-                    break;
-                case 'trace':
-                    console.trace(e);  
-                    break;                 
-                default:
-                    console.log(e);
-            }  
+            console.info(...e); 
         }
     }
 

@@ -102,7 +102,7 @@ export class GeoUtils {
     }   
 
     //** Calculate the centre of polygon	
-    static centreOfPolygon(coords:Array<Position>) { 
+    static centreOfPolygon(coords:Array<Position>): Position { 
         let high:[number,number]= [-180,-90]; 
         let low:[number,number]= [180,90];
         coords.forEach( c=> {
@@ -123,6 +123,17 @@ export class GeoUtils {
         ];
     } 
 
+    // ** calculate extent from array ot coordinates
+    static calulateExtent(line: Array<Position>): Extent {
+        let res: Extent= [180,90,-180,-90];
+        line.forEach( (c:Position)=> {
+            res[0]= c[0]<res[0] ? c[0] : res[0];
+            res[1]= c[1]<res[1] ? c[1] : res[1];
+            res[2]= c[0]>res[2] ? c[0] : res[2];
+            res[3]= c[1]>res[3] ? c[1] : res[3];
+        });
+        return res;
+    }
 
     /** DateLine Crossing:
      * returns true if point is in the zone for dateline transition 

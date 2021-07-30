@@ -77,8 +77,8 @@ mat-nav-list {
     position: absolute;
     z-index: 4902;
     top: 55px;
-    left: 33%;
-    right: auto;
+    left: 15%;
+    right: 15%;
 }
 
 .playbackPanel {
@@ -157,11 +157,7 @@ mat-nav-list {
     display: block;
 } 
 
-@media only screen and (max-width: 650px) { 
-    .alarmPanel {
-        left: 15%;
-        right: 15%;
-    }  
+@media only screen and (max-width: 650px) {  
     .bottomSheet {
         left: 0;
         min-width: 100%;

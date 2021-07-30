@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
-
+import { Subject, Observable } from 'rxjs';
 import { SignalKClient } from 'signalk-client-angular';
 import { AppInfo } from 'src/app/app.info';
 import { SKResourceSet } from './resource-set';
@@ -9,6 +9,9 @@ import { SKResourceSet } from './resource-set';
 // ** Signal K custom / other resource(s) operations
 @Injectable({ providedIn: 'root' })
 export class SKOtherResources {
+
+    private updateSource: Subject<any>= new Subject<any>();  
+    public update$(): Observable<any> { return this.updateSource.asObservable() }; 
 
     constructor( public dialog: MatDialog,
         public signalk: SignalKClient, 
@@ -82,5 +85,7 @@ export class SKOtherResources {
         });
         return items;
     }
+
+    resourceSelected() { this.updateSource.next({action: 'selected', mode: 'resource-set'}) }
 
 }

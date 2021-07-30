@@ -1,4 +1,4 @@
-import { Component, OnInit, Inject } from '@angular/core';
+import { Component, OnInit, Inject, ElementRef } from '@angular/core';
 import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 
 import { SettingsFacade } from './settings.facade';
@@ -14,19 +14,20 @@ export class SettingsDialog implements OnInit {
 
     public display= { paths: false, favourites: false }
     public menuItems= [
-       {href: "#sectDisplay", text: 'Display'},
-       {href: "#sectunits", text: 'Units & Values'},
-       {href: "#sectVessels", text: 'Vessels'},
-       {href: "#sectNotes", text: 'Notes'},
-       {href: "#sectVideo", text: 'Video'},
-       {href: "#sectResLayers", text: 'Resources'},
-       {href: "#sectSKConnection", text: 'Signal K'}
+       {id: 'sectDisplay', text: 'Display'},
+       {id: 'sectUnits', text: 'Units & Values'},
+       {id: 'sectVessels', text: 'Vessels'},
+       {id: 'sectNotes', text: 'Notes'},
+       {id: 'sectVideo', text: 'Video'},
+       {id: 'sectResLayers', text: 'Resources'},
+       {id: 'sectResLayers', text: 'Signal K'}
     ];
 
     private saveOnClose: boolean= false;
      
     constructor( 
         public facade: SettingsFacade,
+        public myElement: ElementRef,
         public dialogRef: MatDialogRef<SettingsDialog>,
         @Inject(MAT_DIALOG_DATA) public data: any) { }
     
@@ -36,6 +37,18 @@ export class SettingsDialog implements OnInit {
     }
 
     ngOnDestroy() { }
+
+    jumpTo(id:string, wait: boolean= false) {
+        if(wait) {
+            setTimeout( 
+                ()=> this.jumpTo(id, false),
+                50
+            );
+        }
+        else {
+            this.myElement.nativeElement.ownerDocument.getElementById(id).scrollIntoView({behavior: 'smooth'});
+        }
+    }
 
     // ** handle dialog close action
     handleClose() { this.dialogRef.close(this.saveOnClose) }

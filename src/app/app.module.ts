@@ -1,10 +1,9 @@
+
 import { BrowserModule } from '@angular/platform-browser';
 import { NgModule } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { HttpClientModule } from '@angular/common/http';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
-// ***
-import { AngularOpenlayersModule } from 'ngx-openlayers';
 // ***
 import { AppComponent } from './app.component';
 import { AppMaterialModule } from './lib/app-material.module';
@@ -24,11 +23,11 @@ import { SettingsModule, GPXLoadModule, GeoJSONModule, AlarmsModule, Experiments
     AppMaterialModule, AppUIModule, ExperimentsModule,
     SignalKResourcesModule, FBMapModule, CourseModule,
     GPXLoadModule, GeoJSONModule, SettingsModule, 
-    AlarmsModule, SKStreamModule,
-    AngularOpenlayersModule
+    AlarmsModule, SKStreamModule
   ],
   exports: [],
   providers: [],
   bootstrap: [ AppComponent ]
 })
 export class AppModule { }
+

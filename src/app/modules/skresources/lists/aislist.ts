@@ -96,6 +96,6 @@ export class AISListComponent {
         });
     }
 
-    focus(id:string) { this.focusVessel.emit(id) }
+    focus(id?:string) { this.focusVessel.emit(id) }
 
 }
