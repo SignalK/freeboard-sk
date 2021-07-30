@@ -1,6 +1,6 @@
 // ** Default Profile Vessel popover **
 
-import { Component, Input, Output, EventEmitter, ChangeDetectionStrategy } from '@angular/core';
+import { Component, Input, Output, EventEmitter, ChangeDetectionStrategy, SimpleChanges } from '@angular/core';
 import { AppInfo } from 'src/app/app.info';
 import { SKVessel } from 'src/app/modules/skresources/resource-classes';
 import { Convert } from 'src/app/lib/convert';
@@ -130,17 +130,15 @@ export class VesselPopoverComponent {
 
     ngOnInit() { 
         if(!this.vessel) { this.handleClose() } 
-        else {
-            this._title= this.title || this.vessel.name || this.vessel.mmsi || this.vessel.callsign || 'Vessel:';
-        }
     }
 
-    ngOnChanges(changes) { 
+    ngOnChanges(changes:SimpleChanges) { 
         if(changes.vessel) {
             if(!changes.vessel.currentValue) { 
                 this.handleClose();
                 return;
             }
+            this._title= this.title || this.vessel.name || this.vessel.mmsi || this.vessel.callsign || 'Vessel:';
             this.position= [
                 changes.vessel.currentValue.position[0],
                 changes.vessel.currentValue.position[1]

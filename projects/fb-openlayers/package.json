@@ -1,0 +1,30 @@
+{
+  "name": "fb-openlayers",
+  "description": "Fork of ng-openlayers-lib for Freeboard-SK",
+  "license": "Apache-2.0",
+  "version": "1.0.0",
+  "author": {
+    "name": "AdrianP"
+  },
+  "keywords": [
+    "angular",
+    "openlayers",
+    "ol",
+    "ol6",
+    "freeboard",
+    "freeboard-sk"
+  ],
+  "dependencies": {
+    "tslib": "^2.0.0"
+  },
+  "devDependencies": {
+    "@types/ol": "^6.5.0",
+    "ol": "^6.5.0",
+    "proj4": "^2.7.2",
+    "rxjs": "~6.5.5"
+  },
+  "peerDependencies": {
+    "ol": "^6.5.0",
+    "proj4": "^2.7.2"
+  }
+}
