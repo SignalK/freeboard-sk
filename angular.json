@@ -3,9 +3,13 @@
   "version": 1,
   "newProjectRoot": "projects",
   "projects": {
-    "freeboard": {
+    "freeboard-sk": {
       "projectType": "application",
-      "schematics": {},
+      "schematics": {
+        "@schematics/angular:component": {
+          "style": "scss"
+        }
+      },
       "root": "",
       "sourceRoot": "src",
       "prefix": "app",
@@ -18,20 +22,23 @@
             "main": "src/main.ts",
             "polyfills": "src/polyfills.ts",
             "tsConfig": "tsconfig.app.json",
-            "aot": false,
             "assets": [
-                "src/favicon.ico",
-                "src/assets",
-                "src/manifest.json", 
-                "src/browserconfig.xml"
+              "src/favicon.ico",
+              "src/assets",
+              "src/manifest.json", 
+              "src/browserconfig.xml"
             ],
             "styles": [
-                {
-                    "input": "src/app-theme.scss"
-                },
-              "src/styles.css"
+              "src/app-theme.scss",
+              "src/styles.scss"
             ],
             "scripts": [],
+            "vendorChunk": true,
+            "extractLicenses": false,
+            "buildOptimizer": false,
+            "sourceMap": true,
+            "optimization": false,
+            "namedChunks": true,
             "webWorkerTsConfig": "tsconfig.worker.json"
           },
           "configurations": {
@@ -45,9 +52,7 @@
               "optimization": true,
               "outputHashing": "all",
               "sourceMap": false,
-              "extractCss": true,
               "namedChunks": false,
-              "aot": true,
               "extractLicenses": true,
               "vendorChunk": false,
               "buildOptimizer": true,
@@ -56,6 +61,11 @@
                   "type": "initial",
                   "maximumWarning": "2mb",
                   "maximumError": "5mb"
+                },
+                {
+                  "type": "anyComponentStyle",
+                  "maximumWarning": "6kb",
+                  "maximumError": "10kb"
                 }
               ]
             }
@@ -64,18 +74,18 @@
         "serve": {
           "builder": "@angular-devkit/build-angular:dev-server",
           "options": {
-            "browserTarget": "freeboard:build"
+            "browserTarget": "freeboard-sk:build"
           },
           "configurations": {
             "production": {
-              "browserTarget": "freeboard:build:production"
+              "browserTarget": "freeboard-sk:build:production"
             }
           }
         },
         "extract-i18n": {
           "builder": "@angular-devkit/build-angular:extract-i18n",
           "options": {
-            "browserTarget": "freeboard:build"
+            "browserTarget": "freeboard-sk:build"
           }
         },
         "test": {
@@ -90,9 +100,11 @@
               "src/assets"
             ],
             "styles": [
-              "src/styles.css"
+              "./node_modules/@angular/material/prebuilt-themes/indigo-pink.css",
+              "src/styles.scss"
             ],
-            "scripts": []
+            "scripts": [],
+            "webWorkerTsConfig": "tsconfig.worker.json"
           }
         },
         "lint": {
@@ -101,8 +113,7 @@
             "tsConfig": [
               "tsconfig.app.json",
               "tsconfig.spec.json",
-              "e2e/tsconfig.json",
-              "tsconfig.worker.json"
+              "e2e/tsconfig.json"
             ],
             "exclude": [
               "**/node_modules/**"
@@ -113,15 +124,55 @@
           "builder": "@angular-devkit/build-angular:protractor",
           "options": {
             "protractorConfig": "e2e/protractor.conf.js",
-            "devServerTarget": "freeboard:serve"
+            "devServerTarget": "freeboard-sk:serve"
           },
           "configurations": {
             "production": {
-              "devServerTarget": "freeboard:serve:production"
+              "devServerTarget": "freeboard-sk:serve:production"
             }
           }
         }
       }
+    },
+    "fb-openlayers": {
+      "projectType": "library",
+      "root": "projects/fb-openlayers",
+      "sourceRoot": "projects/fb-openlayers/src",
+      "prefix": "lib",
+      "architect": {
+        "build": {
+          "builder": "@angular-devkit/build-angular:ng-packagr",
+          "options": {
+            "tsConfig": "projects/fb-openlayers/tsconfig.lib.json",
+            "project": "projects/fb-openlayers/ng-package.json"
+          }
+        ,          "configurations": {
+            "production": {
+              "tsConfig": "projects/fb-openlayers/tsconfig.lib.prod.json"
+            }
+          }
+},
+        "test": {
+          "builder": "@angular-devkit/build-angular:karma",
+          "options": {
+            "main": "projects/fb-openlayers/src/test.ts",
+            "tsConfig": "projects/fb-openlayers/tsconfig.spec.json",
+            "karmaConfig": "projects/fb-openlayers/karma.conf.js"
+          }
+        },
+        "lint": {
+          "builder": "@angular-devkit/build-angular:tslint",
+          "options": {
+            "tsConfig": [
+              "projects/fb-openlayers/tsconfig.lib.json",
+              "projects/fb-openlayers/tsconfig.spec.json"
+            ],
+            "exclude": [
+              "**/node_modules/**"
+            ]
+          }
+        }
+      }
     }},
-  "defaultProject": "freeboard"
+  "defaultProject": "freeboard-sk"
 }

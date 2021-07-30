@@ -10,7 +10,7 @@ describe('workspace-project App', () => {
 
   it('should display welcome message', () => {
     page.navigateTo();
-    expect(page.getTitleText()).toEqual('Welcome to freeboard!');
+    expect(page.getTitleText()).toEqual('freeboard-sk8 app is running!');
   });
 
   afterEach(async () => {
