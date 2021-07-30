@@ -1,7 +1,13 @@
+.browserslistrc
 angular.json
 e2e
+karma.conf.js
 package-lock.json
 package.json
+projects
 src
 tsconfig.json
+tsconfig.app.json
+tsconfig.spec.json
+tsconfig.worker.json
 tslint.json
