@@ -184,12 +184,18 @@
                     <li class="nobullet"><i class="material-icons">more_horiz</i>
                         <b>More Actions:</b>
                         <ul>
-                            <li>Show / Hide Vessels</li>
                             <li>Clear / Refresh Vessel Trail: When trail is available from the server
                                 selecting this menu item will reload the trail from the server.
                             </li>
-                            <li>Show / Hide / Clear Course Data</li>
-                            <li>Clear Active Route</li>
+                            <li>Clear Destintation / Active Route: clears active destination or de-activates
+                                an active route.
+                            </li>
+                            <li>Clear Course Data: clears the current course data.</li>
+                            <li>Trail to Route: create a route from the current vessel trail.</li>
+                            <li>Show / Hide Course Data: Toggle the display of course data.</li>
+                            <li>Show / Hide Vessels: Toggle the display of other vessels.</li>                        
+                            <li>Show / Hide Notes: Toggle the display of notes.</li>
+                            <li>Settings: Open the <a href="#settings">Settings</a> screen.</li>
                         </ul>
                     </li>     
                     <li><b>Context "Right click" Menu :</b> 
@@ -390,6 +396,37 @@
                                     </li>
                                 </div>
                             
+                        </div>
+                        <div>
+                            <b>Trail to Route</b><br>
+                            <hr>
+                            You can create a route from the current Vessel trail by selecting the option from either 
+                            the context menu or the <i class="material-icons">more_horiz</i> menu.<br>
+                            <img src="./img/context_menu.png" style="max-width:190px;"/>
+                            <ul>
+                                <li>
+                                    The Trail to Route screen is displayed and the route generated from 
+                                    the locally stored vessel trail is shown.<br>
+                                    <img src="./img/trail2route.png" style="max-width:190px;"/><br>
+                                </li>
+                                <li>
+                                    Check the <b>Include trail from server</b> if you want to include trail data 
+                                    stored on the server.<br>
+                                    <i>
+                                        Recommended if you have the <b>Get Trail from server</b> 
+                                        option checked in <b>Settings</b>.
+                                    </i>
+                                </li>
+                                <li>
+                                    Slide the <i>tolerance</i> control to vary the conversion algorithm 
+                                    in order to get the desired point distribution.
+                                </li>
+                                <li>
+                                    Once satisfied with the generated route click <i>Save</i> to save 
+                                    the route to the Signal K server.
+                                </li>
+                            </ul>
+
                         </div>
                     </div>       
                     <hr>  
@@ -1302,10 +1339,10 @@
                 <p><i>Note:</i> For experiments that require Signal K server support you will be required 
                     to have the <i>sk-resources-fs</i> plugin installed on the Signal K server.
                 </p>
-                <p>
+                <!--<p>
                     Current experiments include:<br>
                     <li>GRIB wind / temperature data display</li>
-                </p>
+                </p>-->
             </div>
         
         </div>

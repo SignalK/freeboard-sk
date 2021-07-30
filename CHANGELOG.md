@@ -1,5 +1,17 @@
 # CHANGELOG: Freeboard
 
+### v1.17.0
+
+- **Add**: Create Route from vessel trail.
+
+- **Fix**: Added UI indication when web audio playback is suspended. This is to address the situation where browser will not allow autoplay of audio without user inter-action.
+
+- **Update**: Upgrade to Angular 12 
+
+- **Update**: Completely re-written Map components using OpenLayers 6.5
+
+- **Deprecated**: GRIB experiment.
+
 ### v1.16.3
 
 - **Update**: Auto-reconnect to Signal K server if stream connection is lost. (closes #97)
