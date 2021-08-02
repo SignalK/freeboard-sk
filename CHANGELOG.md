@@ -4,11 +4,15 @@
 
 - **Add**: Create Route from vessel trail.
 
-- **Fix**: Added UI indication when web audio playback is suspended. This is to address the situation where browser will not allow autoplay of audio without user inter-action.
+- **Fix**: Modern browsers do not allow audio to autoplay without user interaction. This can cause alarms not to sound if they are active upon app start. A warning is now displayed if web audio is detected to be in a suspended state upon app start.
 
-- **Update**: Upgrade to Angular 12 
+- **Update**: Alarm panel uses Signal K api PUT rather than stream delta to raise and clear alarms. _(Requires freeboard-sk-helper v1.4.0 or later)_
 
-- **Update**: Completely re-written Map components using OpenLayers 6.5
+- **Update**: Upgrade to Angular 12.
+
+- **Update**: Updated Signal K client. _(Requires signalk-client-angular v1.8.0 or later)_
+
+- **Update**: Completely re-written Map components using OpenLayers 6.5. `fb-openlayers` library source code is located in the `project` folder.
 
 - **Deprecated**: GRIB experiment.
 
