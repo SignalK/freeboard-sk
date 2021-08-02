@@ -70,8 +70,6 @@ export class AppComponent {
 
     private timers= [];
 
-    private audioContext: AudioContext;
-
     // ** external resources **
     private lastInstUrl: string;
     private lastInstParams: string;
@@ -112,17 +110,20 @@ export class AppComponent {
         );      
     }
 
-    enableAudio() { if(this.audioContext) { this.audioContext.resume() } }
+    enableAudio() { 
+        if(this.app.audio.context) { 
+            this.app.audio.context.resume();
+        } 
+    }
 
     ngOnInit() {
         // ** audio context handing ** 
-        this.audioContext = new AudioContext();
-        this.display.audio.state= this.audioContext.state;
+        this.display.audio.state= this.app.audio.context.state;
         this.app.debug('audio state:', this.display.audio.state);
-        this.audioContext.addEventListener('statechange', ()=> {
-            this.app.debug('audio statechange:', this.audioContext.state);
-            this.display.audio.state= this.audioContext.state;
-        });
+        this.app.audio.context.onstatechange= ()=> {
+            this.app.debug('audio statechange:', this.app.audio.context.state);
+            this.display.audio.state= this.app.audio.context.state;
+        }
 
         // ** apply loaded app config	
         this.display.map.center= this.app.config.map.center;

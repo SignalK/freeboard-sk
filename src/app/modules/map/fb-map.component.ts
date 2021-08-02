@@ -3,7 +3,7 @@ import { MatMenuTrigger } from '@angular/material/menu';
 
 import { transform, toLonLat } from 'ol/proj';
 import { Style, Stroke, Fill } from 'ol/style';
-import { Collection } from 'ol';
+import { Collection, Feature } from 'ol';
 
 import { Convert } from 'src/app/lib/convert';
 import { GeoUtils, Position } from 'src/app/lib/geoutils';
@@ -19,7 +19,6 @@ import { mapInteractions, mapControls,
         aircraftStyles, sarStyles,
         waypointStyles, noteStyles,
         anchorStyles, destinationStyles} from './mapconfig';
-import { Trail2RouteDialog } from 'src/app/modules/trail2route/trail2route-dialog';
 
 interface IResource {
     id: string;
@@ -573,95 +572,91 @@ export class FBMapComponent implements OnInit, OnDestroy {
             if(!this.app.config.popoverMulti) { this.overlay.show= false }
             let flist= new Map();
             let fa= [];
-            // compile list of features at click location
-            e.map.forEachFeatureAtPixel(
-                e.pixel, 
-                (feature, layer)=> {
-                    let id= feature.getId();
-                    let addToFeatureList: boolean= false;
-                    let notForModify: boolean= false;
-                    if(id && typeof id === 'string') {
-                        let t= id.split('.');
-                        let icon: string;
-                        let text: string;
-                        switch(t[0]) {
-                            case 'dest':
-                                addToFeatureList= true;
-                                icon= "flag";
-                                text= "Destination";
-                                break;
-                            case 'note': 
-                                icon= "local_offer"; 
-                                addToFeatureList= true;
-                                text= this.app.data.notes.filter( i=>{ return (i[0]==t[1])? i[1].title : null })[0][1].title;
-                                break;
-                            case 'sptroute':    // route start / end points
-                            case 'eptroute':
-                                icon="directions"; 
-                                t[0]='route';
-                                id= t.join('.');
-                                addToFeatureList= true;
-                                notForModify= true;
-                                text= this.app.data.routes.filter( i=>{ return (i[0]==t[1])? i[1].name : null })[0][1].name;
-                                break;                            
-                            case 'route': icon="directions"; 
-                                addToFeatureList= true;
-                                text= this.app.data.routes.filter( i=>{ return (i[0]==t[1])? i[1].name : null })[0][1].name;
-                                break;
-                            case 'waypoint': icon="location_on"; 
-                                addToFeatureList= true;
-                                text= this.app.data.waypoints.filter( i=>{ return (i[0]==t[1])? i[1].feature.properties.name : null })[0][1].feature.properties.name;
-                                break;
-                            case 'atons': 
-                            case 'aton': 
-                                icon="beenhere"; 
-                                addToFeatureList= true;
-                                let aton= this.app.data.atons.get(id);
-                                text= (aton) ? aton.name || aton.mmsi : '';
-                                break;           
-                            case 'sar': 
-                                icon="tour"; 
-                                addToFeatureList= true;
-                                let sar= this.app.data.sar.get(id);
-                                text= (sar) ? sar.name || sar.mmsi : 'SaR Beacon';
-                                break;                                                    
-                            case 'ais-vessels': icon="directions_boat"; 
-                                addToFeatureList= true;
-                                let v= this.dfeat.ais.get(`vessels.${t[1]}`);
-                                text= (v) ? v.name || v.mmsi: '';
-                                break;
-                            case 'vessels': icon="directions_boat"; 
-                                addToFeatureList= true;
-                                text= this.dfeat.self.name ? this.dfeat.self.name + ' (self)' : 'self'; 
-                                break;
-                            case 'region': 
-                                addToFeatureList= true;
-                                icon="360"; text='Region'; break;
-                            case 'aircraft':
-                                icon="airplanemode_active"; 
-                                addToFeatureList= true;
-                                let aircraft= this.app.data.aircraft.get(id);
-                                text= (aircraft) ? aircraft.name || aircraft.mmsi : '';
-                                break;  
+            // process list of features at click location
+            e.features.forEach( (feature:Feature)=> {
+                let id= feature.getId();
+                let addToFeatureList: boolean= false;
+                let notForModify: boolean= false;
+                if(id && typeof id === 'string') {
+                    let t= id.split('.');
+                    let icon: string;
+                    let text: string;
+                    switch(t[0]) {
+                        case 'dest':
+                            addToFeatureList= true;
+                            icon= "flag";
+                            text= "Destination";
+                            break;
+                        case 'note': 
+                            icon= "local_offer"; 
+                            addToFeatureList= true;
+                            text= this.app.data.notes.filter( i=>{ return (i[0]==t[1])? i[1].title : null })[0][1].title;
+                            break;
+                        case 'sptroute':    // route start / end points
+                        case 'eptroute':
+                            icon="directions"; 
+                            t[0]='route';
+                            id= t.join('.');
+                            addToFeatureList= true;
+                            notForModify= true;
+                            text= this.app.data.routes.filter( i=>{ return (i[0]==t[1])? i[1].name : null })[0][1].name;
+                            break;                            
+                        case 'route': icon="directions"; 
+                            addToFeatureList= true;
+                            text= this.app.data.routes.filter( i=>{ return (i[0]==t[1])? i[1].name : null })[0][1].name;
+                            break;
+                        case 'waypoint': icon="location_on"; 
+                            addToFeatureList= true;
+                            text= this.app.data.waypoints.filter( i=>{ return (i[0]==t[1])? i[1].feature.properties.name : null })[0][1].feature.properties.name;
+                            break;
+                        case 'atons': 
+                        case 'aton': 
+                            icon="beenhere"; 
+                            addToFeatureList= true;
+                            let aton= this.app.data.atons.get(id);
+                            text= (aton) ? aton.name || aton.mmsi : '';
+                            break;           
+                        case 'sar': 
+                            icon="tour"; 
+                            addToFeatureList= true;
+                            let sar= this.app.data.sar.get(id);
+                            text= (sar) ? sar.name || sar.mmsi : 'SaR Beacon';
+                            break;                                                    
+                        case 'ais-vessels': icon="directions_boat"; 
+                            addToFeatureList= true;
+                            let v= this.dfeat.ais.get(`vessels.${t[1]}`);
+                            text= (v) ? v.name || v.mmsi: '';
+                            break;
+                        case 'vessels': icon="directions_boat"; 
+                            addToFeatureList= true;
+                            text= this.dfeat.self.name ? this.dfeat.self.name + ' (self)' : 'self'; 
+                            break;
+                        case 'region': 
+                            addToFeatureList= true;
+                            icon="360"; text='Region'; break;
+                        case 'aircraft':
+                            icon="airplanemode_active"; 
+                            addToFeatureList= true;
+                            let aircraft= this.app.data.aircraft.get(id);
+                            text= (aircraft) ? aircraft.name || aircraft.mmsi : '';
+                            break;  
+                    }
+                    if(addToFeatureList && !flist.has(id)) {
+                        flist.set(id, {
+                            id: id, 
+                            coord: e.lonlat, //e.coordinate, 
+                            //mrid: this.app.config.map.mrid,
+                            icon: icon,
+                            text: text
+                        });
+                        if(notForModify) { // get route feature when end points clicked
+                            //let f= layer.getSource().getFeatureById(id);
+                            //if(f) { fa.push(f) } 
                         }
-                        if(addToFeatureList && !flist.has(id)) {
-                            flist.set(id, {
-                                id: id, 
-                                coord: e.coordinate, 
-                                mrid: this.app.config.map.mrid,
-                                icon: icon,
-                                text: text
-                            });
-                            if(notForModify) { // get route feature when end points clicked
-                                let f= layer.getSource().getFeatureById(id);
-                                if(f) { fa.push(f) } 
-                            }
-                            else { fa.push(feature) }
-                        }
-                    }  
-                }, 
-                { hitTolerance: 5 }
-            );
+                        else { fa.push(feature) }
+                    }
+                }  
+            });
             this.draw.features= new Collection(fa); // features collection for modify interaction
             if(flist.size==1) {   // only 1 feature
                 let v= flist.values().next().value;
@@ -671,16 +666,14 @@ export class FBMapComponent implements OnInit, OnDestroy {
                 else {
                     this.formatPopover( 
                         v['id'],
-                        v['coord'],
-                        v['mrid']
+                        v['coord']
                     );
                 } 
             }
             else if(flist.size>1) { //show list of features
                 this.formatPopover( 
                     'list.',
-                    e.coordinate,
-                    this.app.config.map.mrid,
+                    e.lonlat,
                     flist
                 );                  
             }
@@ -691,7 +684,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
     public onMeasureStart(e:any) {
         this.measure.geom= e.feature.getGeometry();
         let c= toLonLat(this.measure.geom.getLastCoordinate());
-        this.formatPopover(null,null,null);          
+        this.formatPopover(null,null);          
         this.overlay.position= c;
         this.overlay.title= '0';
         this.overlay.show= true;  
@@ -904,18 +897,14 @@ export class FBMapComponent implements OnInit, OnDestroy {
 
     public popoverClosed() { this.overlay.show= false }
 
-    public formatPopover(id:string, coord:any, prj:any, list?:any) {
+    public formatPopover(id:string, coord:Position, list?:Map<string,any>) {
         if(!id) { this.overlay.show=false; return }
 
         this.overlay.content=[];
         this.overlay.id=null;    
         this.overlay.type=null;
         this.overlay.featureCount= this.draw.features.getLength(); 
-        this.overlay.position= transform(
-            coord, 
-            prj, 
-            this.app.config.map.srid
-        ); 
+        this.overlay.position= coord;
         let item= null;
         let t= id.split('.');
 
@@ -1015,7 +1004,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
             this.itemInfo(feature.id, 'dest');
             this.overlay.show= false;
         }
-        else { this.formatPopover(feature.id, feature.coord, feature.mrid) }
+        else { this.formatPopover(feature.id, feature.coord) }
     }    
 
     // ** delete selected feature **

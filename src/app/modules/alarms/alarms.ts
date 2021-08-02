@@ -3,10 +3,8 @@
 
 import { Component, OnInit, Inject, Input, Output, EventEmitter } from '@angular/core';
 import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
-import { SKStreamProvider } from '../skstream/skstream.service'
+import { Alarm, AlarmState, SignalKClient } from 'signalk-client-angular';
 import { AlarmsFacade } from './alarms.facade';
-import { Observable } from 'rxjs';
-
 
 /********* AlarmsDialog *********
 	data: {
@@ -92,10 +90,10 @@ export class AlarmsDialog implements OnInit {
 
     public target: any;
     public stdAlarms: Array<any>;
-    private obs;
+    private obs: any;
 
     constructor(
-        private stream: SKStreamProvider,
+        private signalk: SignalKClient,
         private facade: AlarmsFacade,
         public dialogRef: MatDialogRef<AlarmsDialog>,
         @Inject(MAT_DIALOG_DATA) public data: any) { }
@@ -197,28 +195,28 @@ export class AlarmsDialog implements OnInit {
     }
     
     raise(alarmType: string, msg:string) {
-        this.stream.postMessage({ 
-            cmd: 'alarm',
-            options: { 
-                raise: true,
-                type: alarmType,
-                message: msg,
-                state: 'alarm'
-            }
-        });  
+        let alarmMsg= {
+            message: msg,
+            state: 'emergency',
+            method: ["visual", "sound"]
+        }
+        this.signalk.api.raiseAlarm('self', alarmType, new Alarm(msg, AlarmState.emergency, true, true) ).subscribe(
+            r=> { console.log(`Raise Alarm: ${alarmType}`) },
+            err=> { console.warn(`Error raising alarm: ${alarmType}`, err) }
+        )
         this.dialogRef.close();         
     }
 
-    clear(alarmType: string) {
-        this.stream.postMessage({ 
-            cmd: 'alarm',
-            options: { 
-                raise: false,
-                type: alarmType,
-                message: '',
-                state: ''
-            }
-        });           
+    clear(alarmType: string) { 
+        let alarmMsg= {
+            message: '',
+            state: 'normal',
+            method: []
+        }
+        this.signalk.api.clearAlarm('self', alarmType).subscribe(
+            r=> { console.log(`Clear Alarm: ${alarmType}`) },
+            err=> { console.warn(`Error clearing alarm: ${alarmType}`, err) }
+        )        
     }    
 }
 
@@ -267,10 +265,16 @@ export class AlarmsDialog implements OnInit {
 	`]
 })
 export class AlarmComponent implements OnInit {
-    @Input() alarm: any;
+    @Input() alarm: any;                    // alarm data
+    @Input() audioContext: AudioContext;    // Web Audio API
+    @Input() audioStatus: string;           // changed audio context state
+    @Input() soundFile: string= './assets/sound/woop.mp3';
+    @Input() loop: boolean= true;           // true: loop audio file playback
+    @Input() mute: boolean= false;          // true: mute audio playback
+    
     @Output() acknowledge: EventEmitter<string>= new EventEmitter();
     @Output() unacknowledge: EventEmitter<string>= new EventEmitter();
-    @Output() mute: EventEmitter<string>= new EventEmitter();
+    @Output() muted: EventEmitter<string>= new EventEmitter();
     @Output() clear: EventEmitter<string>= new EventEmitter();
     @Output() open: EventEmitter<string>= new EventEmitter();
 
@@ -281,23 +285,54 @@ export class AlarmComponent implements OnInit {
     iconUrl:string;
     private imgPath:string= './assets/img/alarms/';
 
+    private audio: HTMLAudioElement;
+    private source: MediaElementAudioSourceNode;
+
     constructor() {}
     
     ngOnInit() { 
         this.canUnAck= (this.stdAlarms.indexOf(this.alarm.key)==-1) ? true : false;
         this.isStdAlarm= (this.stdAlarms.indexOf(this.alarm.key)!=-1) ? true : false;
         this.iconUrl= `${this.imgPath}${this.alarm.key}.png`;
-    }  
+    }
+    
+    ngOnDestroy() {
+        this.audio.pause();
+        this.audio= null;
+        this.source= null;
+    }
+    
+    ngOnChanges() { this.processAudio() }
 
     ackAlarm(key:string) { this.acknowledge.emit(key) }
 
-    muteAlarm(key:string) { this.mute.emit(key) }
+    muteAlarm(key:string) { this.muted.emit(key) }
 
     clearAlarm(key:string) { this.clear.emit(key) }
 
     minClick(key:string) { 
         if(this.canUnAck) {this.unacknowledge.emit(key) }
         else { this.open.emit(key) }
+    }
+
+    processAudio() {
+        if(this.audioContext) {
+            if(!this.audio) {this.audio = new Audio() }
+            if(!this.source) {
+                this.source = this.audioContext.createMediaElementSource(this.audio);
+                this.source.connect(this.audioContext.destination);
+            }
+            this.audio.loop= this.loop;
+            this.audio.src = this.soundFile;
+            if(this.audioStatus=='running') { 
+                if(this.mute) {
+                    this.audio.pause();
+                }
+                else {
+                    this.audio.play();
+                } 
+            }
+        }
     }
 	
 }

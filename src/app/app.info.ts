@@ -138,6 +138,10 @@ export class AppInfo extends Info {
     public hostSSL: boolean;
     public host= '';
 
+    public audio= {
+        context: new AudioContext()
+    }
+
     public db: AppDB;
 
     get useMagnetic(): boolean { 

@@ -164,30 +164,32 @@
             <a mat-menu-item (click)="measureStart()">
                 <mat-icon>straighten</mat-icon>
                 <span>Measure</span>			
-            </a>  
-            <a mat-menu-item (click)="drawStart('note')">
-                <mat-icon color="primary">local_offer</mat-icon>
-                <span>Add Note</span>			
-            </a>   
-            <a mat-menu-item (click)="drawStart('region')">
-                <mat-icon color="primary">tab_unselected</mat-icon>
-                <span>Draw Region + Note</span>			
-            </a>           
-            <mat-divider></mat-divider>                   
-            <a mat-menu-item *ngIf="app.data.vessels.showSelf"
-                (click)="skres.showWaypointEditor(null, app.data.vessels.active.position)">
-                <mat-icon>add_location</mat-icon>
-                <span>Add Waypoint at Vessel</span>			
             </a>
-            <a mat-menu-item (click)="drawStart('waypoint')">
-                <mat-icon color="primary">edit_location</mat-icon>
-                <span>Drop Waypoint</span>			
-            </a>                    
-            <mat-divider></mat-divider>   
+            <mat-divider></mat-divider>
             <a mat-menu-item (click)="drawStart('route')">
                 <mat-icon color="primary">directions</mat-icon>
                 <span>Draw Route</span>			
-            </a>                                         			
+            </a> 
+            <mat-divider></mat-divider> 
+            <a mat-menu-item *ngIf="app.data.vessels.showSelf"
+                (click)="skres.showWaypointEditor(null, app.data.vessels.active.position)">
+                <mat-icon color="accent">add_location</mat-icon>
+                <span>Add Waypoint at Vessel</span>			
+            </a>
+            <a mat-menu-item (click)="drawStart('waypoint')">
+                <mat-icon color="accent">edit_location</mat-icon>
+                <span>Drop Waypoint</span>			
+            </a>                    
+            <mat-divider></mat-divider>               
+            <a mat-menu-item (click)="drawStart('note')">
+                <mat-icon color="">local_offer</mat-icon>
+                <span>Add Note</span>			
+            </a>   
+            <a mat-menu-item (click)="drawStart('region')">
+                <mat-icon color="">tab_unselected</mat-icon>
+                <span>Draw Region + Note</span>			
+            </a>           
+                                     			
         </mat-menu>   
         <!--/context menus-->
 
@@ -386,7 +388,6 @@
                 <!--map panel-->
                 <div style="display: relative; width: 100%; height: 100%;" 
                     (dragover)="mapDragOver($event)" (drop)="mapDrop($event)">
-
                     <div *ngIf="display.audio.state!='running'" style="z-index:1000;position: absolute; top: 10px; right:70px;">
                         <button (click)="enableAudio()" style="display:flex;">
                             <div>
@@ -561,18 +562,18 @@
                 <!-- *** Alarm / Mode panel ***-->
                 <div class="alarmPanel">
                     <span *ngFor="let a of alarmsFacade.alarms | keyvalue" style="margin-bottom: 5px;">
-                        <ap-alarm [alarm]="a" 
-                            (mute)="alarmsFacade.muteAlarm($event);focusMap()"
+                        <ap-alarm 
+                            [alarm]="a" 
+                            [audioContext]="app.audio.context"
+                            [audioStatus]="display.audio.state"
+                            [soundFile]="(['nominal','warn'].includes(a.value.state)) ? './assets/sound/ding.mp3' : './assets/sound/woop.mp3'" 
+                            [mute]="a.value.muted || a.value.acknowledged"
+                            (muted)="alarmsFacade.muteAlarm($event);focusMap()"
                             (acknowledge)="alarmsFacade.acknowledgeAlarm($event);focusMap()"
                             (unacknowledge)="alarmsFacade.unAcknowledgeAlarm($event);focusMap()"
                             (clear)="alarmsFacade.clearAlarm($event);focusMap()"
                             (open)=" openAlarmsDialog()">
                         </ap-alarm>
-                        <audio loop *ngIf="a.value.sound"
-                            [src]="(['nominal','warn'].includes(a.value.state)) ? './assets/sound/ding.mp3' : './assets/sound/woop.mp3'" 
-                            [autoplay]="!a.value.muted || !a.value.acknowledged"
-                            [muted]="a.value.muted || a.value.acknowledged"
-                        ></audio>
                     </span>
                 </div>
 
