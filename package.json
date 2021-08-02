@@ -41,7 +41,7 @@
     "ol": "6.5.0",
     "proj4": "2.6.2",
     "rxjs": "~6.6.3",
-    "signalk-client-angular": "^1.7.1",
+    "signalk-client-angular": "^1.8.0",
     "signalk-worker-angular": "^1.0.1",
     "simplify-ts": "^1.0.2",
     "tslib": "^2.0.0",
