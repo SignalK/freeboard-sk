@@ -88,5 +88,16 @@
             </div>
         </div>
 	</app-root>
+	<script>
+		document.addEventListener( // Disable pinch zoom of the menus
+		  "touchstart",
+		  (event) => {
+			if (event.touches.length > 1) {
+			  event.preventDefault();
+			}
+		  },
+		  { passive: false }
+		);
+	  </script>
 </body>
 </html>
