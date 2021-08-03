@@ -463,8 +463,12 @@
                     class="mat-app-background"
                     style="position: absolute; top: 60px; left:10px; 
                         width:150px;
-                        border: black 1px solid;
-                        font-family:roboto; font-size: 10pt;">
+                        border: inherit 1px solid;
+                        font-family:roboto; 
+                        font-size: 10pt;
+                        padding: 1em;
+                        box-shadow: 0 3px 10px rgb(0 0 0 / 0.2);
+                        ">
 
                     <div *ngIf="draw.enabled">
                         <span style="font-weight:bold;padding: 5px;">
