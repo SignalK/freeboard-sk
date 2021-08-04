@@ -62,6 +62,7 @@ export class MapComponent implements OnInit, OnDestroy {
   @Input() logo: string | boolean;
   @Input() properties: { [index: string]: any };
   @Input() setFocus: boolean= false;
+  @Input() hitTolerance: number= 5;
 
   constructor(protected changeDetectorRef: ChangeDetectorRef,
               protected element: ElementRef,
@@ -169,65 +170,66 @@ export class MapComponent implements OnInit, OnDestroy {
   // Only arrow function works with addEventListener
   private emitClickEvent = (event: MapBrowserEvent) => {
     this.mapClick.emit(
-      Object.assign(event, {
-        features: this.map.getFeaturesAtPixel(event.pixel),
-        lonlat: toLonLat(event.coordinate)
-      })
+      this.augmentClickEvent(event)
     );
   }
 
   private emitSingleClickEvent = (event: MapBrowserEvent) => {
     this.mapSingleClick.emit(
-      Object.assign(event, {
-        features: this.map.getFeaturesAtPixel(event.pixel),
-        lonlat: toLonLat(event.coordinate)
-      })
+      this.augmentClickEvent(event)
     );
   }
   private emitDblClickEvent = (event: MapBrowserEvent) => {
     this.mapDblClick.emit(
-      Object.assign(event, {
-        features: this.map.getFeaturesAtPixel(event.pixel),
-        lonlat: toLonLat(event.coordinate)
-      })
+      this.augmentClickEvent(event)
     );
+  }
+
+  // ** add {lonlat, features}fields to event 
+  private augmentClickEvent(event: MapBrowserEvent) {
+    return Object.assign(event, {
+      features: this.map.getFeaturesAtPixel(event.pixel, {hitTolerance: this.hitTolerance}),
+      lonlat: toLonLat(event.coordinate)
+    });
   }
 
   private emitMoveStartEvent = (event: MapEvent) => {
     this.mapMoveStart.emit(
-      Object.assign(event, {
-        lonlat: this.getMapCenter(),
-        zoom: this.map.getView().getZoom(),
-        extent: this.getMapExtent(),
-        projCode: this.map.getView().getProjection().getCode()
-      })
+      this.augmentMoveEvent(event)
     );
   }
   private emitMoveEndEvent = (event: MapEvent) => {
     this.mapMoveEnd.emit(
-      Object.assign(event, {
-        lonlat: this.getMapCenter(),
-        zoom: this.map.getView().getZoom(),
-        extent: this.getMapExtent(),
-        projCode: this.map.getView().getProjection().getCode()
-      })
+      this.augmentMoveEvent(event)
     );
+  }
+
+  // ** add {lonlat, zoom, extent, projection code} fields to event 
+  private augmentMoveEvent(event: MapEvent) {
+    return Object.assign(event, {
+      lonlat: this.getMapCenter(),
+      zoom: this.map.getView().getZoom(),
+      extent: this.getMapExtent(),
+      projCode: this.map.getView().getProjection().getCode()
+    });
   }
 
   private emitPointerDragEvent = (event: MapBrowserEvent) => {
     this.mapPointerDrag.emit(
-      Object.assign(event, {
-        lonlat: toLonLat(event.coordinate)
-      })
+      this.augmentPointerEvent(event)
     );
   }
   private emitPointerMoveEvent = (event: MapBrowserEvent) => {
     this.mapPointerMove.emit(
-      Object.assign(event, {
-        lonlat: toLonLat(event.coordinate)
-      })
+      this.augmentPointerEvent(event)
     );
   }
+
+  // ** add {lonlat} field to event 
+  private augmentPointerEvent(event: MapBrowserEvent) {
+    return Object.assign(event, { lonlat: toLonLat(event.coordinate) });
+  }
+
   private emitPostComposeEvent = (event: RenderEvent) => this.mapPostCompose.emit(event);
   private emitPostRenderEvent = (event: MapEvent) => this.mapPostRender.emit(event);
   private emitPreComposeEvent = (event: RenderEvent) => this.mapPreCompose.emit(event);
