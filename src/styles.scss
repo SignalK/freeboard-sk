@@ -4,17 +4,13 @@
 @import url('assets/fonts/material-icons.css');
 @import url('assets/css/foundation-icons.css');
 
-@font-face {  /* license plate */
-    font-family: 'licenseplate';
-    src: url('assets/css/licenseplate.ttf');
-}
-
 * { -webkit-tap-highlight-color: transparent; }
 * { tap-highlight-color: transparent; }	
 
 body {
     background-color: white;
     margin: 0 0 0 0;
+    user-select: none;
 }
 b { font-weight: 500; }
 
