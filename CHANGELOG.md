@@ -4,6 +4,8 @@
 
 - **Add**: Create Route from vessel trail.
 
+- **Add**: Hide the display of AIS vessels with `moored` and/or `anchored` state.
+
 - **Fix**: Modern browsers do not allow audio to autoplay without user interaction. This can cause alarms not to sound if they are active upon app start. A warning is now displayed if web audio is detected to be in a suspended state upon app start.
 
 - **Fix**: Improved mobile device behaviour by addition of mobile specific style and meta attributes. 
