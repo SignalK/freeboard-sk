@@ -27,6 +27,11 @@ interface AisStatus {
     expired: { [key:string]: boolean };
 };
 
+interface AisFilter {
+    signalk: { [key:string] : any }, 
+    aisState: []
+}
+
 class WorkerMessageBase {
     action:string=null;
     playback:boolean= false;
@@ -74,7 +79,7 @@ let apiUrl: string;     // path to Signal K api
 let hasTrackPlugin:boolean= false;
 
 // ** AIS target management **
-let targetFilter: {[key:string] : any }
+let targetFilter: AisFilter= {signalk: {}, aisState: []}
 let targetExtent: Extent= [0,0,0,0];    // ais target extent
 let extRecalcInterval: number= 60;    // number of message posts before re-calc of targetExtent
 let extRecalcCounter :number= 0;
@@ -238,7 +243,10 @@ function applySettings(opt:any={}) {
             aisMgr.staleAge= opt.selections.aisStaleAge;
         }
         if(typeof opt.selections.signalk.maxRadius==='number') { 
-            targetFilter= opt.selections.signalk;
+            targetFilter.signalk= opt.selections.signalk;
+        }
+        if(typeof opt.selections.aisState!=='undefined' && Array.isArray(opt.selections.aisState)) { 
+            targetFilter.aisState= opt.selections.aisState;
         }
         console.log('Worker: AIS Filter...', targetFilter);
     }
@@ -270,8 +278,8 @@ function apiGet(url:string):Promise<any> {
 
 // fetch vessel tracks
 function getTracks() {
-    let filter: string= (targetFilter && targetFilter.maxRadius) ? 
-        `?radius=${targetFilter.maxRadius}` : 
+    let filter: string= (targetFilter && targetFilter.signalk && targetFilter.signalk.maxRadius) ? 
+        `?radius=${targetFilter.signalk.maxRadius}` : 
         `?radius=10000`;    // default radius if none supplied
     apiGet(apiUrl + '/tracks' + filter)
     .then( r=> {
@@ -363,35 +371,35 @@ function parseStreamMessage(data:any) {
                 switch(data.context.split('.')[0]) {
                     case 'shore':       // shore
                     case 'atons':       // aids to navigation
-                        if(targetFilter?.atons) {
+                        if(targetFilter?.signalk.atons) {
                             processAtoN(data.context, v);  
                         }
-                        filterContext(data.context, vessels.atons, targetFilter?.atons);
+                        filterContext(data.context, vessels.atons, targetFilter?.signalk.atons);
                         break;          
                     case 'sar':  // search and rescue
-                        if(targetFilter?.sar) {
+                        if(targetFilter?.signalk.sar) {
                             processSaR(data.context, v);
                         }
-                        filterContext(data.context, vessels.sar, targetFilter?.sar);                                        
+                        filterContext(data.context, vessels.sar, targetFilter?.signalk.sar);                                        
                         break;
                     case 'aircraft':  // aircraft
-                        if( targetFilter?.aircraft) {
+                        if( targetFilter?.signalk.aircraft) {
                             processAircraft(data.context, v);
                         }
-                        filterContext(data.context, vessels.aircraft, targetFilter?.aircraft);                                        
+                        filterContext(data.context, vessels.aircraft, targetFilter?.signalk.aircraft);                                        
                         break;
 
-                    case 'vessels':  // aircraft
+                    case 'vessels':  // vessels
                         if(stream.isSelf(data)) {   // self
                             processVessel( vessels.self, v, true),
                             processNotifications(v);
                         }
                         else { // other vessels
-                            if(targetFilter?.vessels) {
+                            if(targetFilter?.signalk.vessels) {
                                 let oVessel= selectVessel(data.context);
                                 processVessel(oVessel, v);
                             }
-                            filterContext(data.context, vessels.aisTargets, targetFilter?.vessels);
+                            filterContext(data.context, vessels.aisTargets, targetFilter?.signalk.vessels, targetFilter?.aisState);
                         }
                         break;
                 }
@@ -408,11 +416,18 @@ function parseStreamMessage(data:any) {
 }    
 
 // ** parse and filter a context update
-function filterContext(context: string, group: Map<string, any>, enabled: boolean) {
+function filterContext(context: string, group: Map<string, any>, enabled: boolean= true, state: Array<string>=[]) {
     if(enabled) {
-        if(targetFilter.maxRadius) {
-            let obj= group.get(context);
-            if(obj && obj['positionReceived'] &&
+        let obj= group.get(context);
+        // filter on state
+        if(obj && state.includes(obj?.state)) {
+            console.log(`state match => ${state}, ${context}`);
+            targetStatus.expired[context]=true;
+            obj= null; // skip subsequent filters
+        }
+        // filter on max radius
+        if(obj && targetFilter.signalk.maxRadius) { 
+            if(obj['positionReceived'] &&
                 GeoUtils.inBounds(obj.position, targetExtent)) {
                 targetStatus.updated[context]= true;
             }
@@ -451,10 +466,10 @@ function postUpdate(immediate:boolean=false) {
         // cleanup and extent calc
         if(extRecalcCounter==0) {
             processAISStatus();
-            if(vessels.self['positionReceived'] && targetFilter?.maxRadius) {
+            if(vessels.self['positionReceived'] && targetFilter?.signalk.maxRadius) {
                 targetExtent= GeoUtils.calcMapifiedExtent(
                     vessels.self.position,
-                    targetFilter.maxRadius
+                    targetFilter.signalk.maxRadius
                 );
                 extRecalcCounter++;
                 //console.log('** AIS status & targetExtent**', targetExtent);

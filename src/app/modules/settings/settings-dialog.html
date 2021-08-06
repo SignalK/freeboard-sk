@@ -349,7 +349,21 @@
                                     (change)="onFormChange($event, aisShowTrack)"
                                     label="after">
                                     Show Track
-                                </mat-checkbox>                                        
+                                </mat-checkbox>
+                                &nbsp;
+                                <mat-checkbox #aisStateMoored color="primary"
+                                    [(ngModel)]="aisStateFilter.moored" 
+                                    (change)="onAisStateFilter($event.checked, 'moored')"
+                                    label="after">
+                                    Hide Moored
+                                </mat-checkbox>
+                                &nbsp;
+                                <mat-checkbox #aisStateAnchored color="primary"
+                                    [(ngModel)]="aisStateFilter.anchored" 
+                                    (change)="onAisStateFilter($event.checked, 'anchored')"
+                                    label="after">
+                                    Hide Anchored
+                                </mat-checkbox>                              
                             </div> 
 
                             <div class="setting-card-row-item">

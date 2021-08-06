@@ -4,7 +4,7 @@ import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { SettingsFacade } from './settings.facade';
 
 
-//** HomePage **
+//** Settings **
 @Component({
     selector:	    'settings-dialog',
     templateUrl: 	'./settings-dialog.html',
@@ -23,6 +23,11 @@ export class SettingsDialog implements OnInit {
        {id: 'sectResLayers', text: 'Signal K'}
     ];
 
+    public aisStateFilter= {
+        moored: false,
+        anchored: false
+    }
+
     private saveOnClose: boolean= false;
      
     constructor( 
@@ -34,6 +39,9 @@ export class SettingsDialog implements OnInit {
     ngOnInit() { 
         this.facade.refresh();
         this.display.paths= this.data.openPrefs;
+        this.facade.settings.selections.aisState.forEach( i=> {
+            if(i in this.aisStateFilter) { this.aisStateFilter[i]= true }
+        });
     }
 
     ngOnDestroy() { }
@@ -83,6 +91,15 @@ export class SettingsDialog implements OnInit {
             if( i in this.facade.settings.selections.resourceSets) { /* already has selection array */ }
             else { this.facade.settings.selections.resourceSets[i]= [] } //create selection array
         })
+        this.facade.applySettings();
+    }
+
+    onAisStateFilter(e:any, f:any) {
+        let s= [];
+        for( let i in this.aisStateFilter) {
+            if(this.aisStateFilter[i]) { s.push(i) }
+        }
+        this.facade.settings.selections.aisState= [].concat(s);
         this.facade.applySettings();
     }
 

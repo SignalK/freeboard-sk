@@ -71,6 +71,7 @@ const FreeboardConfig= {
         aisMaxAge: 540000,         // time since last update in ms (9 min)
         aisStaleAge: 360000,       // time since last update in ms (6 min)
         aisProfile: 0,             // ais display profile
+        aisState: [],              // list of ais state values used to filter targets
         notesMinZoom: 10,
         pluginFavourites: [],
         trailFromServer: false,
@@ -486,6 +487,9 @@ export class AppInfo extends Info {
         if(typeof settings.selections.aisProfile === 'undefined') {
             settings.selections.aisProfile= 0;
         }
+        if(typeof settings.selections.aisState === 'undefined') {
+            settings.selections.aisState= [];
+        } 
         if(typeof settings.selections.signalk === 'undefined') {
             settings.selections.signalk= {
                 vessels: true,
@@ -582,10 +586,10 @@ export class AppInfo extends Info {
             'whats-new': [
                 {
                     type: 'signalk-server-node',
-                    title: 'Web Audio Autoplay',
+                    title: 'Web Audio Status',
                     message: `
-                        Browsers suspend the playing of audio until there has been user interaction
-                        preventing alarm audio from being heard.<br>
+                        Modern browsers suspend the auto-playing of audio until there has been user interaction.
+                        This would prevent alarm audio from being heard if an alarm was active when the application starts.<br>
                         Freeboard now shows when web audio is suspended and allows it to be enabled.
                     `
                 },
@@ -597,6 +601,18 @@ export class AppInfo extends Info {
                         Select <i>Trail to Route</i> from the <b>...</b> menu.
                         <br>&nbsp;<br>
                         Check out <a href="assets/help/index.html#display" target="help">HELP</a> 
+                        for more details.
+                    `
+                },
+                {
+                    type: 'signalk-server-node',
+                    title: 'AIS State filter',
+                    message: `
+                        You can now hide <i>moored</i> and <i>anchored</i> vessels from being diplayed
+                        to 'declutter' the map.<br>
+                        Just check <i>Hide Moored</i> or <i>Hide Anchored</i> in <b>Settings</b>.
+                        <br>&nbsp;<br>
+                        Check out <a href="assets/help/index.html#settings" target="help">HELP</a> 
                         for more details.
                     `
                 },
