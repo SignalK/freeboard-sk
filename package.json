@@ -14,7 +14,7 @@
     "test": "ng test",
     "lint": "ng lint",
     "e2e": "ng e2e",
-    "build:prod": "ng build --output-hashing all",
+    "build:prod": "ng build -c production --output-hashing all",
     "prepare": "npm run build:prod"
   },
   "author": "AdrianP",
