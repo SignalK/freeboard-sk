@@ -116,6 +116,10 @@ export class AppComponent {
         } 
     }
 
+    handleHasWakeLock(value:boolean) {
+        setTimeout( ()=> this.app.data.hasWakeLock= value, 500);
+    }
+
     ngOnInit() {
         // ** audio context handing ** 
         this.display.audio.state= this.app.audio.context.state;

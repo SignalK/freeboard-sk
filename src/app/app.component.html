@@ -388,57 +388,78 @@
                 <!--map panel-->
                 <div style="display: relative; width: 100%; height: 100%;" 
                     (dragover)="mapDragOver($event)" (drop)="mapDrop($event)">
-                    <div *ngIf="display.audio.state!='running'" style="z-index:1000;position: absolute; top: 10px; right:70px;">
-                        <button (click)="enableAudio()" style="display:flex;">
-                            <div>
-                                <mat-icon color="warn">volume_off</mat-icon>
-                            </div>
-                            <div>
-                                Web Audio off<br>
-                                Click to enable.
-                            </div>
-                        </button>
-                    </div>
-
+                    
                     <!-- utilities panel -->
                     <div class="rightUtilsPanel">
+
+                        <!-- instrument sidebar open button -->
+                        <div class="nosmall">
+                            <button mat-mini-fab *ngIf="app.data.optAppPanel && (!draw.enabled && !measure.enabled) && !app.data.vessels.activeId"
+                                (click)="sideright.toggle()"
+                                matTooltip="Instruments" matTooltipPosition="below">
+                                <mat-icon>av_timer</mat-icon>
+                            </button>
+                            <br>&nbsp;<br>&nbsp; 
+                        </div>
+
+                        <!-- Web audio enable -->
+                        <div *ngIf="display.audio.state!='running'">
+                            <button mat-mini-fab color="warn"
+                                matTooltip="Web Audio off! Click to enable."
+                                matTooltipPosition="left"
+                                (click)="enableAudio()">
+                                    <mat-icon>volume_off</mat-icon>
+                            </button>
+                            <br>&nbsp;<br> 
+                        </div>
+
+                        <!-- fullscreen enable -->
                         <div *ngIf="display.fullscreen.enabled">
-                            <button mat-icon-button 
+                            <button mat-mini-fab [color]="''" 
                                 (click)="toggleFullscreen()"
                                 matTooltip="Go Fullscreen"
                                 matTooltipPosition="left">
                                 <mat-icon>
                                     {{(display.fullscreen.active) ? 'fullscreen_exit ': 'fullscreen'}}
                                 </mat-icon>
-                            </button>                         
-                        </div>                        
-                        <br>&nbsp;<br>
-                        <fb-experiments (selected)="openExperiment($event)"></fb-experiments>                   
-                        <br>&nbsp;<br>    
+                            </button>
+                            <br>&nbsp;<br>                       
+                        </div>
+
+                        <!-- WakeLock enable -->
+                        <div>
+                            <wakelock [setOn]="app.config.selections.wakeLock"
+                                (has)="handleHasWakeLock($event)"></wakelock>
+                            <span *ngIf="app.data.hasWakeLock"><br>&nbsp;<br></span> 
+                        </div>
+
+                        <!-- Experiments -->
+                        <div *ngIf="app.config.experiments">
+                            <fb-experiments (selected)="openExperiment($event)"></fb-experiments>
+                            <br>&nbsp;<br>                             
+                        </div>
+
+                        <!-- PiP enable -->
                         <div *ngIf="app.config.resources.video.enable && app.config.resources.video.url">
                             <pip-video
                                 [src]="vidUrl" [muted]="true"
                                 (click)="focusMap()">
                             </pip-video>
+                            <br>&nbsp;<br> 
                         </div>
-                        <div class="fab-container">
+
+                        <!-- Drop Waypoint button -->
+                        <div>
                             <button mat-mini-fab color="accent"
                                 (click)="skres.showWaypointEditor(null, app.data.vessels.self.position)"
                                 matTooltip="Mark Vessel position"
                                 matTooltipPosition="left">
                                 <mat-icon>add_location</mat-icon>
                             </button>
+                            <br>&nbsp;<br> 
                         </div>
+
                     </div>
-                    
-                    <!-- instrument sidebar open button -->
-                    <button mat-mini-fab *ngIf="app.data.optAppPanel && (!draw.enabled && !measure.enabled) && !app.data.vessels.activeId"
-                        class="mapButton nosmall" 
-                        style="top:10px;right:20px;"
-                        (click)="sideright.toggle()"
-                        matTooltip="Instruments" matTooltipPosition="below">
-                        <mat-icon>av_timer</mat-icon>
-                    </button>
 
                     <!-- MAP -->
                     <fb-map

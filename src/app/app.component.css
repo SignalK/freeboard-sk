@@ -54,18 +54,10 @@ mat-nav-list {
     max-width:55px; 
     z-index: 200;
     position: absolute;
-    top: 100px;
-    right: 19px;
-    background-color: transparent;
-}
-
-.rightUtilsPanel > div:not(.fab-container) { 
-    border-radius:5px;
-    width:40px; height:40px;
-    background-color:rgb(200,200,200);
-    box-shadow: 0px 3px 5px -1px rgba(0, 0, 0, 0.2), 
-                0px 6px 10px 0px rgba(0, 0, 0, 0.14), 
-                0px 1px 18px 0px rgba(0, 0, 0, 0.12);
+    top: 0px;
+    right: 0px;
+    background-color: rgba(130,130,130,.3);
+    padding: 10px 2px 2px 2px;
 }
 
 .mapButton {

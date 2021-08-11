@@ -130,7 +130,15 @@
                     </mat-card>
 
                     <mat-card class="setting-card">
-                        <div class="setting-card-row" style="padding-bottom: 10px;">                          
+                        <div class="setting-card-row" style="padding-bottom: 10px;">
+                            <div class="setting-card-row-item">
+                                <mat-checkbox #wakelock color="primary"
+                                    [(ngModel)]="facade.settings.selections.wakeLock" 
+                                    (change)="onFormChange($event, wakelock)"
+                                    label="after">
+                                    Prevent Device Sleeping
+                                </mat-checkbox>                                        
+                            </div>                           
                             <div class="setting-card-row-item">
                                 <mat-form-field style="width:100%;">
                                     <mat-select #darkmode 

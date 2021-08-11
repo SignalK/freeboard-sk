@@ -2,7 +2,7 @@
 ********************************/
 
 import { Component, OnInit, Output, EventEmitter } from '@angular/core';
-import { AppInfo } from 'src/app/app.info';
+//import { AppInfo } from 'src/app/app.info';
 
 /********* ExperimentsComponent ********/
 @Component({
@@ -18,8 +18,8 @@ import { AppInfo } from 'src/app/app.info';
             </a>
         </mat-menu>
 
-        <div class="expButton" *ngIf="app.config.experiments">
-            <button mat-icon-button
+        <div>
+            <button mat-mini-fab [color]="''"
                 [matMenuTriggerFor]="experimentsmenu"
                 matTooltip="Experiments"
                 matTooltipPosition="left">
@@ -27,21 +27,13 @@ import { AppInfo } from 'src/app/app.info';
             </button>                        
         </div>  
     `,
-    styles: [`
-        .expButton { 
-            border-radius:5px;
-            width:40px; height:40px;
-            background-color:rgb(200,200,200);
-            box-shadow: 0px 3px 5px -1px rgba(0, 0, 0, 0.2), 
-                        0px 6px 10px 0px rgba(0, 0, 0, 0.14), 
-                        0px 1px 18px 0px rgba(0, 0, 0, 0.12);
-        }    
+    styles: [`    
     `]
 })
 export class ExperimentsComponent implements OnInit {
     @Output() selected: EventEmitter<any>= new EventEmitter();
 
-    constructor(public app: AppInfo) {}
+    constructor() {}
     
     ngOnInit() {}
 

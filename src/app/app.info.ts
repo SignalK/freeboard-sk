@@ -83,7 +83,8 @@ const FreeboardConfig= {
             aircraft: false,
             sar: false,
             maxRadius: 0,        // max radius within which AIS targets are displayed
-        }
+        },
+        wakeLock: false
     },
     resources: {    // ** resource options
         notes: {
@@ -139,9 +140,8 @@ export class AppInfo extends Info {
     public hostSSL: boolean;
     public host= '';
 
-    public audio= {
-        context: new AudioContext()
-    }
+    private fbAudioContext= window.AudioContext || (window as any).webkitAudioContext;
+    public audio= { context: new this.fbAudioContext() }
 
     public db: AppDB;
 
@@ -183,6 +183,7 @@ export class AppInfo extends Info {
         this.data= {
             loggedIn: false,
             loginRequired: false,
+            hasWakeLock: false,
             /*grib: {
                 hasProvider: false,
                 values: { wind: null, temperature: null}
@@ -499,6 +500,9 @@ export class AppInfo extends Info {
                 maxRadius: 0
             }
         }
+        if(typeof settings.selections.wakeLock === 'undefined') {
+            settings.selections.wakeLock= false;
+        } 
         
         if(typeof settings.plugins === 'undefined') { settings.plugins= {} }
         if(typeof settings.plugins.parameters === 'undefined') { 
@@ -611,6 +615,17 @@ export class AppInfo extends Info {
                         You can now hide <i>moored</i> and <i>anchored</i> vessels from being diplayed
                         to 'declutter' the map.<br>
                         Just check <i>Hide Moored</i> or <i>Hide Anchored</i> in <b>Settings</b>.
+                        <br>&nbsp;<br>
+                        Check out <a href="assets/help/index.html#settings" target="help">HELP</a> 
+                        for more details.
+                    `
+                },
+                {
+                    type: 'signalk-server-node',
+                    title: 'Wake Lock',
+                    message: `
+                        You can now prevent your device from entering sleep mode whilst using 
+                        Freeboard-SK.
                         <br>&nbsp;<br>
                         Check out <a href="assets/help/index.html#settings" target="help">HELP</a> 
                         for more details.

@@ -24,6 +24,7 @@ import { FileInputComponent } from './file-input.component';
 import { TextDialComponent } from './dial-text';
 import { PlaybackDialog } from './playback-dialog';
 import { PiPVideoComponent } from './pip.component';
+import { WakeLockComponent } from './wakelock.component';
 
 import { SignalKDetailsComponent } from './signalk-details.component';
 
@@ -39,12 +40,14 @@ import { SignalKDetailsComponent } from './signalk-details.component';
         MsgBox, AlertDialog, ConfirmDialog, AboutDialog,
         FileInputComponent, TextDialComponent, LoginDialog,  
         MessageBarComponent, WelcomeDialog,
-        PlaybackDialog, PiPVideoComponent, SignalKDetailsComponent
+        PlaybackDialog, PiPVideoComponent, SignalKDetailsComponent,
+        WakeLockComponent
     ],
     exports: [
         MsgBox, AlertDialog, ConfirmDialog, AboutDialog, MessageBarComponent,
         FileInputComponent, TextDialComponent, LoginDialog, 
-        PlaybackDialog, PiPVideoComponent, SignalKDetailsComponent
+        PlaybackDialog, PiPVideoComponent, SignalKDetailsComponent,
+        WakeLockComponent
     ],
     entryComponents: [
         MsgBox, AlertDialog, ConfirmDialog, AboutDialog, LoginDialog,

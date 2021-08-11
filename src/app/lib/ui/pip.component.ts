@@ -13,13 +13,15 @@ interface PiPVideoElement extends HTMLVideoElement {
             <video #vid [src]="vidUrl" [muted]="muted" autoplay></video>
         </div>
         <div>
-            <button mat-icon-button [style.display]="src ? 'block' : 'none'"
+            <button mat-mini-fab [style.display]="src ? 'block' : 'none'"
+                [color]="''"
                 matTooltip="Show Video"
                 matTooltipPosition="left"
                 [disabled]="pipMode" (click)="initPiP()">
                 <mat-icon>videocam</mat-icon>
             </button>   
-            <!--<button mat-icon-button [style.display]="pipMode ? 'block' : 'none'"
+            <!--<button mat-mini-fab [style.display]="pipMode ? 'block' : 'none'"
+                [color]="''"
                 matTooltip="Mute Audio"
                 (click)="toggleMute()">
                 <mat-icon>{{muted ? 'volume_off' : 'volume_mute'}}</mat-icon>
@@ -27,10 +29,6 @@ interface PiPVideoElement extends HTMLVideoElement {
         </div>
     `,
     styles: [`
-        button {
-            width: 40px;
-            height: 33px;
-        }
     `]
 })
 export class PiPVideoComponent implements OnInit {
