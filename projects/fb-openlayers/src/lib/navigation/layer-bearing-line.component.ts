@@ -130,7 +130,7 @@ export class BearingLineComponent implements OnInit, OnDestroy, OnChanges {
     f= new Feature({
       geometry: new Point( fromLonLat(this.marker) )
     });
-    f.setId('dest.base');
+    f.setId('d.base');
     f.setStyle(this.buildStyle('marker-base'));
     this.updateLabel(f);
     fa.push(f);
@@ -230,7 +230,7 @@ export class BearingLineComponent implements OnInit, OnDestroy, OnChanges {
   // update feature labels
   updateLabel(f?: Feature) {
     if(!f && this.source) {
-      f= this.source.getFeatureById('dest.base'); 
+      f= this.source.getFeatureById('d.base'); 
     }
     let s:StyleLike= f.getStyle();
     if(!s) { return }
