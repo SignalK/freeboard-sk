@@ -166,61 +166,145 @@
                     <img src="./img/screen.png" style="height:400px;"/>
                     <br>
                     The menu bar along the left of the screen provides access to functions and
-                    menus that allow you control the map display.
-                    <li class="nobullet"><i class="material-icons">navigation</i>
-                        <b>Heading / North Up:</b>
-                        Toggles between <i>Heading / North Up</i> mode.
-                    </li>                        
-                    <li class="nobullet"><i class="material-icons">my_location</i>
-                        <b>Follow Vessel On / Off:</b>
-                        Toggles <i>Follow Vessel</i> mode to keep the vessel at the centre of the 
-                        screen.<br>
-                        <i>Note: this option is disabled when vessel position is not available.</i>
-                    </li>
-                    <li class="nobullet"><i class="material-icons">center_focus_strong</i>
-                        <b>Centre Vessel on screen:</b> 
-                        <i>Note: This option is disabled when vessel position is not available.</i>
-                    </li>     
-                    <li class="nobullet"><i class="material-icons">more_horiz</i>
-                        <b>More Actions:</b>
+                    menus that allow you control the map display. <br>
+                    The buttons along the right side
+                    provide access to quick-actions and experiments.
+                    <p>
+                        <b>Left menu bar:</b>
                         <ul>
-                            <li>Clear / Refresh Vessel Trail: When trail is available from the server
-                                selecting this menu item will reload the trail from the server.
+                            
+                            <li class="nobullet"><i class="material-icons">menu</i>
+                                <b>Main Menu:</b>
+                                Displays the main menu. <i>(See <a href="#menus">menus</a> for more.)</i>
+                            </li>  
+                            <li class="nobullet"><i class="material-icons" style="color:red;">warning</i>
+                                <b>Alarms:</b>
+                                Displays the alarms screen to raise / clear alarms. <i>(See <a href="#alarms">alarms</a> for more.)</i>
+                            </li>  
+                            <li class="nobullet"><i class="material-icons" style="color:green;">layers</i>
+                                <b>Resources:</b>
+                                Provides access to resources such as Charts, Routes, Waypoints, etc. <i>(See <a href="#resources">resources</a> for more.)</i>
+                            </li>  
+                            <li class="nobullet"><i class="material-icons">edit</i>
+                                <b>Draw Menu:</b>
+                                Provides access to options that allow the drawing / editing of resources.
+                                <i>(See <a href="#menus">menus</a> for more.)</i>
+                            </li>  
+                            <li class="nobullet"><i class="material-icons">navigation</i>
+                                <b>Heading / North Up:</b>
+                                Toggles between <i>Heading / North Up</i> mode.
+                            </li>                        
+                            <li class="nobullet"><i class="material-icons">my_location</i>
+                                <b>Follow Vessel On / Off:</b>
+                                Toggles <i>Follow Vessel</i> mode to keep the vessel at the centre of the 
+                                screen.<br>
+                                <i>Note: this option is disabled when vessel position is not available.</i>
                             </li>
-                            <li>Clear Destintation / Active Route: clears active destination or de-activates
-                                an active route.
-                            </li>
-                            <li>Clear Course Data: clears the current course data.</li>
-                            <li>Trail to Route: create a route from the current vessel trail.</li>
-                            <li>Show / Hide Course Data: Toggle the display of course data.</li>
-                            <li>Show / Hide Vessels: Toggle the display of other vessels.</li>                        
-                            <li>Show / Hide Notes: Toggle the display of notes.</li>
-                            <li>Settings: Open the <a href="#settings">Settings</a> screen.</li>
+                            <li class="nobullet"><i class="material-icons">center_focus_strong</i>
+                                <b>Centre Vessel on screen:</b> 
+                                <i>Note: This option is disabled when vessel position is not available.</i>
+                            </li>  
+                            <hr>
+                            <li class="nobullet"><i class="material-icons">more_horiz</i>
+                                <b>More Actions:</b> Provides access to the following options:
+                                
+                                <ul>
+                                    <li>Clear / Refresh Vessel Trail: When trail is available from the server
+                                        selecting this menu item will reload the trail from the server.
+                                    </li>
+                                    <li>Clear Destintation / Active Route: clears active destination or de-activates
+                                        an active route.
+                                    </li>
+                                    <li>Clear Course Data: clears the current course data.</li>
+                                    <li>Trail to Route: create a route from the current vessel trail.</li>
+                                    <li>Show / Hide Course Data: Toggle the display of course data.</li>
+                                    <li>Show / Hide Vessels: Toggle the display of other vessels.</li>                        
+                                    <li>Show / Hide Notes: Toggle the display of notes.</li>
+                                    <li>Settings: Open the <a href="#settings">Settings</a> screen.</li>
+                                </ul>
+                            </li>  
                         </ul>
-                    </li>     
+                    </p>
+
+                    <p>
+                        <b>Right menu bar:</b>
+                        <ul>
+                            <li class="nobullet"><i class="material-icons">av_timer</i>
+                                <b>Instrument panel:</b> The instrument panel is used to display selected Web App(s) installed on
+                                the Signal K server.<br>
+                                <i>The default instruments shown are <b>@signalk/instrumentpanel</b></i><br>
+                                Use the <a href="#settings">Settings</a> screen to:
+                                <ul>
+                                    <li>Select the Web App to display</li>
+                                    <li>Select one or more <i>Favourites</i> that can be switched into view by using the
+                                        <i class="material-icons">arrow_back_ios</i> and <i class="material-icons">arrow_forward_ios</i>
+                                        buttons.
+                                    </li>
+                                    <li>
+                                        You can also open the displayed Web App in it's own window by clicking 
+                                        the <i class="material-icons">open_in_new</i> button.
+                                    </li>
+                                </ul>
+                            </li> 
+
+                            <li class="nobullet">
+                                <i class="material-icons" style="color:red;">volume_off</i>
+                                <b>Web Audio Off:</b>
+                                Displays if browser audio is NOT activated. If displayed then no alarm sounds will be 
+                                audible.<br>
+                                Click this button to enable web audio to hear alarm sounds.
+                            </li>
+
+                            <li class="nobullet">
+                                <i class="material-icons">fullscreen</i>
+                                <b>Fullscreen mode:</b>
+                                Displays application in fullscreen mode.<br>
+                                <i>Available only on supported devices.</i>
+                            </li>
+
+                            <li class="nobullet">
+                                <i class="material-icons">visibility_off</i>
+                                <b>Prevent Device Sleep:</b>
+                                Sets 'Wake Lock' mode for the current session to prevent the device from entering sleep mode when no user input has been 
+                                received. See <a href="#settings">Settings</a> for more.<br>
+                                <i>Available only on supported devices.</i>
+                            </li>
+
+                            <li class="nobullet">
+                                <i class="material-icons">science</i>
+                                <b>Experiments:</b>
+                                Provides access to experimental features which are being considered for inclusion
+                                into the main application.
+                                See <a href="#experiments">experiments</a> for more.<br>
+                            </li>
+
+                            <li class="nobullet">
+                                <i class="material-icons">videocam</i>
+                                <b>Video:</b>
+                                Displays the video stream that has been configured in
+                                 <a href="#settings">settings</a>.<br>
+                                <i>Available only on supported devices.</i>
+                            </li>
+
+                            <li class="nobullet">
+                                <i class="material-icons">add_location</i>
+                                <b>Drop Waypoint:</b>
+                                Place new waypoint at vessel location.
+                            </li>
+                        </ul>
+                    </p>
+                    <hr>
                     <li><b>Context "Right click" Menu :</b> 
                         Click the right mouse button anywhere on the map to display 
-                        a context menu. The options available may vary based on the current 
+                        a context menu. <br>
+                        The options available may vary based on the current 
                         application state.<br>
                         <img src="./img/context_menu.png" style="max-width:190px;"/><br>
                         <i>Note:The <b>Add Note here"</b> option is only available at zoom levels where 
                             Notes are visible on the map.
                         </i>
                         <br>&nbsp;
-                    </li>    
-                    <li class="nobullet"><i class="material-icons">av_timer</i>
-                        <b>Instrument panel:</b> The instrument panel is used to display selected Web App(s) installed on
-                        the Signal K server.<br>
-                        <i>The default instruments shown are <b>@signalk/instrumentpanel</b></i><br>
-                        Use the <a href="#settings">Settings</a> screen to:
-                        <li>Select the Web App to display</li>
-                        <li>Select one or more <i>Favourites</i> that can be switched into view by using the
-                            <i class="material-icons">arrow_back_ios</i> and <i class="material-icons">arrow_forward_ios</i>
-                            buttons.
-                        </li>
-                        You can also open the displayed Web App in it's own window by clicking 
-                        the <i class="material-icons">open_in_new</i> button.
-                    </li>                                                               
+                    </li>                                                                  
                 </p>
                 <p>
                     <img src="../img/ship_red.png" style="height:30px;"/>
@@ -1003,7 +1087,15 @@
                             state has returned to <i>Normal</i>, this is the 
                             length of time that the notification must remain in <i>Normal</i> state
                             before the alarm is re-triggered.
-                        </li>                                  
+                        </li>
+                        <li><b>Prevent Device Sleeping</b>: 
+                            Check this option to set the devices <i>WakeLock</i> upon start-up which prevents your device 
+                            from entering sleep mode.<br>
+                            <i>Note: this setting is only available on devices / browsers which support the API.</i>
+                            <br>
+                            This can be set for the current session by clicking the 
+                            <b><i class="material-icons">visibility_off</i></b> button on the right of screen.
+                        </li>                          
                         <li><b>Dark Mode Setting</b>: 
                             Use this setting to control the display theme (Light or Dark).<br>
                             <ul>
