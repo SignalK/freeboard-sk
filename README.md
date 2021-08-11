@@ -5,6 +5,8 @@ Freeboard is a stateless, multi-station ready, Openlayers chartplotter for Signa
 Display and manage routes, waypoints, notes, alarms, notifications on your Signal K server
 from multiple clients.
 
+![screen](https://user-images.githubusercontent.com/38519157/128667564-0f5e1ed6-eaae-40c7-ad62-5e7011c1f082.png)
+
 
 ## Features:
 ---
@@ -21,50 +23,68 @@ Ability to select the active vessel and direct actions to it _(where supported b
 - Wind True / Apparent display
 - Measure distance
 
-__Online:__
+### CHARTS
+
+Built in support (no plugin required) for:
 
 - OpenStreetMap / WORLD chart outline
 - OpenSeaMap
 
-__Offline:__
+__Signal K `/resources/charts` path:__
 
-- MBTiles (or compatible) charts hosted on the Signal K server via `/resources/charts` path.
+Charts listed under the Signal K servers `/resources/charts` path are avaialble for display.
+
+The following chart types / sources are supported 
+- Image tiles (XYZ)
+- Vector Tiles (MVT / PBF)
+- WMS (Web Map Server)
 
 ---
 
 ### Resources:  
 
-#### Routes and Waypoints
+The following resources available at the Signal K `/resources` path are supported:
 
-- List / Select resources available via `/resources/routes`, `/resources/waypoints` paths
+__Routes and Waypoints:__
+
+_Path(s): `/resources/routes`, `/resources/waypoints`_
+
+- Show / Hide Routes & Waypoints 
 - Set an active Route
 - Select destination point along and Active Route
 - Select a Waypoint as a destination
-- Draw Routes
-- Add Waypoint at: Cursor or Vessel position
-- Edit and delete Routes / Waypoints
+- Create / Edit / Delete Routes
+- Add Waypoint at location or Vessel position
+- Edit / Delete Waypoints
 - Import Routes and Waypoints from GPX files
 
+__Notes and Regions:__
 
-#### Notes and Regions
+_Path(s): `/resources/notes`, `/resources/regions`_
 
-- Display Notes and Regions available via `/resources/notes` and  `/resources/regions` paths
-- View Note properties.
-- Draw Regions and add Notes to them.
-- Add, edit, move and delete Notes and associate them with Regions.
+- Display Notes and Regions
+- View / Edit Note properties
+- Draw Regions and attach Notes
+- Add / Edit / Delete Notes
+- Associate Notes with Regions
 
 ---
 
 ### Alarms and Notifications:
 
-- Display alarms from received *Notification* messages _(visual and audio)_. 
+- Display alarms from received *Notification* messages _(visual and audio)_ including: 
     - Depth
     - Closest Approach
     - "Buddy" notifications
-- Raise alarms such as `Man overboard`, etc.
+- Raise alarms such as `Man overboard`, `Sinking`, etc.
 
-__Anchor Watch:__
-- Set anchor drag alarm
+- Set anchor watch / drag alarm
+
+
+_Vessel Closest Approach alarm:_
+![screen](https://user-images.githubusercontent.com/38519157/128667564-0f5e1ed6-eaae-40c7-ad62-5e7011c1f082.png)
+
+
 
 ---
 
@@ -74,17 +94,17 @@ Playback recorded time-series data captured on the Signal K server via the `play
 
 ---
 
-### Instrument Panel: 
+### Instruments: 
 
-Freeboard allows you to use your favourite instrumentation app installed on your Signal K server.
+Freeboard allows you to use your favourite instrumentation app hosted on the Signal K server.
 
-Select from installed applications in the `settings` screen and they will displayed in the instrument panel drawer.
+Select one or more from installed applications in the `settings` screen and they will displayed in the instrument panel drawer.
 
-_Instrument Panel `(@SignalK/InstrumentPanel)` will be displayed by default._ 
+When more than one app is selected you can cycle through them within the instrument panel.
 
----
+_Instrument Panel: `Signal K Instrument Panel` app is the default._ 
+![instruments](https://user-images.githubusercontent.com/38519157/128668406-02cbb8d8-2353-4e93-ae5e-12e0c7d507fe.png)
 
-_**Freeboard** is a port of http://www.42.co.nz/freeboard for use with Signal K communication protocols and server features._
 
 ---
 
@@ -108,35 +128,26 @@ For all Freeboard features to be fully functional, it requires that the Signal K
 
 These functions may be provided natively by the server or through the use of *plugins*.
 
-For example the following plugins installed on the *Signal K node server* will enable full functionality:
-- freeeboard-sk-helper _(Course information)_
+### Recommended Plugins:
+The following plugins are recommended for the *Signal K node server* to enable full functionality:
+- freeeboard-sk-helper _(Set destination, active route, arrival circle)_
 - sk-resources-fs _(Routes, Waypoints, Notes & Regions provider)_
 - @signalk/charts-plugin *(Charts provider)*
-- signalk-anchoralarm-plugin *(anchor alarm settings & notifications)*
-- signalk-simple-notifications *(depth alarm notifications)*
-
----
-
-### Integrate Instrument Apps
-![Server Instruments](https://user-images.githubusercontent.com/38519157/46716813-00d27080-ccad-11e8-98a3-ab4b4f47df11.png)
-
-### Vessel Up Display
-![Vessel Up](https://user-images.githubusercontent.com/38519157/46716759-cf59a500-ccac-11e8-9ac5-68a7f3429f4a.png)
-
-### North Up Display
-![North Up](https://user-images.githubusercontent.com/38519157/46716737-bc46d500-ccac-11e8-9d31-87cfffb1ad3b.PNG)
-
+- signalk-anchoralarm-plugin _(anchor alarm settings & notifications)_
+- signalk-simple-notifications _(depth alarm notifications)_
+- signalk-derived-data _(XTE, DTG, etc.)_
 
 ---
 
 ## Development:
 
-Freeboard is an Angular project generated with [Angular CLI](https://github.com/angular/angular-cli).
+Freeboard is an Angular project.
+
 It is recommended that the Angular CLI be installed globally `npm i -g @angular/cli@latest` prior to following the steps below.
 
 1. Clone this repository.
 
-2. Run `npm i` to install Angular CLI and project dependencies. *Note: this will also build the project placing the deployable application files in the `public` folder.*
+2. Run `npm i` to install project dependencies. *Note: this will also build the project placing the deployable application files in the `public` folder.*
 
 3. Run `npm start` or `ng serve` to start a development web server and then navigate to `http://localhost:4200/` to load the application. The application will automatically reload once you save changes to any of the source files.
 
@@ -144,7 +155,7 @@ It is recommended that the Angular CLI be installed globally `npm i -g @angular/
 
 The Freeboard application will look to connect to a Signal K server at the *ip address:port* contained in the url of your browser. 
 
-During development, if a Signal K server is not running on your development device, you are able to specify the Signal K server api / stream host you wish to connect to by editing the `DEV_SERVER` object in the `src/app.info.ts` file.
+In development mode you are able to specify the Signal K server host address and port you wish to connect to by editing the `DEV_SERVER` object in the `src/app.info.ts` file.
 ```
 DEV_SERVER { 
     host: '192.168.99.100', 
@@ -157,30 +168,33 @@ _Note: These settings apply in **Development Mode** only!_
 
     - `npm start`
     - `ng serve` 
-    - Files generated using `ng build`
+    - `ng build`
 
 
 _They will __NOT__ apply when using **Production Mode**, the generated application will attempt to connect to a Signal K api / stream on the hosting server._
 
-    - `ng serve --prod`
-    - Files generated by `ng build --prod` or `npm run build:prod`
+    - `ng build -c production`
+    - `npm run build:prod`
 
 ---
 
 ### Building a Release:
 
-#### Angular Build
+__Angular Build:__
 
 To build the Freeboard application use the `npm run build:prod` command.
 
 Built application files for deployment are placed in the `/public` folder.
 
-#### NPM package
+__NPM package:__
 
 To build the NPM package use `npm pack` command which will:
 1. Build the application using `npm run build:prod`. 
 2. Create the NPM package `*.tgz` file.
 
 
-Built `*.tgz` file is placed in the `/` root folder.
+Built `*.tgz` file is placed in the root folder of the project.
 
+---
+
+_**Freeboard** is a port of http://www.42.co.nz/freeboard for use with Signal K communication protocols and server features._

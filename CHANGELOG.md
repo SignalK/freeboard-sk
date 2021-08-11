@@ -2,13 +2,19 @@
 
 ### v1.17.0
 
-- **Add**: Create Route from vessel trail.
+**BREAKING CHANGES**
 
-- **Add**: Hide the display of AIS vessels with `moored` and/or `anchored` state. (closes #99)
+- Older iOS devices (12 and earlier) require the `Pointer Events` to be enabled in `Settings | Safari | Advanced | Experimental Features` to allow touch gestures on the map for panning, etc.
+
+---
+
+- **New**: Create Route from vessel trail.
+
+- **New**: Prevent your device from entering sleep mode whilst using Freeboard-SK. (Supported devices only).
 
 - **Fix**: Modern browsers do not allow audio to autoplay without user interaction. This can cause alarms not to sound if they are active upon app start. A warning is now displayed if web audio is detected to be in a suspended state upon app start.
 
-- **Fix**: Improved mobile device behaviour by addition of mobile specific style and meta attributes. (closes #98)
+- **Fix**: Improved mobile device behaviour by addition of mobile specific style and meta attributes. 
 
 - **Update**: Alarm panel uses Signal K api PUT rather than stream delta to raise and clear alarms. _(Requires freeboard-sk-helper v1.4.0 or later)_
 
