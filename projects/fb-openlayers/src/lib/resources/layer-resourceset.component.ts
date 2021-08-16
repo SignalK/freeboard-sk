@@ -43,7 +43,7 @@ export class ResourceSetLayerComponent implements OnInit, OnDestroy, OnChanges {
   @Input() resourceSets: Array<any>= [];
   @Input() selected: Array<string>= [];
   @Input() labelMinZoom: number= 10;
-  @Input() mapZoom: number;
+  @Input() mapZoom: number= 10;
   @Input() opacity: number;
   @Input() visible: boolean;
   @Input() extent: Extent;

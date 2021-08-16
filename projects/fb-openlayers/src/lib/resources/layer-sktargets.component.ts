@@ -41,7 +41,7 @@ export class SKTargetsLayerComponent implements OnInit, OnDestroy, OnChanges {
   @Input() targetType: string;
   @Input() inactiveTime: number= 180000;  // in ms (3 mins)
   @Input() labelMinZoom: number= 10;
-  @Input() mapZoom: number;
+  @Input() mapZoom: number=10;
   @Input() updateIds: Array<string>= [];
   @Input() staleIds: Array<string>= [];
   @Input() removeIds: Array<string>= [];

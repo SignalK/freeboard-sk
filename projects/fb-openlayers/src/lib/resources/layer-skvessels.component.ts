@@ -43,7 +43,7 @@ export class SKVesselsLayerComponent implements OnInit, OnDestroy, OnChanges {
   @Input() focusId: string;
   @Input() inactiveTime: number= 180000;  // in ms (3 mins)
   @Input() labelMinZoom: number= 10;
-  @Input() mapZoom: number;
+  @Input() mapZoom: number= 10;
   @Input() showVector: boolean= true;
   @Input() vectorMinZoom: number= 15;
   @Input() vectorApparent: boolean= false;

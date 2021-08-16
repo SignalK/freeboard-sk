@@ -41,7 +41,7 @@ export class TrackLayerComponent implements OnInit, OnDestroy, OnChanges {
   @Input() tracks: Array<{[key:string]: any}>;
   @Input() trackStyles: {[key:string]: Style};
   @Input() labelMinZoom: number= 10;
-  @Input() mapZoom: number;
+  @Input() mapZoom: number= 10;
   @Input() opacity: number;
   @Input() visible: boolean;
   @Input() extent: Extent;

@@ -38,7 +38,7 @@ export class SKTargetTracksLayerComponent implements OnInit, OnDestroy, OnChange
 
   @Input() tracks: Map<string, any>= new Map();
   @Input() minZoom: number= 10;
-  @Input() mapZoom: number;
+  @Input() mapZoom: number= 10;
   @Input() showTracks: boolean= true;
   @Input() updateIds: Array<string>= [];
   @Input() removeIds: Array<string>= [];

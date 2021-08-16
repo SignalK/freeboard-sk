@@ -43,7 +43,7 @@ export class BearingLineComponent implements OnInit, OnDestroy, OnChanges {
   @Input() markerName: string;
 	@Input() lineCoords: Array<Coordinate>;
   @Input() showMarker: boolean= false;
-  @Input() mapZoom: number;
+  @Input() mapZoom: number= 10;
   @Input() labelMinZoom: number= 10;
   @Input() bearingStyles: { [key:string]: any };
   @Input() opacity: number;
