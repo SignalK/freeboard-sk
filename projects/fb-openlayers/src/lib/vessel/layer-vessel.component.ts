@@ -169,13 +169,13 @@ export class VesselComponent implements OnInit, OnDestroy, OnChanges {
     });
 
     if(this.vesselStyles) { 
-      if(this.activeId) {
+      if(this.activeId && this.activeId!= this.id) {
         if(this.vesselStyles.inactive) {
           cs= this.vesselStyles.inactive;
         }
       } 
       else {
-        if(this.vesselStyles.inactive) {
+        if(this.vesselStyles.default) {
           cs= this.vesselStyles.default; 
         }
       }
