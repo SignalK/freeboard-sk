@@ -42,7 +42,7 @@ export class WaypointLayerComponent implements OnInit, OnDestroy, OnChanges {
   @Input() waypointStyles: {[key:string]: Style};
   @Input() activeWaypoint: string;
   @Input() labelMinZoom: number= 10;
-  @Input() mapZoom: number;
+  @Input() mapZoom: number= 10;
   @Input() opacity: number;
   @Input() visible: boolean;
   @Input() extent: Extent;
@@ -211,10 +211,10 @@ export class WaypointLayerComponent implements OnInit, OnDestroy, OnChanges {
   }  
 
   // return a Style with label text
-  setTextLabel(s:Style, text:string): Style {
+  setTextLabel(s:Style, text:string=''): Style {
     let cs= s.clone();
     let ts= cs.getText();
-    ts.setText( (Math.abs(this.mapZoom)>= this.labelMinZoom)   ? text : '');
+    if(ts) { ts.setText( (Math.abs(this.mapZoom)>= this.labelMinZoom)   ? text : '') }
     return cs;
   }
 
