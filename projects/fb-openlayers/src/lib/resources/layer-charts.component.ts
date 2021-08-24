@@ -82,6 +82,8 @@ export class FreeboardChartLayerComponent implements OnInit, OnDestroy, OnChange
             layer.setMaxZoom(charts[i][1].maxZoom);
           }
           else {  // signal k charts
+            let minZ:number= (charts[i][1].minZoom>=0.1) ? charts[i][1].minZoom -0.1 : charts[i][1].minZoom;
+            let maxZ:number= charts[i][1].maxZoom + 0.9;
             if(charts[i][1].chartFormat=='pbf' || charts[i][1].chartFormat=='mvt') { // vector tile
               let source = new VectorTileSource({
                 url: charts[i][1].tilemapUrl,
@@ -94,8 +96,8 @@ export class FreeboardChartLayerComponent implements OnInit, OnDestroy, OnChange
                 preload: 0,
                 zIndex: this.zIndex + parseInt(i),
                 style: this.applyVectorStyle,
-                minZoom: charts[i][1].minZoom,
-                maxZoom: charts[i][1].maxZoom
+                minZoom: minZ,
+                maxZoom: maxZ
               });
             }
             else {  // raster tile
@@ -117,8 +119,8 @@ export class FreeboardChartLayerComponent implements OnInit, OnDestroy, OnChange
                 source: source,
                 preload: 0,
                 zIndex: this.zIndex + parseInt(i),
-                minZoom: charts[i][1].minZoom,
-                maxZoom: charts[i][1].maxZoom
+                minZoom: minZ,
+                maxZoom: maxZ
               });
             }
           }
