@@ -345,7 +345,7 @@
                                     <mat-select #aiswindminzoom
                                             [(value)]="facade.settings.selections.aisWindMinZoom" 
                                             (selectionChange)="onFormChange($event, aiswindminzoom)"
-                                            placeholder="Wind / Track Zoom Level">
+                                            placeholder="Wind / Trail Zoom Level">
                                         <mat-option *ngFor="let i of facade.list.minZoom" [value]="i">{{i}}</mat-option>
                                     </mat-select>                                        
                                 </mat-form-field>
@@ -356,7 +356,7 @@
                                     [(ngModel)]="facade.settings.aisShowTrack" 
                                     (change)="onFormChange($event, aisShowTrack)"
                                     label="after">
-                                    Show Track
+                                    Show Trails
                                 </mat-checkbox>
                                 &nbsp;
                                 <mat-checkbox #aisStateMoored color="primary"
