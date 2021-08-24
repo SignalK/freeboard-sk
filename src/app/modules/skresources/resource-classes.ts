@@ -1,6 +1,6 @@
 // **** RESOURCE CLASSES **********
 
-import { GeoUtils, Position } from "src/app/lib/geoutils";
+import { Position } from "src/app/lib/geoutils";
 
 // ** Signal K route
 export class SKRoute {
@@ -19,7 +19,7 @@ export class SKRoute {
         id: ''
     };
 
-    constructor(route?) {
+    constructor(route?:{[key:string]:any}) {
         if(route) {
             this.name= (route.name) ? route.name : null;
             this.description= (route.description) ? route.description : null;
@@ -44,7 +44,7 @@ export class SKWaypoint {
         id: ''
     };
 
-    constructor(wpt?) {
+    constructor(wpt?:{[key:string]:any}) {
         if(wpt) {
             if(wpt.position) { this.position= wpt.position }
             if(wpt.feature) { this.feature= wpt.feature }
@@ -69,7 +69,7 @@ export class SKChart {
     maxZoom: number= 24;
     type: string;
 
-    constructor(chart?) {
+    constructor(chart?:{[key:string]:any}) {
         if(chart) {
             this.identifier= (chart.identifier) ? chart.identifier : null;
             this.name= (chart.name) ? chart.name : this.identifier;
@@ -80,11 +80,11 @@ export class SKChart {
             this.chartLayers= (chart.chartLayers) ? chart.chartLayers : null;
             this.bounds= (chart.bounds) ? chart.bounds : null;
             this.chartFormat= (chart.format) ? chart.format : null;
-            this.minZoom= (chart.minzoom) ? chart.minzoom : this.minZoom;
-            this.maxZoom= (chart.maxzoom) ? chart.maxzoom : this.maxZoom;
+            this.minZoom= (typeof chart.minzoom!=='undefined') ? chart.minzoom : this.minZoom;
+            this.maxZoom= (typeof chart.maxzoom!=='undefined') ? chart.maxzoom : this.maxZoom;
             this.type= (chart.type) ? chart.type : null;
             this.tilemapUrl= (chart.tilemapUrl) ? chart.tilemapUrl : null;
-            this.scale= (chart.scale) ? 
+            this.scale= (typeof chart.scale!=='undefined') ? 
                 isNaN(chart.scale) ? 25000 : parseInt(chart.scale)
                 : 250000;    
         }
@@ -138,7 +138,7 @@ export class SKNote {
     timestamp: string;
     source: string; 
 
-    constructor(note?) {
+    constructor(note?:{[key:string]:any}) {
         if(note) {
             if(note.title) { this.title= note.title }
             if(note.description) { this.description= note.description }
@@ -170,7 +170,7 @@ export class SKRegion {
         id: ''
     };
 
-    constructor(region?) {
+    constructor(region?:{[key:string]:any}) {
         if(region) {
             if(region.geohash) { this.geohash= region.geohash }
             if(region.feature) { this.feature= region.feature }
@@ -190,7 +190,7 @@ export class SKTrack {
         id: ''
     };
 
-    constructor(trk?) {
+    constructor(trk?:{[key:string]:any}) {
         if(trk) {
             if(trk.feature) { this.feature= trk.feature }
         }
