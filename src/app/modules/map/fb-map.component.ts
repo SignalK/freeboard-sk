@@ -7,7 +7,6 @@ import { Collection, Feature } from 'ol';
 
 import { Convert } from 'src/app/lib/convert';
 import { GeoUtils, Position } from 'src/app/lib/geoutils';
-//import { TEMPERATURE_GRADIENT } from 'src/app/lib/grib';
 
 import { AppInfo } from 'src/app/app.info'
 import { SKResources } from '../skresources/resources.service';
@@ -57,9 +56,6 @@ interface IFeatureData {
     navData: any;
     closest: any;
     resourceSets: {[key:string]: any};
-    //grib: any    // GRIB data
-    //colorGradient: any;
-    //heatmap: Array<any>;     // values to display on colormap / heatmap
 }
 
 const MAP_SRID:string= 'EPSG:4326';
@@ -209,10 +205,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
         active: new SKVessel(),  // focussed vessel
         navData: {position: null, startPosition: null},
         closest: {id: null, position: [0,0]},
-        resourceSets: {},
-        //grib: { wind: [], temperature: [] },    // GRIB data
-        //colorGradient: TEMPERATURE_GRADIENT,
-        //heatmap: []     // values to display on colormap / heatmap
+        resourceSets: {}
     }
 
     // ** AIS target management
@@ -439,7 +432,6 @@ export class FBMapComponent implements OnInit, OnDestroy {
                 });
 
             }
-            //if(value.mode=='grib') { this.renderGRIB() }
             if(value.mode=='track') {  // vessel track from server 
                 this.dfeat.tracks= this.app.data.tracks.filter( t=> {
                     let lines= [];
@@ -523,7 +515,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
 
     // parse zoom level change
     parseZoomChange(zoom:number) {
-        let z= Math.round(zoom);
+        let z= Math.floor(zoom);
         this.app.config.map.zoomLevel=z;
         this.app.debug(`Zoom: ${zoom}->${z}`);
     }
@@ -1156,7 +1148,6 @@ export class FBMapComponent implements OnInit, OnDestroy {
     // ** called by onMapMove() to render features within map extent
     private renderMapContents() {
         if(this.fetchNotes()) {this.skres.getNotes();this.app.debug(`fetching Notes...`) }
-        //this.renderGRIB();
     }
 
     // ** returns true if skres.getNotes() should be called
@@ -1185,20 +1176,4 @@ export class FBMapComponent implements OnInit, OnDestroy {
         return false;    
     }
 
-    // filter GRIB resources within map extent to render
-    /*private renderGRIB() {
-        if(this.app.data.grib.values.wind) {
-            this.dfeat.grib.wind= this.app.data.grib.values.wind.filter( i=> {
-                return (GeoUtils.inBounds(i.coord, this.fbMap.extent));
-            });
-        }
-        this.display.layer.wind= (this.dfeat.grib.wind.length>0 && this.app.config.map.zoomLevel>=4);
-
-        if(this.app.data.grib.values.temperature) {
-            this.dfeat.heatmap= this.app.data.grib.values.temperature.filter( i=> {
-                return (GeoUtils.inBounds(i.coord, this.fbMap.extent));
-            });
-        }
-        this.display.layer.colormap= (this.dfeat.heatmap.length>0 && this.app.config.map.zoomLevel>=4);
-    }*/
 }

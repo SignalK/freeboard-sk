@@ -280,10 +280,6 @@ export class AppComponent {
     // ** display selected experiment UI **
     public openExperiment(e:any) {   
         switch(e.choice) {
-            /*case 'grib':
-                this.display.bottomSheet.show= true;  
-                this.display.bottomSheet.title= 'GRIB Data';                
-                break;*/
             case 'tracks':  // tracks
                 this.bottomSheet.open(TracksModal, {
                     disableClose: true,
@@ -303,39 +299,6 @@ export class AppComponent {
                 }
         }
     }
-
-    // ** close bottom sheet **
-    /*public closeBottomSheet() {
-        //this.display.bottomSheet.show=false;
-        //this.app.data.grib.values.wind= null;
-        //this.app.data.grib.values.temperature= null;
-        //this.skres.getGRIBData();   // clear grib data from map
-        this.focusMap();
-    }*/
-
-    // ** get / display supported GRIB layers **
-    /*public selectGRIB(e:any) {
-        let params:string= '';
-        if(typeof e.content.Temperature!=='undefined') {
-            if(e.content.Temperature==null) { this.app.data.grib.values.temperature= null }
-            else { 
-                params= (params.length==0) 
-                    ?  `:${e.content.Temperature}` 
-                    :  `${params}-${e.content.Temperature}`;
-            }
-        }
-        if(typeof e.content.Wind!=='undefined') {
-            if(e.content.Wind==null) { this.app.data.grib.values.wind= null }
-            else { 
-                params= (params.length==0) 
-                    ?  `:${e.content.Wind}` 
-                    :  `${params}-${e.content.Wind}`;
-            }
-        }
-
-        if(params.length==0) { this.skres.getGRIBData() }
-        else { this.skres.getGRIBData(e.id + params) }
-    }*/
 
     // ** display course settings screen **
     public openCourseSettings() {
@@ -1196,10 +1159,6 @@ export class AppComponent {
                 }
                 // ** query anchor alarm status
                 this.alarmsFacade.queryAnchorStatus(this.app.data.vessels.activeId, this.app.data.vessels.active.position);
-                /*this.skres.getGRIBList().subscribe( 
-                    r=> { this.app.data.grib.hasProvider= true },
-                    err=> { this.app.data.grib.hasProvider= false }
-                );*/
             },
             err=> { 
                 if(err.status && err.status==401) { this.showLogin(null, false, true) }  

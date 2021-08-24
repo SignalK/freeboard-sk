@@ -19,9 +19,6 @@ import { RouteNextPointComponent } from './components/navigation';
 // ** profiles 
 import { VesselPopoverComponent } from './components/profiles/default';
 
-// ** expriment: GRIB **
-//import { LayerHeatmapComponent, LayerWindVectorComponent, LayerColormapComponent } from './components/grib';
-
 import { FreeboardOpenlayersModule } from 'fb-openlayers';
 import { FBMapComponent } from './fb-map.component';
 import { UtilitiesModule } from 'src/app/modules/utils/utils.module';
@@ -48,7 +45,3 @@ import { UtilitiesModule } from 'src/app/modules/utils/utils.module';
     providers: []  
 })
 export class FBMapModule {}
-
-//export { WindVector } from './components/grib/layer-windvector.component';
-//export { HeatmapValue } from './components/grib/layer-heatmap.component';
-//export { ColormapValue } from './components/grib/layer-colormap.component';

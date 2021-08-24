@@ -31,7 +31,7 @@ import { ResourceDialog, AISPropertiesModal, AtoNPropertiesModal, AircraftProper
         ActiveResourcePropertiesModal, ChartInfoDialog,
         TracksModal, ResourceSetModal } from './resource-dialogs';
 import { ResourceImportDialog } from './sets/resource-upload-dialog';
-//import { GRIBPanel, GRIBGradient } from './grib/grib-components';
+
 import { SKNotesModule } from './notes';
 import { AppUIModule } from 'src/app/lib/ui/ui.module';
 import { UtilitiesModule } from 'src/app/modules/utils/utils.module';
@@ -50,7 +50,6 @@ import { UtilitiesModule } from 'src/app/modules/utils/utils.module';
         AISListComponent, NoteListComponent, 
         ResourceDialog, AISPropertiesModal, AtoNPropertiesModal, AircraftPropertiesModal,
         ActiveResourcePropertiesModal, ChartInfoDialog, ChartLayers,
-        //GRIBPanel, GRIBGradient, 
         TracksModal, ResourceSetModal, ResourceImportDialog
     ],
     exports: [
@@ -58,8 +57,7 @@ import { UtilitiesModule } from 'src/app/modules/utils/utils.module';
         AISListComponent, NoteListComponent,
         ResourceDialog, AISPropertiesModal, AtoNPropertiesModal, AircraftPropertiesModal,
         ActiveResourcePropertiesModal, ChartInfoDialog, ChartLayers,
-        SKNotesModule, 
-        //GRIBPanel, GRIBGradient, 
+        SKNotesModule,
         TracksModal, ResourceSetModal, ResourceImportDialog
     ],
     entryComponents: [
@@ -74,6 +72,5 @@ export * from './resources.service';
 export * from './resource-dialogs';
 export * from './resource-classes';
 export * from './notes';
-//export * from './grib/grib-components';
 export * from './sets/resource-sets.service';
 export * from './sets/resource-upload-dialog';

@@ -11,7 +11,6 @@ import { LoginDialog } from 'src/app/lib/app-ui';
 import { NoteDialog, RegionDialog } from './notes'
 import { ResourceDialog } from './resource-dialogs'
 import { SKChart, SKRoute, SKWaypoint, SKRegion, SKNote, SKTrack } from './resource-classes'
-import { GRIB_PATH, Grib } from 'src/app/lib/grib'
 import { moveItemInArray } from '@angular/cdk/drag-drop';
 
 interface IActiveRoute {
@@ -149,30 +148,6 @@ export class SKResources {
             case 'region':
                 this.showRelatedNotes(r.id);
                 break;                   
-        }
-    }  
-
-    // **** GRIB ****
-
-    // ** get list of GRIB resources **
-    getGRIBList() { return this.signalk.api.get(GRIB_PATH) }
-
-    // ** get GRIB entry (entry=null: clear GRIB data)
-    getGRIBData(entry:string=null) { 
-        if(!entry) { // clear values
-            this.app.data.grib.values.wind= [];
-            this.app.data.grib.values.temperature= [];
-            this.updateSource.next({action: 'get', mode: 'grib'});
-        }
-        else { 
-            this.signalk.api.get(`${GRIB_PATH}/${entry}`).subscribe(
-                (r:any)=> { 
-                    this.app.data.grib.values.wind= Grib.parseGRIBWind(r);
-                    this.app.data.grib.values.temperature= Grib.parseGRIBTemperature(r, 'C');
-                    this.updateSource.next({action: 'get', mode: 'grib'});
-                },
-                err=> { console.warn(err) }
-            );
         }
     }
 

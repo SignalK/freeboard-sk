@@ -123,7 +123,7 @@ export const OSM= [
             type: 'tilelayer'
         }), 
         true
-    ],     
+    ]   
 ];
 
 @Injectable({ providedIn: 'root' })
@@ -170,7 +170,7 @@ export class AppInfo extends Info {
         this.name= "Freeboard";
         this.shortName= "freeboard";
         this.description= `Signal K Chart Plotter.`;
-        this.version= '1.17.0';
+        this.version= '1.17.1';
         this.url= 'https://github.com/signalk/freeboard-sk';
         this.logo= "./assets/img/app_logo.png";   
         
@@ -184,10 +184,6 @@ export class AppInfo extends Info {
             loggedIn: false,
             loginRequired: false,
             hasWakeLock: false,
-            /*grib: {
-                hasProvider: false,
-                values: { wind: null, temperature: null}
-            },*/
             routes: [],
             waypoints: [],
             charts: [].concat(OSM),

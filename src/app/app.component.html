@@ -647,29 +647,7 @@
                             [units]="(app.config.units.distance=='m') ? 'km' : 'NM'">
                         </ap-dial-text>   
                     </div>                           
-                </div>
-
-                <!-- *** Bottom sheet panel ***-->
-                <!--<div class="mat-app-background bottomSheet" *ngIf="display.bottomSheet.show">
-                    <div style="display:flex;">
-                        <div class="title">
-                            {{display.bottomSheet.title}}
-                        </div>
-                        <div>
-                            <button mat-icon-button (click)="closeBottomSheet()">
-                                <mat-icon>close</mat-icon>
-                            </button>
-                        </div>
-                    </div>
-                    <div>
-                        <mat-divider></mat-divider>
-                        <grib-panel 
-                            [zoomLevel]="app.config.map.zoomLevel" 
-                            [minZoom]="4"
-                            (change)="selectGRIB($event)">
-                        </grib-panel>   
-                    </div>        
-                </div> -->             
+                </div>          
             
             </mat-sidenav-container>
         </div>
