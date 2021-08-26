@@ -9,7 +9,7 @@ import { AppComponent } from './app.component';
 import { AppMaterialModule } from './lib/app-material.module';
 import { AppUIModule } from './lib/app-ui';
 
-import { SettingsModule, GPXLoadModule, GeoJSONModule, AlarmsModule, ExperimentsModule,
+import { SettingsModule, GPXModule, GeoJSONModule, AlarmsModule, ExperimentsModule,
         SKStreamModule, SignalKResourcesModule, FBMapModule, CourseModule } from './modules';
 
 @NgModule({
@@ -22,7 +22,7 @@ import { SettingsModule, GPXLoadModule, GeoJSONModule, AlarmsModule, Experiments
     FormsModule, HttpClientModule,
     AppMaterialModule, AppUIModule, ExperimentsModule,
     SignalKResourcesModule, FBMapModule, CourseModule,
-    GPXLoadModule, GeoJSONModule, SettingsModule, 
+    GPXModule, GeoJSONModule, SettingsModule, 
     AlarmsModule, SKStreamModule
   ],
   exports: [],

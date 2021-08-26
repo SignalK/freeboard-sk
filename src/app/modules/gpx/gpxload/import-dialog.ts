@@ -55,7 +55,7 @@ export class GPXImportDialog implements OnInit{
 
         // ** close dialog returning error count **
         this.unsubscribe.push(
-            this.facade.uploaded$.subscribe( errCount=> {
+            this.facade.result$.subscribe( errCount=> {
                 this.dialogRef.close( errCount );
             })
         );

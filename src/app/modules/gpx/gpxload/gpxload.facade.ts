@@ -5,8 +5,8 @@ import { Subject, Observable } from 'rxjs';
 
 import { AppInfo } from 'src/app/app.info';
 import { SignalKClient } from 'signalk-client-angular';
-import { SKResources } from '../skresources/';
-import { GPX, GPXRoute, GPXWaypoint, GPXTrack, GPXTrackSegment } from './gpx';
+import { SKResources } from '../../skresources';
+import { GPX, GPXRoute, GPXWaypoint, GPXTrack, GPXTrackSegment } from '../gpxlib';
 
 @Injectable({ providedIn: 'root' })
 export class GPXLoadFacade  {
@@ -15,8 +15,8 @@ export class GPXLoadFacade  {
     private errorCount:number=0;
     private subCount:number=0;
 
-    private uploadSource: Subject<number>;
-    public uploaded$: Observable<any>;   
+    private resultSource: Subject<number>;
+    public result$: Observable<any>;   
     private gpx:GPX
 
    // *******************************************************    
@@ -24,8 +24,8 @@ export class GPXLoadFacade  {
     constructor(private app: AppInfo, 
                 private skres: SKResources,
                 public signalk: SignalKClient) { 
-        this.uploadSource= new Subject<number>();
-        this.uploaded$= this.uploadSource.asObservable();                     
+        this.resultSource= new Subject<number>();
+        this.result$= this.resultSource.asObservable();                     
     }
 
     // ** delete GPX object data **
@@ -89,11 +89,11 @@ export class GPXLoadFacade  {
         }        
     }
 
-    // ** check all submissions are resolved and emit upload$
+    // ** check all submissions are resolved and emit result$
     checkComplete() {
         if(this.subCount==0) {
             this.app.saveConfig();
-            this.uploadSource.next(this.errorCount);
+            this.resultSource.next(this.errorCount);
             this.app.debug(`GPXLoad: complete: ${this.errorCount}`);
         }
     }

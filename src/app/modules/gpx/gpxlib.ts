@@ -11,7 +11,7 @@ export class GPX {
     private version: string;        // ** GPX version
     public creator: string;
 
-    public wpt: Array<GPXWaypoint>;     // ** array of waypoints
+    public wpt: Array<GPXWaypoint>;  // ** array of waypoints
     public rte: Array<GPXRoute>;     // ** array of routes
     public trk: Array<GPXTrack>;     // ** array of tracks    
     public extensions: {};
@@ -225,9 +225,8 @@ export class GPX {
         return xml;
     }
 
-	/** parse GPX string contents 
-	 * and fill this.data  **/
-	parse(gpxstr) {
+	/** parse GPX string contents and fill this.data  **/
+	parse(gpxstr:string) {
         // ** check for valid file contents **
         if (!gpxstr || gpxstr.indexOf("<gpx")==-1 ) { return false }
         // ** initialise **
@@ -286,7 +285,7 @@ export class GPX {
 	}
 
 	//** parse wpt xml element object array into this.wpt array
-	parseWaypoints(waypoints) {
+	parseWaypoints(waypoints:any[]) {
         if(Array.isArray(waypoints)) {
             waypoints.forEach( w=> {
                 let pt= this.toWpt(w);
@@ -302,7 +301,7 @@ export class GPX {
 	}
 
 	//** parse rte xml element object array into this.rte array
-	parseRoutes(routes) {
+	parseRoutes(routes:any[]) {
         if(Array.isArray(routes)) {
             routes.forEach( r=> {
                 let rte= this.toRte(r);
@@ -318,7 +317,7 @@ export class GPX {
 	}
 
 	//** parse trk xml element object array into this.trk array
-	parseTracks(tracks) {
+	parseTracks(tracks:any[]) {
         if(Array.isArray(tracks)) {
             tracks.forEach( t=> {
                 let trk= this.toTrk(t);
@@ -334,7 +333,7 @@ export class GPX {
 	}
 
 	//** updateBounds **
-	updateBounds(pt) {
+	updateBounds(pt:any) {
 		this.metadata.bounds.minLat= (pt.lat< this.metadata.bounds.minLat) ? pt.lat : this.metadata.bounds.minLat;
         this.metadata.bounds.minLon= (pt.lon< this.metadata.bounds.minLon) ? pt.lon : this.metadata.bounds.minLon;
         this.metadata.bounds.maxLat= (pt.lat> this.metadata.bounds.maxLat) ? pt.lat : this.metadata.bounds.maxLat;
@@ -342,7 +341,7 @@ export class GPX {
     }
 
     // ** return extension data
-    parseExtensions(xext) {
+    parseExtensions(xext:any) {
         return xext;
         /*
         if(!xext) { return [] }
@@ -352,7 +351,7 @@ export class GPX {
     }
 
     // ** return array of GPXLinkType objects from x2js
-    parseLinks(xlink): Array<GPXLinkType> {
+    parseLinks(xlink:any): Array<GPXLinkType> {
         let links= [];
         if(!xlink) { return links }
 
@@ -376,7 +375,7 @@ export class GPX {
     }  
     
     // ** return GPXRoute object for supplied rte xml object
-    toRte(xmlrte): GPXRoute {
+    toRte(xmlrte:any): GPXRoute {
         let rte= new GPXRoute();
 
         rte.name= (xmlrte.name) ? xmlrte.name : null;
@@ -394,7 +393,7 @@ export class GPX {
     }
 
     // ** return GPXWaypoint object for supplied wpt xml object
-    toWpt(xmlwpt):GPXWaypoint {
+    toWpt(xmlwpt:any):GPXWaypoint {
         let pt=new GPXWaypoint();
         pt.lat= parseFloat(xmlwpt._lat) || 0;
         pt.lon= parseFloat(xmlwpt._lon) || 0;
@@ -427,7 +426,7 @@ export class GPX {
     }
 
     // ** return GPXTrack object for supplied trk xml object    
-    toTrk(xmltrk):GPXTrack {
+    toTrk(xmltrk:any):GPXTrack {
         let tk= new GPXTrack();
 
         tk.name= (xmltrk.name) ? xmltrk.name : null;
@@ -459,7 +458,7 @@ export class GPX {
     }
 
     // ** return GPXWaypoint array for supplied pt xml object(s)    
-    toPtArray(xpts):Array<GPXWaypoint> {
+    toPtArray(xpts:any[]):Array<GPXWaypoint> {
         let pts= [];
             if(Array.isArray(xpts)) {
                 xpts.forEach( t=> {
@@ -481,7 +480,7 @@ export class GPX {
      * name: extension path/name in dotted notation e.g. signalk.uuid
      * value: extension value
      * ************************/
-    setExtension(ele, name, value) {
+    setExtension(ele:any, name:string, value:any) {
         if(!ele.extensions) { ele.extensions={} }
         let ns= name.split('.');
         let p= ele.extensions;

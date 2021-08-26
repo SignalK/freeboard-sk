@@ -435,6 +435,9 @@
                     The menu displayed when clicked will contain options for the Signal K specified resources
                     (Routes, Waypoints, Notes, Charts)
                     as well as additional available resource paths enabled in Settings.
+                    <br>
+                    Additionally Waypoint and Routes can be saved to a GPX file by selecting the 
+                    <b><i class="material-icons">streetview</i> Save to GPX</b> menu.
                     <hr>
 
                     <li class="nobullet"><i class="material-icons">directions</i>
@@ -653,7 +656,38 @@
                         </div>
                     </div> 
                 </p>                 
-            </div>	           
+            </div>	    
+            
+            <div class="panel" id="gpxsave">
+                <h4><i class="material-icons">streetview</i>Save to GPX</h4>
+                <p> 
+                    
+                    <li class="nobullet">
+                        Click the <i class="material-icons">layers</i>
+                        toolbar button and select the <i class="material-icons">streetview</i> 
+                        <b>Save to GPX</b> option from the menu.
+                    </li>                      
+                    <br>
+                    <div style="display:flex;flex-wrap: wrap;">
+                        <div><img src="./img/gpx_save.png" style="max-width:250px;"/></div>
+                        <div style="padding-left:15px;">
+                            You will be
+                            presented with a screen that will allow you to select some or all
+                            of the Route and Waypoint resources from the Signal K server.<br>
+
+                            <li><b>Waypoints:</b> Click the checkbox to select all Waypoints or
+                                expand the list and select the Waypoints to export.
+                            </li>
+                            <li><b>Routes:</b> Click the checkbox to select all Routes or
+                                expand the list and select the Routes to export.
+                            </li>
+                            <br>
+                            After selecting the resources click <b>Save</b> to choose the 
+                            name and location of the GPX file.
+                        </div>
+                    </div>
+                </p>
+            </div>
 
             <div class="panel" id="menus">
                 <h4>Draw Menu</h4>

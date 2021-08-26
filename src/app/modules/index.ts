@@ -1,6 +1,6 @@
 
 export * from './settings/settings.module';
-export * from './gpxload/gpxload.module'
+export * from './gpx/gpx.module'
 export * from './geojson/geojson.module'
 export * from './alarms/alarms.module'
 export * from './skresources/resources.module'

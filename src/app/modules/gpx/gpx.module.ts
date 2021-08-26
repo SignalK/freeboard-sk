@@ -18,7 +18,8 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 
 // ** components **
 
-import { GPXImportDialog } from './import-dialog';
+import { GPXImportDialog } from './gpxload/import-dialog';
+import { GPXExportDialog } from './gpxsave/export-dialog';
 
 
 @NgModule({
@@ -30,16 +31,17 @@ import { GPXImportDialog } from './import-dialog';
         MatFormFieldModule, MatInputModule
       ],    
     declarations: [
-        GPXImportDialog
+        GPXImportDialog, GPXExportDialog
     ],
     exports: [
-        GPXImportDialog
+        GPXImportDialog, GPXExportDialog
     ],
     entryComponents: [
-        GPXImportDialog
+        GPXImportDialog, GPXExportDialog
     ], 
     providers: []  
 })
-export class GPXLoadModule {}
+export class GPXModule {}
 
-export * from './import-dialog';
+export * from './gpxload/import-dialog';
+export * from './gpxsave/export-dialog';

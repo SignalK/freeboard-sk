@@ -98,7 +98,15 @@
                 (click)="sidemenu.close();displayLeftMenu('chartList',true)">
                 <mat-icon>map</mat-icon>
                 &nbsp;Charts
-            </button>     
+            </button>
+
+            <mat-divider></mat-divider>
+            <button mat-menu-item 
+                (click)="sidemenu.close();saveToGPX()">
+                <mat-icon>streetview</mat-icon>
+                &nbsp;Save to GPX
+            </button>
+
             <div *ngIf="app.config.resources.paths.length!=0">
                 <mat-divider></mat-divider>
                 <div *ngFor="let p of app.config.resources.paths.sort()" [ngSwitch]="p">

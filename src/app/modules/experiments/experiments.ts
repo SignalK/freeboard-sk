@@ -2,7 +2,6 @@
 ********************************/
 
 import { Component, OnInit, Output, EventEmitter } from '@angular/core';
-//import { AppInfo } from 'src/app/app.info';
 
 /********* ExperimentsComponent ********/
 @Component({

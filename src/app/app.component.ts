@@ -11,7 +11,7 @@ import { PlaybackDialog } from 'src/app/lib/ui/playback-dialog';
 import { SettingsDialog, AlarmsFacade, AlarmsDialog, 
         SKStreamFacade, SKSTREAM_MODE, SKResources, 
         SKOtherResources, SKRegion, AISPropertiesModal, AtoNPropertiesModal, AircraftPropertiesModal, 
-        ActiveResourcePropertiesModal, GPXImportDialog, GeoJSONImportDialog,
+        ActiveResourcePropertiesModal, GPXImportDialog, GPXExportDialog, GeoJSONImportDialog,
         TracksModal, ResourceSetModal, CourseSettingsModal,
         ResourceImportDialog, Trail2RouteDialog } from 'src/app/modules';
 
@@ -30,7 +30,6 @@ export class AppComponent {
     @ViewChild('sideright', {static: false}) sideright;
 
     public display= {
-        //bottomSheet: { show: false, title: '' },
         fullscreen: { active: false, enabled: document.fullscreenEnabled},
         badge: { hide: true, value: '!'},
         leftMenuPanel: false,
@@ -556,10 +555,32 @@ export class AppComponent {
                 fileName: e.name
             }
         }).afterClosed().subscribe( errCount=> {
-            if(errCount<0) { return } // cancelled
+            if(errCount<0) { // cancelled  
+                this.focusMap();
+                return;
+            }
             this.fetchResources();             
             if(errCount==0) { this.app.showAlert('GPX Load','GPX file resources loaded successfully.') }
             else { this.app.showAlert('GPX Load','Completed with errors!\nNot all resources were loaded.') }
+            this.focusMap();
+        });       
+    }
+
+    // ** Save resources to GPX File **
+    public saveToGPX() {
+        this.dialog.open(GPXExportDialog, {
+            disableClose: true,
+            data: { 
+                routes: this.app.data.routes,
+                waypoints: this.app.data.waypoints
+            }
+        }).afterClosed().subscribe( errCount=> {
+            if(errCount<0) { // cancelled  
+                this.focusMap();
+                return;
+            }          
+            if(errCount==0) { this.app.showAlert('GPX Save','Resources saved to GPX file successfully.') }
+            else { this.app.showAlert('GPX Save','Error saving resources to GPX file!') }
             this.focusMap();
         });       
     }
