@@ -129,8 +129,8 @@
          trk.extensions['signalk']={};
          trk.extensions['signalk']['uuid']= uuid; 
          // ** track properties **
-         trk.name= t.name || null;
-         trk.desc= t.description || null;
+         trk.name= t.feature.properties['name'] || null;
+         trk.desc= t.feature.properties['description'] || null;
          trk.cmt= t.feature.properties['cmt'] || null;
          trk.src= t.feature.properties['src'] || null;
          trk.number= t.feature.properties['number'] || null;

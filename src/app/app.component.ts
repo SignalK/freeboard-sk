@@ -572,7 +572,8 @@ export class AppComponent {
             disableClose: true,
             data: { 
                 routes: this.app.data.routes,
-                waypoints: this.app.data.waypoints
+                waypoints: this.app.data.waypoints,
+                tracks: [this.app.data.trail]
             }
         }).afterClosed().subscribe( errCount=> {
             if(errCount<0) { // cancelled  

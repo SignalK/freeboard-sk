@@ -3,6 +3,8 @@
 import { Injectable } from '@angular/core';
 import { Subject, Observable } from 'rxjs';
 import { SK2GPX } from './sk2gpx'
+import { SKTrack } from 'src/app/modules/skresources/resource-classes';
+import { SignalKClient } from 'signalk-client-angular';
 
 @Injectable({ providedIn: 'root' })
 export class GPXSaveFacade  {
@@ -15,7 +17,7 @@ export class GPXSaveFacade  {
 
    // *******************************************************    
 
-    constructor() { 
+    constructor(private signalk: SignalKClient) { 
         this.resultSource= new Subject<number>();
         this.result$= this.resultSource.asObservable();      
         this.hasFSA= ("showOpenFilePicker" in window);             
@@ -28,7 +30,8 @@ export class GPXSaveFacade  {
     prepData(data:{[key:string]:any}) {  
         let resData= {
             routes: [],
-            waypoints: []
+            waypoints: [],
+            tracks: []
         }    
 
         let idx:number= 1;
@@ -44,7 +47,8 @@ export class GPXSaveFacade  {
             wpt.feature.properties.name= wpt.feature.properties.name ?? `Wpt: ${idx}`;
             idx++;
             return wpt;
-        });                 
+        });
+        resData.tracks= data.tracks;               
         return resData;       
     }    
     
@@ -54,6 +58,7 @@ export class GPXSaveFacade  {
 
         let skroutes:{[key:string]:any} = {};
         let skwaypoints:{[key:string]:any} = {};
+        let sktracks:{[key:string]:any} = {};
 
         for(let i=0; i<selections.rte.selected.length; i++) {
             if(selections.rte.selected[i]) { 
@@ -68,6 +73,17 @@ export class GPXSaveFacade  {
             }
         }
         this.sk2gpx.setWaypoints(skwaypoints);
+
+        for(let i=0; i<selections.trk.selected.length; i++) {
+            if(selections.trk.selected[i]) { 
+                let uuid= this.signalk.uuid.toSignalK();
+                sktracks[uuid]= new SKTrack();
+                sktracks[uuid].feature.id= uuid;
+                sktracks[uuid].feature.properties.name= `Vessel trail: ${Date().toString()}`;
+                sktracks[uuid].feature.geometry.coordinates.push(res.tracks[i]);
+            }
+        }
+        this.sk2gpx.setTracks(sktracks);
 
         if(this.hasFSA) { this.fsaSaveFile() }
         else { this.legacySaveToFile() }

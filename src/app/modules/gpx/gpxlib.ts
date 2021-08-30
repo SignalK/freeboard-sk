@@ -165,7 +165,7 @@ export class GPX {
     } 
     
     // ** return formatted ptType <tag> XML for supplied GPXWaypoint object 
-    ptToXML(pt, tag) {
+    ptToXML(pt:any, tag:any) {
         let pad='';
         let padLevel=2;
         switch(tag) {
@@ -214,7 +214,7 @@ export class GPX {
     }	
     
     // ** return formatted <extension> XML for supplied .extension object 
-    extensionsToXML(ext, padLevel=1) {
+    extensionsToXML(ext:any, padLevel=1) {
         let xml='';
         if(ext && Object.keys(ext).length!=0) {
             let pad= '\t\t\t\t\t\t\t\t\t'.slice(0-padLevel);
@@ -507,16 +507,16 @@ export class GPXWaypoint {
     public link: Array<GPXLinkType>= []; 
     public sym: string;
     public type: string;
-    public fix: any= GPXFixType.NONE;
+    public fix: any;
     public sat: number;	
     public hdop: number;
     public vdop: number;
     public pdop: number;
     public ageOfGpsData: number;
     public dgpsid: number;
-    public extensions:any ={};
+    public extensions:{[key:string]: any}= {};
     
-	constructor(lat?, lon? ) {
+	constructor(lat?:number, lon?:number ) {
         this.lat= lat || 0;
         this.lon= lon || 0;					
 	}	
@@ -531,10 +531,10 @@ export class GPXRoute {
     public link: Array<GPXLinkType>= []; 
     public number: number;	
     public type: string;
-    public extensions: any= {};
+    public extensions: {[key:string]: any}= {};
     public rtept: Array<GPXWaypoint>= [];
     
-	constructor(name? ) {
+	constructor(name?:string) {
         this.name= name || '';				
 	}	
 }
@@ -548,17 +548,17 @@ export class GPXTrack {
     public link: Array<GPXLinkType>= [];  
     public number: number;	
     public type: string;
-    public extensions: any= {};
+    public extensions: {[key:string]: any}= {};
     public trkseg: Array<GPXTrackSegment>= [];	
 
-	constructor(name?) {
+	constructor(name?:string) {
         this.name= name || '';
 	}
 }
 
 export class GPXTrackSegment {   
     public trkpt: Array<GPXWaypoint>= [];
-    public extensions:any= {};	
+    public extensions:{[key:string]: any}= {};	
 	constructor() {	}
 }
 
@@ -582,7 +582,7 @@ export class GPXMetadataType {
     public time: string= new Date().toISOString();
     public keywords: string= '';
     public bounds: GPXBoundsType= new GPXBoundsType();
-    public extensions: {};
+    public extensions: {[key:string]: any}= {};
     constructor() {	}
 }
 

@@ -21,7 +21,7 @@
                     <div>
                         <button mat-raised-button color="primary"
                             matTooltip="Load all selected resources" matTooltipPosition="below"
-                            [disabled]="!display.loadRoutesOK && !display.loadWaypointsOK && !display.loadTracksOK"  
+                            [disabled]="!display.saveRoutesOK && !display.saveWaypointsOK && !display.saveTracksOK"  
                             (click)="save()">
                                 <mat-icon>file_download</mat-icon>
                                 &nbsp;Save&nbsp;
@@ -135,7 +135,7 @@
                                         matTooltip="Select this Route" matTooltipPosition="below"
                                         [checked]="selRoutes[i]"
                                         #rval (change)="checkRte(rval.checked, i)">
-                                    </mat-checkbox>                                      
+                                    </mat-checkbox>   
                                 </div>      
                             </div>
                             
@@ -145,6 +145,58 @@
             </mat-expansion-panel>       
         </div>
 
+        <!-- Tracks -->
+        <div class="card-group" *ngIf="resData.tracks.length!=0">
+            <mat-expansion-panel [expanded]="false">
+                <mat-expansion-panel-header>
+                    <mat-panel-title>
+                        <mat-icon color="warn">show_chart</mat-icon>
+                        &nbsp;&nbsp;
+                        <b>Tracks:</b> 
+                    </mat-panel-title>
+                    <mat-panel-description>
+                        <div style="display:flex;width:100%;">
+                            <span class="pnlSelectedItems">                    
+                                ({{display.selCount.tracks}} of {{resData?.tracks.length}})
+                            </span>
+                            <span class="pnlSelect">
+                                <mat-checkbox 
+                                    [indeterminate]="false"
+                                    [checked]="display.allTracksChecked"
+                                    [disabled]="resData.tracks.length==0"
+                                    (change)="checkTrk($event.checked, -1)"
+                                    (click)="$event.cancelBubble=true"
+                                    matTooltip="Vessel Trail to Track" matTooltipPosition="before"
+                                    color="primary">
+                                </mat-checkbox>                              
+                            </span>
+                        </div>
+                    </mat-panel-description>
+                </mat-expansion-panel-header>
+                <div class="list-container-scrollable">
+                    <mat-card class="row" *ngFor="let r of resData.tracks;let i=index">
+                        <div class="rgrid" >
+                            <div class="row">
+                                <div class="name">
+                                    <mat-icon color="warn">directions_boat</mat-icon>
+                                    Vessel Trail
+                                </div>
+                                <div>
+                                </div>
+                                <div class="check">                            
+                                    <mat-checkbox color="primary"
+                                        matTooltip="Select this Track" matTooltipPosition="below"
+                                        [checked]="selTracks[i]"
+                                        #tval (change)="checkTrk(tval.checked, i)">
+                                    </mat-checkbox>   
+                                </div>      
+                            </div>
+                            
+                        </div>          
+                    </mat-card>
+                </div>  
+            </mat-expansion-panel>
+        </div>
     </div>
 
 </div>
