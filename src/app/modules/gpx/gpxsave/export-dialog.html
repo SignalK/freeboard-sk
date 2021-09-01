@@ -146,7 +146,7 @@
         </div>
 
         <!-- Tracks -->
-        <div class="card-group" *ngIf="resData.tracks.length!=0">
+        <div class="card-group" *ngIf="!app.data.serverTrail && resData.tracks.length!=0">
             <mat-expansion-panel [expanded]="false">
                 <mat-expansion-panel-header>
                     <mat-panel-title>
