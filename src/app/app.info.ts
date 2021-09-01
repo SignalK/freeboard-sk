@@ -24,8 +24,6 @@ const FreeboardConfig= {
         zoomLevel: 2,
         center: [0, 0],
         rotation: 0,
-        mrid: null,
-        srid: 'EPSG:4326',
         moveMap: false,
         northUp: true,
         animate: false
@@ -170,7 +168,7 @@ export class AppInfo extends Info {
         this.name= "Freeboard";
         this.shortName= "freeboard";
         this.description= `Signal K Chart Plotter.`;
-        this.version= '1.17.1';
+        this.version= '1.18.0';
         this.url= 'https://github.com/signalk/freeboard-sk';
         this.logo= "./assets/img/app_logo.png";   
         
@@ -422,7 +420,9 @@ export class AppInfo extends Info {
     cleanConfig(settings:any) {
         this.debug('Cleaning config keys...');
         if(typeof settings.usePUT !== 'undefined') { delete settings.usePUT }
-        if(typeof settings.anchor !== 'undefined') { delete settings.anchor}
+        if(typeof settings.anchor !== 'undefined') { delete settings.anchor }
+        if(typeof settings.map.srid !== 'undefined') { delete settings.map.srid }
+        if(typeof settings.map.mrid !== 'undefined') { delete settings.map.mrid }
 
         if(typeof settings.anchorRadius === 'undefined') { 
             settings.anchorRadius= 40;
@@ -586,54 +586,12 @@ export class AppInfo extends Info {
             'whats-new': [
                 {
                     type: 'signalk-server-node',
-                    title: 'Web Audio Status',
+                    title: 'Save to GPX',
                     message: `
-                        Modern browsers suspend the auto-playing of audio until there has been user interaction.
-                        This would prevent alarm audio from being heard if an alarm was active when the application starts.<br>
-                        Freeboard now shows when web audio is suspended and allows it to be enabled.
+                        Export selected waypoints and routes to a GPX file.<br>
+                        You can also save the local stored vessel trail to a GPX track.
                     `
-                },
-                {
-                    type: 'signalk-server-node',
-                    title: 'Trail to Route',
-                    message: `
-                        You can now transform your vessel trail to a route.<br>
-                        Select <i>Trail to Route</i> from the <b>...</b> menu.
-                        <br>&nbsp;<br>
-                        Check out <a href="assets/help/index.html#display" target="help">HELP</a> 
-                        for more details.
-                    `
-                },
-                {
-                    type: 'signalk-server-node',
-                    title: 'AIS State filter',
-                    message: `
-                        You can now hide <i>moored</i> and <i>anchored</i> vessels from being diplayed
-                        to 'declutter' the map.<br>
-                        Just check <i>Hide Moored</i> or <i>Hide Anchored</i> in <b>Settings</b>.
-                        <br>&nbsp;<br>
-                        Check out <a href="assets/help/index.html#settings" target="help">HELP</a> 
-                        for more details.
-                    `
-                },
-                {
-                    type: 'signalk-server-node',
-                    title: 'Wake Lock',
-                    message: `
-                        You can now prevent your device from entering sleep mode whilst using 
-                        Freeboard-SK.
-                        <br>&nbsp;<br>
-                        Check out <a href="assets/help/index.html#settings" target="help">HELP</a> 
-                        for more details.
-                    `
-                },
-                {
-                    type: 'signalk-server-node',
-                    title: 'GRIB Experiment',
-                    message: `
-                        The GRIB Experiment has been deprecated and is no longer avaialable.
-                    `
-                }                
+                }               
             ]           
         }
 
