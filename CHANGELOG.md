@@ -1,5 +1,14 @@
 # CHANGELOG: Freeboard
 
+### v1.18.0
+
+- **Add**: Export Waypoints and Routes to GPX file.
+
+- **Fix**: Apply small offset to Openlayers chart min/max zoom values to ensure charts are visible at:  zoom levels = min zoom value and fractional zoom levels between max zoom & max zoom + 1.
+
+- **Fix**: Zoom level rounding causing jumpy zooming when using mouse scroll.
+
+
 ### v1.17.0
 
 **BREAKING CHANGES**
