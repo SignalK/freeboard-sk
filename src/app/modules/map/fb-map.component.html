@@ -41,13 +41,13 @@
         <ol-content>
             <div class="ol-zoom">
                 <button mat-mini-fab (click)="zoomMap(false)"
-                    [disabled]="app.config.map.zoomLevel==fbMap.minZoom"
+                    [disabled]="fbMap.zoomLevel<=fbMap.minZoom"
                     matTooltip="Zoom out">
                     <mat-icon>remove</mat-icon>
                 </button> 
                 &nbsp;                               
                 <button mat-mini-fab (click)="zoomMap(true)"
-                    [disabled]="app.config.map.zoomLevel==fbMap.maxZoom"
+                    [disabled]="fbMap.zoomLevel>=fbMap.maxZoom"
                     matTooltip="Zoom in">
                     <mat-icon>add</mat-icon>
                 </button>
@@ -66,7 +66,7 @@
                     <span *ngIf="app.config.selections.positionFormat=='XY'">Lon:&nbsp;</span>    
                     <span [innerText]="mouse.coords[0] | coords : app.config.selections.positionFormat"></span>
                     &nbsp;
-                    <span [innerText]="'Zm: ' + app.config.map.zoomLevel"></span>
+                    <span [innerText]="'Zm: ' + fbMap.zoomLevel.toFixed(1)"></span>
                 </span>  
             </div>
         </ol-content>
@@ -82,7 +82,7 @@
     <fb-tracks *ngIf="app.config.resources.paths.includes('tracks')"
         [tracks]= "dfeat.tracks"
         [labelMinZoom]= "0"
-        [mapZoom]= "app.config.map.zoomLevel"
+        [mapZoom]= "fbMap.zoomLevel"
         [zIndex]= "50">
     </fb-tracks>
 
@@ -93,7 +93,7 @@
         [removeIds]="aisMgr.removeList"
         [showTracks]="app.config.aisShowTrack"
         [minZoom]="10"
-        [mapZoom]="app.config.map.zoomLevel"
+        [mapZoom]="fbMap.zoomLevel"
         zIndex= "51">
     </sk-target-tracks>
 
@@ -135,7 +135,7 @@
         [updateIds]="aisMgr.updateList"
         [removeIds]="aisMgr.removeList"
         [labelMinZoom]= "10"
-        [mapZoom]= "app.config.map.zoomLevel"
+        [mapZoom]= "fbMap.zoomLevel"
         [zIndex]= "45">
     </sk-targets>
 
@@ -147,7 +147,7 @@
         [updateIds]="aisMgr.updateList"
         [removeIds]="aisMgr.removeList"
         [labelMinZoom]= "10"
-        [mapZoom]= "app.config.map.zoomLevel"
+        [mapZoom]= "fbMap.zoomLevel"
         [zIndex]= "45">
     </sk-targets>   
 
@@ -156,7 +156,7 @@
         <sk-ais-vessels *ngSwitchCase="0"
             [targets]= "dfeat.ais"
             [targetStyles]="featureStyles.aisVessel"
-            [mapZoom]= "app.config.map.zoomLevel"
+            [mapZoom]= "fbMap.zoomLevel"
             [labelMinZoom]= "10"
             [showVector]="true"
             [vectorMinZoom]="app.config.selections.aisWindMinZoom"
@@ -177,7 +177,7 @@
         [targetStyles]= "featureStyles.aircraft"
         targetType="aircraft"
         [labelMinZoom]= "10"
-        [mapZoom]= "app.config.map.zoomLevel"
+        [mapZoom]= "fbMap.zoomLevel"
         [updateIds]="aisMgr.updateList"
         [staleIds]="aisMgr.staleList"
         [removeIds]="aisMgr.removeList"
@@ -191,7 +191,7 @@
         [targetStyles]= "featureStyles.sar"
         targetType="sar"
         [labelMinZoom]= "10"
-        [mapZoom]= "app.config.map.zoomLevel"
+        [mapZoom]= "fbMap.zoomLevel"
         [updateIds]="aisMgr.updateList"
         [staleIds]="aisMgr.staleList"
         [removeIds]="aisMgr.removeList"
@@ -316,7 +316,7 @@
         [markerName]="app.data.navData.destpointName"
         [bearingStyles]="featureStyles.destination"
         [labelMinZoom]= "10"
-        [mapZoom]= "app.config.map.zoomLevel"
+        [mapZoom]= "fbMap.zoomLevel"
         [zIndex]= "212">
     </fb-bearing-line>
 
@@ -370,7 +370,7 @@
             <mat-icon color="primary">add_location</mat-icon>
             Add Waypoint here
         </button>
-        <button mat-menu-item *ngIf="app.config.map.zoomLevel>=app.config.selections.notesMinZoom"
+        <button mat-menu-item *ngIf="fbMap.zoomLevel>=app.config.selections.notesMinZoom"
             (click)="onContextMenuAction('add_note', item)"
             (contextmenu)="$event.preventDefault();">
             <mat-icon style="color:orange">local_offer</mat-icon>

@@ -1,7 +1,7 @@
 import { Component, OnInit, OnDestroy, Input, Output, EventEmitter, ViewChild, SimpleChanges } from '@angular/core';
 import { MatMenuTrigger } from '@angular/material/menu';
 
-import { transform, toLonLat } from 'ol/proj';
+import { toLonLat } from 'ol/proj';
 import { Style, Stroke, Fill } from 'ol/style';
 import { Collection, Feature } from 'ol';
 
@@ -58,7 +58,6 @@ interface IFeatureData {
     resourceSets: {[key:string]: any};
 }
 
-const MAP_SRID:string= 'EPSG:4326';
 const MAP_MAX_ZOOM:number= 28;
 const MAP_MIN_ZOOM:number= 2;
 
@@ -160,7 +159,6 @@ export class FBMapComponent implements OnInit, OnDestroy {
 
     // ** map ctrl **
     fbMap= {
-        srid: MAP_SRID,
         minZoom: MAP_MIN_ZOOM,
         maxZoom: MAP_MAX_ZOOM,
         rotation: 0,
@@ -515,14 +513,11 @@ export class FBMapComponent implements OnInit, OnDestroy {
 
     // parse zoom level change
     parseZoomChange(zoom:number) {
-        let z= Math.floor(zoom);
-        this.app.config.map.zoomLevel=z;
-        this.app.debug(`Zoom: ${zoom}->${z}`);
+        this.app.config.map.zoomLevel=zoom;
     }
 
     // ** handle map move **
     public onMapMove(e:any) {
-        if(!this.app.config.map.mrid) { e.projCode }
         this.parseZoomChange(e.zoom)
 
         this.fbMap.extent= e.extent;
@@ -636,8 +631,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
                     if(addToFeatureList && !flist.has(id)) {
                         flist.set(id, {
                             id: id, 
-                            coord: e.lonlat, //e.coordinate, 
-                            //mrid: this.app.config.map.mrid,
+                            coord: e.lonlat,
                             icon: icon,
                             text: text
                         });
@@ -784,7 +778,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
     }  
 
     public drawVesselLines(vesselUpdate:boolean=false) {
-        let z= this.app.config.map.zoomLevel;
+        let z= this.fbMap.zoomLevel;
         let offset= (z<29) ? this.zoomOffsetLevel[z] : 60;
         let wMax= 10;   // ** max line length
 
@@ -1156,7 +1150,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
 
         this.app.debug(`lastGet: ${this.app.data.lastGet}`);
         this.app.debug(`getRadius: ${this.app.config.resources.notes.getRadius}`);
-        if(this.app.config.map.zoomLevel < this.app.config.selections.notesMinZoom) { return false }
+        if(this.fbMap.zoomLevel < this.app.config.selections.notesMinZoom) { return false }
         if(!this.app.data.lastGet) { 
             this.app.data.lastGet= this.app.config.map.center;
             return true; 
