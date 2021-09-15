@@ -1,5 +1,10 @@
 # CHANGELOG: Freeboard
 
+### v1.18.1
+
+- **Fix**: Remove offset to Openlayers chart max zoom.
+
+
 ### v1.18.0
 
 - **Add**: Export Waypoints and Routes to GPX file.

@@ -1,6 +1,6 @@
 {
   "name": "@signalk/freeboard-sk",
-  "version": "1.18.0",
+  "version": "1.18.1",
   "description": "Openlayers chartplotter implementation for Signal K",
   "keywords": [
     "signalk-webapp",
@@ -60,7 +60,7 @@
     "protractor": "~7.0.0",
     "rxjs": "~6.6.3",
     "signalk-client-angular": "^1.8.2",
-    "signalk-worker-angular": "^1.1.2",
+    "signalk-worker-angular": "^1.1.3",
     "simplify-ts": "^1.0.2",
     "ts-node": "~7.0.0",
     "tslib": "^2.0.0",
