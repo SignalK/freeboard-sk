@@ -83,7 +83,7 @@ export class FreeboardChartLayerComponent implements OnInit, OnDestroy, OnChange
           }
           else {  // signal k charts
             let minZ:number= (charts[i][1].minZoom>=0.1) ? charts[i][1].minZoom -0.1 : charts[i][1].minZoom;
-            let maxZ:number= charts[i][1].maxZoom + 0.9;
+            let maxZ:number= charts[i][1].maxZoom;
             if(charts[i][1].chartFormat=='pbf' || charts[i][1].chartFormat=='mvt') { // vector tile
               let source = new VectorTileSource({
                 url: charts[i][1].tilemapUrl,
