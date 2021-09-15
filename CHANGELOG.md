@@ -1,5 +1,10 @@
 # CHANGELOG: Freeboard
 
+### v1.18.2
+
+- **Fix**: Vessel wind vector lines not being displayed.
+
+
 ### v1.18.1
 
 - **Fix**: Remove offset to Openlayers chart max zoom.

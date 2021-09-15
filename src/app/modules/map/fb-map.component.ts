@@ -779,7 +779,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
 
     public drawVesselLines(vesselUpdate:boolean=false) {
         let z= this.fbMap.zoomLevel;
-        let offset= (z<29) ? this.zoomOffsetLevel[z] : 60;
+        let offset= (z<29) ? this.zoomOffsetLevel[Math.floor(z)] : 60;
         let wMax= 10;   // ** max line length
 
         let vl= {

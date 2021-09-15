@@ -235,7 +235,7 @@ export class SKVesselsLayerComponent implements OnInit, OnDestroy, OnChanges {
       return;
     }
 
-    let windc= destCoordinate( target.position, windDirection, this.zoomOffsetLevel[this.mapZoom]);
+    let windc= destCoordinate( target.position, windDirection, this.zoomOffsetLevel[Math.floor(this.mapZoom)]);
     if(wf) { // update vector
       wf.setGeometry( new LineString( [
           fromLonLat(target.position),
