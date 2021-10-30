@@ -653,7 +653,12 @@
                             [title]="'XTE'"
                             [value]="app.data.navData.xte.toFixed(3)"
                             [units]="(app.config.units.distance=='m') ? 'km' : 'NM'">
-                        </ap-dial-text>   
+                        </ap-dial-text>
+                        <ap-dial-text *ngIf="app.data.navData.eta"
+                            [title]="'ETA'"
+                            [value]="app.data.navData.eta.toLocaleTimeString().slice(0,5)"
+                            [units]="app.data.navData.eta.toLocaleDateString()">
+                        </ap-dial-text>  
                     </div>                           
                 </div>          
             

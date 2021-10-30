@@ -300,7 +300,16 @@ export class SKStreamFacade  {
         }
         if(typeof v['course.nextPoint.timeToGo']!=='undefined') { 
             this.app.data.navData.ttg= v['course.nextPoint.timeToGo']/60;
+        }
+        // ** experimental: paths not in spec - estimatedTimeOfArrival**
+        if(typeof v['course.nextPoint.estimatedTimeOfArrival']!=='undefined') { 
+            let d= new Date(v['course.nextPoint.estimatedTimeOfArrival']);
+            this.app.data.navData.eta= (d instanceof Date && !isNaN(d as any)) ? d : null;
         } 
+        // ** experimental: paths not in spec - arrivalCircle **
+        if(typeof v['course.nextPoint.arrivalCircle']!=='undefined') { 
+            this.app.data.navData.arrivalCircle= v['course.nextPoint.arrivalCircle'];
+        }
 
         // ** previousPoint **
         if(typeof v['course.previousPoint.position']!=='undefined') {
@@ -309,11 +318,6 @@ export class SKStreamFacade  {
                 : null;
             this.app.data.navData.startPosition= np;
         } 
-
-        // ** experiment - arrivalCircle **
-        if(typeof v['course.nextPoint.arrivalCircle']!=='undefined') { 
-            this.app.data.navData.arrivalCircle= v['course.nextPoint.arrivalCircle'];
-        }
         
         this.navDataUpdate.next();
     }  

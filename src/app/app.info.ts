@@ -168,7 +168,7 @@ export class AppInfo extends Info {
         this.name= "Freeboard";
         this.shortName= "freeboard";
         this.description= `Signal K Chart Plotter.`;
-        this.version= '1.18.2';
+        this.version= '1.18.3';
         this.url= 'https://github.com/signalk/freeboard-sk';
         this.logo= "./assets/img/app_logo.png";   
         
@@ -222,6 +222,7 @@ export class AppInfo extends Info {
                 bearingTrue: null,
                 bearingMagnetic: null,
                 xte: null,
+                eta: null,
                 position: null,
                 pointIndex: -1,
                 pointTotal: 0,
@@ -583,7 +584,7 @@ export class AppInfo extends Info {
                     Check out <a href="assets/help/index.html#experiments" target="help">HELP</a> 
                     for more details.`
             },
-            'whats-new': [
+            'whats-new': [/*
                 {
                     type: 'signalk-server-node',
                     title: 'Save to GPX',
@@ -592,7 +593,7 @@ export class AppInfo extends Info {
                         You can also save the local stored vessel trail to a GPX track.
                     `
                 }               
-            ]           
+            */]           
         }
 
         let btnText:string= 'Get Started'

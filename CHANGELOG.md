@@ -1,5 +1,10 @@
 # CHANGELOG: Freeboard
 
+### v1.18.3
+
+- **Add**: Display ETA to destination point (in local time) from `navigation.courseGreatCircle.nextPoint.estimatedTimeOfArrival`.
+
+
 ### v1.18.2
 
 - **Fix**: Vessel wind vector lines not being displayed.

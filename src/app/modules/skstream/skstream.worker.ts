@@ -651,7 +651,8 @@ function processNotifications(v:any, vessel?:string) {
     } 
     
     // ** arrivalCircle **
-    if(v.path.indexOf('notifications.arrivalCircleEntered')!=-1) {
+    if(v.path.indexOf('notifications.arrivalCircleEntered')!=-1 || 
+        v.path.indexOf('notifications.navigation.course.arrivalCircleEntered')!=-1) {
         type= seg[1];
         data.context= seg[2];
     }
