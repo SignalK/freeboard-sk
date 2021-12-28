@@ -189,7 +189,8 @@ export class GPXLoadFacade  {
                 trk.feature.geometry.coordinates.push(line);
             });
         }        
-        if(gpxtrk.name && gpxtrk.name.length!=0) { trk.feature.properties['name']=gpxtrk.name } 
+        if(gpxtrk.name && gpxtrk.name.length!=0) { trk.feature.properties['name']=gpxtrk.name }
+        else { trk.feature.properties['name']= `gpxtrk #${Math.random().toString().slice(-5)}` }
         if(gpxtrk.desc && gpxtrk.desc.length!=0) { trk.feature.properties['description']=gpxtrk.desc } 
         if(gpxtrk.cmt) { trk.feature.properties['cmt']=gpxtrk.cmt }
         if(gpxtrk.src) { trk.feature.properties['src']=gpxtrk.src }
