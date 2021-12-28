@@ -77,36 +77,41 @@
                                 <mat-icon >delete</mat-icon>
                             </button>   
                         </div>  
+                        <button mat-icon-button 
+                            (click)="itemViewNotes(r[0])"
+                            matTooltip="Route notes"
+                            matTooltipPosition="right">
+                            <mat-icon>local_offer</mat-icon>
+                        </button>  
                         <div style="flex: 1 1 auto;text-align:center;">
                             <button *ngIf="!activeWaypoint || activeWaypoint!=r[0]"
-                                mat-button color="primary"
+                                mat-icon-button color="primary"
                                 (click)="itemGoTo(r[0])"
                                 matTooltip="Navigate to Waypoint"
                                 matTooltipPosition="below">
                                 <mat-icon color="primary">near_me</mat-icon>
-                                GO TO
                             </button>                              
                             <button *ngIf="activeWaypoint==r[0]"
-                                mat-button color="primary" 
+                                mat-icon-button color="primary" 
                                 (click)="itemClearActive()"
                                 matTooltip="Clear Destination"
                                 matTooltipPosition="right">
-                                <mat-icon>clear_all</mat-icon> CLEAR
+                                <mat-icon>clear_all</mat-icon>
                             </button>                              
                         </div>                                              
                         <div>
-                            <button mat-icon-button color="primary"
+                            <button mat-icon-button
                                 [disabled]="app.config.map.moveMap"
                                 (click)="emitCenter(r[1].position)"
                                 matTooltip="Center Waypoint"
                                 matTooltipPosition="left">
                                     <mat-icon>center_focus_strong</mat-icon>
                             </button>                             
-                            <button mat-icon-button 
+                            <button mat-icon-button color="primary"
                                 (click)="itemProperties(r[0])"
-                                matTooltip="Waypoint Properties"
+                                matTooltip="Edit Waypoint Properties"
                                 matTooltipPosition="right">
-                                <mat-icon>info_outline</mat-icon>
+                                <mat-icon>edit</mat-icon>
                             </button>                          
                         </div>              
                     </div>

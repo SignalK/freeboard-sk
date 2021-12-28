@@ -8,7 +8,7 @@ import { AppInfo, OSM} from 'src/app/app.info';
 import { GeoUtils, GeoHash, Position } from  'src/app/lib/geoutils'
 
 import { LoginDialog } from 'src/app/lib/app-ui';
-import { NoteDialog, RegionDialog } from './notes'
+import { NoteDialog, RelatedNotesDialog } from './notes'
 import { ResourceDialog } from './resource-dialogs'
 import { SKChart, SKRoute, SKWaypoint, SKRegion, SKNote, SKTrack } from './resource-classes'
 import { moveItemInArray } from '@angular/cdk/drag-drop';
@@ -150,6 +150,7 @@ export class SKResources {
                 break;                   
         }
     }
+
 
     // ** GENERIC RESOURCES ** 
 
@@ -1262,9 +1263,17 @@ export class SKResources {
                     i[1]['position']= {latitude:p[1], longitude:p[0]} 
                 }
                 else if(typeof i[1]['region']!=='undefined') { // get center of region 
-                    let ra= this.app.data.regions.filter( j=> { 
-                        if(j[0]==i[1]['region']) { return true }
-                    });
+                    let ha= i[1]['region'].split('/');
+                    let href:string= ha[ha.length-1];
+                    let ra:any[]= [];
+                    if( 
+                        ha.length === 1 || 
+                        ( ha.length > 1 && i[1]['region'].indexOf('resources/regions') !== -1)
+                    ){ // regions
+                        ra= this.app.data.regions.filter( (j:any)=> { 
+                            if(j[0]==href) { return true }
+                        });
+                    }
                     if(ra.length!=0) {
                         let r= ra[0][1];
                         let pca= r.feature.geometry.type=='MultiPolygon' ? 
@@ -1275,7 +1284,7 @@ export class SKResources {
                     }
                 }            
             }
-            if( typeof i[1]['position']!== 'undefined') { 
+            if(typeof i[1]['position']!== 'undefined') { 
                 notes.push([ i[0], new SKNote(i[1]), true ]);
             }
         });
@@ -1434,7 +1443,7 @@ export class SKResources {
                 title: e.title
             }
         }).afterClosed().subscribe( r=> {        
-            if(r.result) { // ** save / update waypoint **
+            if(r.result) { // ** save / update **
                 let note= r.data;
                 if(e.region && e.createRegion) {  // add region + note
                     this.createRegion(e.region, note);
@@ -1463,10 +1472,22 @@ export class SKResources {
 
     // ** Show Related Notes dialog **
     showRelatedNotes(id:string, relatedBy:string='region') {
-        this.signalk.api.get(`/resources/notes/?${relatedBy}=${id}`).subscribe(
+        let paramName:string;
+        if(relatedBy!== 'group') {
+            id= id.indexOf(relatedBy) === -1 ?
+                `/resources/${relatedBy}s/${id}` : id;
+            paramName= 'region'; 
+        }
+        else {
+            paramName= relatedBy;
+        }
+        this.signalk.api.get(`/resources/notes/?${paramName}=${id}`).subscribe(
             res=> {
-                let notes= this.processNotes(res);
-                this.dialog.open(RegionDialog, {
+                let notes= [];
+                Object.entries(res).forEach( (i:any) => {
+                    notes.push([ i[0], new SKNote(i[1]), true ]);
+                });
+                this.dialog.open(RelatedNotesDialog, {
                     disableClose: true,
                     data: { notes: notes, relatedBy: relatedBy }
                 }).afterClosed().subscribe( r=> {        
@@ -1478,12 +1499,12 @@ export class SKResources {
                                 this.showNoteEditor({id: r.id});
                                 break;
                             case 'add':
-                                if(relatedBy=='region') {
-                                    this.showNoteEditor({region: {id: id, exists: true} });
-                                }
                                 if(relatedBy=='group') {
                                     this.updateSource.next({action: 'new', mode: 'note', group: id})
-                                }                                
+                                } 
+                                else {
+                                    this.showNoteEditor({type: relatedBy, href: {id: id, exists: true} });
+                                }                            
                                 break;
                             case 'delete':
                                 this.showNoteDelete({id: r.id});
@@ -1533,15 +1554,19 @@ export class SKResources {
             data.note= note;
             this.openNoteForEdit(data);
         }        
-        else if(!e.id && e.region) { // add note to exisitng or new region
-            data.title= 'Add Note to Region:'; 
-            data.region= e.region; 
+        else if(!e.id && e.href) { // add note to exisitng resource or new/existing region
             note= new SKNote(); 
-            note.region= e.region.id;    
+            note.region= e.href.id.indexOf(e.type) === -1 ?
+                `/resources/${e.type}s/${e.href.id}` : e.href.id;    
             note.title= '';
             note.description= '';
+
+            data.title= `Add Note to ${e.type}:`; 
+            data.region= e.href; 
             data.note= note;
-            data.createRegion= (e.region.exists) ? false : true;
+            data.createRegion= (e.href.exists) ? 
+                false : 
+                (e.type === 'region') ? true : false;
             this.openNoteForEdit(data);
         }              
         else {    // edit selected note details 

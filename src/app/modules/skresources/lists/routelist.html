@@ -85,31 +85,37 @@
                             </button>  
                             <button mat-icon-button 
                                 (click)="itemViewPoints(r[0])"
-                                matTooltip="Route Waypoints"
+                                matTooltip="Route points"
                                 matTooltipPosition="right">
                                 <mat-icon>flag</mat-icon>
-                            </button>                              
-                            <button mat-button color="primary" 
+                            </button>
+                            <button mat-icon-button 
+                                (click)="itemViewNotes(r[0])"
+                                matTooltip="Route notes"
+                                matTooltipPosition="right">
+                                <mat-icon>local_offer</mat-icon>
+                            </button>                          
+                            <button mat-icon-button color="primary" 
                                 (click)="itemSetActive(r[0])"
                                 *ngIf="r[0]!=activeRoute"
                                 matTooltip="Set as Active Route"
                                 matTooltipPosition="right">
-                                <mat-icon>select_all</mat-icon> ACTIVE
-                            </button>          
-                            <button mat-button color="primary" 
+                                <mat-icon>near_me</mat-icon>
+                            </button>   
+                            <button mat-icon-button color="primary" 
                                 (click)="itemClearActive(r[0])"
                                 *ngIf="r[0]==activeRoute"
                                 matTooltip="Clear Active Route"
                                 matTooltipPosition="right">
-                                <mat-icon>clear_all</mat-icon> CLEAR
+                                <mat-icon>clear_all</mat-icon>
                             </button>                                             
                         </div> 
                         <div>
-                            <button mat-icon-button 
+                            <button mat-icon-button color="primary" 
                                 (click)="itemProperties(r[0])"
-                                matTooltip="Route Properties"
+                                matTooltip="Edit Route Properties"
                                 matTooltipPosition="right">
-                                <mat-icon>info_outline</mat-icon>
+                                <mat-icon>edit</mat-icon>
                             </button>                                                 
                         </div>               
                     </div>

@@ -51,13 +51,19 @@
     <mat-dialog-content>        
         <div style="padding-bottom: 5px; overflow-y: auto;" *ngFor="let n of data.notes;">
             <mat-card style="border: whitesmoke 1px solid;">
-                <mat-card-title>
+                <mat-card-title style="font-size: unset;">
                     <mat-icon>local_offer</mat-icon>
                     {{n[1].title}}
                 </mat-card-title>
                 <mat-card-content style="margin-bottom: 0;">
                     <p *ngIf="n[1].properties.draft" class="draft-watermark">Draft</p>
                     <div style="display:flex;flex-direction:column;">
+                        <div style="padding-bottom: 5px;display:flex;">
+                            <div style="font-weight:bold;vertical-align:top;">Date:</div>
+                            <div style="padding-left: 10px;">
+                                <i>{{n[1].timestamp?.slice(0,10)}}</i>
+                            </div>  
+                        </div> 
                         <div style="padding-bottom: 5px;display:flex;">
                             <div style="font-weight:bold;vertical-align:top;">Group:</div>
                             <div style="padding-left: 10px;">
@@ -74,7 +80,7 @@
                                 &nbsp;{{n[1].authors[0]?.name}}
                                 &nbsp;&nbsp;
                             </div>
-                            <div><i>{{n[1].timestamp?.slice(0,10)}}</i></div> 
+                            
                         </div>                                                                    
                     </div>
                 </mat-card-content>

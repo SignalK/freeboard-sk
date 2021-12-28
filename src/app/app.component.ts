@@ -1079,8 +1079,8 @@ export class AppComponent {
                 let region= new SKRegion();
                 let uuid= this.signalk.uuid.toSignalK();
                 region.feature.geometry.coordinates= [GeoUtils.normaliseCoords(e.coordinates)];
-                this.skres.showNoteEditor({region: {id:uuid, data: region }})
-                break;                
+                this.skres.showNoteEditor({type: 'region', href: {id:uuid, data: region }})
+                break;   
         }
         // clean up
         this.draw.mode=null;

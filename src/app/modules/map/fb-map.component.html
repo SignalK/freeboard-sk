@@ -245,10 +245,11 @@
             [units]="this.app.config.units.distance"
             (modify)="startModify(); popoverClosed()"
             (delete)="deleteFeature(overlay.id, overlay.type); popoverClosed()"
-            (addNote)="skres.showNoteEditor({region: { id: overlay.id, exists: true } }); popoverClosed()"
+            (addNote)="skres.showNoteEditor({type: overlay.type, href: { id: overlay.id, exists: true } }); popoverClosed()"
             (activated)="setActiveFeature(); popoverClosed()"
             (deactivated)="clearActiveFeature(); popoverClosed()"
             (related)="skres.showRelatedNotes($event, 'group'); popoverClosed()"
+            (notes)="skres.showRelatedNotes(overlay.id, overlay.type); popoverClosed()"
             (info)="skres.resourceProperties(overlay); popoverClosed()"   
             (points)="itemInfo(overlay.id, overlay.type); popoverClosed()"             
             (closed)="popoverClosed()">                      

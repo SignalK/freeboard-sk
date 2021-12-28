@@ -18,6 +18,7 @@ export class WaypointListComponent {
     @Output() properties: EventEmitter<any>= new EventEmitter();
     @Output() closed: EventEmitter<any>= new EventEmitter();
     @Output() center: EventEmitter<[number,number]>= new EventEmitter();
+    @Output() notes: EventEmitter<any>= new EventEmitter();
 
     filterList= [];
     filterText: string= '';
@@ -76,6 +77,8 @@ export class WaypointListComponent {
     itemClearActive() { this.deactivate.emit({id: null}) }
     
     itemRefresh() { this.refresh.emit() }
+    
+    itemViewNotes(id:string) { this.notes.emit({id: id}) }
 
     filterKeyUp(e) {
         this.filterText=e;

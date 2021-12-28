@@ -342,6 +342,7 @@
                         (refresh)="skres.getRoutes(app.data.vessels.activeId)"
                         (properties)="skres.resourceProperties($event)"
                         (points)="featureProperties({id:$event.id, type:'route'})"
+                        (notes)="skres.showRelatedNotes($event.id, 'route')"
                         (closed)="displayLeftMenu()">
                     </route-list>
 
@@ -355,6 +356,7 @@
                         (refresh)="skres.getWaypoints()"
                         (properties)="skres.resourceProperties($event)"
                         (center)="centerResource($event)"
+                        (notes)="skres.showRelatedNotes($event.id, 'waypoint')"
                         (closed)="displayLeftMenu()">
                     </waypoint-list>       
                     

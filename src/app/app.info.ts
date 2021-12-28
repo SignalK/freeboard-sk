@@ -89,7 +89,7 @@ const FreeboardConfig= {
             rootFilter: '?position=%map:latitude%,%map:longitude%&dist=%note:radius%',     // param string to provide record filtering
             getRadius: 20,      // radius (NM/km) within which to return notes
             groupNameEdit: false,
-            groupRequiresPosition: false
+            groupRequiresPosition: true
         },
         video: {
             enable: false, 
@@ -168,7 +168,7 @@ export class AppInfo extends Info {
         this.name= "Freeboard";
         this.shortName= "freeboard";
         this.description= `Signal K Chart Plotter.`;
-        this.version= '1.18.3';
+        this.version= '1.19.0';
         this.url= 'https://github.com/signalk/freeboard-sk';
         this.logo= "./assets/img/app_logo.png";   
         
@@ -349,9 +349,12 @@ export class AppInfo extends Info {
             this.debug('Upgrade result....new version detected');
             this.loadConfig();
             this.loadData();
-            // transform config / data as required here    
-            this.data['updatedRun']= version;
-            // apply to this.config / this.data
+
+            let pv = version.previous.split('.');
+            let cv = version.new.split('.'); 
+            if(pv[0]!== cv[0] || pv[1]!== cv[1]) {
+                this.data['updatedRun']= version;
+            }
         }
         else if( version.result && version.result=='new' ) {
             this.debug('Upgrade result....new installation');
@@ -584,16 +587,17 @@ export class AppInfo extends Info {
                     Check out <a href="assets/help/index.html#experiments" target="help">HELP</a> 
                     for more details.`
             },
-            'whats-new': [/*
+            'whats-new': [
                 {
                     type: 'signalk-server-node',
-                    title: 'Save to GPX',
+                    title: 'Attach Notes to Resources',
                     message: `
-                        Export selected waypoints and routes to a GPX file.<br>
-                        You can also save the local stored vessel trail to a GPX track.
+                        You can now attach notes to Routes and Waypoints as well as Regions.<br>
+                        Check out <a href="assets/help/index.html#resources" target="help">HELP</a> 
+                        for more details.
                     `
                 }               
-            */]           
+            ]           
         }
 
         let btnText:string= 'Get Started'

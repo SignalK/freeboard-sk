@@ -15,7 +15,7 @@ import { MatSliderModule } from '@angular/material/slider';
 import { MatTooltipModule } from '@angular/material/tooltip';
 
 import { NoteDialog } from './note-dialog';
-import { RegionDialog } from './region-dialog';
+import { RelatedNotesDialog } from './relatednotes-dialog';
 // ** pipes **
 import { AddTargetPipe } from './safe.pipe';
 
@@ -31,16 +31,16 @@ import { AngularEditorModule } from '@kolkov/angular-editor';
         AngularEditorModule
     ],
     declarations: [
-        NoteDialog, RegionDialog, AddTargetPipe
+        NoteDialog, RelatedNotesDialog, AddTargetPipe
     ],
     exports: [
-        NoteDialog, RegionDialog, AddTargetPipe
+        NoteDialog, RelatedNotesDialog, AddTargetPipe
     ],
     entryComponents: [
-        NoteDialog, RegionDialog
+        NoteDialog, RelatedNotesDialog
     ]
 })
 export class SKNotesModule { }
 
 export * from './note-dialog';
-export * from './region-dialog';
+export * from './relatednotes-dialog';

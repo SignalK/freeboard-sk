@@ -89,7 +89,23 @@ id: string - resource id
                         <mat-icon>style</mat-icon>
                         GROUP
                     </button>  
-                </div>  
+                </div>
+                <div class="popover-action-button" *ngIf="ctrl.showNotesButton">
+                    <button mat-button
+                        (click)="emitNotes()"
+                        matTooltip="Show Notes">
+                            <mat-icon>local_offer</mat-icon>
+                            NOTES
+                    </button>                                                 
+                </div>                                                   
+                <div class="popover-action-button" *ngIf="ctrl.showInfoButton">
+                    <button mat-button [color]="type === 'route' || type === 'waypoint' ? 'primary' : ''"
+                        (click)="emitInfo()"
+                        matTooltip="Show Properties">
+                        <mat-icon>{{type === 'route' || type === 'waypoint' ? 'edit' : 'info_outline'}}</mat-icon>
+                        {{type === 'route' || type === 'waypoint' ? 'EDIT' : 'INFO'}}
+                    </button>  
+                </div>
                 <div class="popover-action-button" *ngIf="ctrl.showPointsButton">
                     <button mat-button
                         (click)="emitPoints()"
@@ -97,15 +113,7 @@ id: string - resource id
                             <mat-icon>flag</mat-icon>
                             POINTS
                     </button>
-                </div>                                                     
-                <div class="popover-action-button" *ngIf="ctrl.showInfoButton">
-                    <button mat-button
-                        (click)="emitInfo()"
-                        matTooltip="Show Properties">
-                        <mat-icon>info_outline</mat-icon>
-                        INFO
-                    </button>  
-                </div>                                                                        
+                </div>                                                                   
             </div>                                         
         </ap-popover>  
 	`,
@@ -128,15 +136,17 @@ export class ResourcePopoverComponent {
     @Output() info: EventEmitter<string>= new EventEmitter();
     @Output() closed: EventEmitter<any>= new EventEmitter();
     @Output() points: EventEmitter<any>= new EventEmitter();
+    @Output() notes: EventEmitter<any>= new EventEmitter();
     
     properties: Array<any>  // ** resource properties
-    ctrl= {
+    ctrl:any = {
         showInfoButton: false,
         showModifyButton: false,
         showDeleteButton: false,
         showAddNoteButton: false,
         showRelatedButton: false,
         showPointsButton: false,
+        showNotesButton: false,
         canActivate: false,
         isActive: false,
         activeText: 'ACTIVE'
@@ -163,6 +173,10 @@ export class ResourcePopoverComponent {
         this.ctrl.showInfoButton= true;
         this.ctrl.showModifyButton= true; 
         this.ctrl.showDeleteButton= true;
+        this.ctrl.showNotesButton= true;
+        this.ctrl.showAddNoteButton= false;
+        this.ctrl.showPointsButton= false;
+        this.ctrl.showRelatedButton= false;
         this.properties= [];
         if(this.resource[1].feature.properties.name) {
             this.properties.push( ['Name', this.resource[1].feature.properties.name] );
@@ -181,6 +195,9 @@ export class ResourcePopoverComponent {
         this.ctrl.showInfoButton= true;
         this.ctrl.showModifyButton= true; 
         this.ctrl.showPointsButton= true;
+        this.ctrl.showNotesButton= true;
+        this.ctrl.showAddNoteButton= false;
+        this.ctrl.showRelatedButton= false;
         this.ctrl.showDeleteButton= (this.ctrl.isActive) ? false : true;
         this.properties= [];   
         this.properties.push(['Name', this.resource[1].name]);
@@ -199,7 +216,9 @@ export class ResourcePopoverComponent {
         this.ctrl.showModifyButton= true; 
         this.ctrl.showDeleteButton= true;
         this.ctrl.showAddNoteButton= false;
-        this.ctrl.showRelatedButton= (this.resource[1].group) ? true : false;
+        this.ctrl.showNotesButton= false;
+        this.ctrl.showPointsButton= false;
+        this.ctrl.showRelatedButton= (this.resource[1].group && this.app.config.resources.notes.groupNameEdit) ? true : false;
         this.properties= [];
         this.properties.push(['Title', this.resource[1].title]);
     }
@@ -208,10 +227,13 @@ export class ResourcePopoverComponent {
         this.ctrl.isActive= false;
         this.ctrl.activeText= '';
         this.ctrl.canActivate= false;
-        this.ctrl.showInfoButton= true;
+        this.ctrl.showInfoButton= false;
         this.ctrl.showModifyButton= this.resource[1].feature.geometry.type=='MultiPolygon' ? false : true; 
         this.ctrl.showDeleteButton= true;
-        this.ctrl.showAddNoteButton= true;
+        this.ctrl.showAddNoteButton= false;
+        this.ctrl.showNotesButton= true;
+        this.ctrl.showPointsButton= false;
+        this.ctrl.showRelatedButton= false;
         this.properties= [];      
     }
 
@@ -230,6 +252,8 @@ export class ResourcePopoverComponent {
     }
 
     emitPoints() { this.points.emit() }
+
+    emitNotes() { this.notes.emit() }
     
     emitInfo() { this.info.emit() }
 

@@ -67,7 +67,7 @@
                         <div style="padding-left: 10px; flex: 1 1 auto;">
                             {{data.note?.group}}
                         </div>  
-                        <div *ngIf="data.note.group">
+                        <div *ngIf="data.note.group && app.config.resources.notes.groupNameEdit">
                             <button mat-button (click)="dialogRef.close({result:true, data: 'group', value: data.note.group})"
                                 matTooltip="View Group Notes">
                                 <mat-icon color="primary">style</mat-icon>

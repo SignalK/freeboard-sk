@@ -69,7 +69,7 @@
                         </div>
                         <div style="flex: 1 1 auto; text-align:right;">                          
                             <button mat-icon-button color="primary"
-                                *ngIf="r[1].group"
+                                *ngIf="r[1].group && app.config.resources.notes.groupNameEdit"
                                 (click)="viewNote(r[1].group, true)"
                                 matTooltip="View Group"
                                 matTooltipPosition="left">
