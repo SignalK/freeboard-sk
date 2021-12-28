@@ -11,3 +11,4 @@ tsconfig.app.json
 tsconfig.spec.json
 tsconfig.worker.json
 tslint.json
+/.angular
