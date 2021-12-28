@@ -1,5 +1,11 @@
 # CHANGELOG: Freeboard
 
+### v1.19.0
+
+- **Add**: Add a default name to imported GPX tracks when no name is defined in the source file.
+
+- **New**: Attach notes to waypoints and routes.
+
 ### v1.18.3
 
 - **Add**: Display ETA to destination point (in local time) from `navigation.courseGreatCircle.nextPoint.estimatedTimeOfArrival`.
