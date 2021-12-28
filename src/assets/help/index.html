@@ -451,11 +451,32 @@
                         <div style="padding-left:15px;">
                             <li><b>Filter Routes:</b> Type into the text box to filter the list of routes.</li>
                             <li><b>Display Route:</b> Check the checkbox to display the route on the map.</li>
-                            <li><b>Delete Route: </b> Click the trash can icon and you will be prompted to 
+
+                            <li><b>Delete Route: </b> Click <i class="material-icons">delete</i> and you will be prompted to 
                                 delete the route.<br>
-                                <i>Note: Deleting a route will also delete the associated Start and End Waypoints!</i>
+                            </li>                         
+                            <li>
+                                <b>Points: </b> Click <i class="material-icons">flag</i> to view a list of 
+                                route points where the following actions can be performed:<br>
                             </li>
-                            <li><b>Active: </b> Clicking <i class="material-icons">select_all</i> sends a message to the server to set 
+                            <div style="padding-left:20px;">
+                                <li> 
+                                    <b>Set the destination point:</b> If displayed route is the <i>Active Route</i>, click a 
+                                    point to set it as the current destination along the route.
+                                </li>
+                                <li>
+                                    <b>Re-order points:</b> Use the handle to drag points to a new position in the list.<br>
+                                    <i>Note: If points of the Active Route have been re-ordered then you will
+                                        not be able to set the destination point until changes have been applied.
+                                    </i>
+                                </li>
+                            </div>
+                            <li> 
+                                <b>Notes:</b> 
+                                Clicking <i class="material-icons">local_offer</i> displays a list of Notes associated with the route.
+                                From this screen you can add, edit or delete notes.
+                            </li>
+                            <li><b>Activate: </b> Clicking <i class="material-icons">near_me</i> sends a message to the server to set 
                                 this route as the <i>Active Route</i>.<br>
                                 The start of the route is set as the current destination. <br>
                                 Use the <i>Previous</i> and <i>Next</i> point options in the 
@@ -464,29 +485,23 @@
                             </li>
                             <li><b>Clear: </b> Clicking <i class="material-icons">clear_all</i> sends a message to the server to clear 
                                 the <i>Active Route</i>.
-                            </li>                            
-                            <li><b>Properties: </b> Click <i class="material-icons">info_outline</i> to edit route Name and Description.</li> 
-                            <li>
-                                <b>Points: </b> Click <i class="material-icons">flag</i> to view a list of 
-                                route points where the following actions can be performed:<br>
-                            </li> 
-                                <div style="padding-left:20px;">
-                                    <li> 
-                                        <b>Set the destination point:</b> If displayed route is the <i>Active Route</i>, click a 
-                                        point to set it as the current destination along the route.
-                                    </li>
-                                    <li>
-                                        <b>Re-order points:</b> Use the handle to drag points to a new position in the list.<br>
-                                        <i>Note: If points of the Active Route have been re-ordered then you will
-                                            not be able to set the destination point until changes have been applied.
-                                        </i>
-                                    </li>
-                                </div>
-                            
+                            </li>   
+                            <li><b>Edit Properties: </b> Click <i class="material-icons">edit</i> to edit route Name and Description.</li> 
+                            <br>
+                            You can also click on a Route on the map to display
+                            an information window with additional actions.<br>
+                            <img src="./img/route_popover.png"/>     
+                            <div style="padding-left:15px;">
+                                <li>
+                                    <b>Move:</b> 
+                                    Clicking <i class="material-icons">touch_app</i> allows route points to be re-positioned.
+                                </li>
+                            </div>                                        
                         </div>
                         <div>
-                            <b>Trail to Route</b><br>
                             <hr>
+                            <b>Trail to Route</b>
+                            <br>
                             You can create a route from the current Vessel trail by selecting the option from either 
                             the context menu or the <i class="material-icons">more_horiz</i> menu.<br>
                             <img src="./img/context_menu.png" style="max-width:190px;"/>
@@ -528,29 +543,40 @@
                         <div style="padding-left:15px;">
                             <li><b>Filter Waypoints:</b> Type into the text box to filter the list of waypoints.</li>
                             <li><b>Display Waypoint:</b> Check the checkbox to display the waypoint on the map.</li>
-                            <li><b>Delete Waypoint: </b> Click the trash can icon and you will be prompted to 
-                                delete the route.<br>
+
+                            <li><b>Delete Waypoint: </b> Click <i class="material-icons">delete</i> and you will be prompted to 
+                                delete the waypoint.<br>
                                 <i>Note: A waypoint may be associated with a route. 
                                     so take care when deleting waypoints!</i>
+                            </li>
+                            <li> 
+                                <b>Notes:</b> 
+                                Clicking <i class="material-icons">local_offer</i> displays a list of Notes associated with the waypoint.
+                                From this screen you can add, edit or delete notes.
                             </li>
                             <li><b>Go To: </b> Clicking <i class="material-icons">near_me</i> sends a message to the server to set 
                                 this waypoint as the target to navigate to. The server should then send 
                                 <a href="#navdata">navigation data</a> in relation to this location.
-                            </li>                           
-                            <li><b>Properties</b> Click <i class="material-icons">info_outline</i> to edit waypoint Name and Description.</li> 
+                            </li> 
+                            <li><b>Clear: </b> Clicking <i class="material-icons">clear_all</i> sends a message to the server to clear 
+                                the current destination.
+                            </li>  
+                            <li><b>Center: </b> Clicking <i class="material-icons">center_focus_strong</i> positions the map so the waypaoint 
+                                is displayed in the center.
+                            </li> 
+                            <li><b>Edit Properties</b> Click <i class="material-icons">edit</i> to edit waypoint Name and Description.</li> 
                         </div>
                     </div>  
                     <br>
-                    Additionally, you can click on both Routes and Waypoints to display
-                    an information window with available actions.<br>
-                    <div style="padding-left:15px;">
-                        <li>
-                            <b>Move:</b> 
-                            Clicking <i class="material-icons">touch_app</i> allows waypoints and route points to be re-positioned.
-                        </li>
-                    </div>                     
-                    <img src="./img/route_popover.png"/>&nbsp;&nbsp;
-                    <img src="./img/wpt_popover.png"/>    
+                            You can also click on a Waypoint on the map to display
+                            an information window with additional actions.<br>
+                            <img src="./img/wpt_popover.png"/>     
+                            <div style="padding-left:15px;">
+                                <li>
+                                    <b>Move:</b> 
+                                    Clicking <i class="material-icons">touch_app</i> allows waypoints to be re-positioned.
+                                </li>
+                            </div>     
                     <hr>
 
                     <li class="nobullet"><i class="material-icons">local_offer</i>
