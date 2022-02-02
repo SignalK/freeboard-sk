@@ -108,6 +108,7 @@ export class SKStreamFacade  {
             options: {
                 context: 'vessels.*',
                 path: [
+                    {"path":"","period":1000,"policy":'fixed'},
                     {"path":"buddy","period":1000,"policy":'fixed'},
                     {"path":"uuid","period":1000,"policy":'fixed'},
                     {"path":"name","period":1000,"policy":'fixed'},
