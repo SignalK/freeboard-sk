@@ -1,5 +1,9 @@
 # CHANGELOG: Freeboard
 
+### v1.19.1
+
+- **Fix**: Issue where vessel name and MMSI not being received in stream connection after upgrading to server version 1.41.0
+
 ### v1.19.0
 
 - **Add**: Add a default name to imported GPX tracks when no name is defined in the source file.
