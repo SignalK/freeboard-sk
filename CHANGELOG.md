@@ -1,5 +1,9 @@
 # CHANGELOG: Freeboard
 
+### v1.19.2
+
+- **Fix**: Coordinate display issue when format is DegMinSec. (closes #105)
+
 ### v1.19.1
 
 - **Fix**: Issue where vessel name and MMSI not being received in stream connection after upgrading to server version 1.41.0
