@@ -216,6 +216,17 @@
                                 </mat-form-field>
                             </div> 
 
+                            <div class="setting-card-row-item">
+                                <mat-form-field style="width:100%;">
+                                    <mat-select #speedunits id="speedunits"
+                                            [(value)]="facade.settings.units.speed" 
+                                            (selectionChange)="onFormChange($event, speedunits)"
+                                            placeholder="Speed units">
+                                        <mat-option *ngFor="let i of facade.availableUnits.speed | keyvalue" [value]="i.key">{{i.value}}</mat-option>
+                                    </mat-select>                                        
+                                </mat-form-field>
+                            </div>
+
                             <div class="setting-card-row-item" *ngIf="facade.preferredValues.coords.length!=0">
                                 <mat-form-field style="width:100%;">
                                     <mat-select #positionformat 

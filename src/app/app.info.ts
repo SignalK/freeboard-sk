@@ -8,6 +8,7 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { AlertDialog, ConfirmDialog, WelcomeDialog, MessageBarComponent } from './lib/app-ui';
 
 import { Info } from './lib/app-info';
+import { Convert } from './lib/convert';
 import { Subject, Observable } from 'rxjs';
 import { IndexedDB } from './lib/info/indexeddb';
 import { SignalKClient } from 'signalk-client-angular';
@@ -168,7 +169,7 @@ export class AppInfo extends Info {
         this.name= "Freeboard";
         this.shortName= "freeboard";
         this.description= `Signal K Chart Plotter.`;
-        this.version= '1.19.2';
+        this.version= '1.19.3';
         this.url= 'https://github.com/signalk/freeboard-sk';
         this.logo= "./assets/img/app_logo.png";   
         
@@ -677,6 +678,33 @@ export class AppInfo extends Info {
             }
         }).afterClosed();
     }
+
+    formatSpeed(value: number, asString = false): string | number {
+        switch(this.config.units.speed) {
+            case 'kn':
+                value = Convert.msecToKnots(value);
+                this.formattedSpeedUnits = 'knots';
+                break;
+            case 'kmh':
+                value = Convert.msecToKmh(value);
+                this.formattedSpeedUnits = 'km/h';
+                break;
+            case 'mph':
+                value = Convert.msecToMph(value);
+                this.formattedSpeedUnits = 'mph';
+                break;
+            default:
+                this.formattedSpeedUnits = 'm/s';
+        }
+        if(asString) {
+            return typeof value === 'number' ? value.toFixed(1) : '-';
+        }
+        else {
+            return typeof value === 'number' ? value : '-';
+        } 
+    }
+
+    formattedSpeedUnits = 'knots';
 
 }
 

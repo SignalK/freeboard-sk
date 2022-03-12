@@ -4,7 +4,7 @@ import { Component, Input, Output, EventEmitter, ChangeDetectionStrategy, Simple
 import { AppInfo } from 'src/app/app.info';
 import { SKVessel } from 'src/app/modules/skresources/resource-classes';
 import { Convert } from 'src/app/lib/convert';
-import { GeoUtils } from 'src/app/lib/geoutils';
+import { GeoUtils, Position } from 'src/app/lib/geoutils';
 
 
 /*********** Vessel Popover ***************
@@ -47,7 +47,8 @@ isSelf: boolean - true if vessel 'self'
                         [heading]="convert.radiansToDegrees(vessel.orientation)"
                         [windtrue]="(vessel.wind.direction!= null) ? convert.radiansToDegrees(vessel.wind.direction) : null"
                         [windapparent]="(vessel.wind.awa!= null) ? convert.radiansToDegrees(vessel.wind.awa) : null"
-                        [speed]="(vessel.sog!= null) ? convert.msecToKnots(vessel.sog) : null">
+                        [speed]="app.formatSpeed(vessel.sog)"
+                        [speedunits]="app.formattedSpeedUnits">
                     </ap-compass>    
                 </div>                                
                 <div>    
@@ -57,8 +58,7 @@ isSelf: boolean - true if vessel 'self'
                             <span style="font-weight:bold"> Wind ({{useMagnetic ? 'M' : 'T'}}):</span>
                         </div>
                         <div style="flex: 1 1 auto;text-align:right;">
-                            {{(vessel.wind.tws) ? 
-                                convert.msecToKnots(vessel.wind.tws).toFixed(1) : '-'}}&nbsp;kn
+                            {{app.formatSpeed(vessel.wind.tws, true)}}&nbsp;{{app.formattedSpeedUnits}}
                         </div>
                     </div>       
                     <div>
@@ -66,8 +66,7 @@ isSelf: boolean - true if vessel 'self'
                             <span style="font-weight:bold;"> Wind (A):</span>
                         </div>
                         <div style="flex: 1 1 auto;text-align:right;">
-                            {{(vessel.wind.aws) ? 
-                                convert.msecToKnots(vessel.wind.aws).toFixed(1) : '-'}}&nbsp;kn
+                            {{app.formatSpeed(vessel.wind.aws, true)}}&nbsp;{{app.formattedSpeedUnits}}
                         </div>
                     </div>                                                                                                                                                                                                                                                                                                                                       
                 </div>
@@ -115,21 +114,21 @@ export class VesselPopoverComponent {
     @Input() isSelf: boolean;
     @Input() canClose: boolean;
     @Output() info: EventEmitter<string>= new EventEmitter();
-    @Output() closed: EventEmitter<any>= new EventEmitter();
+    @Output() closed: EventEmitter<void>= new EventEmitter();
     @Output() focused: EventEmitter<boolean>= new EventEmitter();
-    @Output() markPosition: EventEmitter<any>= new EventEmitter();
+    @Output() markPosition: EventEmitter<Position>= new EventEmitter();
     
     _title: string;
     convert= Convert;
     timeLastUpdate: string;
     timeAgo: string;    // last update in minutes ago
 
-    position:any=[0,0];
+    position: Position = [0,0];
 
     constructor(public app: AppInfo) {}
 
     ngOnInit() { 
-        if(!this.vessel) { this.handleClose() } 
+        if(!this.vessel) { this.handleClose() }
     }
 
     ngOnChanges(changes:SimpleChanges) { 

@@ -633,8 +633,8 @@
                         </div>                       
                         <ap-dial-text *ngIf="app.data.navData.vmg"
                             [title]="'VMG'"
-                            [value]="app.data.navData.vmg.toFixed(1)"
-                            [units]="(app.config.units.speed=='kn') ? 'knots' : 'm/sec'">
+                            [value]="app.formatSpeed(app.data.navData.vmg, true)"
+                            [units]="app.formattedSpeedUnits">
                         </ap-dial-text>
                         <ap-dial-text *ngIf="app.data.navData.bearing.value"
                             [title]="'BRG'"

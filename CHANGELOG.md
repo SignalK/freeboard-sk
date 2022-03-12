@@ -1,5 +1,9 @@
 # CHANGELOG: Freeboard
 
+### v1.19.3
+
+- **Add**: Speed units selection option added to settings. (closes #104)
+
 ### v1.19.2
 
 - **Fix**: Coordinate display issue when format is DegMinSec. (closes #105)
@@ -10,7 +14,7 @@
 
 ### v1.19.0
 
-- **Add**: Add a default name to imported GPX tracks when no name is defined in the source file.
+- **Add**: Apply a default name to imported GPX tracks when no name is defined in the source file.
 
 - **New**: Attach notes to waypoints and routes.
 

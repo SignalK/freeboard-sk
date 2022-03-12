@@ -36,7 +36,7 @@ export class PopoverComponent {
     @Input() title: string;
     @Input() canClose: boolean= true;
     @Input() measure: boolean= false;
-    @Output() closed: EventEmitter<any>= new EventEmitter()
+    @Output() closed: EventEmitter<void>= new EventEmitter()
     constructor() {}
 	
 	//** lifecycle: events **
@@ -74,14 +74,14 @@ features: Array<any> - list of features
 })
 export class FeatureListPopoverComponent {
     @Input() title: string;
-    @Input() features: Array<any>= [];
+    @Input() features: Array<{text: string, icon: string}>= [];
     @Input() canClose: boolean;
-    @Output() closed: EventEmitter<any>= new EventEmitter();
+    @Output() closed: EventEmitter<void>= new EventEmitter();
     @Output() selected: EventEmitter<any>= new EventEmitter();
 
     constructor() {}
 	
-	handleSelect(item:any) { this.selected.emit(item) }
+	handleSelect(item: any) { this.selected.emit(item) }
 
     handleClose() { this.closed.emit() }
 }
@@ -143,7 +143,7 @@ export class AtoNPopoverComponent {
     @Input() aton: SKAtoN;
     @Input() canClose: boolean;
     @Output() info: EventEmitter<string>= new EventEmitter();
-    @Output() closed: EventEmitter<any>= new EventEmitter();
+    @Output() closed: EventEmitter<void>= new EventEmitter();
     
     _title: string;
     timeLastUpdate: string;
@@ -235,7 +235,7 @@ export class AircraftPopoverComponent {
     @Input() aircraft: SKAircraft;
     @Input() canClose: boolean;
     @Output() info: EventEmitter<string>= new EventEmitter();
-    @Output() closed: EventEmitter<any>= new EventEmitter();
+    @Output() closed: EventEmitter<void>= new EventEmitter();
     
     _title: string;
     timeLastUpdate: string;

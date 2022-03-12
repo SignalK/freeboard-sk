@@ -49,28 +49,32 @@ export class Convert {
 
     // ******* Distance / Speed ********
     //** knots to km/h **
-    static  knotsToKm(val) {  return val * 1.852; }
+    static  knotsToKm(val: number): number {  return val * 1.852; }
     //** nautical miles to km**
-    static  nauticalMilesToKm(val=0) { return val * 1.852; }    
+    static  nauticalMilesToKm(val: number): number { return val * 1.852; }    
     //** knots to msec **
-    static  knotsToMSec(val=0) { return val * 0.51444325460445; }    
+    static  knotsToMSec(val: number): number { return val * 0.51444325460445; }    
 
     //** km/h to knots **
-    static  kmToKnots(val) { return val * 0.539957; }
+    static  kmToKnots(val: number): number { return val * 0.539957; }
     //** km to nautical miles **
-    static  kmToNauticalMiles(val=0) { return val * 0.539957; }
+    static  kmToNauticalMiles(val: number): number { return val * 0.539957; }
     //** km to miles **
-    static  kmToMiles(val=0) { return val * 0.621371; }	
+    static  kmToMiles(val: number): number { return val * 0.621371; }	
     //** m/sec to knots **
-    static  msecToKnots(val) { return val * 1.94384; }
+    static  msecToKnots(val: number): number { return val * 1.94384; }
+    //** m/sec to km/h **
+    static  msecToKmh(val: number): number { return val * 3.6; }
+    //** m/sec to km/h **
+    static  msecToMph(val: number): number { return val * 2.23694; }
 
     //** nautical miles to miles**
-    static  nauticalMilesToMiles(val=0) { return val * 1.15078; }
+    static  nauticalMilesToMiles(val: number): number { return val * 1.15078; }
     //**  miles to km**
-    static  milesToKm(val=0) { return val * 1.60934; }		
+    static  milesToKm(val: number): number { return val * 1.60934; }		
     //** miles to nautical miles **
-    static  milesToNauticalMiles(val=0) { return val * 0.868976; }
+    static  milesToNauticalMiles(val: number): number { return val * 0.868976; }
 
     //******** frequency ***************
-    static  rpmToHertz(val=0) {  return val / 60; }    
+    static  rpmToHertz(val: number): number {  return val / 60; }    
 }

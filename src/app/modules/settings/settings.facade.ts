@@ -17,6 +17,9 @@ export class SettingsFacade  {
         ]),
         depth: new Map([ 
             ['m', 'metres'], ['ft', 'feet']
+        ]),
+        speed: new Map([ 
+            ['kn', 'knots'], ['msec', 'm/sec'], ['kmh', 'km/h'], ['mph', 'mph']
         ])
     }   
 
