@@ -1,5 +1,10 @@
 # CHANGELOG: Freeboard
 
+### v1.19.4
+
+- **Update**: Change select all/none on resource lists to only operate on the visible (filtered) list items. (closes #107)
+
+
 ### v1.19.3
 
 - **Add**: Speed units selection option added to settings. (closes #104)
