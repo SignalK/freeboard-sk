@@ -43,7 +43,7 @@ export class RouteListComponent {
     checkSelections() {
         let c= false;
         let u= false;
-        this.routes.forEach( i=> { 
+        this.filterList.forEach( i=> { 
             c= (i[2]) ? true : c;
             u= (!i[2]) ? true : u;
         });
@@ -52,14 +52,14 @@ export class RouteListComponent {
     }
 
     selectAll(value) {
-        this.routes.forEach( i=> { i[2]=value} );
+        this.filterList.forEach( i=> { i[2]=value} );
         this.someSel= false;
         this.allSel= (value) ? true : false;
         this.select.emit({id: 'all', value: value});
     }
 
     itemSelect(e, id) { 
-        this.routes.forEach( i=> { 
+        this.filterList.forEach( i=> { 
             if(i[0]==id) { i[2]=e }
         });
         this.checkSelections();
@@ -94,6 +94,7 @@ export class RouteListComponent {
                 }
             });
         }
+        this.checkSelections();
     }
 
     sortFilter() {

@@ -48,6 +48,8 @@ export class ChartListComponent {
         }
         else { this.filterList= this.charts.slice(0) }
      
+        this.checkSelections();
+
         this.filterList.sort( (a,b)=>{        
             let x=a[1].name.toUpperCase();
             let y= b[1].name.toUpperCase();
@@ -60,7 +62,7 @@ export class ChartListComponent {
     checkSelections() {
         let c= false;
         let u= false;
-        this.charts.forEach( i=> { 
+        this.filterList.forEach( i=> { 
             c= (i[2]) ? true : c;
             u= (!i[2]) ? true : u;
         });
@@ -69,7 +71,7 @@ export class ChartListComponent {
     } 
     
     selectAll(value:boolean) {
-        this.charts.forEach( i=> { i[2]=value} );
+        this.filterList.forEach( i=> { i[2]=value} );
         this.buildFilterList();
         this.someSel= false;
         this.allSel= (value) ? true : false;
@@ -77,7 +79,7 @@ export class ChartListComponent {
     }    
 
     itemSelect(e:boolean, id:string) { 
-        this.charts.forEach( i=> { if(i[0]==id) { i[2]=e } });        
+        this.filterList.forEach( i=> { if(i[0]==id) { i[2]=e } });        
         this.checkSelections();
         this.buildFilterList();
         this.select.emit({id: id, value: e}) 

@@ -43,7 +43,7 @@ export class WaypointListComponent {
     checkSelections() {
         let c= false;
         let u= false;
-        this.waypoints.forEach( i=> { 
+        this.filterList.forEach( i=> { 
             c= (i[2]) ? true : c;
             u= (!i[2]) ? true : u;
         });
@@ -52,14 +52,14 @@ export class WaypointListComponent {
     } 
     
     selectAll(value:boolean) {
-        this.waypoints.forEach( i=> { i[2]=value} );
+        this.filterList.forEach( i=> { i[2]=value} );
         this.someSel= false;
         this.allSel= (value) ? true : false;
         this.select.emit({id: 'all', value: value});
     }    
 
     itemSelect(e, id:string) { 
-        this.waypoints.forEach( i=> { 
+        this.filterList.forEach( i=> { 
             if(i[0]==id) { i[2]=e }
         });
         this.checkSelections();
@@ -99,6 +99,7 @@ export class WaypointListComponent {
                 }
             });
         }
+        this.checkSelections();
     }
 
     sortFilter() {
