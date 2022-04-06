@@ -1,5 +1,6 @@
 import {
-  ChangeDetectionStrategy, ChangeDetectorRef,
+  ChangeDetectionStrategy,
+  ChangeDetectorRef,
   Component,
   Input,
   OnChanges,
@@ -7,14 +8,21 @@ import {
   OnInit,
   Output,
   SimpleChange,
-  SimpleChanges
+  SimpleChanges,
 } from '@angular/core';
 import { Layer } from 'ol/layer';
 import { Feature } from 'ol';
 import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
 import { Circle, Fill, Stroke, Style, Text } from 'ol/style';
-import { Point, MultiPoint, LineString, MultiLineString, Polygon, MultiPolygon } from 'ol/geom';
+import {
+  Point,
+  MultiPoint,
+  LineString,
+  MultiLineString,
+  Polygon,
+  MultiPolygon,
+} from 'ol/geom';
 import { fromLonLat } from 'ol/proj';
 import { MapComponent } from '../map.component';
 import { Extent } from '../models';
@@ -26,10 +34,9 @@ import GeometryType from 'ol/geom/GeometryType';
 @Component({
   selector: 'ol-map > fb-resource-sets',
   template: '<ng-content></ng-content>',
-  changeDetection: ChangeDetectionStrategy.OnPush
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ResourceSetLayerComponent implements OnInit, OnDestroy, OnChanges {
-
   protected layer: Layer;
   public source: VectorSource;
   protected features: Array<Feature>;
@@ -40,10 +47,10 @@ export class ResourceSetLayerComponent implements OnInit, OnDestroy, OnChanges {
    */
   @Output() layerReady: AsyncSubject<Layer> = new AsyncSubject(); // AsyncSubject will only store the last value, and only publish it when the sequence is completed
 
-  @Input() resourceSets: Array<any>= [];
-  @Input() selected: Array<string>= [];
-  @Input() labelMinZoom: number= 10;
-  @Input() mapZoom: number= 10;
+  @Input() resourceSets: Array<any> = [];
+  @Input() selected: Array<string> = [];
+  @Input() labelMinZoom: number = 10;
+  @Input() mapZoom: number = 10;
   @Input() opacity: number;
   @Input() visible: boolean;
   @Input() extent: Extent;
@@ -52,44 +59,44 @@ export class ResourceSetLayerComponent implements OnInit, OnDestroy, OnChanges {
   @Input() maxResolution: number;
   @Input() layerProperties: { [index: string]: any };
 
-  constructor(protected changeDetectorRef: ChangeDetectorRef,
-              protected mapComponent: MapComponent) {
+  constructor(
+    protected changeDetectorRef: ChangeDetectorRef,
+    protected mapComponent: MapComponent
+  ) {
     this.changeDetectorRef.detach();
   }
 
   ngOnInit() {
     this.parseResourceSets(this.resourceSets);
-    this.source = new VectorSource({features: this.features});
-    this.layer = new VectorLayer(Object.assign(this, {...this.layerProperties}));
+    this.source = new VectorSource({ features: this.features });
+    this.layer = new VectorLayer(
+      Object.assign(this, { ...this.layerProperties })
+    );
 
     const map = this.mapComponent.getMap();
-    if(this.layer && map) {
+    if (this.layer && map) {
       map.addLayer(this.layer);
       map.render();
       this.layerReady.next(this.layer);
       this.layerReady.complete();
     }
-
   }
 
   ngOnChanges(changes: SimpleChanges) {
-    if(this.layer) {
+    if (this.layer) {
       const properties: { [index: string]: any } = {};
-      for(const key in changes) {
-        if(key=='resourceSets') {
+      for (const key in changes) {
+        if (key == 'resourceSets') {
           this.parseResourceSets(changes[key].currentValue);
-          if(this.source) { 
+          if (this.source) {
             this.source.clear();
             this.source.addFeatures(this.features);
           }
-        }
-        else if( key=='labelMinZoom' || key=='mapZoom') { 
+        } else if (key == 'labelMinZoom' || key == 'mapZoom') {
           this.handleLabelZoomChange(key, changes[key]);
-        }
-        else if( key=='layerProperties') { 
+        } else if (key == 'layerProperties') {
           this.layer.setProperties(properties, false);
-        }
-        else {
+        } else {
           properties[key] = changes[key].currentValue;
         }
       }
@@ -108,86 +115,90 @@ export class ResourceSetLayerComponent implements OnInit, OnDestroy, OnChanges {
 
   // process resource sets
   parseResourceSets(resourceSets: Array<any>) {
-    this.features= [];
-    for( const r of resourceSets ) {
-      if(this.selected.includes(r.id)) {
+    this.features = [];
+    for (const r of resourceSets) {
+      if (this.selected.includes(r.id)) {
         this.parseResources(r);
       }
     }
   }
 
   // process a resource set
-  parseResources(rSet: {[key:string]: any}) {
-    let fa: Feature[]= [];
-    for( const w of rSet.values.features ) {
+  parseResources(rSet: { [key: string]: any }) {
+    let fa: Feature[] = [];
+    for (const w of rSet.values.features) {
       let f: Feature;
-      if(w.geometry.type=='Point') {
-        f= new Feature({
-          geometry: new Point( fromLonLat(w.geometry.coordinates) ),
-          name: w.properties.name
+      if (w.geometry.type == 'Point') {
+        f = new Feature({
+          geometry: new Point(fromLonLat(w.geometry.coordinates)),
+          name: w.properties.name,
         });
       }
-      if(w.geometry.type=='MultiPoint') {
-        f= new Feature({
-          geometry: new MultiPoint( fromLonLatArray(w.geometry.coordinates) ),
-          name: w.properties.name
+      if (w.geometry.type == 'MultiPoint') {
+        f = new Feature({
+          geometry: new MultiPoint(fromLonLatArray(w.geometry.coordinates)),
+          name: w.properties.name,
+        });
+      } else if (w.geometry.type == 'LineString') {
+        f = new Feature({
+          geometry: new LineString(fromLonLatArray(w.geometry.coordinates)),
+          name: w.properties.name,
+        });
+      } else if (w.geometry.type == 'MultiLineString') {
+        f = new Feature({
+          geometry: new MultiLineString(
+            fromLonLatArray(w.geometry.coordinates)
+          ),
+          name: w.properties.name,
+        });
+      } else if (w.geometry.type == 'Polygon') {
+        f = new Feature({
+          geometry: new Polygon(fromLonLatArray(w.geometry.coordinates)),
+          name: w.properties.name,
+        });
+      } else if (w.geometry.type == 'MultiPolygon') {
+        f = new Feature({
+          geometry: new MultiPolygon(fromLonLatArray(w.geometry.coordinates)),
+          name: w.properties.name,
         });
       }
-      else if (w.geometry.type=='LineString') {
-        f= new Feature({
-          geometry: new LineString( fromLonLatArray(w.geometry.coordinates) ),
-          name: w.properties.name
-        });
+      if (!f) {
+        continue;
       }
-      else if (w.geometry.type=='MultiLineString') {
-        f= new Feature({
-          geometry: new MultiLineString( fromLonLatArray(w.geometry.coordinates) ),
-          name: w.properties.name
-        });
-      }
-      else if (w.geometry.type=='Polygon') {
-        f= new Feature({
-          geometry: new Polygon( fromLonLatArray(w.geometry.coordinates) ),
-          name: w.properties.name
-        });
-      }
-      else if (w.geometry.type=='MultiPolygon') {
-        f= new Feature({
-          geometry: new MultiPolygon( fromLonLatArray(w.geometry.coordinates) ),
-          name: w.properties.name
-        });
-      }
-      if(!f) { continue }
       // set style
-      if(typeof rSet.styles!=='undefined') {
+      if (typeof rSet.styles !== 'undefined') {
         let rs: Style;
-        if( typeof w.properties.styleRef !== 'undefined') {
-          rs= this.buildStyle(rSet.styles[w.properties.styleRef], w.geometry.type);
-        }
-        else if( typeof w.properties.style !== 'undefined') {
-          rs= this.buildStyle(w.properties.style, w.geometry.type);
-        }
-        else {
-          rs= this.buildStyle(rSet.styles.default, w.geometry.type);
+        if (typeof w.properties.styleRef !== 'undefined') {
+          rs = this.buildStyle(
+            rSet.styles[w.properties.styleRef],
+            w.geometry.type
+          );
+        } else if (typeof w.properties.style !== 'undefined') {
+          rs = this.buildStyle(w.properties.style, w.geometry.type);
+        } else {
+          rs = this.buildStyle(rSet.styles.default, w.geometry.type);
         }
         f.setStyle(this.setTextLabel(rs, w.properties.name));
       }
       fa.push(f);
     }
-    this.features= this.features.concat(fa);
+    this.features = this.features.concat(fa);
   }
 
   // ** assess attribute change **
   handleLabelZoomChange(key: string, change: SimpleChange) {
-    if(key=='labelMinZoom') {
-      if(typeof this.mapZoom!=='undefined') { 
+    if (key == 'labelMinZoom') {
+      if (typeof this.mapZoom !== 'undefined') {
         this.updateLabels();
       }
-    }
-    else if(key=='mapZoom') {
-      if(typeof this.labelMinZoom !=='undefined') {
-        if( (change.currentValue >= this.labelMinZoom && change.previousValue < this.labelMinZoom) || 
-            (change.currentValue < this.labelMinZoom && change.previousValue >= this.labelMinZoom) ) {
+    } else if (key == 'mapZoom') {
+      if (typeof this.labelMinZoom !== 'undefined') {
+        if (
+          (change.currentValue >= this.labelMinZoom &&
+            change.previousValue < this.labelMinZoom) ||
+          (change.currentValue < this.labelMinZoom &&
+            change.previousValue >= this.labelMinZoom)
+        ) {
           this.updateLabels();
         }
       }
@@ -196,47 +207,49 @@ export class ResourceSetLayerComponent implements OnInit, OnDestroy, OnChanges {
 
   // update feature labels
   updateLabels() {
-    this.source.getFeatures().forEach( (f:Feature)=> {
-      let s:any= f.getStyle();
-      f.setStyle( this.setTextLabel(s, f.get('name')) );
+    this.source.getFeatures().forEach((f: Feature) => {
+      let s: any = f.getStyle();
+      f.setStyle(this.setTextLabel(s, f.get('name')));
     });
   }
 
   // return a Style with label text
-  setTextLabel(s:Style, text:string): Style {
-    let cs= s.clone();
-    cs.setText( new Text({
-      text: (Math.abs(this.mapZoom)>= this.labelMinZoom)   ? text : '',
-      rotateWithView: false,
-      offsetY: -12
-    }) );
+  setTextLabel(s: Style, text: string): Style {
+    let cs = s.clone();
+    cs.setText(
+      new Text({
+        text: Math.abs(this.mapZoom) >= this.labelMinZoom ? text : '',
+        rotateWithView: false,
+        offsetY: -12,
+      })
+    );
     return cs;
   }
 
-  buildStyle(styleDef: {[key:string]: any}, geom: GeometryType): Style {
-    let s: Style= new Style();
-    if(geom== GeometryType.POINT || geom== GeometryType.MULTI_POINT) {
-      s.setImage( new Circle({
-        radius: styleDef.width ?? 5,
-        fill: new Fill({ color: styleDef.fill ?? 'blue' }),
-        stroke: new Stroke({
-          color: styleDef.stroke ?? 'blue',
-          width: 2,
-          lineDash: styleDef.lineDash ?? [1]
+  buildStyle(styleDef: { [key: string]: any }, geom: GeometryType): Style {
+    let s: Style = new Style();
+    if (geom == GeometryType.POINT || geom == GeometryType.MULTI_POINT) {
+      s.setImage(
+        new Circle({
+          radius: styleDef.width ?? 5,
+          fill: new Fill({ color: styleDef.fill ?? 'blue' }),
+          stroke: new Stroke({
+            color: styleDef.stroke ?? 'blue',
+            width: 2,
+            lineDash: styleDef.lineDash ?? [1],
+          }),
         })
-      }))
-    }
-    else {
-      s.setFill( new Fill({ color: styleDef.fill ?? 'blue' }));
-      s.setStroke( new Stroke({
-        color: styleDef.stroke ?? 'blue',
-        width: styleDef.width ?? 2,
-        lineDash: styleDef.lineDash ?? [1]
-      }));
+      );
+    } else {
+      s.setFill(new Fill({ color: styleDef.fill ?? 'blue' }));
+      s.setStroke(
+        new Stroke({
+          color: styleDef.stroke ?? 'blue',
+          width: styleDef.width ?? 2,
+          lineDash: styleDef.lineDash ?? [1],
+        })
+      );
     }
     return s;
   }
-
-
 }
-

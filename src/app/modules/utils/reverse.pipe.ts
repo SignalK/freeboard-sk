@@ -2,11 +2,9 @@ import { Pipe, PipeTransform } from '@angular/core';
 
 @Pipe({ name: 'reverse' })
 export class ReversePipe implements PipeTransform {
+  //constructor() {}
 
-    constructor() {}
- 
-    public transform(value: Array<any>): Array<any> {
-        return value.slice().reverse();
-    }
-
+  public transform(value: Array<any>): Array<any> {
+    return value.slice().reverse();
+  }
 }

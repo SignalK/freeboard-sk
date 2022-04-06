@@ -8,27 +8,25 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatMenuModule } from '@angular/material/menu';
-import { AppUIModule } from 'src/app/lib/app-ui';
+import { AppUIModule } from 'src/app/lib';
 
 // ** components **
-import { ExperimentsComponent } from './experiments'
+import { ExperimentsComponent } from './experiments';
 
 @NgModule({
-    imports: [
-        CommonModule, MatMenuModule,
-        MatIconModule, MatButtonModule,
-        MatTooltipModule, AppUIModule
-      ],    
-    declarations: [
-        ExperimentsComponent
-    ],
-    exports: [
-        ExperimentsComponent
-    ],
-    entryComponents: [], 
-    providers: []  
+  imports: [
+    CommonModule,
+    MatMenuModule,
+    MatIconModule,
+    MatButtonModule,
+    MatTooltipModule,
+    AppUIModule
+  ],
+  declarations: [ExperimentsComponent],
+  exports: [ExperimentsComponent],
+  entryComponents: [],
+  providers: []
 })
 export class ExperimentsModule {}
 
 export * from './experiments';
-

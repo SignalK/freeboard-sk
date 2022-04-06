@@ -1,12 +1,13 @@
 import {
-  ChangeDetectionStrategy, ChangeDetectorRef,
+  ChangeDetectionStrategy,
+  ChangeDetectorRef,
   Component,
   Input,
   OnChanges,
   OnDestroy,
   OnInit,
   Output,
-  SimpleChanges
+  SimpleChanges,
 } from '@angular/core';
 import { Layer } from 'ol/layer';
 import { Feature } from 'ol';
@@ -20,15 +21,13 @@ import { Extent, Coordinate } from '../models';
 import { fromLonLatArray, mapifyCoords } from '../util';
 import { AsyncSubject } from 'rxjs';
 
-
 // ** Freeboard Vessel component **
 @Component({
   selector: 'ol-map > fb-vessel',
   template: '<ng-content></ng-content>',
-  changeDetection: ChangeDetectionStrategy.OnPush
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class VesselComponent implements OnInit, OnDestroy, OnChanges {
-
   protected layer: Layer;
   public source: VectorSource;
   protected features: Array<Feature>;
@@ -37,15 +36,15 @@ export class VesselComponent implements OnInit, OnDestroy, OnChanges {
    * This event is triggered after the layer is initialized
    * Use this to have access to the layer and some helper functions
    */
-  @Output() layerReady: AsyncSubject<Layer> = new AsyncSubject(); // AsyncSubject will only store the last value, and only publish it when the sequence is completed
+  @Output() layerReady: AsyncSubject<Layer> = new AsyncSubject();
 
   @Input() id: string;
   @Input() activeId: string;
   @Input() position: Coordinate;
-  @Input() heading: number= 0;
-  @Input() vesselStyles: {[key:string]: Style};
-  @Input() vesselLines: {[key:string]: Array<Coordinate>};
-  @Input() showWind: boolean= false;
+  @Input() heading = 0;
+  @Input() vesselStyles: { [key: string]: Style };
+  @Input() vesselLines: { [key: string]: Array<Coordinate> };
+  @Input() showWind = false;
   @Input() opacity: number;
   @Input() visible: boolean;
   @Input() extent: Extent;
@@ -59,57 +58,69 @@ export class VesselComponent implements OnInit, OnDestroy, OnChanges {
   awaLine: Feature;
   headingLine: Feature;
 
-  constructor(protected changeDetectorRef: ChangeDetectorRef,
-              protected mapComponent: MapComponent) {
+  constructor(
+    protected changeDetectorRef: ChangeDetectorRef,
+    protected mapComponent: MapComponent
+  ) {
     this.changeDetectorRef.detach();
   }
 
   ngOnInit() {
-    let fa= []
+    const fa = [];
     this.parseVessel();
-    if(this.vessel) { fa.push(this.vessel) }
+    if (this.vessel) {
+      fa.push(this.vessel);
+    }
     this.renderVesselLines();
-    if(this.headingLine) { fa.push(this.headingLine) }
-    if(this.twdLine) { fa.push(this.twdLine) }
-    if(this.awaLine) { fa.push(this.awaLine) }
+    if (this.headingLine) {
+      fa.push(this.headingLine);
+    }
+    if (this.twdLine) {
+      fa.push(this.twdLine);
+    }
+    if (this.awaLine) {
+      fa.push(this.awaLine);
+    }
 
-    this.source = new VectorSource({features: fa });
-    this.layer = new VectorLayer(Object.assign(this, {...this.layerProperties}));
+    this.source = new VectorSource({ features: fa });
+    this.layer = new VectorLayer(
+      Object.assign(this, { ...this.layerProperties })
+    );
 
     const map = this.mapComponent.getMap();
-    if(this.layer && map) {
+    if (this.layer && map) {
       map.addLayer(this.layer);
       map.render();
       this.layerReady.next(this.layer);
       this.layerReady.complete();
     }
-
   }
 
   ngOnChanges(changes: SimpleChanges) {
-    if(this.layer) {
+    if (this.layer) {
       const properties: { [index: string]: any } = {};
 
-      for(const key in changes) {
-        if(key=='id' || key=='activeId' || key=='position' || key=='heading') {
-          if(this.source) { 
+      for (const key in changes) {
+        if (
+          key === 'id' ||
+          key === 'activeId' ||
+          key === 'position' ||
+          key === 'heading'
+        ) {
+          if (this.source) {
             this.parseVessel();
           }
-        }
-        else if( key=='vesselLines' || key=='showWind') { 
-          if(this.source) { 
+        } else if (key === 'vesselLines' || key === 'showWind') {
+          if (this.source) {
             this.renderVesselLines();
           }
-        }
-        else if( key=='vesselStyles') { 
-          if(this.source) { 
+        } else if (key === 'vesselStyles') {
+          if (this.source) {
             this.parseVessel();
           }
-        }
-        else if( key=='layerProperties') { 
+        } else if (key === 'layerProperties') {
           this.layer.setProperties(properties, false);
-        }
-        else {
+        } else {
           properties[key] = changes[key].currentValue;
         }
       }
@@ -127,117 +138,132 @@ export class VesselComponent implements OnInit, OnDestroy, OnChanges {
   }
 
   parseVessel() {
-    if(!this.vessel) { // create feature
-      this.vessel= new Feature( new Point(
-        fromLonLat([
-          this.position[0] ?? 0,
-          this.position[1] ?? 0
-        ])
-      ) );
+    if (!this.vessel) {
+      // create feature
+      this.vessel = new Feature(
+        new Point(fromLonLat([this.position[0] ?? 0, this.position[1] ?? 0]))
+      );
     }
-    //update feature
-    if(this.position && Array.isArray(this.position) && this.position.length>1) {
-      let g:Geometry= this.vessel.getGeometry();
-      (g as Point).setCoordinates( fromLonLat([
-        this.position[0],
-        this.position[1]
-      ]) );
+    // update feature
+    if (
+      this.position &&
+      Array.isArray(this.position) &&
+      this.position.length > 1
+    ) {
+      const g: Geometry = this.vessel.getGeometry();
+      (g as Point).setCoordinates(
+        fromLonLat([this.position[0], this.position[1]])
+      );
     }
     this.vessel.setId(this.id ?? 'self');
-    let s= this.buildStyle();
-    if(s) {
-      let im= (s as Style).getImage();
-      if(im) { im.setRotation(this.heading) };
+    const s = this.buildStyle();
+    if (s) {
+      const im = (s as Style).getImage();
+      if (im) {
+        im.setRotation(this.heading);
+      }
       this.vessel.setStyle(s);
     }
   }
 
   // build target style
-  buildStyle():Style {
-    let cs= new Style({ // default style               
+  buildStyle(): Style {
+    let cs = new Style({
+      // default style
       image: new RegularShape({
         points: 3,
-        radius: 15, 
+        radius: 15,
         fill: new Fill({ color: 'red' }),
         stroke: new Stroke({
           color: 'black',
-          width: 3
+          width: 3,
         }),
         rotateWithView: true,
-        rotation: this.heading ?? 0
-      })
+        rotation: this.heading ?? 0,
+      }),
     });
 
-    if(this.vesselStyles) { 
-      if(this.activeId && this.activeId!= this.id) {
-        if(this.vesselStyles.inactive) {
-          cs= this.vesselStyles.inactive;
+    if (this.vesselStyles) {
+      if (this.activeId && this.activeId !== this.id) {
+        if (this.vesselStyles.inactive) {
+          cs = this.vesselStyles.inactive;
         }
-      } 
-      else {
-        if(this.vesselStyles.default) {
-          cs= this.vesselStyles.default; 
+      } else {
+        if (this.vesselStyles.default) {
+          cs = this.vesselStyles.default;
         }
       }
-    }
-    else if(this.layerProperties && this.layerProperties.style) { 
-      cs= this.layerProperties.style 
+    } else if (this.layerProperties && this.layerProperties.style) {
+      cs = this.layerProperties.style;
     }
 
-    return cs
+    return cs;
   }
 
   // remove feature from layer
   removeFeature(f: Feature) {
-    if(this.source) {
+    if (this.source) {
       this.source.removeFeature(f);
     }
   }
 
   renderVesselLines() {
-    if(!this.vesselLines) { return }
-    if( 'heading' in this.vesselLines) {
-      this.headingLine= this.updateLine(this.headingLine, this.vesselLines.heading);
-      this.headingLine.setStyle( new Style({
-        stroke: new Stroke({ color: 'rgba(221, 99, 0, 0.5)', width: 4 })
-      }) );
+    if (!this.vesselLines) {
+      return;
     }
-    else {
+    if ('heading' in this.vesselLines) {
+      this.headingLine = this.updateLine(
+        this.headingLine,
+        this.vesselLines.heading
+      );
+      this.headingLine.setStyle(
+        new Style({
+          stroke: new Stroke({ color: 'rgba(221, 99, 0, 0.5)', width: 4 }),
+        })
+      );
+    } else {
       this.removeFeature(this.headingLine);
     }
-    if('twd' in this.vesselLines) {
-      this.twdLine= this.updateLine(this.twdLine, this.vesselLines.twd);
-      this.twdLine.setStyle( new Style({
-        stroke: new Stroke({ color: `rgb(128, 128, 0, ${this.showWind ? 1 : 0})`, width: 2 })
-      }) );
-    }
-    else {
+    if ('twd' in this.vesselLines) {
+      this.twdLine = this.updateLine(this.twdLine, this.vesselLines.twd);
+      this.twdLine.setStyle(
+        new Style({
+          stroke: new Stroke({
+            color: `rgb(128, 128, 0, ${this.showWind ? 1 : 0})`,
+            width: 2,
+          }),
+        })
+      );
+    } else {
       this.removeFeature(this.twdLine);
     }
-    if('awa' in this.vesselLines) {
-      this.awaLine= this.updateLine(this.awaLine, this.vesselLines.awa);
-      this.awaLine.setStyle( new Style({
-        stroke: new Stroke({ color: `rgb(16, 75, 16, ${this.showWind ? 1 : 0})`, width: 1 })
-      }) );
-    }
-    else {
+    if ('awa' in this.vesselLines) {
+      this.awaLine = this.updateLine(this.awaLine, this.vesselLines.awa);
+      this.awaLine.setStyle(
+        new Style({
+          stroke: new Stroke({
+            color: `rgb(16, 75, 16, ${this.showWind ? 1 : 0})`,
+            width: 1,
+          }),
+        })
+      );
+    } else {
       this.removeFeature(this.awaLine);
     }
   }
 
   // ** update line geometry **
   updateLine(lf: Feature, coords: Array<Coordinate>) {
-    if(!coords || !Array.isArray(coords)) { return }
-    if(!lf) { // create feature
-      lf= new Feature( new LineString(
-        fromLonLatArray(mapifyCoords(coords))
-      ) );
+    if (!coords || !Array.isArray(coords)) {
+      return;
     }
-    else { 
-      let g:any= lf.getGeometry();
-      g.setCoordinates( fromLonLatArray(mapifyCoords(coords)) );
+    if (!lf) {
+      // create feature
+      lf = new Feature(new LineString(fromLonLatArray(mapifyCoords(coords))));
+    } else {
+      const g: any = lf.getGeometry();
+      g.setCoordinates(fromLonLatArray(mapifyCoords(coords)));
     }
     return lf;
   }
-
 }

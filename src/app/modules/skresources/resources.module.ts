@@ -21,15 +21,22 @@ import { MatBottomSheetModule } from '@angular/material/bottom-sheet';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { ScrollingModule } from '@angular/cdk/scrolling';
 
-import { RouteListComponent } from  './lists/routelist';
-import { WaypointListComponent } from  './lists/waypointlist';
-import { ChartListComponent, ChartLayers } from  './lists/chartlist';
-import { NoteListComponent } from  './lists/notelist';
-import { AISListComponent } from  './lists/aislist';
+import { RouteListComponent } from './lists/routelist';
+import { WaypointListComponent } from './lists/waypointlist';
+import { ChartListComponent, ChartLayers } from './lists/chartlist';
+import { NoteListComponent } from './lists/notelist';
+import { AISListComponent } from './lists/aislist';
 
-import { ResourceDialog, AISPropertiesModal, AtoNPropertiesModal, AircraftPropertiesModal,
-        ActiveResourcePropertiesModal, ChartInfoDialog,
-        TracksModal, ResourceSetModal } from './resource-dialogs';
+import {
+  ResourceDialog,
+  AISPropertiesModal,
+  AtoNPropertiesModal,
+  AircraftPropertiesModal,
+  ActiveResourcePropertiesModal,
+  ChartInfoDialog,
+  TracksModal,
+  ResourceSetModal
+} from './resource-dialogs';
 import { ResourceImportDialog } from './sets/resource-upload-dialog';
 
 import { SKNotesModule } from './notes';
@@ -37,36 +44,78 @@ import { AppUIModule } from 'src/app/lib/ui/ui.module';
 import { UtilitiesModule } from 'src/app/modules/utils/utils.module';
 
 @NgModule({
-    imports: [
-        CommonModule, HttpClientModule, FormsModule, MatDialogModule,
-        MatCheckboxModule, MatCardModule, MatListModule, MatSelectModule,
-        MatButtonModule, MatIconModule, MatTooltipModule, MatBottomSheetModule,
-        MatSliderModule, MatSlideToggleModule, ScrollingModule,
-        MatFormFieldModule, MatInputModule, MatToolbarModule, DragDropModule,
-        SKNotesModule, AppUIModule, UtilitiesModule
-    ],
-    declarations: [
-        RouteListComponent, WaypointListComponent, ChartListComponent,
-        AISListComponent, NoteListComponent, 
-        ResourceDialog, AISPropertiesModal, AtoNPropertiesModal, AircraftPropertiesModal,
-        ActiveResourcePropertiesModal, ChartInfoDialog, ChartLayers,
-        TracksModal, ResourceSetModal, ResourceImportDialog
-    ],
-    exports: [
-        RouteListComponent, WaypointListComponent, ChartListComponent,
-        AISListComponent, NoteListComponent,
-        ResourceDialog, AISPropertiesModal, AtoNPropertiesModal, AircraftPropertiesModal,
-        ActiveResourcePropertiesModal, ChartInfoDialog, ChartLayers,
-        SKNotesModule,
-        TracksModal, ResourceSetModal, ResourceImportDialog
-    ],
-    entryComponents: [
-        ResourceDialog, AISPropertiesModal, AtoNPropertiesModal, AircraftPropertiesModal,
-        ActiveResourcePropertiesModal, ChartInfoDialog, 
-        TracksModal, ResourceSetModal, ResourceImportDialog
-    ]
+  imports: [
+    CommonModule,
+    HttpClientModule,
+    FormsModule,
+    MatDialogModule,
+    MatCheckboxModule,
+    MatCardModule,
+    MatListModule,
+    MatSelectModule,
+    MatButtonModule,
+    MatIconModule,
+    MatTooltipModule,
+    MatBottomSheetModule,
+    MatSliderModule,
+    MatSlideToggleModule,
+    ScrollingModule,
+    MatFormFieldModule,
+    MatInputModule,
+    MatToolbarModule,
+    DragDropModule,
+    SKNotesModule,
+    AppUIModule,
+    UtilitiesModule
+  ],
+  declarations: [
+    RouteListComponent,
+    WaypointListComponent,
+    ChartListComponent,
+    AISListComponent,
+    NoteListComponent,
+    ResourceDialog,
+    AISPropertiesModal,
+    AtoNPropertiesModal,
+    AircraftPropertiesModal,
+    ActiveResourcePropertiesModal,
+    ChartInfoDialog,
+    ChartLayers,
+    TracksModal,
+    ResourceSetModal,
+    ResourceImportDialog
+  ],
+  exports: [
+    RouteListComponent,
+    WaypointListComponent,
+    ChartListComponent,
+    AISListComponent,
+    NoteListComponent,
+    ResourceDialog,
+    AISPropertiesModal,
+    AtoNPropertiesModal,
+    AircraftPropertiesModal,
+    ActiveResourcePropertiesModal,
+    ChartInfoDialog,
+    ChartLayers,
+    SKNotesModule,
+    TracksModal,
+    ResourceSetModal,
+    ResourceImportDialog
+  ],
+  entryComponents: [
+    ResourceDialog,
+    AISPropertiesModal,
+    AtoNPropertiesModal,
+    AircraftPropertiesModal,
+    ActiveResourcePropertiesModal,
+    ChartInfoDialog,
+    TracksModal,
+    ResourceSetModal,
+    ResourceImportDialog
+  ]
 })
-export class SignalKResourcesModule { }
+export class SignalKResourcesModule {}
 
 export * from './resources.service';
 export * from './resource-dialogs';

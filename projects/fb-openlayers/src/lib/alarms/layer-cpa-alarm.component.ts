@@ -1,12 +1,13 @@
 import {
-  ChangeDetectionStrategy, ChangeDetectorRef,
+  ChangeDetectionStrategy,
+  ChangeDetectorRef,
   Component,
   Input,
   OnChanges,
   OnDestroy,
   OnInit,
   Output,
-  SimpleChanges
+  SimpleChanges,
 } from '@angular/core';
 import { Layer } from 'ol/layer';
 import { Feature } from 'ol';
@@ -20,15 +21,13 @@ import { Extent, Coordinate } from '../models';
 import { fromLonLatArray, mapifyCoords, mapifyRadius } from '../util';
 import { AsyncSubject } from 'rxjs';
 
-
 // ** Freeboard CPA Alarm component **
 @Component({
   selector: 'ol-map > fb-cpa-alarm',
   template: '<ng-content></ng-content>',
-  changeDetection: ChangeDetectionStrategy.OnPush
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CPAAlarmComponent implements OnInit, OnDestroy, OnChanges {
-
   protected layer: Layer;
   public source: VectorSource;
   protected features: Array<Feature>;
@@ -40,7 +39,7 @@ export class CPAAlarmComponent implements OnInit, OnDestroy, OnChanges {
   @Output() layerReady: AsyncSubject<Layer> = new AsyncSubject(); // AsyncSubject will only store the last value, and only publish it when the sequence is completed
 
   @Input() targetPosition: Coordinate;
-	@Input() lineCoords: Array<Coordinate>;
+  @Input() lineCoords: Array<Coordinate>;
   @Input() opacity: number;
   @Input() visible: boolean;
   @Input() extent: Extent;
@@ -49,45 +48,45 @@ export class CPAAlarmComponent implements OnInit, OnDestroy, OnChanges {
   @Input() maxResolution: number;
   @Input() layerProperties: { [index: string]: any };
 
+  public mapifiedLine: Array<Coordinate> = [];
 
-  public mapifiedLine: Array<Coordinate>= [];
-  
-  constructor(protected changeDetectorRef: ChangeDetectorRef,
-              protected mapComponent: MapComponent) {
+  constructor(
+    protected changeDetectorRef: ChangeDetectorRef,
+    protected mapComponent: MapComponent
+  ) {
     this.changeDetectorRef.detach();
   }
 
   ngOnInit() {
     this.parseValues();
-    this.source = new VectorSource({features: this.features});
-    this.layer = new VectorLayer(Object.assign(this, {...this.layerProperties}));
+    this.source = new VectorSource({ features: this.features });
+    this.layer = new VectorLayer(
+      Object.assign(this, { ...this.layerProperties })
+    );
 
     const map = this.mapComponent.getMap();
-    if(this.layer && map) {
+    if (this.layer && map) {
       map.addLayer(this.layer);
       map.render();
       this.layerReady.next(this.layer);
       this.layerReady.complete();
     }
-
   }
 
   ngOnChanges(changes: SimpleChanges) {
-    if(this.layer) {
+    if (this.layer) {
       const properties: { [index: string]: any } = {};
 
-      for(const key in changes) {
-        if(key=='targetPosition' || key=='lineCoords') {
+      for (const key in changes) {
+        if (key == 'targetPosition' || key == 'lineCoords') {
           this.parseValues();
-          if(this.source) { 
+          if (this.source) {
             this.source.clear();
             this.source.addFeatures(this.features);
           }
-        }
-        else if( key=='layerProperties') { 
+        } else if (key == 'layerProperties') {
           this.layer.setProperties(properties, false);
-        }
-        else {
+        } else {
           properties[key] = changes[key].currentValue;
         }
       }
@@ -105,51 +104,50 @@ export class CPAAlarmComponent implements OnInit, OnDestroy, OnChanges {
   }
 
   parseValues() {
-    this.mapifiedLine= mapifyCoords(this.lineCoords);
-    let fa: Feature[]= [];
-    let f= new Feature({
-      geometry: new LineString( fromLonLatArray(this.mapifiedLine) )
+    this.mapifiedLine = mapifyCoords(this.lineCoords);
+    let fa: Feature[] = [];
+    let f = new Feature({
+      geometry: new LineString(fromLonLatArray(this.mapifiedLine)),
     });
     f.setStyle(this.buildStyle());
     fa.push(f);
-    f= new Feature({
-      geometry: new Point( fromLonLat(this.targetPosition) )
+    f = new Feature({
+      geometry: new Point(fromLonLat(this.targetPosition)),
     });
     f.setStyle(this.buildStyle());
     fa.push(f);
-    this.features= fa;
+    this.features = fa;
   }
 
-    // build target style
-    buildStyle():Style {
-      let cs: Style;
-      if(this.layerProperties && this.layerProperties.style) { 
-        cs= this.layerProperties.style 
-      }
-      else { // default style
-        cs= new Style({  
-          image: new Circle({
-            radius: 10,
-            stroke: new Stroke({
-              width: 2,
-              color: 'red',
-              lineDash: [2,3]
-            }),
-            fill: new Fill({
-              color: 'rgba(255,0,0,.2)'
-            })
-          }),                  
+  // build target style
+  buildStyle(): Style {
+    let cs: Style;
+    if (this.layerProperties && this.layerProperties.style) {
+      cs = this.layerProperties.style;
+    } else {
+      // default style
+      cs = new Style({
+        image: new Circle({
+          radius: 10,
           stroke: new Stroke({
-              width: 2,
-              color: 'red',
-              lineDash: [2,3]
+            width: 2,
+            color: 'red',
+            lineDash: [2, 3],
           }),
           fill: new Fill({
-            color: 'rgba(255,0,0,.2)'
-          })
-        });
-      }
-      return cs
+            color: 'rgba(255,0,0,.2)',
+          }),
+        }),
+        stroke: new Stroke({
+          width: 2,
+          color: 'red',
+          lineDash: [2, 3],
+        }),
+        fill: new Fill({
+          color: 'rgba(255,0,0,.2)',
+        }),
+      });
     }
-
+    return cs;
+  }
 }

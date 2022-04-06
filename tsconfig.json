@@ -19,12 +19,6 @@
       "dom"
     ],
     "paths": {
-//      "ng-openlayers-lib": [
-//        "dist/ng-openlayers-lib"
-//      ],
-//      "ng-openlayers-lib/*": [
-//        "dist/ng-openlayers-lib/*"
-//      ]
       "fb-openlayers": [
         "projects/fb-openlayers/src"
       ],

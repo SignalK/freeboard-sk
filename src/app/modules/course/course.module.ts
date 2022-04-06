@@ -14,28 +14,33 @@ import { MatBottomSheetModule } from '@angular/material/bottom-sheet';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatCardModule } from '@angular/material/card';
-import { AppUIModule } from 'src/app/lib/app-ui';
+import { MatSlideToggleModule } from '@angular/material/slide-toggle';
+import { AppUIModule } from 'src/app/lib';
 
 // ** components **
 import { CourseSettingsModal } from './course-settings';
 
 @NgModule({
-    imports: [
-        CommonModule, FormsModule, MatInputModule, MatSelectModule,
-        MatBottomSheetModule, MatCardModule,
-        MatIconModule, MatButtonModule, MatToolbarModule, MatCheckboxModule,
-        MatTooltipModule, AppUIModule
-      ],    
-    declarations: [
-        CourseSettingsModal
-    ],
-    exports: [
-        CourseSettingsModal
-    ],
-    entryComponents: [ CourseSettingsModal ], 
-    providers: []  
+  imports: [
+    CommonModule,
+    FormsModule,
+    MatInputModule,
+    MatSelectModule,
+    MatBottomSheetModule,
+    MatCardModule,
+    MatIconModule,
+    MatButtonModule,
+    MatToolbarModule,
+    MatCheckboxModule,
+    MatTooltipModule,
+    MatSlideToggleModule,
+    AppUIModule
+  ],
+  declarations: [CourseSettingsModal],
+  exports: [CourseSettingsModal],
+  entryComponents: [CourseSettingsModal],
+  providers: []
 })
 export class CourseModule {}
 
 export * from './course-settings';
-

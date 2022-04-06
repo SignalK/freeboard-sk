@@ -7,18 +7,18 @@ import {
   OnChanges,
   OnDestroy,
   OnInit,
-  SimpleChanges
+  SimpleChanges,
 } from '@angular/core';
-import Overlay, {Options, PanIntoViewOptions} from 'ol/Overlay';
+import Overlay, { Options, PanIntoViewOptions } from 'ol/Overlay';
 import OverlayPositioning from 'ol/OverlayPositioning';
 import { fromLonLat } from 'ol/proj';
-import {MapComponent} from './map.component';
-import {Coordinate} from './models';
+import { MapComponent } from './map.component';
+import { Coordinate } from './models';
 
 @Component({
   selector: 'ol-map > ol-overlay',
   template: '<ng-content></ng-content>',
-  changeDetection: ChangeDetectionStrategy.OnPush
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class OverlayComponent implements OnInit, OnChanges, OnDestroy {
   protected overlay: Overlay;
@@ -41,7 +41,7 @@ export class OverlayComponent implements OnInit, OnChanges, OnDestroy {
   }
 
   ngOnInit() {
-    if(this.elementRef.nativeElement) {
+    if (this.elementRef.nativeElement) {
       this.element = this.elementRef.nativeElement;
       this.overlay = new Overlay(this as Options);
       this.mapComponent.getMap().addOverlay(this.overlay);

@@ -1,6 +1,6 @@
 .dial-text {
     padding: 0 10px;
-    max-height: 100px;
+    height: 80px;
     font-family: roboto;
     border: transparent 1px solid;
 }

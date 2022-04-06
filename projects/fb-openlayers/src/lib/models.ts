@@ -1,10 +1,13 @@
-import {Map} from 'ol';
-import {MapService} from './map.service';
+import { Map } from 'ol';
+import { MapService } from './map.service';
 
 /* enum types */
 
 export enum LayerType {
-  IMAGE, TILE, VECTOR_TILE, VECTOR
+  IMAGE,
+  TILE,
+  VECTOR_TILE,
+  VECTOR,
 }
 
 export enum SourceType {
@@ -41,6 +44,6 @@ export type Coordinate = [number, number, number?];
 export type Extent = [number, number, number, number];
 
 export interface MapReadyEvent {
-    map: Map;
-    mapService: MapService;
+  map: Map;
+  mapService: MapService;
 }

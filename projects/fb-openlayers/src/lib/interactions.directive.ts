@@ -1,4 +1,4 @@
-import {ChangeDetectorRef, Directive, Input, OnInit} from '@angular/core';
+import { ChangeDetectorRef, Directive, Input, OnInit } from '@angular/core';
 import {
   DoubleClickZoom,
   DragPan,
@@ -7,15 +7,14 @@ import {
   KeyboardPan,
   KeyboardZoom,
   MouseWheelZoom,
-  PinchZoom
+  PinchZoom,
 } from 'ol/interaction';
-import {MapComponent} from './map.component';
+import { MapComponent } from './map.component';
 
 @Directive({
-  selector: 'ol-map > [olInteractions]'
+  selector: 'ol-map > [olInteractions]',
 })
 export class InteractionsDirective implements OnInit {
-
   private interactions = [];
   private readonly interactionList = {
     dragpan: DragPan,
@@ -25,11 +24,13 @@ export class InteractionsDirective implements OnInit {
     keyboardpan: KeyboardPan,
     keyboardzoom: KeyboardZoom,
     mousewheelzoom: MouseWheelZoom,
-    pinchzoom: PinchZoom
+    pinchzoom: PinchZoom,
   };
 
-  constructor(protected changeDetectorRef: ChangeDetectorRef,
-              protected mapComponent: MapComponent) {
+  constructor(
+    protected changeDetectorRef: ChangeDetectorRef,
+    protected mapComponent: MapComponent
+  ) {
     this.changeDetectorRef.detach();
   }
 
@@ -60,8 +61,9 @@ export class InteractionsDirective implements OnInit {
       console.error(`Unknown interaction ${controlConfig.name}`);
       return;
     }
-    const newInteraction = new this.interactionList[controlConfig.name](controlConfig.options);
+    const newInteraction = new this.interactionList[controlConfig.name](
+      controlConfig.options
+    );
     map.addInteraction(newInteraction);
   }
-
 }

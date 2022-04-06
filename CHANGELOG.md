@@ -1,25 +1,36 @@
 # CHANGELOG: Freeboard
 
-### v1.19.4
+### v2.0.0
 
-- **Update**: Change select all/none on resource lists to only operate on the visible (filtered) list items. (closes #107)
+__** BREAKING CHANGE **__ Freeboard-SK now requires a version of Signal K server that implements the `Resources API` and `Course API`.
 
+__UPDATES:__ 
 
-### v1.19.3
+- **Added**: Restart course calculations using the current vessel position
 
-- **Add**: Speed units selection option added to settings. (closes #104)
+- **Added**: Reverse direction a route is followed.
 
-### v1.19.2
+- **Added**: Advance to next route point button to arrival notification to .
 
-- **Fix**: Coordinate display issue when format is DegMinSec. (closes #105)
+- **Added**: Setting to select auto advance to next route point on arrival with choice of time delay.
 
-### v1.19.1
+- **Added**: Speed units selection option.
 
-- **Fix**: Issue where vessel name and MMSI not being received in stream connection after upgrading to server version 1.41.0
+- **Added**: Option to delete attached notes when deleting a resource.
+
+- **Added**: Ability to enter `name` and `description` for a region resource.
+
+- **New**: Detect "circular routes" _(first and last points have the exact same coordinate)_ allowing Issue where vessel wind vector on map was not displayed when heading was 0 degrees
+- **Fix**: Issue where audio was played when notification was 'visual' only.
+
+- **Fix**: Issue where vessel wind vector on map was not displayed when heading was 0 degrees.
+
+- **Change**: Notes are only displayed on the map if they have a valid position. Notesd attached to a resource / regeion are only available in the notes list of that resource.
+
 
 ### v1.19.0
 
-- **Add**: Apply a default name to imported GPX tracks when no name is defined in the source file.
+- **Add**: Add a default name to imported GPX tracks when no name is defined in the source file.
 
 - **New**: Attach notes to waypoints and routes.
 
