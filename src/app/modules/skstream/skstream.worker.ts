@@ -527,14 +527,14 @@ function processVessel(d: SKVessel, v:any, isSelf:boolean=false) {
     }    
 
     if( v.path=='' ) { 
-        if(typeof v.value.name!= 'undefined') { d.name= v.value.name }
-        if(typeof v.value.mmsi!= 'undefined') { d.mmsi= v.value.mmsi }
-        if(typeof v.value.buddy!= 'undefined') { d.buddy= v.value.buddy }
+        if(typeof v.value.name !== 'undefined') { d.name= v.value.name }
+        if(typeof v.value.mmsi !== 'undefined') { d.mmsi= v.value.mmsi }
+        if(typeof v.value.buddy !== 'undefined') { d.buddy= v.value.buddy }
     } 
     else if(v.path=='communication.callsignVhf') { d.callsign= v.value }
 
     else if( v.path=='navigation.position' && v.value) { // position is not null
-        if(typeof v.value.longitude==='undefined') { return } // invalid 
+        if(typeof v.value.longitude === 'undefined') { return } // invalid 
         d.position= GeoUtils.normaliseCoords([ v.value.longitude, v.value.latitude]);
         d['positionReceived']=true;
         if(!isSelf) { appendTrack(d) } 

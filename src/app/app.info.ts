@@ -46,7 +46,8 @@ const FreeboardConfig= {
     units: {        // ** display units
         distance: 'm',
         depth: 'm',
-        speed: 'kn'
+        speed: 'kn',
+        temperature: 'c'
     },
     selections: {   // ** saved selections 
         routes: [],
@@ -129,7 +130,7 @@ export const OSM= [
 export class AppInfo extends Info {
 
     private DEV_SERVER= {
-        host: '172.17.0.1',  //'192.168.86.32', //'172.17.0.1', // host name || ip address
+        host: '192.168.86.32', //'172.17.0.1', // host name || ip address
         port: 3000,     // port number
         ssl: false
     };
@@ -434,11 +435,15 @@ export class AppInfo extends Info {
         }
         
         if(typeof settings.vesselWindVectors === 'undefined') {
-            settings.vesselWindVectors= true;
+            settings.vesselWindVectors = true;
         }  
 
         if(typeof settings.aisShowTrack === 'undefined') {
-            settings.aisShowTrack= false;
+            settings.aisShowTrack = false;
+        }
+
+        if(typeof settings.units.temperature === 'undefined') {
+            settings.units.temperature = 'c';
         }
 
         if(typeof settings.selections === 'undefined') { settings.selections={} } 

@@ -11,9 +11,13 @@ import { Component, OnInit, Output, EventEmitter } from '@angular/core';
             <!--<a mat-menu-item (click)="handleSelect('exp_id_here')">
                 <mat-icon>filter_drama</mat-icon>
                 <span>EXP_NAME_HERE</span>			
-            </a>-->
+            </a>
             <a mat-menu-item>
                 <span>None Available</span>	
+            </a>-->
+            <a mat-menu-item (click)="handleSelect('weather_forecast')">
+                <mat-icon>ac_unit</mat-icon>
+                <span>Weather Forecast</span>			
             </a>
         </mat-menu>
 

@@ -20,6 +20,9 @@ export class SettingsFacade  {
         ]),
         speed: new Map([ 
             ['kn', 'knots'], ['msec', 'm/sec'], ['kmh', 'km/h'], ['mph', 'mph']
+        ]),
+        temperature: new Map([ 
+            ['c', 'Celcius'], ['f', 'Fahrenheit']
         ])
     }   
 

@@ -11,4 +11,5 @@ export * from './trail2route/trail2route.module'
 export * from './skstream/skstream.module'
 
 export * from './experiments/experiments.module'
+export * from './experiments/weather/weather.module'
 

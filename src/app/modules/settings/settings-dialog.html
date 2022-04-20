@@ -227,6 +227,17 @@
                                 </mat-form-field>
                             </div>
 
+                            <div class="setting-card-row-item">
+                                <mat-form-field style="width:100%;">
+                                    <mat-select #tempunits id="tempunits"
+                                            [(value)]="facade.settings.units.temperature" 
+                                            (selectionChange)="onFormChange($event, tempunits)"
+                                            placeholder="Temperature units">
+                                        <mat-option *ngFor="let i of facade.availableUnits.temperature | keyvalue" [value]="i.key">{{i.value}}</mat-option>
+                                    </mat-select>                                        
+                                </mat-form-field>
+                            </div>
+
                             <div class="setting-card-row-item" *ngIf="facade.preferredValues.coords.length!=0">
                                 <mat-form-field style="width:100%;">
                                     <mat-select #positionformat 

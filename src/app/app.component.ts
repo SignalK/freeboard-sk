@@ -13,7 +13,7 @@ import { SettingsDialog, AlarmsFacade, AlarmsDialog,
         SKOtherResources, SKRegion, AISPropertiesModal, AtoNPropertiesModal, AircraftPropertiesModal, 
         ActiveResourcePropertiesModal, GPXImportDialog, GPXExportDialog, GeoJSONImportDialog,
         TracksModal, ResourceSetModal, CourseSettingsModal,
-        ResourceImportDialog, Trail2RouteDialog } from 'src/app/modules';
+        ResourceImportDialog, Trail2RouteDialog, WeatherForecastModal } from 'src/app/modules';
 
 import { SignalKClient } from 'signalk-client-angular';
 import { Convert } from 'src/app/lib/convert';
@@ -279,6 +279,14 @@ export class AppComponent {
     // ** display selected experiment UI **
     public openExperiment(e:any) {   
         switch(e.choice) {
+            case 'weather_forecast':  // openweather forecast
+                this.bottomSheet.open(WeatherForecastModal, {
+                    disableClose: true,
+                    data: { title: 'Forecast' }
+                }).afterDismissed().subscribe( ()=> {
+                    this.focusMap(); 
+                });
+                break; 
             case 'tracks':  // tracks
                 this.bottomSheet.open(TracksModal, {
                     disableClose: true,
