@@ -173,7 +173,7 @@ export class AppInfo extends Info {
         this.name= "Freeboard";
         this.shortName= "freeboard";
         this.description= `Signal K Chart Plotter.`;
-        this.version= '1.19.4';
+        this.version= '1.20.0';
         this.url= 'https://github.com/signalk/freeboard-sk';
         this.logo= "./assets/img/app_logo.png";   
         
@@ -622,7 +622,7 @@ export class AppInfo extends Info {
                     for more details.`
             },
             'whats-new': [
-                {
+                /*{
                     type: 'signalk-server-node',
                     title: 'Attach Notes to Resources',
                     message: `
@@ -630,7 +630,7 @@ export class AppInfo extends Info {
                         Check out <a href="assets/help/index.html#resources" target="help">HELP</a> 
                         for more details.
                     `
-                }               
+                }*/        
             ]           
         }
 
