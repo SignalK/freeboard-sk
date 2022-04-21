@@ -138,10 +138,11 @@ export class AppInfo extends Info {
     public hostName: string;
     public hostPort: number;
     public hostSSL: boolean;
-    public host= '';
+    public host = '';
+    public hostParams = '';
 
-    private fbAudioContext= window.AudioContext || (window as any).webkitAudioContext;
-    public audio= { context: new this.fbAudioContext() }
+    private fbAudioContext = window.AudioContext || (window as any).webkitAudioContext;
+    public audio = { context: new this.fbAudioContext() }
 
     public db: AppDB;
 
@@ -165,6 +166,8 @@ export class AppInfo extends Info {
         this.host= (this.devMode) ? 
             `${this.hostSSL ? 'https:' : 'http:'}//${this.hostName}:${this.hostPort}` :
             `${window.location.protocol}//${window.location.host}`;
+
+        this.hostParams = window.location.search;
 
         this.id='freeboard';
         this.name= "Freeboard";
@@ -532,6 +535,31 @@ export class AppInfo extends Info {
             if(typeof settings.resources.paths === 'undefined') { 
                 settings.resources.paths= [];
             } 
+        }
+
+        if (this.hostParams) {
+            this.debug('Applying url parmaters...');
+            const p = this.hostParams.split('&');
+            const r: {[key:string]: any} = {};
+            p.forEach((i: string) => {
+                const a = i.split('=');
+                a[0] = a[0][0] === '?' ? a[0].slice(1) : a[0];
+                r[a[0].toLowerCase()] = a.length > 1 ? a[1].toLowerCase() : null;
+            });
+            if (typeof r.northup !== 'undefined') {
+                this.config.map.northUp = r.northup === '0' ? false : true;
+            }
+            if (typeof r.movemap !== 'undefined') {
+                this.config.map.moveMap = r.movemap === '0' ? false : true;
+            }
+            if (r.zoom) {
+                try {
+                    const z = parseInt(r.zoom);
+                    if(!isNaN(z)) {
+                        this.config.map.zoomLevel = z; 
+                    }
+                } catch (error) { }
+            }
         }
     }
 

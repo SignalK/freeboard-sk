@@ -1,5 +1,11 @@
 # CHANGELOG: Freeboard
 
+### v1.20.0
+
+- **Add**: Ability to supply url parameters to set the following configuration: `northup`, `zoom` and `movemap`. See Help for details. (closes #110)
+
+- **Experiment**: View weather forecast information provided by `openweather-signalk` plugin. 
+
 ### v1.19.4
 
 - **Update**: Change select all/none on resource lists to only operate on the visible (filtered) list items. (closes #107)
