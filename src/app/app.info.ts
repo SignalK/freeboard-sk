@@ -556,7 +556,9 @@ export class AppInfo extends Info {
                 try {
                     const z = parseInt(r.zoom);
                     if(!isNaN(z)) {
-                        this.config.map.zoomLevel = z; 
+                        this.config.map.zoomLevel = z > 28 ? 28 
+                            : z < 1 ? 1 
+                            : z; 
                     }
                 } catch (error) { }
             }
