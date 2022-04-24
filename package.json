@@ -6,7 +6,10 @@
     "signalk-webapp",
     "signalk-category-chart-plotters"
   ],
-  "repository": "https://github.com/SignalK/freeboard-sk",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/SignalK/freeboard-sk"
+  },
   "scripts": {
     "ng": "ng",
     "start": "ng serve",

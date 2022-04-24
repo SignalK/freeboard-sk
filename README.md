@@ -8,6 +8,27 @@ from multiple clients.
 ![screen](https://user-images.githubusercontent.com/38519157/128667564-0f5e1ed6-eaae-40c7-ad62-5e7011c1f082.png)
 
 
+**Contribute to Signal K at [OpenCollective](https://opencollective.com/signalk)**
+
+![screen](https://img.shields.io/opencollective/all/signalk)
+
+![screen](https://img.shields.io/github/license/SignalK/freeboard-sk)
+![screen](https://img.shields.io/github/issues/SignalK/freeboard-sk)
+![screen](https://img.shields.io/github/stars/SignalK/freeboard-sk)
+
+
+---
+
+
+You can find releases and the change log in the [Git Repository](https://github.com/SignalK/freeboard-sk).
+
+- [Change Log](https://github.com/SignalK/freeboard-sk/blob/master/CHANGELOG.md)
+
+- [Releases](https://github.com/SignalK/freeboard-sk/releases)
+
+- [FAQ](https://github.com/SignalK/freeboard-sk/wiki)
+
+
 ## Features:
 ---
 
