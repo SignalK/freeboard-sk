@@ -20,7 +20,7 @@ import { LineString, Point } from 'ol/geom';
 import { fromLonLat } from 'ol/proj';
 import { MapComponent } from '../map.component';
 import { Extent, Coordinate } from '../models';
-import { fromLonLatArray, mapifyCoords, mapifyRadius } from '../util';
+import { fromLonLatArray, mapifyCoords } from '../util';
 import { AsyncSubject } from 'rxjs';
 
 // ** Freeboard Bearing line component **
@@ -43,9 +43,9 @@ export class BearingLineComponent implements OnInit, OnDestroy, OnChanges {
   @Input() marker: Coordinate;
   @Input() markerName: string;
   @Input() lineCoords: Array<Coordinate>;
-  @Input() showMarker: boolean = false;
-  @Input() mapZoom: number = 10;
-  @Input() labelMinZoom: number = 10;
+  @Input() showMarker = false;
+  @Input() mapZoom = 10;
+  @Input() labelMinZoom = 10;
   @Input() bearingStyles: { [key: string]: any };
   @Input() opacity: number;
   @Input() visible: boolean;
@@ -55,7 +55,7 @@ export class BearingLineComponent implements OnInit, OnDestroy, OnChanges {
   @Input() maxResolution: number;
   @Input() layerProperties: { [index: string]: any };
 
-  public mapifiedRadius: number = 0;
+  public mapifiedRadius = 0;
   public mapifiedLine: Array<Coordinate> = [];
 
   constructor(
@@ -235,11 +235,11 @@ export class BearingLineComponent implements OnInit, OnDestroy, OnChanges {
     if (!f && this.source) {
       f = this.source.getFeatureById('d.base');
     }
-    let s: StyleLike = f.getStyle();
+    const s: StyleLike = f.getStyle();
     if (!s) {
       return;
     }
-    let ts = (s as Style).getText();
+    const ts = (s as Style).getText();
     if (!ts) {
       return;
     }

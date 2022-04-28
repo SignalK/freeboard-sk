@@ -43,6 +43,7 @@ import { CPAAlarmComponent } from './lib/alarms/layer-cpa-alarm.component';
 import { ArrivalCircleComponent } from './lib/navigation/layer-arrival-circle.component';
 import { XTEPathComponent } from './lib/navigation/layer-xte-path.component';
 import { BearingLineComponent } from './lib/navigation/layer-bearing-line.component';
+import { DirectionOfTravelComponent } from './lib/navigation/layer-dot.component';
 import { VesselComponent } from './lib/vessel/layer-vessel.component';
 import { VesselTrailComponent } from './lib/vessel/layer-vessel-trail.component';
 
@@ -89,6 +90,7 @@ export { CPAAlarmComponent } from './lib/alarms/layer-cpa-alarm.component';
 export { ArrivalCircleComponent } from './lib/navigation/layer-arrival-circle.component';
 export { XTEPathComponent } from './lib/navigation/layer-xte-path.component';
 export { BearingLineComponent } from './lib/navigation/layer-bearing-line.component';
+export { DirectionOfTravelComponent } from './lib/navigation/layer-dot.component';
 export { VesselComponent } from './lib/vessel/layer-vessel.component';
 export { VesselTrailComponent } from './lib/vessel/layer-vessel-trail.component';
 
@@ -124,6 +126,7 @@ const declarations = [
   VesselComponent,
   VesselTrailComponent,
   SKVesselsLayerComponent,
+  DirectionOfTravelComponent,
 ];
 
 @NgModule({

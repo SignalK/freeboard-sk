@@ -439,6 +439,7 @@
                 *ngIf="display.instrumentAppActive"
                 [src]="instUrl"
                 style="width: 345px; height: 100%"
+                sandbox="allow-scripts allow-same-origin"
               >
               </iframe>
             </div>
@@ -451,6 +452,7 @@
             *ngIf="display.routeList"
             [routes]="app.data.routes"
             [activeRoute]="app.data.activeRoute"
+            [editingRouteId]="app.data.editingId"
             (select)="skres.routeSelected()"
             (delete)="skres.showRouteDelete($event)"
             (activate)="activateRoute($event.id)"
@@ -467,6 +469,7 @@
             *ngIf="display.waypointList"
             [waypoints]="app.data.waypoints"
             [activeWaypoint]="app.data.activeWaypoint"
+            [editingWaypointId]="app.data.editingId"
             (select)="skres.waypointSelected()"
             (delete)="skres.showWaypointDelete($event)"
             (goto)="skres.navigateToWaypoint($event)"

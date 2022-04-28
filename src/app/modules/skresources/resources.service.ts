@@ -801,7 +801,7 @@ export class SKResources {
               ]);
             } else {
               if (i[1].sourceType === 'tilelayer') {
-                i[1].tilemapUrl = i[1]['tiles'][0]
+                i[1].tilemapUrl = i[1]['tiles'][0];
               }
               this.app.data.charts.push([
                 i[0],
@@ -916,9 +916,11 @@ export class SKResources {
           this.app.data.routes.push([
             i[0],
             new SKRoute(i[1]),
-            this.app.config.selections.routes.includes(i[0])
+            i[0] === this.app.data.activeRoute ? true : this.app.config.selections.routes.includes(i[0])
           ]);
-          if (i[0] == this.app.data.activeRoute) {
+          if (i[0] === this.app.data.activeRoute) {
+            this.app.data.navData.activeRoutePoints =
+              i[1].feature.geometry.coordinates;
             this.app.data.navData.pointTotal =
               i[1].feature.geometry.coordinates.length;
             this.app.data.navData.pointNames =
@@ -927,6 +929,9 @@ export class SKResources {
               Array.isArray(i[1].feature.properties['points']['names'])
                 ? i[1].feature.properties.points['names']
                 : [];
+            if (!this.app.config.selections.routes.includes(i[0])) {
+              this.app.config.selections.routes.push(i[0]);
+            }
           }
         });
         // ** clean up selections
@@ -1292,8 +1297,11 @@ export class SKResources {
           this.app.data.waypoints.push([
             i[0],
             new SKWaypoint(i[1]),
-            this.app.config.selections.waypoints.includes(i[0])
+            i[0] === this.app.data.activeWaypoint ? true : this.app.config.selections.waypoints.includes(i[0])
           ]);
+          if (i[0] === this.app.data.activeWaypoint) {
+            this.app.config.selections.waypoints.push(i[0]);
+          }
         });
         // ** clean up selections
         const k = Object.keys(res);

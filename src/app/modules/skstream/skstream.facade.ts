@@ -386,6 +386,15 @@ export class SKStreamFacade {
       if (value?.nextPoint.href) {
         const wptHref = value.nextPoint.href.split('/');
         this.app.data.activeWaypoint = wptHref[wptHref.length - 1];
+        if (!this.app.config.selections.waypoints.includes(this.app.data.activeWaypoint)) {
+          this.app.config.selections.waypoints.push(this.app.data.activeWaypoint);
+          const idx = this.app.data.waypoints.findIndex( i => {
+            return i[0] === this.app.data.activeWaypoint;
+          });
+          if (idx !== -1) { 
+            this.app.data.waypoints[idx][2] = true;
+          }
+        }
       } else {
         this.app.data.activeWaypoint = null;
       }
@@ -395,9 +404,24 @@ export class SKStreamFacade {
     if (value.activeRoute?.href) {
       const rteHref = value.activeRoute.href.split('/');
       this.app.data.activeRoute = rteHref[rteHref.length - 1];
+      if (!this.app.config.selections.routes.includes(this.app.data.activeRoute)) {
+        this.app.config.selections.routes.push(this.app.data.activeRoute);
+        const idx = this.app.data.routes.findIndex( i => {
+          return i[0] === this.app.data.activeRoute;
+        });
+        if (idx !== -1) { 
+          this.app.data.routes[idx][2] = true;
+        }
+      }
       this.app.data.activeWaypoint = null;
-      this.app.data.navData.pointIndex = value?.activeRoute.pointIndex;
-      this.app.data.navData.pointTotal = value?.activeRoute.pointTotal;
+      this.app.data.navData.pointIndex =
+        value?.activeRoute.pointIndex === null
+          ? -1
+          : value?.activeRoute.pointIndex;
+      this.app.data.navData.pointTotal =
+        value?.activeRoute.pointTotal === null
+          ? 0
+          : value?.activeRoute.pointTotal;
 
       const rte = this.app.data.routes.filter((i: any) => {
         if (i[0] === this.app.data.activeRoute) {
@@ -405,13 +429,17 @@ export class SKStreamFacade {
         }
       });
       if (rte.length === 1 && rte[0][1]) {
+        this.app.data.navData.activeRoutePoints =
+          rte[0][1].feature.geometry.coordinates;
         this.app.data.navData.pointNames =
           rte[0][1].feature.properties.points &&
           rte[0][1].feature.properties.points.names &&
           Array.isArray(rte[0][1].feature.properties.points.names)
             ? rte[0][1].feature.properties.points.names
             : [];
-        this.app.data.activeRouteReversed = value?.activeRoute.reverse;
+        this.app.data.activeRouteReversed = !value?.activeRoute.reverse
+          ? false
+          : value?.activeRoute.reverse;
 
         const coords = rte[0][1].feature.geometry.coordinates;
         if (

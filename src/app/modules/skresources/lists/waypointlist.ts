@@ -23,6 +23,7 @@ import {
 export class WaypointListComponent {
   @Input() waypoints: FBWaypoints;
   @Input() activeWaypoint: string;
+  @Input() editingWaypointId: string;
   @Output() select: EventEmitter<FBResourceSelect> = new EventEmitter();
   @Output() delete: EventEmitter<FBResourceSelect> = new EventEmitter();
   @Output() goto: EventEmitter<FBResourceSelect> = new EventEmitter();
@@ -37,6 +38,7 @@ export class WaypointListComponent {
   filterText = '';
   someSel = false;
   allSel = false;
+  disableRefresh = false;
 
   constructor(public app: AppInfo) {}
 
@@ -46,6 +48,11 @@ export class WaypointListComponent {
 
   ngOnChanges() {
     this.initItems();
+    if (this.editingWaypointId && this.editingWaypointId.indexOf('waypoint') !== -1) {
+      this.disableRefresh = true;
+    } else {
+      this.disableRefresh = false;
+    }
   }
 
   close() {
@@ -101,6 +108,7 @@ export class WaypointListComponent {
   }
 
   itemGoTo(id: string) {
+    this.itemSelect(true, id); // ensure active resource is selected
     this.goto.emit({ id: id });
   }
 

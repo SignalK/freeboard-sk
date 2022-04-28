@@ -667,7 +667,7 @@ function processVessel(d: SKVessel, v, isSelf = false) {
 
   // ** course API data
   else if (v.path.indexOf('navigation.course.') !== -1) {
-    if (v.path.indexOf('navigation.course.calculations') !== -1) {
+    if (v.path.indexOf('navigation.course.calcValues') !== -1) {
       d[`course.${v.path.split('.').slice(-1)[0]}`] = v.value;
     } else if (v.path.indexOf('navigation.course.activeRoute') !== -1) {
       d.courseApi.activeRoute[`${v.path.split('.').slice(-1)[0]}`] = v.value;
@@ -677,21 +677,6 @@ function processVessel(d: SKVessel, v, isSelf = false) {
       d.courseApi.previousPoint[`${v.path.split('.').slice(-1)[0]}`] = v.value;
     }
   }
-
-  // ** deprecated v1: course great circle / rhumb line path values (use preferred)
-  /*else if (
-    v.path.indexOf('navigation.courseRhumbline') != -1 &&
-    typeof preferredPaths['course'] !== 'undefined' &&
-    v.path.split('.').slice(0, 2).join('.') === preferredPaths['course']
-  ) {
-    d['course.' + v.path.split('.').slice(2).join('.')] = v.value;
-  } else if (
-    v.path.indexOf('navigation.courseGreatCircle') != -1 &&
-    typeof preferredPaths['course'] !== 'undefined' &&
-    v.path.split('.').slice(0, 2).join('.') === preferredPaths['course']
-  ) {
-    d['course.' + v.path.split('.').slice(2).join('.')] = v.value;
-  }*/
 
   // ** closest approach **
   else if (v.path.indexOf('navigation.closestApproach') != -1) {

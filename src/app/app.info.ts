@@ -54,7 +54,8 @@ const FreeboardConfig = {
     // ** display units
     distance: 'm',
     depth: 'm',
-    speed: 'kn'
+    speed: 'kn',
+    temperature: 'c'
   },
   selections: {
     // ** saved selections
@@ -144,7 +145,7 @@ export const OSM = [
 @Injectable({ providedIn: 'root' })
 export class AppInfo extends Info {
   private DEV_SERVER = {
-    host: '172.17.0.1', //'192.168.86.32', //'172.17.0.1', // host name || ip address
+    host: '172.17.0.1', // host name || ip address
     port: 3000, // port number
     ssl: false
   };
@@ -153,6 +154,7 @@ export class AppInfo extends Info {
   public hostPort: number;
   public hostSSL: boolean;
   public host = '';
+  public hostParams: { [key: string]: any } = {};
 
   private fbAudioContext =
     window.AudioContext || (window as any).webkitAudioContext;
@@ -179,25 +181,35 @@ export class AppInfo extends Info {
 
     this.db = new AppDB();
 
+    if (window.location.search) {
+      const p = window.location.search.slice(1).split('&');
+      p.forEach((i: string) => {
+        const a = i.split('=');
+        this.hostParams[a[0].toLowerCase()] = a.length > 1 ? a[1].toLowerCase() : null;
+      });
+    }
+
     this.hostName =
-      this.devMode && this.DEV_SERVER.host
-        ? this.DEV_SERVER.host
-        : window.location.hostname;
+      typeof this.hostParams.host !== 'undefined'
+        ? this.hostParams.host
+        : this.devMode && this.DEV_SERVER.host
+          ? this.DEV_SERVER.host
+          : window.location.hostname;
+
     this.hostPort =
-      this.devMode && this.DEV_SERVER.port
-        ? this.DEV_SERVER.port
-        : parseInt(window.location.port);
+      typeof this.hostParams.port !== 'undefined'
+        ? parseInt(this.hostParams.port)
+        : this.devMode && this.DEV_SERVER.port
+          ? this.DEV_SERVER.port
+          : parseInt(window.location.port);
+
     this.hostSSL =
-      window.location.protocol == 'https:' ||
+      window.location.protocol === 'https:' ||
       (this.devMode && this.DEV_SERVER.ssl)
         ? true
         : false;
 
-    this.host = this.devMode
-      ? `${this.hostSSL ? 'https:' : 'http:'}//${this.hostName}:${
-          this.hostPort
-        }`
-      : `${window.location.protocol}//${window.location.host}`;
+    this.host = `${this.hostSSL ? 'https:' : 'http:'}//${this.hostName}:${this.hostPort}`;
 
     this.id = 'freeboard';
     this.name = 'Freeboard';
@@ -227,6 +239,8 @@ export class AppInfo extends Info {
       activeRoute: null,
       activeRouteReversed: false,
       activeRouteCircular: false,
+      activeRouteIsEditing: false,
+      editingId: null,
       activeWaypoint: null,
       trail: [], // self vessel track / trail
       serverTrail: false, // trail received from server
@@ -268,6 +282,7 @@ export class AppInfo extends Info {
         arrivalCircle: null,
         startPosition: null,
         pointNames: [],
+        activeRoutePoints: [],
         destPointName: ''
       },
       anchor: {
@@ -501,6 +516,10 @@ export class AppInfo extends Info {
       settings.aisShowTrack = false;
     }
 
+    if (typeof settings.units.temperature === 'undefined') {
+      settings.units.temperature = 'c';
+    }
+
     if (typeof settings.selections === 'undefined') {
       settings.selections = {};
     }
@@ -609,6 +628,24 @@ export class AppInfo extends Info {
           `position=%map:latitude%,%map:longitude%`,
           `position=[%map:longitude%,%map:latitude%]`
         );
+    }
+
+    // apply url params
+    if (typeof this.hostParams.northup !== 'undefined') {
+      this.config.map.northUp = this.hostParams.northup === '0' ? false : true;
+    }
+    if (typeof this.hostParams.movemap !== 'undefined') {
+      this.config.map.moveMap = this.hostParams.movemap === '0' ? false : true;
+    }
+    if (this.hostParams.zoom) {
+      try {
+        const z = parseInt(this.hostParams.zoom as string);
+        if (!isNaN(z)) {
+          this.config.map.zoomLevel = z > 28 ? 28 : z < 1 ? 1 : z;
+        }
+      } catch (error) {
+        console.warn('Invalid zoom level supplied!');
+      }
     }
   }
 

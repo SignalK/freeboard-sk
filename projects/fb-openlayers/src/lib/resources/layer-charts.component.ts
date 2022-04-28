@@ -62,7 +62,7 @@ export class FreeboardChartLayerComponent
   clearlayers() {
     const map = this.mapComponent.getMap();
     if (this.layers && map) {
-      this.layers.forEach((l, k) => map.removeLayer(l));
+      this.layers.forEach((l) => map.removeLayer(l));
       map.render();
       this.layers.clear();
     }
@@ -135,11 +135,11 @@ export class FreeboardChartLayerComponent
                 });
               } else if (charts[i][1].sourceType && charts[i][1].sourceType.toLowerCase() === 'wmts') {
                 // fetch WMTS GetCapabilities.xml
-                fetch(charts[i][1].url, { mode: 'no-cors'})
-                .then(function (response) {
+                fetch(charts[i][1].url)
+                .then((response) => {
                   return response.text();
                 })
-                .then(function (capabilitiesXml) {
+                .then( (capabilitiesXml) => {
                   if (!capabilitiesXml) { return }
                   const parser = new WMTSCapabilities();
                   const result = parser.read(capabilitiesXml);
@@ -148,24 +148,38 @@ export class FreeboardChartLayerComponent
                     matrixSet: 'EPSG:3857',
                   });
                   source = new WMTS(options);
+                  layer = new TileLayer({
+                    source: source,
+                    preload: 0,
+                    zIndex: this.zIndex + parseInt(i),
+                    minZoom: minZ,
+                    maxZoom: maxZ,
+                  });
+                  layer.set('id', charts[i][0]);
+                  this.layers.set(charts[i][0], layer);
+                  map.addLayer(layer);
                 });
               } else {
                 source = new XYZ({
                   url: charts[i][1].tilemapUrl,
                 });
               }
-              layer = new TileLayer({
-                source: source,
-                preload: 0,
-                zIndex: this.zIndex + parseInt(i),
-                minZoom: minZ,
-                maxZoom: maxZ,
-              });
+              if (source) {
+                layer = new TileLayer({
+                  source: source,
+                  preload: 0,
+                  zIndex: this.zIndex + parseInt(i),
+                  minZoom: minZ,
+                  maxZoom: maxZ,
+                });
+              }
             }
           }
-          layer.set('id', charts[i][0]);
-          this.layers.set(charts[i][0], layer);
-          map.addLayer(layer);
+          if (layer) {
+            layer.set('id', charts[i][0]);
+            this.layers.set(charts[i][0], layer);
+            map.addLayer(layer);
+          }
         }
       }
     }

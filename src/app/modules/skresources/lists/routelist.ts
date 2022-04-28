@@ -18,6 +18,7 @@ import { FBRoutes, FBRoute, FBResourceSelect } from 'src/app/types';
 export class RouteListComponent {
   @Input() routes: FBRoutes;
   @Input() activeRoute: string;
+  @Input() editingRouteId: string;
   @Output() select: EventEmitter<FBResourceSelect> = new EventEmitter();
   @Output() delete: EventEmitter<FBResourceSelect> = new EventEmitter();
   @Output() activate: EventEmitter<FBResourceSelect> = new EventEmitter();
@@ -32,6 +33,7 @@ export class RouteListComponent {
   filterText = '';
   someSel = false;
   allSel = false;
+  disableRefresh = false;
 
   constructor(public app: AppInfo) {}
 
@@ -41,6 +43,8 @@ export class RouteListComponent {
 
   ngOnChanges() {
     this.initItems();
+    this.disableRefresh =
+      this.editingRouteId && this.editingRouteId.indexOf('route') !== -1;
   }
 
   close() {
@@ -94,6 +98,7 @@ export class RouteListComponent {
   }
 
   itemSetActive(id: string) {
+    this.itemSelect(true, id); // ensure active resource is selected
     this.activate.emit({ id: id });
   }
   itemClearActive(id: string) {

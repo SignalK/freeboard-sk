@@ -37,7 +37,8 @@ import {
   ResourceSetModal,
   CourseSettingsModal,
   ResourceImportDialog,
-  Trail2RouteDialog
+  Trail2RouteDialog,
+  WeatherForecastModal
 } from 'src/app/modules';
 
 import { SignalKClient } from 'signalk-client-angular';
@@ -397,6 +398,17 @@ export class AppComponent {
   // ** display selected experiment UI **
   public openExperiment(e) {
     switch (e.choice) {
+      case 'weather_forecast': // openweather forecast
+        this.bottomSheet
+          .open(WeatherForecastModal, {
+            disableClose: true,
+            data: { title: 'Forecast' }
+          })
+          .afterDismissed()
+          .subscribe(() => {
+            this.focusMap();
+          });
+        break;
       case 'tracks': // tracks
         this.bottomSheet
           .open(TracksModal, {
@@ -1307,6 +1319,15 @@ export class AppComponent {
 
   // ** handle modify end event **
   public handleModifyEnd(e: { coords: any[]; id: string }) {
+    if (
+      this.app.data.activeRoute &&
+      e.id.indexOf(this.app.data.activeRoute) !== -1
+    ) {
+      this.app.data.activeRouteIsEditing = true;
+    } else {
+      this.app.data.activeRouteIsEditing = false;
+    }
+    this.app.data.editingId = e.id;
     this.draw.forSave = e;
     this.app.debug(this.draw.forSave);
   }
@@ -1394,6 +1415,7 @@ export class AppComponent {
             }
           }
           this.draw.forSave = null;
+          this.app.data.activeRouteIsEditing = false;
           this.focusMap();
         });
     }
@@ -1402,6 +1424,7 @@ export class AppComponent {
     this.draw.mode = null;
     this.draw.modify = false;
     this.measure.enabled = false;
+    this.app.data.editingId = null;
   }
 
   // ******** SIGNAL K STREAM *************

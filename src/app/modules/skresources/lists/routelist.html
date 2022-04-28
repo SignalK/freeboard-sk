@@ -25,6 +25,7 @@
         &nbsp;&nbsp;
         <button
           mat-icon-button
+          [disabled]="disableRefresh"
           (click)="itemRefresh()"
           matTooltip="Reload Routes"
           matTooltipPosition="left"
@@ -34,7 +35,7 @@
         <mat-checkbox
           #selall
           color="primary"
-          [disabled]="routes.length==0"
+          [disabled]="routes.length === 0 || disableRefresh"
           [checked]="allSel"
           [indeterminate]="someSel"
           (change)="selectAll($event.checked)"
@@ -85,6 +86,7 @@
             <mat-checkbox
               color="primary"
               [checked]="r[2]"
+              [disabled]="r[0] === activeRoute || disableRefresh"
               (change)="itemSelect($event.checked, r[0])"
               matTooltip="Show on Map"
               matTooltipPosition="left"
@@ -99,7 +101,7 @@
                 mat-icon-button
                 color="warn"
                 (click)="itemDelete(r[0])"
-                [disabled]="r[0]==activeRoute"
+                [disabled]="r[0] === activeRoute || disableRefresh"
                 matTooltip="Delete Route"
                 matTooltipPosition="right"
               >
@@ -107,6 +109,7 @@
               </button>
               <button
                 mat-icon-button
+                [disabled]="disableRefresh"
                 (click)="itemViewPoints(r[0])"
                 matTooltip="Route points"
                 matTooltipPosition="right"
@@ -122,20 +125,22 @@
                 <mat-icon>local_offer</mat-icon>
               </button>
               <button
+                *ngIf="r[0]!=activeRoute"
                 mat-icon-button
                 color="primary"
+                [disabled]="disableRefresh"
                 (click)="itemSetActive(r[0])"
-                *ngIf="r[0]!=activeRoute"
                 matTooltip="Set as Active Route"
                 matTooltipPosition="right"
               >
                 <mat-icon>near_me</mat-icon>
               </button>
               <button
+                *ngIf="r[0]==activeRoute"
                 mat-icon-button
                 color="primary"
+                [disabled]="disableRefresh"
                 (click)="itemClearActive(r[0])"
-                *ngIf="r[0]==activeRoute"
                 matTooltip="Clear Active Route"
                 matTooltipPosition="right"
               >
@@ -146,6 +151,7 @@
               <button
                 mat-icon-button
                 color="primary"
+                [disabled]="disableRefresh"
                 (click)="itemProperties(r[0])"
                 matTooltip="Edit Route Properties"
                 matTooltipPosition="right"

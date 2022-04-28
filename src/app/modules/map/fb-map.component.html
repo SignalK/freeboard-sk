@@ -149,6 +149,16 @@
   >
   </fb-routes>
 
+  <!-- Routes -->
+  <fb-route-direction
+    *ngIf="activeRoute && !app.data.activeRouteIsEditing"
+    [points]="app.data.navData.activeRoutePoints"
+    [pointIndex]="app.data.navData.pointIndex"
+    [reverse]="app.data.activeRouteReversed"
+    [zIndex]="81"
+  >
+  </fb-route-direction>
+
   <!-- Waypoints -->
   <fb-waypoints
     [waypoints]="dfeat.waypoints"

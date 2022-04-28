@@ -25,6 +25,7 @@
         &nbsp;&nbsp;
         <button
           mat-icon-button
+          [disabled]="disableRefresh"
           (click)="itemRefresh()"
           matTooltip="Reload Waypoints"
           matTooltipPosition="left"
@@ -34,7 +35,7 @@
         <mat-checkbox
           #selall
           color="primary"
-          [disabled]="waypoints.length==0"
+          [disabled]="waypoints.length === 0 || disableRefresh"
           [checked]="allSel"
           [indeterminate]="someSel"
           (change)="selectAll($event.checked)"
@@ -79,6 +80,7 @@
           <div style="text-align: right">
             <mat-checkbox
               color="primary"
+              [disabled]="r[0] === activeWaypoint || disableRefresh"
               [checked]="r[2]"
               (change)="itemSelect($event.checked, r[0])"
               matTooltip="Show on Map"
@@ -93,7 +95,7 @@
               <button
                 mat-icon-button
                 color="warn"
-                [disabled]="activeWaypoint==r[0]"
+                [disabled]="r[0] === activeWaypoint || disableRefresh"
                 (click)="itemDelete(r[0])"
                 [matTooltip]="r[1].feature.properties.skType ? 'Delete ' + r[1].feature.properties.skType : 'Delete Waypoint'"
                 matTooltipPosition="right"
@@ -111,19 +113,21 @@
             </button>
             <div style="flex: 1 1 auto; text-align: center">
               <button
-                *ngIf="!activeWaypoint || activeWaypoint!=r[0]"
+                *ngIf="!activeWaypoint || activeWaypoint !== r[0]"
                 mat-icon-button
                 color="primary"
+                [disabled]="disableRefresh"
                 (click)="itemGoTo(r[0])"
                 matTooltip="Navigate to Waypoint"
                 matTooltipPosition="below"
               >
-                <mat-icon color="primary">near_me</mat-icon>
+                <mat-icon>near_me</mat-icon>
               </button>
               <button
-                *ngIf="activeWaypoint==r[0]"
+                *ngIf="activeWaypoint === r[0]"
                 mat-icon-button
                 color="primary"
+                [disabled]="disableRefresh"
                 (click)="itemClearActive()"
                 matTooltip="Clear Destination"
                 matTooltipPosition="right"
@@ -144,6 +148,7 @@
               <button
                 mat-icon-button
                 color="primary"
+                [disabled]="disableRefresh"
                 (click)="itemProperties(r[0])"
                 matTooltip="Edit Waypoint Properties"
                 matTooltipPosition="right"

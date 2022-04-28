@@ -57,6 +57,7 @@
           <li><a href="#alarms">- Alarms</a></li>
           <li><a href="#playback">- Playback</a></li>
           <li><a href="#settings">Settings</a></li>
+          <li><a href="#parameters">- URL parameters</a></li>
           <li><a href="#experiments">- Experiments</a></li>
           <li>
             <a href="https://github.com/SignalK/freeboard-sk/" target="_fb">
@@ -1943,6 +1944,53 @@
             Select none to include all received targets.
             <i>(Default is None)</i>
           </li>
+        </div>
+
+        <div class="panel" id="parameters">
+          <h4><i class="material-icons">tune</i> URL Parameters</h4>
+
+          The following url parameters can be used to initalise values for:
+          <ul>
+            <li>Zoom Level</li>
+            <li>North / Heading Up</li>
+            <li>Move Map</li>
+            <li>Signal K Host</li>
+            <li>Port number</li>
+          </ul>
+
+          <p>
+            When one or more of these parameters are present, the supplied
+            values will used to override stored configuration at start up.
+          </p>
+          <p>
+            Example: Start Freeboard-SK at zoom level to 15. <br />
+            <i>http://server:3000/@signalk/freeboard-sk?zoom=15</i>
+          </p>
+          <p>
+            Example: Start Freeboard-SK in North up mode. <br />
+            <i>http://server:3000/@signalk/freeboard-sk?northup=1</i><br />
+            or<br />
+            <i>http://server:3000/@signalk/freeboard-sk?northup</i>
+          </p>
+          <p>
+            Example: Start Freeboard-SK in heading up mode. <br />
+            <i>http://server:3000/@signalk/freeboard-sk?northup=0</i>
+          </p>
+          <p>
+            Example: Start Freeboard-SK in moving map mode (keep vessel
+            centered). <br />
+            <i>http://server:3000/@signalk/freeboard-sk?movemap=1</i><br />
+            or<br />
+            <i>http://server:3000/@signalk/freeboard-sk?movemap</i>
+          </p>
+          <p>
+            Example: Start Freeboard-SK with moving map mode turned off. <br />
+            <i>http://server:3000/@signalk/freeboard-sk?movemap=0</i>
+          </p>
+          <p>
+            Example: Connect to Signal K server at supplied address and port. <br />
+            <i>http://server:3000/@signalk/freeboard-sk?host=192.168.86.32&port=3100</i>
+          </p>
         </div>
 
         <div class="panel" id="experiments">

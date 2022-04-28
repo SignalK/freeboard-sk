@@ -120,11 +120,9 @@ For all Freeboard features to be fully functional, it requires that the Signal K
 
 4. `notifications/environment/depth` - Serve notifications for `belowKeel`, `belowSurface` `belowTransducer`.
 
-5. `navigation/courseGreatCircle/activeRoute` - Serve and accept `href` & `startTime` values to allow a route to be set as active. It is expected that the server will initiate any subsequent calculations and related value updates.
+5. `navigation/course` - Serve and accept course information, allow a route to be set as active, allow a waypoint or position to be set as a destination. It is expected that the server will initiate any subsequent calculations and related value updates.
 
-6. `navigation/courseGreatCircle/nextPoint` - Serve and accept `position` values to allow a waypoint to be set as a destination. It is expected that the server will initiate any subsequent calculations and related value updates.
-
-7. **Playback History** - Implement the Signal K Playback api (`/signalk/v1/playback`)
+6. **Playback History** - Implement the Signal K Playback api (`/signalk/v1/playback`)
 
 These functions may be provided natively by the server or through the use of *plugins*.
 

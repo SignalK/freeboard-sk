@@ -935,7 +935,9 @@ export class ActiveResourcePropertiesModal implements OnInit {
           </div>
           <div style="display:flex;">
             <div class="key-label">Type:</div>
-            <div style="flex: 1 1 auto;">{{ data['type'] ??  data['sourceType']}}</div>
+            <div style="flex: 1 1 auto;">
+              {{ data['type'] ?? data['sourceType'] }}
+            </div>
           </div>
           <div style="display:flex;">
             <div class="key-label">Layers:</div>

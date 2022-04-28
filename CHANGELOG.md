@@ -10,22 +10,25 @@ __UPDATES:__
 
 - **Added**: Reverse direction a route is followed.
 
+- **Added**: Display arrow(s) showing the direction the active route is being followed.
+
 - **Added**: Advance to next route point button to arrival notification to .
 
 - **Added**: Setting to select auto advance to next route point on arrival with choice of time delay.
-
-- **Added**: Speed units selection option.
 
 - **Added**: Option to delete attached notes when deleting a resource.
 
 - **Added**: Ability to enter `name` and `description` for a region resource.
 
 - **New**: Detect "circular routes" _(first and last points have the exact same coordinate)_ allowing Issue where vessel wind vector on map was not displayed when heading was 0 degrees
+
+- **New**: `host` and `port` url params to enable connection to an alternate Signal K server.
+
 - **Fix**: Issue where audio was played when notification was 'visual' only.
 
 - **Fix**: Issue where vessel wind vector on map was not displayed when heading was 0 degrees.
 
-- **Change**: Notes are only displayed on the map if they have a valid position. Notesd attached to a resource / regeion are only available in the notes list of that resource.
+- **Change**: Notes are only displayed on the map if they have a valid position. Notes attached to a resource / region are only available in the notes list of that resource.
 
 
 ### v1.19.0
