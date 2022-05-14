@@ -158,6 +158,7 @@ export class SKTargetsLayerComponent implements OnInit, OnDestroy, OnChanges {
           if(target.position) {
               f.setGeometry( new Point( fromLonLat(target.position) ) );
               f.setStyle(this.buildStyle(target, stale));
+              f.set('name',  target.name ?? target.mmsi ?? '', true);
           }
           else { this.source.removeFeature(f) }
         }
@@ -169,6 +170,7 @@ export class SKTargetsLayerComponent implements OnInit, OnDestroy, OnChanges {
               });
               f.setId(w);
               f.setStyle(this.buildStyle(target, stale));
+              f.set('name',  target.name ?? target.mmsi ?? '', true);
               this.source.addFeature(f);
           }
         } 

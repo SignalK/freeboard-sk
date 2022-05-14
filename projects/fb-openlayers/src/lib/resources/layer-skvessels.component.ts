@@ -201,6 +201,7 @@ export class SKVesselsLayerComponent implements OnInit, OnDestroy, OnChanges {
           if(this.okToRender(w) && target.position) {
               f.setGeometry( new Point( fromLonLat(target.position) ) );
               f.setStyle(this.buildTargetStyle(w, target, stale));
+              f.set('name',  target.name ?? target.callsign ?? target.mmsi ?? '', true);
           }
           else { this.source.removeFeature(f) }
         }
@@ -212,6 +213,7 @@ export class SKVesselsLayerComponent implements OnInit, OnDestroy, OnChanges {
               });
               f.setId('ais-'+ w);
               f.setStyle(this.buildTargetStyle(w, target, stale));
+              f.set('name',  target.name ?? target.callsign ?? target.mmsi ?? '', true);
               this.source.addFeature(f);
           }
         } 
