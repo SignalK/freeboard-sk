@@ -6,6 +6,10 @@
     "signalk-webapp",
     "signalk-category-chart-plotters"
   ],
+  "signalk": {
+    "appIcon": "./assets/icons/icon-72x72.png",
+    "displayName": "Freeboard-SK"
+  },
   "repository": {
     "type": "git",
     "url": "https://github.com/SignalK/freeboard-sk"
