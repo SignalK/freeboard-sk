@@ -1172,6 +1172,12 @@ export class AppComponent {
 
     // ** query server for current values **
     private queryAfterConnect() {
+        if (this.signalk.server.info.version.split('.')[0] !== '1') {
+            this.app.showAlert(
+                'Unsupported Server Version:', 
+                'The connected Signal K server is not supported by this version of Freeboard-SK.\n Signal K server version 1 is required!'
+            );
+        }
         // ** get login status
         this.signalk.getLoginStatus().subscribe( r=> {
             this.app.data.loginRequired= r.authenticationRequired ?? false;
