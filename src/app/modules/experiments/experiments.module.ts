@@ -24,7 +24,6 @@ import { ExperimentsComponent } from './experiments';
   ],
   declarations: [ExperimentsComponent],
   exports: [ExperimentsComponent],
-  entryComponents: [],
   providers: []
 })
 export class ExperimentsModule {}

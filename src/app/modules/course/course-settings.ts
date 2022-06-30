@@ -40,7 +40,7 @@ import { Subscription } from 'rxjs';
       </mat-toolbar>
 
       <mat-card>
-        <div style="display:flex;flex-wrap:no-wrap;">
+        <div style="display:flex;flex-wrap:nowrap;">
           <div class="key-label">Arrival Circle</div>
           <div style="flex:1 1 auto;">
             <mat-form-field style="width:100%;" floatLabel="always">
@@ -65,10 +65,74 @@ import { Subscription } from 'rxjs';
           </div>
           <div style="width:45px;"></div>
         </div>
+
+        <div style="display:flex;flex-wrap:nowrap;">
+          <div style="padding-right: 10px;">
+            <mat-slide-toggle
+              id="targetarrivalenable"
+              color="primary"
+              [(checked)]="targetArrivalEnabled"
+              (change)="toggleTargetArrival($event)"
+              placeholder="Set Target Arrival time"
+            >
+            </mat-slide-toggle>
+          </div>
+
+          <div>
+            <mat-form-field style="width:150px;">
+              <mat-label>Target Arrival Date</mat-label>
+              <input
+                id="arrivalDate"
+                [disabled]="!targetArrivalEnabled"
+                matInput
+                required
+                [matDatepicker]="picker"
+                [min]="minDate"
+                [(ngModel)]="arrivalData.datetime"
+                (dateChange)="onFormChange($event)"
+                placeholder="Choose a start date"
+              />
+              <mat-hint>MM/DD/YYYY</mat-hint>
+              <mat-datepicker-toggle
+                matSuffix
+                [for]="picker"
+              ></mat-datepicker-toggle>
+              <mat-datepicker #picker></mat-datepicker>
+            </mat-form-field>
+          </div>
+          <div style="display:flex;flex-wrap:nowrap;">
+            <mat-form-field style="width:50px;">
+              <mat-label>Time</mat-label>
+              <mat-select
+                id="arrivalHour"
+                [(ngModel)]="arrivalData.hour"
+                [disabled]="!targetArrivalEnabled"
+                (selectionChange)="onFormChange($event)"
+              >
+                <mat-option *ngFor="let i of hrValues()" [value]="i">{{
+                  i
+                }}</mat-option>
+              </mat-select>
+            </mat-form-field>
+
+            <mat-form-field style="width:50px;">
+              <mat-select
+                id="arrivalMinutes"
+                [(ngModel)]="arrivalData.minutes"
+                [disabled]="!targetArrivalEnabled"
+                (selectionChange)="onFormChange($event)"
+              >
+                <mat-option *ngFor="let i of minValues()" [value]="i">{{
+                  i
+                }}</mat-option>
+              </mat-select>
+            </mat-form-field>
+          </div>
+        </div>
       </mat-card>
 
       <mat-card *ngIf="app.config.experiments">
-        <div style="display:flex;flex-wrap:no-wrap;">
+        <div style="display:flex;flex-wrap:nowrap;">
           <div class="key-label" style="font-size: 16px;">Auto-Pilot:</div>
           <div style="flex:1 1 auto;">
             <mat-slide-toggle
@@ -82,7 +146,7 @@ import { Subscription } from 'rxjs';
           </div>
           <div style="width:45px;"></div>
         </div>
-        <div style="display:flex;flex-wrap:no-wrap;">
+        <div style="display:flex;flex-wrap:nowrap;">
           <div class="key-label">Mode:</div>
           <div style="flex:1 1 auto;">
             <mat-form-field style="width:100%;" floatLabel="always">
@@ -126,6 +190,13 @@ import { Subscription } from 'rxjs';
 export class CourseSettingsModal implements OnInit {
   frmArrivalCircle: number;
   private deltaSub: Subscription;
+  protected targetArrivalEnabled = false;
+  protected minDate = new Date();
+  protected arrivalData = {
+    hour: '00',
+    minutes: '00',
+    datetime: null
+  };
 
   constructor(
     public app: AppInfo,
@@ -156,6 +227,22 @@ export class CourseSettingsModal implements OnInit {
         this.cdr.detectChanges();
       }
     });
+
+    this.signalk.api
+      .get(2, 'vessels/self/navigation/course')
+      .subscribe((val) => {
+        console.log(val.targetArrivalTime);
+        if (val.targetArrivalTime) {
+          this.targetArrivalEnabled = true;
+          this.arrivalData.datetime = new Date(val.targetArrivalTime);
+          this.arrivalData.hour = (
+            '00' + this.arrivalData.datetime.getHours()
+          ).slice(-2);
+          this.arrivalData.minutes = (
+            '00' + this.arrivalData.datetime.getMinutes()
+          ).slice(-2);
+        }
+      });
   }
 
   ngOnDestroy() {
@@ -170,7 +257,17 @@ export class CourseSettingsModal implements OnInit {
     const context = this.app.data.vessels.activeId
       ? this.app.data.vessels.activeId
       : 'self';
-
+    if (
+      e.targetElement &&
+      ['arrivalDate', 'arrivalHour', 'arrivalMinutes'].includes(
+        e.targetElement.id
+      )
+    ) {
+      this.processTargetArrival();
+    }
+    if (e.source && ['arrivalHour', 'arrivalMinutes'].includes(e.source.id)) {
+      this.processTargetArrival();
+    }
     if (e.target && e.target.id == 'arrivalCircle') {
       if (e.target.value !== '' && e.target.value !== null) {
         let d =
@@ -222,5 +319,57 @@ export class CourseSettingsModal implements OnInit {
           );
       }
     }
+  }
+
+  toggleTargetArrival(e) {
+    this.targetArrivalEnabled = e.checked;
+    if (!this.targetArrivalEnabled) {
+      this.arrivalData.datetime = null;
+      this.signalk.api
+        .put(2, 'vessels/self/navigation/course/targetArrivalTime', {
+          value: null
+        })
+        .subscribe();
+    } else {
+      this.processTargetArrival();
+    }
+  }
+
+  processTargetArrival() {
+    if (this.targetArrivalEnabled) {
+      if (!this.arrivalData.datetime) {
+        return;
+      }
+      console.log(this.formatArrivalTime());
+      this.signalk.api
+        .put(2, 'vessels/self/navigation/course/targetArrivalTime', {
+          value: this.formatArrivalTime()
+        })
+        .subscribe();
+    }
+  }
+
+  formatArrivalTime(): string {
+    let ts = '';
+    this.arrivalData.datetime.setHours(parseInt(this.arrivalData.hour));
+    this.arrivalData.datetime.setMinutes(parseInt(this.arrivalData.minutes));
+    ts = this.arrivalData.datetime.toISOString();
+    return ts.slice(0, ts.indexOf('.')) + 'Z';
+  }
+
+  hrValues() {
+    const v = [];
+    for (let i = 0; i < 24; i++) {
+      v.push(('00' + i).slice(-2));
+    }
+    return v;
+  }
+
+  minValues() {
+    const v = [];
+    for (let i = 0; i < 59; i++) {
+      v.push(('00' + i).slice(-2));
+    }
+    return v;
   }
 }

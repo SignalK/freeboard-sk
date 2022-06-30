@@ -13,7 +13,7 @@ import { Layer } from 'ol/layer';
 import { Feature } from 'ol';
 import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
-import { Style, Fill, Stroke } from 'ol/style';
+import { Style, Stroke } from 'ol/style';
 import { Geometry, MultiLineString, LineString } from 'ol/geom';
 import { MapComponent } from '../map.component';
 import { Extent, Coordinate } from '../models';
@@ -169,7 +169,7 @@ export class VesselTrailComponent implements OnInit, OnDestroy, OnChanges {
   }
 
   // build target style
-  buildStyle(type: string = 'local'): Style {
+  buildStyle(type = 'local'): Style {
     let cs: Style;
     if (type === 'server') {
       if (this.trailStyles && this.trailStyles.server) {

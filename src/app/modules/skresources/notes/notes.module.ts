@@ -39,8 +39,7 @@ import { AngularEditorModule } from '@kolkov/angular-editor';
     AngularEditorModule
   ],
   declarations: [NoteDialog, RelatedNotesDialog, AddTargetPipe],
-  exports: [NoteDialog, RelatedNotesDialog, AddTargetPipe],
-  entryComponents: [NoteDialog, RelatedNotesDialog]
+  exports: [NoteDialog, RelatedNotesDialog, AddTargetPipe]
 })
 export class SKNotesModule {}
 

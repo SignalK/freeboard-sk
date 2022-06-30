@@ -18,7 +18,7 @@ import { LineString, Point } from 'ol/geom';
 import { fromLonLat } from 'ol/proj';
 import { MapComponent } from '../map.component';
 import { Extent, Coordinate } from '../models';
-import { fromLonLatArray, mapifyCoords, mapifyRadius } from '../util';
+import { fromLonLatArray, mapifyCoords } from '../util';
 import { AsyncSubject } from 'rxjs';
 
 // ** Freeboard CPA Alarm component **
@@ -105,17 +105,17 @@ export class CPAAlarmComponent implements OnInit, OnDestroy, OnChanges {
 
   parseValues() {
     this.mapifiedLine = mapifyCoords(this.lineCoords);
-    let fa: Feature[] = [];
-    let f = new Feature({
+    const fa: Feature[] = [];
+    const f = new Feature({
       geometry: new LineString(fromLonLatArray(this.mapifiedLine)),
     });
     f.setStyle(this.buildStyle());
     fa.push(f);
-    f = new Feature({
+    const fp = new Feature({
       geometry: new Point(fromLonLat(this.targetPosition)),
     });
-    f.setStyle(this.buildStyle());
-    fa.push(f);
+    fp.setStyle(this.buildStyle());
+    fa.push(fp);
     this.features = fa;
   }
 

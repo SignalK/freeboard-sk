@@ -10,7 +10,6 @@ import {
   SimpleChanges,
 } from '@angular/core';
 import Overlay, { Options, PanIntoViewOptions } from 'ol/Overlay';
-import OverlayPositioning from 'ol/OverlayPositioning';
 import { fromLonLat } from 'ol/proj';
 import { MapComponent } from './map.component';
 import { Coordinate } from './models';
@@ -28,7 +27,7 @@ export class OverlayComponent implements OnInit, OnChanges, OnDestroy {
   @Input() className: string;
   @Input() offset: number[];
   @Input() position: Coordinate;
-  @Input() positioning: OverlayPositioning | string;
+  @Input() positioning: string;
   @Input() stopEvent: boolean;
   @Input() insertFirst: boolean;
 
@@ -57,7 +56,7 @@ export class OverlayComponent implements OnInit, OnChanges, OnDestroy {
   }
 
   ngOnChanges(changes: SimpleChanges) {
-    if (this.overlay && changes.hasOwnProperty('position')) {
+    if (this.overlay && changes.position) {
       this.overlay.setPosition(fromLonLat(changes.position.currentValue));
     }
   }

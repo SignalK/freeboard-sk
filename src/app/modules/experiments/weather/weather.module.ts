@@ -36,8 +36,7 @@ import { UtilitiesModule } from 'src/app/modules/utils/utils.module';
     UtilitiesModule
   ],
   declarations: [WeatherForecastModal, WeatherDataComponent],
-  exports: [WeatherForecastModal, WeatherDataComponent],
-  entryComponents: [WeatherForecastModal]
+  exports: [WeatherForecastModal, WeatherDataComponent]
 })
 export class WeatherModule {}
 

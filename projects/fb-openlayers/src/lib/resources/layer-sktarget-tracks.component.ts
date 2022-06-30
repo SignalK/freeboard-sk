@@ -40,9 +40,9 @@ export class SKTargetTracksLayerComponent
   @Output() layerReady: AsyncSubject<Layer> = new AsyncSubject(); // AsyncSubject will only store the last value, and only publish it when the sequence is completed
 
   @Input() tracks: Map<string, any> = new Map();
-  @Input() minZoom: number = 10;
-  @Input() mapZoom: number = 10;
-  @Input() showTracks: boolean = true;
+  @Input() minZoom = 10;
+  @Input() mapZoom = 10;
+  @Input() showTracks = true;
   @Input() updateIds: Array<string> = [];
   @Input() removeIds: Array<string> = [];
   @Input() opacity: number;
@@ -141,7 +141,7 @@ export class SKTargetTracksLayerComponent
   }
 
   extractKeys(m: Map<string, any>): Array<string> {
-    let keys = [];
+    const keys = [];
     m.forEach((v, k) => {
       keys.push(k);
     });
@@ -158,7 +158,7 @@ export class SKTargetTracksLayerComponent
     }
     ids.forEach((w) => {
       if (this.tracks.has(w)) {
-        let target = this.tracks.get(w);
+        const target = this.tracks.get(w);
         // ** target **
         let f = this.source.getFeatureById('track-' + w);
         if (f) {
@@ -187,7 +187,7 @@ export class SKTargetTracksLayerComponent
       return;
     }
     ids.forEach((w) => {
-      let f = this.source.getFeatureById('track-' + w);
+      const f = this.source.getFeatureById('track-' + w);
       if (f) {
         this.source.removeFeature(f);
       }
@@ -196,13 +196,13 @@ export class SKTargetTracksLayerComponent
 
   // build target style
   buildStyle(id: string): Style {
-    let rgb = id.indexOf('aircraft') != -1 ? '0, 0, 255' : '255, 0, 255';
+    const rgb = id.indexOf('aircraft') != -1 ? '0, 0, 255' : '255, 0, 255';
     let color =
       this.mapZoom < this.minZoom ? `rgba(${rgb},0)` : `rgba(${rgb},1)`;
     color = this.showTracks ? `rgba(${rgb},1)` : `rgba(${rgb},0)`;
     if (this.layerProperties && this.layerProperties.style) {
-      let cs = this.layerProperties.style.clone();
-      let ls = cs.getStroke();
+      const cs = this.layerProperties.style.clone();
+      const ls = cs.getStroke();
       ls.setColor(color);
       cs.setStroke(ls);
       return cs;
@@ -220,8 +220,8 @@ export class SKTargetTracksLayerComponent
   // ** mapify and transform MultiLineString coordinates
   parseCoordinates(trk: Array<any>) {
     // ** handle dateline crossing **
-    let tc = trk.map((mls) => {
-      let lines: Array<any> = [];
+    const tc = trk.map((mls) => {
+      const lines: Array<any> = [];
       mls.forEach((line) => lines.push(mapifyCoords(line)));
       return lines;
     });

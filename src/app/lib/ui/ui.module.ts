@@ -86,16 +86,6 @@ import { SignalKDetailsComponent } from './signalk-details.component';
     WakeLockComponent,
     TimerButtonComponent
   ],
-  entryComponents: [
-    MsgBox,
-    AlertDialog,
-    ConfirmDialog,
-    AboutDialog,
-    LoginDialog,
-    PlaybackDialog,
-    MessageBarComponent,
-    WelcomeDialog
-  ],
   providers: []
 })
 export class AppUIModule {}

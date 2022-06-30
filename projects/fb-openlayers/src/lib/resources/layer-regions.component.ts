@@ -19,7 +19,6 @@ import { MapComponent } from '../map.component';
 import { Extent } from '../models';
 import { fromLonLatArray, mapifyCoords } from '../util';
 import { AsyncSubject } from 'rxjs';
-import GeometryType from 'ol/geom/GeometryType';
 
 // ** Signal K resource collection format **
 @Component({
@@ -124,7 +123,7 @@ export class RegionLayerComponent implements OnInit, OnDestroy, OnChanges {
   }
 
   // ** mapify and transform MultiLineString coordinates
-  parseCoordinates(coords: Array<any>, geomType: GeometryType) {
+  parseCoordinates(coords: Array<any>, geomType) {
     if (geomType == 'MultiPolygon') {
       const multipoly = [];
       coords.forEach((mpoly) => {

@@ -146,18 +146,12 @@ import { SKResourceSet } from './sets/resource-set';
         color: darkorange;
         text-align: left;
       }
-      .ap-confirm-icon .mat-icon {
-        font-size: 25pt;
-      }
 
       @media only screen and (min-device-width: 768px) and (max-device-width: 1024px),
         only screen and (min-width: 800px) {
         .ap-confirm-icon {
           min-width: 25%;
           max-width: 25%;
-        }
-        .ap-confirm-icon .mat-icon {
-          font-size: 40pt;
         }
       }
     `
@@ -847,7 +841,7 @@ export class ActiveResourcePropertiesModal implements OnInit {
     <div class="_ap-chartinfo">
       <div style="display:flex;line-height:2.3em;">
         <div>
-          <mat-icon color="primary">{{ isLocal(data['tilemapUrl']) }}</mat-icon>
+          <mat-icon color="primary">{{ isLocal(data['url']) }}</mat-icon>
         </div>
         <div
           style="flex: 1 1 auto; padding-left:20px;text-align:center;
@@ -926,27 +920,23 @@ export class ActiveResourcePropertiesModal implements OnInit {
             </div>
           </div>
           <div style="display:flex;">
-            <div class="key-label">Region:</div>
-            <div style="flex: 1 1 auto;">{{ data['region'] }}</div>
-          </div>
-          <div style="display:flex;">
             <div class="key-label">Format:</div>
-            <div style="flex: 1 1 auto;">{{ data['chartFormat'] }}</div>
+            <div style="flex: 1 1 auto;">{{ data['format'] }}</div>
           </div>
           <div style="display:flex;">
             <div class="key-label">Type:</div>
             <div style="flex: 1 1 auto;">
-              {{ data['type'] ?? data['sourceType'] }}
+              {{ data['type'] }}
             </div>
           </div>
           <div style="display:flex;">
             <div class="key-label">Layers:</div>
-            <div style="flex: 1 1 auto;">{{ data['chartLayers'] }}</div>
+            <div style="flex: 1 1 auto;">{{ data['layers'] }}</div>
           </div>
           <div style="display:flex;">
             <div class="key-label">URL:</div>
             <div style="flex: 1 1 auto;overflow-x: auto;">
-              {{ data['tilemapUrl'] }}
+              {{ data['url'] }}
             </div>
           </div>
         </div>
@@ -965,9 +955,6 @@ export class ActiveResourcePropertiesModal implements OnInit {
         color: darkorange;
         text-align: left;
       }
-      .ap-confirm-icon .mat-icon {
-        font-size: 25pt;
-      }
 
       ._ap-chartinfo .key-label {
         width: 150px;
@@ -979,9 +966,6 @@ export class ActiveResourcePropertiesModal implements OnInit {
         .ap-confirm-icon {
           min-width: 25%;
           max-width: 25%;
-        }
-        .ap-confirm-icon .mat-icon {
-          font-size: 40pt;
         }
       }
     `

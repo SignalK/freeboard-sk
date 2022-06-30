@@ -16,6 +16,7 @@ export interface WeatherData {
   wind?: {
     speed?: string;
     direction?: string;
+    gust?: string;
   };
 }
 
@@ -82,6 +83,13 @@ export interface WeatherData {
                       Wind Speed:
                     </div>
                     <div style="flex: 1 1 auto;">{{ item.wind.speed }}</div>
+                  </div>
+                  <div style="display:flex;" *ngIf="item.wind.gust">
+                    <div class="key-label">
+                      <mat-icon>air</mat-icon>
+                      Wind Gust:
+                    </div>
+                    <div style="flex: 1 1 auto;">{{ item.wind.gust }}</div>
                   </div>
                   <div style="display:flex;" *ngIf="item.wind.direction">
                     <div class="key-label">
@@ -178,12 +186,10 @@ export interface WeatherData {
 export class WeatherDataComponent {
   @Input() data: Array<WeatherData>;
 
-  public currentPage: number = 1;
-
-  constructor() {}
+  public currentPage = 1;
 
   ngAfterViewInit() {
-    let sh = document.getElementsByClassName(
+    const sh = document.getElementsByClassName(
       'mat-horizontal-stepper-header-container'
     );
     sh[0]['style']['display'] = 'none';

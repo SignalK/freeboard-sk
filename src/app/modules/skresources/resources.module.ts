@@ -102,17 +102,6 @@ import { UtilitiesModule } from 'src/app/modules/utils/utils.module';
     TracksModal,
     ResourceSetModal,
     ResourceImportDialog
-  ],
-  entryComponents: [
-    ResourceDialog,
-    AISPropertiesModal,
-    AtoNPropertiesModal,
-    AircraftPropertiesModal,
-    ActiveResourcePropertiesModal,
-    ChartInfoDialog,
-    TracksModal,
-    ResourceSetModal,
-    ResourceImportDialog
   ]
 })
 export class SignalKResourcesModule {}

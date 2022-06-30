@@ -7,7 +7,6 @@ import { NgModule } from '@angular/core';
   imports: [],
   declarations: [],
   exports: [],
-  entryComponents: [],
   providers: []
 })
 export class SKStreamModule {}

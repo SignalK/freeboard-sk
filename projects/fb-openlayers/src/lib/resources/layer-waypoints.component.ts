@@ -41,8 +41,8 @@ export class WaypointLayerComponent implements OnInit, OnDestroy, OnChanges {
   @Input() waypoints: { [key: string]: any };
   @Input() waypointStyles: { [key: string]: Style };
   @Input() activeWaypoint: string;
-  @Input() labelMinZoom: number = 10;
-  @Input() mapZoom: number = 10;
+  @Input() labelMinZoom = 10;
+  @Input() mapZoom = 10;
   @Input() opacity: number;
   @Input() visible: boolean;
   @Input() extent: Extent;
@@ -208,15 +208,15 @@ export class WaypointLayerComponent implements OnInit, OnDestroy, OnChanges {
   // update feature labels
   updateLabels() {
     this.source.getFeatures().forEach((f: Feature) => {
-      let s: any = f.getStyle();
+      const s: any = f.getStyle();
       f.setStyle(this.setTextLabel(s, f.get('name')));
     });
   }
 
   // return a Style with label text
-  setTextLabel(s: Style, text: string = ''): Style {
-    let cs = s.clone();
-    let ts = cs.getText();
+  setTextLabel(s: Style, text = ''): Style {
+    const cs = s.clone();
+    const ts = cs.getText();
     if (ts) {
       ts.setText(Math.abs(this.mapZoom) >= this.labelMinZoom ? text : '');
     }

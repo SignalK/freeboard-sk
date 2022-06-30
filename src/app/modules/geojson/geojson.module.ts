@@ -37,7 +37,6 @@ import { GeoJSONImportDialog } from './geojson-dialog';
   ],
   declarations: [GeoJSONImportDialog],
   exports: [GeoJSONImportDialog],
-  entryComponents: [GeoJSONImportDialog],
   providers: []
 })
 export class GeoJSONModule {}

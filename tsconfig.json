@@ -24,7 +24,9 @@
       ],
       "fb-openlayers/*": [
         "projects/fb-openlayers/src/*"
-      ]
+      ],
+      "ol": ["node_modules/@types/ol"],
+      "ol/*": ["node_modules/@types/ol/*"]
     }
   },
   "angularCompilerOptions": {

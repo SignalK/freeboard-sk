@@ -119,7 +119,7 @@ export class BearingLineComponent implements OnInit, OnDestroy, OnChanges {
 
   parseValues() {
     this.mapifiedLine = mapifyCoords(this.lineCoords);
-    let fa: Feature[] = [];
+    const fa: Feature[] = [];
     let f = new Feature({
       geometry: new LineString(fromLonLatArray(this.mapifiedLine)),
     });
@@ -130,20 +130,20 @@ export class BearingLineComponent implements OnInit, OnDestroy, OnChanges {
     });
     f.setStyle(this.buildStyle('line'));
     fa.push(f);
-    f = new Feature({
+    let fp = new Feature({
       geometry: new Point(fromLonLat(this.marker)),
     });
-    f.setId('d.base');
-    f.setStyle(this.buildStyle('marker-base'));
-    this.updateLabel(f);
-    fa.push(f);
+    fp.setId('d.base');
+    fp.setStyle(this.buildStyle('marker-base'));
+    this.updateLabel(fp);
+    fa.push(fp);
     if (this.showMarker) {
-      f = new Feature({
+      fp = new Feature({
         geometry: new Point(fromLonLat(this.marker)),
       });
-      f.setId('dest.point');
-      f.setStyle(this.buildStyle('marker'));
-      fa.push(f);
+      fp.setId('dest.point');
+      fp.setStyle(this.buildStyle('marker'));
+      fa.push(fp);
     }
 
     this.features = fa;

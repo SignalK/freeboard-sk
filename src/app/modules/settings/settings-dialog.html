@@ -383,11 +383,28 @@
                 >
                   Auto-advance to next point on arrival
                 </mat-checkbox>
+
+                <mat-form-field style="width: 100%">
+                  <mat-select
+                    #courseautoadvanceon
+                    matTooltip="Select the trigger for advancing to next point."
+                    [(value)]="facade.settings.selections.course.autoNextPointTrigger"
+                    (selectionChange)="onFormChange($event, courseautoadvanceon)"
+                    placeholder="Notification type to use."
+                  >
+                    <mat-option
+                      *ngFor="let i of facade.list.nextPointTriggers"
+                      [value]="i"
+                      >{{i}}</mat-option
+                    >
+                  </mat-select>
+                </mat-form-field>
+
                 <mat-form-field style="width: 100%">
                   <mat-select
                     #courseautoadvancedelay
                     matTooltip="Period of time out of alarm state before re-triggering."
-                    [disabled]="!facade.settings.selections.course.autoNextPointOnArrival"
+                    [disabled]="courseautoadvanceon.value === 'perpendicularPassed'"
                     [(value)]="facade.settings.selections.course.autoNextPointDelay"
                     (selectionChange)="onFormChange($event, courseautoadvancedelay)"
                     placeholder="Time to wait before advancing"
@@ -855,6 +872,26 @@
                   </mat-form-field>
                 </div>
               </fieldset>
+            </div>
+            <div class="setting-card-row">
+              <div class="setting-card-row-item">
+                <mat-form-field>
+                  <mat-select
+                    #chartApi
+                    [(value)]="facade.settings.chartApi"
+                    (selectionChange)="onFormChange($event, chartApi)"
+                    placeholder="Chart API version"
+                  >
+                    <mat-option
+                      *ngFor="let f of facade.list.chartApiChoices"
+                      color="primary"
+                      [value]="f"
+                    >
+                      {{f}}
+                    </mat-option>
+                  </mat-select>
+                </mat-form-field>
+              </div>
             </div>
           </mat-card>
         </div>

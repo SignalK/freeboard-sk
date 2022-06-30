@@ -1,6 +1,5 @@
 import { Injectable } from '@angular/core';
 import { Map } from 'ol';
-import { Layer } from 'ol/layer';
 import BaseLayer from 'ol/layer/Base';
 import { get as getProj } from 'ol/proj';
 import { register } from 'ol/proj/proj4.js';
@@ -59,7 +58,7 @@ export class MapService {
     });
   }
 
-  addProj4(epsg: string, proj4Def: string, extent?: any) {
+  addProj4(epsg: string, proj4Def: string, extent?) {
     let projection = getProj(epsg);
     if (!projection) {
       proj4.defs(epsg, proj4Def);

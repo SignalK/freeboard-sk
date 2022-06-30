@@ -769,7 +769,7 @@ export class SKResources {
   // **** CHARTS ****
   OSMCharts = [].concat(OSM);
   // ** get charts from sk server
-  getCharts(apiVersion = 1) {
+  getCharts(apiVersion = this.app.config.chartApi ?? 1) {
     // ** fetch charts from server
     this.signalk.api.get(apiVersion, `/resources/charts`).subscribe(
       (res: Charts) => {
@@ -786,29 +786,23 @@ export class SKResources {
         if (r.length > 0) {
           // ** process attributes
           r.forEach((i) => {
-            if (apiVersion === 1) {
-              // ** ensure host is in url
-              if (
-                i[1]['tilemapUrl'][0] === '/' ||
-                i[1]['tilemapUrl'].slice(0, 4) !== 'http'
-              ) {
-                i[1]['tilemapUrl'] = this.app.host + i[1]['tilemapUrl'];
-              }
-              this.app.data.charts.push([
-                i[0],
-                new SKChart(i[1]),
-                this.app.config.selections.charts.includes(i[0]) ? true : false
-              ]);
-            } else {
-              if (i[1].sourceType === 'tilelayer') {
-                i[1].tilemapUrl = i[1]['tiles'][0];
-              }
-              this.app.data.charts.push([
-                i[0],
-                new SKChart(i[1]),
-                this.app.config.selections.charts.includes(i[0]) ? true : false
-              ]);
+            // v1->2 alignment
+            if (i[1].tilemapUrl) {
+              i[1].url = i[1].tilemapUrl;
             }
+            if (i[1].chartLayers) {
+              i[1].layers = i[1].chartLayers;
+            }
+
+            // ** ensure host is in url
+            if (i[1]['url'][0] === '/' || i[1]['url'].slice(0, 4) !== 'http') {
+              i[1]['url'] = this.app.host + i[1]['url'];
+            }
+            this.app.data.charts.push([
+              i[0],
+              new SKChart(i[1]),
+              this.app.config.selections.charts.includes(i[0]) ? true : false
+            ]);
           });
           // ** sort by scale
           this.sortByScaleDesc();
@@ -916,7 +910,9 @@ export class SKResources {
           this.app.data.routes.push([
             i[0],
             new SKRoute(i[1]),
-            i[0] === this.app.data.activeRoute ? true : this.app.config.selections.routes.includes(i[0])
+            i[0] === this.app.data.activeRoute
+              ? true
+              : this.app.config.selections.routes.includes(i[0])
           ]);
           if (i[0] === this.app.data.activeRoute) {
             this.app.data.navData.activeRoutePoints =
@@ -1297,7 +1293,9 @@ export class SKResources {
           this.app.data.waypoints.push([
             i[0],
             new SKWaypoint(i[1]),
-            i[0] === this.app.data.activeWaypoint ? true : this.app.config.selections.waypoints.includes(i[0])
+            i[0] === this.app.data.activeWaypoint
+              ? true
+              : this.app.config.selections.waypoints.includes(i[0])
           ]);
           if (i[0] === this.app.data.activeWaypoint) {
             this.app.config.selections.waypoints.push(i[0]);

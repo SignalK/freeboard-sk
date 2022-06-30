@@ -55,17 +55,15 @@ export interface ChartResource {
   name?: string;
   identifier?: string;
   description?: string;
-  //v2
-  url?: string;
-  sourceType?: string;
-  //v1
-  tilemapUrl?: string;
-  region?: string;
-  scale?: number;
-  chartLayers?: string[];
   bounds?: Array<number>;
   format?: string;
   minzoom?: number;
   maxzoom?: number;
   type?: string;
+  scale?: number;
+  url?: string;
+  layers?: string[];
+  //v1
+  tilemapUrl?: string; // replaced by url
+  chartLayers?: string[]; // replaced by layers
 }

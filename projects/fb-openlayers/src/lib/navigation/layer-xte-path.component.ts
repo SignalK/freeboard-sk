@@ -104,8 +104,8 @@ export class XTEPathComponent implements OnInit, OnDestroy, OnChanges {
 
   parseValues() {
     this.mapifiedLine = mapifyCoords(this.lineCoords);
-    let fa: Feature[] = [];
-    let f = new Feature({
+    const fa: Feature[] = [];
+    const f = new Feature({
       geometry: new LineString(fromLonLatArray(this.mapifiedLine)),
     });
     f.setStyle(this.buildStyle());
@@ -120,7 +120,7 @@ export class XTEPathComponent implements OnInit, OnDestroy, OnChanges {
       cs = this.layerProperties.style;
     } else {
       // default style
-      let color = this.color ?? 'gray';
+      const color = this.color ?? 'gray';
       cs = new Style({
         stroke: new Stroke({
           width: 1,

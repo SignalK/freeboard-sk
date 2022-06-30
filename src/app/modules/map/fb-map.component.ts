@@ -376,7 +376,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
   // format WMS parameters
   wmsParams(chart: SKChart) {
     return {
-      LAYERS: chart.chartLayers ? chart.chartLayers.join(',') : ''
+      LAYERS: chart.layers ? chart.layers.join(',') : ''
     };
   }
 
@@ -474,6 +474,9 @@ export class FBMapComponent implements OnInit, OnDestroy {
           r[1].feature.geometry.coordinates = c;
           return true;
         });
+        if (this.app.data.n2kRoute) {
+          this.dfeat.routes.push(this.app.data.n2kRoute);
+        }
       }
       if (value.mode == 'waypoint') {
         this.dfeat.waypoints = [].concat(this.app.data.waypoints);
@@ -677,9 +680,13 @@ export class FBMapComponent implements OnInit, OnDestroy {
             case 'route':
               icon = 'directions';
               addToFeatureList = true;
-              text = this.app.data.routes.filter((i) => {
-                return i[0] == t[1] ? i[1].name : null;
-              })[0][1].name;
+              if (t[1] === 'n2k') {
+                text = this.app.data.n2kRoute[0][1].name;
+              } else {
+                text = this.app.data.routes.filter((i) => {
+                  return i[0] == t[1] ? i[1].name : null;
+                })[0][1].name;
+              }
               break;
             case 'waypoint':
               icon = 'location_on';
@@ -1099,9 +1106,13 @@ export class FBMapComponent implements OnInit, OnDestroy {
         this.overlay.show = true;
         return;
       case 'route':
-        item = this.app.data.routes.filter((i) => {
-          if (i[0] == t[1]) return true;
-        });
+        if (t[1] === 'n2k') {
+          item = [this.app.data.n2kRoute];
+        } else {
+          item = this.app.data.routes.filter((i) => {
+            if (i[0] === t[1]) return true;
+          });
+        }
         if (!item) {
           return false;
         }

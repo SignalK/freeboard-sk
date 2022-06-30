@@ -668,7 +668,9 @@ function processVessel(d: SKVessel, v, isSelf = false) {
   // ** course API data
   else if (v.path.indexOf('navigation.course.') !== -1) {
     if (v.path.indexOf('navigation.course.calcValues') !== -1) {
-      d[`course.${v.path.split('.').slice(-1)[0]}`] = v.value;
+      if (v.path.indexOf('navigation.course.calcValues.previousPoint') === -1) {
+        d[`course.${v.path.split('.').slice(-1)[0]}`] = v.value;
+      }
     } else if (v.path.indexOf('navigation.course.activeRoute') !== -1) {
       d.courseApi.activeRoute[`${v.path.split('.').slice(-1)[0]}`] = v.value;
     } else if (v.path.indexOf('navigation.course.nextPoint') !== -1) {
@@ -791,11 +793,20 @@ function processNotifications(v, vessel?: string) {
 
   // ** arrivalCircle **
   if (
-    v.path.indexOf('notifications.arrivalCircleEntered') != -1 ||
     v.path.indexOf('notifications.navigation.course.arrivalCircleEntered') != -1
   ) {
-    type = seg[1];
-    data.context = seg[2];
+    type = seg[3];
+  }
+  // ** perpendicularPassed **
+  if (
+    v.path.indexOf('notifications.navigation.course.perpendicularPassed') != -1
+  ) {
+    type = seg[3];
+  }
+
+  // ** weather warning **
+  if (v.path.indexOf('notifications.environment.weather.warning') != -1) {
+    type = seg[2];
   }
 
   if (type) {

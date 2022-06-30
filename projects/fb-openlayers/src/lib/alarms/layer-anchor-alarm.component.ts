@@ -50,7 +50,7 @@ export class AnchorAlarmComponent implements OnInit, OnDestroy, OnChanges {
   @Input() maxResolution: number;
   @Input() layerProperties: { [index: string]: any };
 
-  public mapifiedRadius: number = 0;
+  public mapifiedRadius = 0;
   public mapifiedLine: Array<Coordinate> = [];
 
   constructor(
@@ -109,25 +109,25 @@ export class AnchorAlarmComponent implements OnInit, OnDestroy, OnChanges {
   parseValues() {
     this.mapifiedRadius = mapifyRadius(this.radius, this.anchorPosition);
     this.mapifiedLine = mapifyCoords(this.lineCoords);
-    let fa: Feature[] = [];
-    let f = new Feature({
+    const fa: Feature[] = [];
+    const f = new Feature({
       geometry: new LineString(fromLonLatArray(this.mapifiedLine)),
     });
     f.setStyle(this.buildStyle('line'));
     fa.push(f);
-    f = new Feature({
+    const fc = new Feature({
       geometry: new Circle(
         fromLonLat(this.anchorPosition),
         this.mapifiedRadius
       ),
     });
-    f.setStyle(this.buildStyle('circle'));
-    fa.push(f);
-    f = new Feature({
+    fc.setStyle(this.buildStyle('circle'));
+    fa.push(fc);
+    const fp = new Feature({
       geometry: new Point(fromLonLat(this.anchorPosition)),
     });
-    f.setStyle(this.buildStyle('anchor'));
-    fa.push(f);
+    fp.setStyle(this.buildStyle('anchor'));
+    fa.push(fp);
     this.features = fa;
   }
 

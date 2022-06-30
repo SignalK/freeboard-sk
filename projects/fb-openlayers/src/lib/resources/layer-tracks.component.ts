@@ -40,8 +40,8 @@ export class TrackLayerComponent implements OnInit, OnDestroy, OnChanges {
 
   @Input() tracks: Array<{ [key: string]: any }>;
   @Input() trackStyles: { [key: string]: Style };
-  @Input() labelMinZoom: number = 10;
-  @Input() mapZoom: number = 10;
+  @Input() labelMinZoom = 10;
+  @Input() mapZoom = 10;
   @Input() opacity: number;
   @Input() visible: boolean;
   @Input() extent: Extent;
@@ -107,9 +107,9 @@ export class TrackLayerComponent implements OnInit, OnDestroy, OnChanges {
   }
 
   parseTracks(tracks: Array<{ [key: string]: any }> = this.tracks) {
-    let fa: Feature[] = [];
+    const fa: Feature[] = [];
     for (const w of tracks) {
-      let f = new Feature({
+      const f = new Feature({
         geometry: new MultiLineString(
           this.parseCoordinates(w.feature.geometry.coordinates)
         ),
@@ -163,7 +163,7 @@ export class TrackLayerComponent implements OnInit, OnDestroy, OnChanges {
       );
     } else {
       // default styles
-      let s = new Style({
+      const s = new Style({
         stroke: new Stroke({
           color: 'rgb(146,11,153)',
           width: 2,
@@ -181,14 +181,14 @@ export class TrackLayerComponent implements OnInit, OnDestroy, OnChanges {
   // update feature labels
   updateLabels() {
     this.source.getFeatures().forEach((f: Feature) => {
-      let s: any = f.getStyle();
+      const s: any = f.getStyle();
       f.setStyle(this.setTextLabel(s, f.get('name')));
     });
   }
 
   // return a Style with label text
   setTextLabel(s: Style, text: string): Style {
-    let cs = s.clone();
+    const cs = s.clone();
     cs.setText(
       new Text({
         text: Math.abs(this.mapZoom) >= this.labelMinZoom ? text : '',
@@ -201,7 +201,7 @@ export class TrackLayerComponent implements OnInit, OnDestroy, OnChanges {
 
   // ** mapify and transform MultiLineString coordinates
   parseCoordinates(mls: Array<any>) {
-    let lines = [];
+    const lines = [];
     mls.forEach((line) => lines.push(mapifyCoords(line)));
     return fromLonLatArray(lines);
   }

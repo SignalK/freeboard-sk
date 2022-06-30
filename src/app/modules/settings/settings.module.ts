@@ -42,8 +42,7 @@ import { SignalKPreferredPathsComponent } from './components/signalk-preferredpa
     MatMenuModule
   ],
   declarations: [SettingsDialog, SignalKPreferredPathsComponent],
-  exports: [SettingsDialog, SignalKPreferredPathsComponent],
-  entryComponents: [SettingsDialog]
+  exports: [SettingsDialog, SignalKPreferredPathsComponent]
 })
 export class SettingsModule {}
 

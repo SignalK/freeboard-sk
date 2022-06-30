@@ -7,11 +7,12 @@ import { AppInfo } from 'src/app/app.info';
 import { SettingsMessage } from 'src/app/lib/info/info.service';
 import { SignalKClient } from 'signalk-client-angular';
 import { SKStreamProvider } from './skstream.service';
-import { SKVessel } from '../skresources/resource-classes';
+import { SKRoute, SKVessel } from '../skresources/resource-classes';
 import { AlarmsFacade } from '../alarms/alarms.facade';
 import { Convert } from 'src/app/lib/convert';
 import { SKResources } from '../skresources';
 import { NotificationMessage, UpdateMessage } from 'src/app/types';
+import { GeoUtils } from 'src/app/lib/geoutils';
 
 export enum SKSTREAM_MODE {
   REALTIME = 0,
@@ -334,7 +335,7 @@ export class SKStreamFacade {
     if (typeof v['course.timeToGo'] !== 'undefined') {
       this.app.data.navData.ttg = v['course.timeToGo'] / 60;
     }
-    // ** experimental: paths not in spec - estimatedTimeOfArrival**
+
     if (typeof v['course.estimatedTimeOfArrival'] !== 'undefined') {
       let d: Date | null;
       if (v['course.estimatedTimeOfArrival'] !== null) {
@@ -386,12 +387,18 @@ export class SKStreamFacade {
       if (value?.nextPoint.href) {
         const wptHref = value.nextPoint.href.split('/');
         this.app.data.activeWaypoint = wptHref[wptHref.length - 1];
-        if (!this.app.config.selections.waypoints.includes(this.app.data.activeWaypoint)) {
-          this.app.config.selections.waypoints.push(this.app.data.activeWaypoint);
-          const idx = this.app.data.waypoints.findIndex( i => {
+        if (
+          !this.app.config.selections.waypoints.includes(
+            this.app.data.activeWaypoint
+          )
+        ) {
+          this.app.config.selections.waypoints.push(
+            this.app.data.activeWaypoint
+          );
+          const idx = this.app.data.waypoints.findIndex((i) => {
             return i[0] === this.app.data.activeWaypoint;
           });
-          if (idx !== -1) { 
+          if (idx !== -1) {
             this.app.data.waypoints[idx][2] = true;
           }
         }
@@ -404,12 +411,14 @@ export class SKStreamFacade {
     if (value.activeRoute?.href) {
       const rteHref = value.activeRoute.href.split('/');
       this.app.data.activeRoute = rteHref[rteHref.length - 1];
-      if (!this.app.config.selections.routes.includes(this.app.data.activeRoute)) {
+      if (
+        !this.app.config.selections.routes.includes(this.app.data.activeRoute)
+      ) {
         this.app.config.selections.routes.push(this.app.data.activeRoute);
-        const idx = this.app.data.routes.findIndex( i => {
+        const idx = this.app.data.routes.findIndex((i) => {
           return i[0] === this.app.data.activeRoute;
         });
-        if (idx !== -1) { 
+        if (idx !== -1) {
           this.app.data.routes[idx][2] = true;
         }
       }
@@ -423,7 +432,7 @@ export class SKStreamFacade {
           ? 0
           : value?.activeRoute.pointTotal;
 
-      const rte = this.app.data.routes.filter((i: any) => {
+      const rte = this.app.data.routes.filter((i) => {
         if (i[0] === this.app.data.activeRoute) {
           return i;
         }
@@ -453,11 +462,29 @@ export class SKStreamFacade {
       }
     } else {
       this.app.data.activeRoute = null;
+      // Non-signal k source (n2k) route points.
+      if (value.activeRoute?.waypoints) {
+        const n2kRoute = new SKRoute();
+        n2kRoute.name = value.activeRoute?.name ?? 'From NMEA2000';
+        n2kRoute.description = 'Route from NMEA2000 source';
+        n2kRoute.feature.geometry.coordinates =
+          value.activeRoute?.waypoints.map((pt) => {
+            return [pt.position.longitude, pt.position.latitude];
+          });
+        const c = GeoUtils.mapifyCoords(n2kRoute.feature.geometry.coordinates);
+        n2kRoute.feature.geometry.coordinates = c;
+        n2kRoute.distance = GeoUtils.routeLength(
+          n2kRoute.feature.geometry.coordinates
+        );
+        this.app.data.n2kRoute = ['n2k', n2kRoute, true];
+      } else {
+        this.app.data.n2kRoute = null;
+      }
     }
   }
 
   // handle settings (config.selections)
-  private handleSettingsEvent(value: any) {
+  private handleSettingsEvent(value) {
     if (value.setting == 'config') {
       //console.log('streamFacade.settingsEvent');
       this.stream.postMessage({

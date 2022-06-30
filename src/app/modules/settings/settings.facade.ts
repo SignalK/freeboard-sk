@@ -68,6 +68,8 @@ export class SettingsFacade {
   };
 
   list = {
+    nextPointTriggers: ['perpendicularPassed', 'arrivalCircleEntered'],
+    chartApiChoices: [1, 2],
     minZoom: [8, 9, 10, 11, 12, 13, 14, 15, 16, 17],
     resourceRadius: [5, 10, 20, 50, 100, 150, 200, 500],
     applications: [],
@@ -128,6 +130,9 @@ export class SettingsFacade {
   // *******************************************************
 
   constructor(private app: AppInfo, public signalk: SignalKClient) {
+    if (!this.app.config.chartApi) {
+      this.app.config.chartApi = 1;
+    }
     this.app.settings$.subscribe((r: SettingsMessage) => {
       if (r.setting == 'config') {
         if (r.action == 'load') {

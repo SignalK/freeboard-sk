@@ -5,6 +5,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { Subject, forkJoin, Observable } from 'rxjs';
 
 import { AppInfo } from 'src/app/app.info';
+import { SKResources } from '../skresources';
 import { SignalKClient } from 'signalk-client-angular';
 import { SKStreamProvider } from '../skstream/skstream.service';
 import { NotificationMessage } from 'src/app/types';
@@ -38,7 +39,8 @@ export class AlarmsFacade {
   constructor(
     private app: AppInfo,
     private signalk: SignalKClient,
-    private stream: SKStreamProvider
+    private stream: SKStreamProvider,
+    private skres: SKResources
   ) {
     // ** SIGNAL K STREAM **
     this.stream.message$().subscribe((msg: NotificationMessage) => {
@@ -230,7 +232,11 @@ export class AlarmsFacade {
   }
 
   // ** update alarm state **
-  updateAlarm(id: string, notification: SKNotification) {
+  updateAlarm(
+    id: string,
+    notification: SKNotification,
+    initAcknowledged = false
+  ) {
     if (notification == null) {
       // alarm cancelled
       this.alarms.delete(id);
@@ -262,7 +268,8 @@ export class AlarmsFacade {
           visual: notification.method.includes('visual') ? true : false,
           state: notification.state,
           message: notification.message,
-          isSmoothing: false
+          isSmoothing: false,
+          acknowledged: initAcknowledged
         });
       } else {
         // update alarm entry
@@ -291,6 +298,37 @@ export class AlarmsFacade {
       case 'closestApproach':
         this.updateClosestApproach(msg);
         this.closestApproachSource.next(msg);
+        break;
+      case 'perpendicularPassed':
+        this.app.debug('perpendicularPassed', msg);
+        if (!msg.result.value) {
+          return;
+        }
+        if (
+          this.app.config.selections.course.autoNextPointOnArrival &&
+          this.app.data.activeRoute
+        ) {
+          if (
+            this.app.data.navData.pointIndex ===
+            this.app.data.navData.pointTotal - 1
+          ) {
+            this.app.debug('Arrived at end of route.');
+            return;
+          }
+          this.app.debug(
+            'advancing point index',
+            this.app.data.navData.pointIndex + 1
+          );
+          this.skres.coursePointIndex(this.app.data.navData.pointIndex + 1);
+          this.app.showMessage(
+            'Arrived: Advancing to next point.',
+            msg.result.value.method.includes('sound') != -1 ? true : false,
+            5000
+          );
+        }
+        break;
+      case 'weather':
+        this.updateAlarm(msg.type, msg.result.value, true);
         break;
       default:
         this.updateAlarm(msg.type, msg.result.value);

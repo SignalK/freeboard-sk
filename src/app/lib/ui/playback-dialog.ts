@@ -35,6 +35,7 @@ import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
                   [(ngModel)]="formData.startDate"
                   placeholder="Choose a start date"
                 />
+                <mat-hint>MM/DD/YYYY</mat-hint>
                 <mat-datepicker-toggle
                   matSuffix
                   [for]="picker"

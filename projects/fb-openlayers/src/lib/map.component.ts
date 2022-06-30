@@ -49,16 +49,16 @@ export class MapComponent implements OnInit, OnDestroy {
    * Note that this event is delayed by 250 ms to ensure that it is not a double click.
    */
   @Output() mapClick: EventEmitter<any> = new EventEmitter<any>();
-  @Output() mapSingleClick: EventEmitter<MapBrowserEvent> =
-    new EventEmitter<MapBrowserEvent>();
-  @Output() mapDblClick: EventEmitter<MapBrowserEvent> =
-    new EventEmitter<MapBrowserEvent>();
+  @Output() mapSingleClick: EventEmitter<MapBrowserEvent<UIEvent>> =
+    new EventEmitter<MapBrowserEvent<UIEvent>>();
+  @Output() mapDblClick: EventEmitter<MapBrowserEvent<UIEvent>> =
+    new EventEmitter<MapBrowserEvent<UIEvent>>();
   @Output() mapMoveStart: EventEmitter<MapEvent> = new EventEmitter<MapEvent>();
   @Output() mapMoveEnd: EventEmitter<MapEvent> = new EventEmitter<MapEvent>();
-  @Output() mapPointerDrag: EventEmitter<MapBrowserEvent> =
-    new EventEmitter<MapBrowserEvent>();
-  @Output() mapPointerMove: EventEmitter<MapBrowserEvent> =
-    new EventEmitter<MapBrowserEvent>();
+  @Output() mapPointerDrag: EventEmitter<MapBrowserEvent<UIEvent>> =
+    new EventEmitter<MapBrowserEvent<UIEvent>>();
+  @Output() mapPointerMove: EventEmitter<MapBrowserEvent<UIEvent>> =
+    new EventEmitter<MapBrowserEvent<UIEvent>>();
   @Output() mapPostCompose: EventEmitter<RenderEvent> =
     new EventEmitter<RenderEvent>();
   @Output() mapPostRender: EventEmitter<MapEvent> =
@@ -72,8 +72,8 @@ export class MapComponent implements OnInit, OnDestroy {
   @Input() keyboardEventTarget: Element | string;
   @Input() logo: string | boolean;
   @Input() properties: { [index: string]: any };
-  @Input() setFocus: boolean = false;
-  @Input() hitTolerance: number = 5;
+  @Input() setFocus = false;
+  @Input() hitTolerance = 5;
 
   constructor(
     protected changeDetectorRef: ChangeDetectorRef,
@@ -91,7 +91,7 @@ export class MapComponent implements OnInit, OnDestroy {
     // register the map in the injectable mapService
     this.mapService.addMap(this.map);
 
-    this.map.once('postrender', (event) => {
+    this.map.once('postrender', () => {
       this.afterMapReady();
     });
   }
@@ -179,8 +179,8 @@ export class MapComponent implements OnInit, OnDestroy {
     if (!this.map) {
       return [0, 0, 0, 0];
     }
-    let v = this.map.getView();
-    let mrid = v.getProjection().getCode();
+    const v = this.map.getView();
+    const mrid = v.getProjection().getCode();
 
     return transformExtent(
       v.calculateExtent(this.map.getSize()),
@@ -190,19 +190,19 @@ export class MapComponent implements OnInit, OnDestroy {
   }
 
   // Only arrow function works with addEventListener
-  private emitClickEvent = (event: MapBrowserEvent) => {
+  private emitClickEvent = (event: MapBrowserEvent<UIEvent>) => {
     this.mapClick.emit(this.augmentClickEvent(event));
   };
 
-  private emitSingleClickEvent = (event: MapBrowserEvent) => {
+  private emitSingleClickEvent = (event: MapBrowserEvent<UIEvent>) => {
     this.mapSingleClick.emit(this.augmentClickEvent(event));
   };
-  private emitDblClickEvent = (event: MapBrowserEvent) => {
+  private emitDblClickEvent = (event: MapBrowserEvent<UIEvent>) => {
     this.mapDblClick.emit(this.augmentClickEvent(event));
   };
 
   // ** add {lonlat, features}fields to event
-  private augmentClickEvent(event: MapBrowserEvent) {
+  private augmentClickEvent(event: MapBrowserEvent<UIEvent>) {
     return Object.assign(event, {
       features: this.map.getFeaturesAtPixel(event.pixel, {
         hitTolerance: this.hitTolerance,
@@ -228,15 +228,15 @@ export class MapComponent implements OnInit, OnDestroy {
     });
   }
 
-  private emitPointerDragEvent = (event: MapBrowserEvent) => {
+  private emitPointerDragEvent = (event: MapBrowserEvent<UIEvent>) => {
     this.mapPointerDrag.emit(this.augmentPointerEvent(event));
   };
-  private emitPointerMoveEvent = (event: MapBrowserEvent) => {
+  private emitPointerMoveEvent = (event: MapBrowserEvent<UIEvent>) => {
     this.mapPointerMove.emit(this.augmentPointerEvent(event));
   };
 
   // ** add {lonlat} field to event
-  private augmentPointerEvent(event: MapBrowserEvent) {
+  private augmentPointerEvent(event: MapBrowserEvent<UIEvent>) {
     return Object.assign(event, { lonlat: toLonLat(event.coordinate) });
   }
 

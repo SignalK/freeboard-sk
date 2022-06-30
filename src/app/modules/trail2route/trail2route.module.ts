@@ -31,7 +31,6 @@ import { Trail2RouteDialog } from './trail2route-dialog';
   ],
   declarations: [Trail2RouteDialog],
   exports: [Trail2RouteDialog],
-  entryComponents: [Trail2RouteDialog],
   providers: []
 })
 export class Trail2RouteModule {}

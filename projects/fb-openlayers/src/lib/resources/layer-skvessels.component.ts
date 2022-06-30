@@ -184,7 +184,7 @@ export class SKVesselsLayerComponent implements OnInit, OnDestroy, OnChanges {
   extractKeys(m: Map<string, any>): Array<string> {
     const keys = [];
     m.forEach((v, k) => {
-      if (k.indexOf(this.targetType) != -1) {
+      if (k.indexOf(this.targetType) !== -1) {
         keys.push(k);
       }
     });
@@ -227,6 +227,7 @@ export class SKVesselsLayerComponent implements OnInit, OnDestroy, OnChanges {
           if (this.okToRender(w) && target.position) {
             f.setGeometry(new Point(fromLonLat(target.position)));
             f.setStyle(this.buildTargetStyle(w, target, stale));
+            f.set('name',  target.name ?? target.callsign ?? target.mmsi ?? '', true);
           } else {
             this.source.removeFeature(f);
           }
@@ -239,6 +240,7 @@ export class SKVesselsLayerComponent implements OnInit, OnDestroy, OnChanges {
             });
             f.setId('ais-' + w);
             f.setStyle(this.buildTargetStyle(w, target, stale));
+            f.set('name',  target.name ?? target.callsign ?? target.mmsi ?? '', true);
             this.source.addFeature(f);
           }
         }
@@ -403,7 +405,7 @@ export class SKVesselsLayerComponent implements OnInit, OnDestroy, OnChanges {
   updateLabels() {
     this.source.getFeatures().forEach((f: Feature) => {
       const id = f.getId();
-      if ((id as string).indexOf('ais-') != -1) {
+      if ((id as string).indexOf('ais-') !== -1) {
         const s: any = f.getStyle();
         f.setStyle(this.setTextLabel(s, f.get('name')));
       }

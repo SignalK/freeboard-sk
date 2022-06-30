@@ -30,6 +30,8 @@ __UPDATES:__
 
 - **Change**: Notes are only displayed on the map if they have a valid position. Notes attached to a resource / region are only available in the notes list of that resource.
 
+- **Experiment**: Display Weather forecasts and warnings provided by `freeboard-sk-helper` plug-in. Ensure `freeboard-sk-helper` is configured using _Plugin Config_ on server dashboard. For more information see `freeboard-sk-helper` documentation.
+
 
 ### v1.19.0
 

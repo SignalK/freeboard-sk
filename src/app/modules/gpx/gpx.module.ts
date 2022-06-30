@@ -38,7 +38,6 @@ import { GPXExportDialog } from './gpxsave/export-dialog';
   ],
   declarations: [GPXImportDialog, GPXExportDialog],
   exports: [GPXImportDialog, GPXExportDialog],
-  entryComponents: [GPXImportDialog, GPXExportDialog],
   providers: []
 })
 export class GPXModule {}

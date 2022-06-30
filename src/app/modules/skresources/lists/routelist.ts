@@ -7,7 +7,11 @@ import {
 } from '@angular/core';
 import { AppInfo } from 'src/app/app.info';
 import { Convert } from 'src/app/lib/convert';
-import { FBRoutes, FBRoute, FBResourceSelect } from 'src/app/types';
+import {
+  FBRoutes,
+  FBRoute,
+  FBResourceSelect
+} from 'src/app/types/resources/freeboard';
 
 @Component({
   selector: 'route-list',

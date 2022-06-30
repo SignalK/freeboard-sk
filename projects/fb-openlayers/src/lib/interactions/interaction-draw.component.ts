@@ -3,7 +3,6 @@ import {
   ChangeDetectionStrategy,
   Component,
   Output,
-  OnInit,
   Input,
   EventEmitter,
 } from '@angular/core';
@@ -19,7 +18,7 @@ import { MapComponent } from '../map.component';
   template: '<ng-content></ng-content>',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class InteractionDrawComponent implements OnInit {
+export class InteractionDrawComponent {
   constructor(
     protected changeDetectorRef: ChangeDetectorRef,
     protected mapComponent: MapComponent
@@ -27,7 +26,7 @@ export class InteractionDrawComponent implements OnInit {
     this.changeDetectorRef.detach();
   }
 
-  @Input() type: GeometryType = GeometryType.LINE_STRING;
+  @Input() type = GeometryType.LINE_STRING;
   @Input() style: Style;
 
   @Output() change: EventEmitter<DrawEvent> = new EventEmitter();
@@ -37,8 +36,6 @@ export class InteractionDrawComponent implements OnInit {
 
   private map: Map;
   private interaction: Draw;
-
-  ngOnInit() {}
 
   ngAfterViewInit() {
     this.map = this.mapComponent.getMap();
@@ -56,7 +53,7 @@ export class InteractionDrawComponent implements OnInit {
 
   addDrawInteraction() {
     if (undefined !== this.map) {
-      let opt: any = {
+      const opt: any = {
         type: this.type,
         stopClick: true,
       };

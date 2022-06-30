@@ -48,7 +48,10 @@ export class WaypointListComponent {
 
   ngOnChanges() {
     this.initItems();
-    if (this.editingWaypointId && this.editingWaypointId.indexOf('waypoint') !== -1) {
+    if (
+      this.editingWaypointId &&
+      this.editingWaypointId.indexOf('waypoint') !== -1
+    ) {
       this.disableRefresh = true;
     } else {
       this.disableRefresh = false;

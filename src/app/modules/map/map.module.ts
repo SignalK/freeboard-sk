@@ -64,7 +64,6 @@ import { UtilitiesModule } from 'src/app/modules/utils/utils.module';
     CompassComponent,
     FBMapComponent
   ],
-  entryComponents: [],
   providers: []
 })
 export class FBMapModule {}

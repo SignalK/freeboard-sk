@@ -49,8 +49,8 @@ export class ResourceSetLayerComponent implements OnInit, OnDestroy, OnChanges {
 
   @Input() resourceSets: Array<any> = [];
   @Input() selected: Array<string> = [];
-  @Input() labelMinZoom: number = 10;
-  @Input() mapZoom: number = 10;
+  @Input() labelMinZoom = 10;
+  @Input() mapZoom = 10;
   @Input() opacity: number;
   @Input() visible: boolean;
   @Input() extent: Extent;
@@ -125,7 +125,7 @@ export class ResourceSetLayerComponent implements OnInit, OnDestroy, OnChanges {
 
   // process a resource set
   parseResources(rSet: { [key: string]: any }) {
-    let fa: Feature[] = [];
+    const fa: Feature[] = [];
     for (const w of rSet.values.features) {
       let f: Feature;
       if (w.geometry.type == 'Point') {
@@ -208,14 +208,14 @@ export class ResourceSetLayerComponent implements OnInit, OnDestroy, OnChanges {
   // update feature labels
   updateLabels() {
     this.source.getFeatures().forEach((f: Feature) => {
-      let s: any = f.getStyle();
+      const s: any = f.getStyle();
       f.setStyle(this.setTextLabel(s, f.get('name')));
     });
   }
 
   // return a Style with label text
   setTextLabel(s: Style, text: string): Style {
-    let cs = s.clone();
+    const cs = s.clone();
     cs.setText(
       new Text({
         text: Math.abs(this.mapZoom) >= this.labelMinZoom ? text : '',
@@ -226,8 +226,8 @@ export class ResourceSetLayerComponent implements OnInit, OnDestroy, OnChanges {
     return cs;
   }
 
-  buildStyle(styleDef: { [key: string]: any }, geom: GeometryType): Style {
-    let s: Style = new Style();
+  buildStyle(styleDef: { [key: string]: any }, geom): Style {
+    const s = new Style();
     if (geom == GeometryType.POINT || geom == GeometryType.MULTI_POINT) {
       s.setImage(
         new Circle({

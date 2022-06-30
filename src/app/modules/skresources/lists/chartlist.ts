@@ -165,7 +165,7 @@ export class ChartListComponent {
                 [style.cursor]="i > 0 ? 'pointer' : 'initial'"
               >
                 <div style="width:35px;">
-                  <mat-icon color="">{{ isLocal(ch[1].tilemapUrl) }}</mat-icon>
+                  <mat-icon color="">{{ isLocal(ch[1].url) }}</mat-icon>
                 </div>
                 <div
                   style="flex: 1 1 auto;text-overflow: ellipsis;

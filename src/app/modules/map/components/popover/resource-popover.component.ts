@@ -193,7 +193,11 @@ export class ResourcePopoverComponent {
   ngOnChanges() {
     this.parse();
     this.ctrl.showModifyButton =
-      this.type !== 'destination' && this.featureCount > 0 ? true : false;
+      this.type !== 'destination' &&
+      this.resource[0] !== 'n2k' &&
+      this.featureCount > 0
+        ? true
+        : false;
   }
 
   parse() {
@@ -272,17 +276,30 @@ export class ResourcePopoverComponent {
   }
 
   parseRoute() {
-    this.ctrl.isActive =
-      this.active && this.active == this.resource[0] ? true : false;
-    this.ctrl.activeText = 'ACTIVATE';
-    this.ctrl.canActivate = true;
-    this.ctrl.showInfoButton = true;
-    this.ctrl.showModifyButton = true;
-    this.ctrl.showPointsButton = true;
-    this.ctrl.showNotesButton = true;
-    this.ctrl.showAddNoteButton = false;
-    this.ctrl.showRelatedButton = false;
-    this.ctrl.showDeleteButton = this.ctrl.isActive ? false : true;
+    if (this.resource[0] === 'n2k') {
+      this.ctrl.isActive = false;
+      this.ctrl.activeText = '';
+      this.ctrl.canActivate = false;
+      this.ctrl.showInfoButton = false;
+      this.ctrl.showModifyButton = false;
+      this.ctrl.showPointsButton = false;
+      this.ctrl.showNotesButton = false;
+      this.ctrl.showAddNoteButton = false;
+      this.ctrl.showRelatedButton = false;
+      this.ctrl.showDeleteButton = false;
+    } else {
+      this.ctrl.isActive =
+        this.active && this.active == this.resource[0] ? true : false;
+      this.ctrl.activeText = 'ACTIVATE';
+      this.ctrl.canActivate = true;
+      this.ctrl.showInfoButton = true;
+      this.ctrl.showModifyButton = true;
+      this.ctrl.showPointsButton = true;
+      this.ctrl.showNotesButton = true;
+      this.ctrl.showAddNoteButton = false;
+      this.ctrl.showRelatedButton = false;
+      this.ctrl.showDeleteButton = this.ctrl.isActive ? false : true;
+    }
     this.properties = [];
     this.properties.push(['Name', this.resource[1].name]);
     const d =

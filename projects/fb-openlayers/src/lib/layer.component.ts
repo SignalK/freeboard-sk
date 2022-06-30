@@ -13,7 +13,6 @@ import { Layer } from 'ol/layer';
 import ImageLayer from 'ol/layer/Image';
 import TileLayer from 'ol/layer/Tile';
 import VectorTileLayer from 'ol/layer/VectorTile';
-// import VectorImageLayer from 'ol/layer/VectorImage';
 import VectorTileSource from 'ol/source/VectorTile';
 import {
   Cluster,

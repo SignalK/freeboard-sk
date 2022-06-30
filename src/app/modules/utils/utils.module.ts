@@ -10,7 +10,6 @@ import { ReversePipe } from './reverse.pipe';
   imports: [],
   declarations: [CoordsPipe, ReversePipe],
   exports: [CoordsPipe, ReversePipe],
-  entryComponents: [],
   providers: []
 })
 export class UtilitiesModule {}

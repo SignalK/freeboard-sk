@@ -40,7 +40,7 @@ import { MAT_SNACK_BAR_DATA } from '@angular/material/snack-bar';
   styles: [
     `
       ._ap-msgbox {
-        font-family: arial;
+        font-family: Roboto;
         min-width: 150px;
       }
     `
@@ -105,7 +105,7 @@ export class MsgBox implements OnInit {
   styles: [
     `
       ._ap-alert {
-        font-family: arial;
+        font-family: Roboto;
         min-width: 150px;
       }
       .ap-alert-icon {
@@ -113,9 +113,6 @@ export class MsgBox implements OnInit {
         max-width: 35px;
         color: darkorange;
         text-align: left;
-      }
-      .ap-alert-icon .mat-icon {
-        font-size: 25pt;
       }
 
       @media only screen and (min-device-width: 768px) and (max-device-width: 1024px),
@@ -205,7 +202,7 @@ export class AlertDialog implements OnInit {
   styles: [
     `
       ._ap-confirm {
-        font-family: arial;
+        font-family: Roboto;
         min-width: 150px;
       }
       .ap-confirm-icon {
@@ -214,18 +211,12 @@ export class AlertDialog implements OnInit {
         color: darkorange;
         text-align: left;
       }
-      .ap-confirm-icon .mat-icon {
-        font-size: 25pt;
-      }
 
       @media only screen and (min-device-width: 768px) and (max-device-width: 1024px),
         only screen and (min-width: 800px) {
         .ap-confirm-icon {
           min-width: 25%;
           max-width: 25%;
-        }
-        .ap-confirm-icon .mat-icon {
-          font-size: 40pt;
         }
       }
     `
@@ -311,7 +302,7 @@ export class ConfirmDialog implements OnInit {
         flex-wrap: nowrap;
         justify-content: flex-start;
         align-content: stretch;
-        font-family: Arial, Helvetica, sans-serif;
+        font-family: roboto, Arial, Helvetica, sans-serif;
       }
       .about-row .item.stretch {
         text-align: center;
@@ -548,7 +539,7 @@ export class MessageBarComponent {
         flex-wrap: nowrap;
         justify-content: flex-start;
         align-content: stretch;
-        font-family: Arial, Helvetica, sans-serif;
+        font-family: roboto, Arial, Helvetica, sans-serif;
       }
       .welcome-row .item.stretch {
         text-align: center;

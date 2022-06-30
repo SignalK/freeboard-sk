@@ -40,9 +40,9 @@ export class SKTargetsLayerComponent implements OnInit, OnDestroy, OnChanges {
   @Input() targets: Map<string, any> = new Map();
   @Input() targetStyles: { [key: string]: Style };
   @Input() targetType: string;
-  @Input() inactiveTime: number = 180000; // in ms (3 mins)
-  @Input() labelMinZoom: number = 10;
-  @Input() mapZoom: number = 10;
+  @Input() inactiveTime = 180000; // in ms (3 mins)
+  @Input() labelMinZoom = 10;
+  @Input() mapZoom = 10;
   @Input() updateIds: Array<string> = [];
   @Input() staleIds: Array<string> = [];
   @Input() removeIds: Array<string> = [];
@@ -142,7 +142,7 @@ export class SKTargetsLayerComponent implements OnInit, OnDestroy, OnChanges {
   }
 
   extractKeys(m: Map<string, any>): Array<string> {
-    let keys = [];
+    const keys = [];
     m.forEach((v, k) => {
       keys.push(k);
     });
@@ -150,7 +150,7 @@ export class SKTargetsLayerComponent implements OnInit, OnDestroy, OnChanges {
   }
 
   // add update features
-  parseItems(ids: Array<string>, stale: boolean = false) {
+  parseItems(ids: Array<string>, stale = false) {
     if (!ids || !Array.isArray(ids)) {
       return;
     }
@@ -158,11 +158,11 @@ export class SKTargetsLayerComponent implements OnInit, OnDestroy, OnChanges {
       return;
     }
     ids.forEach((w) => {
-      if (this.targetType && w.indexOf(this.targetType) != 0) {
+      if (this.targetType && w.indexOf(this.targetType) !== 0) {
         return;
       }
       if (this.targets.has(w)) {
-        let target = this.targets.get(w);
+        const target = this.targets.get(w);
         // ** target **
         let f = this.source.getFeatureById(w);
         if (f) {
@@ -170,6 +170,7 @@ export class SKTargetsLayerComponent implements OnInit, OnDestroy, OnChanges {
           if (target.position) {
             f.setGeometry(new Point(fromLonLat(target.position)));
             f.setStyle(this.buildStyle(target, stale));
+            f.set('name',  target.name ?? target.mmsi ?? '', true);
           } else {
             this.source.removeFeature(f);
           }
@@ -182,6 +183,7 @@ export class SKTargetsLayerComponent implements OnInit, OnDestroy, OnChanges {
             });
             f.setId(w);
             f.setStyle(this.buildStyle(target, stale));
+            f.set('name',  target.name ?? target.mmsi ?? '', true);
             this.source.addFeature(f);
           }
         }
@@ -201,7 +203,7 @@ export class SKTargetsLayerComponent implements OnInit, OnDestroy, OnChanges {
       if (this.targetType && w.indexOf(this.targetType) != 0) {
         return;
       }
-      let f = this.source.getFeatureById(w);
+      const f = this.source.getFeatureById(w);
       if (f) {
         this.source.removeFeature(f);
       }
@@ -209,12 +211,12 @@ export class SKTargetsLayerComponent implements OnInit, OnDestroy, OnChanges {
   }
 
   // build target style
-  buildStyle(item: any, setStale: boolean = false): Style {
+  buildStyle(item: any, setStale = false): Style {
     let s: Style;
     // label text
-    let lbl = item.name ?? item.callsign ?? item.mmsi ?? '';
+    const lbl = item.name ?? item.callsign ?? item.mmsi ?? '';
     // ** stale check time ref
-    let now = new Date().valueOf();
+    const now = new Date().valueOf();
     if (typeof this.targetStyles !== 'undefined') {
       if (setStale || (item.lastUpdated as any) < now - this.inactiveTime) {
         // stale
@@ -246,7 +248,7 @@ export class SKTargetsLayerComponent implements OnInit, OnDestroy, OnChanges {
   // update feature labels
   updateLabels() {
     this.source.getFeatures().forEach((f: Feature) => {
-      let s: any = f.getStyle();
+      const s: any = f.getStyle();
       f.setStyle(this.setTextLabel(s, f.get('name')));
     });
   }
@@ -256,8 +258,8 @@ export class SKTargetsLayerComponent implements OnInit, OnDestroy, OnChanges {
     if (!s) {
       return s;
     }
-    let cs = s.clone();
-    let ts = cs.getText();
+    const cs = s.clone();
+    const ts = cs.getText();
     if (ts) {
       ts.setText(Math.abs(this.mapZoom) >= this.labelMinZoom ? text : '');
       cs.setText(ts);
@@ -270,8 +272,8 @@ export class SKTargetsLayerComponent implements OnInit, OnDestroy, OnChanges {
     if (!s) {
       return s;
     }
-    let cs = s.clone();
-    let im = cs.getImage();
+    const cs = s.clone();
+    const im = cs.getImage();
     if (im) {
       im.setRotation(value ?? 0);
       cs.setImage(im);

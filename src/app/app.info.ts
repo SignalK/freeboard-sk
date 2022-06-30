@@ -24,6 +24,7 @@ import { SKStreamProvider } from './modules/skstream/skstream.service';
 
 // ** Configuration template**
 const FreeboardConfig = {
+  chartApi: 1, // temp: use v{1|2}/api/resources/charts
   experiments: false,
   version: '',
   darkMode: { enabled: false, source: 0 }, // source: 0= browser default, 1= Signal K mode, -1=manual)
@@ -132,7 +133,7 @@ export const OSM = [
     new SKChart({
       name: 'Sea Map',
       description: 'Open Sea Map',
-      tilemapUrl: 'https://tiles.openseamap.org/seamark/{z}/{x}/{y}.png',
+      url: 'https://tiles.openseamap.org/seamark/{z}/{x}/{y}.png',
       minzoom: 12,
       maxzoom: 18,
       bounds: [-180, -90, 180, 90],
@@ -185,7 +186,8 @@ export class AppInfo extends Info {
       const p = window.location.search.slice(1).split('&');
       p.forEach((i: string) => {
         const a = i.split('=');
-        this.hostParams[a[0].toLowerCase()] = a.length > 1 ? a[1].toLowerCase() : null;
+        this.hostParams[a[0].toLowerCase()] =
+          a.length > 1 ? a[1].toLowerCase() : null;
       });
     }
 
@@ -193,15 +195,15 @@ export class AppInfo extends Info {
       typeof this.hostParams.host !== 'undefined'
         ? this.hostParams.host
         : this.devMode && this.DEV_SERVER.host
-          ? this.DEV_SERVER.host
-          : window.location.hostname;
+        ? this.DEV_SERVER.host
+        : window.location.hostname;
 
     this.hostPort =
       typeof this.hostParams.port !== 'undefined'
         ? parseInt(this.hostParams.port)
         : this.devMode && this.DEV_SERVER.port
-          ? this.DEV_SERVER.port
-          : parseInt(window.location.port);
+        ? this.DEV_SERVER.port
+        : parseInt(window.location.port);
 
     this.hostSSL =
       window.location.protocol === 'https:' ||
@@ -209,7 +211,9 @@ export class AppInfo extends Info {
         ? true
         : false;
 
-    this.host = `${this.hostSSL ? 'https:' : 'http:'}//${this.hostName}:${this.hostPort}`;
+    this.host = `${this.hostSSL ? 'https:' : 'http:'}//${this.hostName}:${
+      this.hostPort
+    }`;
 
     this.id = 'freeboard';
     this.name = 'Freeboard';
@@ -491,18 +495,6 @@ export class AppInfo extends Info {
   // ** clean loaded config /settings keys **
   cleanConfig(settings) {
     this.debug('Cleaning config keys...');
-    if (typeof settings.usePUT !== 'undefined') {
-      delete settings.usePUT;
-    }
-    if (typeof settings.anchor !== 'undefined') {
-      delete settings.anchor;
-    }
-    if (typeof settings.map.srid !== 'undefined') {
-      delete settings.map.srid;
-    }
-    if (typeof settings.map.mrid !== 'undefined') {
-      delete settings.map.mrid;
-    }
 
     if (typeof settings.anchorRadius === 'undefined') {
       settings.anchorRadius = 40;

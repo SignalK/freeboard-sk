@@ -39,7 +39,11 @@
             "sourceMap": true,
             "optimization": false,
             "namedChunks": true,
-            "webWorkerTsConfig": "tsconfig.worker.json"
+            "webWorkerTsConfig": "tsconfig.worker.json",
+            "allowedCommonJsDependencies": [
+              "geolib",
+              "simplify-ts"
+           ]
           },
           "configurations": {
             "production": {
@@ -148,6 +152,6 @@
           }
         }
       }
-    }},
-  "defaultProject": "freeboard-sk"
+    }
+  }
 }

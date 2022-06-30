@@ -96,15 +96,15 @@ export class FreeboardChartLayerComponent
                 : charts[i][1].minZoom;
             const maxZ = charts[i][1].maxZoom;
             if (
-              charts[i][1].chartFormat == 'pbf' ||
-              charts[i][1].chartFormat == 'mvt'
+              charts[i][1].format == 'pbf' ||
+              charts[i][1].format == 'mvt'
             ) {
               // vector tile
               const source = new VectorTileSource({
-                url: charts[i][1].tilemapUrl,
+                url: charts[i][1].url,
                 format: new MVT({
-                  layers: charts[i][1].chartLayers
-                    ? charts[i][1].chartLayers
+                  layers: charts[i][1].layers && charts[i][1].layers.length !==0
+                    ? charts[i][1].layers
                     : null,
                 }),
               });
@@ -120,20 +120,16 @@ export class FreeboardChartLayerComponent
             else {
               // raster tile
               let source; // select source type
-              if (charts[i][1].type && charts[i][1].type.toLowerCase() === 'wms') { //WMS source
+              if (charts[i][1].type && charts[i][1].type.toLowerCase() === 'wms') { // WMS source
                 source = new TileWMS({
-                  url: charts[i][1].tilemapUrl,
+                  url: charts[i][1].url,
                   params: {
-                    LAYERS: charts[i][1].chartLayers
-                      ? charts[i][1].chartLayers.join(',')
+                    LAYERS: charts[i][1].layers
+                      ? charts[i][1].layers.join(',')
                       : '',
                   },
                 });
-              } else if (charts[i][1].sourceType && charts[i][1].sourceType.toLowerCase() === 'tilejson') {
-                source = new TileJSON({
-                  url: charts[i][1].url,
-                });
-              } else if (charts[i][1].sourceType && charts[i][1].sourceType.toLowerCase() === 'wmts') {
+              } else if (charts[i][1].type && charts[i][1].type.toLowerCase() === 'wmts') {
                 // fetch WMTS GetCapabilities.xml
                 fetch(charts[i][1].url)
                 .then((response) => {
@@ -144,7 +140,7 @@ export class FreeboardChartLayerComponent
                   const parser = new WMTSCapabilities();
                   const result = parser.read(capabilitiesXml);
                   const options = optionsFromCapabilities(result, {
-                    layer: charts[i][1].identifier,
+                    layer: charts[i][1].layers[0],
                     matrixSet: 'EPSG:3857',
                   });
                   source = new WMTS(options);
@@ -159,11 +155,16 @@ export class FreeboardChartLayerComponent
                   this.layers.set(charts[i][0], layer);
                   map.addLayer(layer);
                 });
-              } else {
+              } else if (charts[i][1].type && charts[i][1].type.toLowerCase() === 'tilejson') {
+                  source = new TileJSON({
+                    url: charts[i][1].url,
+                  });
+              } else {    // default XYZ source
                 source = new XYZ({
-                  url: charts[i][1].tilemapUrl,
+                  url: charts[i][1].url,
                 });
               }
+
               if (source) {
                 layer = new TileLayer({
                   source: source,

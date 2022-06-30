@@ -104,8 +104,8 @@ export class ArrivalCircleComponent implements OnInit, OnDestroy, OnChanges {
   }
 
   parseValues() {
-    let fa: Feature[] = [];
-    let f = new Feature({
+    const fa: Feature[] = [];
+    const f = new Feature({
       geometry: new Circle(
         fromLonLat(this.position),
         mapifyRadius(this.radius, this.position)

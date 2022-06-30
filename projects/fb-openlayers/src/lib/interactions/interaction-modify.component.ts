@@ -3,7 +3,6 @@ import {
   ChangeDetectionStrategy,
   Component,
   Output,
-  OnInit,
   Input,
   EventEmitter,
 } from '@angular/core';
@@ -18,7 +17,7 @@ import { MapComponent } from '../map.component';
   template: '<ng-content></ng-content>',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class InteractionModifyComponent implements OnInit {
+export class InteractionModifyComponent {
   constructor(
     protected changeDetectorRef: ChangeDetectorRef,
     protected mapComponent: MapComponent
@@ -36,7 +35,6 @@ export class InteractionModifyComponent implements OnInit {
   private map: Map;
   private interaction: Modify;
 
-  ngOnInit() {}
 
   ngAfterViewInit() {
     this.map = this.mapComponent.getMap();
@@ -56,8 +54,8 @@ export class InteractionModifyComponent implements OnInit {
     if (undefined !== this.map) {
       this.interaction = new Modify({
         features: this.features,
-        deleteCondition: (e: any) => {
-          if (e.type == 'click' && e.originalEvent.ctrlKey) {
+        deleteCondition: (e: MapBrowserEvent) => {
+          if (e.type == 'click' && (e.originalEvent as any).ctrlKey) {
             return true;
           } else {
             return false;

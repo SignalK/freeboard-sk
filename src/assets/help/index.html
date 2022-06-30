@@ -1647,12 +1647,34 @@
 
           <b>COURSE:</b><br />
           This section provides settings for course navigation.<br />
+          <img
+            src="./img/settings_course.png"
+            style="height: 150px"
+            alt=""
+          /><br />
 
-          <b>Auto-advance to nextpoint on arrival</b>: Check it option to
-          auromatically advance to the next route point.<br />
+          <b>Auto-advance to nextpoint on arrival</b>: Check this option to
+          automatically advance to the next route point once the target
+          notification has been received.<br />
 
-          <b>Time to Wait</b>: Select the period of time to elapse before the
-          destination is set to the next route point.<br />
+          <b>Notification type to use</b>: Select the notification from the
+          server to use to trigger the advancement to the next point.<br />
+          Choose either:
+          <li>
+            <b><i>perpendicularPassed</i></b> (advancement occurs immediately
+            notification is received.)
+          </li>
+          <li>
+            <b><i>arrivalCircleEntered</i></b> (advancement occurs once
+            <i>Time to Wait</i> has elapsed after notification has been
+            receieved.)
+          </li>
+
+          <b>Time to Wait</b>: Note: This option is only available when
+          <i>arrivalCircleEntered</i> has been selected as the notification
+          type.<br />
+          Select the period of time to elapse before the destination is set to
+          the next route point.<br />
 
           <hr />
           <b>VESSEL:</b><br />
@@ -1988,8 +2010,11 @@
             <i>http://server:3000/@signalk/freeboard-sk?movemap=0</i>
           </p>
           <p>
-            Example: Connect to Signal K server at supplied address and port. <br />
-            <i>http://server:3000/@signalk/freeboard-sk?host=192.168.86.32&port=3100</i>
+            Example: Connect to Signal K server at supplied address and port.
+            <br />
+            <i
+              >http://server:3000/@signalk/freeboard-sk?host=192.168.86.32&port=3100</i
+            >
           </p>
         </div>
 

@@ -45,7 +45,7 @@ export function fromLonLatArray(coords: Array<any>) {
  * returns true if point is in the zone for dateline transition
  * zoneValue: lower end of 180 to xx range within which Longitude must fall for retun value to be true
  **/
-export function inDLCrossingZone(coord: Coordinate, zoneValue: number = 170) {
+export function inDLCrossingZone(coord: Coordinate, zoneValue = 170) {
   return Math.abs(coord[0]) >= zoneValue ? true : false;
 }
 
@@ -55,7 +55,7 @@ export function mapifyCoords(coords: Array<Coordinate>): Array<Coordinate> {
     return coords;
   }
   let dlCrossing = 0;
-  let last = coords[0];
+  const last = coords[0];
   for (let i = 0; i < coords.length; i++) {
     if (inDLCrossingZone(coords[i]) || inDLCrossingZone(last)) {
       dlCrossing =
@@ -99,8 +99,8 @@ export function destCoordinate(
   brng: number,
   dist: number
 ): Coordinate {
-  let lat1: number = coord[1];
-  let lon1: number = coord[0];
+  const lat1: number = coord[1];
+  const lon1: number = coord[0];
   let a = 6378137,
     b = 6356752.3142,
     f = 1 / 298.257223563, // WGS-84
@@ -158,7 +158,7 @@ export function destCoordinate(
             sinSigma *
             (cos2SigmaM + C * cosSigma * (-1 + 2 * cos2SigmaM * cos2SigmaM))),
     revAz = Math.atan2(sinAlpha, -tmp); // final bearing
-  let llat = lat2 * (180 / Math.PI);
-  let llon = lon1 + La * (180 / Math.PI);
+  const llat = lat2 * (180 / Math.PI);
+  const llon = lon1 + La * (180 / Math.PI);
   return [llon, llat];
 }

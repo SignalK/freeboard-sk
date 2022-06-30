@@ -1,19 +1,23 @@
 // **** RESOURCE CLASSES **********
 
 import {
+  LineStringFeature,
+  PointFeature,
+  PolygonFeature,
+  MultiPolygonFeature,
+  MultiLineStringFeature
+} from 'src/app/types/resources/geojson';
+
+import {
+  SKPosition,
   RouteResource,
   WaypointResource,
   RegionResource,
   NoteResource,
-  ChartResource,
-  TrackResource,
-  LineStringFeature,
-  PointFeature,
-  SKPosition,
-  PolygonFeature,
-  MultiPolygonFeature,
-  MultiLineStringFeature
-} from 'src/app/types';
+  ChartResource
+} from 'src/app/types/resources/signalk';
+
+import { TrackResource } from 'src/app/types/resources/custom';
 
 import { Position } from 'src/app/lib/geoutils';
 
@@ -117,39 +121,33 @@ export class SKChart {
   identifier: string;
   name: string;
   description: string;
-  tilemapUrl: string;
   region: string;
   scale = 250000;
-  chartLayers: Array<string>;
+  layers: Array<string>;
   bounds: Array<number>;
-  chartFormat: string;
+  format: string;
   minZoom = 0;
   maxZoom = 24;
   type: string;
-  // v2
-  sourceType: string;
   url: string;
 
   constructor(chart?: ChartResource) {
     this.identifier = chart?.identifier ? chart.identifier : undefined;
     this.name = chart?.name ? chart.name : undefined;
     this.description = chart?.description ? chart.description : undefined;
-    this.region = chart?.region ? chart.region : undefined;
-    this.chartLayers = chart?.chartLayers ? chart.chartLayers : [];
+    this.layers = chart?.layers ? chart.layers : [];
     this.bounds = chart?.bounds ? chart.bounds : undefined;
-    this.chartFormat = chart?.format ? chart.format : undefined;
+    this.format = chart?.format ? chart.format : undefined;
     this.minZoom =
       typeof chart?.minzoom !== 'undefined' ? chart.minzoom : this.minZoom;
     this.maxZoom =
       typeof chart?.maxzoom !== 'undefined' ? chart.maxzoom : this.maxZoom;
     this.type = chart?.type ? chart.type : undefined;
-    this.tilemapUrl = chart?.tilemapUrl ? chart.tilemapUrl : undefined;
+    this.url = chart?.url ? chart.url : undefined;
     this.scale =
       typeof chart?.scale !== 'undefined' && !isNaN(chart?.scale)
         ? chart.scale
         : this.scale;
-    // v2
-    this.sourceType = chart?.sourceType ? chart.sourceType : undefined;
     this.url = chart?.url ? chart.url : undefined;
   }
 }

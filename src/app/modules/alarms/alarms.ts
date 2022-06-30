@@ -324,22 +324,31 @@ interface AlarmData {
               <button
                 *ngSwitchCase="false"
                 mat-button
-                [disabled]="nextPointClicked"
+                [disabled]="
+                  nextPointClicked ||
+                  app.data.navData.pointIndex ===
+                    app.data.navData.pointTotal - 1
+                "
                 (click)="gotoNextPoint()"
               >
                 <mat-icon style="color:green;">skip_next</mat-icon>
                 NEXT POINT
               </button>
-              <timer-button
-                *ngSwitchCase="true"
-                [disabled]="nextPointClicked"
-                [icon]="'skip_next'"
-                [label]="'Next point in'"
-                [cancelledLabel]="'Next Point'"
-                [period]="app.config.selections.course.autoNextPointDelay"
-                (nextPoint)="gotoNextPoint()"
-              >
-              </timer-button>
+              <div *ngSwitchCase="true">
+                <timer-button
+                  *ngIf="
+                    app.data.navData.pointIndex !==
+                    app.data.navData.pointTotal - 1
+                  "
+                  [disabled]="nextPointClicked"
+                  [icon]="'skip_next'"
+                  [label]="'Next point in'"
+                  [cancelledLabel]="'Next Point'"
+                  [period]="app.config.selections.course.autoNextPointDelay"
+                  (nextPoint)="gotoNextPoint()"
+                >
+                </timer-button>
+              </div>
             </div>
           </div>
         </div>

@@ -15,6 +15,8 @@ import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatCardModule } from '@angular/material/card';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
+import { MatDatepickerModule } from '@angular/material/datepicker';
+import { MatDialogModule } from '@angular/material/dialog';
 import { AppUIModule } from 'src/app/lib';
 
 // ** components **
@@ -34,11 +36,12 @@ import { CourseSettingsModal } from './course-settings';
     MatCheckboxModule,
     MatTooltipModule,
     MatSlideToggleModule,
+    MatDatepickerModule,
+    MatDialogModule,
     AppUIModule
   ],
   declarations: [CourseSettingsModal],
   exports: [CourseSettingsModal],
-  entryComponents: [CourseSettingsModal],
   providers: []
 })
 export class CourseModule {}

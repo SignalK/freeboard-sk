@@ -32,7 +32,6 @@ import { AlarmsDialog, AlarmComponent } from './alarms';
   ],
   declarations: [AnchorWatchComponent, AlarmsDialog, AlarmComponent],
   exports: [AnchorWatchComponent, AlarmsDialog, AlarmComponent],
-  entryComponents: [AlarmsDialog],
   providers: []
 })
 export class AlarmsModule {}
