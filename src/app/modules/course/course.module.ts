@@ -14,6 +14,8 @@ import { MatBottomSheetModule } from '@angular/material/bottom-sheet';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatCardModule } from '@angular/material/card';
+import { MatSlideToggleModule } from '@angular/material/slide-toggle';
+import { MatDatepickerModule } from '@angular/material/datepicker';
 import { AppUIModule } from 'src/app/lib/app-ui';
 
 // ** components **
@@ -24,7 +26,8 @@ import { CourseSettingsModal } from './course-settings';
         CommonModule, FormsModule, MatInputModule, MatSelectModule,
         MatBottomSheetModule, MatCardModule,
         MatIconModule, MatButtonModule, MatToolbarModule, MatCheckboxModule,
-        MatTooltipModule, AppUIModule
+        MatTooltipModule, MatSlideToggleModule, MatDatepickerModule, 
+        AppUIModule
       ],    
     declarations: [
         CourseSettingsModal

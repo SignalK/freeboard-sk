@@ -50,6 +50,71 @@ import { Convert } from 'src/app/lib/convert';
 
                     </div>                    
                 </div>
+
+                <div style="display:flex;flex-wrap:nowrap;">
+                    <div style="padding-right: 10px;">
+                        <mat-slide-toggle
+                        id="targetarrivalenable"
+                        color="primary"
+                        [(checked)]="targetArrivalEnabled"
+                        (change)="toggleTargetArrival($event)"
+                        placeholder="Set Target Arrival time"
+                        >
+                        </mat-slide-toggle>
+                    </div>
+
+                    <div>
+                        <mat-form-field style="width:150px;">
+                        <mat-label>Target Arrival Date</mat-label>
+                        <input
+                            id="arrivalDate"
+                            [disabled]="!targetArrivalEnabled"
+                            matInput
+                            required
+                            [matDatepicker]="picker"
+                            [min]="minDate"
+                            [(ngModel)]="arrivalData.datetime"
+                            (dateChange)="onFormChange($event)"
+                            placeholder="Choose a start date"
+                        />
+                        <mat-hint>MM/DD/YYYY</mat-hint>
+                        <mat-datepicker-toggle
+                            matSuffix
+                            [for]="picker"
+                        ></mat-datepicker-toggle>
+                        <mat-datepicker #picker></mat-datepicker>
+                        </mat-form-field>
+                    </div>
+                    <div style="display:flex;flex-wrap:nowrap;">
+                        <mat-form-field style="width:50px;">
+                        <mat-label>Time</mat-label>
+                        <mat-select
+                            id="arrivalHour"
+                            [(ngModel)]="arrivalData.hour"
+                            [disabled]="!targetArrivalEnabled"
+                            (selectionChange)="onFormChange($event)"
+                        >
+                            <mat-option *ngFor="let i of hrValues()" [value]="i">{{
+                            i
+                            }}</mat-option>
+                        </mat-select>
+                        </mat-form-field>
+
+                        <mat-form-field style="width:50px;">
+                        <mat-select
+                            id="arrivalMinutes"
+                            [(ngModel)]="arrivalData.minutes"
+                            [disabled]="!targetArrivalEnabled"
+                            (selectionChange)="onFormChange($event)"
+                        >
+                            <mat-option *ngFor="let i of minValues()" [value]="i">{{
+                            i
+                            }}</mat-option>
+                        </mat-select>
+                        </mat-form-field>
+                    </div>
+                </div>
+
             </mat-card>
 
             <mat-card *ngIf="app.config.experiments">
@@ -99,6 +164,14 @@ import { Convert } from 'src/app/lib/convert';
 export class CourseSettingsModal implements OnInit {
 
     frmArrivalCircle:number;
+    targetArrivalEnabled = false;
+    minDate = new Date();
+    arrivalData = {
+        hour: '00',
+        minutes: '00',
+        datetime: null
+    };
+
     ap= {
         mode: 'heading',
         state: null
@@ -125,15 +198,42 @@ export class CourseSettingsModal implements OnInit {
         this.frmArrivalCircle= (this.app.config.units.distance=='m') ?
             this.frmArrivalCircle : 
             Number(Convert.kmToNauticalMiles( this.frmArrivalCircle / 1000).toFixed(1));
+
+        this.sk.api
+            .get('vessels/self/navigation/course')
+            .subscribe((val:any) => {
+                console.log(val.targetArrivalTime.value);
+                if (val.targetArrivalTime.value) {
+                this.targetArrivalEnabled = true;
+                this.arrivalData.datetime = new Date(val.targetArrivalTime.value);
+                this.arrivalData.hour = (
+                    '00' + this.arrivalData.datetime.getHours()
+                ).slice(-2);
+                this.arrivalData.minutes = (
+                    '00' + this.arrivalData.datetime.getMinutes()
+                ).slice(-2);
+                }
+            });
     } 
 
     closeModal() { this.modalRef.dismiss() }    
 
-    onFormChange(e:any, f:any) {
+    onFormChange(e:any, f?:any) {
         if(false) { //f && !f.invalid) { 
             // f.value
         } 
         else { 
+            if (
+                e.targetElement &&
+                ['arrivalDate', 'arrivalHour', 'arrivalMinutes'].includes(
+                  e.targetElement.id
+                )
+            ) {
+                this.processTargetArrival();
+            }
+            if (e.source && ['arrivalHour', 'arrivalMinutes'].includes(e.source.id)) {
+                this.processTargetArrival();
+            }
             if(e.target.id=='arrivalCircle') {
                 if(e.target.value!== '' && e.target.value!== null) {
                     let d= (this.app.config.units.distance=='m') ?
@@ -151,6 +251,56 @@ export class CourseSettingsModal implements OnInit {
         }
     }
 
+    toggleTargetArrival(e) {
+        this.targetArrivalEnabled = e.checked;
+        if (!this.targetArrivalEnabled) {
+          this.arrivalData.datetime = null;
+          this.sk.api
+            .put('vessels/self/navigation/course/targetArrivalTime', {
+              value: null
+            })
+            .subscribe();
+        } else {
+          this.processTargetArrival();
+        }
+      }
+    
+    processTargetArrival() {
+        if (this.targetArrivalEnabled) {
+          if (!this.arrivalData.datetime) {
+            return;
+          }
+          console.log(this.formatArrivalTime());
+          this.sk.api
+            .put('vessels/self/navigation/course/targetArrivalTime', {
+              value: this.formatArrivalTime()
+            })
+            .subscribe();
+        }
+    }
+    
+    formatArrivalTime(): string {
+        let ts = '';
+        this.arrivalData.datetime.setHours(parseInt(this.arrivalData.hour));
+        this.arrivalData.datetime.setMinutes(parseInt(this.arrivalData.minutes));
+        ts = this.arrivalData.datetime.toISOString();
+        return ts.slice(0, ts.indexOf('.')) + 'Z';
+    }
+    
+    hrValues() {
+        const v = [];
+        for (let i = 0; i < 24; i++) {
+          v.push(('00' + i).slice(-2));
+        }
+        return v;
+    }
+    
+    minValues() {
+        const v = [];
+        for (let i = 0; i < 59; i++) {
+          v.push(('00' + i).slice(-2));
+        }
+        return v;
+    }
+
 }
-
-
