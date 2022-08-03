@@ -295,9 +295,7 @@ export class SKStreamFacade  {
             }                 
         }
         if(typeof v['course.nextPoint.velocityMadeGood']!=='undefined') {  
-            this.app.data.navData.vmg= (this.app.config.units.speed=='kn') ? 
-                Convert.msecToKnots(v['course.nextPoint.velocityMadeGood']) : 
-                v['course.nextPoint.velocityMadeGood'];
+            this.app.data.navData.vmg= v['course.nextPoint.velocityMadeGood'];
         }
         if(typeof v['course.nextPoint.timeToGo']!=='undefined') { 
             this.app.data.navData.ttg= v['course.nextPoint.timeToGo']/60;
