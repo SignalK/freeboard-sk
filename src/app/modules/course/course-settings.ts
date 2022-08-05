@@ -65,52 +65,65 @@ import { Convert } from 'src/app/lib/convert';
 
                     <div>
                         <mat-form-field style="width:150px;">
-                        <mat-label>Target Arrival Date</mat-label>
-                        <input
-                            id="arrivalDate"
-                            [disabled]="!targetArrivalEnabled"
-                            matInput
-                            required
-                            [matDatepicker]="picker"
-                            [min]="minDate"
-                            [(ngModel)]="arrivalData.datetime"
-                            (dateChange)="onFormChange($event)"
-                            placeholder="Choose a start date"
-                        />
-                        <mat-hint>MM/DD/YYYY</mat-hint>
-                        <mat-datepicker-toggle
-                            matSuffix
-                            [for]="picker"
-                        ></mat-datepicker-toggle>
-                        <mat-datepicker #picker></mat-datepicker>
+                            <mat-label>Target Arrival Date</mat-label>
+                            <input
+                                id="arrivalDate"
+                                [disabled]="!targetArrivalEnabled"
+                                matInput
+                                required
+                                [matDatepicker]="picker"
+                                [min]="minDate"
+                                [(ngModel)]="arrivalData.datetime"
+                                (dateChange)="onFormChange($event)"
+                                placeholder="Choose a start date"
+                            />
+                            <mat-hint>MM/DD/YYYY</mat-hint>
+                            <mat-datepicker-toggle
+                                matSuffix
+                                [for]="picker"
+                            ></mat-datepicker-toggle>
+                            <mat-datepicker #picker></mat-datepicker>
                         </mat-form-field>
                     </div>
                     <div style="display:flex;flex-wrap:nowrap;">
                         <mat-form-field style="width:50px;">
-                        <mat-label>Time</mat-label>
-                        <mat-select
-                            id="arrivalHour"
-                            [(ngModel)]="arrivalData.hour"
-                            [disabled]="!targetArrivalEnabled"
-                            (selectionChange)="onFormChange($event)"
-                        >
-                            <mat-option *ngFor="let i of hrValues()" [value]="i">{{
-                            i
-                            }}</mat-option>
-                        </mat-select>
+                            <mat-label>Time</mat-label>
+                            <mat-select
+                                id="arrivalHour"
+                                [(ngModel)]="arrivalData.hour"
+                                [disabled]="!targetArrivalEnabled"
+                                (selectionChange)="onFormChange($event)"
+                            >
+                                <mat-option *ngFor="let i of hrValues()" [value]="i">{{
+                                i
+                                }}</mat-option>
+                            </mat-select>
                         </mat-form-field>
 
                         <mat-form-field style="width:50px;">
-                        <mat-select
-                            id="arrivalMinutes"
-                            [(ngModel)]="arrivalData.minutes"
-                            [disabled]="!targetArrivalEnabled"
-                            (selectionChange)="onFormChange($event)"
-                        >
-                            <mat-option *ngFor="let i of minValues()" [value]="i">{{
-                            i
-                            }}</mat-option>
-                        </mat-select>
+                            <mat-select
+                                id="arrivalMinutes"
+                                [(ngModel)]="arrivalData.minutes"
+                                [disabled]="!targetArrivalEnabled"
+                                (selectionChange)="onFormChange($event)"
+                            >
+                                <mat-option *ngFor="let i of minValues()" [value]="i">{{
+                                i
+                                }}</mat-option>
+                            </mat-select>
+                        </mat-form-field>
+
+                        <mat-form-field style="width:50px;">
+                            <mat-select
+                                id="arrivalSeconds"
+                                [(ngModel)]="arrivalData.seconds"
+                                [disabled]="!targetArrivalEnabled"
+                                (selectionChange)="onFormChange($event)"
+                            >
+                                <mat-option *ngFor="let i of minValues()" [value]="i">{{
+                                i
+                                }}</mat-option>
+                            </mat-select>
                         </mat-form-field>
                     </div>
                 </div>
@@ -169,6 +182,7 @@ export class CourseSettingsModal implements OnInit {
     arrivalData = {
         hour: '00',
         minutes: '00',
+        seconds: '00',
         datetime: null
     };
 
@@ -212,6 +226,9 @@ export class CourseSettingsModal implements OnInit {
                 this.arrivalData.minutes = (
                     '00' + this.arrivalData.datetime.getMinutes()
                 ).slice(-2);
+                this.arrivalData.seconds = (
+                    '00' + this.arrivalData.datetime.getSeconds()
+                ).slice(-2);
                 }
             });
     } 
@@ -225,13 +242,13 @@ export class CourseSettingsModal implements OnInit {
         else { 
             if (
                 e.targetElement &&
-                ['arrivalDate', 'arrivalHour', 'arrivalMinutes'].includes(
+                ['arrivalDate', 'arrivalHour', 'arrivalMinutes', 'arrivalSeconds'].includes(
                   e.targetElement.id
                 )
             ) {
                 this.processTargetArrival();
             }
-            if (e.source && ['arrivalHour', 'arrivalMinutes'].includes(e.source.id)) {
+            if (e.source && ['arrivalHour', 'arrivalMinutes', 'arrivalSeconds'].includes(e.source.id)) {
                 this.processTargetArrival();
             }
             if(e.target.id=='arrivalCircle') {
@@ -283,6 +300,7 @@ export class CourseSettingsModal implements OnInit {
         let ts = '';
         this.arrivalData.datetime.setHours(parseInt(this.arrivalData.hour));
         this.arrivalData.datetime.setMinutes(parseInt(this.arrivalData.minutes));
+        this.arrivalData.datetime.setSeconds(parseInt(this.arrivalData.seconds));
         ts = this.arrivalData.datetime.toISOString();
         return ts.slice(0, ts.indexOf('.')) + 'Z';
     }
