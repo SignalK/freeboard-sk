@@ -3,6 +3,7 @@ import { MatBottomSheetRef, MAT_BOTTOM_SHEET_DATA } from '@angular/material/bott
 import { AppInfo } from 'src/app/app.info'
 import { SignalKClient } from 'signalk-client-angular';
 import { Convert } from 'src/app/lib/convert';
+import { HttpErrorResponse } from '@angular/common/http';
 
 /********* Course Settings Modal ********
 	data: {
@@ -287,12 +288,23 @@ export class CourseSettingsModal implements OnInit {
           if (!this.arrivalData.datetime) {
             return;
           }
-          console.log(this.formatArrivalTime());
+          const atime = this.formatArrivalTime();;
           this.sk.api
             .put('vessels/self/navigation/course/targetArrivalTime', {
-              value: this.formatArrivalTime()
+              value: atime
             })
-            .subscribe();
+            .subscribe( 
+                ()=> {
+                    console.log('targetArrivalTime = ', atime);
+                },
+                (error: HttpErrorResponse) => {
+                    let msg = `Error setting target arrival time!\n`;
+                    if (error.status === 403) {
+                    msg += 'Unauthorised: Please login.';
+                    }
+                    this.app.showAlert(`Error (${error.status}):`, msg);
+                }
+            );
         }
     }
     
