@@ -25,7 +25,8 @@ export class Trail2RouteDialog implements OnInit {
 
     rteFromTrail: any[];
     mapCenter= [0,0];
-    pointCount:number= 0;
+    pointCount = 0;
+    incServer = false;
 
     tolerance: number = 0.0001;
     highQuality: boolean = true;
@@ -35,7 +36,7 @@ export class Trail2RouteDialog implements OnInit {
     ];
 
     private obsList: Array<any>= [];
-    public serverTrail: Array<any>= [];
+    //public serverTrail: Array<any>= [];
     private fetching: boolean =false;
     private serverCoords: Array<any>= [];
 
@@ -47,7 +48,7 @@ export class Trail2RouteDialog implements OnInit {
 	
 	//** lifecycle: events **
     ngOnInit() {
-        this.parseTrail(false, true);
+        this.parseTrail(true);
         this.obsList.push( this.skres.update$().subscribe( value=> this.onServerResource(value) ) );  
     }
 
@@ -60,12 +61,12 @@ export class Trail2RouteDialog implements OnInit {
         this.parseTrail();
     }
 
-    parseTrail(incServer?: boolean, center?: boolean) {
+    parseTrail(center?: boolean) {
         let trail= [].concat(this.data.trail ?? []);
-        let rteCoords= SimplifyAP(trail, this.tolerance, this.highQuality);
-        if(incServer) {
-            rteCoords= rteCoords.concat(this.serverCoords);
+        if(this.incServer) {
+            trail= trail.concat(this.serverCoords);
         }
+        let rteCoords= SimplifyAP(trail, this.tolerance, this.highQuality);
         this.pointCount= rteCoords.length;
         if(center) { this.mapCenter= rteCoords[Math.floor(rteCoords.length/2)] };
         let rte= new SKRoute();
@@ -85,12 +86,13 @@ export class Trail2RouteDialog implements OnInit {
 
     // retrieve trail from server
     getServerTrail(checked:boolean) { 
+        this.incServer = checked;
         if(checked) {
             this.fetching= true;
             this.skres.getVesselTrail();
         }
         else {
-            this.parseTrail();
+            this.parseTrail(true);
         }
     }
 
@@ -103,10 +105,10 @@ export class Trail2RouteDialog implements OnInit {
                 return GeoUtils.mapifyCoords(line);
             });
             this.serverCoords= [];
-            this.serverTrail.forEach( line=> {
+            serverTrail.forEach( line=> {
                 this.serverCoords= this.serverCoords.concat(line);
-            })
-            this.parseTrail(true);
+            });
+            this.parseTrail();
         }
     }
 
