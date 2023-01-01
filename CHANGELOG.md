@@ -1,6 +1,6 @@
 # CHANGELOG: Freeboard
 
-### v1.22.0
+### v1.22.1
 
 - **Add**: Additional settings to control the way vessel trail is retrieved from the server.
 
