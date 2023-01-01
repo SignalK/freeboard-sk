@@ -144,7 +144,7 @@ export class GeoUtils {
     }
 
     // update line coords for map display (including dateline crossing)
-    static mapifyCoords(coords:Array<any>) {
+    /*static mapifyCoords(coords:Array<any>) {
         if(coords.length==0) { return coords }
         let dlCrossing= 0;
         let last= coords[0];
@@ -157,13 +157,13 @@ export class GeoUtils {
             } 
         }
         return coords;
-    }   
+    }
 
     // ** return adjusted radius to correctly render circle on ground at given position.
     static mapifyRadius(radius:number, position:Position): number {
         if(typeof radius=== 'undefined' || typeof position=== 'undefined') { return radius }
         return radius / getPointResolution('EPSG:3857', 1, fromLonLat(position));
-    }
+    }*/
 
     // returns true if point is inside the supplied extent
     static inBounds( point: Position, extent: Extent) {

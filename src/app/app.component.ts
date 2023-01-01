@@ -150,6 +150,7 @@ export class AppComponent {
         this.obsList.push( this.stream.connect$().subscribe( msg=> this.onConnect(msg) ) );
         this.obsList.push( this.stream.close$().subscribe( msg=> this.onClose(msg) ) );
         this.obsList.push( this.stream.error$().subscribe( msg=> this.onError(msg) ) );
+        this.obsList.push(this.stream.trail$().subscribe( (value)=> this.handleResourceUpdate(value) ));
         // ** COURSE DATA **
         this.obsList.push( this.skres.activeRoute$().subscribe ( msg=> { this.updateNavPanel(msg) }));
         // ** RESOURCES update event
@@ -1200,7 +1201,7 @@ export class AppComponent {
                 if(err.status && err.status==401) { this.showLogin(null, false, true) }  
                 this.app.debug('No vessel data available!') 
             }
-        );          
+        );      
     }
 
     // ** handle connection established

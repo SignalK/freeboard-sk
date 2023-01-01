@@ -1,10 +1,38 @@
 # CHANGELOG: Freeboard
 
+### v1.22.0
+
+- **Add**: Additional settings to control the way vessel trail is retrieved from the server.
+
+- **Update**: Improved rendering of vessel trail when retrieved from the server.
+
+- **Fix**: Trail to Route not honoring `Include Trail from Server` on tolerance change.
+
+
+### v1.21.2
+
+- **Update**: Allow seconds to be specified when setting targetArrivalTime.
+- **Fix**: Error handling when targetArrivalTime.
+
+
+### v1.21.1
+
+- **Fix**: VMG display value is incorrect.
+
+
+### v1.21.0
+
+- **Add**: Ability to apply targetArrivalTime when a destination is active at the path navigation.course.targetArrivalTime
+
+- **Add**: Support to display Icon in WebApps list.
+
+
 ### v1.20.0
 
 - **Add**: Ability to supply url parameters to set the following configuration: `northup`, `zoom` and `movemap`. See Help for details. (closes #110)
 
 - **Experiment**: View weather forecast information provided by `openweather-signalk` plugin. 
+
 
 ### v1.19.4
 

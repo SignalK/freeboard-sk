@@ -322,6 +322,41 @@
                                     Length ({{facade.settings.selections.trailDuration}} hrs)                      
                                 </div>
                             </div>
+                            <div class="setting-card-row" style="padding-bottom: 10px;">
+                                <div class="setting-card-row-item">
+                                    <mat-form-field style="width:100%;">
+                                        <mat-select #trailRes1
+                                                [(value)]="facade.settings.selections.trailResolution.lastHour"
+                                                [disabled]="!facade.settings.selections.trailFromServer || !facade.settings.vesselTrail"
+                                                (selectionChange)="onFormChange($event, trailRes1)"
+                                                placeholder="Resolution: Last hour">
+                                            <mat-option *ngFor="let i of facade.trailOptions.highResolution | keyvalue: noSort" [value]="i.key">{{i.value}}</mat-option>
+                                        </mat-select>                                        
+                                    </mat-form-field>
+                                </div>
+                                <div class="setting-card-row-item">
+                                    <mat-form-field style="width:100%;">
+                                        <mat-select #trailRes23
+                                                [(value)]="facade.settings.selections.trailResolution.next23"
+                                                [disabled]="!facade.settings.selections.trailFromServer || !facade.settings.vesselTrail"
+                                                (selectionChange)="onFormChange($event, trailRes23)"
+                                                placeholder="Resolution: 1 hr -> 24 hrs">
+                                            <mat-option *ngFor="let i of facade.trailOptions.highResolution | keyvalue: noSort" [value]="i.key">{{i.value}}</mat-option>
+                                        </mat-select>                                        
+                                    </mat-form-field>
+                                </div>
+                                <div class="setting-card-row-item">
+                                    <mat-form-field style="width:100%;">
+                                        <mat-select #trailRes24plus
+                                                [(value)]="facade.settings.selections.trailResolution.beyond24"
+                                                [disabled]="!facade.settings.selections.trailFromServer || !facade.settings.vesselTrail"
+                                                (selectionChange)="onFormChange($event, aisstaleage)"
+                                                placeholder="Resolution: > 24 hrs">
+                                            <mat-option *ngFor="let i of facade.trailOptions.mediumResolution | keyvalue: noSort" [value]="i.key">{{i.value}}</mat-option>
+                                        </mat-select>                                        
+                                    </mat-form-field>
+                                </div>
+                            </div>
                         </fieldset>
                     </mat-card>
 

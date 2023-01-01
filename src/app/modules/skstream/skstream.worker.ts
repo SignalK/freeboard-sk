@@ -4,6 +4,7 @@ import { SignalKStreamWorker, Alarm } from 'signalk-worker-angular';
 import { SKVessel, SKAtoN, SKAircraft } from '../skresources/resource-classes';
 import { Convert } from '../../lib/convert';
 import { GeoUtils, Extent } from '../../lib/geoutils';
+import { SimplifyAP } from 'simplify-ts';
 
 type AisIds = Array<string>;
 
@@ -32,6 +33,15 @@ interface AisFilter {
     aisState: []
 }
 
+interface VesselTrailConfig {
+    trailDuration: number,      // number of hours of trail to fetch from server
+    trailResolution: {          // resolution at defined time horizons e.g. '5s', '1m', '5m'
+        lastHour: string,
+        next23: string,         
+        beyond24: string        
+    }
+}
+
 class WorkerMessageBase {
     action:string=null;
     playback:boolean= false;
@@ -52,6 +62,14 @@ class UpdateMessage extends WorkerMessageBase {
     constructor() {
         super();
         this.action= 'update';
+    }
+}
+
+class TrailMessage extends WorkerMessageBase {
+    timestamp:string;
+    constructor() {
+        super();
+        this.action= 'trail';
     }
 }
 
@@ -95,6 +113,16 @@ let aisMgr= {
     staleAge: 360000,       // time since last update in ms (6 min)
     lastTick: new Date().valueOf(),
     maxTrack: 20            // max point count in track
+}
+
+// ** Vessel trail management **
+const trailMgr: VesselTrailConfig= {
+    trailDuration: 24,
+    trailResolution: {
+        lastHour: '5s',
+        next23: '10s',
+        beyond24: '1m'
+    }
 }
 
 
@@ -171,7 +199,7 @@ addEventListener('message', ({ data }) => { handleCommand(data) });
 
 /** handle posted Message from APP: 
     { 
-        cmd: 'open' | 'close' | 'subscribe' | 'settings' | 'alarm' | 'vessel',
+        cmd: 'open' | 'close' | 'subscribe' | 'settings' | 'alarm' | 'vessel' | 'auth' | 'trail',
         options: {..}
     }
  * **************************/
@@ -220,7 +248,29 @@ function handleCommand(data: any) {
             if(data.options) {
                 stream.authToken= data.options.token;
             }
-            break;                                                       
+            break;
+        /** { cmd: 'trail',options: {
+                duration: number,
+                resolution: {
+                   lastHour: string,
+                   next23: string,
+                   beyond24: string
+                }
+              } 
+            }
+        */ 
+        case 'trail':
+            console.log('Worker control: Fetch vessel trail from server...');
+            if(data.options) {
+                trailMgr.trailDuration = data.options.trailDuration ?? 24;
+                if(data.options.trailResolution) {
+                    trailMgr.trailResolution.lastHour = data.options.trailResolution.lastHour ?? '5s';
+                    trailMgr.trailResolution.next23 = data.options.trailResolution.next23 ?? '1m';
+                    trailMgr.trailResolution.beyond24 = data.options.trailResolution.beyond24 ?? '5m';
+                }
+            }
+            getVesselTrail(trailMgr);
+            break;                                                    
     } 
 }
 
@@ -276,8 +326,8 @@ function apiGet(url:string):Promise<any> {
     });
 }
 
-// fetch vessel tracks
-function getTracks() {
+// fetch other vessels tracks
+function getAISTracks() {
     let filter: string= (targetFilter && targetFilter.signalk && targetFilter.signalk.maxRadius) ? 
         `?radius=${targetFilter.signalk.maxRadius}` : 
         `?radius=10000`;    // default radius if none supplied
@@ -296,6 +346,71 @@ function getTracks() {
     .catch( (err)=> { 
         hasTrackPlugin= false; 
         console.warn('Unable to fetch AIS tracks!'); 
+    });
+}
+
+// fetch vessel trail from server
+function getVesselTrail(opt: VesselTrailConfig) {
+    console.info('Fetching vessel trail from server!', opt);
+    const url = apiUrl + '/self/track?';
+    const req = [];
+    const tolerance = 0.0005; //0.0001
+    const highQuality = true;
+    // set up fetch requests
+    if(opt.trailDuration > 24) { // beyond last 24hrs
+        req.push(apiGet(`${url}timespan=${opt.trailDuration-24}h&resolution=${opt.trailResolution.beyond24}&timespanOffset=24`));
+        req.push(apiGet(`${url}timespan=23h&resolution=${opt.trailResolution.next23}&timespanOffset=1`));  
+    }
+    if(opt.trailDuration > 1 && opt.trailDuration < 25){ // last 24hrs
+        req.push(apiGet(`${url}timespan=${opt.trailDuration-1}h&resolution=${opt.trailResolution.next23}&timespanOffset=1`));    
+    }
+    // lastHour
+    req.push(apiGet(`${url}timespan=1h&resolution=${opt.trailResolution.lastHour}`));
+
+    let trail = [];
+    const msg= new TrailMessage();
+    msg.playback= playbackMode;
+    
+    Promise.all(req).then(res => {
+        let idx = 0;
+        let lastIdx = req.length-1;
+        const segLen = 60;  // max line segment length (OL rendering treatment)
+        console.log('res', ...res);
+
+        res.forEach( r => {
+            if(r.type && r.type === 'MultiLineString') {
+                if (r.coordinates && Array.isArray(r.coordinates)) {
+                    if(idx != lastIdx) { // > 1hr simplify trail
+                        let coords = []
+                        r.coordinates.forEach( line => {
+                            coords = coords.concat(line);
+                        });
+                        coords= SimplifyAP(coords, tolerance, highQuality);  
+                        // break up into segments for OL rendering                    
+                        while(coords.length > segLen) {
+                            const ls = coords.slice(0, segLen);
+                            trail.push(ls);
+                            coords= coords.slice(segLen-1); // ensure segments join 
+                            // offset first point so OL renders
+                            coords[0] = [coords[0][0]+0.000000005, coords[0][1]+0.000000005];
+                        }
+                        if(coords.length !== 0) { trail.push(coords) }
+                    }
+                    else { // last Hour
+                        trail = trail.concat(r.coordinates);
+                    }
+                } 
+            }
+            idx++;
+        });
+        console.log('trail', trail);
+        msg.result = trail;
+        postMessage(msg); 
+        
+    }).catch( err => {
+        //console.warn(err);
+        msg.result = null;
+        postMessage(msg); 
     });
 }
 
@@ -336,7 +451,7 @@ function openStream(opt:any) {
     }   
     else { 
         stream.open(opt.url, opt.subscribe, opt.token);
-        getTracks();
+        getAISTracks();
     }
 }
 
@@ -494,7 +609,7 @@ function startTimers() {
     timers.push( 
         setInterval( ()=> {
             console.warn('hasTrackPlugin', hasTrackPlugin);
-            if(hasTrackPlugin) { getTracks() } 
+            if(hasTrackPlugin) { getAISTracks() } 
         }, 60000 ) 
     );
 }

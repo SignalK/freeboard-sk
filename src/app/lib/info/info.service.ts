@@ -104,14 +104,19 @@ export class Info {
     }
 
     //** persist app config **
-    saveConfig() { 
+    saveConfig(suppressEvent?: boolean) { 
         this.state.saveConfig(this.config); 
-        this.settings.next({action: 'save', setting: 'config'});
+        if(!suppressEvent) {
+            this.settings.next({action: 'save', setting: 'config'});
+        }
+        
     }
 
     //** persist app data **
-    saveData() { 
-        this.state.saveData(this.data); 
-        this.settings.next({action: 'save', setting: 'data'});
+    saveData(suppressEvent?: boolean) { 
+        this.state.saveData(this.data);
+        if(!suppressEvent) {
+            this.settings.next({action: 'save', setting: 'data'});
+        }
     }    
 }

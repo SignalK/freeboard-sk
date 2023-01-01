@@ -60,6 +60,11 @@ export class SettingsFacade  {
         [1,'Use Signal K Mode'], 
         [-1,'On'] 
     ]);
+
+    trailOptions= {
+        highResolution: new Map( [ ['1s','1 sec'], ['5s','5 secs'],['10s','10 secs'],['30s','30 secs'],['1m','1 min'] ]),
+        mediumResolution: new Map( [ ['10s','10 secs'],['30s','30 secs'],['1m','1 min'],['2m','2 mins'], ['5m','5 mins'], ['10m','10 mins'], ['15m','15 mins'], ['30m','30 mins'] ])
+    }
        
 
     // *****************************************************

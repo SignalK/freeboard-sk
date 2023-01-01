@@ -251,6 +251,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
     ngOnInit() { 
         // ** STREAM VESSELS update event
         this.obsList.push(this.skstream.vessels$().subscribe( ()=> this.onVessels() ));
+        this.obsList.push(this.skstream.trail$().subscribe( (value)=> this.onResourceUpdate(value) ));
         // ** RESOURCES update event
         this.obsList.push( this.skres.update$().subscribe( value=> this.onResourceUpdate(value) ) );  
         this.obsList.push( this.skresOther.update$().subscribe( value=> this.onResourceUpdate(value) ) );    
@@ -325,7 +326,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
         if(!this.saveTimer) {
             this.saveTimer= setInterval( ()=> { 
                 if(this.isDirty) { 
-                    this.app.saveConfig(); 
+                    this.app.saveConfig(true); 
                     this.isDirty=false; 
                 }
             }, 30000 ); 
@@ -399,18 +400,19 @@ export class FBMapComponent implements OnInit, OnDestroy {
         this.app.debug(value);
         if(value.action=='get' || value.action=='selected') {
             if(value.mode=='route') { 
-                this.dfeat.routes= this.app.data.routes.filter( r=> {
-                    let c= GeoUtils.mapifyCoords(r[1].feature.geometry.coordinates);
-                    r[1].feature.geometry.coordinates= c;
+                this.dfeat.routes= [].concat(this.app.data.routes);
+                /*this.dfeat.routes= this.app.data.routes.filter( r => {
+                    //let c= GeoUtils.mapifyCoords(r[1].feature.geometry.coordinates);
+                    //r[1].feature.geometry.coordinates= c;
                     return true;
-                });           
+                }); */          
             }
             if(value.mode=='waypoint') { this.dfeat.waypoints= [].concat(this.app.data.waypoints) }
             if(value.mode=='chart') { this.dfeat.charts= [].concat(this.app.data.charts) }
             if(value.mode=='note') { 
                 this.dfeat.notes= this.app.data.notes;
-                this.dfeat.regions= [];
-                this.app.data.regions.forEach( r=> {
+                this.dfeat.regions= [].concat(this.app.data.regions);
+                /*this.app.data.regions.forEach( r=> {
                     if(r[1].feature.geometry.type=='Polygon') {
                         let i= JSON.parse(JSON.stringify(r));
                         i[1].feature.geometry.coordinates.forEach(p=> {
@@ -427,23 +429,27 @@ export class FBMapComponent implements OnInit, OnDestroy {
                         });
                         this.dfeat.regions.push(i);
                     }                    
-                });
+                });*/
 
             }
-            if(value.mode=='track') {  // vessel track from server 
-                this.dfeat.tracks= this.app.data.tracks.filter( t=> {
+            if(value.mode=='track') {  // track resource  
+                this.dfeat.tracks= [].concat(this.app.data.tracks);
+                /*this.dfeat.tracks= this.app.data.tracks.filter( t=> {
                     let lines= [];
                     t.feature.geometry.coordinates.forEach( line=> {
                         lines.push( GeoUtils.mapifyCoords(line) );
                     })
                     t.feature.geometry.coordinates= lines;
                     return true;
-                });
+                });*/
             }
-            if(value.mode=='trail') { 
-                this.dfeat.trail= value.data.map( line=> {
+            if(value.mode=='trail') {  // vessel trail
+                if(this.app.config.selections.trailFromServer) {
+                    this.dfeat.trail= value.data;
+                }
+                /*this.dfeat.trail= value.data.map( line=> {
                     return GeoUtils.mapifyCoords(line);
-                });
+                });*/
             }
             if(value.mode=='resource-set') { 
                 this.dfeat.resourceSets= Object.assign({},this.app.data.resourceSets) 
@@ -525,7 +531,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
 
         this.drawVesselLines();
         if(!this.fbMap.movingMap) { 
-            this.app.saveConfig()
+            this.app.saveConfig(true);
             this.isDirty=false;
         }
         else { this.isDirty=true }
@@ -799,38 +805,45 @@ export class FBMapComponent implements OnInit, OnDestroy {
             if(vesselUpdate) {
                 vl.trail.push(this.dfeat.active.position);
             }
-            vl.trail= GeoUtils.mapifyCoords(vl.trail);
+            //vl.trail= GeoUtils.mapifyCoords(vl.trail);
         }
 
         // ** xtePath **
         if( (this.dfeat.navData.startPosition && typeof this.dfeat.navData.startPosition[0]=='number') 
             &&  (this.dfeat.navData.position && typeof this.dfeat.navData.position[0]=='number')
         ) {
-            vl.xtePath= GeoUtils.mapifyCoords([
+            vl.xtePath= [
                 this.dfeat.navData.startPosition,
                 this.dfeat.navData.position
-            ]); 
+            ];
+            /*vl.xtePath= GeoUtils.mapifyCoords([
+                this.dfeat.navData.startPosition,
+                this.dfeat.navData.position
+            ]);*/
         }
         else { vl.xtePath }
 
         // ** bearing line (active) **
         let bpos= (this.dfeat.navData.position && typeof this.dfeat.navData.position[0]=='number') ? 
             this.dfeat.navData.position : this.dfeat.active.position;
-        vl.bearing= GeoUtils.mapifyCoords(
+        vl.bearing= [this.dfeat.active.position, bpos];
+        /*vl.bearing= GeoUtils.mapifyCoords(
             [this.dfeat.active.position, bpos]
-        );
+        );*/
 
         // ** anchor line (active) **
         if(!this.app.data.anchor.raised) {
-            vl.anchor= GeoUtils.mapifyCoords(
+            vl.anchor= [this.app.data.anchor.position, this.dfeat.active.position];
+            /*vl.anchor= GeoUtils.mapifyCoords(
                 [this.app.data.anchor.position, this.dfeat.active.position]
-            );
+            );*/
         }          
         
         // ** CPA line **
-        vl.cpa= GeoUtils.mapifyCoords(
+        vl.cpa= [this.dfeat.closest.position, this.dfeat.self.position];    
+        /*vl.cpa= GeoUtils.mapifyCoords(
             [this.dfeat.closest.position, this.dfeat.self.position]
-        );        
+        ); */    
 
         // ** heading line (active) **
         let sog=(this.dfeat.active.sog || 0);

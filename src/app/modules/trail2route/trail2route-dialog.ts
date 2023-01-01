@@ -6,7 +6,9 @@ import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { SimplifyAP } from 'simplify-ts';
 import { SKRoute } from 'src/app/modules/skresources/resource-classes';
 import { SKResources } from 'src/app/modules/skresources//resources.service';
+import { SKStreamFacade } from '../skstream/skstream.facade';
 import { GeoUtils } from 'src/app/lib/geoutils';
+import { AppInfo } from 'src/app/app.info';
 
 /********* Trail2RouteDialog **********
 	data: {
@@ -28,7 +30,7 @@ export class Trail2RouteDialog implements OnInit {
     pointCount = 0;
     incServer = false;
 
-    tolerance: number = 0.0001;
+    tolerance: number = 0.000001;
     highQuality: boolean = true;
 
     mapControls= [
@@ -42,6 +44,8 @@ export class Trail2RouteDialog implements OnInit {
 
     constructor(
         private skres: SKResources,
+        public app: AppInfo,
+        private stream: SKStreamFacade,
         public dialogRef: MatDialogRef<Trail2RouteDialog>,
         @Inject(MAT_DIALOG_DATA) public data: any) {
 	}
@@ -49,7 +53,9 @@ export class Trail2RouteDialog implements OnInit {
 	//** lifecycle: events **
     ngOnInit() {
         this.parseTrail(true);
-        this.obsList.push( this.skres.update$().subscribe( value=> this.onServerResource(value) ) );  
+        //this.obsList.push( this.skres.update$().subscribe( value=> this.onServerResource(value) ) );
+        this.obsList.push(this.stream.trail$().subscribe( (value)=> this.onServerResource(value) ));
+        this.getServerTrail(this.app.config.selections.trailFromServer);
     }
 
     ngOnDestroy() {
@@ -64,7 +70,8 @@ export class Trail2RouteDialog implements OnInit {
     parseTrail(center?: boolean) {
         let trail= [].concat(this.data.trail ?? []);
         if(this.incServer) {
-            trail= trail.concat(this.serverCoords);
+            //trail= trail.concat(this.serverCoords);
+            trail= [].concat(this.serverCoords, trail);
         }
         let rteCoords= SimplifyAP(trail, this.tolerance, this.highQuality);
         this.pointCount= rteCoords.length;
@@ -73,7 +80,7 @@ export class Trail2RouteDialog implements OnInit {
         rte.feature.geometry.coordinates= rteCoords;
         this.rteFromTrail= [
             ['rtefromtrail', rte, true]
-        ]
+        ];
     }
 
     doClose(save: boolean) {
@@ -88,8 +95,12 @@ export class Trail2RouteDialog implements OnInit {
     getServerTrail(checked:boolean) { 
         this.incServer = checked;
         if(checked) {
-            this.fetching= true;
-            this.skres.getVesselTrail();
+            if(!this.app.config.selections.trailFromServer || this.serverCoords.length === 0) {
+                this.fetching= true;
+                this.skres.getVesselTrail();
+            } else {
+                this.parseTrail(true);
+            }
         }
         else {
             this.parseTrail(true);
@@ -101,9 +112,10 @@ export class Trail2RouteDialog implements OnInit {
         let serverTrail: Array<any>= [];
         if(this.fetching && value.action=='get' && value.mode=='trail') {
             this.fetching=false;
-            serverTrail= value.data.map( line=> {
+            serverTrail= value.data;
+            /*serverTrail= value.data.map( line=> {
                 return GeoUtils.mapifyCoords(line);
-            });
+            });*/
             this.serverCoords= [];
             serverTrail.forEach( line=> {
                 this.serverCoords= this.serverCoords.concat(line);

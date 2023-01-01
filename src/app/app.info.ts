@@ -75,7 +75,12 @@ const FreeboardConfig= {
         notesMinZoom: 10,
         pluginFavourites: [],
         trailFromServer: false,
-        trailDuration: 24,   // number of hours of trail to fetch from server,
+        trailDuration: 24,      // number of hours of trail to fetch from server
+        trailResolution: {      // resolution of server trail at defined time horizons
+            lastHour: '5s',
+            next23: '1m',
+            beyond24: '5m'
+        },
         resourceSets: {},    // additional resources
         signalk: {              // signal k connection options
             vessels: true,
@@ -130,7 +135,7 @@ export const OSM= [
 export class AppInfo extends Info {
 
     private DEV_SERVER= {
-        host: '172.17.0.1', //'192.168.86.32', // host name || ip address
+        host: '192.168.86.32', // '172.17.0.1', // host name || ip address
         port: 3000,     // port number
         ssl: false
     };
@@ -145,6 +150,8 @@ export class AppInfo extends Info {
     public audio = { context: new this.fbAudioContext() }
 
     public db: AppDB;
+
+    private suppressTrailFetch = false;
 
     get useMagnetic(): boolean { 
         return  (this.config.selections.headingAttribute=='navigation.headingMagnetic') ? true : false;
@@ -173,7 +180,7 @@ export class AppInfo extends Info {
         this.name= "Freeboard";
         this.shortName= "freeboard";
         this.description= `Signal K Chart Plotter.`;
-        this.version= '1.21.2';
+        this.version= '1.22.0';
         this.url= 'https://github.com/signalk/freeboard-sk';
         this.logo= "./assets/img/app_logo.png";   
         
@@ -305,7 +312,7 @@ export class AppInfo extends Info {
                     `
                 );
             }
-        })
+        });
     }
 
     // persist auth token for session
@@ -344,6 +351,21 @@ export class AppInfo extends Info {
         else { return null }
     }
 
+    // fetch of trail from server (triggers SKStreamFacade.trail$)
+    fetchTrailFromServer() {
+        if(this.suppressTrailFetch) {
+            this.suppressTrailFetch = false;
+            return;
+        }
+        this.stream.postMessage({
+            cmd: 'trail',
+            options: {
+                trailDuration: this.config.selections.trailDuration,
+                trailResolution: this.config.selections.trailResolution
+            }
+        });
+    }
+
     // ** handle App version upgrade **
     handleUpgradeEvent(version) { 
         this.debug('App Upgrade Handler...Start...', 'info');
@@ -376,7 +398,7 @@ export class AppInfo extends Info {
     // ** handle Settings load / save **
     handleSettingsEvent(value) {
         this.debug(value);
-        if(value.action=='load' && value.setting=='config') {
+        if(value.action === 'load' && value.setting === 'config') {
             this.cleanConfig(this.config);
         }
     }
@@ -415,7 +437,8 @@ export class AppInfo extends Info {
     }    
 
     // ** overloaded saveConfig() **
-    saveConfig() {
+    saveConfig(suppressEvent?: boolean) {
+        this.suppressTrailFetch = suppressEvent ?? false;
         super.saveConfig();
         if(this.data.loggedIn) {
             this.signalk.appDataSet('/', this.config).subscribe(
@@ -484,6 +507,13 @@ export class AppInfo extends Info {
         } 
         if(typeof settings.selections.trailDuration === 'undefined') {
             settings.selections.trailDuration= 24;
+        } 
+        if(typeof settings.selections.trailResolution === 'undefined') {
+            settings.selections.trailResolution = {
+                lastHour: '5s',
+                next23: '1m',
+                beyond24: '5m'
+            }
         } 
         if(typeof settings.selections.resourceSets === 'undefined') {
             settings.selections.resourceSets= {};

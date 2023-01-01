@@ -22,6 +22,7 @@ export class SKStreamFacade  {
     private onClose:Subject<any>= new Subject();
     private onError:Subject<any>= new Subject();
     private onMessage:Subject<any>= new Subject();
+    private onSelfTrail:Subject<any>= new Subject();
     private vesselsUpdate:Subject<any>= new Subject();
     private navDataUpdate:Subject<any>= new Subject();
    // *******************************************************    
@@ -46,6 +47,9 @@ export class SKStreamFacade  {
                 }  
                 else if(msg.action=='close') { this.onClose.next(msg) }  
                 else if(msg.action=='error') { this.onError.next(msg) }
+                else if(msg.action=='trail') { 
+                    this.parseSelfTrail(msg);
+                }
                 else { 
                     this.onMessage.next(msg);
                     this.parseUpdate(msg);
@@ -62,6 +66,7 @@ export class SKStreamFacade  {
     close$(): Observable<any> { return this.onClose.asObservable() }
     error$(): Observable<any> { return this.onError.asObservable() }
     delta$(): Observable<any> { return this.onMessage.asObservable() }
+    trail$(): Observable<any> { return this.onSelfTrail.asObservable() }
 
     // ** Data centric messages
     vessels$(): Observable<any> { return this.vesselsUpdate.asObservable() }
@@ -169,6 +174,17 @@ export class SKStreamFacade  {
                 ]
             }
         });               
+    }
+
+    // ** process selfTrail message from worker and emit trail$ **
+    parseSelfTrail(msg:any) {
+        if( msg.result) {
+            if(!this.app.data.serverTrail) { this.app.data.serverTrail = true }
+            this.onSelfTrail.next({action: 'get', mode: 'trail', data: msg.result });
+        } else {
+            console.warn('Unable to fetch vessel trail from server.');
+            this.app.data.serverTrail= false;
+        }
     }
 
     // ** parse delta message and update Vessel Data -> vesselsUpdate.next()

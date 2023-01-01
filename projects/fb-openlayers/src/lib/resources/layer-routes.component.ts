@@ -112,8 +112,7 @@ export class RouteLayerComponent implements OnInit, OnDestroy, OnChanges {
   parseRoutes(routes: {[key:string]: any}= this.routes) {
     let fa: Feature[]= [];
     for( const w in routes ) {
-      let mc= mapifyCoords(routes[w].feature.geometry.coordinates);
-      let c= fromLonLatArray(mc);
+      let c= fromLonLatArray(mapifyCoords(routes[w].feature.geometry.coordinates));
       let f= new Feature({
         geometry: new LineString( c ),
         name: routes[w].feature.properties.name

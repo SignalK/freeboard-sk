@@ -10,7 +10,7 @@ import { GeoUtils, GeoHash, Position } from  'src/app/lib/geoutils'
 import { LoginDialog } from 'src/app/lib/app-ui';
 import { NoteDialog, RelatedNotesDialog } from './notes'
 import { ResourceDialog } from './resource-dialogs'
-import { SKChart, SKRoute, SKWaypoint, SKRegion, SKNote, SKTrack } from './resource-classes'
+import { SKChart, SKRoute, SKWaypoint, SKRegion, SKNote, SKTrack } from './resource-classes';
 import { moveItemInArray } from '@angular/cdk/drag-drop';
 
 interface IActiveRoute {
@@ -281,21 +281,26 @@ export class SKResources {
         );          
     }      
     
-    /** get vessel trail from sk server */
+    // ** fetch vessel trail from sk server
     getVesselTrail() { 
+
+        this.app.fetchTrailFromServer();
+        /*return;
+
         let reqUrl= '/self/track?'
         let trkReq= [];
         let duration= this.app.config.selections.trailDuration;
+        let resolution = this.app.config.selections.trailResolution;
         if(duration>24) { // beyond last 24hrs
-            trkReq.push( this.signalk.api.get(`${reqUrl}timespan=${duration-24}h&resolution=5m&timespanOffset=24`) );
-            trkReq.push( this.signalk.api.get(`${reqUrl}timespan=23h&resolution=1m&timespanOffset=1`) );  
+            trkReq.push( this.signalk.api.get(`${reqUrl}timespan=${duration-24}h&resolution=${resolution.beyond24}&timespanOffset=24`) );
+            trkReq.push( this.signalk.api.get(`${reqUrl}timespan=23h&resolution=${resolution.next23}&timespanOffset=1`) );  
         }
         if(duration>1 && duration<25){ // last 24hrs
-            trkReq.push( this.signalk.api.get(`${reqUrl}timespan=${duration-1}h&resolution=1m&timespanOffset=1`) );    
+            trkReq.push( this.signalk.api.get(`${reqUrl}timespan=${duration-1}h&resolution=${resolution.next23}&timespanOffset=1`) );    
         }
         // lastHour
-        trkReq.push( this.signalk.api.get(`${reqUrl}timespan=1h&resolution=5s`) );
-            
+        trkReq.push( this.signalk.api.get(`${reqUrl}timespan=1h&resolution=${resolution.lastHour}`) );
+        
         let res= forkJoin(trkReq); //[lastDay, lastHour]
         let trail= [];
         res.subscribe(
@@ -338,7 +343,7 @@ export class SKResources {
                 this.app.data.serverTrail= false;
                 this.updateSource.next({action: 'get', mode: 'trail', data: trail });
             }
-        );
+        );*/
     }    
 
     // **** CHARTS ****
