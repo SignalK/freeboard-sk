@@ -8,7 +8,7 @@ import {
   OnInit,
   Output,
   SimpleChanges,
-  SimpleChange,
+  SimpleChange
 } from '@angular/core';
 import { Layer } from 'ol/layer';
 import { Feature } from 'ol';
@@ -26,7 +26,7 @@ import { AsyncSubject } from 'rxjs';
 @Component({
   selector: 'ol-map > sk-ais-vessels',
   template: '<ng-content></ng-content>',
-  changeDetection: ChangeDetectionStrategy.OnPush,
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class SKVesselsLayerComponent implements OnInit, OnDestroy, OnChanges {
   protected layer: Layer;
@@ -63,7 +63,7 @@ export class SKVesselsLayerComponent implements OnInit, OnDestroy, OnChanges {
   protected zoomOffsetLevel = [
     1, 1000000, 550000, 290000, 140000, 70000, 38000, 17000, 7600, 3900, 1900,
     950, 470, 250, 120, 60, 30, 15.5, 8.1, 4, 2, 1, 0.5, 0.25, 0.12, 0.06, 0.03,
-    0.015, 0.008, 1,
+    0.015, 0.008, 1
   ];
 
   constructor(
@@ -227,7 +227,11 @@ export class SKVesselsLayerComponent implements OnInit, OnDestroy, OnChanges {
           if (this.okToRender(w) && target.position) {
             f.setGeometry(new Point(fromLonLat(target.position)));
             f.setStyle(this.buildTargetStyle(w, target, stale));
-            f.set('name',  target.name ?? target.callsign ?? target.mmsi ?? '', true);
+            f.set(
+              'name',
+              target.name ?? target.callsign ?? target.mmsi ?? '',
+              true
+            );
           } else {
             this.source.removeFeature(f);
           }
@@ -236,11 +240,15 @@ export class SKVesselsLayerComponent implements OnInit, OnDestroy, OnChanges {
           if (this.okToRender(w) && target.position) {
             f = new Feature({
               geometry: new Point(fromLonLat(target.position)),
-              name: target.name,
+              name: target.name
             });
             f.setId('ais-' + w);
             f.setStyle(this.buildTargetStyle(w, target, stale));
-            f.set('name',  target.name ?? target.callsign ?? target.mmsi ?? '', true);
+            f.set(
+              'name',
+              target.name ?? target.callsign ?? target.mmsi ?? '',
+              true
+            );
             this.source.addFeature(f);
           }
         }
@@ -348,10 +356,10 @@ export class SKVesselsLayerComponent implements OnInit, OnDestroy, OnChanges {
             fill: new Fill({ color: 'red' }),
             stroke: new Stroke({
               color: 'black',
-              width: 1,
+              width: 1
             }),
-            rotateWithView: true,
-          }),
+            rotateWithView: true
+          })
         });
       } else if (
         setStale ||
@@ -364,10 +372,10 @@ export class SKVesselsLayerComponent implements OnInit, OnDestroy, OnChanges {
             fill: new Fill({ color: 'orange' }),
             stroke: new Stroke({
               color: 'black',
-              width: 1,
+              width: 1
             }),
-            rotateWithView: true,
-          }),
+            rotateWithView: true
+          })
         });
       } else {
         s = new Style({
@@ -377,10 +385,10 @@ export class SKVesselsLayerComponent implements OnInit, OnDestroy, OnChanges {
             fill: new Fill({ color: 'magenta' }),
             stroke: new Stroke({
               color: 'black',
-              width: 1,
+              width: 1
             }),
-            rotateWithView: true,
-          }),
+            rotateWithView: true
+          })
         });
       }
     }
@@ -396,8 +404,8 @@ export class SKVesselsLayerComponent implements OnInit, OnDestroy, OnChanges {
     return new Style({
       stroke: new Stroke({
         width: 2,
-        color: `rgba(${color},${opacity})`,
-      }),
+        color: `rgba(${color},${opacity})`
+      })
     });
   }
 

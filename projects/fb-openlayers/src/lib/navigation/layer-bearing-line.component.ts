@@ -8,7 +8,7 @@ import {
   OnInit,
   Output,
   SimpleChanges,
-  SimpleChange,
+  SimpleChange
 } from '@angular/core';
 import { Layer } from 'ol/layer';
 import { Feature } from 'ol';
@@ -27,7 +27,7 @@ import { AsyncSubject } from 'rxjs';
 @Component({
   selector: 'ol-map > fb-bearing-line',
   template: '<ng-content></ng-content>',
-  changeDetection: ChangeDetectionStrategy.OnPush,
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class BearingLineComponent implements OnInit, OnDestroy, OnChanges {
   protected layer: Layer;
@@ -121,17 +121,17 @@ export class BearingLineComponent implements OnInit, OnDestroy, OnChanges {
     this.mapifiedLine = mapifyCoords(this.lineCoords);
     const fa: Feature[] = [];
     let f = new Feature({
-      geometry: new LineString(fromLonLatArray(this.mapifiedLine)),
+      geometry: new LineString(fromLonLatArray(this.mapifiedLine))
     });
     f.setStyle(this.buildStyle('base'));
     fa.push(f);
     f = new Feature({
-      geometry: new LineString(fromLonLatArray(this.mapifiedLine)),
+      geometry: new LineString(fromLonLatArray(this.mapifiedLine))
     });
     f.setStyle(this.buildStyle('line'));
     fa.push(f);
     let fp = new Feature({
-      geometry: new Point(fromLonLat(this.marker)),
+      geometry: new Point(fromLonLat(this.marker))
     });
     fp.setId('d.base');
     fp.setStyle(this.buildStyle('marker-base'));
@@ -139,7 +139,7 @@ export class BearingLineComponent implements OnInit, OnDestroy, OnChanges {
     fa.push(fp);
     if (this.showMarker) {
       fp = new Feature({
-        geometry: new Point(fromLonLat(this.marker)),
+        geometry: new Point(fromLonLat(this.marker))
       });
       fp.setId('dest.point');
       fp.setStyle(this.buildStyle('marker'));
@@ -162,21 +162,21 @@ export class BearingLineComponent implements OnInit, OnDestroy, OnChanges {
           return new Style({
             stroke: new Stroke({
               width: 6,
-              color: 'white',
+              color: 'white'
             }),
             fill: new Fill({
-              color: 'white',
+              color: 'white'
             }),
             image: new Circle({
               radius: 5,
               stroke: new Stroke({
                 width: 2,
-                color: 'white',
+                color: 'white'
               }),
               fill: new Fill({
-                color: 'rgba(221, 149, 0, 1)',
-              }),
-            }),
+                color: 'rgba(221, 149, 0, 1)'
+              })
+            })
           });
         } else if (key == 'marker-base') {
           return new Style({
@@ -184,26 +184,26 @@ export class BearingLineComponent implements OnInit, OnDestroy, OnChanges {
               radius: 5,
               stroke: new Stroke({
                 width: 2,
-                color: 'white',
+                color: 'white'
               }),
               fill: new Fill({
-                color: 'rgba(221, 149, 0, 1)',
-              }),
+                color: 'rgba(221, 149, 0, 1)'
+              })
             }),
             text: new Text({
               text: '',
-              offsetX: 25,
-            }),
+              offsetX: 25
+            })
           });
         } else {
           return new Style({
             stroke: new Stroke({
               width: 2,
-              color: 'rgba(221, 149, 0, 1)',
+              color: 'rgba(221, 149, 0, 1)'
             }),
             fill: new Fill({
-              color: 'rgba(221, 149, 0, 1)',
-            }),
+              color: 'rgba(221, 149, 0, 1)'
+            })
           });
         }
       }

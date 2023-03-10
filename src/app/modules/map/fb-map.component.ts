@@ -285,6 +285,9 @@ export class FBMapComponent implements OnInit, OnDestroy {
     this.obsList.push(
       this.skstream.vessels$().subscribe(() => this.onVessels())
     );
+    this.obsList.push(
+      this.skstream.trail$().subscribe((value) => this.onResourceUpdate(value))
+    );
     // ** RESOURCES update event
     this.obsList.push(
       this.skres.update$().subscribe((value) => this.onResourceUpdate(value))
@@ -385,7 +388,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
     if (!this.saveTimer) {
       this.saveTimer = setInterval(() => {
         if (this.isDirty) {
-          this.app.saveConfig();
+          this.app.saveConfig(true);
           this.isDirty = false;
         }
       }, 30000);
@@ -469,11 +472,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
     this.app.debug(value);
     if (value.action == 'get' || value.action == 'selected') {
       if (value.mode == 'route') {
-        this.dfeat.routes = this.app.data.routes.filter((r) => {
-          const c = GeoUtils.mapifyCoords(r[1].feature.geometry.coordinates);
-          r[1].feature.geometry.coordinates = c;
-          return true;
-        });
+        this.dfeat.routes = [].concat(this.app.data.routes);
         if (this.app.data.n2kRoute) {
           this.dfeat.routes.push(this.app.data.n2kRoute);
         }
@@ -485,41 +484,18 @@ export class FBMapComponent implements OnInit, OnDestroy {
         this.dfeat.charts = [].concat(this.app.data.charts);
       }
       if (value.mode == 'note') {
-        this.dfeat.notes = this.app.data.notes;
-        this.dfeat.regions = [];
-        this.app.data.regions.forEach((r) => {
-          if (r[1].feature.geometry.type == 'Polygon') {
-            const i = JSON.parse(JSON.stringify(r));
-            i[1].feature.geometry.coordinates.forEach((p) => {
-              p = GeoUtils.mapifyCoords(p);
-            });
-            this.dfeat.regions.push(i);
-          } else if (r[1].feature.geometry.type == 'MultiPolygon') {
-            const i = JSON.parse(JSON.stringify(r));
-            i[1].feature.geometry.coordinates.forEach((mp) => {
-              mp.forEach((p) => {
-                p = GeoUtils.mapifyCoords(p);
-              });
-            });
-            this.dfeat.regions.push(i);
-          }
-        });
+        this.dfeat.notes = [].concat(this.app.data.notes);
+        this.dfeat.regions = [].concat(this.app.data.regions);
       }
       if (value.mode == 'track') {
-        // vessel track from server
-        this.dfeat.tracks = this.app.data.tracks.filter((t) => {
-          const lines = [];
-          t.feature.geometry.coordinates.forEach((line) => {
-            lines.push(GeoUtils.mapifyCoords(line));
-          });
-          t.feature.geometry.coordinates = lines;
-          return true;
-        });
+        // track resources
+        this.dfeat.tracks = [].concat(this.app.data.tracks);
       }
       if (value.mode == 'trail') {
-        this.dfeat.trail = value.data.map((line) => {
-          return GeoUtils.mapifyCoords(line);
-        });
+        // vessel trail
+        if (this.app.config.selections.trailFromServer) {
+          this.dfeat.trail = value.data;
+        }
       }
       if (value.mode == 'resource-set') {
         this.dfeat.resourceSets = Object.assign({}, this.app.data.resourceSets);
@@ -601,7 +577,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
 
     this.drawVesselLines();
     if (!this.fbMap.movingMap) {
-      this.app.saveConfig();
+      this.app.saveConfig(true);
       this.isDirty = false;
     } else {
       this.isDirty = true;
@@ -681,7 +657,9 @@ export class FBMapComponent implements OnInit, OnDestroy {
               icon = 'directions';
               addToFeatureList = true;
               if (t[1] === 'n2k') {
-                text = this.app.data.n2kRoute[0][1].name;
+                text = this.app.data.n2kRoute
+                  ? this.app.data.n2kRoute[0][1].name
+                  : '';
               } else {
                 text = this.app.data.routes.filter((i) => {
                   return i[0] == t[1] ? i[1].name : null;
@@ -766,6 +744,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
   public onMeasureStart(e: DrawEvent) {
     this.measure.geom = e.feature.getGeometry();
     const c = toLonLat(this.measure.geom.getLastCoordinate());
+    this.measure.coords.push(c);
     this.formatPopover(null, null);
     this.overlay.position = c;
     this.overlay.title = '0';
@@ -915,7 +894,6 @@ export class FBMapComponent implements OnInit, OnDestroy {
       if (vesselUpdate) {
         vl.trail.push(this.dfeat.active.position);
       }
-      vl.trail = GeoUtils.mapifyCoords(vl.trail);
     }
 
     // ** xtePath **
@@ -925,10 +903,10 @@ export class FBMapComponent implements OnInit, OnDestroy {
       this.dfeat.navData.position &&
       typeof this.dfeat.navData.position[0] == 'number'
     ) {
-      vl.xtePath = GeoUtils.mapifyCoords([
+      vl.xtePath = [
         this.dfeat.navData.startPosition,
         this.dfeat.navData.position
-      ]);
+      ];
     } else {
       vl.xtePath;
     }
@@ -939,21 +917,15 @@ export class FBMapComponent implements OnInit, OnDestroy {
       typeof this.dfeat.navData.position[0] == 'number'
         ? this.dfeat.navData.position
         : this.dfeat.active.position;
-    vl.bearing = GeoUtils.mapifyCoords([this.dfeat.active.position, bpos]);
+    vl.bearing = [this.dfeat.active.position, bpos];
 
     // ** anchor line (active) **
     if (!this.app.data.anchor.raised) {
-      vl.anchor = GeoUtils.mapifyCoords([
-        this.app.data.anchor.position,
-        this.dfeat.active.position
-      ]);
+      vl.anchor = [this.app.data.anchor.position, this.dfeat.active.position];
     }
 
     // ** CPA line **
-    vl.cpa = GeoUtils.mapifyCoords([
-      this.dfeat.closest.position,
-      this.dfeat.self.position
-    ]);
+    vl.cpa = [this.dfeat.closest.position, this.dfeat.self.position];
 
     // ** heading line (active) **
     let sog = this.dfeat.active.sog || 0;

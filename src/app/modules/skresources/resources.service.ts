@@ -30,7 +30,6 @@ import {
   Tracks,
   Charts,
   LineString,
-  MultiLineString,
   SKPosition,
   SKApiResponse,
   RouteResource,
@@ -113,15 +112,12 @@ export class SKResources {
       );
   }
 
-  // ** clear course.destination / course.activeRoute **
-  clearDestintation(activeId?: string) {
+  // ** clear course **
+  clearCourse(activeId?: string) {
     const context = activeId ? activeId : 'self';
 
     this.signalk.api
-      .delete(
-        this.app.skApiVersion,
-        `vessels/${context}/navigation/course/activeRoute`
-      )
+      .delete(this.app.skApiVersion, `vessels/${context}/navigation/course`)
       .subscribe(
         () => {
           this.app.debug('res.clearDestination()');
@@ -137,7 +133,7 @@ export class SKResources {
                   (r) => {
                     // ** authenticated
                     this.authResult(r['token']);
-                    this.clearDestintation(activeId);
+                    this.clearCourse(activeId);
                   },
                   () => {
                     // ** auth failed
@@ -687,83 +683,7 @@ export class SKResources {
 
   /** get vessel trail from sk server */
   getVesselTrail() {
-    const reqUrl = '/self/track?';
-    const trkReq = [];
-    const duration = this.app.config.selections.trailDuration;
-    if (duration > 24) {
-      // beyond last 24hrs
-      trkReq.push(
-        this.signalk.api.get(
-          `${reqUrl}timespan=${duration - 24}h&resolution=5m&timespanOffset=24`
-        )
-      );
-      trkReq.push(
-        this.signalk.api.get(
-          `${reqUrl}timespan=23h&resolution=1m&timespanOffset=1`
-        )
-      );
-    }
-    if (duration > 1 && duration < 25) {
-      // last 24hrs
-      trkReq.push(
-        this.signalk.api.get(
-          `${reqUrl}timespan=${duration - 1}h&resolution=1m&timespanOffset=1`
-        )
-      );
-    }
-    // lastHour
-    trkReq.push(this.signalk.api.get(`${reqUrl}timespan=1h&resolution=5s`));
-
-    const res = forkJoin(trkReq); //[lastDay, lastHour]
-    const trail = [];
-    res.subscribe(
-      (res: Array<MultiLineString>) => {
-        let idx = 0;
-        const lastIdx = trkReq.length - 1;
-        res.forEach((r) => {
-          if (typeof r['error'] === 'undefined') {
-            if (idx != lastIdx) {
-              if (r['type'] && r['type'] === 'MultiLineString') {
-                if (r['coordinates'] && Array.isArray(r['coordinates'])) {
-                  r['coordinates'].forEach((l) => {
-                    // -> 60min segments
-                    while (l.length > 60) {
-                      const ls = l.slice(0, 60);
-                      trail.push(ls);
-                      l = l.slice(59); // ensure segments join
-                      // offset first point so OL renders
-                      l[0] = [l[0][0] + 0.000000005, l[0][1] + 0.000000005];
-                    }
-                    if (l.length != 0) {
-                      trail.push(l);
-                    }
-                  });
-                }
-              }
-            } else {
-              //last Hour
-              if (r['type'] && r['type'] === 'MultiLineString') {
-                if (r['coordinates'] && Array.isArray(r['coordinates'])) {
-                  r['coordinates'].forEach((l) => {
-                    trail.push(l);
-                  });
-                }
-              }
-            }
-          }
-          idx++;
-        });
-        if (!this.app.data.serverTrail) {
-          this.app.data.serverTrail = true;
-        }
-        this.updateSource.next({ action: 'get', mode: 'trail', data: trail });
-      },
-      () => {
-        console.warn('Unable to fetch vessel trail from server.');
-        this.app.data.serverTrail = false;
-        this.updateSource.next({ action: 'get', mode: 'trail', data: trail });
-      }
-    );
+    this.app.fetchTrailFromServer();
   }
 
   // **** CHARTS ****
@@ -792,6 +712,9 @@ export class SKResources {
             }
             if (i[1].chartLayers) {
               i[1].layers = i[1].chartLayers;
+            }
+            if (i[1].serverType && !i[1].type) {
+              i[1].type = i[1].serverType;
             }
 
             // ** ensure host is in url
@@ -946,7 +869,7 @@ export class SKResources {
   // ** build and return object containing: SKRoute
   buildRoute(coordinates: LineString): [string, SKRoute] {
     const rte = new SKRoute();
-    const rteUuid = this.signalk.uuid.toSignalK();
+    const rteUuid = this.signalk.uuid;
     rte.feature.geometry.coordinates = GeoUtils.normaliseCoords(coordinates);
     rte.distance = GeoUtils.routeLength(rte.feature.geometry.coordinates);
     return [rteUuid, rte];
@@ -1248,7 +1171,7 @@ export class SKResources {
   // ** build and return SKWaypoint object with supplied coordinates
   buildWaypoint(coordinates: Position): [string, SKWaypoint] {
     const wpt = new SKWaypoint();
-    const wptUuid = this.signalk.uuid.toSignalK();
+    const wptUuid = this.signalk.uuid;
 
     wpt.feature.geometry.coordinates = GeoUtils.normaliseCoords(coordinates);
     return [wptUuid, wpt];
@@ -1517,7 +1440,7 @@ export class SKResources {
           let isNew = false;
           if (!resId) {
             // add
-            resId = this.signalk.uuid.toSignalK();
+            resId = this.signalk.uuid;
             isNew = true;
           }
           this.submitWaypoint(resId, wpt, isNew);
@@ -1533,31 +1456,36 @@ export class SKResources {
         this.app.skApiVersion,
         `/resources/notes?href=/resources/waypoints/${e.id}`
       )
-      .subscribe((notes: Notes) => {
-        let checkText: string;
-        const na = Object.keys(notes);
-        if (na.length !== 0) {
-          checkText = 'Check to also delete attached Notes.';
-        }
-        this.app
-          .showConfirm(
-            'Do you want to delete this Waypoint from the server?\n',
-            'Delete Waypoint:',
-            'YES',
-            'NO',
-            checkText
-          )
-          .subscribe((result: { ok: boolean; checked: boolean }) => {
-            if (result && result.ok) {
-              this.deleteWaypoint(e.id);
-              if (result.checked) {
-                na.forEach((id) => {
-                  this.deleteNote(id);
-                });
+      .subscribe(
+        (notes: Notes) => {
+          let checkText: string;
+          const na = Object.keys(notes);
+          if (na.length !== 0) {
+            checkText = 'Check to also delete attached Notes.';
+          }
+          this.app
+            .showConfirm(
+              'Do you want to delete this Waypoint from the server?\n',
+              'Delete Waypoint:',
+              'YES',
+              'NO',
+              checkText
+            )
+            .subscribe((result: { ok: boolean; checked: boolean }) => {
+              if (result && result.ok) {
+                this.deleteWaypoint(e.id);
+                if (result.checked) {
+                  na.forEach((id) => {
+                    this.deleteNote(id);
+                  });
+                }
               }
-            }
-          });
-      });
+            });
+        },
+        () => {
+          this.app.showAlert('Server returned an error!', 'Error:');
+        }
+      );
   }
 
   // **** REGIONS ****
@@ -1896,6 +1824,12 @@ export class SKResources {
       n.href = n['region'] ?? null;
       if (n['region']) {
         delete n['region'];
+      }
+      if (n.href && n.href.indexOf('resources/') !== -1) {
+        const a = n.href.split('/');
+        const h = a[a.length - 1].split(':').slice(-1)[0];
+        a[a.length - 1] = h;
+        n.href = a.join('/');
       }
     }
     if (typeof n['properties'] === 'undefined') {

@@ -7,12 +7,12 @@ import {
   KeyboardPan,
   KeyboardZoom,
   MouseWheelZoom,
-  PinchZoom,
+  PinchZoom
 } from 'ol/interaction';
 import { MapComponent } from './map.component';
 
 @Directive({
-  selector: 'ol-map > [olInteractions]',
+  selector: 'ol-map > [olInteractions]'
 })
 export class InteractionsDirective implements OnInit {
   private interactions = [];
@@ -24,7 +24,7 @@ export class InteractionsDirective implements OnInit {
     keyboardpan: KeyboardPan,
     keyboardzoom: KeyboardZoom,
     mousewheelzoom: MouseWheelZoom,
-    pinchzoom: PinchZoom,
+    pinchzoom: PinchZoom
   };
 
   constructor(

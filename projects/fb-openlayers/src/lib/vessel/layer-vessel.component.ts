@@ -7,7 +7,7 @@ import {
   OnDestroy,
   OnInit,
   Output,
-  SimpleChanges,
+  SimpleChanges
 } from '@angular/core';
 import { Layer } from 'ol/layer';
 import { Feature } from 'ol';
@@ -25,7 +25,7 @@ import { AsyncSubject } from 'rxjs';
 @Component({
   selector: 'ol-map > fb-vessel',
   template: '<ng-content></ng-content>',
-  changeDetection: ChangeDetectionStrategy.OnPush,
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class VesselComponent implements OnInit, OnDestroy, OnChanges {
   protected layer: Layer;
@@ -176,11 +176,11 @@ export class VesselComponent implements OnInit, OnDestroy, OnChanges {
         fill: new Fill({ color: 'red' }),
         stroke: new Stroke({
           color: 'black',
-          width: 3,
+          width: 3
         }),
         rotateWithView: true,
-        rotation: this.heading ?? 0,
-      }),
+        rotation: this.heading ?? 0
+      })
     });
 
     if (this.vesselStyles) {
@@ -218,7 +218,7 @@ export class VesselComponent implements OnInit, OnDestroy, OnChanges {
       );
       this.headingLine.setStyle(
         new Style({
-          stroke: new Stroke({ color: 'rgba(221, 99, 0, 0.5)', width: 4 }),
+          stroke: new Stroke({ color: 'rgba(221, 99, 0, 0.5)', width: 4 })
         })
       );
     } else {
@@ -230,8 +230,8 @@ export class VesselComponent implements OnInit, OnDestroy, OnChanges {
         new Style({
           stroke: new Stroke({
             color: `rgb(128, 128, 0, ${this.showWind ? 1 : 0})`,
-            width: 2,
-          }),
+            width: 2
+          })
         })
       );
     } else {
@@ -243,8 +243,8 @@ export class VesselComponent implements OnInit, OnDestroy, OnChanges {
         new Style({
           stroke: new Stroke({
             color: `rgb(16, 75, 16, ${this.showWind ? 1 : 0})`,
-            width: 1,
-          }),
+            width: 1
+          })
         })
       );
     } else {

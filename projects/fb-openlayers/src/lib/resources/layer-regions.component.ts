@@ -7,7 +7,7 @@ import {
   OnDestroy,
   OnInit,
   Output,
-  SimpleChanges,
+  SimpleChanges
 } from '@angular/core';
 import { Layer } from 'ol/layer';
 import { Feature } from 'ol';
@@ -24,7 +24,7 @@ import { AsyncSubject } from 'rxjs';
 @Component({
   selector: 'ol-map > sk-regions',
   template: '<ng-content></ng-content>',
-  changeDetection: ChangeDetectionStrategy.OnPush,
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class RegionLayerComponent implements OnInit, OnDestroy, OnChanges {
   protected layer: Layer;
@@ -113,7 +113,7 @@ export class RegionLayerComponent implements OnInit, OnDestroy, OnChanges {
           regions[w].feature.geometry.type == 'MultiPolygon'
             ? new MultiPolygon(c)
             : new Polygon(c),
-        name: regions[w].name,
+        name: regions[w].name
       });
       f.setId('region.' + w);
       f.setStyle(this.buildStyle(w, regions[w]));
@@ -155,12 +155,12 @@ export class RegionLayerComponent implements OnInit, OnDestroy, OnChanges {
       // default styles
       return new Style({
         fill: new Fill({
-          color: 'rgba(255,0,255,0.1)',
+          color: 'rgba(255,0,255,0.1)'
         }),
         stroke: new Stroke({
           color: 'purple',
-          width: 1,
-        }),
+          width: 1
+        })
       });
     }
   }
@@ -170,7 +170,7 @@ export class RegionLayerComponent implements OnInit, OnDestroy, OnChanges {
 @Component({
   selector: 'ol-map > fb-regions',
   template: '<ng-content></ng-content>',
-  changeDetection: ChangeDetectionStrategy.OnPush,
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class FreeboardRegionLayerComponent extends RegionLayerComponent {
   @Input() regions: Array<[string, any, boolean]>;
@@ -194,7 +194,7 @@ export class FreeboardRegionLayerComponent extends RegionLayerComponent {
           w[1].feature.geometry.type == 'MultiPolygon'
             ? new MultiPolygon(c)
             : new Polygon(c),
-        name: w[1].name,
+        name: w[1].name
       });
       f.setId('region.' + w[0]);
       f.setStyle(this.buildStyle(w[0], w[1]));

@@ -95,7 +95,7 @@ import { SKResourceSet } from './sets/resource-set';
                     style="flex: 1 1 auto;"
                     [innerText]="
                       data['position'][1]
-                        | coords: app.config.selections.positionFormat:true
+                        | coords : app.config.selections.positionFormat : true
                     "
                   ></div>
                 </div>
@@ -105,7 +105,7 @@ import { SKResourceSet } from './sets/resource-set';
                     style="flex: 1 1 auto;"
                     [innerText]="
                       data['position'][0]
-                        | coords: app.config.selections.positionFormat
+                        | coords : app.config.selections.positionFormat
                     "
                   ></div>
                 </div>
@@ -668,7 +668,8 @@ export class AircraftPropertiesModal implements OnInit {
                   <div
                     style="flex: 1 1 auto;"
                     [innerText]="
-                      pt[1] | coords: app.config.selections.positionFormat:true
+                      pt[1]
+                        | coords : app.config.selections.positionFormat : true
                     "
                   ></div>
                 </div>
@@ -677,7 +678,7 @@ export class AircraftPropertiesModal implements OnInit {
                   <div
                     style="flex: 1 1 auto;"
                     [innerText]="
-                      pt[0] | coords: app.config.selections.positionFormat
+                      pt[0] | coords : app.config.selections.positionFormat
                     "
                   ></div>
                 </div>
@@ -894,26 +895,26 @@ export class ActiveResourcePropertiesModal implements OnInit {
               <div style="text-align:right;">
                 <span
                   style="flex: 1 1 auto;"
-                  [innerText]="data['bounds'][3] | coords: 'HDd':true"
+                  [innerText]="data['bounds'][3] | coords : 'HDd' : true"
                 >
                 </span
                 ><br />
                 <span
                   style="flex: 1 1 auto;"
-                  [innerText]="data['bounds'][2] | coords: 'HDd'"
+                  [innerText]="data['bounds'][2] | coords : 'HDd'"
                 >
                 </span>
               </div>
               <div>
                 <span
                   style="flex: 1 1 auto;"
-                  [innerText]="data['bounds'][1] | coords: 'HDd':true"
+                  [innerText]="data['bounds'][1] | coords : 'HDd' : true"
                 >
                 </span
                 ><br />
                 <span
                   style="flex: 1 1 auto;"
-                  [innerText]="data['bounds'][0] | coords: 'HDd'"
+                  [innerText]="data['bounds'][0] | coords : 'HDd'"
                 >
                 </span>
               </div>

@@ -7,7 +7,7 @@ import {
   OnDestroy,
   OnInit,
   Output,
-  SimpleChanges,
+  SimpleChanges
 } from '@angular/core';
 import { Layer } from 'ol/layer';
 import { Feature } from 'ol';
@@ -24,7 +24,7 @@ import { AsyncSubject } from 'rxjs';
 @Component({
   selector: 'ol-map > sk-notes',
   template: '<ng-content></ng-content>',
-  changeDetection: ChangeDetectionStrategy.OnPush,
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class NoteLayerComponent implements OnInit, OnDestroy, OnChanges {
   protected layer: Layer;
@@ -111,7 +111,7 @@ export class NoteLayerComponent implements OnInit, OnDestroy, OnChanges {
         geometry: new Point(
           fromLonLat([notes[w].position.longitude, notes[w].position.latitude])
         ),
-        name: notes[w].name,
+        name: notes[w].name
       });
       f.setId('note.' + w);
       f.setStyle(this.buildStyle(w, notes[w]));
@@ -139,10 +139,10 @@ export class NoteLayerComponent implements OnInit, OnDestroy, OnChanges {
           fill: new Fill({ color: 'gold' }),
           stroke: new Stroke({
             color: 'black',
-            width: 1,
+            width: 1
           }),
-          rotation: (Math.PI / 180) * 45,
-        }),
+          rotation: (Math.PI / 180) * 45
+        })
       });
     }
   }
@@ -152,7 +152,7 @@ export class NoteLayerComponent implements OnInit, OnDestroy, OnChanges {
 @Component({
   selector: 'ol-map > fb-notes',
   template: '<ng-content></ng-content>',
-  changeDetection: ChangeDetectionStrategy.OnPush,
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class FreeboardNoteLayerComponent extends NoteLayerComponent {
   @Input() notes: Array<[string, any, boolean]>;
@@ -174,7 +174,7 @@ export class FreeboardNoteLayerComponent extends NoteLayerComponent {
         geometry: new Point(
           fromLonLat([w[1].position.longitude, w[1].position.latitude])
         ),
-        name: w[1].name,
+        name: w[1].name
       });
       f.setId('note.' + w[0]);
       f.setStyle(this.buildStyle(w[0], w[1]));

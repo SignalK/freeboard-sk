@@ -38,7 +38,7 @@ export class SKStreamProvider {
     }
   }
 
-  close(terminate: boolean = false) {
+  close(terminate = false) {
     if (this.worker) {
       console.log('Closing Worker Stream....');
       this.worker.postMessage({

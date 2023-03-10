@@ -28,9 +28,9 @@
   <div style="display: block">
     <div>
       <mat-slider
-        min="0.0001"
-        max="0.1"
-        step="0.0005"
+        min="0.000001"
+        max="0.1005"
+        step="0.000001"
         value="tolerance"
         [thumbLabel]="false"
         [vertical]="false"
@@ -41,7 +41,10 @@
       &nbsp;Points: {{pointCount}}
     </div>
     <div>
-      <mat-checkbox (change)="getServerTrail($event.checked)">
+      <mat-checkbox
+        [checked]="incServer"
+        (change)="getServerTrail($event.checked)"
+      >
         Include Trail from server
       </mat-checkbox>
     </div>

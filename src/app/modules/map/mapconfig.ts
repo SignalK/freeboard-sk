@@ -1,8 +1,6 @@
 // ** Freeboard Map configuration **
 
 import { Style, Icon, Text, Stroke, Fill, RegularShape } from 'ol/style';
-import IconAnchorUnits from 'ol/style/IconAnchorUnits';
-import { Units as ScaleLineUnits } from 'ol/control/ScaleLine';
 
 export const mapInteractions = [
   { name: 'dragpan' },
@@ -24,7 +22,7 @@ export const mapControls = [
       steps: 2,
       text: false,
       minWidth: 64,
-      units: ScaleLineUnits.NAUTICAL
+      units: 'nautical'
     }
   }
   //{name: 'zoom'},
@@ -38,8 +36,8 @@ export const vesselStyles = {
     image: new Icon({
       src: './assets/img/ship_red.png',
       anchor: [9.5, 22.5],
-      anchorXUnits: IconAnchorUnits.PIXELS,
-      anchorYUnits: IconAnchorUnits.PIXELS,
+      anchorXUnits: 'pixels',
+      anchorYUnits: 'pixels',
       size: [50, 50],
       scale: 0.75,
       rotateWithView: true
@@ -49,8 +47,8 @@ export const vesselStyles = {
     image: new Icon({
       src: './assets/img/ship_blur.png',
       anchor: [9.5, 22.5],
-      anchorXUnits: IconAnchorUnits.PIXELS,
-      anchorYUnits: IconAnchorUnits.PIXELS,
+      anchorXUnits: 'pixels',
+      anchorYUnits: 'pixels',
       size: [50, 50],
       scale: 0.75,
       rotateWithView: true
@@ -65,8 +63,8 @@ export const waypointStyles = {
       rotateWithView: false,
       size: [25, 25],
       anchor: [10.5, 25],
-      anchorXUnits: IconAnchorUnits.PIXELS,
-      anchorYUnits: IconAnchorUnits.PIXELS
+      anchorXUnits: 'pixels',
+      anchorYUnits: 'pixels'
     }),
     text: new Text({
       text: '',
@@ -79,8 +77,8 @@ export const waypointStyles = {
       rotateWithView: false,
       size: [25, 25],
       anchor: [10.5, 25],
-      anchorXUnits: IconAnchorUnits.PIXELS,
-      anchorYUnits: IconAnchorUnits.PIXELS
+      anchorXUnits: 'pixels',
+      anchorYUnits: 'pixels'
     }),
     text: new Text({
       text: '',
@@ -93,8 +91,8 @@ export const waypointStyles = {
       rotateWithView: false,
       size: [25, 25],
       anchor: [10.5, 25],
-      anchorXUnits: IconAnchorUnits.PIXELS,
-      anchorYUnits: IconAnchorUnits.PIXELS
+      anchorXUnits: 'pixels',
+      anchorYUnits: 'pixels'
     }),
     text: new Text({
       text: '',
@@ -139,8 +137,8 @@ export const anchorStyles = {
       size: [26, 26],
       scale: 0.75,
       anchor: [13, 1],
-      anchorXUnits: IconAnchorUnits.PIXELS,
-      anchorYUnits: IconAnchorUnits.PIXELS,
+      anchorXUnits: 'pixels',
+      anchorYUnits: 'pixels',
       rotateWithView: false
     })
   })
@@ -151,8 +149,8 @@ export const destinationStyles = {
     image: new Icon({
       src: './assets/img/marker-blue.png',
       anchor: [10.5, 25],
-      anchorXUnits: IconAnchorUnits.PIXELS,
-      anchorYUnits: IconAnchorUnits.PIXELS,
+      anchorXUnits: 'pixels',
+      anchorYUnits: 'pixels',
       rotateWithView: false
     }),
     text: new Text({
@@ -191,8 +189,8 @@ export const aisVesselStyles = {
       rotateWithView: true,
       rotation: 0,
       anchor: [9.5, 22.5],
-      anchorXUnits: IconAnchorUnits.PIXELS,
-      anchorYUnits: IconAnchorUnits.PIXELS,
+      anchorXUnits: 'pixels',
+      anchorYUnits: 'pixels',
       size: [50, 50],
       scale: 0.75
     }),

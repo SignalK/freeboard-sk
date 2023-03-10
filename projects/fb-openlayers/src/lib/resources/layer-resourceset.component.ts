@@ -8,7 +8,7 @@ import {
   OnInit,
   Output,
   SimpleChange,
-  SimpleChanges,
+  SimpleChanges
 } from '@angular/core';
 import { Layer } from 'ol/layer';
 import { Feature } from 'ol';
@@ -21,20 +21,19 @@ import {
   LineString,
   MultiLineString,
   Polygon,
-  MultiPolygon,
+  MultiPolygon
 } from 'ol/geom';
 import { fromLonLat } from 'ol/proj';
 import { MapComponent } from '../map.component';
 import { Extent } from '../models';
 import { fromLonLatArray } from '../util';
 import { AsyncSubject } from 'rxjs';
-import GeometryType from 'ol/geom/GeometryType';
 
 // ** Signal K resource collection format **
 @Component({
   selector: 'ol-map > fb-resource-sets',
   template: '<ng-content></ng-content>',
-  changeDetection: ChangeDetectionStrategy.OnPush,
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class ResourceSetLayerComponent implements OnInit, OnDestroy, OnChanges {
   protected layer: Layer;
@@ -131,35 +130,35 @@ export class ResourceSetLayerComponent implements OnInit, OnDestroy, OnChanges {
       if (w.geometry.type == 'Point') {
         f = new Feature({
           geometry: new Point(fromLonLat(w.geometry.coordinates)),
-          name: w.properties.name,
+          name: w.properties.name
         });
       }
       if (w.geometry.type == 'MultiPoint') {
         f = new Feature({
           geometry: new MultiPoint(fromLonLatArray(w.geometry.coordinates)),
-          name: w.properties.name,
+          name: w.properties.name
         });
       } else if (w.geometry.type == 'LineString') {
         f = new Feature({
           geometry: new LineString(fromLonLatArray(w.geometry.coordinates)),
-          name: w.properties.name,
+          name: w.properties.name
         });
       } else if (w.geometry.type == 'MultiLineString') {
         f = new Feature({
           geometry: new MultiLineString(
             fromLonLatArray(w.geometry.coordinates)
           ),
-          name: w.properties.name,
+          name: w.properties.name
         });
       } else if (w.geometry.type == 'Polygon') {
         f = new Feature({
           geometry: new Polygon(fromLonLatArray(w.geometry.coordinates)),
-          name: w.properties.name,
+          name: w.properties.name
         });
       } else if (w.geometry.type == 'MultiPolygon') {
         f = new Feature({
           geometry: new MultiPolygon(fromLonLatArray(w.geometry.coordinates)),
-          name: w.properties.name,
+          name: w.properties.name
         });
       }
       if (!f) {
@@ -220,7 +219,7 @@ export class ResourceSetLayerComponent implements OnInit, OnDestroy, OnChanges {
       new Text({
         text: Math.abs(this.mapZoom) >= this.labelMinZoom ? text : '',
         rotateWithView: false,
-        offsetY: -12,
+        offsetY: -12
       })
     );
     return cs;
@@ -228,7 +227,7 @@ export class ResourceSetLayerComponent implements OnInit, OnDestroy, OnChanges {
 
   buildStyle(styleDef: { [key: string]: any }, geom): Style {
     const s = new Style();
-    if (geom == GeometryType.POINT || geom == GeometryType.MULTI_POINT) {
+    if (geom === 'Point' || geom === 'MulitPoint') {
       s.setImage(
         new Circle({
           radius: styleDef.width ?? 5,
@@ -236,8 +235,8 @@ export class ResourceSetLayerComponent implements OnInit, OnDestroy, OnChanges {
           stroke: new Stroke({
             color: styleDef.stroke ?? 'blue',
             width: 2,
-            lineDash: styleDef.lineDash ?? [1],
-          }),
+            lineDash: styleDef.lineDash ?? [1]
+          })
         })
       );
     } else {
@@ -246,7 +245,7 @@ export class ResourceSetLayerComponent implements OnInit, OnDestroy, OnChanges {
         new Stroke({
           color: styleDef.stroke ?? 'blue',
           width: styleDef.width ?? 2,
-          lineDash: styleDef.lineDash ?? [1],
+          lineDash: styleDef.lineDash ?? [1]
         })
       );
     }

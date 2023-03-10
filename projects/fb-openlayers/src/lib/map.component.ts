@@ -8,7 +8,7 @@ import {
   OnDestroy,
   OnInit,
   Output,
-  SimpleChanges,
+  SimpleChanges
 } from '@angular/core';
 import { Map, MapBrowserEvent } from 'ol';
 import MapEvent from 'ol/MapEvent';
@@ -17,7 +17,6 @@ import RenderEvent from 'ol/render/Event';
 import { MapService } from './map.service';
 import { MapReadyEvent } from './models';
 import { AsyncSubject } from 'rxjs';
-import { MapOptions } from 'ol/PluggableMap';
 import { toLonLat, transformExtent } from 'ol/proj';
 import { Coordinate } from 'ol/coordinate';
 
@@ -31,7 +30,7 @@ import { Coordinate } from 'ol/coordinate';
     ></div>
     <ng-content></ng-content>
   `,
-  changeDetection: ChangeDetectionStrategy.OnPush,
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class MapComponent implements OnInit, OnDestroy {
   private map: Map;
@@ -85,7 +84,7 @@ export class MapComponent implements OnInit, OnDestroy {
 
   ngOnInit() {
     const target = this.element.nativeElement.firstElementChild;
-    this.map = new Map(this as MapOptions);
+    this.map = new Map();
     this.map.setTarget(target);
     this.map.setProperties(this.properties, true);
     // register the map in the injectable mapService
@@ -107,7 +106,6 @@ export class MapComponent implements OnInit, OnDestroy {
     this.map.un('postcompose', this.emitPostComposeEvent);
     this.map.un('postrender', this.emitPostRenderEvent);
     this.map.un('precompose', this.emitPreComposeEvent);
-    this.map.un('propertychange', this.emitPropertyChangeEvent);
 
     window.removeEventListener('resize', this.updateSizeThrottle);
     window.removeEventListener('orientationchange', this.updateSizeThrottle);
@@ -136,7 +134,6 @@ export class MapComponent implements OnInit, OnDestroy {
     this.map.on('postcompose', this.emitPostComposeEvent);
     this.map.on('postrender', this.emitPostRenderEvent);
     this.map.on('precompose', this.emitPreComposeEvent);
-    this.map.on('propertychange', this.emitPropertyChangeEvent);
 
     // react on window events
     window.addEventListener('resize', this.updateSizeThrottle, false);
@@ -205,9 +202,9 @@ export class MapComponent implements OnInit, OnDestroy {
   private augmentClickEvent(event: MapBrowserEvent<UIEvent>) {
     return Object.assign(event, {
       features: this.map.getFeaturesAtPixel(event.pixel, {
-        hitTolerance: this.hitTolerance,
+        hitTolerance: this.hitTolerance
       }),
-      lonlat: toLonLat(event.coordinate),
+      lonlat: toLonLat(event.coordinate)
     });
   }
 
@@ -224,7 +221,7 @@ export class MapComponent implements OnInit, OnDestroy {
       lonlat: this.getMapCenter(),
       zoom: this.map.getView().getZoom(),
       extent: this.getMapExtent(),
-      projCode: this.map.getView().getProjection().getCode(),
+      projCode: this.map.getView().getProjection().getCode()
     });
   }
 

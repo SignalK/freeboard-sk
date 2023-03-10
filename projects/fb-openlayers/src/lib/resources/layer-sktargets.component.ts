@@ -8,7 +8,7 @@ import {
   OnInit,
   Output,
   SimpleChanges,
-  SimpleChange,
+  SimpleChange
 } from '@angular/core';
 import { Layer } from 'ol/layer';
 import { Feature } from 'ol';
@@ -25,7 +25,7 @@ import { AsyncSubject } from 'rxjs';
 @Component({
   selector: 'ol-map > sk-targets',
   template: '<ng-content></ng-content>',
-  changeDetection: ChangeDetectionStrategy.OnPush,
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class SKTargetsLayerComponent implements OnInit, OnDestroy, OnChanges {
   protected layer: Layer;
@@ -170,7 +170,7 @@ export class SKTargetsLayerComponent implements OnInit, OnDestroy, OnChanges {
           if (target.position) {
             f.setGeometry(new Point(fromLonLat(target.position)));
             f.setStyle(this.buildStyle(target, stale));
-            f.set('name',  target.name ?? target.mmsi ?? '', true);
+            f.set('name', target.name ?? target.mmsi ?? '', true);
           } else {
             this.source.removeFeature(f);
           }
@@ -179,11 +179,11 @@ export class SKTargetsLayerComponent implements OnInit, OnDestroy, OnChanges {
           if (target.position) {
             f = new Feature({
               geometry: new Point(fromLonLat(target.position)),
-              name: target.name,
+              name: target.name
             });
             f.setId(w);
             f.setStyle(this.buildStyle(target, stale));
-            f.set('name',  target.name ?? target.mmsi ?? '', true);
+            f.set('name', target.name ?? target.mmsi ?? '', true);
             this.source.addFeature(f);
           }
         }
@@ -234,10 +234,10 @@ export class SKTargetsLayerComponent implements OnInit, OnDestroy, OnChanges {
           fill: new Fill({ color: 'magenta' }),
           stroke: new Stroke({
             color: 'black',
-            width: 1,
+            width: 1
           }),
-          rotateWithView: true,
-        }),
+          rotateWithView: true
+        })
       });
     }
 

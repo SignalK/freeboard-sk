@@ -2,7 +2,11 @@
 
 ### v2.0.0
 
-__** BREAKING CHANGE **__ Freeboard-SK now requires a version of Signal K server that implements the `Resources API` and `Course API`.
+__** BREAKING CHANGES **__ 
+- Freeboard-SK now requires Signal K API Version 2 as it makes extensive use of both the new `Resources` and `Course` APIs.
+
+- Standard Alarms provider: Freeboard-SK now acts as a provider for standard Signal K alarms and no longer requires the `freeboard-sk-helper` plugin to set and clear these alarms _(i.e. Man Overboard, Sinking, etc.)_. 
+This function can be enabled / disabled in the **Plugin Config** section of the Signal K admin console.
 
 __UPDATES:__ 
 
@@ -20,6 +24,8 @@ __UPDATES:__
 
 - **Added**: Ability to enter `name` and `description` for a region resource.
 
+- **New**: Support for PMTiles map files (`raster` and `vector`).
+
 - **New**: Detect "circular routes" _(first and last points have the exact same coordinate)_ allowing Issue where vessel wind vector on map was not displayed when heading was 0 degrees
 
 - **New**: `host` and `port` url params to enable connection to an alternate Signal K server.
@@ -30,8 +36,64 @@ __UPDATES:__
 
 - **Change**: Notes are only displayed on the map if they have a valid position. Notes attached to a resource / region are only available in the notes list of that resource.
 
-- **Experiment**: Display Weather forecasts and warnings provided by `freeboard-sk-helper` plug-in. Ensure `freeboard-sk-helper` is configured using _Plugin Config_ on server dashboard. For more information see `freeboard-sk-helper` documentation.
+- **Change**: Updated to use Openlayers v7.
 
+- **Experiments:** _(via `Server Admin -> PluginConfig -> Freeboard-SK`)_
+
+    - Display Weather forecasts and warnings from OpenWeather.
+
+    - Autopilot support (PyPilot).
+
+### v1.22.1
+
+- **Add**: Additional settings to control the way vessel trail is retrieved from the server.
+
+- **Update**: Improved rendering of vessel trail when retrieved from the server.
+
+- **Fix**: Trail to Route not honoring `Include Trail from Server` on tolerance change.
+
+
+### v1.21.2
+
+- **Update**: Allow seconds to be specified when setting targetArrivalTime.
+- **Fix**: Error handling when targetArrivalTime.
+
+
+### v1.21.1
+
+- **Fix**: VMG display value is incorrect.
+
+
+### v1.21.0
+
+- **Add**: Ability to apply targetArrivalTime when a destination is active at the path navigation.course.targetArrivalTime
+
+- **Add**: Support to display Icon in WebApps list.
+
+
+### v1.20.0
+
+- **Add**: Ability to supply url parameters to set the following configuration: `northup`, `zoom` and `movemap`. See Help for details. (closes #110)
+
+- **Experiment**: View weather forecast information provided by `openweather-signalk` plugin. 
+
+
+### v1.19.4
+
+- **Update**: Change select all/none on resource lists to only operate on the visible (filtered) list items. (closes #107)
+
+
+### v1.19.3
+
+- **Add**: Speed units selection option added to settings. (closes #104)
+
+### v1.19.2
+
+- **Fix**: Coordinate display issue when format is DegMinSec. (closes #105)
+
+### v1.19.1
+
+- **Fix**: Issue where vessel name and MMSI not being received in stream connection after upgrading to server version 1.41.0
 
 ### v1.19.0
 

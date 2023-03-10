@@ -7,7 +7,7 @@ import {
   OnDestroy,
   OnInit,
   Output,
-  SimpleChanges,
+  SimpleChanges
 } from '@angular/core';
 import { Layer } from 'ol/layer';
 import { Feature } from 'ol';
@@ -24,7 +24,7 @@ import { AsyncSubject } from 'rxjs';
 @Component({
   selector: 'ol-map > sk-routes',
   template: '<ng-content></ng-content>',
-  changeDetection: ChangeDetectionStrategy.OnPush,
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class RouteLayerComponent implements OnInit, OnDestroy, OnChanges {
   protected layer: Layer;
@@ -111,11 +111,12 @@ export class RouteLayerComponent implements OnInit, OnDestroy, OnChanges {
   parseRoutes(routes: { [key: string]: any } = this.routes) {
     const fa: Feature[] = [];
     for (const w in routes) {
-      const mc = mapifyCoords(routes[w].feature.geometry.coordinates);
-      const c = fromLonLatArray(mc);
+      const c = fromLonLatArray(
+        mapifyCoords(routes[w].feature.geometry.coordinates)
+      );
       const f = new Feature({
         geometry: new LineString(c),
-        name: routes[w].name,
+        name: routes[w].name
       });
       f.setId('route.' + w);
       f.setStyle(this.buildStyle(w, routes[w]));
@@ -146,16 +147,16 @@ export class RouteLayerComponent implements OnInit, OnDestroy, OnChanges {
         s = new Style({
           stroke: new Stroke({
             color: 'blue',
-            width: 4,
-          }),
+            width: 4
+          })
         });
       } else {
         s = new Style({
           stroke: new Stroke({
             color: 'green',
             width: 2,
-            lineDash: [20, 5, 5, 5],
-          }),
+            lineDash: [20, 5, 5, 5]
+          })
         });
       }
       return s;
@@ -167,7 +168,7 @@ export class RouteLayerComponent implements OnInit, OnDestroy, OnChanges {
 @Component({
   selector: 'ol-map > fb-routes',
   template: '<ng-content></ng-content>',
-  changeDetection: ChangeDetectionStrategy.OnPush,
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class FreeboardRouteLayerComponent extends RouteLayerComponent {
   @Input() routes: Array<[string, any, boolean]>;
@@ -188,7 +189,7 @@ export class FreeboardRouteLayerComponent extends RouteLayerComponent {
         const c = fromLonLatArray(mc);
         const f = new Feature({
           geometry: new LineString(c),
-          name: w[1].name,
+          name: w[1].name
         });
         f.setId('route.' + w[0]);
         f.setStyle(this.buildStyle(w[0], w[1]));

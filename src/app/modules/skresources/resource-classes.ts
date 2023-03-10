@@ -49,10 +49,12 @@ export class SKWaypoint {
   name: string;
   description: string;
   feature: PointFeature;
+  type: string;
 
   constructor(wpt?: WaypointResource) {
     this.name = wpt?.name ? wpt.name : '';
     this.description = wpt?.description ? wpt.description : '';
+    this.type = wpt?.type ? wpt.type : '';
     this.feature = wpt?.feature ?? {
       type: 'Feature',
       geometry: {
@@ -204,6 +206,7 @@ export class SKVessel {
   autopilot: { [key: string]: unknown } = {};
   track = [];
   courseApi = {
+    arrivalCircle: 0,
     activeRoute: {},
     nextPoint: {},
     previousPoint: {}

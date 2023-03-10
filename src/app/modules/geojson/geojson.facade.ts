@@ -12,7 +12,7 @@ import {
   SKRegion,
   SKTrack
 } from '../skresources/';
-import { GeoUtils, Position } from 'src/app/lib/geoutils';
+//import { GeoUtils, Position } from 'src/app/lib/geoutils';
 import {
   LineStringFeature,
   MultiLineStringFeature,
@@ -110,12 +110,7 @@ export class GeoJSONLoadFacade {
   // ** transform and upload route
   transformRoute(f: LineStringFeature) {
     // SKRoute POST payload
-    const r = {
-      name: '',
-      description: '',
-      points: [],
-      properties: {}
-    };
+    const r = new SKRoute();
     if (!f.properties) {
       f.properties = {};
     }
@@ -134,11 +129,7 @@ export class GeoJSONLoadFacade {
       r.description = 'GeoJSON import';
     }
 
-    r.points = f.geometry.coordinates.map((pt: Position) => {
-      return { latitude: pt[1], longitude: pt[0] };
-    });
-
-    r.properties = f.properties;
+    r.feature = f;
 
     this.subCount++;
     this.signalk.api
@@ -164,12 +155,7 @@ export class GeoJSONLoadFacade {
   // ** transform and upload waypoint
   transformWaypoint(f: PointFeature) {
     // SKWaypoint POST payload
-    const w = {
-      name: '',
-      description: '',
-      position: {},
-      properties: {}
-    };
+    const w = new SKWaypoint();
     if (!f.properties) {
       f.properties = {};
     }
@@ -188,11 +174,7 @@ export class GeoJSONLoadFacade {
       w.description = 'GeoJSON import';
     }
 
-    w.position = {
-      latitude: f.geometry.coordinates[1],
-      longitude: f.geometry.coordinates[0]
-    };
-    w.properties = f.properties;
+    w.feature = f;
 
     this.subCount++;
     this.signalk.api
@@ -254,16 +236,10 @@ export class GeoJSONLoadFacade {
   // ** transform and upload region
   transformRegion(f: PolygonFeature) {
     // SKRegion POST payload
-    const r = {
-      name: '',
-      description: '',
-      points: [],
-      properties: {}
-    };
+    const r = new SKRegion();
     if (!f.properties) {
       f.properties = {};
     }
-
     if (typeof f.properties.name !== 'undefined') {
       r.name = f.properties.name;
       delete f.properties.name;
@@ -277,15 +253,7 @@ export class GeoJSONLoadFacade {
     } else {
       r.description = 'GeoJSON import';
     }
-
-    f.geometry.coordinates.forEach((i) => {
-      const l = i.map((pt: Position) => {
-        return { latitude: pt[1], longitude: pt[0] };
-      });
-      r.points.push(l);
-    });
-
-    r.properties = f.properties;
+    r.feature = f;
 
     this.subCount++;
     this.signalk.api

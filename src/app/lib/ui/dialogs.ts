@@ -1,7 +1,7 @@
 /** Dialog Components **
  ************************/
 
-import { Component, OnInit, Inject } from '@angular/core';
+import { Component, OnInit, Inject, ViewChild } from '@angular/core';
 import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { MAT_SNACK_BAR_DATA } from '@angular/material/snack-bar';
 
@@ -387,6 +387,8 @@ export class AboutDialog {
   `
 })
 export class LoginDialog implements OnInit {
+  @ViewChild('username', { static: false }) username;
+
   public imgSource = 'assets/img/success.png';
   private result = {
     cancel: false,
@@ -403,6 +405,10 @@ export class LoginDialog implements OnInit {
     this.data.message = this.data.message || '';
     this.data.button1Text = this.data.button1Text || 'Log in';
     this.data.button2Text = this.data.button2Text || 'Cancel';
+  }
+
+  ngAfterViewInit() {
+    setTimeout(() => this.username.nativeElement.focus(), 500);
   }
 
   keyUp(e, u, p) {

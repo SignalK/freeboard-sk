@@ -7,7 +7,7 @@ import {
   OnDestroy,
   OnInit,
   Output,
-  SimpleChanges,
+  SimpleChanges
 } from '@angular/core';
 import { Layer } from 'ol/layer';
 import { Feature } from 'ol';
@@ -24,7 +24,7 @@ import { AsyncSubject } from 'rxjs';
 @Component({
   selector: 'ol-map > fb-vessel-trail',
   template: '<ng-content></ng-content>',
-  changeDetection: ChangeDetectionStrategy.OnPush,
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class VesselTrailComponent implements OnInit, OnDestroy, OnChanges {
   protected layer: Layer;
@@ -128,18 +128,18 @@ export class VesselTrailComponent implements OnInit, OnDestroy, OnChanges {
     if (!this.localTrail) {
       return;
     }
-    const c = fromLonLatArray(this.localTrail);
+    const c = fromLonLatArray(mapifyCoords(this.localTrail));
     if (!this.trailLocal) {
       // create feature
-      this.trailLocal = new Feature(new LineString(mapifyCoords(c)));
+      this.trailLocal = new Feature(new LineString(c));
       this.trailLocal.setId('trail.self.local');
       this.trailLocal.setStyle(this.buildStyle('local'));
     } else {
-      // update feature
+      //update feature
       this.trailLocal = this.source.getFeatureById('trail.self.local');
       if (this.localTrail && Array.isArray(this.localTrail)) {
         const g: Geometry = this.trailLocal.getGeometry();
-        (g as LineString).setCoordinates(mapifyCoords(c));
+        (g as LineString).setCoordinates(c);
       }
     }
   }
@@ -148,10 +148,8 @@ export class VesselTrailComponent implements OnInit, OnDestroy, OnChanges {
     if (!this.serverTrail) {
       return;
     }
-    const c = fromLonLatArray(this.serverTrail);
-    const ca = [];
-    c.forEach((t: Array<Coordinate>) => {
-      ca.push(mapifyCoords(t));
+    const ca = this.serverTrail.map((t: Array<Coordinate>) => {
+      return fromLonLatArray(mapifyCoords(t));
     });
     if (!this.trailServer) {
       // create feature
@@ -159,7 +157,7 @@ export class VesselTrailComponent implements OnInit, OnDestroy, OnChanges {
       this.trailServer.setId('trail.self.server');
       this.trailServer.setStyle(this.buildStyle('server'));
     } else {
-      // update feature
+      //update feature
       this.trailServer = this.source.getFeatureById('trail.self.server');
       if (this.serverTrail && Array.isArray(this.serverTrail)) {
         const g: Geometry = this.trailServer.getGeometry();
@@ -180,8 +178,8 @@ export class VesselTrailComponent implements OnInit, OnDestroy, OnChanges {
           stroke: new Stroke({
             color: 'rgb(252, 3, 132)',
             width: 1,
-            lineDash: [4, 4],
-          }),
+            lineDash: [4, 4]
+          })
         });
       }
     } else {
@@ -193,8 +191,8 @@ export class VesselTrailComponent implements OnInit, OnDestroy, OnChanges {
           stroke: new Stroke({
             color: 'rgb(252, 3, 132)',
             width: 1,
-            lineDash: [2, 2],
-          }),
+            lineDash: [2, 2]
+          })
         });
       }
     }

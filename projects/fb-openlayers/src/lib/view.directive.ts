@@ -8,7 +8,7 @@ import {
   OnDestroy,
   OnInit,
   Output,
-  SimpleChanges,
+  SimpleChanges
 } from '@angular/core';
 import View from 'ol/View';
 import { transformExtent, toLonLat, fromLonLat } from 'ol/proj';
@@ -19,7 +19,7 @@ import { ProjectionLike } from 'ol/proj';
 const animateDuration = 500;
 
 @Directive({
-  selector: 'ol-map > [olView]',
+  selector: 'ol-map > [olView]'
 })
 export class ViewDirective
   implements OnInit, AfterViewInit, OnChanges, OnDestroy
@@ -89,7 +89,7 @@ export class ViewDirective
           if (this.enableAnimation) {
             this.view.animate({
               zoom: changes[key].currentValue,
-              duration: animateDuration,
+              duration: animateDuration
             });
           } else {
             this.view.setZoom(changes[key].currentValue);
@@ -102,7 +102,7 @@ export class ViewDirective
           if (this.enableAnimation) {
             this.view.animate({
               center: changes[key].currentValue,
-              duration: animateDuration,
+              duration: animateDuration
             });
           } else {
             this.view.setCenter(fromLonLat(changes[key].currentValue));
@@ -146,7 +146,7 @@ export class ViewDirective
               'EPSG:4326'
             ),
             projCode: this.view.getProjection().getCode(),
-            key: e.target.get(e.key),
+            key: e.target.get(e.key)
           })
         ),
       animateDuration + 10
@@ -167,7 +167,7 @@ export class ViewDirective
               'EPSG:4326'
             ),
             projCode: this.view.getProjection().getCode(),
-            key: e.target.get(e.key),
+            key: e.target.get(e.key)
           })
         ),
       animateDuration + 10

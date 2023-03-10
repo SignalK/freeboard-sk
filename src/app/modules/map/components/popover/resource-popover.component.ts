@@ -39,12 +39,14 @@ id: string - resource id
         <div
           *ngIf="p[0] == 'Latitude'"
           style="flex: 1 1 auto;text-align:right;"
-          [innerText]="p[1] | coords: app.config.selections.positionFormat:true"
+          [innerText]="
+            p[1] | coords : app.config.selections.positionFormat : true
+          "
         ></div>
         <div
           *ngIf="p[0] == 'Longitude'"
           style="flex: 1 1 auto;text-align:right;"
-          [innerText]="p[1] | coords: app.config.selections.positionFormat"
+          [innerText]="p[1] | coords : app.config.selections.positionFormat"
         ></div>
       </div>
 
@@ -55,6 +57,7 @@ id: string - resource id
             color="primary"
             (click)="emitModify()"
             matTooltip="Modify / Move"
+            matTooltipPosition="after"
           >
             <mat-icon>touch_app</mat-icon>
             MOVE
@@ -66,6 +69,7 @@ id: string - resource id
             color="primary"
             (click)="emitAddNote()"
             matTooltip="Add Note"
+            matTooltipPosition="after"
           >
             <mat-icon>local_offer</mat-icon>
             ADD
@@ -77,6 +81,7 @@ id: string - resource id
             color="warn"
             (click)="emitDelete()"
             matTooltip="Delete"
+            matTooltipPosition="after"
           >
             <mat-icon>delete</mat-icon>
             DELETE
@@ -95,6 +100,7 @@ id: string - resource id
                 ? 'Navigate to Waypoint'
                 : 'Make this the Active Route'
             "
+            matTooltipPosition="after"
           >
             <mat-icon>near_me</mat-icon>
             {{ ctrl.activeText }}
@@ -106,6 +112,7 @@ id: string - resource id
             (click)="emitActive(false)"
             color="primary"
             matTooltip="Clear Destination"
+            matTooltipPosition="after"
           >
             <mat-icon>clear_all</mat-icon>
             CLEAR
@@ -116,13 +123,19 @@ id: string - resource id
             mat-button
             (click)="emitRelated()"
             matTooltip="Notes in Group"
+            matTooltipPosition="after"
           >
             <mat-icon>style</mat-icon>
             GROUP
           </button>
         </div>
         <div class="popover-action-button" *ngIf="ctrl.showNotesButton">
-          <button mat-button (click)="emitNotes()" matTooltip="Show Notes">
+          <button
+            mat-button
+            (click)="emitNotes()"
+            matTooltipPosition="after"
+            matTooltip="Show Notes"
+          >
             <mat-icon>local_offer</mat-icon>
             NOTES
           </button>
@@ -133,6 +146,7 @@ id: string - resource id
             [color]="type === 'route' || type === 'waypoint' ? 'primary' : ''"
             (click)="emitInfo()"
             matTooltip="Show Properties"
+            matTooltipPosition="after"
           >
             <mat-icon>{{
               type === 'route' || type === 'waypoint' ? 'edit' : 'info_outline'
@@ -145,6 +159,7 @@ id: string - resource id
             mat-button
             (click)="emitPoints()"
             matTooltip="Route Waypoints"
+            matTooltipPosition="after"
           >
             <mat-icon>flag</mat-icon>
             POINTS

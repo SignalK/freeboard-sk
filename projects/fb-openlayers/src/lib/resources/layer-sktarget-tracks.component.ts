@@ -8,7 +8,7 @@ import {
   OnInit,
   Output,
   SimpleChanges,
-  SimpleChange,
+  SimpleChange
 } from '@angular/core';
 import { Layer } from 'ol/layer';
 import { Feature } from 'ol';
@@ -25,7 +25,7 @@ import { AsyncSubject } from 'rxjs';
 @Component({
   selector: 'ol-map > sk-target-tracks',
   template: '<ng-content></ng-content>',
-  changeDetection: ChangeDetectionStrategy.OnPush,
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class SKTargetTracksLayerComponent
   implements OnInit, OnDestroy, OnChanges
@@ -168,7 +168,7 @@ export class SKTargetTracksLayerComponent
         } else {
           // does not exist so create it
           f = new Feature({
-            geometry: new MultiLineString(this.parseCoordinates(target)),
+            geometry: new MultiLineString(this.parseCoordinates(target))
           });
           f.setId('track-' + w);
           f.setStyle(this.buildStyle(w));
@@ -211,8 +211,8 @@ export class SKTargetTracksLayerComponent
         stroke: new Stroke({
           width: 1,
           color: color,
-          lineDash: [2, 2],
-        }),
+          lineDash: [2, 2]
+        })
       });
     }
   }

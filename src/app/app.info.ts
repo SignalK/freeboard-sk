@@ -22,6 +22,11 @@ import { SKVessel } from './modules/skresources/resource-classes';
 import { SKChart } from './modules/skresources/resource-classes';
 import { SKStreamProvider } from './modules/skstream/skstream.service';
 
+export interface PluginSettings {
+  version: string;
+  settings: { [key: string]: any };
+}
+
 // ** Configuration template**
 const FreeboardConfig = {
   chartApi: 1, // temp: use v{1|2}/api/resources/charts
@@ -85,7 +90,13 @@ const FreeboardConfig = {
     notesMinZoom: 10,
     pluginFavourites: [],
     trailFromServer: false,
-    trailDuration: 24, // number of hours of trail to fetch from server,
+    trailDuration: 24, // number of hours of trail to fetch from server
+    trailResolution: {
+      // resolution of server trail at defined time horizons
+      lastHour: '5s',
+      next23: '1m',
+      beyond24: '5m'
+    },
     resourceSets: {}, // additional resources
     signalk: {
       // signal k connection options
@@ -146,7 +157,7 @@ export const OSM = [
 @Injectable({ providedIn: 'root' })
 export class AppInfo extends Info {
   private DEV_SERVER = {
-    host: '172.17.0.1', // host name || ip address
+    host: 'localhost', // host name || ip address
     port: 3000, // port number
     ssl: false
   };
@@ -163,7 +174,13 @@ export class AppInfo extends Info {
 
   public db: AppDB;
 
+  private suppressTrailFetch = false;
+
   public skApiVersion = 2;
+  public plugin: PluginSettings = {
+    version: '',
+    settings: {}
+  };
 
   get useMagnetic(): boolean {
     return this.config.selections.headingAttribute ==
@@ -369,6 +386,21 @@ export class AppInfo extends Info {
       });
   }
 
+  // get plugin information
+  fetchPluginSettings() {
+    this.signalk.get(`/plugins/freeboard-sk/settings`).subscribe(
+      (r: PluginSettings) => {
+        this.plugin = r;
+      },
+      () => {
+        this.plugin = {
+          version: this.version,
+          settings: {}
+        };
+      }
+    );
+  }
+
   // persist auth token for session
   persistToken(value: string) {
     if (value) {
@@ -407,6 +439,21 @@ export class AppInfo extends Info {
     }
   }
 
+  // fetch of trail from server (triggers SKStreamFacade.trail$)
+  fetchTrailFromServer() {
+    if (this.suppressTrailFetch) {
+      this.suppressTrailFetch = false;
+      return;
+    }
+    this.stream.postMessage({
+      cmd: 'trail',
+      options: {
+        trailDuration: this.config.selections.trailDuration,
+        trailResolution: this.config.selections.trailResolution
+      }
+    });
+  }
+
   // ** handle App version upgrade **
   handleUpgradeEvent(version: AppUpdateMessage) {
     this.debug('App Upgrade Handler...Start...', 'info');
@@ -443,11 +490,13 @@ export class AppInfo extends Info {
     }
   }
 
-  // ** get user settings from server **
+  // ** get user / plugin settings from server **
   loadSettingsfromServer(): Observable<boolean> {
     const sub: Subject<boolean> = new Subject();
     this.signalk.isLoggedIn().subscribe(
       (r) => {
+        // fetch plugin settings
+        this.fetchPluginSettings();
         this.data.loggedIn = r;
         if (r) {
           // ** get server stored config for logged in user **
@@ -482,7 +531,8 @@ export class AppInfo extends Info {
   }
 
   // ** overloaded saveConfig() **
-  saveConfig() {
+  saveConfig(suppressEvent?: boolean) {
+    this.suppressTrailFetch = suppressEvent ?? false;
     super.saveConfig();
     if (this.data.loggedIn) {
       this.signalk.appDataSet('/', this.config).subscribe(
@@ -550,6 +600,13 @@ export class AppInfo extends Info {
     }
     if (typeof settings.selections.trailDuration === 'undefined') {
       settings.selections.trailDuration = 24;
+    }
+    if (typeof settings.selections.trailResolution === 'undefined') {
+      settings.selections.trailResolution = {
+        lastHour: '5s',
+        next23: '1m',
+        beyond24: '5m'
+      };
     }
     if (typeof settings.selections.resourceSets === 'undefined') {
       settings.selections.resourceSets = {};

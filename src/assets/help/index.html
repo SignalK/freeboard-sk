@@ -1702,18 +1702,24 @@
                   <i>signalk/v1/api/self/track</i>.<br />
                 </li>
                 <li>
-                  Use the slider to set the length of track to retrieve from the
-                  server in hours. Time is relative to the current time.<br />
+                  Use the slider to set the <b>length</b> of track to retrieve
+                  from the server in hours. Time is relative to the current
+                  time.<br />
 
-                  Freeboard will attempt to retrieve track from the server in
-                  the following way:
+                  The <b>Resolution</b> settings define the number of track
+                  points returned by the server for the following time windows:
                   <ul>
-                    <li>time < (now - 24hrs) => 5 minute intervals.</li>
-                    <li>
-                      (now - 1hr) < time > (now - 24hrs) => 1 minute intervals.
-                    </li>
-                    <li>time > (now - 1hr) => 5 second intervals.</li>
+                    <li>Last hour (default = 5 secs)</li>
+                    <li>1 hour -> 24 hours (default = 1 min)</li>
+                    <li>> 24 hours (default = 5 min)</li>
                   </ul>
+                  <span style="color: red"
+                    ><b>Note:</b> Selections will determine the volume of data
+                    transferred from the server which may impact performance.
+                  </span>
+                  Trail data received from the server undergoes temporal
+                  simplification to minimise the data used to display the trail
+                  whilst maintianing integrity.
                 </li>
               </ul>
             </li>

@@ -27,6 +27,7 @@ export interface RouteResource {
 export interface WaypointResource {
   name?: string | null;
   description?: string | null;
+  type?: string | null;
   feature: PointFeature;
 }
 
@@ -66,4 +67,5 @@ export interface ChartResource {
   //v1
   tilemapUrl?: string; // replaced by url
   chartLayers?: string[]; // replaced by layers
+  serverType?: string; // replaced by type
 }

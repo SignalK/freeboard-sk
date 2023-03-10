@@ -8,7 +8,7 @@ import {
   OnInit,
   Output,
   SimpleChange,
-  SimpleChanges,
+  SimpleChanges
 } from '@angular/core';
 import { Layer } from 'ol/layer';
 import { Feature } from 'ol';
@@ -25,7 +25,7 @@ import { AsyncSubject } from 'rxjs';
 @Component({
   selector: 'ol-map > fb-tracks',
   template: '<ng-content></ng-content>',
-  changeDetection: ChangeDetectionStrategy.OnPush,
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class TrackLayerComponent implements OnInit, OnDestroy, OnChanges {
   protected layer: Layer;
@@ -113,7 +113,7 @@ export class TrackLayerComponent implements OnInit, OnDestroy, OnChanges {
         geometry: new MultiLineString(
           this.parseCoordinates(w.feature.geometry.coordinates)
         ),
-        name: w.feature.properties.name,
+        name: w.feature.properties.name
       });
       f.setId('track.' + w.feature.id);
       f.setStyle(this.buildStyle(w));
@@ -167,12 +167,12 @@ export class TrackLayerComponent implements OnInit, OnDestroy, OnChanges {
         stroke: new Stroke({
           color: 'rgb(146,11,153)',
           width: 2,
-          lineDash: [5, 5],
+          lineDash: [5, 5]
         }),
         text: new Text({
           text: '',
-          textAlign: 'center',
-        }),
+          textAlign: 'center'
+        })
       });
       return this.setTextLabel(s, trk.feature.properties.name);
     }
@@ -193,7 +193,7 @@ export class TrackLayerComponent implements OnInit, OnDestroy, OnChanges {
       new Text({
         text: Math.abs(this.mapZoom) >= this.labelMinZoom ? text : '',
         rotateWithView: false,
-        offsetY: -12,
+        offsetY: -12
       })
     );
     return cs;

@@ -6,12 +6,12 @@ import {
   ScaleLine,
   Zoom,
   ZoomSlider,
-  ZoomToExtent,
+  ZoomToExtent
 } from 'ol/control';
 import { MapComponent } from './map.component';
 
 @Directive({
-  selector: 'ol-map > [olControls]',
+  selector: 'ol-map > [olControls]'
 })
 export class ControlsDirective implements OnInit {
   private controls = [];
@@ -22,7 +22,7 @@ export class ControlsDirective implements OnInit {
     scaleline: ScaleLine,
     zoom: Zoom,
     zoomslider: ZoomSlider,
-    zoomtoextent: ZoomToExtent,
+    zoomtoextent: ZoomToExtent
   };
 
   constructor(

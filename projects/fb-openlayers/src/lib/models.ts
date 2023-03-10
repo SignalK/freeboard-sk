@@ -7,7 +7,7 @@ export enum LayerType {
   IMAGE,
   TILE,
   VECTOR_TILE,
-  VECTOR,
+  VECTOR
 }
 
 export enum SourceType {
@@ -35,7 +35,7 @@ export enum SourceType {
   VECTORTILE,
   WMTS,
   XYZ,
-  ZOOMIFY,
+  ZOOMIFY
 }
 
 /* interface types */

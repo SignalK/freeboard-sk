@@ -8,7 +8,7 @@ import {
   OnInit,
   Output,
   SimpleChanges,
-  SimpleChange,
+  SimpleChange
 } from '@angular/core';
 import { Layer } from 'ol/layer';
 import { Feature } from 'ol';
@@ -20,16 +20,18 @@ import { fromLonLat } from 'ol/proj';
 import { MapComponent } from '../map.component';
 import { Extent, Coordinate } from '../models';
 import { AsyncSubject } from 'rxjs';
-import { getRhumbLineBearing, getCenter } from 'geolib'; 
+import { getRhumbLineBearing, getCenter } from 'geolib';
 import { SKPosition } from 'src/app/types';
 
 // ** Freeboard direction of travel component **
 @Component({
   selector: 'ol-map > fb-route-direction',
   template: '<ng-content></ng-content>',
-  changeDetection: ChangeDetectionStrategy.OnPush,
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class DirectionOfTravelComponent implements OnInit, OnDestroy, OnChanges {
+export class DirectionOfTravelComponent
+  implements OnInit, OnDestroy, OnChanges
+{
   protected layer: Layer;
   public source: VectorSource;
   protected features: Array<Feature> = [];
@@ -51,7 +53,6 @@ export class DirectionOfTravelComponent implements OnInit, OnDestroy, OnChanges 
   @Input() minResolution: number;
   @Input() maxResolution: number;
   @Input() layerProperties: { [index: string]: any };
-
 
   constructor(
     protected changeDetectorRef: ChangeDetectorRef,
@@ -115,17 +116,17 @@ export class DirectionOfTravelComponent implements OnInit, OnDestroy, OnChanges 
       if (this.points.length < 4) {
         arrows.push(0);
       } else {
-        for ( let idx = 1; idx < this.points.length-2; idx = idx+2)  {
+        for (let idx = 1; idx < this.points.length - 2; idx = idx + 2) {
           arrows.push(idx);
         }
       }
 
-      arrows.forEach( (idx: number) => {
+      arrows.forEach((idx: number) => {
         const pctr: SKPosition = getCenter(
-          this.points.slice(idx,idx + 2)
+          this.points.slice(idx, idx + 2)
         ) as SKPosition;
         const f = new Feature({
-          geometry: new Point(fromLonLat([pctr.longitude, pctr.latitude])),
+          geometry: new Point(fromLonLat([pctr.longitude, pctr.latitude]))
         });
         f.setId(`dot.${idx}`);
         f.setStyle(this.buildStyle(idx));
@@ -145,11 +146,11 @@ export class DirectionOfTravelComponent implements OnInit, OnDestroy, OnChanges 
         fill: new Fill({ color: 'blue' }),
         stroke: new Stroke({
           color: 'white',
-          width: 1,
+          width: 1
         }),
         rotateWithView: true,
         rotation: this.getOrientation(index)
-      }),
+      })
     });
   }
 
@@ -169,15 +170,9 @@ export class DirectionOfTravelComponent implements OnInit, OnDestroy, OnChanges 
   }
 
   getOrientation(idx: number) {
-    const o = this.reverse ?
-      getRhumbLineBearing(
-        this.points[idx + 1],
-        this.points[idx]
-      ) :
-      getRhumbLineBearing(
-        this.points[idx],
-        this.points[idx + 1]
-      );
+    const o = this.reverse
+      ? getRhumbLineBearing(this.points[idx + 1], this.points[idx])
+      : getRhumbLineBearing(this.points[idx], this.points[idx + 1]);
     return (Math.PI / 180) * o;
   }
 
@@ -200,5 +195,4 @@ export class DirectionOfTravelComponent implements OnInit, OnDestroy, OnChanges 
       }*/
     }
   }
-
 }

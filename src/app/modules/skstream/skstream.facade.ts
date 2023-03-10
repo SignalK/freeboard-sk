@@ -11,7 +11,12 @@ import { SKRoute, SKVessel } from '../skresources/resource-classes';
 import { AlarmsFacade } from '../alarms/alarms.facade';
 import { Convert } from 'src/app/lib/convert';
 import { SKResources } from '../skresources';
-import { NotificationMessage, UpdateMessage } from 'src/app/types';
+import {
+  NotificationMessage,
+  UpdateMessage,
+  TrailMessage,
+  MultiLineString
+} from 'src/app/types';
 import { GeoUtils } from 'src/app/lib/geoutils';
 
 export enum SKSTREAM_MODE {
@@ -34,6 +39,11 @@ export class SKStreamFacade {
   private onError: Subject<NotificationMessage | UpdateMessage> = new Subject();
   private onMessage: Subject<NotificationMessage | UpdateMessage> =
     new Subject();
+  private onSelfTrail: Subject<{
+    action: 'get';
+    mode: 'trail';
+    data: MultiLineString;
+  }> = new Subject();
   private vesselsUpdate: Subject<void> = new Subject();
   private navDataUpdate: Subject<void> = new Subject();
   // *******************************************************
@@ -61,6 +71,8 @@ export class SKStreamFacade {
           this.onClose.next(msg);
         } else if (msg.action == 'error') {
           this.onError.next(msg);
+        } else if (msg.action == 'trail') {
+          this.parseSelfTrail(msg);
         } else {
           this.parseUpdate(msg);
           this.onMessage.next(msg);
@@ -84,6 +96,13 @@ export class SKStreamFacade {
   }
   delta$(): Observable<NotificationMessage | UpdateMessage> {
     return this.onMessage.asObservable();
+  }
+  trail$(): Observable<{
+    action: 'get';
+    mode: 'trail';
+    data: MultiLineString;
+  }> {
+    return this.onSelfTrail.asObservable();
   }
 
   // ** Data centric messages
@@ -193,6 +212,19 @@ export class SKStreamFacade {
         path: [{ path: '*', period: 30000 }]
       }
     });
+  }
+
+  // ** process selfTrail message from worker and emit trail$ **
+  parseSelfTrail(msg: TrailMessage) {
+    if (msg.result) {
+      if (!this.app.data.serverTrail) {
+        this.app.data.serverTrail = true;
+      }
+      this.onSelfTrail.next({ action: 'get', mode: 'trail', data: msg.result });
+    } else {
+      console.warn('Unable to fetch vessel trail from server.');
+      this.app.data.serverTrail = false;
+    }
   }
 
   // ** parse delta message and update Vessel Data -> vesselsUpdate.next()
@@ -327,10 +359,7 @@ export class SKStreamFacade {
       }
     }
     if (typeof v['course.velocityMadeGood'] !== 'undefined') {
-      this.app.data.navData.vmg =
-        this.app.config.units.speed == 'kn'
-          ? Convert.msecToKnots(v['course.velocityMadeGood'])
-          : v['course.velocityMadeGood'];
+      this.app.data.navData.vmg = v['course.nextPoint.velocityMadeGood'];
     }
     if (typeof v['course.timeToGo'] !== 'undefined') {
       this.app.data.navData.ttg = v['course.timeToGo'] / 60;
@@ -349,26 +378,40 @@ export class SKStreamFacade {
     this.navDataUpdate.next();
   }
 
+  clearCourseData() {
+    this.app.data.navData.startPosition = null;
+    this.app.data.navData.position = null;
+    this.app.data.activeWaypoint = null;
+    this.clearRouteData();
+  }
+
+  clearRouteData() {
+    this.app.data.activeRoute = null;
+    this.app.data.navData.pointIndex = -1;
+    this.app.data.navData.pointTotal = 0;
+    this.app.data.navData.pointNames = [];
+    this.app.data.activeRouteReversed = false;
+  }
+
   // ** process courseApi values into navData
   processCourseApi(value) {
     if (!value) {
-      this.app.data.navData.startPosition = null;
-      this.app.data.navData.position = null;
-      this.app.data.activeWaypoint = null;
-      this.app.data.activeRoute = null;
-      this.app.data.navData.pointIndex = -1;
-      this.app.data.navData.pointTotal = 0;
-      this.app.data.navData.pointNames = [];
-      this.app.data.activeRouteReversed = false;
+      this.clearCourseData();
       return;
     }
 
-    if (value.nextPoint && value.previousPoint) {
-      // navData.arrivalCircle
-      this.app.data.navData.arrivalCircle = value.nextPoint.arrivalCircle;
+    // navData.arrivalCircle
+    if (typeof value.arrivalCircle !== 'undefined') {
+      this.app.data.navData.arrivalCircle = value.arrivalCircle;
+    }
 
+    if (!value.nextPoint || !value.previousPoint) {
+      this.clearCourseData();
+    }
+
+    if (value.nextPoint && value.previousPoint) {
       // navData.startPosition
-      this.app.data.navData.startPosition = value?.previousPoint.position
+      this.app.data.navData.startPosition = value?.previousPoint?.position
         ? [
             value.previousPoint.position.longitude,
             value.previousPoint.position.latitude
@@ -376,7 +419,7 @@ export class SKStreamFacade {
         : null;
 
       // navData.position
-      this.app.data.navData.position = value?.nextPoint.position
+      this.app.data.navData.position = value?.nextPoint?.position
         ? [
             value.nextPoint.position.longitude,
             value.nextPoint.position.latitude
@@ -408,77 +451,81 @@ export class SKStreamFacade {
     }
 
     // navData.activeRoute
-    if (value.activeRoute?.href) {
-      const rteHref = value.activeRoute.href.split('/');
-      this.app.data.activeRoute = rteHref[rteHref.length - 1];
-      if (
-        !this.app.config.selections.routes.includes(this.app.data.activeRoute)
-      ) {
-        this.app.config.selections.routes.push(this.app.data.activeRoute);
-        const idx = this.app.data.routes.findIndex((i) => {
-          return i[0] === this.app.data.activeRoute;
-        });
-        if (idx !== -1) {
-          this.app.data.routes[idx][2] = true;
-        }
-      }
-      this.app.data.activeWaypoint = null;
-      this.app.data.navData.pointIndex =
-        value?.activeRoute.pointIndex === null
-          ? -1
-          : value?.activeRoute.pointIndex;
-      this.app.data.navData.pointTotal =
-        value?.activeRoute.pointTotal === null
-          ? 0
-          : value?.activeRoute.pointTotal;
-
-      const rte = this.app.data.routes.filter((i) => {
-        if (i[0] === this.app.data.activeRoute) {
-          return i;
-        }
-      });
-      if (rte.length === 1 && rte[0][1]) {
-        this.app.data.navData.activeRoutePoints =
-          rte[0][1].feature.geometry.coordinates;
-        this.app.data.navData.pointNames =
-          rte[0][1].feature.properties.points &&
-          rte[0][1].feature.properties.points.names &&
-          Array.isArray(rte[0][1].feature.properties.points.names)
-            ? rte[0][1].feature.properties.points.names
-            : [];
-        this.app.data.activeRouteReversed = !value?.activeRoute.reverse
-          ? false
-          : value?.activeRoute.reverse;
-
-        const coords = rte[0][1].feature.geometry.coordinates;
-        if (
-          coords[0][0] === coords[coords.length - 1][0] &&
-          coords[0][1] === coords[coords.length - 1][1]
-        ) {
-          this.app.data.activeRouteCircular = true;
-        } else {
-          this.app.data.activeRouteCircular = false;
-        }
-      }
+    if (!value.activeRoute) {
+      this.clearRouteData();
     } else {
-      this.app.data.activeRoute = null;
-      // Non-signal k source (n2k) route points.
-      if (value.activeRoute?.waypoints) {
-        const n2kRoute = new SKRoute();
-        n2kRoute.name = value.activeRoute?.name ?? 'From NMEA2000';
-        n2kRoute.description = 'Route from NMEA2000 source';
-        n2kRoute.feature.geometry.coordinates =
-          value.activeRoute?.waypoints.map((pt) => {
-            return [pt.position.longitude, pt.position.latitude];
+      if (value.activeRoute.href) {
+        const rteHref = value.activeRoute.href.split('/');
+        this.app.data.activeRoute = rteHref[rteHref.length - 1];
+        if (
+          !this.app.config.selections.routes.includes(this.app.data.activeRoute)
+        ) {
+          this.app.config.selections.routes.push(this.app.data.activeRoute);
+          const idx = this.app.data.routes.findIndex((i) => {
+            return i[0] === this.app.data.activeRoute;
           });
-        const c = GeoUtils.mapifyCoords(n2kRoute.feature.geometry.coordinates);
-        n2kRoute.feature.geometry.coordinates = c;
-        n2kRoute.distance = GeoUtils.routeLength(
-          n2kRoute.feature.geometry.coordinates
-        );
-        this.app.data.n2kRoute = ['n2k', n2kRoute, true];
+          if (idx !== -1) {
+            this.app.data.routes[idx][2] = true;
+          }
+        }
+        this.app.data.activeWaypoint = null;
+        this.app.data.navData.pointIndex =
+          value?.activeRoute.pointIndex === null
+            ? -1
+            : value?.activeRoute.pointIndex;
+        this.app.data.navData.pointTotal =
+          value?.activeRoute.pointTotal === null
+            ? 0
+            : value?.activeRoute.pointTotal;
+
+        const rte = this.app.data.routes.filter((i) => {
+          if (i[0] === this.app.data.activeRoute) {
+            return i;
+          }
+        });
+        if (rte.length === 1 && rte[0][1]) {
+          this.app.data.navData.activeRoutePoints =
+            rte[0][1].feature.geometry.coordinates;
+          this.app.data.navData.pointNames =
+            rte[0][1].feature.properties.points &&
+            rte[0][1].feature.properties.points.names &&
+            Array.isArray(rte[0][1].feature.properties.points.names)
+              ? rte[0][1].feature.properties.points.names
+              : [];
+          this.app.data.activeRouteReversed = !value?.activeRoute.reverse
+            ? false
+            : value?.activeRoute.reverse;
+
+          const coords = rte[0][1].feature.geometry.coordinates;
+          if (
+            coords[0][0] === coords[coords.length - 1][0] &&
+            coords[0][1] === coords[coords.length - 1][1]
+          ) {
+            this.app.data.activeRouteCircular = true;
+          } else {
+            this.app.data.activeRouteCircular = false;
+          }
+        }
       } else {
-        this.app.data.n2kRoute = null;
+        this.app.data.activeRoute = null;
+        // Non-signal k source (n2k) route points.
+        if (value.activeRoute.waypoints) {
+          const n2kRoute = new SKRoute();
+          n2kRoute.name = value.activeRoute?.name ?? 'From NMEA2000';
+          n2kRoute.description = 'Route from NMEA2000 source';
+          n2kRoute.feature.geometry.coordinates =
+            value.activeRoute?.waypoints.map((pt) => {
+              return [pt.position.longitude, pt.position.latitude];
+            });
+          const c = n2kRoute.feature.geometry.coordinates;
+          n2kRoute.feature.geometry.coordinates = c;
+          n2kRoute.distance = GeoUtils.routeLength(
+            n2kRoute.feature.geometry.coordinates
+          );
+          this.app.data.n2kRoute = ['n2k', n2kRoute, true];
+        } else {
+          this.app.data.n2kRoute = null;
+        }
       }
     }
   }

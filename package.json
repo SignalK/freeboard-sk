@@ -1,9 +1,10 @@
 {
   "name": "@signalk/freeboard-sk",
-  "version": "2.0.0-beta.3",
-  "description": "Openlayers chartplotter implementation for Signal K",
+  "version": "2.0.0-beta.5",
+  "description": "Openlayers chart plotter implementation for Signal K",
   "keywords": [
     "signalk-webapp",
+    "signalk-node-server-plugin",
     "signalk-category-chart-plotters"
   ],
   "signalk": {
@@ -11,6 +12,8 @@
     "displayName": "Freeboard-SK"
   },
   "repository": "https://github.com/SignalK/freeboard-sk",
+  "main": "plugin/helper/index.js",
+  "signalk-plugin-enabled-by-default": true,
   "scripts": {
     "ng": "ng",
     "start": "ng serve",
@@ -18,9 +21,11 @@
     "test": "ng test",
     "format": "prettier --ignore-path .gitignore --write \"src/**/*.+(ts|html)\"",
     "format:projects": "prettier --ignore-path .gitignore --write \"projects/**/*.+(ts|html)\"",
+    "format:helper": "prettier --ignore-path .gitignore --write \"helper/**/*.+(ts|html)\"",
     "e2e": "ng e2e",
+    "build:helper": "tsc -p tsconfig-helper.json",
     "build:prod": "ng build -c production --output-hashing all",
-    "prepare": "npm run build:prod"
+    "prepare": "npm run build:helper && npm run build:prod"
   },
   "author": "AdrianP",
   "contributors": [
@@ -32,6 +37,10 @@
     }
   ],
   "license": "Apache-v2",
+  "dependencies": {
+    "@signalk/server-api": "^2.0.0-beta.3",
+    "socket.io-client": "^4.6.0"
+  },
   "devDependencies": {
     "@angular-devkit/build-angular": "^14.0.1",
     "@angular/animations": "^14.0.1",
@@ -47,14 +56,17 @@
     "@angular/platform-browser": "^14.0.1",
     "@angular/platform-browser-dynamic": "^14.0.1",
     "@kolkov/angular-editor": "^2.1.0",
+    "@types/arcgis-rest-api": "^10.4.5",
+    "@types/express": "^4.17.17",
+    "@types/geojson": "^7946.0.10",
     "@types/jasmine": "~3.6.0",
     "@types/jasminewd2": "~2.0.3",
     "@types/node": "^12.11.1",
-    "@types/ol": "6.5.0",
+    "@types/topojson-specification": "^1.0.2",
     "@typescript-eslint/eslint-plugin": "^5.10.0",
     "@typescript-eslint/parser": "^5.10.0",
     "codelyzer": "^6.0.0",
-    "eslint": "^8.7.0",
+    "eslint": "^8.33.0",
     "geolib": "^3.3.3",
     "jasmine-core": "~3.8.0",
     "jasmine-spec-reporter": "~5.0.0",
@@ -65,13 +77,14 @@
     "karma-jasmine-html-reporter": "^1.5.0",
     "ng-packagr": "^14.0.2",
     "ngeohash": "^0.6.3",
-    "ol": "^6.14.1",
+    "ol": "^7.2.2",
+    "pmtiles": "^2.7.0",
     "prettier": "^2.5.1",
     "prettier-plugin-organize-attributes": "^0.0.5",
     "proj4": "2.6.2",
     "protractor": "~7.0.0",
     "rxjs": "~6.6.3",
-    "signalk-client-angular": "^2.0.0-beta.rc1",
+    "signalk-client-angular": "^2.0.0-beta.rc2",
     "signalk-worker-angular": "^1.1.4-beta.2",
     "simplify-ts": "^1.0.2",
     "ts-node": "~7.0.0",

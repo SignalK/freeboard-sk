@@ -8,7 +8,7 @@ import {
   OnInit,
   Output,
   SimpleChange,
-  SimpleChanges,
+  SimpleChanges
 } from '@angular/core';
 import { Layer } from 'ol/layer';
 import { Feature } from 'ol';
@@ -25,7 +25,7 @@ import { AsyncSubject } from 'rxjs';
 @Component({
   selector: 'ol-map > sk-waypoints',
   template: '<ng-content></ng-content>',
-  changeDetection: ChangeDetectionStrategy.OnPush,
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class WaypointLayerComponent implements OnInit, OnDestroy, OnChanges {
   protected layer: Layer;
@@ -120,7 +120,7 @@ export class WaypointLayerComponent implements OnInit, OnDestroy, OnChanges {
         geometry: new Point(
           fromLonLat(waypoints[w].feature.geometry.coordinates)
         ),
-        name: waypoints[w].name,
+        name: waypoints[w].name
       });
       f.setId('waypoint.' + w);
       f.setStyle(this.buildStyle(w, waypoints[w]));
@@ -177,13 +177,13 @@ export class WaypointLayerComponent implements OnInit, OnDestroy, OnChanges {
             fill: new Fill({ color: 'blue' }),
             stroke: new Stroke({
               color: 'black',
-              width: 2,
-            }),
+              width: 2
+            })
           }),
           text: new Text({
             text: '',
-            offsetY: -12,
-          }),
+            offsetY: -12
+          })
         });
       } else {
         s = new Style({
@@ -192,13 +192,13 @@ export class WaypointLayerComponent implements OnInit, OnDestroy, OnChanges {
             fill: new Fill({ color: 'gold' }),
             stroke: new Stroke({
               color: 'black',
-              width: 2,
-            }),
+              width: 2
+            })
           }),
           text: new Text({
             text: '',
-            offsetY: -12,
-          }),
+            offsetY: -12
+          })
         });
       }
       return this.setTextLabel(s, wpt.name);
@@ -228,7 +228,7 @@ export class WaypointLayerComponent implements OnInit, OnDestroy, OnChanges {
 @Component({
   selector: 'ol-map > fb-waypoints',
   template: '<ng-content></ng-content>',
-  changeDetection: ChangeDetectionStrategy.OnPush,
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class FreeboardWaypointLayerComponent extends WaypointLayerComponent {
   @Input() waypoints: Array<[string, any, boolean]>;
@@ -247,7 +247,7 @@ export class FreeboardWaypointLayerComponent extends WaypointLayerComponent {
         // selected
         const f = new Feature({
           geometry: new Point(fromLonLat(w[1].feature.geometry.coordinates)),
-          name: w[1].name,
+          name: w[1].name
         });
         f.setId('waypoint.' + w[0]);
         f.setStyle(this.buildStyle(w[0], w[1]));

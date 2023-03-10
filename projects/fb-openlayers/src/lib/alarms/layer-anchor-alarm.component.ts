@@ -7,7 +7,7 @@ import {
   OnDestroy,
   OnInit,
   Output,
-  SimpleChanges,
+  SimpleChanges
 } from '@angular/core';
 import { Layer } from 'ol/layer';
 import { Feature } from 'ol';
@@ -25,7 +25,7 @@ import { AsyncSubject } from 'rxjs';
 @Component({
   selector: 'ol-map > fb-anchor-alarm',
   template: '<ng-content></ng-content>',
-  changeDetection: ChangeDetectionStrategy.OnPush,
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class AnchorAlarmComponent implements OnInit, OnDestroy, OnChanges {
   protected layer: Layer;
@@ -111,20 +111,17 @@ export class AnchorAlarmComponent implements OnInit, OnDestroy, OnChanges {
     this.mapifiedLine = mapifyCoords(this.lineCoords);
     const fa: Feature[] = [];
     const f = new Feature({
-      geometry: new LineString(fromLonLatArray(this.mapifiedLine)),
+      geometry: new LineString(fromLonLatArray(this.mapifiedLine))
     });
     f.setStyle(this.buildStyle('line'));
     fa.push(f);
     const fc = new Feature({
-      geometry: new Circle(
-        fromLonLat(this.anchorPosition),
-        this.mapifiedRadius
-      ),
+      geometry: new Circle(fromLonLat(this.anchorPosition), this.mapifiedRadius)
     });
     fc.setStyle(this.buildStyle('circle'));
     fa.push(fc);
     const fp = new Feature({
-      geometry: new Point(fromLonLat(this.anchorPosition)),
+      geometry: new Point(fromLonLat(this.anchorPosition))
     });
     fp.setStyle(this.buildStyle('anchor'));
     fa.push(fp);
@@ -144,11 +141,11 @@ export class AnchorAlarmComponent implements OnInit, OnDestroy, OnChanges {
           stroke: new Stroke({
             width: 2,
             color: 'black',
-            lineDash: [5, 5],
+            lineDash: [5, 5]
           }),
           fill: new Fill({
-            color: 'rgba(0, 255, 0, .3)',
-          }),
+            color: 'rgba(0, 255, 0, .3)'
+          })
         });
       }
     }

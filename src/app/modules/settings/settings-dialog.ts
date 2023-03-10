@@ -123,4 +123,8 @@ export class SettingsDialog implements OnInit {
     this.facade.settings.selections.aisState = [].concat(s);
     this.facade.applySettings();
   }
+
+  noSort() {
+    return 0;
+  }
 }

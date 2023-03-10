@@ -4,7 +4,7 @@ import {
   ChangeDetectionStrategy,
   ChangeDetectorRef,
   OnDestroy,
-  OnInit,
+  OnInit
 } from '@angular/core';
 import { Control } from 'ol/control';
 import { MapComponent } from './map.component';
@@ -12,7 +12,7 @@ import { MapComponent } from './map.component';
 @Component({
   selector: 'ol-map > ol-control',
   template: '<ng-content></ng-content>',
-  changeDetection: ChangeDetectionStrategy.OnPush,
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class ControlComponent implements OnInit, OnDestroy {
   protected control: Control;

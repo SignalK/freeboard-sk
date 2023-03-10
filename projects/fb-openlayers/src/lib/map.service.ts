@@ -6,7 +6,7 @@ import { register } from 'ol/proj/proj4.js';
 import proj4 from 'proj4';
 
 @Injectable({
-  providedIn: 'root',
+  providedIn: 'root'
 })
 export class MapService {
   maps: Map[];

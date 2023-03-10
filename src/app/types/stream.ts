@@ -54,3 +54,10 @@ export class UpdateMessage implements WorkerMessageBase {
     this.action = 'update';
   }
 }
+
+export class TrailMessage extends UpdateMessage {
+  constructor() {
+    super();
+    this.action = 'trail';
+  }
+}

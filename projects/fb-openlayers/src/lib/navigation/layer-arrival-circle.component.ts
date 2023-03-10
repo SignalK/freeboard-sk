@@ -7,7 +7,7 @@ import {
   OnDestroy,
   OnInit,
   Output,
-  SimpleChanges,
+  SimpleChanges
 } from '@angular/core';
 import { Layer } from 'ol/layer';
 import { Feature } from 'ol';
@@ -25,7 +25,7 @@ import { AsyncSubject } from 'rxjs';
 @Component({
   selector: 'ol-map > fb-arrival-circle',
   template: '<ng-content></ng-content>',
-  changeDetection: ChangeDetectionStrategy.OnPush,
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class ArrivalCircleComponent implements OnInit, OnDestroy, OnChanges {
   protected layer: Layer;
@@ -109,7 +109,7 @@ export class ArrivalCircleComponent implements OnInit, OnDestroy, OnChanges {
       geometry: new Circle(
         fromLonLat(this.position),
         mapifyRadius(this.radius, this.position)
-      ),
+      )
     });
     f.setStyle(this.buildStyle());
     fa.push(f);
@@ -128,8 +128,8 @@ export class ArrivalCircleComponent implements OnInit, OnDestroy, OnChanges {
         stroke: new Stroke({
           color: 'rgba(242, 153, 10, 1)',
           width: 2,
-          lineDash: [5, 5],
-        }),
+          lineDash: [5, 5]
+        })
       });
     }
     return cs;

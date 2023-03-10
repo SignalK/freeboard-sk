@@ -117,7 +117,8 @@ aton: SKAtoN - aton data
         <div
           style="flex: 1 1 auto;text-align:right;"
           [innerText]="
-            aton.position[1] | coords: app.config.selections.positionFormat:true
+            aton.position[1]
+              | coords : app.config.selections.positionFormat : true
           "
         ></div>
       </div>
@@ -126,7 +127,7 @@ aton: SKAtoN - aton data
         <div
           style="flex: 1 1 auto;text-align:right;"
           [innerText]="
-            aton.position[0] | coords: app.config.selections.positionFormat
+            aton.position[0] | coords : app.config.selections.positionFormat
           "
         ></div>
       </div>
@@ -223,7 +224,7 @@ aircraft: SKAircraft - aircraft data
           style="flex: 1 1 auto;text-align:right;"
           [innerText]="
             aircraft.position[1]
-              | coords: app.config.selections.positionFormat:true
+              | coords : app.config.selections.positionFormat : true
           "
         ></div>
       </div>
@@ -232,7 +233,7 @@ aircraft: SKAircraft - aircraft data
         <div
           style="flex: 1 1 auto;text-align:right;"
           [innerText]="
-            aircraft.position[0] | coords: app.config.selections.positionFormat
+            aircraft.position[0] | coords : app.config.selections.positionFormat
           "
         ></div>
       </div>

@@ -54,43 +54,6 @@ export class GeoUtils {
     return Math.abs(coord[0]) >= zoneValue ? true : false;
   }
 
-  // update line coords for map display (including dateline crossing)
-  static mapifyCoords(coords: Position[]) {
-    if (coords.length == 0) {
-      return coords;
-    }
-    let dlCrossing = 0;
-    const last = coords[0];
-    for (let i = 0; i < coords.length; i++) {
-      if (
-        GeoUtils.inDLCrossingZone(coords[i]) ||
-        GeoUtils.inDLCrossingZone(last)
-      ) {
-        dlCrossing =
-          last[0] > 0 && coords[i][0] < 0
-            ? 1
-            : last[0] < 0 && coords[i][0] > 0
-            ? -1
-            : 0;
-        if (dlCrossing == 1) {
-          coords[i][0] = coords[i][0] + 360;
-        }
-        if (dlCrossing == -1) {
-          coords[i][0] = Math.abs(coords[i][0]) - 360;
-        }
-      }
-    }
-    return coords;
-  }
-
-  // ** return adjusted radius to correctly render circle on ground at given position.
-  static mapifyRadius(radius: number, position: Position): number {
-    if (typeof radius === 'undefined' || typeof position === 'undefined') {
-      return radius;
-    }
-    return radius / getPointResolution('EPSG:3857', 1, fromLonLat(position));
-  }
-
   // returns true if point is inside the supplied extent
   static inBounds(point: Position, extent: Extent) {
     return isPointInPolygon(point, [

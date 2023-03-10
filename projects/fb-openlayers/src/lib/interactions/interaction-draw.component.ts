@@ -4,10 +4,9 @@ import {
   Component,
   Output,
   Input,
-  EventEmitter,
+  EventEmitter
 } from '@angular/core';
 import { Map } from 'ol';
-import GeometryType from 'ol/geom/GeometryType';
 import { Draw } from 'ol/interaction';
 import { DrawEvent } from 'ol/interaction/Draw';
 import { Style } from 'ol/style';
@@ -16,7 +15,7 @@ import { MapComponent } from '../map.component';
 @Component({
   selector: 'ol-map > ol-draw',
   template: '<ng-content></ng-content>',
-  changeDetection: ChangeDetectionStrategy.OnPush,
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class InteractionDrawComponent {
   constructor(
@@ -26,7 +25,7 @@ export class InteractionDrawComponent {
     this.changeDetectorRef.detach();
   }
 
-  @Input() type = GeometryType.LINE_STRING;
+  @Input() type = 'LineString';
   @Input() style: Style;
 
   @Output() change: EventEmitter<DrawEvent> = new EventEmitter();
@@ -55,7 +54,7 @@ export class InteractionDrawComponent {
     if (undefined !== this.map) {
       const opt: any = {
         type: this.type,
-        stopClick: true,
+        stopClick: true
       };
       if (this.style) {
         opt.style = this.style;

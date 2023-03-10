@@ -127,6 +127,19 @@ import { Subscription } from 'rxjs';
                 }}</mat-option>
               </mat-select>
             </mat-form-field>
+
+            <mat-form-field style="width:50px;">
+              <mat-select
+                id="arrivalSeconds"
+                [(ngModel)]="arrivalData.seconds"
+                [disabled]="!targetArrivalEnabled"
+                (selectionChange)="onFormChange($event)"
+              >
+                <mat-option *ngFor="let i of minValues()" [value]="i">{{
+                  i
+                }}</mat-option>
+              </mat-select>
+            </mat-form-field>
           </div>
         </div>
       </mat-card>
@@ -138,7 +151,8 @@ import { Subscription } from 'rxjs';
             <mat-slide-toggle
               id="autopilotenable"
               color="primary"
-              [(checked)]="app.data.vessels.self.autopilot.enabled"
+              [disabled]="!hasAutoPilot"
+              [checked]="app.data.vessels.self.autopilot.state === 'enabled'"
               (change)="onFormChange($event)"
               placeholder="Autopilot Enabled"
             >
@@ -156,7 +170,7 @@ import { Subscription } from 'rxjs';
                 (selectionChange)="onFormChange($event)"
               >
                 <mat-option
-                  *ngFor="let i of app.data.vessels.self.autopilot.modeList"
+                  *ngFor="let i of autoPilotModes"
                   [value]="i"
                   [matTooltip]="i"
                   matTooltipPosition="right"
@@ -195,8 +209,15 @@ export class CourseSettingsModal implements OnInit {
   protected arrivalData = {
     hour: '00',
     minutes: '00',
+    seconds: '00',
     datetime: null
   };
+  protected autoPilotModes = []; //this.app.data.vessels.self.autopilot.modeList
+  protected hasAutoPilot = false;
+  private context = 'self';
+  /*this.app.data.vessels.activeId
+  ? this.app.data.vessels.activeId
+  : 'self';*/
 
   constructor(
     public app: AppInfo,
@@ -212,11 +233,11 @@ export class CourseSettingsModal implements OnInit {
       this.data['title'] = 'Course Settings';
     }
     this.frmArrivalCircle =
-      this.app.data.navData.arrivalCircle == null
+      this.app.data.navData.arrivalCircle === null
         ? 0
         : this.app.data.navData.arrivalCircle;
     this.frmArrivalCircle =
-      this.app.config.units.distance == 'm'
+      this.app.config.units.distance === 'm'
         ? this.frmArrivalCircle
         : Number(
             Convert.kmToNauticalMiles(this.frmArrivalCircle / 1000).toFixed(1)
@@ -229,7 +250,7 @@ export class CourseSettingsModal implements OnInit {
     });
 
     this.signalk.api
-      .get(2, 'vessels/self/navigation/course')
+      .get(this.app.skApiVersion, 'vessels/self/navigation/course')
       .subscribe((val) => {
         console.log(val.targetArrivalTime);
         if (val.targetArrivalTime) {
@@ -241,8 +262,31 @@ export class CourseSettingsModal implements OnInit {
           this.arrivalData.minutes = (
             '00' + this.arrivalData.datetime.getMinutes()
           ).slice(-2);
+          this.arrivalData.seconds = (
+            '00' + this.arrivalData.datetime.getSeconds()
+          ).slice(-2);
         }
       });
+
+    this.signalk.api
+      .get(this.app.skApiVersion, 'vessels/self/steering/autopilot/config')
+      .subscribe(
+        (val) => {
+          console.log(val);
+          if (
+            val.options &&
+            val.options.mode &&
+            Array.isArray(val.options.mode)
+          ) {
+            this.autoPilotModes = val.options.mode;
+            this.hasAutoPilot = true;
+          }
+        },
+        () => {
+          this.autoPilotModes = [];
+          this.hasAutoPilot = false;
+        }
+      );
   }
 
   ngOnDestroy() {
@@ -254,18 +298,21 @@ export class CourseSettingsModal implements OnInit {
   }
 
   onFormChange(e) {
-    const context = this.app.data.vessels.activeId
-      ? this.app.data.vessels.activeId
-      : 'self';
     if (
       e.targetElement &&
-      ['arrivalDate', 'arrivalHour', 'arrivalMinutes'].includes(
-        e.targetElement.id
-      )
+      [
+        'arrivalDate',
+        'arrivalHour',
+        'arrivalMinutes',
+        'arrivalSeconds'
+      ].includes(e.targetElement.id)
     ) {
       this.processTargetArrival();
     }
-    if (e.source && ['arrivalHour', 'arrivalMinutes'].includes(e.source.id)) {
+    if (
+      e.source &&
+      ['arrivalHour', 'arrivalMinutes', 'arrivalSeconds'].includes(e.source.id)
+    ) {
       this.processTargetArrival();
     }
     if (e.target && e.target.id == 'arrivalCircle') {
@@ -279,14 +326,18 @@ export class CourseSettingsModal implements OnInit {
         this.signalk.api
           .putWithContext(
             this.app.skApiVersion,
-            context,
+            this.context,
             'navigation/course/arrivalCircle',
             { value: d }
           )
           .subscribe(
             () => undefined,
-            (err: HttpErrorResponse) => {
-              console.warn(err.error.message);
+            (error: HttpErrorResponse) => {
+              let msg = `Error setting Arrival Circle!\n`;
+              if (error.status === 403) {
+                msg += 'Unauthorised: Please login.';
+              }
+              this.app.showAlert(`Error (${error.status}):`, msg);
             }
           );
       }
@@ -295,26 +346,44 @@ export class CourseSettingsModal implements OnInit {
       if (e.source.id === 'autopilotenable') {
         // toggle autopilot enable
         this.signalk.api
-          .putWithContext(context, 'steering/autopilot/state', {
-            value: e.checked ? 'enabled' : 'disabled'
-          })
+          .putWithContext(
+            this.app.skApiVersion,
+            this.context,
+            'steering/autopilot/state',
+            {
+              value: e.checked ? 'enabled' : 'disabled'
+            }
+          )
           .subscribe(
             () => undefined,
-            (err: HttpErrorResponse) => {
-              console.warn(err.error.message);
+            (error: HttpErrorResponse) => {
+              let msg = `Error setting Autopilot state!\n`;
+              if (error.status === 403) {
+                msg += 'Unauthorised: Please login.';
+              }
+              this.app.showAlert(`Error (${error.status}):`, msg);
             }
           );
       }
       if (e.source.id === 'autopilotmode') {
         // autopilot mode
         this.signalk.api
-          .putWithContext(context, 'steering/autopilot/mode', {
-            value: e.value
-          })
+          .putWithContext(
+            this.app.skApiVersion,
+            this.context,
+            'steering/autopilot/mode',
+            {
+              value: e.value
+            }
+          )
           .subscribe(
             () => undefined,
-            (err: HttpErrorResponse) => {
-              console.warn(err.error.message);
+            (error: HttpErrorResponse) => {
+              let msg = `Error setting Autopilot mode!\n`;
+              if (error.status === 403) {
+                msg += 'Unauthorised: Please login.';
+              }
+              this.app.showAlert(`Error (${error.status}):`, msg);
             }
           );
       }
@@ -326,9 +395,14 @@ export class CourseSettingsModal implements OnInit {
     if (!this.targetArrivalEnabled) {
       this.arrivalData.datetime = null;
       this.signalk.api
-        .put(2, 'vessels/self/navigation/course/targetArrivalTime', {
-          value: null
-        })
+        .putWithContext(
+          this.app.skApiVersion,
+          this.context,
+          'navigation/course/targetArrivalTime',
+          {
+            value: null
+          }
+        )
         .subscribe();
     } else {
       this.processTargetArrival();
@@ -340,12 +414,28 @@ export class CourseSettingsModal implements OnInit {
       if (!this.arrivalData.datetime) {
         return;
       }
-      console.log(this.formatArrivalTime());
+      const atime = this.formatArrivalTime();
       this.signalk.api
-        .put(2, 'vessels/self/navigation/course/targetArrivalTime', {
-          value: this.formatArrivalTime()
-        })
-        .subscribe();
+        .putWithContext(
+          this.app.skApiVersion,
+          this.context,
+          'navigation/course/targetArrivalTime',
+          {
+            value: atime
+          }
+        )
+        .subscribe(
+          () => {
+            console.log('targetArrivalTime = ', atime);
+          },
+          (error: HttpErrorResponse) => {
+            let msg = `Error setting target arrival time!\n`;
+            if (error.status === 403) {
+              msg += 'Unauthorised: Please login.';
+            }
+            this.app.showAlert(`Error (${error.status}):`, msg);
+          }
+        );
     }
   }
 
@@ -353,6 +443,7 @@ export class CourseSettingsModal implements OnInit {
     let ts = '';
     this.arrivalData.datetime.setHours(parseInt(this.arrivalData.hour));
     this.arrivalData.datetime.setMinutes(parseInt(this.arrivalData.minutes));
+    this.arrivalData.datetime.setSeconds(parseInt(this.arrivalData.seconds));
     ts = this.arrivalData.datetime.toISOString();
     return ts.slice(0, ts.indexOf('.')) + 'Z';
   }

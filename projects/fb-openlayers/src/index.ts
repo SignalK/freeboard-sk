@@ -18,19 +18,19 @@ import { InteractionDrawComponent } from './lib/interactions/interaction-draw.co
 import { InteractionModifyComponent } from './lib/interactions/interaction-modify.component';
 import {
   WaypointLayerComponent,
-  FreeboardWaypointLayerComponent,
+  FreeboardWaypointLayerComponent
 } from './lib/resources/layer-waypoints.component';
 import {
   NoteLayerComponent,
-  FreeboardNoteLayerComponent,
+  FreeboardNoteLayerComponent
 } from './lib/resources/layer-notes.component';
 import {
   RouteLayerComponent,
-  FreeboardRouteLayerComponent,
+  FreeboardRouteLayerComponent
 } from './lib/resources/layer-routes.component';
 import {
   RegionLayerComponent,
-  FreeboardRegionLayerComponent,
+  FreeboardRegionLayerComponent
 } from './lib/resources/layer-regions.component';
 import { FreeboardChartLayerComponent } from './lib/resources/layer-charts.component';
 import { TrackLayerComponent } from './lib/resources/layer-tracks.component';
@@ -65,19 +65,19 @@ export { InteractionDrawComponent } from './lib/interactions/interaction-draw.co
 export { InteractionModifyComponent } from './lib/interactions/interaction-modify.component';
 export {
   WaypointLayerComponent,
-  FreeboardWaypointLayerComponent,
+  FreeboardWaypointLayerComponent
 } from './lib/resources/layer-waypoints.component';
 export {
   NoteLayerComponent,
-  FreeboardNoteLayerComponent,
+  FreeboardNoteLayerComponent
 } from './lib/resources/layer-notes.component';
 export {
   RouteLayerComponent,
-  FreeboardRouteLayerComponent,
+  FreeboardRouteLayerComponent
 } from './lib/resources/layer-routes.component';
 export {
   RegionLayerComponent,
-  FreeboardRegionLayerComponent,
+  FreeboardRegionLayerComponent
 } from './lib/resources/layer-regions.component';
 export { FreeboardChartLayerComponent } from './lib/resources/layer-charts.component';
 export { TrackLayerComponent } from './lib/resources/layer-tracks.component';
@@ -126,12 +126,12 @@ const declarations = [
   VesselComponent,
   VesselTrailComponent,
   SKVesselsLayerComponent,
-  DirectionOfTravelComponent,
+  DirectionOfTravelComponent
 ];
 
 @NgModule({
   imports: [],
   declarations: [...declarations],
-  exports: [...declarations],
+  exports: [...declarations]
 })
 export class FreeboardOpenlayersModule {}

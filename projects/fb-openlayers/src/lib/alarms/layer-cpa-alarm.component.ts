@@ -7,7 +7,7 @@ import {
   OnDestroy,
   OnInit,
   Output,
-  SimpleChanges,
+  SimpleChanges
 } from '@angular/core';
 import { Layer } from 'ol/layer';
 import { Feature } from 'ol';
@@ -25,7 +25,7 @@ import { AsyncSubject } from 'rxjs';
 @Component({
   selector: 'ol-map > fb-cpa-alarm',
   template: '<ng-content></ng-content>',
-  changeDetection: ChangeDetectionStrategy.OnPush,
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class CPAAlarmComponent implements OnInit, OnDestroy, OnChanges {
   protected layer: Layer;
@@ -107,12 +107,12 @@ export class CPAAlarmComponent implements OnInit, OnDestroy, OnChanges {
     this.mapifiedLine = mapifyCoords(this.lineCoords);
     const fa: Feature[] = [];
     const f = new Feature({
-      geometry: new LineString(fromLonLatArray(this.mapifiedLine)),
+      geometry: new LineString(fromLonLatArray(this.mapifiedLine))
     });
     f.setStyle(this.buildStyle());
     fa.push(f);
     const fp = new Feature({
-      geometry: new Point(fromLonLat(this.targetPosition)),
+      geometry: new Point(fromLonLat(this.targetPosition))
     });
     fp.setStyle(this.buildStyle());
     fa.push(fp);
@@ -132,20 +132,20 @@ export class CPAAlarmComponent implements OnInit, OnDestroy, OnChanges {
           stroke: new Stroke({
             width: 2,
             color: 'red',
-            lineDash: [2, 3],
+            lineDash: [2, 3]
           }),
           fill: new Fill({
-            color: 'rgba(255,0,0,.2)',
-          }),
+            color: 'rgba(255,0,0,.2)'
+          })
         }),
         stroke: new Stroke({
           width: 2,
           color: 'red',
-          lineDash: [2, 3],
+          lineDash: [2, 3]
         }),
         fill: new Fill({
-          color: 'rgba(255,0,0,.2)',
-        }),
+          color: 'rgba(255,0,0,.2)'
+        })
       });
     }
     return cs;

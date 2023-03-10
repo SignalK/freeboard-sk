@@ -224,6 +224,9 @@ export class AppComponent {
           this.onError(msg)
         )
     );
+    this.obsList.push(
+      this.stream.trail$().subscribe((msg) => this.handleResourceUpdate(msg))
+    );
     // ** RESOURCES update event
     this.obsList.push(
       this.skres
@@ -705,7 +708,7 @@ export class AppComponent {
         disableClose: false,
         data: {
           name: this.app.name,
-          version: this.app.version,
+          version: this.app.plugin.version,
           description: this.app.description,
           logo: this.app.logo,
           url: this.app.url
@@ -1078,7 +1081,7 @@ export class AppComponent {
 
   // ** clear active destination **
   public clearDestintation() {
-    this.skres.clearDestintation(this.app.data.vessels.activeId);
+    this.skres.clearCourse(this.app.data.vessels.activeId);
   }
 
   // ********** MAP / UI ACTIONS **********
@@ -1354,7 +1357,7 @@ export class AppComponent {
         break;
       case 'region': // region + Note
         region = new SKRegion();
-        uuid = this.signalk.uuid.toSignalK();
+        uuid = this.signalk.uuid;
         region.feature.geometry.coordinates = [
           GeoUtils.normaliseCoords(e.coordinates as Polygon)
         ];
@@ -1466,7 +1469,7 @@ export class AppComponent {
   private queryAfterConnect() {
     if (this.signalk.server.info.version.split('.')[0] === '1') {
       this.app.showAlert(
-        'Unsupported Server Version:', 
+        'Unsupported Server Version:',
         'The connected Signal K server is not supported by this version of Freeboard-SK.\n Signal K server version 2 or later is required!'
       );
     }
@@ -1503,6 +1506,7 @@ export class AppComponent {
         this.app.debug('No vessel data available!');
       }
     );
+    this.app.fetchPluginSettings();
   }
 
   // ** handle connection established

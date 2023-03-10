@@ -4,7 +4,7 @@ import {
   Component,
   Output,
   Input,
-  EventEmitter,
+  EventEmitter
 } from '@angular/core';
 import { Map, Feature, Collection, MapBrowserEvent } from 'ol';
 import { Geometry } from 'ol/geom';
@@ -15,7 +15,7 @@ import { MapComponent } from '../map.component';
 @Component({
   selector: 'ol-map > ol-modify',
   template: '<ng-content></ng-content>',
-  changeDetection: ChangeDetectionStrategy.OnPush,
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class InteractionModifyComponent {
   constructor(
@@ -30,11 +30,9 @@ export class InteractionModifyComponent {
   @Output() change: EventEmitter<ModifyEvent> = new EventEmitter();
   @Output() modifyStart: EventEmitter<ModifyEvent> = new EventEmitter();
   @Output() modifyEnd: EventEmitter<ModifyEvent> = new EventEmitter();
-  @Output() propertyChange: EventEmitter<ModifyEvent> = new EventEmitter();
 
   private map: Map;
   private interaction: Modify;
-
 
   ngAfterViewInit() {
     this.map = this.mapComponent.getMap();
@@ -46,7 +44,6 @@ export class InteractionModifyComponent {
     this.interaction.un('change', this.emitChangeEvent);
     this.interaction.un('modifystart', this.emitModifyStartEvent);
     this.interaction.un('modifyend', this.emitModifyEndEvent);
-    this.interaction.un('propertychange', this.emitPropertyChangeEvent);
     this.interaction = null;
   }
 
@@ -54,18 +51,17 @@ export class InteractionModifyComponent {
     if (undefined !== this.map) {
       this.interaction = new Modify({
         features: this.features,
-        deleteCondition: (e: MapBrowserEvent) => {
+        deleteCondition: (e: MapBrowserEvent<any>) => {
           if (e.type == 'click' && (e.originalEvent as any).ctrlKey) {
             return true;
           } else {
             return false;
           }
-        },
+        }
       });
       this.interaction.on('change', this.emitChangeEvent);
       this.interaction.on('modifystart', this.emitModifyStartEvent);
       this.interaction.on('modifyend', this.emitModifyEndEvent);
-      this.interaction.on('propertychange', this.emitPropertyChangeEvent);
       this.map.addInteraction(this.interaction);
       this.changeDetectorRef.detectChanges();
     }
@@ -78,6 +74,4 @@ export class InteractionModifyComponent {
     this.modifyStart.emit(event);
   private emitModifyEndEvent = (event: ModifyEvent) =>
     this.modifyEnd.emit(event);
-  private emitPropertyChangeEvent = (event: ModifyEvent) =>
-    this.propertyChange.emit(event);
 }

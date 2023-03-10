@@ -30,7 +30,7 @@ isSelf: boolean - true if vessel 'self'
         <div
           style="flex: 1 1 auto;text-align:right;"
           [innerText]="
-            position[1] | coords: app.config.selections.positionFormat:true
+            position[1] | coords : app.config.selections.positionFormat : true
           "
         ></div>
       </div>
@@ -39,7 +39,7 @@ isSelf: boolean - true if vessel 'self'
         <div
           style="flex: 1 1 auto;text-align:right;"
           [innerText]="
-            position[0] | coords: app.config.selections.positionFormat
+            position[0] | coords : app.config.selections.positionFormat
           "
         ></div>
       </div>

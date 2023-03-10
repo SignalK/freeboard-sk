@@ -77,7 +77,7 @@ export class GPXSaveFacade {
 
     for (let i = 0; i < selections.trk.selected.length; i++) {
       if (selections.trk.selected[i]) {
-        const uuid = this.signalk.uuid.toSignalK();
+        const uuid = this.signalk.uuid;
         sktracks[uuid] = new SKTrack();
         sktracks[uuid].feature.id = uuid;
         sktracks[

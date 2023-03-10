@@ -7,7 +7,7 @@ import {
   OnDestroy,
   OnInit,
   Output,
-  SimpleChanges,
+  SimpleChanges
 } from '@angular/core';
 import { Layer } from 'ol/layer';
 import ImageLayer from 'ol/layer/Image';
@@ -22,7 +22,7 @@ import {
   TileImage,
   TileWMS,
   WMTS,
-  XYZ,
+  XYZ
 } from 'ol/source';
 import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
@@ -35,7 +35,7 @@ import { AsyncSubject } from 'rxjs';
 @Component({
   selector: 'ol-map > ol-layer',
   template: '<ng-content></ng-content>',
-  changeDetection: ChangeDetectionStrategy.OnPush,
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class LayerComponent implements OnInit, OnDestroy, OnChanges {
   protected layer: Layer;
