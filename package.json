@@ -2,8 +2,6 @@
   "name": "@signalk/freeboard-sk",
   "version": "2.0.0",
   "description": "Openlayers chart plotter implementation for Signal K",
-  "version": "1.22.1",
-  "description": "Openlayers chartplotter implementation for Signal K",
   "keywords": [
     "signalk-webapp",
     "signalk-node-server-plugin",
@@ -13,10 +11,7 @@
     "appIcon": "./assets/icons/icon-72x72.png",
     "displayName": "Freeboard-SK"
   },
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/SignalK/freeboard-sk"
-  },
+  "repository": "https://github.com/SignalK/freeboard-sk",
   "main": "plugin/index.js",
   "signalk-plugin-enabled-by-default": true,
   "scripts": {
