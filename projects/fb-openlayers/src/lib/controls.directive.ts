@@ -1,12 +1,19 @@
-import {ChangeDetectorRef, Directive, Input, OnInit} from '@angular/core';
-import {Attribution, FullScreen, Rotate, ScaleLine, Zoom, ZoomSlider, ZoomToExtent} from 'ol/control';
-import {MapComponent} from './map.component';
+import { ChangeDetectorRef, Directive, Input, OnInit } from '@angular/core';
+import {
+  Attribution,
+  FullScreen,
+  Rotate,
+  ScaleLine,
+  Zoom,
+  ZoomSlider,
+  ZoomToExtent
+} from 'ol/control';
+import { MapComponent } from './map.component';
 
 @Directive({
   selector: 'ol-map > [olControls]'
 })
 export class ControlsDirective implements OnInit {
-
   private controls = [];
   private readonly controlList = {
     attribution: Attribution,
@@ -18,8 +25,10 @@ export class ControlsDirective implements OnInit {
     zoomtoextent: ZoomToExtent
   };
 
-  constructor(protected changeDetectorRef: ChangeDetectorRef,
-              protected mapComponent: MapComponent) {
+  constructor(
+    protected changeDetectorRef: ChangeDetectorRef,
+    protected mapComponent: MapComponent
+  ) {
     this.changeDetectorRef.detach();
   }
 
@@ -52,8 +61,9 @@ export class ControlsDirective implements OnInit {
       console.warn(`Unknown control ${controlConfig.name}`);
       return;
     }
-    const newControl = new this.controlList[controlConfig.name](controlConfig.options);
+    const newControl = new this.controlList[controlConfig.name](
+      controlConfig.options
+    );
     map.addControl(newControl);
   }
-
 }

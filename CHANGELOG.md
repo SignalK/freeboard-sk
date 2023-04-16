@@ -1,5 +1,49 @@
 # CHANGELOG: Freeboard
 
+### v2.0.0
+
+__** BREAKING CHANGES **__ 
+- Freeboard-SK now requires Signal K API Version 2 as it makes extensive use of both the new `Resources` and `Course` APIs.
+
+- Standard Alarms provider: Freeboard-SK now acts as a provider for standard Signal K alarms and no longer requires the `freeboard-sk-helper` plugin to set and clear these alarms _(i.e. Man Overboard, Sinking, etc.)_. 
+This function can be enabled / disabled in the **Plugin Config** section of the Signal K admin console.
+
+__UPDATES:__ 
+
+- **Added**: Restart course calculations using the current vessel position
+
+- **Added**: Reverse direction a route is followed.
+
+- **Added**: Display arrow(s) showing the direction the active route is being followed.
+
+- **Added**: Advance to next route point button to arrival notification to .
+
+- **Added**: Setting to select auto advance to next route point on arrival with choice of time delay.
+
+- **Added**: Option to delete attached notes when deleting a resource.
+
+- **Added**: Ability to enter `name` and `description` for a region resource.
+
+- **New**: Support for PMTiles map files (`raster` and `vector`).
+
+- **New**: Detect "circular routes" _(first and last points have the exact same coordinate)_ allowing Issue where vessel wind vector on map was not displayed when heading was 0 degrees
+
+- **New**: `host` and `port` url params to enable connection to an alternate Signal K server.
+
+- **Fix**: Issue where audio was played when notification was 'visual' only.
+
+- **Fix**: Issue where vessel wind vector on map was not displayed when heading was 0 degrees.
+
+- **Change**: Notes are only displayed on the map if they have a valid position. Notes attached to a resource / region are only available in the notes list of that resource.
+
+- **Change**: Updated to use Openlayers v7.
+
+- **Experiments:** _(via `Server Admin -> PluginConfig -> Freeboard-SK`)_
+
+    - Display Weather forecasts and warnings from OpenWeather.
+
+    - Autopilot support (PyPilot).
+
 ### v1.22.1
 
 - **Add**: Additional settings to control the way vessel trail is retrieved from the server.
@@ -53,7 +97,7 @@
 
 ### v1.19.0
 
-- **Add**: Apply a default name to imported GPX tracks when no name is defined in the source file.
+- **Add**: Add a default name to imported GPX tracks when no name is defined in the source file.
 
 - **New**: Attach notes to waypoints and routes.
 

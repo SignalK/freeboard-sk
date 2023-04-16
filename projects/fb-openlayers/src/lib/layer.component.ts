@@ -1,5 +1,6 @@
 import {
-  ChangeDetectionStrategy, ChangeDetectorRef,
+  ChangeDetectionStrategy,
+  ChangeDetectorRef,
   Component,
   Input,
   OnChanges,
@@ -8,20 +9,28 @@ import {
   Output,
   SimpleChanges
 } from '@angular/core';
-import {Layer} from 'ol/layer';
+import { Layer } from 'ol/layer';
 import ImageLayer from 'ol/layer/Image';
 import TileLayer from 'ol/layer/Tile';
 import VectorTileLayer from 'ol/layer/VectorTile';
-// import VectorImageLayer from 'ol/layer/VectorImage';
 import VectorTileSource from 'ol/source/VectorTile';
-import {Cluster, ImageWMS, OSM, Source, TileImage, TileWMS, WMTS, XYZ} from 'ol/source';
+import {
+  Cluster,
+  ImageWMS,
+  OSM,
+  Source,
+  TileImage,
+  TileWMS,
+  WMTS,
+  XYZ
+} from 'ol/source';
 import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
 
-import {MapComponent} from './map.component';
-import {Extent, LayerType, SourceType} from './models';
-import {osmLayer, osmSource} from './util';
-import {AsyncSubject} from 'rxjs';
+import { MapComponent } from './map.component';
+import { Extent, LayerType, SourceType } from './models';
+import { osmLayer, osmSource } from './util';
+import { AsyncSubject } from 'rxjs';
 
 @Component({
   selector: 'ol-map > ol-layer',
@@ -29,7 +38,6 @@ import {AsyncSubject} from 'rxjs';
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class LayerComponent implements OnInit, OnDestroy, OnChanges {
-
   protected layer: Layer;
   public source: any;
 
@@ -51,33 +59,42 @@ export class LayerComponent implements OnInit, OnDestroy, OnChanges {
   @Input() style: any;
   @Input() properties: { [index: string]: any };
 
-  constructor(protected changeDetectorRef: ChangeDetectorRef,
-              protected mapComponent: MapComponent) {
+  constructor(
+    protected changeDetectorRef: ChangeDetectorRef,
+    protected mapComponent: MapComponent
+  ) {
     this.changeDetectorRef.detach();
   }
 
   ngOnInit() {
-
     switch (this.layerType) {
       case LayerType.IMAGE:
         this.source = new ImageWMS(this.sourceOptions);
-        this.layer = new ImageLayer(Object.assign(this, {...this.properties}));
+        this.layer = new ImageLayer(
+          Object.assign(this, { ...this.properties })
+        );
         break;
       case LayerType.TILE:
         this.source = this.getTileSource(this.sourceOptions);
-        this.layer = new TileLayer(Object.assign(this, {...this.properties}));
+        this.layer = new TileLayer(Object.assign(this, { ...this.properties }));
         break;
       case LayerType.VECTOR_TILE:
         this.source = new VectorTileSource(this.sourceOptions);
-        this.layer = new VectorTileLayer(Object.assign(this, {...this.properties}));
+        this.layer = new VectorTileLayer(
+          Object.assign(this, { ...this.properties })
+        );
         break;
       case LayerType.VECTOR:
         if (this.sourceOptions.sourceType === SourceType.CLUSTER) {
           this.source = new Cluster(this.sourceOptions);
-          this.layer = new VectorLayer(Object.assign(this, {...this.properties}));
+          this.layer = new VectorLayer(
+            Object.assign(this, { ...this.properties })
+          );
         } else {
           this.source = new VectorSource(this.sourceOptions);
-          this.layer = new VectorLayer(Object.assign(this, {...this.properties}));
+          this.layer = new VectorLayer(
+            Object.assign(this, { ...this.properties })
+          );
         }
         break;
       default:
@@ -92,7 +109,6 @@ export class LayerComponent implements OnInit, OnDestroy, OnChanges {
       this.layerReady.next(this.layer);
       this.layerReady.complete();
     }
-
   }
 
   ngOnChanges(changes: SimpleChanges) {
@@ -155,7 +171,6 @@ export class LayerComponent implements OnInit, OnDestroy, OnChanges {
   }
 
   private getTileSource(sourceOptions: any) {
-
     switch (sourceOptions.sourceType) {
       case SourceType.IMAGEWMS:
         return new ImageWMS(sourceOptions);
@@ -173,5 +188,4 @@ export class LayerComponent implements OnInit, OnDestroy, OnChanges {
         return osmSource();
     }
   }
-
 }

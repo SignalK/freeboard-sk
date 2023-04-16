@@ -1,4 +1,8 @@
 .browserslistrc
+.eslintrc
+.eslintignore
+.gitignore
+.prettierrc
 angular.json
 e2e
 karma.conf.js
@@ -6,9 +10,10 @@ package-lock.json
 package.json
 projects
 src
+helper
 tsconfig.json
 tsconfig.app.json
+tsconfig-helper.json
 tsconfig.spec.json
 tsconfig.worker.json
-tslint.json
-/.angular
+.angular

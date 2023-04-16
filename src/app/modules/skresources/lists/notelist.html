@@ -1,98 +1,129 @@
 <div class="resourcelist">
-
-    <mat-card class="title-block">
-        <div style="flex: 1 1 auto;">
-            <div class="title-text">Notes:</div>
-            <div>
-                <mat-form-field style="max-width:127px;">
-                    <input #ftext type="text" matInput
-                        [value]="filterText"
-                        (keyup)="filterKeyUp(ftext.value)"
-                        placeholder="type to filter list">
-                    <button mat-button *ngIf="filterText" matSuffix mat-icon-button
-                        (click)="filterKeyUp('')">
-                        <mat-icon>close</mat-icon>
-                    </button>
-                </mat-form-field>                 
-                <button mat-icon-button 
-                    (click)="itemRefresh()"
-                    matTooltip="Reload Notes"
-                    matTooltipPosition="left">
-                    <mat-icon>refresh</mat-icon>
-                </button>
-                <button mat-icon-button  [color]="draftOnly ? 'primary' : ''"
-                    (click)="toggleDraftOnly()"    
-                    matTooltip="Show Draft Only" 
-                    matTooltipPosition="left">
-                    <mat-icon>border_color</mat-icon>
-                </button>   
-                &nbsp;                              
-                <mat-checkbox color="primary"
-                    [checked]="showNotes"
-                    (change)="toggleMapDisplay($event.checked)"
-                    matTooltip="Show Notes on Map"
-                    matTooltipPosition="left">
-                </mat-checkbox>                             
-            </div>
-        </div>
-        <div>
-            <button mat-icon-button 
-                (click)="close()"
-                matTooltip="Close Chart List"
-                matTooltipPosition="left">
-                <mat-icon>close</mat-icon>
-            </button>            
-        </div>
-    </mat-card>
-
-    <div class="resources">
-        <cdk-virtual-scroll-viewport itemSize="72" class="vscroller">
-            <mat-card *cdkVirtualFor="let r of filterList; let i= index;"
-                    style="border-bottom: silver 1px outset;">
-                <div style="display: flex;">
-                    <div style="flex: 1 1 auto; width: 215px;">
-                        <div style="text-overflow: ellipsis; overflow-x: hidden;">
-                            <mat-icon>local_offer</mat-icon>
-                            &nbsp;<b>{{r[1].title}}</b>
-                        </div>
-                    </div>        
-                </div>
-                <mat-card-actions>
-                    <div style="display:flex;">
-                        <div style="text-align:left;">
-                            <button mat-icon-button  color="accent"
-                                *ngIf="r[1].properties && r[1].properties.draft"
-                                [disabled]="true"
-                                matTooltip="Draft" matTooltipPosition="right">
-                                <mat-icon>border_color</mat-icon>
-                            </button> 
-                        </div>
-                        <div style="flex: 1 1 auto; text-align:right;">                          
-                            <button mat-icon-button color="primary"
-                                *ngIf="r[1].group && app.config.resources.notes.groupNameEdit"
-                                (click)="viewNote(r[1].group, true)"
-                                matTooltip="View Group"
-                                matTooltipPosition="left">
-                                    <mat-icon>style</mat-icon>
-                            </button> 
-                            <button mat-icon-button color="primary"
-                                [disabled]="app.config.map.moveMap"
-                                (click)="emitCenter(r[1].position)"
-                                matTooltip="Center Note"
-                                matTooltipPosition="left">
-                                    <mat-icon>center_focus_strong</mat-icon>
-                            </button>                              
-                            <button mat-icon-button color="primary"
-                                (click)="viewNote(r[0])"
-                                matTooltip="View Note"
-                                matTooltipPosition="left">
-                                    <mat-icon>info_outline</mat-icon>
-                            </button>
-                        </div>
-                    </div>
-                </mat-card-actions>                
-            </mat-card>
-
-        </cdk-virtual-scroll-viewport>
+  <mat-card class="title-block">
+    <div style="flex: 1 1 auto">
+      <div class="title-text">Notes:</div>
+      <div>
+        <mat-form-field style="max-width: 127px">
+          <input
+            #ftext
+            type="text"
+            matInput
+            [value]="filterText"
+            (keyup)="filterKeyUp(ftext.value)"
+            placeholder="type to filter list"
+          />
+          <button
+            mat-button
+            *ngIf="filterText"
+            matSuffix
+            mat-icon-button
+            (click)="filterKeyUp('')"
+          >
+            <mat-icon>close</mat-icon>
+          </button>
+        </mat-form-field>
+        <button
+          mat-icon-button
+          (click)="itemRefresh()"
+          matTooltip="Reload Notes"
+          matTooltipPosition="left"
+        >
+          <mat-icon>refresh</mat-icon>
+        </button>
+        <button
+          mat-icon-button
+          [color]="draftOnly ? 'primary' : ''"
+          (click)="toggleDraftOnly()"
+          matTooltip="Show Draft Only"
+          matTooltipPosition="left"
+        >
+          <mat-icon>border_color</mat-icon>
+        </button>
+        &nbsp;
+        <mat-checkbox
+          color="primary"
+          [checked]="showNotes"
+          (change)="toggleMapDisplay($event.checked)"
+          matTooltip="Show Notes on Map"
+          matTooltipPosition="left"
+        >
+        </mat-checkbox>
+      </div>
     </div>
+    <div>
+      <button
+        mat-icon-button
+        (click)="close()"
+        matTooltip="Close Chart List"
+        matTooltipPosition="left"
+      >
+        <mat-icon>close</mat-icon>
+      </button>
+    </div>
+  </mat-card>
+
+  <div class="resources">
+    <cdk-virtual-scroll-viewport class="vscroller" itemSize="72">
+      <mat-card
+        *cdkVirtualFor="let r of filterList; let i= index;"
+        style="border-bottom: silver 1px outset"
+      >
+        <div style="display: flex">
+          <div style="flex: 1 1 auto; width: 215px">
+            <div style="text-overflow: ellipsis; overflow-x: hidden">
+              <mat-icon>local_offer</mat-icon>
+              &nbsp;<b>{{r[1].name}}</b>
+            </div>
+          </div>
+        </div>
+        <mat-card-actions>
+          <div style="display: flex">
+            <div style="text-align: left">
+              <button
+                mat-icon-button
+                color="accent"
+                *ngIf="r[1].properties && r[1].properties.draft"
+                [disabled]="true"
+                matTooltip="Draft"
+                matTooltipPosition="right"
+              >
+                <mat-icon>border_color</mat-icon>
+              </button>
+            </div>
+            <div style="flex: 1 1 auto; text-align: right">
+              <button
+                mat-icon-button
+                color="primary"
+                *ngIf="r[1].group && app.config.resources.notes.groupNameEdit"
+                (click)="viewNote(r[1].group, true)"
+                matTooltip="View Group"
+                matTooltipPosition="left"
+              >
+                <mat-icon>style</mat-icon>
+              </button>
+              <button
+                mat-icon-button
+                color="primary"
+                [disabled]="app.config.map.moveMap"
+                (click)="emitCenter(r[1].position)"
+                matTooltip="Center Note"
+                matTooltipPosition="left"
+              >
+                <mat-icon>center_focus_strong</mat-icon>
+              </button>
+              <button
+                mat-icon-button
+                color="primary"
+                (click)="viewNote(r[0])"
+                matTooltip="View Note"
+                matTooltipPosition="left"
+              >
+                <mat-icon>info_outline</mat-icon>
+              </button>
+            </div>
+          </div>
+        </mat-card-actions>
+      </mat-card>
+    </cdk-virtual-scroll-viewport>
+  </div>
 </div>

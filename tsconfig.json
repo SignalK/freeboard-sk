@@ -19,18 +19,14 @@
       "dom"
     ],
     "paths": {
-//      "ng-openlayers-lib": [
-//        "dist/ng-openlayers-lib"
-//      ],
-//      "ng-openlayers-lib/*": [
-//        "dist/ng-openlayers-lib/*"
-//      ]
       "fb-openlayers": [
         "projects/fb-openlayers/src"
       ],
       "fb-openlayers/*": [
         "projects/fb-openlayers/src/*"
-      ]
+      ],
+      "ol": ["node_modules/@types/ol"],
+      "ol/*": ["node_modules/@types/ol/*"]
     }
   },
   "angularCompilerOptions": {

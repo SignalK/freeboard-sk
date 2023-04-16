@@ -1,89 +1,122 @@
-import { Component, Input, Output, EventEmitter, ChangeDetectionStrategy } from '@angular/core';
+import {
+  Component,
+  Input,
+  Output,
+  EventEmitter,
+  ChangeDetectionStrategy
+} from '@angular/core';
 import { AppInfo } from 'src/app/app.info';
+import { Position } from 'src/app/lib/geoutils';
+import { FBNotes, FBNote, FBResourceSelect, SKPosition } from 'src/app/types';
 
 @Component({
-    selector: 'note-list',
-    changeDetection: ChangeDetectionStrategy.OnPush,
-    templateUrl: './notelist.html',
-    styleUrls: ['./resourcelist.css']
+  selector: 'note-list',
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  templateUrl: './notelist.html',
+  styleUrls: ['./resourcelist.css']
 })
 export class NoteListComponent {
-    @Input() notes;
-    @Output() select: EventEmitter<any>= new EventEmitter();
-    @Output() refresh: EventEmitter<any>= new EventEmitter();
-    @Output() closed: EventEmitter<any>= new EventEmitter();
-    @Output() pan: EventEmitter<{center:[number,number], zoomLevel:number}>= new EventEmitter();
+  @Input() notes: FBNotes;
+  @Output() select: EventEmitter<FBResourceSelect> = new EventEmitter();
+  @Output() refresh: EventEmitter<void> = new EventEmitter();
+  @Output() closed: EventEmitter<void> = new EventEmitter();
+  @Output() pan: EventEmitter<{ center: Position; zoomLevel: number }> =
+    new EventEmitter();
 
-    filterList= [];
-    filterText= '';
-    someSel: boolean= false;
-    showNotes: boolean= false;  
-    draftOnly: boolean= false;  
+  filterList = [];
+  filterText = '';
+  someSel = false;
+  showNotes = false;
+  draftOnly = false;
 
-    constructor(public app:AppInfo) { }
+  constructor(public app: AppInfo) {}
 
-    ngOnInit() { 
-        this.showNotes= this.app.config.notes;
-        this.initItems();
+  ngOnInit() {
+    this.showNotes = this.app.config.notes;
+    this.initItems();
+  }
+
+  ngOnChanges() {
+    this.initItems();
+  }
+
+  close() {
+    this.closed.emit();
+  }
+
+  initItems() {
+    this.doFilter();
+    this.sortFilter();
+    if (this.draftOnly) {
+      this.filterDraftOnly();
     }
+  }
 
-    ngOnChanges() { this.initItems() }
+  toggleMapDisplay(value: boolean) {
+    this.app.config.notes = value;
+    this.app.saveConfig();
+  }
 
-    close() { this.closed.emit() }
+  viewNote(val: string, isGroup = false) {
+    this.select.emit({ id: val, isGroup: isGroup });
+  }
 
-    initItems() {
-        this.doFilter();
-        this.sortFilter();
-        if(this.draftOnly) { this.filterDraftOnly() }
+  itemRefresh() {
+    this.refresh.emit();
+  }
+
+  emitCenter(position: SKPosition) {
+    const zoomTo =
+      this.app.config.map.zoomLevel < this.app.config.selections.notesMinZoom
+        ? this.app.config.selections.notesMinZoom
+        : null;
+    this.pan.emit({
+      center: [position.longitude, position.latitude],
+      zoomLevel: zoomTo
+    });
+  }
+
+  filterKeyUp(e: string) {
+    this.filterText = e;
+    this.doFilter();
+    this.sortFilter();
+  }
+
+  filterDraftOnly() {
+    this.filterList = this.filterList.filter((i) => {
+      if (i[1].properties && i[1].properties.draft) {
+        return i;
+      }
+    });
+  }
+
+  toggleDraftOnly() {
+    this.draftOnly = !this.draftOnly;
+    if (this.draftOnly) {
+      this.filterDraftOnly();
+    } else {
+      this.filterKeyUp('');
     }
+  }
 
-    toggleMapDisplay(value:boolean) { this.app.config.notes=value; this.app.saveConfig(); }    
-
-    viewNote(val:string, isGroup:boolean=false) { this.select.emit( {id:val, isGroup: isGroup} ) }
-
-    itemRefresh() { this.refresh.emit() }
-
-    emitCenter(position) { 
-        let zoomTo= (this.app.config.map.zoomLevel<this.app.config.selections.notesMinZoom) ?
-            this.app.config.selections.notesMinZoom : null;
-        this.pan.emit({center: [position.longitude, position.latitude], zoomLevel: zoomTo});
+  doFilter() {
+    this.filterList = this.notes.filter((i: FBNote) => {
+      if (
+        i[1].name.toLowerCase().indexOf(this.filterText.toLowerCase()) != -1
+      ) {
+        return i;
+      }
+    });
+    if (this.draftOnly) {
+      this.filterDraftOnly();
     }
+  }
 
-    filterKeyUp(e) {
-        this.filterText=e;
-        this.doFilter();
-        this.sortFilter();
-    }
-
-    filterDraftOnly() {
-        this.filterList= this.filterList.filter( i=> {
-            if(i[1].properties && i[1].properties.draft) {
-                return i;
-            }
-        });             
-    }
-
-    toggleDraftOnly() {
-        this.draftOnly= !this.draftOnly;
-        if(this.draftOnly) { this.filterDraftOnly() }
-        else { this.filterKeyUp('') }
-    }
-
-    doFilter() {
-        this.filterList= this.notes.filter( i=> {
-            if(i[1].title.toLowerCase().indexOf(this.filterText.toLowerCase())!=-1) {
-                return i;
-            }
-        });
-        if(this.draftOnly) { this.filterDraftOnly() }
-    }
-
-    sortFilter() {
-        this.filterList.sort( (a,b)=>{ 
-            let x=a[1].title.toUpperCase();
-            let y= b[1].title.toUpperCase();
-            return  x<=y ? -1 : 1;
-        });
-    }
+  sortFilter() {
+    this.filterList.sort((a, b) => {
+      const x = a[1].name.toUpperCase();
+      const y = b[1].name.toUpperCase();
+      return x <= y ? -1 : 1;
+    });
+  }
 }
-

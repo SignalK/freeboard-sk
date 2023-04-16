@@ -1,92 +1,133 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-<head>
-	<meta charset="utf-8">
-	<title>Freeboard</title>
-	<base href="./">
-	<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1"/>
-	<link rel="icon" type="image/x-icon" href="favicon.ico">
-	
-	<meta name="description" content="Freeboard for Signal K"/>
-    <meta name="keywords" content="signal k, signalk, freeboard, signalk webapp"/> 
-	
-	<!-- ******************* Cache control ********************** -->
-	<meta http-equiv="Cache-control" content="no-cache, no-store, must-revalidate">
-	<meta http-equiv="Pragma" content="no-cache">
-	<meta http-equiv="Expires" content="0" />
+  <head>
+    <meta charset="utf-8" />
+    <title>Freeboard</title>
+    <base href="./" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1"
+    />
+    <link rel="icon" type="image/x-icon" href="favicon.ico" />
 
-	<!-- ******************* PWA ********************** -->
-	<meta name="theme-color" content="#333333"/>
-	<link rel="manifest" href="./manifest.json">
-	<noscript>
-	<div class="loading">
-	  <p>Javascript is not supported on this device!</p>
-	  <p>Please enable Javascript to be able to use this application....</p>
-	</div>
-	</noscript>
-	<!-- ******************** /PWA ******************** -->
-	
-	<!-- ******************** Device Icons ******************** -->
+    <meta name="description" content="Freeboard for Signal K" />
+    <meta
+      name="keywords"
+      content="signal k, signalk, freeboard, signalk webapp"
+    />
+
+    <!-- ******************* Cache control ********************** -->
+    <meta
+      http-equiv="Cache-control"
+      content="no-cache, no-store, must-revalidate"
+    />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
+
+    <!-- ******************* PWA ********************** -->
+    <meta name="theme-color" content="#333333" />
+    <link rel="manifest" href="./manifest.json" />
+    <noscript>
+      <div class="loading">
+        <p>Javascript is not supported on this device!</p>
+        <p>Please enable Javascript to be able to use this application....</p>
+      </div>
+    </noscript>
+    <!-- ******************** /PWA ******************** -->
+
+    <!-- ******************** Device Icons ******************** -->
     <!-- Eliminate url and button bars if added to home screen -->
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-title" content="Freeboard"/>
+    <meta name="apple-mobile-web-app-title" content="Freeboard" />
     <!-- Choose how to handle the phone status bar -->
-    <meta names="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  
+    <meta
+      names="apple-mobile-web-app-status-bar-style"
+      content="black-translucent"
+    />
+
     <!-- *** Specify a start-up image *** -->
     <!-- iPad, retina, portrait -->
-    <link href="./assets/img/startup.png"  
-		media="(device-width: 768px) and (orientation: portrait)"
-		rel="apple-touch-startup-image"/>
+    <link
+      href="./assets/img/startup.png"
+      media="(device-width: 768px) and (orientation: portrait)"
+      rel="apple-touch-startup-image"
+    />
 
-    <link href="./assets/img/startup_pt_1536x2008.png"  
-		media="(device-width: 768px) and (orientation: portrait) 
+    <link
+      href="./assets/img/startup_pt_1536x2008.png"
+      media="(device-width: 768px) and (orientation: portrait) 
 			and (-webkit-device-pixel-ratio: 2)"
-		rel="apple-touch-startup-image"/>      
-  
+      rel="apple-touch-startup-image"
+    />
+
     <!-- iPad, retina, landscape -->
-    <link href="./assets/img/startup_ls.png"  
-		media="(device-width: 768px) and (orientation: landscape)"
-		rel="apple-touch-startup-image"/>
+    <link
+      href="./assets/img/startup_ls.png"
+      media="(device-width: 768px) and (orientation: landscape)"
+      rel="apple-touch-startup-image"
+    />
 
-    <link href="./assets/img/startup_ls_1496x2048.png"  
-		media="(device-width: 768px) and (orientation: landscape) 
+    <link
+      href="./assets/img/startup_ls_1496x2048.png"
+      media="(device-width: 768px) and (orientation: landscape) 
 			and (-webkit-device-pixel-ratio: 2)"
-		rel="apple-touch-startup-image"/>        
-  
-    <!-- iPhone 5 -->
-    <link href="./assets/img/startup_ip5.png" 
-		media="(device-width: 320px) and (device-height: 568px) and (-webkit-device-pixel-ratio: 2)"
-		rel="apple-touch-startup-image"/>
-  
-    <!-- iPhone, retina -->
-    <link href="./assets/img/startup_small.png" 
-		media="(device-width: 320px) and (device-height: 480px) and (-webkit-device-pixel-ratio: 2)"
-		rel="apple-touch-startup-image"/>
-  
-    <!-- iPhone -->
-    <link href="./assets/img/startup_small.png"  
-		media="(device-width: 320px) and (device-height: 480px) and (-webkit-device-pixel-ratio: 1)"
-		rel="apple-touch-startup-image"/>
-    <!-- *** /Specify a start-up image *** -->  
+      rel="apple-touch-startup-image"
+    />
 
-    <link rel="apple-touch-icon" sizes="120x120" href="./assets/icons/apple-icon-120x120.png">
-    <link rel="apple-touch-icon" sizes="152x152" href="./assets/icons/apple-icon-152x152.png">
-    <link rel="apple-touch-icon" sizes="180x180" href="./assets/icons/apple-icon-180x180.png">
-    
-    <meta name="msapplication-TileColor" content="#ffffff">
-    <meta name="msapplication-TileImage" content="./assets/icons/ms-icon-192x192.png">
-	<!-- ******************** /Device Icons ******************** -->
-</head>
-<body>
-	<app-root>
-		<div class="loading">
-            <img src="./assets/icons/icon-192x192.png"><br>
-            <div>
-                <b><i>Shift-Reload</i></b> if this screen does not disappear!
-            </div>
+    <!-- iPhone 5 -->
+    <link
+      href="./assets/img/startup_ip5.png"
+      media="(device-width: 320px) and (device-height: 568px) and (-webkit-device-pixel-ratio: 2)"
+      rel="apple-touch-startup-image"
+    />
+
+    <!-- iPhone, retina -->
+    <link
+      href="./assets/img/startup_small.png"
+      media="(device-width: 320px) and (device-height: 480px) and (-webkit-device-pixel-ratio: 2)"
+      rel="apple-touch-startup-image"
+    />
+
+    <!-- iPhone -->
+    <link
+      href="./assets/img/startup_small.png"
+      media="(device-width: 320px) and (device-height: 480px) and (-webkit-device-pixel-ratio: 1)"
+      rel="apple-touch-startup-image"
+    />
+    <!-- *** /Specify a start-up image *** -->
+
+    <link
+      rel="apple-touch-icon"
+      sizes="120x120"
+      href="./assets/icons/apple-icon-120x120.png"
+    />
+    <link
+      rel="apple-touch-icon"
+      sizes="152x152"
+      href="./assets/icons/apple-icon-152x152.png"
+    />
+    <link
+      rel="apple-touch-icon"
+      sizes="180x180"
+      href="./assets/icons/apple-icon-180x180.png"
+    />
+
+    <meta name="msapplication-TileColor" content="#ffffff" />
+    <meta
+      name="msapplication-TileImage"
+      content="./assets/icons/ms-icon-192x192.png"
+    />
+    <!-- ******************** /Device Icons ******************** -->
+  </head>
+  <body>
+    <app-root>
+      <div class="loading">
+        <img src="./assets/icons/icon-192x192.png" /><br />
+        <div>
+          <b><i>Shift-Reload</i></b> if this screen does not disappear!
         </div>
-	</app-root>
-</body>
+      </div>
+    </app-root>
+  </body>
 </html>

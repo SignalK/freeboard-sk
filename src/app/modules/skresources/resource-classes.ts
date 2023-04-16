@@ -1,228 +1,253 @@
 // **** RESOURCE CLASSES **********
 
-import { Position } from "src/app/lib/geoutils";
+import {
+  LineStringFeature,
+  PointFeature,
+  PolygonFeature,
+  MultiPolygonFeature,
+  MultiLineStringFeature
+} from 'src/app/types/resources/geojson';
 
-// ** Signal K route
+import {
+  SKPosition,
+  RouteResource,
+  WaypointResource,
+  RegionResource,
+  NoteResource,
+  ChartResource
+} from 'src/app/types/resources/signalk';
+
+import { TrackResource } from 'src/app/types/resources/custom';
+
+import { Position } from 'src/app/lib/geoutils';
+
+// ** Signal K route class
 export class SKRoute {
-    name: string;
-    description: string;
-    distance: number= 0;
-    start: string;
-    end: string;
-    feature= {          
-        type: 'Feature',
-        geometry: {
-            type: 'LineString',
-            coordinates: []
-        },
-        properties: {},
-        id: ''
-    };
+  name: string;
+  description: string;
+  distance = 0;
+  feature: LineStringFeature;
 
-    constructor(route?:{[key:string]:any}) {
-        if(route) {
-            this.name= (route.name) ? route.name : null;
-            this.description= (route.description) ? route.description : null;
-            this.distance= (route.distance) ? route.distance : null;
-            this.start= (route.start) ? route.start : null;
-            this.end= (route.end) ? route.end : null;
-            this.feature= (route.feature) ? route.feature : null;
-        }
-    }
+  constructor(route?: RouteResource) {
+    this.name = route?.name ? route.name : '';
+    this.description = route?.description ? route.description : '';
+    this.distance = route?.distance ? route.distance : 0;
+    this.feature = route?.feature ?? {
+      type: 'Feature',
+      geometry: {
+        type: 'LineString',
+        coordinates: []
+      },
+      properties: {},
+      id: ''
+    };
+  }
 }
 
 // ** Signal K waypoint
 export class SKWaypoint {
-    position= {latitude: 0, longitude: 0};
-    feature= {          
-        type: 'Feature',
-        geometry: {
-            type: 'Point',
-            coordinates: [0,0]
-        },
-        properties: {},
-        id: ''
+  name: string;
+  description: string;
+  feature: PointFeature;
+  type: string;
+
+  constructor(wpt?: WaypointResource) {
+    this.name = wpt?.name ? wpt.name : '';
+    this.description = wpt?.description ? wpt.description : '';
+    this.type = wpt?.type ? wpt.type : '';
+    this.feature = wpt?.feature ?? {
+      type: 'Feature',
+      geometry: {
+        type: 'Point',
+        coordinates: [0, 0]
+      },
+      properties: {},
+      id: ''
     };
-
-    constructor(wpt?:{[key:string]:any}) {
-        if(wpt) {
-            if(wpt.position) { this.position= wpt.position }
-            if(wpt.feature) { this.feature= wpt.feature }
-        }
-    }
-} 
-
-// ** Signal K chart
-export class SKChart {
-    identifier: string;
-    name: string;
-    description: string;
-    tilemapUrl: string;
-    region: string;
-    geohash: any;
-    chartUrl: string;
-    scale: number;
-    chartLayers: Array<string>;
-    bounds: Array<number>;
-    chartFormat: string;
-    minZoom: number= 0;
-    maxZoom: number= 24;
-    type: string;
-
-    constructor(chart?:{[key:string]:any}) {
-        if(chart) {
-            this.identifier= (chart.identifier) ? chart.identifier : null;
-            this.name= (chart.name) ? chart.name : this.identifier;
-            this.description= (chart.description) ? chart.description : null;
-            this.region= (chart.region) ? chart.region : null;
-            this.geohash= (chart.geohash) ? chart.geohash : null;
-            this.chartUrl= (chart.chartUrl) ? chart.chartUrl : null;
-            this.chartLayers= (chart.chartLayers) ? chart.chartLayers : null;
-            this.bounds= (chart.bounds) ? chart.bounds : null;
-            this.chartFormat= (chart.format) ? chart.format : null;
-            this.minZoom= (typeof chart.minzoom!=='undefined') ? chart.minzoom : this.minZoom;
-            this.maxZoom= (typeof chart.maxzoom!=='undefined') ? chart.maxzoom : this.maxZoom;
-            this.type= (chart.type) ? chart.type : null;
-            this.tilemapUrl= (chart.tilemapUrl) ? chart.tilemapUrl : null;
-            this.scale= (typeof chart.scale!=='undefined') ? 
-                isNaN(chart.scale) ? 25000 : parseInt(chart.scale)
-                : 250000;    
-        }
-    }
-}
-
-// ** Vessel Data **
-export class SKVessel {
-    id: string;
-    position:Position= [0,0];
-    heading: number;
-    headingTrue: number= null;
-    headingMagnetic: number= null;
-    cog: number;
-    cogTrue: number= null;
-    cogMagnetic: number= null;
-    sog: number;
-    name: string;
-    mmsi: string;
-    callsign: string; 
-    state: string;   
-    wind= { 
-        direction: null, mwd: null, twd: null, 
-        tws: null, speedTrue: null, sog: null,
-        awa: null, aws: null 
-    };
-    lastUpdated= new Date();
-    orientation:number= 0;
-    buddy:boolean= false;
-    closestApproach:any= null;
-    mode:string= 'day';
-    anchor= { maxRadius: null, radius: null, position: null };
-    resourceUpdates: Array<any>= [];
-    autopilot: { [key:string]: any }= {};
-    track= [];
-    properties= {};
+  }
 }
 
 // ** Signal K Note
 export class SKNote {
-    title: string;
-    description: string;
-    position: any;
-    region: string;
-    geohash: string;   
-    mimeType: string;
-    url: string; 
-    group: string;
-    authors: Array<any>;
-    properties: any= {};
-    timestamp: string;
-    source: string; 
+  name: string;
+  description: string;
+  position: SKPosition;
+  href: string;
+  mimeType: string;
+  url: string;
+  group: string;
+  authors: Array<unknown>;
+  properties: { [key: string]: unknown };
 
-    constructor(note?:{[key:string]:any}) {
-        if(note) {
-            if(note.title) { this.title= note.title }
-            if(note.description) { this.description= note.description }
-            if(note.position) { this.position= note.position }
-            if(note.region) { this.region= note.region }
-            if(note.geohash) { this.geohash= note.geohash }
-            if(note.mimeType) { this.mimeType= note.mimeType }
-            if(note.url) { this.url= note.url }
-            if(note.group) { this.group= note.group }
-            if(note.authors && Array.isArray(note.authors) ) { this.authors= note.authors }
-            if(note.properties && typeof note.properties=== 'object' ) { this.properties= note.properties }
-            if(note.timestamp) { this.timestamp= note.timestamp }
-            if(note.source) { this.source= note.source }
-            if(note.$source) { this.source= note.$source }
-        }
-    }    
-} 
+  constructor(note?: NoteResource) {
+    this.name = note?.name ?? '';
+    this.description = note?.description ?? '';
+    this.position = note?.position ?? null;
+    this.href = note?.href ?? null;
+    this.mimeType = note?.mimeType ?? '';
+    this.url = note?.url ?? '';
+    // ca reports
+    this.group = note?.group ?? null;
+    this.authors =
+      note?.authors && Array.isArray(note?.authors) ? note.authors : [];
+    this.properties =
+      note?.properties && typeof note?.properties === 'object'
+        ? note.properties
+        : {};
+  }
+}
 
 // ** Signal K Region **
 export class SKRegion {
-    geohash: string;   
-    feature= {          
-        type: 'Feature',
-        geometry: {
-            type: 'Polygon',
-            coordinates: []
-        },
-        properties: {},
-        id: ''
-    };
+  name: string;
+  description: string;
+  feature: PolygonFeature | MultiPolygonFeature;
 
-    constructor(region?:{[key:string]:any}) {
-        if(region) {
-            if(region.geohash) { this.geohash= region.geohash }
-            if(region.feature) { this.feature= region.feature }
-        }
-    }     
+  constructor(region?: RegionResource) {
+    this.name = region?.name ? region.name : '';
+    this.description = region?.description ? region.description : '';
+    this.feature = region?.feature ?? {
+      type: 'Feature',
+      geometry: {
+        type: 'Polygon',
+        coordinates: []
+      },
+      properties: {},
+      id: ''
+    };
+  }
+}
+
+// ** Signal K chart
+export class SKChart {
+  identifier: string;
+  name: string;
+  description: string;
+  region: string;
+  scale = 250000;
+  layers: Array<string>;
+  bounds: Array<number>;
+  format: string;
+  minZoom = 0;
+  maxZoom = 24;
+  type: string;
+  url: string;
+
+  constructor(chart?: ChartResource) {
+    this.identifier = chart?.identifier ? chart.identifier : undefined;
+    this.name = chart?.name ? chart.name : undefined;
+    this.description = chart?.description ? chart.description : undefined;
+    this.layers = chart?.layers ? chart.layers : [];
+    this.bounds = chart?.bounds ? chart.bounds : undefined;
+    this.format = chart?.format ? chart.format : undefined;
+    this.minZoom =
+      typeof chart?.minzoom !== 'undefined' ? chart.minzoom : this.minZoom;
+    this.maxZoom =
+      typeof chart?.maxzoom !== 'undefined' ? chart.maxzoom : this.maxZoom;
+    this.type = chart?.type ? chart.type : undefined;
+    this.url = chart?.url ? chart.url : undefined;
+    this.scale =
+      typeof chart?.scale !== 'undefined' && !isNaN(chart?.scale)
+        ? chart.scale
+        : this.scale;
+    this.url = chart?.url ? chart.url : undefined;
+  }
 }
 
 // ** Signal K Track
 export class SKTrack {
-    feature= {          
-        type: 'Feature',
-        geometry: {
-            type: 'MultiLineString',
-            coordinates: []
-        },
-        properties: {},
-        id: ''
-    };
+  feature: MultiLineStringFeature;
 
-    constructor(trk?:{[key:string]:any}) {
-        if(trk) {
-            if(trk.feature) { this.feature= trk.feature }
-        }
-    }
-} 
+  constructor(trk?: TrackResource) {
+    this.feature = trk?.feature ?? {
+      type: 'Feature',
+      geometry: {
+        type: 'MultiLineString',
+        coordinates: []
+      },
+      properties: {},
+      id: ''
+    };
+  }
+}
+
+// ** Vessel Data **
+export class SKVessel {
+  id: string;
+  position: Position = [0, 0];
+  heading: number;
+  headingTrue: number = null;
+  headingMagnetic: number = null;
+  cog: number;
+  cogTrue: number = null;
+  cogMagnetic: number = null;
+  sog: number;
+  name: string;
+  mmsi: string;
+  callsign: string;
+  state: string;
+  wind = {
+    direction: null,
+    mwd: null,
+    twd: null,
+    tws: null,
+    speedTrue: null,
+    sog: null,
+    awa: null,
+    aws: null
+  };
+  lastUpdated = new Date();
+  orientation = 0;
+  buddy = false;
+  closestApproach = null;
+  mode = 'day';
+  anchor = { maxRadius: null, radius: null, position: null };
+  resourceUpdates = [];
+  autopilot: { [key: string]: unknown } = {};
+  track = [];
+  courseApi = {
+    arrivalCircle: 0,
+    activeRoute: {},
+    nextPoint: {},
+    previousPoint: {}
+  };
+  properties = {};
+}
 
 // ** AIS Base class **
 class AISBase {
-    id: string;
-    lastUpdated= new Date();
-    name: string;
-    mmsi: string;
-    position: Position= [0,0];
-    properties= {};
+  id: string;
+  lastUpdated = new Date();
+  name: string;
+  mmsi: string;
+  position: Position = [0, 0];
+  properties = {};
+  state: string;
 }
 
 // ** AtoN class **
 export class SKAtoN extends AISBase {
-    type: {id: number, name:string}= {id: -1, name: ''};
-    constructor() { super () }
+  type: { id: number; name: string } = { id: -1, name: '' };
+  constructor() {
+    super();
+  }
 }
 
 // ** SaR class **
-export class SKSaR extends AISBase {
-    constructor() { super () }
+export class SKSaR extends SKAtoN {
+  callsign: string;
+  constructor() {
+    super();
+  }
 }
 
 // ** Aircraft Data **
 export class SKAircraft extends AISBase {
-    orientation: number= 0;
-    sog: number= 0;
-    callsign: string;
-    track= [];
-    constructor() { super () }
+  orientation = 0;
+  sog = 0;
+  callsign: string;
+  track = [];
+  constructor() {
+    super();
+  }
 }

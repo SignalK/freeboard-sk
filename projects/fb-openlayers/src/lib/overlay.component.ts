@@ -9,11 +9,10 @@ import {
   OnInit,
   SimpleChanges
 } from '@angular/core';
-import Overlay, {Options, PanIntoViewOptions} from 'ol/Overlay';
-import OverlayPositioning from 'ol/OverlayPositioning';
+import Overlay, { Options, PanIntoViewOptions } from 'ol/Overlay';
 import { fromLonLat } from 'ol/proj';
-import {MapComponent} from './map.component';
-import {Coordinate} from './models';
+import { MapComponent } from './map.component';
+import { Coordinate } from './models';
 
 @Component({
   selector: 'ol-map > ol-overlay',
@@ -28,7 +27,7 @@ export class OverlayComponent implements OnInit, OnChanges, OnDestroy {
   @Input() className: string;
   @Input() offset: number[];
   @Input() position: Coordinate;
-  @Input() positioning: OverlayPositioning | string;
+  @Input() positioning: string;
   @Input() stopEvent: boolean;
   @Input() insertFirst: boolean;
 
@@ -41,7 +40,7 @@ export class OverlayComponent implements OnInit, OnChanges, OnDestroy {
   }
 
   ngOnInit() {
-    if(this.elementRef.nativeElement) {
+    if (this.elementRef.nativeElement) {
       this.element = this.elementRef.nativeElement;
       this.overlay = new Overlay(this as Options);
       this.mapComponent.getMap().addOverlay(this.overlay);
@@ -57,7 +56,7 @@ export class OverlayComponent implements OnInit, OnChanges, OnDestroy {
   }
 
   ngOnChanges(changes: SimpleChanges) {
-    if (this.overlay && changes.hasOwnProperty('position')) {
+    if (this.overlay && changes.position) {
       this.overlay.setPosition(fromLonLat(changes.position.currentValue));
     }
   }

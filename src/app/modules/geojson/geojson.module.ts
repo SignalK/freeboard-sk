@@ -20,25 +20,24 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 
 import { GeoJSONImportDialog } from './geojson-dialog';
 
-
 @NgModule({
-    imports: [
-        CommonModule, FormsModule, 
-        MatDialogModule, MatIconModule, MatButtonModule, MatCardModule,
-        MatExpansionModule, MatCheckboxModule,
-        MatTooltipModule, MatToolbarModule,
-        MatFormFieldModule, MatInputModule
-      ],    
-    declarations: [
-        GeoJSONImportDialog
-    ],
-    exports: [
-        GeoJSONImportDialog
-    ],
-    entryComponents: [
-        GeoJSONImportDialog
-    ], 
-    providers: []  
+  imports: [
+    CommonModule,
+    FormsModule,
+    MatDialogModule,
+    MatIconModule,
+    MatButtonModule,
+    MatCardModule,
+    MatExpansionModule,
+    MatCheckboxModule,
+    MatTooltipModule,
+    MatToolbarModule,
+    MatFormFieldModule,
+    MatInputModule
+  ],
+  declarations: [GeoJSONImportDialog],
+  exports: [GeoJSONImportDialog],
+  providers: []
 })
 export class GeoJSONModule {}
 

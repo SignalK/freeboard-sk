@@ -1,5 +1,6 @@
 import {
-  ChangeDetectionStrategy, ChangeDetectorRef,
+  ChangeDetectionStrategy,
+  ChangeDetectorRef,
   Component,
   Input,
   OnChanges,
@@ -20,7 +21,6 @@ import { Extent, Coordinate } from '../models';
 import { mapifyRadius } from '../util';
 import { AsyncSubject } from 'rxjs';
 
-
 // ** Freeboard Arrival Circle component **
 @Component({
   selector: 'ol-map > fb-arrival-circle',
@@ -28,7 +28,6 @@ import { AsyncSubject } from 'rxjs';
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class ArrivalCircleComponent implements OnInit, OnDestroy, OnChanges {
-
   protected layer: Layer;
   public source: VectorSource;
   protected features: Array<Feature>;
@@ -40,7 +39,7 @@ export class ArrivalCircleComponent implements OnInit, OnDestroy, OnChanges {
   @Output() layerReady: AsyncSubject<Layer> = new AsyncSubject(); // AsyncSubject will only store the last value, and only publish it when the sequence is completed
 
   @Input() position: Coordinate;
-	@Input() radius: number;
+  @Input() radius: number;
   @Input() opacity: number;
   @Input() visible: boolean;
   @Input() extent: Extent;
@@ -49,45 +48,45 @@ export class ArrivalCircleComponent implements OnInit, OnDestroy, OnChanges {
   @Input() maxResolution: number;
   @Input() layerProperties: { [index: string]: any };
 
+  public mapifiedLine: Array<Coordinate> = [];
 
-  public mapifiedLine: Array<Coordinate>= [];
-  
-  constructor(protected changeDetectorRef: ChangeDetectorRef,
-              protected mapComponent: MapComponent) {
+  constructor(
+    protected changeDetectorRef: ChangeDetectorRef,
+    protected mapComponent: MapComponent
+  ) {
     this.changeDetectorRef.detach();
   }
 
   ngOnInit() {
     this.parseValues();
-    this.source = new VectorSource({features: this.features});
-    this.layer = new VectorLayer(Object.assign(this, {...this.layerProperties}));
+    this.source = new VectorSource({ features: this.features });
+    this.layer = new VectorLayer(
+      Object.assign(this, { ...this.layerProperties })
+    );
 
     const map = this.mapComponent.getMap();
-    if(this.layer && map) {
+    if (this.layer && map) {
       map.addLayer(this.layer);
       map.render();
       this.layerReady.next(this.layer);
       this.layerReady.complete();
     }
-
   }
 
   ngOnChanges(changes: SimpleChanges) {
-    if(this.layer) {
+    if (this.layer) {
       const properties: { [index: string]: any } = {};
 
-      for(const key in changes) {
-        if(key=='position' || key=='radius') {
+      for (const key in changes) {
+        if (key == 'position' || key == 'radius') {
           this.parseValues();
-          if(this.source) { 
+          if (this.source) {
             this.source.clear();
             this.source.addFeatures(this.features);
           }
-        }
-        else if( key=='layerProperties') { 
+        } else if (key == 'layerProperties') {
           this.layer.setProperties(properties, false);
-        }
-        else {
+        } else {
           properties[key] = changes[key].currentValue;
         }
       }
@@ -105,32 +104,34 @@ export class ArrivalCircleComponent implements OnInit, OnDestroy, OnChanges {
   }
 
   parseValues() {
-    let fa: Feature[]= [];
-    let f= new Feature({
-      geometry: new Circle( fromLonLat(this.position), mapifyRadius(this.radius, this.position) )
+    const fa: Feature[] = [];
+    const f = new Feature({
+      geometry: new Circle(
+        fromLonLat(this.position),
+        mapifyRadius(this.radius, this.position)
+      )
     });
     f.setStyle(this.buildStyle());
     fa.push(f);
-    this.features= fa;
+    this.features = fa;
   }
 
   // build target style
-  buildStyle():Style {
+  buildStyle(): Style {
     let cs: Style;
-    if(this.layerProperties && this.layerProperties.style) { 
-      cs= this.layerProperties.style 
-    }
-    else { // default style
-      cs= new Style({
+    if (this.layerProperties && this.layerProperties.style) {
+      cs = this.layerProperties.style;
+    } else {
+      // default style
+      cs = new Style({
         fill: new Fill({ color: 'rgba(255, 255, 255, .1)' }),
-        stroke: new Stroke({ 
+        stroke: new Stroke({
           color: 'rgba(242, 153, 10, 1)',
           width: 2,
-          lineDash: [5,5]
+          lineDash: [5, 5]
         })
       });
     }
-    return cs
+    return cs;
   }
-
 }

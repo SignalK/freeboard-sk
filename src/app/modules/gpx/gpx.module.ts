@@ -21,25 +21,24 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { GPXImportDialog } from './gpxload/import-dialog';
 import { GPXExportDialog } from './gpxsave/export-dialog';
 
-
 @NgModule({
-    imports: [
-        CommonModule, FormsModule, 
-        MatDialogModule, MatIconModule, MatButtonModule, MatCardModule,
-        MatExpansionModule, MatCheckboxModule,
-        MatTooltipModule, MatToolbarModule,
-        MatFormFieldModule, MatInputModule
-      ],    
-    declarations: [
-        GPXImportDialog, GPXExportDialog
-    ],
-    exports: [
-        GPXImportDialog, GPXExportDialog
-    ],
-    entryComponents: [
-        GPXImportDialog, GPXExportDialog
-    ], 
-    providers: []  
+  imports: [
+    CommonModule,
+    FormsModule,
+    MatDialogModule,
+    MatIconModule,
+    MatButtonModule,
+    MatCardModule,
+    MatExpansionModule,
+    MatCheckboxModule,
+    MatTooltipModule,
+    MatToolbarModule,
+    MatFormFieldModule,
+    MatInputModule
+  ],
+  declarations: [GPXImportDialog, GPXExportDialog],
+  exports: [GPXImportDialog, GPXExportDialog],
+  providers: []
 })
 export class GPXModule {}
 

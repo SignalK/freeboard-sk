@@ -12,29 +12,29 @@ import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatSliderModule } from '@angular/material/slider';
 import { MatDialogModule } from '@angular/material/dialog';
-
+import { AppUIModule } from 'src/app/lib';
 // ** components **
 import { AnchorWatchComponent } from './anchor-watch.component';
 import { AlarmsDialog, AlarmComponent } from './alarms';
 
 @NgModule({
-    imports: [
-        CommonModule, MatDialogModule,
-        MatIconModule, MatButtonModule, MatCardModule,
-        MatSlideToggleModule, MatSliderModule,
-        MatTooltipModule, MatToolbarModule
-      ],    
-    declarations: [
-        AnchorWatchComponent, AlarmsDialog, AlarmComponent
-    ],
-    exports: [
-        AnchorWatchComponent, AlarmsDialog, AlarmComponent
-    ],
-    entryComponents: [ AlarmsDialog ], 
-    providers: []  
+  imports: [
+    CommonModule,
+    MatDialogModule,
+    MatIconModule,
+    MatButtonModule,
+    MatCardModule,
+    MatSlideToggleModule,
+    MatSliderModule,
+    MatTooltipModule,
+    MatToolbarModule,
+    AppUIModule
+  ],
+  declarations: [AnchorWatchComponent, AlarmsDialog, AlarmComponent],
+  exports: [AnchorWatchComponent, AlarmsDialog, AlarmComponent],
+  providers: []
 })
 export class AlarmsModule {}
 
 export * from './alarms.facade';
 export * from './alarms';
-

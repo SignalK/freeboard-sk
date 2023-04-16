@@ -22,24 +22,29 @@ import { SettingsDialog } from './settings-dialog';
 import { SignalKPreferredPathsComponent } from './components/signalk-preferredpaths.component';
 
 @NgModule({
-    imports: [
-        CommonModule, HttpClientModule, FormsModule, MatDialogModule,
-        MatCheckboxModule, MatRadioModule, MatCardModule, MatListModule,
-        MatButtonModule, MatIconModule, MatTooltipModule, 
-        MatSliderModule, MatSlideToggleModule, MatSelectModule,
-        MatFormFieldModule, MatInputModule, MatMenuModule
-    ],
-    declarations: [
-        SettingsDialog, SignalKPreferredPathsComponent
-    ],
-    exports: [
-        SettingsDialog, SignalKPreferredPathsComponent
-    ],
-    entryComponents: [
-        SettingsDialog
-    ]
+  imports: [
+    CommonModule,
+    HttpClientModule,
+    FormsModule,
+    MatDialogModule,
+    MatCheckboxModule,
+    MatRadioModule,
+    MatCardModule,
+    MatListModule,
+    MatButtonModule,
+    MatIconModule,
+    MatTooltipModule,
+    MatSliderModule,
+    MatSlideToggleModule,
+    MatSelectModule,
+    MatFormFieldModule,
+    MatInputModule,
+    MatMenuModule
+  ],
+  declarations: [SettingsDialog, SignalKPreferredPathsComponent],
+  exports: [SettingsDialog, SignalKPreferredPathsComponent]
 })
-export class SettingsModule { }
+export class SettingsModule {}
 
 export * from './settings.facade';
 export * from './settings-dialog';

@@ -22,25 +22,26 @@ import { AddTargetPipe } from './safe.pipe';
 import { AngularEditorModule } from '@kolkov/angular-editor';
 
 @NgModule({
-    imports: [
-        CommonModule, FormsModule, MatDialogModule,
-        MatCheckboxModule, MatCardModule, MatListModule,
-        MatButtonModule, MatIconModule, MatTooltipModule, 
-        MatSliderModule, MatSlideToggleModule, 
-        MatFormFieldModule, MatInputModule,
-        AngularEditorModule
-    ],
-    declarations: [
-        NoteDialog, RelatedNotesDialog, AddTargetPipe
-    ],
-    exports: [
-        NoteDialog, RelatedNotesDialog, AddTargetPipe
-    ],
-    entryComponents: [
-        NoteDialog, RelatedNotesDialog
-    ]
+  imports: [
+    CommonModule,
+    FormsModule,
+    MatDialogModule,
+    MatCheckboxModule,
+    MatCardModule,
+    MatListModule,
+    MatButtonModule,
+    MatIconModule,
+    MatTooltipModule,
+    MatSliderModule,
+    MatSlideToggleModule,
+    MatFormFieldModule,
+    MatInputModule,
+    AngularEditorModule
+  ],
+  declarations: [NoteDialog, RelatedNotesDialog, AddTargetPipe],
+  exports: [NoteDialog, RelatedNotesDialog, AddTargetPipe]
 })
-export class SKNotesModule { }
+export class SKNotesModule {}
 
 export * from './note-dialog';
 export * from './relatednotes-dialog';

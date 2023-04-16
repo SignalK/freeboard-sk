@@ -1,5 +1,6 @@
 import {
-  ChangeDetectionStrategy, ChangeDetectorRef,
+  ChangeDetectionStrategy,
+  ChangeDetectorRef,
   Component,
   ElementRef,
   EventEmitter,
@@ -9,14 +10,13 @@ import {
   Output,
   SimpleChanges
 } from '@angular/core';
-import {Map, MapBrowserEvent} from 'ol';
+import { Map, MapBrowserEvent } from 'ol';
 import MapEvent from 'ol/MapEvent';
 import ObjectEvent from 'ol/Object';
 import RenderEvent from 'ol/render/Event';
-import {MapService} from './map.service';
-import {MapReadyEvent} from './models';
-import {AsyncSubject} from 'rxjs';
-import {MapOptions} from 'ol/PluggableMap';
+import { MapService } from './map.service';
+import { MapReadyEvent } from './models';
+import { AsyncSubject } from 'rxjs';
 import { toLonLat, transformExtent } from 'ol/proj';
 import { Coordinate } from 'ol/coordinate';
 
@@ -24,13 +24,15 @@ import { Coordinate } from 'ol/coordinate';
   selector: 'ol-map',
   styleUrls: ['./map.component.scss'],
   template: `
-    <div style="width: 100%; height: 100%; margin: 0; padding: 0; touch-action: none;" tabindex=-1>
-    </div><ng-content></ng-content>
+    <div
+      style="width: 100%; height: 100%; margin: 0; padding: 0; touch-action: none;"
+      tabindex="-1"
+    ></div>
+    <ng-content></ng-content>
   `,
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class MapComponent implements OnInit, OnDestroy {
-
   private map: Map;
   private timeoutId: any;
 
@@ -46,42 +48,51 @@ export class MapComponent implements OnInit, OnDestroy {
    * Note that this event is delayed by 250 ms to ensure that it is not a double click.
    */
   @Output() mapClick: EventEmitter<any> = new EventEmitter<any>();
-  @Output() mapSingleClick: EventEmitter<MapBrowserEvent> = new EventEmitter<MapBrowserEvent>();
-  @Output() mapDblClick: EventEmitter<MapBrowserEvent> = new EventEmitter<MapBrowserEvent>();
+  @Output() mapSingleClick: EventEmitter<MapBrowserEvent<UIEvent>> =
+    new EventEmitter<MapBrowserEvent<UIEvent>>();
+  @Output() mapDblClick: EventEmitter<MapBrowserEvent<UIEvent>> =
+    new EventEmitter<MapBrowserEvent<UIEvent>>();
   @Output() mapMoveStart: EventEmitter<MapEvent> = new EventEmitter<MapEvent>();
   @Output() mapMoveEnd: EventEmitter<MapEvent> = new EventEmitter<MapEvent>();
-  @Output() mapPointerDrag: EventEmitter<MapBrowserEvent> = new EventEmitter<MapBrowserEvent>();
-  @Output() mapPointerMove: EventEmitter<MapBrowserEvent> = new EventEmitter<MapBrowserEvent>();
-  @Output() mapPostCompose: EventEmitter<RenderEvent> = new EventEmitter<RenderEvent>();
-  @Output() mapPostRender: EventEmitter<MapEvent> = new EventEmitter<MapEvent>();
-  @Output() mapPreCompose: EventEmitter<RenderEvent> = new EventEmitter<RenderEvent>();
-  @Output() mapPropertyChange: EventEmitter<ObjectEvent> = new EventEmitter<ObjectEvent>();
+  @Output() mapPointerDrag: EventEmitter<MapBrowserEvent<UIEvent>> =
+    new EventEmitter<MapBrowserEvent<UIEvent>>();
+  @Output() mapPointerMove: EventEmitter<MapBrowserEvent<UIEvent>> =
+    new EventEmitter<MapBrowserEvent<UIEvent>>();
+  @Output() mapPostCompose: EventEmitter<RenderEvent> =
+    new EventEmitter<RenderEvent>();
+  @Output() mapPostRender: EventEmitter<MapEvent> =
+    new EventEmitter<MapEvent>();
+  @Output() mapPreCompose: EventEmitter<RenderEvent> =
+    new EventEmitter<RenderEvent>();
+  @Output() mapPropertyChange: EventEmitter<ObjectEvent> =
+    new EventEmitter<ObjectEvent>();
 
   @Input() pixelRatio: number;
   @Input() keyboardEventTarget: Element | string;
   @Input() logo: string | boolean;
   @Input() properties: { [index: string]: any };
-  @Input() setFocus: boolean= false;
-  @Input() hitTolerance: number= 5;
+  @Input() setFocus = false;
+  @Input() hitTolerance = 5;
 
-  constructor(protected changeDetectorRef: ChangeDetectorRef,
-              protected element: ElementRef,
-              protected mapService: MapService) {
+  constructor(
+    protected changeDetectorRef: ChangeDetectorRef,
+    protected element: ElementRef,
+    protected mapService: MapService
+  ) {
     this.changeDetectorRef.detach();
   }
 
   ngOnInit() {
     const target = this.element.nativeElement.firstElementChild;
-    this.map = new Map(this as MapOptions);
+    this.map = new Map();
     this.map.setTarget(target);
     this.map.setProperties(this.properties, true);
     // register the map in the injectable mapService
     this.mapService.addMap(this.map);
 
-    this.map.once('postrender', event => {
+    this.map.once('postrender', () => {
       this.afterMapReady();
     });
-
   }
 
   ngOnDestroy() {
@@ -95,7 +106,6 @@ export class MapComponent implements OnInit, OnDestroy {
     this.map.un('postcompose', this.emitPostComposeEvent);
     this.map.un('postrender', this.emitPostRenderEvent);
     this.map.un('precompose', this.emitPreComposeEvent);
-    this.map.un('propertychange', this.emitPropertyChangeEvent);
 
     window.removeEventListener('resize', this.updateSizeThrottle);
     window.removeEventListener('orientationchange', this.updateSizeThrottle);
@@ -105,8 +115,8 @@ export class MapComponent implements OnInit, OnDestroy {
   }
 
   ngOnChanges(changes: SimpleChanges) {
-    if(this.map && typeof changes.setFocus!=='undefined') {
-      if(changes.setFocus.currentValue) {
+    if (this.map && typeof changes.setFocus !== 'undefined') {
+      if (changes.setFocus.currentValue) {
         this.focusMap();
       }
     }
@@ -124,18 +134,23 @@ export class MapComponent implements OnInit, OnDestroy {
     this.map.on('postcompose', this.emitPostComposeEvent);
     this.map.on('postrender', this.emitPostRenderEvent);
     this.map.on('precompose', this.emitPreComposeEvent);
-    this.map.on('propertychange', this.emitPropertyChangeEvent);
 
     // react on window events
     window.addEventListener('resize', this.updateSizeThrottle, false);
-    window.addEventListener('orientationchange', this.updateSizeThrottle, false);
+    window.addEventListener(
+      'orientationchange',
+      this.updateSizeThrottle,
+      false
+    );
 
     this.updateSize();
 
-    this.mapReady.next({map: this.map, mapService: this.mapService});
+    this.mapReady.next({ map: this.map, mapService: this.mapService });
     this.mapReady.complete();
 
-    if(this.setFocus) { this.focusMap() }
+    if (this.setFocus) {
+      this.focusMap();
+    }
   }
 
   focusMap() {
@@ -151,60 +166,56 @@ export class MapComponent implements OnInit, OnDestroy {
   }
 
   getMapCenter(): Coordinate {
-    if(!this.map) { return [0,0] }
+    if (!this.map) {
+      return [0, 0];
+    }
     return toLonLat(this.map.getView().getCenter());
   }
 
   getMapExtent() {
-    if(!this.map) { return [0,0,0,0] }
-    let v= this.map.getView();
-    let mrid= v.getProjection().getCode();
+    if (!this.map) {
+      return [0, 0, 0, 0];
+    }
+    const v = this.map.getView();
+    const mrid = v.getProjection().getCode();
 
     return transformExtent(
-        v.calculateExtent(this.map.getSize()),
-        mrid, 
-        'EPSG:4326'
+      v.calculateExtent(this.map.getSize()),
+      mrid,
+      'EPSG:4326'
     );
   }
 
   // Only arrow function works with addEventListener
-  private emitClickEvent = (event: MapBrowserEvent) => {
-    this.mapClick.emit(
-      this.augmentClickEvent(event)
-    );
-  }
+  private emitClickEvent = (event: MapBrowserEvent<UIEvent>) => {
+    this.mapClick.emit(this.augmentClickEvent(event));
+  };
 
-  private emitSingleClickEvent = (event: MapBrowserEvent) => {
-    this.mapSingleClick.emit(
-      this.augmentClickEvent(event)
-    );
-  }
-  private emitDblClickEvent = (event: MapBrowserEvent) => {
-    this.mapDblClick.emit(
-      this.augmentClickEvent(event)
-    );
-  }
+  private emitSingleClickEvent = (event: MapBrowserEvent<UIEvent>) => {
+    this.mapSingleClick.emit(this.augmentClickEvent(event));
+  };
+  private emitDblClickEvent = (event: MapBrowserEvent<UIEvent>) => {
+    this.mapDblClick.emit(this.augmentClickEvent(event));
+  };
 
-  // ** add {lonlat, features}fields to event 
-  private augmentClickEvent(event: MapBrowserEvent) {
+  // ** add {lonlat, features}fields to event
+  private augmentClickEvent(event: MapBrowserEvent<UIEvent>) {
     return Object.assign(event, {
-      features: this.map.getFeaturesAtPixel(event.pixel, {hitTolerance: this.hitTolerance}),
+      features: this.map.getFeaturesAtPixel(event.pixel, {
+        hitTolerance: this.hitTolerance
+      }),
       lonlat: toLonLat(event.coordinate)
     });
   }
 
   private emitMoveStartEvent = (event: MapEvent) => {
-    this.mapMoveStart.emit(
-      this.augmentMoveEvent(event)
-    );
-  }
+    this.mapMoveStart.emit(this.augmentMoveEvent(event));
+  };
   private emitMoveEndEvent = (event: MapEvent) => {
-    this.mapMoveEnd.emit(
-      this.augmentMoveEvent(event)
-    );
-  }
+    this.mapMoveEnd.emit(this.augmentMoveEvent(event));
+  };
 
-  // ** add {lonlat, zoom, extent, projection code} fields to event 
+  // ** add {lonlat, zoom, extent, projection code} fields to event
   private augmentMoveEvent(event: MapEvent) {
     return Object.assign(event, {
       lonlat: this.getMapCenter(),
@@ -214,32 +225,31 @@ export class MapComponent implements OnInit, OnDestroy {
     });
   }
 
-  private emitPointerDragEvent = (event: MapBrowserEvent) => {
-    this.mapPointerDrag.emit(
-      this.augmentPointerEvent(event)
-    );
-  }
-  private emitPointerMoveEvent = (event: MapBrowserEvent) => {
-    this.mapPointerMove.emit(
-      this.augmentPointerEvent(event)
-    );
-  }
+  private emitPointerDragEvent = (event: MapBrowserEvent<UIEvent>) => {
+    this.mapPointerDrag.emit(this.augmentPointerEvent(event));
+  };
+  private emitPointerMoveEvent = (event: MapBrowserEvent<UIEvent>) => {
+    this.mapPointerMove.emit(this.augmentPointerEvent(event));
+  };
 
-  // ** add {lonlat} field to event 
-  private augmentPointerEvent(event: MapBrowserEvent) {
+  // ** add {lonlat} field to event
+  private augmentPointerEvent(event: MapBrowserEvent<UIEvent>) {
     return Object.assign(event, { lonlat: toLonLat(event.coordinate) });
   }
 
-  private emitPostComposeEvent = (event: RenderEvent) => this.mapPostCompose.emit(event);
-  private emitPostRenderEvent = (event: MapEvent) => this.mapPostRender.emit(event);
-  private emitPreComposeEvent = (event: RenderEvent) => this.mapPreCompose.emit(event);
-  private emitPropertyChangeEvent = (event: ObjectEvent) => this.mapPropertyChange.emit(event);
+  private emitPostComposeEvent = (event: RenderEvent) =>
+    this.mapPostCompose.emit(event);
+  private emitPostRenderEvent = (event: MapEvent) =>
+    this.mapPostRender.emit(event);
+  private emitPreComposeEvent = (event: RenderEvent) =>
+    this.mapPreCompose.emit(event);
+  private emitPropertyChangeEvent = (event: ObjectEvent) =>
+    this.mapPropertyChange.emit(event);
 
   private updateSizeThrottle = () => {
     clearTimeout(this.timeoutId);
     this.timeoutId = setTimeout(() => {
       this.map.updateSize();
     }, 100);
-  }
-
+  };
 }

@@ -12,11 +12,17 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatMenuModule } from '@angular/material/menu';
 
 // ** popver **
-import { CompassComponent, PopoverComponent, FeatureListPopoverComponent, 
-        AtoNPopoverComponent, AircraftPopoverComponent, ResourcePopoverComponent } from './components/popover/';
+import {
+  CompassComponent,
+  PopoverComponent,
+  FeatureListPopoverComponent,
+  AtoNPopoverComponent,
+  AircraftPopoverComponent,
+  ResourcePopoverComponent
+} from './components/popover/';
 // ** navigation **
 import { RouteNextPointComponent } from './components/navigation';
-// ** profiles 
+// ** profiles
 import { VesselPopoverComponent } from './components/profiles/default';
 
 import { FreeboardOpenlayersModule } from 'fb-openlayers';
@@ -24,24 +30,40 @@ import { FBMapComponent } from './fb-map.component';
 import { UtilitiesModule } from 'src/app/modules/utils/utils.module';
 
 @NgModule({
-    imports: [
-        CommonModule, MatTooltipModule, MatListModule,
-        MatIconModule, MatButtonModule, MatTooltipModule, UtilitiesModule,
-        MatCardModule, MatMenuModule,
-        FreeboardOpenlayersModule
-      ],    
-    declarations: [
-        PopoverComponent, FeatureListPopoverComponent, 
-        VesselPopoverComponent,
-        ResourcePopoverComponent, RouteNextPointComponent, AtoNPopoverComponent, AircraftPopoverComponent,
-        CompassComponent, FBMapComponent
-    ],
-    exports: [ 
-        PopoverComponent, FeatureListPopoverComponent, VesselPopoverComponent,
-        ResourcePopoverComponent, RouteNextPointComponent, AtoNPopoverComponent, AircraftPopoverComponent,
-        CompassComponent, FBMapComponent
-    ],
-    entryComponents: [], 
-    providers: []  
+  imports: [
+    CommonModule,
+    MatTooltipModule,
+    MatListModule,
+    MatIconModule,
+    MatButtonModule,
+    MatTooltipModule,
+    UtilitiesModule,
+    MatCardModule,
+    MatMenuModule,
+    FreeboardOpenlayersModule
+  ],
+  declarations: [
+    PopoverComponent,
+    FeatureListPopoverComponent,
+    VesselPopoverComponent,
+    ResourcePopoverComponent,
+    RouteNextPointComponent,
+    AtoNPopoverComponent,
+    AircraftPopoverComponent,
+    CompassComponent,
+    FBMapComponent
+  ],
+  exports: [
+    PopoverComponent,
+    FeatureListPopoverComponent,
+    VesselPopoverComponent,
+    ResourcePopoverComponent,
+    RouteNextPointComponent,
+    AtoNPopoverComponent,
+    AircraftPopoverComponent,
+    CompassComponent,
+    FBMapComponent
+  ],
+  providers: []
 })
 export class FBMapModule {}

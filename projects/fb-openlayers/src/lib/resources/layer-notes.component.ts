@@ -1,5 +1,6 @@
 import {
-  ChangeDetectionStrategy, ChangeDetectorRef,
+  ChangeDetectionStrategy,
+  ChangeDetectorRef,
   Component,
   Input,
   OnChanges,
@@ -26,7 +27,6 @@ import { AsyncSubject } from 'rxjs';
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class NoteLayerComponent implements OnInit, OnDestroy, OnChanges {
-
   protected layer: Layer;
   public source: VectorSource;
   protected features: Array<Feature>;
@@ -37,8 +37,8 @@ export class NoteLayerComponent implements OnInit, OnDestroy, OnChanges {
    */
   @Output() layerReady: AsyncSubject<Layer> = new AsyncSubject(); // AsyncSubject will only store the last value, and only publish it when the sequence is completed
 
-  @Input() notes: {[key:string]: any};
-  @Input() noteStyles: {[key:string]: Style};
+  @Input() notes: { [key: string]: any };
+  @Input() noteStyles: { [key: string]: Style };
   @Input() opacity: number;
   @Input() visible: boolean;
   @Input() extent: Extent;
@@ -47,43 +47,44 @@ export class NoteLayerComponent implements OnInit, OnDestroy, OnChanges {
   @Input() maxResolution: number;
   @Input() layerProperties: { [index: string]: any };
 
-  constructor(protected changeDetectorRef: ChangeDetectorRef,
-              protected mapComponent: MapComponent) {
+  constructor(
+    protected changeDetectorRef: ChangeDetectorRef,
+    protected mapComponent: MapComponent
+  ) {
     this.changeDetectorRef.detach();
   }
 
   ngOnInit() {
     this.parseNotes(this.notes);
-    this.source = new VectorSource({features: this.features});
-    this.layer = new VectorLayer(Object.assign(this, {...this.layerProperties}));
+    this.source = new VectorSource({ features: this.features });
+    this.layer = new VectorLayer(
+      Object.assign(this, { ...this.layerProperties })
+    );
 
     const map = this.mapComponent.getMap();
-    if(this.layer && map) {
+    if (this.layer && map) {
       map.addLayer(this.layer);
       map.render();
       this.layerReady.next(this.layer);
       this.layerReady.complete();
     }
-
   }
 
   ngOnChanges(changes: SimpleChanges) {
-    if(this.layer) {
+    if (this.layer) {
       const properties: { [index: string]: any } = {};
 
-      for(const key in changes) {
-        if(key=='notes') {
+      for (const key in changes) {
+        if (key == 'notes') {
           this.parseNotes(changes[key].currentValue);
-          if(this.source) { 
+          if (this.source) {
             this.source.clear();
             this.source.addFeatures(this.features);
           }
-        }
-        else if( key=='noteStyles') { }
-        else if( key=='layerProperties') { 
+        } else if (key == 'noteStyles') {
+        } else if (key == 'layerProperties') {
           this.layer.setProperties(properties, false);
-        }
-        else {
+        } else {
           properties[key] = changes[key].currentValue;
         }
       }
@@ -100,38 +101,37 @@ export class NoteLayerComponent implements OnInit, OnDestroy, OnChanges {
     }
   }
 
-  parseNotes(notes: {[key:string]: any}= this.notes) {
-    let fa: Feature[]= [];
-    for( const w in notes ) {
-      if(!notes[w].position) { continue }
-      let f= new Feature({
-        geometry: new Point( fromLonLat([
-          notes[w].position.longitude,
-          notes[w].position.latitude
-        ]) ),
-        name: notes[w].title
+  parseNotes(notes: { [key: string]: any } = this.notes) {
+    const fa: Feature[] = [];
+    for (const w in notes) {
+      if (!notes[w].position) {
+        continue;
+      }
+      const f = new Feature({
+        geometry: new Point(
+          fromLonLat([notes[w].position.longitude, notes[w].position.latitude])
+        ),
+        name: notes[w].name
       });
-      f.setId('note.'+ w);
+      f.setId('note.' + w);
       f.setStyle(this.buildStyle(w, notes[w]));
       fa.push(f);
     }
-    this.features= fa;
+    this.features = fa;
   }
 
   // build note style
-  buildStyle(id:string, note:any):Style {
-    if(typeof this.noteStyles!=='undefined') {
-      if( note.properties?.skType ) {
+  buildStyle(id: string, note): Style {
+    if (typeof this.noteStyles !== 'undefined') {
+      if (note.properties?.skType) {
         return this.noteStyles[note.properties?.skType];
+      } else {
+        return this.noteStyles.default;
       }
-      else {
-       return this.noteStyles.default;
-      }
-    }
-    else if(this.layerProperties && this.layerProperties.style) {
+    } else if (this.layerProperties && this.layerProperties.style) {
       return this.layerProperties.style;
-    }
-    else {  // default styles
+    } else {
+      // default styles
       return new Style({
         image: new RegularShape({
           points: 4,
@@ -141,12 +141,11 @@ export class NoteLayerComponent implements OnInit, OnDestroy, OnChanges {
             color: 'black',
             width: 1
           }),
-          rotation: (Math.PI/180) * 45
+          rotation: (Math.PI / 180) * 45
         })
       });
     }
   }
-
 }
 
 // ** Freeboard resource collection format **
@@ -156,30 +155,31 @@ export class NoteLayerComponent implements OnInit, OnDestroy, OnChanges {
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class FreeboardNoteLayerComponent extends NoteLayerComponent {
+  @Input() notes: Array<[string, any, boolean]>;
 
-  @Input() notes: Array<[string,any,boolean]>;
-
-  constructor(protected changeDetectorRef: ChangeDetectorRef,
-              protected mapComponent: MapComponent) {
+  constructor(
+    protected changeDetectorRef: ChangeDetectorRef,
+    protected mapComponent: MapComponent
+  ) {
     super(changeDetectorRef, mapComponent);
   }
 
-  parseNotes(notes: Array<[string,any,boolean]>= this.notes) {
-    let fa: Feature[]= [];
-    for( const w of notes ) {
-      if(!w[1].position) { continue }
-      let f= new Feature({
-        geometry: new Point( fromLonLat([
-          w[1].position.longitude,
-          w[1].position.latitude
-        ]) ),
-        name: w[1].title
+  parseNotes(notes: Array<[string, any, boolean]> = this.notes) {
+    const fa: Feature[] = [];
+    for (const w of notes) {
+      if (!w[1].position) {
+        continue;
+      }
+      const f = new Feature({
+        geometry: new Point(
+          fromLonLat([w[1].position.longitude, w[1].position.latitude])
+        ),
+        name: w[1].name
       });
-      f.setId('note.'+ w[0]);
+      f.setId('note.' + w[0]);
       f.setStyle(this.buildStyle(w[0], w[1]));
       fa.push(f);
     }
-    this.features= fa;
+    this.features = fa;
   }
-
 }
