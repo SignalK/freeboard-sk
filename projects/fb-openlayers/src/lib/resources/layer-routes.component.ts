@@ -108,15 +108,6 @@ export class RouteLayerComponent implements OnInit, OnDestroy, OnChanges {
     }
   }
 
-<<<<<<< HEAD
-  parseRoutes(routes: {[key:string]: any}= this.routes) {
-    let fa: Feature[]= [];
-    for( const w in routes ) {
-      let c= fromLonLatArray(mapifyCoords(routes[w].feature.geometry.coordinates));
-      let f= new Feature({
-        geometry: new LineString( c ),
-        name: routes[w].feature.properties.name
-=======
   parseRoutes(routes: { [key: string]: any } = this.routes) {
     const fa: Feature[] = [];
     for (const w in routes) {
@@ -126,7 +117,6 @@ export class RouteLayerComponent implements OnInit, OnDestroy, OnChanges {
       const f = new Feature({
         geometry: new LineString(c),
         name: routes[w].name
->>>>>>> v2
       });
       f.setId('route.' + w);
       f.setStyle(this.buildStyle(w, routes[w]));

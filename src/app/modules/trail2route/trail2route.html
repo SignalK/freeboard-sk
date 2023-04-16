@@ -1,43 +1,7 @@
 <div class="_ap-trail2route">
-<<<<<<< HEAD
-    <div style="display:flex;line-height:2.3em;">
-        <div>
-            <mat-icon color="primary">insights</mat-icon>
-        </div>
-        <div style="flex: 1 1 auto;text-align:center;
-                    font-weight: bold;font-size: 16pt;">
-            Vessel Trail to Route
-        </div>
-        <div>
-            <button mat-icon-button (click)="doClose(false)"
-                matTooltip="Close" matTooltipPosition="below">
-                <mat-icon>close</mat-icon>
-            </button>
-        </div>
-    </div>   
-
-    <div style="display:block;">
-        <div>
-            <mat-slider min="0.000001" max="0.005" step="0.000001" value="tolerance" 
-                [thumbLabel]="false" 
-                [vertical]="false"
-                matTooltip="Set tolerance"
-                (change)="changeTolerance($event.value)">
-            </mat-slider>
-            &nbsp;Points: {{pointCount}}
-        </div>
-        <div>
-            <mat-checkbox 
-                [checked]="incServer"
-                (change)="getServerTrail($event.checked)">
-                Include Trail from server
-            </mat-checkbox>
-        </div>
-=======
   <div style="display: flex; line-height: 2.3em">
     <div>
       <mat-icon color="primary">insights</mat-icon>
->>>>>>> v2
     </div>
     <div
       style="

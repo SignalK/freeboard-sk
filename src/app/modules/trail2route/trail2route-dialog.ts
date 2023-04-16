@@ -7,10 +7,6 @@ import { SimplifyAP } from 'simplify-ts';
 import { SKRoute } from 'src/app/modules/skresources/resource-classes';
 import { SKResources } from 'src/app/modules/skresources//resources.service';
 import { SKStreamFacade } from '../skstream/skstream.facade';
-<<<<<<< HEAD
-import { GeoUtils } from 'src/app/lib/geoutils';
-=======
->>>>>>> v2
 import { AppInfo } from 'src/app/app.info';
 
 /********* Trail2RouteDialog **********
@@ -35,46 +31,15 @@ export class Trail2RouteDialog implements OnInit {
   pointCount = 0;
   incServer = false;
 
-<<<<<<< HEAD
-    rteFromTrail: any[];
-    mapCenter= [0,0];
-    pointCount = 0;
-    incServer = false;
-
-    tolerance: number = 0.000001;
-    highQuality: boolean = true;
-=======
   tolerance = 0.000001;
   highQuality = true;
 
   mapControls = [{ name: 'zoom' }];
->>>>>>> v2
 
   private obsList: Array<any> = [];
   private fetching = false;
   private serverCoords: Array<any> = [];
 
-<<<<<<< HEAD
-    private obsList: Array<any>= [];
-    //public serverTrail: Array<any>= [];
-    private fetching: boolean =false;
-    private serverCoords: Array<any>= [];
-
-    constructor(
-        private skres: SKResources,
-        public app: AppInfo,
-        private stream: SKStreamFacade,
-        public dialogRef: MatDialogRef<Trail2RouteDialog>,
-        @Inject(MAT_DIALOG_DATA) public data: any) {
-	}
-	
-	//** lifecycle: events **
-    ngOnInit() {
-        this.parseTrail(true);
-        //this.obsList.push( this.skres.update$().subscribe( value=> this.onServerResource(value) ) );
-        this.obsList.push(this.stream.trail$().subscribe( (value)=> this.onServerResource(value) ));
-        this.getServerTrail(this.app.config.selections.trailFromServer);
-=======
   constructor(
     private skres: SKResources,
     protected app: AppInfo,
@@ -105,7 +70,6 @@ export class Trail2RouteDialog implements OnInit {
     let trail = [].concat(this.data.trail ?? []);
     if (incServer) {
       trail = [].concat(this.serverCoords, trail);
->>>>>>> v2
     }
     const rteCoords = SimplifyAP(trail, this.tolerance, this.highQuality);
     this.pointCount = rteCoords.length;
@@ -125,22 +89,6 @@ export class Trail2RouteDialog implements OnInit {
     this.dialogRef.close({ result: save, data: coords });
   }
 
-<<<<<<< HEAD
-    parseTrail(center?: boolean) {
-        let trail= [].concat(this.data.trail ?? []);
-        if(this.incServer) {
-            //trail= trail.concat(this.serverCoords);
-            trail= [].concat(this.serverCoords, trail);
-        }
-        let rteCoords= SimplifyAP(trail, this.tolerance, this.highQuality);
-        this.pointCount= rteCoords.length;
-        if(center) { this.mapCenter= rteCoords[Math.floor(rteCoords.length/2)] };
-        let rte= new SKRoute();
-        rte.feature.geometry.coordinates= rteCoords;
-        this.rteFromTrail= [
-            ['rtefromtrail', rte, true]
-        ];
-=======
   // retrieve trail from server
   getServerTrail(checked: boolean) {
     if (checked) {
@@ -155,7 +103,6 @@ export class Trail2RouteDialog implements OnInit {
       }
     } else {
       this.parseTrail();
->>>>>>> v2
     }
   }
 
@@ -171,43 +118,5 @@ export class Trail2RouteDialog implements OnInit {
       });
       this.parseTrail();
     }
-<<<<<<< HEAD
-
-    // retrieve trail from server
-    getServerTrail(checked:boolean) { 
-        this.incServer = checked;
-        if(checked) {
-            if(!this.app.config.selections.trailFromServer || this.serverCoords.length === 0) {
-                this.fetching= true;
-                this.skres.getVesselTrail();
-            } else {
-                this.parseTrail(true);
-            }
-        }
-        else {
-            this.parseTrail(true);
-        }
-    }
-
-    // get server trail event handler
-    onServerResource(value: any) {
-        let serverTrail: Array<any>= [];
-        if(this.fetching && value.action=='get' && value.mode=='trail') {
-            this.fetching=false;
-            serverTrail= value.data;
-            /*serverTrail= value.data.map( line=> {
-                return GeoUtils.mapifyCoords(line);
-            });*/
-            this.serverCoords= [];
-            serverTrail.forEach( line=> {
-                this.serverCoords= this.serverCoords.concat(line);
-            });
-            this.parseTrail();
-        }
-    }
-
-}
-=======
   }
 }
->>>>>>> v2

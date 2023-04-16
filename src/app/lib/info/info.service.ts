@@ -123,15 +123,15 @@ export class Info {
     this.settings.next({ action: 'load', setting: 'data' });
   }
 
-    //** persist app config **
-    saveConfig() { 
-        this.state.saveConfig(this.config); 
-        this.settings.next({action: 'save', setting: 'config'});
-    }
+  //** persist app config **
+  saveConfig() {
+    this.state.saveConfig(this.config);
+    this.settings.next({ action: 'save', setting: 'config' });
+  }
 
-    //** persist app data **
-    saveData() { 
-        this.state.saveData(this.data); 
-        this.settings.next({action: 'save', setting: 'data'});
-    }    
+  //** persist app data **
+  saveData() {
+    this.state.saveData(this.data);
+    this.settings.next({ action: 'save', setting: 'data' });
+  }
 }

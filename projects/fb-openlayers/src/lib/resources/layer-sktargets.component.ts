@@ -164,14 +164,6 @@ export class SKTargetsLayerComponent implements OnInit, OnDestroy, OnChanges {
       if (this.targets.has(w)) {
         const target = this.targets.get(w);
         // ** target **
-<<<<<<< HEAD
-        let f= this.source.getFeatureById(w); 
-        if(f) { // exists so update it
-          if(target.position) {
-              f.setGeometry( new Point( fromLonLat(target.position) ) );
-              f.setStyle(this.buildStyle(target, stale));
-              f.set('name',  target.name ?? target.mmsi ?? '', true);
-=======
         let f = this.source.getFeatureById(w);
         if (f) {
           // exists so update it
@@ -193,24 +185,8 @@ export class SKTargetsLayerComponent implements OnInit, OnDestroy, OnChanges {
             f.setStyle(this.buildStyle(target, stale));
             f.set('name', target.name ?? target.mmsi ?? '', true);
             this.source.addFeature(f);
->>>>>>> v2
           }
         }
-<<<<<<< HEAD
-        else {  // does not exist so create it
-          if(target.position) {
-              f= new Feature( { 
-                geometry: new Point( fromLonLat(target.position) ),
-                name: target.name
-              });
-              f.setId(w);
-              f.setStyle(this.buildStyle(target, stale));
-              f.set('name',  target.name ?? target.mmsi ?? '', true);
-              this.source.addFeature(f);
-          }
-        } 
-=======
->>>>>>> v2
       }
     });
   }

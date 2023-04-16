@@ -125,23 +125,6 @@ export class VesselTrailComponent implements OnInit, OnDestroy, OnChanges {
   }
 
   parseLocalTrail() {
-<<<<<<< HEAD
-    if(!this.localTrail) { return }
-    const c= fromLonLatArray(mapifyCoords(this.localTrail));
-    // let c= fromLonLatArray(this.localTrail);
-    if(!this.trailLocal) { // create feature
-      this.trailLocal= new Feature( new LineString( c ) );
-      //this.trailLocal= new Feature( new LineString( mapifyCoords(c) ) );
-      this.trailLocal.setId('trail.self.local');
-      this.trailLocal.setStyle(this.buildStyle('local'));
-    }
-    else { //update feature
-      this.trailLocal= this.source.getFeatureById('trail.self.local');
-      if(this.localTrail && Array.isArray(this.localTrail)) {
-        const g:Geometry= this.trailLocal.getGeometry();
-        (g as LineString).setCoordinates( c );
-        //(g as LineString).setCoordinates( mapifyCoords(c) );
-=======
     if (!this.localTrail) {
       return;
     }
@@ -157,29 +140,11 @@ export class VesselTrailComponent implements OnInit, OnDestroy, OnChanges {
       if (this.localTrail && Array.isArray(this.localTrail)) {
         const g: Geometry = this.trailLocal.getGeometry();
         (g as LineString).setCoordinates(c);
->>>>>>> v2
       }
     }
   }
 
   parseServerTrail() {
-<<<<<<< HEAD
-    if(!this.serverTrail) { return }
-    let ca = this.serverTrail.map( (t:Array<Coordinate>)=> { return fromLonLatArray(mapifyCoords(t)) });
-    //let c= fromLonLatArray(this.serverTrail);
-    //let c= fromLonLatArray(this.serverTrail);
-    //let ca= [];
-    //c.forEach( (t:Array<Coordinate>)=> { ca.push(mapifyCoords(t)) });
-    if(!this.trailServer) { // create feature
-      this.trailServer= new Feature( new MultiLineString( ca ) );
-      this.trailServer.setId('trail.self.server');
-      this.trailServer.setStyle(this.buildStyle('server'));
-    }
-    else { //update feature
-      this.trailServer= this.source.getFeatureById('trail.self.server');
-      if(this.serverTrail && Array.isArray(this.serverTrail)) {
-        const g:Geometry= this.trailServer.getGeometry();
-=======
     if (!this.serverTrail) {
       return;
     }
@@ -196,7 +161,6 @@ export class VesselTrailComponent implements OnInit, OnDestroy, OnChanges {
       this.trailServer = this.source.getFeatureById('trail.self.server');
       if (this.serverTrail && Array.isArray(this.serverTrail)) {
         const g: Geometry = this.trailServer.getGeometry();
->>>>>>> v2
         (g as MultiLineString).setCoordinates(ca);
       }
     }
