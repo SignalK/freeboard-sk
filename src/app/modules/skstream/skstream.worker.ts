@@ -461,7 +461,7 @@ function openStream(opt) {
   const u = opt.url.split('/');
   u.pop();
   u.push('api');
-  u[0] = u[0] == 'wss:' ? 'https:' : 'http:';
+  u[0] = u[0] === 'wss:' ? 'https:' : 'http:';
   apiUrl = u.join('/');
 
   initVessels();
@@ -505,7 +505,7 @@ function openStream(opt) {
 
 function actionAlarm(opt) {
   const n =
-    opt.type.indexOf('notifications.') == -1
+    opt.type.indexOf('notifications.') === -1
       ? `notifications.${opt.type}`
       : opt.type;
   if (opt.raise) {
@@ -658,7 +658,7 @@ function postUpdate(immediate = false) {
     initAisTargetStatus();
     vessels.self.resourceUpdates = [];
     // cleanup and extent calc
-    if (extRecalcCounter == 0) {
+    if (extRecalcCounter === 0) {
       processAISStatus();
       if (vessels.self['positionReceived'] && targetFilter?.signalk.maxRadius) {
         targetExtent = GeoUtils.calcMapifiedExtent(
@@ -864,7 +864,7 @@ function processVessel(d: SKVessel, v, isSelf = false) {
   // ** use preferred path value for tws **
   if (
     typeof preferredPaths['tws'] !== 'undefined' &&
-    v.path == preferredPaths['tws']
+    v.path === preferredPaths['tws']
   ) {
     d.wind.tws = v.value;
   }

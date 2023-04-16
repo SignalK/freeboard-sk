@@ -86,19 +86,19 @@ export class BearingLineComponent implements OnInit, OnDestroy, OnChanges {
       const properties: { [index: string]: any } = {};
 
       for (const key in changes) {
-        if (key == 'marker' || key == 'showMarker' || key == 'lineCoords') {
+        if (key === 'marker' || key === 'showMarker' || key === 'lineCoords') {
           this.parseValues();
           if (this.source) {
             this.source.clear();
             this.source.addFeatures(this.features);
           }
         } else if (
-          key == 'markerName' ||
-          key == 'labelMinZoom' ||
-          key == 'mapZoom'
+          key === 'markerName' ||
+          key === 'labelMinZoom' ||
+          key === 'mapZoom'
         ) {
           this.handleLabelZoomChange(key, changes[key]);
-        } else if (key == 'layerProperties') {
+        } else if (key === 'layerProperties') {
           this.layer.setProperties(properties, false);
         } else {
           properties[key] = changes[key].currentValue;
@@ -158,7 +158,7 @@ export class BearingLineComponent implements OnInit, OnDestroy, OnChanges {
         return this.layerProperties.style;
       } else {
         // default style
-        if (key == 'base') {
+        if (key === 'base') {
           return new Style({
             stroke: new Stroke({
               width: 6,
@@ -178,7 +178,7 @@ export class BearingLineComponent implements OnInit, OnDestroy, OnChanges {
               })
             })
           });
-        } else if (key == 'marker-base') {
+        } else if (key === 'marker-base') {
           return new Style({
             image: new Circle({
               radius: 5,
@@ -192,7 +192,8 @@ export class BearingLineComponent implements OnInit, OnDestroy, OnChanges {
             }),
             text: new Text({
               text: '',
-              offsetX: 25
+              offsetX: 0,
+              offsetY: -29
             })
           });
         } else {
@@ -212,11 +213,11 @@ export class BearingLineComponent implements OnInit, OnDestroy, OnChanges {
 
   // ** assess attribute change **
   handleLabelZoomChange(key: string, change: SimpleChange) {
-    if (key == 'labelMinZoom') {
+    if (key === 'labelMinZoom') {
       if (typeof this.mapZoom !== 'undefined') {
         this.updateLabel();
       }
-    } else if (key == 'mapZoom') {
+    } else if (key === 'mapZoom') {
       if (typeof this.labelMinZoom !== 'undefined') {
         if (
           (change.currentValue >= this.labelMinZoom &&

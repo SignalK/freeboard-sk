@@ -82,7 +82,7 @@ export class SKResources {
           this.app.debug('res.activateRoute()');
         },
         (err: HttpErrorResponse) => {
-          if (err.status && err.status == 401) {
+          if (err.status && err.status === 401) {
             this.showAuth().subscribe((res) => {
               if (res.cancel) {
                 this.authResult();
@@ -123,7 +123,7 @@ export class SKResources {
           this.app.debug('res.clearDestination()');
         },
         (err: HttpErrorResponse) => {
-          if (err.status && err.status == 401) {
+          if (err.status && err.status === 401) {
             this.showAuth().subscribe((res) => {
               if (res.cancel) {
                 this.authResult();
@@ -178,7 +178,7 @@ export class SKResources {
           this.app.debug(`res.setDestination()`);
         },
         (err: HttpErrorResponse) => {
-          if (err.status && err.status == 401) {
+          if (err.status && err.status === 401) {
             this.showAuth().subscribe((res) => {
               if (res.cancel) {
                 this.authResult();
@@ -223,7 +223,7 @@ export class SKResources {
           this.app.debug('res.courseRestart()');
         },
         (err: HttpErrorResponse) => {
-          if (err.status && err.status == 401) {
+          if (err.status && err.status === 401) {
             this.showAuth().subscribe((res) => {
               if (res.cancel) {
                 this.authResult();
@@ -263,7 +263,7 @@ export class SKResources {
           this.app.debug('res.courseRefresh()');
         },
         (err: HttpErrorResponse) => {
-          if (err.status && err.status == 401) {
+          if (err.status && err.status === 401) {
             this.showAuth().subscribe((res) => {
               if (res.cancel) {
                 this.authResult();
@@ -308,7 +308,7 @@ export class SKResources {
           this.app.debug('res.courseReverse()');
         },
         (err: HttpErrorResponse) => {
-          if (err.status && err.status == 401) {
+          if (err.status && err.status === 401) {
             this.showAuth().subscribe((res) => {
               if (res.cancel) {
                 this.authResult();
@@ -354,7 +354,7 @@ export class SKResources {
       .subscribe(
         () => undefined,
         (err: HttpErrorResponse) => {
-          if (err.status && err.status == 401) {
+          if (err.status && err.status === 401) {
             this.showAuth().subscribe((res) => {
               if (res.cancel) {
                 this.authResult();
@@ -387,7 +387,7 @@ export class SKResources {
   // ****************************************************
 
   // ** process Resource Delta message **
-  processDelta(e: Array<unknown>) {
+  processDelta(e: Array<any>) {
     if (!Array.isArray(e)) {
       return;
     }
@@ -529,7 +529,7 @@ export class SKResources {
       .post(this.app.skApiVersion, `/resources/${path}`, data)
       .subscribe(
         (res) => {
-          if (res['statusCode'] == 202) {
+          if (res['statusCode'] === 202) {
             // pending
             this.pendingStatus(res).then((r) => {
               if (r['statusCode'] >= 400) {
@@ -542,13 +542,13 @@ export class SKResources {
                 this.app.showAlert('SUCCESS:', 'Resource loaded successfully.');
               }
             });
-          } else if (res['statusCode'] == 200) {
+          } else if (res['statusCode'] === 200) {
             // complete
             this.app.showAlert('SUCCESS:', 'Resource loaded successfully.');
           }
         },
         (err: HttpErrorResponse) => {
-          if (err.status && err.status == 401) {
+          if (err.status && err.status === 401) {
             this.showAuth().subscribe((res) => {
               if (res.cancel) {
                 this.authResult();
@@ -815,6 +815,35 @@ export class SKResources {
     if (typeof r.name === 'undefined') {
       r.name = 'Rte-' + id.slice(-6);
     }
+    if (typeof r.feature?.properties?.points !== 'undefined') {
+      // check for v2 array
+      if (!Array.isArray(r.feature.properties.points)) {
+        // legacy format
+        if (
+          r.feature.properties.points.names &&
+          Array.isArray(r.feature.properties.points.names)
+        ) {
+          const pts = [];
+          r.feature.properties.points.names.forEach((pt: string) => {
+            if (pt) {
+              pts.push({ name: pt });
+            } else {
+              pts.push({ name: '' });
+            }
+          });
+          r.feature.properties.coordinatesMeta = pts;
+          delete r.feature.properties.points;
+        }
+      }
+    }
+    // ensure coords & coordsMeta array lengths are aligned
+    if (
+      r.feature.properties.coordinatesMeta &&
+      r.feature.properties.coordinatesMeta.length !==
+        r.feature.geometry.coordinates.length
+    ) {
+      delete r.feature.properties.coordinatesMeta;
+    }
     return r;
   }
 
@@ -881,7 +910,7 @@ export class SKResources {
       .put(this.app.skApiVersion, `/resources/routes/${rte[0]}`, rte[1])
       .subscribe(
         (res: SKApiResponse) => {
-          if (res['statusCode'] == 202) {
+          if (res['statusCode'] === 202) {
             // pending
             this.pendingStatus(res).then((r) => {
               if (r['statusCode'] >= 400) {
@@ -895,14 +924,14 @@ export class SKResources {
                 this.app.saveConfig();
               }
             });
-          } else if (res['statusCode'] == 200) {
+          } else if (res['statusCode'] === 200) {
             // complete
             this.app.config.selections.routes.push(rte[0]);
             this.app.saveConfig();
           }
         },
         (err: HttpErrorResponse) => {
-          if (err.status && err.status == 401) {
+          if (err.status && err.status === 401) {
             this.showAuth().subscribe((res) => {
               if (res.cancel) {
                 this.authResult();
@@ -938,7 +967,7 @@ export class SKResources {
       .put(this.app.skApiVersion, `/resources/routes/${id}`, rte)
       .subscribe(
         (res: SKApiResponse) => {
-          if (res['statusCode'] == 202) {
+          if (res['statusCode'] === 202) {
             // pending
             this.pendingStatus(res).then((r) => {
               if (r['statusCode'] >= 400) {
@@ -957,7 +986,7 @@ export class SKResources {
         },
         (err: HttpErrorResponse) => {
           this.getRoutes();
-          if (err.status && err.status == 401) {
+          if (err.status && err.status === 401) {
             this.showAuth().subscribe((res) => {
               if (res.cancel) {
                 this.authResult();
@@ -993,7 +1022,7 @@ export class SKResources {
       .delete(this.app.skApiVersion, `/resources/routes/${id}`)
       .subscribe(
         (res) => {
-          if (res['statusCode'] == 202) {
+          if (res['statusCode'] === 202) {
             // pending
             this.pendingStatus(res).then((r) => {
               if (r['statusCode'] >= 400) {
@@ -1007,7 +1036,7 @@ export class SKResources {
           }
         },
         (err: HttpErrorResponse) => {
-          if (err.status && err.status == 401) {
+          if (err.status && err.status === 401) {
             this.showAuth().subscribe((res) => {
               if (res.cancel) {
                 this.authResult();
@@ -1038,7 +1067,11 @@ export class SKResources {
   }
 
   // ** modify Route point coordinates & refrsh course**
-  updateRouteCoords(id: string, coords: Array<Position>) {
+  updateRouteCoords(
+    id: string,
+    coords: Array<Position>,
+    coordsMeta?: Array<any>
+  ) {
     const t = this.app.data.routes.filter((i: [string, SKRoute]) => {
       if (i[0] === id) return true;
     });
@@ -1048,6 +1081,9 @@ export class SKResources {
     const rte = t[0][1];
     rte['feature']['geometry']['coordinates'] =
       GeoUtils.normaliseCoords(coords);
+    if (coordsMeta) {
+      rte['feature']['properties']['coordinatesMeta'] = coordsMeta;
+    }
     this.updateRoute(id, rte);
   }
 
@@ -1061,7 +1097,7 @@ export class SKResources {
         return r;
       }
     });
-    if (rte.length == 0) {
+    if (rte.length === 0) {
       return [];
     } else {
       return rte[0][1].feature.geometry.coordinates;
@@ -1355,7 +1391,7 @@ export class SKResources {
   // ** modify waypoint point coordinates **
   updateWaypointPosition(id: string, position: Position) {
     const t = this.app.data.waypoints.filter((i: [string, SKWaypoint]) => {
-      if (i[0] == id) return true;
+      if (i[0] === id) return true;
     });
     if (t.length === 0) {
       return;
@@ -1402,9 +1438,9 @@ export class SKResources {
       resId = e.id;
       title = 'Waypoint Details:';
       const w = this.app.data.waypoints.filter((i) => {
-        if (i[0] == resId) return true;
+        if (i[0] === resId) return true;
       });
-      if (w.length == 0) {
+      if (w.length === 0) {
         return;
       }
       wpt = w[0][1];
@@ -1617,7 +1653,7 @@ export class SKResources {
       .put(this.app.skApiVersion, `/resources/regions/${id}`, reg)
       .subscribe(
         (res: SKApiResponse) => {
-          if (res['statusCode'] == 202) {
+          if (res['statusCode'] === 202) {
             // pending
             this.pendingStatus(res).then((r) => {
               if (r['statusCode'] >= 400) {
@@ -1633,7 +1669,7 @@ export class SKResources {
           }
         },
         (err: HttpErrorResponse) => {
-          if (err.status && err.status == 401) {
+          if (err.status && err.status === 401) {
             this.showAuth().subscribe((res) => {
               if (res.cancel) {
                 this.authResult();
@@ -1666,9 +1702,9 @@ export class SKResources {
   // ** modify Region point coordinates **
   updateRegionCoords(id: string, coords: Array<Array<Position>>) {
     const t = this.app.data.regions.filter((i: [string, SKRegion]) => {
-      if (i[0] == id) return true;
+      if (i[0] === id) return true;
     });
-    if (t.length == 0) {
+    if (t.length === 0) {
       return;
     }
     const region = t[0][1];
@@ -2119,7 +2155,7 @@ export class SKResources {
                     this.showNoteEditor({ id: r.id });
                     break;
                   case 'add':
-                    if (relatedBy == 'group') {
+                    if (relatedBy === 'group') {
                       this.updateSource.next({
                         action: 'new',
                         mode: 'note',
@@ -2245,16 +2281,16 @@ export class SKResources {
             .subscribe((r) => {
               if (r.result) {
                 // ** open in tab **
-                if (r.data == 'url') {
+                if (r.data === 'url') {
                   window.open(res['url'], 'note');
                 }
-                if (r.data == 'edit') {
+                if (r.data === 'edit') {
                   this.showNoteEditor({ id: e.id });
                 }
-                if (r.data == 'delete') {
+                if (r.data === 'delete') {
                   this.showNoteDelete({ id: e.id });
                 }
-                if (r.data == 'group') {
+                if (r.data === 'group') {
                   this.showRelatedNotes(r.value, r.data);
                 }
               }
@@ -2287,9 +2323,9 @@ export class SKResources {
   // ** modify Note position **
   updateNotePosition(id: string, position: Position) {
     const t = this.app.data.notes.filter((i: [string, SKNote]) => {
-      if (i[0] == id) return true;
+      if (i[0] === id) return true;
     });
-    if (t.length == 0) {
+    if (t.length === 0) {
       return;
     }
     const note = t[0][1];
@@ -2371,11 +2407,11 @@ export class SKResources {
     const ts = s.split('%');
     if (ts.length > 1) {
       const uts = ts.map((i) => {
-        if (i == 'map:latitude') {
+        if (i === 'map:latitude') {
           return this.app.config.map.center[1];
-        } else if (i == 'map:longitude') {
+        } else if (i === 'map:longitude') {
           return this.app.config.map.center[0];
-        } else if (i == 'note:radius') {
+        } else if (i === 'note:radius') {
           const dist =
             this.app.config.units.distance === 'm'
               ? this.app.config.resources.notes.getRadius

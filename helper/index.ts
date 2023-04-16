@@ -6,7 +6,6 @@ import {
 import { IRouter, Application, Request, Response } from 'express';
 import { initAlarms } from './alarms/alarms';
 import { ActionResult } from './lib/types';
-import * as pkg from '../package.json';
 
 import {
   WEATHER_SERVICES,
@@ -282,9 +281,6 @@ module.exports = (server: FreeboardHelperApp): OpenApiPlugin => {
 
     router.get('/settings', (req: Request, res: Response) => {
       res.status(200).json({
-        id: plugin.id,
-        name: plugin.name,
-        version: pkg.version,
         settings: settings
       });
     });

@@ -175,11 +175,10 @@ The following features require that the Signal K server have plugins / providers
 
 The following plugins are recommended for the *Signal K node server* to enable full functionality:
 
-- freeboard-sk-helper _(provider for additional / experimental features)_
 - @signalk/charts-plugin *(Charts provider)*
 - signalk-anchoralarm-plugin _(anchor alarm settings & notifications)_
 - signalk-simple-notifications _(depth alarm notifications)_
-- course-provider _(course calculations e.g. XTE, DTG, etc.)_
+- @signalk/course-provider _(course calculations e.g. XTE, DTG, etc.)_
 
 ---
 

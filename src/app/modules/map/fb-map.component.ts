@@ -93,6 +93,17 @@ interface IFeatureData {
   resourceSets: ResourceSets;
 }
 
+interface IDrawInfo {
+  enabled: boolean;
+  mode: string | null;
+  type: 'Point' | 'LineString' | 'Polygon';
+  coordinates: any[];
+  modify: boolean;
+  features: any;
+  forSave: any;
+  properties: { [key: string]: any };
+}
+
 const MAP_MAX_ZOOM = 28;
 const MAP_MIN_ZOOM = 2;
 
@@ -134,7 +145,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
   @ViewChild(MatMenuTrigger, { static: true }) contextMenu: MatMenuTrigger;
 
   // ** draw interaction data
-  public draw = {
+  public draw: IDrawInfo = {
     enabled: false,
     mode: null,
     type: 'Point',
@@ -300,7 +311,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
     // ** SETTINGS **
     this.obsList.push(
       this.app.settings$.subscribe((r: SettingsMessage) => {
-        if (r.action == 'save' && r.setting == 'config') {
+        if (r.action === 'save' && r.setting === 'config') {
           this.fbMap.movingMap = this.app.config.map.moveMap;
           this.renderMapContents();
           if (!this.app.config.selections.trailFromServer) {
@@ -438,16 +449,16 @@ export class FBMapComponent implements OnInit, OnDestroy {
         this.overlay['vessel'] = this.dfeat.self;
       } else {
         if (
-          (this.overlay['type'] == 'ais' &&
+          (this.overlay['type'] === 'ais' &&
             !this.dfeat.ais.has(this.overlay['id'])) ||
-          (this.overlay['type'] == 'atons' &&
+          (this.overlay['type'] === 'atons' &&
             !this.dfeat.atons.has(this.overlay['id'])) ||
-          (this.overlay['type'] == 'aircraft' &&
+          (this.overlay['type'] === 'aircraft' &&
             !this.dfeat.aircraft.has(this.overlay['id']))
         ) {
           this.overlay.show = false;
         } else {
-          if (this.overlay['type'] == 'ais') {
+          if (this.overlay['type'] === 'ais') {
             this.overlay['vessel'] = this.dfeat.ais.get(this.overlay['id']);
             this.overlay.position = this.overlay['vessel'].position;
           }
@@ -470,34 +481,34 @@ export class FBMapComponent implements OnInit, OnDestroy {
   private onResourceUpdate(value) {
     this.app.debug('skres.update$ -> map.onResourceUpdate()');
     this.app.debug(value);
-    if (value.action == 'get' || value.action == 'selected') {
-      if (value.mode == 'route') {
+    if (value.action === 'get' || value.action === 'selected') {
+      if (value.mode === 'route') {
         this.dfeat.routes = [].concat(this.app.data.routes);
         if (this.app.data.n2kRoute) {
           this.dfeat.routes.push(this.app.data.n2kRoute);
         }
       }
-      if (value.mode == 'waypoint') {
+      if (value.mode === 'waypoint') {
         this.dfeat.waypoints = [].concat(this.app.data.waypoints);
       }
-      if (value.mode == 'chart') {
+      if (value.mode === 'chart') {
         this.dfeat.charts = [].concat(this.app.data.charts);
       }
-      if (value.mode == 'note') {
+      if (value.mode === 'note') {
         this.dfeat.notes = [].concat(this.app.data.notes);
         this.dfeat.regions = [].concat(this.app.data.regions);
       }
-      if (value.mode == 'track') {
+      if (value.mode === 'track') {
         // track resources
         this.dfeat.tracks = [].concat(this.app.data.tracks);
       }
-      if (value.mode == 'trail') {
+      if (value.mode === 'trail') {
         // vessel trail
         if (this.app.config.selections.trailFromServer) {
           this.dfeat.trail = value.data;
         }
       }
-      if (value.mode == 'resource-set') {
+      if (value.mode === 'resource-set') {
         this.dfeat.resourceSets = Object.assign({}, this.app.data.resourceSets);
       }
     }
@@ -596,7 +607,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
       this.overlay.position = c;
       const l = this.measure.totalDistance + this.measureDistanceToAdd(c);
       this.overlay.title =
-        this.app.config.units.distance == 'm'
+        this.app.config.units.distance === 'm'
           ? `${(l / 1000).toFixed(2)} km`
           : `${Convert.kmToNauticalMiles(l / 1000).toFixed(2)} NM`;
     }
@@ -639,7 +650,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
               icon = 'local_offer';
               addToFeatureList = true;
               text = this.app.data.notes.filter((i) => {
-                return i[0] == t[1] ? i[1].name : null;
+                return i[0] === t[1] ? i[1].name : null;
               })[0][1].name;
               break;
             case 'sptroute': // route start / end points
@@ -650,7 +661,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
               addToFeatureList = true;
               notForModify = true;
               text = this.app.data.routes.filter((i) => {
-                return i[0] == t[1] ? i[1].name : null;
+                return i[0] === t[1] ? i[1].name : null;
               })[0][1].name;
               break;
             case 'route':
@@ -662,7 +673,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
                   : '';
               } else {
                 text = this.app.data.routes.filter((i) => {
-                  return i[0] == t[1] ? i[1].name : null;
+                  return i[0] === t[1] ? i[1].name : null;
                 })[0][1].name;
               }
               break;
@@ -670,7 +681,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
               icon = 'location_on';
               addToFeatureList = true;
               text = this.app.data.waypoints.filter((i) => {
-                return i[0] == t[1] ? i[1].name : null;
+                return i[0] === t[1] ? i[1].name : null;
               })[0][1].name;
               break;
             case 'atons':
@@ -729,7 +740,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
         }
       });
       this.draw.features = new Collection(fa); // features collection for modify interaction
-      if (flist.size == 1) {
+      if (flist.size === 1) {
         // only 1 feature
         const v = flist.values().next().value;
         this.formatPopover(v['id'], v['coord']);
@@ -758,7 +769,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
     const l = this.measureDistanceToAdd();
     this.measure.totalDistance += l;
     this.overlay.title =
-      this.app.config.units.distance == 'm'
+      this.app.config.units.distance === 'm'
         ? `${(this.measure.totalDistance / 1000).toFixed(2)} km`
         : `${Convert.kmToNauticalMiles(
             this.measure.totalDistance / 1000
@@ -792,7 +803,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
         break;
       case 'Polygon': // region + Note
         p = e.feature.getGeometry().getCoordinates();
-        if (p.length == 0) {
+        if (p.length === 0) {
           this.draw.coordinates = [];
         }
         c = p[0].map((i) => {
@@ -805,9 +816,18 @@ export class FBMapComponent implements OnInit, OnDestroy {
   }
 
   public onModifyStart(e: ModifyEvent) {
+    const f: any = e.features.getArray()[0];
+    this.draw.coordinates = f.getGeometry().getCoordinates();
     if (!this.draw.forSave) {
+      // initialise save info
       this.draw.forSave = { id: null, coords: null };
-      this.draw.forSave.id = e.features.getArray()[0].getId();
+      this.draw.forSave.id = f.getId();
+      if (f.getGeometry().getType() === 'LineString') {
+        const meta = f.get('pointMetadata');
+        if (meta) {
+          this.draw.forSave.coordsMetadata = meta;
+        }
+      }
     }
   }
 
@@ -815,10 +835,17 @@ export class FBMapComponent implements OnInit, OnDestroy {
     const f: any = e.features.getArray()[0];
     const fid = f.getId();
     const c = f.getGeometry().getCoordinates();
+    if (f.getGeometry().getType() === 'LineString') {
+      this.updateCoordsMeta(
+        this.draw.coordinates,
+        c,
+        this.draw.forSave.coordsMetadata
+      );
+    }
     let pc;
-    if (fid.split('.')[0] == 'route') {
+    if (fid.split('.')[0] === 'route') {
       pc = this.transformCoordsArray(c);
-    } else if (fid.split('.')[0] == 'region') {
+    } else if (fid.split('.')[0] === 'region') {
       for (let e = 0; e < c.length; e++) {
         if (this.isCoordsArray(c[e])) {
           c[e] = this.transformCoordsArray(c[e]);
@@ -839,6 +866,48 @@ export class FBMapComponent implements OnInit, OnDestroy {
     }
     this.draw.forSave['coords'] = pc;
     this.modifyEnd.emit(this.draw.forSave);
+  }
+
+  private updateCoordsMeta(startCoords: any[], endCoords: any[], meta: any[]) {
+    if (!meta) {
+      return;
+    }
+    const mode =
+      endCoords.length > startCoords.length
+        ? 'ADD'
+        : endCoords.length < startCoords.length
+        ? 'DELETE'
+        : 'MOVE';
+
+    function stringifyCoords(coords: Coordinate[]): string[] {
+      return coords.map((c: Coordinate) => {
+        return `${c[0]} - ${c[1]}`;
+      });
+    }
+
+    if (mode === 'MOVE') {
+      return meta;
+    }
+    startCoords = stringifyCoords(startCoords);
+    endCoords = stringifyCoords(endCoords);
+    if (mode === 'DELETE') {
+      for (let i = 0; i < startCoords.length; i++) {
+        if (!endCoords.includes(startCoords[i])) {
+          meta.splice(i, 1);
+        }
+      }
+      return meta;
+    } else if (mode === 'ADD') {
+      for (let i = 0; i < endCoords.length; i++) {
+        if (startCoords[i] !== endCoords[i]) {
+          meta.splice(i, 0, { name: '' });
+          break;
+        }
+      }
+      return meta;
+    } else {
+      return meta;
+    }
   }
 
   // ****** MAP control functions *******
@@ -899,9 +968,9 @@ export class FBMapComponent implements OnInit, OnDestroy {
     // ** xtePath **
     if (
       this.dfeat.navData.startPosition &&
-      typeof this.dfeat.navData.startPosition[0] == 'number' &&
+      typeof this.dfeat.navData.startPosition[0] === 'number' &&
       this.dfeat.navData.position &&
-      typeof this.dfeat.navData.position[0] == 'number'
+      typeof this.dfeat.navData.position[0] === 'number'
     ) {
       vl.xtePath = [
         this.dfeat.navData.startPosition,
@@ -914,7 +983,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
     // ** bearing line (active) **
     const bpos =
       this.dfeat.navData.position &&
-      typeof this.dfeat.navData.position[0] == 'number'
+      typeof this.dfeat.navData.position[0] === 'number'
         ? this.dfeat.navData.position
         : this.dfeat.active.position;
     vl.bearing = [this.dfeat.active.position, bpos];
@@ -1053,7 +1122,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
         return;
       case 'region':
         item = this.app.data.regions.filter((i) => {
-          if (i[0] == t[1]) return true;
+          if (i[0] === t[1]) return true;
         });
         if (!item) {
           return false;
@@ -1066,7 +1135,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
         return;
       case 'note':
         item = this.app.data.notes.filter((i) => {
-          if (i[0] == t[1]) return true;
+          if (i[0] === t[1]) return true;
         });
         if (!item) {
           return false;
@@ -1096,7 +1165,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
         return;
       case 'waypoint':
         item = this.app.data.waypoints.filter((i) => {
-          if (i[0] == t[1]) return true;
+          if (i[0] === t[1]) return true;
         });
         if (!item) {
           return false;
@@ -1111,7 +1180,9 @@ export class FBMapComponent implements OnInit, OnDestroy {
         this.overlay['id'] = id;
         this.overlay['type'] = 'destination';
         this.overlay['resource'] = this.skres.buildWaypoint(coord);
-        this.overlay.title = 'Destination';
+        this.overlay.title = this.app.data.navData.destPointName
+          ? this.app.data.navData.destPointName
+          : 'Destination';
         this.overlay.show = true;
         return;
     }
@@ -1122,7 +1193,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
     // trim the draw.features collection to the selected feature.id
     const sf = new Collection();
     this.draw.features.forEach((e) => {
-      if (e.getId() == feature.id) {
+      if (e.getId() === feature.id) {
         sf.push(e);
       }
     });
@@ -1150,7 +1221,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
 
   // ** activate route / waypoint
   public setActiveFeature() {
-    if (this.overlay.type == 'waypoint') {
+    if (this.overlay.type === 'waypoint') {
       this.skres.navigateToWaypoint({ id: this.overlay.id });
     } else {
       this.activate.emit(this.overlay.id);
@@ -1164,7 +1235,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
 
   // ** emit info event **
   public itemInfo(id: string, type: string, isSelf = false) {
-    if (type == 'ais' && isSelf) {
+    if (type === 'ais' && isSelf) {
       this.info.emit({ id: id, type: 'self' });
     } else {
       this.info.emit({ id: id, type: type });
@@ -1179,8 +1250,8 @@ export class FBMapComponent implements OnInit, OnDestroy {
 
   // ** Change Interaction mode **
   private interactionMode(mode: INTERACTION_MODE, value) {
-    if (mode == INTERACTION_MODE.MEASURE) {
-      if (value == this.measure.enabled) {
+    if (mode === INTERACTION_MODE.MEASURE) {
+      if (value === this.measure.enabled) {
         return;
       } else {
         this.measure.coords = [];
@@ -1188,7 +1259,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
         this.measure.enabled = value;
         this.overlay.show = false;
       }
-    } else if (mode == INTERACTION_MODE.DRAW) {
+    } else if (mode === INTERACTION_MODE.DRAW) {
       this.overlay.show = false;
       if (!value) {
         // end draw mode
@@ -1223,7 +1294,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
         this.draw.properties = {};
         this.draw.modify = false;
       }
-    } else if (mode == INTERACTION_MODE.MODIFY) {
+    } else if (mode === INTERACTION_MODE.MODIFY) {
       if (!value) {
         // end modify mode
         this.draw.modify = false;
@@ -1238,7 +1309,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
 
   // ** Enter modify mode **
   public startModify() {
-    if (this.draw.features.getLength() == 0) {
+    if (this.draw.features.getLength() === 0) {
       return;
     }
     this.draw.type = null;
@@ -1331,7 +1402,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
     this.app.debug(`distance map moved: ${d}`);
     // ** if d is more than half the getRadius
     const cr =
-      this.app.config.units.distance == 'ft'
+      this.app.config.units.distance === 'ft'
         ? Convert.nauticalMilesToKm(this.app.config.resources.notes.getRadius) *
           1000
         : this.app.config.resources.notes.getRadius * 1000;

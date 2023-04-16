@@ -244,7 +244,7 @@ export class AppComponent {
     this.obsList.push(
       this.alarmsFacade.anchorStatus$().subscribe((r) => {
         if (r.error) {
-          if (r.result == 401) {
+          if (r.result === 401) {
             this.showLogin();
           } else {
             this.app.showAlert(
@@ -309,10 +309,10 @@ export class AppComponent {
     const mq = window.matchMedia('(prefers-color-scheme: dark)');
 
     if (
-      (this.app.config.darkMode.source == 0 && mq.matches) ||
-      (this.app.config.darkMode.source == 1 &&
-        this.app.data.vessels.self.mode == 'night') ||
-      this.app.config.darkMode.source == -1
+      (this.app.config.darkMode.source === 0 && mq.matches) ||
+      (this.app.config.darkMode.source === 1 &&
+        this.app.data.vessels.self.mode === 'night') ||
+      this.app.config.darkMode.source === -1
     ) {
       this.overlayContainer.getContainerElement().classList.add('dark-theme');
       this.app.config.darkMode.enabled = true;
@@ -338,7 +338,7 @@ export class AppComponent {
   // ** select prev/next favourite plugin **
   public selectPlugin(next = false) {
     if (next) {
-      if (this.selFavourite == -1) {
+      if (this.selFavourite === -1) {
         this.selFavourite = 0;
       } else if (
         this.selFavourite ==
@@ -349,17 +349,17 @@ export class AppComponent {
         this.selFavourite++;
       }
     } else {
-      if (this.selFavourite == -1) {
+      if (this.selFavourite === -1) {
         this.selFavourite =
           this.app.config.selections.pluginFavourites.length - 1;
-      } else if (this.selFavourite == 0) {
+      } else if (this.selFavourite === 0) {
         this.selFavourite = -1;
       } else {
         this.selFavourite--;
       }
     }
     const url =
-      this.selFavourite == -1
+      this.selFavourite === -1
         ? this.formatInstrumentsUrl()
         : `${this.app.host}${
             this.app.config.selections.pluginFavourites[this.selFavourite]
@@ -545,22 +545,22 @@ export class AppComponent {
           : [];
       this.app.data.trail = lastpt;
     }
-    const trailId = this.mode == SKSTREAM_MODE.PLAYBACK ? 'history' : 'self';
+    const trailId = this.mode === SKSTREAM_MODE.PLAYBACK ? 'history' : 'self';
     this.app.db.saveTrail(trailId, this.app.data.trail);
   }
 
   // ** RESOURCES event handlers **
   private handleResourceUpdate(e) {
     // ** handle routes get and update NavData based on activeRoute
-    if (e.action == 'get' && e.mode == 'route') {
+    if (e.action === 'get' && e.mode === 'route') {
       //this.updateNavPanel(e);
     }
     // ** trail retrieved from server **
-    if (e.action == 'get' && e.mode == 'trail') {
+    if (e.action === 'get' && e.mode === 'trail') {
       this.processTrail(e.data);
     }
     // ** create note in group **
-    if (e.action == 'new' && e.mode == 'note') {
+    if (e.action === 'new' && e.mode === 'note') {
       if (this.app.config.resources.notes.groupRequiresPosition) {
         this.drawStart(e.mode, { group: e.group });
       } else {
@@ -572,10 +572,10 @@ export class AppComponent {
   // ** SETTINGS event handler **
   private handleSettingsEvent(e: SettingsMessage) {
     this.app.debug(`App: settings.update$`, 'warn');
-    if (e.action == 'load' && e.setting == 'config') {
+    if (e.action === 'load' && e.setting === 'config') {
       this.app.data.trueMagChoice = this.app.config.selections.headingAttribute;
     }
-    if (e.action == 'save' && e.setting == 'config') {
+    if (e.action === 'save' && e.setting === 'config') {
       this.setDarkTheme(); // **  set theme **
       if (
         this.app.data.trueMagChoice !=
@@ -754,7 +754,7 @@ export class AppComponent {
           return;
         }
         this.fetchResources();
-        if (errCount == 0) {
+        if (errCount === 0) {
           this.app.showAlert(
             'GPX Load',
             'GPX file resources loaded successfully.'
@@ -787,7 +787,7 @@ export class AppComponent {
           this.focusMap();
           return;
         }
-        if (errCount == 0) {
+        if (errCount === 0) {
           this.app.showAlert(
             'GPX Save',
             'Resources saved to GPX file successfully.'
@@ -815,7 +815,7 @@ export class AppComponent {
           return;
         } // cancelled
         this.fetchResources();
-        if (errCount == 0) {
+        if (errCount === 0) {
           this.app.showAlert(
             'GeoJSON Load',
             'GeoJSON features loaded successfully.'
@@ -1100,9 +1100,9 @@ export class AppComponent {
   // ** show feature (vessel/AtoN/Aircraft/Route points) properties **
   public featureProperties(e: { id: string; type: string }) {
     let v: SKRoute | SKVessel | SKSaR | SKAircraft | SKAtoN;
-    if (e.type == 'route') {
+    if (e.type === 'route') {
       v = this.app.data.routes.filter((i) => {
-        return e.id == i[0] ? true : false;
+        return e.id === i[0] ? true : false;
       })[0];
       if (v) {
         this.bottomSheet
@@ -1123,10 +1123,10 @@ export class AppComponent {
             this.focusMap();
           });
       }
-    } else if (e.type == 'aton') {
+    } else if (e.type === 'aton') {
       let title: string;
       let icon: string;
-      if (e.id.slice(0, 3) == 'sar') {
+      if (e.id.slice(0, 3) === 'sar') {
         v = this.app.data.sar.get(e.id);
         title = 'SaR Properties';
         icon = 'tour';
@@ -1149,7 +1149,7 @@ export class AppComponent {
           .afterDismissed()
           .subscribe(() => this.focusMap());
       }
-    } else if (e.type == 'aircraft') {
+    } else if (e.type === 'aircraft') {
       v = this.app.data.aircraft.get(e.id);
       if (v) {
         this.bottomSheet
@@ -1166,7 +1166,7 @@ export class AppComponent {
       }
     } else {
       v =
-        e.type == 'self'
+        e.type === 'self'
           ? this.app.data.vessels.self
           : this.app.data.vessels.aisTargets.get(e.id);
       if (v) {
@@ -1266,7 +1266,7 @@ export class AppComponent {
   // ** switch between realtime and history playback modes
   public switchMode(toMode: SKSTREAM_MODE, options?: StreamOptions) {
     this.app.debug(`switchMode from: ${this.mode} to ${toMode}`);
-    if (toMode == SKSTREAM_MODE.PLAYBACK) {
+    if (toMode === SKSTREAM_MODE.PLAYBACK) {
       // ** history playback
       this.app.db.saveTrail('self', this.app.data.trail);
       this.app.data.trail = [];
@@ -1282,7 +1282,7 @@ export class AppComponent {
 
   // ** show select mode dialog
   public showSelectMode() {
-    if (this.mode == SKSTREAM_MODE.REALTIME) {
+    if (this.mode === SKSTREAM_MODE.REALTIME) {
       // request history playback
       this.app
         .showConfirm(
@@ -1321,7 +1321,11 @@ export class AppComponent {
   }
 
   // ** handle modify end event **
-  public handleModifyEnd(e: { coords: any[]; id: string }) {
+  public handleModifyEnd(e: {
+    id: string;
+    coords: any[];
+    coordsMetadata?: any[];
+  }) {
     if (
       this.app.data.activeRoute &&
       e.id.indexOf(this.app.data.activeRoute) !== -1
@@ -1387,33 +1391,33 @@ export class AppComponent {
           const r = this.draw.forSave.id.split('.');
           if (res) {
             // save changes
-            if (r[0] == 'route') {
-              this.skres.updateRouteCoords(r[1], this.draw.forSave.coords);
+            if (r[0] === 'route') {
+              this.skres.updateRouteCoords(r[1], this.draw.forSave.coords, this.draw.forSave.coordsMetadata);
             }
-            if (r[0] == 'waypoint') {
+            if (r[0] === 'waypoint') {
               this.skres.updateWaypointPosition(r[1], this.draw.forSave.coords);
               // if waypoint the target destination update nextPoint
-              if (r[1] == this.app.data.activeWaypoint) {
+              if (r[1] === this.app.data.activeWaypoint) {
                 this.skres.setDestination({
                   latitude: this.draw.forSave.coords[1],
                   longitude: this.draw.forSave.coords[0]
                 });
               }
             }
-            if (r[0] == 'note') {
+            if (r[0] === 'note') {
               this.skres.updateNotePosition(r[1], this.draw.forSave.coords);
             }
-            if (r[0] == 'region') {
+            if (r[0] === 'region') {
               this.skres.updateRegionCoords(r[1], this.draw.forSave.coords);
             }
           } else {
-            if (r[0] == 'route') {
+            if (r[0] === 'route') {
               this.skres.getRoutes();
             }
-            if (r[0] == 'waypoint') {
+            if (r[0] === 'waypoint') {
               this.skres.getWaypoints();
             }
-            if (r[0] == 'note' || r[0] == 'region') {
+            if (r[0] === 'note' || r[0] === 'region') {
               this.skres.getNotes();
             }
           }
@@ -1500,7 +1504,7 @@ export class AppComponent {
         );
       },
       (err: HttpErrorResponse) => {
-        if (err.status && err.status == 401) {
+        if (err.status && err.status === 401) {
           this.showLogin(null, false, true);
         }
         this.app.debug('No vessel data available!');
@@ -1540,7 +1544,7 @@ export class AppComponent {
         this.app
           .showAlert(data.message, data.title, data.buttonText)
           .subscribe(() => {
-            if (this.mode == SKSTREAM_MODE.REALTIME) {
+            if (this.mode === SKSTREAM_MODE.REALTIME) {
               this.switchMode(this.mode);
             } else {
               this.showPlaybackSettings();
@@ -1568,7 +1572,7 @@ export class AppComponent {
 
   // ** handle delta message received
   private onMessage(e: NotificationMessage | UpdateMessage) {
-    if (e.action == 'hello') {
+    if (e.action === 'hello') {
       // ** hello message
       this.app.debug(e);
       if (e.playback) {

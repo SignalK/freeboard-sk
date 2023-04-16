@@ -89,7 +89,7 @@ export class RouteLayerComponent implements OnInit, OnDestroy, OnChanges {
             this.source.clear();
             this.source.addFeatures(this.features);
           }
-        } else if (key == 'layerProperties') {
+        } else if (key === 'layerProperties') {
           this.layer.setProperties(properties, false);
         } else {
           properties[key] = changes[key].currentValue;
@@ -120,6 +120,7 @@ export class RouteLayerComponent implements OnInit, OnDestroy, OnChanges {
       });
       f.setId('route.' + w);
       f.setStyle(this.buildStyle(w, routes[w]));
+      f.set('pointMetadata', routes[w].feature.properties.coordinatesMeta ?? null);
       fa.push(f);
     }
     this.features = fa;
@@ -129,7 +130,7 @@ export class RouteLayerComponent implements OnInit, OnDestroy, OnChanges {
   buildStyle(id: string, rte: any): Style {
     if (typeof this.routeStyles !== 'undefined') {
       if (
-        id == this.activeRoute &&
+        id === this.activeRoute &&
         typeof this.routeStyles.active !== 'undefined'
       ) {
         return this.routeStyles.active;
@@ -143,7 +144,7 @@ export class RouteLayerComponent implements OnInit, OnDestroy, OnChanges {
     } else {
       // default styles
       let s: Style;
-      if (id == this.activeRoute) {
+      if (id === this.activeRoute) {
         s = new Style({
           stroke: new Stroke({
             color: 'blue',
@@ -193,6 +194,7 @@ export class FreeboardRouteLayerComponent extends RouteLayerComponent {
         });
         f.setId('route.' + w[0]);
         f.setStyle(this.buildStyle(w[0], w[1]));
+        f.set('pointMetadata', w[1].feature.properties.coordinatesMeta ?? null);
         fa.push(f);
       }
     }

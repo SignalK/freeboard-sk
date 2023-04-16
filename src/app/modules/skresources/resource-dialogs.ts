@@ -658,7 +658,7 @@ export class AircraftPropertiesModal implements OnInit {
               "
             >
               <div style="width:35px;">
-                <mat-icon [color]="'warn'" *ngIf="selIndex == i">
+                <mat-icon [color]="'warn'" *ngIf="selIndex === i">
                   flag
                 </mat-icon>
               </div>
@@ -753,12 +753,13 @@ export class ActiveResourcePropertiesModal implements OnInit {
       this.data.resource[1].feature &&
       this.data.resource[1].feature.geometry.coordinates
     ) {
-      if (this.data.type == 'route') {
-        this.points = this.data.resource[1].feature.geometry.coordinates;
+      if (this.data.type === 'route') {
+        this.points = [].concat(
+          this.data.resource[1].feature.geometry.coordinates
+        );
 
         this.data.title = this.data.resource[1].name
-          ? `
-                    ${this.data.resource[1].name} Points`
+          ? `${this.data.resource[1].name} Points`
           : 'Route Points';
 
         if (this.data.resource[0] === this.app.data.activeRoute) {
@@ -766,32 +767,44 @@ export class ActiveResourcePropertiesModal implements OnInit {
           this.showClearButton = true;
         }
         if (
-          this.data.resource[1].feature.properties.points &&
-          this.data.resource[1].feature.properties.points.names &&
-          Array.isArray(this.data.resource[1].feature.properties.points.names)
+          this.data.resource[1].feature.properties.coordinatesMeta &&
+          Array.isArray(
+            this.data.resource[1].feature.properties.coordinatesMeta
+          )
         ) {
-          this.pointNames =
-            this.data.resource[1].feature.properties.points.names;
+          this.pointNames = this.getPointNames(
+            this.data.resource[1].feature.properties.coordinatesMeta
+          );
         }
       }
       /*else {
-                if(this.app.data.activeRoute) {
-                    const rte= this.app.data.routes.filter(i=> { 
-                        return (i[0]===this.app.data.activeRoute) ? true : false;
-                    })[0];
-                    if(rte.length!=0) {
-                        this.points= rte[1].feature.geometry.coordinates;
-                        this.data.title= (rte[1].name) ? `${rte[1].name} Points` : 'Active Route Points';
-                        this.selIndex= this.app.data.navData.pointIndex;
-                    }
-                }
-                else { 
-                    this.data.title= (this.data.title) ? this.data.title : 'Destination';
-                    this.points= [this.data.resource[1].feature.geometry.coordinates];
-                    this.clearButtonText= 'Clear Destination';
-                }
-            }*/
+          if(this.app.data.activeRoute) {
+              const rte= this.app.data.routes.filter(i=> { 
+                  return (i[0]===this.app.data.activeRoute) ? true : false;
+              })[0];
+              if(rte.length!=0) {
+                  this.points= rte[1].feature.geometry.coordinates;
+                  this.data.title= (rte[1].name) ? `${rte[1].name} Points` : 'Active Route Points';
+                  this.selIndex= this.app.data.navData.pointIndex;
+              }
+          }
+          else { 
+              this.data.title= (this.data.title) ? this.data.title : 'Destination';
+              this.points= [this.data.resource[1].feature.geometry.coordinates];
+              this.clearButtonText= 'Clear Destination';
+          }
+      }*/
     }
+  }
+
+  getPointNames(pointsMeta: any[]): string[] {
+    return pointsMeta.map((pt) => {
+      if (pt.href) {
+        return 'waypoint';
+      } else {
+        return pt.name ?? '';
+      }
+    });
   }
 
   selectPoint(idx: number) {
@@ -805,15 +818,35 @@ export class ActiveResourcePropertiesModal implements OnInit {
   }
 
   drop(e: CdkDragDrop<{ previousIndex: number; currentIndex: number }>) {
-    if (this.data.type == 'route') {
+    if (this.data.type === 'route') {
       const selPosition = this.points[this.selIndex];
       moveItemInArray(this.points, e.previousIndex, e.currentIndex);
+      if (
+        this.data.type === 'route' &&
+        this.data.resource[1].feature.properties.coordinatesMeta
+      ) {
+        moveItemInArray(
+          this.data.resource[1].feature.properties.coordinatesMeta,
+          e.previousIndex,
+          e.currentIndex
+        );
+        this.pointNames = this.getPointNames(
+          this.data.resource[1].feature.properties.coordinatesMeta
+        );
+      }
       this.updateFlag(selPosition);
-      this.data.skres.updateRouteCoords(this.data.resource[0], this.points);
+      this.data.skres.updateRouteCoords(
+        this.data.resource[0],
+        this.points,
+        this.data.resource[1].feature.properties.coordinatesMeta
+      );
     }
   }
 
   updateFlag(selPosition: Position) {
+    if (!selPosition) {
+      return;
+    }
     let idx = 0;
     this.points.forEach((p: Position) => {
       if (p[0] === selPosition[0] && p[1] === selPosition[1]) {
@@ -1000,7 +1033,7 @@ export class ChartInfoDialog {
         <span>
           <button
             mat-icon-button
-            [disabled]="app.config.selections.tracks.length == 0"
+            [disabled]="app.config.selections.tracks.length === 0"
             matTooltip="Clear selections"
             matTooltipPosition="right"
             (click)="clearSelections()"
@@ -1138,7 +1171,7 @@ export class TracksModal implements OnInit {
       return;
     }
     this.trackList = this.trackList.filter((t) => {
-      return t[0] == id ? false : true;
+      return t[0] === id ? false : true;
     });
     this.data.skres.showTrackDelete(id).subscribe((ok) => {
       if (ok) {
@@ -1211,7 +1244,7 @@ export class TracksModal implements OnInit {
             mat-icon-button
             [disabled]="
               !isResourceSet ||
-              app.config.selections.resourceSets[data.path].length == 0
+              app.config.selections.resourceSets[data.path].length === 0
             "
             matTooltip="Clear selections"
             matTooltipPosition="right"

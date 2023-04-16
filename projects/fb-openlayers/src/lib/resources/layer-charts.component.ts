@@ -54,7 +54,7 @@ export class FreeboardChartLayerComponent
 
   ngOnChanges(changes: SimpleChanges) {
     for (const key in changes) {
-      if (key == 'charts' && !changes[key].firstChange) {
+      if (key === 'charts' && !changes[key].firstChange) {
         this.parseCharts(changes[key].currentValue);
       }
     }
@@ -221,7 +221,7 @@ export class FreeboardChartLayerComponent
       } else {
         // selected
         if (!layer) {
-          if (charts[i][0] == 'openstreetmap') {
+          if (charts[i][0] === 'openstreetmap') {
             // open street map
             layer = osmLayer();
             layer.setZIndex(this.zIndex + parseInt(i));
@@ -234,7 +234,7 @@ export class FreeboardChartLayerComponent
                 ? charts[i][1].minZoom - 0.1
                 : charts[i][1].minZoom;
             const maxZ = charts[i][1].maxZoom;
-            if (charts[i][1].format == 'pbf' || charts[i][1].format == 'mvt') {
+            if (charts[i][1].format === 'pbf' || charts[i][1].format === 'mvt') {
               if (charts[i][1].url.indexOf('.pmtiles') !== -1) {
                 // pmtiles source
                 layer = this.initPMTilesVectorLayer(

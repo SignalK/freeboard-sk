@@ -154,6 +154,14 @@ export const OSM = [
   ]
 ];
 
+interface PluginInfo {
+  enabled: boolean;
+  enabledByDefault: boolean;
+  id: string;
+  name: string;
+  version: string;
+}
+
 @Injectable({ providedIn: 'root' })
 export class AppInfo extends Info {
   private DEV_SERVER = {
@@ -350,7 +358,7 @@ export class AppInfo extends Info {
     this.init();
     // ** detect if launched in iframe **
     try {
-      this.data.optAppPanel = window.self == window.top;
+      this.data.optAppPanel = window.self === window.top;
     } catch (e) {
       this.data.optAppPanel = false;
     }
@@ -388,15 +396,17 @@ export class AppInfo extends Info {
 
   // get plugin information
   fetchPluginSettings() {
-    this.signalk.get(`/plugins/freeboard-sk/settings`).subscribe(
-      (r: PluginSettings) => {
-        this.plugin = r;
+    this.signalk
+      .get(`/plugins/freeboard-sk/settings`)
+      .subscribe((r: PluginSettings) => {
+        this.plugin.settings = r.settings;
+      });
+    this.signalk.get(`/plugins/freeboard-sk`).subscribe(
+      (r: PluginInfo) => {
+        this.plugin.version = r.version;
       },
       () => {
-        this.plugin = {
-          version: this.version,
-          settings: {}
-        };
+        this.plugin.version = this.version;
       }
     );
   }
@@ -460,7 +470,7 @@ export class AppInfo extends Info {
     this.debug(version);
     // *******************
 
-    if (version.result && version.result == 'update') {
+    if (version.result && version.result === 'update') {
       this.debug('Upgrade result....new version detected');
       this.loadConfig();
       this.loadData();
@@ -470,7 +480,7 @@ export class AppInfo extends Info {
       if (pv[0] !== cv[0] || pv[1] !== cv[1]) {
         this.data['updatedRun'] = version;
       }
-    } else if (version.result && version.result == 'new') {
+    } else if (version.result && version.result === 'new') {
       this.debug('Upgrade result....new installation');
       this.loadConfig();
       this.loadData();
@@ -485,7 +495,7 @@ export class AppInfo extends Info {
   // ** handle Settings load / save **
   handleSettingsEvent(value: SettingsMessage) {
     this.debug(value);
-    if (value.action == 'load' && value.setting == 'config') {
+    if (value.action === 'load' && value.setting === 'config') {
       this.cleanConfig(this.config);
     }
   }
@@ -502,7 +512,7 @@ export class AppInfo extends Info {
           // ** get server stored config for logged in user **
           this.signalk.appDataGet('/').subscribe(
             (settings) => {
-              if (Object.keys(settings).length == 0) {
+              if (Object.keys(settings).length === 0) {
                 return;
               }
               this.cleanConfig(settings);
@@ -782,7 +792,7 @@ export class AppInfo extends Info {
               if (
                 this.data.server &&
                 this.data.server.id &&
-                msg.type == this.data.server.id
+                msg.type === this.data.server.id
               ) {
                 messages.push(msg);
               }
@@ -794,7 +804,7 @@ export class AppInfo extends Info {
         btnText = 'Got it';
       }
 
-      if (messages.length == 0) {
+      if (messages.length === 0) {
         return;
       }
       return this.dialog.open(WelcomeDialog, {

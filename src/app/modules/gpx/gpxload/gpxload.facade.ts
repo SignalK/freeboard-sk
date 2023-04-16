@@ -139,9 +139,13 @@ export class GPXLoadFacade {
     if (r.type) {
       rte.feature.properties['type'] = r.type;
     }
-    rte.feature.properties['points'] = {};
-    rte.feature.properties['points']['names'] = r.rtept.map((pt) => {
-      return pt.name ?? '';
+    rte.feature.properties['coordinatesMeta'] = [];
+    rte.feature.properties['coordinatesMeta'] = r.rtept.map((pt) => {
+      const ptMeta = { name: pt.name ?? '' };
+      if (pt.cmt) {
+        ptMeta['description'] = pt.cmt;
+      }
+      return ptMeta;
     });
 
     this.subCount++;

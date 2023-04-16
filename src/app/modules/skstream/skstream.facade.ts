@@ -59,7 +59,7 @@ export class SKStreamFacade {
     this.stream
       .message$()
       .subscribe((msg: NotificationMessage | UpdateMessage) => {
-        if (msg.action == 'open') {
+        if (msg.action === 'open') {
           this.post({
             cmd: 'auth',
             options: {
@@ -67,11 +67,11 @@ export class SKStreamFacade {
             }
           });
           this.onConnect.next(msg);
-        } else if (msg.action == 'close') {
+        } else if (msg.action === 'close') {
           this.onClose.next(msg);
-        } else if (msg.action == 'error') {
+        } else if (msg.action === 'error') {
           this.onError.next(msg);
-        } else if (msg.action == 'trail') {
+        } else if (msg.action === 'trail') {
           this.parseSelfTrail(msg);
         } else {
           this.parseUpdate(msg);
@@ -229,7 +229,7 @@ export class SKStreamFacade {
 
   // ** parse delta message and update Vessel Data -> vesselsUpdate.next()
   private parseUpdate(msg: NotificationMessage | UpdateMessage) {
-    if (msg.action == 'update') {
+    if (msg.action === 'update') {
       // delta message
 
       this.parseVesselSelf(msg.result.self);
@@ -296,7 +296,7 @@ export class SKStreamFacade {
           : value.cog != null
           ? value.cog
           : 0;
-      if (`vessels.${this.app.data.vessels.closest.id}` == key) {
+      if (`vessels.${this.app.data.vessels.closest.id}` === key) {
         if (!value.closestApproach) {
           this.alarmsFacade.updateAlarm('cpa', null);
           this.app.data.vessels.closest = {
@@ -328,14 +328,14 @@ export class SKStreamFacade {
     // ** process preferred course data **
     if (typeof v['course.crossTrackError'] !== 'undefined') {
       this.app.data.navData.xte =
-        this.app.config.units.distance == 'm'
+        this.app.config.units.distance === 'm'
           ? v['course.crossTrackError'] / 1000
           : Convert.kmToNauticalMiles(v['course.crossTrackError'] / 1000);
     }
 
     if (typeof v['course.distance'] !== 'undefined') {
       this.app.data.navData.dtg =
-        this.app.config.units.distance == 'm'
+        this.app.config.units.distance === 'm'
           ? v['course.distance'] / 1000
           : Convert.kmToNauticalMiles(v['course.distance'] / 1000);
     }
@@ -390,6 +390,7 @@ export class SKStreamFacade {
     this.app.data.navData.pointIndex = -1;
     this.app.data.navData.pointTotal = 0;
     this.app.data.navData.pointNames = [];
+    this.app.data.navData.destPointName = '';
     this.app.data.activeRouteReversed = false;
   }
 
@@ -455,6 +456,7 @@ export class SKStreamFacade {
       this.clearRouteData();
     } else {
       if (value.activeRoute.href) {
+        this.app.data.navData.destPointName = '';
         const rteHref = value.activeRoute.href.split('/');
         this.app.data.activeRoute = rteHref[rteHref.length - 1];
         if (
@@ -486,12 +488,27 @@ export class SKStreamFacade {
         if (rte.length === 1 && rte[0][1]) {
           this.app.data.navData.activeRoutePoints =
             rte[0][1].feature.geometry.coordinates;
-          this.app.data.navData.pointNames =
-            rte[0][1].feature.properties.points &&
-            rte[0][1].feature.properties.points.names &&
-            Array.isArray(rte[0][1].feature.properties.points.names)
-              ? rte[0][1].feature.properties.points.names
-              : [];
+
+          if (
+            rte[0][1].feature.properties.coordinatesMeta &&
+            Array.isArray(rte[0][1].feature.properties.coordinatesMeta)
+          ) {
+            this.app.data.navData.pointNames =
+              rte[0][1].feature.properties.coordinatesMeta.map((pt) => {
+                return pt.name ?? '';
+              });
+            if (
+              this.app.data.navData.pointIndex !== -1 &&
+              this.app.data.navData.pointIndex <
+                this.app.data.navData.pointNames.length
+            ) {
+              this.app.data.navData.destPointName =
+                this.app.data.navData.pointNames[
+                  this.app.data.navData.pointIndex
+                ];
+            }
+          }
+
           this.app.data.activeRouteReversed = !value?.activeRoute.reverse
             ? false
             : value?.activeRoute.reverse;
@@ -532,7 +549,7 @@ export class SKStreamFacade {
 
   // handle settings (config.selections)
   private handleSettingsEvent(value) {
-    if (value.setting == 'config') {
+    if (value.setting === 'config') {
       //console.log('streamFacade.settingsEvent');
       this.stream.postMessage({
         cmd: 'settings',
