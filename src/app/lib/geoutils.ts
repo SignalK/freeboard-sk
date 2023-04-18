@@ -1,7 +1,6 @@
 /*******************************
     GeoUtils Class Module       
 *******************************/
-import { getPointResolution, fromLonLat } from 'ol/proj';
 import { Convert } from './convert';
 import {
   getDistance,

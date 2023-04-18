@@ -1066,7 +1066,7 @@ export class SKResources {
       );
   }
 
-  // ** modify Route point coordinates & refrsh course**
+  // Modify Route point coordinates & refrsh course
   updateRouteCoords(
     id: string,
     coords: Array<Position>,
@@ -1081,13 +1081,15 @@ export class SKResources {
     const rte = t[0][1];
     rte['feature']['geometry']['coordinates'] =
       GeoUtils.normaliseCoords(coords);
+    rte.distance = GeoUtils.routeLength(rte.feature.geometry.coordinates);
+
     if (coordsMeta) {
       rte['feature']['properties']['coordinatesMeta'] = coordsMeta;
     }
     this.updateRoute(id, rte);
   }
 
-  // ** return array of route coordinates **
+  // Return array of route coordinates
   getActiveRouteCoords(routeId?: string) {
     if (!routeId) {
       routeId = this.app.data.activeRoute;
