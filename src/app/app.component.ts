@@ -1392,7 +1392,11 @@ export class AppComponent {
           if (res) {
             // save changes
             if (r[0] === 'route') {
-              this.skres.updateRouteCoords(r[1], this.draw.forSave.coords, this.draw.forSave.coordsMetadata);
+              this.skres.updateRouteCoords(
+                r[1],
+                this.draw.forSave.coords,
+                this.draw.forSave.coordsMetadata
+              );
             }
             if (r[0] === 'waypoint') {
               this.skres.updateWaypointPosition(r[1], this.draw.forSave.coords);
