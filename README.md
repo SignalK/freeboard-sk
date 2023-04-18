@@ -4,27 +4,6 @@ Freeboard-SK is a stateless, multi-station, Openlayers based chart plotter for S
 ![screen](https://user-images.githubusercontent.com/38519157/128667564-0f5e1ed6-eaae-40c7-ad62-5e7011c1f082.png)
 
 
-**Contribute to Signal K at [OpenCollective](https://opencollective.com/signalk)**
-
-![screen](https://img.shields.io/opencollective/all/signalk)
-
-![screen](https://img.shields.io/github/license/SignalK/freeboard-sk)
-![screen](https://img.shields.io/github/issues/SignalK/freeboard-sk)
-![screen](https://img.shields.io/github/stars/SignalK/freeboard-sk)
-
-
----
-
-
-You can find releases and the change log in the [Git Repository](https://github.com/SignalK/freeboard-sk).
-
-- [Change Log](https://github.com/SignalK/freeboard-sk/blob/master/CHANGELOG.md)
-
-- [Releases](https://github.com/SignalK/freeboard-sk/releases)
-
-- [FAQ](https://github.com/SignalK/freeboard-sk/wiki)
-
-
 ## Features:
 ---
 
@@ -242,31 +221,32 @@ _They will __NOT__ apply when using **Production Mode**, the generated applicati
 ```
 ng build -c production
 or
-npm run build:prod
+npm run build:web
 ```
 
 ---
 
 ### Building a Release:
 
-__Angular Build:__
+__Building the Application:__
 
-- To build the Freeboard-SK application use the `npm run build:prod` command.
+To build all components of the application ready for release use the `npm run build:all` command.
 
-- To build the plugin use the `npm run build:helper` command.
+__Building individual components:__
+
+- To build only the _web application_ use the `npm run build:web` command.
+- To build only the _helper plugin_ use the `npm run build:helper` command.
+
 
 Built files for deployment are placed in the following folders:
--  `/public` (application)
--  `/plugin` (plugin)
+-  `/public` (web application)
+-  `/plugin` (helper plugin)
 
-__NPM package:__
+__Building NPM package:__
 
 To build the NPM package use `npm pack` command which will:
-1. Build the plugin using `npm run build:helper`. 
-1. Build the application using `npm run build:prod`. 
-2. Create the NPM package `*.tgz` file.
-
-Built `*.tgz` file is placed in the root folder of the project.
+1. Execute `npm run build:all`
+1. Create the NPM package (`.tgz`) file in the root folder of the project.
 
 ---
 

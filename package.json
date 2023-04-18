@@ -24,8 +24,10 @@
     "format:helper": "prettier --ignore-path .gitignore --write \"helper/**/*.+(ts|html)\"",
     "e2e": "ng e2e",
     "build:helper": "tsc -p tsconfig-helper.json",
-    "build:prod": "ng build -c production --output-hashing all",
-    "prepare": "npm run build:helper && npm run build:prod"
+    "build:web": "ng build -c production --output-hashing all",
+    "build:all": "npm run build:helper && npm run build:web",
+    "build:prod": "npm run build:all",
+    "prepare": "npm run build:all"
   },
   "author": "AdrianP",
   "contributors": [
