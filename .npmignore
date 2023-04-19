@@ -17,3 +17,4 @@ tsconfig-helper.json
 tsconfig.spec.json
 tsconfig.worker.json
 .angular
+.github
