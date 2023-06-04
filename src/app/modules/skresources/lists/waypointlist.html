@@ -68,7 +68,13 @@
       >
         <div style="display: flex">
           <div style="flex: 1 1 auto; width: 215px">
-            <div style="text-overflow: ellipsis; overflow-x: hidden">
+            <div
+              style="
+                text-overflow: ellipsis;
+                overflow-x: hidden;
+                white-space: pre;
+              "
+            >
               <mat-icon
                 [color]="r[1].feature.properties.skType=='pseudoAtoN' ? 'warn' : 'accent'"
               >
