@@ -19,6 +19,7 @@ import { MapComponent } from '../map.component';
 import { Extent } from '../models';
 import { fromLonLatArray, mapifyCoords } from '../util';
 import { AsyncSubject } from 'rxjs';
+import { SKRegion } from 'src/app/modules';
 
 // ** Signal K resource collection format **
 @Component({
@@ -36,7 +37,7 @@ export class RegionLayerComponent implements OnInit, OnDestroy, OnChanges {
    * Use this to have access to the layer and some helper functions
    */
   @Output() layerReady: AsyncSubject<Layer> = new AsyncSubject(); // AsyncSubject will only store the last value, and only publish it when the sequence is completed
-
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
   @Input() regions: { [key: string]: any };
   @Input() regionStyles: { [key: string]: Style };
   @Input() opacity: number;
@@ -45,6 +46,7 @@ export class RegionLayerComponent implements OnInit, OnDestroy, OnChanges {
   @Input() zIndex: number;
   @Input() minResolution: number;
   @Input() maxResolution: number;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   @Input() layerProperties: { [index: string]: any };
 
   constructor(
@@ -72,6 +74,7 @@ export class RegionLayerComponent implements OnInit, OnDestroy, OnChanges {
 
   ngOnChanges(changes: SimpleChanges) {
     if (this.layer) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const properties: { [index: string]: any } = {};
 
       for (const key in changes) {
@@ -82,6 +85,7 @@ export class RegionLayerComponent implements OnInit, OnDestroy, OnChanges {
             this.source.addFeatures(this.features);
           }
         } else if (key == 'regionStyles') {
+          // handle region style change
         } else if (key == 'layerProperties') {
           this.layer.setProperties(properties, false);
         } else {
@@ -101,6 +105,7 @@ export class RegionLayerComponent implements OnInit, OnDestroy, OnChanges {
     }
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   parseRegions(regions: { [key: string]: any } = this.regions) {
     const fa: Feature[] = [];
     for (const w in regions) {
@@ -123,6 +128,7 @@ export class RegionLayerComponent implements OnInit, OnDestroy, OnChanges {
   }
 
   // ** mapify and transform MultiLineString coordinates
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   parseCoordinates(coords: Array<any>, geomType) {
     if (geomType == 'MultiPolygon') {
       const multipoly = [];
@@ -173,7 +179,7 @@ export class RegionLayerComponent implements OnInit, OnDestroy, OnChanges {
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class FreeboardRegionLayerComponent extends RegionLayerComponent {
-  @Input() regions: Array<[string, any, boolean]>;
+  @Input() regions: Array<[string, SKRegion, boolean]>;
 
   constructor(
     protected changeDetectorRef: ChangeDetectorRef,
@@ -182,7 +188,7 @@ export class FreeboardRegionLayerComponent extends RegionLayerComponent {
     super(changeDetectorRef, mapComponent);
   }
 
-  parseRegions(regions: Array<[string, any, boolean]> = this.regions) {
+  parseRegions(regions: Array<[string, SKRegion, boolean]> = this.regions) {
     const fa: Feature[] = [];
     for (const w of regions) {
       const c = this.parseCoordinates(

@@ -51,6 +51,7 @@ export class VesselComponent implements OnInit, OnDestroy, OnChanges {
   @Input() zIndex: number;
   @Input() minResolution: number;
   @Input() maxResolution: number;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   @Input() layerProperties: { [index: string]: any };
 
   vessel: Feature;
@@ -98,6 +99,7 @@ export class VesselComponent implements OnInit, OnDestroy, OnChanges {
 
   ngOnChanges(changes: SimpleChanges) {
     if (this.layer) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const properties: { [index: string]: any } = {};
 
       for (const key in changes) {
@@ -261,6 +263,7 @@ export class VesselComponent implements OnInit, OnDestroy, OnChanges {
       // create feature
       lf = new Feature(new LineString(fromLonLatArray(mapifyCoords(coords))));
     } else {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const g: any = lf.getGeometry();
       g.setCoordinates(fromLonLatArray(mapifyCoords(coords)));
     }

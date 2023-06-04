@@ -37,6 +37,7 @@ export class SKTargetsLayerComponent implements OnInit, OnDestroy, OnChanges {
    */
   @Output() layerReady: AsyncSubject<Layer> = new AsyncSubject(); // AsyncSubject will only store the last value, and only publish it when the sequence is completed
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   @Input() targets: Map<string, any> = new Map();
   @Input() targetStyles: { [key: string]: Style };
   @Input() targetType: string;
@@ -52,6 +53,7 @@ export class SKTargetsLayerComponent implements OnInit, OnDestroy, OnChanges {
   @Input() zIndex: number;
   @Input() minResolution: number;
   @Input() maxResolution: number;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   @Input() layerProperties: { [index: string]: any };
 
   constructor(
@@ -79,6 +81,7 @@ export class SKTargetsLayerComponent implements OnInit, OnDestroy, OnChanges {
 
   ngOnChanges(changes: SimpleChanges) {
     if (this.layer) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const properties: { [index: string]: any } = {};
       for (const key in changes) {
         if (key == 'targets' && changes[key].firstChange) {
@@ -141,6 +144,7 @@ export class SKTargetsLayerComponent implements OnInit, OnDestroy, OnChanges {
     }
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   extractKeys(m: Map<string, any>): Array<string> {
     const keys = [];
     m.forEach((v, k) => {
@@ -211,6 +215,7 @@ export class SKTargetsLayerComponent implements OnInit, OnDestroy, OnChanges {
   }
 
   // build target style
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   buildStyle(item: any, setStale = false): Style {
     let s: Style;
     // label text
@@ -218,6 +223,7 @@ export class SKTargetsLayerComponent implements OnInit, OnDestroy, OnChanges {
     // ** stale check time ref
     const now = new Date().valueOf();
     if (typeof this.targetStyles !== 'undefined') {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       if (setStale || (item.lastUpdated as any) < now - this.inactiveTime) {
         // stale
         s = this.targetStyles.inactive ?? this.targetStyles.default;
@@ -248,6 +254,7 @@ export class SKTargetsLayerComponent implements OnInit, OnDestroy, OnChanges {
   // update feature labels
   updateLabels() {
     this.source.getFeatures().forEach((f: Feature) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const s: any = f.getStyle();
       f.setStyle(this.setTextLabel(s, f.get('name')));
     });

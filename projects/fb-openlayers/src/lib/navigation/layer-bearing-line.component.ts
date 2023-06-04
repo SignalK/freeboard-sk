@@ -46,6 +46,7 @@ export class BearingLineComponent implements OnInit, OnDestroy, OnChanges {
   @Input() showMarker = false;
   @Input() mapZoom = 10;
   @Input() labelMinZoom = 10;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   @Input() bearingStyles: { [key: string]: any };
   @Input() opacity: number;
   @Input() visible: boolean;
@@ -53,6 +54,7 @@ export class BearingLineComponent implements OnInit, OnDestroy, OnChanges {
   @Input() zIndex: number;
   @Input() minResolution: number;
   @Input() maxResolution: number;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   @Input() layerProperties: { [index: string]: any };
 
   public mapifiedRadius = 0;
@@ -83,6 +85,7 @@ export class BearingLineComponent implements OnInit, OnDestroy, OnChanges {
 
   ngOnChanges(changes: SimpleChanges) {
     if (this.layer) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const properties: { [index: string]: any } = {};
 
       for (const key in changes) {

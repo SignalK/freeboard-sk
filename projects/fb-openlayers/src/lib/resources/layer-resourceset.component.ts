@@ -28,6 +28,7 @@ import { MapComponent } from '../map.component';
 import { Extent } from '../models';
 import { fromLonLatArray } from '../util';
 import { AsyncSubject } from 'rxjs';
+import { SKResourceSet } from 'src/app/modules/skresources/sets/resource-set';
 
 // ** Signal K resource collection format **
 @Component({
@@ -46,7 +47,7 @@ export class ResourceSetLayerComponent implements OnInit, OnDestroy, OnChanges {
    */
   @Output() layerReady: AsyncSubject<Layer> = new AsyncSubject(); // AsyncSubject will only store the last value, and only publish it when the sequence is completed
 
-  @Input() resourceSets: Array<any> = [];
+  @Input() resourceSets: Array<SKResourceSet> = [];
   @Input() selected: Array<string> = [];
   @Input() labelMinZoom = 10;
   @Input() mapZoom = 10;
@@ -56,6 +57,7 @@ export class ResourceSetLayerComponent implements OnInit, OnDestroy, OnChanges {
   @Input() zIndex: number;
   @Input() minResolution: number;
   @Input() maxResolution: number;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   @Input() layerProperties: { [index: string]: any };
 
   constructor(
@@ -83,6 +85,7 @@ export class ResourceSetLayerComponent implements OnInit, OnDestroy, OnChanges {
 
   ngOnChanges(changes: SimpleChanges) {
     if (this.layer) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const properties: { [index: string]: any } = {};
       for (const key in changes) {
         if (key == 'resourceSets') {
@@ -113,7 +116,7 @@ export class ResourceSetLayerComponent implements OnInit, OnDestroy, OnChanges {
   }
 
   // process resource sets
-  parseResourceSets(resourceSets: Array<any>) {
+  parseResourceSets(resourceSets: Array<SKResourceSet>) {
     this.features = [];
     for (const r of resourceSets) {
       if (this.selected.includes(r.id)) {
@@ -123,6 +126,7 @@ export class ResourceSetLayerComponent implements OnInit, OnDestroy, OnChanges {
   }
 
   // process a resource set
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   parseResources(rSet: { [key: string]: any }) {
     const fa: Feature[] = [];
     for (const w of rSet.values.features) {
@@ -207,6 +211,7 @@ export class ResourceSetLayerComponent implements OnInit, OnDestroy, OnChanges {
   // update feature labels
   updateLabels() {
     this.source.getFeatures().forEach((f: Feature) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const s: any = f.getStyle();
       f.setStyle(this.setTextLabel(s, f.get('name')));
     });
@@ -225,6 +230,7 @@ export class ResourceSetLayerComponent implements OnInit, OnDestroy, OnChanges {
     return cs;
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   buildStyle(styleDef: { [key: string]: any }, geom): Style {
     const s = new Style();
     if (geom === 'Point' || geom === 'MulitPoint') {

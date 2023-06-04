@@ -19,6 +19,7 @@ import { MapComponent } from '../map.component';
 import { Extent } from '../models';
 import { fromLonLatArray, mapifyCoords } from '../util';
 import { AsyncSubject } from 'rxjs';
+import { SKRoute } from 'src/app/modules';
 
 // ** Signal K resource collection format **
 @Component({
@@ -37,6 +38,7 @@ export class RouteLayerComponent implements OnInit, OnDestroy, OnChanges {
    */
   @Output() layerReady: AsyncSubject<Layer> = new AsyncSubject(); // AsyncSubject will only store the last value, and only publish it when the sequence is completed
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   @Input() routes: { [key: string]: any };
   @Input() routeStyles: { [key: string]: Style };
   @Input() activeRoute: string;
@@ -46,6 +48,7 @@ export class RouteLayerComponent implements OnInit, OnDestroy, OnChanges {
   @Input() zIndex: number;
   @Input() minResolution: number;
   @Input() maxResolution: number;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   @Input() layerProperties: { [index: string]: any };
 
   constructor(
@@ -73,6 +76,7 @@ export class RouteLayerComponent implements OnInit, OnDestroy, OnChanges {
 
   ngOnChanges(changes: SimpleChanges) {
     if (this.layer) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const properties: { [index: string]: any } = {};
 
       for (const key in changes) {
@@ -83,6 +87,7 @@ export class RouteLayerComponent implements OnInit, OnDestroy, OnChanges {
             this.source.addFeatures(this.features);
           }
         } else if (key === 'routeStyles') {
+          // handle route styler change
         } else if (key === 'activeRoute') {
           this.parseRoutes(this.routes);
           if (this.source) {
@@ -108,6 +113,7 @@ export class RouteLayerComponent implements OnInit, OnDestroy, OnChanges {
     }
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   parseRoutes(routes: { [key: string]: any } = this.routes) {
     const fa: Feature[] = [];
     for (const w in routes) {
@@ -120,13 +126,17 @@ export class RouteLayerComponent implements OnInit, OnDestroy, OnChanges {
       });
       f.setId('route.' + w);
       f.setStyle(this.buildStyle(w, routes[w]));
-      f.set('pointMetadata', routes[w].feature.properties.coordinatesMeta ?? null);
+      f.set(
+        'pointMetadata',
+        routes[w].feature.properties.coordinatesMeta ?? null
+      );
       fa.push(f);
     }
     this.features = fa;
   }
 
   // build route style
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   buildStyle(id: string, rte: any): Style {
     if (typeof this.routeStyles !== 'undefined') {
       if (
@@ -172,7 +182,7 @@ export class RouteLayerComponent implements OnInit, OnDestroy, OnChanges {
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class FreeboardRouteLayerComponent extends RouteLayerComponent {
-  @Input() routes: Array<[string, any, boolean]>;
+  @Input() routes: Array<[string, SKRoute, boolean]>;
 
   constructor(
     protected changeDetectorRef: ChangeDetectorRef,
@@ -181,7 +191,7 @@ export class FreeboardRouteLayerComponent extends RouteLayerComponent {
     super(changeDetectorRef, mapComponent);
   }
 
-  parseRoutes(routes: Array<[string, any, boolean]> = this.routes) {
+  parseRoutes(routes: Array<[string, SKRoute, boolean]> = this.routes) {
     const fa: Feature[] = [];
     for (const w of routes) {
       if (w[2]) {

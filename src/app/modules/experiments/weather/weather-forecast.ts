@@ -55,12 +55,14 @@ import { WeatherData } from './components/weather-data.component';
   ]
 })
 export class WeatherForecastModal implements OnInit {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   public forecasts: any[] = [];
 
   constructor(
     public app: AppInfo,
     private sk: SignalKClient,
     public modalRef: MatBottomSheetRef<WeatherForecastModal>,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     @Inject(MAT_BOTTOM_SHEET_DATA) public data: any
   ) {}
 
@@ -87,12 +89,13 @@ export class WeatherForecastModal implements OnInit {
   }
 
   private getForecast(count = 8) {
-    const path = '/resources/weather/forecasts/self';
-    this.sk.api
-      .get(2, path)
-      .subscribe((forecasts: Array<{ [key: string]: any }>) => {
-        forecasts = forecasts.slice(0, count);
-        forecasts.forEach((v) => {
+    const path = '/resources/weather/self/forecasts';
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    this.sk.api.get(2, path).subscribe((forecasts: any) => {
+      Object.values(forecasts)
+        .slice(0, count)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        .forEach((v: any) => {
           const forecastData: WeatherData = { wind: {} };
           forecastData.description = v['description'] ?? '';
           forecastData.time =
@@ -201,6 +204,6 @@ export class WeatherForecastModal implements OnInit {
           }
           this.forecasts.push(forecastData);
         });
-      });
+    });
   }
 }

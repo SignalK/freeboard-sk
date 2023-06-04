@@ -35,10 +35,13 @@ import { SKChart } from 'src/app/modules';
 export class FreeboardChartLayerComponent
   implements OnInit, OnDestroy, OnChanges
 {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   protected layers: Map<string, any> = new Map();
 
-  @Input() charts: Array<[string, any, boolean]>;
+  @Input() charts: Array<[string, SKChart, boolean]>;
   @Input() zIndex = 10; // start number for zIndex of chart layers
+
+  private wmtsCapabilitesMap = new Map();
 
   constructor(
     protected changeDetectorRef: ChangeDetectorRef,
@@ -91,6 +94,7 @@ export class FreeboardChartLayerComponent
       });
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     async function loader(z, x, y): Promise<any> {
       const response = await tiles.getZxy(z, x, y);
       const blob = new Blob([response.data]);
@@ -207,7 +211,7 @@ export class FreeboardChartLayerComponent
     });
   }
 
-  parseCharts(charts: Array<[string, SKChart, boolean]> = this.charts) {
+  async parseCharts(charts: Array<[string, SKChart, boolean]> = this.charts) {
     const map = this.mapComponent.getMap();
     for (const i in charts) {
       // check for existing layer
@@ -215,7 +219,7 @@ export class FreeboardChartLayerComponent
       if (!charts[i][2]) {
         // not selected
         if (layer) {
-          this.mapComponent.getMap().removeLayer(layer);
+          map.removeLayer(layer);
           this.layers.delete(charts[i][0]);
         }
       } else {
@@ -234,7 +238,10 @@ export class FreeboardChartLayerComponent
                 ? charts[i][1].minZoom - 0.1
                 : charts[i][1].minZoom;
             const maxZ = charts[i][1].maxZoom;
-            if (charts[i][1].format === 'pbf' || charts[i][1].format === 'mvt') {
+            if (
+              charts[i][1].format === 'pbf' ||
+              charts[i][1].format === 'mvt'
+            ) {
               if (charts[i][1].url.indexOf('.pmtiles') !== -1) {
                 // pmtiles source
                 layer = this.initPMTilesVectorLayer(
@@ -283,34 +290,36 @@ export class FreeboardChartLayerComponent
                 charts[i][1].type &&
                 charts[i][1].type.toLowerCase() === 'wmts'
               ) {
-                // WMTS
-                // fetch WMTS GetCapabilities.xml
-                fetch(charts[i][1].url)
-                  .then((response) => {
-                    return response.text();
-                  })
-                  .then((capabilitiesXml) => {
+                // WMTS - fetch GetCapabilities.xml
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                let result: any;
+                if (!this.wmtsCapabilitesMap.has(charts[i][1].url)) {
+                  try {
+                    const response = await fetch(
+                      `${charts[i][1].url}?request=GetCapabilities&service=wmts`
+                    );
+                    const capabilitiesXml = await response.text();
                     if (!capabilitiesXml) {
+                      console.log('Error: GetCapabilities response is empty!');
                       return;
                     }
                     const parser = new WMTSCapabilities();
-                    const result = parser.read(capabilitiesXml);
-                    const options = optionsFromCapabilities(result, {
-                      layer: charts[i][1].layers[0],
-                      matrixSet: 'EPSG:3857'
-                    });
-                    source = new WMTS(options);
-                    layer = new TileLayer({
-                      source: source,
-                      preload: 0,
-                      zIndex: this.zIndex + parseInt(i),
-                      minZoom: minZ,
-                      maxZoom: maxZ
-                    });
-                    layer.set('id', charts[i][0]);
-                    this.layers.set(charts[i][0], layer);
-                    map.addLayer(layer);
-                  });
+                    result = parser.read(capabilitiesXml);
+                    this.wmtsCapabilitesMap.set(charts[i][1].url, result);
+                  } catch (err) {
+                    console.log(err);
+                    return;
+                  }
+                } else {
+                  // get pre-fetched capabilities
+                  result = this.wmtsCapabilitesMap.get(charts[i][1].url);
+                }
+
+                const options = optionsFromCapabilities(result, {
+                  layer: charts[i][1].layers[0],
+                  matrixSet: 'EPSG:3857'
+                });
+                source = new WMTS(options);
               } else if (
                 charts[i][1].type &&
                 charts[i][1].type.toLowerCase() === 'tilejson'
@@ -364,8 +373,8 @@ export class FreeboardChartLayerComponent
     }
   }
 
-  // apply default vectortile style
-  applyVectorStyle(...params: any) {
+  // apply default vector tile style
+  applyVectorStyle() {
     return new Style({
       fill: new Fill({
         color: 'rgba(#224, 209, 14, 0.8)'

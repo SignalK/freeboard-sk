@@ -33,6 +33,7 @@ export class ControlsDirective implements OnInit {
   }
 
   @Input()
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   set olControls(value: any[]) {
     this.controls = value;
     this.setControls();

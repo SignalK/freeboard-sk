@@ -24,10 +24,14 @@ const animateDuration = 500;
 export class ViewDirective
   implements OnInit, AfterViewInit, OnChanges, OnDestroy
 {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private timerCenterId: any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private timerZoomId: any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private timerRotationId: any;
   private view: View;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private viewProperties: { [index: string]: any } = {};
 
   @Output() centerChange: EventEmitter<Coordinate> =
@@ -81,6 +85,7 @@ export class ViewDirective
   }
 
   ngOnChanges(changes: SimpleChanges) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const properties: { [index: string]: any } = {};
 
     for (const key in changes) {
@@ -132,6 +137,7 @@ export class ViewDirective
   }
 
   // Only arrow function works with addEventListener
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private emitCenterChange = (e: any) => {
     clearTimeout(this.timerCenterId);
     this.timerCenterId = setTimeout(
@@ -153,6 +159,7 @@ export class ViewDirective
     );
   };
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private emitZoomChange = (e: any) => {
     clearTimeout(this.timerZoomId);
     this.timerZoomId = setTimeout(
@@ -174,6 +181,7 @@ export class ViewDirective
     );
   };
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private emitRotationChange = (e: any) => {
     clearTimeout(this.timerRotationId);
     this.timerRotationId = setTimeout(

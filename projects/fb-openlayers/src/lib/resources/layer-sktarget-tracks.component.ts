@@ -39,6 +39,7 @@ export class SKTargetTracksLayerComponent
    */
   @Output() layerReady: AsyncSubject<Layer> = new AsyncSubject(); // AsyncSubject will only store the last value, and only publish it when the sequence is completed
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   @Input() tracks: Map<string, any> = new Map();
   @Input() minZoom = 10;
   @Input() mapZoom = 10;
@@ -51,6 +52,7 @@ export class SKTargetTracksLayerComponent
   @Input() zIndex: number;
   @Input() minResolution: number;
   @Input() maxResolution: number;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   @Input() layerProperties: { [index: string]: any };
 
   constructor(
@@ -78,6 +80,7 @@ export class SKTargetTracksLayerComponent
 
   ngOnChanges(changes: SimpleChanges) {
     if (this.layer) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const properties: { [index: string]: any } = {};
       for (const key in changes) {
         if (key == 'tracks' && changes[key].firstChange) {
@@ -140,6 +143,7 @@ export class SKTargetTracksLayerComponent
     }
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   extractKeys(m: Map<string, any>): Array<string> {
     const keys = [];
     m.forEach((v, k) => {
@@ -218,9 +222,11 @@ export class SKTargetTracksLayerComponent
   }
 
   // ** mapify and transform MultiLineString coordinates
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   parseCoordinates(trk: Array<any>) {
     // ** handle dateline crossing **
     const tc = trk.map((mls) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const lines: Array<any> = [];
       mls.forEach((line) => lines.push(mapifyCoords(line)));
       return lines;

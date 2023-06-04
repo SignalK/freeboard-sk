@@ -7,8 +7,7 @@ import {
   OnDestroy,
   OnInit,
   Output,
-  SimpleChanges,
-  SimpleChange
+  SimpleChanges
 } from '@angular/core';
 import { Layer } from 'ol/layer';
 import { Feature } from 'ol';
@@ -52,6 +51,7 @@ export class DirectionOfTravelComponent
   @Input() zIndex: number;
   @Input() minResolution: number;
   @Input() maxResolution: number;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   @Input() layerProperties: { [index: string]: any };
 
   constructor(
@@ -79,6 +79,7 @@ export class DirectionOfTravelComponent
 
   ngOnChanges(changes: SimpleChanges) {
     if (this.layer) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const properties: { [index: string]: any } = {};
 
       for (const key in changes) {
@@ -89,7 +90,7 @@ export class DirectionOfTravelComponent
             this.source.addFeatures(this.features);
           }
         } else if (key === 'mapZoom') {
-          this.handleLabelZoomChange(key, changes[key]);
+          this.handleLabelZoomChange(key);
         } else if (key == 'layerProperties') {
           this.layer.setProperties(properties, false);
         } else {
@@ -177,7 +178,7 @@ export class DirectionOfTravelComponent
   }
 
   // ** assess attribute change **
-  handleLabelZoomChange(key: string, change: SimpleChange) {
+  handleLabelZoomChange(key: string) {
     if (key == 'labelMinZoom') {
       if (typeof this.mapZoom !== 'undefined') {
         //this.updateLabel();

@@ -20,6 +20,7 @@ import { MapComponent } from '../map.component';
 import { Extent } from '../models';
 import { fromLonLatArray, mapifyCoords } from '../util';
 import { AsyncSubject } from 'rxjs';
+import { SKTrack } from 'src/app/modules';
 
 // ** Freeboard Track resources collection format **
 @Component({
@@ -38,7 +39,7 @@ export class TrackLayerComponent implements OnInit, OnDestroy, OnChanges {
    */
   @Output() layerReady: AsyncSubject<Layer> = new AsyncSubject(); // AsyncSubject will only store the last value, and only publish it when the sequence is completed
 
-  @Input() tracks: Array<{ [key: string]: any }>;
+  @Input() tracks: Array<{ [key: string]: SKTrack }>;
   @Input() trackStyles: { [key: string]: Style };
   @Input() labelMinZoom = 10;
   @Input() mapZoom = 10;
@@ -48,6 +49,7 @@ export class TrackLayerComponent implements OnInit, OnDestroy, OnChanges {
   @Input() zIndex: number;
   @Input() minResolution: number;
   @Input() maxResolution: number;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   @Input() layerProperties: { [index: string]: any };
 
   constructor(
@@ -75,6 +77,7 @@ export class TrackLayerComponent implements OnInit, OnDestroy, OnChanges {
 
   ngOnChanges(changes: SimpleChanges) {
     if (this.layer) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const properties: { [index: string]: any } = {};
 
       for (const key in changes) {
@@ -85,6 +88,7 @@ export class TrackLayerComponent implements OnInit, OnDestroy, OnChanges {
             this.source.addFeatures(this.features);
           }
         } else if (key == 'trackStyles') {
+          // handle track style change
         } else if (key == 'labelMinZoom' || key == 'mapZoom') {
           this.handleLabelZoomChange(key, changes[key]);
         } else if (key == 'layerProperties') {
@@ -106,6 +110,7 @@ export class TrackLayerComponent implements OnInit, OnDestroy, OnChanges {
     }
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   parseTracks(tracks: Array<{ [key: string]: any }> = this.tracks) {
     const fa: Feature[] = [];
     for (const w of tracks) {
@@ -143,6 +148,7 @@ export class TrackLayerComponent implements OnInit, OnDestroy, OnChanges {
   }
 
   // build track style
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   buildStyle(trk: any): Style {
     if (typeof this.trackStyles !== 'undefined') {
       if (trk.feature.properties.skType) {
@@ -181,6 +187,7 @@ export class TrackLayerComponent implements OnInit, OnDestroy, OnChanges {
   // update feature labels
   updateLabels() {
     this.source.getFeatures().forEach((f: Feature) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const s: any = f.getStyle();
       f.setStyle(this.setTextLabel(s, f.get('name')));
     });
@@ -200,6 +207,7 @@ export class TrackLayerComponent implements OnInit, OnDestroy, OnChanges {
   }
 
   // ** mapify and transform MultiLineString coordinates
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   parseCoordinates(mls: Array<any>) {
     const lines = [];
     mls.forEach((line) => lines.push(mapifyCoords(line)));

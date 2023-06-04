@@ -52,6 +52,7 @@ export class InteractionDrawComponent {
 
   addDrawInteraction() {
     if (undefined !== this.map) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const opt: any = {
         type: this.type,
         stopClick: true

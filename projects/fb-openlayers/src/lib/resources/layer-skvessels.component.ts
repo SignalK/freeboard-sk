@@ -21,6 +21,7 @@ import { MapComponent } from '../map.component';
 import { Extent } from '../models';
 import { destCoordinate } from '../util';
 import { AsyncSubject } from 'rxjs';
+import { SKVessel } from 'src/app/modules';
 
 // ** Signal K Other Vessels  **
 @Component({
@@ -39,7 +40,7 @@ export class SKVesselsLayerComponent implements OnInit, OnDestroy, OnChanges {
    */
   @Output() layerReady: AsyncSubject<Layer> = new AsyncSubject(); // AsyncSubject will only store the last value, and only publish it when the sequence is completed
 
-  @Input() targets: Map<string, any> = new Map();
+  @Input() targets: Map<string, SKVessel> = new Map();
   @Input() targetStyles: { [key: string]: Style };
   @Input() focusId: string;
   @Input() inactiveTime = 180000; // in ms (3 mins)
@@ -58,6 +59,7 @@ export class SKVesselsLayerComponent implements OnInit, OnDestroy, OnChanges {
   @Input() zIndex: number;
   @Input() minResolution: number;
   @Input() maxResolution: number;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   @Input() layerProperties: { [index: string]: any };
 
   protected zoomOffsetLevel = [
@@ -91,6 +93,7 @@ export class SKVesselsLayerComponent implements OnInit, OnDestroy, OnChanges {
 
   ngOnChanges(changes: SimpleChanges) {
     if (this.layer) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const properties: { [index: string]: any } = {};
       for (const key in changes) {
         if (key == 'targets' && changes[key].firstChange) {
@@ -181,6 +184,7 @@ export class SKVesselsLayerComponent implements OnInit, OnDestroy, OnChanges {
     }
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   extractKeys(m: Map<string, any>): Array<string> {
     const keys = [];
     m.forEach((v, k) => {
@@ -336,6 +340,7 @@ export class SKVesselsLayerComponent implements OnInit, OnDestroy, OnChanges {
         s = this.targetStyles.focus;
       } else if (
         setStale ||
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (item.lastUpdated as any) < now - this.inactiveTime
       ) {
         // stale
@@ -363,6 +368,7 @@ export class SKVesselsLayerComponent implements OnInit, OnDestroy, OnChanges {
         });
       } else if (
         setStale ||
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (item.lastUpdated as any) < now - this.inactiveTime
       ) {
         s = new Style({
@@ -414,6 +420,7 @@ export class SKVesselsLayerComponent implements OnInit, OnDestroy, OnChanges {
     this.source.getFeatures().forEach((f: Feature) => {
       const id = f.getId();
       if ((id as string).indexOf('ais-') !== -1) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const s: any = f.getStyle();
         f.setStyle(this.setTextLabel(s, f.get('name')));
       }

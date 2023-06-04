@@ -19,6 +19,7 @@ import { fromLonLat } from 'ol/proj';
 import { MapComponent } from '../map.component';
 import { Extent } from '../models';
 import { AsyncSubject } from 'rxjs';
+import { SKNote } from 'src/app/modules';
 
 // ** Signal K resource collection format **
 @Component({
@@ -36,7 +37,7 @@ export class NoteLayerComponent implements OnInit, OnDestroy, OnChanges {
    * Use this to have access to the layer and some helper functions
    */
   @Output() layerReady: AsyncSubject<Layer> = new AsyncSubject(); // AsyncSubject will only store the last value, and only publish it when the sequence is completed
-
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   @Input() notes: { [key: string]: any };
   @Input() noteStyles: { [key: string]: Style };
   @Input() opacity: number;
@@ -45,6 +46,7 @@ export class NoteLayerComponent implements OnInit, OnDestroy, OnChanges {
   @Input() zIndex: number;
   @Input() minResolution: number;
   @Input() maxResolution: number;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   @Input() layerProperties: { [index: string]: any };
 
   constructor(
@@ -72,6 +74,7 @@ export class NoteLayerComponent implements OnInit, OnDestroy, OnChanges {
 
   ngOnChanges(changes: SimpleChanges) {
     if (this.layer) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const properties: { [index: string]: any } = {};
 
       for (const key in changes) {
@@ -81,8 +84,9 @@ export class NoteLayerComponent implements OnInit, OnDestroy, OnChanges {
             this.source.clear();
             this.source.addFeatures(this.features);
           }
-        } else if (key == 'noteStyles') {
-        } else if (key == 'layerProperties') {
+        } else if (key === 'noteStyles') {
+          // handle note style change
+        } else if (key === 'layerProperties') {
           this.layer.setProperties(properties, false);
         } else {
           properties[key] = changes[key].currentValue;
@@ -101,6 +105,7 @@ export class NoteLayerComponent implements OnInit, OnDestroy, OnChanges {
     }
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   parseNotes(notes: { [key: string]: any } = this.notes) {
     const fa: Feature[] = [];
     for (const w in notes) {
@@ -155,7 +160,7 @@ export class NoteLayerComponent implements OnInit, OnDestroy, OnChanges {
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class FreeboardNoteLayerComponent extends NoteLayerComponent {
-  @Input() notes: Array<[string, any, boolean]>;
+  @Input() notes: Array<[string, SKNote, boolean]>;
 
   constructor(
     protected changeDetectorRef: ChangeDetectorRef,
@@ -164,7 +169,7 @@ export class FreeboardNoteLayerComponent extends NoteLayerComponent {
     super(changeDetectorRef, mapComponent);
   }
 
-  parseNotes(notes: Array<[string, any, boolean]> = this.notes) {
+  parseNotes(notes: Array<[string, SKNote, boolean]> = this.notes) {
     const fa: Feature[] = [];
     for (const w of notes) {
       if (!w[1].position) {

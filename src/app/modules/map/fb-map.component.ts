@@ -65,6 +65,7 @@ interface IOverlay {
   position: Coordinate;
   show: boolean;
   title: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   content: any[];
   featureCount: number;
   resource?: [string, SKRoute | SKWaypoint | SKNote | SKRegion];
@@ -97,10 +98,14 @@ interface IDrawInfo {
   enabled: boolean;
   mode: string | null;
   type: 'Point' | 'LineString' | 'Polygon';
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   coordinates: any[];
   modify: boolean;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   features: any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   forSave: any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   properties: { [key: string]: any };
 }
 
@@ -132,6 +137,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
   @Input() dblClickZoom = false;
   @Output() measureStart: EventEmitter<boolean> = new EventEmitter();
   @Output() measureEnd: EventEmitter<boolean> = new EventEmitter();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   @Output() drawEnd: EventEmitter<any> = new EventEmitter();
   @Output() modifyStart: EventEmitter<void> = new EventEmitter();
   @Output() modifyEnd: EventEmitter<Array<Position>> = new EventEmitter();
@@ -816,6 +822,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
   }
 
   public onModifyStart(e: ModifyEvent) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const f: any = e.features.getArray()[0];
     this.draw.coordinates = f.getGeometry().getCoordinates();
     if (!this.draw.forSave) {
@@ -832,6 +839,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
   }
 
   public onModifyEnd(e: ModifyEvent) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const f: any = e.features.getArray()[0];
     const fid = f.getId();
     const c = f.getGeometry().getCoordinates();
@@ -868,6 +876,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
     this.modifyEnd.emit(this.draw.forSave);
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private updateCoordsMeta(startCoords: any[], endCoords: any[], meta: any[]) {
     if (!meta) {
       return;
@@ -1052,6 +1061,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
     this.overlay.show = false;
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   public formatPopover(id: string, coord: Position, list?: Map<string, any>) {
     if (!id) {
       this.overlay.show = false;

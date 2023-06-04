@@ -39,6 +39,7 @@ import { AsyncSubject } from 'rxjs';
 })
 export class LayerComponent implements OnInit, OnDestroy, OnChanges {
   protected layer: Layer;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   public source: any;
 
   /**
@@ -55,8 +56,11 @@ export class LayerComponent implements OnInit, OnDestroy, OnChanges {
   @Input() zIndex: number;
   @Input() minResolution: number;
   @Input() maxResolution: number;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   @Input() sourceOptions: any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   @Input() style: any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   @Input() properties: { [index: string]: any };
 
   constructor(
@@ -113,6 +117,7 @@ export class LayerComponent implements OnInit, OnDestroy, OnChanges {
 
   ngOnChanges(changes: SimpleChanges) {
     if (this.layer) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const properties: { [index: string]: any } = {};
 
       for (const key in changes) {
@@ -161,6 +166,7 @@ export class LayerComponent implements OnInit, OnDestroy, OnChanges {
     }
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   updateParams(name?: string, value?: any) {
     const params = this.source.getParams();
     if (name && value) {
@@ -170,6 +176,7 @@ export class LayerComponent implements OnInit, OnDestroy, OnChanges {
     this.source.updateParams(params); // {'TIME': startDate.toISOString()}
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private getTileSource(sourceOptions: any) {
     switch (sourceOptions.sourceType) {
       case SourceType.IMAGEWMS:

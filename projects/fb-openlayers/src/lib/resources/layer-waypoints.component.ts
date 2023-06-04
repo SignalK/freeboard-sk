@@ -20,6 +20,7 @@ import { fromLonLat } from 'ol/proj';
 import { MapComponent } from '../map.component';
 import { Extent } from '../models';
 import { AsyncSubject } from 'rxjs';
+import { SKWaypoint } from 'src/app/modules';
 
 // ** Signal K resource collection format **
 @Component({
@@ -38,6 +39,7 @@ export class WaypointLayerComponent implements OnInit, OnDestroy, OnChanges {
    */
   @Output() layerReady: AsyncSubject<Layer> = new AsyncSubject(); // AsyncSubject will only store the last value, and only publish it when the sequence is completed
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   @Input() waypoints: { [key: string]: any };
   @Input() waypointStyles: { [key: string]: Style };
   @Input() activeWaypoint: string;
@@ -49,6 +51,7 @@ export class WaypointLayerComponent implements OnInit, OnDestroy, OnChanges {
   @Input() zIndex: number;
   @Input() minResolution: number;
   @Input() maxResolution: number;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   @Input() layerProperties: { [index: string]: any };
 
   constructor(
@@ -76,6 +79,7 @@ export class WaypointLayerComponent implements OnInit, OnDestroy, OnChanges {
 
   ngOnChanges(changes: SimpleChanges) {
     if (this.layer) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const properties: { [index: string]: any } = {};
 
       for (const key in changes) {
@@ -86,6 +90,7 @@ export class WaypointLayerComponent implements OnInit, OnDestroy, OnChanges {
             this.source.addFeatures(this.features);
           }
         } else if (key == 'waypointStyles') {
+          // handle waypoint style change
         } else if (key == 'activeWaypoint') {
           this.parseWaypoints(this.waypoints);
           if (this.source) {
@@ -113,6 +118,7 @@ export class WaypointLayerComponent implements OnInit, OnDestroy, OnChanges {
     }
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   parseWaypoints(waypoints: { [key: string]: any } = this.waypoints) {
     const fa: Feature[] = [];
     for (const w in waypoints) {
@@ -150,6 +156,7 @@ export class WaypointLayerComponent implements OnInit, OnDestroy, OnChanges {
   }
 
   // build waypoint style
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   buildStyle(id: string, wpt: any): Style {
     if (typeof this.waypointStyles !== 'undefined') {
       if (
@@ -208,6 +215,7 @@ export class WaypointLayerComponent implements OnInit, OnDestroy, OnChanges {
   // update feature labels
   updateLabels() {
     this.source.getFeatures().forEach((f: Feature) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const s: any = f.getStyle();
       f.setStyle(this.setTextLabel(s, f.get('name')));
     });
@@ -231,7 +239,7 @@ export class WaypointLayerComponent implements OnInit, OnDestroy, OnChanges {
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class FreeboardWaypointLayerComponent extends WaypointLayerComponent {
-  @Input() waypoints: Array<[string, any, boolean]>;
+  @Input() waypoints: Array<[string, SKWaypoint, boolean]>;
 
   constructor(
     protected changeDetectorRef: ChangeDetectorRef,
@@ -240,7 +248,7 @@ export class FreeboardWaypointLayerComponent extends WaypointLayerComponent {
     super(changeDetectorRef, mapComponent);
   }
 
-  parseWaypoints(waypoints: Array<[string, any, boolean]> = this.waypoints) {
+  parseWaypoints(waypoints: Array<[string, SKWaypoint, boolean]> = this.waypoints) {
     const fa: Feature[] = [];
     for (const w of waypoints) {
       if (w[2]) {

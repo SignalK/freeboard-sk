@@ -34,6 +34,7 @@ import { Coordinate } from 'ol/coordinate';
 })
 export class MapComponent implements OnInit, OnDestroy {
   private map: Map;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private timeoutId: any;
 
   /**
@@ -47,6 +48,7 @@ export class MapComponent implements OnInit, OnDestroy {
    * A true single click with no dragging and no double click.
    * Note that this event is delayed by 250 ms to ensure that it is not a double click.
    */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   @Output() mapClick: EventEmitter<any> = new EventEmitter<any>();
   @Output() mapSingleClick: EventEmitter<MapBrowserEvent<UIEvent>> =
     new EventEmitter<MapBrowserEvent<UIEvent>>();
@@ -70,6 +72,7 @@ export class MapComponent implements OnInit, OnDestroy {
   @Input() pixelRatio: number;
   @Input() keyboardEventTarget: Element | string;
   @Input() logo: string | boolean;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   @Input() properties: { [index: string]: any };
   @Input() setFocus = false;
   @Input() hitTolerance = 5;
