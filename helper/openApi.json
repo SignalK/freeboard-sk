@@ -15,13 +15,17 @@
   },
   "servers": [
     {
-      "url": "/signalk/v2/api/resources/weather"
+      "url": "/signalk/v2/api/resources"
     }
   ],
   "tags": [
     {
       "name": "weather",
-      "description": "Weather resources"
+      "description": "Weather resources."
+    },
+    {
+      "name": "stations",
+      "description": "Weather station data."
     }
   ],
   "components": {
@@ -37,33 +41,6 @@
           "longitude": {
             "type": "number",
             "format": "float"
-          }
-        }
-      },
-      "DescriptionAttribute": {
-        "type": "object",
-        "required": ["description"],
-        "properties": {
-          "description": {
-            "type": "string"
-          }
-        }
-      },
-      "PositionAttribute": {
-        "type": "object",
-        "required": ["position"],
-        "properties": {
-          "position": {
-            "description": "Resource location.",
-            "example": {
-              "latitude": 65.4567,
-              "longitude": 3.3452
-            },
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/SignalKPosition"
-              }
-            ]
           }
         }
       },
@@ -95,12 +72,12 @@
           ]
         }
       },
-      "WeatherStationResponseModel": {
+      "WeatherStationInfoModel": {
         "type": "object",
         "properties": {
           "id": {
             "type": "string",
-            "example": "self"
+            "example": "12345678"
           },
           "name": {
             "type": "string",
@@ -116,8 +93,7 @@
         "required": ["timestamp"],
         "properties": {
           "timestamp": {
-            "$ref": "#/components/schemas/IsoTime",
-            "description": "Forecast period."
+            "$ref": "#/components/schemas/IsoTime"
           },
           "description": {
             "type": "string",
@@ -197,49 +173,51 @@
               }
             }
           }
-        },
-        "additionalProperties": {
-          "anyOf": [
-            { "$ref": "#/components/schemas/ValueGroup"},
-            { "$ref": "#/components/schemas/NumberValue"}
-          ]
         }
       },
-      "ObservationResponseModel": {
+      "ObservationDataModel": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/BaseStationResponseModel"
+          },
+          {
+            "$ref": "#/components/schemas/ObservationProperties"
+          }
+        ]
+      },
+      "ObservationProperties": {
         "type": "object",
         "properties": {
-          "anyOf": [
-            {
-              "$ref": "#/components/schemas/BaseStationResponseModel"
-            }
-          ],
           "sunrise": {
-            "$ref": "#/components/schemas/IsoTime",
-            "description": "Sunrise time."
+            "$ref": "#/components/schemas/IsoTime"
           },
           "sunset": {
-            "$ref": "#/components/schemas/IsoTime",
-            "description": "Sunset time."
+            "$ref": "#/components/schemas/IsoTime"
           },
           "visibility": { 
             "$ref": "#/components/schemas/NumberValue"
           }
         }
       },
-      "ForecastResponseModel": {
+      "ForecastDataModel": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/BaseStationResponseModel"
+          },
+          {
+            "$ref": "#/components/schemas/ForecastProperties"
+          }
+        ]
+      },
+      "ForecastProperties": {
         "type": "object",
         "properties": {
-          "anyOf": [
-            {
-              "$ref": "#/components/schemas/BaseStationResponseModel"
-            }
-          ],
           "pop": {
             "$ref": "#/components/schemas/NumberValue"
           }
         }
       },
-      "WarningResponseModel": {
+      "WarningDataModel": {
         "type": "object",
         "required": ["startTime","endTime"],
         "properties": {
@@ -264,6 +242,58 @@
             "example": "HEAT ADVISORY REMAINS IN EFFECT FROM 1 PM THIS AFTERNOON...."
           }
         }
+      },
+      "ObservationsAttrib": {
+        "type": "object",
+        "required": ["observations"],
+        "properties": {
+          "observations": {
+            "type": "array",
+            "items": {
+                "$ref": "#/components/schemas/BaseStationResponseModel"            
+            }
+          }
+        }
+      },
+      "ForecastsAttrib": {
+        "type": "object",
+        "required": ["forecasts"],
+        "properties": {
+          "forecasts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BaseStationResponseModel"
+            }
+          }
+        }
+      },
+      "WarningsAttrib": {
+        "type": "object",
+        "required": ["warnings"],
+        "properties": {
+          "warnings": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WarningDataModel"
+            }
+          }
+        }
+      },
+      "WeatherStationResponseModel": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/WeatherStationInfoModel"
+          },
+          {
+            "$ref": "#/components/schemas/WarningsAttrib"
+          },
+          {
+            "$ref": "#/components/schemas/ObservationsAttrib"
+          },
+          {
+            "$ref": "#/components/schemas/ForecastsAttrib"
+          }
+        ]
       }
     },
     "responses": {
@@ -294,6 +324,15 @@
       }
     },
     "parameters": {
+      "StationIdParam": {
+        "in": "path",
+        "required": true,
+        "name": "id",
+        "description": "Weather station identifier.",
+        "schema": {
+          "type": "string"
+        }
+      }
     },
     "securitySchemes": {
       "bearerAuth": {
@@ -310,40 +349,19 @@
   },
   "security": [{ "cookieAuth": [] }, { "bearerAuth": [] }],
   "paths": {
-    "/": {
+    "/weather": {
       "get": {
         "tags": ["weather"],
         "summary": "Retrieve list of weather stations providing forecast, observation & warning information",
         "responses": {
           "default": {
-            "description": "List of weather stations by information type.",
+            "description": "List of weather stations by identified by id.",
             "content": {
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": ["observations","forecasts","warnings"],
-                  "properties": {
-                    "observations": {
-                      "allOf": [
-                        {
-                          "$ref": "#/components/schemas/DescriptionAttribute"
-                        }
-                      ]
-                    },
-                    "forecasts": {
-                      "allOf": [
-                        {
-                          "$ref": "#/components/schemas/DescriptionAttribute"
-                        }
-                      ]
-                    },
-                    "warnings": {
-                      "allOf": [
-                        {
-                          "$ref": "#/components/schemas/DescriptionAttribute"
-                        }
-                      ]
-                    }
+                  "additionalProperties": {
+                    "$ref": "#/components/schemas/WeatherStationInfoModel"
                   }
                 }
               }
@@ -352,13 +370,41 @@
         }
       }
     },
-    "/weather/observations": {
+    "/weather/{id}": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/StationIdParam"
+        }
+      ],
       "get": {
-        "tags": ["observations"],
-        "summary": "List weather stations providing observation information.",
+        "tags": ["stations"],
+        "summary": "Weather station data.",
         "responses": {
           "default": {
-            "description": "List of weather stations identified by id.",
+            "description": "Data from weather station with the supplied identifier.",
+            "content": {
+              "application/json": {
+                "schema": {
+                   "$ref": "#/components/schemas/WeatherStationResponseModel"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/weather/{id}/observations": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/StationIdParam"
+        }
+      ],
+      "get": {
+        "tags": ["stations"],
+        "summary": "Weather station observation data.",
+        "responses": {
+          "default": {
+            "description": "Observation data from weather station with the supplied identifier.",
             "content": {
               "application/json": {
                 "schema": {
@@ -366,7 +412,10 @@
                   "additionalProperties": {
                     "allOf": [
                       {
-                        "$ref": "#/components/schemas/WeatherStationResponseModel"
+                        "$ref": "#/components/schemas/BaseStationResponseModel"
+                      },
+                      {
+                        "$ref": "#/components/schemas/ObservationProperties"
                       }
                     ]
                   }
@@ -377,34 +426,18 @@
         }
       }
     },
-    "/weather/observations/{id}": {
-      "get": {
-        "tags": ["observations"],
-        "summary": "List weather stations providing observation data.",
-        "responses": {
-          "default": {
-            "description": "Observation data from identified weather station.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/ObservationResponseModel"
-                  }
-                }
-              }
-            }
-          }
+    "/weather/{id}/forecasts": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/StationIdParam"
         }
-      }
-    },
-    "/weather/forecasts": {
+      ],
       "get": {
-        "tags": ["forecasts"],
-        "summary": "List weather stations providing forecast information.",
+        "tags": ["stations"],
+        "summary": "Weather station forecast data.",
         "responses": {
           "default": {
-            "description": "List of weather stations identified by id.",
+            "description": "Forecast data from weather station with the supplied identifier.",
             "content": {
               "application/json": {
                 "schema": {
@@ -412,7 +445,10 @@
                   "additionalProperties": {
                     "allOf": [
                       {
-                        "$ref": "#/components/schemas/WeatherStationResponseModel"
+                        "$ref": "#/components/schemas/BaseStationResponseModel"
+                      },
+                      {
+                        "$ref": "#/components/schemas/ForecastProperties"
                       }
                     ]
                   }
@@ -423,65 +459,24 @@
         }
       }
     },
-    "/weather/forecasts/{id}": {
-      "get": {
-        "tags": ["forecasts"],
-        "summary": "Weather stations forecast data.",
-        "responses": {
-          "default": {
-            "description": "Forecast data from identified weather station.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/ForecastResponseModel"
-                  }
-                }
-              }
-            }
-          }
+    "/weather/{id}/warnings": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/StationIdParam"
         }
-      }
-    },
-    "/weather/warnings": {
+      ],
       "get": {
-        "tags": ["warnings"],
-        "summary": "List weather stations providing warning information.",
+        "tags": ["stations"],
+        "summary": "Weather station warning data.",
         "responses": {
           "default": {
-            "description": "List of weather stations identified by id.",
+            "description": "Warnings from weather station with the supplied identifier.",
             "content": {
               "application/json": {
                 "schema": {
                   "type": "object",
                   "additionalProperties": {
-                    "allOf": [
-                      {
-                        "$ref": "#/components/schemas/WeatherStationResponseModel"
-                      }
-                    ]
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/weather/warnings/{id}": {
-      "get": {
-        "tags": ["warnings"],
-        "summary": "Weather stations warning data.",
-        "responses": {
-          "default": {
-            "description": "Warning data from identified weather station.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/WarningResponseModel"
+                    "$ref": "#/components/schemas/WarningDataModel"
                   }
                 }
               }

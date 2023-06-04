@@ -105,12 +105,14 @@ const CONFIG_UISCHEMA = {
 };
 
 interface SETTINGS {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   alarms: { [key: string]: any };
   weather: WEATHER_CONFIG;
   pypilot: PYPILOT_CONFIG;
 }
 
 interface OpenApiPlugin extends Plugin {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   getOpenApi: () => any;
 }
 
@@ -126,11 +128,14 @@ export interface FreeboardHelperApp
   setProviderStatus: (providerId: string, status?: string) => void;
   setProviderError: (providerId: string, status?: string) => void;
   getSelfPath: (path: string) => void;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   savePluginOptions: (options: any, callback: () => void) => void;
   config: { configPath: string };
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   handleMessage: (id: string | null, msg: any, version?: string) => void;
   streambundle: {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     getSelfBus: (path: string | void) => any;
   };
   registerPutHandler: (
@@ -139,6 +144,7 @@ export interface FreeboardHelperApp
     callback: (
       context: string,
       path: string,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       value: any,
       actionResultCallback: (actionResult: ActionResult) => void
     ) => ActionResult
@@ -169,6 +175,7 @@ module.exports = (server: FreeboardHelperApp): OpenApiPlugin => {
     name: 'Freeboard-SK',
     schema: () => CONFIG_SCHEMA,
     uiSchema: () => CONFIG_UISCHEMA,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     start: (settings: any) => {
       doStartup(settings);
     },
@@ -219,12 +226,14 @@ module.exports = (server: FreeboardHelperApp): OpenApiPlugin => {
         initAlarms(server, plugin.id);
       }
 
-      const result = registerProvider('weather');
-      const msg = `Started - ${
-        result.length !== 0 ? `${result} not registered!` : 'Providing: weather'
-      }`;
-
+      let msg = '';
       if (settings.weather.enable) {
+        const result = registerProvider('weather');
+        msg = `Started - ${
+          result.length !== 0
+            ? `${result} not registered!`
+            : 'Providing: weather'
+        }`;
         initWeather(server, plugin.id, settings.weather);
       }
       if (settings.pypilot.enable) {
@@ -232,6 +241,7 @@ module.exports = (server: FreeboardHelperApp): OpenApiPlugin => {
       }
 
       server.setPluginStatus(msg);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       const msg = 'Started with errors!';
       server.setPluginError(msg);
@@ -256,12 +266,14 @@ module.exports = (server: FreeboardHelperApp): OpenApiPlugin => {
       server.registerResourceProvider({
         type: resType,
         methods: {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           listResources: (params: object): any => {
             return listWeather(params);
           },
           getResource: (path: string, property?: string) => {
             return getWeather(path, property);
           },
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           setResource: (id: string, value: any) => {
             throw 'Not implemented!';
           },

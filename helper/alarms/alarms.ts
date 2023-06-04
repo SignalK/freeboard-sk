@@ -45,14 +45,7 @@ export const initAlarms = (app: FreeboardHelperApp, id: string) => {
 
   initAlarmEndpoints();
 
-  /*
-  curl -H "Content-Type: application/json" -X PUT -d '{"message": "Man Overboard!"}'\
-    http://localhost:3000/signalk/v2/api/notifications/mob
-
-  curl -H "Content-Type: application/json" -X DELETE \
-    http://localhost:3000/signalk/v2/api/notifications/mob
-  */
-};
+}
 
 const initAlarmEndpoints = () => {
   server.debug(`** Registering Alarm Action API endpoint(s) **`);
@@ -67,13 +60,15 @@ const initAlarmEndpoints = () => {
         return;
       }
       try {
+        const msg = req.body.message
+          ? req.body.message
+          : (req.params.alarmType as string);
+
         const r = handlePutAlarmState(
           'vessels.self',
           `notifications.${req.params.alarmType}`,
           {
-            message: req.body.message
-              ? req.body.message
-              : (req.params.alarmType as string),
+            message: msg,
             method: [ALARM_METHOD.sound, ALARM_METHOD.visual],
             state: ALARM_STATE.emergency
           }
@@ -145,7 +140,7 @@ const handlePutAlarmState = (
   if (value) {
     noti = new Notification(
       alarmType,
-      value.message ?? '',
+      buildAlarmMessage(value.message, alarmType),
       value.state ?? null,
       value.method ?? null
     );
@@ -168,6 +163,16 @@ const handlePutAlarmState = (
       message: `Invalid reference!`
     };
   }
+};
+
+const buildAlarmMessage = (message: string, alarmType?: string): string => {
+  let msgAttrib = '';
+  if (['mob', 'sinking'].includes(alarmType)) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const pos: any = server.getSelfPath('navigation.position');
+    msgAttrib = pos ? JSON.stringify(pos?.value) : '';
+  }
+  return `${message}\n\r${msgAttrib}`;
 };
 
 // ** send notification delta message **

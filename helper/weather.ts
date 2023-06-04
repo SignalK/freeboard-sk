@@ -17,6 +17,7 @@ interface SKWeatherValue {
 }
 
 interface SKWeatherGroup {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   [key: string]: SKWeatherValue | SKWeatherGroup | any;
 }
 
@@ -57,7 +58,9 @@ let pluginId: string;
 
 let lastFetch: number; // last successful fetch
 const fetchInterval = 3600000; // 1hr
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 let timer: any;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 let retryTimer: any;
 const retryCountMax = 5; // max number of retries on failed api connection
 let retryCount = 0; // number of retries on failed api connection
@@ -93,67 +96,47 @@ export const stopWeather = () => {
   lastFetch = fetchInterval - 1;
 };
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const listWeather = async (params: any): Promise<any> => {
-  server.debug(`getWeather ${params}`);
-  return {
-    observations: {
-      description: 'Weather stations providing observation data.'
-    },
-    forecasts: {
-      description: 'Weather stations providing forecast data.'
-    },
-    warnings: {
-      description: 'Weather stations providing warning information.'
+  server.debug(`getWeather ${JSON.stringify(params)}`);
+  const res = {};
+  if (weatherData) {
+    for (const o in weatherData) {
+      const { id, name, position } = weatherData[o];
+      res[o] = { id, name, position };
     }
-  };
+  }
+  return res;
 };
 
 export const getWeather = async (
   path: string,
   property: string
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
 ): Promise<any> => {
   server.debug(`getWeather ${path}, ${property}`);
-  if (!property) {
-    if (weatherData) {
-      const stations = JSON.parse(JSON.stringify(weatherData));
-      for (const o in stations) {
-        if (stations[o][path]) {
-          delete stations[o].observations;
-          delete stations[o].forecasts;
-          delete stations[o].warnings;
-        } else {
-          delete stations[o];
-        }
-      }
-      return stations;
-    } else {
-      return {};
-    }
+
+  if (!weatherData) {
+    return {};
+  }
+
+  const station = weatherData[path];
+  if (!station) {
+    throw `Weather station ${path} not found!`;
+  }
+
+  if (property) {
+    const value = property.split('.').reduce((acc, val) => {
+      return acc[val];
+    }, station);
+    return value ?? {};
   } else {
-    if (weatherData) {
-      const p = property.split('.');
-      const stationId = p[0];
-      p.shift();
-      if (stationId in weatherData) {
-        if (weatherData[stationId][path]) {
-          const res = p.reduce((acc, val) => {
-            acc = acc[val];
-            return acc;
-          }, weatherData[stationId][path]);
-          return res ?? {};
-        } else {
-          return {};
-        }
-      } else {
-        throw `${stationId} not found!`;
-      }
-    } else {
-      return {};
-    }
+    return station;
   }
 };
 
 const fetchWeatherData = () => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const pos: any = server.getSelfPath('navigation.position');
   if (!pos) {
     server.debug(`*** Weather: No vessel position detected!`);
@@ -216,6 +199,7 @@ const checkForWarnings = () => {
 
 // emit weather warning notification
 const emitWarningNotification = (warning?: SKWeatherWarning) => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let delta: any;
   if (warning) {
     server.debug(`** Setting Notification **`);
