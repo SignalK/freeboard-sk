@@ -244,7 +244,7 @@ export class AppInfo extends Info {
     this.name = 'Freeboard';
     this.shortName = 'freeboard';
     this.description = `Signal K Chart Plotter.`;
-    this.version = '2.0.0';
+    this.version = '2.0.1';
     this.url = 'https://github.com/signalk/freeboard-sk';
     this.logo = './assets/img/app_logo.png';
 
@@ -764,8 +764,8 @@ export class AppInfo extends Info {
                         Freeboard-SK version 2 is for use with Signal K server v2 that implements both the
                         <b>Course API</b> and <b>Resources API</b>.
                         <br>&nbsp;<br>
-                        Check out <a href="https://github.com/SignalK/freeboard-sk/wiki/Signal-K---Freeboard-SK-Version-2" target="help">
-                        FAQ</a> for more details.
+                        Please review the <a href="https://github.com/SignalK/freeboard-sk/wiki/Signal-K---Freeboard-SK-Version-2" target="help">
+                        FAQ</a> for details about important changes.
                     `
         }
       ]
