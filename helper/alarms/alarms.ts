@@ -44,8 +44,7 @@ export const initAlarms = (app: FreeboardHelperApp, id: string) => {
   }
 
   initAlarmEndpoints();
-
-}
+};
 
 const initAlarmEndpoints = () => {
   server.debug(`** Registering Alarm Action API endpoint(s) **`);
