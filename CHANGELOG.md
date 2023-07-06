@@ -1,5 +1,19 @@
 # CHANGELOG: Freeboard
 
+### v2.1.0
+
+- **Added**: Ability to limit map zoom to min / max of displayed charts.
+
+- **Fix**: Issue handling port value when no port is specified in host url.
+
+### v2.0.2
+
+- **Fix** Update signalk-client-angular library to address issues creating resources when not using ssl.
+
+### v2.0.1
+
+- **Fix** `tslib` dependency`.
+
 ### v2.0.0
 
 __** BREAKING CHANGES **__ 
