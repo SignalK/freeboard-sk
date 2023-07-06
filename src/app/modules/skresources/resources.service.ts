@@ -486,6 +486,8 @@ export class SKResources {
     this.app.config.selections.charts = t.filter((i) => {
       return i ? true : false;
     });
+    // set map zoom extent
+    this.setMapZoomRange();
     this.app.saveConfig();
     this.updateSource.next({ action: 'selected', mode: 'chart' });
   }
@@ -687,10 +689,43 @@ export class SKResources {
   }
 
   // **** CHARTS ****
+
+  /** calc aggregated min-max zoom from selected charts */
+  setMapZoomRange(useDefault?: boolean) {
+    const defaultExtent = {
+      min: 2,
+      max: 28
+    };
+    if (useDefault || !this.app.config.map.limitZoom) {
+      this.app.MAP_ZOOM_EXTENT = defaultExtent;
+    } else {
+      const derivedExtent = {
+        min: 1000,
+        max: -1
+      };
+      this.app.data.charts.forEach((c) => {
+        if (c[2]) {
+          // selected
+          if (c[1].minZoom < derivedExtent.min) {
+            derivedExtent.min = c[1].minZoom;
+          }
+          if (c[1].maxZoom > derivedExtent.max) {
+            derivedExtent.max = c[1].maxZoom;
+          }
+        }
+        this.app.MAP_ZOOM_EXTENT.min =
+          derivedExtent.min === 1000 ? defaultExtent.min : derivedExtent.min;
+        this.app.MAP_ZOOM_EXTENT.max =
+          derivedExtent.max === -1 ? defaultExtent.max : derivedExtent.max;
+      });
+      this.app.debug('*** MAP_ZOOM_EXTENT', this.app.MAP_ZOOM_EXTENT);
+    }
+  }
+
   OSMCharts = [].concat(OSM);
   // ** get charts from sk server
   getCharts(apiVersion = this.app.config.chartApi ?? 1) {
-    // ** fetch charts from server
+    // fetch charts from server
     this.signalk.api.get(apiVersion, `/resources/charts`).subscribe(
       (res: Charts) => {
         this.app.data.charts = [];
@@ -750,6 +785,9 @@ export class SKResources {
         // arrange the chart layers
         this.arrangeChartLayers();
 
+        // set map zoom extent
+        this.setMapZoomRange();
+
         // emit update
         this.updateSource.next({ action: 'get', mode: 'chart' });
       },
@@ -770,6 +808,8 @@ export class SKResources {
           : false;
         dc.push(this.OSMCharts[1]);
         this.app.data.charts = dc;
+        // set map zoom extent
+        this.setMapZoomRange();
       }
     );
   }

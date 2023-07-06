@@ -59,6 +59,9 @@ mat-nav-list {
     background-color: rgba(130,130,130,.3);
     padding: 10px 2px 2px 2px;
 }
+.rightUtilsPanel div { 
+    height: 60px;
+}
 
 .mapButton {
     position: fixed;

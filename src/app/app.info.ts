@@ -40,7 +40,8 @@ const FreeboardConfig = {
     rotation: 0,
     moveMap: false,
     northUp: true,
-    animate: false
+    animate: false,
+    limitZoom: false
   },
   vesselTrail: false, // display trail
   vesselWindVectors: true, // display vessel TWD, AWD vectors
@@ -165,9 +166,15 @@ interface PluginInfo {
 @Injectable({ providedIn: 'root' })
 export class AppInfo extends Info {
   private DEV_SERVER = {
-    host: 'localhost', // host name || ip address
+    host: '192.168.86.32', //'localhost', // host name || ip address
     port: 3000, // port number
     ssl: false
+  };
+
+  // controls map zoom limits
+  public MAP_ZOOM_EXTENT = {
+    min: 2,
+    max: 28
   };
 
   public hostName: string;
@@ -223,6 +230,12 @@ export class AppInfo extends Info {
         ? this.DEV_SERVER.host
         : window.location.hostname;
 
+    this.hostSSL =
+      window.location.protocol === 'https:' ||
+      (this.devMode && this.DEV_SERVER.ssl)
+        ? true
+        : false;
+
     this.hostPort =
       typeof this.hostParams.port !== 'undefined'
         ? parseInt(this.hostParams.port)
@@ -230,21 +243,24 @@ export class AppInfo extends Info {
         ? this.DEV_SERVER.port
         : parseInt(window.location.port);
 
-    this.hostSSL =
-      window.location.protocol === 'https:' ||
-      (this.devMode && this.DEV_SERVER.ssl)
-        ? true
-        : false;
+    // if no port specified then set to 80 | 443
+    this.hostPort = isNaN(this.hostPort)
+      ? this.hostSSL
+        ? 443
+        : 80
+      : this.hostPort;
 
     this.host = `${this.hostSSL ? 'https:' : 'http:'}//${this.hostName}:${
       this.hostPort
     }`;
 
+    this.debug('host:', this.host);
+
     this.id = 'freeboard';
     this.name = 'Freeboard';
     this.shortName = 'freeboard';
     this.description = `Signal K Chart Plotter.`;
-    this.version = '2.0.2';
+    this.version = '2.1.0';
     this.url = 'https://github.com/signalk/freeboard-sk';
     this.logo = './assets/img/app_logo.png';
 
@@ -555,6 +571,10 @@ export class AppInfo extends Info {
   // ** clean loaded config /settings keys **
   cleanConfig(settings) {
     this.debug('Cleaning config keys...');
+
+    if (typeof settings.map.limitZoom === 'undefined') {
+      settings.map.limitZoom = false;
+    }
 
     if (typeof settings.anchorRadius === 'undefined') {
       settings.anchorRadius = 40;

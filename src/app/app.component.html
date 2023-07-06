@@ -624,6 +624,20 @@
               <br />&nbsp;<br />
             </div>
 
+            <!-- constrain zoom to selected map(s) extent -->
+            <div>
+              <button
+                mat-mini-fab
+                [color]="app.config.map.limitZoom ? 'accent' : ''"
+                (click)="toggleLimitMapZoom()"
+                matTooltip="Constrain map zoom."
+                matTooltipPosition="left"
+              >
+                <mat-icon>zoom_in_map</mat-icon>
+              </button>
+              <br />&nbsp;<br />
+            </div>
+
             <!-- Drop Waypoint button -->
             <div>
               <button

@@ -288,6 +288,14 @@ export class AppComponent {
       : 'rotate(' + (0 - this.app.data.vessels.active.orientation) + 'rad)';
   }
 
+  public toggleLimitMapZoom() {
+    this.app.config.map.limitZoom = this.app.config.map.limitZoom
+      ? false
+      : true;
+    this.skres.setMapZoomRange();
+    this.app.saveConfig();
+  }
+
   public toggleFullscreen() {
     const docel = document.documentElement;
     const fscreen =

@@ -109,9 +109,6 @@ interface IDrawInfo {
   properties: { [key: string]: any };
 }
 
-const MAP_MAX_ZOOM = 28;
-const MAP_MIN_ZOOM = 2;
-
 enum INTERACTION_MODE {
   MEASURE,
   DRAW,
@@ -207,8 +204,6 @@ export class FBMapComponent implements OnInit, OnDestroy {
 
   // ** map ctrl **
   fbMap = {
-    minZoom: MAP_MIN_ZOOM,
-    maxZoom: MAP_MAX_ZOOM,
     rotation: 0,
     center: [0, 0],
     zoomLevel: 1,
@@ -924,11 +919,11 @@ export class FBMapComponent implements OnInit, OnDestroy {
   // ** handle map zoom controls
   public zoomMap(zoomIn: boolean) {
     if (zoomIn) {
-      if (this.app.config.map.zoomLevel < MAP_MAX_ZOOM) {
+      if (this.app.config.map.zoomLevel < this.app.MAP_ZOOM_EXTENT.max) {
         ++this.app.config.map.zoomLevel;
       }
     } else {
-      if (this.app.config.map.zoomLevel > MAP_MIN_ZOOM) {
+      if (this.app.config.map.zoomLevel > this.app.MAP_ZOOM_EXTENT.min) {
         --this.app.config.map.zoomLevel;
       }
     }

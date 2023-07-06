@@ -115,6 +115,18 @@ export class ViewDirective
         } else {
           properties[key] = fromLonLat(changes[key].currentValue);
         }
+      } else if (key === 'minZoom') {
+        if (this.view) {
+          this.view.setMinZoom(changes[key].currentValue);
+        } else {
+          properties[key] = changes[key].currentValue;
+        }
+      } else if (key === 'maxZoom') {
+        if (this.view) {
+          this.view.setMaxZoom(changes[key].currentValue);
+        } else {
+          properties[key] = changes[key].currentValue;
+        }
       } else {
         properties[key] = changes[key].currentValue;
       }

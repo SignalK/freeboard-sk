@@ -13,7 +13,8 @@
   [zoom]="fbMap.zoomLevel"
   [center]="fbMap.center"
   [rotation]="fbMap.rotation"
-  [minZoom]="fbMap.minZoom"
+  [minZoom]="app.MAP_ZOOM_EXTENT.min"
+  [maxZoom]="app.MAP_ZOOM_EXTENT.max"
   [enableAnimation]="false"
 >
   <!-- Draw / modify -->
@@ -48,7 +49,7 @@
         <button
           mat-mini-fab
           (click)="zoomMap(false)"
-          [disabled]="fbMap.zoomLevel <= fbMap.minZoom"
+          [disabled]="fbMap.zoomLevel <= app.MAP_ZOOM_EXTENT.min"
           matTooltip="Zoom out"
         >
           <mat-icon>remove</mat-icon>
@@ -57,7 +58,7 @@
         <button
           mat-mini-fab
           (click)="zoomMap(true)"
-          [disabled]="fbMap.zoomLevel >= fbMap.maxZoom"
+          [disabled]="fbMap.zoomLevel >= app.MAP_ZOOM_EXTENT.max"
           matTooltip="Zoom in"
         >
           <mat-icon>add</mat-icon>
