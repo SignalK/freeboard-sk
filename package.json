@@ -80,7 +80,7 @@
     "karma-jasmine-html-reporter": "^1.5.0",
     "ng-packagr": "^14.0.2",
     "ngeohash": "^0.6.3",
-    "ol": "^7.2.2",
+    "ol": "^7.4.0",
     "pmtiles": "^2.7.0",
     "prettier": "^2.5.1",
     "prettier-plugin-organize-attributes": "^0.0.5",
