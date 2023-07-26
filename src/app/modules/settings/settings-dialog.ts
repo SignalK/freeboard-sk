@@ -24,6 +24,7 @@ export class SettingsDialog implements OnInit {
     { id: 'sectVessels', text: 'Vessels' },
     { id: 'sectNotes', text: 'Notes' },
     { id: 'sectVideo', text: 'Video' },
+    { id: 'sectS57', text: 'Vector chart display' },
     { id: 'sectResLayers', text: 'Resources' },
     { id: 'sectResLayers', text: 'Signal K' }
   ];

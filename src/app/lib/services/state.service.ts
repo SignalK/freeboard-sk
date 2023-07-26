@@ -54,10 +54,27 @@ export class State {
     }
   }
 
+  //merge new default values in storedvalue
+  merge(storedValue:any,defaultValue:any):any {
+    Object.keys(defaultValue).forEach((key) => {
+      if (!storedValue[key]) {
+        storedValue[key]=defaultValue[key]
+      } else {
+        if( typeof storedValue[key] === 'object' &&
+        !Array.isArray(storedValue[key]) &&
+        storedValue[key] !== null) {
+          storedValue[key]=this.merge(storedValue[key],defaultValue[key])
+        }
+      }
+    })
+    return storedValue
+  }
+
   //** load app config **
   loadConfig(defaultValue = {}) {
     const config = this.ls.read('config');
-    return config ? config : defaultValue;
+    return config ? this.merge(config,defaultValue) : defaultValue;
+   // return config ? config : defaultValue;
   }
 
   //** load app data **

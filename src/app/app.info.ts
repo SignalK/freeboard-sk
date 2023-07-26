@@ -101,6 +101,14 @@ const FreeboardConfig = {
       next23: '1m',
       beyond24: '5m'
     },
+    s57Options: {
+      graphicsStyle:'Paper',
+      boundaries:'Plain',
+      colors:4,
+      shallowDepth:2,
+      safetyDepth: 3,
+      deepDepth:6
+    },
     resourceSets: {}, // additional resources
     signalk: {
       // signal k connection options
@@ -170,7 +178,7 @@ interface PluginInfo {
 @Injectable({ providedIn: 'root' })
 export class AppInfo extends Info {
   private DEV_SERVER = {
-    host: '192.168.86.32', //'localhost', // host name || ip address
+    host: 'localhost', //'localhost', // host name || ip address
     port: 3000, // port number
     ssl: false
   };
