@@ -109,12 +109,20 @@
                 UNFOCUS
               </button>
             </div>
+            <button
+              mat-icon-button
+              color="primary"
+              [disabled]="app.config.map.moveMap"
+              (click)="emitCenter(r[1].position)"
+              matTooltip="Center Vessel"
+            >
+              <mat-icon>center_focus_strong</mat-icon>
+            </button>
             <div>
               <button
                 mat-button
                 (click)="itemProperties(r[0])"
                 matTooltip="Vessel Properties"
-                matTooltipPosition="right"
               >
                 <mat-icon color="primary">info_outline</mat-icon>
                 INFO

@@ -510,6 +510,7 @@
             (properties)="featureProperties({ id: $event, type: 'ais' })"
             (closed)="displayLeftMenu()"
             (focusVessel)="switchActiveVessel($event)"
+            (pan)="centerResource($event.center, $event.zoomLevel)"
           >
           </ais-list>
 

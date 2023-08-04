@@ -1,5 +1,9 @@
 # CHANGELOG: Freeboard
 
+### v2.2.0
+
+- **Added**: Ability to center a vessel in the Vessels List.
+
 ### v2.1.0
 
 - **Added**: Ability to limit map zoom to min / max of displayed charts.

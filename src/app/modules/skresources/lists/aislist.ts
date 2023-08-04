@@ -7,6 +7,7 @@ import {
 } from '@angular/core';
 import { AppInfo } from 'src/app/app.info';
 import { SKVessel } from 'src/app/modules/skresources/resource-classes';
+import { Position } from 'src/app/lib/geoutils';
 
 //** AIS Dialog **
 @Component({
@@ -22,6 +23,8 @@ export class AISListComponent {
   @Output() closed: EventEmitter<void> = new EventEmitter();
   @Output() properties: EventEmitter<string> = new EventEmitter();
   @Output() focusVessel: EventEmitter<string> = new EventEmitter();
+  @Output() pan: EventEmitter<{ center: Position; zoomLevel: number }> =
+    new EventEmitter();
 
   aisAvailable = [];
   filterList = [];
@@ -29,7 +32,7 @@ export class AISListComponent {
   someSel = false;
   allSel = false;
 
-  constructor(private app: AppInfo) {}
+  constructor(public app: AppInfo) {}
 
   ngOnInit() {
     this.initItems();
@@ -129,5 +132,12 @@ export class AISListComponent {
 
   focus(id?: string) {
     this.focusVessel.emit(id);
+  }
+
+  emitCenter(position: Position) {
+    this.pan.emit({
+      center: position,
+      zoomLevel: this.app.config.map.zoomLevel
+    });
   }
 }
