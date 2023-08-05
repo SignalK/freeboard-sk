@@ -3,6 +3,7 @@
 ### v2.2.0
 
 - **Added**: Ability to center a vessel in the Vessels List.
+- **Added**: Fixed Location Mode for when operating from a building or other fixed location.
 
 ### v2.1.0
 

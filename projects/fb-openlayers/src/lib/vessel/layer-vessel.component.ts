@@ -45,6 +45,7 @@ export class VesselComponent implements OnInit, OnDestroy, OnChanges {
   @Input() vesselStyles: { [key: string]: Style };
   @Input() vesselLines: { [key: string]: Array<Coordinate> };
   @Input() showWind = false;
+  @Input() fixedLocation: boolean;
   @Input() opacity: number;
   @Input() visible: boolean;
   @Input() extent: Extent;
@@ -162,7 +163,11 @@ export class VesselComponent implements OnInit, OnDestroy, OnChanges {
     if (s) {
       const im = (s as Style).getImage();
       if (im) {
-        im.setRotation(this.heading);
+        if (this.fixedLocation) {
+          im.setRotation(0);
+        } else {
+          im.setRotation(this.heading);
+        }
       }
       this.vessel.setStyle(s);
     }
@@ -186,13 +191,19 @@ export class VesselComponent implements OnInit, OnDestroy, OnChanges {
     });
 
     if (this.vesselStyles) {
-      if (this.activeId && this.activeId !== this.id) {
-        if (this.vesselStyles.inactive) {
-          cs = this.vesselStyles.inactive;
+      if (this.fixedLocation) {
+        if (this.vesselStyles.fixed) {
+          cs = this.vesselStyles.fixed;
         }
       } else {
-        if (this.vesselStyles.default) {
-          cs = this.vesselStyles.default;
+        if (this.activeId && this.activeId !== this.id) {
+          if (this.vesselStyles.inactive) {
+            cs = this.vesselStyles.inactive;
+          }
+        } else {
+          if (this.vesselStyles.default) {
+            cs = this.vesselStyles.default;
+          }
         }
       }
     } else if (this.layerProperties && this.layerProperties.style) {

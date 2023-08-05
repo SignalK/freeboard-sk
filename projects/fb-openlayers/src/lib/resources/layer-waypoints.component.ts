@@ -248,7 +248,9 @@ export class FreeboardWaypointLayerComponent extends WaypointLayerComponent {
     super(changeDetectorRef, mapComponent);
   }
 
-  parseWaypoints(waypoints: Array<[string, SKWaypoint, boolean]> = this.waypoints) {
+  parseWaypoints(
+    waypoints: Array<[string, SKWaypoint, boolean]> = this.waypoints
+  ) {
     const fa: Feature[] = [];
     for (const w of waypoints) {
       if (w[2]) {

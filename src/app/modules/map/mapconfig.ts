@@ -53,6 +53,17 @@ export const vesselStyles = {
       scale: 0.75,
       rotateWithView: true
     })
+  }),
+  fixed: new Style({
+    image: new Icon({
+      src: './assets/img/fixed_location.png',
+      anchor: [22.5, 50],
+      anchorXUnits: 'pixels',
+      anchorYUnits: 'pixels',
+      size: [50, 50],
+      scale: 0.75,
+      rotateWithView: false
+    })
   })
 };
 

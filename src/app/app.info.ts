@@ -43,6 +43,8 @@ const FreeboardConfig = {
     animate: false,
     limitZoom: false
   },
+  fixedLocationMode: true,
+  fixedPosition: [0, 0],
   vesselTrail: false, // display trail
   vesselWindVectors: true, // display vessel TWD, AWD vectors
   aisTargets: true, // display ais targets
@@ -260,7 +262,7 @@ export class AppInfo extends Info {
     this.name = 'Freeboard';
     this.shortName = 'freeboard';
     this.description = `Signal K Chart Plotter.`;
-    this.version = '2.1.0';
+    this.version = '2.2.0';
     this.url = 'https://github.com/signalk/freeboard-sk';
     this.logo = './assets/img/app_logo.png';
 
@@ -513,6 +515,11 @@ export class AppInfo extends Info {
     this.debug(value);
     if (value.action === 'load' && value.setting === 'config') {
       this.cleanConfig(this.config);
+      if (this.config.fixedLocationMode) {
+        this.data.vessels.self.position = [...this.config.fixedPosition];
+        this.data.vessels.showSelf = true;
+        this.config.map.center = [...this.config.fixedPosition];
+      }
     }
   }
 
@@ -571,6 +578,13 @@ export class AppInfo extends Info {
   // ** clean loaded config /settings keys **
   cleanConfig(settings) {
     this.debug('Cleaning config keys...');
+
+    if (typeof settings.fixedLocationMode === 'undefined') {
+      settings.fixedLocationMode = false;
+    }
+    if (typeof settings.fixedPosition === 'undefined') {
+      settings.fixedPosition = [0, 0];
+    }
 
     if (typeof settings.map.limitZoom === 'undefined') {
       settings.map.limitZoom = false;

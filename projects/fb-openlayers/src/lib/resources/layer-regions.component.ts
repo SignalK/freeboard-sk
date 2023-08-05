@@ -37,7 +37,7 @@ export class RegionLayerComponent implements OnInit, OnDestroy, OnChanges {
    * Use this to have access to the layer and some helper functions
    */
   @Output() layerReady: AsyncSubject<Layer> = new AsyncSubject(); // AsyncSubject will only store the last value, and only publish it when the sequence is completed
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   @Input() regions: { [key: string]: any };
   @Input() regionStyles: { [key: string]: Style };
   @Input() opacity: number;

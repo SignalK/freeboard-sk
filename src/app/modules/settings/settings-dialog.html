@@ -424,6 +424,67 @@
         <div class="setting-group" id="sectVessels">
           <div class="setting-group-title">VESSEL</div>
           <mat-card class="setting-card">
+            <div class="setting-card-row-item">
+              <fieldset>
+                <legend>
+                  <mat-checkbox
+                    #vesselfixedlocationmode
+                    color="primary"
+                    [(ngModel)]="facade.settings.fixedLocationMode"
+                    (change)="onFormChange($event, vesselfixedlocationmode)"
+                    label="after"
+                    matTooltip="e.g. Building, Camp, etc."
+                  >
+                    Fixed Location Mode
+                  </mat-checkbox>
+                </legend>
+                <div class="setting-card-row" style="padding-bottom: 10px">
+                  <div class="setting-card-row-item">
+                    <mat-form-field>
+                      <mat-label>Latitude</mat-label>
+                      <input
+                        matInput
+                        type="number"
+                        #fixedlat="ngModel"
+                        required
+                        pattern="^-?([1-8]?[0-9])(\.\d{1,9})?$"
+                        [(ngModel)]="facade.settings.fixedPosition[1]"
+                        (change)="onFormChange($event, fixedlat)"
+                        [disabled]="false"
+                        min="-90"
+                        max="90"
+                      />
+                      <mat-error
+                        *ngIf="fixedlat.invalid && (fixedlat.dirty || fixedlat.touched)"
+                      >
+                        Please enter a value between -90 and 90 (max 9 decimals)
+                      </mat-error>
+                    </mat-form-field>
+                    <mat-form-field>
+                      <mat-label>Longitude</mat-label>
+                      <input
+                        matInput
+                        type="number"
+                        #fixedlon="ngModel"
+                        required
+                        pattern="^-?(1[0-7]?[0-9]|[1-9]?[0-9])(\.\d{1,9})?$"
+                        [(ngModel)]="facade.settings.fixedPosition[0]"
+                        (change)="onFormChange($event, fixedlon)"
+                        [disabled]="false"
+                        min="-180"
+                        max="180"
+                      />
+                      <mat-error
+                        *ngIf="fixedlon.invalid && (fixedlon.dirty || fixedlon.touched)"
+                      >
+                        Please enter a value between -180 and 180 (max 9
+                        decimals)
+                      </mat-error>
+                    </mat-form-field>
+                  </div>
+                </div>
+              </fieldset>
+            </div>
             <br />
             <div class="setting-card-row-item">
               <mat-checkbox

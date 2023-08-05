@@ -279,6 +279,9 @@ export class SKStreamFacade {
 
   private parseVesselSelf(v: SKVessel) {
     this.app.data.vessels.self = v;
+    if (this.app.config.fixedLocationMode) {
+      this.app.data.vessels.self.position = [...this.app.config.fixedPosition];
+    }
     this.processVessel(this.app.data.vessels.self);
     this.alarmsFacade.updateAnchorStatus();
   }

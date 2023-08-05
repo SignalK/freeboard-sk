@@ -154,11 +154,11 @@ export class SettingsFacade {
       this.app.config.chartApi = 1;
     }
     this.app.settings$.subscribe((r: SettingsMessage) => {
-      if (r.setting == 'config') {
-        if (r.action == 'load') {
+      if (r.setting === 'config') {
+        if (r.action === 'load') {
           this.configLoadedSource.next(r);
         }
-        if (r.action == 'save') {
+        if (r.action === 'save') {
           this.configSavedSource.next(r);
         }
       }
