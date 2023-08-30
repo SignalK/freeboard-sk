@@ -4,33 +4,6 @@
     z-index: 4900;
 }
 
-.playbackPanel {
-    position: absolute;
-    z-index: 4900;
-    bottom: 150px; 
-    left: 10px; 
-    top: auto; 
-    width:100px; 
-    border: gray 1px solid;
-    border-radius: 5px;
-    background-color: white;
-    font-family: roboto;
-    text-align:center;
-}
-
-.navdataPanel {
-    position: absolute;
-    z-index: 4901;
-    bottom: 25px;
-    left: 0;
-    max-width:100%;
-    max-height: 100px;
-    text-align: center;
-    display: flex;
-    flex-wrap: nowrap;
-    overflow-x: auto;
-}
-
 .control {
     display: flex;
     align-items: center;

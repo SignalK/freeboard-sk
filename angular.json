@@ -124,34 +124,6 @@
           }
         }
       }
-    },
-    "fb-openlayers": {
-      "projectType": "library",
-      "root": "projects/fb-openlayers",
-      "sourceRoot": "projects/fb-openlayers/src",
-      "prefix": "lib",
-      "architect": {
-        "build": {
-          "builder": "@angular-devkit/build-angular:ng-packagr",
-          "options": {
-            "tsConfig": "projects/fb-openlayers/tsconfig.lib.json",
-            "project": "projects/fb-openlayers/ng-package.json"
-          }
-        ,          "configurations": {
-            "production": {
-              "tsConfig": "projects/fb-openlayers/tsconfig.lib.prod.json"
-            }
-          }
-},
-        "test": {
-          "builder": "@angular-devkit/build-angular:karma",
-          "options": {
-            "main": "projects/fb-openlayers/src/test.ts",
-            "tsConfig": "projects/fb-openlayers/tsconfig.spec.json",
-            "karmaConfig": "projects/fb-openlayers/karma.conf.js"
-          }
-        }
-      }
     }
   }
 }

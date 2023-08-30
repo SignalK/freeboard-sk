@@ -2,6 +2,7 @@ import { Component, OnInit, Inject, ElementRef } from '@angular/core';
 import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 
 import { SettingsFacade } from './settings.facade';
+import { FormControl } from '@angular/forms';
 
 interface PreferredPathsResult {
   save: boolean;
@@ -15,7 +16,7 @@ interface PreferredPathsResult {
   styleUrls: ['./settings-dialog.css']
 })
 export class SettingsDialog implements OnInit {
-  public display = { paths: false, favourites: false };
+  public display = { favourites: false };
   public menuItems = [
     { id: 'sectDisplay', text: 'Display' },
     { id: 'sectUnits', text: 'Units & Values' },
@@ -43,7 +44,6 @@ export class SettingsDialog implements OnInit {
 
   ngOnInit() {
     this.facade.refresh();
-    this.display.paths = this.data.openPrefs;
     this.facade.settings.selections.aisState.forEach((i: string) => {
       if (i in this.aisStateFilter) {
         this.aisStateFilter[i] = true;
@@ -72,7 +72,7 @@ export class SettingsDialog implements OnInit {
     this.display.favourites = this.display.favourites ? false : true;
   }
 
-  onFormChange(e: unknown, f, deferSave = false) {
+  onFormChange(e: unknown, f: any, deferSave = false) {
     if (deferSave) {
       this.saveOnClose = true;
     } else {
@@ -85,7 +85,6 @@ export class SettingsDialog implements OnInit {
   }
 
   onPreferredPaths(e: PreferredPathsResult) {
-    this.display.paths = false;
     if (e.save) {
       this.facade.settings.selections.preferredPaths = e.value;
       this.facade.applySettings();

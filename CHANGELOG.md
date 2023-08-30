@@ -1,5 +1,12 @@
 # CHANGELOG: Freeboard
 
+### v2.2.1
+
+- **Fixed**: Issue where waypoint was not centered on the screen when the center waypoint button was clicked from the entry in the waypoint list.
+
+- **Fixed**: Issue where invalid fixed location postion was being written to settings.
+
+
 ### v2.2.0
 
 - **Added**: Ability to center a vessel in the Vessels List.

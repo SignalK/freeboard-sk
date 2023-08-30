@@ -1,42 +1,92 @@
-@import '~@angular/material/theming';
+@use '@angular/material' as mat;
+@import '@angular/material/theming';
 
 // Include non-theme styles for core.
 @include mat-core();
 
 // Define a theme.
-$primary:   mat-palette($mat-indigo, 500);
-$accent:    mat-palette($mat-amber, 400);
-$warn:      mat-palette($mat-red);
-$theme:     mat-light-theme($primary, $accent, $warn);
+$my-primary: mat.define-palette(mat.$indigo-palette, 500,700,200);
+$my-accent:  mat.define-palette(mat.$amber-palette, 500,700,200);
+// The "warn" palette is optional and defaults to red if not specified.
+$my-warn:    mat.define-palette(mat.$red-palette, 500,700,200);
+
+$my-theme: mat.define-light-theme((
+ color: (
+   primary: $my-primary,
+   accent: $my-accent,
+   warn: $my-warn,
+ ),
+ typography: mat.define-typography-config(),
+ density: 0,
+));
+
+// Define a dark theme.
+$my-dark-primary: mat.define-palette(mat.$light-blue-palette, 200,300,400);
+$my-dark-accent:  mat.define-palette(mat.$amber-palette, A400, A100, A700);
+$my-dark-warn:    mat.define-palette(mat.$deep-orange-palette, A400);
+
+$my-dark-theme: mat.define-dark-theme((
+ color: (
+   primary: $my-dark-primary,
+   accent: $my-dark-accent,
+   warn: $my-dark-warn,
+ ),
+ typography: mat.define-typography-config(),
+ density: 0,
+));
 
 // Include all theme styles for the components.
-@include angular-material-theme($theme);
+@include mat.all-component-themes($my-theme);
 
-// std elements
-a {
-    color: mat-color($primary);
-}
-
-// Define an alternate dark theme.
 .dark-theme {
-    $dark-primary:  mat-palette($mat-light-blue);
-    $dark-accent:   mat-palette($mat-amber, A400, A100, A700);
-    $dark-warn:     mat-palette($mat-red);
-    $dark-theme:    mat-dark-theme($dark-primary, $dark-accent, $dark-warn);
-  
-    // std elements
-    a {
-        color: mat-color($accent);
+    @include mat.all-component-themes($my-dark-theme);
+
+    .about-row .item a {
+        color: mat-color($my-dark-accent);
     }
     
-    @include angular-material-theme($dark-theme);
+    /* Track */
+    ::-webkit-scrollbar-track {
+        background: rgba(0,0,0,.5);
+    }
+    
+    /* Handle on hover */
+    ::-webkit-scrollbar-thumb:hover {
+        background: #999;
+    }
+  }
+
+// std elements
+.about-row .item a  {
+    color: mat-color($my-primary);
 }
 
-@mixin popover-theme($theme) {
-    $primary: map-get($theme, primary);
-    $accent: map-get($theme, accent);
-    $warn: map-get($theme, warn);
-    $background: map-get($theme, background);
+/* width */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+/* Track */
+::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+
+/* Handle */
+::-webkit-scrollbar-thumb {
+    background: #888;
+}
+
+/* Handle on hover */
+::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+
+@mixin popover-theme($my-theme) {
+    $primary: map-get($my-theme, primary);
+    $accent: map-get($my-theme, accent);
+    $warn: map-get($my-theme, warn);
+    $background: map-get($my-theme, background);
     $background-color:  map-get($background, background);
 
     .popover-title {
@@ -65,5 +115,5 @@ a {
 }  
 
 // Include theme styles for custom components.
-@include popover-theme($theme);
+@include popover-theme($my-theme);
 

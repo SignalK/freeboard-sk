@@ -1,32 +1,28 @@
-<div mat-dialog-title style="display: flex">
-  <mat-menu #settingsMenu="matMenu">
-    <a mat-menu-item *ngFor="let i of menuItems" (click)="jumpTo(i.id, true)">
-      {{i.text}}
-    </a>
-  </mat-menu>
-
-  <div>
+<mat-menu #settingsMenu="matMenu">
+  <a mat-menu-item *ngFor="let i of menuItems" (click)="jumpTo(i.id, true)">
+    {{i.text}}
+  </a>
+</mat-menu>
+<mat-toolbar style="background-color: transparent">
+  <span class="dialog-icon">
     <button
+      class="left-settings-menu-button"
       mat-icon-button
-      *ngIf="!display.paths"
       [matMenuTriggerFor]="settingsMenu"
     >
       <mat-icon>menu</mat-icon>
     </button>
-  </div>
-  <div [ngSwitch]="display.paths" style="flex: 1 1 auto; text-align: center">
-    <span *ngSwitchCase="false">Settings</span>
-    <span *ngSwitchCase="true">Preferred Paths</span>
-  </div>
-  <div style="text-align: right">
-    <button mat-icon-button *ngIf="!display.paths" (click)="handleClose()">
+  </span>
+  <span style="flex: 1 1 auto; text-align: center">Settings</span>
+  <span style="text-align: right">
+    <button mat-icon-button (click)="handleClose()">
       <mat-icon>close</mat-icon>
     </button>
-  </div>
-</div>
+  </span>
+</mat-toolbar>
 
 <div mat-dialog-content style="display: flex">
-  <div class="left-settings-menu" *ngIf="!display.paths">
+  <div class="left-settings-menu">
     <mat-nav-list>
       <a mat-list-item *ngFor="let i of menuItems" (click)="jumpTo(i.id)">
         {{i.text}}
@@ -34,10 +30,7 @@
     </mat-nav-list>
   </div>
   <div style="flex: 1 1 auto">
-    <div
-      class="theme-page settings right-settings-content"
-      *ngIf="!display.paths"
-    >
+    <div class="theme-page settings right-settings-content">
       <div class="theme-panel">
         <div class="setting-group" id="sectDisplay">
           <div class="setting-group-title">DISPLAY</div>
@@ -48,11 +41,11 @@
             >
               <div class="setting-card-row-item">
                 <mat-form-field style="width: 100%">
+                  <mat-label>Select Instruments App</mat-label>
                   <mat-select
                     #instruments
                     [(value)]="facade.settings.plugins.instruments"
                     (selectionChange)="onFormChange($event, instruments);facade.buildFavouritesList()"
-                    placeholder="Select Instruments App"
                   >
                     <mat-option
                       *ngFor="let i of facade.list.applications"
@@ -67,7 +60,7 @@
               </div>
               <div class="setting-card-row-item">
                 <mat-form-field style="width: 100%" floatLabel="always">
-                  <mat-label>parameters:</mat-label>
+                  <mat-label>Parameters</mat-label>
                   <input
                     matInput
                     type="text"
@@ -143,13 +136,13 @@
               </div>
               <div class="setting-card-row-item">
                 <mat-form-field style="width: 100%">
+                  <mat-label>Alarm Smoothing Time</mat-label>
                   <mat-select
                     #depthsmoothing
                     matTooltip="Period of time out of alarm state before re-triggering."
                     [disabled]="!facade.settings.depthAlarm.enabled"
                     [(value)]="facade.settings.depthAlarm.smoothing"
                     (selectionChange)="onFormChange($event, depthsmoothing)"
-                    placeholder="Alarm Smoothing Time"
                   >
                     <mat-option
                       *ngFor="let i of facade.alarmOptions.smoothing | keyvalue"
@@ -177,12 +170,12 @@
               </div>
               <div class="setting-card-row-item">
                 <mat-form-field style="width: 100%">
+                  <mat-label>Dark Mode setting</mat-label>
                   <mat-select
                     #darkmode
                     matTooltip="Dark Mode setting."
                     [(value)]="facade.settings.darkMode.source"
                     (selectionChange)="onFormChange($event, darkmode)"
-                    placeholder="Dark Mode setting"
                   >
                     <mat-option
                       *ngFor="let i of facade.darkModeOptions | keyvalue"
@@ -243,12 +236,12 @@
             <div class="setting-card-row" style="padding-bottom: 10px">
               <div class="setting-card-row-item">
                 <mat-form-field style="width: 100%">
+                  <mat-label>Distance units</mat-label>
                   <mat-select
                     id="distunits"
                     #distunits
                     [(value)]="facade.settings.units.distance"
                     (selectionChange)="onFormChange($event, distunits)"
-                    placeholder="Distance units"
                   >
                     <mat-option
                       *ngFor="let i of facade.availableUnits.distance | keyvalue"
@@ -261,11 +254,11 @@
 
               <div class="setting-card-row-item">
                 <mat-form-field style="width: 100%">
+                  <mat-label>Depth units</mat-label>
                   <mat-select
                     #depthunits
                     [(value)]="facade.settings.units.depth"
                     (selectionChange)="onFormChange($event, depthunits)"
-                    placeholder="Depth units"
                   >
                     <mat-option
                       *ngFor="let i of facade.availableUnits.depth | keyvalue"
@@ -278,12 +271,12 @@
 
               <div class="setting-card-row-item">
                 <mat-form-field style="width: 100%">
+                  <mat-label>Speed units</mat-label>
                   <mat-select
                     id="speedunits"
                     #speedunits
                     [(value)]="facade.settings.units.speed"
                     (selectionChange)="onFormChange($event, speedunits)"
-                    placeholder="Speed units"
                   >
                     <mat-option
                       *ngFor="let i of facade.availableUnits.speed | keyvalue"
@@ -296,12 +289,12 @@
 
               <div class="setting-card-row-item">
                 <mat-form-field style="width: 100%">
+                  <mat-label>Temperature units</mat-label>
                   <mat-select
                     id="tempunits"
                     #tempunits
                     [(value)]="facade.settings.units.temperature"
                     (selectionChange)="onFormChange($event, tempunits)"
-                    placeholder="Temperature units"
                   >
                     <mat-option
                       *ngFor="let i of facade.availableUnits.temperature | keyvalue"
@@ -317,12 +310,12 @@
                 *ngIf="facade.preferredValues.coords.length!=0"
               >
                 <mat-form-field style="width: 100%">
+                  <mat-label>Position display format</mat-label>
                   <mat-select
                     #positionformat
                     matTooltip="Display position in this format"
                     [(value)]="facade.settings.selections.positionFormat"
                     (selectionChange)="onFormChange($event, positionformat)"
-                    placeholder="Position display format"
                   >
                     <mat-option
                       *ngFor="let i of facade.preferredValues.coords"
@@ -334,28 +327,24 @@
               </div>
 
               <div class="setting-card-row-item">
-                <div style="height: 65px">
-                  <button
-                    mat-raised-button
-                    matTooltip="Select preferred path to source values from."
-                    (click)="display.paths=true"
-                  >
-                    <mat-icon color="primary">settings_input_svideo</mat-icon>
-                    PREFERRED PATHS
-                  </button>
-                </div>
+                <signalk-preferred-paths
+                  title="Preferred Paths"
+                  (chosen)="onPreferredPaths($event)"
+                >
+                </signalk-preferred-paths>
               </div>
+
               <div
                 class="setting-card-row-item"
-                *ngIf="facade.preferredValues.heading.length!=0"
+                *ngIf="facade.preferredValues.heading.length !== 0"
               >
                 <mat-form-field style="width: 100%">
+                  <mat-label>Prefer True / Magnetic values</mat-label>
                   <mat-select
                     #headingattrib
                     matTooltip="Preferred value type for paths not in Preferred Paths above"
                     [(value)]="facade.settings.selections.headingAttribute"
                     (selectionChange)="onFormChange($event, headingattrib)"
-                    placeholder="Prefer True / Magnetic values"
                   >
                     <mat-option
                       *ngFor="let i of facade.preferredValues.heading"
@@ -385,12 +374,13 @@
                 </mat-checkbox>
 
                 <mat-form-field style="width: 100%">
+                  <mat-label>Notification type to use</mat-label>
                   <mat-select
                     #courseautoadvanceon
                     matTooltip="Select the trigger for advancing to next point."
+                    [disabled]="courseautoadvance.checked === false"
                     [(value)]="facade.settings.selections.course.autoNextPointTrigger"
                     (selectionChange)="onFormChange($event, courseautoadvanceon)"
-                    placeholder="Notification type to use."
                   >
                     <mat-option
                       *ngFor="let i of facade.list.nextPointTriggers"
@@ -401,13 +391,13 @@
                 </mat-form-field>
 
                 <mat-form-field style="width: 100%">
+                  <mat-label>Time to wait before advancing</mat-label>
                   <mat-select
                     #courseautoadvancedelay
                     matTooltip="Period of time out of alarm state before re-triggering."
-                    [disabled]="courseautoadvanceon.value === 'perpendicularPassed'"
+                    [disabled]="courseautoadvanceon.value === 'perpendicularPassed' || courseautoadvance.checked === false"
                     [(value)]="facade.settings.selections.course.autoNextPointDelay"
                     (selectionChange)="onFormChange($event, courseautoadvancedelay)"
-                    placeholder="Time to wait before advancing"
                   >
                     <mat-option
                       *ngFor="let i of facade.alarmOptions.smoothing | keyvalue"
@@ -440,7 +430,7 @@
                 </legend>
                 <div class="setting-card-row" style="padding-bottom: 10px">
                   <div class="setting-card-row-item">
-                    <mat-form-field>
+                    <mat-form-field floatLabel="always">
                       <mat-label>Latitude</mat-label>
                       <input
                         matInput
@@ -448,7 +438,7 @@
                         #fixedlat="ngModel"
                         required
                         pattern="^-?([1-8]?[0-9])(\.\d{1,9})?$"
-                        [(ngModel)]="facade.settings.fixedPosition[1]"
+                        [(ngModel)]="facade.fixedPosition[1]"
                         (change)="onFormChange($event, fixedlat)"
                         [disabled]="false"
                         min="-90"
@@ -460,7 +450,7 @@
                         Please enter a value between -90 and 90 (max 9 decimals)
                       </mat-error>
                     </mat-form-field>
-                    <mat-form-field>
+                    <mat-form-field floatLabel="always">
                       <mat-label>Longitude</mat-label>
                       <input
                         matInput
@@ -468,7 +458,7 @@
                         #fixedlon="ngModel"
                         required
                         pattern="^-?(1[0-7]?[0-9]|[1-9]?[0-9])(\.\d{1,9})?$"
-                        [(ngModel)]="facade.settings.fixedPosition[0]"
+                        [(ngModel)]="facade.fixedPosition[0]"
                         (change)="onFormChange($event, fixedlon)"
                         [disabled]="false"
                         min="-180"
@@ -526,16 +516,19 @@
                   &nbsp;&nbsp;
 
                   <mat-slider
+                    discrete
                     #trailDuration
-                    thumbLabel
                     tickInterval="1"
                     min="1"
                     max="96"
                     color="primary"
                     [disabled]="!facade.settings.selections.trailFromServer || !facade.settings.vesselTrail"
-                    [(ngModel)]="facade.settings.selections.trailDuration"
-                    (change)="onFormChange($event, trailDuration, true)"
                   >
+                    <input
+                      matSliderThumb
+                      [(ngModel)]="facade.settings.selections.trailDuration"
+                      (valueChange)="onFormChange($event, trailDuration, true)"
+                    />
                   </mat-slider>
                   Length ({{facade.settings.selections.trailDuration}} hrs)
                 </div>
@@ -543,12 +536,12 @@
               <div class="setting-card-row" style="padding-bottom: 10px">
                 <div class="setting-card-row-item">
                   <mat-form-field style="width: 100%">
+                    <mat-label>Resolution: Last hour</mat-label>
                     <mat-select
                       #trailRes1
                       [(value)]="facade.settings.selections.trailResolution.lastHour"
                       [disabled]="!facade.settings.selections.trailFromServer || !facade.settings.vesselTrail"
                       (selectionChange)="onFormChange($event, trailRes1)"
-                      placeholder="Resolution: Last hour"
                     >
                       <mat-option
                         *ngFor="let i of facade.trailOptions.highResolution | keyvalue: noSort"
@@ -560,12 +553,12 @@
                 </div>
                 <div class="setting-card-row-item">
                   <mat-form-field style="width: 100%">
+                    <mat-label>Resolution: 1 hr -> 24 hrs</mat-label>
                     <mat-select
                       #trailRes23
                       [(value)]="facade.settings.selections.trailResolution.next23"
                       [disabled]="!facade.settings.selections.trailFromServer || !facade.settings.vesselTrail"
                       (selectionChange)="onFormChange($event, trailRes23)"
-                      placeholder="Resolution: 1 hr -> 24 hrs"
                     >
                       <mat-option
                         *ngFor="let i of facade.trailOptions.highResolution | keyvalue: noSort"
@@ -577,12 +570,12 @@
                 </div>
                 <div class="setting-card-row-item">
                   <mat-form-field style="width: 100%">
+                    <mat-label>Resolution: > 24 hrs</mat-label>
                     <mat-select
                       #trailRes24plus
                       [(value)]="facade.settings.selections.trailResolution.beyond24"
                       [disabled]="!facade.settings.selections.trailFromServer || !facade.settings.vesselTrail"
                       (selectionChange)="onFormChange($event, aisstaleage)"
-                      placeholder="Resolution: > 24 hrs"
                     >
                       <mat-option
                         *ngFor="let i of facade.trailOptions.mediumResolution | keyvalue: noSort"
@@ -601,11 +594,11 @@
             <div class="setting-card-row" style="padding-bottom: 10px">
               <div class="setting-card-row-item">
                 <mat-form-field style="width: 100%">
+                  <mat-label>Mark AIS target inactive after</mat-label>
                   <mat-select
                     #aisstaleage
                     [(value)]="facade.settings.selections.aisStaleAge"
                     (selectionChange)="onFormChange($event, aisstaleage)"
-                    placeholder="Mark AIS target inactive after"
                   >
                     <mat-option
                       *ngFor="let i of facade.list.aisTimeouts | keyvalue"
@@ -618,11 +611,11 @@
 
               <div class="setting-card-row-item">
                 <mat-form-field style="width: 100%">
+                  <mat-label>Remove AIS target after</mat-label>
                   <mat-select
                     #aismaxage
                     [(value)]="facade.settings.selections.aisMaxAge"
                     (selectionChange)="onFormChange($event, aismaxage)"
-                    placeholder="Remove AIS target after"
                   >
                     <mat-option
                       *ngFor="let i of facade.list.aisTimeouts | keyvalue"
@@ -635,11 +628,11 @@
 
               <div class="setting-card-row-item">
                 <mat-form-field style="width: 100%">
+                  <mat-label>Wind Vector Value</mat-label>
                   <mat-select
                     #aiswindvector
                     [(value)]="facade.settings.selections.aisWindApparent"
                     (selectionChange)="onFormChange($event, aiswindvector)"
-                    placeholder="Wind Vector Value"
                   >
                     <mat-option
                       *ngFor="let i of facade.preferredValues.wind | keyvalue"
@@ -652,11 +645,11 @@
 
               <div class="setting-card-row-item">
                 <mat-form-field style="width: 100%">
+                  <mat-label>Wind / Trail Zoom Level</mat-label>
                   <mat-select
                     #aiswindminzoom
                     [(value)]="facade.settings.selections.aisWindMinZoom"
                     (selectionChange)="onFormChange($event, aiswindminzoom)"
-                    placeholder="Wind / Trail Zoom Level"
                   >
                     <mat-option
                       *ngFor="let i of facade.list.minZoom"
@@ -701,11 +694,11 @@
 
               <div class="setting-card-row-item">
                 <mat-form-field style="width: 100%">
+                  <mat-label>Display Profile</mat-label>
                   <mat-select
                     #aisprofile
                     [(value)]="facade.settings.selections.aisProfile"
                     (selectionChange)="onFormChange($event, aisprofile)"
-                    placeholder="Display Profile"
                   >
                     <mat-option
                       *ngFor="let i of facade.list.aisProfiles | keyvalue"
@@ -736,12 +729,12 @@
               </div>
               <div class="setting-card-row-item">
                 <mat-form-field style="width: 100%">
+                  <mat-label>Notes Zoom Level</mat-label>
                   <mat-select
                     #notesminzoom
                     [disabled]="!facade.settings.notes"
                     [(value)]="facade.settings.selections.notesMinZoom"
                     (selectionChange)="onFormChange($event, notesminzoom)"
-                    placeholder="Notes Zoom Level"
                   >
                     <mat-option
                       *ngFor="let i of facade.list.minZoom"
@@ -755,13 +748,17 @@
             <div class="setting-card-row">
               <div class="setting-card-row-item">
                 <mat-form-field style="width: 100%">
+                  <mat-label
+                    >{{'Fetch Notes radius: (' +
+                    facade.availableUnits.distance.get(distunits.value) +
+                    ')'}}</mat-label
+                  >
                   <mat-select
                     id="notesgetradius"
                     #notesgetradius
                     [disabled]="!facade.settings.notes"
                     [(value)]="facade.settings.resources.notes.getRadius"
                     (selectionChange)="onFormChange($event, notesgetradius)"
-                    [placeholder]="'Fetch Notes radius: (' + facade.availableUnits.distance.get(distunits.value) + ')'"
                   >
                     <mat-option
                       *ngFor="let i of facade.list.resourceRadius"
@@ -786,7 +783,6 @@
                     matTooltip="Filter to apply when retrieving notes"
                   />
                   <button
-                    mat-button
                     *ngIf="notesrootfilter.value"
                     matSuffix
                     mat-icon-button
@@ -969,11 +965,11 @@
                 <div class="setting-card-row-item">
                   <br />
                   <mat-form-field style="width: 100%">
+                    <mat-label>Max. distance from vessel</mat-label>
                     <mat-select
                       #skmaxradius
                       [(value)]="facade.settings.selections.signalk.maxRadius"
                       (selectionChange)="onFormChange($event, skmaxradius)"
-                      placeholder="Max. distance from vessel"
                       matToolTip="Only include AIS targets within this distance"
                       matTooltipPosition="below"
                     >
@@ -990,11 +986,11 @@
             <div class="setting-card-row">
               <div class="setting-card-row-item">
                 <mat-form-field>
+                  <mat-label>Chart API version</mat-label>
                   <mat-select
                     #chartApi
                     [(value)]="facade.settings.chartApi"
                     (selectionChange)="onFormChange($event, chartApi)"
-                    placeholder="Chart API version"
                   >
                     <mat-option
                       *ngFor="let f of facade.list.chartApiChoices"
@@ -1024,16 +1020,6 @@
             </mat-checkbox>
           </div>
         </div>
-      </div>
-    </div>
-
-    <div class="theme-page settings" *ngIf="display.paths">
-      <div class="theme-panel">
-        <signalk-preferred-paths
-          title="Preferred Paths"
-          (chosen)="onPreferredPaths($event)"
-        >
-        </signalk-preferred-paths>
       </div>
     </div>
   </div>

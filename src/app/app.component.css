@@ -23,18 +23,16 @@ mat-nav-list {
 .mainToolBar {
     top: 0;
 	bottom: 0;
-    right: 39px;
 	left: 0;
     overflow: auto;
     position: fixed;
-	border-top: red 0px solid;
 }
 
 .view {
     top: 0;
 	bottom: 0;
     right: 0;
-	left: 40px;
+	left: 48px;
     overflow: auto;
     position: fixed;
 	border-top: silver 0px solid;
@@ -47,7 +45,7 @@ mat-nav-list {
     bottom: 0;
     padding-left: 40px;
     z-index: 5000; 
-    background-color: rgba(200,200,200,.4);   
+    background-color: rgba(200,200,200,.4);
 }
 
 .rightUtilsPanel { 
@@ -100,6 +98,7 @@ mat-nav-list {
     display: flex;
     flex-wrap: nowrap;
     overflow-x: auto;
+    overflow-y: hidden;
     border: gray 1px solid;
 }
 

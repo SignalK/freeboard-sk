@@ -25,35 +25,34 @@ import { AppInfo } from 'src/app/app.info';
   selector: 'ap-alarmsdialog',
   template: `
     <div class="_ap-alarms">
-      <div style="display: flex;">
-        <div style="width:70px;">
-          <mat-icon color="primary">alarm_on</mat-icon>
-        </div>
-        <div mat-dialog-title style="flex: 1 1 auto;">Alarms</div>
-        <div>
+      <mat-toolbar style="background-color: transparent">
+        <span class="dialog-icon"><mat-icon>alarm_on</mat-icon></span>
+        <span style="flex: 1 1 auto; text-align: center">Alarms</span>
+        <span style="text-align: right">
           <button mat-icon-button (click)="dialogRef.close()">
             <mat-icon>close</mat-icon>
           </button>
-        </div>
-      </div>
+        </span>
+      </mat-toolbar>
       <mat-dialog-content>
         <div style="display:flex;flex-wrap:wrap;">
           <div class="alarm-item" *ngFor="let i of stdAlarms">
             <mat-card
+              appearance="outlined"
               *ngIf="i.cancel || i.displayAlways"
-              style="border: silver 1px outset;"
+              style="padding:3px;"
             >
               <mat-card-title-group>
                 <img
-                  mat-card-avatar
+                  width="30px"
                   [src]="'./assets/img/alarms/' + i.key + '.png'"
                 />
                 <mat-card-title>{{ i.title }}</mat-card-title>
               </mat-card-title-group>
               <mat-card-content> </mat-card-content>
-              <mat-card-actions style="text-align:center;">
+              <mat-card-actions>
                 <button
-                  mat-flat-button
+                  mat-raised-button
                   color="warn"
                   *ngIf="!i.cancel"
                   (click)="raise(i.key, i.subtitle)"
@@ -83,30 +82,11 @@ import { AppInfo } from 'src/app/app.info';
         font-family: arial;
         max-width: 500px;
       }
-      .ap-confirm-icon {
-        min-width: 35px;
-        max-width: 35px;
-        color: darkorange;
-        text-align: left;
-      }
-      .ap-confirm-icon .mat-icon {
-        font-size: 25pt;
-      }
-      .mat-card {
-        border: blue 1px solid;
-      }
       .alarm-item {
         width: 100%;
       }
 
       @media only screen and (min-width: 500px) {
-        .ap-confirm-icon {
-          min-width: 25%;
-          max-width: 25%;
-        }
-        .ap-confirm-icon .mat-icon {
-          font-size: 40pt;
-        }
         .alarm-item {
           width: 50%;
         }
@@ -289,14 +269,14 @@ interface AlarmData {
     >
       <img [src]="iconUrl" [matTooltip]="alarm.title" />
     </span>
-    <mat-card *ngIf="alarm.value.visual && !alarm.value.acknowledged">
-      <div style="display:flex; flex-wrap:nowrap;">
-        <div style="flex:1 1 auto;padding-right:5px;">
-          {{ alarm.value.message }}
-        </div>
-        <div><img style="height:50px;" [src]="iconUrl" /></div>
-      </div>
-
+    <mat-card
+      style="padding:5px;"
+      *ngIf="alarm.value.visual && !alarm.value.acknowledged"
+    >
+      <mat-card-title-group>
+        <img width="30px" [src]="iconUrl" />
+        <mat-card-title>{{ alarm.value.message }}</mat-card-title>
+      </mat-card-title-group>
       <mat-card-actions>
         <div style="display:flex;flex-wrap: wrap;">
           <div>

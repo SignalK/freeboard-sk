@@ -15,8 +15,8 @@ import { MatStepperModule } from '@angular/material/stepper';
 import { WeatherForecastModal } from './weather-forecast';
 import { WeatherDataComponent } from './components/weather-data.component';
 
-import { AppUIModule } from 'src/app/lib/ui/ui.module';
-import { UtilitiesModule } from 'src/app/modules/utils/utils.module';
+import { CommonDialogs } from 'src/app/lib/components/dialogs';
+import { PipesModule } from 'src/app/lib/pipes';
 
 @NgModule({
   imports: [
@@ -32,8 +32,8 @@ import { UtilitiesModule } from 'src/app/modules/utils/utils.module';
     MatInputModule,
     MatToolbarModule,
     MatStepperModule,
-    AppUIModule,
-    UtilitiesModule
+    CommonDialogs,
+    PipesModule
   ],
   declarations: [WeatherForecastModal, WeatherDataComponent],
   exports: [WeatherForecastModal, WeatherDataComponent]

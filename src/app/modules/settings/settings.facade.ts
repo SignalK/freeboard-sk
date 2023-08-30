@@ -4,7 +4,7 @@ import { Injectable } from '@angular/core';
 import { Subject } from 'rxjs';
 
 import { AppInfo } from 'src/app/app.info';
-import { SettingsMessage } from 'src/app/lib/info/info.service';
+import { SettingsMessage } from 'src/app/lib/services';
 import { SignalKClient } from 'signalk-client-angular';
 
 interface SKAppsList {
@@ -130,9 +130,11 @@ export class SettingsFacade {
     ])
   };
 
+  fixedPosition = [0, 0];
+
   // *****************************************************
-  settings = this.app.config;
-  data = this.app.data;
+  public settings!: any;
+  public data!: any;
 
   update$() {
     return this.app.settings$;
@@ -150,6 +152,10 @@ export class SettingsFacade {
   // *******************************************************
 
   constructor(private app: AppInfo, public signalk: SignalKClient) {
+    this.data = this.app.data;
+    this.settings = this.app.config;
+    this.fixedPosition = this.settings.fixedPosition.slice();
+
     if (!this.app.config.chartApi) {
       this.app.config.chartApi = 1;
     }
@@ -168,6 +174,7 @@ export class SettingsFacade {
   // refresh dynamic data from sources
   refresh() {
     this.settings = this.app.config;
+    this.fixedPosition = this.settings.fixedPosition.slice();
     this.getApps();
     this.getResourcePaths();
   }
@@ -263,6 +270,12 @@ export class SettingsFacade {
     this.app.debug('Saving Settings..');
     if (!this.app.config.vesselTrail) {
       this.app.config.selections.trailFromServer = false;
+    }
+    if (
+      typeof this.fixedPosition[0] === 'number' &&
+      typeof this.fixedPosition[1] === 'number'
+    ) {
+      this.settings.fixedPosition = this.fixedPosition.slice();
     }
     this.app.saveConfig();
   }

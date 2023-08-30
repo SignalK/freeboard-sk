@@ -1,55 +1,77 @@
 <div class="resourcelist" style="width: 320px">
-  <mat-card class="title-block">
-    <div style="flex: 1 1 auto">
-      <div class="title-text">Charts:</div>
-      <div *ngIf="!displayChartLayers">
-        <mat-form-field style="width: 150px">
-          <input
-            #ftext
-            type="text"
-            matInput
-            [value]="filterText"
-            (keyup)="buildFilterList(ftext.value)"
-            placeholder="type to filter list"
-          />
+  <mat-card>
+    <mat-card-title>
+      <div class="title-block">
+        <div style="flex: 1 1 auto; padding-top: 7px">Charts:</div>
+        <div style="width: 50px">
           <button
-            mat-button
-            *ngIf="filterText"
-            matSuffix
             mat-icon-button
-            (click)="buildFilterList('')"
+            (click)="close()"
+            matTooltip="Close Chart List"
+            matTooltipPosition="left"
           >
             <mat-icon>close</mat-icon>
           </button>
-        </mat-form-field>
-        <button
-          mat-icon-button
-          (click)="itemRefresh()"
-          matTooltip="Reload Charts"
-          matTooltipPosition="left"
-        >
-          <mat-icon>refresh</mat-icon>
-        </button>
-        <button
-          mat-icon-button
-          (click)="showChartLayers(true)"
-          matTooltip="Re-order Charts"
-          matTooltipPosition="left"
-        >
-          <mat-icon>import_export</mat-icon>
-        </button>
-        &nbsp;
-        <mat-checkbox
-          #selall
-          color="primary"
-          [checked]="allSel"
-          [indeterminate]="someSel"
-          (change)="selectAll($event.checked)"
-          [matTooltip]="(!selall.checked || someSel) ? 'Select All' : 'Deselect All'"
-          matTooltipPosition="right"
-        >
-        </mat-checkbox>
+        </div>
       </div>
+    </mat-card-title>
+    <mat-card-content>
+      <div style="display: flex" *ngIf="!displayChartLayers">
+        <div style="flex: 1 1 auto; padding-left: 3px">
+          <mat-form-field floatLabel="always" style="width: 150px">
+            <mat-label>Type to filter list</mat-label>
+            <input
+              #ftext
+              type="text"
+              matInput
+              [value]="filterText"
+              (keyup)="buildFilterList(ftext.value)"
+            />
+            <button
+              mat-button
+              *ngIf="filterText"
+              matSuffix
+              mat-icon-button
+              (click)="buildFilterList('')"
+            >
+              <mat-icon>close</mat-icon>
+            </button>
+          </mat-form-field>
+        </div>
+        <div>
+          <button
+            mat-icon-button
+            (click)="itemRefresh()"
+            matTooltip="Reload Charts"
+            matTooltipPosition="left"
+          >
+            <mat-icon>refresh</mat-icon>
+          </button>
+        </div>
+        <div>
+          <button
+            mat-icon-button
+            (click)="showChartLayers(true)"
+            matTooltip="Re-order Charts"
+            matTooltipPosition="left"
+          >
+            <mat-icon>import_export</mat-icon>
+          </button>
+        </div>
+        <div>
+          <mat-checkbox
+            #selall
+            color="primary"
+            [checked]="allSel"
+            [indeterminate]="someSel"
+            (change)="selectAll($event.checked)"
+            [matTooltip]="(!selall.checked || someSel) ? 'Select All' : 'Deselect All'"
+            matTooltipPosition="right"
+          >
+          </mat-checkbox>
+        </div>
+      </div>
+
       <div *ngIf="displayChartLayers" style="display: flex">
         <div>
           <button mat-icon-button (click)="showChartLayers(false)">
@@ -60,17 +82,7 @@
           Chart Order
         </div>
       </div>
-    </div>
-    <div>
-      <button
-        mat-icon-button
-        (click)="close()"
-        matTooltip="Close Chart List"
-        matTooltipPosition="left"
-      >
-        <mat-icon>close</mat-icon>
-      </button>
-    </div>
+    </mat-card-content>
   </mat-card>
 
   <div class="resources">
@@ -83,39 +95,41 @@
         *cdkVirtualFor="let r of filterList; let i= index;"
         style="border-bottom: silver 1px outset"
       >
-        <div style="display: flex">
-          <div style="flex: 1 1 auto; width: 215px">
-            <div
-              style="
-                text-overflow: ellipsis;
-                overflow-x: hidden;
-                white-space: pre;
-              "
-            >
-              <mat-icon>{{isLocal(r[1].url)}}</mat-icon>
-              &nbsp;<b>{{r[1].name}}</b>
+        <mat-card-content>
+          <div style="display: flex">
+            <div style="flex: 1 1 auto; width: 215px">
+              <div
+                style="
+                  text-overflow: ellipsis;
+                  overflow-x: hidden;
+                  white-space: pre;
+                "
+              >
+                <mat-icon>{{isLocal(r[1].url)}}</mat-icon>
+                &nbsp;<b>{{r[1].name}}</b>
+              </div>
+              <div
+                style="
+                  text-overflow: ellipsis;
+                  overflow-x: hidden;
+                  white-space: pre;
+                "
+              >
+                {{r[1].description}}
+              </div>
             </div>
-            <div
-              style="
-                text-overflow: ellipsis;
-                overflow-x: hidden;
-                white-space: pre;
-              "
-            >
-              {{r[1].description}}
+            <div style="text-align: right">
+              <mat-checkbox
+                color="primary"
+                [checked]="r[2]"
+                (change)="itemSelect($event.checked, r[0])"
+                matTooltip="Show in Map"
+                matTooltipPosition="left"
+              >
+              </mat-checkbox>
             </div>
           </div>
-          <div style="text-align: right">
-            <mat-checkbox
-              color="primary"
-              [checked]="r[2]"
-              (change)="itemSelect($event.checked, r[0])"
-              matTooltip="Show in Map"
-              matTooltipPosition="left"
-            >
-            </mat-checkbox>
-          </div>
-        </div>
+        </mat-card-content>
         <mat-card-actions>
           <div style="display: flex">
             <div style="width: 100%; text-align: right">
@@ -132,6 +146,7 @@
         </mat-card-actions>
       </mat-card>
     </cdk-virtual-scroll-viewport>
+
     <ap-chartlayers
       *ngIf="displayChartLayers"
       (changed)="handleOrderChange($event)"

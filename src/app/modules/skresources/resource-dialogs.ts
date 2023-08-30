@@ -34,81 +34,83 @@ import { SKResourceSet } from './sets/resource-set';
   selector: 'ap-resourcedialog',
   template: `
     <div class="_ap-resource">
-      <div>
-        <h1 mat-dialog-title>{{ data['title'] }}</h1>
+      <div style="display:flex;">
+        <div style="padding: 15px 0 0 10px;">
+          <mat-icon [color]="data.type === 'waypoint' ? 'accent' : 'primary'">{{
+            icon
+          }}</mat-icon>
+        </div>
+        <div>
+          <h1 mat-dialog-title>{{ data['title'] }}</h1>
+        </div>
       </div>
+
       <mat-dialog-content>
-        <div style="display:flex;">
-          <div class="ap-confirm-icon">
-            <mat-icon color="primary">{{ icon }}</mat-icon>
-          </div>
-          <div>
-            <div style="padding-left: 10px;">
-              <div>
-                <mat-form-field>
-                  <input
-                    matInput
-                    #inpname="ngModel"
-                    type="text"
-                    required
-                    placeholder="Resource Name"
-                    [disabled]="false"
-                    [(ngModel)]="data['name']"
-                  />
-                  <mat-error
-                    *ngIf="
-                      inpname.invalid && (inpname.dirty || inpname.touched)
-                    "
+        <div>
+          <div style="padding-left: 10px;">
+            <div>
+              <mat-form-field floatLabel="always">
+                <mat-label>Resource Name</mat-label>
+                <input
+                  matInput
+                  #inpname="ngModel"
+                  type="text"
+                  required
+                  [disabled]="false"
+                  [(ngModel)]="data['name']"
+                />
+                <mat-error
+                  *ngIf="inpname.invalid && (inpname.dirty || inpname.touched)"
+                >
+                  Please enter a waypoint name
+                </mat-error>
+              </mat-form-field>
+            </div>
+            <div>
+              <mat-form-field floatLabel="always">
+                <mat-label>Resource Description</mat-label>
+                <textarea
+                  matInput
+                  rows="2"
+                  #inpcmt="ngModel"
+                  [(ngModel)]="data['comment']"
+                >
+                </textarea>
+              </mat-form-field>
+            </div>
+            <div *ngIf="data['type'] === 'waypoint'">
+              <mat-form-field style="width:100%;" floatLabel="always">
+                <mat-label>Signal K Type</mat-label>
+                <mat-select #resourcetype [(value)]="data['skType']">
+                  <mat-option
+                    *ngFor="let i of resourceTypeList"
+                    [value]="i.type"
                   >
-                    Please enter a waypoint name
-                  </mat-error>
-                </mat-form-field>
+                    <mat-icon><img [src]="i.icon" /></mat-icon> {{ i.name }}
+                  </mat-option>
+                </mat-select>
+              </mat-form-field>
+            </div>
+            <div *ngIf="data['position'][0]" style="font-size: 10pt;">
+              <div style="display:flex;">
+                <div style="width:45px;font-weight:bold;">Lat:</div>
+                <div
+                  style="flex: 1 1 auto;"
+                  [innerText]="
+                    data['position'][1]
+                      | coords : app.config.selections.positionFormat : true
+                  "
+                ></div>
               </div>
-              <div>
-                <mat-form-field>
-                  <textarea
-                    matInput
-                    rows="2"
-                    #inpcmt="ngModel"
-                    placeholder="Resource Description"
-                    [(ngModel)]="data['comment']"
-                  >
-                  </textarea>
-                </mat-form-field>
-              </div>
-              <div *ngIf="data['type'] === 'waypoint'">
-                <mat-form-field style="width:100%;" hintLabel="Signal K Type">
-                  <mat-select #resourcetype [(value)]="data['skType']">
-                    <mat-option
-                      *ngFor="let i of resourceTypeList"
-                      [value]="i.type"
-                    >
-                      <mat-icon><img [src]="i.icon" /></mat-icon> {{ i.name }}
-                    </mat-option>
-                  </mat-select>
-                </mat-form-field>
-              </div>
-              <div *ngIf="data['position'][0]" style="font-size: 10pt;">
-                <div style="display:flex;">
-                  <div style="width:45px;font-weight:bold;">Lat:</div>
-                  <div
-                    style="flex: 1 1 auto;"
-                    [innerText]="
-                      data['position'][1]
-                        | coords : app.config.selections.positionFormat : true
-                    "
-                  ></div>
-                </div>
-                <div style="display:flex;">
-                  <div style="width:45px;font-weight:bold;">Lon:</div>
-                  <div
-                    style="flex: 1 1 auto;"
-                    [innerText]="
-                      data['position'][0]
-                        | coords : app.config.selections.positionFormat
-                    "
-                  ></div>
-                </div>
+              <div style="display:flex;">
+                <div style="width:45px;font-weight:bold;">Lon:</div>
+                <div
+                  style="flex: 1 1 auto;"
+                  [innerText]="
+                    data['position'][0]
+                      | coords : app.config.selections.positionFormat
+                  "
+                ></div>
               </div>
             </div>
           </div>
@@ -177,6 +179,7 @@ export class ResourceDialog implements OnInit {
       title: string;
       name: string;
       comment: string;
+      type?: string;
     }
   ) {}
 
@@ -214,7 +217,7 @@ export class ResourceDialog implements OnInit {
   selector: 'ap-ais-modal',
   template: `
     <div class="_ap-ais">
-      <mat-toolbar>
+      <mat-toolbar style="background-color: transparent">
         <span>
           <mat-icon color="primary"> directions_boat</mat-icon>
         </span>
@@ -438,7 +441,7 @@ export class AISPropertiesModal implements OnInit {
   selector: 'ap-aton-modal',
   template: `
     <div class="_ap-aton">
-      <mat-toolbar>
+      <mat-toolbar style="background-color: transparent">
         <span>
           <mat-icon color="primary"> {{ data.icon }}</mat-icon>
         </span>
@@ -519,7 +522,7 @@ export class AtoNPropertiesModal implements OnInit {
   selector: 'ap-aircraft-modal',
   template: `
     <div class="_ap-aircraft">
-      <mat-toolbar>
+      <mat-toolbar style="background-color: transparent">
         <span>
           <mat-icon color="primary"> airplanemode_active</mat-icon>
         </span>
@@ -607,7 +610,7 @@ export class AircraftPropertiesModal implements OnInit {
   template: `
     <div class="_ap-dest" style="display:flex;flex-direction:column;">
       <div>
-        <mat-toolbar>
+        <mat-toolbar style="background-color: transparent">
           <span>
             <button
               mat-button
@@ -648,54 +651,56 @@ export class AircraftPropertiesModal implements OnInit {
           (cdkDropListDropped)="drop($event)"
         >
           <mat-card *ngFor="let pt of points; let i = index" cdkDrag>
-            <div class="point-drop-placeholder" *cdkDragPlaceholder></div>
+            <mat-card-content style="padding:3px;">
+              <div class="point-drop-placeholder" *cdkDragPlaceholder></div>
 
-            <div
-              style="display:flex;"
-              (click)="selectPoint(i)"
-              [style.cursor]="
-                points.length > 1 && selIndex != -1 ? 'pointer' : 'initial'
-              "
-            >
-              <div style="width:35px;">
-                <mat-icon [color]="'warn'" *ngIf="selIndex === i">
-                  flag
-                </mat-icon>
-              </div>
-              <div style="flex: 1 1 auto;">
-                <div style="display:flex;">
-                  <div class="key-label">Lat:</div>
-                  <div
-                    style="flex: 1 1 auto;"
-                    [innerText]="
-                      pt[1]
-                        | coords : app.config.selections.positionFormat : true
-                    "
-                  ></div>
+              <div
+                style="display:flex;"
+                (click)="selectPoint(i)"
+                [style.cursor]="
+                  points.length > 1 && selIndex != -1 ? 'pointer' : 'initial'
+                "
+              >
+                <div style="width:35px;">
+                  <mat-icon [color]="'warn'" *ngIf="selIndex === i">
+                    flag
+                  </mat-icon>
                 </div>
-                <div style="display:flex;">
-                  <div class="key-label">Lon:</div>
-                  <div
-                    style="flex: 1 1 auto;"
-                    [innerText]="
-                      pt[0] | coords : app.config.selections.positionFormat
-                    "
-                  ></div>
+                <div style="flex: 1 1 auto;">
+                  <div style="display:flex;">
+                    <div class="key-label">Lat:</div>
+                    <div
+                      style="flex: 1 1 auto;"
+                      [innerText]="
+                        pt[1]
+                          | coords : app.config.selections.positionFormat : true
+                      "
+                    ></div>
+                  </div>
+                  <div style="display:flex;">
+                    <div class="key-label">Lon:</div>
+                    <div
+                      style="flex: 1 1 auto;"
+                      [innerText]="
+                        pt[0] | coords : app.config.selections.positionFormat
+                      "
+                    ></div>
+                  </div>
+                  <div style="display:flex;" *ngIf="i < pointNames.length">
+                    <div class="key-label">Name:</div>
+                    <div
+                      style="flex: 1 1 auto;"
+                      [innerText]="pointNames[i]"
+                    ></div>
+                  </div>
                 </div>
-                <div style="display:flex;" *ngIf="i < pointNames.length">
-                  <div class="key-label">Name:</div>
-                  <div
-                    style="flex: 1 1 auto;"
-                    [innerText]="pointNames[i]"
-                  ></div>
+                <div cdkDragHandle matTooltip="Drag to re-order points">
+                  <mat-icon *ngIf="data.type === 'route'"
+                    >drag_indicator</mat-icon
+                  >
                 </div>
               </div>
-              <div cdkDragHandle matTooltip="Drag to re-order points">
-                <mat-icon *ngIf="data.type === 'route'"
-                  >drag_indicator</mat-icon
-                >
-              </div>
-            </div>
+            </mat-card-content>
           </mat-card>
         </div>
       </div>
@@ -717,7 +722,7 @@ export class AircraftPropertiesModal implements OnInit {
       .point-drop-placeholder {
         background: #ccc;
         border: dotted 3px #999;
-        min-height: 90px;
+        min-height: 60px;
         transition: transform 250ms cubic-bezier(0, 0, 0.2, 1);
       }
       .cdk-drag-preview {
@@ -873,28 +878,18 @@ export class ActiveResourcePropertiesModal implements OnInit {
   selector: 'ap-chartproperties',
   template: `
     <div class="_ap-chartinfo">
-      <div style="display:flex;line-height:2.3em;">
-        <div>
-          <mat-icon color="primary">{{ isLocal(data['url']) }}</mat-icon>
-        </div>
-        <div
-          style="flex: 1 1 auto; padding-left:20px;text-align:center;
-                font-weight: bold;font-size: 16pt;"
+      <mat-toolbar style="background-color: transparent">
+        <span class="dialog-icon"
+          ><mat-icon>{{ isLocal(data['url']) }}</mat-icon></span
         >
-          Chart Properties
-        </div>
-        <div>
-          <button
-            mat-icon-button
-            (click)="dialogRef.close()"
-            matTooltip="Close"
-            matTooltipPosition="below"
-          >
+        <span style="flex: 1 1 auto; text-align: center">Chart Properties</span>
+        <span style="text-align: right">
+          <button mat-icon-button (click)="dialogRef.close()">
             <mat-icon>close</mat-icon>
           </button>
-        </div>
-      </div>
-      <mat-card>
+        </span>
+      </mat-toolbar>
+      <mat-dialog-content>
         <div style="display:flex;flex-direction: column;">
           <div style="display:flex;">
             <div class="key-label">Name:</div>
@@ -974,7 +969,7 @@ export class ActiveResourcePropertiesModal implements OnInit {
             </div>
           </div>
         </div>
-      </mat-card>
+      </mat-dialog-content>
     </div>
   `,
   styles: [
@@ -1029,7 +1024,7 @@ export class ChartInfoDialog {
   selector: 'ap-tracks-modal',
   template: `
     <div class="_ap-tracks">
-      <mat-toolbar>
+      <mat-toolbar style="background-color: transparent">
         <span>
           <button
             mat-icon-button
@@ -1238,7 +1233,7 @@ export class TracksModal implements OnInit {
   selector: 'ap-resourceset-modal',
   template: `
     <div class="_ap-resource-set">
-      <mat-toolbar>
+      <mat-toolbar style="background-color: transparent">
         <span>
           <button
             mat-icon-button

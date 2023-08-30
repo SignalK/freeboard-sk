@@ -23,6 +23,10 @@
     min-width: 140px;
 }
 
+.left-settings-menu-button {
+    display: none;
+}
+
 .right-settings-content {
     margin-left: 140px;
 }
@@ -42,6 +46,9 @@ only screen	and (min-width : 800px) {
     .left-settings-menu {
         display: none;
     } 
+    .left-settings-menu-button {
+        display: initial;
+    }
     .right-settings-content {
         margin-left: initial;
     }   	

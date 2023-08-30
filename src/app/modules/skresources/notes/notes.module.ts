@@ -13,6 +13,7 @@ import { MatListModule } from '@angular/material/list';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatSliderModule } from '@angular/material/slider';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatToolbarModule } from '@angular/material/toolbar';
 
 import { NoteDialog } from './note-dialog';
 import { RelatedNotesDialog } from './relatednotes-dialog';
@@ -36,6 +37,7 @@ import { AngularEditorModule } from '@kolkov/angular-editor';
     MatSlideToggleModule,
     MatFormFieldModule,
     MatInputModule,
+    MatToolbarModule,
     AngularEditorModule
   ],
   declarations: [NoteDialog, RelatedNotesDialog, AddTargetPipe],

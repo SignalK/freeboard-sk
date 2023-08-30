@@ -7,17 +7,26 @@ import { OverlayContainer } from '@angular/cdk/overlay';
 import { Observable, Subject } from 'rxjs';
 
 import { AppInfo } from './app.info';
-import { SettingsMessage } from './lib/info/info.service';
-import { AboutDialog, LoginDialog } from 'src/app/lib';
-import { PlaybackDialog } from 'src/app/lib/ui/playback-dialog';
-
+import { SettingsMessage } from './lib/services';
+import {
+  AboutDialog,
+  LoginDialog,
+  PlaybackDialog,
+  GeoJSONImportDialog,
+  Trail2RouteDialog,
+  GPXImportDialog,
+  GPXExportDialog
+} from 'src/app/lib/components/dialogs';
+import {
+  CourseSettingsModal
+} from 'src/app/lib/components';
 import {
   SettingsDialog,
-  AlarmsFacade,
-  AlarmsDialog,
   SKStreamFacade,
   SKSTREAM_MODE,
   StreamOptions,
+  AlarmsFacade,
+  AlarmsDialog,
   SKResources,
   SKRoute,
   SKVessel,
@@ -30,14 +39,9 @@ import {
   AtoNPropertiesModal,
   AircraftPropertiesModal,
   ActiveResourcePropertiesModal,
-  GPXImportDialog,
-  GPXExportDialog,
-  GeoJSONImportDialog,
   TracksModal,
   ResourceSetModal,
-  CourseSettingsModal,
   ResourceImportDialog,
-  Trail2RouteDialog,
   WeatherForecastModal
 } from 'src/app/modules';
 
@@ -147,7 +151,7 @@ export class AppComponent {
       const wr = this.app.showWelcome();
       if (wr) {
         wr.afterClosed().subscribe((r) => {
-          if (r) this.openSettings(r);
+          if (r) this.openSettings();
         });
       }
     }, 500);
@@ -161,6 +165,11 @@ export class AppComponent {
 
   handleHasWakeLock(value: boolean) {
     setTimeout(() => (this.app.data.hasWakeLock = value), 500);
+  }
+
+  handleWakelockChange(value: boolean) {
+    this.app.config.selections.wakeLock = value;
+    this.app.saveConfig();
   }
 
   ngOnInit() {
@@ -727,11 +736,11 @@ export class AppComponent {
   }
 
   // ** open settings dialog **
-  public openSettings(prefs = false) {
+  public openSettings() {
     this.dialog
       .open(SettingsDialog, {
         disableClose: true,
-        data: { openPrefs: prefs },
+        data: {},
         maxWidth: '90vw',
         minWidth: '90vw'
       })

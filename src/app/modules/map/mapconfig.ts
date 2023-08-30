@@ -61,7 +61,7 @@ export const vesselStyles = {
       anchorXUnits: 'pixels',
       anchorYUnits: 'pixels',
       size: [50, 50],
-      scale: 0.75,
+      scale: 0.5,
       rotateWithView: false
     })
   })

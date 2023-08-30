@@ -137,19 +137,22 @@ export class ChartListComponent {
   selector: 'ap-chartlayers',
   template: `
     <div class="_ap-chartlayers">
-      <div>
-        <mat-card style="display:flex;line-height:2.3em;">
+      <mat-card>
+        <mat-card-content>
           <div
-            style="flex: 1 1 auto; padding-left:20px;text-align:center;
-                            font-size: 10pt;font-style:italic;"
+            style="display:flex; font-style:italic; border-bottom:gray 1px solid;"
           >
-            (drag to re-order)
+            <div style="flex: 1 1 auto; ">Top Layer</div>
+            <div
+              style="text-align:center;
+              font-size: 10pt;font-style:italic;"
+            >
+              (drag to re-order)
+            </div>
           </div>
-          <div style="font-style:italic; border-bottom:gray 1px solid;">
-            Top Layer
-          </div>
-        </mat-card>
-      </div>
+        </mat-card-content>
+      </mat-card>
+
       <div style="flex: 1 1 auto;position:relative;">
         <div style="overflow:hidden;height:100%;">
           <div
@@ -158,43 +161,47 @@ export class ChartListComponent {
             (cdkDropListDropped)="drop($event)"
           >
             <mat-card *ngFor="let ch of chartList; let i = index" cdkDrag>
-              <div class="point-drop-placeholder" *cdkDragPlaceholder></div>
+              <mat-card-content>
+                <div class="point-drop-placeholder" *cdkDragPlaceholder></div>
 
-              <div
-                style="display:flex;"
-                [style.cursor]="i > 0 ? 'pointer' : 'initial'"
-              >
-                <div style="width:35px;">
-                  <mat-icon color="">{{ isLocal(ch[1].url) }}</mat-icon>
-                </div>
                 <div
-                  style="flex: 1 1 auto;text-overflow: ellipsis;
-                                            white-space: pre;overflow-x: hidden;"
+                  style="display:flex;"
+                  [style.cursor]="i > 0 ? 'pointer' : 'initial'"
                 >
-                  {{ ch[1].name }}
+                  <div style="width:35px;">
+                    <mat-icon color="">{{ isLocal(ch[1].url) }}</mat-icon>
+                  </div>
+                  <div
+                    style="flex: 1 1 auto;text-overflow: ellipsis;
+                    white-space: pre;overflow-x: hidden;"
+                  >
+                    {{ ch[1].name }}
+                  </div>
+                  <div cdkDragHandle matTooltip="Drag to re-order charts">
+                    <mat-icon>drag_indicator</mat-icon>
+                  </div>
                 </div>
-                <div cdkDragHandle matTooltip="Drag to re-order charts">
-                  <mat-icon>drag_indicator</mat-icon>
-                </div>
-              </div>
+              </mat-card-content>
             </mat-card>
           </div>
         </div>
       </div>
-      <div>
-        <mat-card style="display:flex;line-height:2.3em;">
-          <div></div>
+
+      <mat-card>
+        <mat-card-content>
           <div
-            style="flex: 1 1 auto; padding-left:20px;text-align:center;font-size: 10pt;
-                                font-style: italic;"
+            style="display:flex; font-style:italic; border-top:gray 1px solid;"
           >
-            (e.g. World Map)
+            <div style="flex: 1 1 auto; ">Base Layer</div>
+            <div
+              style="text-align:center;
+              font-size: 10pt;font-style:italic;"
+            >
+              (e.g. World Map)
+            </div>
           </div>
-          <div style="font-style:italic; border-bottom:gray 1px solid;">
-            Base Layer
-          </div>
-        </mat-card>
-      </div>
+        </mat-card-content>
+      </mat-card>
     </div>
   `,
   styles: [

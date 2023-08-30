@@ -17,7 +17,10 @@ total: number - total number of points
   selector: 'route-nextpoint',
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="mat-app-background">
+    <div
+      class="mat-app-background"
+      style="height: 96px;border: 1px rgba(0,0,0,0) solid;"
+    >
       <div style="display: flex; flex-wrap: nowrap;">
         <div>
           <button
@@ -46,9 +49,7 @@ total: number - total number of points
           </button>
         </div>
       </div>
-      <div
-        style="font-family:roboto;height: 32px;height: 40px;line-height: 40px;"
-      >
+      <div style="font-family:roboto;line-height: 40px;">
         {{ index + 1 }} of {{ total }}
       </div>
     </div>

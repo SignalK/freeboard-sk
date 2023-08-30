@@ -12,10 +12,11 @@ import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatSliderModule } from '@angular/material/slider';
 import { MatDialogModule } from '@angular/material/dialog';
-import { AppUIModule } from 'src/app/lib';
+import { CommonDialogs } from 'src/app/lib/components/dialogs';
 // ** components **
-import { AnchorWatchComponent } from './anchor-watch.component';
 import { AlarmsDialog, AlarmComponent } from './alarms';
+import { AnchorWatchComponent } from './components/anchor-watch.component';
+import { TimerButtonComponent } from './components/timer-button.component';
 
 @NgModule({
   imports: [
@@ -28,7 +29,8 @@ import { AlarmsDialog, AlarmComponent } from './alarms';
     MatSliderModule,
     MatTooltipModule,
     MatToolbarModule,
-    AppUIModule
+    CommonDialogs,
+    TimerButtonComponent
   ],
   declarations: [AnchorWatchComponent, AlarmsDialog, AlarmComponent],
   exports: [AnchorWatchComponent, AlarmsDialog, AlarmComponent],
@@ -38,3 +40,4 @@ export class AlarmsModule {}
 
 export * from './alarms.facade';
 export * from './alarms';
+export * from './components/anchor-watch.component';

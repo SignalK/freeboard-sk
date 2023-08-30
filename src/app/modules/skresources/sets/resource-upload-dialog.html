@@ -1,6 +1,6 @@
 <div class="resourceload-dialog">
   <mat-toolbar style="background-color: transparent">
-    <span class="dialog-icon"><mat-icon>category</mat-icon></span>
+    <span><mat-icon>category</mat-icon></span>
     <span style="flex: 1 1 auto; text-align: center">Load Resource</span>
     <span style="text-align: right">
       <button mat-icon-button (click)="this.dialogRef.close();">
@@ -9,41 +9,27 @@
     </span>
   </mat-toolbar>
 
-  <div class="dialog-content">
+  <div mat-dialog-content>
     <div class="card-group" *ngIf="!display.notValid">
-      <div class="card-group-title">
-        <div style="display: flex; flex-wrap: wrap">
-          <div
-            style="
-              flex: 1 1 auto;
-              line-height: 2.5em;
-              font-weight: bold;
-              text-align: center;
-            "
+      <div>
+        <mat-form-field floatLabel="always" style="width: 100%">
+          <mat-label>Select Destination Path</mat-label>
+          <mat-select
+            id="respaths"
+            #respaths
+            [disabled]="!resPaths"
+            [(value)]="targetPath"
           >
-            Destination:
-          </div>
-          <div>
-            <mat-form-field style="width: 100%">
-              <mat-select
-                id="respaths"
-                #respaths
-                [disabled]="!resPaths"
-                [(value)]="targetPath"
-                [placeholder]="'Select Destination Path'"
-              >
-                <mat-option *ngFor="let i of resPaths" [value]="i"
-                  >{{i}}</mat-option
-                >
-              </mat-select>
-            </mat-form-field>
-          </div>
-        </div>
+            <mat-option *ngFor="let i of resPaths" [value]="i"
+              >{{i}}</mat-option
+            >
+          </mat-select>
+        </mat-form-field>
       </div>
 
       <div *ngIf="!source.name">
         <ap-file-input [astext]="true" (chosen)="parseFile($event)">
-          <div style="width: 200px; padding: 0 25%">
+          <div style="width: 200px">
             <div style="padding: 25%; border: gray 1px dashed">
               Click or Drop file
             </div>
@@ -51,7 +37,7 @@
         </ap-file-input>
       </div>
 
-      <div class="error" *ngIf="display.notValid">
+      <div *ngIf="display.notValid">
         <div>
           <b>Invalid Resource Data:</b><br /><br />
           <i>Selected file does not contain valid data. </i><br />
@@ -68,7 +54,7 @@
         </div>
       </div>
 
-      <div class="">
+      <div>
         <div style="display: flex; flex-wrap: wrap">
           <div style="flex: 1 1 auto; padding: 5px; font-size: smaller">
             <div>

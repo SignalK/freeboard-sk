@@ -1,5 +1,5 @@
 .resourcelist {
-    min-width: 150px;
+    min-width: 180px;
     position: relative;
     height: 100%;
 }
@@ -21,7 +21,7 @@
     left: 0;
     right: 0;
     bottom: 0;
-    top: 80px;
+    top: 108px;
 }
 
 .resourcelist .vscroller {

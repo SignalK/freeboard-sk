@@ -1,60 +1,68 @@
 <div class="resourcelist">
-  <mat-card class="title-block">
-    <div style="flex: 1 1 auto">
-      <div class="title-text">Routes:</div>
-      <div>
-        <mat-form-field style="width: 150px">
-          <input
-            #ftext
-            type="text"
-            matInput
-            [value]="filterText"
-            (keyup)="filterKeyUp(ftext.value)"
-            placeholder="type to filter list"
-          />
+  <mat-card>
+    <mat-card-title>
+      <div class="title-block">
+        <div style="flex: 1 1 auto; padding-top: 7px">Routes:</div>
+        <div style="width: 50px">
           <button
-            mat-button
-            *ngIf="filterText"
-            matSuffix
             mat-icon-button
-            (click)="filterKeyUp('')"
+            (click)="close()"
+            matTooltip="Close Route List"
+            matTooltipPosition="left"
           >
             <mat-icon>close</mat-icon>
           </button>
-        </mat-form-field>
-        &nbsp;&nbsp;
-        <button
-          mat-icon-button
-          [disabled]="disableRefresh"
-          (click)="itemRefresh()"
-          matTooltip="Reload Routes"
-          matTooltipPosition="left"
-        >
-          <mat-icon>refresh</mat-icon>
-        </button>
-        <mat-checkbox
-          #selall
-          color="primary"
-          [disabled]="routes.length === 0 || disableRefresh"
-          [checked]="allSel"
-          [indeterminate]="someSel"
-          (change)="selectAll($event.checked)"
-          [matTooltip]="(!selall.checked || someSel) ? 'Select All' : 'Deselect All'"
-          matTooltipPosition="right"
-        >
-        </mat-checkbox>
+        </div>
       </div>
-    </div>
-    <div>
-      <button
-        mat-icon-button
-        (click)="close()"
-        matTooltip="Close Route List"
-        matTooltipPosition="left"
-      >
-        <mat-icon>close</mat-icon>
-      </button>
-    </div>
+    </mat-card-title>
+    <mat-card-content>
+      <div style="display: flex">
+        <div style="flex: 1 1 auto; padding-left: 3px">
+          <mat-form-field floatLabel="always" style="width: 180px">
+            <mat-label>Type to filter list</mat-label>
+            <input
+              #ftext
+              type="text"
+              matInput
+              [(ngModel)]="filterText"
+              (keyup)="filterKeyUp(ftext.value)"
+            />
+            <button
+              *ngIf="filterText"
+              matSuffix
+              mat-icon-button
+              (click)="filterKeyUp('')"
+            >
+              <mat-icon>close</mat-icon>
+            </button>
+          </mat-form-field>
+        </div>
+        <div>
+          <button
+            mat-icon-button
+            [disabled]="disableRefresh"
+            (click)="itemRefresh()"
+            matTooltip="Reload Routes"
+            matTooltipPosition="left"
+          >
+            <mat-icon>refresh</mat-icon>
+          </button>
+        </div>
+        <div>
+          <mat-checkbox
+            #selall
+            color="primary"
+            [disabled]="routes.length === 0 || disableRefresh"
+            [checked]="allSel"
+            [indeterminate]="someSel"
+            (change)="selectAll($event.checked)"
+            [matTooltip]="(!selall.checked || someSel) ? 'Select All' : 'Deselect All'"
+            matTooltipPosition="right"
+          >
+          </mat-checkbox>
+        </div>
+      </div>
+    </mat-card-content>
   </mat-card>
 
   <div class="resources">
@@ -66,46 +74,49 @@
         *cdkVirtualFor="let r of filterList; let i= index;"
         style="border-bottom: silver 1px outset"
       >
-        <div style="display: flex">
-          <div style="flex: 1 1 auto; width: 215px">
-            <div
-              style="
-                text-overflow: ellipsis;
-                overflow-x: hidden;
-                white-space: pre;
-              "
-            >
-              <b>{{r[1].name}}</b>
+        <mat-card-content>
+          <div style="display: flex; padding-left: 5px">
+            <div style="flex: 1 1 auto; width: 215px">
+              <div
+                style="
+                  padding-top: 11px;
+                  text-overflow: ellipsis;
+                  overflow-x: hidden;
+                  white-space: pre;
+                "
+              >
+                <b>{{r[1].name}}</b>
+              </div>
+              <div
+                style="
+                  text-overflow: ellipsis;
+                  overflow-x: hidden;
+                  white-space: pre;
+                "
+              >
+                {{r[1].description}}
+              </div>
+              <div>
+                <i
+                  >{{ app.config.units.distance!='m' ?
+                  km2Nm(r[1].distance/1000).toFixed(2) + 'NM' :
+                  (r[1].distance/1000).toFixed(2) + 'km'}}
+                </i>
+              </div>
             </div>
-            <div
-              style="
-                text-overflow: ellipsis;
-                overflow-x: hidden;
-                white-space: pre;
-              "
-            >
-              {{r[1].description}}
-            </div>
-            <div>
-              <i
-                >{{ app.config.units.distance!='m' ?
-                km2Nm(r[1].distance/1000).toFixed(2) + 'NM' :
-                (r[1].distance/1000).toFixed(2) + 'km'}}
-              </i>
+            <div style="text-align: right">
+              <mat-checkbox
+                color="primary"
+                [checked]="r[2]"
+                [disabled]="r[0] === activeRoute || disableRefresh"
+                (change)="itemSelect($event.checked, r[0])"
+                matTooltip="Show on Map"
+                matTooltipPosition="left"
+              >
+              </mat-checkbox>
             </div>
           </div>
-          <div style="text-align: right">
-            <mat-checkbox
-              color="primary"
-              [checked]="r[2]"
-              [disabled]="r[0] === activeRoute || disableRefresh"
-              (change)="itemSelect($event.checked, r[0])"
-              matTooltip="Show on Map"
-              matTooltipPosition="left"
-            >
-            </mat-checkbox>
-          </div>
-        </div>
+        </mat-card-content>
         <mat-card-actions>
           <div style="display: flex">
             <div style="flex: 1 1 auto">

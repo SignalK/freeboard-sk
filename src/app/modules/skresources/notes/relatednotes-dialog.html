@@ -30,17 +30,15 @@
 </style>
 
 <div class="_ap-resource">
-  <div style="display: flex">
-    <div style="width: 70px">
-      <mat-icon class="ap-confirm-icon" color="primary">360</mat-icon>
-    </div>
-    <div mat-dialog-title style="flex: 1 1 auto">{{relatedBy}} Notes</div>
-    <div>
+  <mat-toolbar style="background-color: transparent">
+    <span class="dialog-icon"><mat-icon>360</mat-icon></span>
+    <span style="flex: 1 1 auto; text-align: center">{{relatedBy}} Notes</span>
+    <span style="text-align: right">
       <button mat-icon-button (click)="dialogRef.close({result:false})">
         <mat-icon>close</mat-icon>
       </button>
-    </div>
-  </div>
+    </span>
+  </mat-toolbar>
   <mat-dialog-content>
     <div
       style="padding-bottom: 5px; overflow-y: auto"

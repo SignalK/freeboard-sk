@@ -7,24 +7,20 @@
     "declaration": false,
     "downlevelIteration": true,
     "experimentalDecorators": true,
-    "module": "es2020",
+    "module": "es2022",
     "moduleResolution": "node",
     "importHelpers": true,
-    "target": "es2015",
+    "target": "es2022",
     "typeRoots": [
       "node_modules/@types"
     ],
     "lib": [
       "es2018",
+      "es2020",
+      "es2022",
       "dom"
     ],
     "paths": {
-      "fb-openlayers": [
-        "projects/fb-openlayers/src"
-      ],
-      "fb-openlayers/*": [
-        "projects/fb-openlayers/src/*"
-      ],
       "ol": ["node_modules/@types/ol"],
       "ol/*": ["node_modules/@types/ol/*"]
     }

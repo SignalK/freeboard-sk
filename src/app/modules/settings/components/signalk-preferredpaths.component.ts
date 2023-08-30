@@ -17,56 +17,33 @@ import { AppInfo } from 'src/app/app.info';
   changeDetection: ChangeDetectionStrategy.OnPush,
   styleUrls: ['./signalk-preferredpaths.component.css'],
   template: `
-    <mat-card>
-      <mat-card-content style="display:flex;">
-        <div style="flex: 1 1 auto;"></div>
-        <div>
-          <div class="sk-details" *ngFor="let item of pathChoices | keyvalue">
-            <div class="title">
-              <div>{{ item.value.name }}</div>
-            </div>
-            <div>
-              <div
-                *ngFor="let path of item.value.available"
-                style="margin: 5px 0 5px 0;"
+    <fieldset>
+      <legend style="font-size: 10pt;">{{ title }}</legend>
+      <div>
+        <div class="sk-details" *ngFor="let item of pathChoices | keyvalue">
+          <div class="title">
+            <div>{{ item.value.name }}</div>
+          </div>
+          <div>
+            <div
+              *ngFor="let path of item.value.available"
+              style="margin: 5px 0 5px 0;"
+            >
+              <mat-radio-button
+                #pathopt
+                color="primary"
+                [name]="item.key"
+                [value]="path"
+                [checked]="path === item.value.current"
+                (change)="item.value.current = pathopt.value; save(true)"
               >
-                <mat-radio-button
-                  #pathopt
-                  color="primary"
-                  [name]="item.key"
-                  [value]="path"
-                  [checked]="path == item.value.current"
-                  (change)="item.value.current = pathopt.value"
-                >
-                  {{ path.split('.').slice(-1) }}
-                </mat-radio-button>
-              </div>
+                {{ path.split('.').slice(-1) }}
+              </mat-radio-button>
             </div>
           </div>
         </div>
-        <div style="flex: 1 1 auto;"></div>
-      </mat-card-content>
-      <mat-card-actions>
-        <div style="text-align:center;">
-          <button
-            mat-raised-button
-            color="primary"
-            matTooltip="Save changes"
-            (click)="save(true)"
-          >
-            SAVE
-          </button>
-          &nbsp;&nbsp;
-          <button
-            mat-raised-button
-            matTooltip="Discard changes"
-            (click)="save(false)"
-          >
-            CANCEL
-          </button>
-        </div>
-      </mat-card-actions>
-    </mat-card>
+      </div>
+    </fieldset>
   `
 })
 export class SignalKPreferredPathsComponent {

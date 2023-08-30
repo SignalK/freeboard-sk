@@ -4,22 +4,24 @@
 import { Injectable } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { Subject, Observable } from 'rxjs';
 
 import {
   Info,
+  SettingsMessage,
+  AppUpdateMessage,
+  IndexedDB
+} from './lib/services';
+import {
   AlertDialog,
   ConfirmDialog,
   WelcomeDialog,
   MessageBarComponent
-} from './lib';
+} from './lib/components/dialogs';
 
-import { SettingsMessage, AppUpdateMessage } from './lib/info/info.service';
-import { Subject, Observable } from 'rxjs';
 import { Convert } from './lib/convert';
-import { IndexedDB } from './lib/info/indexeddb';
 import { SignalKClient } from 'signalk-client-angular';
-import { SKVessel } from './modules/skresources/resource-classes';
-import { SKChart } from './modules/skresources/resource-classes';
+import { SKVessel, SKChart } from './modules/skresources/resource-classes';
 import { SKStreamProvider } from './modules/skstream/skstream.service';
 
 export interface PluginSettings {
@@ -113,7 +115,8 @@ const FreeboardConfig = {
     wakeLock: false,
     course: {
       autoNextPointOnArrival: false,
-      autoNextPointDelay: 5
+      autoNextPointDelay: 5000,
+      autoNextPointTrigger: 'perpendicularPassed'
     }
   },
   resources: {
@@ -259,10 +262,10 @@ export class AppInfo extends Info {
     this.debug('host:', this.host);
 
     this.id = 'freeboard';
-    this.name = 'Freeboard';
-    this.shortName = 'freeboard';
+    this.name = 'Freeboard-SK';
+    this.shortName = 'Freeboard';
     this.description = `Signal K Chart Plotter.`;
-    this.version = '2.2.0';
+    this.version = '2.2.1';
     this.url = 'https://github.com/signalk/freeboard-sk';
     this.logo = './assets/img/app_logo.png';
 
@@ -683,8 +686,15 @@ export class AppInfo extends Info {
     if (typeof settings.selections.course === 'undefined') {
       settings.selections.course = {
         autoNextPointOnArrival: false,
-        autoNextPointDelay: 5
+        autoNextPointDelay: 5000,
+        autoNextPointTrigger: 'perpendicularPassed'
       };
+    } else {
+      if (
+        typeof settings.selections.course.autoNextPointTrigger === 'undefined'
+      ) {
+        settings.selections.course.autoNextPointTrigger = 'perpendicularPassed';
+      }
     }
 
     if (typeof settings.plugins === 'undefined') {

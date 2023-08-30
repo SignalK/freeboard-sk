@@ -25,9 +25,9 @@ import { RouteNextPointComponent } from './components/navigation';
 // ** profiles
 import { VesselPopoverComponent } from './components/profiles/default';
 
-import { FreeboardOpenlayersModule } from 'fb-openlayers';
+import { FreeboardOpenlayersModule } from 'src/app/modules/map/ol';
 import { FBMapComponent } from './fb-map.component';
-import { UtilitiesModule } from 'src/app/modules/utils/utils.module';
+import { PipesModule } from 'src/app/lib/pipes';
 
 @NgModule({
   imports: [
@@ -37,7 +37,7 @@ import { UtilitiesModule } from 'src/app/modules/utils/utils.module';
     MatIconModule,
     MatButtonModule,
     MatTooltipModule,
-    UtilitiesModule,
+    PipesModule,
     MatCardModule,
     MatMenuModule,
     FreeboardOpenlayersModule

@@ -1,4 +1,4 @@
-import { NgModule, Injectable } from '@angular/core';
+import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HttpClientModule } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
@@ -28,6 +28,11 @@ import { NoteListComponent } from './lists/notelist';
 import { AISListComponent } from './lists/aislist';
 
 import {
+  SignalKDetailsComponent,
+  FileInputComponent
+} from 'src/app/lib/components';
+
+import {
   ResourceDialog,
   AISPropertiesModal,
   AtoNPropertiesModal,
@@ -40,8 +45,8 @@ import {
 import { ResourceImportDialog } from './sets/resource-upload-dialog';
 
 import { SKNotesModule } from './notes';
-import { AppUIModule } from 'src/app/lib/ui/ui.module';
-import { UtilitiesModule } from 'src/app/modules/utils/utils.module';
+import { CommonDialogs } from 'src/app/lib/components/dialogs';
+import { PipesModule } from 'src/app/lib/pipes';
 
 @NgModule({
   imports: [
@@ -65,8 +70,10 @@ import { UtilitiesModule } from 'src/app/modules/utils/utils.module';
     MatToolbarModule,
     DragDropModule,
     SKNotesModule,
-    AppUIModule,
-    UtilitiesModule
+    CommonDialogs,
+    PipesModule,
+    SignalKDetailsComponent,
+    FileInputComponent
   ],
   declarations: [
     RouteListComponent,

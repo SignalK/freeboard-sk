@@ -1,65 +1,75 @@
 <div class="resourcelist">
-  <mat-card class="title-block">
-    <div style="flex: 1 1 auto">
-      <div class="title-text">Notes:</div>
-      <div>
-        <mat-form-field style="max-width: 127px">
-          <input
-            #ftext
-            type="text"
-            matInput
-            [value]="filterText"
-            (keyup)="filterKeyUp(ftext.value)"
-            placeholder="type to filter list"
-          />
+  <mat-card>
+    <mat-card-title>
+      <div class="title-block">
+        <div style="flex: 1 1 auto; padding-top: 7px">Notes:</div>
+        <div style="width: 50px">
           <button
-            mat-button
-            *ngIf="filterText"
-            matSuffix
             mat-icon-button
-            (click)="filterKeyUp('')"
+            (click)="close()"
+            matTooltip="Close Note List"
+            matTooltipPosition="left"
           >
             <mat-icon>close</mat-icon>
           </button>
-        </mat-form-field>
-        <button
-          mat-icon-button
-          (click)="itemRefresh()"
-          matTooltip="Reload Notes"
-          matTooltipPosition="left"
-        >
-          <mat-icon>refresh</mat-icon>
-        </button>
-        <button
-          mat-icon-button
-          [color]="draftOnly ? 'primary' : ''"
-          (click)="toggleDraftOnly()"
-          matTooltip="Show Draft Only"
-          matTooltipPosition="left"
-        >
-          <mat-icon>border_color</mat-icon>
-        </button>
-        &nbsp;
-        <mat-checkbox
-          color="primary"
-          [checked]="showNotes"
-          (change)="toggleMapDisplay($event.checked)"
-          matTooltip="Show Notes on Map"
-          matTooltipPosition="left"
-        >
-        </mat-checkbox>
+        </div>
       </div>
-    </div>
-    <div>
-      <button
-        mat-icon-button
-        (click)="close()"
-        matTooltip="Close Chart List"
-        matTooltipPosition="left"
-      >
-        <mat-icon>close</mat-icon>
-      </button>
-    </div>
+    </mat-card-title>
+    <mat-card-content>
+      <div style="display: flex">
+        <div style="flex: 1 1 auto; padding-left: 3px">
+          <mat-form-field floatLabel="always" style="max-width: 127px">
+            <mat-label>Type to filter list</mat-label>
+            <input
+              #ftext
+              type="text"
+              matInput
+              [value]="filterText"
+              (keyup)="filterKeyUp(ftext.value)"
+            />
+            <button
+              *ngIf="filterText"
+              matSuffix
+              mat-icon-button
+              (click)="filterKeyUp('')"
+            >
+              <mat-icon>close</mat-icon>
+            </button>
+          </mat-form-field>
+        </div>
+        <div>
+          <button
+            mat-icon-button
+            (click)="itemRefresh()"
+            matTooltip="Reload Notes"
+            matTooltipPosition="left"
+          >
+            <mat-icon>refresh</mat-icon>
+          </button>
+        </div>
+        <div>
+          <button
+            mat-icon-button
+            [color]="draftOnly ? 'primary' : ''"
+            (click)="toggleDraftOnly()"
+            matTooltip="Show Draft Only"
+            matTooltipPosition="left"
+          >
+            <mat-icon>border_color</mat-icon>
+          </button>
+        </div>
+        <div>
+          <mat-checkbox
+            color="primary"
+            [checked]="showNotes"
+            (change)="toggleMapDisplay($event.checked)"
+            matTooltip="Show Notes on Map"
+            matTooltipPosition="left"
+          >
+          </mat-checkbox>
+        </div>
+      </div>
+    </mat-card-content>
   </mat-card>
 
   <div class="resources">
@@ -68,20 +78,22 @@
         *cdkVirtualFor="let r of filterList; let i= index;"
         style="border-bottom: silver 1px outset"
       >
-        <div style="display: flex">
-          <div style="flex: 1 1 auto; width: 215px">
-            <div
-              style="
-                text-overflow: ellipsis;
-                overflow-x: hidden;
-                white-space: pre;
-              "
-            >
-              <mat-icon>local_offer</mat-icon>
-              &nbsp;<b>{{r[1].name}}</b>
+        <mat-card-content>
+          <div style="display: flex">
+            <div style="flex: 1 1 auto; width: 215px">
+              <div
+                style="
+                  text-overflow: ellipsis;
+                  overflow-x: hidden;
+                  white-space: pre;
+                "
+              >
+                <mat-icon>local_offer</mat-icon>
+                &nbsp;<b>{{r[1].name}}</b>
+              </div>
             </div>
           </div>
-        </div>
+        </mat-card-content>
         <mat-card-actions>
           <div style="display: flex">
             <div style="text-align: left">

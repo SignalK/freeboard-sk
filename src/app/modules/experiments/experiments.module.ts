@@ -8,7 +8,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatMenuModule } from '@angular/material/menu';
-import { AppUIModule } from 'src/app/lib';
+import { CommonDialogs } from 'src/app/lib/components/dialogs';
 
 // ** components **
 import { ExperimentsComponent } from './experiments';
@@ -20,7 +20,7 @@ import { ExperimentsComponent } from './experiments';
     MatIconModule,
     MatButtonModule,
     MatTooltipModule,
-    AppUIModule
+    CommonDialogs
   ],
   declarations: [ExperimentsComponent],
   exports: [ExperimentsComponent],

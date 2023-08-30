@@ -1,0 +1,118 @@
+.gpxsave-dialog {
+    font-family: roboto;
+    position: relative; width: 75vw;    
+}
+
+.dialog-content {
+    position: relative;
+    min-height: 300px;
+    max-height: 400px;
+    width: 100%;
+    min-width: 240px;
+    overflow-y: auto;    
+}
+
+.dialog-icon {
+    display: none;
+}
+
+.card-group {
+    padding: 5px 5% 5px 5%;
+}
+.card-group-title {
+    font-weight: bold;
+    font-size: 10pt;
+    font-family: Arial, Helvetica, sans-serif;
+    padding: 10px 0 10px 0;
+}
+.card-group-row {
+    display: flex;
+    flex-wrap: wrap;
+}
+.card-group-row-item {
+    padding-right: 15px;
+    max-width: 60%;
+}
+
+.pnlSelectedItems {
+    display: none;
+    line-height: 2.9em;
+}
+
+.pnlSelect {
+    flex: 1 1 auto; 
+    padding-left:3px;
+    padding-right:3px;
+    text-align:right;       
+}
+
+.txtSelect {
+    display: none;
+} 
+
+button {
+    min-width: unset;
+    padding: unset;    
+}
+
+/* phone */
+@media only screen and (min-width : 400px) {
+    .pnlSelectedItems {
+        display: inline;
+    }  
+}
+
+/* tablet */
+@media only screen and (min-width : 475px) {
+    .pnlSelectedItems {
+        display: inline;
+        line-height: 2.9em;
+    }  
+    .txtSelect {
+        display: inline;
+    }      
+    .pnlSelect {
+        flex: 1 1 auto; 
+        padding-left:20px;
+        padding-right:15px;
+        text-align:right;       
+    }
+    button {
+        min-width: inherit;
+        padding: inherit;    
+    }    
+    .dialog-content {
+        min-width: 400px;
+    }   
+    .dialog-icon {
+        display: inline;
+    } 
+}
+
+/* large */
+@media only screen and (min-width : 800px) {
+    .card-group {
+        padding: 5px 5% 5px 5%;
+    }
+} 
+
+
+.rgrid {
+    display: flex;
+    flex-direction: column;
+}
+.rgrid .row {
+    flex: 1;
+    display: flex;
+    flex-direction: row;
+}
+
+.rgrid .row div {
+    flex: 2;
+}
+.rgrid .row .name {
+    flex: 3;
+}
+.rgrid .row .check {
+    text-align: right;
+}

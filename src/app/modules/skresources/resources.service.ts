@@ -11,7 +11,7 @@ import { AppInfo, OSM } from 'src/app/app.info';
 import { GeoUtils, Position } from 'src/app/lib/geoutils';
 import { Convert } from 'src/app/lib/convert';
 
-import { LoginDialog } from 'src/app/lib';
+import { LoginDialog } from 'src/app/lib/components/dialogs';
 import { NoteDialog, RelatedNotesDialog } from './notes';
 import { ResourceDialog } from './resource-dialogs';
 import {
@@ -2244,7 +2244,7 @@ export class SKResources {
     }
     if (!e.id && e.position) {
       // add note at provided position
-      data.title = 'Add Note:';
+      data.title = 'Add Note';
       note = new SKNote();
       if (e.group) {
         note.group = e.group;
@@ -2257,7 +2257,7 @@ export class SKResources {
       this.openNoteForEdit(data);
     } else if (!e.id && !e.position && e.group) {
       // add note in provided group with no position
-      data.title = 'Add Note to Group:';
+      data.title = 'Add Note to Group';
       note = new SKNote();
       if (e.group) {
         note.group = e.group;
@@ -2277,7 +2277,7 @@ export class SKResources {
       note.name = '';
       note.description = '';
 
-      data.title = `Add Note to ${e.type}:`;
+      data.title = `Add Note to ${e.type}`;
       data.region = e.href;
       data.note = note;
       data.createRegion = e.href.exists
@@ -2295,7 +2295,7 @@ export class SKResources {
             // ** note data
             res = this.transformNote(res as NoteResource, e.id);
             data.noteId = e.id;
-            data.title = 'Edit Note:';
+            data.title = 'Edit Note';
             data.note = res;
             data.addNote = false;
             this.openNoteForEdit(data);

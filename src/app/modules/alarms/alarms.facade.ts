@@ -32,7 +32,7 @@ export class AlarmsFacade {
   private alarmSource = new Subject<boolean>();
   private closestApproachSource = new Subject<NotificationMessage>();
 
-  public alarms = this.app.data.alarms;
+  public alarms!: any;
 
   // *******************************************************
 
@@ -42,6 +42,8 @@ export class AlarmsFacade {
     private stream: SKStreamProvider,
     private skres: SKResources
   ) {
+    this.alarms = this.app.data.alarms;
+
     // ** SIGNAL K STREAM **
     this.stream.message$().subscribe((msg: NotificationMessage) => {
       if (msg.action == 'notification') {

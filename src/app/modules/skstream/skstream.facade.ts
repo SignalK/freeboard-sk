@@ -4,7 +4,7 @@ import { Injectable } from '@angular/core';
 import { Observable, Subject } from 'rxjs';
 
 import { AppInfo } from 'src/app/app.info';
-import { SettingsMessage } from 'src/app/lib/info/info.service';
+import { SettingsMessage } from 'src/app/lib/services';
 import { SignalKClient } from 'signalk-client-angular';
 import { SKStreamProvider } from './skstream.service';
 import { SKRoute, SKVessel } from '../skresources/resource-classes';

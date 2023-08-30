@@ -98,8 +98,8 @@ export class WaypointListComponent {
     this.select.emit({ id: id, value: e });
   }
 
-  emitCenter(position: SKPosition) {
-    this.center.emit([position.longitude, position.latitude]);
+  emitCenter(position: Position) {
+    this.center.emit(position);
   }
 
   itemProperties(id: string) {

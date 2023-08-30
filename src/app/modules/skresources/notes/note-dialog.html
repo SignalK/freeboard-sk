@@ -33,17 +33,15 @@
 </style>
 
 <div class="_ap-resource" *ngIf="!data.editable">
-  <div style="display: flex">
-    <div style="width: 70px">
-      <mat-icon class="ap-confirm-icon" color="primary">local_offer</mat-icon>
-    </div>
-    <div mat-dialog-title style="flex: 1 1 auto">Note Details</div>
-    <div>
+  <mat-toolbar style="background-color: transparent">
+    <span class="dialog-icon"><mat-icon>local_offer</mat-icon></span>
+    <span style="flex: 1 1 auto; text-align: center">Note Details</span>
+    <span style="text-align: right">
       <button mat-icon-button (click)="dialogRef.close({result:false})">
         <mat-icon>close</mat-icon>
       </button>
-    </div>
-  </div>
+    </span>
+  </mat-toolbar>
   <mat-dialog-content>
     <mat-card style="border: whitesmoke 1px solid">
       <mat-card-content>
@@ -137,26 +135,23 @@
 </div>
 
 <div class="_ap-resource" *ngIf="data.editable">
-  <div style="display: flex">
-    <div mat-dialog-title style="flex: 1 1 auto">
-      {{(!data.title) ? (data.addMode) ? 'New Note:' : 'Edit Note:' :
-      data.title}}
-    </div>
-  </div>
+  <mat-toolbar style="background-color: transparent">
+    <span style="flex: 1 1 auto; text-align: center"
+      >{{(!data.title) ? (data.addMode) ? 'New Note' : 'Edit Note' :
+      data.title}}</span
+    >
+  </mat-toolbar>
   <mat-dialog-content>
     <div style="display: flex">
-      <div class="ap-confirm-icon">
-        <mat-icon color="primary">local_offer</mat-icon>
-      </div>
       <div style="flex: 1 1 auto">
         <div>
-          <mat-form-field>
+          <mat-form-field floatLabel="always" style="width: 100%">
+            <mat-label>Note name</mat-label>
             <input
               matInput
               #inptitle="ngModel"
               type="text"
               required
-              placeholder="Note Name"
               [disabled]="false"
               [(ngModel)]="data.note.name"
             />
@@ -168,12 +163,12 @@
           </mat-form-field>
         </div>
         <div *ngIf="app.config.resources.notes.groupNameEdit">
-          <mat-form-field>
+          <mat-form-field floatLabel="always">
+            <mat-label>Group Name</mat-label>
             <input
               matInput
               #inpgroup="ngModel"
               type="text"
-              placeholder="Group Name"
               [(ngModel)]="data.note.group"
             />
           </mat-form-field>
@@ -189,7 +184,8 @@
         </div>
 
         <div>
-          <mat-form-field hintLabel="Link to additional content.">
+          <mat-form-field floatLabel="always" style="width: 100%">
+            <mat-label>Link to additional content</mat-label>
             <input
               type="text"
               matInput

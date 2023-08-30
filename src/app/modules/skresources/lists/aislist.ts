@@ -124,7 +124,7 @@ export class AISListComponent {
     this.filterText = e;
     this.filterList = this.aisAvailable.filter((i) => {
       const n = i[1].name ? i[1].name.toUpperCase() : i[1].mmsi;
-      if (n.toLowerCase().indexOf(this.filterText.toLowerCase()) != -1) {
+      if (n && n.toLowerCase().indexOf(this.filterText.toLowerCase()) !== -1) {
         return i;
       }
     });

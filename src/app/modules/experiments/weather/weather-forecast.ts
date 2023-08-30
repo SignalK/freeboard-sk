@@ -20,7 +20,7 @@ import { WeatherData } from './components/weather-data.component';
   selector: 'weather-forecast-modal',
   template: `
     <div class="_weather-forecast">
-      <mat-toolbar>
+      <mat-toolbar style="background-color: transparent">
         <span>
           <mat-icon color="primary">ac_unit</mat-icon>
         </span>

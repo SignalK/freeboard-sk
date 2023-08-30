@@ -18,7 +18,7 @@ import { Convert } from 'src/app/lib/convert';
 import { GeoUtils, Position } from 'src/app/lib/geoutils';
 
 import { AppInfo } from 'src/app/app.info';
-import { SettingsMessage } from 'src/app/lib/info/info.service';
+import { SettingsMessage } from 'src/app/lib/services';
 import { SKResources } from '../skresources/resources.service';
 import { SKOtherResources } from '../skresources/sets/resource-sets.service';
 import {
