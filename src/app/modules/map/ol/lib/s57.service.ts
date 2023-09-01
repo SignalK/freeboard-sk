@@ -347,6 +347,10 @@ export class S57Service {
 
   //TODO implement more parameters
   private getTextStyle(text: string, params: string[]): Style {
+    if( typeof text !== 'string') {
+      debugger;
+      return null
+    }
 
     let textBaseline: any = 'middle'
     let offsetY = 0;
@@ -370,9 +374,13 @@ export class S57Service {
 
 
     if (text) {
+      let tx = text
+      if (typeof tx !== 'string') {
+        tx = text.toString()
+      }
       return new Style({
         text: new Text({
-          text: text,
+          text: tx,
           textAlign: textAlign,
           textBaseline: textBaseline,
           scale: 1.5,
