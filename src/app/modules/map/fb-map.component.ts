@@ -19,16 +19,20 @@ import { GeoUtils, Position } from 'src/app/lib/geoutils';
 
 import { AppInfo } from 'src/app/app.info';
 import { SettingsMessage } from 'src/app/lib/services';
-import { SKResources } from '../skresources/resources.service';
-import { SKOtherResources } from '../skresources/sets/resource-sets.service';
 import {
+  SKResources,
+  SKOtherResources,
   SKChart,
+  SKRoute,
+  SKWaypoint,
+  SKNote,
+  SKRegion,
   SKVessel,
   SKAtoN,
   SKAircraft,
-  SKSaR
-} from '../skresources/resource-classes';
-import { SKStreamFacade } from '../skstream/skstream.facade';
+  SKSaR,
+  SKStreamFacade
+} from 'src/app/modules';
 import {
   mapInteractions,
   mapControls,
@@ -46,12 +50,6 @@ import {
 import { ModifyEvent } from 'ol/interaction/Modify';
 import { DrawEvent } from 'ol/interaction/Draw';
 import { Coordinate } from 'ol/coordinate';
-import {
-  SKRoute,
-  SKWaypoint,
-  SKNote,
-  SKRegion
-} from 'src/app/modules/skresources/resource-classes';
 import { ResourceSets } from 'src/app/types';
 
 interface IResource {

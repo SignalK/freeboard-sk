@@ -9,10 +9,7 @@ import {
   ChangeDetectionStrategy
 } from '@angular/core';
 import { AppInfo } from 'src/app/app.info';
-import {
-  SKAtoN,
-  SKAircraft
-} from 'src/app/modules/skresources/resource-classes';
+import { SKAtoN, SKAircraft } from 'src/app/modules';
 
 /*********** Popover ***************
 title: string -  title text,

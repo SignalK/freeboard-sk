@@ -5,4 +5,3 @@ export * from './map/map.module';
 export * from './skstream/skstream.module';
 
 export * from './experiments/experiments.module';
-export * from './experiments/weather/weather.module';

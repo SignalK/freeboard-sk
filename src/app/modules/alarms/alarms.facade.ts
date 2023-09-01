@@ -5,7 +5,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { Subject, forkJoin, Observable } from 'rxjs';
 
 import { AppInfo } from 'src/app/app.info';
-import { SKResources } from '../skresources';
+import { SKResources } from 'src/app/modules';
 import { SignalKClient } from 'signalk-client-angular';
 import { SKStreamProvider } from '../skstream/skstream.service';
 import { NotificationMessage } from 'src/app/types';

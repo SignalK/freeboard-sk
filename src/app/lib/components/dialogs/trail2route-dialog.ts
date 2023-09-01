@@ -18,9 +18,7 @@ import { MatToolbarModule } from '@angular/material/toolbar';
 import { CommonDialogs } from 'src/app/lib/components/dialogs';
 import { FreeboardOpenlayersModule } from 'src/app/modules/map/ol';
 import { SimplifyAP } from 'simplify-ts';
-import { SKRoute } from 'src/app/modules/skresources/resource-classes';
-import { SKResources } from 'src/app/modules/skresources//resources.service';
-import { SKStreamFacade } from 'src/app/modules/skstream/skstream.facade';
+import { SKRoute, SKResources, SKStreamFacade } from 'src/app/modules';
 import { AppInfo } from 'src/app/app.info';
 
 /********* Trail2RouteDialog **********

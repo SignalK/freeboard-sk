@@ -11,7 +11,7 @@ import { MatMenuModule } from '@angular/material/menu';
 import { CommonDialogs } from 'src/app/lib/components/dialogs';
 
 // ** components **
-import { ExperimentsComponent } from './experiments';
+import { ExperimentsComponent } from './experiments.component';
 
 @NgModule({
   imports: [
@@ -28,4 +28,5 @@ import { ExperimentsComponent } from './experiments';
 })
 export class ExperimentsModule {}
 
-export * from './experiments';
+export * from './experiments.component';
+export * from './weather/weather.module';

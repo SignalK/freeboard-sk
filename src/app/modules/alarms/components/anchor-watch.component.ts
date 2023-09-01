@@ -9,7 +9,7 @@ import {
 
 interface OutputMessage {
   radius: number | null;
-  raised: boolean
+  raised: boolean;
 }
 
 @Component({

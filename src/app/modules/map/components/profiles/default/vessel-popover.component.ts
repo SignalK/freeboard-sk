@@ -9,7 +9,7 @@ import {
   SimpleChanges
 } from '@angular/core';
 import { AppInfo } from 'src/app/app.info';
-import { SKVessel } from 'src/app/modules/skresources/resource-classes';
+import { SKVessel } from 'src/app/modules';
 import { Convert } from 'src/app/lib/convert';
 import { GeoUtils, Position } from 'src/app/lib/geoutils';
 

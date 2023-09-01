@@ -31,6 +31,8 @@ import {
   SignalKDetailsComponent,
   FileInputComponent
 } from 'src/app/lib/components';
+import { CommonDialogs } from 'src/app/lib/components/dialogs';
+import { PipesModule } from 'src/app/lib/pipes';
 
 import {
   ResourceDialog,
@@ -44,9 +46,7 @@ import {
 } from './resource-dialogs';
 import { ResourceImportDialog } from './sets/resource-upload-dialog';
 
-import { SKNotesModule } from './notes';
-import { CommonDialogs } from 'src/app/lib/components/dialogs';
-import { PipesModule } from 'src/app/lib/pipes';
+import { SKNotesModule } from './notes/notes.module';
 
 @NgModule({
   imports: [
@@ -116,6 +116,7 @@ export class SignalKResourcesModule {}
 export * from './resources.service';
 export * from './resource-dialogs';
 export * from './resource-classes';
-export * from './notes';
+export * from './notes/notes.module';
+export * from './sets/resource-set';
 export * from './sets/resource-sets.service';
 export * from './sets/resource-upload-dialog';

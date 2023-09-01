@@ -28,7 +28,7 @@ import { MapComponent } from '../map.component';
 import { Extent } from '../models';
 import { fromLonLatArray } from '../util';
 import { AsyncSubject } from 'rxjs';
-import { SKResourceSet } from 'src/app/modules/skresources/sets/resource-set';
+import { SKResourceSet } from 'src/app/modules';
 
 // ** Signal K resource collection format **
 @Component({

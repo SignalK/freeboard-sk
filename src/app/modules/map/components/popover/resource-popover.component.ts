@@ -7,12 +7,7 @@ import {
 } from '@angular/core';
 import { AppInfo } from 'src/app/app.info';
 import { Convert } from 'src/app/lib/convert';
-import {
-  SKRoute,
-  SKWaypoint,
-  SKNote,
-  SKRegion
-} from 'src/app/modules/skresources/resource-classes';
+import { SKRoute, SKWaypoint, SKNote, SKRegion } from 'src/app/modules';
 
 /*********** Resource Popover ***************
 title: string -  title text,

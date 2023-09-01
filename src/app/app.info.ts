@@ -21,8 +21,7 @@ import {
 
 import { Convert } from './lib/convert';
 import { SignalKClient } from 'signalk-client-angular';
-import { SKVessel, SKChart } from './modules/skresources/resource-classes';
-import { SKStreamProvider } from './modules/skstream/skstream.service';
+import { SKVessel, SKChart, SKStreamProvider } from './modules';
 
 export interface PluginSettings {
   version: string;

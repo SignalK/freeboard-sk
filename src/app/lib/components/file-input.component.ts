@@ -15,7 +15,7 @@ import {
 @Component({
   standalone: true,
   selector: 'ap-file-input',
-  imports: [ CommonModule ],
+  imports: [CommonModule],
   templateUrl: './file-input.component.html',
   styleUrls: ['./file-input.component.css']
 })

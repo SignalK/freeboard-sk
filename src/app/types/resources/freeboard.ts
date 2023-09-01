@@ -3,7 +3,7 @@ import {
   SKWaypoint,
   SKNote,
   SKChart
-} from '../../modules/skresources/resource-classes';
+} from 'src/app/modules/skresources/resource-classes';
 
 export type FBRoutes = Array<FBRoute>;
 export type FBRoute = [string, SKRoute, boolean?];

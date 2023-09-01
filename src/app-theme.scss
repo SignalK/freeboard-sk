@@ -39,7 +39,7 @@ $my-dark-theme: mat.define-dark-theme((
 @include mat.all-component-themes($my-theme);
 
 .dark-theme {
-    @include mat.all-component-themes($my-dark-theme);
+    @include mat.all-component-colors($my-dark-theme);
 
     .about-row .item a {
         color: mat-color($my-dark-accent);

@@ -12,7 +12,7 @@ import { GeoUtils, Position } from 'src/app/lib/geoutils';
 import { Convert } from 'src/app/lib/convert';
 
 import { LoginDialog } from 'src/app/lib/components/dialogs';
-import { NoteDialog, RelatedNotesDialog } from './notes';
+import { NoteDialog, RelatedNotesDialog } from './notes/notes.module';
 import { ResourceDialog } from './resource-dialogs';
 import {
   SKChart,

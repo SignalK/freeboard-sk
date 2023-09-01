@@ -7,10 +7,8 @@ import { AppInfo } from 'src/app/app.info';
 import { SettingsMessage } from 'src/app/lib/services';
 import { SignalKClient } from 'signalk-client-angular';
 import { SKStreamProvider } from './skstream.service';
-import { SKRoute, SKVessel } from '../skresources/resource-classes';
-import { AlarmsFacade } from '../alarms/alarms.facade';
 import { Convert } from 'src/app/lib/convert';
-import { SKResources } from '../skresources';
+import { SKResources, SKRoute, SKVessel, AlarmsFacade } from 'src/app/modules';
 import {
   NotificationMessage,
   UpdateMessage,

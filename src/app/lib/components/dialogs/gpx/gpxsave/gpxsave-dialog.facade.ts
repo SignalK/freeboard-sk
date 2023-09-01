@@ -3,7 +3,7 @@
 import { Injectable } from '@angular/core';
 import { Subject, Observable } from 'rxjs';
 import { SK2GPX } from './sk2gpx';
-import { SKTrack } from 'src/app/modules/skresources/resource-classes';
+import { SKTrack } from 'src/app/modules';
 import { SignalKClient } from 'signalk-client-angular';
 
 @Injectable({ providedIn: 'root' })

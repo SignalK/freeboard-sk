@@ -17,9 +17,7 @@ import {
   GPXImportDialog,
   GPXExportDialog
 } from 'src/app/lib/components/dialogs';
-import {
-  CourseSettingsModal
-} from 'src/app/lib/components';
+import { CourseSettingsModal } from 'src/app/lib/components';
 import {
   SettingsDialog,
   SKStreamFacade,
@@ -859,7 +857,15 @@ export class AppComponent {
         if (!res) {
           return;
         } // cancelled
-        this.skres.createResource(res.path, res.data);
+        try {
+          const d = JSON.parse(res.data);
+          this.skres.createResource(res.path, d);
+        } catch (err) {
+          this.app.showAlert(
+            'Load Resource',
+            'Resources were not loaded!\nInvalid JSON.'
+          );
+        }
         this.focusMap();
       });
   }

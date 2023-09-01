@@ -11,7 +11,7 @@ import {
   SKWaypoint,
   SKRegion,
   SKTrack
-} from 'src/app/modules/skresources/';
+} from 'src/app/modules';
 import {
   LineStringFeature,
   MultiLineStringFeature,

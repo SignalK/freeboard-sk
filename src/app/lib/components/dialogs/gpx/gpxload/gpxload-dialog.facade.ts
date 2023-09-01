@@ -5,7 +5,7 @@ import { Subject, Observable } from 'rxjs';
 
 import { AppInfo } from 'src/app/app.info';
 import { SignalKClient } from 'signalk-client-angular';
-import { SKResources } from '../../../../../modules/skresources';
+import { SKResources } from 'src/app/modules';
 import {
   GPX,
   GPXRoute,

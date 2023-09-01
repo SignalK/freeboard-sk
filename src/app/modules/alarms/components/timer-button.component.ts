@@ -32,8 +32,9 @@ import { MatIconModule } from '@angular/material/icon';
         {{ label }} {{ timeLeft }} secs
       </button>
       &nbsp;
-      <button *ngSwitchCase="true" 
-        mat-raised-button 
+      <button
+        *ngSwitchCase="true"
+        mat-raised-button
         color="accent"
         (click)="action()"
       >
