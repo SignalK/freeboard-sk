@@ -44,7 +44,7 @@ const FreeboardConfig = {
     animate: false,
     limitZoom: false
   },
-  fixedLocationMode: true,
+  fixedLocationMode: false,
   fixedPosition: [0, 0],
   vesselTrail: false, // display trail
   vesselWindVectors: true, // display vessel TWD, AWD vectors
@@ -264,7 +264,7 @@ export class AppInfo extends Info {
     this.name = 'Freeboard-SK';
     this.shortName = 'Freeboard';
     this.description = `Signal K Chart Plotter.`;
-    this.version = '2.2.2';
+    this.version = '2.2.3';
     this.url = 'https://github.com/signalk/freeboard-sk';
     this.logo = './assets/img/app_logo.png';
 

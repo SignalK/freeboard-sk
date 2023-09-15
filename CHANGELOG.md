@@ -1,5 +1,9 @@
 # CHANGELOG: Freeboard
 
+### v2.2.3
+
+- **Fixed**: Do not make "Fixed Location" mode the default.
+
 ### v2.2.2
 
 - **Fixed**: Update Anchor Watch to use `signalk-anchor-alarm` REST API to resolve incorrect state being displayed.
