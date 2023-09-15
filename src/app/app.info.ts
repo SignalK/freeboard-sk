@@ -170,7 +170,7 @@ interface PluginInfo {
 @Injectable({ providedIn: 'root' })
 export class AppInfo extends Info {
   private DEV_SERVER = {
-    host: '192.168.86.32', //'localhost', // host name || ip address
+    host: 'localhost', //'192.168.86.32', // host name || ip address
     port: 3000, // port number
     ssl: false
   };
@@ -264,7 +264,7 @@ export class AppInfo extends Info {
     this.name = 'Freeboard-SK';
     this.shortName = 'Freeboard';
     this.description = `Signal K Chart Plotter.`;
-    this.version = '2.2.1';
+    this.version = '2.2.2';
     this.url = 'https://github.com/signalk/freeboard-sk';
     this.logo = './assets/img/app_logo.png';
 

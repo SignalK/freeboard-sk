@@ -1,5 +1,10 @@
 # CHANGELOG: Freeboard
 
+### v2.2.2
+
+- **Fixed**: Update Anchor Watch to use `signalk-anchor-alarm` REST API to resolve incorrect state being displayed.
+- **Fixed**: Switching to fixed location did not update map until a delta update had been parsed.
+
 ### v2.2.1
 
 - **Fixed**: Issue where waypoint was not centered on the screen when the center waypoint button was clicked from the entry in the waypoint list.
