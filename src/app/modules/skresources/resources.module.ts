@@ -46,8 +46,6 @@ import {
 } from './resource-dialogs';
 import { ResourceImportDialog } from './sets/resource-upload-dialog';
 
-import { SKNotesModule } from './notes/notes.module';
-
 @NgModule({
   imports: [
     CommonModule,
@@ -69,7 +67,6 @@ import { SKNotesModule } from './notes/notes.module';
     MatInputModule,
     MatToolbarModule,
     DragDropModule,
-    SKNotesModule,
     CommonDialogs,
     PipesModule,
     SignalKDetailsComponent,
@@ -105,7 +102,6 @@ import { SKNotesModule } from './notes/notes.module';
     ActiveResourcePropertiesModal,
     ChartInfoDialog,
     ChartLayers,
-    SKNotesModule,
     TracksModal,
     ResourceSetModal,
     ResourceImportDialog
@@ -116,7 +112,7 @@ export class SignalKResourcesModule {}
 export * from './resources.service';
 export * from './resource-dialogs';
 export * from './resource-classes';
-export * from './notes/notes.module';
+
 export * from './sets/resource-set';
 export * from './sets/resource-sets.service';
 export * from './sets/resource-upload-dialog';

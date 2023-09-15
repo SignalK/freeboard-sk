@@ -2,9 +2,30 @@
  ********************************/
 
 import { Component, OnInit, Inject } from '@angular/core';
-import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
+import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { MatButtonModule } from '@angular/material/button';
+import { MatCardModule } from '@angular/material/card';
+//import { MatCheckboxModule } from '@angular/material/checkbox';
+import {
+  MatDialogModule,
+  MatDialogRef,
+  MAT_DIALOG_DATA
+} from '@angular/material/dialog';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatIconModule } from '@angular/material/icon';
+import { MatInputModule } from '@angular/material/input';
+//import { MatListModule } from '@angular/material/list';
+import { MatSlideToggleModule } from '@angular/material/slide-toggle';
+import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatToolbarModule } from '@angular/material/toolbar';
 
-import { AngularEditorConfig } from '@kolkov/angular-editor';
+import {
+  AngularEditorModule,
+  AngularEditorConfig
+} from '@kolkov/angular-editor';
+import { AddTargetPipe } from './safe.pipe';
+
 import { AppInfo } from 'src/app/app.info';
 
 /********* NoteDialog **********
@@ -13,7 +34,23 @@ import { AppInfo } from 'src/app/app.info';
     }
 ***********************************/
 @Component({
+  standalone: true,
   selector: 'ap-notedialog',
+  imports: [
+    CommonModule,
+    FormsModule,
+    MatCardModule,
+    MatDialogModule,
+    MatButtonModule,
+    MatIconModule,
+    MatTooltipModule,
+    MatSlideToggleModule,
+    MatFormFieldModule,
+    MatInputModule,
+    MatToolbarModule,
+    AngularEditorModule,
+    AddTargetPipe
+  ],
   templateUrl: `note-dialog.html`,
   styleUrls: ['notes.css']
 })
