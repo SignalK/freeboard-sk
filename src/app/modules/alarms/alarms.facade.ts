@@ -13,7 +13,7 @@ import { Position } from '../../lib/geoutils';
 
 interface IStatus {
   action: string;
-  error: boolean;
+  error: any;
   result: unknown;
 }
 
@@ -64,64 +64,75 @@ export class AlarmsFacade {
 
   // ******** ANCHOR WATCH EVENTS ************
   anchorEvent(
-    e: { radius: number; raised: boolean },
+    e: { radius: number; action: string },
     context?: string,
     position?: Position
   ) {
-    context = context ? context : 'self';
-    if (e.raised === null) {
-      //send radius value only
-      this.app.config.anchorRadius = e.radius;
-      this.signalk.api
-        .putWithContext(context, '/navigation/anchor/maxRadius', e.radius)
-        .subscribe(
-          () => {
-            this.app.saveConfig();
-          },
-          (err: HttpErrorResponse) => {
-            this.parseAnchorError(err, 'raise');
-            this.queryAnchorStatus(context, position);
-          }
-        );
-    } else if (!e.raised) {
-      // ** drop anchor
-      this.app.config.anchorRadius = e.radius;
-      const aPosition = this.signalk.api.putWithContext(
-        context,
-        '/navigation/anchor/position',
-        {
-          latitude: position[1],
-          longitude: position[0]
-        }
-      );
-      const aRadius = this.signalk.api.putWithContext(
-        context,
-        '/navigation/anchor/maxRadius',
-        e.radius
-      );
-      const res = forkJoin([aPosition, aRadius]);
-      res.subscribe(
-        () => {
-          this.app.saveConfig();
-        },
-        (err: HttpErrorResponse) => {
-          this.parseAnchorError(err, 'drop');
-          this.queryAnchorStatus(context, position);
-        }
-      );
-    } else {
-      // ** raise anchor
-      this.app.data.alarms.delete('anchor');
-      this.signalk.api
-        .putWithContext(context, '/navigation/anchor/position', null)
-        .subscribe(
-          () => undefined,
-          (err: HttpErrorResponse) => {
-            this.parseAnchorError(err, 'raise');
-            this.queryAnchorStatus(context, position);
-          }
-        );
-    }
+    return new Promise( (resolve, reject) => {
+      context = context ? context : 'self';
+      if (e.action === 'setRadius') {
+        //send radius value only
+        this.app.config.anchorRadius = e.radius;
+        this.signalk.api
+          .post(2, '/vessels/self/navigation/anchor/radius', { value: e.radius })
+          .subscribe(
+            () => {
+              this.app.saveConfig();
+              resolve(true);
+            },
+            (err: HttpErrorResponse) => {
+              this.parseAnchorError(err, 'radius');
+              this.queryAnchorStatus(context, position);
+              reject()
+            }
+          );
+      } else if (e.action === 'drop') {
+        // ** drop anchor
+        this.app.config.anchorRadius = e.radius;
+        this.signalk.api
+          .post(2, '/vessels/self/navigation/anchor/drop', {})
+          .subscribe(
+            () => {
+              this.app.saveConfig();
+              this.signalk.api
+                .post(
+                  2,
+                  '/vessels/self/navigation/anchor/radius',
+                  { value: e.radius }
+                )
+                .subscribe(
+                  () => {
+                    console.log('Radius Set: ', e.radius);
+                    resolve(true);
+                  },
+                  (err: HttpErrorResponse) => {
+                    this.parseAnchorError(err, 'radius');
+                    this.queryAnchorStatus(context, position);
+                    reject()
+                  }
+                );
+            },
+            (err: HttpErrorResponse) => {
+              this.parseAnchorError(err, 'drop');
+              this.queryAnchorStatus(context, position);
+              reject();
+            }
+          );
+      } else if (e.action === 'raise') {
+        // ** raise anchor
+        this.app.data.alarms.delete('anchor');
+        this.signalk.api
+          .post(2, '/vessels/self/navigation/anchor/raise', {})
+          .subscribe(
+            () => resolve(true),
+            (err: HttpErrorResponse) => {
+              this.parseAnchorError(err, 'raise');
+              this.queryAnchorStatus(context, position);
+              reject()
+            }
+          );
+      }
+    })
   }
 
   // ** update anchor status from received vessel data**
@@ -161,18 +172,24 @@ export class AlarmsFacade {
   parseAnchorError(e, action: string) {
     this.app.debug(e);
     if (e.status && e.status === 401) {
+      // fix error code for no position available
+      if (e.error.message.indexOf('no position') !== -1) {
+        e.error.statusCode = 400;
+      }
       // ** emit anchorStatus$ **
       this.anchorSource.next({
         action: action,
         error: true,
-        result: e.status
+        result: e.error
       });
+      return;
     }
+
     if (e.status && e.status !== 200) {
       this.anchorSource.next({
         action: action,
         error: true,
-        result: e.status
+        result: e.error
       });
     }
   }

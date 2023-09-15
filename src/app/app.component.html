@@ -524,13 +524,6 @@
               [radius]="app.data.anchor.radius"
               [feet]="app.config.units.depth != 'm' ? true : false"
               [raised]="app.data.anchor.raised"
-              (change)="
-                alarmsFacade.anchorEvent(
-                  $event,
-                  app.data.vessels.activeId,
-                  this.app.data.vessels.active.position
-                )
-              "
               (closed)="displayLeftMenu()"
             >
             </anchor-watch>

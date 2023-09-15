@@ -6,6 +6,7 @@ import {
 import { IRouter, Application, Request, Response } from 'express';
 import { initAlarms } from './alarms/alarms';
 import { ActionResult } from './lib/types';
+import { initAnchorApi } from './anchor/anchor-api';
 
 import {
   WEATHER_SERVICES,
@@ -121,8 +122,8 @@ export interface FreeboardHelperApp
     PluginServerApp,
     ResourceProviderRegistry {
   statusMessage?: () => string;
-  error: (msg: string) => void;
-  debug: (msg: string) => void;
+  error: (...msg: any) => void;
+  debug: (...msg: any) => void;
   setPluginStatus: (pluginId: string, status?: string) => void;
   setPluginError: (pluginId: string, status?: string) => void;
   setProviderStatus: (providerId: string, status?: string) => void;
@@ -130,7 +131,12 @@ export interface FreeboardHelperApp
   getSelfPath: (path: string) => void;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   savePluginOptions: (options: any, callback: () => void) => void;
-  config: { configPath: string };
+  config: {
+    ssl: boolean;
+    configPath: string;
+    version: string;
+    getExternalPort: () => number;
+  };
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   handleMessage: (id: string | null, msg: any, version?: string) => void;
@@ -239,6 +245,9 @@ module.exports = (server: FreeboardHelperApp): OpenApiPlugin => {
       if (settings.pypilot.enable) {
         initPyPilot(server, plugin.id, settings.pypilot);
       }
+
+      // Anchor API facade
+      initAnchorApi(server);
 
       server.setPluginStatus(msg);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any

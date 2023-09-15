@@ -249,14 +249,14 @@ export class AppComponent {
 
     // ** NOTIFICATIONS - Anchor Status **
     this.obsList.push(
-      this.alarmsFacade.anchorStatus$().subscribe((r) => {
+      this.alarmsFacade.anchorStatus$().subscribe((r:any) => {
         if (r.error) {
-          if (r.result === 401) {
+          if (r.result.statusCode === 401) {
             this.showLogin();
           } else {
             this.app.showAlert(
               'Anchor Watch:',
-              'Server returned an error. This function may not be supported by your server.'
+              r.result.message
             );
           }
         }

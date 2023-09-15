@@ -35,7 +35,7 @@
         <b
           style="
             position: fixed;
-            top: 125px;
+            top: 105px;
             left: 69px;
             width: 35px;
             text-align: right;
@@ -43,7 +43,7 @@
         >
           {{ feet ? mToFt(radius) : radius }}
         </b>
-        <b style="position: fixed; top: 125px; left: 109px; text-align: left">
+        <b style="position: fixed; top: 105px; left: 109px; text-align: left">
           {{ feet ? 'ft' : 'm' }}
         </b>
       </div>
@@ -84,10 +84,12 @@
         <div style="flex: 1 1 auto; text-align: right">
           RAISE
           <mat-slide-toggle
+            #slideCtl
             color="warn"
+            [hideIcon] = "true"
             [disabled]="disable"
             [checked]="!raised"
-            (change)="dropAnchor($event)"
+            (change)="setAnchor($event)"
           >
           </mat-slide-toggle>
           DROP
