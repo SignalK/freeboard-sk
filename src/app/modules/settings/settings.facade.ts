@@ -6,6 +6,7 @@ import { Subject } from 'rxjs';
 import { AppInfo } from 'src/app/app.info';
 import { SettingsMessage } from 'src/app/lib/services';
 import { SignalKClient } from 'signalk-client-angular';
+import { SKStreamFacade } from 'src/app/modules/skstream/skstream.facade';
 
 interface SKAppsList {
   author: string;
@@ -151,7 +152,11 @@ export class SettingsFacade {
   private configLoadedSource = new Subject<SettingsMessage>();
   // *******************************************************
 
-  constructor(private app: AppInfo, public signalk: SignalKClient) {
+  constructor(
+    private app: AppInfo,
+    public signalk: SignalKClient,
+    private stream: SKStreamFacade
+  ) {
     this.data = this.app.data;
     this.settings = this.app.config;
     this.fixedPosition = this.settings.fixedPosition.slice();
@@ -276,7 +281,11 @@ export class SettingsFacade {
       typeof this.fixedPosition[1] === 'number'
     ) {
       this.settings.fixedPosition = this.fixedPosition.slice();
+      if (this.settings.fixedLocationMode) {
+        this.app.data.vessels.self.position = this.fixedPosition.slice();
+      }
     }
+    this.stream.emitVesselsUpdate();
     this.app.saveConfig();
   }
 }
