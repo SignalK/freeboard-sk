@@ -103,7 +103,7 @@ import {
             id="targetarrivalenable"
             color="primary"
             labelPosition="before"
-            [hideIcon] = "true"
+            [hideIcon]="true"
             [(checked)]="targetArrivalEnabled"
             (change)="toggleTargetArrival($event)"
           >
@@ -189,7 +189,7 @@ import {
               id="autopilotenable"
               color="primary"
               labelPosition="before"
-              [hideIcon] = "true"
+              [hideIcon]="true"
               [disabled]="!hasAutoPilot"
               [checked]="app.data.vessels.self.autopilot.state === 'enabled'"
               (change)="onFormChange($event)"

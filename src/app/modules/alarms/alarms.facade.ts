@@ -68,13 +68,15 @@ export class AlarmsFacade {
     context?: string,
     position?: Position
   ) {
-    return new Promise( (resolve, reject) => {
+    return new Promise((resolve, reject) => {
       context = context ? context : 'self';
       if (e.action === 'setRadius') {
         //send radius value only
         this.app.config.anchorRadius = e.radius;
         this.signalk.api
-          .post(2, '/vessels/self/navigation/anchor/radius', { value: e.radius })
+          .post(2, '/vessels/self/navigation/anchor/radius', {
+            value: e.radius
+          })
           .subscribe(
             () => {
               this.app.saveConfig();
@@ -83,7 +85,7 @@ export class AlarmsFacade {
             (err: HttpErrorResponse) => {
               this.parseAnchorError(err, 'radius');
               this.queryAnchorStatus(context, position);
-              reject()
+              reject();
             }
           );
       } else if (e.action === 'drop') {
@@ -95,11 +97,9 @@ export class AlarmsFacade {
             () => {
               this.app.saveConfig();
               this.signalk.api
-                .post(
-                  2,
-                  '/vessels/self/navigation/anchor/radius',
-                  { value: e.radius }
-                )
+                .post(2, '/vessels/self/navigation/anchor/radius', {
+                  value: e.radius
+                })
                 .subscribe(
                   () => {
                     console.log('Radius Set: ', e.radius);
@@ -108,7 +108,7 @@ export class AlarmsFacade {
                   (err: HttpErrorResponse) => {
                     this.parseAnchorError(err, 'radius');
                     this.queryAnchorStatus(context, position);
-                    reject()
+                    reject();
                   }
                 );
             },
@@ -128,11 +128,11 @@ export class AlarmsFacade {
             (err: HttpErrorResponse) => {
               this.parseAnchorError(err, 'raise');
               this.queryAnchorStatus(context, position);
-              reject()
+              reject();
             }
           );
       }
-    })
+    });
   }
 
   // ** update anchor status from received vessel data**
@@ -172,10 +172,6 @@ export class AlarmsFacade {
   parseAnchorError(e, action: string) {
     this.app.debug(e);
     if (e.status && e.status === 401) {
-      // fix error code for no position available
-      if (e.error.message.indexOf('no position') !== -1) {
-        e.error.statusCode = 400;
-      }
       // ** emit anchorStatus$ **
       this.anchorSource.next({
         action: action,

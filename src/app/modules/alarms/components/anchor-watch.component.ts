@@ -69,20 +69,21 @@ export class AnchorWatchComponent {
     if (!this.raised) {
       this.msg.action = 'setRadius'; // set radius change only
       //this.change.emit(this.msg);
-      this.facade.anchorEvent(
-        { radius: this.msg.radius, action: this.msg.action }
-      )
+      this.facade.anchorEvent({
+        radius: this.msg.radius,
+        action: this.msg.action
+      });
     }
   }
 
   setAnchor(e: { checked: boolean }) {
     this.msg.action = e.checked ? 'drop' : 'raise';
     //this.change.emit(this.msg);
-    this.facade.anchorEvent(
-      { radius: this.msg.radius, action: this.msg.action }
-    ).catch( (err: Error) => {
-      (this.slideCtl as any).checked = !(this.slideCtl as any).checked;
-    })
+    this.facade
+      .anchorEvent({ radius: this.msg.radius, action: this.msg.action })
+      .catch((err: Error) => {
+        (this.slideCtl as any).checked = !(this.slideCtl as any).checked;
+      });
   }
 
   close() {

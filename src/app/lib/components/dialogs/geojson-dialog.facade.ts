@@ -115,14 +115,14 @@ export class GeoJSONLoadFacade {
     }
 
     if (typeof f.properties.name !== 'undefined') {
-      r.name = f.properties.name;
+      r.name = f.properties.name ?? '';
       delete f.properties.name;
     } else {
       r.name = `rte-${new Date().getTime()}`;
     }
 
     if (typeof f.properties.description !== 'undefined') {
-      r.description = f.properties.description;
+      r.description = f.properties.description ?? '';
       delete f.properties.description;
     } else {
       r.description = 'GeoJSON import';
@@ -160,14 +160,14 @@ export class GeoJSONLoadFacade {
     }
 
     if (typeof f.properties.name !== 'undefined') {
-      w.name = f.properties.name;
+      w.name = f.properties.name ?? '';
       delete f.properties.name;
     } else {
       w.name = `wpt-${new Date().getTime()}`;
     }
 
     if (typeof f.properties.description !== 'undefined') {
-      w.description = f.properties.description;
+      w.description = f.properties.description ?? '';
       delete f.properties.description;
     } else {
       w.description = 'GeoJSON import';
@@ -203,11 +203,11 @@ export class GeoJSONLoadFacade {
     }
     f.properties.name =
       typeof f.properties.name !== 'undefined'
-        ? f.properties.name
+        ? f.properties.name ?? ''
         : `trk-${new Date().getTime()}`;
     f.properties.description =
       typeof f.properties.description !== 'undefined'
-        ? f.properties.description
+        ? f.properties.description ?? ''
         : 'GeoJSON import';
 
     const r = new SKTrack({ feature: f });
@@ -240,14 +240,14 @@ export class GeoJSONLoadFacade {
       f.properties = {};
     }
     if (typeof f.properties.name !== 'undefined') {
-      r.name = f.properties.name;
+      r.name = f.properties.name ?? '';
       delete f.properties.name;
     } else {
       r.name = `reg-${new Date().getTime()}`;
     }
 
     if (typeof f.properties.description !== 'undefined') {
-      r.description = f.properties.description;
+      r.description = f.properties.description ?? '';
       delete f.properties.description;
     } else {
       r.description = 'GeoJSON import';

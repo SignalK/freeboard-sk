@@ -249,15 +249,12 @@ export class AppComponent {
 
     // ** NOTIFICATIONS - Anchor Status **
     this.obsList.push(
-      this.alarmsFacade.anchorStatus$().subscribe((r:any) => {
+      this.alarmsFacade.anchorStatus$().subscribe((r: any) => {
         if (r.error) {
           if (r.result.statusCode === 401) {
             this.showLogin();
           } else {
-            this.app.showAlert(
-              'Anchor Watch:',
-              r.result.message
-            );
+            this.app.showAlert('Anchor Watch:', r.result.message);
           }
         }
       })

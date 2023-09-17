@@ -70,6 +70,10 @@ const initApiEndpoints = () => {
       );
       res.status(r.statusCode).json(r);
     } catch (e) {
+      // fix plugin returned 401 error code when no position is available
+      if (e.statusCode === 401 && e.message.indexOf('no position') !== -1) {
+        e.statusCode = 400;
+      }
       res.status(e.statusCode).json(e);
     }
   });
