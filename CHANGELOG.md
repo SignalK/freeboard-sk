@@ -1,5 +1,9 @@
 # CHANGELOG: Freeboard
 
+### v2.2.4
+
+- **Fixed**: GPX Load errors caused by routes with no name and / or description causing validation errors.
+
 ### v2.2.3
 
 - **Fixed**: Do not make "Fixed Location" mode the default.
