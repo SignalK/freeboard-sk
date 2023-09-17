@@ -13,6 +13,7 @@ import {
   GPXTrack,
   GPXTrackSegment
 } from '../gpxlib';
+import { HttpErrorResponse } from '@angular/common/http';
 
 @Injectable({ providedIn: 'root' })
 export class GPXLoadFacade {
@@ -124,8 +125,8 @@ export class GPXLoadFacade {
     );
     const rte = skObj[1];
 
-    rte.name = r.name;
-    rte.description = r.desc;
+    rte.name = r.name ?? '';
+    rte.description = r.desc ?? '';
     // ** route properties **
     if (r.cmt) {
       rte.feature.properties['cmt'] = r.cmt;
@@ -162,7 +163,7 @@ export class GPXLoadFacade {
           }
           this.checkComplete();
         },
-        () => {
+        (err: HttpErrorResponse) => {
           this.errorCount++;
           this.subCount--;
           this.checkComplete();
