@@ -249,6 +249,7 @@ export class AppComponent {
 
     // ** NOTIFICATIONS - Anchor Status **
     this.obsList.push(
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       this.alarmsFacade.anchorStatus$().subscribe((r: any) => {
         if (r.error) {
           if (r.result.statusCode === 401) {
@@ -297,6 +298,13 @@ export class AppComponent {
       ? false
       : true;
     this.skres.setMapZoomRange();
+    this.app.saveConfig();
+  }
+
+  public invertAISTextColor() {
+    this.app.config.map.invertColor = this.app.config.map.invertColor
+      ? false
+      : true;
     this.app.saveConfig();
   }
 
@@ -353,7 +361,7 @@ export class AppComponent {
       if (this.selFavourite === -1) {
         this.selFavourite = 0;
       } else if (
-        this.selFavourite ==
+        this.selFavourite ===
         this.app.config.selections.pluginFavourites.length - 1
       ) {
         this.selFavourite = -1;
@@ -550,7 +558,7 @@ export class AppComponent {
       // use server trail data, keep minimal local trail data
       const lastseg = trailData.slice(-1);
       const lastpt =
-        lastseg.length != 0
+        lastseg.length !== 0
           ? lastseg[0].slice(-1)
           : trailData.length > 1
           ? trailData[trailData.length - 2].slice(-1)
@@ -590,7 +598,7 @@ export class AppComponent {
     if (e.action === 'save' && e.setting === 'config') {
       this.setDarkTheme(); // **  set theme **
       if (
-        this.app.data.trueMagChoice !=
+        this.app.data.trueMagChoice !==
         this.app.config.selections.headingAttribute
       ) {
         this.app.debug('True / Magnetic selection changed..');
@@ -1343,7 +1351,9 @@ export class AppComponent {
   // ** handle modify end event **
   public handleModifyEnd(e: {
     id: string;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     coords: any[];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     coordsMetadata?: any[];
   }) {
     if (
@@ -1619,7 +1629,7 @@ export class AppComponent {
         this.setDarkTheme();
         if (
           e.result.self.resourceUpdates &&
-          e.result.self.resourceUpdates.length != 0
+          e.result.self.resourceUpdates.length !== 0
         ) {
           this.skres.processDelta(e.result.self.resourceUpdates);
         }

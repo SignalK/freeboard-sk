@@ -22,6 +22,7 @@ import { Extent } from '../models';
 import { destCoordinate } from '../util';
 import { AsyncSubject } from 'rxjs';
 import { SKVessel } from 'src/app/modules';
+import { LightTheme, DarkTheme } from '../themes';
 
 // ** Signal K Other Vessels  **
 @Component({
@@ -33,6 +34,7 @@ export class SKVesselsLayerComponent implements OnInit, OnDestroy, OnChanges {
   protected layer: Layer;
   public source: VectorSource;
   protected targetType = 'vessel';
+  protected theme = LightTheme;
 
   /**
    * This event is triggered after the layer is initialized
@@ -42,6 +44,7 @@ export class SKVesselsLayerComponent implements OnInit, OnDestroy, OnChanges {
 
   @Input() targets: Map<string, SKVessel> = new Map();
   @Input() targetStyles: { [key: string]: Style };
+  @Input() darkMode = false;
   @Input() focusId: string;
   @Input() inactiveTime = 180000; // in ms (3 mins)
   @Input() labelMinZoom = 10;
@@ -81,6 +84,7 @@ export class SKVesselsLayerComponent implements OnInit, OnDestroy, OnChanges {
       Object.assign(this, { ...this.layerProperties })
     );
     this.parseItems(this.extractKeys(this.targets));
+    this.theme = this.darkMode ? DarkTheme : LightTheme;
 
     const map = this.mapComponent.getMap();
     if (this.layer && map) {
@@ -96,7 +100,7 @@ export class SKVesselsLayerComponent implements OnInit, OnDestroy, OnChanges {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const properties: { [index: string]: any } = {};
       for (const key in changes) {
-        if (key == 'targets' && changes[key].firstChange) {
+        if (key === 'targets' && changes[key].firstChange) {
           if (!changes[key].currentValue) {
             return;
           }
@@ -105,29 +109,34 @@ export class SKVesselsLayerComponent implements OnInit, OnDestroy, OnChanges {
           }
           this.source.clear();
           this.parseItems(this.extractKeys(changes[key].currentValue));
-        } else if (key == 'updateIds') {
+        } else if (key === 'updateIds') {
           this.parseItems(changes[key].currentValue);
-        } else if (key == 'staleIds') {
+        } else if (key === 'staleIds') {
           this.parseItems(changes[key].currentValue, true);
-        } else if (key == 'removeIds') {
+        } else if (key === 'removeIds') {
           this.removeItems(changes[key].currentValue);
-        } else if (key == 'inactiveTime') {
+        } else if (key === 'inactiveTime') {
           this.parseItems(this.extractKeys(this.targets));
         } else if (
-          key == 'focusId' ||
-          key == 'filterIds' ||
-          key == 'vectorApparent'
+          key === 'focusId' ||
+          key === 'filterIds' ||
+          key === 'vectorApparent'
         ) {
           this.parseItems(this.extractKeys(this.targets));
-        } else if (key == 'targetStyles' && !changes[key].firstChange) {
+        } else if (key === 'targetStyles' && !changes[key].firstChange) {
           this.parseItems(this.extractKeys(this.targets));
         } else if (
-          key == 'labelMinZoom' ||
-          key == 'mapZoom' ||
-          key == 'vectorMinZoom'
+          key === 'darkMode' ||
+          key === 'labelMinZoom' ||
+          key === 'mapZoom' ||
+          key === 'vectorMinZoom'
         ) {
+          this.theme =
+            key === 'darkMode' && changes[key].currentValue
+              ? DarkTheme
+              : LightTheme;
           this.handleLabelZoomChange(key, changes[key]);
-        } else if (key == 'layerProperties') {
+        } else if (key === 'layerProperties') {
           this.layer.setProperties(properties, false);
         } else {
           properties[key] = changes[key].currentValue;
@@ -148,17 +157,17 @@ export class SKVesselsLayerComponent implements OnInit, OnDestroy, OnChanges {
 
   // ** assess attribute change **
   handleLabelZoomChange(key: string, change: SimpleChange) {
-    if (key == 'labelMinZoom') {
+    if (key === 'labelMinZoom' || key === 'darkMode') {
       if (typeof this.mapZoom !== 'undefined') {
         this.updateLabels();
       }
-    } else if (key == 'vectorMinZoom') {
+    } else if (key === 'vectorMinZoom') {
       if (typeof this.mapZoom !== 'undefined') {
         this.targets.forEach((v, k) => {
           this.parseWindVector(k, v);
         });
       }
-    } else if (key == 'mapZoom') {
+    } else if (key === 'mapZoom') {
       if (typeof this.labelMinZoom !== 'undefined') {
         if (
           (change.currentValue >= this.labelMinZoom &&
@@ -219,7 +228,7 @@ export class SKVesselsLayerComponent implements OnInit, OnDestroy, OnChanges {
       return;
     }
     ids.forEach((w) => {
-      if (w.indexOf('vessel') == -1) {
+      if (w.indexOf('vessel') === -1) {
         return;
       }
       if (this.targets.has(w)) {
@@ -336,7 +345,7 @@ export class SKVesselsLayerComponent implements OnInit, OnDestroy, OnChanges {
     // ** stale check time ref
     const now = new Date().valueOf();
     if (typeof this.targetStyles !== 'undefined') {
-      if (id == this.focusId && this.targetStyles.focus) {
+      if (id === this.focusId && this.targetStyles.focus) {
         s = this.targetStyles.focus;
       } else if (
         setStale ||
@@ -353,7 +362,7 @@ export class SKVesselsLayerComponent implements OnInit, OnDestroy, OnChanges {
     } else if (this.layerProperties && this.layerProperties.style) {
       s = this.layerProperties.style;
     } else {
-      if (id == this.focusId) {
+      if (id === this.focusId) {
         s = new Style({
           image: new RegularShape({
             points: 3,
@@ -436,6 +445,7 @@ export class SKVesselsLayerComponent implements OnInit, OnDestroy, OnChanges {
     const ts = cs.getText();
     if (ts) {
       ts.setText(Math.abs(this.mapZoom) >= this.labelMinZoom ? text : '');
+      ts.setFill(new Fill({ color: this.theme.labelText.color }));
       cs.setText(ts);
     }
     return cs;

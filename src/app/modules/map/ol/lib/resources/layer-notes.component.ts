@@ -78,7 +78,7 @@ export class NoteLayerComponent implements OnInit, OnDestroy, OnChanges {
       const properties: { [index: string]: any } = {};
 
       for (const key in changes) {
-        if (key == 'notes') {
+        if (key === 'notes') {
           this.parseNotes(changes[key].currentValue);
           if (this.source) {
             this.source.clear();

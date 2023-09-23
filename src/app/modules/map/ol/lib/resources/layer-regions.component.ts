@@ -78,15 +78,15 @@ export class RegionLayerComponent implements OnInit, OnDestroy, OnChanges {
       const properties: { [index: string]: any } = {};
 
       for (const key in changes) {
-        if (key == 'regions') {
+        if (key === 'regions') {
           this.parseRegions(changes[key].currentValue);
           if (this.source) {
             this.source.clear();
             this.source.addFeatures(this.features);
           }
-        } else if (key == 'regionStyles') {
+        } else if (key === 'regionStyles') {
           // handle region style change
-        } else if (key == 'layerProperties') {
+        } else if (key === 'layerProperties') {
           this.layer.setProperties(properties, false);
         } else {
           properties[key] = changes[key].currentValue;
@@ -115,7 +115,7 @@ export class RegionLayerComponent implements OnInit, OnDestroy, OnChanges {
       );
       const f = new Feature({
         geometry:
-          regions[w].feature.geometry.type == 'MultiPolygon'
+          regions[w].feature.geometry.type === 'MultiPolygon'
             ? new MultiPolygon(c)
             : new Polygon(c),
         name: regions[w].name
@@ -130,7 +130,7 @@ export class RegionLayerComponent implements OnInit, OnDestroy, OnChanges {
   // ** mapify and transform MultiLineString coordinates
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   parseCoordinates(coords: Array<any>, geomType) {
-    if (geomType == 'MultiPolygon') {
+    if (geomType === 'MultiPolygon') {
       const multipoly = [];
       coords.forEach((mpoly) => {
         const lines = [];
@@ -140,7 +140,7 @@ export class RegionLayerComponent implements OnInit, OnDestroy, OnChanges {
         multipoly.push(lines);
       });
       return fromLonLatArray(multipoly);
-    } else if (geomType == 'Polygon') {
+    } else if (geomType === 'Polygon') {
       const lines = [];
       coords.forEach((line) => lines.push(mapifyCoords(line)));
       return fromLonLatArray(lines);
@@ -197,7 +197,7 @@ export class FreeboardRegionLayerComponent extends RegionLayerComponent {
       );
       const f = new Feature({
         geometry:
-          w[1].feature.geometry.type == 'MultiPolygon'
+          w[1].feature.geometry.type === 'MultiPolygon'
             ? new MultiPolygon(c)
             : new Polygon(c),
         name: w[1].name

@@ -634,6 +634,22 @@
                 <br />&nbsp;<br />
               </div>
 
+              <!-- Invert colors -->
+              <div>
+                <button
+                  mat-mini-fab
+                  [color]="app.config.map.invertColor ? 'warn' : 'accent'"
+                  (click)="invertAISTextColor()"
+                  matTooltip="Invert feature text color."
+                  matTooltipPosition="left"
+                >
+                  <mat-icon>{{
+                    true ? 'invert_colors' : 'invert_colors_off'
+                  }}</mat-icon>
+                </button>
+                <br />&nbsp;<br />
+              </div>
+
               <!-- Drop Waypoint button -->
               <div>
                 <button

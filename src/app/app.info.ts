@@ -25,6 +25,7 @@ import { SKVessel, SKChart, SKStreamProvider } from './modules';
 
 export interface PluginSettings {
   version: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   settings: { [key: string]: any };
 }
 
@@ -42,7 +43,8 @@ const FreeboardConfig = {
     moveMap: false,
     northUp: true,
     animate: false,
-    limitZoom: false
+    limitZoom: false,
+    invertColor: false
   },
   fixedLocationMode: false,
   fixedPosition: [0, 0],
@@ -185,9 +187,11 @@ export class AppInfo extends Info {
   public hostPort: number;
   public hostSSL: boolean;
   public host = '';
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   public hostParams: { [key: string]: any } = {};
 
   private fbAudioContext =
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     window.AudioContext || (window as any).webkitAudioContext;
   public audio = { context: new this.fbAudioContext() };
 
@@ -202,7 +206,7 @@ export class AppInfo extends Info {
   };
 
   get useMagnetic(): boolean {
-    return this.config.selections.headingAttribute ==
+    return this.config.selections.headingAttribute ===
       'navigation.headingMagnetic'
       ? true
       : false;
@@ -264,7 +268,7 @@ export class AppInfo extends Info {
     this.name = 'Freeboard-SK';
     this.shortName = 'Freeboard';
     this.description = `Signal K Chart Plotter.`;
-    this.version = '2.2.4';
+    this.version = '2.2.5';
     this.url = 'https://github.com/signalk/freeboard-sk';
     this.logo = './assets/img/app_logo.png';
 
@@ -590,6 +594,10 @@ export class AppInfo extends Info {
 
     if (typeof settings.map.limitZoom === 'undefined') {
       settings.map.limitZoom = false;
+    }
+
+    if (typeof settings.map.invertColor === 'undefined') {
+      settings.map.invertColor = false;
     }
 
     if (typeof settings.anchorRadius === 'undefined') {
