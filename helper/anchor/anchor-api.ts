@@ -22,25 +22,37 @@ export const initAnchorApi = async (app: FreeboardHelperApp) => {
   server.debug(`** initAnchorApi() **`);
 
   // detect signalk-anchor-alarm plugin
-  let port = 3000;
-  if (typeof server.config?.getExternalPort === 'function') {
-    server.debug('*** getExternalPort()', server.config.getExternalPort());
-    port = server.config.getExternalPort();
-  }
-  hostPath = `${server.config.ssl ? 'https' : 'http'}://localhost:${port}`;
-  const url = `${hostPath}/plugins`;
-  const r: Array<{ id: string }> = await fetch(url);
+  anchorPlugin.has = true;
+  
 
-  r.forEach(
-    (plugin: { id: string; version: string; data: { enabled: boolean } }) => {
-      if (plugin.id === 'anchoralarm') {
-        pluginPath = `/plugins/${plugin.id}`;
-        anchorPlugin.has = true;
-        anchorPlugin.version = plugin.version;
-        anchorPlugin.enabled = plugin.data.enabled;
-      }
+  try {
+    let port = 3000;
+    if (typeof server.config?.getExternalPort === 'function') {
+      server.debug('*** getExternalPort()', server.config.getExternalPort());
+      port = server.config.getExternalPort();
     }
-  );
+    hostPath = `${server.config.ssl ? 'https' : 'http'}://localhost:${port}`;
+
+    // temp patch for detection issue
+    pluginPath = `/plugins/anchoralarm`;
+    anchorPlugin.enabled = true;
+    /*
+    const url = `${hostPath}/plugins`;
+    const r: Array<{ id: string }> = await fetch(url);
+    r.forEach(
+      (plugin: { id: string; version: string; data: { enabled: boolean } }) => {
+        if (plugin.id === 'anchoralarm') {
+          pluginPath = `/plugins/${plugin.id}`;
+          anchorPlugin.has = true;
+          anchorPlugin.version = plugin.version;
+          anchorPlugin.enabled = plugin.data.enabled;
+        }
+      }
+    );*/
+  } catch (e) {
+    anchorPlugin.has = false;
+  }
+  
   server.debug('*** Anchor Alarm Plugin detected:', anchorPlugin.has);
   server.debug('*** Anchor Alarm Plugin enabled:', anchorPlugin.enabled);
   server.debug('*** Anchor Alarm Plugin API Path', `${hostPath}${pluginPath}`);
