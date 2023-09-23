@@ -1,5 +1,10 @@
 # CHANGELOG: Freeboard
 
+### v2.2.5
+
+- **Added**: Ability to toggle AIS label color between dark and light to improve visibility on satellite imagery.
+- **Fixed**: Authentication error on plugin startup on systems with security enabled.
+
 ### v2.2.4
 
 - **Fixed**: GPX Load errors caused by routes with no name and / or description causing validation errors.
