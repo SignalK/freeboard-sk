@@ -843,9 +843,9 @@ function processVessel(d: SKVessel, v, isSelf = false) {
     d.autopilot.state = v.value;
   } else if (v.path === 'steering.autopilot.mode') {
     d.autopilot.mode = v.value;
-  } /*else if (v.path === 'steering.autopilot.availableModes') {
-    d.autopilot.modeList = v.value;
-  }*/ else if (v.path === 'steering.autopilot.enabled') {
+  } else if (v.path === 'steering.autopilot.target') {
+    d.autopilot.target = v.value;
+  } else if (v.path === 'steering.autopilot.enabled') {
     d.autopilot.enabled = v.value;
   } else {
     d.properties[v.path] = v.value;

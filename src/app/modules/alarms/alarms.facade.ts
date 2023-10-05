@@ -2,7 +2,7 @@
  * ************************************/
 import { Injectable } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
-import { Subject, forkJoin, Observable } from 'rxjs';
+import { Subject, Observable } from 'rxjs';
 
 import { AppInfo } from 'src/app/app.info';
 import { SKResources } from 'src/app/modules';
@@ -46,7 +46,7 @@ export class AlarmsFacade {
 
     // ** SIGNAL K STREAM **
     this.stream.message$().subscribe((msg: NotificationMessage) => {
-      if (msg.action == 'notification') {
+      if (msg.action === 'notification') {
         this.processNotifications(msg);
       }
     });
@@ -73,9 +73,9 @@ export class AlarmsFacade {
       if (e.action === 'setRadius') {
         //send radius value only
         this.app.config.anchorRadius = e.radius;
-        this.signalk.api
-          .post(2, '/vessels/self/navigation/anchor/radius', {
-            value: e.radius
+        this.signalk
+          .post('/plugins/anchoralarm/setRadius', {
+            radius: e.radius
           })
           .subscribe(
             () => {
@@ -91,46 +91,42 @@ export class AlarmsFacade {
       } else if (e.action === 'drop') {
         // ** drop anchor
         this.app.config.anchorRadius = e.radius;
-        this.signalk.api
-          .post(2, '/vessels/self/navigation/anchor/drop', {})
-          .subscribe(
-            () => {
-              this.app.saveConfig();
-              this.signalk.api
-                .post(2, '/vessels/self/navigation/anchor/radius', {
-                  value: e.radius
-                })
-                .subscribe(
-                  () => {
-                    console.log('Radius Set: ', e.radius);
-                    resolve(true);
-                  },
-                  (err: HttpErrorResponse) => {
-                    this.parseAnchorError(err, 'radius');
-                    this.queryAnchorStatus(context, position);
-                    reject();
-                  }
-                );
-            },
-            (err: HttpErrorResponse) => {
-              this.parseAnchorError(err, 'drop');
-              this.queryAnchorStatus(context, position);
-              reject();
-            }
-          );
+        this.signalk.post('/plugins/anchoralarm/dropAnchor', {}).subscribe(
+          () => {
+            this.app.saveConfig();
+            this.signalk
+              .post('/plugins/anchoralarm/setRadius', {
+                radius: e.radius
+              })
+              .subscribe(
+                () => {
+                  console.log('Radius Set: ', e.radius);
+                  resolve(true);
+                },
+                (err: HttpErrorResponse) => {
+                  this.parseAnchorError(err, 'radius');
+                  this.queryAnchorStatus(context, position);
+                  reject();
+                }
+              );
+          },
+          (err: HttpErrorResponse) => {
+            this.parseAnchorError(err, 'drop');
+            this.queryAnchorStatus(context, position);
+            reject();
+          }
+        );
       } else if (e.action === 'raise') {
         // ** raise anchor
         this.app.data.alarms.delete('anchor');
-        this.signalk.api
-          .post(2, '/vessels/self/navigation/anchor/raise', {})
-          .subscribe(
-            () => resolve(true),
-            (err: HttpErrorResponse) => {
-              this.parseAnchorError(err, 'raise');
-              this.queryAnchorStatus(context, position);
-              reject();
-            }
-          );
+        this.signalk.post('/plugins/anchoralarm/raiseAnchor', {}).subscribe(
+          () => resolve(true),
+          (err: HttpErrorResponse) => {
+            this.parseAnchorError(err, 'raise');
+            this.queryAnchorStatus(context, position);
+            reject();
+          }
+        );
       }
     });
   }
@@ -176,7 +172,7 @@ export class AlarmsFacade {
       this.anchorSource.next({
         action: action,
         error: true,
-        result: e.error
+        result: e
       });
       return;
     }
@@ -197,8 +193,8 @@ export class AlarmsFacade {
   ) {
     if (
       r.position &&
-      typeof r.position.latitude == 'number' &&
-      typeof r.position.longitude == 'number'
+      typeof r.position.latitude === 'number' &&
+      typeof r.position.longitude === 'number'
     ) {
       this.app.data.anchor.position = [
         r.position.longitude,
@@ -212,7 +208,7 @@ export class AlarmsFacade {
       this.app.data.anchor.raised = true;
     }
 
-    if (typeof r.maxRadius == 'number') {
+    if (typeof r.maxRadius === 'number') {
       this.app.data.anchor.radius = r.maxRadius;
     }
 
@@ -252,7 +248,7 @@ export class AlarmsFacade {
     notification: SKNotification,
     initAcknowledged = false
   ) {
-    if (notification == null) {
+    if (notification === null) {
       // alarm cancelled
       this.alarms.delete(id);
       this.alarmSource.next(true);
@@ -262,7 +258,7 @@ export class AlarmsFacade {
     if (notification.state === 'normal') {
       // alarm returned to normal state
       if (alarm && alarm.acknowledged) {
-        if (id == 'depth') {
+        if (id === 'depth') {
           if (!alarm.isSmoothing) {
             alarm.isSmoothing = true;
           }
@@ -306,7 +302,7 @@ export class AlarmsFacade {
       case 'buddy':
         this.app.showMessage(
           msg.result.value.message,
-          msg.result.value.method.includes('sound') != -1 ? true : false,
+          msg.result.value.method.includes('sound') !== -1 ? true : false,
           5000
         );
         break;
@@ -337,7 +333,7 @@ export class AlarmsFacade {
           this.skres.coursePointIndex(this.app.data.navData.pointIndex + 1);
           this.app.showMessage(
             'Arrived: Advancing to next point.',
-            msg.result.value.method.includes('sound') != -1 ? true : false,
+            msg.result.value.method.includes('sound') !== -1 ? true : false,
             5000
           );
         }
@@ -354,7 +350,7 @@ export class AlarmsFacade {
     msg.result.value.method = ['visual']; // visual only!
     const vessel = msg.result.context;
     this.app.data.vessels.closest.id = vessel;
-    if (!vessel || msg.result.value.state == 'normal') {
+    if (!vessel || msg.result.value.state === 'normal') {
       this.app.data.vessels.closest = {
         id: null,
         distance: null,

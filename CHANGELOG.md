@@ -1,5 +1,9 @@
 # CHANGELOG: Freeboard
 
+### v2.2.6
+
+- **Fixed**: Issue where anchor watch could not be set when Signal K server had security enabled. _(Requires signalk-anchoralarm-plugin v1.13.0 or later)_
+
 ### v2.2.5
 
 - **Added**: Ability to toggle AIS label color between dark and light to improve visibility on satellite imagery.

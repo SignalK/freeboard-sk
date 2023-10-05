@@ -252,7 +252,7 @@ export class AppComponent {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       this.alarmsFacade.anchorStatus$().subscribe((r: any) => {
         if (r.error) {
-          if (r.result.statusCode === 401) {
+          if (r.result.status === 401) {
             this.showLogin();
           } else {
             this.app.showAlert('Anchor Watch:', r.result.message);

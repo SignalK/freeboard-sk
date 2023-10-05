@@ -6,7 +6,6 @@ import {
 import { IRouter, Application, Request, Response } from 'express';
 import { initAlarms } from './alarms/alarms';
 import { ActionResult } from './lib/types';
-import { initAnchorApi } from './anchor/anchor-api';
 
 import {
   WEATHER_SERVICES,
@@ -245,9 +244,6 @@ module.exports = (server: FreeboardHelperApp): OpenApiPlugin => {
       if (settings.pypilot.enable) {
         initPyPilot(server, plugin.id, settings.pypilot);
       }
-
-      // Anchor API facade
-      initAnchorApi(server);
 
       server.setPluginStatus(msg);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
