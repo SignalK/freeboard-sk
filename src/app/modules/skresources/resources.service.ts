@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import { moveItemInArray } from '@angular/cdk/drag-drop';
 import { HttpErrorResponse } from '@angular/common/http';
 import { MatDialog } from '@angular/material/dialog';
-import { forkJoin, of, Subject, Observable } from 'rxjs';
+import { forkJoin, of, Subject, Observable, from } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import ngeohash from 'ngeohash';
 
@@ -12,7 +12,7 @@ import { GeoUtils, Position } from 'src/app/lib/geoutils';
 import { Convert } from 'src/app/lib/convert';
 
 import { LoginDialog } from 'src/app/lib/components/dialogs';
-import { NoteDialog, RelatedNotesDialog } from './notes/notes.module';
+import { NoteDialog, RelatedNotesDialog } from './notes';
 import { ResourceDialog } from './resource-dialogs';
 import {
   SKChart,

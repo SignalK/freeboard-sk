@@ -103,6 +103,7 @@ import {
             id="targetarrivalenable"
             color="primary"
             labelPosition="before"
+            [hideIcon]="true"
             [(checked)]="targetArrivalEnabled"
             (change)="toggleTargetArrival($event)"
           >
@@ -188,6 +189,7 @@ import {
               id="autopilotenable"
               color="primary"
               labelPosition="before"
+              [hideIcon]="true"
               [disabled]="!hasAutoPilot"
               [checked]="app.data.vessels.self.autopilot.state === 'enabled'"
               (change)="onFormChange($event)"
@@ -200,7 +202,7 @@ import {
             <mat-label>Mode</mat-label>
             <mat-select
               id="autopilotmode"
-              [disabled]="hasAutoPilot"
+              [disabled]="!hasAutoPilot"
               [(value)]="app.data.vessels.self.autopilot.mode"
               (selectionChange)="onFormChange($event)"
             >
@@ -213,6 +215,21 @@ import {
                 {{ i }}
               </mat-option>
             </mat-select>
+          </mat-form-field>
+
+          <mat-form-field floatLabel="always">
+            <mat-label>Target (degrees)</mat-label>
+            <input
+              matInput
+              type="number"
+              min="0"
+              max="359"
+              step="1"
+              readonly
+              [value]="
+                formatTargetValue(app.data.vessels.self.autopilot.target)
+              "
+            />
           </mat-form-field>
         </div>
       </fieldset>
@@ -245,7 +262,7 @@ export class CourseSettingsModal implements OnInit {
     seconds: '00',
     datetime: null
   };
-  protected autoPilotModes = []; //this.app.data.vessels.self.autopilot.modeList
+  protected autoPilotModes = [];
   protected hasAutoPilot = false;
   private context = 'self';
   /*this.app.data.vessels.activeId
@@ -302,7 +319,7 @@ export class CourseSettingsModal implements OnInit {
       });
 
     this.signalk.api
-      .get(this.app.skApiVersion, 'vessels/self/steering/autopilot/config')
+      .get(this.app.skApiVersion, 'vessels/self/steering/autopilot')
       .subscribe(
         (val) => {
           console.log(val);
@@ -348,10 +365,10 @@ export class CourseSettingsModal implements OnInit {
     ) {
       this.processTargetArrival();
     }
-    if (e.target && e.target.id == 'arrivalCircle') {
+    if (e.target && e.target.id === 'arrivalCircle') {
       if (e.target.value !== '' && e.target.value !== null) {
         let d =
-          this.app.config.units.distance == 'm'
+          this.app.config.units.distance === 'm'
             ? Number(e.target.value)
             : Convert.nauticalMilesToKm(Number(e.target.value)) * 1000;
         d = d <= 0 ? null : d;
@@ -379,13 +396,14 @@ export class CourseSettingsModal implements OnInit {
       if (e.source.id === 'autopilotenable') {
         // toggle autopilot enable
         this.signalk.api
-          .putWithContext(
+          .post(
             this.app.skApiVersion,
-            this.context,
-            'steering/autopilot/state',
-            {
-              value: e.checked ? 'enabled' : 'disabled'
-            }
+            `vessels/self/${
+              e.checked
+                ? 'steering/autopilot/engage'
+                : 'steering/autopilot/disengage'
+            }`,
+            null
           )
           .subscribe(
             () => undefined,
@@ -470,6 +488,12 @@ export class CourseSettingsModal implements OnInit {
           }
         );
     }
+  }
+
+  formatTargetValue(value: number) {
+    if (value) {
+      return Convert.radiansToDegrees(value)?.toFixed(1);
+    } else return '--';
   }
 
   formatArrivalTime(): string {

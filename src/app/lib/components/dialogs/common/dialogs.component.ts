@@ -521,6 +521,10 @@ export class MessageBarComponent {
       .welcome h1 {
         font-weight: normal !important;
       }
+      .welcome h3 {
+        font-weight: normal;
+        font-weight: 300;
+      }
       .welcome-row {
         display: -webkit-box;
         display: -moz-box;

@@ -108,6 +108,7 @@
   <!-- Tracks -->
   <fb-tracks
     *ngIf="app.config.resources.paths.includes('tracks')"
+    [darkMode]="app.config.map.invertColor"
     [tracks]="dfeat.tracks"
     [labelMinZoom]="0"
     [mapZoom]="fbMap.zoomLevel"
@@ -132,6 +133,7 @@
   <div *ngFor="let resSet of app.data.resourceSets | keyvalue; let idx = index">
     <fb-resource-sets
       *ngIf="resSet.key != 'tracks'"
+      [darkMode]="app.config.map.invertColor"
       [resourceSets]="resSet.value"
       [selected]="app.config.selections.resourceSets[resSet.key]"
       [labelMinZoom]="10"
@@ -162,6 +164,7 @@
 
   <!-- Waypoints -->
   <fb-waypoints
+    [darkMode]="app.config.map.invertColor"
     [waypoints]="dfeat.waypoints"
     [waypointStyles]="featureStyles.waypoint"
     [activeWaypoint]="app.data.activeWaypoint"
@@ -174,6 +177,7 @@
   <!-- Signal K targets -->
   <!-- AtoN targets -->
   <sk-targets
+    [darkMode]="app.config.map.invertColor"
     [targets]="dfeat.atons"
     [targetStyles]="featureStyles.aton"
     targetType="aton"
@@ -187,6 +191,7 @@
 
   <!-- shore.basestations targets -->
   <sk-targets
+    [darkMode]="app.config.map.invertColor"
     [targets]="dfeat.atons"
     [targetStyles]="featureStyles.basestation"
     targetType="shore.basestations"
@@ -205,6 +210,7 @@
   >
     <sk-ais-vessels
       *ngSwitchCase="0"
+      [darkMode]="app.config.map.invertColor"
       [targets]="dfeat.ais"
       [targetStyles]="featureStyles.aisVessel"
       [mapZoom]="fbMap.zoomLevel"
@@ -226,6 +232,7 @@
   <!-- Aircraft targets -->
   <sk-targets
     *ngIf="app.config.aisTargets"
+    [darkMode]="app.config.map.invertColor"
     [targets]="dfeat.aircraft"
     [targetStyles]="featureStyles.aircraft"
     targetType="aircraft"
@@ -242,6 +249,7 @@
   <!-- SAR targets -->
   <sk-targets
     *ngIf="app.config.aisTargets"
+    [darkMode]="app.config.map.invertColor"
     [targets]="dfeat.sar"
     [targetStyles]="featureStyles.sar"
     targetType="sar"

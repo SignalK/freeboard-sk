@@ -20,6 +20,7 @@ import { fromLonLat } from 'ol/proj';
 import { MapComponent } from '../map.component';
 import { Extent } from '../models';
 import { AsyncSubject } from 'rxjs';
+import { LightTheme, DarkTheme } from '../themes';
 
 // ** Signal K targets  **
 @Component({
@@ -30,6 +31,7 @@ import { AsyncSubject } from 'rxjs';
 export class SKTargetsLayerComponent implements OnInit, OnDestroy, OnChanges {
   protected layer: Layer;
   public source: VectorSource;
+  protected theme = LightTheme;
 
   /**
    * This event is triggered after the layer is initialized
@@ -40,6 +42,7 @@ export class SKTargetsLayerComponent implements OnInit, OnDestroy, OnChanges {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   @Input() targets: Map<string, any> = new Map();
   @Input() targetStyles: { [key: string]: Style };
+  @Input() darkMode = false;
   @Input() targetType: string;
   @Input() inactiveTime = 180000; // in ms (3 mins)
   @Input() labelMinZoom = 10;
@@ -69,6 +72,7 @@ export class SKTargetsLayerComponent implements OnInit, OnDestroy, OnChanges {
       Object.assign(this, { ...this.layerProperties })
     );
     this.parseItems(this.extractKeys(this.targets));
+    this.theme = this.darkMode ? DarkTheme : LightTheme;
 
     const map = this.mapComponent.getMap();
     if (this.layer && map) {
@@ -84,7 +88,7 @@ export class SKTargetsLayerComponent implements OnInit, OnDestroy, OnChanges {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const properties: { [index: string]: any } = {};
       for (const key in changes) {
-        if (key == 'targets' && changes[key].firstChange) {
+        if (key === 'targets' && changes[key].firstChange) {
           if (!changes[key].currentValue) {
             return;
           }
@@ -93,19 +97,27 @@ export class SKTargetsLayerComponent implements OnInit, OnDestroy, OnChanges {
           }
           this.source.clear();
           this.parseItems(this.extractKeys(changes[key].currentValue));
-        } else if (key == 'updateIds') {
+        } else if (key === 'updateIds') {
           this.parseItems(changes[key].currentValue);
-        } else if (key == 'staleIds') {
+        } else if (key === 'staleIds') {
           this.parseItems(changes[key].currentValue, true);
-        } else if (key == 'removeIds') {
+        } else if (key === 'removeIds') {
           this.removeItems(changes[key].currentValue);
-        } else if (key == 'inactiveTime') {
+        } else if (key === 'inactiveTime') {
           this.parseItems(Object.keys(this.targets));
-        } else if (key == 'targetStyles' && !changes[key].firstChange) {
+        } else if (key === 'targetStyles' && !changes[key].firstChange) {
           this.parseItems(Object.keys(this.targets));
-        } else if (key == 'labelMinZoom' || key == 'mapZoom') {
+        } else if (
+          key === 'labelMinZoom' ||
+          key === 'mapZoom' ||
+          key === 'darkMode'
+        ) {
+          this.theme =
+            key === 'darkMode' && changes[key].currentValue
+              ? DarkTheme
+              : LightTheme;
           this.handleLabelZoomChange(key, changes[key]);
-        } else if (key == 'layerProperties') {
+        } else if (key === 'layerProperties') {
           this.layer.setProperties(properties, false);
         } else {
           properties[key] = changes[key].currentValue;
@@ -126,11 +138,11 @@ export class SKTargetsLayerComponent implements OnInit, OnDestroy, OnChanges {
 
   // ** assess attribute change **
   handleLabelZoomChange(key: string, change: SimpleChange) {
-    if (key == 'labelMinZoom') {
+    if (key === 'labelMinZoom') {
       if (typeof this.mapZoom !== 'undefined') {
         this.updateLabels();
       }
-    } else if (key == 'mapZoom') {
+    } else if (key === 'mapZoom') {
       if (typeof this.labelMinZoom !== 'undefined') {
         if (
           (change.currentValue >= this.labelMinZoom &&
@@ -141,6 +153,8 @@ export class SKTargetsLayerComponent implements OnInit, OnDestroy, OnChanges {
           this.updateLabels();
         }
       }
+    } else if (key === 'darkMode') {
+      this.updateLabels();
     }
   }
 
@@ -204,7 +218,7 @@ export class SKTargetsLayerComponent implements OnInit, OnDestroy, OnChanges {
       return;
     }
     ids.forEach((w) => {
-      if (this.targetType && w.indexOf(this.targetType) != 0) {
+      if (this.targetType && w.indexOf(this.targetType) !== 0) {
         return;
       }
       const f = this.source.getFeatureById(w);
@@ -269,6 +283,7 @@ export class SKTargetsLayerComponent implements OnInit, OnDestroy, OnChanges {
     const ts = cs.getText();
     if (ts) {
       ts.setText(Math.abs(this.mapZoom) >= this.labelMinZoom ? text : '');
+      ts.setFill(new Fill({ color: this.theme.labelText.color }));
       cs.setText(ts);
     }
     return cs;

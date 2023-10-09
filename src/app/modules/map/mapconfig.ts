@@ -227,12 +227,12 @@ export const atonStyles = {
   default: new Style({
     image: new RegularShape({
       points: 4, //(id.indexOf('basestation')!=-1) ? 3 : 4,
-      radius: 10,
+      radius: 7,
       stroke: new Stroke({
         color: `black`,
         width: 1
       }),
-      fill: new Fill({ color: 'transparent' }),
+      fill: new Fill({ color: 'purple' }),
       rotateWithView: false
     }),
     text: new Text({

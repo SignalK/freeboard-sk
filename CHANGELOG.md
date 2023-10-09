@@ -1,5 +1,27 @@
 # CHANGELOG: Freeboard
 
+### v2.2.6
+
+- **Fixed**: Issue where anchor watch could not be set when Signal K server had security enabled. _(Requires signalk-anchoralarm-plugin v1.13.0 or later)_
+
+### v2.2.5
+
+- **Added**: Ability to toggle AIS label color between dark and light to improve visibility on satellite imagery.
+- **Fixed**: Authentication error on plugin startup on systems with security enabled.
+
+### v2.2.4
+
+- **Fixed**: GPX Load errors caused by routes with no name and / or description causing validation errors.
+
+### v2.2.3
+
+- **Fixed**: Do not make "Fixed Location" mode the default.
+
+### v2.2.2
+
+- **Fixed**: Update Anchor Watch to use `signalk-anchor-alarm` REST API to resolve incorrect state being displayed.
+- **Fixed**: Switching to fixed location did not update map until a delta update had been parsed.
+
 ### v2.2.1
 
 - **Fixed**: Issue where waypoint was not centered on the screen when the center waypoint button was clicked from the entry in the waypoint list.

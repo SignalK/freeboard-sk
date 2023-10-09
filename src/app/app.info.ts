@@ -25,6 +25,7 @@ import { SKVessel, SKChart, SKStreamProvider } from './modules';
 
 export interface PluginSettings {
   version: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   settings: { [key: string]: any };
 }
 
@@ -42,9 +43,10 @@ const FreeboardConfig = {
     moveMap: false,
     northUp: true,
     animate: false,
-    limitZoom: false
+    limitZoom: false,
+    invertColor: false
   },
-  fixedLocationMode: true,
+  fixedLocationMode: false,
   fixedPosition: [0, 0],
   vesselTrail: false, // display trail
   vesselWindVectors: true, // display vessel TWD, AWD vectors
@@ -178,7 +180,7 @@ interface PluginInfo {
 @Injectable({ providedIn: 'root' })
 export class AppInfo extends Info {
   private DEV_SERVER = {
-    host: 'localhost', //'localhost', // host name || ip address
+    host: 'localhost', //'192.168.86.32', // host name || ip address
     port: 3000, // port number
     ssl: false
   };
@@ -193,9 +195,11 @@ export class AppInfo extends Info {
   public hostPort: number;
   public hostSSL: boolean;
   public host = '';
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   public hostParams: { [key: string]: any } = {};
 
   private fbAudioContext =
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     window.AudioContext || (window as any).webkitAudioContext;
   public audio = { context: new this.fbAudioContext() };
 
@@ -210,7 +214,7 @@ export class AppInfo extends Info {
   };
 
   get useMagnetic(): boolean {
-    return this.config.selections.headingAttribute ==
+    return this.config.selections.headingAttribute ===
       'navigation.headingMagnetic'
       ? true
       : false;
@@ -272,7 +276,7 @@ export class AppInfo extends Info {
     this.name = 'Freeboard-SK';
     this.shortName = 'Freeboard';
     this.description = `Signal K Chart Plotter.`;
-    this.version = '2.2.1';
+    this.version = '2.2.6';
     this.url = 'https://github.com/signalk/freeboard-sk';
     this.logo = './assets/img/app_logo.png';
 
@@ -600,6 +604,10 @@ export class AppInfo extends Info {
       settings.map.limitZoom = false;
     }
 
+    if (typeof settings.map.invertColor === 'undefined') {
+      settings.map.invertColor = false;
+    }
+
     if (typeof settings.anchorRadius === 'undefined') {
       settings.anchorRadius = 40;
     }
@@ -787,12 +795,10 @@ export class AppInfo extends Info {
                     notifications and more.`
       },
       'signalk-server-node': {
-        title: 'Node Server',
-        message: `When using the Node version of Signal K server you will need to
-                    ensure plugins are installed that can service the 
-                    required Signal K API paths:<br>
-                    e.g. <i>resources/routes, resources/waypoints, etc</i>.
-
+        title: 'Server Plugins',
+        message: `Some Freeboard features require that certain plugins are installed to service the 
+                    required Signal K API paths.
+                    <br>&nbsp;<br>
                     See <a href="assets/help/index.html" target="help">HELP</a> 
                     for more details.`
       },
@@ -812,7 +818,7 @@ export class AppInfo extends Info {
           type: 'signalk-server-node',
           title: 'Important!',
           message: `
-                        Freeboard-SK version 2 is for use with Signal K server v2 that implements both the
+                        Freeboard version 2 is for use with Signal K server v2 that implements both the
                         <b>Course API</b> and <b>Resources API</b>.
                         <br>&nbsp;<br>
                         Please review the <a href="https://github.com/SignalK/freeboard-sk/wiki/Signal-K---Freeboard-SK-Version-2" target="help">

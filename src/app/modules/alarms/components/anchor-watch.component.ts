@@ -4,12 +4,16 @@ import {
   Output,
   EventEmitter,
   ChangeDetectionStrategy,
-  SimpleChanges
+  SimpleChanges,
+  ViewChild,
+  ElementRef
 } from '@angular/core';
+
+import { AlarmsFacade } from '../alarms.facade';
 
 interface OutputMessage {
   radius: number | null;
-  raised: boolean;
+  action: 'drop' | 'raise' | 'setRadius' | undefined;
 }
 
 @Component({
@@ -29,18 +33,18 @@ export class AnchorWatchComponent {
   @Output() change: EventEmitter<OutputMessage> = new EventEmitter();
   @Output() closed: EventEmitter<OutputMessage> = new EventEmitter();
 
+  @ViewChild('slideCtl', { static: true }) slideCtl: ElementRef;
+
   bgImage: string;
   display = { sliderColor: 'primary' };
-  msg: OutputMessage = { radius: null, raised: true };
+  msg: OutputMessage = { radius: null, action: undefined };
 
-  //constructor() { }
+  constructor(private facade: AlarmsFacade) {}
 
   ngOnInit() {
     this.display.sliderColor = !this.raised ? 'warn' : 'primary';
     this.msg.radius = this.sliderValue;
   }
-
-  //ngAfterViewInit() { }
 
   ngOnChanges(changes: SimpleChanges) {
     this.display.sliderColor = !this.raised ? 'warn' : 'primary';
@@ -55,6 +59,7 @@ export class AnchorWatchComponent {
         ? './assets/img/anchor-radius-raised.png'
         : './assets/img/anchor-radius.png'
     }')`;
+    this.display.sliderColor = !this.raised ? 'warn' : 'primary';
   }
 
   setRadius(value: number) {
@@ -62,16 +67,23 @@ export class AnchorWatchComponent {
     console.log('converted:', this.feet ? this.ftToM(value) : value);
     this.msg.radius = this.feet ? this.ftToM(value) : value;
     if (!this.raised) {
-      this.msg.raised = null; // set radius change only
-      this.change.emit(this.msg);
+      this.msg.action = 'setRadius'; // set radius change only
+      //this.change.emit(this.msg);
+      this.facade.anchorEvent({
+        radius: this.msg.radius,
+        action: this.msg.action
+      });
     }
   }
 
-  dropAnchor(e: any) {
-    this.raised = !e.checked;
-    this.display.sliderColor = !this.raised ? 'warn' : 'primary';
-    this.msg.raised = this.raised;
-    this.change.emit(this.msg);
+  setAnchor(e: { checked: boolean }) {
+    this.msg.action = e.checked ? 'drop' : 'raise';
+    //this.change.emit(this.msg);
+    this.facade
+      .anchorEvent({ radius: this.msg.radius, action: this.msg.action })
+      .catch((err: Error) => {
+        (this.slideCtl as any).checked = !(this.slideCtl as any).checked;
+      });
   }
 
   close() {

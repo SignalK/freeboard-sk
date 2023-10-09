@@ -21,6 +21,7 @@ import { MapComponent } from '../map.component';
 import { Extent } from '../models';
 import { AsyncSubject } from 'rxjs';
 import { SKWaypoint } from 'src/app/modules';
+import { LightTheme, DarkTheme } from '../themes';
 
 // ** Signal K resource collection format **
 @Component({
@@ -32,6 +33,7 @@ export class WaypointLayerComponent implements OnInit, OnDestroy, OnChanges {
   protected layer: Layer;
   public source: VectorSource;
   protected features: Array<Feature>;
+  protected theme = LightTheme;
 
   /**
    * This event is triggered after the layer is initialized
@@ -43,6 +45,7 @@ export class WaypointLayerComponent implements OnInit, OnDestroy, OnChanges {
   @Input() waypoints: { [key: string]: any };
   @Input() waypointStyles: { [key: string]: Style };
   @Input() activeWaypoint: string;
+  @Input() darkMode = false;
   @Input() labelMinZoom = 10;
   @Input() mapZoom = 10;
   @Input() opacity: number;
@@ -68,6 +71,8 @@ export class WaypointLayerComponent implements OnInit, OnDestroy, OnChanges {
       Object.assign(this, { ...this.layerProperties })
     );
 
+    this.theme = this.darkMode ? DarkTheme : LightTheme;
+
     const map = this.mapComponent.getMap();
     if (this.layer && map) {
       map.addLayer(this.layer);
@@ -83,23 +88,31 @@ export class WaypointLayerComponent implements OnInit, OnDestroy, OnChanges {
       const properties: { [index: string]: any } = {};
 
       for (const key in changes) {
-        if (key == 'waypoints') {
+        if (key === 'waypoints') {
           this.parseWaypoints(changes[key].currentValue);
           if (this.source) {
             this.source.clear();
             this.source.addFeatures(this.features);
           }
-        } else if (key == 'waypointStyles') {
+        } else if (key === 'waypointStyles') {
           // handle waypoint style change
-        } else if (key == 'activeWaypoint') {
+        } else if (key === 'activeWaypoint') {
           this.parseWaypoints(this.waypoints);
           if (this.source) {
             this.source.clear();
             this.source.addFeatures(this.features);
           }
-        } else if (key == 'labelMinZoom' || key == 'mapZoom') {
+        } else if (
+          key === 'labelMinZoom' ||
+          key === 'mapZoom' ||
+          key === 'darkMode'
+        ) {
+          this.theme =
+            key === 'darkMode' && changes[key].currentValue
+              ? DarkTheme
+              : LightTheme;
           this.handleLabelZoomChange(key, changes[key]);
-        } else if (key == 'layerProperties') {
+        } else if (key === 'layerProperties') {
           this.layer.setProperties(properties, false);
         } else {
           properties[key] = changes[key].currentValue;
@@ -137,11 +150,11 @@ export class WaypointLayerComponent implements OnInit, OnDestroy, OnChanges {
 
   // ** assess attribute change **
   handleLabelZoomChange(key: string, change: SimpleChange) {
-    if (key == 'labelMinZoom') {
+    if (key === 'labelMinZoom') {
       if (typeof this.mapZoom !== 'undefined') {
         this.updateLabels();
       }
-    } else if (key == 'mapZoom') {
+    } else if (key === 'mapZoom') {
       if (typeof this.labelMinZoom !== 'undefined') {
         if (
           (change.currentValue >= this.labelMinZoom &&
@@ -152,6 +165,8 @@ export class WaypointLayerComponent implements OnInit, OnDestroy, OnChanges {
           this.updateLabels();
         }
       }
+    } else if (key === 'darkMode') {
+      this.updateLabels();
     }
   }
 
@@ -160,7 +175,7 @@ export class WaypointLayerComponent implements OnInit, OnDestroy, OnChanges {
   buildStyle(id: string, wpt: any): Style {
     if (typeof this.waypointStyles !== 'undefined') {
       if (
-        id == this.activeWaypoint &&
+        id === this.activeWaypoint &&
         typeof this.waypointStyles.active !== 'undefined'
       ) {
         return this.setTextLabel(this.waypointStyles.active, wpt.name);
@@ -177,7 +192,7 @@ export class WaypointLayerComponent implements OnInit, OnDestroy, OnChanges {
     } else {
       // default styles
       let s: Style;
-      if (id == this.activeWaypoint) {
+      if (id === this.activeWaypoint) {
         s = new Style({
           image: new Circle({
             radius: 5,
@@ -227,6 +242,7 @@ export class WaypointLayerComponent implements OnInit, OnDestroy, OnChanges {
     const ts = cs.getText();
     if (ts) {
       ts.setText(Math.abs(this.mapZoom) >= this.labelMinZoom ? text : '');
+      ts.setFill(new Fill({ color: this.theme.labelText.color }));
     }
     return cs;
   }

@@ -2,7 +2,7 @@
  * ************************************/
 import { Injectable } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
-import { Subject, forkJoin, Observable } from 'rxjs';
+import { Subject, Observable } from 'rxjs';
 
 import { AppInfo } from 'src/app/app.info';
 import { SKResources } from 'src/app/modules';
@@ -13,7 +13,7 @@ import { Position } from '../../lib/geoutils';
 
 interface IStatus {
   action: string;
-  error: boolean;
+  error: any;
   result: unknown;
 }
 
@@ -46,7 +46,7 @@ export class AlarmsFacade {
 
     // ** SIGNAL K STREAM **
     this.stream.message$().subscribe((msg: NotificationMessage) => {
-      if (msg.action == 'notification') {
+      if (msg.action === 'notification') {
         this.processNotifications(msg);
       }
     });
@@ -64,64 +64,71 @@ export class AlarmsFacade {
 
   // ******** ANCHOR WATCH EVENTS ************
   anchorEvent(
-    e: { radius: number; raised: boolean },
+    e: { radius: number; action: string },
     context?: string,
     position?: Position
   ) {
-    context = context ? context : 'self';
-    if (e.raised === null) {
-      //send radius value only
-      this.app.config.anchorRadius = e.radius;
-      this.signalk.api
-        .putWithContext(context, '/navigation/anchor/maxRadius', e.radius)
-        .subscribe(
+    return new Promise((resolve, reject) => {
+      context = context ? context : 'self';
+      if (e.action === 'setRadius') {
+        //send radius value only
+        this.app.config.anchorRadius = e.radius;
+        this.signalk
+          .post('/plugins/anchoralarm/setRadius', {
+            radius: e.radius
+          })
+          .subscribe(
+            () => {
+              this.app.saveConfig();
+              resolve(true);
+            },
+            (err: HttpErrorResponse) => {
+              this.parseAnchorError(err, 'radius');
+              this.queryAnchorStatus(context, position);
+              reject();
+            }
+          );
+      } else if (e.action === 'drop') {
+        // ** drop anchor
+        this.app.config.anchorRadius = e.radius;
+        this.signalk.post('/plugins/anchoralarm/dropAnchor', {}).subscribe(
           () => {
             this.app.saveConfig();
+            this.signalk
+              .post('/plugins/anchoralarm/setRadius', {
+                radius: e.radius
+              })
+              .subscribe(
+                () => {
+                  console.log('Radius Set: ', e.radius);
+                  resolve(true);
+                },
+                (err: HttpErrorResponse) => {
+                  this.parseAnchorError(err, 'radius');
+                  this.queryAnchorStatus(context, position);
+                  reject();
+                }
+              );
           },
           (err: HttpErrorResponse) => {
-            this.parseAnchorError(err, 'raise');
+            this.parseAnchorError(err, 'drop');
             this.queryAnchorStatus(context, position);
+            reject();
           }
         );
-    } else if (!e.raised) {
-      // ** drop anchor
-      this.app.config.anchorRadius = e.radius;
-      const aPosition = this.signalk.api.putWithContext(
-        context,
-        '/navigation/anchor/position',
-        {
-          latitude: position[1],
-          longitude: position[0]
-        }
-      );
-      const aRadius = this.signalk.api.putWithContext(
-        context,
-        '/navigation/anchor/maxRadius',
-        e.radius
-      );
-      const res = forkJoin([aPosition, aRadius]);
-      res.subscribe(
-        () => {
-          this.app.saveConfig();
-        },
-        (err: HttpErrorResponse) => {
-          this.parseAnchorError(err, 'drop');
-          this.queryAnchorStatus(context, position);
-        }
-      );
-    } else {
-      // ** raise anchor
-      this.app.data.alarms.delete('anchor');
-      this.signalk.api
-        .putWithContext(context, '/navigation/anchor/position', null)
-        .subscribe(
-          () => undefined,
+      } else if (e.action === 'raise') {
+        // ** raise anchor
+        this.app.data.alarms.delete('anchor');
+        this.signalk.post('/plugins/anchoralarm/raiseAnchor', {}).subscribe(
+          () => resolve(true),
           (err: HttpErrorResponse) => {
             this.parseAnchorError(err, 'raise');
             this.queryAnchorStatus(context, position);
+            reject();
           }
         );
-    }
+      }
+    });
   }
 
   // ** update anchor status from received vessel data**
@@ -165,14 +172,16 @@ export class AlarmsFacade {
       this.anchorSource.next({
         action: action,
         error: true,
-        result: e.status
+        result: e
       });
+      return;
     }
+
     if (e.status && e.status !== 200) {
       this.anchorSource.next({
         action: action,
         error: true,
-        result: e.status
+        result: e.error
       });
     }
   }
@@ -184,8 +193,8 @@ export class AlarmsFacade {
   ) {
     if (
       r.position &&
-      typeof r.position.latitude == 'number' &&
-      typeof r.position.longitude == 'number'
+      typeof r.position.latitude === 'number' &&
+      typeof r.position.longitude === 'number'
     ) {
       this.app.data.anchor.position = [
         r.position.longitude,
@@ -199,7 +208,7 @@ export class AlarmsFacade {
       this.app.data.anchor.raised = true;
     }
 
-    if (typeof r.maxRadius == 'number') {
+    if (typeof r.maxRadius === 'number') {
       this.app.data.anchor.radius = r.maxRadius;
     }
 
@@ -239,7 +248,7 @@ export class AlarmsFacade {
     notification: SKNotification,
     initAcknowledged = false
   ) {
-    if (notification == null) {
+    if (notification === null) {
       // alarm cancelled
       this.alarms.delete(id);
       this.alarmSource.next(true);
@@ -249,7 +258,7 @@ export class AlarmsFacade {
     if (notification.state === 'normal') {
       // alarm returned to normal state
       if (alarm && alarm.acknowledged) {
-        if (id == 'depth') {
+        if (id === 'depth') {
           if (!alarm.isSmoothing) {
             alarm.isSmoothing = true;
           }
@@ -293,7 +302,7 @@ export class AlarmsFacade {
       case 'buddy':
         this.app.showMessage(
           msg.result.value.message,
-          msg.result.value.method.includes('sound') != -1 ? true : false,
+          msg.result.value.method.includes('sound') !== -1 ? true : false,
           5000
         );
         break;
@@ -324,7 +333,7 @@ export class AlarmsFacade {
           this.skres.coursePointIndex(this.app.data.navData.pointIndex + 1);
           this.app.showMessage(
             'Arrived: Advancing to next point.',
-            msg.result.value.method.includes('sound') != -1 ? true : false,
+            msg.result.value.method.includes('sound') !== -1 ? true : false,
             5000
           );
         }
@@ -341,7 +350,7 @@ export class AlarmsFacade {
     msg.result.value.method = ['visual']; // visual only!
     const vessel = msg.result.context;
     this.app.data.vessels.closest.id = vessel;
-    if (!vessel || msg.result.value.state == 'normal') {
+    if (!vessel || msg.result.value.state === 'normal') {
       this.app.data.vessels.closest = {
         id: null,
         distance: null,

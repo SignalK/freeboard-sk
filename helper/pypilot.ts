@@ -1,7 +1,5 @@
 // **** Experiment: PyPilot integration ****
 
-//import { ServerAPI, ActionResult } from '@panaaj/sk-types'
-import { Plugin, PluginServerApp } from '@signalk/server-api';
 import { Request, Response } from 'express';
 import { FreeboardHelperApp } from '.';
 
@@ -20,7 +18,8 @@ const apData: any = {
   },
   state: null,
   mode: null,
-  target: null
+  target: null,
+  active: false
 };
 
 let server: FreeboardHelperApp;
@@ -57,42 +56,25 @@ export const closePyPilot = () => {
   if (socket) {
     socket.close();
   }
-  if (server) {
-    server.handleMessage(
-      pluginId,
-      {
-        updates: [
-          {
-            values: [
-              {
-                path: 'steering.autopilot.href',
-                value: null
-              }
-            ]
-          }
-        ]
-      },
-      'v2'
-    );
-  }
 };
 
 const initApiRoutes = () => {
   server.debug(`** Registering API endpoint(s): ${AUTOPILOT_API_PATH} **`);
-  server.get(`${AUTOPILOT_API_PATH}/config`, (req: Request, res: Response) => {
-    server.debug(`GET ${AUTOPILOT_API_PATH}/config`);
+
+  server.get(`${AUTOPILOT_API_PATH}`, (req: Request, res: Response) => {
+    server.debug(`${req.method} ${AUTOPILOT_API_PATH}`);
     res.status(200);
     res.json(apData);
   });
 
   server.get(`${AUTOPILOT_API_PATH}/state`, (req: Request, res: Response) => {
-    server.debug(`GET ${AUTOPILOT_API_PATH}/state`);
+    server.debug(`${req.method} ${AUTOPILOT_API_PATH}/state`);
     res.status(200);
     res.json(apData.state);
   });
 
   server.put(`${AUTOPILOT_API_PATH}/state`, (req: Request, res: Response) => {
-    server.debug(`PUT ${AUTOPILOT_API_PATH}/state`);
+    server.debug(`${req.method} ${AUTOPILOT_API_PATH}/state`);
 
     if (typeof req.body.value === 'undefined') {
       res.status(400).json({
@@ -117,13 +99,13 @@ const initApiRoutes = () => {
   });
 
   server.get(`${AUTOPILOT_API_PATH}/mode`, (req: Request, res: Response) => {
-    server.debug(`GET ${AUTOPILOT_API_PATH}/mode`);
+    server.debug(`${req.method} ${AUTOPILOT_API_PATH}/mode`);
     res.status(200);
     res.json(apData.mode);
   });
 
   server.put(`${AUTOPILOT_API_PATH}/mode`, (req: Request, res: Response) => {
-    server.debug(`PUT ${AUTOPILOT_API_PATH}/mode`);
+    server.debug(`${req.method} ${AUTOPILOT_API_PATH}/mode`);
 
     if (typeof req.body.value === 'undefined') {
       res.status(400).json({
@@ -146,6 +128,119 @@ const initApiRoutes = () => {
     const r = sendToPyPilot('mode', req.body.value);
     res.status(r.statusCode).json(r);
   });
+
+  server.put(`${AUTOPILOT_API_PATH}/target`, (req: Request, res: Response) => {
+    server.debug(`${req.method} ${AUTOPILOT_API_PATH}/target`);
+
+    if (typeof req.body.value !== 'number') {
+      res.status(400).json({
+        state: 'FAILED',
+        statusCode: 400,
+        message: `Error: Invalid value supplied!`
+      });
+      return;
+    }
+
+    let deg = req.body.value * (180 / Math.PI);
+    if (deg > 359) {
+      deg = 359;
+    } else if (deg < -179) {
+      deg = -179;
+    }
+
+    const r = sendToPyPilot('target', deg);
+    res.status(r.statusCode).json(r);
+  });
+
+  server.put(
+    `${AUTOPILOT_API_PATH}/target/adjust`,
+    (req: Request, res: Response) => {
+      server.debug(`${req.method} ${AUTOPILOT_API_PATH}/target/adjust`);
+
+      if (typeof req.body.value !== 'number') {
+        res.status(400).json({
+          state: 'FAILED',
+          statusCode: 400,
+          message: `Error: Invalid value supplied!`
+        });
+        return;
+      }
+
+      const v = req.body.value * (180 / Math.PI);
+      let deg = apData.target + v;
+      if (deg > 359) {
+        deg = 359;
+      } else if (deg < -179) {
+        deg = -179;
+      }
+
+      const r = sendToPyPilot('target', deg);
+      res.status(r.statusCode).json(r);
+    }
+  );
+
+  server.post(`${AUTOPILOT_API_PATH}/engage`, (req: Request, res: Response) => {
+    server.debug(`${req.method} ${AUTOPILOT_API_PATH}/engage`);
+
+    const r = sendToPyPilot('state', 'enabled');
+    res.status(r.statusCode).json(r);
+  });
+
+  server.post(
+    `${AUTOPILOT_API_PATH}/disengage`,
+    (req: Request, res: Response) => {
+      server.debug(`${req.method} ${AUTOPILOT_API_PATH}/disengage`);
+
+      const r = sendToPyPilot('state', 'disabled');
+      res.status(r.statusCode).json(r);
+    }
+  );
+
+  server.post(
+    `${AUTOPILOT_API_PATH}/tack/port`,
+    (req: Request, res: Response) => {
+      server.debug(`${req.method} ${AUTOPILOT_API_PATH}/tack/port`);
+
+      const r = sendToPyPilot('tack', 'port');
+      res.status(r.statusCode).json(r);
+    }
+  );
+
+  server.post(
+    `${AUTOPILOT_API_PATH}/tack/starboard`,
+    (req: Request, res: Response) => {
+      server.debug(`${req.method} ${AUTOPILOT_API_PATH}/tack/starboard`);
+
+      const r = sendToPyPilot('tack', 'starboard');
+      res.status(r.statusCode).json(r);
+    }
+  );
+
+  server.post(
+    `${AUTOPILOT_API_PATH}/gybe/port`,
+    (req: Request, res: Response) => {
+      server.debug(`${req.method} ${AUTOPILOT_API_PATH}/gybe/port`);
+
+      res.status(501).json({
+        state: 'COMPLETED',
+        statusCode: 501,
+        message: 'Not implemented!'
+      });
+    }
+  );
+
+  server.post(
+    `${AUTOPILOT_API_PATH}/gybe/starboard`,
+    (req: Request, res: Response) => {
+      server.debug(`${req.method} ${AUTOPILOT_API_PATH}/gybe/starboard`);
+
+      res.status(501).json({
+        state: 'COMPLETED',
+        statusCode: 501,
+        message: 'Not implemented!'
+      });
+    }
+  );
 };
 
 // PyPilot socket event listeners
@@ -165,24 +260,6 @@ const initPyPilotListeners = () => {
       socket.emit('pypilot', `watch={"ap.enabled": ${JSON.stringify(period)}}`);
       socket.emit('pypilot', `watch={"ap.mode": ${JSON.stringify(period)}}`);
     }, 1000);
-
-    // flag pypilot as active pilot
-    server.handleMessage(
-      pluginId,
-      {
-        updates: [
-          {
-            values: [
-              {
-                path: 'steering.autopilot.href',
-                value: `./pypilot`
-              }
-            ]
-          }
-        ]
-      },
-      'v2'
-    );
   });
 
   socket.on('connect_error', () => {
@@ -202,7 +279,7 @@ const initPyPilotListeners = () => {
 };
 
 // Send values to pypilot
-const sendToPyPilot = (command: string, value: any) => {
+const sendToPyPilot = (command: string, value: string | number | boolean) => {
   server.debug(`command: ${command} = ${value}`);
   let mode = '';
 
@@ -261,7 +338,7 @@ const handlePyPilotUpdateMsg = (data: any) => {
       data['ap.heading_command'] === false ? null : data['ap.heading_command'];
     if (heading !== apData.heading_command) {
       apData.target = heading;
-      emitAPDelta('target', (Math.PI / 180) * apData.heading_command);
+      emitAPDelta('target', (Math.PI / 180) * apData.target);
     }
   }
 
@@ -276,6 +353,7 @@ const handlePyPilotUpdateMsg = (data: any) => {
   if (typeof data['ap.enabled'] !== 'undefined') {
     if (data['ap.enabled'] !== apData.state) {
       apData.state = data['ap.enabled'] ? 'enabled' : 'disabled';
+      apData.active = apData.state === 'enabled' ? true : false;
       emitAPDelta('state', apData.state);
     }
   }

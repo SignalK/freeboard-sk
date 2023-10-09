@@ -121,8 +121,8 @@ export interface FreeboardHelperApp
     PluginServerApp,
     ResourceProviderRegistry {
   statusMessage?: () => string;
-  error: (msg: string) => void;
-  debug: (msg: string) => void;
+  error: (...msg: any) => void;
+  debug: (...msg: any) => void;
   setPluginStatus: (pluginId: string, status?: string) => void;
   setPluginError: (pluginId: string, status?: string) => void;
   setProviderStatus: (providerId: string, status?: string) => void;
@@ -130,7 +130,12 @@ export interface FreeboardHelperApp
   getSelfPath: (path: string) => void;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   savePluginOptions: (options: any, callback: () => void) => void;
-  config: { configPath: string };
+  config: {
+    ssl: boolean;
+    configPath: string;
+    version: string;
+    getExternalPort: () => number;
+  };
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   handleMessage: (id: string | null, msg: any, version?: string) => void;

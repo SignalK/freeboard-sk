@@ -7,5 +7,9 @@
     "extends": [
         "eslint:recommended",
         "plugin:@typescript-eslint/recommended"
-    ]
+    ],
+    "rules": {
+        // Override our default settings just for this directory
+        "eqeqeq": "warn"
+    }
 }

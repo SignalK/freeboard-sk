@@ -14,13 +14,14 @@ import { Layer } from 'ol/layer';
 import { Feature } from 'ol';
 import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
-import { Style, Text, Stroke } from 'ol/style';
+import { Style, Text, Stroke, Fill } from 'ol/style';
 import { MultiLineString } from 'ol/geom';
 import { MapComponent } from '../map.component';
 import { Extent } from '../models';
 import { fromLonLatArray, mapifyCoords } from '../util';
 import { AsyncSubject } from 'rxjs';
 import { SKTrack } from 'src/app/modules';
+import { LightTheme, DarkTheme } from '../themes';
 
 // ** Freeboard Track resources collection format **
 @Component({
@@ -32,6 +33,7 @@ export class TrackLayerComponent implements OnInit, OnDestroy, OnChanges {
   protected layer: Layer;
   public source: VectorSource;
   protected features: Array<Feature>;
+  protected theme = LightTheme;
 
   /**
    * This event is triggered after the layer is initialized
@@ -41,6 +43,7 @@ export class TrackLayerComponent implements OnInit, OnDestroy, OnChanges {
 
   @Input() tracks: Array<{ [key: string]: SKTrack }>;
   @Input() trackStyles: { [key: string]: Style };
+  @Input() darkMode = false;
   @Input() labelMinZoom = 10;
   @Input() mapZoom = 10;
   @Input() opacity: number;
@@ -65,6 +68,7 @@ export class TrackLayerComponent implements OnInit, OnDestroy, OnChanges {
     this.layer = new VectorLayer(
       Object.assign(this, { ...this.layerProperties })
     );
+    this.theme = this.darkMode ? DarkTheme : LightTheme;
 
     const map = this.mapComponent.getMap();
     if (this.layer && map) {
@@ -81,17 +85,25 @@ export class TrackLayerComponent implements OnInit, OnDestroy, OnChanges {
       const properties: { [index: string]: any } = {};
 
       for (const key in changes) {
-        if (key == 'tracks') {
+        if (key === 'tracks') {
           this.parseTracks(changes[key].currentValue);
           if (this.source) {
             this.source.clear();
             this.source.addFeatures(this.features);
           }
-        } else if (key == 'trackStyles') {
+        } else if (key === 'trackStyles') {
           // handle track style change
-        } else if (key == 'labelMinZoom' || key == 'mapZoom') {
+        } else if (
+          key === 'labelMinZoom' ||
+          key === 'mapZoom' ||
+          key === 'darkMode'
+        ) {
+          this.theme =
+            key === 'darkMode' && changes[key].currentValue
+              ? DarkTheme
+              : LightTheme;
           this.handleLabelZoomChange(key, changes[key]);
-        } else if (key == 'layerProperties') {
+        } else if (key === 'layerProperties') {
           this.layer.setProperties(properties, false);
         } else {
           properties[key] = changes[key].currentValue;
@@ -129,11 +141,11 @@ export class TrackLayerComponent implements OnInit, OnDestroy, OnChanges {
 
   // ** assess attribute change **
   handleLabelZoomChange(key: string, change: SimpleChange) {
-    if (key == 'labelMinZoom') {
+    if (key === 'labelMinZoom') {
       if (typeof this.mapZoom !== 'undefined') {
         this.updateLabels();
       }
-    } else if (key == 'mapZoom') {
+    } else if (key === 'mapZoom') {
       if (typeof this.labelMinZoom !== 'undefined') {
         if (
           (change.currentValue >= this.labelMinZoom &&
@@ -144,6 +156,8 @@ export class TrackLayerComponent implements OnInit, OnDestroy, OnChanges {
           this.updateLabels();
         }
       }
+    } else if (key === 'darkMode') {
+      this.updateLabels();
     }
   }
 
@@ -203,6 +217,7 @@ export class TrackLayerComponent implements OnInit, OnDestroy, OnChanges {
         offsetY: -12
       })
     );
+    cs.setFill(new Fill({ color: this.theme.labelText.color }));
     return cs;
   }
 

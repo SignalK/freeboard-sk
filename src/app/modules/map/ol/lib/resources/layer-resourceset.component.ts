@@ -29,6 +29,7 @@ import { Extent } from '../models';
 import { fromLonLatArray } from '../util';
 import { AsyncSubject } from 'rxjs';
 import { SKResourceSet } from 'src/app/modules';
+import { LightTheme, DarkTheme } from '../themes';
 
 // ** Signal K resource collection format **
 @Component({
@@ -40,13 +41,14 @@ export class ResourceSetLayerComponent implements OnInit, OnDestroy, OnChanges {
   protected layer: Layer;
   public source: VectorSource;
   protected features: Array<Feature>;
+  protected theme = LightTheme;
 
   /**
    * This event is triggered after the layer is initialized
    * Use this to have access to the layer and some helper functions
    */
   @Output() layerReady: AsyncSubject<Layer> = new AsyncSubject(); // AsyncSubject will only store the last value, and only publish it when the sequence is completed
-
+  @Input() darkMode = false;
   @Input() resourceSets: Array<SKResourceSet> = [];
   @Input() selected: Array<string> = [];
   @Input() labelMinZoom = 10;
@@ -74,6 +76,8 @@ export class ResourceSetLayerComponent implements OnInit, OnDestroy, OnChanges {
       Object.assign(this, { ...this.layerProperties })
     );
 
+    this.theme = this.darkMode ? DarkTheme : LightTheme;
+
     const map = this.mapComponent.getMap();
     if (this.layer && map) {
       map.addLayer(this.layer);
@@ -88,15 +92,23 @@ export class ResourceSetLayerComponent implements OnInit, OnDestroy, OnChanges {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const properties: { [index: string]: any } = {};
       for (const key in changes) {
-        if (key == 'resourceSets') {
+        if (key === 'resourceSets') {
           this.parseResourceSets(changes[key].currentValue);
           if (this.source) {
             this.source.clear();
             this.source.addFeatures(this.features);
           }
-        } else if (key == 'labelMinZoom' || key == 'mapZoom') {
+        } else if (
+          key === 'labelMinZoom' ||
+          key === 'mapZoom' ||
+          key === 'darkMode'
+        ) {
+          this.theme =
+            key === 'darkMode' && changes[key].currentValue
+              ? DarkTheme
+              : LightTheme;
           this.handleLabelZoomChange(key, changes[key]);
-        } else if (key == 'layerProperties') {
+        } else if (key === 'layerProperties') {
           this.layer.setProperties(properties, false);
         } else {
           properties[key] = changes[key].currentValue;
@@ -131,35 +143,35 @@ export class ResourceSetLayerComponent implements OnInit, OnDestroy, OnChanges {
     const fa: Feature[] = [];
     for (const w of rSet.values.features) {
       let f: Feature;
-      if (w.geometry.type == 'Point') {
+      if (w.geometry.type === 'Point') {
         f = new Feature({
           geometry: new Point(fromLonLat(w.geometry.coordinates)),
           name: w.properties.name
         });
       }
-      if (w.geometry.type == 'MultiPoint') {
+      if (w.geometry.type === 'MultiPoint') {
         f = new Feature({
           geometry: new MultiPoint(fromLonLatArray(w.geometry.coordinates)),
           name: w.properties.name
         });
-      } else if (w.geometry.type == 'LineString') {
+      } else if (w.geometry.type === 'LineString') {
         f = new Feature({
           geometry: new LineString(fromLonLatArray(w.geometry.coordinates)),
           name: w.properties.name
         });
-      } else if (w.geometry.type == 'MultiLineString') {
+      } else if (w.geometry.type === 'MultiLineString') {
         f = new Feature({
           geometry: new MultiLineString(
             fromLonLatArray(w.geometry.coordinates)
           ),
           name: w.properties.name
         });
-      } else if (w.geometry.type == 'Polygon') {
+      } else if (w.geometry.type === 'Polygon') {
         f = new Feature({
           geometry: new Polygon(fromLonLatArray(w.geometry.coordinates)),
           name: w.properties.name
         });
-      } else if (w.geometry.type == 'MultiPolygon') {
+      } else if (w.geometry.type === 'MultiPolygon') {
         f = new Feature({
           geometry: new MultiPolygon(fromLonLatArray(w.geometry.coordinates)),
           name: w.properties.name
@@ -190,11 +202,11 @@ export class ResourceSetLayerComponent implements OnInit, OnDestroy, OnChanges {
 
   // ** assess attribute change **
   handleLabelZoomChange(key: string, change: SimpleChange) {
-    if (key == 'labelMinZoom') {
+    if (key === 'labelMinZoom') {
       if (typeof this.mapZoom !== 'undefined') {
         this.updateLabels();
       }
-    } else if (key == 'mapZoom') {
+    } else if (key === 'mapZoom') {
       if (typeof this.labelMinZoom !== 'undefined') {
         if (
           (change.currentValue >= this.labelMinZoom &&
@@ -205,6 +217,8 @@ export class ResourceSetLayerComponent implements OnInit, OnDestroy, OnChanges {
           this.updateLabels();
         }
       }
+    } else if (key === 'darkMode') {
+      this.updateLabels();
     }
   }
 
@@ -227,6 +241,7 @@ export class ResourceSetLayerComponent implements OnInit, OnDestroy, OnChanges {
         offsetY: -12
       })
     );
+    cs.setFill(new Fill({ color: this.theme.labelText.color }));
     return cs;
   }
 

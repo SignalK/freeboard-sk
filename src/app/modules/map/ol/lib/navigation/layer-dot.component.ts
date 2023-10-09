@@ -91,7 +91,7 @@ export class DirectionOfTravelComponent
           }
         } else if (key === 'mapZoom') {
           this.handleLabelZoomChange(key);
-        } else if (key == 'layerProperties') {
+        } else if (key === 'layerProperties') {
           this.layer.setProperties(properties, false);
         } else {
           properties[key] = changes[key].currentValue;
@@ -179,11 +179,11 @@ export class DirectionOfTravelComponent
 
   // ** assess attribute change **
   handleLabelZoomChange(key: string) {
-    if (key == 'labelMinZoom') {
+    if (key === 'labelMinZoom') {
       if (typeof this.mapZoom !== 'undefined') {
         //this.updateLabel();
       }
-    } else if (key == 'mapZoom') {
+    } else if (key === 'mapZoom') {
       /*if (typeof this.labelMinZoom !== 'undefined') {
         if (
           (change.currentValue >= this.labelMinZoom &&

@@ -225,6 +225,11 @@ export class SKStreamFacade {
     }
   }
 
+  // ** trigger vessels$ event
+  emitVesselsUpdate() {
+    this.vesselsUpdate.next();
+  }
+
   // ** parse delta message and update Vessel Data -> vesselsUpdate.next()
   private parseUpdate(msg: NotificationMessage | UpdateMessage) {
     if (msg.action === 'update') {
