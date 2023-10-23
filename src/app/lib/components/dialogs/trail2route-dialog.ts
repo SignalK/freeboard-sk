@@ -51,6 +51,7 @@ import { AppInfo } from 'src/app/app.info';
   ]
 })
 export class Trail2RouteDialog implements OnInit {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   rteFromTrail: any[];
   mapCenter = [0, 0];
   pointCount = 0;
@@ -61,8 +62,10 @@ export class Trail2RouteDialog implements OnInit {
 
   mapControls = [{ name: 'zoom' }];
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private obsList: Array<any> = [];
   private fetching = false;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private serverCoords: Array<any> = [];
 
   constructor(
@@ -70,6 +73,7 @@ export class Trail2RouteDialog implements OnInit {
     protected app: AppInfo,
     private stream: SKStreamFacade,
     public dialogRef: MatDialogRef<Trail2RouteDialog>,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     @Inject(MAT_DIALOG_DATA) public data: any
   ) {}
 
@@ -132,9 +136,11 @@ export class Trail2RouteDialog implements OnInit {
   }
 
   // get server trail event handler
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   onServerResource(value: any) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let serverTrail: Array<any> = [];
-    if (this.fetching && value.action == 'get' && value.mode == 'trail') {
+    if (this.fetching && value.action === 'get' && value.mode === 'trail') {
       this.fetching = false;
       serverTrail = value.data;
       this.serverCoords = [];

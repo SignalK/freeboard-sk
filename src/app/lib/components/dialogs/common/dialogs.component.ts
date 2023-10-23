@@ -398,7 +398,7 @@ export class LoginDialog implements OnInit {
   }
 
   keyUp(e, u, p) {
-    if (e.key == 'Enter') {
+    if (e.key === 'Enter') {
       this.login(u.value, p.value);
     }
   }

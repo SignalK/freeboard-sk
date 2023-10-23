@@ -1,3 +1,4 @@
+export * from './autopilot.component';
 export * from './course-settings';
 export * from './dial-text';
 export * from './file-input.component';

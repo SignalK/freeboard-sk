@@ -116,6 +116,7 @@ export class NoteDialog implements OnInit {
   constructor(
     public app: AppInfo,
     public dialogRef: MatDialogRef<NoteDialog>,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     @Inject(MAT_DIALOG_DATA) public data: any
   ) {}
 

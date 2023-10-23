@@ -484,6 +484,24 @@ export class AppComponent {
       .subscribe(
         () => {
           this.signalk.authToken = this.app.getToken();
+
+          this.signalk.getLoginStatus().subscribe((r) => {
+            this.app.data.loginRequired = r.authenticationRequired ?? false;
+            this.app.data.loggedIn = r.status === 'loggedIn' ? true : false;
+            // ** Request using cached auth token and display badge
+            this.signalk.get('/plugins/freeboard-sk').subscribe(
+              () => {
+                this.app.debug('User Authenticated');
+                this.display.badge.hide = true;
+              },
+              (err: HttpErrorResponse) => {
+                if (err.status === 401) {
+                  this.display.badge.hide = false;
+                }
+              }
+            );
+          });
+
           this.app.loadSettingsfromServer().subscribe((r) => {
             const msg = r
               ? 'Settings loaded from server.'
@@ -493,6 +511,8 @@ export class AppComponent {
               this.skres.alignResourceSelections();
             }
           });
+
+          this.getFeatures();
           this.app.data.server = this.signalk.server.info;
           this.openSKStream();
         },
@@ -506,6 +526,21 @@ export class AppComponent {
             .subscribe(() => {
               this.connectSignalKServer();
             });
+        }
+      );
+  }
+
+  // ** discover server features **
+  private getFeatures() {
+    // check for Autopilot API
+    this.signalk.api
+      .get(this.app.skApiVersion, 'vessels/self/steering/autopilot')
+      .subscribe(
+        () => {
+          this.app.data.autopilot.hasApi = true;
+        },
+        () => {
+          this.app.data.autopilot.hasApi = false;
         }
       );
   }
@@ -893,6 +928,7 @@ export class AppComponent {
           this.signalk.login(res.user, res.pwd).subscribe(
             (r) => {
               // ** authenticated
+              this.display.badge.hide = true;
               this.app.persistToken(r['token']);
               this.app.loadSettingsfromServer().subscribe((r) => {
                 const msg = r
@@ -914,6 +950,7 @@ export class AppComponent {
               this.app.persistToken(null);
               this.signalk.isLoggedIn().subscribe((r) => {
                 this.app.data.loggedIn = r;
+                this.display.badge.hide = r;
               });
               if (onConnect) {
                 this.app
@@ -945,6 +982,7 @@ export class AppComponent {
           this.app.data.hasToken = false; // show login menu item
           this.signalk.isLoggedIn().subscribe((r) => {
             this.app.data.loggedIn = r;
+            this.display.badge.hide = r;
           });
           if (onConnect) {
             this.showLogin(null, false, true);
@@ -1192,6 +1230,8 @@ export class AppComponent {
           .afterDismissed()
           .subscribe(() => this.focusMap());
       }
+    } else if (e.type === 'alarm') {
+      this.openAlarmsDialog();
     } else {
       v =
         e.type === 'self'
@@ -1511,16 +1551,6 @@ export class AppComponent {
         'The connected Signal K server is not supported by this version of Freeboard-SK.\n Signal K server version 2 or later is required!'
       );
     }
-    // ** get login status
-    this.signalk.getLoginStatus().subscribe((r) => {
-      this.app.data.loginRequired = r.authenticationRequired ?? false;
-    });
-    this.signalk.isLoggedIn().subscribe((r) => {
-      this.app.data.loggedIn = r;
-    });
-    // ** get vessel details
-    //const context= (this.app.data.vessels.activeId) ?
-    //    this.app.data.vessels.activeId.split('.').join('/') : 'vessels/self';
     this.signalk.api.getSelf().subscribe(
       (r) => {
         this.stream.post({
@@ -1653,7 +1683,7 @@ export class AppComponent {
 
     //autopilot
     if (this.app.data.vessels.self.autopilot.enabled) {
-      this.display.navDataPanel.apModeColor = '';
+      this.display.navDataPanel.apModeColor = 'primary';
     } else {
       this.display.navDataPanel.apModeColor = '';
     }

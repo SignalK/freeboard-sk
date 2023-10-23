@@ -13,21 +13,20 @@ import { Layer } from 'ol/layer';
 import { Feature } from 'ol';
 import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
-import { Style, Stroke, Fill, Circle } from 'ol/style';
-import { LineString, Point } from 'ol/geom';
+import { Style, Stroke, Fill, RegularShape } from 'ol/style';
+import { Point } from 'ol/geom';
 import { fromLonLat } from 'ol/proj';
 import { MapComponent } from '../map.component';
 import { Extent, Coordinate } from '../models';
-import { fromLonLatArray, mapifyCoords } from '../util';
 import { AsyncSubject } from 'rxjs';
 
-// ** Freeboard CPA Alarm component **
+// ** Freeboard Notification Alarm component **
 @Component({
-  selector: 'ol-map > fb-cpa-alarm',
+  selector: 'ol-map > fb-alarm',
   template: '<ng-content></ng-content>',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class CPAAlarmComponent implements OnInit, OnDestroy, OnChanges {
+export class AlarmComponent implements OnInit, OnDestroy, OnChanges {
   protected layer: Layer;
   public source: VectorSource;
   protected features: Array<Feature>;
@@ -38,8 +37,10 @@ export class CPAAlarmComponent implements OnInit, OnDestroy, OnChanges {
    */
   @Output() layerReady: AsyncSubject<Layer> = new AsyncSubject(); // AsyncSubject will only store the last value, and only publish it when the sequence is completed
 
-  @Input() targetPosition: Coordinate;
-  @Input() lineCoords: Array<Coordinate>;
+  @Input() position: Coordinate;
+  @Input() alarmType: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  @Input() alarmStyles: { [key: string]: any };
   @Input() opacity: number;
   @Input() visible: boolean;
   @Input() extent: Extent;
@@ -48,8 +49,6 @@ export class CPAAlarmComponent implements OnInit, OnDestroy, OnChanges {
   @Input() maxResolution: number;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   @Input() layerProperties: { [index: string]: any };
-
-  public mapifiedLine: Array<Coordinate> = [];
 
   constructor(
     protected changeDetectorRef: ChangeDetectorRef,
@@ -80,7 +79,7 @@ export class CPAAlarmComponent implements OnInit, OnDestroy, OnChanges {
       const properties: { [index: string]: any } = {};
 
       for (const key in changes) {
-        if (key === 'targetPosition' || key === 'lineCoords') {
+        if (key === 'position' || key === 'alarmType') {
           this.parseValues();
           if (this.source) {
             this.source.clear();
@@ -106,50 +105,39 @@ export class CPAAlarmComponent implements OnInit, OnDestroy, OnChanges {
   }
 
   parseValues() {
-    this.mapifiedLine = mapifyCoords(this.lineCoords);
     const fa: Feature[] = [];
-    const f = new Feature({
-      geometry: new LineString(fromLonLatArray(this.mapifiedLine))
-    });
-    f.setStyle(this.buildStyle());
-    fa.push(f);
+    if (!this.position) return;
     const fp = new Feature({
-      geometry: new Point(fromLonLat(this.targetPosition))
+      geometry: new Point(fromLonLat(this.position))
     });
-    fp.setStyle(this.buildStyle());
+    fp.setStyle(this.buildStyle(this.alarmType));
+    fp.setId(`alarm.${this.alarmType}`);
     fa.push(fp);
     this.features = fa;
   }
 
   // build target style
-  buildStyle(): Style {
-    let cs: Style;
-    if (this.layerProperties && this.layerProperties.style) {
-      cs = this.layerProperties.style;
+  buildStyle(key: string): Style {
+    if (this.alarmStyles && this.alarmStyles[key]) {
+      return this.alarmStyles[key];
     } else {
-      // default style
-      cs = new Style({
-        image: new Circle({
-          radius: 10,
-          stroke: new Stroke({
-            width: 2,
-            color: 'red',
-            lineDash: [2, 3]
-          }),
-          fill: new Fill({
-            color: 'rgba(255,0,0,.2)'
+      if (this.layerProperties && this.layerProperties.style) {
+        return this.layerProperties.style;
+      } else {
+        // default style
+        return new Style({
+          image: new RegularShape({
+            points: 3,
+            radius: 7,
+            fill: new Fill({ color: 'red' }),
+            stroke: new Stroke({
+              color: 'white',
+              width: 2
+            }),
+            rotateWithView: false
           })
-        }),
-        stroke: new Stroke({
-          width: 2,
-          color: 'red',
-          lineDash: [2, 3]
-        }),
-        fill: new Fill({
-          color: 'rgba(255,0,0,.2)'
-        })
-      });
+        });
+      }
     }
-    return cs;
   }
 }

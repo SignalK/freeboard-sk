@@ -12,9 +12,11 @@ import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatSliderModule } from '@angular/material/slider';
 import { MatDialogModule } from '@angular/material/dialog';
+import { MatStepperModule } from '@angular/material/stepper';
 import { CommonDialogs } from 'src/app/lib/components/dialogs';
 // ** components **
-import { AlarmsDialog, AlarmComponent } from './alarms';
+import { AlarmComponent } from './components/alarm.component';
+import { AlarmsDialog } from './components/alarms-dialog.component';
 import { AnchorWatchComponent } from './components/anchor-watch.component';
 import { TimerButtonComponent } from './components/timer-button.component';
 
@@ -29,6 +31,7 @@ import { TimerButtonComponent } from './components/timer-button.component';
     MatSliderModule,
     MatTooltipModule,
     MatToolbarModule,
+    MatStepperModule,
     CommonDialogs,
     TimerButtonComponent
   ],
@@ -39,5 +42,5 @@ import { TimerButtonComponent } from './components/timer-button.component';
 export class AlarmsModule {}
 
 export * from './alarms.facade';
-export * from './alarms';
+export * from './components/alarms-dialog.component';
 export * from './components/anchor-watch.component';

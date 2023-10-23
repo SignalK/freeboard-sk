@@ -150,8 +150,8 @@ export class CompassComponent extends SvgDialBase {
       if (isNaN(d.heading)) {
         d.heading = null;
       }
-      this.ptrOffset = d.heading != null ? d.heading : 0;
-      if (d.heading != null) {
+      this.ptrOffset = d.heading !== null ? d.heading : 0;
+      if (d.heading !== null) {
         d.heading = d.heading > 360 ? d.heading - 360 : d.heading;
         this.valueStr = d.heading.toFixed(0) + String.fromCharCode(186);
         const val = 0 - this.getAngle(d.heading);
@@ -183,7 +183,7 @@ export class CompassComponent extends SvgDialBase {
       if (isNaN(d.needle)) {
         d.needle = null;
       }
-      if (d.needle != null) {
+      if (d.needle !== null) {
         const val = this.getAngle(d.needle) - this.ptrOffset;
         this.renderer.setAttribute(
           this.pointer.nativeElement,
@@ -197,7 +197,7 @@ export class CompassComponent extends SvgDialBase {
       if (isNaN(d.windtrue)) {
         d.windtrue = null;
       }
-      if (d.windtrue != null) {
+      if (d.windtrue !== null) {
         const val =
           d.windtrue < 0
             ? d.windtrue
@@ -214,7 +214,7 @@ export class CompassComponent extends SvgDialBase {
       if (isNaN(d.windapparent)) {
         d.windapparent = null;
       }
-      if (d.windapparent != null) {
+      if (d.windapparent !== null) {
         const val = d.windapparent;
         this.renderer.setAttribute(
           this.needlelo.nativeElement,

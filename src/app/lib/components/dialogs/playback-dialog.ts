@@ -145,6 +145,7 @@ export class PlaybackDialog {
 
   constructor(
     public dialogRef: MatDialogRef<PlaybackDialog>,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     @Inject(MAT_DIALOG_DATA) public data: any
   ) {}
 

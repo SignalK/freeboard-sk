@@ -2,7 +2,6 @@ import { Component, OnInit, Inject, ElementRef } from '@angular/core';
 import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 
 import { SettingsFacade } from './settings.facade';
-import { FormControl } from '@angular/forms';
 
 interface PreferredPathsResult {
   save: boolean;
@@ -72,6 +71,7 @@ export class SettingsDialog implements OnInit {
     this.display.favourites = this.display.favourites ? false : true;
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   onFormChange(e: unknown, f: any, deferSave = false) {
     if (deferSave) {
       this.saveOnClose = true;

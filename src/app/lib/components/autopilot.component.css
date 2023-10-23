@@ -1,0 +1,59 @@
+/* -- nmea sentence id list --*/
+.autopilot-console {
+    position: absolute;
+    z-index: 5000;
+    top: 130px;
+    left: 10px;
+    display: flex;
+    flex-direction: column;  
+    font-family: Roboto, Arial, Helvetica, sans-serif; 
+    font-size: 10pt;
+    width: 230px;
+}
+.autopilot-console .title {
+    padding: 3px 5px 0 5px;
+    font-weight: 500;
+    font-size: 14px;
+    line-height: 23px;
+    display: flex;
+}
+
+.autopilot-console .title .closer {
+    width:25px;
+}
+.autopilot-console .title .closer:hover {
+    cursor: pointer;
+}
+
+.autopilot-console .content {
+    padding: 0 5px;
+    line-height: 23px;
+    margin: 0;
+    flex: 1 1 auto;
+    overflow: auto;
+    text-align: center;
+}
+
+.autopilot-console .content .dial-text {
+    padding: 0 10px;
+    height: 96px;
+    font-family: roboto;
+    border: transparent 1px solid;
+    flex: 1 1 auto;
+}
+
+.autopilot-console .content .dial-text-title {
+    font-size: 12pt;
+    font-weight: 500;
+}
+
+.autopilot-console .content .dial-text-value {
+    font-size: 22pt;
+    font-weight: 500;
+}
+
+.autopilot-console .content .dial-text-units {
+    font-size: 10pt;
+}
+
+

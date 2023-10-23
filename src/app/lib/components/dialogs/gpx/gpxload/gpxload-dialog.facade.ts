@@ -13,7 +13,6 @@ import {
   GPXTrack,
   GPXTrackSegment
 } from '../gpxlib';
-import { HttpErrorResponse } from '@angular/common/http';
 
 @Injectable({ providedIn: 'root' })
 export class GPXLoadFacade {
@@ -58,7 +57,7 @@ export class GPXLoadFacade {
     let idx = 1;
     this.gpx.rte.forEach((r) => {
       gpxData.routes.push({
-        name: r['name'] != '' ? r['name'] : `Rte: ${idx}`,
+        name: r['name'] !== '' ? r['name'] : `Rte: ${idx}`,
         description: r['desc'] ? r['desc'] : r['cmt'] ? r['cmt'] : '',
         wptcount: r['rtept'].length
       });
@@ -109,7 +108,7 @@ export class GPXLoadFacade {
 
   // ** check all submissions are resolved and emit result$
   checkComplete() {
-    if (this.subCount == 0) {
+    if (this.subCount === 0) {
       this.app.saveConfig();
       this.resultSource.next(this.errorCount);
       this.app.debug(`GPXLoad: complete: ${this.errorCount}`);
@@ -155,7 +154,7 @@ export class GPXLoadFacade {
       .subscribe(
         (r) => {
           this.subCount--;
-          if (Math.floor(r['statusCode'] / 100) == 2) {
+          if (Math.floor(r['statusCode'] / 100) === 2) {
             this.app.debug('SUCCESS: Route added.');
             this.app.config.selections.routes.push(skObj[0]);
           } else {
@@ -163,7 +162,7 @@ export class GPXLoadFacade {
           }
           this.checkComplete();
         },
-        (err: HttpErrorResponse) => {
+        () => {
           this.errorCount++;
           this.subCount--;
           this.checkComplete();
@@ -178,10 +177,10 @@ export class GPXLoadFacade {
     if (pt.ele) {
       wpt.feature.geometry.coordinates.push(pt.ele);
     }
-    if (pt.name && pt.name.length != 0) {
+    if (pt.name && pt.name.length !== 0) {
       wpt.name = pt.name;
     }
-    if (pt.desc && pt.desc.length != 0) {
+    if (pt.desc && pt.desc.length !== 0) {
       wpt.description = pt.desc;
     }
     if (pt.cmt) {
@@ -231,7 +230,7 @@ export class GPXLoadFacade {
       .subscribe(
         (r) => {
           this.subCount--;
-          if (Math.floor(r['statusCode'] / 100) == 2) {
+          if (Math.floor(r['statusCode'] / 100) === 2) {
             this.app.debug('SUCCESS: Waypoint added.');
             this.app.config.selections.waypoints.push(wptObj[0]);
           } else {
@@ -266,14 +265,14 @@ export class GPXLoadFacade {
         trk.feature.geometry.coordinates.push(line);
       });
     }
-    if (gpxtrk.name && gpxtrk.name.length != 0) {
+    if (gpxtrk.name && gpxtrk.name.length !== 0) {
       trk.feature.properties['name'] = gpxtrk.name;
     } else {
       trk.feature.properties['name'] = `gpxtrk #${Math.random()
         .toString()
         .slice(-5)}`;
     }
-    if (gpxtrk.desc && gpxtrk.desc.length != 0) {
+    if (gpxtrk.desc && gpxtrk.desc.length !== 0) {
       trk.feature.properties['description'] = gpxtrk.desc;
     }
     if (gpxtrk.cmt) {
@@ -292,7 +291,7 @@ export class GPXLoadFacade {
       .subscribe(
         (r) => {
           this.subCount--;
-          if (Math.floor(r['statusCode'] / 100) == 2) {
+          if (Math.floor(r['statusCode'] / 100) === 2) {
             this.app.debug('SUCCESS: Track added.');
           } else {
             this.errorCount++;

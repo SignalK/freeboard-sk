@@ -4,6 +4,7 @@ import { Injectable } from '@angular/core';
 import { Subject } from 'rxjs';
 
 interface IWorkerCommand {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   options: any;
   cmd: string;
 }
@@ -11,6 +12,7 @@ interface IWorkerCommand {
 @Injectable({ providedIn: 'root' })
 export class SKStreamProvider {
   private worker: Worker;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private messageSource = new Subject<any>();
 
   constructor() {
@@ -25,6 +27,7 @@ export class SKStreamProvider {
   }
 
   // ************ Worker Functions *********************
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   settings(value: any) {
     this.worker.postMessage({ cmd: 'settings', options: value });
   }
@@ -54,6 +57,7 @@ export class SKStreamProvider {
     }
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private handleMessage(msg: any) {
     this.messageSource.next(msg);
   }

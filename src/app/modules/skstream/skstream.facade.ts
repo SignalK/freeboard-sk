@@ -265,7 +265,7 @@ export class SKStreamFacade {
       // process AIS tracks
       this.app.data.aisMgr.updateList.forEach((id) => {
         const v =
-          id.indexOf('aircraft') != -1
+          id.indexOf('aircraft') !== -1
             ? this.app.data.aircraft.get(id)
             : this.app.data.vessels.aisTargets.get(id);
         if (v) {
@@ -297,9 +297,9 @@ export class SKStreamFacade {
         ? value.wind.mwd
         : value.wind.twd;
       value.orientation =
-        value.heading != null
+        value.heading !== null
           ? value.heading
-          : value.cog != null
+          : value.cog !== null
           ? value.cog
           : 0;
       if (`vessels.${this.app.data.vessels.closest.id}` === key) {
@@ -376,6 +376,7 @@ export class SKStreamFacade {
       if (v['course.estimatedTimeOfArrival'] !== null) {
         d = new Date(v['course.estimatedTimeOfArrival']);
         this.app.data.navData.eta =
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           d instanceof Date && !isNaN(d as any) ? d : null;
       } else {
         this.app.data.navData.eta = null;

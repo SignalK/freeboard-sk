@@ -10,8 +10,10 @@ enum DOMNodeTypes {
 }
 
 export class XML2JS {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private config: any;
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   constructor(config?: any) {
     this.config = config || {};
     this.initConfigDefaults();
@@ -51,23 +53,25 @@ export class XML2JS {
     }
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private getNodeLocalName(node: any) {
     let nodeLocalName = node.localName;
-    if (nodeLocalName == null)
+    if (nodeLocalName === null)
       // Yeah, this is IE!!
       nodeLocalName = node.baseName;
-    if (nodeLocalName == null || nodeLocalName == '')
+    if (nodeLocalName === null || nodeLocalName === '')
       // =="" is IE too
       nodeLocalName = node.nodeName;
     return nodeLocalName;
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private getNodePrefix(node: any) {
     return node.prefix;
   }
 
   private escapeXmlChars(str: string) {
-    if (typeof str == 'string')
+    if (typeof str === 'string')
       return str
         .replace(/&/g, '&amp;')
         .replace(/</g, '&lt;')
@@ -91,14 +95,14 @@ export class XML2JS {
     for (; idx < stdFiltersArrayForm.length; idx++) {
       const filterPath = stdFiltersArrayForm[idx];
       if (typeof filterPath === 'string') {
-        if (filterPath == path) break;
+        if (filterPath === path) break;
       } else if (filterPath instanceof RegExp) {
         if (filterPath.test(path)) break;
       } else if (typeof filterPath === 'function') {
         if (filterPath(obj, name, path)) break;
       }
     }
-    return idx != stdFiltersArrayForm.length;
+    return idx !== stdFiltersArrayForm.length;
   }
 
   private toArrayAccessForm(obj, childName, path) {
@@ -141,7 +145,7 @@ export class XML2JS {
       const sign = /\d\d-\d\d:\d\d$/.test(prop) ? '-' : '+';
 
       // Apply the sign
-      offsetMinutes = 0 + (sign == '-' ? -1 * offsetMinutes : offsetMinutes);
+      offsetMinutes = 0 + (sign === '-' ? -1 * offsetMinutes : offsetMinutes);
 
       // Apply offset and local timezone
       d.setMinutes(d.getMinutes() - offsetMinutes - d.getTimezoneOffset());
@@ -179,7 +183,7 @@ export class XML2JS {
 
   private checkXmlElementsFilter(obj, childType, childName, childPath) {
     if (
-      childType == DOMNodeTypes.ELEMENT_NODE &&
+      childType === DOMNodeTypes.ELEMENT_NODE &&
       this.config.xmlElementsFilter.length > 0
     ) {
       return this.checkInStdFiltersArrayForm(
@@ -192,19 +196,19 @@ export class XML2JS {
   }
 
   private parseDOMChildren(node, path?) {
-    if (node.nodeType == DOMNodeTypes.DOCUMENT_NODE) {
+    if (node.nodeType === DOMNodeTypes.DOCUMENT_NODE) {
       const result = new Object();
       const nodeChildren = node.childNodes;
       // Alternative for firstElementChild which is not supported in some environments
       for (let cidx = 0; cidx < nodeChildren.length; cidx++) {
         const child = nodeChildren.item(cidx);
-        if (child.nodeType == DOMNodeTypes.ELEMENT_NODE) {
+        if (child.nodeType === DOMNodeTypes.ELEMENT_NODE) {
           const childName = this.getNodeLocalName(child);
           result[childName] = this.parseDOMChildren(child, childName);
         }
       }
       return result;
-    } else if (node.nodeType == DOMNodeTypes.ELEMENT_NODE) {
+    } else if (node.nodeType === DOMNodeTypes.ELEMENT_NODE) {
       let result = new Object();
       result['__cnt'] = 0;
       const nodeChildren = node.childNodes;
@@ -215,7 +219,7 @@ export class XML2JS {
         const child = nodeChildren.item(cidx); // nodeChildren[cidx];
         childName = this.getNodeLocalName(child);
 
-        if (child.nodeType != DOMNodeTypes.COMMENT_NODE) {
+        if (child.nodeType !== DOMNodeTypes.COMMENT_NODE) {
           const childPath = path + '.' + childName;
           if (
             this.checkXmlElementsFilter(
@@ -226,11 +230,11 @@ export class XML2JS {
             )
           ) {
             result['__cnt']++;
-            if (result[childName] == null) {
+            if (result[childName] === null) {
               result[childName] = this.parseDOMChildren(child, childPath);
               this.toArrayAccessForm(result, childName, childPath);
             } else {
-              if (result[childName] != null) {
+              if (result[childName] !== null) {
                 if (!(result[childName] instanceof Array)) {
                   result[childName] = [result[childName]];
                   this.toArrayAccessForm(result, childName, childPath);
@@ -252,12 +256,12 @@ export class XML2JS {
 
       // Node namespace prefix
       const nodePrefix = this.getNodePrefix(node);
-      if (nodePrefix != null && nodePrefix != '') {
+      if (nodePrefix !== null && nodePrefix !== '') {
         result['__cnt']++;
         result['__prefix'] = nodePrefix;
       }
 
-      if (result['#text'] != null) {
+      if (result['#text'] !== null) {
         result['__text'] = result['#text'];
         if (result['__text'] instanceof Array) {
           result['__text'] = result['__text'].join('\n');
@@ -267,7 +271,7 @@ export class XML2JS {
         if (this.config.stripWhitespaces)
           result['__text'] = result['__text'].trim();
         delete result['#text'];
-        if (this.config.arrayAccessForm == 'property')
+        if (this.config.arrayAccessForm === 'property')
           delete result['#text_asArray'];
         result['__text'] = this.checkFromXmlDateTimePaths(
           result['__text'],
@@ -275,31 +279,31 @@ export class XML2JS {
           path + '.' + childName
         );
       }
-      if (result['#cdata-section'] != null) {
+      if (result['#cdata-section'] !== null) {
         result['__cdata'] = result['#cdata-section'];
         delete result['#cdata-section'];
-        if (this.config.arrayAccessForm == 'property')
+        if (this.config.arrayAccessForm === 'property')
           delete result['#cdata-section_asArray'];
       }
 
-      if (result['__cnt'] == 0 && this.config.emptyNodeForm == 'text') {
+      if (result['__cnt'] === 0 && this.config.emptyNodeForm === 'text') {
         result = '';
-      } else if (result['__cnt'] == 1 && result['__text'] != null) {
+      } else if (result['__cnt'] === 1 && result['__text'] !== null) {
         result = result['__text'];
       } else if (
-        result['__cnt'] == 1 &&
-        result['__cdata'] != null &&
+        result['__cnt'] === 1 &&
+        result['__cdata'] !== null &&
         !this.config.keepCData
       ) {
         result = result['__cdata'];
       } else if (
         result['__cnt'] > 1 &&
-        result['__text'] != null &&
+        result['__text'] !== null &&
         this.config.skipEmptyTextNodesForObj
       ) {
         if (
-          (this.config.stripWhitespaces && result['__text'] == '') ||
-          result['__text'].trim() == ''
+          (this.config.stripWhitespaces && result['__text'] === '') ||
+          result['__text'].trim() === ''
         ) {
           delete result['__text'];
         }
@@ -308,20 +312,20 @@ export class XML2JS {
 
       if (
         this.config.enableToStringFunc &&
-        (result['__text'] != null || result['__cdata'] != null)
+        (result['__text'] !== null || result['__cdata'] !== null)
       ) {
         result.toString = function () {
           return (
-            (this.__text != null ? this.__text : '') +
-            (this.__cdata != null ? this.__cdata : '')
+            (this.__text !== null ? this.__text : '') +
+            (this.__cdata !== null ? this.__cdata : '')
           );
         };
       }
 
       return result;
     } else if (
-      node.nodeType == DOMNodeTypes.TEXT_NODE ||
-      node.nodeType == DOMNodeTypes.CDATA_SECTION_NODE
+      node.nodeType === DOMNodeTypes.TEXT_NODE ||
+      node.nodeType === DOMNodeTypes.CDATA_SECTION_NODE
     ) {
       return node.nodeValue;
     }
@@ -330,11 +334,11 @@ export class XML2JS {
   private startTag(jsonObj, element, attrList, closed) {
     let resultStr =
       '<' +
-      (jsonObj != null && jsonObj.__prefix != null
+      (jsonObj !== null && jsonObj.__prefix !== null
         ? jsonObj.__prefix + ':'
         : '') +
       element;
-    if (attrList != null) {
+    if (attrList !== null) {
       for (let aidx = 0; aidx < attrList.length; aidx++) {
         const attrName = attrList[aidx];
         let attrVal = jsonObj[attrName];
@@ -353,7 +357,7 @@ export class XML2JS {
   private endTag(jsonObj, elementName) {
     return (
       '</' +
-      (jsonObj.__prefix != null ? jsonObj.__prefix + ':' : '') +
+      (jsonObj.__prefix !== null ? jsonObj.__prefix + ':' : '') +
       elementName +
       '>'
     );
@@ -365,10 +369,10 @@ export class XML2JS {
 
   private jsonXmlSpecialElem(jsonObj, jsonObjField) {
     if (
-      (this.config.arrayAccessForm == 'property' &&
+      (this.config.arrayAccessForm === 'property' &&
         this.endsWith(jsonObjField.toString(), '_asArray')) ||
-      jsonObjField.toString().indexOf(this.config.attributePrefix) == 0 ||
-      jsonObjField.toString().indexOf('__') == 0 ||
+      jsonObjField.toString().indexOf(this.config.attributePrefix) === 0 ||
+      jsonObjField.toString().indexOf('__') === 0 ||
       jsonObj[jsonObjField] instanceof Function
     )
       return true;
@@ -388,8 +392,8 @@ export class XML2JS {
 
   private checkJsonObjPropertiesFilter(jsonObj, propertyName, jsonObjPath) {
     return (
-      this.config.jsonPropertiesFilter.length == 0 ||
-      jsonObjPath == '' ||
+      this.config.jsonPropertiesFilter.length === 0 ||
+      jsonObjPath === '' ||
       this.checkInStdFiltersArrayForm(
         this.config.jsonPropertiesFilter,
         jsonObj,
@@ -404,8 +408,8 @@ export class XML2JS {
     if (jsonObj instanceof Object) {
       for (const ait in jsonObj) {
         if (
-          ait.toString().indexOf('__') == -1 &&
-          ait.toString().indexOf(this.config.attributePrefix) == 0
+          ait.toString().indexOf('__') === -1 &&
+          ait.toString().indexOf(this.config.attributePrefix) === 0
         ) {
           attrList.push(ait);
         }
@@ -417,11 +421,11 @@ export class XML2JS {
   private parseJSONTextAttrs(jsonTxtObj) {
     let result = '';
 
-    if (jsonTxtObj.__cdata != null) {
+    if (jsonTxtObj.__cdata !== null) {
       result += '<![CDATA[' + jsonTxtObj.__cdata + ']]>';
     }
 
-    if (jsonTxtObj.__text != null) {
+    if (jsonTxtObj.__text !== null) {
       if (this.config.escapeMode)
         result += this.escapeXmlChars(jsonTxtObj.__text);
       else result += jsonTxtObj.__text;
@@ -434,7 +438,7 @@ export class XML2JS {
 
     if (jsonTxtObj instanceof Object) {
       result += this.parseJSONTextAttrs(jsonTxtObj);
-    } else if (jsonTxtObj != null) {
+    } else if (jsonTxtObj !== null) {
       if (this.config.escapeMode) result += this.escapeXmlChars(jsonTxtObj);
       else result += jsonTxtObj;
     }
@@ -450,7 +454,7 @@ export class XML2JS {
 
   private parseJSONArray(jsonArrRoot, jsonArrObj, attrList, jsonObjPath) {
     let result = '';
-    if (jsonArrRoot.length == 0) {
+    if (jsonArrRoot.length === 0) {
       result += this.startTag(jsonArrRoot, jsonArrObj, attrList, true);
     } else {
       for (let arIdx = 0; arIdx < jsonArrRoot.length; arIdx++) {
@@ -479,7 +483,7 @@ export class XML2JS {
       for (const it in jsonObj) {
         if (
           this.jsonXmlSpecialElem(jsonObj, it) ||
-          (jsonObjPath != '' &&
+          (jsonObjPath !== '' &&
             !this.checkJsonObjPropertiesFilter(
               jsonObj,
               it,
@@ -492,7 +496,7 @@ export class XML2JS {
 
         const attrList = this.parseJSONAttributes(subObj);
 
-        if (subObj == null || subObj == undefined) {
+        if (subObj === null || subObj === undefined) {
           result += this.startTag(subObj, it, attrList, true);
         } else if (subObj instanceof Object) {
           if (subObj instanceof Array) {
@@ -505,8 +509,8 @@ export class XML2JS {
             const subObjElementsCnt = this.jsonXmlElemCount(subObj);
             if (
               subObjElementsCnt > 0 ||
-              subObj.__text != null ||
-              subObj.__cdata != null
+              subObj.__text !== null ||
+              subObj.__cdata !== null
             ) {
               result += this.startTag(subObj, it, attrList, false);
               result += this.parseJSONObject(
@@ -537,7 +541,7 @@ export class XML2JS {
     try {
       xmlDoc = parser.parseFromString(xmlDocStr, 'text/xml');
       if (
-        parsererrorNS != null &&
+        parsererrorNS !== null &&
         xmlDoc.getElementsByTagNameNS(parsererrorNS, 'parsererror').length > 0
       ) {
         xmlDoc = null;
@@ -549,8 +553,9 @@ export class XML2JS {
     return xmlDoc;
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   public asArray(prop: any = null) {
-    if (prop === undefined || prop == null) {
+    if (prop === undefined || prop === null) {
       return [];
     } else if (prop instanceof Array) {
       return prop;
@@ -559,6 +564,7 @@ export class XML2JS {
     }
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   public toXmlDateTime(dt: any) {
     if (dt instanceof Date) {
       return dt.toISOString();
@@ -570,7 +576,7 @@ export class XML2JS {
   }
 
   public asDateTime(prop: string) {
-    if (typeof prop == 'string') {
+    if (typeof prop === 'string') {
       return this.fromXmlDateTime(prop);
     } else {
       return prop;
@@ -585,7 +591,7 @@ export class XML2JS {
   // ** XML string to JSON **
   public toJson(xmlDocStr: string) {
     const xmlDoc = this.parseXmlString(xmlDocStr);
-    if (xmlDoc != null) {
+    if (xmlDoc !== null) {
       return this.domToJson(xmlDoc);
     } else {
       return null;
@@ -593,11 +599,13 @@ export class XML2JS {
   }
 
   // ** JSON DOM to XML string **
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   public toString(jsonObj: any) {
     return this.parseJSONObject(jsonObj, '');
   }
 
   // ** JSON DOM to XML DOC **
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   public toDom(jsonObj: any) {
     return this.parseXmlString(this.toString(jsonObj));
   }

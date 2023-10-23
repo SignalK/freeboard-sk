@@ -58,7 +58,7 @@ export class ChartListComponent {
       }
       this.filterList = this.charts.filter((i: FBChart) => {
         if (
-          i[1].name.toLowerCase().indexOf(this.filterText.toLowerCase()) != -1
+          i[1].name.toLowerCase().indexOf(this.filterText.toLowerCase()) !== -1
         ) {
           return i;
         }
@@ -77,7 +77,7 @@ export class ChartListComponent {
   }
 
   isLocal(url: string) {
-    return url && url.indexOf('signalk') != -1 ? 'map' : 'language';
+    return url && url.indexOf('signalk') !== -1 ? 'map' : 'language';
   }
 
   checkSelections() {
@@ -118,7 +118,7 @@ export class ChartListComponent {
 
   itemProperties(id: string) {
     const ch = this.charts.filter((c: FBChart) => {
-      return c[0] == id ? true : false;
+      return c[0] === id ? true : false;
     })[0][1];
     this.dialog.open(ChartInfoDialog, { data: ch });
   }
@@ -249,6 +249,7 @@ export class ChartLayers implements OnInit {
     this.chartList = this.app.data.charts.slice().reverse();
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   drop(e: CdkDragDrop<any>) {
     moveItemInArray(this.chartList, e.previousIndex, e.currentIndex);
     // update and save config
@@ -261,6 +262,6 @@ export class ChartLayers implements OnInit {
   }
 
   isLocal(url: string) {
-    return url && url.indexOf('signalk') != -1 ? 'map' : 'language';
+    return url && url.indexOf('signalk') !== -1 ? 'map' : 'language';
   }
 }

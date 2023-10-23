@@ -1,5 +1,14 @@
 # CHANGELOG: Freeboard
 
+### v2.3.0
+
+- **Added**: Display a badge on menu icon when server has security enabled and client is not authenticated.
+- **Added**: Autopilot console for use with built-in PyPyilot integration.
+- **Added**: Display location of Man Overboard alarm on map.
+- **Updated**: Align anchor watch UI to anchor-alarm API operation.
+- **Updated**: Display the waypoint name when a route point is a reference to a waypoint resource.
+- **Updated**: Use updated typings in `@signalk/server-api`.
+
 ### v2.2.6
 
 - **Fixed**: Issue where anchor watch could not be set when Signal K server had security enabled. _(Requires signalk-anchoralarm-plugin v1.13.0 or later)_

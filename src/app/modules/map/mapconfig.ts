@@ -155,6 +155,19 @@ export const anchorStyles = {
   })
 };
 
+export const alarmStyles = {
+  mob: new Style({
+    image: new Icon({
+      src: './assets/img/alarms/mob_map.png',
+      scale: 1,
+      anchor: [13, 13],
+      anchorXUnits: 'pixels',
+      anchorYUnits: 'pixels',
+      rotateWithView: false
+    })
+  })
+};
+
 export const destinationStyles = {
   marker: new Style({
     image: new Icon({

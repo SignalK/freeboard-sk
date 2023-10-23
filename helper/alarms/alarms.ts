@@ -1,12 +1,11 @@
 // **** Signal K Standard ALARMS notifier ****
 import { NextFunction, Request, Response } from 'express';
 import {
-  Notification,
-  DeltaMessage,
-  ActionResult,
   ALARM_METHOD,
-  ALARM_STATE
-} from '../lib/types';
+  ALARM_STATE,
+  Path,
+  PathValue
+} from '@signalk/server-api';
 import { FreeboardHelperApp } from '../index';
 
 const STANDARD_ALARMS = [
@@ -65,7 +64,7 @@ const initAlarmEndpoints = () => {
 
         const r = handlePutAlarmState(
           'vessels.self',
-          `notifications.${req.params.alarmType}`,
+          `notifications.${req.params.alarmType}` as Path,
           {
             message: msg,
             method: [ALARM_METHOD.sound, ALARM_METHOD.visual],
@@ -95,7 +94,7 @@ const initAlarmEndpoints = () => {
       try {
         const r = handlePutAlarmState(
           'vessels.self',
-          `notifications.${req.params.alarmType}`,
+          `notifications.${req.params.alarmType}` as Path,
           null
         );
         res.status(200).json(r);
@@ -112,13 +111,13 @@ const initAlarmEndpoints = () => {
 
 const handlePutAlarmState = (
   context: string,
-  path: string,
+  path: Path,
   value: {
     message: string;
     state: ALARM_STATE;
     method: ALARM_METHOD[];
   }
-): ActionResult => {
+) => {
   server.debug(context);
   server.debug(path);
   server.debug(JSON.stringify(value));
@@ -135,14 +134,21 @@ const handlePutAlarmState = (
   const pa = path.split('.');
   const alarmType = pa[pa.length - 1];
   server.debug(JSON.stringify(alarmType));
-  let noti: Notification | DeltaMessage;
+  let noti: PathValue;
   if (value) {
-    noti = new Notification(
-      alarmType,
-      buildAlarmMessage(value.message, alarmType),
-      value.state ?? null,
-      value.method ?? null
-    );
+    const alm = buildAlarmMessage(value.message, alarmType);
+    noti = {
+      path: `notifications.${alarmType}` as Path,
+      value: {
+        state: value.state ?? null,
+        method: value.method ?? null,
+        message: alm.message
+      }
+    };
+    if (alm.data) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (noti.value as any).data = alm.data;
+    }
   } else {
     noti = {
       path,
@@ -164,19 +170,23 @@ const handlePutAlarmState = (
   }
 };
 
-const buildAlarmMessage = (message: string, alarmType?: string): string => {
-  let msgAttrib = '';
+const buildAlarmMessage = (message: string, alarmType?: string) => {
+  let data = null;
   if (['mob', 'sinking'].includes(alarmType)) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const pos: any = server.getSelfPath('navigation.position');
-    msgAttrib = pos ? JSON.stringify(pos?.value) : '';
+    data = {
+      position: pos ? pos.value : null
+    };
   }
-  return `${message}\n\r${msgAttrib}`;
+  return {
+    message: message,
+    data: data
+  };
 };
 
 // ** send notification delta message **
-const emitNotification = (n: Notification | DeltaMessage) => {
-  const msg = n instanceof Notification ? n.message : n;
+const emitNotification = (msg: PathValue) => {
   const delta = {
     updates: [{ values: [msg] }]
   };

@@ -749,6 +749,7 @@ export class ActiveResourcePropertiesModal implements OnInit {
       title: string;
       type: string;
       resource: SKWaypoint | SKRoute;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       skres: any;
     }
   ) {}
@@ -802,10 +803,15 @@ export class ActiveResourcePropertiesModal implements OnInit {
     }
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   getPointNames(pointsMeta: any[]): string[] {
     return pointsMeta.map((pt) => {
       if (pt.href) {
-        return 'waypoint';
+        const id = pt.href.split('/').slice(-1);
+        const wpt = this.app.data.waypoints.filter((i) => {
+          return i[0] === id[0] ? true : false;
+        });
+        return wpt.length !== 0 ? `* ${wpt[0][1].name}` : '!wpt reference!';
       } else {
         return pt.name ?? '';
       }
@@ -1010,7 +1016,7 @@ export class ChartInfoDialog {
   ) {}
 
   isLocal(url: string) {
-    return url && url.indexOf('signalk') != -1 ? 'map' : 'language';
+    return url && url.indexOf('signalk') !== -1 ? 'map' : 'language';
   }
 }
 
@@ -1119,6 +1125,7 @@ export class TracksModal implements OnInit {
     @Inject(MAT_BOTTOM_SHEET_DATA)
     public data: {
       title: string;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       skres: any;
     }
   ) {}
@@ -1171,7 +1178,7 @@ export class TracksModal implements OnInit {
     this.data.skres.showTrackDelete(id).subscribe((ok) => {
       if (ok) {
         const i = this.app.config.selections.tracks.indexOf(id);
-        if (i != -1) {
+        if (i !== -1) {
           this.app.config.selections.tracks.splice(i, 1);
         }
         this.data.skres.deleteTrack(id);
@@ -1189,7 +1196,7 @@ export class TracksModal implements OnInit {
       this.app.config.selections.tracks.push(id);
     } else {
       const i = this.app.config.selections.tracks.indexOf(id);
-      if (i != -1) {
+      if (i !== -1) {
         this.app.config.selections.tracks.splice(i, 1);
       }
     }
@@ -1324,6 +1331,7 @@ export class ResourceSetModal implements OnInit {
     @Inject(MAT_BOTTOM_SHEET_DATA)
     public data: {
       path: string;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       skres: any;
     }
   ) {}
@@ -1381,7 +1389,7 @@ export class ResourceSetModal implements OnInit {
     } else {
       const i =
         this.app.config.selections.resourceSets[this.data.path].indexOf(id);
-      if (i != -1) {
+      if (i !== -1) {
         this.app.config.selections.resourceSets[this.data.path].splice(i, 1);
       }
     }

@@ -33,8 +33,9 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 })
 export class SignalKDetailsComponent {
   @Input() title = '';
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   @Input() details: any;
-
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   public items: any;
 
   //constructor() { }
@@ -56,11 +57,12 @@ export class SignalKDetailsComponent {
     this.items = this.section(this.flatten(u));
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private section(u: Array<any>): Array<any> {
     const result = [];
     u.forEach((i) => {
       const p = i[0].split('.');
-      if (p.length == 1) {
+      if (p.length === 1) {
         result.push([0, '', p[0], typeof i[1] !== 'object' ? i[1] : null]);
       } else {
         const pp = p.slice(0, p.length - 1).join('.');
@@ -75,9 +77,9 @@ export class SignalKDetailsComponent {
     const processedParents = [];
     u = [];
     result.forEach((i) => {
-      if (i[1] != prevParent) {
+      if (i[1] !== prevParent) {
         prevParent = i[1];
-        if (processedParents.indexOf(i[1]) == -1) {
+        if (processedParents.indexOf(i[1]) === -1) {
           //
           processedParents.push(i[1]);
           u.push([0, i[1], null]);
@@ -89,10 +91,11 @@ export class SignalKDetailsComponent {
   }
 
   // ** flatten object values to .paths **
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private flatten(u: Array<any>): Array<any> {
     let paths = [];
     u.forEach((i) => {
-      if (typeof i[1] === 'object' && i[1] != null) {
+      if (typeof i[1] === 'object' && i[1] !== null) {
         paths = paths.concat(this.processObject(i[0], i[1]));
       } else {
         paths.push([i[0], i[1]]);
@@ -102,6 +105,7 @@ export class SignalKDetailsComponent {
   }
 
   // ** process object values **
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private processObject(parent: string, obj: any) {
     let paths = [];
     const u = Object.entries(obj);
@@ -109,7 +113,7 @@ export class SignalKDetailsComponent {
       return a[0] < b[0] ? -1 : 1;
     });
     u.forEach((i) => {
-      if (typeof i[1] === 'object' && i[1] != null) {
+      if (typeof i[1] === 'object' && i[1] !== null) {
         paths = paths.concat(this.processObject(parent + '.' + i[0], i[1]));
       } else {
         paths.push([parent + '.' + i[0], i[1]]);

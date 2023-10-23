@@ -12,10 +12,11 @@ import {
   name: 'safe',
   standalone: true
 })
-class SafePipe implements PipeTransform {
+export class SafePipe implements PipeTransform {
   constructor(protected sanitizer: DomSanitizer) {}
 
   public transform(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     value: any,
     type: string
   ): SafeHtml | SafeStyle | SafeScript | SafeUrl | SafeResourceUrl {

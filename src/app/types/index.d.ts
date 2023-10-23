@@ -13,3 +13,12 @@ export interface SKApiResponse {
   href?: string;
   token?: string;
 }
+
+export interface SKNotification {
+  method: Array<string>;
+  visual: unknown;
+  state: string;
+  message: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  data: { [key: string]: any };
+}

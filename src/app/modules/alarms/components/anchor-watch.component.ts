@@ -23,7 +23,6 @@ interface OutputMessage {
   styleUrls: ['./anchor-watch.component.css']
 })
 export class AnchorWatchComponent {
-  @Input() sliderValue: number;
   @Input() radius: number;
   @Input() min = 5;
   @Input() max = 100;
@@ -39,6 +38,9 @@ export class AnchorWatchComponent {
   display = { sliderColor: 'primary' };
   msg: OutputMessage = { radius: null, action: undefined };
 
+  sliderValue: number;
+  rodeOut = false;
+
   constructor(private facade: AlarmsFacade) {}
 
   ngOnInit() {
@@ -48,11 +50,18 @@ export class AnchorWatchComponent {
 
   ngOnChanges(changes: SimpleChanges) {
     this.display.sliderColor = !this.raised ? 'warn' : 'primary';
-    if (changes.sliderValue) {
-      this.sliderValue =
-        changes.sliderValue.currentValue ??
-        changes.sliderValue.previousValue ??
-        0;
+    if (changes.radius) {
+      if (changes.radius.previousValue === -1) {
+        this.sliderValue = Math.round(changes.radius.currentValue);
+        this.msg.radius = this.sliderValue;
+        this.max = this.sliderValue + 100;
+      } else if (
+        changes.radius.firstChange &&
+        changes.radius.currentValue !== -1
+      ) {
+        this.sliderValue = Math.round(changes.radius.currentValue);
+        this.max = this.sliderValue + 100;
+      }
     }
     this.bgImage = `url('${
       this.raised
@@ -60,15 +69,19 @@ export class AnchorWatchComponent {
         : './assets/img/anchor-radius.png'
     }')`;
     this.display.sliderColor = !this.raised ? 'warn' : 'primary';
+    this.rodeOut = !this.raised && this.radius !== -1;
   }
 
-  setRadius(value: number) {
-    console.log('raw:', value);
-    console.log('converted:', this.feet ? this.ftToM(value) : value);
-    this.msg.radius = this.feet ? this.ftToM(value) : value;
+  setRadius(value?: number) {
+    this.rodeOut = true;
+    this.msg.radius =
+      typeof value === 'number'
+        ? this.feet
+          ? this.ftToM(value)
+          : value
+        : value;
     if (!this.raised) {
-      this.msg.action = 'setRadius'; // set radius change only
-      //this.change.emit(this.msg);
+      this.msg.action = 'setRadius';
       this.facade.anchorEvent({
         radius: this.msg.radius,
         action: this.msg.action
@@ -78,10 +91,10 @@ export class AnchorWatchComponent {
 
   setAnchor(e: { checked: boolean }) {
     this.msg.action = e.checked ? 'drop' : 'raise';
-    //this.change.emit(this.msg);
     this.facade
       .anchorEvent({ radius: this.msg.radius, action: this.msg.action })
-      .catch((err: Error) => {
+      .catch(() => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (this.slideCtl as any).checked = !(this.slideCtl as any).checked;
       });
   }

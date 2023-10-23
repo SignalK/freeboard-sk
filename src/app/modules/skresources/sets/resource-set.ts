@@ -1,5 +1,5 @@
 // **** RESOURCE CLASSES **********
-import { ResourceSet, CustomValues, CustomStyles } from 'src/app/types';
+import { ResourceSet, CustomStyles } from 'src/app/types';
 
 // ** Signal K Resource Set
 export class SKResourceSet {

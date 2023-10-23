@@ -268,7 +268,7 @@ export class AppInfo extends Info {
     this.name = 'Freeboard-SK';
     this.shortName = 'Freeboard';
     this.description = `Signal K Chart Plotter.`;
-    this.version = '2.2.6';
+    this.version = '2.3.0';
     this.url = 'https://github.com/signalk/freeboard-sk';
     this.logo = './assets/img/app_logo.png';
 
@@ -343,6 +343,10 @@ export class AppInfo extends Info {
         raised: true,
         radius: 0,
         position: [0, 0]
+      },
+      autopilot: {
+        console: false, // display Autopilot console
+        hasApi: false // Server implements Autopilot API
       }
     };
 
@@ -806,6 +810,7 @@ export class AppInfo extends Info {
                     for more details.`
       },
       'whats-new': [
+        /*
         {
           type: 'signalk-server-node',
           title: 'Important!',
@@ -816,7 +821,7 @@ export class AppInfo extends Info {
                         Please review the <a href="https://github.com/SignalK/freeboard-sk/wiki/Signal-K---Freeboard-SK-Version-2" target="help">
                         FAQ</a> for details about important changes.
                     `
-        }
+        }*/
       ]
     };
 

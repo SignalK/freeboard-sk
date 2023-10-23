@@ -29,6 +29,7 @@ export class SK2GPX {
   /** add GPXRoutes to GPX object from supplied SK resources
    * add only routes with supplied ids (add all if ids=undefined)
    */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   setRoutes(routes: { [key: string]: any }, ids?: string[]) {
     if (!ids) {
       // ** process all
@@ -46,6 +47,7 @@ export class SK2GPX {
   }
 
   // ** return GPXRoute from SK Route wpt: waypoints to get start, end details
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   packageRoute(uuid: string, r: any) {
     const rte = new GPXRoute();
     rte.extensions['signalk'] = {};
@@ -83,6 +85,7 @@ export class SK2GPX {
   /** add GPXWaypoints to GPX object from supplied SK waypoints
    * add only waypoints with supplied ids (add all if ids=null)
    */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   setWaypoints(waypoints: { [key: string]: any }, ids?: string[]) {
     if (!ids) {
       // ** process all
@@ -100,6 +103,7 @@ export class SK2GPX {
   }
 
   // ** return GPXWaypoint from SK Waypoint
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   packageWaypoint(uuid: string, w: any) {
     const wpt = new GPXWaypoint();
     wpt.extensions = wpt.extensions || {};
@@ -130,6 +134,7 @@ export class SK2GPX {
   /** add GPXTracks to GPX object from supplied SK tracks
    * add only tracks with supplied ids (add all if ids=null)
    */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   setTracks(tracks: { [key: string]: any }, ids?: string[]) {
     if (!ids) {
       // ** process all
@@ -147,6 +152,7 @@ export class SK2GPX {
   }
 
   // ** return GPXTrack from SK Track
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   packageTrack(uuid: string, t: any) {
     const trk = new GPXTrack();
     trk.extensions = trk.extensions || {};

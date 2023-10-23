@@ -19,7 +19,7 @@ import { Point, LineString } from 'ol/geom';
 import { fromLonLat } from 'ol/proj';
 import { MapComponent } from '../map.component';
 import { Extent } from '../models';
-import { destCoordinate } from '../util';
+import { GeoUtils } from 'src/app/lib/geoutils';
 import { AsyncSubject } from 'rxjs';
 import { SKVessel } from 'src/app/modules';
 import { LightTheme, DarkTheme } from '../themes';
@@ -295,7 +295,7 @@ export class SKVesselsLayerComponent implements OnInit, OnDestroy, OnChanges {
       return;
     }
 
-    const windc = destCoordinate(
+    const windc = GeoUtils.destCoordinate(
       target.position,
       windDirection,
       this.zoomOffsetLevel[Math.floor(this.mapZoom)]

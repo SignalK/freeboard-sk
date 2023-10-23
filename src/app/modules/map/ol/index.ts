@@ -3,12 +3,12 @@
  */
 import { NgModule } from '@angular/core';
 import { InteractionsDirective } from './lib/interactions.directive';
-import { LayerType } from './lib/models';
+//import { LayerType } from './lib/models';
 import { MapComponent } from './lib/map.component';
 import { OverlayComponent } from './lib/overlay.component';
 import { ControlsDirective } from './lib/controls.directive';
 import { ViewDirective } from './lib/view.directive';
-import { MapService } from './lib/map.service';
+//import { MapService } from './lib/map.service';
 import { ContentComponent } from './lib/content.component';
 import { LayerComponent } from './lib/layer.component';
 
@@ -39,6 +39,7 @@ import { SKTargetsLayerComponent } from './lib/resources/layer-sktargets.compone
 import { SKVesselsLayerComponent } from './lib/resources/layer-skvessels.component';
 import { SKTargetTracksLayerComponent } from './lib/resources/layer-sktarget-tracks.component';
 import { AnchorAlarmComponent } from './lib/alarms/layer-anchor-alarm.component';
+import { AlarmComponent } from './lib/alarms/layer-alarm.component';
 import { CPAAlarmComponent } from './lib/alarms/layer-cpa-alarm.component';
 import { ArrivalCircleComponent } from './lib/navigation/layer-arrival-circle.component';
 import { XTEPathComponent } from './lib/navigation/layer-xte-path.component';
@@ -86,6 +87,7 @@ export { SKTargetsLayerComponent } from './lib/resources/layer-sktargets.compone
 export { SKVesselsLayerComponent } from './lib/resources/layer-skvessels.component';
 export { SKTargetTracksLayerComponent } from './lib/resources/layer-sktarget-tracks.component';
 export { AnchorAlarmComponent } from './lib/alarms/layer-anchor-alarm.component';
+export { AlarmComponent } from './lib/alarms/layer-alarm.component';
 export { CPAAlarmComponent } from './lib/alarms/layer-cpa-alarm.component';
 export { ArrivalCircleComponent } from './lib/navigation/layer-arrival-circle.component';
 export { XTEPathComponent } from './lib/navigation/layer-xte-path.component';
@@ -119,6 +121,7 @@ const declarations = [
   SKTargetsLayerComponent,
   SKTargetTracksLayerComponent,
   AnchorAlarmComponent,
+  AlarmComponent,
   CPAAlarmComponent,
   ArrivalCircleComponent,
   XTEPathComponent,

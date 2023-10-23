@@ -36,7 +36,8 @@ import {
   TextDialComponent,
   FileInputComponent,
   PiPVideoComponent,
-  WakeLockComponent
+  WakeLockComponent,
+  AutopilotComponent
 } from './lib/components';
 
 @NgModule({
@@ -74,7 +75,8 @@ import {
     TextDialComponent,
     FileInputComponent,
     PiPVideoComponent,
-    WakeLockComponent
+    WakeLockComponent,
+    AutopilotComponent
   ],
   exports: [],
   providers: [],

@@ -60,6 +60,7 @@ export class GeoJSONImportDialog implements OnInit {
     public app: AppInfo,
     public facade: GeoJSONLoadFacade,
     public dialogRef: MatDialogRef<GeoJSONImportDialog>,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     @Inject(MAT_DIALOG_DATA) public data: any
   ) {}
 
@@ -84,6 +85,7 @@ export class GeoJSONImportDialog implements OnInit {
     this.facade.uploadToServer(this.geoData.value);
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   parseFileData(fileData: any) {
     this.geoData.value = this.facade.validate(fileData);
     if (!this.geoData.value) {
@@ -91,6 +93,7 @@ export class GeoJSONImportDialog implements OnInit {
       this.display.notValid = true;
       return;
     }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     this.geoData.value.features.forEach((f: any) => {
       if (f.type && f.type === 'Feature' && f.geometry && f.geometry.type) {
         switch (f.geometry.type) {

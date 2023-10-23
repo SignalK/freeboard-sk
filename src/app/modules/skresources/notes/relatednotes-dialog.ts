@@ -51,6 +51,7 @@ export class RelatedNotesDialog implements OnInit {
   constructor(
     public app: AppInfo,
     public dialogRef: MatDialogRef<RelatedNotesDialog>,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     @Inject(MAT_DIALOG_DATA) public data: any
   ) {}
 

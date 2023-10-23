@@ -38,10 +38,12 @@ import { Component, Output, EventEmitter } from '@angular/core';
   styles: [``]
 })
 export class ExperimentsComponent {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   @Output() selected: EventEmitter<any> = new EventEmitter();
 
   //constructor() {}
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   handleSelect(choice: string, value?: any) {
     this.selected.emit({ choice: choice, value: value });
   }

@@ -60,7 +60,7 @@ export class SKOtherResources {
           this.app.config.selections.resourceSets[resType] =
             this.app.config.selections.resourceSets[resType]
               .map((i) => {
-                return k.indexOf(i) != -1 ? i : null;
+                return k.indexOf(i) !== -1 ? i : null;
               })
               .filter((i) => {
                 return i;
@@ -121,7 +121,7 @@ export class SKOtherResources {
             f.properties.style.lineDash = [1];
           }
           if (!f.properties.style.width) {
-            f.properties.style.width = f.geometry.type == 'Point' ? 4 : 2;
+            f.properties.style.width = f.geometry.type === 'Point' ? 4 : 2;
           }
         });
         items.push(t);

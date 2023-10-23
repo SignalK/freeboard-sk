@@ -18,6 +18,7 @@ import {
   FeatureListPopoverComponent,
   AtoNPopoverComponent,
   AircraftPopoverComponent,
+  AlarmPopoverComponent,
   ResourcePopoverComponent
 } from './components/popover/';
 // ** navigation **
@@ -50,6 +51,7 @@ import { PipesModule } from 'src/app/lib/pipes';
     RouteNextPointComponent,
     AtoNPopoverComponent,
     AircraftPopoverComponent,
+    AlarmPopoverComponent,
     CompassComponent,
     FBMapComponent
   ],
@@ -61,6 +63,7 @@ import { PipesModule } from 'src/app/lib/pipes';
     RouteNextPointComponent,
     AtoNPopoverComponent,
     AircraftPopoverComponent,
+    AlarmPopoverComponent,
     CompassComponent,
     FBMapComponent
   ],

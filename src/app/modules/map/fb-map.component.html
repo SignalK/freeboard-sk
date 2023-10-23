@@ -299,7 +299,7 @@
     </ap-popover>
 
     <feature-list-popover
-      *ngIf="this.overlay.type == 'list'"
+      *ngIf="this.overlay.type === 'list'"
       [canClose]="app.config.popoverMulti"
       [title]="overlay.title"
       [features]="this.overlay.content"
@@ -310,9 +310,11 @@
 
     <resource-popover
       *ngIf="
-        overlay.type != 'ais' &&
-        overlay.type != 'list' &&
-        overlay.type != 'measure'
+        overlay.type === 'destination' ||
+        overlay.type === 'waypoint' ||
+        overlay.type === 'route' ||
+        overlay.type === 'note' ||
+        overlay.type === 'region'
       "
       [canClose]="app.config.popoverMulti"
       [title]="overlay.title"
@@ -345,7 +347,7 @@
     </resource-popover>
 
     <div
-      *ngIf="overlay.type == 'ais'"
+      *ngIf="overlay.type === 'ais'"
       [ngSwitch]="app.config.selections.aisProfile"
     >
       <vessel-popover
@@ -366,7 +368,7 @@
     </div>
 
     <aton-popover
-      *ngIf="overlay.type == 'aton'"
+      *ngIf="overlay.type === 'aton'"
       [canClose]="app.config.popoverMulti"
       [aton]="overlay.aton"
       (info)="itemInfo(overlay.id, overlay.type); popoverClosed()"
@@ -375,13 +377,23 @@
     </aton-popover>
 
     <aircraft-popover
-      *ngIf="overlay.type == 'aircraft'"
+      *ngIf="overlay.type === 'aircraft'"
       [canClose]="app.config.popoverMulti"
       [aircraft]="overlay.aircraft"
       (info)="itemInfo(overlay.id, overlay.type); popoverClosed()"
       (closed)="popoverClosed()"
     >
     </aircraft-popover>
+
+    <alarm-popover
+      *ngIf="overlay.type === 'alarm'"
+      [canClose]="app.config.popoverMulti"
+      [alarm]="overlay.alarm"
+      [id]="overlay.id"
+      (info)="itemInfo(overlay.id, overlay.type); popoverClosed()"
+      (closed)="popoverClosed()"
+    >
+    </alarm-popover>
   </ol-overlay>
 
   <!-- Alarms -->
@@ -402,6 +414,23 @@
     [zIndex]="50"
   >
   </fb-cpa-alarm>
+
+  <!-- MOB alarm -->
+  <fb-alarm
+    *ngIf="app.data.alarms.has('mob')"
+    [position]="
+      app.data.alarms.get('mob').data?.position
+        ? [
+            app.data.alarms.get('mob').data?.position?.longitude,
+            app.data.alarms.get('mob').data?.position?.latitude
+          ]
+        : null
+    "
+    [alarmType]="'mob'"
+    [alarmStyles]="featureStyles.alarm"
+    [zIndex]="51"
+  >
+  </fb-alarm>
 
   <!-- Vessel / destination -->
   <fb-xte-path

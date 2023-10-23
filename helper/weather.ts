@@ -1,7 +1,11 @@
 // **** Experiment: OpenWeather integration ****
-import { Position } from '@signalk/server-api';
+import {
+  Position,
+  SKVersion,
+  ALARM_METHOD,
+  ALARM_STATE
+} from '@signalk/server-api';
 import { FreeboardHelperApp } from '.';
-import { ALARM_METHOD, ALARM_STATE } from './lib/types';
 import { OpenWeather } from './lib/openweather';
 import { NOAA } from './lib/noaa';
 
@@ -266,6 +270,6 @@ const emitWarningNotification = (warning?: SKWeatherWarning) => {
     {
       updates: [{ values: [delta] }]
     },
-    'v2'
+    SKVersion.v2
   );
 };

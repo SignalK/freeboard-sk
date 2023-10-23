@@ -48,6 +48,7 @@ import { AppInfo } from 'src/app/app.info';
 })
 export class SignalKPreferredPathsComponent {
   @Input() title = '';
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   @Output() chosen: any = new EventEmitter<any>();
 
   public pathChoices = {
@@ -91,6 +92,7 @@ export class SignalKPreferredPathsComponent {
     }*/
   };
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   public availPaths: any;
 
   constructor(public app: AppInfo) {}
@@ -125,7 +127,7 @@ export class SignalKPreferredPathsComponent {
         }
       });
       // ** ensure a default
-      if (i['available'].length == 0) {
+      if (i['available'].length === 0) {
         i['available'].push(i['choices'][0]);
       }
     });

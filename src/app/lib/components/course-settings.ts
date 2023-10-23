@@ -24,11 +24,6 @@ import { Convert } from 'src/app/lib/convert';
 import { SKStreamFacade } from 'src/app/modules';
 import { UpdateMessage } from 'src/app/types';
 import { Subscription } from 'rxjs';
-import {
-  DateAdapter,
-  MAT_DATE_FORMATS,
-  MAT_DATE_LOCALE
-} from '@angular/material/core';
 
 /********* Course Settings Modal ********
 	data: {
@@ -180,59 +175,6 @@ import {
           </div>
         </div>
       </fieldset>
-
-      <fieldset>
-        <legend>Auto-Pilot</legend>
-        <div style="display:flex;flex-wrap:nowrap;">
-          <div style="padding-right: 10px;">
-            <mat-slide-toggle
-              id="autopilotenable"
-              color="primary"
-              labelPosition="before"
-              [hideIcon]="true"
-              [disabled]="!hasAutoPilot"
-              [checked]="app.data.vessels.self.autopilot.state === 'enabled'"
-              (change)="onFormChange($event)"
-            >
-              Enable
-            </mat-slide-toggle>
-          </div>
-
-          <mat-form-field floatLabel="always">
-            <mat-label>Mode</mat-label>
-            <mat-select
-              id="autopilotmode"
-              [disabled]="!hasAutoPilot"
-              [(value)]="app.data.vessels.self.autopilot.mode"
-              (selectionChange)="onFormChange($event)"
-            >
-              <mat-option
-                *ngFor="let i of autoPilotModes"
-                [value]="i"
-                [matTooltip]="i"
-                matTooltipPosition="right"
-              >
-                {{ i }}
-              </mat-option>
-            </mat-select>
-          </mat-form-field>
-
-          <mat-form-field floatLabel="always">
-            <mat-label>Target (degrees)</mat-label>
-            <input
-              matInput
-              type="number"
-              min="0"
-              max="359"
-              step="1"
-              readonly
-              [value]="
-                formatTargetValue(app.data.vessels.self.autopilot.target)
-              "
-            />
-          </mat-form-field>
-        </div>
-      </fieldset>
     </div>
   `,
   styles: [
@@ -262,8 +204,6 @@ export class CourseSettingsModal implements OnInit {
     seconds: '00',
     datetime: null
   };
-  protected autoPilotModes = [];
-  protected hasAutoPilot = false;
   private context = 'self';
   /*this.app.data.vessels.activeId
   ? this.app.data.vessels.activeId
@@ -317,26 +257,6 @@ export class CourseSettingsModal implements OnInit {
           ).slice(-2);
         }
       });
-
-    this.signalk.api
-      .get(this.app.skApiVersion, 'vessels/self/steering/autopilot')
-      .subscribe(
-        (val) => {
-          console.log(val);
-          if (
-            val.options &&
-            val.options.mode &&
-            Array.isArray(val.options.mode)
-          ) {
-            this.autoPilotModes = val.options.mode;
-            this.hasAutoPilot = true;
-          }
-        },
-        () => {
-          this.autoPilotModes = [];
-          this.hasAutoPilot = false;
-        }
-      );
   }
 
   ngOnDestroy() {
@@ -384,53 +304,6 @@ export class CourseSettingsModal implements OnInit {
             () => undefined,
             (error: HttpErrorResponse) => {
               let msg = `Error setting Arrival Circle!\n`;
-              if (error.status === 403) {
-                msg += 'Unauthorised: Please login.';
-              }
-              this.app.showAlert(`Error (${error.status}):`, msg);
-            }
-          );
-      }
-    }
-    if (e.source) {
-      if (e.source.id === 'autopilotenable') {
-        // toggle autopilot enable
-        this.signalk.api
-          .post(
-            this.app.skApiVersion,
-            `vessels/self/${
-              e.checked
-                ? 'steering/autopilot/engage'
-                : 'steering/autopilot/disengage'
-            }`,
-            null
-          )
-          .subscribe(
-            () => undefined,
-            (error: HttpErrorResponse) => {
-              let msg = `Error setting Autopilot state!\n`;
-              if (error.status === 403) {
-                msg += 'Unauthorised: Please login.';
-              }
-              this.app.showAlert(`Error (${error.status}):`, msg);
-            }
-          );
-      }
-      if (e.source.id === 'autopilotmode') {
-        // autopilot mode
-        this.signalk.api
-          .putWithContext(
-            this.app.skApiVersion,
-            this.context,
-            'steering/autopilot/mode',
-            {
-              value: e.value
-            }
-          )
-          .subscribe(
-            () => undefined,
-            (error: HttpErrorResponse) => {
-              let msg = `Error setting Autopilot mode!\n`;
               if (error.status === 403) {
                 msg += 'Unauthorised: Please login.';
               }
@@ -488,12 +361,6 @@ export class CourseSettingsModal implements OnInit {
           }
         );
     }
-  }
-
-  formatTargetValue(value: number) {
-    if (value) {
-      return Convert.radiansToDegrees(value)?.toFixed(1);
-    } else return '--';
   }
 
   formatArrivalTime(): string {

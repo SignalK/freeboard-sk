@@ -2,6 +2,7 @@
 
 import { Request, Response } from 'express';
 import { FreeboardHelperApp } from '.';
+import { Path, SKVersion } from '@signalk/server-api';
 
 import { io, Socket } from 'socket.io-client';
 
@@ -11,6 +12,7 @@ export interface PYPILOT_CONFIG {
   port: number;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const apData: any = {
   options: {
     state: ['enabled', 'disabled'],
@@ -322,6 +324,7 @@ const sendToPyPilot = (command: string, value: string | number | boolean) => {
 };
 
 // process received pypilot update messages and send SK delta
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const handlePyPilotUpdateMsg = (data: any) => {
   // compare and send delta
 
@@ -329,7 +332,7 @@ const handlePyPilotUpdateMsg = (data: any) => {
     let heading = data['ap.heading'] === false ? null : data['ap.heading']
     if (heading !== apData.heading) {
       apData.heading = heading
-      emitAPDelta('target', (Math.PI /180) * apData.heading)
+      emitAPDelta('target' as Path, (Math.PI /180) * apData.heading)
     }
   }*/
 
@@ -338,7 +341,7 @@ const handlePyPilotUpdateMsg = (data: any) => {
       data['ap.heading_command'] === false ? null : data['ap.heading_command'];
     if (heading !== apData.heading_command) {
       apData.target = heading;
-      emitAPDelta('target', (Math.PI / 180) * apData.target);
+      emitAPDelta('target' as Path, (Math.PI / 180) * apData.target);
     }
   }
 
@@ -346,7 +349,7 @@ const handlePyPilotUpdateMsg = (data: any) => {
     server.debug(`ap.mode -> data = ${JSON.stringify(data)}`);
     if (data['ap.mode'] !== apData.mode) {
       apData.mode = data['ap.mode'];
-      emitAPDelta('mode', apData.mode);
+      emitAPDelta('mode' as Path, apData.mode);
     }
   }
 
@@ -354,27 +357,30 @@ const handlePyPilotUpdateMsg = (data: any) => {
     if (data['ap.enabled'] !== apData.state) {
       apData.state = data['ap.enabled'] ? 'enabled' : 'disabled';
       apData.active = apData.state === 'enabled' ? true : false;
-      emitAPDelta('state', apData.state);
+      emitAPDelta('state' as Path, apData.state);
+      emitAPDelta('active' as Path, apData.active);
     }
   }
 };
 
 // process received pypilot_values message and send SK delta
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const handlePyPilotValuesMsg = (data: any) => {
   // available modes
   if (typeof data['ap.mode'] !== undefined && data['ap.mode'].choices) {
     apData.options.mode = Array.isArray(data['ap.mode'].choices)
       ? data['ap.mode'].choices
       : [];
-    //emitAPDelta('availableModes', apData.availableModes)
+    //emitAPDelta('availableModes' as Path, apData.availableModes)
   }
   // available states
-  //emitAPDelta('availableStates', ['enabled', 'disabled'])
+  //emitAPDelta('availableStates' as Path, ['enabled', 'disabled'])
 };
 
 // emit SK delta steering.autopilot.xxx
-const emitAPDelta = (path: string, value: any) => {
-  const pathRoot = 'steering.autopilot';
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const emitAPDelta = (path: Path, value: any) => {
+  const pathRoot: Path = 'steering.autopilot' as Path;
   const msg = {
     path: `${pathRoot}.${path}`,
     value: value
@@ -389,6 +395,6 @@ const emitAPDelta = (path: string, value: any) => {
         }
       ]
     },
-    'v2'
+    SKVersion.v2
   );
 };

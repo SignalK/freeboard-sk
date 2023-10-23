@@ -45,12 +45,13 @@ import {
   waypointStyles,
   noteStyles,
   anchorStyles,
+  alarmStyles,
   destinationStyles
 } from './mapconfig';
 import { ModifyEvent } from 'ol/interaction/Modify';
 import { DrawEvent } from 'ol/interaction/Draw';
 import { Coordinate } from 'ol/coordinate';
-import { ResourceSets } from 'src/app/types';
+import { ResourceSets, SKNotification } from 'src/app/types';
 
 interface IResource {
   id: string;
@@ -71,6 +72,7 @@ interface IOverlay {
   isSelf?: boolean;
   aton?: SKAtoN;
   aircraft?: SKAircraft;
+  alarm?: SKNotification;
 }
 
 interface IFeatureData {
@@ -220,6 +222,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
     note: noteStyles,
     waypoint: waypointStyles,
     anchor: anchorStyles,
+    alarm: alarmStyles,
     destination: destinationStyles,
     aton: atonStyles,
     basestation: basestationStyles,
@@ -601,7 +604,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
     this.mouse.pixel = e.pixel;
     this.mouse.xy = e.coordinate;
     this.mouse.coords = GeoUtils.normaliseCoords(e.lonlat);
-    if (this.measure.enabled && this.measure.coords.length != 0) {
+    if (this.measure.enabled && this.measure.coords.length !== 0) {
       const c = e.lonlat;
       this.overlay.position = c;
       const l = this.measure.totalDistance + this.measureDistanceToAdd(c);
@@ -640,6 +643,11 @@ export class FBMapComponent implements OnInit, OnDestroy {
           let icon: string;
           let text: string;
           switch (t[0]) {
+            case 'alarm':
+              addToFeatureList = true;
+              icon = 'notification_important';
+              text = `${t[1]} ${t[0]}`;
+              break;
             case 'dest':
               addToFeatureList = true;
               icon = 'flag';
@@ -1076,6 +1084,16 @@ export class FBMapComponent implements OnInit, OnDestroy {
         this.overlay.title = 'Features';
         this.overlay.content = [];
         list.forEach((f) => this.overlay.content.push(f));
+        this.overlay.show = true;
+        return;
+      case 'alarm':
+        this.overlay['type'] = 'alarm';
+        aid = id.split('.')[1];
+        if (!this.app.data.alarms.has(aid)) {
+          return false;
+        }
+        this.overlay['id'] = aid;
+        this.overlay['alarm'] = this.app.data.alarms.get(aid);
         this.overlay.show = true;
         return;
       case 'vessels':

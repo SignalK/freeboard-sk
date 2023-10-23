@@ -1,11 +1,6 @@
-import {
-  Plugin,
-  PluginServerApp,
-  ResourceProviderRegistry
-} from '@signalk/server-api';
+import { Plugin, ServerAPI } from '@signalk/server-api';
 import { IRouter, Application, Request, Response } from 'express';
 import { initAlarms } from './alarms/alarms';
-import { ActionResult } from './lib/types';
 
 import {
   WEATHER_SERVICES,
@@ -118,18 +113,7 @@ interface OpenApiPlugin extends Plugin {
 
 export interface FreeboardHelperApp
   extends Application,
-    PluginServerApp,
-    ResourceProviderRegistry {
-  statusMessage?: () => string;
-  error: (...msg: any) => void;
-  debug: (...msg: any) => void;
-  setPluginStatus: (pluginId: string, status?: string) => void;
-  setPluginError: (pluginId: string, status?: string) => void;
-  setProviderStatus: (providerId: string, status?: string) => void;
-  setProviderError: (providerId: string, status?: string) => void;
-  getSelfPath: (path: string) => void;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  savePluginOptions: (options: any, callback: () => void) => void;
+    Omit<ServerAPI, 'registerPutHandler'> {
   config: {
     ssl: boolean;
     configPath: string;
@@ -138,7 +122,7 @@ export interface FreeboardHelperApp
   };
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  handleMessage: (id: string | null, msg: any, version?: string) => void;
+  //handleMessage: (id: string | null, msg: any, version?: string) => void;
   streambundle: {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     getSelfBus: (path: string | void) => any;
@@ -151,8 +135,10 @@ export interface FreeboardHelperApp
       path: string,
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       value: any,
-      actionResultCallback: (actionResult: ActionResult) => void
-    ) => ActionResult
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      actionResultCallback: (actionResult: any) => void
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ) => any
   ) => void;
 }
 
@@ -280,9 +266,11 @@ module.exports = (server: FreeboardHelperApp): OpenApiPlugin => {
           },
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           setResource: (id: string, value: any) => {
+            server.debug(`${id}, ${value}`);
             throw 'Not implemented!';
           },
           deleteResource: (id: string) => {
+            server.debug(`${id}`);
             throw 'Not implemented!';
           }
         }

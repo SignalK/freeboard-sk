@@ -10,6 +10,7 @@ import { SignalKClient } from 'signalk-client-angular';
 export class GPXSaveFacade {
   // **************** ATTRIBUTES ***************************
   private resultSource: Subject<number>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   public result$: Observable<any>;
   private sk2gpx: SK2GPX;
   public hasFSA: boolean;
@@ -28,6 +29,7 @@ export class GPXSaveFacade {
   }
 
   // ** prepare resource data
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   prepData(data: { [key: string]: any }) {
     const resData = {
       routes: [],
@@ -36,12 +38,14 @@ export class GPXSaveFacade {
     };
 
     let idx = 1;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     resData.routes = data.routes.map((r: any[]) => {
       const rte = r[1];
       rte.feature.id = r[0];
       return rte;
     });
     idx = 1;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     resData.waypoints = data.waypoints.map((w: any[]) => {
       const wpt = w[1];
       wpt.feature.id = w[0];
@@ -54,11 +58,15 @@ export class GPXSaveFacade {
   }
 
   // ** save selected resources to GPX file **
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   saveToFile(res: any, selections: any) {
     this.sk2gpx = new SK2GPX();
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const skroutes: { [key: string]: any } = {};
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const skwaypoints: { [key: string]: any } = {};
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const sktracks: { [key: string]: any } = {};
 
     for (let i = 0; i < selections.rte.selected.length; i++) {
@@ -110,6 +118,7 @@ export class GPXSaveFacade {
 
   // Using fileSystem Access API (https)
   fsaSaveFile() {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (window as any)
       .showSaveFilePicker({
         types: [
@@ -119,8 +128,10 @@ export class GPXSaveFacade {
           }
         ]
       })
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       .then((h: any) => {
         h.createWritable()
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           .then((writable: any) => {
             const blob = new Blob([this.sk2gpx.toXML()]);
             writable.write(blob).then(() => {

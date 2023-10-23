@@ -57,7 +57,7 @@ export class AISListComponent {
         selected = true;
       } else {
         selected =
-          this.app.config.selections.aisTargets.indexOf(key) != -1
+          this.app.config.selections.aisTargets.indexOf(key) !== -1
             ? true
             : false;
       }
@@ -94,7 +94,7 @@ export class AISListComponent {
 
   itemSelect(e: boolean, id: string) {
     this.aisAvailable.forEach((i) => {
-      if (i[0] == id) {
+      if (i[0] === id) {
         i[2] = e;
       }
     });
@@ -109,7 +109,7 @@ export class AISListComponent {
   emitSelected() {
     let selection = this.aisAvailable
       .map((i) => {
-        return i[2] == true ? i[0] : null;
+        return i[2] === true ? i[0] : null;
       })
       .filter((i) => {
         return i;

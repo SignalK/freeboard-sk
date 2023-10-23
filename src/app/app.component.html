@@ -361,8 +361,21 @@
               &nbsp;Settings
             </a>
 
-            <a mat-list-item (click)="sidemenu.close(); showLogin(null, false)">
-              <mat-icon>account_circle</mat-icon>
+            <a
+              mat-list-item
+              *ngIf="app.data.loginRequired"
+              (click)="sidemenu.close(); showLogin(null, false)"
+            >
+              <mat-icon
+                [matBadge]="display.badge.value"
+                matBadgeOverlap="true"
+                matBadgeSize="small"
+                matBadgePosition="below after"
+                matBadgeColor="warn"
+                [matBadgeHidden]="display.badge.hide"
+              >
+                account_circle
+              </mat-icon>
               &nbsp;{{ app.data.loggedIn ? 'Change User' : 'Login' }}
             </a>
           </mat-nav-list>
@@ -447,6 +460,10 @@
         </mat-sidenav>
 
         <mat-sidenav-content style="overflow: hidden">
+          <autopilot-console
+            *ngIf="app.data.autopilot.console"
+          ></autopilot-console>
+
           <!--left menu panel-->
           <div class="leftMenuPanel" *ngIf="display.leftMenuPanel">
             <route-list
@@ -517,10 +534,7 @@
 
             <anchor-watch
               *ngIf="display.anchorWatch"
-              min="10"
-              max="500"
               [disable]="!app.data.vessels.showSelf"
-              [sliderValue]="app.config.anchorRadius"
               [radius]="app.data.anchor.radius"
               [feet]="app.config.units.depth != 'm' ? true : false"
               [raised]="app.data.anchor.raised"
@@ -646,6 +660,24 @@
                   <mat-icon>{{
                     true ? 'invert_colors' : 'invert_colors_off'
                   }}</mat-icon>
+                </button>
+                <br />&nbsp;<br />
+              </div>
+
+              <!-- Autopilot console-->
+              <div *ngIf="app.data.autopilot.hasApi">
+                <button
+                  mat-mini-fab
+                  [color]="
+                    app.data.vessels.self.autopilot.enabled
+                      ? 'primary'
+                      : 'accent'
+                  "
+                  matTooltip="Autopilot"
+                  matTooltipPosition="left"
+                  (click)="app.data.autopilot.console = true"
+                >
+                  <mat-icon> alt_route </mat-icon>
                 </button>
                 <br />&nbsp;<br />
               </div>
@@ -884,8 +916,9 @@
                   <br />
                   <button
                     mat-icon-button
+                    [disabled]="!app.data.autopilot.hasApi"
                     [matTooltip]="display.navDataPanel.apModeText"
-                    [disabled]="!app.data.vessels.self.autopilot.enabled"
+                    (click)="app.data.autopilot.console = true"
                   >
                     <mat-icon [color]="display.navDataPanel.apModeColor">
                       alt_route

@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import { moveItemInArray } from '@angular/cdk/drag-drop';
 import { HttpErrorResponse } from '@angular/common/http';
 import { MatDialog } from '@angular/material/dialog';
-import { forkJoin, of, Subject, Observable, from } from 'rxjs';
+import { forkJoin, of, Subject, Observable } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import ngeohash from 'ngeohash';
 
@@ -387,6 +387,7 @@ export class SKResources {
   // ****************************************************
 
   // ** process Resource Delta message **
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   processDelta(e: Array<any>) {
     if (!Array.isArray(e)) {
       return;
@@ -607,7 +608,7 @@ export class SKResources {
         const k = Object.keys(res);
         this.app.config.selections.tracks = this.app.config.selections.tracks
           .map((i) => {
-            return k.indexOf(i) != -1 ? i : null;
+            return k.indexOf(i) !== -1 ? i : null;
           })
           .filter((i) => {
             return i;
@@ -834,7 +835,7 @@ export class SKResources {
           }
           idx++;
         });
-        if (srcidx != -1) {
+        if (srcidx !== -1) {
           moveItemInArray(this.app.data.charts, srcidx, destidx + 1);
         }
       }
@@ -846,10 +847,14 @@ export class SKResources {
   // v2 transformation
   transformRoute(r: RouteResource, id: string): RouteResource {
     // parse as v2
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     if (typeof (r as any).start !== 'undefined') {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       delete (r as any).start;
     }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     if (typeof (r as any).end !== 'undefined') {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       delete (r as any).end;
     }
     if (typeof r.name === 'undefined') {
@@ -1110,6 +1115,7 @@ export class SKResources {
   updateRouteCoords(
     id: string,
     coords: Array<Position>,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     coordsMeta?: Array<any>
   ) {
     const t = this.app.data.routes.filter((i: [string, SKRoute]) => {
@@ -1257,7 +1263,9 @@ export class SKResources {
 
   // v2 transformation
   transformWaypoint(w: WaypointResource, id: string): WaypointResource {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     if (typeof (w as any).position !== 'undefined') {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       delete (w as any).position;
     }
     if (!w.name) {
@@ -1307,7 +1315,7 @@ export class SKResources {
         this.app.config.selections.waypoints =
           this.app.config.selections.waypoints
             .map((i) => {
-              return k.indexOf(i) != -1 ? i : null;
+              return k.indexOf(i) !== -1 ? i : null;
             })
             .filter((i) => {
               return i;
@@ -1570,7 +1578,7 @@ export class SKResources {
 
   // get regions from server
   getRegions(params: string = null) {
-    params = params && params[0] != '?' ? `?${params}` : params;
+    params = params && params[0] !== '?' ? `?${params}` : params;
     return this.signalk.api.get(
       this.app.skApiVersion,
       `/resources/regions${params}`
@@ -1828,7 +1836,7 @@ export class SKResources {
   getNotes(params: string = null) {
     let rf = params ? params : this.app.config.resources.notes.rootFilter;
     rf = this.processTokens(rf);
-    if (rf && rf[0] != '?') {
+    if (rf && rf[0] !== '?') {
       rf = '?' + rf;
     }
     this.app.debug(`${rf}`);
@@ -1869,9 +1877,12 @@ export class SKResources {
   // v2 transformation
   transformRegion(r: RegionResource, id: string): RegionResource {
     if (
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       typeof (r as any).geohash !== 'undefined' &&
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       typeof (r as any).geohash === 'string'
     ) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const gh = ngeohash.decode_bbox((r as any).geohash);
       const reg = new SKRegion();
       reg.name = 'Region-' + id.slice(-6);
