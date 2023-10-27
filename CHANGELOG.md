@@ -5,6 +5,7 @@
 - **Added**: Display a badge on menu icon when server has security enabled and client is not authenticated.
 - **Added**: Autopilot console for use with built-in PyPyilot integration.
 - **Added**: Display location of Man Overboard alarm on map.
+- **Added**: Additional remove AIS target timeout options.
 - **Updated**: Align anchor watch UI to anchor-alarm API operation.
 - **Updated**: Display the waypoint name when a route point is a reference to a waypoint resource.
 - **Updated**: Use updated typings in `@signalk/server-api`.
