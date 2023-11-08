@@ -1,5 +1,9 @@
 # CHANGELOG: Freeboard
 
+### v2.3.1
+
+- **Fixed**: Issue in autopilot display where +/- adjustment buttons were not sending data to Pypilot.
+
 ### v2.3.0
 
 - **Added**: Display a badge on menu icon when server has security enabled and client is not authenticated.

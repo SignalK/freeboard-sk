@@ -170,10 +170,10 @@ const initApiRoutes = () => {
 
       const v = req.body.value * (180 / Math.PI);
       let deg = apData.target + v;
-      if (deg > 359) {
-        deg = 359;
-      } else if (deg < -179) {
-        deg = -179;
+      if (deg > 360) {
+        deg = 360;
+      } else if (deg < -180) {
+        deg = -180;
       }
 
       const r = sendToPyPilot('target', deg);
@@ -282,7 +282,7 @@ const initPyPilotListeners = () => {
 
 // Send values to pypilot
 const sendToPyPilot = (command: string, value: string | number | boolean) => {
-  server.debug(`command: ${command} = ${value}`);
+  server.debug(`sendToPyPilot: ${command} = ${value}`);
   let mode = '';
 
   if (command === 'mode') {
@@ -295,8 +295,8 @@ const sendToPyPilot = (command: string, value: string | number | boolean) => {
       mode = 'ap.enabled';
     }
   } else if (command === 'target') {
-    if (typeof value === 'string') {
-      value = (180 / Math.PI) * parseFloat(value); // rad to deg
+    server.debug(`command: ${command}, value: ${value}, ${typeof value}`);
+    if (typeof value === 'number') {
       mode = 'ap.heading_command';
     }
   } else {
@@ -309,6 +309,7 @@ const sendToPyPilot = (command: string, value: string | number | boolean) => {
   }
 
   try {
+    server.debug(`out -> ${mode}=${JSON.stringify(value)}`);
     socket.emit('pypilot', mode + '=' + JSON.stringify(value));
     return {
       state: 'COMPLETED',
@@ -337,10 +338,13 @@ const handlePyPilotUpdateMsg = (data: any) => {
   }*/
 
   if (typeof data['ap.heading_command'] !== 'undefined') {
-    const heading =
+    const h =
       data['ap.heading_command'] === false ? null : data['ap.heading_command'];
-    if (heading !== apData.heading_command) {
-      apData.target = heading;
+    if (h !== apData.heading_command) {
+      apData.target = h;
+      server.debug(
+        `in -> deg: ${apData.target}, rad: ${(Math.PI / 180) * apData.target}`
+      );
       emitAPDelta('target' as Path, (Math.PI / 180) * apData.target);
     }
   }

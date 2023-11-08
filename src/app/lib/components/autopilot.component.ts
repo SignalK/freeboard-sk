@@ -244,7 +244,7 @@ export class AutopilotComponent {
   }
 
   formatTargetValue(value: number) {
-    if (value) {
+    if (typeof value === 'number') {
       return Convert.radiansToDegrees(value)?.toFixed(1);
     } else return '--';
   }
