@@ -41,7 +41,7 @@ export class GPXLoadFacade {
   }
 
   // ** parse GPX file
-  parseFileData(data: string) {
+  async parseFileData(data: string) {
     const gpxData = {
       name: '',
       routes: [],
@@ -50,7 +50,7 @@ export class GPXLoadFacade {
     };
     this.gpx = new GPX();
 
-    if (!this.gpx.parse(data)) {
+    if (!await this.gpx.parse(data)) {
       return null;
     }
 
@@ -183,11 +183,11 @@ export class GPXLoadFacade {
     if (pt.desc && pt.desc.length !== 0) {
       wpt.description = pt.desc;
     }
+    if (pt.type) {
+      wpt.type = pt.type;
+    }
     if (pt.cmt) {
       wpt.feature.properties['cmt'] = pt.cmt;
-    }
-    if (pt.geoidHeight) {
-      wpt.feature.properties['geoidHeight'] = pt.geoidHeight;
     }
     if (pt.src) {
       wpt.feature.properties['src'] = pt.src;
@@ -195,30 +195,7 @@ export class GPXLoadFacade {
     if (pt.sym) {
       wpt.feature.properties['sym'] = pt.sym;
     }
-    if (pt.type) {
-      wpt.feature.properties['type'] = pt.type;
-    }
-    if (pt.fix) {
-      wpt.feature.properties['fix'] = pt.fix;
-    }
-    if (pt.sat) {
-      wpt.feature.properties['sat'] = pt.sat;
-    }
-    if (pt.hdop) {
-      wpt.feature.properties['hdop'] = pt.hdop;
-    }
-    if (pt.vdop) {
-      wpt.feature.properties['vdop'] = pt.vdop;
-    }
-    if (pt.pdop) {
-      wpt.feature.properties['pdop'] = pt.pdop;
-    }
-    if (pt.ageOfGpsData) {
-      wpt.feature.properties['ageOfGpsData'] = pt.ageOfGpsData;
-    }
-    if (pt.dgpsid) {
-      wpt.feature.properties['dgpsid'] = pt.dgpsid;
-    }
+
 
     this.subCount++;
     this.signalk.api

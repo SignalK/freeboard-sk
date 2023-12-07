@@ -50,16 +50,9 @@ export class SK2GPX {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   packageRoute(uuid: string, r: any) {
     const rte = new GPXRoute();
+    rte.extensions = rte.extensions ?? {};
     rte.extensions['signalk'] = {};
     rte.extensions['signalk']['uuid'] = uuid;
-    if (r.start) {
-      rte.extensions['signalk']['start'] = r.start;
-    }
-    rte.extensions = rte.extensions || {};
-    rte.extensions['signalk'] = {};
-    if (r.end) {
-      rte.extensions['signalk']['end'] = r.end;
-    }
     if (r.distance) {
       rte.extensions['signalk']['distance'] = r.distance;
     }

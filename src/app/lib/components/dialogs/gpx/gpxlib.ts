@@ -1,7 +1,8 @@
 /********************************
  ** GPX File Class Module       *
  ********************************/
-import { XML2JS } from './xml2js';
+
+import {parseStringPromise} from 'xml2js';
 
 /************************
  ** GPX File Class **
@@ -17,8 +18,6 @@ export class GPX {
   public extensions: any;
 
   public metadata: GPXMetadataType;
-
-  private x2js = new XML2JS(); // ** xml 2 json
 
   constructor() {
     this.init();
@@ -245,16 +244,29 @@ export class GPX {
     let xml = '';
     if (ext && Object.keys(ext).length !== 0) {
       const pad = '\t\t\t\t\t\t\t\t\t'.slice(0 - padLevel);
+      let es = ``;
+      if(ext.signalk) {
+        Object.keys(ext.signalk).forEach( k => {
+          es += `${pad}\t\t<${k}>${ext.signalk[k]}</${k}>\r\n`
+        });
+      }
       xml +=
-        `${pad}<extensions>\r\n` +
-        `${pad}\t${this.x2js.toString(ext)}\r\n` +
-        `${pad}</extensions>\r\n`;
+        `${pad}<extensions>\r\n${pad}\t<signalk>\r\n` + 
+        es +
+        `${pad}\t</signalk>\r\n${pad}</extensions>\r\n`;
     }
     return xml;
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  xValue(attrib: Array<any>) {
+    if (attrib && Array.isArray(attrib)) {
+      return attrib.length !== 0 ? attrib[0] : null;
+    }
+  }
+
   /** parse GPX string contents and fill this.data  **/
-  parse(gpxstr: string) {
+  async parse(gpxstr: string) {
     // ** check for valid file contents **
     if (!gpxstr || gpxstr.indexOf('<gpx') === -1) {
       return false;
@@ -262,92 +274,56 @@ export class GPX {
     // ** initialise **
     this.init();
     // ** xml to Json
-    const xjs = this.x2js.toJson(gpxstr);
-    if (!xjs) {
+    try {
+      const xjs = await parseStringPromise(gpxstr)
+      if (!xjs) {
+        return false;
+      }
+
+      //** parse header **
+      if (xjs['gpx']['metadata']) {
+        const meta = this.xValue(xjs['gpx']['metadata']);
+
+        this.metadata.name = meta.name ? this.xValue(meta.name) : null;
+        this.metadata.desc = meta.desc ? this.xValue(meta.desc) : null;
+        this.metadata.keywords = meta.keywords ? meta.keywords : null;
+
+        if (meta.bounds) {
+          const bounds = this.xValue(meta.bounds);
+          this.metadata.bounds.minLat = Number(bounds['$'].minlat)
+            ?? null;
+          this.metadata.bounds.minLon = Number(bounds['$'].minlon)
+            ?? null;
+          this.metadata.bounds.maxLat = Number(bounds['$'].maxlat)
+            ?? null;
+          this.metadata.bounds.maxLon = Number(bounds['$'].maxlon)
+            ?? null;
+        }
+        this.metadata.extensions = meta.extensions
+          ? this.parseExtensions(meta.extensions)
+          : {};
+      }
+
+      //** parse waypoints **
+      if (xjs['gpx']['wpt']) {
+        this.parseWaypoints(xjs['gpx']['wpt']);
+      }
+      //** parse routes **
+      if (xjs['gpx']['rte']) {
+        this.parseRoutes(xjs['gpx']['rte']);
+      }
+      //** parse tracks **
+      if (xjs['gpx']['trk']) {
+        this.parseTracks(xjs['gpx']['trk']);
+      }
+      //** parse extensions **
+      this.extensions = xjs['gpx']['extensions']
+        ? this.parseExtensions(xjs['gpx']['extensions'])
+        : {};
+      return true;
+    } catch (err) {
       return false;
     }
-
-    //** parse header **
-    if (xjs['gpx']['metadata']) {
-      const meta = xjs['gpx']['metadata'];
-
-      this.metadata.name = meta.name ? meta.name : null;
-      this.metadata.desc = meta.desc ? meta.desc : null;
-      this.metadata.keywords = meta.keywords ? meta.keywords : null;
-
-      if (meta.author) {
-        this.metadata.author = new GPXPersonType();
-        this.metadata.author.name = meta.author.name ? meta.author.name : null;
-        if (meta.author.email) {
-          this.metadata.author.email.id = meta.author.email.id
-            ? meta.author.email.id
-            : null;
-          this.metadata.author.email.domain = meta.author.email.domain
-            ? meta.author.email.domain
-            : null;
-        }
-        if (meta.author.link) {
-          this.metadata.author.link.href = meta.author.link._href
-            ? meta.author.link._href
-            : null;
-          this.metadata.author.link.text = meta.author.link.text
-            ? meta.author.link.text
-            : null;
-          this.metadata.author.link.type = meta.author.link.type
-            ? meta.author.link.type
-            : null;
-        }
-      }
-      if (meta.copyright) {
-        this.metadata.copyright = new GPXCopyrightType();
-        this.metadata.copyright.author = meta.copyright._author
-          ? meta.copyright._author
-          : null;
-        this.metadata.copyright.license = meta.copyright.license
-          ? meta.copyright.license
-          : null;
-        this.metadata.copyright.year = meta.copyright.year
-          ? meta.copyright.year
-          : null;
-      }
-      if (meta.bounds) {
-        this.metadata.bounds.minLat = meta.bounds._minlat
-          ? meta.bounds._minlat
-          : null;
-        this.metadata.bounds.minLon = meta.bounds._minlon
-          ? meta.bounds._minlon
-          : null;
-        this.metadata.bounds.maxLat = meta.bounds._maxlat
-          ? meta.bounds._maxlat
-          : null;
-        this.metadata.bounds.maxLon = meta.bounds._maxlon
-          ? meta.bounds._maxlon
-          : null;
-      }
-      this.metadata.link = meta.link ? this.parseLinks(meta.link) : [];
-      this.metadata.extensions = meta.extensions
-        ? this.parseExtensions(meta.extensions)
-        : {};
-    }
-
-    //** parse waypoints **
-    if (xjs['gpx']['wpt']) {
-      this.parseWaypoints(xjs['gpx']['wpt']);
-    }
-    //** parse routes **
-    if (xjs['gpx']['rte']) {
-      this.parseRoutes(xjs['gpx']['rte']);
-    }
-    //** parse tracks **
-    if (xjs['gpx']['trk']) {
-      this.parseTracks(xjs['gpx']['trk']);
-    }
-    //** parse extensions **
-    this.extensions = xjs['gpx']['extensions']
-      ? this.parseExtensions(xjs['gpx']['extensions'])
-      : {};
-
-    return true;
   }
 
   //** parse wpt xml element object array into this.wpt array
@@ -421,13 +397,21 @@ export class GPX {
 
   // ** return extension data
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  parseExtensions(xext: any) {
-    return xext;
-    /*
-        if(!xext) { return [] }
-        if(Array.isArray(xext)) { return xext }
-        else { return Object.entries(xext) } 
-        */
+  parseExtensions(xext: any[]) {
+    if(!xext) { return {} }
+    if(!Array.isArray(xext)) { return {} }
+    const resExt = {};
+    xext.forEach( i => {
+      if(i.signalk) {
+        const res = {};
+        const sk = this.xValue(i.signalk);
+        Object.keys(sk).forEach( k => {
+          res[k] = this.xValue(sk[k]);
+        })
+        resExt['signalk'] = res;
+      }
+    })
+    return resExt;
   }
 
   // ** return array of GPXLinkType objects from x2js
@@ -461,13 +445,11 @@ export class GPX {
   toRte(xmlrte: any): GPXRoute {
     const rte = new GPXRoute();
 
-    rte.name = xmlrte.name ? xmlrte.name : null;
-    rte.cmt = xmlrte.cmt ? xmlrte.cmt : null;
-    rte.desc = xmlrte.desc ? xmlrte.desc : null;
-    rte.src = xmlrte.src ? xmlrte.src : null;
-    rte.link = xmlrte.link ? this.parseLinks(xmlrte.link) : [];
-    rte.number = xmlrte.number ? parseInt(xmlrte.number) : null;
-    rte.type = xmlrte.type ? xmlrte.type : null;
+    rte.name = xmlrte.name ? this.xValue(xmlrte.name) : null;
+    rte.cmt = xmlrte.cmt ? this.xValue(xmlrte.cmt) : null;
+    rte.desc = xmlrte.desc ? this.xValue(xmlrte.desc) : null;
+    rte.src = xmlrte.src ? this.xValue(xmlrte.src) : null;
+
     rte.extensions = xmlrte.extensions
       ? this.parseExtensions(xmlrte.extensions)
       : {};
@@ -483,31 +465,16 @@ export class GPX {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   toWpt(xmlwpt: any): GPXWaypoint {
     const pt = new GPXWaypoint();
-    pt.lat = parseFloat(xmlwpt._lat) || 0;
-    pt.lon = parseFloat(xmlwpt._lon) || 0;
-    pt.ele = xmlwpt.ele ? parseFloat(xmlwpt.ele) : null;
-    pt.magvar = xmlwpt.magvar ? parseFloat(xmlwpt.magvar) : null;
-    pt.geoidHeight = xmlwpt.geoidheight ? parseFloat(xmlwpt.geoidheight) : null;
-    pt.sat = xmlwpt.sat ? parseFloat(xmlwpt.sat) : null;
-    pt.hdop = xmlwpt.hdop ? parseFloat(xmlwpt.hdop) : null;
-    pt.vdop = xmlwpt.vdop ? parseFloat(xmlwpt.vdop) : null;
-    pt.pdop = xmlwpt.pdop ? parseFloat(xmlwpt.pdop) : null;
-    pt.ageOfGpsData = xmlwpt.ageofgpsdata
-      ? parseFloat(xmlwpt.ageofgpsdata)
-      : null;
-    pt.dgpsid = xmlwpt.dgpsid ? parseFloat(xmlwpt.dgpsid) : null;
+    pt.lat = Number(xmlwpt['$'].lat) || 0;
+    pt.lon = Number(xmlwpt['$'].lon) || 0;
+    pt.ele = xmlwpt.ele ? Number(this.xValue(xmlwpt.ele)) : null;
 
-    pt.sym = xmlwpt.sym ? xmlwpt.sym : null;
-    pt.name = xmlwpt.name ? xmlwpt.name : null;
-    pt.cmt = xmlwpt.cmt ? xmlwpt.cmt : null;
-    pt.desc = xmlwpt.desc ? xmlwpt.desc : null;
-    pt.src = xmlwpt.src ? xmlwpt.src : null;
-    pt.type = xmlwpt.type ? xmlwpt.type : null;
-
-    pt.datetime = xmlwpt.time ? xmlwpt.time : null;
-
-    pt.fix = xmlwpt.fix ? GPXFixType[xmlwpt.fix] : null;
-    pt.link = xmlwpt.link ? this.parseLinks(xmlwpt.link) : [];
+    pt.sym = xmlwpt.sym ? this.xValue(xmlwpt.sym) : null;
+    pt.name = xmlwpt.name ? this.xValue(xmlwpt.name) : null;
+    pt.cmt = xmlwpt.cmt ? this.xValue(xmlwpt.cmt) : null;
+    pt.desc = xmlwpt.desc ? this.xValue(xmlwpt.desc) : null;
+    pt.src = xmlwpt.src ? this.xValue(xmlwpt.src) : null;
+    pt.type = xmlwpt.type ? this.xValue(xmlwpt.type) : null;
 
     // ** wpt extensions **
     pt.extensions = xmlwpt.extensions
@@ -522,13 +489,12 @@ export class GPX {
   toTrk(xmltrk: any): GPXTrack {
     const tk = new GPXTrack();
 
-    tk.name = xmltrk.name ? xmltrk.name : null;
-    tk.cmt = xmltrk.cmt ? xmltrk.cmt : null;
-    tk.desc = xmltrk.desc ? xmltrk.desc : null;
-    tk.src = xmltrk.src ? xmltrk.src : null;
-    tk.link = xmltrk.link ? this.parseLinks(xmltrk.link) : [];
-    tk.number = xmltrk.number ? parseInt(xmltrk.number) : null;
-    tk.type = xmltrk.type ? xmltrk.type : null;
+    tk.name = xmltrk.name ? this.xValue(xmltrk.name) : null;
+    tk.cmt = xmltrk.cmt ? this.xValue(xmltrk.cmt) : null;
+    tk.desc = xmltrk.desc ? this.xValue(xmltrk.desc) : null;
+    tk.src = xmltrk.src ? this.xValue(xmltrk.src) : null;
+    tk.number = xmltrk.number ? Number(this.xValue(xmltrk.number)) : null;
+    tk.type = xmltrk.type ? this.xValue(xmltrk.type) : null;
     tk.extensions = xmltrk.extensions
       ? this.parseExtensions(xmltrk.extensions)
       : {};

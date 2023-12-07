@@ -75,7 +75,7 @@ export class GPXImportDialog implements OnInit {
     });
   }
 
-  parseGPXData(data) {
+  async parseGPXData(data) {
     this.display.allRoutesChecked = false;
     this.display.loadRoutesOK = false;
     this.selRoutes = [];
@@ -89,7 +89,7 @@ export class GPXImportDialog implements OnInit {
     this.display.expand = { routes: false, waypoints: false, tracks: false };
     this.display.notValid = false;
 
-    this.gpxData = this.facade.parseFileData(data);
+    this.gpxData = await this.facade.parseFileData(data);
     if (!this.gpxData) {
       console.warn(
         'Selected file does not contain GPX data or\ndoes not correctly implement namespaced <extensions> attributes',
