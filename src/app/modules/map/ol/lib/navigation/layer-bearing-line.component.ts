@@ -237,7 +237,7 @@ export class BearingLineComponent implements OnInit, OnDestroy, OnChanges {
   // update feature labels
   updateLabel(f?: Feature) {
     if (!f && this.source) {
-      f = this.source.getFeatureById('d.base');
+      f = (this.source.getFeatureById('d.base') as Feature);
     }
     const s: StyleLike = f.getStyle();
     if (!s) {

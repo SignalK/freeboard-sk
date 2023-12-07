@@ -164,7 +164,7 @@ export class SKTargetTracksLayerComponent
       if (this.tracks.has(w)) {
         const target = this.tracks.get(w);
         // ** target **
-        let f = this.source.getFeatureById('track-' + w);
+        let f = (this.source.getFeatureById('track-' + w) as Feature);
         if (f) {
           // exists so update it
           f.setGeometry(new MultiLineString(this.parseCoordinates(target)));
@@ -191,7 +191,7 @@ export class SKTargetTracksLayerComponent
       return;
     }
     ids.forEach((w) => {
-      const f = this.source.getFeatureById('track-' + w);
+      const f = (this.source.getFeatureById('track-' + w) as Feature);
       if (f) {
         this.source.removeFeature(f);
       }

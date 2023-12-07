@@ -138,7 +138,7 @@ export class VesselTrailComponent implements OnInit, OnDestroy, OnChanges {
       this.trailLocal.setStyle(this.buildStyle('local'));
     } else {
       //update feature
-      this.trailLocal = this.source.getFeatureById('trail.self.local');
+      this.trailLocal = (this.source.getFeatureById('trail.self.local') as Feature);
       if (this.localTrail && Array.isArray(this.localTrail)) {
         const g: Geometry = this.trailLocal.getGeometry();
         (g as LineString).setCoordinates(c);
@@ -160,7 +160,7 @@ export class VesselTrailComponent implements OnInit, OnDestroy, OnChanges {
       this.trailServer.setStyle(this.buildStyle('server'));
     } else {
       //update feature
-      this.trailServer = this.source.getFeatureById('trail.self.server');
+      this.trailServer = (this.source.getFeatureById('trail.self.server') as Feature);
       if (this.serverTrail && Array.isArray(this.serverTrail)) {
         const g: Geometry = this.trailServer.getGeometry();
         (g as MultiLineString).setCoordinates(ca);
