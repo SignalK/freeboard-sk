@@ -11,6 +11,7 @@ package.json
 projects
 src
 helper
+font_resources
 tsconfig.json
 tsconfig.app.json
 tsconfig-helper.json
