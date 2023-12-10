@@ -50,7 +50,7 @@ export class GPXLoadFacade {
     };
     this.gpx = new GPX();
 
-    if (!await this.gpx.parse(data)) {
+    if (!(await this.gpx.parse(data))) {
       return null;
     }
 
@@ -195,7 +195,6 @@ export class GPXLoadFacade {
     if (pt.sym) {
       wpt.feature.properties['sym'] = pt.sym;
     }
-
 
     this.subCount++;
     this.signalk.api

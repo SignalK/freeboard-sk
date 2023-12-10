@@ -234,7 +234,7 @@ export class SKVesselsLayerComponent implements OnInit, OnDestroy, OnChanges {
       if (this.targets.has(w)) {
         const target = this.targets.get(w);
         // ** target **
-        let f = (this.source.getFeatureById('ais-' + w) as Feature);
+        let f = this.source.getFeatureById('ais-' + w) as Feature;
         if (f) {
           // exists so update it
           if (this.okToRender(w) && target.position) {
@@ -287,7 +287,7 @@ export class SKVesselsLayerComponent implements OnInit, OnDestroy, OnChanges {
       return;
     }
 
-    let wf = (this.source.getFeatureById('wind-' + id) as Feature);
+    let wf = this.source.getFeatureById('wind-' + id) as Feature;
     if (!this.okToRender(id, true) || !target.position) {
       if (wf) {
         this.source.removeFeature(wf);
@@ -326,11 +326,11 @@ export class SKVesselsLayerComponent implements OnInit, OnDestroy, OnChanges {
       return;
     }
     ids.forEach((w) => {
-      let f = (this.source.getFeatureById('ais-' + w) as Feature);
+      let f = this.source.getFeatureById('ais-' + w) as Feature;
       if (f) {
         this.source.removeFeature(f);
       }
-      f = (this.source.getFeatureById('wind-' + w) as Feature);
+      f = this.source.getFeatureById('wind-' + w) as Feature;
       if (f) {
         this.source.removeFeature(f);
       }

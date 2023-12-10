@@ -462,59 +462,61 @@ export class MessageBarComponent {
 @Component({
   selector: 'ap-welcome-dialog',
   template: `
-    <div class="welcome">
-      <mat-horizontal-stepper [linear]="false" #stepper>
-        <mat-step *ngFor="let c of data.content; let i = index">
-          <div style="text-align:center;">
-            <h3>{{ c.title }}</h3>
-          </div>
-          <div style="display:flex;">
-            <div style="min-width:50px;text-align:left;padding-top: 15%;">
-              <button
-                mat-icon-button
-                *ngIf="i != 0 && data.content.length > 1"
-                (click)="currentPage = currentPage - 1"
-                color="primary"
-                matStepperPrevious
-              >
-                <mat-icon>keyboard_arrow_left</mat-icon>
-              </button>
+    <mat-dialog-content>
+      <div class="welcome">
+        <mat-horizontal-stepper [linear]="false" #stepper>
+          <mat-step *ngFor="let c of data.content; let i = index">
+            <div style="text-align:center;">
+              <h3>{{ c.title }}</h3>
             </div>
-            <div style="flex: 1 1 auto;" [innerHTML]="c.message"></div>
-            <div style="min-width:50px;text-align:right;padding-top: 15%;">
-              <button
-                mat-icon-button
-                *ngIf="i != data.content.length - 1"
-                (click)="currentPage = currentPage + 1"
-                color="primary"
-                matStepperNext
-              >
-                <mat-icon>keyboard_arrow_right</mat-icon>
-              </button>
+            <div style="display:flex;">
+              <div style="min-width:50px;text-align:left;padding-top: 15%;">
+                <button
+                  mat-icon-button
+                  *ngIf="i != 0 && data.content.length > 1"
+                  (click)="currentPage = currentPage - 1"
+                  color="primary"
+                  matStepperPrevious
+                >
+                  <mat-icon>keyboard_arrow_left</mat-icon>
+                </button>
+              </div>
+              <div style="flex: 1 1 auto;" [innerHTML]="c.message"></div>
+              <div style="min-width:50px;text-align:right;padding-top: 15%;">
+                <button
+                  mat-icon-button
+                  *ngIf="i != data.content.length - 1"
+                  (click)="currentPage = currentPage + 1"
+                  color="primary"
+                  matStepperNext
+                >
+                  <mat-icon>keyboard_arrow_right</mat-icon>
+                </button>
+              </div>
             </div>
-          </div>
-        </mat-step>
-      </mat-horizontal-stepper>
-      <div style="text-align:center;font-size:10pt;font-family:roboto;">
-        <mat-icon
-          *ngFor="let c of data.content; let i = index"
-          [style.color]="currentPage - 1 == i ? 'blue' : 'gray'"
-          style="font-size:8pt;width:12px;"
-        >
-          fiber_manual_record
-        </mat-icon>
+          </mat-step>
+        </mat-horizontal-stepper>
+        <div style="text-align:center;font-size:10pt;font-family:roboto;">
+          <mat-icon
+            *ngFor="let c of data.content; let i = index"
+            [style.color]="currentPage - 1 == i ? 'blue' : 'gray'"
+            style="font-size:8pt;width:12px;"
+          >
+            fiber_manual_record
+          </mat-icon>
+        </div>
+        <div style="text-align:center;">
+          <button
+            mat-raised-button
+            color="primary"
+            (click)="dialogRef.close(data.showPrefs)"
+          >
+            {{ data.buttonText }}
+          </button>
+          <br />&nbsp;
+        </div>
       </div>
-      <div style="text-align:center;">
-        <button
-          mat-raised-button
-          color="primary"
-          (click)="dialogRef.close(data.showPrefs)"
-        >
-          {{ data.buttonText }}
-        </button>
-        <br />&nbsp;
-      </div>
-    </div>
+    </mat-dialog-content>
   `,
   styles: [
     `
@@ -522,8 +524,7 @@ export class MessageBarComponent {
         font-weight: normal !important;
       }
       .welcome h3 {
-        font-weight: normal;
-        font-weight: 300;
+        font-weight: 500;
       }
       .welcome-row {
         display: -webkit-box;

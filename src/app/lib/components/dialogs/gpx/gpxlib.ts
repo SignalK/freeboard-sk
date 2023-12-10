@@ -2,7 +2,7 @@
  ** GPX File Class Module       *
  ********************************/
 
-import {parseStringPromise} from 'xml2js';
+import { parseStringPromise } from 'xml2js';
 
 /************************
  ** GPX File Class **
@@ -245,13 +245,13 @@ export class GPX {
     if (ext && Object.keys(ext).length !== 0) {
       const pad = '\t\t\t\t\t\t\t\t\t'.slice(0 - padLevel);
       let es = ``;
-      if(ext.signalk) {
-        Object.keys(ext.signalk).forEach( k => {
-          es += `${pad}\t\t<${k}>${ext.signalk[k]}</${k}>\r\n`
+      if (ext.signalk) {
+        Object.keys(ext.signalk).forEach((k) => {
+          es += `${pad}\t\t<${k}>${ext.signalk[k]}</${k}>\r\n`;
         });
       }
       xml +=
-        `${pad}<extensions>\r\n${pad}\t<signalk>\r\n` + 
+        `${pad}<extensions>\r\n${pad}\t<signalk>\r\n` +
         es +
         `${pad}\t</signalk>\r\n${pad}</extensions>\r\n`;
     }
@@ -275,7 +275,7 @@ export class GPX {
     this.init();
     // ** xml to Json
     try {
-      const xjs = await parseStringPromise(gpxstr)
+      const xjs = await parseStringPromise(gpxstr);
       if (!xjs) {
         return false;
       }
@@ -290,14 +290,10 @@ export class GPX {
 
         if (meta.bounds) {
           const bounds = this.xValue(meta.bounds);
-          this.metadata.bounds.minLat = Number(bounds['$'].minlat)
-            ?? null;
-          this.metadata.bounds.minLon = Number(bounds['$'].minlon)
-            ?? null;
-          this.metadata.bounds.maxLat = Number(bounds['$'].maxlat)
-            ?? null;
-          this.metadata.bounds.maxLon = Number(bounds['$'].maxlon)
-            ?? null;
+          this.metadata.bounds.minLat = Number(bounds['$'].minlat) ?? null;
+          this.metadata.bounds.minLon = Number(bounds['$'].minlon) ?? null;
+          this.metadata.bounds.maxLat = Number(bounds['$'].maxlat) ?? null;
+          this.metadata.bounds.maxLon = Number(bounds['$'].maxlon) ?? null;
         }
         this.metadata.extensions = meta.extensions
           ? this.parseExtensions(meta.extensions)
@@ -398,19 +394,23 @@ export class GPX {
   // ** return extension data
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   parseExtensions(xext: any[]) {
-    if(!xext) { return {} }
-    if(!Array.isArray(xext)) { return {} }
+    if (!xext) {
+      return {};
+    }
+    if (!Array.isArray(xext)) {
+      return {};
+    }
     const resExt = {};
-    xext.forEach( i => {
-      if(i.signalk) {
+    xext.forEach((i) => {
+      if (i.signalk) {
         const res = {};
         const sk = this.xValue(i.signalk);
-        Object.keys(sk).forEach( k => {
+        Object.keys(sk).forEach((k) => {
           res[k] = this.xValue(sk[k]);
-        })
+        });
         resExt['signalk'] = res;
       }
-    })
+    });
     return resExt;
   }
 
