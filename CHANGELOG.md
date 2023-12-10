@@ -1,5 +1,10 @@
 # CHANGELOG: Freeboard
 
+### v2.3.2
+
+- **Fixed**: GPX load screen not displaying list of resources to select.
+- **Updated**: Openlayers version 8.
+
 ### v2.3.1
 
 - **Fixed**: Issue in autopilot display where +/- adjustment buttons were not sending data to Pypilot.
