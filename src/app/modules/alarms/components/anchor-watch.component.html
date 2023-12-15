@@ -56,7 +56,7 @@
           RAISE
           <mat-slide-toggle
             #slideCtl
-            color="warn"
+            color="primary"
             [hideIcon]="true"
             [disabled]="disable"
             [checked]="!raised"
@@ -89,7 +89,7 @@
           </button>
         </div>
       </mat-step>
-      <mat-step label="Adjust Radius" editable="false">
+      <mat-step label="Adjust" editable="false">
         <div>
           <div>
             <br />
@@ -99,7 +99,7 @@
             <div>
               <mat-slider
                 discrete
-                [color]="display.sliderColor"
+                color="primary"
                 [disabled]="disable"
                 [min]="this.feet ? mToFt(min) : min"
                 [max]="this.feet ? mToFt(max) : max"
@@ -125,6 +125,13 @@
               {{ feet ? 'ft' : 'm' }}
             </div>
           </div>
+        </div>
+        <div>
+          <div>
+            <br />
+            <b>Shift Anchor:</b>
+          </div>
+          <nsew-buttons (direction)="shiftAnchor($event)"></nsew-buttons>
         </div>
       </mat-step>
     </mat-stepper>

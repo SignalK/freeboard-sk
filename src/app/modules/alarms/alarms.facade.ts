@@ -58,7 +58,7 @@ export class AlarmsFacade {
 
   // ******** ANCHOR WATCH EVENTS ************
   anchorEvent(
-    e: { radius: number; action: string },
+    e: { radius?: number; action: string },
     context?: string,
     position?: Position
   ) {
@@ -103,6 +103,22 @@ export class AlarmsFacade {
             reject();
           }
         );
+      } else if (e.action === 'position') {
+        this.signalk
+          .post('/plugins/anchoralarm/setAnchorPosition', {
+            position: {
+              latitude: position[1],
+              longitude: position[0]
+            }
+          })
+          .subscribe(
+            () => resolve(true),
+            (err: HttpErrorResponse) => {
+              this.parseAnchorError(err, 'position');
+              this.queryAnchorStatus(context, position);
+              reject();
+            }
+          );
       }
     });
   }
@@ -157,7 +173,7 @@ export class AlarmsFacade {
       this.anchorSource.next({
         action: action,
         error: true,
-        result: e.error
+        result: e
       });
     }
   }

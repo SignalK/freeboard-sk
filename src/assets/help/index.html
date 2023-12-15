@@ -60,7 +60,7 @@
           <li><a href="#experiments">- Experiments</a></li>
           <li>
             <a href="https://github.com/SignalK/freeboard-sk/" target="_fb">
-              <i class="fi-social-github"></i> GitHub</a
+              GitHub</a
             >
           </li>
         </ul>
@@ -113,7 +113,7 @@
           <br />
           Visit us at
           <a href="https://github.com/SignalK/freeboard-sk/" target="_fb">
-            <i class="fi-social-github"></i> GitHub</a
+            GitHub</a
           >
         </div>
 
@@ -1216,14 +1216,14 @@
         </div>
 
         <div class="panel" id="anchor">
-          <h4>Anchor Watch</h4>
+          <h4><i class="material-icons">anchor</i> Anchor Watch</h4>
 
-          <li class="nobullet">
-            <i class="material-icons">menu</i>
-            <b>Main Menu:</b>
-            Access the <i class="fi-anchor" style="font-size: 20pt"></i>
+          Freeboard integrates with the <i>signalk-anchor-alarm</i> plugin to
+          facilitate the setting of an anchor watch alarm.
+          <div>
+            Select the <i class="material-icons">anchor</i>
             <b>Anchor Watch</b> option from the Main menu.
-          </li>
+          </div>
 
           <div style="display: flex; flex-wrap: wrap">
             <div>
@@ -1232,29 +1232,47 @@
                 style="max-width: 250px"
                 alt=""
               />
-            </div>
-            <div style="padding-left: 15px">
-              <li><b>Set Radius</b>: Move the slider to the desired radius.</li>
-              <li>
-                <b>Drop Anchor</b>: Slide the toggle to drop the anchor and tell
-                the server to start watching.
-              </li>
+
               <img
-                src="./img/anchor_circle.png"
-                style="max-width: 100px"
+                src="./img/anchor_watch_rode.png"
+                style="max-width: 250px"
                 alt=""
               />
-              <li>
+
+              <img
+                src="./img/anchor_watch_adjust.png"
+                style="max-width: 250px"
+                alt=""
+              />
+              <img
+                src="./img/anchor_circle.png"
+                style="max-width: 250px"
+                alt=""
+              />
+            </div>
+            <div style="padding-left: 15px">
+              After dropping the anchor, slide the toggle to <b>Drop</b> then:
+              <ol>
+                <li>
+                  Let out the rode and when complete click <b>Set</b>. This will
+                  set the anchor position and the maximum radius. The server
+                  will commence watching the vessel position and raise an alarm
+                  if the vessel moves outside the maximum radius distance.
+                </li>
+                <li>
+                  The alarm radius can be adjusted by moving the
+                  <b>Set Radius</b> slider to the desired distance. The
+                  <b>Anchor Position</b>
+                  can be shifted by using the arrow buttons.
+                </li>
+              </ol>
+            </div>
+            <div>
+              <p>
                 When the server calculates that the maxumum radius has been
                 exceeded it sends a notification which triggers the alarm
                 message.
-              </li>
-              <li>
-                An alarm message will be either just Visual or also Audible
-                depending on the content of the notification from the server. An
-                audible alarm can be muted by clicking the Mute button.
-              </li>
-
+              </p>
               <img
                 src="./img/anchor_alarm.png"
                 style="max-width: 250px"
@@ -1265,19 +1283,25 @@
                 style="max-width: 250px"
                 alt=""
               />
-              <li>
-                Acknowledging the alarm will minimise the alarm icon until the
-                alarm has been cleared.
-              </li>
               <img
-                src="./img/ackalarms.png"
-                style="max-width: 250px; height: 60px"
+                src="./img/anchor_alarm_ack.png"
+                style="max-width: 250px; height: 90px"
                 alt=""
               />
-              <li>
+              <p>
+                An alarm message will be either just Visual or also Audible
+                depending on the content of the notification from the server. An
+                audible alarm can be muted by clicking the <b>Mute</b> button.
+              </p>
+              <p>
+                Acknowledging the alarm will minimise the alarm icon.<br />
+                The icon will be displayed until the alarm has been cleared.<br />
+                Clicking the icon will re-display the alarm message.
+              </p>
+              <p>
                 To clear the alarm and remove it from the screen click
-                Acknowledge.
-              </li>
+                <b>Acknowledge</b>.
+              </p>
             </div>
           </div>
         </div>

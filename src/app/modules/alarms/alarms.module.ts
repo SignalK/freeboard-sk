@@ -19,6 +19,7 @@ import { AlarmComponent } from './components/alarm.component';
 import { AlarmsDialog } from './components/alarms-dialog.component';
 import { AnchorWatchComponent } from './components/anchor-watch.component';
 import { TimerButtonComponent } from './components/timer-button.component';
+import { NSEWButtonsComponent } from './components/nsew-buttons.component';
 
 @NgModule({
   imports: [
@@ -33,7 +34,8 @@ import { TimerButtonComponent } from './components/timer-button.component';
     MatToolbarModule,
     MatStepperModule,
     CommonDialogs,
-    TimerButtonComponent
+    TimerButtonComponent,
+    NSEWButtonsComponent
   ],
   declarations: [AnchorWatchComponent, AlarmsDialog, AlarmComponent],
   exports: [AnchorWatchComponent, AlarmsDialog, AlarmComponent],

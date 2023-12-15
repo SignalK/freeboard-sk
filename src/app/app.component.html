@@ -342,7 +342,7 @@
               *ngIf="!draw.enabled || !measure.enabled"
               (click)="sidemenu.close(); displayLeftMenu('anchorWatch', true)"
             >
-              <mat-icon><i class="fi-anchor"></i></mat-icon>
+              <mat-icon>anchor</mat-icon>
               &nbsp;Anchor Watch
             </a>
 
@@ -588,7 +588,6 @@
               <div *ngIf="display.fullscreen.enabled">
                 <button
                   mat-mini-fab
-                  [color]="''"
                   (click)="toggleFullscreen()"
                   matTooltip="Go Fullscreen"
                   matTooltipPosition="left"
@@ -638,7 +637,7 @@
               <div>
                 <button
                   mat-mini-fab
-                  [color]="app.config.map.limitZoom ? 'accent' : ''"
+                  [color]="app.config.map.limitZoom ? 'primary' : 'accent'"
                   (click)="toggleLimitMapZoom()"
                   matTooltip="Constrain map zoom."
                   matTooltipPosition="left"
@@ -652,7 +651,7 @@
               <div>
                 <button
                   mat-mini-fab
-                  [color]="app.config.map.invertColor ? 'warn' : 'accent'"
+                  [color]="app.config.map.invertColor ? 'primary' : 'accent'"
                   (click)="invertAISTextColor()"
                   matTooltip="Invert feature text color."
                   matTooltipPosition="left"
@@ -925,7 +924,7 @@
                     </mat-icon>
                   </button>
                 </div>
-                <div style="width: 40px">
+                <div>
                   <button
                     mat-icon-button
                     matTooltip="Restart XTE"

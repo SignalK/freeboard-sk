@@ -64,12 +64,12 @@ features: Array<any> - list of features
     <ap-popover [title]="title" [canClose]="canClose" (closed)="handleClose()">
       <mat-nav-list>
         <mat-list-item *ngFor="let f of features" (click)="handleSelect(f)">
-            <mat-icon
-              [color]="f.text && f.text.indexOf('self') != -1 ? 'warn' : ''"
-            >
-              {{ f.icon }}
-            </mat-icon>
-            {{ f.text }}
+          <mat-icon
+            [color]="f.text && f.text.indexOf('self') != -1 ? 'warn' : ''"
+          >
+            {{ f.icon }}
+          </mat-icon>
+          {{ f.text }}
         </mat-list-item>
       </mat-nav-list>
     </ap-popover>

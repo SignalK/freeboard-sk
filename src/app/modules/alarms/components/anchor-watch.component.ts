@@ -9,11 +9,14 @@ import {
   ElementRef
 } from '@angular/core';
 
+import { computeDestinationPoint } from 'geolib';
+
 import { AlarmsFacade } from '../alarms.facade';
+import { AppInfo } from 'src/app/app.info';
 
 interface OutputMessage {
   radius: number | null;
-  action: 'drop' | 'raise' | 'setRadius' | undefined;
+  action: 'drop' | 'raise' | 'setRadius' | 'position' | undefined;
 }
 
 @Component({
@@ -35,21 +38,18 @@ export class AnchorWatchComponent {
   @ViewChild('slideCtl', { static: true }) slideCtl: ElementRef;
 
   bgImage: string;
-  display = { sliderColor: 'primary' };
   msg: OutputMessage = { radius: null, action: undefined };
 
   sliderValue: number;
   rodeOut = false;
 
-  constructor(private facade: AlarmsFacade) {}
+  constructor(private facade: AlarmsFacade, private app: AppInfo) {}
 
   ngOnInit() {
-    this.display.sliderColor = !this.raised ? 'warn' : 'primary';
     this.msg.radius = this.sliderValue;
   }
 
   ngOnChanges(changes: SimpleChanges) {
-    this.display.sliderColor = !this.raised ? 'warn' : 'primary';
     if (changes.radius) {
       if (changes.radius.previousValue === -1) {
         this.sliderValue = Math.round(changes.radius.currentValue);
@@ -68,7 +68,6 @@ export class AnchorWatchComponent {
         ? './assets/img/anchor-radius-raised.png'
         : './assets/img/anchor-radius.png'
     }')`;
-    this.display.sliderColor = !this.raised ? 'warn' : 'primary';
     this.rodeOut = !this.raised && this.radius !== -1;
   }
 
@@ -96,6 +95,22 @@ export class AnchorWatchComponent {
       .catch(() => {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (this.slideCtl as any).checked = !(this.slideCtl as any).checked;
+      });
+  }
+
+  shiftAnchor(direction: number) {
+    const inc = 1;
+    const position = computeDestinationPoint(
+      this.app.data.anchor.position,
+      inc,
+      direction
+    );
+
+    this.msg.action = 'position';
+    this.facade
+      .anchorEvent(this.msg, undefined, [position.longitude, position.latitude])
+      .catch(() => {
+        console.log('Error shifting anchor!');
       });
   }
 
