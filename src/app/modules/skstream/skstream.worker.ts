@@ -107,6 +107,11 @@ const trailMgr: VesselTrailConfig = {
   }
 };
 
+// current delta $source
+let $source!: string;
+// autopilot device id
+let apDeviceId = 'freeboard-sk';
+
 // *******************************************************************
 
 // ** Initialise message data structures **
@@ -542,6 +547,7 @@ function parseStreamMessage(data) {
       if (!u.values) {
         return;
       }
+      $source = u.$source;
       u.values.forEach((v) => {
         playbackTime = u.timestamp;
         if (!data.context) {
@@ -843,14 +849,19 @@ function processVessel(d: SKVessel, v, isSelf = false) {
   }
 
   // ** steering.autopilot **
-  else if (v.path === 'steering.autopilot.state') {
+  else if (v.path === 'steering.autopilot.state' && $source === apDeviceId) {
     d.autopilot.state = v.value;
-  } else if (v.path === 'steering.autopilot.mode') {
+  } else if (v.path === 'steering.autopilot.mode' && $source === apDeviceId) {
     d.autopilot.mode = v.value;
-  } else if (v.path === 'steering.autopilot.target') {
+  } else if (v.path === 'steering.autopilot.target' && $source === apDeviceId) {
     d.autopilot.target = v.value;
-  } else if (v.path === 'steering.autopilot.active') {
+  } else if (
+    v.path === 'steering.autopilot.engaged' &&
+    $source === apDeviceId
+  ) {
     d.autopilot.enabled = v.value;
+  } else if (v.path === 'steering.autopilot.defaultPilot') {
+    apDeviceId = v.value;
   } else {
     d.properties[v.path] = v.value;
   }

@@ -15,13 +15,13 @@ export interface PYPILOT_CONFIG {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const apData: any = {
   options: {
-    state: ['enabled', 'disabled'],
-    mode: []
+    states: ['enabled', 'disabled'],
+    modes: []
   },
   state: null,
   mode: null,
   target: null,
-  active: false
+  engaged: false
 };
 
 let server: FreeboardHelperApp;
@@ -29,6 +29,7 @@ let pluginId: string;
 let socket: Socket;
 
 const AUTOPILOT_API_PATH = '/signalk/v2/api/vessels/self/steering/autopilot';
+const DEAFULT_AP = `${AUTOPILOT_API_PATH}/default`;
 
 // initialise connection to autopilot, register socket listeners and SK AP path PUT handlers
 export const initPyPilot = (
@@ -50,6 +51,7 @@ export const initPyPilot = (
 
   // API endpoints
   initApiRoutes();
+  emitAPDelta('defaultPilot' as Path, pluginId);
 
   initPyPilotListeners();
 };
@@ -63,20 +65,34 @@ export const closePyPilot = () => {
 const initApiRoutes = () => {
   server.debug(`** Registering API endpoint(s): ${AUTOPILOT_API_PATH} **`);
 
-  server.get(`${AUTOPILOT_API_PATH}`, (req: Request, res: Response) => {
-    server.debug(`${req.method} ${AUTOPILOT_API_PATH}`);
+  server.get(`${DEAFULT_AP}`, (req: Request, res: Response) => {
+    server.debug(`${req.method} ${DEAFULT_AP}`);
     res.status(200);
     res.json(apData);
   });
 
-  server.get(`${AUTOPILOT_API_PATH}/state`, (req: Request, res: Response) => {
-    server.debug(`${req.method} ${AUTOPILOT_API_PATH}/state`);
-    res.status(200);
-    res.json(apData.state);
+  server.get(`${AUTOPILOT_API_PATH}`, (req: Request, res: Response) => {
+    server.debug(`${req.method} ${AUTOPILOT_API_PATH}`);
+    res.status(200).json({
+      'freeboard-sk': { provider: 'freeboard-sk', isDefault: true }
+    });
   });
 
-  server.put(`${AUTOPILOT_API_PATH}/state`, (req: Request, res: Response) => {
-    server.debug(`${req.method} ${AUTOPILOT_API_PATH}/state`);
+  server.get(
+    `${AUTOPILOT_API_PATH}/defaultPilot`,
+    (req: Request, res: Response) => {
+      server.debug(`${req.method} ${AUTOPILOT_API_PATH}/defaultPilot`);
+      res.status(200).json({ id: pluginId });
+    }
+  );
+
+  server.get(`${DEAFULT_AP}/state`, (req: Request, res: Response) => {
+    server.debug(`${req.method} ${DEAFULT_AP}/state`);
+    res.status(200).json({ value: apData.state });
+  });
+
+  server.put(`${DEAFULT_AP}/state`, (req: Request, res: Response) => {
+    server.debug(`${req.method} ${DEAFULT_AP}/state`);
 
     if (typeof req.body.value === 'undefined') {
       res.status(400).json({
@@ -87,7 +103,7 @@ const initApiRoutes = () => {
       return;
     }
 
-    if (!apData.options.state.includes(req.body.value)) {
+    if (!apData.options.states.includes(req.body.value)) {
       res.status(400).json({
         state: 'FAILED',
         statusCode: 400,
@@ -100,14 +116,13 @@ const initApiRoutes = () => {
     res.status(r.statusCode).json(r);
   });
 
-  server.get(`${AUTOPILOT_API_PATH}/mode`, (req: Request, res: Response) => {
-    server.debug(`${req.method} ${AUTOPILOT_API_PATH}/mode`);
-    res.status(200);
-    res.json(apData.mode);
+  server.get(`${DEAFULT_AP}/mode`, (req: Request, res: Response) => {
+    server.debug(`${req.method} ${DEAFULT_AP}/mode`);
+    res.status(200).json({ value: apData.mode });
   });
 
-  server.put(`${AUTOPILOT_API_PATH}/mode`, (req: Request, res: Response) => {
-    server.debug(`${req.method} ${AUTOPILOT_API_PATH}/mode`);
+  server.put(`${DEAFULT_AP}/mode`, (req: Request, res: Response) => {
+    server.debug(`${req.method} ${DEAFULT_AP}/mode`);
 
     if (typeof req.body.value === 'undefined') {
       res.status(400).json({
@@ -118,7 +133,7 @@ const initApiRoutes = () => {
       return;
     }
 
-    if (!apData.options.mode.includes(req.body.value)) {
+    if (!apData.options.modes.includes(req.body.value)) {
       res.status(400).json({
         state: 'FAILED',
         statusCode: 400,
@@ -131,8 +146,8 @@ const initApiRoutes = () => {
     res.status(r.statusCode).json(r);
   });
 
-  server.put(`${AUTOPILOT_API_PATH}/target`, (req: Request, res: Response) => {
-    server.debug(`${req.method} ${AUTOPILOT_API_PATH}/target`);
+  server.put(`${DEAFULT_AP}/target`, (req: Request, res: Response) => {
+    server.debug(`${req.method} ${DEAFULT_AP}/target`);
 
     if (typeof req.body.value !== 'number') {
       res.status(400).json({
@@ -154,95 +169,77 @@ const initApiRoutes = () => {
     res.status(r.statusCode).json(r);
   });
 
-  server.put(
-    `${AUTOPILOT_API_PATH}/target/adjust`,
-    (req: Request, res: Response) => {
-      server.debug(`${req.method} ${AUTOPILOT_API_PATH}/target/adjust`);
+  server.put(`${DEAFULT_AP}/target/adjust`, (req: Request, res: Response) => {
+    server.debug(`${req.method} ${DEAFULT_AP}/target/adjust`);
 
-      if (typeof req.body.value !== 'number') {
-        res.status(400).json({
-          state: 'FAILED',
-          statusCode: 400,
-          message: `Error: Invalid value supplied!`
-        });
-        return;
-      }
-
-      const v = req.body.value * (180 / Math.PI);
-      let deg = apData.target + v;
-      if (deg > 360) {
-        deg = 360;
-      } else if (deg < -180) {
-        deg = -180;
-      }
-
-      const r = sendToPyPilot('target', deg);
-      res.status(r.statusCode).json(r);
+    if (typeof req.body.value !== 'number') {
+      res.status(400).json({
+        state: 'FAILED',
+        statusCode: 400,
+        message: `Error: Invalid value supplied!`
+      });
+      return;
     }
-  );
 
-  server.post(`${AUTOPILOT_API_PATH}/engage`, (req: Request, res: Response) => {
-    server.debug(`${req.method} ${AUTOPILOT_API_PATH}/engage`);
+    const v = req.body.value * (180 / Math.PI);
+    let deg = apData.target + v;
+    if (deg > 360) {
+      deg = 360;
+    } else if (deg < -180) {
+      deg = -180;
+    }
+
+    const r = sendToPyPilot('target', deg);
+    res.status(r.statusCode).json(r);
+  });
+
+  server.post(`${DEAFULT_AP}/engage`, (req: Request, res: Response) => {
+    server.debug(`${req.method} ${DEAFULT_AP}/engage`);
 
     const r = sendToPyPilot('state', 'enabled');
     res.status(r.statusCode).json(r);
   });
 
-  server.post(
-    `${AUTOPILOT_API_PATH}/disengage`,
-    (req: Request, res: Response) => {
-      server.debug(`${req.method} ${AUTOPILOT_API_PATH}/disengage`);
+  server.post(`${DEAFULT_AP}/disengage`, (req: Request, res: Response) => {
+    server.debug(`${req.method} ${DEAFULT_AP}/disengage`);
 
-      const r = sendToPyPilot('state', 'disabled');
-      res.status(r.statusCode).json(r);
-    }
-  );
+    const r = sendToPyPilot('state', 'disabled');
+    res.status(r.statusCode).json(r);
+  });
 
-  server.post(
-    `${AUTOPILOT_API_PATH}/tack/port`,
-    (req: Request, res: Response) => {
-      server.debug(`${req.method} ${AUTOPILOT_API_PATH}/tack/port`);
+  server.post(`${DEAFULT_AP}/tack/port`, (req: Request, res: Response) => {
+    server.debug(`${req.method} ${DEAFULT_AP}/tack/port`);
 
-      const r = sendToPyPilot('tack', 'port');
-      res.status(r.statusCode).json(r);
-    }
-  );
+    const r = sendToPyPilot('tack', 'port');
+    res.status(r.statusCode).json(r);
+  });
 
-  server.post(
-    `${AUTOPILOT_API_PATH}/tack/starboard`,
-    (req: Request, res: Response) => {
-      server.debug(`${req.method} ${AUTOPILOT_API_PATH}/tack/starboard`);
+  server.post(`${DEAFULT_AP}/tack/starboard`, (req: Request, res: Response) => {
+    server.debug(`${req.method} ${DEAFULT_AP}/tack/starboard`);
 
-      const r = sendToPyPilot('tack', 'starboard');
-      res.status(r.statusCode).json(r);
-    }
-  );
+    const r = sendToPyPilot('tack', 'starboard');
+    res.status(r.statusCode).json(r);
+  });
 
-  server.post(
-    `${AUTOPILOT_API_PATH}/gybe/port`,
-    (req: Request, res: Response) => {
-      server.debug(`${req.method} ${AUTOPILOT_API_PATH}/gybe/port`);
+  server.post(`${DEAFULT_AP}/gybe/port`, (req: Request, res: Response) => {
+    server.debug(`${req.method} ${DEAFULT_AP}/gybe/port`);
 
-      res.status(501).json({
-        state: 'COMPLETED',
-        statusCode: 501,
-        message: 'Not implemented!'
-      });
-    }
-  );
+    res.status(501).json({
+      state: 'COMPLETED',
+      statusCode: 501,
+      message: 'Not implemented!'
+    });
+  });
 
-  server.post(
-    `${AUTOPILOT_API_PATH}/gybe/starboard`,
-    (req: Request, res: Response) => {
-      server.debug(`${req.method} ${AUTOPILOT_API_PATH}/gybe/starboard`);
+  server.post(`${DEAFULT_AP}/gybe/starboard`, (req: Request, res: Response) => {
+    server.debug(`${req.method} ${DEAFULT_AP}/gybe/starboard`);
 
-      res.status(501).json({
-        state: 'COMPLETED',
-        statusCode: 501,
-        message: 'Not implemented!'
-      });
-    }
-  );
+    res.status(501).json({
+      state: 'COMPLETED',
+      statusCode: 501,
+      message: 'Not implemented!'
+    });
+  });
 };
 
 // PyPilot socket event listeners
@@ -327,43 +324,30 @@ const sendToPyPilot = (command: string, value: string | number | boolean) => {
 // process received pypilot update messages and send SK delta
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const handlePyPilotUpdateMsg = (data: any) => {
-  // compare and send delta
-
-  /*if (typeof data['ap.heading'] !== 'undefined') {
-    let heading = data['ap.heading'] === false ? null : data['ap.heading']
-    if (heading !== apData.heading) {
-      apData.heading = heading
-      emitAPDelta('target' as Path, (Math.PI /180) * apData.heading)
-    }
-  }*/
+  //server.debug(`-> pilot data = ${JSON.stringify(data)}`);
 
   if (typeof data['ap.heading_command'] !== 'undefined') {
+    server.debug(`ap.heading_command -> ${data['ap.heading_command']}`);
     const h =
       data['ap.heading_command'] === false ? null : data['ap.heading_command'];
-    if (h !== apData.heading_command) {
-      apData.target = h;
-      server.debug(
-        `in -> deg: ${apData.target}, rad: ${(Math.PI / 180) * apData.target}`
-      );
-      emitAPDelta('target' as Path, (Math.PI / 180) * apData.target);
-    }
+    apData.target = h;
+    const h_rad = (Math.PI / 180) * apData.target;
+    server.debug(`ap.heading_command -> deg: ${apData.target}, rad: ${h_rad}`);
+    emitAPDelta('target' as Path, h_rad);
   }
 
   if (typeof data['ap.mode'] !== 'undefined') {
-    server.debug(`ap.mode -> data = ${JSON.stringify(data)}`);
-    if (data['ap.mode'] !== apData.mode) {
-      apData.mode = data['ap.mode'];
-      emitAPDelta('mode' as Path, apData.mode);
-    }
+    apData.mode = data['ap.mode'];
+    server.debug(`ap.mode -> ${data['ap.mode']}`);
+    emitAPDelta('mode' as Path, apData.mode);
   }
 
   if (typeof data['ap.enabled'] !== 'undefined') {
-    if (data['ap.enabled'] !== apData.state) {
-      apData.state = data['ap.enabled'] ? 'enabled' : 'disabled';
-      apData.active = apData.state === 'enabled' ? true : false;
-      emitAPDelta('state' as Path, apData.state);
-      emitAPDelta('active' as Path, apData.active);
-    }
+    apData.state = data['ap.enabled'] ? 'enabled' : 'disabled';
+    apData.engaged = apData.state === 'enabled' ? true : false;
+    server.debug(`ap.enabled -> ${data['ap.enabled']}`);
+    emitAPDelta('state' as Path, apData.state);
+    emitAPDelta('engaged' as Path, apData.engaged);
   }
 };
 
@@ -372,13 +356,10 @@ const handlePyPilotUpdateMsg = (data: any) => {
 const handlePyPilotValuesMsg = (data: any) => {
   // available modes
   if (typeof data['ap.mode'] !== undefined && data['ap.mode'].choices) {
-    apData.options.mode = Array.isArray(data['ap.mode'].choices)
+    apData.options.modes = Array.isArray(data['ap.mode'].choices)
       ? data['ap.mode'].choices
       : [];
-    //emitAPDelta('availableModes' as Path, apData.availableModes)
   }
-  // available states
-  //emitAPDelta('availableStates' as Path, ['enabled', 'disabled'])
 };
 
 // emit SK delta steering.autopilot.xxx

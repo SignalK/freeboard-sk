@@ -69,7 +69,34 @@ import { SKStreamFacade } from 'src/app/modules';
           </div>
         </div>
         <div class="content">
-          <div style="display:flex;flex-wrap:nowrap;">
+          <div
+            *ngIf="autopilotOptions.states.length > 2"
+            style="display:flex;flex-wrap:nowrap;"
+          >
+            <mat-form-field floatLabel="always">
+              <mat-label>State</mat-label>
+              <mat-select
+                id="autopilotstate"
+                [disabled]="!this.app.data.autopilot.hasApi"
+                [(value)]="app.data.vessels.self.autopilot.state"
+                (selectionChange)="onFormChange($event)"
+              >
+                <mat-option
+                  *ngFor="let i of autopilotOptions.states"
+                  [value]="i"
+                  [matTooltip]="i"
+                  matTooltipPosition="right"
+                >
+                  {{ i }}
+                </mat-option>
+              </mat-select>
+            </mat-form-field>
+          </div>
+
+          <div
+            *ngIf="autopilotOptions.modes.length !== 0"
+            style="display:flex;flex-wrap:nowrap;"
+          >
             <mat-form-field floatLabel="always">
               <mat-label>Mode</mat-label>
               <mat-select
@@ -79,7 +106,7 @@ import { SKStreamFacade } from 'src/app/modules';
                 (selectionChange)="onFormChange($event)"
               >
                 <mat-option
-                  *ngFor="let i of autoPilotModes"
+                  *ngFor="let i of autopilotOptions.modes"
                   [value]="i"
                   [matTooltip]="i"
                   matTooltipPosition="right"
@@ -116,9 +143,9 @@ import { SKStreamFacade } from 'src/app/modules';
   `
 })
 export class AutopilotComponent {
-  protected autoPilotModes = [];
-  private context = 'self';
+  protected autopilotOptions = { modes: [], states: [] };
   private deltaSub: Subscription;
+  private autopilotApiPath = 'vessels/self/steering/autopilot/default';
 
   constructor(
     protected app: AppInfo,
@@ -133,22 +160,27 @@ export class AutopilotComponent {
         this.cdr.detectChanges();
       }
     });
+  }
 
+  ngAfterViewInit() {
     this.signalk.api
-      .get(this.app.skApiVersion, 'vessels/self/steering/autopilot')
+      .get(this.app.skApiVersion, `${this.autopilotApiPath}`)
       .subscribe(
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (val: any) => {
-          if (
-            val.options &&
-            val.options.mode &&
-            Array.isArray(val.options.mode)
-          ) {
-            this.autoPilotModes = val.options.mode;
+          if (!val.options) {
+            return;
           }
+          if (val.options.modes && Array.isArray(val.options.modes)) {
+            this.autopilotOptions.modes = val.options.modes;
+          }
+          if (val.options.states && Array.isArray(val.options.states)) {
+            this.autopilotOptions.states = val.options.states;
+          }
+          this.cdr.detectChanges();
         },
         () => {
-          this.autoPilotModes = [];
+          this.autopilotOptions = { modes: [], states: [] };
           this.app.data.autopilot.hasApi = false;
         }
       );
@@ -164,11 +196,9 @@ export class AutopilotComponent {
       return;
     }
     this.signalk.api
-      .put(
-        this.app.skApiVersion,
-        'vessels/self/steering/autopilot/target/adjust',
-        { value: rad }
-      )
+      .put(this.app.skApiVersion, `${this.autopilotApiPath}/target/adjust`, {
+        value: rad
+      })
       .subscribe(
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         () => {
@@ -200,10 +230,10 @@ export class AutopilotComponent {
         this.signalk.api
           .post(
             this.app.skApiVersion,
-            `vessels/self/${
+            `${
               e.checked
-                ? 'steering/autopilot/engage'
-                : 'steering/autopilot/disengage'
+                ? `${this.autopilotApiPath}/engage`
+                : `${this.autopilotApiPath}/disengage`
             }`,
             null
           )
@@ -221,18 +251,30 @@ export class AutopilotComponent {
       if (e.source.id === 'autopilotmode') {
         // autopilot mode
         this.signalk.api
-          .putWithContext(
-            this.app.skApiVersion,
-            this.context,
-            'steering/autopilot/mode',
-            {
-              value: e.value
-            }
-          )
+          .put(this.app.skApiVersion, `${this.autopilotApiPath}/mode`, {
+            value: e.value
+          })
           .subscribe(
             () => undefined,
             (error: HttpErrorResponse) => {
               let msg = `Error setting Autopilot mode!\n`;
+              if (error.status === 403) {
+                msg += 'Unauthorised: Please login.';
+              }
+              this.app.showAlert(`Error (${error.status}):`, msg);
+            }
+          );
+      }
+      if (e.source.id === 'autopilotstate') {
+        // autopilot state
+        this.signalk.api
+          .put(this.app.skApiVersion, `${this.autopilotApiPath}/state`, {
+            value: e.value
+          })
+          .subscribe(
+            () => undefined,
+            (error: HttpErrorResponse) => {
+              let msg = `Error setting Autopilot state!\n`;
               if (error.status === 403) {
                 msg += 'Unauthorised: Please login.';
               }
