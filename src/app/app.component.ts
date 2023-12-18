@@ -1380,12 +1380,12 @@ export class AppComponent {
   // ******** DRAW / EDIT EVENT HANDLERS ************
 
   // ** handle modify start event **
-  public handleModifyStart() {
+  public handleModifyStart(id?: string) {
     this.draw.type = null;
     this.draw.mode = null;
     this.draw.enabled = false;
     this.draw.modify = true;
-    this.draw.forSave = { id: null, coords: null };
+    this.draw.forSave = { id: id ?? null, coords: null };
   }
 
   // ** handle modify end event **
@@ -1449,56 +1449,65 @@ export class AppComponent {
   // ** End Draw / modify / Measure mode **
   public cancelDraw() {
     if (this.draw.modify && this.draw.forSave && this.draw.forSave.id) {
-      // save changes
-      this.app
-        .showConfirm(
-          `Do you want to save the changes made to ${
-            this.draw.forSave.id.split('.')[0]
-          }?`,
-          'Save Changes'
-        )
-        .subscribe((res) => {
-          const r = this.draw.forSave.id.split('.');
-          if (res) {
-            // save changes
-            if (r[0] === 'route') {
-              this.skres.updateRouteCoords(
-                r[1],
-                this.draw.forSave.coords,
-                this.draw.forSave.coordsMetadata
-              );
-            }
-            if (r[0] === 'waypoint') {
-              this.skres.updateWaypointPosition(r[1], this.draw.forSave.coords);
-              // if waypoint the target destination update nextPoint
-              if (r[1] === this.app.data.activeWaypoint) {
-                this.skres.setDestination({
-                  latitude: this.draw.forSave.coords[1],
-                  longitude: this.draw.forSave.coords[0]
-                });
+      if (this.draw.forSave.id === 'anchor') {
+        this.draw.forSave = null;
+        this.app.data.activeRouteIsEditing = false;
+        this.focusMap();
+      } else {
+        // save changes
+        this.app
+          .showConfirm(
+            `Do you want to save the changes made to ${
+              this.draw.forSave.id.split('.')[0]
+            }?`,
+            'Save Changes'
+          )
+          .subscribe((res) => {
+            const r = this.draw.forSave.id.split('.');
+            if (res) {
+              // save changes
+              if (r[0] === 'route') {
+                this.skres.updateRouteCoords(
+                  r[1],
+                  this.draw.forSave.coords,
+                  this.draw.forSave.coordsMetadata
+                );
+              }
+              if (r[0] === 'waypoint') {
+                this.skres.updateWaypointPosition(
+                  r[1],
+                  this.draw.forSave.coords
+                );
+                // if waypoint the target destination update nextPoint
+                if (r[1] === this.app.data.activeWaypoint) {
+                  this.skres.setDestination({
+                    latitude: this.draw.forSave.coords[1],
+                    longitude: this.draw.forSave.coords[0]
+                  });
+                }
+              }
+              if (r[0] === 'note') {
+                this.skres.updateNotePosition(r[1], this.draw.forSave.coords);
+              }
+              if (r[0] === 'region') {
+                this.skres.updateRegionCoords(r[1], this.draw.forSave.coords);
+              }
+            } else {
+              if (r[0] === 'route') {
+                this.skres.getRoutes();
+              }
+              if (r[0] === 'waypoint') {
+                this.skres.getWaypoints();
+              }
+              if (r[0] === 'note' || r[0] === 'region') {
+                this.skres.getNotes();
               }
             }
-            if (r[0] === 'note') {
-              this.skres.updateNotePosition(r[1], this.draw.forSave.coords);
-            }
-            if (r[0] === 'region') {
-              this.skres.updateRegionCoords(r[1], this.draw.forSave.coords);
-            }
-          } else {
-            if (r[0] === 'route') {
-              this.skres.getRoutes();
-            }
-            if (r[0] === 'waypoint') {
-              this.skres.getWaypoints();
-            }
-            if (r[0] === 'note' || r[0] === 'region') {
-              this.skres.getNotes();
-            }
-          }
-          this.draw.forSave = null;
-          this.app.data.activeRouteIsEditing = false;
-          this.focusMap();
-        });
+            this.draw.forSave = null;
+            this.app.data.activeRouteIsEditing = false;
+            this.focusMap();
+          });
+      }
     }
     // clean up
     this.draw.enabled = false;

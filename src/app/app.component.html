@@ -717,7 +717,7 @@
               [drawMode]="draw.mode"
               (drawEnd)="handleDrawEnd($event)"
               [modifyMode]="draw.modify"
-              (modifyStart)="handleModifyStart()"
+              (modifyStart)="handleModifyStart($event)"
               (modifyEnd)="handleModifyEnd($event)"
               (activate)="activateRoute($event)"
               (deactivate)="clearDestintation()"
@@ -761,12 +761,12 @@
                 <mat-icon>edit</mat-icon> Drawing Help:
               </span>
               <div
-                *ngIf="draw.mode == 'waypoint' || draw.mode == 'note'"
+                *ngIf="draw.mode === 'waypoint' || draw.mode === 'note'"
                 style="padding: 5px"
               >
                 Click on the Map where to drop the feature.
               </div>
-              <div *ngIf="draw.mode == 'route'" style="padding: 5px">
+              <div *ngIf="draw.mode === 'route'" style="padding: 5px">
                 <ol
                   style="
                     margin-block-start: 0.2em;
@@ -778,7 +778,7 @@
                   <li>Click on the last Point to end drawing.</li>
                 </ol>
               </div>
-              <div *ngIf="draw.mode == 'region'" style="padding: 5px">
+              <div *ngIf="draw.mode === 'region'" style="padding: 5px">
                 <ol
                   style="
                     margin-block-start: 0.2em;
@@ -803,8 +803,15 @@
                     padding-inline-start: 15px;
                   "
                 >
-                  <li>Click and drag to move point.</li>
-                  <li>Ctrl-Click to remove point from line.</li>
+                  <li *ngIf="draw.forSave.id === 'anchor'">
+                    Click and drag to move anchor.
+                  </li>
+                  <li *ngIf="draw.forSave.id !== 'anchor'">
+                    Click and drag to move point.
+                  </li>
+                  <li *ngIf="draw.forSave.id !== 'anchor'">
+                    Ctrl-Click to remove point from line.
+                  </li>
                 </ol>
               </div>
             </div>

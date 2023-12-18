@@ -31,7 +31,8 @@ import {
   SKAtoN,
   SKAircraft,
   SKSaR,
-  SKStreamFacade
+  SKStreamFacade,
+  AlarmsFacade
 } from 'src/app/modules';
 import {
   mapInteractions,
@@ -136,7 +137,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
   @Output() measureEnd: EventEmitter<boolean> = new EventEmitter();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   @Output() drawEnd: EventEmitter<any> = new EventEmitter();
-  @Output() modifyStart: EventEmitter<void> = new EventEmitter();
+  @Output() modifyStart: EventEmitter<string> = new EventEmitter();
   @Output() modifyEnd: EventEmitter<Array<Position>> = new EventEmitter();
   @Output() activate: EventEmitter<string> = new EventEmitter();
   @Output() deactivate: EventEmitter<string> = new EventEmitter();
@@ -282,7 +283,8 @@ export class FBMapComponent implements OnInit, OnDestroy {
     public app: AppInfo,
     public skres: SKResources,
     public skresOther: SKOtherResources,
-    private skstream: SKStreamFacade
+    private skstream: SKStreamFacade,
+    private alarmsFacade: AlarmsFacade
   ) {}
 
   ngAfterViewInit() {
@@ -648,6 +650,11 @@ export class FBMapComponent implements OnInit, OnDestroy {
               icon = 'notification_important';
               text = `${t[1]} ${t[0]}`;
               break;
+            case 'anchor':
+              addToFeatureList = true;
+              icon = 'anchor';
+              text = `${t[0]}`;
+              break;
             case 'dest':
               addToFeatureList = true;
               icon = 'flag';
@@ -872,6 +879,14 @@ export class FBMapComponent implements OnInit, OnDestroy {
     } else {
       // point feature
       pc = toLonLat(c);
+      // shift anchor
+      if (fid === 'anchor') {
+        this.alarmsFacade
+          .anchorEvent({ action: 'position' }, undefined, pc)
+          .catch(() => {
+            this.app.showAlert('Alert', 'Error shifting anchor position!');
+          });
+      }
     }
     this.draw.forSave['coords'] = pc;
     this.modifyEnd.emit(this.draw.forSave);
@@ -1095,6 +1110,9 @@ export class FBMapComponent implements OnInit, OnDestroy {
         this.overlay['id'] = aid;
         this.overlay['alarm'] = this.app.data.alarms.get(aid);
         this.overlay.show = true;
+        return;
+      case 'anchor':
+        this.startModify('anchor');
         return;
       case 'vessels':
         this.overlay['type'] = 'ais';
@@ -1329,7 +1347,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
   }
 
   // ** Enter modify mode **
-  public startModify() {
+  public startModify(id?: string) {
     if (this.draw.features.getLength() === 0) {
       return;
     }
@@ -1340,7 +1358,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
     this.draw.properties = {};
     this.draw.enabled = false;
     this.draw.modify = true;
-    this.modifyStart.emit();
+    this.modifyStart.emit(id);
   }
 
   // ********************************************************

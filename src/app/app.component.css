@@ -26,6 +26,7 @@ mat-nav-list {
 	left: 0;
     overflow: auto;
     position: fixed;
+    background: linear-gradient(0deg, rgba(253,253,253,.5) 0%, rgba(0,0,0,1) 26%);
 }
 
 .view {

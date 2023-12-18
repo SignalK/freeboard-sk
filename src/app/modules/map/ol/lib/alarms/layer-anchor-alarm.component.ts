@@ -130,6 +130,7 @@ export class AnchorAlarmComponent implements OnInit, OnDestroy, OnChanges {
     const fp = new Feature({
       geometry: new Point(fromLonLat(this.anchorPosition))
     });
+    fp.setId('anchor');
     fp.setStyle(this.buildStyle('anchor'));
     fa.push(fp);
     this.features = fa;
