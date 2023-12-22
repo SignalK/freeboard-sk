@@ -1,5 +1,10 @@
 # CHANGELOG: Freeboard
 
+### v2.4.0
+
+- **Added**: Ability to shift anchor position.
+- **Fixed**: Issues where "Constrain Zoom" button did not toggle color to reflect status.
+
 ### v2.3.2
 
 - **Fixed**: GPX load screen not displaying list of resources to select.

@@ -1,6 +1,6 @@
 {
   "name": "@signalk/freeboard-sk",
-  "version": "2.3.2",
+  "version": "2.4.0",
   "description": "Openlayers chart plotter implementation for Signal K",
   "keywords": [
     "signalk-webapp",
@@ -25,7 +25,7 @@
     "build:web": "ng build -c production --output-hashing all",
     "build:all": "npm run build:helper && npm run build:web",
     "build:prod": "npm run build:all",
-    "prepare": "npm run build:all"
+    "prepare_x": "npm run build:all"
   },
   "author": "AdrianP",
   "contributors": [
