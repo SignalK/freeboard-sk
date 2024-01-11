@@ -18,7 +18,7 @@ import { Component, Output, EventEmitter } from '@angular/core';
       </a>
       -->
       <a mat-menu-item (click)="handleSelect('weather_forecast')">
-        <mat-icon>ac_unit</mat-icon>
+        <mat-icon>air</mat-icon>
         <span>Weather Forecast</span>
       </a>
     </mat-menu>

@@ -5,10 +5,11 @@ import { fetch } from './fetch';
 
 import {
   IWeatherService,
-  SKWeather,
-  SKWeatherWarning,
+  SKMeteoWarning,
   ParsedResponse,
-  WEATHER_CONFIG
+  WEATHER_CONFIG,
+  SKMeteo,
+  defaultStationId
 } from '../weather';
 
 interface OWObservation {
@@ -31,7 +32,9 @@ interface OWObservation {
     description: string;
     icon: string;
   }>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   rain: { [key: string]: any };
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   snow: { [key: string]: any };
 }
 
@@ -73,7 +76,9 @@ interface OWForecast {
   clouds: number;
   pop: number;
   uvi: number;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   rain: { [key: string]: any };
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   snow: { [key: string]: any };
 }
 
@@ -87,6 +92,7 @@ interface OWWarning {
 }
 
 interface OWResponse {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   [key: string]: any;
 }
 
@@ -108,107 +114,71 @@ export class OpenWeather implements IWeatherService {
 
   fetchData = async (position: Position): Promise<ParsedResponse> => {
     const url = this.getUrl(position);
-    try {
-      const response = await fetch(url);
-      return this.parseResponse(response as OWResponse);
-    } catch (error) {
-      throw error;
-    }
+    const response = await fetch(url);
+    return this.parseResponse(response as OWResponse);
   };
 
   private parseResponse = (owData: OWResponse): ParsedResponse => {
-    return {
-      self: {
-        id: 'self',
-        name: 'Weather data relative to supplied position.',
-        position: {
-          latitude: owData.lat,
-          longitude: owData.lon
-        },
-        observations: this.parseOWObservations(owData),
-        forecasts: this.parseOWForecasts(owData),
-        warnings: this.parseOWWarnings(owData)
-      }
+    const res = {};
+    res[defaultStationId] = {
+      id: defaultStationId,
+      name: 'Weather data relative to supplied position.',
+      position: {
+        latitude: owData.lat,
+        longitude: owData.lon
+      },
+      observations: this.parseOWObservations(owData),
+      forecasts: this.parseOWForecasts(owData),
+      warnings: this.parseOWWarnings(owData)
     };
+    return res;
   };
 
-  private parseOWObservations(owData: OWResponse): SKWeather[] {
+  private parseOWObservations(owData: OWResponse): SKMeteo[] {
     //server.debug(JSON.stringify(weatherData.current))
-    const data: SKWeather[] = [];
-    const obs: SKWeather = {};
+    const data: SKMeteo[] = [];
+    let obs: SKMeteo;
 
     if (owData && owData.current) {
       const current: OWObservation = owData.current;
-      obs.timestamp = current.dt
-        ? new Date(current.dt * 1000).toISOString()
-        : null;
-      obs.description = current.weather[0].description ?? null;
-      obs.sunrise = new Date(current.sunrise * 1000).toISOString() ?? null;
-      obs.sunset = new Date(current.sunset * 1000).toISOString() ?? null;
-      obs.uvIndex = {
-        value: current.uvi ?? null,
-        units: null
-      };
-      obs.clouds = {
-        value: current.clouds ?? null,
-        units: '%'
-      };
-      obs.visibility = {
-        value: current.visibility ?? null,
-        units: 'm'
-      };
-      obs.temperature = {};
-      obs.temperature.air = {
-        value: current.temp ?? null,
-        units: 'K'
-      };
-      obs.temperature.feelsLike = {
-        value: current.feels_like ?? null,
-        units: 'K'
-      };
-      obs.temperature.dewPoint = {
-        value: current.dew_point ?? null,
-        units: 'K'
-      };
-      obs.pressure = {};
-      obs.pressure.value = {
-        value: current.pressure ? current.pressure * 100 : null,
-        units: 'Pa'
-      };
-      obs.humidity = {};
-      obs.humidity.absolute = {
-        value: current.humidity ?? null,
-        units: '%'
-      };
-      obs.wind = {};
-      obs.wind.speed = {
-        value: current.wind_speed ?? null,
-        units: 'm/s'
-      };
-      obs.wind.direction = {
-        value:
-          typeof current.wind_deg !== 'undefined'
-            ? (Math.PI / 180) * current.wind_deg
-            : null,
-        units: 'rad'
-      };
-      obs.precipitation = {
-        rain: {},
-        snow: {}
-      };
-      obs.precipitation.rain.volume = {
-        value:
-          current.rain && typeof current.rain['1h'] !== 'undefined'
-            ? current.rain['1h']
-            : null,
-        units: 'mm'
-      };
-      obs.precipitation.snow.volume = {
-        value:
-          current.snow && typeof current.snow['1h'] !== 'undefined'
-            ? current.snow['1h']
-            : null,
-        units: 'mm'
+
+      obs = {
+        timestamp: current.dt
+          ? new Date(current.dt * 1000).toISOString()
+          : new Date().toISOString(),
+        description: current.weather[0].description ?? '',
+        outside: {
+          sunrise: new Date(current.sunrise * 1000).toISOString() ?? null,
+          sunset: new Date(current.sunset * 1000).toISOString() ?? null,
+          uvIndex: current.uvi ?? null,
+          cloudCover: current.clouds ?? null,
+          horizontalVisibility: current.visibility ?? null,
+          temperature: current.temp ?? null,
+          feelsLikeTemperature: current.feels_like ?? null,
+          dewPointTemperature: current.dew_point ?? null,
+          pressure: current.pressure ? current.pressure * 100 : null,
+          absoluteHumidity: current.humidity ?? null,
+          precipitationType:
+            current.rain && typeof current.rain['1h'] !== 'undefined'
+              ? 'rain'
+              : current.snow && typeof current.snow['1h'] !== 'undefined'
+              ? 'snow'
+              : null,
+          precipitationVolume:
+            current.rain && typeof current.rain['1h'] !== 'undefined'
+              ? current.rain['1h']
+              : current.snow && typeof current.snow['1h'] !== 'undefined'
+              ? current.snow['1h']
+              : null
+        },
+        water: {},
+        wind: {
+          speedTrue: current.wind_speed ?? null,
+          directionTrue:
+            typeof current.wind_deg !== 'undefined'
+              ? (Math.PI / 180) * current.wind_deg
+              : null
+        }
       };
 
       data.push(obs);
@@ -217,99 +187,59 @@ export class OpenWeather implements IWeatherService {
     return data;
   }
 
-  private parseOWForecasts(owData: OWResponse, period = 'hourly'): SKWeather[] {
+  private parseOWForecasts(owData: OWResponse, period = 'hourly'): SKMeteo[] {
     //server.debug(JSON.stringify(owData[period]))
-    const data: SKWeather[] = [];
+    const data: SKMeteo[] = [];
 
     if (owData && owData[period] && Array.isArray(owData[period])) {
       const forecasts = owData[period];
       forecasts.forEach((f: OWForecast) => {
-        const forecast: SKWeather = {};
-        forecast.timestamp = f.dt ? new Date(f.dt * 1000).toISOString() : null;
-        forecast.description = f.weather[0].description ?? null;
-
-        forecast.temperature = {};
-        forecast.temperature.air = {
-          value: f.temp ?? null,
-          units: 'K'
+        const forecast: SKMeteo = {
+          timestamp: f.dt
+            ? new Date(f.dt * 1000).toISOString()
+            : new Date().toISOString(),
+          description: f.weather[0].description ?? '',
+          outside: {},
+          water: {},
+          wind: {}
         };
+
         if (period === 'daily') {
-          forecast.sunrise = new Date(f.sunrise * 1000).toISOString() ?? null;
-          forecast.sunset = new Date(f.sunset * 1000).toISOString() ?? null;
-          forecast.temperature.minimum = {
-            value: f.temp.min ?? null,
-            units: 'K'
-          };
-          forecast.temperature.maximum = {
-            value: f.temp.max ?? null,
-            units: 'K'
-          };
-          forecast.temperature.feelsLike = {
-            value: f.feels_like.day ?? null,
-            units: 'K'
-          };
+          forecast.outside.sunrise =
+            new Date(f.sunrise * 1000).toISOString() ?? null;
+          forecast.outside.sunset =
+            new Date(f.sunset * 1000).toISOString() ?? null;
+          forecast.outside.minTemperature = f.temp.min ?? null;
+          forecast.outside.maxTemperature = f.temp.max ?? null;
+          forecast.outside.feelsLikeTemperature = f.feels_like.day ?? null;
         } else {
-          forecast.temperature.feelsLike = {
-            value: f.feels_like ?? null,
-            units: 'K'
-          };
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          forecast.outside.feelsLikeTemperature = (f.feels_like as any) ?? null;
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          forecast.outside.temperature = (f.temp as any) ?? null;
         }
-        forecast.temperature.dewPoint = {
-          value: f.dew_point ?? null,
-          units: 'K'
-        };
-        forecast.uvIndex = {
-          value: f.uvi ?? null,
-          units: null
-        };
-        forecast.clouds = {
-          value: f.clouds ?? null,
-          units: '%'
-        };
-        forecast.pop = {
-          value: typeof f.pop !== 'undefined' ? f.pop * 100 : null,
-          units: '%'
-        };
+        forecast.outside.dewPointTemperature = f.dew_point ?? null;
+        forecast.outside.uvIndex = f.uvi ?? null;
+        forecast.outside.cloudCover = f.clouds ?? null;
 
-        forecast.pressure = {
-          value: typeof f.pressure !== 'undefined' ? f.pressure * 100 : null,
-          units: 'Pa'
-        };
-        forecast.humidity = {};
-        forecast.humidity.absolute = {
-          value: f.humidity ?? null,
-          units: '%'
-        };
-        forecast.wind = {};
-        forecast.wind.speed = {
-          value: f.wind_speed ?? null,
-          units: 'm/s'
-        };
-        forecast.wind.direction = {
-          value:
-            typeof f.wind_deg !== 'undefined'
-              ? (Math.PI / 180) * f.wind_deg
-              : null,
-          units: 'rad'
-        };
-        forecast.wind.gust = {
-          value: f.wind_gust ?? null,
-          units: 'm/s'
-        };
-        forecast.precipitation = {
-          rain: {},
-          snow: {}
-        };
-        forecast.precipitation.rain.volume = {
-          value:
-            f.rain && typeof f.rain['1h'] !== 'undefined' ? f.rain['1h'] : null,
-          units: 'mm'
-        };
-        forecast.precipitation.snow.volume = {
-          value:
-            f.snow && typeof f.snow['1h'] !== 'undefined' ? f.snow['1h'] : null,
-          units: 'mm'
-        };
+        forecast.outside.pressure =
+          typeof f.pressure !== 'undefined' ? f.pressure * 100 : null;
+        forecast.outside.absoluteHumidity = f.humidity ?? null;
+        forecast.wind.speedTrue = f.wind_speed ?? null;
+        forecast.wind.directionTrue =
+          typeof f.wind_deg !== 'undefined'
+            ? (Math.PI / 180) * f.wind_deg
+            : null;
+        forecast.wind.gust = f.wind_gust ?? null;
+
+        if (f.rain && typeof f.rain['1h'] !== 'undefined') {
+          forecast.outside.precipitationType = 'rain';
+          forecast.outside.precipitationVolume = f.rain['1h'] ?? null;
+        } else if (f.snow && typeof f.snow['1h'] !== 'undefined') {
+          forecast.outside.precipitationType = 'snow';
+          forecast.outside.precipitationVolume = f.snow['1h'] ?? null;
+        }
+
         data.push(forecast);
       });
     }
@@ -317,9 +247,9 @@ export class OpenWeather implements IWeatherService {
     return data;
   }
 
-  private parseOWWarnings(owData: OWResponse): SKWeatherWarning[] {
+  private parseOWWarnings(owData: OWResponse): SKMeteoWarning[] {
     //server.debug(JSON.stringify(weatherData.alerts))
-    const data: SKWeatherWarning[] = [];
+    const data: SKMeteoWarning[] = [];
     if (owData && owData.alerts) {
       const alerts: OWWarning[] = owData.alerts;
       alerts.forEach((alert: OWWarning) => {

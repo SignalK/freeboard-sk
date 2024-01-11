@@ -110,6 +110,7 @@ const FreeboardConfig = {
       atons: true,
       aircraft: false,
       sar: false,
+      meteo: false,
       maxRadius: 0, // max radius within which AIS targets are displayed
       proxied: false // server behind a proxy server
     },
@@ -277,7 +278,7 @@ export class AppInfo extends Info {
 
     // base config
     this.config = JSON.parse(JSON.stringify(FreeboardConfig));
-    // ** received data
+    // ** state data
     this.data = {
       loggedIn: false,
       loginRequired: false,
@@ -285,6 +286,7 @@ export class AppInfo extends Info {
       routes: [],
       waypoints: [],
       charts: [].concat(OSM),
+      chartBounds: false,
       alarms: new Map(),
       notes: [],
       resourceSets: {}, // additional resource sets
@@ -314,6 +316,7 @@ export class AppInfo extends Info {
       aircraft: new Map(), // received AIS aircraft data
       atons: new Map(), // received AIS AtoN data
       sar: new Map(), // received AIS SaR data
+      meteo: new Map(), // received AIS Meteo data
       aisMgr: {
         // manage aisTargets
         updateList: [],
@@ -690,6 +693,9 @@ export class AppInfo extends Info {
         maxRadius: 0
       };
     }
+    if (typeof settings.selections.signalk.meteo === 'undefined') {
+      settings.selections.signalk.meteo = false;
+    }
     if (typeof settings.selections.wakeLock === 'undefined') {
       settings.selections.wakeLock = false;
     }
@@ -916,6 +922,47 @@ export class AppInfo extends Info {
       .afterClosed();
   }
 
+  /** returns a formatted string containing the value (converted to the preferred units)
+   * and units. (e.g. 12.5 knots, 8.8 m/s)
+   * Numbers are fixed to 1 decimal point
+   */
+  formatValueForDisplay(
+    value: number,
+    sourceUnits: 'K' | 'm/s' | 'rad' | 'm'
+  ): string {
+    if (sourceUnits === 'K') {
+      return this.config.units.temperature === 'c'
+        ? `${Convert.kelvinToCelcius(value).toFixed(1)}${String.fromCharCode(
+            186
+          )}C`
+        : `${Convert.kelvinToFarenheit(value).toFixed(1)}${String.fromCharCode(
+            186
+          )}F`;
+    } else if (sourceUnits === 'rad') {
+      return `${Convert.radiansToDegrees(value).toFixed(
+        1
+      )}${String.fromCharCode(186)}`;
+    } else if (sourceUnits === 'm') {
+      return this.config.units.distance === 'km'
+        ? `${(value / 1000).toFixed(1)} km`
+        : `${Convert.kmToNauticalMiles(value / 1000).toFixed(1)} NM`;
+    } else if (sourceUnits === 'm/s') {
+      switch (this.config.units.speed) {
+        case 'kmh':
+          return `${Convert.msecToKmh(value).toFixed(1)} km/h`;
+        case 'kn':
+          return `${Convert.msecToKnots(value).toFixed(1)} knots`;
+        case 'mph':
+          return `${Convert.msecToMph(value).toFixed(1)} mph`;
+        default:
+          return `${value} ${sourceUnits}`;
+      }
+    } else {
+      return `${value} (${sourceUnits})`;
+    }
+  }
+
+  // convert speed value and set the value of this.app.formattedSpeedUnits
   formatSpeed(value: number, asString = false): string | number {
     switch (this.config.units.speed) {
       case 'kn':

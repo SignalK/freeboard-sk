@@ -200,14 +200,28 @@ export class SKStreamFacade {
       cmd: 'subscribe',
       options: {
         context: 'sar.*',
-        path: [{ path: '*', period: 60000 }]
+        path: [{ path: '*', period: 1000 }]
       }
     });
     this.stream.postMessage({
       cmd: 'subscribe',
       options: {
         context: 'aircraft.*',
-        path: [{ path: '*', period: 30000 }]
+        path: [{ path: '*', period: 1000 }]
+      }
+    });
+    this.stream.postMessage({
+      cmd: 'subscribe',
+      options: {
+        context: 'meteo.*',
+        path: [{ path: '*', period: 1000 }]
+      }
+    });
+    this.stream.postMessage({
+      cmd: 'subscribe',
+      options: {
+        context: 'meteo.*',
+        path: [{ path: 'notifications.*', period: 1000 }]
       }
     });
   }
@@ -254,6 +268,9 @@ export class SKStreamFacade {
       // process SaR
       this.app.data.sar = msg.result.sar;
 
+      // process Meteo
+      this.app.data.meteo = msg.result.meteo;
+
       // process Aircraft
       this.app.data.aircraft = msg.result.aircraft;
 
@@ -261,6 +278,17 @@ export class SKStreamFacade {
       this.app.data.aisMgr.updateList = msg.result.aisStatus.updated;
       this.app.data.aisMgr.staleList = msg.result.aisStatus.stale;
       this.app.data.aisMgr.removeList = msg.result.aisStatus.expired;
+
+      /*if (!this.app.data.meteo.has('meteo.self')) {
+        const meteo = new SKMeteo();
+        meteo.id = 'meteo.self';
+        meteo.name = 'fbtest';
+        meteo.position = [138.47746,-34.88763];
+        meteo.type.id = -1;
+        meteo.type.name = 'Weather Station';
+        this.app.data.meteo.set(meteo.id, meteo);
+      }
+      this.app.data.aisMgr.updateList.push('meteo.self');*/
 
       // process AIS tracks
       this.app.data.aisMgr.updateList.forEach((id) => {

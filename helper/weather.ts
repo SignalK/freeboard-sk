@@ -7,34 +7,113 @@ import {
 } from '@signalk/server-api';
 import { FreeboardHelperApp } from '.';
 import { OpenWeather } from './lib/openweather';
-import { NOAA } from './lib/noaa';
+import { Request, Response } from 'express';
 
 export interface WEATHER_CONFIG {
   enable: boolean;
   apiKey: string;
-  service: string;
+  pollInterval: number;
 }
 
-interface SKWeatherValue {
-  value: number | string | null;
-  units: string | null;
-}
-
-interface SKWeatherGroup {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  [key: string]: SKWeatherValue | SKWeatherGroup | any;
-}
-
-export interface SKWeather {
-  [key: string]: number | string | SKWeatherValue | SKWeatherGroup | null;
-}
-
-export interface SKWeatherWarning {
+export interface SKMeteoWarning {
   startTime: string | null;
   endTime: string | null;
   details: string | null;
   source: string | null;
   type: string | null;
+}
+
+export type MeteoStatus =
+  | 'steady'
+  | 'decreasing'
+  | 'increasing'
+  | 'not available';
+
+export type MeteoPrecipitationType =
+  | 'reserved'
+  | 'rain'
+  | 'thunderstorm'
+  | 'freezing rain'
+  | 'mixed/ice'
+  | 'snow'
+  | 'reserved'
+  | 'not available';
+
+export type MeteoIce = 'no' | 'yes' | 'reserved' | 'not available';
+
+export type MeteoBeaufort =
+  | 'Flat'
+  | 'Ripples without crests'
+  | 'Small wavelets. Crests of glassy appearance, not breaking'
+  | 'Large wavelets. Crests begin to break; scattered whitecaps'
+  | 'Small waves'
+  | 'Moderate (1.2 m) longer waves. Some foam and spray'
+  | 'Large waves with foam crests and some spray'
+  | 'Sea heaps up and foam begins to streak'
+  | 'Moderately high waves with breaking crests forming spindrift. Streaks of foam'
+  | 'High waves (6-7 m) with dense foam. Wave crests start to roll over. Considerable spray'
+  | 'Very high waves. The sea surface is white and there is considerable tumbling. Visibility is reduced'
+  | 'Exceptionally high waves'
+  | 'Huge waves. Air filled with foam and spray. Sea completely white with driving spray. Visibility greatly reduced'
+  | 'not available'
+  | 'reserved';
+
+interface SKMeteoVDMAir {
+  temperature?: number;
+  dewPointTemperature?: number;
+  pressure?: number;
+  pressureTendency?: MeteoStatus;
+  relativeHumidity?: number;
+  horizontalVisibility?: number;
+  precipitationType?: MeteoPrecipitationType;
+}
+
+interface SKMeteoVDMWater {
+  temperature?: number;
+  level?: number;
+  levelTrend?: MeteoStatus;
+  surfaceCurrentSpeed?: number;
+  surfaceCurrentDirection?: number;
+  salinity?: number;
+  waveSignificantHeight?: number;
+  wavePeriod?: number;
+  waveDirection?: number;
+  swellHeight?: number;
+  swellPeriod?: number;
+  swellDirection?: number;
+  seaState?: MeteoBeaufort;
+  ice?: MeteoIce;
+}
+
+interface SKMeteoVDMWind {
+  speedTrue?: number;
+  directionTrue?: number;
+  gust?: number;
+  gustDirection?: number;
+}
+
+export interface SKMeteoVDM {
+  outside?: SKMeteoVDMAir;
+  water?: SKMeteoVDMWater;
+  wind?: SKMeteoVDMWind;
+}
+
+export interface SKMeteoAir extends SKMeteoVDMAir {
+  minTemperature?: number;
+  maxTemperature?: number;
+  feelsLikeTemperature?: number;
+  precipitationVolume?: number;
+  absoluteHumidity?: number;
+  sunrise?: string;
+  sunset?: string;
+  uvIndex?: number;
+  cloudCover?: number;
+}
+
+export interface SKMeteo extends SKMeteoVDM {
+  timestamp: string;
+  description: string;
+  outside?: SKMeteoAir;
 }
 
 export interface ParsedResponse {
@@ -48,21 +127,24 @@ interface WeatherStationData {
     latitude: number;
     longitude: number;
   };
-  observations?: SKWeather[];
-  forecasts?: SKWeather[];
-  warnings?: SKWeatherWarning[];
+  observations?: SKMeteo[];
+  forecasts?: SKMeteo[];
+  warnings?: SKMeteoWarning[];
 }
 
 export interface IWeatherService {
   fetchData(position: Position): Promise<ParsedResponse>;
 }
 
+// default weather station context
+export const defaultStationId = `default-fb`;
+
 let server: FreeboardHelperApp;
 let pluginId: string;
 
 const wakeInterval = 60000;
 let lastFetch: number; // last successful fetch
-const fetchInterval = 3600000; // 1hr
+let fetchInterval = 3600000; // 1hr
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 let timer: any;
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -73,9 +155,12 @@ let retryCount = 0; // number of retries on failed api connection
 let noPosRetryCount = 0; // number of retries on no position detected
 
 let weatherData: ParsedResponse;
-let weatherService: OpenWeather | NOAA;
+let weatherService: OpenWeather;
+let weatherServiceName: string;
 
-export const WEATHER_SERVICES = ['openweather', 'noaa'];
+let metaSent = false;
+
+export const WEATHER_POLL_INTERVAL = [60, 30, 15];
 
 export const initWeather = (
   app: FreeboardHelperApp,
@@ -84,13 +169,107 @@ export const initWeather = (
 ) => {
   server = app;
   pluginId = id;
+  fetchInterval = config.pollInterval * 60000;
 
   server.debug(`*** Weather: settings: ${JSON.stringify(config)}`);
 
-  weatherService =
-    config.service === 'noaa' ? new NOAA(config) : new OpenWeather(config);
+  weatherService = new OpenWeather(config);
+  weatherServiceName = 'openweather';
+
+  initMeteoEndpoints();
 
   fetchWeatherData();
+};
+
+const initMeteoEndpoints = () => {
+  const meteoPath = '/signalk/v2/api/meteo';
+  server.get(`${meteoPath}`, async (req: Request, res: Response) => {
+    server.debug(`${req.method} ${meteoPath}`);
+    const r = await listWeather({});
+    res.status(200);
+    res.json(r);
+  });
+  server.get(`${meteoPath}/:id`, async (req: Request, res: Response) => {
+    server.debug(`${req.method} ${meteoPath}/:id`);
+    const r =
+      weatherData && weatherData[req.params.id]
+        ? weatherData[req.params.id]
+        : {};
+    res.status(200);
+    res.json(r);
+  });
+  server.get(
+    `${meteoPath}/:id/observations`,
+    async (req: Request, res: Response) => {
+      server.debug(`${req.method} ${meteoPath}/:id/observations`);
+      const r =
+        weatherData &&
+        weatherData[req.params.id] &&
+        weatherData[req.params.id].observations
+          ? weatherData[req.params.id].observations
+          : {};
+      res.status(200);
+      res.json(r);
+    }
+  );
+  server.get(
+    `${meteoPath}/:id/forecasts`,
+    async (req: Request, res: Response) => {
+      server.debug(`${req.method} ${meteoPath}/:id/forecasts`);
+      const r =
+        weatherData &&
+        weatherData[req.params.id] &&
+        weatherData[req.params.id].forecasts
+          ? weatherData[req.params.id].forecasts
+          : {};
+      res.status(200);
+      res.json(r);
+    }
+  );
+  server.get(
+    `${meteoPath}/:id/forecasts/:forecast`,
+    async (req: Request, res: Response) => {
+      server.debug(`${req.method} ${meteoPath}/:id/forecasts/:forecast`);
+      const r =
+        weatherData &&
+        weatherData[req.params.id] &&
+        weatherData[req.params.id].forecasts &&
+        weatherData[req.params.id].forecasts[req.params.forecast]
+          ? weatherData[req.params.id].forecasts[req.params.forecast]
+          : {};
+      res.status(200);
+      res.json(r);
+    }
+  );
+  server.get(
+    `${meteoPath}/:id/warnings`,
+    async (req: Request, res: Response) => {
+      server.debug(`${req.method} ${meteoPath}/:id/warnings`);
+      const r =
+        weatherData &&
+        weatherData[req.params.id] &&
+        weatherData[req.params.id].warnings
+          ? weatherData[req.params.id].warnings
+          : {};
+      res.status(200);
+      res.json(r);
+    }
+  );
+  server.get(
+    `${meteoPath}/:id/warnings/:warning`,
+    async (req: Request, res: Response) => {
+      server.debug(`${req.method} ${meteoPath}/:id/warnings/:warning`);
+      const r =
+        weatherData &&
+        weatherData[req.params.id] &&
+        weatherData[req.params.id].warnings &&
+        weatherData[req.params.id].warnings[req.params.warning]
+          ? weatherData[req.params.id].warnings[req.params.warning]
+          : {};
+      res.status(200);
+      res.json(r);
+    }
+  );
 };
 
 export const stopWeather = () => {
@@ -191,7 +370,7 @@ const fetchWeatherData = () => {
       .fetchData(pos.value)
       .then((data) => {
         server.debug(`*** Weather: data received....`);
-        server.debug(JSON.stringify(data));
+        //server.debug(JSON.stringify(data));
         retryCount = 0;
         lastFetch = Date.now();
         weatherData = data;
@@ -199,6 +378,7 @@ const fetchWeatherData = () => {
           server.debug(`*** Weather: wake from sleep....poll provider.`);
           fetchWeatherData();
         }, wakeInterval);
+        emitMeteoDeltas();
         checkForWarnings();
       })
       .catch((err) => {
@@ -222,11 +402,16 @@ const fetchWeatherData = () => {
 
 // check  for weather warnings in returned data
 const checkForWarnings = () => {
-  if ('self' in weatherData) {
-    if (weatherData.self.warnings && Array.isArray(weatherData.self.warnings)) {
-      server.debug(`*** No. Warnings ${weatherData.self.warnings.length}`);
-      if (weatherData.self.warnings.length !== 0) {
-        emitWarningNotification(weatherData.self.warnings[0]);
+  if ('defaultStationId' in weatherData) {
+    if (
+      weatherData[defaultStationId].warnings &&
+      Array.isArray(weatherData[defaultStationId].warnings)
+    ) {
+      server.debug(
+        `*** No. Warnings ${weatherData[defaultStationId].warnings.length}`
+      );
+      if (weatherData[defaultStationId].warnings.length !== 0) {
+        emitWarningNotification(weatherData[defaultStationId].warnings[0]);
       } else {
         emitWarningNotification();
       }
@@ -237,14 +422,14 @@ const checkForWarnings = () => {
 };
 
 // emit weather warning notification
-const emitWarningNotification = (warning?: SKWeatherWarning) => {
+const emitWarningNotification = (warning?: SKMeteoWarning) => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let delta: any;
   if (warning) {
     server.debug(`** Setting Notification **`);
     server.debug(JSON.stringify(warning));
     delta = {
-      path: 'notifications.environment.weather.warning',
+      path: 'notifications.meteo.warning',
       value: {
         state: ALARM_STATE.warn,
         method: [ALARM_METHOD.visual],
@@ -256,7 +441,7 @@ const emitWarningNotification = (warning?: SKWeatherWarning) => {
   } else {
     server.debug(`** Clearing Notification **`);
     delta = {
-      path: 'notifications.environment.weather.warning',
+      path: 'notifications.meteo.warning',
       value: {
         state: ALARM_STATE.normal,
         method: [],
@@ -268,8 +453,251 @@ const emitWarningNotification = (warning?: SKWeatherWarning) => {
   server.handleMessage(
     pluginId,
     {
+      context: `meteo.${defaultStationId}`,
       updates: [{ values: [delta] }]
     },
     SKVersion.v2
   );
+};
+
+// Meteo methods
+const emitMeteoDeltas = () => {
+  const pathRoot = 'environment';
+  const deltaValues = [];
+
+  server.debug('**** METEO - emit deltas*****');
+
+  if (weatherData) {
+    deltaValues.push({
+      path: 'navigation.position',
+      value: weatherData[defaultStationId].position
+    });
+
+    const obs = weatherData[defaultStationId].observations;
+    server.debug('**** METEO *****');
+    if (obs && Array.isArray(obs)) {
+      server.debug('**** METEO OBS *****');
+      obs.forEach((o: SKMeteo) => {
+        if (typeof o.outside.sunrise !== 'undefined') {
+          deltaValues.push({
+            path: ``,
+            value: { name: weatherServiceName }
+          });
+        }
+        if (typeof o.outside.sunrise !== 'undefined') {
+          deltaValues.push({
+            path: `${pathRoot}.outside.sunrise`,
+            value: o.outside.sunrise
+          });
+        }
+        if (typeof o.outside.sunset !== 'undefined') {
+          deltaValues.push({
+            path: `${pathRoot}.outside.sunset`,
+            value: o.outside.sunset
+          });
+        }
+        if (typeof o.outside.uvIndex !== 'undefined') {
+          deltaValues.push({
+            path: `${pathRoot}.outside.uvIndex`,
+            value: o.outside.uvIndex
+          });
+        }
+        if (typeof o.outside.cloudCover !== 'undefined') {
+          deltaValues.push({
+            path: `${pathRoot}.outside.cloudCover`,
+            value: o.outside.cloudCover
+          });
+        }
+        if (typeof o.outside.temperature !== 'undefined') {
+          deltaValues.push({
+            path: `${pathRoot}.outside.temperature`,
+            value: o.outside.temperature
+          });
+        }
+        if (typeof o.outside.dewPointTemperature !== 'undefined') {
+          deltaValues.push({
+            path: `${pathRoot}.outside.dewPointTemperature`,
+            value: o.outside.dewPointTemperature
+          });
+        }
+        if (typeof o.outside.feelsLikeTemperature !== 'undefined') {
+          deltaValues.push({
+            path: `${pathRoot}.outside.feelsLikeTemperature`,
+            value: o.outside.feelsLikeTemperature
+          });
+        }
+        if (typeof o.wind.speedTrue !== 'undefined') {
+          deltaValues.push({
+            path: `${pathRoot}.wind.speedTrue`,
+            value: o.wind.speedTrue
+          });
+        }
+        if (typeof o.wind.directionTrue !== 'undefined') {
+          deltaValues.push({
+            path: `${pathRoot}.wind.directionTrue`,
+            value: o.wind.directionTrue
+          });
+        }
+        if (typeof o.outside.horizontalVisibility !== 'undefined') {
+          deltaValues.push({
+            path: `${pathRoot}.outside.horizontalVisibility`,
+            value: o.outside.horizontalVisibility
+          });
+        }
+        if (typeof o.outside.pressure !== 'undefined') {
+          deltaValues.push({
+            path: `${pathRoot}.outside.pressure`,
+            value: o.outside.pressure
+          });
+        }
+        if (typeof o.outside.relativeHumidity !== 'undefined') {
+          deltaValues.push({
+            path: `${pathRoot}.outside.relativeHumidity`,
+            value: o.outside.relativeHumidity
+          });
+        }
+        if (typeof o.outside.absoluteHumidity !== 'undefined') {
+          deltaValues.push({
+            path: `${pathRoot}.outside.absoluteHumidity`,
+            value: o.outside.absoluteHumidity
+          });
+        }
+        if (typeof o.outside.precipitationType !== 'undefined') {
+          deltaValues.push({
+            path: `${pathRoot}.outside.precipitationType`,
+            value: o.outside.precipitationType
+          });
+        }
+      });
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const updates: any = {
+        values: deltaValues
+      };
+
+      if (!metaSent) {
+        server.debug('**** SENDING METAS *****');
+        updates.meta = buildMeteoMetas();
+        metaSent = true;
+      }
+
+      server.handleMessage(
+        pluginId,
+        {
+          context: `meteo.${defaultStationId}`,
+          updates: [updates]
+        },
+        SKVersion.v1
+      );
+    }
+  }
+};
+
+const buildMeteoMetas = () => {
+  server.debug('**** METEO - build metas *****');
+  let metas = [];
+  metas = metas.concat(buildObservationMetas());
+
+  return metas;
+};
+
+const buildObservationMetas = () => {
+  const pathRoot = 'environment';
+  const metas = [];
+  server.debug('**** METEO - building observation metas *****');
+
+  metas.push({
+    path: `${pathRoot}.outside.cloudCover`,
+    value: {
+      description: 'Cloud clover.',
+      units: '%'
+    }
+  });
+  metas.push({
+    path: `${pathRoot}.outside.temperature`,
+    value: {
+      description: 'Outside air temperature.',
+      units: 'K'
+    }
+  });
+  metas.push({
+    path: `${pathRoot}.outside.dewPointTemperature`,
+    value: {
+      description: 'Dew point.',
+      units: 'K'
+    }
+  });
+  metas.push({
+    path: `${pathRoot}.outside.feelsLikeTemperature`,
+    value: {
+      description: 'Feels like temperature.',
+      units: 'K'
+    }
+  });
+  metas.push({
+    path: `${pathRoot}.outside.horizontalVisibility`,
+    value: {
+      description: 'Horizontal visibility.',
+      units: 'm'
+    }
+  });
+  metas.push({
+    path: `${pathRoot}.outside.pressure`,
+    value: {
+      description: 'Barometric pressure.',
+      units: 'Pa'
+    }
+  });
+  metas.push({
+    path: `${pathRoot}.outside.relativeHumidity`,
+    value: {
+      description: 'Relative humidity.',
+      units: '%'
+    }
+  });
+  metas.push({
+    path: `${pathRoot}.outside.absoluteHumidity`,
+    value: {
+      description: 'Absolute humidity.',
+      units: '%'
+    }
+  });
+  metas.push({
+    path: `${pathRoot}.wind.speedTrue`,
+    value: {
+      description: 'True wind speed.',
+      units: 'm/s'
+    }
+  });
+  metas.push({
+    path: `${pathRoot}.wind.directionTrue`,
+    value: {
+      description: 'The wind direction relative to true north.',
+      units: 'rad'
+    }
+  });
+  metas.push({
+    path: `${pathRoot}.wind.gust`,
+    value: {
+      description: 'Maximum wind gust.',
+      units: 'm/s'
+    }
+  });
+  metas.push({
+    path: `${pathRoot}.wind.gustDirection`,
+    value: {
+      description: 'Maximum wind gust direction.',
+      units: 'rad'
+    }
+  });
+
+  metas.push({
+    path: `${pathRoot}.wind.gust`,
+    value: {
+      description: 'Maximum wind gust.',
+      units: 'm/s'
+    }
+  });
+
+  return metas;
 };

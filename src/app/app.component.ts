@@ -1192,14 +1192,22 @@ export class AppComponent {
     } else if (e.type === 'aton') {
       let title: string;
       let icon: string;
+      let atonType: string;
       if (e.id.slice(0, 3) === 'sar') {
         v = this.app.data.sar.get(e.id);
         title = 'SaR Properties';
         icon = 'tour';
+        atonType = 'sar';
+      } else if (e.id.slice(0, 5) === 'meteo') {
+        v = this.app.data.meteo.get(e.id);
+        title = 'Meteo Properties';
+        icon = 'air';
+        atonType = 'meteo';
       } else {
         v = this.app.data.atons.get(e.id);
         title = 'AtoN Properties';
         icon = 'beenhere';
+        atonType = 'aton';
       }
       if (v) {
         this.bottomSheet
@@ -1209,7 +1217,8 @@ export class AppComponent {
               title: title,
               target: v,
               id: e.id,
-              icon: icon
+              icon: icon,
+              type: atonType
             }
           })
           .afterDismissed()

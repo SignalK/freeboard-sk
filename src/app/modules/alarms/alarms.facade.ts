@@ -329,7 +329,7 @@ export class AlarmsFacade {
           );
         }
         break;
-      case 'weather':
+      case 'meteo':
         this.updateAlarm(msg.type, msg.result.value, true);
         break;
       default:

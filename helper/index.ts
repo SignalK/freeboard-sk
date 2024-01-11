@@ -3,17 +3,17 @@ import { IRouter, Application, Request, Response } from 'express';
 import { initAlarms } from './alarms/alarms';
 
 import {
-  WEATHER_SERVICES,
+  WEATHER_POLL_INTERVAL,
   WEATHER_CONFIG,
   initWeather,
-  stopWeather,
-  getWeather,
-  listWeather
+  stopWeather
 } from './weather';
 
 import { initPyPilot, PYPILOT_CONFIG, closePyPilot } from './pypilot';
 
 import * as openapi from './openApi.json';
+
+const defaultPollInterval = 60;
 
 const CONFIG_SCHEMA = {
   properties: {
@@ -33,7 +33,7 @@ const CONFIG_SCHEMA = {
     weather: {
       type: 'object',
       title: 'Weather API.',
-      description: 'Weather service settings.',
+      description: 'OpenWeather service settings.',
       properties: {
         enable: {
           type: 'boolean',
@@ -48,12 +48,13 @@ const CONFIG_SCHEMA = {
           description:
             'Get your API key at https://openweathermap.org/home/sign_up'
         },
-        service: {
-          type: 'string',
-          title: 'Weather service',
-          default: 'openweather',
-          enum: WEATHER_SERVICES,
-          description: 'Select the weather service'
+        pollInterval: {
+          type: 'number',
+          title: 'Polling Interval',
+          default: 60,
+          enum: WEATHER_POLL_INTERVAL,
+          description:
+            'Select the interval at which the weather service is polled.'
         }
       }
     },
@@ -91,10 +92,13 @@ const CONFIG_UISCHEMA = {
       'ui:help': ' '
     },
     apiKey: {
-      'ui:disabled': false
+      'ui:disabled': false,
+      'ui-help': ''
     },
-    service: {
-      'ui:disabled': false
+    pollInterval: {
+      'ui:widget': 'select',
+      'ui:title': 'Polling Interval (mins)',
+      'ui:help': ' '
     }
   }
 };
@@ -151,7 +155,7 @@ module.exports = (server: FreeboardHelperApp): OpenApiPlugin => {
     weather: {
       enable: false,
       apiKey: '',
-      service: 'openweather'
+      pollInterval: defaultPollInterval
     },
     pypilot: {
       enable: false,
@@ -191,11 +195,12 @@ module.exports = (server: FreeboardHelperApp): OpenApiPlugin => {
       settings.weather = options.weather ?? {
         enable: false,
         apiKey: '',
-        service: 'openweather'
+        pollInterval: defaultPollInterval
       };
       settings.weather.enable = options.weather.enable ?? false;
       settings.weather.apiKey = options.weather.apiKey ?? '';
-      settings.weather.service = options.weather.service ?? 'openweather';
+      settings.weather.pollInterval =
+        options.weather.pollInterval ?? defaultPollInterval;
 
       settings.alarms = options.alarms ?? {
         enable: true
@@ -219,12 +224,7 @@ module.exports = (server: FreeboardHelperApp): OpenApiPlugin => {
 
       let msg = '';
       if (settings.weather.enable) {
-        const result = registerProvider('weather');
-        msg = `Started - ${
-          result.length !== 0
-            ? `${result} not registered!`
-            : 'Providing: weather'
-        }`;
+        msg = `Started - Providing: weather`;
         initWeather(server, plugin.id, settings.weather);
       }
       if (settings.pypilot.enable) {
@@ -249,36 +249,6 @@ module.exports = (server: FreeboardHelperApp): OpenApiPlugin => {
     server.debug('** Un-subscribing from events **');
     const msg = 'Stopped';
     server.setPluginStatus(msg);
-  };
-
-  const registerProvider = (resType: string): string => {
-    let failed = '';
-    try {
-      server.registerResourceProvider({
-        type: resType,
-        methods: {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          listResources: (params: object): any => {
-            return listWeather(params);
-          },
-          getResource: (path: string, property?: string) => {
-            return getWeather(path, property);
-          },
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          setResource: (id: string, value: any) => {
-            server.debug(`${id}, ${value}`);
-            throw 'Not implemented!';
-          },
-          deleteResource: (id: string) => {
-            server.debug(`${id}`);
-            throw 'Not implemented!';
-          }
-        }
-      });
-    } catch (error) {
-      failed = resType;
-    }
-    return failed;
   };
 
   const initApiEndpoints = (router: IRouter) => {

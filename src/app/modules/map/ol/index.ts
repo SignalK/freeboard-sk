@@ -33,6 +33,7 @@ import {
   FreeboardRegionLayerComponent
 } from './lib/resources/layer-regions.component';
 import { FreeboardChartLayerComponent } from './lib/resources/layer-charts.component';
+import { ChartBoundsLayerComponent } from './lib/resources/layer-chart-bounds.component';
 import { TrackLayerComponent } from './lib/resources/layer-tracks.component';
 import { ResourceSetLayerComponent } from './lib/resources/layer-resourceset.component';
 import { SKTargetsLayerComponent } from './lib/resources/layer-sktargets.component';
@@ -81,6 +82,7 @@ export {
   FreeboardRegionLayerComponent
 } from './lib/resources/layer-regions.component';
 export { FreeboardChartLayerComponent } from './lib/resources/layer-charts.component';
+export { ChartBoundsLayerComponent } from './lib/resources/layer-chart-bounds.component';
 export { TrackLayerComponent } from './lib/resources/layer-tracks.component';
 export { ResourceSetLayerComponent } from './lib/resources/layer-resourceset.component';
 export { SKTargetsLayerComponent } from './lib/resources/layer-sktargets.component';
@@ -117,6 +119,7 @@ const declarations = [
   FreeboardRegionLayerComponent,
   TrackLayerComponent,
   FreeboardChartLayerComponent,
+  ChartBoundsLayerComponent,
   ResourceSetLayerComponent,
   SKTargetsLayerComponent,
   SKTargetTracksLayerComponent,

@@ -15,7 +15,7 @@
   },
   "servers": [
     {
-      "url": "/signalk/v2/api/resources"
+      "url": "/signalk/v2/api/meteo"
     }
   ],
   "tags": [
@@ -46,31 +46,9 @@
       },
       "IsoTime": {
         "type": "string",
+        "description": "Date / Time when data values were recorded",
         "pattern": "^(\\d{4})-(\\d{2})-(\\d{2})T(\\d{2}):(\\d{2}):(\\d{2}(?:\\.\\d*)?)((-(\\d{2}):(\\d{2})|Z)?)$",
         "example": "2022-04-22T05:02:56.484Z"
-      },
-      "NumberValue": {
-        "type": "object",
-        "properties": {
-          "value": {
-            "type": "number",
-            "example": 243
-          },
-          "units": {
-            "type": "string",
-            "example": "m/sec"
-          }
-        }
-      },
-      "ValueGroup": {
-        "description": "Collection of values / groups",
-        "type": "object",
-        "additionalProperties": {
-          "anyOf": [
-            { "$ref": "#/components/schemas/ValueGroup"},
-            { "$ref": "#/components/schemas/NumberValue"}
-          ]
-        }
       },
       "WeatherStationInfoModel": {
         "type": "object",
@@ -88,7 +66,7 @@
           }
         }
       },
-      "BaseStationResponseModel": {
+      "MeteoStationResponseModel": {
         "type": "object",
         "required": ["timestamp"],
         "properties": {
@@ -99,121 +77,178 @@
             "type": "string",
             "example": "broken clouds"
           },
-          "uvIndex": {
-            "$ref": "#/components/schemas/NumberValue"
-          },
-          "clouds": {
-            "$ref": "#/components/schemas/NumberValue"
-          },
-          "temperature":{
+          "outside": {
             "type": "object",
             "properties": {
-              "air":{
-                "$ref": "#/components/schemas/NumberValue"
+              "uvIndex": {
+                "type": "number",
+                "example": 7.5,
+                "description": "UV Index (1-15)"
               },
-              "feelsLike": {
-                "$ref": "#/components/schemas/NumberValue"
+              "cloudCover": {
+                "type": "number",
+                "example": 85,
+                "description": "Amount of cloud cover (%)"
               },
-              "dewPoint": {
-                "$ref": "#/components/schemas/NumberValue"
-              }
-            }
-          },
-          "pressure": {
-            "type": "object",
-            "properties": {
-              "value": {
-                "$ref": "#/components/schemas/NumberValue"
-              }
-            }
-          },
-          "humidity": {
-            "type": "object",
-            "properties": {
-              "absolute": {
-                "$ref": "#/components/schemas/NumberValue"
+              "temperature": {
+                "type": "number",
+                "example": 290,
+                "description": "Air temperature (K)"
               },
-              "relative": {
-                "$ref": "#/components/schemas/NumberValue"
+              "feelsLikeTemperature": {
+                "type": "number",
+                "example": 277,
+                "description": "Feels-like temperature (K)"
+              },
+              "dewPointTemperature": {
+                "type": "number",
+                "example": 260,
+                "description": "Dew point temperature (K)"
+              },
+              "pressure": {
+                "type": "number",
+                "example": 10100,
+                "description": "Air pressure (Pa)"
+              },
+              "pressureTendency": {
+                "type": "string",
+                "enum": ["steady","decreasing","increasing"],
+                "example": "steady",
+                "description": "Air pressure tendency"
+              },
+              "absoluteHumidity": {
+                "type": "number",
+                "example": 56,
+                "description": "Absolute humidity (%)"
+              },
+              "relativeHumidity": {
+                "type": "number",
+                "example": 56,
+                "description": "Relative humidity (%)"
+              },
+              "precipitationType": {
+                "type": "string",
+                "enum": ["rain","thunderstorm","snow","freezing rain", "mixed/ice"],
+                "example": "rain",
+                "description": "Type of preceipitation"
+              },
+              "precipitationVolume": {
+                "type": "number",
+                "example": 56,
+                "description": "Amount of precipitation (mm)"
+              },
+              "horizontalVisibility": {
+                "type": "number",
+                "example": 5000,
+                "description": "Visibilty (m)"
               }
             }
           },
           "wind": {
             "type": "object",
             "properties": {
-              "speed": {
-                "$ref": "#/components/schemas/NumberValue"
+              "speedTrue": {
+                "type": "number",
+                "example": 15.3,
+                "description": "Wind speed (m/s)"
               },
-              "direction": {
-                "$ref": "#/components/schemas/NumberValue"
+              "directionTrue": {
+                "type": "number",
+                "example": 2.145,
+                "description": "Wind direction (rad)"
               },
               "gust": {
-                "$ref": "#/components/schemas/NumberValue"
+                "type": "number",
+                "example": 21.6,
+                "description": "Wind gust (m/s)"
+              },
+              "gustDirection": {
+                "type": "number",
+                "example": 2.6,
+                "description": "Wind gust direction (rad)"
               }
             }
           },
-          "precipitation": {
+          "water": {
             "type": "object",
             "properties": {
-              "rain": {
-                "type": "object",
-                "properties": {
-                  "volume": {
-                    "$ref": "#/components/schemas/NumberValue"
-                  }
-                }
+              "temperature": {
+                "type": "number",
+                "example": 21.6,
+                "description": "Wind gust (m/s)"
               },
-              "snow": {
-                "type": "object",
-                "properties": {
-                  "volume": {
-                    "$ref": "#/components/schemas/NumberValue"
-                  }
-                }
+              "level": {
+                "type": "number",
+                "example": 11.9,
+                "description": "Water level (m)"
+              },
+              "levelTrend": {
+                "type": "number",
+                "enum": ["steady","decreasing","increasing"],
+                "example": "steady",
+                "description": "Water level trend"
+              },
+              "waveSignificantHeight": {
+                "type": "number",
+                "example": 2.6,
+                "description": "Wave height (m)"
+              },
+              "waveDirection": {
+                "type": "number",
+                "example": 2.3876,
+                "description": "Wave direction (rad)"
+              },
+              "wavePeriod": {
+                "type": "number",
+                "example": 2.3876,
+                "description": "Wave period (m/s)"
+              },
+              "swellHeight": {
+                "type": "number",
+                "example": 2.6,
+                "description": "Swell height (m)"
+              },
+              "swellDirection": {
+                "type": "number",
+                "example": 2.3876,
+                "description": "Swell direction (rad)"
+              },
+              "swellPeriod": {
+                "type": "number",
+                "example": 2.3876,
+                "description": "Swell period (m/s)"
+              },
+              "seaState": {
+                "type": "number",
+                "example": 2,
+                "description": "Sea state (Beaufort)"
+              },
+              "salinity": {
+                "type": "number",
+                "example": 12,
+                "description": "Water salinity (%)"
+              },
+              "ice": {
+                "type": "boolean",
+                "example": true,
+                "description": "Ice present."
               }
             }
-          }
-        }
-      },
-      "ObservationDataModel": {
-        "allOf": [
-          {
-            "$ref": "#/components/schemas/BaseStationResponseModel"
           },
-          {
-            "$ref": "#/components/schemas/ObservationProperties"
-          }
-        ]
-      },
-      "ObservationProperties": {
-        "type": "object",
-        "properties": {
-          "sunrise": {
-            "$ref": "#/components/schemas/IsoTime"
-          },
-          "sunset": {
-            "$ref": "#/components/schemas/IsoTime"
-          },
-          "visibility": { 
-            "$ref": "#/components/schemas/NumberValue"
-          }
-        }
-      },
-      "ForecastDataModel": {
-        "allOf": [
-          {
-            "$ref": "#/components/schemas/BaseStationResponseModel"
-          },
-          {
-            "$ref": "#/components/schemas/ForecastProperties"
-          }
-        ]
-      },
-      "ForecastProperties": {
-        "type": "object",
-        "properties": {
-          "pop": {
-            "$ref": "#/components/schemas/NumberValue"
+          "current": {
+            "type": "object",
+            "properties": {
+              "surfaceSpeed": {
+                "type": "number",
+                "example": 3.4,
+                "description": "Surface current speed (m/s)"
+              },
+              "surfaceDirection": {
+                "type": "number",
+                "example": 1.74,
+                "description": "Surface current direction (rad)"
+              }
+            }
           }
         }
       },
@@ -250,7 +285,7 @@
           "observations": {
             "type": "array",
             "items": {
-                "$ref": "#/components/schemas/BaseStationResponseModel"            
+                "$ref": "#/components/schemas/MeteoStationResponseModel"            
             }
           }
         }
@@ -262,7 +297,7 @@
           "forecasts": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/BaseStationResponseModel"
+              "$ref": "#/components/schemas/MeteoStationResponseModel"
             }
           }
         }
@@ -349,7 +384,7 @@
   },
   "security": [{ "cookieAuth": [] }, { "bearerAuth": [] }],
   "paths": {
-    "/weather": {
+    "/": {
       "get": {
         "tags": ["weather"],
         "summary": "Retrieve list of weather stations providing forecast, observation & warning information",
@@ -370,7 +405,7 @@
         }
       }
     },
-    "/weather/{id}": {
+    "/{id}": {
       "parameters": [
         {
           "$ref": "#/components/parameters/StationIdParam"
@@ -393,7 +428,7 @@
         }
       }
     },
-    "/weather/{id}/observations": {
+    "/{id}/observations": {
       "parameters": [
         {
           "$ref": "#/components/parameters/StationIdParam"
@@ -408,16 +443,9 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": {
-                    "allOf": [
-                      {
-                        "$ref": "#/components/schemas/BaseStationResponseModel"
-                      },
-                      {
-                        "$ref": "#/components/schemas/ObservationProperties"
-                      }
-                    ]
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/MeteoStationResponseModel"
                   }
                 }
               }
@@ -426,7 +454,7 @@
         }
       }
     },
-    "/weather/{id}/forecasts": {
+    "/{id}/forecasts": {
       "parameters": [
         {
           "$ref": "#/components/parameters/StationIdParam"
@@ -441,16 +469,9 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": {
-                    "allOf": [
-                      {
-                        "$ref": "#/components/schemas/BaseStationResponseModel"
-                      },
-                      {
-                        "$ref": "#/components/schemas/ForecastProperties"
-                      }
-                    ]
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/MeteoStationResponseModel"
                   }
                 }
               }
@@ -459,7 +480,7 @@
         }
       }
     },
-    "/weather/{id}/warnings": {
+    "/{id}/warnings": {
       "parameters": [
         {
           "$ref": "#/components/parameters/StationIdParam"
@@ -474,8 +495,8 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": {
+                  "type": "array",
+                  "items": {
                     "$ref": "#/components/schemas/WarningDataModel"
                   }
                 }
