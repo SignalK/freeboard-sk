@@ -31,6 +31,7 @@ import {
   SKAtoN,
   SKAircraft,
   SKSaR,
+  SKMeteo,
   SKStreamFacade,
   AlarmsFacade
 } from 'src/app/modules';
@@ -43,7 +44,9 @@ import {
   basestationStyles,
   aircraftStyles,
   sarStyles,
+  meteoStyles,
   waypointStyles,
+  routeStyles,
   noteStyles,
   anchorStyles,
   alarmStyles,
@@ -72,6 +75,7 @@ interface IOverlay {
   vessel?: SKVessel;
   isSelf?: boolean;
   aton?: SKAtoN;
+  meteo?: SKMeteo;
   aircraft?: SKAircraft;
   alarm?: SKNotification;
 }
@@ -80,6 +84,7 @@ interface IFeatureData {
   aircraft: Map<string, SKAircraft>;
   atons: Map<string, SKAtoN>;
   sar: Map<string, SKSaR>;
+  meteo: Map<string, SKMeteo>;
   routes: Array<SKRoute>;
   waypoints: Array<SKWaypoint>;
   charts: Array<SKChart>;
@@ -221,6 +226,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
     vessel: vesselStyles,
     aisVessel: aisVesselStyles,
     note: noteStyles,
+    route: routeStyles,
     waypoint: waypointStyles,
     anchor: anchorStyles,
     alarm: alarmStyles,
@@ -228,7 +234,8 @@ export class FBMapComponent implements OnInit, OnDestroy {
     aton: atonStyles,
     basestation: basestationStyles,
     aircraft: aircraftStyles,
-    sar: sarStyles
+    sar: sarStyles,
+    meteo: meteoStyles
   };
 
   // ** map feature data
@@ -236,6 +243,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
     aircraft: new Map(),
     atons: new Map(),
     sar: new Map(),
+    meteo: new Map(),
     routes: [],
     waypoints: [],
     charts: [],
@@ -429,6 +437,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
     this.dfeat.ais = this.app.data.vessels.aisTargets;
     this.dfeat.aircraft = this.app.data.aircraft;
     this.dfeat.sar = this.app.data.sar;
+    this.dfeat.meteo = this.app.data.meteo;
     this.dfeat.atons = this.app.data.atons;
     this.dfeat.active = this.app.data.vessels.active;
     this.dfeat.navData.position = this.app.data.navData.position;
@@ -638,6 +647,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
         let notForModify = false;
         let aton: SKAtoN;
         let sar: SKSaR;
+        let meteo: SKMeteo;
         let aircraft: SKAircraft;
         let vessel: SKVessel;
         if (id && typeof id === 'string') {
@@ -710,6 +720,12 @@ export class FBMapComponent implements OnInit, OnDestroy {
               addToFeatureList = true;
               sar = this.app.data.sar.get(id);
               text = sar ? sar.name || sar.mmsi : 'SaR Beacon';
+              break;
+            case 'meteo':
+              icon = 'air';
+              addToFeatureList = true;
+              meteo = this.app.data.meteo.get(id);
+              text = meteo ? meteo.name || meteo.mmsi : 'Weather Station';
               break;
             case 'ais-vessels':
               icon = 'directions_boat';
@@ -1148,6 +1164,15 @@ export class FBMapComponent implements OnInit, OnDestroy {
         }
         this.overlay['id'] = id;
         this.overlay['aton'] = this.app.data.sar.get(id);
+        this.overlay.show = true;
+        return;
+      case 'meteo':
+        this.overlay['type'] = 'aton';
+        if (!this.app.data.meteo.has(id)) {
+          return false;
+        }
+        this.overlay['id'] = id;
+        this.overlay['aton'] = this.app.data.meteo.get(id);
         this.overlay.show = true;
         return;
       case 'aircraft':

@@ -32,7 +32,7 @@ export class ChartListComponent {
 
   displayChartLayers = false;
 
-  constructor(private app: AppInfo, private dialog: MatDialog) {}
+  constructor(protected app: AppInfo, private dialog: MatDialog) {}
 
   ngOnInit() {
     this.initItems();
@@ -43,6 +43,7 @@ export class ChartListComponent {
   }
 
   close() {
+    this.app.data.chartBounds = false;
     this.closed.emit();
   }
 
@@ -78,6 +79,10 @@ export class ChartListComponent {
 
   isLocal(url: string) {
     return url && url.indexOf('signalk') !== -1 ? 'map' : 'language';
+  }
+
+  toggleChartBoundaries() {
+    this.app.data.chartBounds = !this.app.data.chartBounds;
   }
 
   checkSelections() {

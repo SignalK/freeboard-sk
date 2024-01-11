@@ -146,7 +146,7 @@
   <!-- Routes -->
   <fb-routes
     [routes]="dfeat.routes"
-    [routeStyles]=""
+    [routeStyles]="featureStyles.route"
     [activeRoute]="activeRoute"
     [zIndex]="80"
   >
@@ -200,6 +200,23 @@
     [labelMinZoom]="10"
     [mapZoom]="fbMap.zoomLevel"
     [zIndex]="45"
+  >
+  </sk-targets>
+
+  <!-- Meteo targets -->
+  <sk-targets
+    *ngIf="app.config.aisTargets"
+    [darkMode]="app.config.map.invertColor"
+    [targets]="dfeat.meteo"
+    [targetStyles]="featureStyles.meteo"
+    targetType="meteo"
+    [labelMinZoom]="10"
+    [mapZoom]="fbMap.zoomLevel"
+    [updateIds]="aisMgr.updateList"
+    [staleIds]="aisMgr.staleList"
+    [removeIds]="aisMgr.removeList"
+    [inactiveTime]="app.config.selections.aisStaleAge"
+    [zIndex]="122"
   >
   </sk-targets>
 
@@ -490,6 +507,14 @@
     [zIndex]="200"
   >
   </fb-vessel-trail>
+
+  <!-- chart boundaries-->
+  <fb-chart-bounds
+    *ngIf="app.data.chartBounds"
+    [zIndex]="250"
+    [charts]="dfeat.charts"
+  >
+  </fb-chart-bounds>
 </ol-map>
 
 <!-- context menu -->

@@ -13,8 +13,8 @@ import { Layer } from 'ol/layer';
 import { Feature } from 'ol';
 import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
-import { Style, Stroke } from 'ol/style';
-import { LineString } from 'ol/geom';
+import { Style, Stroke, Text, Fill, Circle } from 'ol/style';
+import { LineString, Point } from 'ol/geom';
 import { MapComponent } from '../map.component';
 import { Extent } from '../models';
 import { fromLonLatArray, mapifyCoords } from '../util';
@@ -115,7 +115,7 @@ export class RouteLayerComponent implements OnInit, OnDestroy, OnChanges {
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   parseRoutes(routes: { [key: string]: any } = this.routes) {
-    const fa: Feature[] = [];
+    let fa: Feature[] = [];
     for (const w in routes) {
       const c = fromLonLatArray(
         mapifyCoords(routes[w].feature.geometry.coordinates)
@@ -131,6 +131,11 @@ export class RouteLayerComponent implements OnInit, OnDestroy, OnChanges {
         routes[w].feature.properties.coordinatesMeta ?? null
       );
       fa.push(f);
+      // active
+      if (w[0] === this.activeRoute) {
+        const slf = this.parseStartFinishLine(routes[w]);
+        fa = fa.concat(slf);
+      }
     }
     this.features = fa;
   }
@@ -173,6 +178,171 @@ export class RouteLayerComponent implements OnInit, OnDestroy, OnChanges {
       return s;
     }
   }
+
+  // build start/finish line features
+  parseStartFinishLine(rte: SKRoute): Feature[] {
+    const sfla: Feature[] = [];
+
+    // start line
+    if (rte.feature.properties.startLine) {
+      const sla = fromLonLatArray(rte.feature.properties.startLine);
+
+      const sl = new Feature({
+        geometry: new LineString(sla)
+      });
+      sl.setId('startline');
+      sl.setStyle(this.buildStartFinishLineStyle('startLine'));
+      sfla.push(sl);
+
+      const sp = new Feature({
+        geometry: new Point(sla[0]),
+        name: 'Start Pin'
+      });
+      sp.setId('startline.pin');
+      sp.setStyle(this.buildStartFinishLineStyle('startPin'));
+      sfla.push(sp);
+
+      const sb = new Feature({
+        geometry: new Point(sla[1]),
+        name: 'Start Boat'
+      });
+      sb.setId('startline.boat');
+      sb.setStyle(this.buildStartFinishLineStyle('startBoat'));
+      sfla.push(sb);
+    }
+
+    // finish line
+    if (rte.feature.properties.finishLine) {
+      const fla = fromLonLatArray(rte.feature.properties.finishLine);
+
+      const fl = new Feature({
+        geometry: new LineString(fla)
+      });
+      fl.setId('finishline');
+      fl.setStyle(this.buildStartFinishLineStyle('finishLine'));
+      sfla.push(fl);
+
+      const fp = new Feature({
+        geometry: new Point(fla[0]),
+        name: 'Start Pin'
+      });
+      fp.setId('finishline.s');
+      fp.setStyle(this.buildStartFinishLineStyle('finishPin'));
+      sfla.push(fp);
+
+      const fb = new Feature({
+        geometry: new Point(fla[1]),
+        name: 'Finish'
+      });
+      fb.setId('finishline.e');
+      fb.setStyle(this.buildStartFinishLineStyle('finishPin'));
+      sfla.push(fb);
+    }
+
+    return sfla;
+  }
+
+  // build start-line style
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  buildStartFinishLineStyle(styleName: string): Style {
+    if (typeof this.routeStyles !== 'undefined') {
+      if (
+        styleName === 'startPin' &&
+        typeof this.routeStyles.startPin !== 'undefined'
+      ) {
+        return this.routeStyles.startPin;
+      } else if (
+        styleName === 'startBoat' &&
+        typeof this.routeStyles.startBoat !== 'undefined'
+      ) {
+        return this.routeStyles.startBoat;
+      } else if (
+        styleName === 'startLine' &&
+        typeof this.routeStyles.startLine !== 'undefined'
+      ) {
+        return this.routeStyles.startLine;
+      } else if (
+        styleName === 'finishLine' &&
+        typeof this.routeStyles.finishLine !== 'undefined'
+      ) {
+        return this.routeStyles.finishLine;
+      } else if (
+        styleName === 'finishPin' &&
+        typeof this.routeStyles.finishPin !== 'undefined'
+      ) {
+        return this.routeStyles.finishPin;
+      }
+    } else if (this.layerProperties && this.layerProperties.style) {
+      return this.layerProperties.style;
+    } else {
+      // default styles
+      let s: Style;
+      if (styleName === 'startLine') {
+        s = new Style({
+          stroke: new Stroke({
+            color: 'black',
+            width: 2,
+            lineDash: [2, 4]
+          })
+        });
+      } else if (styleName === 'startPin') {
+        s = new Style({
+          image: new Circle({
+            radius: 5,
+            fill: new Fill({ color: 'green' }),
+            stroke: new Stroke({
+              color: 'black',
+              width: 1
+            })
+          }),
+          text: new Text({
+            text: 'start-pin',
+            offsetY: -10
+          })
+        });
+      } else if (styleName === 'startBoat') {
+        s = new Style({
+          image: new Circle({
+            radius: 5,
+            fill: new Fill({ color: 'green' }),
+            stroke: new Stroke({
+              color: 'black',
+              width: 1
+            })
+          }),
+          text: new Text({
+            text: 'Boat',
+            offsetY: -10
+          })
+        });
+      } else if (styleName === 'finishLine') {
+        s = new Style({
+          stroke: new Stroke({
+            color: 'black',
+            width: 4,
+            lineDash: [2, 4]
+          })
+        });
+      } else if (styleName === 'finishPin') {
+        s = new Style({
+          image: new Circle({
+            radius: 5,
+            fill: new Fill({ color: 'gray' }),
+            stroke: new Stroke({
+              color: 'black',
+              width: 1
+            })
+          }),
+          text: new Text({
+            text: 'Finish',
+            offsetY: -10
+          })
+        });
+      }
+
+      return s;
+    }
+  }
 }
 
 // ** Freeboard resource collection format **
@@ -192,7 +362,7 @@ export class FreeboardRouteLayerComponent extends RouteLayerComponent {
   }
 
   parseRoutes(routes: Array<[string, SKRoute, boolean]> = this.routes) {
-    const fa: Feature[] = [];
+    let fa: Feature[] = [];
     for (const w of routes) {
       if (w[2]) {
         // selected
@@ -206,6 +376,11 @@ export class FreeboardRouteLayerComponent extends RouteLayerComponent {
         f.setStyle(this.buildStyle(w[0], w[1]));
         f.set('pointMetadata', w[1].feature.properties.coordinatesMeta ?? null);
         fa.push(f);
+        // active
+        if (w[0] === this.activeRoute) {
+          const slf = this.parseStartFinishLine(w[1]);
+          fa = fa.concat(slf);
+        }
       }
     }
     this.features = fa;
