@@ -15,6 +15,7 @@ import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
 import { Style, Stroke, Text, Fill, Circle } from 'ol/style';
 import { LineString, Point } from 'ol/geom';
+import { fromLonLat } from 'ol/proj';
 import { MapComponent } from '../map.component';
 import { Extent } from '../models';
 import { fromLonLatArray, mapifyCoords } from '../util';
@@ -184,18 +185,20 @@ export class RouteLayerComponent implements OnInit, OnDestroy, OnChanges {
     const sfla: Feature[] = [];
 
     // start line
-    if (rte.feature.properties.startLine) {
-      const sla = fromLonLatArray(rte.feature.properties.startLine);
+    if (rte.feature.properties.startLine && rte.feature.properties.startLine.pin 
+        && rte.feature.properties.startLine.boat) {
+      const slp = fromLonLat(rte.feature.properties.startLine.pin);
+      const slb = fromLonLat(rte.feature.properties.startLine.boat);
 
       const sl = new Feature({
-        geometry: new LineString(sla)
+        geometry: new LineString([slp,slb])
       });
       sl.setId('startline');
       sl.setStyle(this.buildStartFinishLineStyle('startLine'));
       sfla.push(sl);
 
       const sp = new Feature({
-        geometry: new Point(sla[0]),
+        geometry: new Point(slp),
         name: 'Start Pin'
       });
       sp.setId('startline.pin');
@@ -203,7 +206,7 @@ export class RouteLayerComponent implements OnInit, OnDestroy, OnChanges {
       sfla.push(sp);
 
       const sb = new Feature({
-        geometry: new Point(sla[1]),
+        geometry: new Point(slb),
         name: 'Start Boat'
       });
       sb.setId('startline.boat');

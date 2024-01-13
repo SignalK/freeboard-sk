@@ -97,10 +97,10 @@ export const routeStyles = {
   }),
   startBoat: new Style({
     image: new Icon({
-      src: './assets/img/startflag.png',
+      src: './assets/img/startboat.png',
       rotateWithView: false,
-      scale: 0.5,
-      anchor: [22.5, 45],
+      scale: 0.15,
+      anchor: [24, 160],
       anchorXUnits: 'pixels',
       anchorYUnits: 'pixels'
     }),
