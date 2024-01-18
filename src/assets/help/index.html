@@ -3,6 +3,7 @@
   <head>
     <title>Freeboard | Help</title>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" type="image/x-icon" href="./favicon.ico" />
     <!-- ** Foundation ** -->
     <link rel="stylesheet" href="./css/foundation.min.css" />
     <!--** /Foundation ** -->
@@ -432,7 +433,7 @@
             alt=""
           /><br />
           <i
-            >Note:The <b>Add Note here"</b> option is only available at zoom
+            >Note:The <b>"Add Note here"</b> option is only available at zoom
             levels where Notes are visible on the map.
           </i>
           <br />&nbsp;<br />
@@ -493,14 +494,17 @@
 
           <img src="../img/ais_active.png" style="height: 20px" alt="" />
           <b>Active Vessel:</b> displays the current position and heading for a
-          vessel for which an update has been received in the last 6 mins.<br />
+          vessel where an update has been received within the 
+          time period selected in <i>Settings->Vessels->Mark AIS Target Inactive After</i> (default = 6 mins).<br />
           <img src="../img/ais_inactive.png" style="height: 20px" alt="" />
           <b>Inactive Vessel:</b> displays the last received position and
-          heading for a vessel for which an update has NOT been received for
-          more than 6 mins.<br />
+          heading for a vessel for which an update has NOT been received within the 
+          time period selected in <i>Settings->Vessels->Mark AIS Target Inactive After</i> (default = 6 mins).<br />
           <i>
             Note: Vessels are removed from display after there has been no
-            update received for 9 mins or more.
+            update received within the time period selected in 
+            <i>Settings->Vessels->Remove AIS Target After</i> 
+            (default = 9 mins).
           </i>
           <br />
           Clicking on a vessel icon will display an information window
@@ -906,9 +910,9 @@
           </li>
           <div>
             <i
-              ><b>Note:</b> Freeboard requires that the
-              <i>@signalk/charts-plugin</i> be installed and configured on the
-              Signal K server for charts to be available.</i
+              ><b>Note:</b> Freeboard uses chart information from the <i>./resources/charts</i>
+              path and requires that the server has a supported plugin installed and configured 
+              <i>(e.g. @signalk/charts-plugin)</i> for charts to be available.</i
             >
             <br />&nbsp;<br />
             Freeboard supports the following chart types:
@@ -1987,9 +1991,8 @@
           <hr />
 
           <b>SIGNAL K CONNECTION:</b><br />
-          This section allows you to set parameters for the information received
-          via the Signal K stream connection providing control over the volume
-          and type of data to be displayed.<br />
+          This section allows you to set parameters for the Signal K stream connection
+          to provide control over the type and number of features displayed on the map.<br />
           <i
             >Note: The Signal K data stream can deliver a large volume of data
             depending on the data sources you have connected. The processing of
@@ -2003,9 +2006,15 @@
             alt=""
           /><br />
 
-          <h5>Filter Stream Data:</h5>
-          Use the options in this section to select which data types you want
-          Freeboard to display.<br />
+          <b>Signal K server is behind a proxy:</b><br />
+          Check this option when your browser is connecting to a Signal K server that is behind a 
+          proxy server.
+          This enables Freeboard-SK to correctly detect and connect to the endpoints exposed 
+          by the Signal K Server.<br />&nbsp;<br />
+
+          <b>Filter Stream Data:</b>
+          Use the options in this section to select which Signal K <i>context(s)</i> will be used
+          to display features on the map.<br />
 
           <li>
             <b>Vessels</b>: Display vessels (other than your own) on the map.
@@ -2028,12 +2037,16 @@
           </li>
 
           <li>
+            <b>Meteo (Weather)</b>: Display weather stations on the map.
+            <i>(Default is unchecked)</i>
+          </li>
+          <br />
+          <li>
             <b>Max Distance from Vessel</b>: Set the distance from your vessel
             that targets must be within to be displayed on the map.<br />
             The distance represents the radius of a bounding box around your
             vessel.<br />
-            Select none to include all received targets.
-            <i>(Default is None)</i>
+            Selecting <i>None (default)</i> will display all received targets.
           </li>
         </div>
 
@@ -2091,20 +2104,17 @@
           <h4><i class="material-icons">science</i> Experiments</h4>
           <br />
 
-          When features are being assessed for inclusion into Freeboard they are
-          deemed to be
-          <b>Experiments</b>.<br />
-          To access these features you will need ensure the
-          <b>Experimental Features</b> checkbox is checked in <i>Settings</i>.
+          New features being assessed / tested for inclusion in Freeboard are
+          referred to as <b>Experiments</b>.<br />
+          To try out these features you will need to check the
+          <b>Experimental Features</b> option in <i>Settings</i>.
           <br />&nbsp;<br />
 
-          When enabled these features can be acccessed via the
+          Once enabled, you can access these features via the
           <i class="material-icons">science</i> button. <br />&nbsp;<br />
 
-          <i>Note:</i> For experiments that require Signal K server support you
-          will be required to have the <i>sk-resources-fs</i> plugin installed
-          on the Signal K server.
-        </div>
+          <i>Note:</i> Some experiments will require configuration settings to be made 
+          in the Signal K server Admin console under <b>Plugin Config -> Freeboard-SK</b>.
       </div>
     </div>
   </body>
