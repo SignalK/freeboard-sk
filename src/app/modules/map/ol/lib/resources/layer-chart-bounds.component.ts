@@ -176,7 +176,7 @@ export class ChartBoundsLayerComponent implements OnInit, OnDestroy, OnChanges {
       [bounds[2], bounds[3]],
       [bounds[0], bounds[3]],
       [bounds[0], bounds[1]]
-    ]);
+    ], 0);
     return [fromLonLatArray(rect)];
   }
 

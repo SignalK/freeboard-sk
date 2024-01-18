@@ -49,14 +49,14 @@ export function inDLCrossingZone(coord: Coordinate, zoneValue = 170) {
 }
 
 // update linestring coords for map display (including dateline crossing)
-export function mapifyCoords(coords: Array<Coordinate>): Array<Coordinate> {
+export function mapifyCoords(coords: Array<Coordinate>, zoneValue?: number): Array<Coordinate> {
   if (coords.length === 0) {
     return coords;
   }
   let dlCrossing = 0;
   const last = coords[0];
   for (let i = 0; i < coords.length; i++) {
-    if (inDLCrossingZone(coords[i]) || inDLCrossingZone(last)) {
+    if (inDLCrossingZone(coords[i], zoneValue) || inDLCrossingZone(last, zoneValue)) {
       dlCrossing =
         last[0] > 0 && coords[i][0] < 0
           ? 1

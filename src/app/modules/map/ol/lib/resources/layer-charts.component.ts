@@ -20,11 +20,12 @@ import { MapComponent } from '../map.component';
 import { osmLayer } from '../util';
 import { MapService } from '../map.service';
 import { MVT } from 'ol/format';
-
 import DataTile from 'ol/source/DataTile';
 import WebGLTileLayer from 'ol/layer/WebGLTile';
 import * as pmtiles from 'pmtiles';
 import { SKChart } from 'src/app/modules';
+import LayerGroup from 'ol/layer/Group';
+import { apply, applyStyle, applyBackground } from 'ol-mapbox-style';
 
 // ** Freeboard resource collection format **
 @Component({
@@ -213,6 +214,7 @@ export class FreeboardChartLayerComponent
 
   async parseCharts(charts: Array<[string, SKChart, boolean]> = this.charts) {
     const map = this.mapComponent.getMap();
+
     for (const i in charts) {
       // check for existing layer
       let layer = this.mapService.getLayerByKey('id', charts[i][0]);
@@ -238,7 +240,15 @@ export class FreeboardChartLayerComponent
                 ? charts[i][1].minZoom - 0.1
                 : charts[i][1].minZoom;
             const maxZ = charts[i][1].maxZoom;
-            if (
+
+            if (charts[i][1].type === 'mapstyleJSON') {
+              const lg = new LayerGroup({
+                zIndex: this.zIndex + parseInt(i)
+              });
+              lg.set('id', charts[i][0]);
+              apply(lg, `${charts[i][1].url}`);
+              map.addLayer(lg);
+            } else if (
               charts[i][1].format === 'pbf' ||
               charts[i][1].format === 'mvt'
             ) {

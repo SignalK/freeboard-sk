@@ -753,15 +753,21 @@ export class SKResources {
               i[1].type = i[1].serverType;
             }
 
-            // ** ensure host is in url
-            if (i[1]['url'][0] === '/' || i[1]['url'].slice(0, 4) !== 'http') {
-              i[1]['url'] = this.app.host + i[1]['url'];
+            // test for SK chart record
+            if (i[1].type) {
+              // ** ensure host is in url
+              if (
+                i[1]['url'][0] === '/' ||
+                i[1]['url'].slice(0, 4) !== 'http'
+              ) {
+                i[1]['url'] = this.app.host + i[1]['url'];
+              }
+              this.app.data.charts.push([
+                i[0],
+                new SKChart(i[1]),
+                this.app.config.selections.charts.includes(i[0]) ? true : false
+              ]);
             }
-            this.app.data.charts.push([
-              i[0],
-              new SKChart(i[1]),
-              this.app.config.selections.charts.includes(i[0]) ? true : false
-            ]);
           });
           // ** sort by scale
           this.sortByScaleDesc();
