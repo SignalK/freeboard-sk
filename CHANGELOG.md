@@ -3,6 +3,7 @@
 ### v2.5.0
 
 - **Added**: Toggle the display chart bounds on the map.
+- **Added**: Support for Mapbox styles.
 - **Updated**: New Map icons for waypoints and AIS targets.
 - **Experiment (Weather)**: 
     - Removed NOAA service option.
