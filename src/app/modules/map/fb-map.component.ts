@@ -1167,7 +1167,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
         this.overlay.show = true;
         return;
       case 'meteo':
-        this.overlay['type'] = 'aton';
+        this.overlay['type'] = 'meteo';
         if (!this.app.data.meteo.has(id)) {
           return false;
         }

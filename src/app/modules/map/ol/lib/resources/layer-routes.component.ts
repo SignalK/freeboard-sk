@@ -7,7 +7,8 @@ import {
   OnDestroy,
   OnInit,
   Output,
-  SimpleChanges
+  SimpleChanges,
+  SimpleChange
 } from '@angular/core';
 import { Layer } from 'ol/layer';
 import { Feature } from 'ol';
@@ -21,6 +22,7 @@ import { Extent } from '../models';
 import { fromLonLatArray, mapifyCoords } from '../util';
 import { AsyncSubject } from 'rxjs';
 import { SKRoute } from 'src/app/modules';
+import { LightTheme, DarkTheme } from '../themes';
 
 // ** Signal K resource collection format **
 @Component({
@@ -32,6 +34,7 @@ export class RouteLayerComponent implements OnInit, OnDestroy, OnChanges {
   protected layer: Layer;
   public source: VectorSource;
   protected features: Array<Feature>;
+  protected theme = LightTheme;
 
   /**
    * This event is triggered after the layer is initialized
@@ -43,6 +46,9 @@ export class RouteLayerComponent implements OnInit, OnDestroy, OnChanges {
   @Input() routes: { [key: string]: any };
   @Input() routeStyles: { [key: string]: Style };
   @Input() activeRoute: string;
+  @Input() darkMode = false;
+  @Input() labelMinZoom = 10;
+  @Input() mapZoom = 10;
   @Input() opacity: number;
   @Input() visible: boolean;
   @Input() extent: Extent;
@@ -65,6 +71,8 @@ export class RouteLayerComponent implements OnInit, OnDestroy, OnChanges {
     this.layer = new VectorLayer(
       Object.assign(this, { ...this.layerProperties })
     );
+
+    this.theme = this.darkMode ? DarkTheme : LightTheme;
 
     const map = this.mapComponent.getMap();
     if (this.layer && map) {
@@ -95,6 +103,16 @@ export class RouteLayerComponent implements OnInit, OnDestroy, OnChanges {
             this.source.clear();
             this.source.addFeatures(this.features);
           }
+        } else if (
+          key === 'labelMinZoom' ||
+          key === 'mapZoom' ||
+          key === 'darkMode'
+        ) {
+          this.theme =
+            key === 'darkMode' && changes[key].currentValue
+              ? DarkTheme
+              : LightTheme;
+          this.handleLabelZoomChange(key, changes[key]);
         } else if (key === 'layerProperties') {
           this.layer.setProperties(properties, false);
         } else {
@@ -180,34 +198,83 @@ export class RouteLayerComponent implements OnInit, OnDestroy, OnChanges {
     }
   }
 
+  // ** assess attribute change **
+  handleLabelZoomChange(key: string, change: SimpleChange) {
+    if (key === 'labelMinZoom') {
+      if (typeof this.mapZoom !== 'undefined') {
+        this.updateLabels();
+      }
+    } else if (key === 'mapZoom') {
+      if (typeof this.labelMinZoom !== 'undefined') {
+        if (
+          (change.currentValue >= this.labelMinZoom &&
+            change.previousValue < this.labelMinZoom) ||
+          (change.currentValue < this.labelMinZoom &&
+            change.previousValue >= this.labelMinZoom)
+        ) {
+          this.updateLabels();
+        }
+      }
+    } else if (key === 'darkMode') {
+      this.updateLabels();
+    }
+  }
+
+  // update feature labels
+  updateLabels() {
+    this.source.getFeatures().forEach((f: Feature) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const s: any = f.getStyle();
+      f.setStyle(this.setTextLabel(s, f.get('name')));
+    });
+  }
+
+  // return a Style with label text
+  setTextLabel(s: Style, text = ''): Style {
+    const cs = s.clone();
+    const ts = cs.getText();
+    if (ts) {
+      ts.setText(Math.abs(this.mapZoom) >= this.labelMinZoom ? text : '');
+      ts.setFill(new Fill({ color: this.theme.labelText.color }));
+    }
+    return cs;
+  }
+
   // build start/finish line features
   parseStartFinishLine(rte: SKRoute): Feature[] {
     const sfla: Feature[] = [];
 
     // start line
-    if (rte.feature.properties.startLine && rte.feature.properties.startLine.pin 
-        && rte.feature.properties.startLine.boat) {
+    if (
+      rte.feature.properties.startLine &&
+      rte.feature.properties.startLine.pin &&
+      rte.feature.properties.startLine.boat
+    ) {
       const slp = fromLonLat(rte.feature.properties.startLine.pin);
       const slb = fromLonLat(rte.feature.properties.startLine.boat);
 
       const sl = new Feature({
-        geometry: new LineString([slp,slb])
+        geometry: new LineString([slp, slb]),
+        name: 'start'
       });
       sl.setId('startline');
-      sl.setStyle(this.buildStartFinishLineStyle('startLine'));
+      sl.setStyle(
+        this.setTextLabel(
+          this.buildStartFinishLineStyle('startLine'),
+          sl.get('name')
+        )
+      );
       sfla.push(sl);
 
       const sp = new Feature({
-        geometry: new Point(slp),
-        name: 'Start Pin'
+        geometry: new Point(slp)
       });
       sp.setId('startline.pin');
       sp.setStyle(this.buildStartFinishLineStyle('startPin'));
       sfla.push(sp);
 
       const sb = new Feature({
-        geometry: new Point(slb),
-        name: 'Start Boat'
+        geometry: new Point(slb)
       });
       sb.setId('startline.boat');
       sb.setStyle(this.buildStartFinishLineStyle('startBoat'));
@@ -219,23 +286,28 @@ export class RouteLayerComponent implements OnInit, OnDestroy, OnChanges {
       const fla = fromLonLatArray(rte.feature.properties.finishLine);
 
       const fl = new Feature({
-        geometry: new LineString(fla)
+        geometry: new LineString(fla),
+        name: 'finish'
       });
       fl.setId('finishline');
-      fl.setStyle(this.buildStartFinishLineStyle('finishLine'));
+      fl.set('name', 'finish');
+      fl.setStyle(
+        this.setTextLabel(
+          this.buildStartFinishLineStyle('finishLine'),
+          fl.get('name')
+        )
+      );
       sfla.push(fl);
 
       const fp = new Feature({
-        geometry: new Point(fla[0]),
-        name: 'Start Pin'
+        geometry: new Point(fla[0])
       });
       fp.setId('finishline.s');
       fp.setStyle(this.buildStartFinishLineStyle('finishPin'));
       sfla.push(fp);
 
       const fb = new Feature({
-        geometry: new Point(fla[1]),
-        name: 'Finish'
+        geometry: new Point(fla[1])
       });
       fb.setId('finishline.e');
       fb.setStyle(this.buildStartFinishLineStyle('finishPin'));
@@ -299,7 +371,7 @@ export class RouteLayerComponent implements OnInit, OnDestroy, OnChanges {
             })
           }),
           text: new Text({
-            text: 'start-pin',
+            text: '',
             offsetY: -10
           })
         });
@@ -314,7 +386,7 @@ export class RouteLayerComponent implements OnInit, OnDestroy, OnChanges {
             })
           }),
           text: new Text({
-            text: 'Boat',
+            text: '',
             offsetY: -10
           })
         });
@@ -337,7 +409,7 @@ export class RouteLayerComponent implements OnInit, OnDestroy, OnChanges {
             })
           }),
           text: new Text({
-            text: 'Finish',
+            text: '',
             offsetY: -10
           })
         });

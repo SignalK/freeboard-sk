@@ -767,7 +767,10 @@ function processVessel(d: SKVessel, v, isSelf = false) {
     d.callsign = v.value;
   } else if (v.path === 'navigation.position' && v.value) {
     // position is not null
-    if (typeof v.value.longitude === 'undefined') {
+    if (
+      typeof v.value.latitude === 'undefined' ||
+      typeof v.value.longitude === 'undefined'
+    ) {
       return;
     } // invalid
     d.position = GeoUtils.normaliseCoords([

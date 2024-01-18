@@ -1189,20 +1189,20 @@ export class AppComponent {
             this.focusMap();
           });
       }
-    } else if (e.type === 'aton') {
+    } else if (e.type === 'aton' || e.type === 'meteo') {
       let title: string;
       let icon: string;
       let atonType: string;
-      if (e.id.slice(0, 3) === 'sar') {
+      if (e.type === 'meteo') {
+        v = this.app.data.meteo.get(e.id);
+        title = 'Meteo Properties';
+        icon = 'air';
+        atonType = e.type;
+      } else  if (e.id.slice(0, 3) === 'sar') {
         v = this.app.data.sar.get(e.id);
         title = 'SaR Properties';
         icon = 'tour';
         atonType = 'sar';
-      } else if (e.id.slice(0, 5) === 'meteo') {
-        v = this.app.data.meteo.get(e.id);
-        title = 'Meteo Properties';
-        icon = 'air';
-        atonType = 'meteo';
       } else {
         v = this.app.data.atons.get(e.id);
         title = 'AtoN Properties';

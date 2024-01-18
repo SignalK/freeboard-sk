@@ -148,6 +148,9 @@
     [routes]="dfeat.routes"
     [routeStyles]="featureStyles.route"
     [activeRoute]="activeRoute"
+    [darkMode]="app.config.map.invertColor"
+    [labelMinZoom]="10"
+    [mapZoom]="fbMap.zoomLevel"
     [zIndex]="80"
   >
   </fb-routes>
@@ -385,7 +388,7 @@
     </div>
 
     <aton-popover
-      *ngIf="overlay.type === 'aton'"
+      *ngIf="overlay.type === 'aton' || overlay.type === 'meteo'"
       [canClose]="app.config.popoverMulti"
       [aton]="overlay.aton"
       (info)="itemInfo(overlay.id, overlay.type); popoverClosed()"

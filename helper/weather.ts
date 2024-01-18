@@ -478,12 +478,12 @@ const emitMeteoDeltas = () => {
     if (obs && Array.isArray(obs)) {
       server.debug('**** METEO OBS *****');
       obs.forEach((o: SKMeteo) => {
-        if (typeof o.outside.sunrise !== 'undefined') {
-          deltaValues.push({
-            path: ``,
-            value: { name: weatherServiceName }
-          });
-        }
+
+        deltaValues.push({
+          path: ``,
+          value: { name: weatherServiceName }
+        });
+        
         if (typeof o.outside.sunrise !== 'undefined') {
           deltaValues.push({
             path: `${pathRoot}.outside.sunrise`,

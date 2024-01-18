@@ -474,8 +474,9 @@ export class AISPropertiesModal implements OnInit {
               <div class="key-label">Type:</div>
               <div style="flex: 1 1 auto;">{{ data.target.type.name }}</div>
             </div>
-            <button (click)="toggleProperties()">
-              Show {{ showProperties ? 'Less' : 'More' }}
+            <button mat-stroked-button (click)="toggleProperties()">
+              <span>Show {{ showProperties ? 'Less' : 'More' }}</span>
+              <mat-icon>{{ showProperties ? 'expand_less' : 'expand_more' }}</mat-icon>
             </button>
             <signalk-details-list
               *ngIf="showProperties"
@@ -624,8 +625,9 @@ export class AtoNPropertiesModal implements OnInit {
               <div class="key-label">Call sign:</div>
               <div style="flex: 1 1 auto;">{{ data.target.callsign }}</div>
             </div>
-            <button (click)="toggleProperties()">
-              Show {{ showProperties ? 'Less' : 'More' }}
+            <button mat-stroked-button (click)="toggleProperties()">
+              <span>Show {{ showProperties ? 'Less' : 'More' }}</span>
+              <mat-icon>{{ showProperties ? 'expand_less' : 'expand_more' }}</mat-icon>
             </button>
             <signalk-details-list
               *ngIf="showProperties"
