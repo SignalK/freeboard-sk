@@ -24,6 +24,10 @@
       "description": "Weather resources."
     },
     {
+      "name": "stations-self",
+      "description": "Weather data from station closest to vessel position."
+    },
+    {
       "name": "stations",
       "description": "Weather station data."
     }
@@ -70,12 +74,39 @@
         "type": "object",
         "required": ["timestamp"],
         "properties": {
-          "timestamp": {
+          "date": {
             "$ref": "#/components/schemas/IsoTime"
           },
           "description": {
             "type": "string",
             "example": "broken clouds"
+          },
+          "horizontalVisibility": {
+            "type": "number",
+            "example": 5000,
+            "description": "Visibilty (m)"
+          },
+          "horizontalVisibilityOverRange": {
+            "type": "boolean",
+            "example": "true",
+            "description": "Visibilty distance is greater than the range of the measuring equipment."
+          },
+          "sunlight": {
+            "type": "object",
+            "required": ["times"],
+            "properties": {
+              "times": {
+                "type": "object",
+                "properties": {
+                  "sunrise": {
+                    "$ref": "#/components/schemas/IsoTime"
+                  },
+                  "sunset": {
+                    "$ref": "#/components/schemas/IsoTime"
+                  }
+                }
+              }
+            }
           },
           "outside": {
             "type": "object",
@@ -136,17 +167,17 @@
                 "type": "number",
                 "example": 56,
                 "description": "Amount of precipitation (mm)"
-              },
-              "horizontalVisibility": {
-                "type": "number",
-                "example": 5000,
-                "description": "Visibilty (m)"
               }
             }
           },
           "wind": {
             "type": "object",
             "properties": {
+              "averageSpeed": {
+                "type": "number",
+                "example": 9.3,
+                "description": "Average wind speed (m/s)"
+              },
               "speedTrue": {
                 "type": "number",
                 "example": 15.3,
@@ -155,17 +186,17 @@
               "directionTrue": {
                 "type": "number",
                 "example": 2.145,
-                "description": "Wind direction (rad)"
+                "description": "Wind direction relative to true north (rad)"
               },
               "gust": {
                 "type": "number",
                 "example": 21.6,
                 "description": "Wind gust (m/s)"
               },
-              "gustDirection": {
+              "gustDirectionTrue": {
                 "type": "number",
                 "example": 2.6,
-                "description": "Wind gust direction (rad)"
+                "description": "Wind gust direction relative to true north (rad)"
               }
             }
           },
@@ -182,41 +213,51 @@
                 "example": 11.9,
                 "description": "Water level (m)"
               },
-              "levelTrend": {
+              "levelTendency": {
                 "type": "number",
                 "enum": ["steady","decreasing","increasing"],
                 "example": "steady",
                 "description": "Water level trend"
               },
-              "waveSignificantHeight": {
-                "type": "number",
-                "example": 2.6,
-                "description": "Wave height (m)"
+              "waves": {
+                "type": "object",
+                "properties": {
+                  "significantHeight": {
+                    "type": "number",
+                    "example": 2.6,
+                    "description": "Wave height (m)"
+                  },
+                  "directionTrue": {
+                    "type": "number",
+                    "example": 2.3876,
+                    "description": "Wave direction relative to true north (rad)"
+                  },
+                  "period": {
+                    "type": "number",
+                    "example": 2.3876,
+                    "description": "Wave period (m/s)"
+                  }
+                }
               },
-              "waveDirection": {
-                "type": "number",
-                "example": 2.3876,
-                "description": "Wave direction (rad)"
-              },
-              "wavePeriod": {
-                "type": "number",
-                "example": 2.3876,
-                "description": "Wave period (m/s)"
-              },
-              "swellHeight": {
-                "type": "number",
-                "example": 2.6,
-                "description": "Swell height (m)"
-              },
-              "swellDirection": {
-                "type": "number",
-                "example": 2.3876,
-                "description": "Swell direction (rad)"
-              },
-              "swellPeriod": {
-                "type": "number",
-                "example": 2.3876,
-                "description": "Swell period (m/s)"
+              "swell": {
+                "type": "object",
+                "properties": {
+                  "height": {
+                    "type": "number",
+                    "example": 2.6,
+                    "description": "Swell height (m)"
+                  },
+                  "directionTrue": {
+                    "type": "number",
+                    "example": 2.3876,
+                    "description": "Swell direction relative to true north (rad)"
+                  },
+                  "period": {
+                    "type": "number",
+                    "example": 2.3876,
+                    "description": "Swell period (m/s)"
+                  }
+                }
               },
               "seaState": {
                 "type": "number",
@@ -238,12 +279,12 @@
           "current": {
             "type": "object",
             "properties": {
-              "surfaceSpeed": {
+              "drift": {
                 "type": "number",
                 "example": 3.4,
                 "description": "Surface current speed (m/s)"
               },
-              "surfaceDirection": {
+              "set": {
                 "type": "number",
                 "example": 1.74,
                 "description": "Surface current direction (rad)"
@@ -398,6 +439,24 @@
                   "additionalProperties": {
                     "$ref": "#/components/schemas/WeatherStationInfoModel"
                   }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/freeboard-sk": {
+      "get": {
+        "tags": ["stations-self"],
+        "summary": "Weather station data closest to vessel position.",
+        "responses": {
+          "default": {
+            "description": "Data from weather station that weather proivder deems closest to the vessel position.",
+            "content": {
+              "application/json": {
+                "schema": {
+                   "$ref": "#/components/schemas/WeatherStationResponseModel"
                 }
               }
             }

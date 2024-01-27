@@ -928,7 +928,8 @@ export class AppInfo extends Info {
    */
   formatValueForDisplay(
     value: number,
-    sourceUnits: 'K' | 'm/s' | 'rad' | 'm'
+    sourceUnits: 'K' | 'm/s' | 'rad' | 'm',
+    depthValue?: boolean
   ): string {
     if (sourceUnits === 'K') {
       return this.config.units.temperature === 'c'
@@ -943,9 +944,15 @@ export class AppInfo extends Info {
         1
       )}${String.fromCharCode(186)}`;
     } else if (sourceUnits === 'm') {
-      return this.config.units.distance === 'km'
-        ? `${(value / 1000).toFixed(1)} km`
-        : `${Convert.kmToNauticalMiles(value / 1000).toFixed(1)} NM`;
+      if (depthValue) {
+        return this.config.units.depth === 'm'
+          ? `${value.toFixed(1)} m`
+          : `${Convert.metersToFeet(value).toFixed(1)} ft`;
+      } else {
+        return this.config.units.distance === 'km'
+          ? `${(value / 1000).toFixed(1)} km`
+          : `${Convert.kmToNauticalMiles(value / 1000).toFixed(1)} NM`;
+      }
     } else if (sourceUnits === 'm/s') {
       switch (this.config.units.speed) {
         case 'kmh':
@@ -958,7 +965,13 @@ export class AppInfo extends Info {
           return `${value} ${sourceUnits}`;
       }
     } else {
-      return `${value} (${sourceUnits})`;
+      // timestamp
+      if (typeof value === 'string') {
+        if (value[String(value).length - 1] === 'Z' && value[10] === 'T') {
+          return new Date(value).toLocaleString();
+        }
+      }
+      return `${value}${sourceUnits}`;
     }
   }
 

@@ -5,11 +5,11 @@
 - **Added**: Toggle the display chart bounds on the map.
 - **Added**: Support for Mapbox styles.
 - **Updated**: New Map icons for waypoints and AIS targets.
-- **Experiment (Weather)**: 
-    - Removed NOAA service option.
-    - Display map icon at location where weather data was retrieved.
-    - Clicking map icon displays observation data.
-    - Weather data is relocated under the _meteo.default-fb_ context (See [nmea0183-signalk PR #245](https://github.com/SignalK/nmea0183-signalk/pull/245)).
+- **Added**: Display weather data from paths within the `meteo` context
+    - Weather graduated from experiment to mainstream feature.
+    - Display meto stations on the map.
+    - Clicking on meto station icon displays available observation data.
+    - Weather data from station closest to vessel position is available via the _meteo.freeboard-sk_ path (See [nmea0183-signalk PR #245](https://github.com/SignalK/nmea0183-signalk)).
 - **Experiment (Route)**: 
     - Render start / Finish line when present in route properties and route is active.
 

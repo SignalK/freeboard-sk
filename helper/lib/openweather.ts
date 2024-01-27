@@ -143,16 +143,18 @@ export class OpenWeather implements IWeatherService {
       const current: OWObservation = owData.current;
 
       obs = {
-        timestamp: current.dt
+        date: current.dt
           ? new Date(current.dt * 1000).toISOString()
           : new Date().toISOString(),
         description: current.weather[0].description ?? '',
-        outside: {
+        sun: {
           sunrise: new Date(current.sunrise * 1000).toISOString() ?? null,
-          sunset: new Date(current.sunset * 1000).toISOString() ?? null,
+          sunset: new Date(current.sunset * 1000).toISOString() ?? null
+        },
+        horizontalVisibility: current.visibility ?? null,
+        outside: {
           uvIndex: current.uvi ?? null,
           cloudCover: current.clouds ?? null,
-          horizontalVisibility: current.visibility ?? null,
           temperature: current.temp ?? null,
           feelsLikeTemperature: current.feels_like ?? null,
           dewPointTemperature: current.dew_point ?? null,
@@ -195,20 +197,20 @@ export class OpenWeather implements IWeatherService {
       const forecasts = owData[period];
       forecasts.forEach((f: OWForecast) => {
         const forecast: SKMeteo = {
-          timestamp: f.dt
+          date: f.dt
             ? new Date(f.dt * 1000).toISOString()
             : new Date().toISOString(),
           description: f.weather[0].description ?? '',
+          sun: {},
           outside: {},
           water: {},
           wind: {}
         };
 
         if (period === 'daily') {
-          forecast.outside.sunrise =
+          forecast.sun.sunrise =
             new Date(f.sunrise * 1000).toISOString() ?? null;
-          forecast.outside.sunset =
-            new Date(f.sunset * 1000).toISOString() ?? null;
+          forecast.sun.sunset = new Date(f.sunset * 1000).toISOString() ?? null;
           forecast.outside.minTemperature = f.temp.min ?? null;
           forecast.outside.maxTemperature = f.temp.max ?? null;
           forecast.outside.feelsLikeTemperature = f.feels_like.day ?? null;

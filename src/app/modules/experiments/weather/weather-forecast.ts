@@ -38,6 +38,12 @@ import { WeatherData } from './components/weather-data.component';
           </button>
         </span>
       </mat-toolbar>
+      <div
+        style="text-align:center"
+        *ngIf="!forecasts || forecasts.length === 0"
+      >
+        No weather data found!
+      </div>
 
       <weather-data [data]="forecasts"></weather-data>
     </div>
@@ -89,7 +95,7 @@ export class WeatherForecastModal implements OnInit {
   }
 
   private getForecast(count = 8) {
-    const path = '/meteo/default-fb/forecasts';
+    const path = '/meteo/freeboard-sk/forecasts';
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     this.sk.api.get(2, path).subscribe((forecasts: any) => {
       Object.values(forecasts)
@@ -98,13 +104,12 @@ export class WeatherForecastModal implements OnInit {
         .forEach((v: any) => {
           const forecastData: WeatherData = { wind: {} };
           forecastData.description = v['description'] ?? '';
-          forecastData.time =
-            new Date(v['timestamp']).toLocaleTimeString() ?? '';
+          forecastData.time = new Date(v['date']).toLocaleTimeString() ?? '';
 
           if (typeof v.outside?.temperature !== 'undefined') {
             forecastData.temperature =
               this.app.config.units?.temperature === 'f'
-                ? Convert.kelvinToFarenheit(v.ooutside.temperature).toFixed(1) +
+                ? Convert.kelvinToFarenheit(v.outside.temperature).toFixed(1) +
                   String.fromCharCode(186) +
                   'F'
                 : Convert.kelvinToCelcius(v.outside.temperature).toFixed(1) +

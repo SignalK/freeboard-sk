@@ -124,7 +124,7 @@
     </div>
     <!-- /TOOLBAR-->
 
-    <!--context menus-->
+    <!--toolbar button menus-->
     <mat-menu #layersmenu="matMenu">
       <button
         mat-menu-item
@@ -232,6 +232,11 @@
         <span>{{ app.config.notes ? 'Hide' : 'Show' }} Notes</span>
       </a>
       <mat-divider></mat-divider>
+      <a mat-menu-item (click)="showWeather('forecast')">
+        <mat-icon>air</mat-icon>
+        <span>Weather Forecast</span>
+      </a>
+      <mat-divider></mat-divider>
       <a mat-menu-item (click)="openSettings()">
         <mat-icon color="primary">settings</mat-icon>
         <span>Settings</span>
@@ -273,7 +278,7 @@
         <span>Draw Region + Note</span>
       </a>
     </mat-menu>
-    <!--/context menus-->
+    <!--/toolbar button menus-->
 
     <!-- content -->
     <div class="view" theme-main>

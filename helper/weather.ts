@@ -42,20 +42,21 @@ export type MeteoPrecipitationType =
 export type MeteoIce = 'no' | 'yes' | 'reserved' | 'not available';
 
 export type MeteoBeaufort =
-  | 'Flat'
-  | 'Ripples without crests'
-  | 'Small wavelets. Crests of glassy appearance, not breaking'
-  | 'Large wavelets. Crests begin to break; scattered whitecaps'
-  | 'Small waves'
-  | 'Moderate (1.2 m) longer waves. Some foam and spray'
-  | 'Large waves with foam crests and some spray'
-  | 'Sea heaps up and foam begins to streak'
-  | 'Moderately high waves with breaking crests forming spindrift. Streaks of foam'
-  | 'High waves (6-7 m) with dense foam. Wave crests start to roll over. Considerable spray'
-  | 'Very high waves. The sea surface is white and there is considerable tumbling. Visibility is reduced'
-  | 'Exceptionally high waves'
-  | 'Huge waves. Air filled with foam and spray. Sea completely white with driving spray. Visibility greatly reduced'
+  | 'calm, 0–0.2 m/s'
+  | 'light air, 0.3–1.5 m/s'
+  | 'light breeze, 1.6–3.3 m/s'
+  | 'gentle breeze, 3.4–5.4 m/s'
+  | 'moderate breeze, 5.5–7.9 m/s'
+  | 'fresh breeze, 8–10.7 m/s'
+  | 'strong breeze, 10.8–13.8 m/s'
+  | 'high wind, 13.9–17.1 m/s'
+  | 'gale, 17.2–20.7 m/s'
+  | 'strong gale, 20.8–24.4 m/s'
+  | 'storm, 24.5–28.4 m/s'
+  | 'violent storm, 28.5–32.6 m/s'
+  | 'hurricane-force, ≥ 32.7 m/s'
   | 'not available'
+  | 'reserved'
   | 'reserved';
 
 interface SKMeteoVDMAir {
@@ -64,14 +65,13 @@ interface SKMeteoVDMAir {
   pressure?: number;
   pressureTendency?: MeteoStatus;
   relativeHumidity?: number;
-  horizontalVisibility?: number;
   precipitationType?: MeteoPrecipitationType;
 }
 
 interface SKMeteoVDMWater {
   temperature?: number;
   level?: number;
-  levelTrend?: MeteoStatus;
+  levelTendency?: MeteoStatus;
   surfaceCurrentSpeed?: number;
   surfaceCurrentDirection?: number;
   salinity?: number;
@@ -93,6 +93,8 @@ interface SKMeteoVDMWind {
 }
 
 export interface SKMeteoVDM {
+  date?: string;
+  horizontalVisibility?: number;
   outside?: SKMeteoVDMAir;
   water?: SKMeteoVDMWater;
   wind?: SKMeteoVDMWind;
@@ -104,15 +106,16 @@ export interface SKMeteoAir extends SKMeteoVDMAir {
   feelsLikeTemperature?: number;
   precipitationVolume?: number;
   absoluteHumidity?: number;
-  sunrise?: string;
-  sunset?: string;
   uvIndex?: number;
   cloudCover?: number;
 }
 
 export interface SKMeteo extends SKMeteoVDM {
-  timestamp: string;
   description: string;
+  sun?: {
+    sunrise?: string;
+    sunset?: string;
+  };
   outside?: SKMeteoAir;
 }
 
@@ -137,7 +140,7 @@ export interface IWeatherService {
 }
 
 // default weather station context
-export const defaultStationId = `default-fb`;
+export const defaultStationId = `freeboard-sk`;
 
 let server: FreeboardHelperApp;
 let pluginId: string;
@@ -478,22 +481,33 @@ const emitMeteoDeltas = () => {
     if (obs && Array.isArray(obs)) {
       server.debug('**** METEO OBS *****');
       obs.forEach((o: SKMeteo) => {
-
         deltaValues.push({
           path: ``,
           value: { name: weatherServiceName }
         });
-        
-        if (typeof o.outside.sunrise !== 'undefined') {
+
+        if (typeof o.date !== 'undefined') {
           deltaValues.push({
-            path: `${pathRoot}.outside.sunrise`,
-            value: o.outside.sunrise
+            path: `${pathRoot}.date`,
+            value: o.date
           });
         }
-        if (typeof o.outside.sunset !== 'undefined') {
+        if (typeof o.horizontalVisibility !== 'undefined') {
           deltaValues.push({
-            path: `${pathRoot}.outside.sunset`,
-            value: o.outside.sunset
+            path: `${pathRoot}.horizontalVisibility`,
+            value: o.horizontalVisibility
+          });
+        }
+        if (typeof o.sun.sunrise !== 'undefined') {
+          deltaValues.push({
+            path: `${pathRoot}.sun.sunrise`,
+            value: o.sun.sunrise
+          });
+        }
+        if (typeof o.sun.sunset !== 'undefined') {
+          deltaValues.push({
+            path: `${pathRoot}.sun.sunset`,
+            value: o.sun.sunset
           });
         }
         if (typeof o.outside.uvIndex !== 'undefined') {
@@ -526,24 +540,6 @@ const emitMeteoDeltas = () => {
             value: o.outside.feelsLikeTemperature
           });
         }
-        if (typeof o.wind.speedTrue !== 'undefined') {
-          deltaValues.push({
-            path: `${pathRoot}.wind.speedTrue`,
-            value: o.wind.speedTrue
-          });
-        }
-        if (typeof o.wind.directionTrue !== 'undefined') {
-          deltaValues.push({
-            path: `${pathRoot}.wind.directionTrue`,
-            value: o.wind.directionTrue
-          });
-        }
-        if (typeof o.outside.horizontalVisibility !== 'undefined') {
-          deltaValues.push({
-            path: `${pathRoot}.outside.horizontalVisibility`,
-            value: o.outside.horizontalVisibility
-          });
-        }
         if (typeof o.outside.pressure !== 'undefined') {
           deltaValues.push({
             path: `${pathRoot}.outside.pressure`,
@@ -566,6 +562,18 @@ const emitMeteoDeltas = () => {
           deltaValues.push({
             path: `${pathRoot}.outside.precipitationType`,
             value: o.outside.precipitationType
+          });
+        }
+        if (typeof o.wind.speedTrue !== 'undefined') {
+          deltaValues.push({
+            path: `${pathRoot}.wind.speedTrue`,
+            value: o.wind.speedTrue
+          });
+        }
+        if (typeof o.wind.directionTrue !== 'undefined') {
+          deltaValues.push({
+            path: `${pathRoot}.wind.directionTrue`,
+            value: o.wind.directionTrue
           });
         }
       });
@@ -596,16 +604,31 @@ const emitMeteoDeltas = () => {
 const buildMeteoMetas = () => {
   server.debug('**** METEO - build metas *****');
   let metas = [];
-  metas = metas.concat(buildObservationMetas());
-
+  metas = metas.concat(buildObservationMetas('environment'));
   return metas;
 };
 
-const buildObservationMetas = () => {
-  const pathRoot = 'environment';
+const buildObservationMetas = (pathRoot: string) => {
   const metas = [];
   server.debug('**** METEO - building observation metas *****');
-
+  metas.push({
+    path: `${pathRoot}.date`,
+    value: {
+      description: 'Time of measurement.'
+    }
+  });
+  metas.push({
+    path: `${pathRoot}.sun.sunrise`,
+    value: {
+      description: 'Time of sunrise at the related position.'
+    }
+  });
+  metas.push({
+    path: `${pathRoot}.sun.sunset`,
+    value: {
+      description: 'Time of sunset at the related position.'
+    }
+  });
   metas.push({
     path: `${pathRoot}.outside.cloudCover`,
     value: {
@@ -635,7 +658,7 @@ const buildObservationMetas = () => {
     }
   });
   metas.push({
-    path: `${pathRoot}.outside.horizontalVisibility`,
+    path: `${pathRoot}.horizontalVisibility`,
     value: {
       description: 'Horizontal visibility.',
       units: 'm'
@@ -646,6 +669,21 @@ const buildObservationMetas = () => {
     value: {
       description: 'Barometric pressure.',
       units: 'Pa'
+    }
+  });
+  metas.push({
+    path: `${pathRoot}.outside.pressureTendency`,
+    value: {
+      description:
+        'Integer value indicating barometric pressure value tendency e.g. 0 = steady, etc.'
+    }
+  });
+
+  metas.push({
+    path: `${pathRoot}.outside.pressureTendencyType`,
+    value: {
+      description:
+        'Description for the value of pressureTendency e.g. steady, increasing, decreasing.'
     }
   });
   metas.push({
@@ -660,6 +698,13 @@ const buildObservationMetas = () => {
     value: {
       description: 'Absolute humidity.',
       units: '%'
+    }
+  });
+  metas.push({
+    path: `${pathRoot}.wind.averageSpeed`,
+    value: {
+      description: 'Average wind speed.',
+      units: 'm/s'
     }
   });
   metas.push({
@@ -684,7 +729,7 @@ const buildObservationMetas = () => {
     }
   });
   metas.push({
-    path: `${pathRoot}.wind.gustDirection`,
+    path: `${pathRoot}.wind.gustDirectionTrue`,
     value: {
       description: 'Maximum wind gust direction.',
       units: 'rad'
@@ -696,6 +741,78 @@ const buildObservationMetas = () => {
     value: {
       description: 'Maximum wind gust.',
       units: 'm/s'
+    }
+  });
+
+  metas.push({
+    path: `${pathRoot}.water.level`,
+    value: {
+      description: 'Water level.',
+      units: 'm'
+    }
+  });
+
+  metas.push({
+    path: `${pathRoot}.water.levelTendency`,
+    value: {
+      description:
+        'Integer value indicating water level tendency e.g. 0 = steady, etc.'
+    }
+  });
+
+  metas.push({
+    path: `${pathRoot}.water.levelTendencyType`,
+    value: {
+      description:
+        'Description for the value of levelTendency e.g. steady, increasing, decreasing.'
+    }
+  });
+
+  metas.push({
+    path: `${pathRoot}.water.waves.significantHeight`,
+    value: {
+      description: 'Significant wave height.',
+      units: 'm'
+    }
+  });
+
+  metas.push({
+    path: `${pathRoot}.water.waves.period`,
+    value: {
+      description: 'Wave period.',
+      units: 'ms'
+    }
+  });
+
+  metas.push({
+    path: `${pathRoot}.water.waves.direction`,
+    value: {
+      description: 'Wave direction.',
+      units: 'rad'
+    }
+  });
+
+  metas.push({
+    path: `${pathRoot}.water.swell.significantHeight`,
+    value: {
+      description: 'Significant swell height.',
+      units: 'm'
+    }
+  });
+
+  metas.push({
+    path: `${pathRoot}.water.swell.period`,
+    value: {
+      description: 'Swell period.',
+      units: 'ms'
+    }
+  });
+
+  metas.push({
+    path: `${pathRoot}.water.swell.directionTrue`,
+    value: {
+      description: 'Swell direction.',
+      units: 'rad'
     }
   });
 

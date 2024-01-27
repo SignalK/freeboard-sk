@@ -476,7 +476,9 @@ export class AISPropertiesModal implements OnInit {
             </div>
             <button mat-stroked-button (click)="toggleProperties()">
               <span>Show {{ showProperties ? 'Less' : 'More' }}</span>
-              <mat-icon>{{ showProperties ? 'expand_less' : 'expand_more' }}</mat-icon>
+              <mat-icon>{{
+                showProperties ? 'expand_less' : 'expand_more'
+              }}</mat-icon>
             </button>
             <signalk-details-list
               *ngIf="showProperties"
@@ -549,23 +551,32 @@ export class AtoNPropertiesModal implements OnInit {
     if (data.navigation && data.navigation.position) {
       res['navigation.position'] = data.navigation.position.value;
     }
-    if (data.environment) {
+    const bk = data.environment.observation ?? data.environment;
+    const pk = data.environment.observation
+      ? 'environment.observation'
+      : 'environment';
+    if (bk) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      Object.keys(data.environment).forEach((k: any) => {
-        const pathRoot = `environment.${k}`;
-        const g = data.environment[k];
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        Object.entries(g).forEach((i: any) => {
-          const key = `${pathRoot}.${i[0]}`;
-          if (i[1].meta.units) {
+      Object.keys(bk).forEach((k: any) => {
+        const pathRoot = `${pk}.${k}`;
+        const g = bk[k];
+        if (g.meta) {
+          res[pathRoot] = this.app.formatValueForDisplay(
+            g.value,
+            g.meta.units ? g.meta.units : '',
+            k.indexOf('level') !== -1 // depth values
+          );
+        } else {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          Object.entries(g).forEach((i: any) => {
+            const key = `${pathRoot}.${i[0]}`;
             res[key] = this.app.formatValueForDisplay(
               i[1].value,
-              i[1].meta.units
+              i[1].meta && i[1].meta.units ? i[1].meta.units : '',
+              i[0].indexOf('level') !== -1 // depth values
             );
-          } else {
-            res[key] = i[1].value;
-          }
-        });
+          });
+        }
       });
     }
     return res;
@@ -627,7 +638,9 @@ export class AtoNPropertiesModal implements OnInit {
             </div>
             <button mat-stroked-button (click)="toggleProperties()">
               <span>Show {{ showProperties ? 'Less' : 'More' }}</span>
-              <mat-icon>{{ showProperties ? 'expand_less' : 'expand_more' }}</mat-icon>
+              <mat-icon>{{
+                showProperties ? 'expand_less' : 'expand_more'
+              }}</mat-icon>
             </button>
             <signalk-details-list
               *ngIf="showProperties"

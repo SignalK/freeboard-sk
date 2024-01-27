@@ -1107,7 +1107,8 @@ function processMeteo(id: string, v) {
       d.name = v.value.name;
     }
     if (typeof v.value.mmsi !== 'undefined') {
-      d.mmsi = v.value.mmsi;
+      const nid = id.split(':').slice(-2); //meteo extended id
+      d.mmsi = nid.length === 2 ? `${nid[0]}:${nid[1]}` : v.value.mmsi;
     }
   } else if (v.path === 'communication.callsignVhf') {
     d.callsign = v.value;

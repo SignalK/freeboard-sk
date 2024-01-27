@@ -590,5 +590,12 @@
       <mat-icon>anchor</mat-icon>
       Anchor Watch
     </button>
+    <button
+      mat-menu-item
+      (click)="onContextMenuAction('weather_forecast', item)"
+    >
+      <mat-icon>air</mat-icon>
+      <span>Weather Forecast</span>
+    </button>
   </ng-template>
 </mat-menu>

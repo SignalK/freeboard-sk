@@ -400,6 +400,9 @@ export class AppComponent {
       case 'anchor':
         this.displayLeftMenu('anchorWatch', true);
         break;
+      case 'weather_forecast':
+        this.showWeather('forecast');
+        break;
     }
   }
   // ** create route from vessel trail **
@@ -418,20 +421,23 @@ export class AppComponent {
       });
   }
 
+  public showWeather(mode: string) {
+    if (mode === 'forecast') {
+      this.bottomSheet
+        .open(WeatherForecastModal, {
+          disableClose: true,
+          data: { title: 'Forecast' }
+        })
+        .afterDismissed()
+        .subscribe(() => {
+          this.focusMap();
+        });
+    }
+  }
+
   // ** display selected experiment UI **
   public openExperiment(e) {
     switch (e.choice) {
-      case 'weather_forecast': // openweather forecast
-        this.bottomSheet
-          .open(WeatherForecastModal, {
-            disableClose: true,
-            data: { title: 'Forecast' }
-          })
-          .afterDismissed()
-          .subscribe(() => {
-            this.focusMap();
-          });
-        break;
       case 'tracks': // tracks
         this.bottomSheet
           .open(TracksModal, {
@@ -1198,7 +1204,7 @@ export class AppComponent {
         title = 'Meteo Properties';
         icon = 'air';
         atonType = e.type;
-      } else  if (e.id.slice(0, 3) === 'sar') {
+      } else if (e.id.slice(0, 3) === 'sar') {
         v = this.app.data.sar.get(e.id);
         title = 'SaR Properties';
         icon = 'tour';

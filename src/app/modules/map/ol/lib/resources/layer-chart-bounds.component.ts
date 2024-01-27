@@ -170,13 +170,16 @@ export class ChartBoundsLayerComponent implements OnInit, OnDestroy, OnChanges {
         bounds[3] === 90)
     )
       return [];
-    const rect = mapifyCoords([
-      [bounds[0], bounds[1]],
-      [bounds[2], bounds[1]],
-      [bounds[2], bounds[3]],
-      [bounds[0], bounds[3]],
-      [bounds[0], bounds[1]]
-    ], 0);
+    const rect = mapifyCoords(
+      [
+        [bounds[0], bounds[1]],
+        [bounds[2], bounds[1]],
+        [bounds[2], bounds[3]],
+        [bounds[0], bounds[3]],
+        [bounds[0], bounds[1]]
+      ],
+      0
+    );
     return [fromLonLatArray(rect)];
   }
 

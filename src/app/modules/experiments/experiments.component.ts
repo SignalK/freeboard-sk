@@ -13,13 +13,9 @@ import { Component, Output, EventEmitter } from '@angular/core';
           <mat-icon>filter_drama</mat-icon>
           <span>EXP_NAME_HERE</span>			
       </a>
-      <a mat-menu-item>
-          <span>None Available</span>	
-      </a>
-      -->
-      <a mat-menu-item (click)="handleSelect('weather_forecast')">
-        <mat-icon>air</mat-icon>
-        <span>Weather Forecast</span>
+-->
+      <a mat-menu-item [disabled]="true">
+        <span>None Available</span>
       </a>
     </mat-menu>
 

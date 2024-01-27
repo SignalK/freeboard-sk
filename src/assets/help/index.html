@@ -125,11 +125,13 @@
             >Note: Freeboard-SK requires the Signal K server to implement the
             following APIs:</b
           >
-          <li>
-            <b>Resources API:</b> for the storage and retrieval of resources
-          </li>
-          <li><b>Course API:</b> to set a destination or activate a route</li>
-          <br />
+          <ul>
+            <li>
+              <b>Resources API:</b> for the storage and retrieval of resources
+            </li>
+            <li><b>Course API:</b> to set a destination or activate a route</li>
+          </ul>
+
           Freeboard is a "stateless" application which can be used concurrently
           at multiple stations to both display and send back information to the
           Signal K server.<br />
@@ -319,6 +321,12 @@
                 </li>
                 <li>Show / Hide Notes: Toggle the display of notes.</li>
                 <li>
+                  Show weather forecast data. Weather forecast data from the
+                  weather station closest to the vessel location. (Requires
+                  Weather API enabled in
+                  <i>Server Admin -> Plugin Config -> Freeboard-SK</i>)
+                </li>
+                <li>
                   Settings: Open the <a href="#settings">Settings</a> screen.
                 </li>
               </ul>
@@ -494,16 +502,20 @@
 
           <img src="../img/ais_active.png" style="height: 20px" alt="" />
           <b>Active Vessel:</b> displays the current position and heading for a
-          vessel where an update has been received within the 
-          time period selected in <i>Settings->Vessels->Mark AIS Target Inactive After</i> (default = 6 mins).<br />
+          vessel where an update has been received within the time period
+          selected in
+          <i>Settings->Vessels->Mark AIS Target Inactive After</i> (default = 6
+          mins).<br />
           <img src="../img/ais_inactive.png" style="height: 20px" alt="" />
           <b>Inactive Vessel:</b> displays the last received position and
-          heading for a vessel for which an update has NOT been received within the 
-          time period selected in <i>Settings->Vessels->Mark AIS Target Inactive After</i> (default = 6 mins).<br />
+          heading for a vessel for which an update has NOT been received within
+          the time period selected in
+          <i>Settings->Vessels->Mark AIS Target Inactive After</i> (default = 6
+          mins).<br />
           <i>
             Note: Vessels are removed from display after there has been no
-            update received within the time period selected in 
-            <i>Settings->Vessels->Remove AIS Target After</i> 
+            update received within the time period selected in
+            <i>Settings->Vessels->Remove AIS Target After</i>
             (default = 9 mins).
           </i>
           <br />
@@ -627,13 +639,14 @@
           Additionally resources can be saved to a GPX file by selecting the
           <b><i class="material-icons">save</i> Save to GPX</b> menu.
           <hr />
+          <ul>
+            <li class="nobullet">
+              <i class="material-icons">directions</i>
+              <b>Routes:</b>
+              Displays a list of available Routes.
+            </li>
+          </ul>
 
-          <li class="nobullet">
-            <i class="material-icons">directions</i>
-            <b>Routes:</b>
-            Displays a list of available Routes.
-          </li>
-          <br />
           <div style="display: flex; flex-wrap: wrap">
             <div>
               <img src="./img/route_list.png" style="max-width: 250px" alt="" />
@@ -646,76 +659,84 @@
               />
             </div>
             <div style="padding-left: 15px">
-              <li>
-                <b>Filter Routes:</b> Type into the text box to filter the list
-                of routes.
-              </li>
-              <li>
-                <b>Display Route:</b> Check the checkbox to display the route on
-                the map.
-              </li>
+              <ul>
+                <li>
+                  <b>Filter Routes:</b> Type into the text box to filter the
+                  list of routes.
+                </li>
+                <li>
+                  <b>Display Route:</b> Check the checkbox to display the route
+                  on the map.
+                </li>
 
-              <li>
-                <b>Delete Route: </b> Click
-                <i class="material-icons">delete</i> and you will be prompted to
-                delete the route.<br />
-              </li>
-              <li>
-                <b>Points: </b> Click <i class="material-icons">flag</i> to view
-                a list of route points where the following actions can be
-                performed:<br />
-              </li>
+                <li>
+                  <b>Delete Route: </b> Click
+                  <i class="material-icons">delete</i> and you will be prompted
+                  to delete the route.<br />
+                </li>
+                <li>
+                  <b>Points: </b> Click <i class="material-icons">flag</i> to
+                  view a list of route points where the following actions can be
+                  performed:<br />
+                </li>
+              </ul>
               <div style="padding-left: 20px">
-                <li>
-                  <b>Set the destination point:</b> If displayed route is the
-                  <i>Active Route</i>, click a point to set it as the current
-                  destination along the route.
-                </li>
-                <li>
-                  <b>Re-order points:</b> Use the handle to drag points to a new
-                  position in the list.<br />
-                  <i
-                    >Note: If points of the Active Route have been re-ordered
-                    then you will not be able to set the destination point until
-                    changes have been applied.
-                  </i>
-                </li>
+                <ul>
+                  <li>
+                    <b>Set the destination point:</b> If displayed route is the
+                    <i>Active Route</i>, click a point to set it as the current
+                    destination along the route.
+                  </li>
+                  <li>
+                    <b>Re-order points:</b> Use the handle to drag points to a
+                    new position in the list.<br />
+                    <i
+                      >Note: If points of the Active Route have been re-ordered
+                      then you will not be able to set the destination point
+                      until changes have been applied.
+                    </i>
+                  </li>
+                </ul>
               </div>
-              <li>
-                <b>Notes:</b>
-                Clicking <i class="material-icons">local_offer</i> displays a
-                list of Notes associated with the route. From this screen you
-                can add, edit or delete notes.
-              </li>
-              <li>
-                <b>Activate: </b> Clicking
-                <i class="material-icons">near_me</i> sends a message to the
-                server to set this route as the <i>Active Route</i>.<br />
-                The start of the route is set as the current destination. <br />
-                Use the <i>Previous</i> and <i>Next</i> point options in the
-                <i class="material-icons">more_horiz</i> menu to select the
-                destination point.
-              </li>
-              <li>
-                <b>Clear: </b> Clicking
-                <i class="material-icons">clear_all</i> sends a message to the
-                server to clear the <i>Active Route</i>.
-              </li>
-              <li>
-                <b>Edit Properties: </b> Click
-                <i class="material-icons">edit</i> to edit route Name and
-                Description.
-              </li>
-              <br />
+              <ul>
+                <li>
+                  <b>Notes:</b>
+                  Clicking <i class="material-icons">local_offer</i> displays a
+                  list of Notes associated with the route. From this screen you
+                  can add, edit or delete notes.
+                </li>
+                <li>
+                  <b>Activate: </b> Clicking
+                  <i class="material-icons">near_me</i> sends a message to the
+                  server to set this route as the <i>Active Route</i>.<br />
+                  The start of the route is set as the current destination.
+                  <br />
+                  Use the <i>Previous</i> and <i>Next</i> point options in the
+                  <i class="material-icons">more_horiz</i> menu to select the
+                  destination point.
+                </li>
+                <li>
+                  <b>Clear: </b> Clicking
+                  <i class="material-icons">clear_all</i> sends a message to the
+                  server to clear the <i>Active Route</i>.
+                </li>
+                <li>
+                  <b>Edit Properties: </b> Click
+                  <i class="material-icons">edit</i> to edit route Name and
+                  Description.
+                </li>
+              </ul>
               You can also click on a Route on the map to display an information
               window with additional actions.<br />
               <img src="./img/route_popover.png" alt="" />
               <div style="padding-left: 15px">
-                <li>
-                  <b>Move:</b>
-                  Clicking <i class="material-icons">touch_app</i> allows route
-                  points to be re-positioned.
-                </li>
+                <ul>
+                  <li>
+                    <b>Move:</b>
+                    Clicking <i class="material-icons">touch_app</i> allows
+                    route points to be re-positioned.
+                  </li>
+                </ul>
               </div>
             </div>
             <div>
@@ -761,13 +782,13 @@
             </div>
           </div>
           <hr />
-
-          <li class="nobullet">
-            <i class="material-icons">location_on</i>
-            <b>Waypoints:</b>
-            Displays a list of available Waypoints.
-          </li>
-          <br />
+          <ul>
+            <li class="nobullet">
+              <i class="material-icons">location_on</i>
+              <b>Waypoints:</b>
+              Displays a list of available Waypoints.
+            </li>
+          </ul>
           <div style="display: flex; flex-wrap: wrap">
             <div>
               <img
@@ -777,53 +798,55 @@
               />
             </div>
             <div style="padding-left: 15px">
-              <li>
-                <b>Filter Waypoints:</b> Type into the text box to filter the
-                list of waypoints.
-              </li>
-              <li>
-                <b>Display Waypoint:</b> Check the checkbox to display the
-                waypoint on the map.
-              </li>
+              <ul>
+                <li>
+                  <b>Filter Waypoints:</b> Type into the text box to filter the
+                  list of waypoints.
+                </li>
+                <li>
+                  <b>Display Waypoint:</b> Check the checkbox to display the
+                  waypoint on the map.
+                </li>
 
-              <li>
-                <b>Delete Waypoint: </b> Click
-                <i class="material-icons">delete</i> and you will be prompted to
-                delete the waypoint.<br />
-                <i
-                  >Note: A waypoint may be associated with a route. so take care
-                  when deleting waypoints!</i
-                >
-              </li>
-              <li>
-                <b>Notes:</b>
-                Clicking <i class="material-icons">local_offer</i> displays a
-                list of Notes associated with the waypoint. From this screen you
-                can add, edit or delete notes.
-              </li>
-              <li>
-                <b>Go To: </b> Clicking
-                <i class="material-icons">near_me</i> sends a message to the
-                server to set this waypoint as the target to navigate to. The
-                server should then send
-                <a href="#navdata">navigation data</a> in relation to this
-                location.
-              </li>
-              <li>
-                <b>Clear: </b> Clicking
-                <i class="material-icons">clear_all</i> sends a message to the
-                server to clear the current destination.
-              </li>
-              <li>
-                <b>Center: </b> Clicking
-                <i class="material-icons">center_focus_strong</i> positions the
-                map so the waypaoint is displayed in the center.
-              </li>
-              <li>
-                <b>Edit Properties</b> Click
-                <i class="material-icons">edit</i> to edit waypoint Name and
-                Description.
-              </li>
+                <li>
+                  <b>Delete Waypoint: </b> Click
+                  <i class="material-icons">delete</i> and you will be prompted
+                  to delete the waypoint.<br />
+                  <i
+                    >Note: A waypoint may be associated with a route. so take
+                    care when deleting waypoints!</i
+                  >
+                </li>
+                <li>
+                  <b>Notes:</b>
+                  Clicking <i class="material-icons">local_offer</i> displays a
+                  list of Notes associated with the waypoint. From this screen
+                  you can add, edit or delete notes.
+                </li>
+                <li>
+                  <b>Go To: </b> Clicking
+                  <i class="material-icons">near_me</i> sends a message to the
+                  server to set this waypoint as the target to navigate to. The
+                  server should then send
+                  <a href="#navdata">navigation data</a> in relation to this
+                  location.
+                </li>
+                <li>
+                  <b>Clear: </b> Clicking
+                  <i class="material-icons">clear_all</i> sends a message to the
+                  server to clear the current destination.
+                </li>
+                <li>
+                  <b>Center: </b> Clicking
+                  <i class="material-icons">center_focus_strong</i> positions
+                  the map so the waypaoint is displayed in the center.
+                </li>
+                <li>
+                  <b>Edit Properties</b> Click
+                  <i class="material-icons">edit</i> to edit waypoint Name and
+                  Description.
+                </li>
+              </ul>
             </div>
           </div>
           <br />
@@ -831,51 +854,55 @@
           window with additional actions.<br />
           <img src="./img/wpt_popover.png" alt="" />
           <div style="padding-left: 15px">
-            <li>
-              <b>Move:</b>
-              Clicking <i class="material-icons">touch_app</i> allows waypoints
-              to be re-positioned.
-            </li>
+            <ul>
+              <li>
+                <b>Move:</b>
+                Clicking <i class="material-icons">touch_app</i> allows
+                waypoints to be re-positioned.
+              </li>
+            </ul>
           </div>
           <hr />
-
-          <li class="nobullet">
-            <i class="material-icons">local_offer</i>
-            <b>Notes:</b>
-            Displays a list of available Notes.
-          </li>
-          <br />
+          <ul>
+            <li class="nobullet">
+              <i class="material-icons">local_offer</i>
+              <b>Notes:</b>
+              Displays a list of available Notes.
+            </li>
+          </ul>
           <div style="display: flex; flex-wrap: wrap">
             <div>
               <img src="./img/note_list.png" style="max-width: 250px" alt="" />
             </div>
             <div style="padding-left: 15px">
-              <li>
-                <b>Filter Notes:</b> Type into the text box to filter the list
-                of notes.
-              </li>
-              <li>
-                <b>Draft Notes: </b> Click
-                <i class="material-icons">border_color</i> to display only draft
-                notes in the list.<br />
-              </li>
+              <ul>
+                <li>
+                  <b>Filter Notes:</b> Type into the text box to filter the list
+                  of notes.
+                </li>
+                <li>
+                  <b>Draft Notes: </b> Click
+                  <i class="material-icons">border_color</i> to display only
+                  draft notes in the list.<br />
+                </li>
 
-              <li>
-                <b>Display Notes:</b> Check the checkbox to display notes on the
-                map.
-              </li>
+                <li>
+                  <b>Display Notes:</b> Check the checkbox to display notes on
+                  the map.
+                </li>
 
-              <li>
-                <b>Group: </b> Clicking
-                <i class="material-icons">styles</i> will display a list of
-                notes in the same group.
-              </li>
+                <li>
+                  <b>Group: </b> Clicking
+                  <i class="material-icons">styles</i> will display a list of
+                  notes in the same group.
+                </li>
 
-              <li>
-                <b>Properties:</b> Click
-                <i class="material-icons">info_outline</i> to open the note
-                information / editor screen.
-              </li>
+                <li>
+                  <b>Properties:</b> Click
+                  <i class="material-icons">info_outline</i> to open the note
+                  information / editor screen.
+                </li>
+              </ul>
             </div>
           </div>
           <i
@@ -887,17 +914,18 @@
             <b>Note Properties:</b><br />
             Freeboard uses specfic key / value pairs that are defined within the
             <code>properties: {}</code> block of a note: <br />&nbsp;
-            <li>
-              <b>draft</b> <i>(boolean)</i>: Indicates whether the note is in
-              draft mode. Used by the server to determine the visibility or
-              scope of where the note is made available.
-            </li>
-            <li>
-              <b>readOnly</b> <i>(boolean)</i>: Used by Freeboard (when
-              meta._attr is not available) to determine whther the note is
-              editable.
-            </li>
-            <br />
+            <ul>
+              <li>
+                <b>draft</b> <i>(boolean)</i>: Indicates whether the note is in
+                draft mode. Used by the server to determine the visibility or
+                scope of where the note is made available.
+              </li>
+              <li>
+                <b>readOnly</b> <i>(boolean)</i>: Used by Freeboard (when
+                meta._attr is not available) to determine whther the note is
+                editable.
+              </li>
+            </ul>
             <i>Example:</i>
             <code> properties: { draft: true, readOnly: false } </code>
           </div>
@@ -910,9 +938,12 @@
           </li>
           <div>
             <i
-              ><b>Note:</b> Freeboard uses chart information from the <i>./resources/charts</i>
-              path and requires that the server has a supported plugin installed and configured 
-              <i>(e.g. @signalk/charts-plugin)</i> for charts to be available.</i
+              ><b>Note:</b> Freeboard uses chart information from the
+              <i>./resources/charts</i>
+              path and requires that the server has a supported plugin installed
+              and configured
+              <i>(e.g. @signalk/charts-plugin)</i> for charts to be
+              available.</i
             >
             <br />&nbsp;<br />
             Freeboard supports the following chart types:
@@ -936,8 +967,19 @@
                 </i>
               </li>
               <li>
+                <b>mapstyleJSON:</b> A mapbox style JSON file which defines
+                sources and styles of vector tiles maps.
+              </li>
+              <li>
                 <b>WMS:</b> A Web Map Service which serves geo-referenced image
                 tiles.
+              </li>
+              <li>
+                <b>WMTS:</b> A Web Map Service which serves pre-rendered tiles.
+              </li>
+              <li>
+                <b>PMTile (Protomap):</b> A single-file archive format for tiled
+                data which can be hosted on commodity storage.
               </li>
             </ul>
           </div>
@@ -947,33 +989,38 @@
               <img src="./img/chart_list.png" style="max-width: 250px" alt="" />
             </div>
             <div style="padding-left: 15px">
-              <li>
-                <b>Filter Charts:</b> Type into the text box to filter the list
-                of charts.
-              </li>
-              <li>
-                <b>Re-order charts:</b> Click
-                <i class="material-icons">import_export</i> to arrange the chart
-                stack to ensure charts are displayed in the correct order. Drag
-                and drop the charts within the list to chage the order.
-              </li>
-              <li>
-                <b>Chart Bounds:</b> Click
-                <i class="material-icons">select_all</i> to display the bounds
-                of the listed charts. The bounding rectangle of each chart will
-                be overlayed on the current map display.
-              </li>
-              <li>
-                <b>Properties:</b> Click
-                <i class="material-icons">info_outline</i> to display the chart
-                properties.
-              </li>
-              <li>
-                <b>Display Chart:</b> Check the checkbox to display the chart.
-              </li>
+              <ul>
+                <li>
+                  <b>Filter Charts:</b> Type into the text box to filter the
+                  list of charts.
+                </li>
+                <li>
+                  <b>Re-order charts:</b> Click
+                  <i class="material-icons">import_export</i> to arrange the
+                  chart stack to ensure charts are displayed in the correct
+                  order. Drag and drop the charts within the list to chage the
+                  order.
+                </li>
+                <li>
+                  <b>Chart Bounds:</b> Click
+                  <i class="material-icons">select_all</i> to display the bounds
+                  of the listed charts. The bounding rectangle of each chart
+                  will be overlayed on the current map display.
+                </li>
+                <li>
+                  <b>Properties:</b> Click
+                  <i class="material-icons">info_outline</i> to display the
+                  chart properties.
+                </li>
+                <li>
+                  <b>Display Chart:</b> Check the checkbox to display the chart.
+                </li>
+              </ul>
               Freeboard by default will display:
-              <li>OpenStreetMap</li>
-              <li>OpenSeaMap</li>
+              <ul>
+                <li>OpenStreetMap</li>
+                <li>OpenSeaMap</li>
+              </ul>
               which require an internet connection to be displayed.<br />
               <b>Local Charts</b> hosted on the Signal K server are identified
               with the <i class="material-icons">map</i> icon.
@@ -987,14 +1034,15 @@
         <div class="panel" id="gpxsave">
           <h4><i class="material-icons">save</i>Save to GPX</h4>
           <br />
-
-          <li class="nobullet">
-            Click the <i class="material-icons" style="color: green">layers</i>
-            <b>Resources</b> toolbar button and select the
-            <i class="material-icons">save</i> <b>Save to GPX</b> option from
-            the menu.
-          </li>
-          <br />
+          <ul>
+            <li class="nobullet">
+              Click the
+              <i class="material-icons" style="color: green">layers</i>
+              <b>Resources</b> toolbar button and select the
+              <i class="material-icons">save</i> <b>Save to GPX</b> option from
+              the menu.
+            </li>
+          </ul>
           <div style="display: flex; flex-wrap: wrap">
             <div>
               <img src="./img/gpx_save.png" style="max-width: 250px" alt="" />
@@ -1009,20 +1057,20 @@
                 >Note: this option is only available when
                 <b>Get Trail from Server</b> setting is not selected.</i
               ><br />
-
-              <li>
-                <b>Waypoints:</b> Click the checkbox to select all Waypoints or
-                expand the list and select the Waypoints to export.
-              </li>
-              <li>
-                <b>Routes:</b> Click the checkbox to select all Routes or expand
-                the list and select the Routes to export.
-              </li>
-              <li>
-                <b>Tracks:</b> Click the checkbox to select all Tracks or expand
-                the list and select the Tracks to export.
-              </li>
-              <br />
+              <ul>
+                <li>
+                  <b>Waypoints:</b> Click the checkbox to select all Waypoints
+                  or expand the list and select the Waypoints to export.
+                </li>
+                <li>
+                  <b>Routes:</b> Click the checkbox to select all Routes or
+                  expand the list and select the Routes to export.
+                </li>
+                <li>
+                  <b>Tracks:</b> Click the checkbox to select all Tracks or
+                  expand the list and select the Tracks to export.
+                </li>
+              </ul>
               After selecting the required resources click <b>Save</b> to choose
               the name and location of the GPX file.
             </div>
@@ -1031,51 +1079,54 @@
 
         <div class="panel" id="menus">
           <h4>Draw Menu</h4>
-
-          <li class="nobullet">
-            <i class="material-icons">edit</i>
-            The Draw menu is where you will find options to:
-          </li>
-          <br />
+          <ul>
+            <li class="nobullet">
+              <i class="material-icons">edit</i>
+              The Draw menu is where you will find options to:
+            </li>
+          </ul>
           <div style="display: flex; flex-wrap: wrap">
             <div>
               <img src="./img/draw_menu.png" style="max-width: 250px" alt="" />
             </div>
             <div style="padding-left: 15px">
-              <li>
-                <b>Draw a Route</b>: Create a route by clicking locations on the
-                map
-              </li>
-              <li>
-                <b>Drop Waypoint</b>: Create a waypoint by clicking a location
-                on the map
-              </li>
-              <li>
-                <b>Add Note</b>: Create a note at a specific location by
-                clicking on the map
-              </li>
-              <li>
-                <b>Draw Region + Note</b>: Create a region and attach a
-                <i>note</i> by clicking locations on the map to define the
-                region.
-              </li>
-              <li>
-                <b>Measure</b>: Measure distances by clicking locations on the
-                map.
-              </li>
+              <ul>
+                <li>
+                  <b>Draw a Route</b>: Create a route by clicking locations on
+                  the map
+                </li>
+                <li>
+                  <b>Drop Waypoint</b>: Create a waypoint by clicking a location
+                  on the map
+                </li>
+                <li>
+                  <b>Add Note</b>: Create a note at a specific location by
+                  clicking on the map
+                </li>
+                <li>
+                  <b>Draw Region + Note</b>: Create a region and attach a
+                  <i>note</i> by clicking locations on the map to define the
+                  region.
+                </li>
+                <li>
+                  <b>Measure</b>: Measure distances by clicking locations on the
+                  map.
+                </li>
+              </ul>
             </div>
           </div>
         </div>
 
         <div class="panel" id="gpx">
           <h4><i class="material-icons">streetview</i>Load from GPX</h4>
-          <li class="nobullet">
-            <i class="material-icons">menu</i>
-            <b>Main Menu:</b>
-            Access the <i class="material-icons">streetview</i>
-            <b>Load from GPX</b> option from the Main menu.
-          </li>
-          <br />
+          <ul>
+            <li class="nobullet">
+              <i class="material-icons">menu</i>
+              <b>Main Menu:</b>
+              Access the <i class="material-icons">streetview</i>
+              <b>Load from GPX</b> option from the Main menu.
+            </li>
+          </ul>
           <div style="display: flex; flex-wrap: wrap">
             <div>
               <img src="./img/gpx_load.png" style="max-width: 250px" alt="" />
@@ -1084,16 +1135,16 @@
               After selecting a GPX file from the Open File dialog you will be
               presented with a screen that will allow you to select some or all
               of the Route and Waypoint resources contained in the file.<br />
-
-              <li>
-                <b>Waypoints:</b> Click the checkbox to select all Waypoints or
-                expand the list and select the Waypoints to import.
-              </li>
-              <li>
-                <b>Routes:</b> Click the checkbox to select all Routes or expand
-                the list and select the Routes to import.
-              </li>
-              <br />
+              <ul>
+                <li>
+                  <b>Waypoints:</b> Click the checkbox to select all Waypoints
+                  or expand the list and select the Waypoints to import.
+                </li>
+                <li>
+                  <b>Routes:</b> Click the checkbox to select all Routes or
+                  expand the list and select the Routes to import.
+                </li>
+              </ul>
               After selecting the resources click <b>Load Selected</b> to load
               the resources onto the Signal K server.
             </div>
@@ -1197,30 +1248,33 @@
           `non-standard` resource paths that accept `PUT` or `POST` requests.
           <br />&nbsp;<br />
           To upload data:
-          <li>
-            Select the <i class="material-icons">category</i>Load Resource menu
-            option.
-          </li>
-          <li>
-            Select the desired destination path from the drop-down list.<br />
-            <i
-              >Note: only paths detected under `signalk/v1/api/resources` are
-              listed.</i
+          <ul>
+            <li>
+              Select the <i class="material-icons">category</i>Load Resource
+              menu option.
+            </li>
+            <li>
+              Select the desired destination path from the drop-down list.<br />
+              <i
+                >Note: only paths detected under `signalk/v1/api/resources` are
+                listed.</i
+              >
+            </li>
+            <li>
+              Click and select (or drop) the file containing the resource data.
+            </li>
+            <li>
+              Click <b>Load</b> to upload the fiel contents to the server.
+            </li>
+            <b
+              >Important:
+              <i
+                >Freeboard does not attempt to validate the file contents in any
+                way so please ensure you are uploading appropirate content for
+                the selected destination.
+              </i></b
             >
-          </li>
-          <li>
-            Click and select (or drop) the file containing the resource data.
-          </li>
-          <li>Click <b>Load</b> to upload the fiel contents to the server.</li>
-          <b
-            >Important:
-            <i
-              >Freeboard does not attempt to validate the file contents in any
-              way so please ensure you are uploading appropirate content for the
-              selected destination.
-            </i></b
-          >
-          <br />
+          </ul>
           For information about using `ResourceSets` see
           <a href="#resourcepaths">Resource Paths</a> in in <i>Settings</i>.
         </div>
@@ -1330,12 +1384,13 @@
           raise alarms.
           <br />
           Notifications are displayed using:
-          <li>Visual only <i>(popup at the top of the screen)</i></li>
-          <li>Sound only</li>
-          <li>Visual &amp; Sound</li>
-          as specified by the notification message received from the Signal K
-          server.
-          <br />
+          <ul>
+            <li>Visual only <i>(popup at the top of the screen)</i></li>
+            <li>Sound only</li>
+            <li>Visual &amp; Sound</li>
+            as specified by the notification message received from the Signal K
+            server.
+          </ul>
           The following Alarms can be raised:
           <div>
             <img src="./img/alarms.png" style="max-width: 250px" alt="" />
@@ -1343,50 +1398,56 @@
 
           <br />
           <h5>To RAISE an alarm:</h5>
-          <li>
-            Click the
-            <i class="material-icons" style="color: orangered">warning</i>
-            button on the toolbar to display the Alarms dialog:
-          </li>
-          <li>
-            Click the <b>RAISE ALARM</b> button for the desired alarm type.
-          </li>
-          An alarm notification will be sent to the Signal K server.<br />
-          &nbsp;<br />
-          Freeboard will display the received alarm from the server. This alarm
-          can be <i>Acknowledged</i> and / or <i>Muted</i>.<br />
-          <li>
-            Acknowledging the alarm will minimise the alarm icon until the alarm
-            has been cleared.
-          </li>
-          <img
-            src="./img/ackalarms.png"
-            style="max-width: 250px; height: 60px"
-            alt=""
-          />
-          <li>The raised alarm will remain until it is cancelled.</li>
-          <br />
-          <h5>To CANCEL an alarm:</h5>
-          <li>
-            Click the
-            <i class="material-icons" style="color: orangered">warning</i>
-            button on the toolbar to display the Alarms dialog:
-          </li>
-          <li>Click the <b>CANCEL ALARM</b> button.</li>
+          <ul>
+            <li>
+              Click the
+              <i class="material-icons" style="color: orangered">warning</i>
+              button on the toolbar to display the Alarms dialog:
+            </li>
+            <li>
+              Click the <b>RAISE ALARM</b> button for the desired alarm type.
+            </li>
+            An alarm notification will be sent to the Signal K server.<br />
+            &nbsp;<br />
+            Freeboard will display the received alarm from the server. This
+            alarm can be
+            <i>Acknowledged</i>
+            and / or
+            <i>Muted</i
+            >.<br />
+            <li>
+              Acknowledging the alarm will minimise the alarm icon until the
+              alarm has been cleared.
+            </li>
+            <img
+              src="./img/ackalarms.png"
+              style="max-width: 250px; height: 60px"
+              alt=""
+            />
+            <li>The raised alarm will remain until it is cancelled.</li>
+            <br />
+            <h5>To CANCEL an alarm:</h5>
+            <li>
+              Click the
+              <i class="material-icons" style="color: orangered">warning</i>
+              button on the toolbar to display the Alarms dialog:
+            </li>
+            <li>Click the <b>CANCEL ALARM</b> button.</li>
 
-          <br />
-          <h5>NOTIFICATIONS:</h5>
-          Freeboard displays the following Notifications:
-          <li>Depth</li>
-          <li>Anchor - see <a href="#anchor">Anchor Watch</a></li>
-          <li>Closest Approach</li>
-          <img
-            src="./img/closest_approach.png"
-            style="width: 250px"
-            alt=""
-          /><br />
-          <li>Buddy - <i>via signalk-buddylist-plugin</i></li>
-          <img src="./img/buddy.png" style="width: 250px" alt="" />
+            <br />
+            <h5>NOTIFICATIONS:</h5>
+            Freeboard displays the following Notifications:
+            <li>Depth</li>
+            <li>Anchor - see <a href="#anchor">Anchor Watch</a></li>
+            <li>Closest Approach</li>
+            <img
+              src="./img/closest_approach.png"
+              style="width: 250px"
+              alt=""
+            /><br />
+            <li>Buddy - <i>via signalk-buddylist-plugin</i></li>
+            <img src="./img/buddy.png" style="width: 250px" alt="" />
+          </ul>
         </div>
 
         <div class="panel" id="aistargets">
@@ -1420,9 +1481,10 @@
 
           Freeboard provides the ability to de-clutter the screen of vessels in
           the following ways:
-          <li>Show / Hide Vessels layer on the map</li>
-          <li>Providing the ability select which Vessels to display.</li>
-
+          <ul>
+            <li>Show / Hide Vessels layer on the map</li>
+            <li>Providing the ability select which Vessels to display.</li>
+          </ul>
           Additionally, a wind vector will be displayed for vessels where the
           data is available.<br />
           This vector will only be displayed at higher zoom levels so as to
@@ -1434,59 +1496,64 @@
           <a href="#settings">Settings</a> screen. <br />&nbsp;
 
           <h5>To Show / Hide the Vessels Map Layer:</h5>
-          <li class="nobullet">
-            From the <i class="material-icons">more_horiz</i> menu select
-            either:
-            <ul>
-              <li class="nobullet">
-                <i class="material-icons">visibility</i> Show Vessels
-              </li>
-              <li class="nobullet">
-                <i class="material-icons">visibility_off</i> Hide Vessels
-              </li>
-            </ul>
-          </li>
-          <br />
+          <ul>
+            <li class="nobullet">
+              From the <i class="material-icons">more_horiz</i> menu select
+              either:
+              <ul>
+                <li class="nobullet">
+                  <i class="material-icons">visibility</i> Show Vessels
+                </li>
+                <li class="nobullet">
+                  <i class="material-icons">visibility_off</i> Hide Vessels
+                </li>
+              </ul>
+            </li>
+          </ul>
           <h5>To Select Vessels:</h5>
-          <li class="nobullet">
-            From the <i class="material-icons">menu</i> menu select
-            <i class="material-icons">directions_boat</i> <b>Vessels</b>.
-          </li>
-          <br />
+          <ul>
+            <li class="nobullet">
+              From the <i class="material-icons">menu</i> menu select
+              <i class="material-icons">directions_boat</i> <b>Vessels</b>.
+            </li>
+          </ul>
           <div style="display: flex; flex-wrap: wrap">
             <div>
               <img src="./img/ais_list.png" style="max-width: 250px" alt="" />
             </div>
             <div style="padding-left: 15px">
-              <li>
-                <b>Filter Vessels:</b> Type into the text box to filter the list
-                of vessels.
-              </li>
-              <li>
-                <b>Display Vessel:</b> Tick the checkbox to display the vessel
-                on the map.
-              </li>
-              <i>Freeboard by default will display all vessels</i><br />
-              <li>
-                <i class="material-icons">info_outline</i>
-                <b>Info:</b>
-                Click this button to display the vessel properties.
-              </li>
-              <li>
-                <i class="material-icons">center_focus_weak</i>
-                <b>Focus:</b> Click this button to set this vessel as the active
-                vessel and direct all actions to this vessels path on the Signal
-                K server.<br />
-                <i
-                  >Note: Actions may fail if the Signal K server does not
-                  support PUTs to paths other than `vessels/self`
-                </i>
-              </li>
-              <li>
-                <i class="material-icons">clear_all</i>
-                <b>Unfocus:</b> Click this button to reset the active vessel to
-                <i>self</i>.
-              </li>
+              <ul>
+                <li>
+                  <b>Filter Vessels:</b> Type into the text box to filter the
+                  list of vessels.
+                </li>
+                <li>
+                  <b>Display Vessel:</b> Tick the checkbox to display the vessel
+                  on the map.
+                </li>
+                <i>Freeboard by default will display all vessels</i
+                ><br />
+                <li>
+                  <i class="material-icons">info_outline</i>
+                  <b>Info:</b>
+                  Click this button to display the vessel properties.
+                </li>
+                <li>
+                  <i class="material-icons">center_focus_weak</i>
+                  <b>Focus:</b> Click this button to set this vessel as the
+                  active vessel and direct all actions to this vessels path on
+                  the Signal K server.<br />
+                  <i
+                    >Note: Actions may fail if the Signal K server does not
+                    support PUTs to paths other than `vessels/self`
+                  </i>
+                </li>
+                <li>
+                  <i class="material-icons">clear_all</i>
+                  <b>Unfocus:</b> Click this button to reset the active vessel
+                  to <i>self</i>.
+                </li>
+              </ul>
             </div>
           </div>
           <img
@@ -1512,13 +1579,14 @@
           <br />&nbsp;<br />
           <i>Note: Playback history must be supported by the server.</i>
           <br />&nbsp;<br />
-          <li class="nobullet">
-            <i class="material-icons">menu</i>
-            <b>Main Menu:</b>
-            Access the <i class="material-icons">history</i>
-            <b>Playback History</b> option from the Main menu.
-          </li>
-          <br />
+          <ul>
+            <li class="nobullet">
+              <i class="material-icons">menu</i>
+              <b>Main Menu:</b>
+              Access the <i class="material-icons">history</i>
+              <b>Playback History</b> option from the Main menu.
+            </li>
+          </ul>
           <div style="display: flex; flex-wrap: wrap">
             <div>
               <img src="./img/playback.png" style="max-width: 250px" alt="" />
@@ -1549,11 +1617,13 @@
               Once started, Playback Mode is identified by the addition of the
               <i class="material-icons" style="color: red">cancel</i> button to
               the menu bar.
-
-              <li class="nobullet">
-                Click <i class="material-icons" style="color: red">cancel</i> to
-                end playback and return to realtime data stream.
-              </li>
+              <ul>
+                <li class="nobullet">
+                  Click
+                  <i class="material-icons" style="color: red">cancel</i> to end
+                  playback and return to realtime data stream.
+                </li>
+              </ul>
             </div>
           </div>
         </div>
@@ -1714,16 +1784,17 @@
           <b>Notification type to use</b>: Select the notification from the
           server to use to trigger the advancement to the next point.<br />
           Choose either:
-          <li>
-            <b><i>perpendicularPassed</i></b> (advancement occurs immediately
-            notification is received.)
-          </li>
-          <li>
-            <b><i>arrivalCircleEntered</i></b> (advancement occurs once
-            <i>Time to Wait</i> has elapsed after notification has been
-            receieved.)
-          </li>
-
+          <ul>
+            <li>
+              <b><i>perpendicularPassed</i></b> (advancement occurs immediately
+              notification is received.)
+            </li>
+            <li>
+              <b><i>arrivalCircleEntered</i></b> (advancement occurs once
+              <i>Time to Wait</i> has elapsed after notification has been
+              receieved.)
+            </li>
+          </ul>
           <b>Time to Wait</b>: Note: This option is only available when
           <i>arrivalCircleEntered</i> has been selected as the notification
           type.<br />
@@ -1795,40 +1866,42 @@
             style="height: 200px"
             alt=""
           /><br />
-          <li>
-            <b>Mark AIS Target inactive after</b>: Maximum time (in minutes)
-            elapsed between updates before the vessel is displayed as inactive.
-          </li>
-          <li>
-            <b>Remove AIS Target after</b>: Maximum time (in minutes) elapsed
-            between updates before the vessel is removed from map.
-          </li>
-          <li>
-            <b>Wind Vector Value</b>: <i>Wind True</i> / <i>Wind Apparent</i>
-            Value used to display wind vector for other vessels displayed on the
-            map.
-          </li>
-          <li>
-            <b>Wind / Trail Zoom Level</b>: The minimum Zoom level at which
-            other vessels wind vector and trails will be displayed.
-            <i>(Default=15)</i>
-          </li>
-          <li>
-            <b>Show Trails</b>: Select to display trails of other vessels on
-            map. Note: length of trail is limited in length to approx 1hr of
-            data.
-          </li>
-          <li>
-            <b>Hide Moored</b>: Select to hide vessels with a state of
-            <i>'moored'</i>. Note: Display is updated when next vessel update is
-            received.
-          </li>
-          <li>
-            <b>Hide Anchored</b>: Select to hide vessels with a state of
-            <i>'anchored'</i>. Note: Display is updated when next vessel update
-            is received.
-          </li>
-
+          <ul>
+            <li>
+              <b>Mark AIS Target inactive after</b>: Maximum time (in minutes)
+              elapsed between updates before the vessel is displayed as
+              inactive.
+            </li>
+            <li>
+              <b>Remove AIS Target after</b>: Maximum time (in minutes) elapsed
+              between updates before the vessel is removed from map.
+            </li>
+            <li>
+              <b>Wind Vector Value</b>: <i>Wind True</i> / <i>Wind Apparent</i>
+              Value used to display wind vector for other vessels displayed on
+              the map.
+            </li>
+            <li>
+              <b>Wind / Trail Zoom Level</b>: The minimum Zoom level at which
+              other vessels wind vector and trails will be displayed.
+              <i>(Default=15)</i>
+            </li>
+            <li>
+              <b>Show Trails</b>: Select to display trails of other vessels on
+              map. Note: length of trail is limited in length to approx 1hr of
+              data.
+            </li>
+            <li>
+              <b>Hide Moored</b>: Select to hide vessels with a state of
+              <i>'moored'</i>. Note: Display is updated when next vessel update
+              is received.
+            </li>
+            <li>
+              <b>Hide Anchored</b>: Select to hide vessels with a state of
+              <i>'anchored'</i>. Note: Display is updated when next vessel
+              update is received.
+            </li>
+          </ul>
           <hr />
           <b>RESOURCES: NOTES</b><br />
           <img
@@ -1941,24 +2014,26 @@
           <i>/signalk/vi/api/resources/tracks</i> path is available from which
           to write and retrieve track data.<br />
           This requires the following action:
-          <li>
-            Configure the
-            <b>sk-resources-fs</b> plugin (v1.3.0 or later) to serve the
-            <b>tracks</b> path.
-          </li>
-          <li>Re-start the Signal K server</li>
-          <li>
-            Once the server has re-started <b>Tracks</b> will appear in the list
-            of available resource paths.
-          </li>
-          <li>
-            Select <b>Tracks</b> and this will display the
-            <i class="material-icons">show_chart</i> <b>Tracks</b> entry in the
-            <i class="material-icons">layers</i>
-            layers list.
-          </li>
-
-          <br />&nbsp;<br />
+          <ul>
+            <li>
+              Configure the
+              <b>sk-resources-fs</b> plugin (v1.3.0 or later) to serve the
+              <b>tracks</b> path.
+            </li>
+            <li>Re-start the Signal K server</li>
+            <li>
+              Once the server has re-started <b>Tracks</b> will appear in the
+              list of available resource paths.
+            </li>
+            <li>
+              Select <b>Tracks</b> and this will display the
+              <i class="material-icons">show_chart</i> <b>Tracks</b> entry in
+              the
+              <i class="material-icons">layers</i>
+              layers list.
+            </li>
+          </ul>
+          &nbsp;<br />
           <h5>Resource Sets:</h5>
           Data from all other resource paths that you enable in Freeboard
           Settings will be treated as ResourceSets.<br />
@@ -1991,8 +2066,9 @@
           <hr />
 
           <b>SIGNAL K CONNECTION:</b><br />
-          This section allows you to set parameters for the Signal K stream connection
-          to provide control over the type and number of features displayed on the map.<br />
+          This section allows you to set parameters for the Signal K stream
+          connection to provide control over the type and number of features
+          displayed on the map.<br />
           <i
             >Note: The Signal K data stream can deliver a large volume of data
             depending on the data sources you have connected. The processing of
@@ -2007,47 +2083,47 @@
           /><br />
 
           <b>Signal K server is behind a proxy:</b><br />
-          Check this option when your browser is connecting to a Signal K server that is behind a 
-          proxy server.
-          This enables Freeboard-SK to correctly detect and connect to the endpoints exposed 
-          by the Signal K Server.<br />&nbsp;<br />
+          Check this option when your browser is connecting to a Signal K server
+          that is behind a proxy server. This enables Freeboard-SK to correctly
+          detect and connect to the endpoints exposed by the Signal K Server.<br />&nbsp;<br />
 
           <b>Filter Stream Data:</b>
-          Use the options in this section to select which Signal K <i>context(s)</i> will be used
-          to display features on the map.<br />
+          Use the options in this section to select which Signal K
+          <i>context(s)</i> will be used to display features on the map.<br />
+          <ul>
+            <li>
+              <b>Vessels</b>: Display vessels (other than your own) on the map.
+              <i>(Default is checked)</i>
+            </li>
 
-          <li>
-            <b>Vessels</b>: Display vessels (other than your own) on the map.
-            <i>(Default is checked)</i>
-          </li>
+            <li>
+              <b>Aids to Navigation</b>: Display AtoNs on the map.
+              <i>(Default is checked)</i>
+            </li>
 
-          <li>
-            <b>Aids to Navigation</b>: Display AtoNs on the map.
-            <i>(Default is checked)</i>
-          </li>
+            <li>
+              <b>Aircraft</b>: Display aircraft on the map.
+              <i>(Default is unchecked)</i>
+            </li>
 
-          <li>
-            <b>Aircraft</b>: Display aircraft on the map.
-            <i>(Default is unchecked)</i>
-          </li>
+            <li>
+              <b>Search and Rescue</b>: Display SaR beacons on the map.
+              <i>(Default is unchecked)</i>
+            </li>
 
-          <li>
-            <b>Search and Rescue</b>: Display SaR beacons on the map.
-            <i>(Default is unchecked)</i>
-          </li>
-
-          <li>
-            <b>Meteo (Weather)</b>: Display weather stations on the map.
-            <i>(Default is unchecked)</i>
-          </li>
-          <br />
-          <li>
-            <b>Max Distance from Vessel</b>: Set the distance from your vessel
-            that targets must be within to be displayed on the map.<br />
-            The distance represents the radius of a bounding box around your
-            vessel.<br />
-            Selecting <i>None (default)</i> will display all received targets.
-          </li>
+            <li>
+              <b>Meteo (Weather)</b>: Display weather stations on the map.
+              <i>(Default is unchecked)</i>
+            </li>
+            <br />
+            <li>
+              <b>Max Distance from Vessel</b>: Set the distance from your vessel
+              that targets must be within to be displayed on the map.<br />
+              The distance represents the radius of a bounding box around your
+              vessel.<br />
+              Selecting <i>None (default)</i> will display all received targets.
+            </li>
+          </ul>
         </div>
 
         <div class="panel" id="parameters">
@@ -2113,8 +2189,10 @@
           Once enabled, you can access these features via the
           <i class="material-icons">science</i> button. <br />&nbsp;<br />
 
-          <i>Note:</i> Some experiments will require configuration settings to be made 
-          in the Signal K server Admin console under <b>Plugin Config -> Freeboard-SK</b>.
+          <i>Note:</i> Some experiments will require configuration settings to
+          be made in the Signal K server Admin console under
+          <b>Plugin Config -> Freeboard-SK</b>.
+        </div>
       </div>
     </div>
   </body>

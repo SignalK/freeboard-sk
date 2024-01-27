@@ -99,6 +99,10 @@ export class Convert {
   static kmToMiles(val: number): number {
     return val * 0.621371;
   }
+  //** m to feet **
+  static metersToFeet(val: number): number {
+    return val * 3.28084;
+  }
 
   //** m/sec to knots **
   static msecToKnots(val: number): number {
