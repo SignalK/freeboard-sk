@@ -2,16 +2,18 @@
 
 ### v2.5.0
 
-- **Added**: Toggle the display chart bounds on the map.
-- **Added**: Support for Mapbox styles.
+- **Added**: In the chart list, toggle the display of the bounds of all available charts on the map.
+- **Added**: Displaying vector charts with defined styles in a Mapbox style JSON file.
 - **Updated**: New Map icons for waypoints and AIS targets.
-- **Added**: Display weather data from paths within the `meteo` context
-    - Weather graduated from experiment to mainstream feature.
-    - Display meto stations on the map.
-    - Clicking on meto station icon displays available observation data.
-    - Weather data from station closest to vessel position is available via the _meteo.freeboard-sk_ path (See [nmea0183-signalk PR #245](https://github.com/SignalK/nmea0183-signalk)).
-- **Experiment (Route)**: 
-    - Render start / Finish line when present in route properties and route is active.
+
+**Weather** moves from `experiment` ->  feature with the introduction of the `meteo` context as per [nmea0183-signalk PR #245 - VDM Msg 8](https://github.com/SignalK/nmea0183-signalk).
+
+- **Added**: Display weather stations on the map and view observation data.
+- **Added**: Weather data relative to vessel position, sourced from _OpenWeather_, including hourly forecasts is available via the `meteo.freeboard-sk` context.
+- **Removed**: Option to use NOAA as weather source.
+
+**Experiments**: 
+- **Routes**: Render start / Finish line for the active route when values are present in route meta data.
 
 ### v2.4.0
 
