@@ -1,7 +1,7 @@
 // **** Experiment: PyPilot integration ****
 
 import { Request, Response } from 'express';
-import { FreeboardHelperApp } from '.';
+import { FreeboardHelperApp } from '..';
 import { Path, SKVersion } from '@signalk/server-api';
 
 import { io, Socket } from 'socket.io-client';

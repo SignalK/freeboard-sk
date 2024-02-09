@@ -1,7 +1,7 @@
 // OpenWeather
 
 import { Position } from '@signalk/server-api';
-import { fetch } from './fetch';
+import { fetch } from '../lib/fetch';
 
 import {
   IWeatherService,
@@ -10,7 +10,7 @@ import {
   WEATHER_CONFIG,
   SKMeteo,
   defaultStationId
-} from '../weather';
+} from './weather-service';
 
 interface OWObservation {
   dt: number;
@@ -151,10 +151,10 @@ export class OpenWeather implements IWeatherService {
           sunrise: new Date(current.sunrise * 1000).toISOString() ?? null,
           sunset: new Date(current.sunset * 1000).toISOString() ?? null
         },
-        horizontalVisibility: current.visibility ?? null,
         outside: {
           uvIndex: current.uvi ?? null,
           cloudCover: current.clouds ?? null,
+          horizontalVisibility: current.visibility ?? null,
           temperature: current.temp ?? null,
           feelsLikeTemperature: current.feels_like ?? null,
           dewPointTemperature: current.dew_point ?? null,

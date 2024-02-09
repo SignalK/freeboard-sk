@@ -1,8 +1,9 @@
 {
   "openapi": "3.0.0",
   "info": {
-    "version": "2.0.0",
+    "version": "2.5.0",
     "title": "Freeboard-SK API",
+    "description": "API endpoints exposed by Freeboard-SK to support application functionality and experimental features.",
     "termsOfService": "http://signalk.org/terms/",
     "license": {
       "name": "Apache 2.0",
@@ -15,21 +16,17 @@
   },
   "servers": [
     {
-      "url": "/signalk/v2/api/meteo"
+      "url": "/signalk/v2/api"
     }
   ],
   "tags": [
     {
-      "name": "weather",
-      "description": "Weather resources."
+      "name": "Alarms",
+      "description": "Raise and clear Signal K alarms."
     },
     {
-      "name": "stations-self",
-      "description": "Weather data from station closest to vessel position."
-    },
-    {
-      "name": "stations",
-      "description": "Weather station data."
+      "name": "OpenWeather",
+      "description": "Weather data from OpenWeather service."
     }
   ],
   "components": {
@@ -81,30 +78,15 @@
             "type": "string",
             "example": "broken clouds"
           },
-          "horizontalVisibility": {
-            "type": "number",
-            "example": 5000,
-            "description": "Visibilty (m)"
-          },
-          "horizontalVisibilityOverRange": {
-            "type": "boolean",
-            "example": "true",
-            "description": "Visibilty distance is greater than the range of the measuring equipment."
-          },
-          "sunlight": {
+          "sun": {
             "type": "object",
             "required": ["times"],
             "properties": {
-              "times": {
-                "type": "object",
-                "properties": {
-                  "sunrise": {
-                    "$ref": "#/components/schemas/IsoTime"
-                  },
-                  "sunset": {
-                    "$ref": "#/components/schemas/IsoTime"
-                  }
-                }
+              "sunrise": {
+                "$ref": "#/components/schemas/IsoTime"
+              },
+              "sunset": {
+                "$ref": "#/components/schemas/IsoTime"
               }
             }
           },
@@ -114,12 +96,22 @@
               "uvIndex": {
                 "type": "number",
                 "example": 7.5,
-                "description": "UV Index (1-15)"
+                "description": "UV Index (1 UVI = 25mW/sqm)"
               },
               "cloudCover": {
                 "type": "number",
                 "example": 85,
                 "description": "Amount of cloud cover (%)"
+              },
+              "horizontalVisibility": {
+                "type": "number",
+                "example": 5000,
+                "description": "Visibilty (m)"
+              },
+              "horizontalVisibilityOverRange": {
+                "type": "boolean",
+                "example": "true",
+                "description": "Visibilty distance is greater than the range of the measuring equipment."
               },
               "temperature": {
                 "type": "number",
@@ -373,6 +365,28 @@
       }
     },
     "responses": {
+      "200OKResponse": {
+        "description": "Successful operation",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "description": "Request success response",
+              "properties": {
+                "state": {
+                  "type": "string",
+                  "enum": ["COMPLETED"]
+                },
+                "statusCode": {
+                  "type": "number",
+                  "enum": [200]
+                }
+              },
+              "required": ["state", "statusCode"]
+            }
+          }
+        }
+      },
       "ErrorResponse": {
         "description": "Failed operation",
         "content": {
@@ -406,7 +420,38 @@
         "name": "id",
         "description": "Weather station identifier.",
         "schema": {
-          "type": "string"
+          "type": "string",
+          "enum": ["freeboard-sk"]
+        }
+      },
+      "EntryIdParam": {
+        "in": "path",
+        "required": true,
+        "name": "entryId",
+        "description": "Forecast entry identifier.",
+        "schema": {
+          "type": "number"
+        }
+      },
+      "AlarmTypeParam": {
+        "in": "path",
+        "required": true,
+        "name": "alarmType",
+        "description": "Alarm identifier.",
+        "schema": {
+          "type": "string",
+          "enum": [
+            "mob",
+            "fire",
+            "sinking",
+            "flooding",
+            "collision",
+            "grounding",
+            "listing",
+            "adrift",
+            "piracy",
+            "abandon"
+          ]
         }
       }
     },
@@ -425,31 +470,15 @@
   },
   "security": [{ "cookieAuth": [] }, { "bearerAuth": [] }],
   "paths": {
-    "/": {
-      "get": {
-        "tags": ["weather"],
-        "summary": "Retrieve list of weather stations providing forecast, observation & warning information",
-        "responses": {
-          "default": {
-            "description": "List of weather stations by identified by id.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "additionalProperties": {
-                    "$ref": "#/components/schemas/WeatherStationInfoModel"
-                  }
-                }
-              }
-            }
-          }
+    "/meteo/{id}": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/StationIdParam"
         }
-      }
-    },
-    "/freeboard-sk": {
+      ],
       "get": {
-        "tags": ["stations-self"],
-        "summary": "Weather station data closest to vessel position.",
+        "tags": ["OpenWeather"],
+        "summary": "Nearest weather station data.",
         "responses": {
           "default": {
             "description": "Data from weather station that weather proivder deems closest to the vessel position.",
@@ -464,41 +493,18 @@
         }
       }
     },
-    "/{id}": {
+    "/meteo/{id}/observations": {
       "parameters": [
         {
           "$ref": "#/components/parameters/StationIdParam"
         }
       ],
       "get": {
-        "tags": ["stations"],
-        "summary": "Weather station data.",
+        "tags": ["OpenWeather"],
+        "summary": "Nearest weather station observation data.",
         "responses": {
           "default": {
-            "description": "Data from weather station with the supplied identifier.",
-            "content": {
-              "application/json": {
-                "schema": {
-                   "$ref": "#/components/schemas/WeatherStationResponseModel"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/{id}/observations": {
-      "parameters": [
-        {
-          "$ref": "#/components/parameters/StationIdParam"
-        }
-      ],
-      "get": {
-        "tags": ["stations"],
-        "summary": "Weather station observation data.",
-        "responses": {
-          "default": {
-            "description": "Observation data from weather station with the supplied identifier.",
+            "description": "Observation data from weather station that weather proivder deems closest to the vessel position.",
             "content": {
               "application/json": {
                 "schema": {
@@ -513,18 +519,44 @@
         }
       }
     },
-    "/{id}/forecasts": {
+    "/meteo/{id}/observations/{entryId}": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/StationIdParam"
+        },
+        {
+          "$ref": "#/components/parameters/EntryIdParam"
+        }
+      ],
+      "get": {
+        "tags": ["OpenWeather"],
+        "summary": "Return data for the supplied observation entry.",
+        "responses": {
+          "default": {
+            "description": "Data form observation entry at the supplied position in the list of observations.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeteoStationResponseModel"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/meteo/{id}/forecasts": {
       "parameters": [
         {
           "$ref": "#/components/parameters/StationIdParam"
         }
       ],
       "get": {
-        "tags": ["stations"],
-        "summary": "Weather station forecast data.",
+        "tags": ["OpenWeather"],
+        "summary": "Nearest weather  station forecast data.",
         "responses": {
           "default": {
-            "description": "Forecast data from weather station with the supplied identifier.",
+            "description": "Forecast data from weather station that weather proivder deems closest to the vessel position.",
             "content": {
               "application/json": {
                 "schema": {
@@ -539,18 +571,44 @@
         }
       }
     },
-    "/{id}/warnings": {
+    "/meteo/{id}/forecasts/{entryId}": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/StationIdParam"
+        },
+        {
+          "$ref": "#/components/parameters/EntryIdParam"
+        }
+      ],
+      "get": {
+        "tags": ["OpenWeather"],
+        "summary": "Return data for the supplied forecast entry.",
+        "responses": {
+          "default": {
+            "description": "Data form forecast entry at the supplied position in the list of forecasts.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeteoStationResponseModel"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/meteo/{id}/warnings": {
       "parameters": [
         {
           "$ref": "#/components/parameters/StationIdParam"
         }
       ],
       "get": {
-        "tags": ["stations"],
-        "summary": "Weather station warning data.",
+        "tags": ["OpenWeather"],
+        "summary": "Nearest weather station warning data.",
         "responses": {
           "default": {
-            "description": "Warnings from weather station with the supplied identifier.",
+            "description": "Warnings from weather station that weather proivder deems closest to the vessel position.",
             "content": {
               "application/json": {
                 "schema": {
@@ -561,6 +619,57 @@
                 }
               }
             }
+          }
+        }
+      }
+    },    
+    "/meteo/{id}/warnings/{entryId}": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/StationIdParam"
+        },
+        {
+          "$ref": "#/components/parameters/EntryIdParam"
+        }
+      ],
+      "get": {
+        "tags": ["OpenWeather"],
+        "summary": "Return data for the supplied warning entry.",
+        "responses": {
+          "default": {
+            "description": "Data form warning entry at the supplied position in the list of warnings.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeteoStationResponseModel"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/notifications/{alarmType}": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/AlarmTypeParam"
+        }
+      ],
+      "put": {
+        "tags": ["Alarms"],
+        "summary": "Raise alarm.",
+        "responses": {
+          "default": {
+            "$ref": "#/components/responses/200OKResponse"
+          }
+        }
+      },
+      "delete": {
+        "tags": ["Alarms"],
+        "summary": "Clear alarm.",
+        "responses": {
+          "default": {
+            "$ref": "#/components/responses/200OKResponse"
           }
         }
       }

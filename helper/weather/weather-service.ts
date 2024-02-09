@@ -5,8 +5,8 @@ import {
   ALARM_METHOD,
   ALARM_STATE
 } from '@signalk/server-api';
-import { FreeboardHelperApp } from '.';
-import { OpenWeather } from './lib/openweather';
+import { FreeboardHelperApp } from '..';
+import { OpenWeather } from './openweather';
 import { Request, Response } from 'express';
 
 export interface WEATHER_CONFIG {
@@ -59,16 +59,7 @@ export type MeteoBeaufort =
   | 'reserved'
   | 'reserved';
 
-interface SKMeteoVDMAir {
-  temperature?: number;
-  dewPointTemperature?: number;
-  pressure?: number;
-  pressureTendency?: MeteoStatus;
-  relativeHumidity?: number;
-  precipitationType?: MeteoPrecipitationType;
-}
-
-interface SKMeteoVDMWater {
+interface SKMeteoWater {
   temperature?: number;
   level?: number;
   levelTendency?: MeteoStatus;
@@ -85,38 +76,40 @@ interface SKMeteoVDMWater {
   ice?: MeteoIce;
 }
 
-interface SKMeteoVDMWind {
+interface SKMeteoWind {
   speedTrue?: number;
   directionTrue?: number;
   gust?: number;
   gustDirection?: number;
 }
 
-export interface SKMeteoVDM {
-  date?: string;
-  horizontalVisibility?: number;
-  outside?: SKMeteoVDMAir;
-  water?: SKMeteoVDMWater;
-  wind?: SKMeteoVDMWind;
-}
-
-export interface SKMeteoAir extends SKMeteoVDMAir {
+export interface SKMeteoAir {
   minTemperature?: number;
   maxTemperature?: number;
   feelsLikeTemperature?: number;
   precipitationVolume?: number;
   absoluteHumidity?: number;
+  horizontalVisibility?: number;
   uvIndex?: number;
   cloudCover?: number;
+  temperature?: number;
+  dewPointTemperature?: number;
+  pressure?: number;
+  pressureTendency?: MeteoStatus;
+  relativeHumidity?: number;
+  precipitationType?: MeteoPrecipitationType;
 }
 
-export interface SKMeteo extends SKMeteoVDM {
+export interface SKMeteo {
   description: string;
+  date?: string;
+  outside?: SKMeteoAir;
+  water?: SKMeteoWater;
+  wind?: SKMeteoWind;
   sun?: {
     sunrise?: string;
     sunset?: string;
   };
-  outside?: SKMeteoAir;
 }
 
 export interface ParsedResponse {
@@ -216,6 +209,21 @@ const initMeteoEndpoints = () => {
     }
   );
   server.get(
+    `${meteoPath}/:id/observations/:index`,
+    async (req: Request, res: Response) => {
+      server.debug(`${req.method} ${meteoPath}/:id/observations/:index`);
+      const r =
+        weatherData &&
+        weatherData[req.params.id] &&
+        weatherData[req.params.id].observations &&
+        weatherData[req.params.id].observations[req.params.index]
+          ? weatherData[req.params.id].observations[req.params.index]
+          : {};
+      res.status(200);
+      res.json(r);
+    }
+  );
+  server.get(
     `${meteoPath}/:id/forecasts`,
     async (req: Request, res: Response) => {
       server.debug(`${req.method} ${meteoPath}/:id/forecasts`);
@@ -230,15 +238,15 @@ const initMeteoEndpoints = () => {
     }
   );
   server.get(
-    `${meteoPath}/:id/forecasts/:forecast`,
+    `${meteoPath}/:id/forecasts/:index`,
     async (req: Request, res: Response) => {
-      server.debug(`${req.method} ${meteoPath}/:id/forecasts/:forecast`);
+      server.debug(`${req.method} ${meteoPath}/:id/forecasts/:index`);
       const r =
         weatherData &&
         weatherData[req.params.id] &&
         weatherData[req.params.id].forecasts &&
-        weatherData[req.params.id].forecasts[req.params.forecast]
-          ? weatherData[req.params.id].forecasts[req.params.forecast]
+        weatherData[req.params.id].forecasts[req.params.index]
+          ? weatherData[req.params.id].forecasts[req.params.index]
           : {};
       res.status(200);
       res.json(r);
@@ -259,15 +267,15 @@ const initMeteoEndpoints = () => {
     }
   );
   server.get(
-    `${meteoPath}/:id/warnings/:warning`,
+    `${meteoPath}/:id/warnings/:index`,
     async (req: Request, res: Response) => {
-      server.debug(`${req.method} ${meteoPath}/:id/warnings/:warning`);
+      server.debug(`${req.method} ${meteoPath}/:id/warnings/:index`);
       const r =
         weatherData &&
         weatherData[req.params.id] &&
         weatherData[req.params.id].warnings &&
-        weatherData[req.params.id].warnings[req.params.warning]
-          ? weatherData[req.params.id].warnings[req.params.warning]
+        weatherData[req.params.id].warnings[req.params.index]
+          ? weatherData[req.params.id].warnings[req.params.index]
           : {};
       res.status(200);
       res.json(r);
@@ -492,10 +500,10 @@ const emitMeteoDeltas = () => {
             value: o.date
           });
         }
-        if (typeof o.horizontalVisibility !== 'undefined') {
+        if (typeof o.outside.horizontalVisibility !== 'undefined') {
           deltaValues.push({
-            path: `${pathRoot}.horizontalVisibility`,
-            value: o.horizontalVisibility
+            path: `${pathRoot}.outside.horizontalVisibility`,
+            value: o.outside.horizontalVisibility
           });
         }
         if (typeof o.sun.sunrise !== 'undefined') {
@@ -630,6 +638,13 @@ const buildObservationMetas = (pathRoot: string) => {
     }
   });
   metas.push({
+    path: `${pathRoot}.outside.uvIndex`,
+    value: {
+      description: 'Level of UV radiation. 1 UVI = 25mW/sqm',
+      units: 'UVI'
+    }
+  });
+  metas.push({
     path: `${pathRoot}.outside.cloudCover`,
     value: {
       description: 'Cloud clover.',
@@ -658,10 +673,16 @@ const buildObservationMetas = (pathRoot: string) => {
     }
   });
   metas.push({
-    path: `${pathRoot}.horizontalVisibility`,
+    path: `${pathRoot}.outside.horizontalVisibility`,
     value: {
       description: 'Horizontal visibility.',
       units: 'm'
+    }
+  });
+  metas.push({
+    path: `${pathRoot}.outside.horizontalVisibilityOverRange`,
+    value: {
+      description: 'Visibilty distance is greater than the range of the measuring equipment.'
     }
   });
   metas.push({

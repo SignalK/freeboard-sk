@@ -7,9 +7,9 @@ import {
   WEATHER_CONFIG,
   initWeather,
   stopWeather
-} from './weather';
+} from './weather/weather-service';
 
-import { initPyPilot, PYPILOT_CONFIG, closePyPilot } from './pypilot';
+import { initPyPilot, PYPILOT_CONFIG, closePyPilot } from './autopilot/pypilot';
 
 import * as openapi from './openApi.json';
 
