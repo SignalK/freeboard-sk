@@ -80,6 +80,7 @@ export class AppComponent {
     leftMenuPanel: false,
     instrumentPanelOpen: true,
     instrumentAppActive: true,
+    utilsPanelOpen: true,
     routeList: false,
     waypointList: false,
     chartList: false,
@@ -293,12 +294,19 @@ export class AppComponent {
       : 'rotate(' + (0 - this.app.data.vessels.active.orientation) + 'rad)';
   }
 
+  public toggleUtilsPanel() {
+    this.app.config.rightSideButtons = !this.app.config.rightSideButtons;
+    this.app.saveConfig();
+    this.focusMap();
+  }
+
   public toggleLimitMapZoom() {
     this.app.config.map.limitZoom = this.app.config.map.limitZoom
       ? false
       : true;
     this.skres.setMapZoomRange();
     this.app.saveConfig();
+    this.focusMap();
   }
 
   public invertAISTextColor() {
@@ -306,6 +314,7 @@ export class AppComponent {
       ? false
       : true;
     this.app.saveConfig();
+    this.focusMap();
   }
 
   public toggleFullscreen() {

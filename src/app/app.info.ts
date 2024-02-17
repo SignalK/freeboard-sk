@@ -51,7 +51,8 @@ const FreeboardConfig = {
   vesselTrail: false, // display trail
   vesselWindVectors: true, // display vessel TWD, AWD vectors
   aisTargets: true, // display ais targets
-  courseData: true, // display course data
+  courseData: true, // show/hide course data
+  rightSideButtons: true, // show/hide utils buttons on right of screen
   notes: true, // display notes
   popoverMulti: false, // close popovers using cose button
   mapDoubleClick: false, // true=zoom
@@ -110,7 +111,7 @@ const FreeboardConfig = {
       atons: true,
       aircraft: false,
       sar: false,
-      meteo: false,
+      meteo: true,
       maxRadius: 0, // max radius within which AIS targets are displayed
       proxied: false // server behind a proxy server
     },
@@ -269,7 +270,7 @@ export class AppInfo extends Info {
     this.name = 'Freeboard-SK';
     this.shortName = 'Freeboard';
     this.description = `Signal K Chart Plotter.`;
-    this.version = '2.5.0';
+    this.version = '2.6.0';
     this.url = 'https://github.com/signalk/freeboard-sk';
     this.logo = './assets/img/app_logo.png';
 
@@ -619,6 +620,10 @@ export class AppInfo extends Info {
       settings.aisShowTrack = false;
     }
 
+    if (typeof settings.rightSideButtons === 'undefined') {
+      settings.rightSideButtons = true;
+    }
+
     if (typeof settings.units.temperature === 'undefined') {
       settings.units.temperature = 'c';
     }
@@ -694,7 +699,7 @@ export class AppInfo extends Info {
       };
     }
     if (typeof settings.selections.signalk.meteo === 'undefined') {
-      settings.selections.signalk.meteo = false;
+      settings.selections.signalk.meteo = true;
     }
     if (typeof settings.selections.wakeLock === 'undefined') {
       settings.selections.wakeLock = false;
@@ -816,18 +821,17 @@ export class AppInfo extends Info {
                     for more details.`
       },
       'whats-new': [
-        /*
         {
           type: 'signalk-server-node',
-          title: 'Important!',
+          title: 'Weather Information',
           message: `
-                        Freeboard version 2 is for use with Signal K server v2 that implements both the
-                        <b>Course API</b> and <b>Resources API</b>.
-                        <br>&nbsp;<br>
-                        Please review the <a href="https://github.com/SignalK/freeboard-sk/wiki/Signal-K---Freeboard-SK-Version-2" target="help">
-                        FAQ</a> for details about important changes.
-                    `
-        }*/
+            Freeboard now includes support for weather station data received
+            via messages with the <i>meteo</i> context.
+            <br>&nbsp;<br>
+            See <a href="assets/help/index.html" target="help">HELP</a> 
+            for details.
+          `
+        }
       ]
     };
 

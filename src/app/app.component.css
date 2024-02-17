@@ -50,15 +50,18 @@ mat-nav-list {
 }
 
 .rightUtilsPanel { 
-    max-width:55px; 
+    max-width:48px; 
     z-index: 200;
     position: absolute;
     top: 0px;
     right: 0px;
-    background-color: rgba(130,130,130,.3);
-    padding: 10px 2px 2px 2px;
+    bottom: 0px;
+    padding: 0px 2px 2px 2px;
+    overflow: auto;
+    scrollbar-width: none;
 }
-.rightUtilsPanel div { 
+.rightUtilsPanel div {
+    text-align: center;
     height: 60px;
 }
 
@@ -148,7 +151,7 @@ mat-nav-list {
     height: 45px;
 }
 
-.nosmall {
+.instrumentsBtn {
     display: block;
 } 
 
@@ -159,8 +162,8 @@ mat-nav-list {
     }       
 }
 
-@media only screen and (max-width: 400px) { 
-    .nosmall {
+@media only screen and (max-width: 800px) { 
+    .instrumentsBtn {
         display: none;
     }     
 }
