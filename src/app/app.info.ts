@@ -52,7 +52,7 @@ const FreeboardConfig = {
   vesselWindVectors: true, // display vessel TWD, AWD vectors
   aisTargets: true, // display ais targets
   courseData: true, // show/hide course data
-  rightSideButtons: true, // show/hide utils buttons on right of screen
+  toolBarButtons: true, // show/hide toolbar buttons
   notes: true, // display notes
   popoverMulti: false, // close popovers using cose button
   mapDoubleClick: false, // true=zoom
@@ -620,8 +620,8 @@ export class AppInfo extends Info {
       settings.aisShowTrack = false;
     }
 
-    if (typeof settings.rightSideButtons === 'undefined') {
-      settings.rightSideButtons = true;
+    if (typeof settings.toolBarButtons === 'undefined') {
+      settings.toolBarButtons = true;
     }
 
     if (typeof settings.units.temperature === 'undefined') {

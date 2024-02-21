@@ -80,7 +80,6 @@ export class AppComponent {
     leftMenuPanel: false,
     instrumentPanelOpen: true,
     instrumentAppActive: true,
-    utilsPanelOpen: true,
     routeList: false,
     waypointList: false,
     chartList: false,
@@ -294,8 +293,8 @@ export class AppComponent {
       : 'rotate(' + (0 - this.app.data.vessels.active.orientation) + 'rad)';
   }
 
-  public toggleUtilsPanel() {
-    this.app.config.rightSideButtons = !this.app.config.rightSideButtons;
+  public toggleToolbarButtons() {
+    this.app.config.toolBarButtons = !this.app.config.toolBarButtons;
     this.app.saveConfig();
     this.focusMap();
   }

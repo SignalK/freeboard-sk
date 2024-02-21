@@ -1,128 +1,5 @@
 <div [ngClass]="{ 'dark-theme': app.config.darkMode.enabled }">
   <div class="appframe mat-app-background">
-    <!-- TOOLBAR -->
-    <div class="mainToolBar">
-      <button
-        mat-icon-button
-        [disabled]="draw.enabled || measure.enabled"
-        matTooltip="Menu"
-        matTooltipPosition="right"
-        (click)="sidemenu.toggle()"
-      >
-        <mat-icon
-          style="color: white"
-          [matBadge]="display.badge.value"
-          matBadgeOverlap="true"
-          matBadgeColor="warn"
-          [matBadgeHidden]="display.badge.hide"
-          >menu</mat-icon
-        >
-      </button>
-      <hr />
-      <button
-        mat-icon-button
-        matTooltip="Alarms"
-        matTooltipPosition="right"
-        (click)="sidemenu.close(); openAlarmsDialog()"
-      >
-        <mat-icon style="color: orangered">warning </mat-icon>
-      </button>
-      <hr />
-      <button
-        mat-icon-button
-        [disabled]="draw.enabled || measure.enabled"
-        matTooltip="Routes, Waypoints, Notes, etc."
-        matTooltipPosition="right"
-        (click)="sidemenu.close()"
-        [matMenuTriggerFor]="layersmenu"
-      >
-        <mat-icon style="color: rgb(0, 255, 0)">layers</mat-icon>
-      </button>
-      <hr />
-      <button
-        mat-icon-button
-        [disabled]="draw.enabled || measure.enabled"
-        matTooltip="Draw / Measure"
-        matTooltipPosition="right"
-        (click)="sidemenu.close()"
-        [matMenuTriggerFor]="editmenu"
-      >
-        <mat-icon style="color: white">edit</mat-icon>
-      </button>
-      <hr />
-      <button
-        mat-icon-button
-        (click)="toggleNorthUp()"
-        [matTooltip]="
-          app.config.map.northUp ? 'Show Heading Up' : 'Show North Up'
-        "
-        matTooltipPosition="right"
-      >
-        <mat-icon [style.color]="app.config.map.northUp ? 'white' : 'yellow'">
-          {{ app.config.map.northUp ? 'navigation' : 'explore' }}
-        </mat-icon>
-      </button>
-      <hr />
-      <button
-        mat-icon-button
-        (click)="toggleMoveMap()"
-        [disabled]="!app.data.vessels.showSelf"
-        [matTooltip]="
-          app.config.map.moveMap ? 'Turn off Follow Vessel' : 'Follow Vessel'
-        "
-        matTooltipPosition="right"
-      >
-        <mat-icon
-          [style.color]="
-            !app.data.vessels.showSelf
-              ? 'silver'
-              : app.config.map.moveMap
-              ? 'yellow'
-              : 'white'
-          "
-        >
-          my_location
-        </mat-icon>
-      </button>
-      <hr *ngIf="!app.config.map.moveMap" />
-      <button
-        mat-icon-button
-        *ngIf="!app.config.map.moveMap"
-        (click)="centerVessel()"
-        [disabled]="!app.data.vessels.showSelf"
-        matTooltip="Center Vessel"
-        matTooltipPosition="right"
-      >
-        <mat-icon
-          [style.color]="!app.data.vessels.showSelf ? 'silver' : 'white'"
-        >
-          center_focus_strong
-        </mat-icon>
-      </button>
-      <hr />
-      <button
-        mat-icon-button
-        [disabled]="draw.enabled || measure.enabled"
-        matTooltip="More actions"
-        matTooltipPosition="right"
-        (click)="sidemenu.close()"
-        [matMenuTriggerFor]="settingsmenu"
-      >
-        <mat-icon style="color: white">more_horiz</mat-icon>
-      </button>
-      <!-- Playback mode -->
-      <hr *ngIf="mode == 1" />
-      <button
-        mat-icon-button
-        *ngIf="mode == 1"
-        matTooltip="Exit playback mode"
-        matTooltipPosition="right"
-        (click)="showSelectMode()"
-      >
-        <mat-icon style="color: red">cancel</mat-icon>
-      </button>
-    </div>
-    <!-- /TOOLBAR-->
 
     <!--toolbar button menus-->
     <mat-menu #layersmenu="matMenu">
@@ -469,6 +346,132 @@
             *ngIf="app.data.autopilot.console"
           ></autopilot-console>
 
+          <!-- left button bar -->
+          <div class="leftTop buttonPanel">
+            <button style="background-color: #e5e0e0"
+              mat-mini-fab
+              [disabled]="draw.enabled || measure.enabled"
+              matTooltip="Menu"
+              matTooltipPosition="right"
+              (click)="sidemenu.toggle()"
+            >
+              <mat-icon
+                [matBadge]="display.badge.value"
+                matBadgeOverlap="true"
+                matBadgeColor="warn"
+                [matBadgeHidden]="display.badge.hide"
+                >menu</mat-icon
+              >
+            </button>
+          </div>
+          
+          <div class="buttonPanel left" *ngIf="app.config.toolBarButtons">
+            <div class="buttonPanelItem">
+              <button
+                mat-mini-fab
+                color="warn"
+                matTooltip="Alarms"
+                matTooltipPosition="right"
+                (click)="sidemenu.close(); openAlarmsDialog()"
+              >
+                <mat-icon>warning </mat-icon>
+              </button>
+            </div>
+            <div class="buttonPanelItem">
+              <button
+                mat-mini-fab
+                [disabled]="draw.enabled || measure.enabled"
+                matTooltip="Routes, Waypoints, Notes, etc."
+                matTooltipPosition="right"
+                (click)="sidemenu.close()"
+                [matMenuTriggerFor]="layersmenu"
+              >
+                <mat-icon>layers</mat-icon>
+              </button>
+            </div>
+            <div class="buttonPanelItem">
+              <button
+                mat-mini-fab
+                [disabled]="draw.enabled || measure.enabled"
+                matTooltip="Draw / Measure"
+                matTooltipPosition="right"
+                (click)="sidemenu.close()"
+                [matMenuTriggerFor]="editmenu"
+              >
+                <mat-icon>edit</mat-icon>
+              </button>
+            </div>
+            <div class="buttonPanelItem">
+              <button
+                mat-mini-fab
+                [color]="app.config.map.northUp ? 'accent' : 'primary'"
+                (click)="toggleNorthUp()"
+                [matTooltip]="
+                  app.config.map.northUp ? 'Show Heading Up' : 'Show North Up'
+                "
+                matTooltipPosition="right"
+              >
+                <mat-icon>
+                  {{ app.config.map.northUp ? 'navigation' : 'explore' }}
+                </mat-icon>
+              </button>
+            </div>
+            <div class="buttonPanelItem">
+              <button
+                mat-mini-fab
+                [color]="app.config.map.moveMap ? 'primary' : 'accent'"
+                (click)="toggleMoveMap()"
+                [disabled]="!app.data.vessels.showSelf"
+                [matTooltip]="
+                  app.config.map.moveMap ? 'Turn off Follow Vessel' : 'Follow Vessel'
+                "
+                matTooltipPosition="right"
+              >
+                <mat-icon>
+                  my_location
+                </mat-icon>
+              </button>
+            </div>
+            <div class="buttonPanelItem" *ngIf="!app.config.map.moveMap">
+              <button
+                mat-mini-fab
+                (click)="centerVessel()"
+                [disabled]="!app.data.vessels.showSelf"
+                matTooltip="Center Vessel"
+                matTooltipPosition="right"
+              >
+                <mat-icon>
+                  center_focus_strong
+                </mat-icon>
+              </button>
+            </div>
+            <div class="buttonPanelItem">
+              <button
+                mat-mini-fab
+                [disabled]="draw.enabled || measure.enabled"
+                matTooltip="More actions"
+                matTooltipPosition="right"
+                (click)="sidemenu.close()"
+                [matMenuTriggerFor]="settingsmenu"
+              >
+                <mat-icon>more_horiz</mat-icon>
+              </button>
+            </div>
+            <div class="buttonPanelItem" *ngIf="mode == 1">
+              <!-- Playback mode -->
+              <button
+                mat-mini-fab
+                color="warn"
+                matTooltip="Exit playback mode"
+                matTooltipPosition="right"
+                (click)="showSelectMode()"
+              >
+                <mat-icon>cancel</mat-icon>
+              </button>
+            </div>
+          </div>
+          <!-- /left button bar-->
+
           <!--left menu panel-->
           <div class="leftMenuPanel" *ngIf="display.leftMenuPanel">
             <route-list
@@ -548,187 +551,188 @@
             </anchor-watch>
           </div>
 
+          <!-- right button bar -->
+          <!-- show/hide  -->
+          <div class="rightTop buttonPanel">
+            <button
+              mat-mini-fab
+              style="background-color: #e5e0e0"
+              (click)="toggleToolbarButtons()"
+              [matTooltip]="
+                app.config.toolBarButtons
+                  ? 'Hide Buttons'
+                  : 'Show Buttons'
+              "
+              matTooltipPosition="below"
+            >
+              <mat-icon>{{
+                app.config.toolBarButtons
+                  ? 'apps'
+                  : 'apps_outage'
+              }}</mat-icon>
+            </button>
+          </div>          
+        
+          <div class="buttonPanel right" *ngIf="app.config.toolBarButtons">
+            <!-- instrument sidebar open button -->
+            <div class="instrumentPanelToggle buttonPanelItem">
+              <button
+                mat-mini-fab
+                *ngIf="
+                  app.data.optAppPanel &&
+                  !draw.enabled &&
+                  !measure.enabled &&
+                  !app.data.vessels.activeId
+                "
+                (click)="sideright.toggle()"
+                matTooltip="Instruments"
+                matTooltipPosition="below"
+              >
+                <mat-icon>av_timer</mat-icon>
+              </button>
+              <br />&nbsp;<br />&nbsp;
+            </div>
+
+            <!-- Web audio enable -->
+            <div class="buttonPanelItem" *ngIf="display.audio.state != 'running'">
+              <button
+                mat-mini-fab
+                color="warn"
+                matTooltip="Web Audio off! Click to enable."
+                matTooltipPosition="left"
+                (click)="enableAudio()"
+              >
+                <mat-icon>volume_off</mat-icon>
+              </button>
+              <br />&nbsp;<br />
+            </div>
+
+            <!-- fullscreen enable -->
+            <div class="buttonPanelItem" *ngIf="display.fullscreen.enabled">
+              <button
+                mat-mini-fab
+                (click)="toggleFullscreen()"
+                matTooltip="Go Fullscreen"
+                matTooltipPosition="left"
+              >
+                <mat-icon>
+                  {{
+                    display.fullscreen.active
+                      ? 'fullscreen_exit '
+                      : 'fullscreen'
+                  }}
+                </mat-icon>
+              </button>
+              <br />&nbsp;<br />
+            </div>
+
+            <!-- WakeLock enable -->
+            <div class="buttonPanelItem">
+              <wakelock
+                [setOn]="app.config.selections.wakeLock"
+                (has)="handleHasWakeLock($event)"
+                (change)="handleWakelockChange($event)"
+              ></wakelock>
+              <span *ngIf="app.data.hasWakeLock"><br />&nbsp;<br /></span>
+            </div>
+
+            <!-- Experiments -->
+            <div class="buttonPanelItem" *ngIf="app.config.experiments">
+              <fb-experiments
+                (selected)="openExperiment($event)"
+              ></fb-experiments>
+              <br />&nbsp;<br />
+            </div>
+
+            <!-- PiP enable -->
+            <div class="buttonPanelItem"
+              *ngIf="
+                app.config.resources.video.enable &&
+                app.config.resources.video.url
+              "
+            >
+              <pip-video [src]="vidUrl" [muted]="true" (click)="focusMap()">
+              </pip-video>
+              <br />&nbsp;<br />
+            </div>
+
+            <!-- constrain zoom to selected map(s) extent -->
+            <div class="buttonPanelItem">
+              <button
+                mat-mini-fab
+                [color]="app.config.map.limitZoom ? 'primary' : 'accent'"
+                (click)="toggleLimitMapZoom()"
+                matTooltip="Constrain map zoom."
+                matTooltipPosition="left"
+              >
+                <mat-icon>zoom_in_map</mat-icon>
+              </button>
+              <br />&nbsp;<br />
+            </div>
+
+            <!-- Invert colors -->
+            <div class="buttonPanelItem">
+              <button
+                mat-mini-fab
+                [color]="app.config.map.invertColor ? 'primary' : 'accent'"
+                (click)="invertAISTextColor()"
+                matTooltip="Invert feature text color."
+                matTooltipPosition="left"
+              >
+                <mat-icon>{{
+                  true ? 'invert_colors' : 'invert_colors_off'
+                }}</mat-icon>
+              </button>
+              <br />&nbsp;<br />
+            </div>
+
+            <!-- Autopilot console-->
+            <div class="buttonPanelItem" *ngIf="app.data.autopilot.hasApi">
+              <button
+                mat-mini-fab
+                [color]="
+                  app.data.vessels.self.autopilot.enabled
+                    ? 'primary'
+                    : 'accent'
+                "
+                matTooltip="Autopilot"
+                matTooltipPosition="left"
+                (click)="app.data.autopilot.console = true"
+              >
+                <mat-icon> alt_route </mat-icon>
+              </button>
+              <br />&nbsp;<br />
+            </div>
+
+            <!-- Drop Waypoint button -->
+            <div class="buttonPanelItem">
+              <button
+                mat-mini-fab
+                color="accent"
+                (click)="
+                  skres.showWaypointEditor(
+                    null,
+                    app.data.vessels.self.position
+                  )
+                "
+                matTooltip="Mark Vessel position"
+                matTooltipPosition="left"
+              >
+                <mat-icon>add_location</mat-icon>
+              </button>
+              <br />&nbsp;<br />
+            </div>
+
+          </div>
+          <!-- /right button bar -->
+          
+
           <!--map panel-->
           <div
             style="display: relative; width: 100%; height: 100%"
             (dragover)="mapDragOver($event)"
             (drop)="mapDrop($event)"
           >
-            <!-- utilities panel -->
-            <div class="rightUtilsPanel">
-              <!-- show/hide utils -->
-              <div style="padding-top: 5px">
-                <button
-                  mat-mini-fab
-                  style="background-color: #e5e0e0"
-                  (click)="toggleUtilsPanel()"
-                  [matTooltip]="
-                    app.config.rightSideButtons
-                      ? 'Hide Buttons'
-                      : 'Show Buttons'
-                  "
-                  matTooltipPosition="below"
-                >
-                  <mat-icon>{{
-                    app.config.rightSideButtons
-                      ? 'arrow_forward_ios'
-                      : 'arrow_back_ios'
-                  }}</mat-icon>
-                </button>
-              </div>
-
-              <div *ngIf="app.config.rightSideButtons">
-                <!-- instrument sidebar open button -->
-                <div class="instrumentsBtn">
-                  <button
-                    mat-mini-fab
-                    *ngIf="
-                      app.data.optAppPanel &&
-                      !draw.enabled &&
-                      !measure.enabled &&
-                      !app.data.vessels.activeId
-                    "
-                    (click)="sideright.toggle()"
-                    matTooltip="Instruments"
-                    matTooltipPosition="below"
-                  >
-                    <mat-icon>av_timer</mat-icon>
-                  </button>
-                  <br />&nbsp;<br />&nbsp;
-                </div>
-
-                <!-- Web audio enable -->
-                <div *ngIf="display.audio.state != 'running'">
-                  <button
-                    mat-mini-fab
-                    color="warn"
-                    matTooltip="Web Audio off! Click to enable."
-                    matTooltipPosition="left"
-                    (click)="enableAudio()"
-                  >
-                    <mat-icon>volume_off</mat-icon>
-                  </button>
-                  <br />&nbsp;<br />
-                </div>
-
-                <!-- fullscreen enable -->
-                <div *ngIf="display.fullscreen.enabled">
-                  <button
-                    mat-mini-fab
-                    (click)="toggleFullscreen()"
-                    matTooltip="Go Fullscreen"
-                    matTooltipPosition="left"
-                  >
-                    <mat-icon>
-                      {{
-                        display.fullscreen.active
-                          ? 'fullscreen_exit '
-                          : 'fullscreen'
-                      }}
-                    </mat-icon>
-                  </button>
-                  <br />&nbsp;<br />
-                </div>
-
-                <!-- WakeLock enable -->
-                <div>
-                  <wakelock
-                    [setOn]="app.config.selections.wakeLock"
-                    (has)="handleHasWakeLock($event)"
-                    (change)="handleWakelockChange($event)"
-                  ></wakelock>
-                  <span *ngIf="app.data.hasWakeLock"><br />&nbsp;<br /></span>
-                </div>
-
-                <!-- Experiments -->
-                <div *ngIf="app.config.experiments">
-                  <fb-experiments
-                    (selected)="openExperiment($event)"
-                  ></fb-experiments>
-                  <br />&nbsp;<br />
-                </div>
-
-                <!-- PiP enable -->
-                <div
-                  *ngIf="
-                    app.config.resources.video.enable &&
-                    app.config.resources.video.url
-                  "
-                >
-                  <pip-video [src]="vidUrl" [muted]="true" (click)="focusMap()">
-                  </pip-video>
-                  <br />&nbsp;<br />
-                </div>
-
-                <!-- constrain zoom to selected map(s) extent -->
-                <div>
-                  <button
-                    mat-mini-fab
-                    [color]="app.config.map.limitZoom ? 'primary' : 'accent'"
-                    (click)="toggleLimitMapZoom()"
-                    matTooltip="Constrain map zoom."
-                    matTooltipPosition="left"
-                  >
-                    <mat-icon>zoom_in_map</mat-icon>
-                  </button>
-                  <br />&nbsp;<br />
-                </div>
-
-                <!-- Invert colors -->
-                <div>
-                  <button
-                    mat-mini-fab
-                    [color]="app.config.map.invertColor ? 'primary' : 'accent'"
-                    (click)="invertAISTextColor()"
-                    matTooltip="Invert feature text color."
-                    matTooltipPosition="left"
-                  >
-                    <mat-icon>{{
-                      true ? 'invert_colors' : 'invert_colors_off'
-                    }}</mat-icon>
-                  </button>
-                  <br />&nbsp;<br />
-                </div>
-
-                <!-- Autopilot console-->
-                <div *ngIf="app.data.autopilot.hasApi">
-                  <button
-                    mat-mini-fab
-                    [color]="
-                      app.data.vessels.self.autopilot.enabled
-                        ? 'primary'
-                        : 'accent'
-                    "
-                    matTooltip="Autopilot"
-                    matTooltipPosition="left"
-                    (click)="app.data.autopilot.console = true"
-                  >
-                    <mat-icon> alt_route </mat-icon>
-                  </button>
-                  <br />&nbsp;<br />
-                </div>
-
-                <!-- Drop Waypoint button -->
-                <div>
-                  <button
-                    mat-mini-fab
-                    color="accent"
-                    (click)="
-                      skres.showWaypointEditor(
-                        null,
-                        app.data.vessels.self.position
-                      )
-                    "
-                    matTooltip="Mark Vessel position"
-                    matTooltipPosition="left"
-                  >
-                    <mat-icon>add_location</mat-icon>
-                  </button>
-                  <br />&nbsp;<br />
-                </div>
-              </div>
-            </div>
-
             <!-- MAP -->
             <fb-map
               [setFocus]="display.map.setFocus"
@@ -761,7 +765,7 @@
           <!--/map panel-->
 
           <!-- North Arrow -->
-          <div style="position: absolute; top: 60px; left: 10px; width: 50px">
+          <div style="position: absolute; top: 60px; left: 56px; width: 50px">
             <img
               #northArrow
               src="./assets/img/north_arrow.svg"
@@ -777,7 +781,7 @@
             style="
               position: absolute;
               top: 60px;
-              left: 10px;
+              left: 48px;
               width: 150px;
               border: black 1px solid;
               font-family: roboto;

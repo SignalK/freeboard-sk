@@ -1,5 +1,9 @@
 # CHANGELOG: Freeboard
 
+### v2.6.0
+
+- **Added**: Ability to show/hide toolbar buttons on both sides of the screen.
+
 ### v2.5.0
 
 - **Added**: In the chart list, toggle the display of the bounds of all available charts on the map.
