@@ -2,7 +2,7 @@
 
 ### v2.6.0
 
-- **Added**: Ability to show/hide toolbar buttons on both sides of the screen.
+- **Added**: Feature to maximise the viewable map area by hiding the toolbar buttons on either side of the screen.
 
 ### v2.5.0
 
