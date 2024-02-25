@@ -977,6 +977,7 @@ export class SKResources {
             });
           } else if (res['statusCode'] === 200) {
             // complete
+            this.app.data.buildRoute.show = false;
             this.app.config.selections.routes.push(rte[0]);
             this.app.saveConfig();
           }
@@ -1191,11 +1192,17 @@ export class SKResources {
   }
 
   // ** Display New Route properties Dialog **
-  showRouteNew(e: { coordinates: LineString }) {
+  showRouteNew(e: {
+    coordinates: LineString;
+    meta?: Array<{ href?: string; name?: string }>;
+  }) {
     if (!e.coordinates) {
       return;
     }
     const res = this.buildRoute(e.coordinates);
+    if (e.meta && Array.isArray(e.meta)) {
+      res[1].feature.properties.coordinatesMeta = e.meta;
+    }
 
     this.dialog
       .open(ResourceDialog, {

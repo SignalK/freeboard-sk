@@ -351,6 +351,9 @@ export class AppInfo extends Info {
       autopilot: {
         console: false, // display Autopilot console
         hasApi: false // Server implements Autopilot API
+      },
+      buildRoute: {
+        show: false
       }
     };
 
@@ -981,6 +984,7 @@ export class AppInfo extends Info {
 
   // convert speed value and set the value of this.app.formattedSpeedUnits
   formatSpeed(value: number, asString = false): string | number {
+    const valIsNumber = typeof value === 'number';
     switch (this.config.units.speed) {
       case 'kn':
         value = Convert.msecToKnots(value);
@@ -998,9 +1002,9 @@ export class AppInfo extends Info {
         this.formattedSpeedUnits = 'm/s';
     }
     if (asString) {
-      return typeof value === 'number' ? value.toFixed(1) : '-';
+      return valIsNumber ? value.toFixed(1) : '-';
     } else {
-      return typeof value === 'number' ? value : '-';
+      return valIsNumber ? value : '-';
     }
   }
 

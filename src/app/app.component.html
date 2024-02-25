@@ -1,6 +1,5 @@
 <div [ngClass]="{ 'dark-theme': app.config.darkMode.enabled }">
   <div class="appframe mat-app-background">
-
     <!--toolbar button menus-->
     <mat-menu #layersmenu="matMenu">
       <button
@@ -129,6 +128,10 @@
       <a mat-menu-item (click)="drawStart('route')">
         <mat-icon color="primary">directions</mat-icon>
         <span>Draw Route</span>
+      </a>
+      <a mat-menu-item (click)="app.data.buildRoute.show = true">
+        <mat-icon color="warn">directions</mat-icon>
+        <span>Build Route</span>
       </a>
       <mat-divider></mat-divider>
       <a
@@ -346,9 +349,16 @@
             *ngIf="app.data.autopilot.console"
           ></autopilot-console>
 
+          <route-builder
+            *ngIf="app.data.buildRoute.show"
+            (save)="skres.showRouteNew($event)"
+          >
+          </route-builder>
+
           <!-- left button bar -->
           <div class="leftTop buttonPanel">
-            <button style="background-color: #e5e0e0"
+            <button
+              style="background-color: #e5e0e0"
               mat-mini-fab
               [disabled]="draw.enabled || measure.enabled"
               matTooltip="Menu"
@@ -364,7 +374,7 @@
               >
             </button>
           </div>
-          
+
           <div class="buttonPanel left" *ngIf="app.config.toolBarButtons">
             <div class="buttonPanelItem">
               <button
@@ -423,13 +433,13 @@
                 (click)="toggleMoveMap()"
                 [disabled]="!app.data.vessels.showSelf"
                 [matTooltip]="
-                  app.config.map.moveMap ? 'Turn off Follow Vessel' : 'Follow Vessel'
+                  app.config.map.moveMap
+                    ? 'Turn off Follow Vessel'
+                    : 'Follow Vessel'
                 "
                 matTooltipPosition="right"
               >
-                <mat-icon>
-                  my_location
-                </mat-icon>
+                <mat-icon> my_location </mat-icon>
               </button>
             </div>
             <div class="buttonPanelItem" *ngIf="!app.config.map.moveMap">
@@ -440,9 +450,7 @@
                 matTooltip="Center Vessel"
                 matTooltipPosition="right"
               >
-                <mat-icon>
-                  center_focus_strong
-                </mat-icon>
+                <mat-icon> center_focus_strong </mat-icon>
               </button>
             </div>
             <div class="buttonPanelItem">
@@ -559,20 +567,16 @@
               style="background-color: #e5e0e0"
               (click)="toggleToolbarButtons()"
               [matTooltip]="
-                app.config.toolBarButtons
-                  ? 'Hide Buttons'
-                  : 'Show Buttons'
+                app.config.toolBarButtons ? 'Hide Buttons' : 'Show Buttons'
               "
               matTooltipPosition="below"
             >
               <mat-icon>{{
-                app.config.toolBarButtons
-                  ? 'apps'
-                  : 'apps_outage'
+                app.config.toolBarButtons ? 'apps' : 'apps_outage'
               }}</mat-icon>
             </button>
-          </div>          
-        
+          </div>
+
           <div class="buttonPanel right" *ngIf="app.config.toolBarButtons">
             <!-- instrument sidebar open button -->
             <div class="instrumentPanelToggle buttonPanelItem">
@@ -594,7 +598,10 @@
             </div>
 
             <!-- Web audio enable -->
-            <div class="buttonPanelItem" *ngIf="display.audio.state != 'running'">
+            <div
+              class="buttonPanelItem"
+              *ngIf="display.audio.state != 'running'"
+            >
               <button
                 mat-mini-fab
                 color="warn"
@@ -645,7 +652,8 @@
             </div>
 
             <!-- PiP enable -->
-            <div class="buttonPanelItem"
+            <div
+              class="buttonPanelItem"
               *ngIf="
                 app.config.resources.video.enable &&
                 app.config.resources.video.url
@@ -691,9 +699,7 @@
               <button
                 mat-mini-fab
                 [color]="
-                  app.data.vessels.self.autopilot.enabled
-                    ? 'primary'
-                    : 'accent'
+                  app.data.vessels.self.autopilot.enabled ? 'primary' : 'accent'
                 "
                 matTooltip="Autopilot"
                 matTooltipPosition="left"
@@ -710,10 +716,7 @@
                 mat-mini-fab
                 color="accent"
                 (click)="
-                  skres.showWaypointEditor(
-                    null,
-                    app.data.vessels.self.position
-                  )
+                  skres.showWaypointEditor(null, app.data.vessels.self.position)
                 "
                 matTooltip="Mark Vessel position"
                 matTooltipPosition="left"
@@ -722,10 +725,8 @@
               </button>
               <br />&nbsp;<br />
             </div>
-
           </div>
           <!-- /right button bar -->
-          
 
           <!--map panel-->
           <div

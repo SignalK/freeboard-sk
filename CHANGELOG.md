@@ -2,7 +2,9 @@
 
 ### v2.6.0
 
-- **Added**: Feature to maximise the viewable map area by hiding the toolbar buttons on either side of the screen.
+- **Added**: Ability to show/hide toolbar buttons on both sides of the screen.
+- **Added**: Route builder. 1st release allows creating a route from waypoints.
+- **Fixed**: Wind speed values in vessel popover showing 0 rather than - when no value is present.
 
 ### v2.5.0
 

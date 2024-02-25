@@ -37,7 +37,8 @@ import {
   FileInputComponent,
   PiPVideoComponent,
   WakeLockComponent,
-  AutopilotComponent
+  AutopilotComponent,
+  BuildRouteComponent
 } from './lib/components';
 
 @NgModule({
@@ -76,7 +77,8 @@ import {
     FileInputComponent,
     PiPVideoComponent,
     WakeLockComponent,
-    AutopilotComponent
+    AutopilotComponent,
+    BuildRouteComponent
   ],
   exports: [],
   providers: [],
