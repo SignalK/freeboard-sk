@@ -44,6 +44,10 @@ $my-dark-theme: mat.define-dark-theme((
     .about-row .item a {
         color: mat-color($my-dark-accent);
     }
+
+    .welcome a {
+        color: mat-color($my-dark-accent);
+    }
     
     /* Track */
     ::-webkit-scrollbar-track {

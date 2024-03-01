@@ -27,7 +27,7 @@ import { MatIconModule } from '@angular/material/icon';
         mat-button
         *ngSwitchCase="false"
         [disabled]="disabled"
-        (click)="cancel($event)"
+        (click)="cancel()"
       >
         {{ label }} {{ timeLeft }} secs
       </button>
@@ -45,7 +45,7 @@ import { MatIconModule } from '@angular/material/icon';
   `
 })
 export class TimerButtonComponent {
-  @Input() period = 5000; // timeout period in millisecondss
+  @Input() period = 5000; // timeout period in milliseconds
   @Input() label: string;
   @Input() icon: string;
   @Input() cancelledLabel: string;
@@ -80,7 +80,7 @@ export class TimerButtonComponent {
     }
   }
 
-  cancel(e) {
+  cancel() {
     if (this.timer) {
       clearInterval(this.timer);
       this.timer = null;

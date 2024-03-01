@@ -19,7 +19,7 @@ import { Point, LineString } from 'ol/geom';
 import { fromLonLat } from 'ol/proj';
 import { MapComponent } from '../map.component';
 import { Extent } from '../models';
-import { destCoordinate } from '../util';
+import { GeoUtils } from 'src/app/lib/geoutils';
 import { AsyncSubject } from 'rxjs';
 import { SKVessel } from 'src/app/modules';
 import { LightTheme, DarkTheme } from '../themes';
@@ -234,7 +234,7 @@ export class SKVesselsLayerComponent implements OnInit, OnDestroy, OnChanges {
       if (this.targets.has(w)) {
         const target = this.targets.get(w);
         // ** target **
-        let f = this.source.getFeatureById('ais-' + w);
+        let f = this.source.getFeatureById('ais-' + w) as Feature;
         if (f) {
           // exists so update it
           if (this.okToRender(w) && target.position) {
@@ -287,7 +287,7 @@ export class SKVesselsLayerComponent implements OnInit, OnDestroy, OnChanges {
       return;
     }
 
-    let wf = this.source.getFeatureById('wind-' + id);
+    let wf = this.source.getFeatureById('wind-' + id) as Feature;
     if (!this.okToRender(id, true) || !target.position) {
       if (wf) {
         this.source.removeFeature(wf);
@@ -295,7 +295,7 @@ export class SKVesselsLayerComponent implements OnInit, OnDestroy, OnChanges {
       return;
     }
 
-    const windc = destCoordinate(
+    const windc = GeoUtils.destCoordinate(
       target.position,
       windDirection,
       this.zoomOffsetLevel[Math.floor(this.mapZoom)]
@@ -326,11 +326,11 @@ export class SKVesselsLayerComponent implements OnInit, OnDestroy, OnChanges {
       return;
     }
     ids.forEach((w) => {
-      let f = this.source.getFeatureById('ais-' + w);
+      let f = this.source.getFeatureById('ais-' + w) as Feature;
       if (f) {
         this.source.removeFeature(f);
       }
-      f = this.source.getFeatureById('wind-' + w);
+      f = this.source.getFeatureById('wind-' + w) as Feature;
       if (f) {
         this.source.removeFeature(f);
       }

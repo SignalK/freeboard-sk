@@ -1,6 +1,6 @@
 // ** Freeboard Map configuration **
 
-import { Style, Icon, Text, Stroke, Fill, RegularShape } from 'ol/style';
+import { Style, Icon, Text, Stroke, Fill } from 'ol/style';
 
 export const mapInteractions = [
   { name: 'dragpan' },
@@ -67,10 +67,90 @@ export const vesselStyles = {
   })
 };
 
+export const routeStyles = {
+  default: new Style({
+    stroke: new Stroke({
+      color: 'green',
+      width: 2,
+      lineDash: [20, 5, 5, 5]
+    })
+  }),
+  active: new Style({
+    stroke: new Stroke({
+      color: 'blue',
+      width: 4
+    })
+  }),
+  startPin: new Style({
+    image: new Icon({
+      src: './assets/img/startflag.png',
+      rotateWithView: false,
+      scale: 0.5,
+      anchor: [22.5, 45],
+      anchorXUnits: 'pixels',
+      anchorYUnits: 'pixels'
+    }),
+    text: new Text({
+      text: '',
+      offsetY: 10
+    })
+  }),
+  startBoat: new Style({
+    image: new Icon({
+      src: './assets/img/startboat.png',
+      rotateWithView: false,
+      scale: 0.15,
+      anchor: [24, 160],
+      anchorXUnits: 'pixels',
+      anchorYUnits: 'pixels'
+    }),
+    text: new Text({
+      text: '',
+      offsetY: 20
+    })
+  }),
+  startLine: new Style({
+    stroke: new Stroke({
+      color: 'black',
+      width: 1,
+      lineDash: [4, 4]
+    }),
+    text: new Text({
+      text: 'Start',
+      offsetY: 10
+    })
+  }),
+  finishLine: new Style({
+    stroke: new Stroke({
+      color: 'black',
+      width: 1,
+      lineDash: [4, 4]
+    }),
+    text: new Text({
+      text: 'Finish',
+      offsetY: -10
+    })
+  }),
+  finishPin: new Style({
+    image: new Icon({
+      src: './assets/img/finishflag.png',
+      rotateWithView: false,
+      scale: 0.25,
+      anchor: [1, 59],
+      anchorXUnits: 'pixels',
+      anchorYUnits: 'pixels'
+    }),
+    text: new Text({
+      text: '',
+      offsetY: 10
+    })
+  })
+};
+
 export const waypointStyles = {
   default: new Style({
     image: new Icon({
-      src: './assets/img/marker-gold.png',
+      src: './assets/img/marker-yellow.png',
       rotateWithView: false,
       size: [25, 25],
       anchor: [10.5, 25],
@@ -79,7 +159,7 @@ export const waypointStyles = {
     }),
     text: new Text({
       text: '',
-      offsetY: -27
+      offsetY: -30
     })
   }),
   active: new Style({
@@ -93,7 +173,7 @@ export const waypointStyles = {
     }),
     text: new Text({
       text: '',
-      offsetY: -27
+      offsetY: -30
     })
   }),
   pseudoAtoN: new Style({
@@ -107,7 +187,7 @@ export const waypointStyles = {
     }),
     text: new Text({
       text: '',
-      offsetY: -27
+      offsetY: -30
     })
   })
 };
@@ -116,7 +196,11 @@ export const noteStyles = {
   default: new Style({
     image: new Icon({
       src: './assets/img/note.png',
-      rotateWithView: false
+      rotateWithView: false,
+      size: [25, 25],
+      anchor: [5, 3],
+      anchorXUnits: 'pixels',
+      anchorYUnits: 'pixels'
     }),
     text: new Text({
       text: '',
@@ -148,6 +232,19 @@ export const anchorStyles = {
       size: [26, 26],
       scale: 0.75,
       anchor: [13, 1],
+      anchorXUnits: 'pixels',
+      anchorYUnits: 'pixels',
+      rotateWithView: false
+    })
+  })
+};
+
+export const alarmStyles = {
+  mob: new Style({
+    image: new Icon({
+      src: './assets/img/alarms/mob_map.png',
+      scale: 1,
+      anchor: [13, 13],
       anchorXUnits: 'pixels',
       anchorYUnits: 'pixels',
       rotateWithView: false
@@ -225,40 +322,36 @@ export const aisVesselStyles = {
 
 export const atonStyles = {
   default: new Style({
-    image: new RegularShape({
-      points: 4, //(id.indexOf('basestation')!=-1) ? 3 : 4,
-      radius: 7,
-      stroke: new Stroke({
-        color: `black`,
-        width: 1
-      }),
-      fill: new Fill({ color: 'purple' }),
-      rotateWithView: false
+    image: new Icon({
+      src: './assets/img/aton.png',
+      rotateWithView: false,
+      rotation: 0,
+      anchor: [12.5, 12.5],
+      anchorXUnits: 'pixels',
+      anchorYUnits: 'pixels'
     }),
     text: new Text({
       text: '',
       offsetX: 0,
-      offsetY: -12
+      offsetY: -18
     })
   })
 };
 
 export const basestationStyles = {
   default: new Style({
-    image: new RegularShape({
-      points: 3,
-      radius: 10,
-      stroke: new Stroke({
-        color: `black`,
-        width: 1
-      }),
-      fill: new Fill({ color: 'transparent' }),
-      rotateWithView: false
+    image: new Icon({
+      src: './assets/img/aton_basestation.png',
+      rotateWithView: false,
+      rotation: 0,
+      anchor: [12.5, 14.5],
+      anchorXUnits: 'pixels',
+      anchorYUnits: 'pixels'
     }),
     text: new Text({
       text: '',
       offsetX: 0,
-      offsetY: -12
+      offsetY: -20
     })
   })
 };
@@ -298,6 +391,24 @@ export const sarStyles = {
     text: new Text({
       text: '',
       offsetY: -18
+    })
+  })
+};
+
+export const meteoStyles = {
+  default: new Style({
+    image: new Icon({
+      src: './assets/img/weather_station.png',
+      rotateWithView: false,
+      rotation: 0,
+      size: [35, 25],
+      anchor: [1, 25],
+      anchorXUnits: 'pixels',
+      anchorYUnits: 'pixels'
+    }),
+    text: new Text({
+      text: '',
+      offsetY: -30
     })
   })
 };

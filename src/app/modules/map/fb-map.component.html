@@ -146,8 +146,11 @@
   <!-- Routes -->
   <fb-routes
     [routes]="dfeat.routes"
-    [routeStyles]=""
+    [routeStyles]="featureStyles.route"
     [activeRoute]="activeRoute"
+    [darkMode]="app.config.map.invertColor"
+    [labelMinZoom]="10"
+    [mapZoom]="fbMap.zoomLevel"
     [zIndex]="80"
   >
   </fb-routes>
@@ -200,6 +203,23 @@
     [labelMinZoom]="10"
     [mapZoom]="fbMap.zoomLevel"
     [zIndex]="45"
+  >
+  </sk-targets>
+
+  <!-- Meteo targets -->
+  <sk-targets
+    *ngIf="app.config.aisTargets"
+    [darkMode]="app.config.map.invertColor"
+    [targets]="dfeat.meteo"
+    [targetStyles]="featureStyles.meteo"
+    targetType="meteo"
+    [labelMinZoom]="10"
+    [mapZoom]="fbMap.zoomLevel"
+    [updateIds]="aisMgr.updateList"
+    [staleIds]="aisMgr.staleList"
+    [removeIds]="aisMgr.removeList"
+    [inactiveTime]="app.config.selections.aisStaleAge"
+    [zIndex]="122"
   >
   </sk-targets>
 
@@ -299,7 +319,7 @@
     </ap-popover>
 
     <feature-list-popover
-      *ngIf="this.overlay.type == 'list'"
+      *ngIf="this.overlay.type === 'list'"
       [canClose]="app.config.popoverMulti"
       [title]="overlay.title"
       [features]="this.overlay.content"
@@ -310,9 +330,11 @@
 
     <resource-popover
       *ngIf="
-        overlay.type != 'ais' &&
-        overlay.type != 'list' &&
-        overlay.type != 'measure'
+        overlay.type === 'destination' ||
+        overlay.type === 'waypoint' ||
+        overlay.type === 'route' ||
+        overlay.type === 'note' ||
+        overlay.type === 'region'
       "
       [canClose]="app.config.popoverMulti"
       [title]="overlay.title"
@@ -345,7 +367,7 @@
     </resource-popover>
 
     <div
-      *ngIf="overlay.type == 'ais'"
+      *ngIf="overlay.type === 'ais'"
       [ngSwitch]="app.config.selections.aisProfile"
     >
       <vessel-popover
@@ -366,7 +388,7 @@
     </div>
 
     <aton-popover
-      *ngIf="overlay.type == 'aton'"
+      *ngIf="overlay.type === 'aton' || overlay.type === 'meteo'"
       [canClose]="app.config.popoverMulti"
       [aton]="overlay.aton"
       (info)="itemInfo(overlay.id, overlay.type); popoverClosed()"
@@ -375,13 +397,23 @@
     </aton-popover>
 
     <aircraft-popover
-      *ngIf="overlay.type == 'aircraft'"
+      *ngIf="overlay.type === 'aircraft'"
       [canClose]="app.config.popoverMulti"
       [aircraft]="overlay.aircraft"
       (info)="itemInfo(overlay.id, overlay.type); popoverClosed()"
       (closed)="popoverClosed()"
     >
     </aircraft-popover>
+
+    <alarm-popover
+      *ngIf="overlay.type === 'alarm'"
+      [canClose]="app.config.popoverMulti"
+      [alarm]="overlay.alarm"
+      [id]="overlay.id"
+      (info)="itemInfo(overlay.id, overlay.type); popoverClosed()"
+      (closed)="popoverClosed()"
+    >
+    </alarm-popover>
   </ol-overlay>
 
   <!-- Alarms -->
@@ -402,6 +434,23 @@
     [zIndex]="50"
   >
   </fb-cpa-alarm>
+
+  <!-- MOB alarm -->
+  <fb-alarm
+    *ngIf="app.data.alarms.has('mob')"
+    [position]="
+      app.data.alarms.get('mob').data?.position
+        ? [
+            app.data.alarms.get('mob').data?.position?.longitude,
+            app.data.alarms.get('mob').data?.position?.latitude
+          ]
+        : null
+    "
+    [alarmType]="'mob'"
+    [alarmStyles]="featureStyles.alarm"
+    [zIndex]="51"
+  >
+  </fb-alarm>
 
   <!-- Vessel / destination -->
   <fb-xte-path
@@ -461,6 +510,14 @@
     [zIndex]="200"
   >
   </fb-vessel-trail>
+
+  <!-- chart boundaries-->
+  <fb-chart-bounds
+    *ngIf="app.data.chartBounds"
+    [zIndex]="250"
+    [charts]="dfeat.charts"
+  >
+  </fb-chart-bounds>
 </ol-map>
 
 <!-- context menu -->
@@ -530,8 +587,15 @@
       (click)="onContextMenuAction('anchor', item)"
       (contextmenu)="$event.preventDefault()"
     >
-      <mat-icon><i class="fi-anchor"></i></mat-icon>
+      <mat-icon>anchor</mat-icon>
       Anchor Watch
+    </button>
+    <button
+      mat-menu-item
+      (click)="onContextMenuAction('weather_forecast', item)"
+    >
+      <mat-icon>air</mat-icon>
+      <span>Weather Forecast</span>
     </button>
   </ng-template>
 </mat-menu>

@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import { moveItemInArray } from '@angular/cdk/drag-drop';
 import { HttpErrorResponse } from '@angular/common/http';
 import { MatDialog } from '@angular/material/dialog';
-import { forkJoin, of, Subject, Observable, from } from 'rxjs';
+import { forkJoin, of, Subject, Observable } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import ngeohash from 'ngeohash';
 
@@ -387,6 +387,7 @@ export class SKResources {
   // ****************************************************
 
   // ** process Resource Delta message **
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   processDelta(e: Array<any>) {
     if (!Array.isArray(e)) {
       return;
@@ -607,7 +608,7 @@ export class SKResources {
         const k = Object.keys(res);
         this.app.config.selections.tracks = this.app.config.selections.tracks
           .map((i) => {
-            return k.indexOf(i) != -1 ? i : null;
+            return k.indexOf(i) !== -1 ? i : null;
           })
           .filter((i) => {
             return i;
@@ -752,15 +753,21 @@ export class SKResources {
               i[1].type = i[1].serverType;
             }
 
-            // ** ensure host is in url
-            if (i[1]['url'][0] === '/' || i[1]['url'].slice(0, 4) !== 'http') {
-              i[1]['url'] = this.app.host + i[1]['url'];
+            // test for SK chart record
+            if (i[1].type) {
+              // ** ensure host is in url
+              if (
+                i[1]['url'][0] === '/' ||
+                i[1]['url'].slice(0, 4) !== 'http'
+              ) {
+                i[1]['url'] = this.app.host + i[1]['url'];
+              }
+              this.app.data.charts.push([
+                i[0],
+                new SKChart(i[1]),
+                this.app.config.selections.charts.includes(i[0]) ? true : false
+              ]);
             }
-            this.app.data.charts.push([
-              i[0],
-              new SKChart(i[1]),
-              this.app.config.selections.charts.includes(i[0]) ? true : false
-            ]);
           });
           // ** sort by scale
           this.sortByScaleDesc();
@@ -834,7 +841,7 @@ export class SKResources {
           }
           idx++;
         });
-        if (srcidx != -1) {
+        if (srcidx !== -1) {
           moveItemInArray(this.app.data.charts, srcidx, destidx + 1);
         }
       }
@@ -846,10 +853,14 @@ export class SKResources {
   // v2 transformation
   transformRoute(r: RouteResource, id: string): RouteResource {
     // parse as v2
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     if (typeof (r as any).start !== 'undefined') {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       delete (r as any).start;
     }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     if (typeof (r as any).end !== 'undefined') {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       delete (r as any).end;
     }
     if (typeof r.name === 'undefined') {
@@ -966,6 +977,7 @@ export class SKResources {
             });
           } else if (res['statusCode'] === 200) {
             // complete
+            this.app.data.buildRoute.show = false;
             this.app.config.selections.routes.push(rte[0]);
             this.app.saveConfig();
           }
@@ -1110,6 +1122,7 @@ export class SKResources {
   updateRouteCoords(
     id: string,
     coords: Array<Position>,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     coordsMeta?: Array<any>
   ) {
     const t = this.app.data.routes.filter((i: [string, SKRoute]) => {
@@ -1179,11 +1192,17 @@ export class SKResources {
   }
 
   // ** Display New Route properties Dialog **
-  showRouteNew(e: { coordinates: LineString }) {
+  showRouteNew(e: {
+    coordinates: LineString;
+    meta?: Array<{ href?: string; name?: string }>;
+  }) {
     if (!e.coordinates) {
       return;
     }
     const res = this.buildRoute(e.coordinates);
+    if (e.meta && Array.isArray(e.meta)) {
+      res[1].feature.properties.coordinatesMeta = e.meta;
+    }
 
     this.dialog
       .open(ResourceDialog, {
@@ -1257,7 +1276,9 @@ export class SKResources {
 
   // v2 transformation
   transformWaypoint(w: WaypointResource, id: string): WaypointResource {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     if (typeof (w as any).position !== 'undefined') {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       delete (w as any).position;
     }
     if (!w.name) {
@@ -1307,7 +1328,7 @@ export class SKResources {
         this.app.config.selections.waypoints =
           this.app.config.selections.waypoints
             .map((i) => {
-              return k.indexOf(i) != -1 ? i : null;
+              return k.indexOf(i) !== -1 ? i : null;
             })
             .filter((i) => {
               return i;
@@ -1570,7 +1591,7 @@ export class SKResources {
 
   // get regions from server
   getRegions(params: string = null) {
-    params = params && params[0] != '?' ? `?${params}` : params;
+    params = params && params[0] !== '?' ? `?${params}` : params;
     return this.signalk.api.get(
       this.app.skApiVersion,
       `/resources/regions${params}`
@@ -1828,7 +1849,7 @@ export class SKResources {
   getNotes(params: string = null) {
     let rf = params ? params : this.app.config.resources.notes.rootFilter;
     rf = this.processTokens(rf);
-    if (rf && rf[0] != '?') {
+    if (rf && rf[0] !== '?') {
       rf = '?' + rf;
     }
     this.app.debug(`${rf}`);
@@ -1869,9 +1890,12 @@ export class SKResources {
   // v2 transformation
   transformRegion(r: RegionResource, id: string): RegionResource {
     if (
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       typeof (r as any).geohash !== 'undefined' &&
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       typeof (r as any).geohash === 'string'
     ) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const gh = ngeohash.decode_bbox((r as any).geohash);
       const reg = new SKRegion();
       reg.name = 'Region-' + id.slice(-6);

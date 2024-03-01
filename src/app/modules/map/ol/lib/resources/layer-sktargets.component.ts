@@ -182,7 +182,7 @@ export class SKTargetsLayerComponent implements OnInit, OnDestroy, OnChanges {
       if (this.targets.has(w)) {
         const target = this.targets.get(w);
         // ** target **
-        let f = this.source.getFeatureById(w);
+        let f = this.source.getFeatureById(w) as Feature;
         if (f) {
           // exists so update it
           if (target.position) {
@@ -221,7 +221,7 @@ export class SKTargetsLayerComponent implements OnInit, OnDestroy, OnChanges {
       if (this.targetType && w.indexOf(this.targetType) !== 0) {
         return;
       }
-      const f = this.source.getFeatureById(w);
+      const f = this.source.getFeatureById(w) as Feature;
       if (f) {
         this.source.removeFeature(f);
       }

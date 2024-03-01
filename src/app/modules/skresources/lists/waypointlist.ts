@@ -7,12 +7,7 @@ import {
 } from '@angular/core';
 import { AppInfo } from 'src/app/app.info';
 import { Position } from 'src/app/lib/geoutils';
-import {
-  FBWaypoints,
-  FBWaypoint,
-  FBResourceSelect,
-  SKPosition
-} from 'src/app/types';
+import { FBWaypoints, FBWaypoint, FBResourceSelect } from 'src/app/types';
 
 @Component({
   selector: 'waypoint-list',
@@ -90,7 +85,7 @@ export class WaypointListComponent {
 
   itemSelect(e: boolean, id: string) {
     this.filterList.forEach((i: FBWaypoint) => {
-      if (i[0] == id) {
+      if (i[0] === id) {
         i[2] = e;
       }
     });
@@ -140,7 +135,8 @@ export class WaypointListComponent {
       this.filterList = this.waypoints.filter((i: FBWaypoint) => {
         if (i[1].name) {
           if (
-            i[1].name.toLowerCase().indexOf(this.filterText.toLowerCase()) != -1
+            i[1].name.toLowerCase().indexOf(this.filterText.toLowerCase()) !==
+            -1
           ) {
             return i;
           }

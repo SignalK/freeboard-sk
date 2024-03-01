@@ -1,10 +1,11 @@
 import * as https from 'https';
 import * as url from 'url';
 import * as http from 'http';
-import { ActionResult } from './types';
 
 // HTTP GET
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const fetch = (href: string): Promise<any> => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const opt: any = url.parse(href);
   opt.headers = { 'User-Agent': 'Mozilla/5.0' };
 
@@ -12,6 +13,7 @@ export const fetch = (href: string): Promise<any> => {
 
   return new Promise((resolve, reject) => {
     req
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       .get(opt, (res: any) => {
         let data = '';
         res.on('data', (chunk: string) => {
@@ -33,7 +35,8 @@ export const fetch = (href: string): Promise<any> => {
 };
 
 // HTTP POST
-export const post = (href: string, data: string): Promise<ActionResult> => {
+export const post = (href: string, data: string) => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const opt: any = url.parse(href);
   (opt.method = 'POST'),
     (opt.headers = {
@@ -44,6 +47,7 @@ export const post = (href: string, data: string): Promise<ActionResult> => {
 
   return new Promise((resolve, reject) => {
     const postReq = req
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       .request(opt, (res: any) => {
         let resText = '';
         res.on('data', (chunk: string) => {

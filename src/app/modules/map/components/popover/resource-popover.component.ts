@@ -185,6 +185,7 @@ export class ResourcePopoverComponent {
   @Output() notes: EventEmitter<void> = new EventEmitter();
 
   properties: Array<unknown>; // ** resource properties
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   ctrl: any = {
     showInfoButton: false,
     showModifyButton: false,
@@ -211,19 +212,19 @@ export class ResourcePopoverComponent {
   }
 
   parse() {
-    if (this.type == 'destination') {
+    if (this.type === 'destination') {
       this.parseDestination();
     }
-    if (this.type == 'waypoint') {
+    if (this.type === 'waypoint') {
       this.parseWaypoint();
     }
-    if (this.type == 'route') {
+    if (this.type === 'route') {
       this.parseRoute();
     }
-    if (this.type == 'note') {
+    if (this.type === 'note') {
       this.parseNote();
     }
-    if (this.type == 'region') {
+    if (this.type === 'region') {
       this.parseRegion();
     }
   }
@@ -258,7 +259,7 @@ export class ResourcePopoverComponent {
 
   parseWaypoint() {
     this.ctrl.isActive =
-      this.active && this.active == this.resource[0] ? true : false;
+      this.active && this.active === this.resource[0] ? true : false;
     this.ctrl.activeText = 'GO TO';
     this.ctrl.canActivate = true;
     this.ctrl.showInfoButton = true;
@@ -299,7 +300,7 @@ export class ResourcePopoverComponent {
       this.ctrl.showDeleteButton = false;
     } else {
       this.ctrl.isActive =
-        this.active && this.active == this.resource[0] ? true : false;
+        this.active && this.active === this.resource[0] ? true : false;
       this.ctrl.activeText = 'ACTIVATE';
       this.ctrl.canActivate = true;
       this.ctrl.showInfoButton = true;
@@ -313,7 +314,7 @@ export class ResourcePopoverComponent {
     this.properties = [];
     this.properties.push(['Name', this.resource[1].name]);
     const d =
-      this.units == 'm'
+      this.units === 'm'
         ? [(this.resource[1].distance / 1000).toFixed(1), 'km']
         : [
             Convert.kmToNauticalMiles(this.resource[1].distance / 1000).toFixed(
@@ -349,7 +350,7 @@ export class ResourcePopoverComponent {
     this.ctrl.canActivate = false;
     this.ctrl.showInfoButton = true;
     this.ctrl.showModifyButton =
-      this.resource[1].feature.geometry.type == 'MultiPolygon' ? false : true;
+      this.resource[1].feature.geometry.type === 'MultiPolygon' ? false : true;
     this.ctrl.showDeleteButton = true;
     this.ctrl.showAddNoteButton = false;
     this.ctrl.showNotesButton = true;

@@ -54,7 +54,7 @@ export class InteractionModifyComponent {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         deleteCondition: (e: MapBrowserEvent<any>) => {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          if (e.type == 'click' && (e.originalEvent as any).ctrlKey) {
+          if (e.type === 'click' && (e.originalEvent as any).ctrlKey) {
             return true;
           } else {
             return false;

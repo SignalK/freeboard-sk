@@ -83,7 +83,7 @@ export class SKTargetTracksLayerComponent
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const properties: { [index: string]: any } = {};
       for (const key in changes) {
-        if (key == 'tracks' && changes[key].firstChange) {
+        if (key === 'tracks' && changes[key].firstChange) {
           if (!changes[key].currentValue) {
             return;
           }
@@ -92,19 +92,19 @@ export class SKTargetTracksLayerComponent
           }
           this.source.clear();
           this.parseItems(this.extractKeys(changes[key].currentValue));
-        } else if (key == 'updateIds') {
+        } else if (key === 'updateIds') {
           this.parseItems(changes[key].currentValue);
-        } else if (key == 'removeIds') {
+        } else if (key === 'removeIds') {
           this.removeItems(changes[key].currentValue);
-        } else if (key == 'showTracks' && !changes[key].firstChange) {
+        } else if (key === 'showTracks' && !changes[key].firstChange) {
           if (changes[key].currentValue) {
             this.parseItems(this.extractKeys(this.tracks));
           } else {
             this.source.clear();
           }
-        } else if (key == 'labelMinZoom' || key == 'mapZoom') {
+        } else if (key === 'labelMinZoom' || key === 'mapZoom') {
           this.handleLabelZoomChange(key, changes[key]);
-        } else if (key == 'layerProperties') {
+        } else if (key === 'layerProperties') {
           this.layer.setProperties(properties, false);
         } else {
           properties[key] = changes[key].currentValue;
@@ -125,11 +125,11 @@ export class SKTargetTracksLayerComponent
 
   // ** assess attribute change **
   handleLabelZoomChange(key: string, change: SimpleChange) {
-    if (key == 'labelMinZoom') {
+    if (key === 'labelMinZoom') {
       if (typeof this.mapZoom !== 'undefined') {
         this.parseItems(this.extractKeys(this.tracks));
       }
-    } else if (key == 'mapZoom') {
+    } else if (key === 'mapZoom') {
       if (typeof this.minZoom !== 'undefined') {
         if (
           (change.currentValue >= this.minZoom &&
@@ -164,7 +164,7 @@ export class SKTargetTracksLayerComponent
       if (this.tracks.has(w)) {
         const target = this.tracks.get(w);
         // ** target **
-        let f = this.source.getFeatureById('track-' + w);
+        let f = this.source.getFeatureById('track-' + w) as Feature;
         if (f) {
           // exists so update it
           f.setGeometry(new MultiLineString(this.parseCoordinates(target)));
@@ -191,7 +191,7 @@ export class SKTargetTracksLayerComponent
       return;
     }
     ids.forEach((w) => {
-      const f = this.source.getFeatureById('track-' + w);
+      const f = this.source.getFeatureById('track-' + w) as Feature;
       if (f) {
         this.source.removeFeature(f);
       }
@@ -200,7 +200,7 @@ export class SKTargetTracksLayerComponent
 
   // build target style
   buildStyle(id: string): Style {
-    const rgb = id.indexOf('aircraft') != -1 ? '0, 0, 255' : '255, 0, 255';
+    const rgb = id.indexOf('aircraft') !== -1 ? '0, 0, 255' : '255, 0, 255';
     let color =
       this.mapZoom < this.minZoom ? `rgba(${rgb},0)` : `rgba(${rgb},1)`;
     color = this.showTracks ? `rgba(${rgb},1)` : `rgba(${rgb},0)`;

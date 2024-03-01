@@ -251,3 +251,11 @@ export class SKAircraft extends AISBase {
     super();
   }
 }
+
+// ** Meteo / weather class **
+export class SKMeteo extends SKAtoN {
+  callsign: string;
+  constructor() {
+    super();
+  }
+}

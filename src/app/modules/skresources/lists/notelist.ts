@@ -102,7 +102,7 @@ export class NoteListComponent {
   doFilter() {
     this.filterList = this.notes.filter((i: FBNote) => {
       if (
-        i[1].name.toLowerCase().indexOf(this.filterText.toLowerCase()) != -1
+        i[1].name.toLowerCase().indexOf(this.filterText.toLowerCase()) !== -1
       ) {
         return i;
       }

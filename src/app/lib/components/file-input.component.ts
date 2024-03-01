@@ -82,7 +82,7 @@ export class FileInputComponent {
         return;
       }
       // ** Check file type **
-      if (this.accept.indexOf('/*') != -1) {
+      if (this.accept.indexOf('/*') !== -1) {
         // ** if <filetype>/* used in accept attribute
         const ftype = files[index].type.substring(
           0,
@@ -100,7 +100,7 @@ export class FileInputComponent {
       // Start reading this file
       this.readFile(files[index], reader, (result) => {
         // ** callback function **
-        if (index == 0 && this.preview) {
+        if (index === 0 && this.preview) {
           this.avatar = result;
         }
         this.chosen.emit({ name: files[index].name, data: result }); //** fire chosen event
@@ -138,7 +138,7 @@ export class FileInputComponent {
       callback(reader.result);
     };
 
-    if (file.type.indexOf('text') != -1 || this.astext) {
+    if (file.type.indexOf('text') !== -1 || this.astext) {
       reader.readAsText(file);
     } else {
       // read as base64

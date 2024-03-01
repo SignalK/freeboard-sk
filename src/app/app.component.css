@@ -20,20 +20,13 @@ mat-nav-list {
     overflow: hidden;  
 }
 
-.mainToolBar {
-    top: 0;
-	bottom: 0;
-	left: 0;
-    overflow: auto;
-    position: fixed;
-}
-
 .view {
     top: 0;
 	bottom: 0;
     right: 0;
-	left: 48px;
+	left: 0px;
     overflow: auto;
+    scrollbar-width: none;
     position: fixed;
 	border-top: silver 0px solid;
 }
@@ -43,22 +36,48 @@ mat-nav-list {
     top: 0;
     left: 0;
     bottom: 0;
-    padding-left: 40px;
+    padding-left: 0px;
     z-index: 5000; 
     background-color: rgba(200,200,200,.4);
 }
 
-.rightUtilsPanel { 
-    max-width:55px; 
+.buttonPanel { 
+    max-width:48px; 
     z-index: 200;
     position: absolute;
-    top: 0px;
-    right: 0px;
-    background-color: rgba(130,130,130,.3);
-    padding: 10px 2px 2px 2px;
+    padding: 5px 2px 2px 2px;
+    overflow: auto;
+    scrollbar-width: none;
 }
-.rightUtilsPanel div { 
-    height: 60px;
+
+.buttonPanel.rightTop { 
+    right: 0px;
+    top: 0px;
+    padding: 9px 2px 10px 2px;
+}
+
+.buttonPanel.leftTop { 
+    left: 0px;
+    top: 0px;
+    padding: 9px 2px 10px 2px;
+}
+
+.buttonPanel.left { 
+    top: 60px;
+    left: 0px;
+    bottom: 0px;
+}
+
+.buttonPanel.right { 
+    top: 60px;
+    right: 0px;
+    bottom: 0px;
+}
+
+.buttonPanel .buttonPanelItem {
+    text-align: center;
+    height: 48px;
+    padding: 5px 0 5px 0;
 }
 
 .mapButton {
@@ -78,7 +97,7 @@ mat-nav-list {
     position: absolute;
     z-index: 4900;
     bottom: 150px; 
-    left: 10px; 
+    left: 48px; 
     top: auto; 
     width:100px; 
     border: gray 1px solid;
@@ -91,7 +110,7 @@ mat-nav-list {
     position: absolute;
     z-index: 4901;
     bottom: 30px;
-    left: 0;
+    left: 48px;
     max-width:100%;
     max-height: 100px;
     text-align: center;
@@ -128,7 +147,7 @@ mat-nav-list {
     margin: 20px;
   }
 
-.ol-mouse-position {
+  .ol-mouse-position {
     position: fixed; 
     bottom:10px; 
     right:45%; 
@@ -139,7 +158,7 @@ mat-nav-list {
 
 .ol-zoom {
     position: fixed; 
-    top:10px; 
+    top:10px;
     left:100px; 
     color: rgb(30,30,30);
     font-family:roboto; 
@@ -147,7 +166,7 @@ mat-nav-list {
     height: 45px;
 }
 
-.nosmall {
+.instrumentPanelToggle {
     display: block;
 } 
 
@@ -158,8 +177,8 @@ mat-nav-list {
     }       
 }
 
-@media only screen and (max-width: 400px) { 
-    .nosmall {
+@media only screen and (max-width: 800px) { 
+    .instrumentPanelToggle {
         display: none;
     }     
 }

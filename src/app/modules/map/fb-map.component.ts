@@ -31,7 +31,9 @@ import {
   SKAtoN,
   SKAircraft,
   SKSaR,
-  SKStreamFacade
+  SKMeteo,
+  SKStreamFacade,
+  AlarmsFacade
 } from 'src/app/modules';
 import {
   mapInteractions,
@@ -42,15 +44,18 @@ import {
   basestationStyles,
   aircraftStyles,
   sarStyles,
+  meteoStyles,
   waypointStyles,
+  routeStyles,
   noteStyles,
   anchorStyles,
+  alarmStyles,
   destinationStyles
 } from './mapconfig';
 import { ModifyEvent } from 'ol/interaction/Modify';
 import { DrawEvent } from 'ol/interaction/Draw';
 import { Coordinate } from 'ol/coordinate';
-import { ResourceSets } from 'src/app/types';
+import { ResourceSets, SKNotification } from 'src/app/types';
 import { S57Service} from './ol/lib/s57.service';
 
 interface IResource {
@@ -71,13 +76,16 @@ interface IOverlay {
   vessel?: SKVessel;
   isSelf?: boolean;
   aton?: SKAtoN;
+  meteo?: SKMeteo;
   aircraft?: SKAircraft;
+  alarm?: SKNotification;
 }
 
 interface IFeatureData {
   aircraft: Map<string, SKAircraft>;
   atons: Map<string, SKAtoN>;
   sar: Map<string, SKSaR>;
+  meteo: Map<string, SKMeteo>;
   routes: Array<SKRoute>;
   waypoints: Array<SKWaypoint>;
   charts: Array<SKChart>;
@@ -135,7 +143,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
   @Output() measureEnd: EventEmitter<boolean> = new EventEmitter();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   @Output() drawEnd: EventEmitter<any> = new EventEmitter();
-  @Output() modifyStart: EventEmitter<void> = new EventEmitter();
+  @Output() modifyStart: EventEmitter<string> = new EventEmitter();
   @Output() modifyEnd: EventEmitter<Array<Position>> = new EventEmitter();
   @Output() activate: EventEmitter<string> = new EventEmitter();
   @Output() deactivate: EventEmitter<string> = new EventEmitter();
@@ -219,13 +227,16 @@ export class FBMapComponent implements OnInit, OnDestroy {
     vessel: vesselStyles,
     aisVessel: aisVesselStyles,
     note: noteStyles,
+    route: routeStyles,
     waypoint: waypointStyles,
     anchor: anchorStyles,
+    alarm: alarmStyles,
     destination: destinationStyles,
     aton: atonStyles,
     basestation: basestationStyles,
     aircraft: aircraftStyles,
-    sar: sarStyles
+    sar: sarStyles,
+    meteo: meteoStyles
   };
 
   // ** map feature data
@@ -233,6 +244,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
     aircraft: new Map(),
     atons: new Map(),
     sar: new Map(),
+    meteo: new Map(),
     routes: [],
     waypoints: [],
     charts: [],
@@ -281,7 +293,8 @@ export class FBMapComponent implements OnInit, OnDestroy {
     public s57Service: S57Service,
     public skres: SKResources,
     public skresOther: SKOtherResources,
-    private skstream: SKStreamFacade
+    private skstream: SKStreamFacade,
+    private alarmsFacade: AlarmsFacade
   ) {}
 
   ngAfterViewInit() {
@@ -427,6 +440,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
     this.dfeat.ais = this.app.data.vessels.aisTargets;
     this.dfeat.aircraft = this.app.data.aircraft;
     this.dfeat.sar = this.app.data.sar;
+    this.dfeat.meteo = this.app.data.meteo;
     this.dfeat.atons = this.app.data.atons;
     this.dfeat.active = this.app.data.vessels.active;
     this.dfeat.navData.position = this.app.data.navData.position;
@@ -604,7 +618,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
     this.mouse.pixel = e.pixel;
     this.mouse.xy = e.coordinate;
     this.mouse.coords = GeoUtils.normaliseCoords(e.lonlat);
-    if (this.measure.enabled && this.measure.coords.length != 0) {
+    if (this.measure.enabled && this.measure.coords.length !== 0) {
       const c = e.lonlat;
       this.overlay.position = c;
       const l = this.measure.totalDistance + this.measureDistanceToAdd(c);
@@ -636,6 +650,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
         let notForModify = false;
         let aton: SKAtoN;
         let sar: SKSaR;
+        let meteo: SKMeteo;
         let aircraft: SKAircraft;
         let vessel: SKVessel;
         if (id && typeof id === 'string') {
@@ -643,6 +658,16 @@ export class FBMapComponent implements OnInit, OnDestroy {
           let icon: string;
           let text: string;
           switch (t[0]) {
+            case 'alarm':
+              addToFeatureList = true;
+              icon = 'notification_important';
+              text = `${t[1]} ${t[0]}`;
+              break;
+            case 'anchor':
+              addToFeatureList = true;
+              icon = 'anchor';
+              text = `${t[0]}`;
+              break;
             case 'dest':
               addToFeatureList = true;
               icon = 'flag';
@@ -698,6 +723,12 @@ export class FBMapComponent implements OnInit, OnDestroy {
               addToFeatureList = true;
               sar = this.app.data.sar.get(id);
               text = sar ? sar.name || sar.mmsi : 'SaR Beacon';
+              break;
+            case 'meteo':
+              icon = 'air';
+              addToFeatureList = true;
+              meteo = this.app.data.meteo.get(id);
+              text = meteo ? meteo.name || meteo.mmsi : 'Weather Station';
               break;
             case 'ais-vessels':
               icon = 'directions_boat';
@@ -867,6 +898,14 @@ export class FBMapComponent implements OnInit, OnDestroy {
     } else {
       // point feature
       pc = toLonLat(c);
+      // shift anchor
+      if (fid === 'anchor') {
+        this.alarmsFacade
+          .anchorEvent({ action: 'position' }, undefined, pc)
+          .catch(() => {
+            this.app.showAlert('Alert', 'Error shifting anchor position!');
+          });
+      }
     }
     this.draw.forSave['coords'] = pc;
     this.modifyEnd.emit(this.draw.forSave);
@@ -1081,6 +1120,19 @@ export class FBMapComponent implements OnInit, OnDestroy {
         list.forEach((f) => this.overlay.content.push(f));
         this.overlay.show = true;
         return;
+      case 'alarm':
+        this.overlay['type'] = 'alarm';
+        aid = id.split('.')[1];
+        if (!this.app.data.alarms.has(aid)) {
+          return false;
+        }
+        this.overlay['id'] = aid;
+        this.overlay['alarm'] = this.app.data.alarms.get(aid);
+        this.overlay.show = true;
+        return;
+      case 'anchor':
+        this.startModify('anchor');
+        return;
       case 'vessels':
         this.overlay['type'] = 'ais';
         this.overlay['isSelf'] = true;
@@ -1115,6 +1167,15 @@ export class FBMapComponent implements OnInit, OnDestroy {
         }
         this.overlay['id'] = id;
         this.overlay['aton'] = this.app.data.sar.get(id);
+        this.overlay.show = true;
+        return;
+      case 'meteo':
+        this.overlay['type'] = 'meteo';
+        if (!this.app.data.meteo.has(id)) {
+          return false;
+        }
+        this.overlay['id'] = id;
+        this.overlay['aton'] = this.app.data.meteo.get(id);
         this.overlay.show = true;
         return;
       case 'aircraft':
@@ -1314,7 +1375,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
   }
 
   // ** Enter modify mode **
-  public startModify() {
+  public startModify(id?: string) {
     if (this.draw.features.getLength() === 0) {
       return;
     }
@@ -1325,7 +1386,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
     this.draw.properties = {};
     this.draw.enabled = false;
     this.draw.modify = true;
-    this.modifyStart.emit();
+    this.modifyStart.emit(id);
   }
 
   // ********************************************************

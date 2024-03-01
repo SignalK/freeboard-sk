@@ -328,7 +328,8 @@ export class S57Service {
     if (symbol) {
       return new Style({
         image: new Icon({
-          imgSize: [symbol.width, symbol.height],
+          width: symbol.width,
+          height: symbol.height,
           img: symbol.image,
           opacity: 1,
           anchorXUnits: 'pixels',

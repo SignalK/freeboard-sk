@@ -13,7 +13,6 @@ import {
   GPXTrack,
   GPXTrackSegment
 } from '../gpxlib';
-import { HttpErrorResponse } from '@angular/common/http';
 
 @Injectable({ providedIn: 'root' })
 export class GPXLoadFacade {
@@ -42,7 +41,7 @@ export class GPXLoadFacade {
   }
 
   // ** parse GPX file
-  parseFileData(data: string) {
+  async parseFileData(data: string) {
     const gpxData = {
       name: '',
       routes: [],
@@ -51,14 +50,14 @@ export class GPXLoadFacade {
     };
     this.gpx = new GPX();
 
-    if (!this.gpx.parse(data)) {
+    if (!(await this.gpx.parse(data))) {
       return null;
     }
 
     let idx = 1;
     this.gpx.rte.forEach((r) => {
       gpxData.routes.push({
-        name: r['name'] != '' ? r['name'] : `Rte: ${idx}`,
+        name: r['name'] !== '' ? r['name'] : `Rte: ${idx}`,
         description: r['desc'] ? r['desc'] : r['cmt'] ? r['cmt'] : '',
         wptcount: r['rtept'].length
       });
@@ -109,7 +108,7 @@ export class GPXLoadFacade {
 
   // ** check all submissions are resolved and emit result$
   checkComplete() {
-    if (this.subCount == 0) {
+    if (this.subCount === 0) {
       this.app.saveConfig();
       this.resultSource.next(this.errorCount);
       this.app.debug(`GPXLoad: complete: ${this.errorCount}`);
@@ -155,7 +154,7 @@ export class GPXLoadFacade {
       .subscribe(
         (r) => {
           this.subCount--;
-          if (Math.floor(r['statusCode'] / 100) == 2) {
+          if (Math.floor(r['statusCode'] / 100) === 2) {
             this.app.debug('SUCCESS: Route added.');
             this.app.config.selections.routes.push(skObj[0]);
           } else {
@@ -163,7 +162,7 @@ export class GPXLoadFacade {
           }
           this.checkComplete();
         },
-        (err: HttpErrorResponse) => {
+        () => {
           this.errorCount++;
           this.subCount--;
           this.checkComplete();
@@ -178,47 +177,23 @@ export class GPXLoadFacade {
     if (pt.ele) {
       wpt.feature.geometry.coordinates.push(pt.ele);
     }
-    if (pt.name && pt.name.length != 0) {
+    if (pt.name && pt.name.length !== 0) {
       wpt.name = pt.name;
     }
-    if (pt.desc && pt.desc.length != 0) {
+    if (pt.desc && pt.desc.length !== 0) {
       wpt.description = pt.desc;
+    }
+    if (pt.type) {
+      wpt.type = pt.type;
     }
     if (pt.cmt) {
       wpt.feature.properties['cmt'] = pt.cmt;
-    }
-    if (pt.geoidHeight) {
-      wpt.feature.properties['geoidHeight'] = pt.geoidHeight;
     }
     if (pt.src) {
       wpt.feature.properties['src'] = pt.src;
     }
     if (pt.sym) {
       wpt.feature.properties['sym'] = pt.sym;
-    }
-    if (pt.type) {
-      wpt.feature.properties['type'] = pt.type;
-    }
-    if (pt.fix) {
-      wpt.feature.properties['fix'] = pt.fix;
-    }
-    if (pt.sat) {
-      wpt.feature.properties['sat'] = pt.sat;
-    }
-    if (pt.hdop) {
-      wpt.feature.properties['hdop'] = pt.hdop;
-    }
-    if (pt.vdop) {
-      wpt.feature.properties['vdop'] = pt.vdop;
-    }
-    if (pt.pdop) {
-      wpt.feature.properties['pdop'] = pt.pdop;
-    }
-    if (pt.ageOfGpsData) {
-      wpt.feature.properties['ageOfGpsData'] = pt.ageOfGpsData;
-    }
-    if (pt.dgpsid) {
-      wpt.feature.properties['dgpsid'] = pt.dgpsid;
     }
 
     this.subCount++;
@@ -231,7 +206,7 @@ export class GPXLoadFacade {
       .subscribe(
         (r) => {
           this.subCount--;
-          if (Math.floor(r['statusCode'] / 100) == 2) {
+          if (Math.floor(r['statusCode'] / 100) === 2) {
             this.app.debug('SUCCESS: Waypoint added.');
             this.app.config.selections.waypoints.push(wptObj[0]);
           } else {
@@ -266,14 +241,14 @@ export class GPXLoadFacade {
         trk.feature.geometry.coordinates.push(line);
       });
     }
-    if (gpxtrk.name && gpxtrk.name.length != 0) {
+    if (gpxtrk.name && gpxtrk.name.length !== 0) {
       trk.feature.properties['name'] = gpxtrk.name;
     } else {
       trk.feature.properties['name'] = `gpxtrk #${Math.random()
         .toString()
         .slice(-5)}`;
     }
-    if (gpxtrk.desc && gpxtrk.desc.length != 0) {
+    if (gpxtrk.desc && gpxtrk.desc.length !== 0) {
       trk.feature.properties['description'] = gpxtrk.desc;
     }
     if (gpxtrk.cmt) {
@@ -292,7 +267,7 @@ export class GPXLoadFacade {
       .subscribe(
         (r) => {
           this.subCount--;
-          if (Math.floor(r['statusCode'] / 100) == 2) {
+          if (Math.floor(r['statusCode'] / 100) === 2) {
             this.app.debug('SUCCESS: Track added.');
           } else {
             this.errorCount++;

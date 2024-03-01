@@ -83,7 +83,7 @@ export class RouteListComponent {
 
   itemSelect(e: boolean, id: string) {
     this.filterList.forEach((i) => {
-      if (i[0] == id) {
+      if (i[0] === id) {
         i[2] = e;
       }
     });
@@ -129,7 +129,7 @@ export class RouteListComponent {
     } else {
       this.filterList = this.routes.filter((i: FBRoute) => {
         if (
-          i[1].name.toLowerCase().indexOf(this.filterText.toLowerCase()) != -1
+          i[1].name.toLowerCase().indexOf(this.filterText.toLowerCase()) !== -1
         ) {
           return i;
         }

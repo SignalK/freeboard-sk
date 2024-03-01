@@ -87,7 +87,7 @@ export class GeoUtils {
     if (!Array.isArray(coords)) {
       return [0, 0];
     }
-    if (typeof coords[0] == 'number') {
+    if (typeof coords[0] === 'number') {
       if (coords[0] > 180) {
         while (coords[0] > 180) {
           coords[0] = coords[0] - 360;

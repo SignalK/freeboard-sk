@@ -100,7 +100,7 @@ export class GeoJSONLoadFacade {
 
   // ** check all submissions are resolved and emit upload$
   checkComplete() {
-    if (this.subCount == 0) {
+    if (this.subCount === 0) {
       this.uploadSource.next(this.errorCount);
       this.app.debug(`GeoJSONLoad: complete: ${this.errorCount}`);
     }
@@ -136,7 +136,7 @@ export class GeoJSONLoadFacade {
       .subscribe(
         (r) => {
           this.subCount--;
-          if (r['state'] == 'COMPLETED') {
+          if (r['state'] === 'COMPLETED') {
             this.app.debug('SUCCESS: GeoJSON Route added.');
           } else {
             this.errorCount++;
@@ -181,7 +181,7 @@ export class GeoJSONLoadFacade {
       .subscribe(
         (r) => {
           this.subCount--;
-          if (r['state'] == 'COMPLETED') {
+          if (r['state'] === 'COMPLETED') {
             this.app.debug('SUCCESS: GeoJSON Waypoint added.');
           } else {
             this.errorCount++;
@@ -217,7 +217,7 @@ export class GeoJSONLoadFacade {
       .subscribe(
         (r) => {
           this.subCount--;
-          if (r['state'] == 'COMPLETED') {
+          if (r['state'] === 'COMPLETED') {
             this.app.debug('SUCCESS: GeoJSON Track added.');
           } else {
             this.errorCount++;
@@ -260,7 +260,7 @@ export class GeoJSONLoadFacade {
       .subscribe(
         (r) => {
           this.subCount--;
-          if (r['state'] == 'COMPLETED') {
+          if (r['state'] === 'COMPLETED') {
             this.app.debug('SUCCESS: GeoJSON Region added.');
           } else {
             this.errorCount++;

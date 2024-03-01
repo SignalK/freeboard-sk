@@ -293,12 +293,19 @@ export class AppComponent {
       : 'rotate(' + (0 - this.app.data.vessels.active.orientation) + 'rad)';
   }
 
+  public toggleToolbarButtons() {
+    this.app.config.toolBarButtons = !this.app.config.toolBarButtons;
+    this.app.saveConfig();
+    this.focusMap();
+  }
+
   public toggleLimitMapZoom() {
     this.app.config.map.limitZoom = this.app.config.map.limitZoom
       ? false
       : true;
     this.skres.setMapZoomRange();
     this.app.saveConfig();
+    this.focusMap();
   }
 
   public invertAISTextColor() {
@@ -306,6 +313,7 @@ export class AppComponent {
       ? false
       : true;
     this.app.saveConfig();
+    this.focusMap();
   }
 
   public toggleFullscreen() {
@@ -400,6 +408,9 @@ export class AppComponent {
       case 'anchor':
         this.displayLeftMenu('anchorWatch', true);
         break;
+      case 'weather_forecast':
+        this.showWeather('forecast');
+        break;
     }
   }
   // ** create route from vessel trail **
@@ -418,20 +429,23 @@ export class AppComponent {
       });
   }
 
+  public showWeather(mode: string) {
+    if (mode === 'forecast') {
+      this.bottomSheet
+        .open(WeatherForecastModal, {
+          disableClose: true,
+          data: { title: 'Forecast' }
+        })
+        .afterDismissed()
+        .subscribe(() => {
+          this.focusMap();
+        });
+    }
+  }
+
   // ** display selected experiment UI **
   public openExperiment(e) {
     switch (e.choice) {
-      case 'weather_forecast': // openweather forecast
-        this.bottomSheet
-          .open(WeatherForecastModal, {
-            disableClose: true,
-            data: { title: 'Forecast' }
-          })
-          .afterDismissed()
-          .subscribe(() => {
-            this.focusMap();
-          });
-        break;
       case 'tracks': // tracks
         this.bottomSheet
           .open(TracksModal, {
@@ -484,6 +498,24 @@ export class AppComponent {
       .subscribe(
         () => {
           this.signalk.authToken = this.app.getToken();
+
+          this.signalk.getLoginStatus().subscribe((r) => {
+            this.app.data.loginRequired = r.authenticationRequired ?? false;
+            this.app.data.loggedIn = r.status === 'loggedIn' ? true : false;
+            // ** Request using cached auth token and display badge
+            this.signalk.get('/plugins/freeboard-sk').subscribe(
+              () => {
+                this.app.debug('User Authenticated');
+                this.display.badge.hide = true;
+              },
+              (err: HttpErrorResponse) => {
+                if (err.status === 401) {
+                  this.display.badge.hide = false;
+                }
+              }
+            );
+          });
+
           this.app.loadSettingsfromServer().subscribe((r) => {
             const msg = r
               ? 'Settings loaded from server.'
@@ -493,6 +525,8 @@ export class AppComponent {
               this.skres.alignResourceSelections();
             }
           });
+
+          this.getFeatures();
           this.app.data.server = this.signalk.server.info;
           this.openSKStream();
         },
@@ -506,6 +540,21 @@ export class AppComponent {
             .subscribe(() => {
               this.connectSignalKServer();
             });
+        }
+      );
+  }
+
+  // ** discover server features **
+  private getFeatures() {
+    // check for Autopilot API
+    this.signalk.api
+      .get(this.app.skApiVersion, 'vessels/self/steering/autopilot')
+      .subscribe(
+        () => {
+          this.app.data.autopilot.hasApi = true;
+        },
+        () => {
+          this.app.data.autopilot.hasApi = false;
         }
       );
   }
@@ -893,6 +942,7 @@ export class AppComponent {
           this.signalk.login(res.user, res.pwd).subscribe(
             (r) => {
               // ** authenticated
+              this.display.badge.hide = true;
               this.app.persistToken(r['token']);
               this.app.loadSettingsfromServer().subscribe((r) => {
                 const msg = r
@@ -914,6 +964,7 @@ export class AppComponent {
               this.app.persistToken(null);
               this.signalk.isLoggedIn().subscribe((r) => {
                 this.app.data.loggedIn = r;
+                this.display.badge.hide = r;
               });
               if (onConnect) {
                 this.app
@@ -945,6 +996,7 @@ export class AppComponent {
           this.app.data.hasToken = false; // show login menu item
           this.signalk.isLoggedIn().subscribe((r) => {
             this.app.data.loggedIn = r;
+            this.display.badge.hide = r;
           });
           if (onConnect) {
             this.showLogin(null, false, true);
@@ -1151,17 +1203,25 @@ export class AppComponent {
             this.focusMap();
           });
       }
-    } else if (e.type === 'aton') {
+    } else if (e.type === 'aton' || e.type === 'meteo') {
       let title: string;
       let icon: string;
-      if (e.id.slice(0, 3) === 'sar') {
+      let atonType: string;
+      if (e.type === 'meteo') {
+        v = this.app.data.meteo.get(e.id);
+        title = 'Meteo Properties';
+        icon = 'air';
+        atonType = e.type;
+      } else if (e.id.slice(0, 3) === 'sar') {
         v = this.app.data.sar.get(e.id);
         title = 'SaR Properties';
         icon = 'tour';
+        atonType = 'sar';
       } else {
         v = this.app.data.atons.get(e.id);
         title = 'AtoN Properties';
         icon = 'beenhere';
+        atonType = 'aton';
       }
       if (v) {
         this.bottomSheet
@@ -1171,7 +1231,8 @@ export class AppComponent {
               title: title,
               target: v,
               id: e.id,
-              icon: icon
+              icon: icon,
+              type: atonType
             }
           })
           .afterDismissed()
@@ -1192,6 +1253,8 @@ export class AppComponent {
           .afterDismissed()
           .subscribe(() => this.focusMap());
       }
+    } else if (e.type === 'alarm') {
+      this.openAlarmsDialog();
     } else {
       v =
         e.type === 'self'
@@ -1340,12 +1403,12 @@ export class AppComponent {
   // ******** DRAW / EDIT EVENT HANDLERS ************
 
   // ** handle modify start event **
-  public handleModifyStart() {
+  public handleModifyStart(id?: string) {
     this.draw.type = null;
     this.draw.mode = null;
     this.draw.enabled = false;
     this.draw.modify = true;
-    this.draw.forSave = { id: null, coords: null };
+    this.draw.forSave = { id: id ?? null, coords: null };
   }
 
   // ** handle modify end event **
@@ -1409,56 +1472,65 @@ export class AppComponent {
   // ** End Draw / modify / Measure mode **
   public cancelDraw() {
     if (this.draw.modify && this.draw.forSave && this.draw.forSave.id) {
-      // save changes
-      this.app
-        .showConfirm(
-          `Do you want to save the changes made to ${
-            this.draw.forSave.id.split('.')[0]
-          }?`,
-          'Save Changes'
-        )
-        .subscribe((res) => {
-          const r = this.draw.forSave.id.split('.');
-          if (res) {
-            // save changes
-            if (r[0] === 'route') {
-              this.skres.updateRouteCoords(
-                r[1],
-                this.draw.forSave.coords,
-                this.draw.forSave.coordsMetadata
-              );
-            }
-            if (r[0] === 'waypoint') {
-              this.skres.updateWaypointPosition(r[1], this.draw.forSave.coords);
-              // if waypoint the target destination update nextPoint
-              if (r[1] === this.app.data.activeWaypoint) {
-                this.skres.setDestination({
-                  latitude: this.draw.forSave.coords[1],
-                  longitude: this.draw.forSave.coords[0]
-                });
+      if (this.draw.forSave.id === 'anchor') {
+        this.draw.forSave = null;
+        this.app.data.activeRouteIsEditing = false;
+        this.focusMap();
+      } else {
+        // save changes
+        this.app
+          .showConfirm(
+            `Do you want to save the changes made to ${
+              this.draw.forSave.id.split('.')[0]
+            }?`,
+            'Save Changes'
+          )
+          .subscribe((res) => {
+            const r = this.draw.forSave.id.split('.');
+            if (res) {
+              // save changes
+              if (r[0] === 'route') {
+                this.skres.updateRouteCoords(
+                  r[1],
+                  this.draw.forSave.coords,
+                  this.draw.forSave.coordsMetadata
+                );
+              }
+              if (r[0] === 'waypoint') {
+                this.skres.updateWaypointPosition(
+                  r[1],
+                  this.draw.forSave.coords
+                );
+                // if waypoint the target destination update nextPoint
+                if (r[1] === this.app.data.activeWaypoint) {
+                  this.skres.setDestination({
+                    latitude: this.draw.forSave.coords[1],
+                    longitude: this.draw.forSave.coords[0]
+                  });
+                }
+              }
+              if (r[0] === 'note') {
+                this.skres.updateNotePosition(r[1], this.draw.forSave.coords);
+              }
+              if (r[0] === 'region') {
+                this.skres.updateRegionCoords(r[1], this.draw.forSave.coords);
+              }
+            } else {
+              if (r[0] === 'route') {
+                this.skres.getRoutes();
+              }
+              if (r[0] === 'waypoint') {
+                this.skres.getWaypoints();
+              }
+              if (r[0] === 'note' || r[0] === 'region') {
+                this.skres.getNotes();
               }
             }
-            if (r[0] === 'note') {
-              this.skres.updateNotePosition(r[1], this.draw.forSave.coords);
-            }
-            if (r[0] === 'region') {
-              this.skres.updateRegionCoords(r[1], this.draw.forSave.coords);
-            }
-          } else {
-            if (r[0] === 'route') {
-              this.skres.getRoutes();
-            }
-            if (r[0] === 'waypoint') {
-              this.skres.getWaypoints();
-            }
-            if (r[0] === 'note' || r[0] === 'region') {
-              this.skres.getNotes();
-            }
-          }
-          this.draw.forSave = null;
-          this.app.data.activeRouteIsEditing = false;
-          this.focusMap();
-        });
+            this.draw.forSave = null;
+            this.app.data.activeRouteIsEditing = false;
+            this.focusMap();
+          });
+      }
     }
     // clean up
     this.draw.enabled = false;
@@ -1511,16 +1583,6 @@ export class AppComponent {
         'The connected Signal K server is not supported by this version of Freeboard-SK.\n Signal K server version 2 or later is required!'
       );
     }
-    // ** get login status
-    this.signalk.getLoginStatus().subscribe((r) => {
-      this.app.data.loginRequired = r.authenticationRequired ?? false;
-    });
-    this.signalk.isLoggedIn().subscribe((r) => {
-      this.app.data.loggedIn = r;
-    });
-    // ** get vessel details
-    //const context= (this.app.data.vessels.activeId) ?
-    //    this.app.data.vessels.activeId.split('.').join('/') : 'vessels/self';
     this.signalk.api.getSelf().subscribe(
       (r) => {
         this.stream.post({
@@ -1653,7 +1715,7 @@ export class AppComponent {
 
     //autopilot
     if (this.app.data.vessels.self.autopilot.enabled) {
-      this.display.navDataPanel.apModeColor = '';
+      this.display.navDataPanel.apModeColor = 'primary';
     } else {
       this.display.navDataPanel.apModeColor = '';
     }

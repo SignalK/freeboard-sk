@@ -81,7 +81,11 @@ export class SettingsFacade {
       [120000, '2 min'],
       [180000, '3 min'],
       [360000, '6 min'],
-      [540000, '9 min']
+      [540000, '9 min'],
+      [15 * 60000, '15 min'],
+      [30 * 60000, '30 min'],
+      [60 * 60000, '1 hr'],
+      [24 * 60 * 60000, '24 hrs']
     ]),
     aisMaxRadius: new Map([
       [0, 'None'],
@@ -150,7 +154,9 @@ export class SettingsFacade {
   };
 
   // *****************************************************
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   public settings!: any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   public data!: any;
 
   update$() {
@@ -231,7 +237,7 @@ export class SettingsFacade {
       (a: Array<SKAppsList>) => {
         this.list.applications = a
           .map((i) => {
-            if (i.name == '@signalk/freeboard-sk') {
+            if (i.name === '@signalk/freeboard-sk') {
               return null;
             }
             if (!i._location && !i.location) {
@@ -248,7 +254,7 @@ export class SettingsFacade {
               return {
                 name: i.name,
                 description: i.description,
-                url: x == -1 ? i._location : i._location.slice(15)
+                url: x === -1 ? i._location : i._location.slice(15)
               };
             } else if (typeof i.location !== 'undefined') {
               return {
@@ -282,7 +288,7 @@ export class SettingsFacade {
     const i = this.app.config.selections.pluginFavourites.indexOf(
       this.app.config.plugins.instruments
     );
-    if (i != -1) {
+    if (i !== -1) {
       this.app.config.selections.pluginFavourites.splice(i, 1);
     }
   }

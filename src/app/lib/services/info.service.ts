@@ -31,7 +31,9 @@ export class Info {
 
   protected devMode: boolean;
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   public config: any; //** holds app configuration settings **
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   public data: any; //** holds app data **
   public state: State;
 
@@ -80,7 +82,7 @@ export class Info {
     };
     if (cv.version) {
       // ** check for newer version **
-      if (this.version.indexOf(cv.version) == -1) {
+      if (this.version.indexOf(cv.version) === -1) {
         value.result = 'update';
         this.debug(
           `AppInfo: Version update detected.. (${cv.version} -> ${this.version})`,

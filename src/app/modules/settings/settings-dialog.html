@@ -1037,6 +1037,19 @@
                     Search and Rescue (SaR)
                   </mat-checkbox>
                 </div>
+                <div class="setting-card-row-item">
+                  <mat-checkbox
+                    #skfiltermeteo
+                    color="primary"
+                    [(ngModel)]="facade.settings.selections.signalk.meteo"
+                    (change)="onFormChange($event, skfiltermeteo)"
+                    matToolTip="Check to receive Weather / Meteo data"
+                    matTooltipPosition="below"
+                    label="after"
+                  >
+                    Weather (Meteo)
+                  </mat-checkbox>
+                </div>
 
                 <div class="setting-card-row-item">
                   <br />

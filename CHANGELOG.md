@@ -1,5 +1,50 @@
 # CHANGELOG: Freeboard
 
+### v2.6.0
+
+- **Added**: Ability to show/hide toolbar buttons on both sides of the screen.
+- **Added**: Route builder. 1st release allows creating a route from waypoints.
+- **Fixed**: Wind speed values in vessel popover showing 0 rather than - when no value is present.
+
+### v2.5.0
+
+- **Added**: In the chart list, toggle the display of the bounds of all available charts on the map.
+- **Added**: Displaying vector charts with defined styles in a Mapbox style JSON file.
+- **Updated**: New Map icons for waypoints and AIS targets.
+
+**Weather** moves from `experiment` ->  feature with the introduction of the `meteo` context as per [nmea0183-signalk PR #245 - VDM Msg 8](https://github.com/SignalK/nmea0183-signalk).
+
+- **Added**: Display weather stations on the map and view observation data.
+- **Added**: Weather data relative to vessel position, sourced from _OpenWeather_, including hourly forecasts is available via the `meteo.freeboard-sk` context.
+- **Removed**: Option to use NOAA as weather source.
+
+**Experiments**: 
+- **Routes**: Render start / Finish line for the active route when values are present in route meta data.
+
+### v2.4.0
+
+- **Added**: Ability to shift anchor position.
+- **Fixed**: Issues where "Constrain Zoom" button did not toggle color to reflect status.
+
+### v2.3.2
+
+- **Fixed**: GPX load screen not displaying list of resources to select.
+- **Updated**: Openlayers version 8.
+
+### v2.3.1
+
+- **Fixed**: Issue in autopilot display where +/- adjustment buttons were not sending data to Pypilot.
+
+### v2.3.0
+
+- **Added**: Display a badge on menu icon when server has security enabled and client is not authenticated.
+- **Added**: Autopilot console for use with built-in PyPyilot integration.
+- **Added**: Display location of Man Overboard alarm on map.
+- **Added**: Additional remove AIS target timeout options.
+- **Updated**: Align anchor watch UI to anchor-alarm API operation.
+- **Updated**: Display the waypoint name when a route point is a reference to a waypoint resource.
+- **Updated**: Use updated typings in `@signalk/server-api`.
+
 ### v2.2.6
 
 - **Fixed**: Issue where anchor watch could not be set when Signal K server had security enabled. _(Requires signalk-anchoralarm-plugin v1.13.0 or later)_

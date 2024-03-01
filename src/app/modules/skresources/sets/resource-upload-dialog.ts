@@ -25,6 +25,7 @@ export class ResourceImportDialog implements OnInit {
     public app: AppInfo,
     public skclient: SignalKClient,
     public dialogRef: MatDialogRef<ResourceImportDialog>,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     @Inject(MAT_DIALOG_DATA) public data: { [key: string]: any }
   ) {}
 

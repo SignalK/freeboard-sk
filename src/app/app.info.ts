@@ -51,7 +51,8 @@ const FreeboardConfig = {
   vesselTrail: false, // display trail
   vesselWindVectors: true, // display vessel TWD, AWD vectors
   aisTargets: true, // display ais targets
-  courseData: true, // display course data
+  courseData: true, // show/hide course data
+  toolBarButtons: true, // show/hide toolbar buttons
   notes: true, // display notes
   popoverMulti: false, // close popovers using cose button
   mapDoubleClick: false, // true=zoom
@@ -118,6 +119,7 @@ const FreeboardConfig = {
       atons: true,
       aircraft: false,
       sar: false,
+      meteo: true,
       maxRadius: 0, // max radius within which AIS targets are displayed
       proxied: false // server behind a proxy server
     },
@@ -276,7 +278,7 @@ export class AppInfo extends Info {
     this.name = 'Freeboard-SK';
     this.shortName = 'Freeboard';
     this.description = `Signal K Chart Plotter.`;
-    this.version = '2.2.6';
+    this.version = '2.6.0';
     this.url = 'https://github.com/signalk/freeboard-sk';
     this.logo = './assets/img/app_logo.png';
 
@@ -285,7 +287,7 @@ export class AppInfo extends Info {
 
     // base config
     this.config = JSON.parse(JSON.stringify(FreeboardConfig));
-    // ** received data
+    // ** state data
     this.data = {
       loggedIn: false,
       loginRequired: false,
@@ -293,6 +295,7 @@ export class AppInfo extends Info {
       routes: [],
       waypoints: [],
       charts: [].concat(OSM),
+      chartBounds: false,
       alarms: new Map(),
       notes: [],
       resourceSets: {}, // additional resource sets
@@ -322,6 +325,7 @@ export class AppInfo extends Info {
       aircraft: new Map(), // received AIS aircraft data
       atons: new Map(), // received AIS AtoN data
       sar: new Map(), // received AIS SaR data
+      meteo: new Map(), // received AIS Meteo data
       aisMgr: {
         // manage aisTargets
         updateList: [],
@@ -351,6 +355,13 @@ export class AppInfo extends Info {
         raised: true,
         radius: 0,
         position: [0, 0]
+      },
+      autopilot: {
+        console: false, // display Autopilot console
+        hasApi: false // Server implements Autopilot API
+      },
+      buildRoute: {
+        show: false
       }
     };
 
@@ -620,6 +631,10 @@ export class AppInfo extends Info {
       settings.aisShowTrack = false;
     }
 
+    if (typeof settings.toolBarButtons === 'undefined') {
+      settings.toolBarButtons = true;
+    }
+
     if (typeof settings.units.temperature === 'undefined') {
       settings.units.temperature = 'c';
     }
@@ -693,6 +708,9 @@ export class AppInfo extends Info {
         sar: false,
         maxRadius: 0
       };
+    }
+    if (typeof settings.selections.signalk.meteo === 'undefined') {
+      settings.selections.signalk.meteo = true;
     }
     if (typeof settings.selections.wakeLock === 'undefined') {
       settings.selections.wakeLock = false;
@@ -816,14 +834,14 @@ export class AppInfo extends Info {
       'whats-new': [
         {
           type: 'signalk-server-node',
-          title: 'Important!',
+          title: 'Weather Information',
           message: `
-                        Freeboard version 2 is for use with Signal K server v2 that implements both the
-                        <b>Course API</b> and <b>Resources API</b>.
-                        <br>&nbsp;<br>
-                        Please review the <a href="https://github.com/SignalK/freeboard-sk/wiki/Signal-K---Freeboard-SK-Version-2" target="help">
-                        FAQ</a> for details about important changes.
-                    `
+            Freeboard now includes support for weather station data received
+            via messages with the <i>meteo</i> context.
+            <br>&nbsp;<br>
+            See <a href="assets/help/index.html" target="help">HELP</a> 
+            for details.
+          `
         }
       ]
     };
@@ -919,7 +937,62 @@ export class AppInfo extends Info {
       .afterClosed();
   }
 
+  /** returns a formatted string containing the value (converted to the preferred units)
+   * and units. (e.g. 12.5 knots, 8.8 m/s)
+   * Numbers are fixed to 1 decimal point
+   */
+  formatValueForDisplay(
+    value: number,
+    sourceUnits: 'K' | 'm/s' | 'rad' | 'm',
+    depthValue?: boolean
+  ): string {
+    if (sourceUnits === 'K') {
+      return this.config.units.temperature === 'c'
+        ? `${Convert.kelvinToCelcius(value).toFixed(1)}${String.fromCharCode(
+            186
+          )}C`
+        : `${Convert.kelvinToFarenheit(value).toFixed(1)}${String.fromCharCode(
+            186
+          )}F`;
+    } else if (sourceUnits === 'rad') {
+      return `${Convert.radiansToDegrees(value).toFixed(
+        1
+      )}${String.fromCharCode(186)}`;
+    } else if (sourceUnits === 'm') {
+      if (depthValue) {
+        return this.config.units.depth === 'm'
+          ? `${value.toFixed(1)} m`
+          : `${Convert.metersToFeet(value).toFixed(1)} ft`;
+      } else {
+        return this.config.units.distance === 'km'
+          ? `${(value / 1000).toFixed(1)} km`
+          : `${Convert.kmToNauticalMiles(value / 1000).toFixed(1)} NM`;
+      }
+    } else if (sourceUnits === 'm/s') {
+      switch (this.config.units.speed) {
+        case 'kmh':
+          return `${Convert.msecToKmh(value).toFixed(1)} km/h`;
+        case 'kn':
+          return `${Convert.msecToKnots(value).toFixed(1)} knots`;
+        case 'mph':
+          return `${Convert.msecToMph(value).toFixed(1)} mph`;
+        default:
+          return `${value} ${sourceUnits}`;
+      }
+    } else {
+      // timestamp
+      if (typeof value === 'string') {
+        if (value[String(value).length - 1] === 'Z' && value[10] === 'T') {
+          return new Date(value).toLocaleString();
+        }
+      }
+      return `${value}${sourceUnits}`;
+    }
+  }
+
+  // convert speed value and set the value of this.app.formattedSpeedUnits
   formatSpeed(value: number, asString = false): string | number {
+    const valIsNumber = typeof value === 'number';
     switch (this.config.units.speed) {
       case 'kn':
         value = Convert.msecToKnots(value);
@@ -937,9 +1010,9 @@ export class AppInfo extends Info {
         this.formattedSpeedUnits = 'm/s';
     }
     if (asString) {
-      return typeof value === 'number' ? value.toFixed(1) : '-';
+      return valIsNumber ? value.toFixed(1) : '-';
     } else {
-      return typeof value === 'number' ? value : '-';
+      return valIsNumber ? value : '-';
     }
   }
 

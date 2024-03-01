@@ -44,6 +44,7 @@ export class GPXExportDialog implements OnInit {
     public app: AppInfo,
     public facade: GPXSaveFacade,
     public dialogRef: MatDialogRef<GPXExportDialog>,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     @Inject(MAT_DIALOG_DATA) public data: any
   ) {}
 
@@ -91,7 +92,7 @@ export class GPXExportDialog implements OnInit {
     this.resData.routes.forEach(() => {
       this.selRoutes.push(false);
     });
-    if (this.selRoutes.length == 1) {
+    if (this.selRoutes.length === 1) {
       this.selRoutes[0] = true;
       this.display.allRoutesChecked = true;
       this.display.expand.routes = true;
@@ -108,7 +109,7 @@ export class GPXExportDialog implements OnInit {
   // ** select Route idx=-1 -> check all
   checkRte(checked: boolean, idx = -1) {
     let selcount = 0;
-    if (idx != -1) {
+    if (idx !== -1) {
       this.selRoutes[idx] = checked;
       this.display.saveRoutesOK = checked;
       for (const c of this.selRoutes) {
@@ -116,9 +117,9 @@ export class GPXExportDialog implements OnInit {
           selcount++;
         }
       }
-      this.display.saveRoutesOK = selcount != 0 ? true : false;
+      this.display.saveRoutesOK = selcount !== 0 ? true : false;
       this.display.selCount.routes = selcount;
-      this.display.allRoutesChecked = selcount == this.selRoutes.length;
+      this.display.allRoutesChecked = selcount === this.selRoutes.length;
     } else {
       for (let i = 0; i < this.selRoutes.length; i++) {
         this.selRoutes[i] = checked;
@@ -128,13 +129,13 @@ export class GPXExportDialog implements OnInit {
       this.display.selCount.routes = checked ? this.selRoutes.length : 0;
     }
     this.display.someRteChecked =
-      this.display.allRoutesChecked || selcount == 0 ? false : true;
+      this.display.allRoutesChecked || selcount === 0 ? false : true;
   }
 
   // ** select Waypoint idx=-1 -> check all
   checkWpt(checked: boolean, idx = -1) {
     let selcount = 0;
-    if (idx != -1) {
+    if (idx !== -1) {
       this.selWaypoints[idx] = checked;
       this.display.saveWaypointsOK = checked;
       for (const c of this.selWaypoints) {
@@ -142,9 +143,9 @@ export class GPXExportDialog implements OnInit {
           selcount++;
         }
       }
-      this.display.saveWaypointsOK = selcount != 0 ? true : false;
+      this.display.saveWaypointsOK = selcount !== 0 ? true : false;
       this.display.selCount.waypoints = selcount;
-      this.display.allWaypointsChecked = selcount == this.selWaypoints.length;
+      this.display.allWaypointsChecked = selcount === this.selWaypoints.length;
     } else {
       for (let i = 0; i < this.selWaypoints.length; i++) {
         this.selWaypoints[i] = checked;
@@ -154,13 +155,13 @@ export class GPXExportDialog implements OnInit {
       this.display.selCount.waypoints = checked ? this.selWaypoints.length : 0;
     }
     this.display.someWptChecked =
-      this.display.allWaypointsChecked || selcount == 0 ? false : true;
+      this.display.allWaypointsChecked || selcount === 0 ? false : true;
   }
 
   // ** select Track idx=-1 -> check all
   checkTrk(checked: boolean, idx = -1) {
     let selcount = 0;
-    if (idx != -1) {
+    if (idx !== -1) {
       this.selTracks[idx] = checked;
       this.display.saveTracksOK = checked;
       for (const c of this.selTracks) {
@@ -168,9 +169,9 @@ export class GPXExportDialog implements OnInit {
           selcount++;
         }
       }
-      this.display.saveTracksOK = selcount != 0 ? true : false;
+      this.display.saveTracksOK = selcount !== 0 ? true : false;
       this.display.selCount.tracks = selcount;
-      this.display.allTracksChecked = selcount == this.selTracks.length;
+      this.display.allTracksChecked = selcount === this.selTracks.length;
     } else {
       for (let i = 0; i < this.selTracks.length; i++) {
         this.selTracks[i] = checked;
@@ -180,6 +181,6 @@ export class GPXExportDialog implements OnInit {
       this.display.selCount.tracks = checked ? this.selTracks.length : 0;
     }
     this.display.someTrkChecked =
-      this.display.allTracksChecked || selcount == 0 ? false : true;
+      this.display.allTracksChecked || selcount === 0 ? false : true;
   }
 }

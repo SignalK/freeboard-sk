@@ -2,7 +2,8 @@ import {
   SKVessel,
   SKAtoN,
   SKAircraft,
-  SKSaR
+  SKSaR,
+  SKMeteo
 } from 'src/app/modules/skresources/resource-classes';
 
 type AisIds = Array<string>;
@@ -27,6 +28,7 @@ export interface ResultPayload {
   atons: Map<string, SKAtoN>;
   aircraft: Map<string, SKAircraft>;
   sar: Map<string, SKSaR>;
+  meteo: Map<string, SKMeteo>;
 }
 
 export class NotificationMessage implements WorkerMessageBase {

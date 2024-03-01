@@ -5,7 +5,8 @@ import {
   SKVessel,
   SKAtoN,
   SKAircraft,
-  SKSaR
+  SKSaR,
+  SKMeteo
 } from 'src/app/modules/skresources/resource-classes';
 import { Convert } from 'src/app/lib/convert';
 import { GeoUtils, Extent } from 'src/app/lib/geoutils';
@@ -24,6 +25,7 @@ interface AisStatus {
 }
 
 interface AisFilter {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   signalk: { [key: string]: any };
   aisState: [];
 }
@@ -50,6 +52,7 @@ interface MsgFromApp {
     | 'vessel'
     | 'auth'
     | 'trail';
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   options: { [key: string]: any };
 }
 
@@ -105,6 +108,11 @@ const trailMgr: VesselTrailConfig = {
   }
 };
 
+// current delta $source
+let $source!: string;
+// autopilot device id
+let apDeviceId = 'freeboard-sk';
+
 // *******************************************************************
 
 // ** Initialise message data structures **
@@ -120,7 +128,8 @@ function initVessels() {
     paths: {},
     atons: new Map(),
     aircraft: new Map(),
-    sar: new Map()
+    sar: new Map(),
+    meteo: new Map()
   };
   // flag to indicate at least one position data message received
   vessels.self['positionReceived'] = false;
@@ -267,6 +276,7 @@ function handleCommand(data: MsgFromApp) {
   }
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function applySettings(opt: { [key: string]: any } = {}) {
   if (opt.interval && typeof opt.interval === 'number') {
     msgInterval = opt.interval;
@@ -346,6 +356,7 @@ function getAISTracks() {
     .then((r) => {
       hasTrackPlugin = true;
       // update ais vessels track data
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       Object.entries(r).forEach((t: any) => {
         if (vessels.aisTargets.has(t[0])) {
           const v = vessels.aisTargets.get(t[0]);
@@ -411,7 +422,7 @@ function getVesselTrail(opt: VesselTrailConfig) {
       res.forEach((r) => {
         if (r.type && r.type === 'MultiLineString') {
           if (r.coordinates && Array.isArray(r.coordinates)) {
-            if (idx != lastIdx) {
+            if (idx !== lastIdx) {
               // > 1hr simplify trail
               let coords = [];
               r.coordinates.forEach((line) => {
@@ -538,6 +549,7 @@ function parseStreamMessage(data) {
       if (!u.values) {
         return;
       }
+      $source = u.$source;
       u.values.forEach((v) => {
         playbackTime = u.timestamp;
         if (!data.context) {
@@ -569,6 +581,16 @@ function parseStreamMessage(data) {
               data.context,
               vessels.aircraft,
               targetFilter?.signalk.aircraft
+            );
+            break;
+          case 'meteo': // weather station
+            if (targetFilter?.signalk.meteo) {
+              processMeteo(data.context, v), processNotifications(v);
+            }
+            filterContext(
+              data.context,
+              vessels.meteo,
+              targetFilter?.signalk.meteo
             );
             break;
 
@@ -633,7 +655,7 @@ function filterContext(
       targetStatus.updated[context] = true;
     }
   } else {
-    if (group.size != 0) {
+    if (group.size !== 0) {
       group.forEach((v, k) => {
         targetStatus.expired[k] = true;
       });
@@ -726,26 +748,29 @@ function processVessel(d: SKVessel, v, isSelf = false) {
       v.path.indexOf('course') !== -1
         ? v.path.split('.').slice(0, 2).join('.')
         : v.path;
-    if (prefSourcePaths.indexOf(cp) != -1) {
+    if (prefSourcePaths.indexOf(cp) !== -1) {
       vessels.paths[cp] = null;
     }
   }
 
   if (v.path === '') {
-    if (typeof v.value.name != 'undefined') {
+    if (typeof v.value.name !== 'undefined') {
       d.name = v.value.name;
     }
-    if (typeof v.value.mmsi != 'undefined') {
+    if (typeof v.value.mmsi !== 'undefined') {
       d.mmsi = v.value.mmsi;
     }
-    if (typeof v.value.buddy != 'undefined') {
+    if (typeof v.value.buddy !== 'undefined') {
       d.buddy = v.value.buddy;
     }
   } else if (v.path === 'communication.callsignVhf') {
     d.callsign = v.value;
   } else if (v.path === 'navigation.position' && v.value) {
     // position is not null
-    if (typeof v.value.longitude === 'undefined') {
+    if (
+      typeof v.value.latitude === 'undefined' ||
+      typeof v.value.longitude === 'undefined'
+    ) {
       return;
     } // invalid
     d.position = GeoUtils.normaliseCoords([
@@ -820,11 +845,11 @@ function processVessel(d: SKVessel, v, isSelf = false) {
   }
 
   // ** closest approach **
-  else if (v.path.indexOf('navigation.closestApproach') != -1) {
+  else if (v.path.indexOf('navigation.closestApproach') !== -1) {
     d.closestApproach = v.value;
   }
 
-  // ** anchor radius / position **
+  // anchor radius / position
   else if (v.path === 'navigation.anchor.position') {
     d.anchor.position = v.value;
   } else if (v.path === 'navigation.anchor.maxRadius') {
@@ -833,42 +858,45 @@ function processVessel(d: SKVessel, v, isSelf = false) {
     d.anchor.radius = v.value;
   }
 
-  // ** resource deltas **
-  else if (v.path.indexOf('resources.') != -1) {
+  // resource deltas
+  else if (v.path.indexOf('resources.') !== -1) {
     d.resourceUpdates.push(v);
   }
 
-  // ** steering.autopilot **
-  else if (v.path === 'steering.autopilot.state') {
+  // steering.autopilot
+  else if (v.path === 'steering.autopilot.state' && $source === apDeviceId) {
     d.autopilot.state = v.value;
-  } else if (v.path === 'steering.autopilot.mode') {
+  } else if (v.path === 'steering.autopilot.mode' && $source === apDeviceId) {
     d.autopilot.mode = v.value;
-  } else if (v.path === 'steering.autopilot.target') {
+  } else if (v.path === 'steering.autopilot.target' && $source === apDeviceId) {
     d.autopilot.target = v.value;
-  } else if (v.path === 'steering.autopilot.enabled') {
+  } else if (
+    v.path === 'steering.autopilot.engaged' &&
+    $source === apDeviceId
+  ) {
     d.autopilot.enabled = v.value;
-  } else {
-    d.properties[v.path] = v.value;
+  } else if (v.path === 'steering.autopilot.defaultPilot') {
+    apDeviceId = v.value;
   }
 
-  // ** ensure a value due to use in wind angle calc
-  d.heading = d.heading === null && d.cog != null ? d.cog : d.heading;
+  // ensure a value due to use in wind angle calc
+  d.heading = d.heading === null && d.cog !== null ? d.cog : d.heading;
 
-  // ** use preferred heading value for orientation **
+  // use preferred heading value for orientation **
   if (
     typeof preferredPaths['heading'] !== 'undefined' &&
     v.path === preferredPaths['heading']
   ) {
     d.orientation = v.value;
   }
-  // ** use preferred path value for tws **
+  // use preferred path value for tws **
   if (
     typeof preferredPaths['tws'] !== 'undefined' &&
     v.path === preferredPaths['tws']
   ) {
     d.wind.tws = v.value;
   }
-  // ** use preferred path value for twd **
+  // use preferred path value for twd **
   if (
     typeof preferredPaths['twd'] !== 'undefined' &&
     v.path === preferredPaths['twd']
@@ -881,7 +909,7 @@ function processVessel(d: SKVessel, v, isSelf = false) {
   }
 }
 
-// ** process notification messages **
+// process notification messages **
 function processNotifications(v, vessel?: string) {
   const data = { path: v.path, value: v.value, context: vessel || null };
   let type: string;
@@ -914,39 +942,40 @@ function processNotifications(v, vessel?: string) {
       'listing',
       'adrift',
       'abandon'
-    ].indexOf(seg[seg.length - 1]) != -1
+    ].indexOf(seg[seg.length - 1]) !== -1
   ) {
     type = seg[seg.length - 1];
   }
 
   // ** closest Approach **
-  if (v.path.indexOf('notifications.navigation.closestApproach') != -1) {
+  if (v.path.indexOf('notifications.navigation.closestApproach') !== -1) {
     type = seg[2];
     data.context = seg[3];
   }
 
   // ** Buddy **
-  if (v.path.indexOf('notifications.buddy') != -1) {
+  if (v.path.indexOf('notifications.buddy') !== -1) {
     type = seg[1];
     data.context = seg[2];
   }
 
   // ** arrivalCircle **
   if (
-    v.path.indexOf('notifications.navigation.course.arrivalCircleEntered') != -1
+    v.path.indexOf('notifications.navigation.course.arrivalCircleEntered') !==
+    -1
   ) {
     type = seg[3];
   }
   // ** perpendicularPassed **
   if (
-    v.path.indexOf('notifications.navigation.course.perpendicularPassed') != -1
+    v.path.indexOf('notifications.navigation.course.perpendicularPassed') !== -1
   ) {
     type = seg[3];
   }
 
   // ** weather warning **
-  if (v.path.indexOf('notifications.environment.weather.warning') != -1) {
-    type = seg[2];
+  if (v.path.indexOf('notifications.meteo.warning') !== -1) {
+    type = seg[1];
   }
 
   if (type) {
@@ -957,7 +986,7 @@ function processNotifications(v, vessel?: string) {
   }
 }
 
-// ** process / cleanup stale / obsolete AIS vessels, aircraft, SaR targets
+// process / cleanup stale / obsolete AIS vessels, aircraft, SaR targets
 function processAISStatus() {
   const now = new Date().valueOf();
   vessels.aisTargets.forEach((v, k) => {
@@ -995,7 +1024,7 @@ function processAISStatus() {
 // process AtoN values
 function processAtoN(id: string, v): string {
   let isBaseStation = false;
-  if (id.indexOf('shore.basestations') != -1) {
+  if (id.indexOf('shore.basestations') !== -1) {
     isBaseStation = true;
   }
   if (!vessels.atons.has(id)) {
@@ -1010,13 +1039,13 @@ function processAtoN(id: string, v): string {
   }
   const d = vessels.atons.get(id);
   if (v.path === '') {
-    if (typeof v.value.name != 'undefined') {
+    if (typeof v.value.name !== 'undefined') {
       d.name = v.value.name;
     }
-    if (typeof v.value.mmsi != 'undefined') {
+    if (typeof v.value.mmsi !== 'undefined') {
       d.mmsi = v.value.mmsi;
     }
-    if (typeof v.value.atonType != 'undefined') {
+    if (typeof v.value.atonType !== 'undefined') {
       d.type = v.value.atonType;
     }
   } else if (v.path === 'atonType') {
@@ -1024,7 +1053,9 @@ function processAtoN(id: string, v): string {
   } else if (v.path === 'navigation.position') {
     d.position = [v.value.longitude, v.value.latitude];
     d['positionReceived'] = true;
-  } else {
+  }
+  // properties
+  else {
     d.properties[v.path] = v.value;
   }
 
@@ -1043,10 +1074,10 @@ function processSaR(id: string, v) {
   }
   const d = vessels.sar.get(id);
   if (v.path === '') {
-    if (typeof v.value.name != 'undefined') {
+    if (typeof v.value.name !== 'undefined') {
       d.name = v.value.name;
     }
-    if (typeof v.value.mmsi != 'undefined') {
+    if (typeof v.value.mmsi !== 'undefined') {
       d.mmsi = v.value.mmsi;
     }
   } else if (v.path === 'communication.callsignVhf') {
@@ -1057,8 +1088,36 @@ function processSaR(id: string, v) {
       v.value.latitude
     ]);
     d['positionReceived'] = true;
-  } else {
-    d.properties[v.path] = v.value;
+  }
+}
+
+// process Meteo values
+function processMeteo(id: string, v) {
+  if (!vessels.meteo.has(id)) {
+    const meteo = new SKMeteo();
+    meteo.id = id;
+    meteo.position = null;
+    meteo.type.id = -1;
+    meteo.type.name = 'Weather Station';
+    vessels.meteo.set(id, meteo);
+  }
+  const d = vessels.meteo.get(id);
+  if (v.path === '') {
+    if (typeof v.value.name !== 'undefined') {
+      d.name = v.value.name;
+    }
+    if (typeof v.value.mmsi !== 'undefined') {
+      const nid = id.split(':').slice(-2); //meteo extended id
+      d.mmsi = nid.length === 2 ? `${nid[0]}:${nid[1]}` : v.value.mmsi;
+    }
+  } else if (v.path === 'communication.callsignVhf') {
+    d.callsign = v.value;
+  } else if (v.path === 'navigation.position' && v.value) {
+    d.position = GeoUtils.normaliseCoords([
+      v.value.longitude,
+      v.value.latitude
+    ]);
+    d['positionReceived'] = true;
   }
 }
 
@@ -1071,10 +1130,10 @@ function processAircraft(id: string, v) {
   }
   const d = vessels.aircraft.get(id);
   if (v.path === '') {
-    if (typeof v.value.name != 'undefined') {
+    if (typeof v.value.name !== 'undefined') {
       d.name = v.value.name;
     }
-    if (typeof v.value.mmsi != 'undefined') {
+    if (typeof v.value.mmsi !== 'undefined') {
       d.mmsi = v.value.mmsi;
     }
   } else if (v.path === 'communication.callsignVhf') {
@@ -1090,8 +1149,6 @@ function processAircraft(id: string, v) {
     d.orientation = v.value;
   } else if (v.path === 'navigation.speedOverGround') {
     d.sog = v.value;
-  } else {
-    d.properties[v.path] = v.value;
   }
 }
 
@@ -1102,7 +1159,7 @@ function appendTrack(d: SKAircraft | SKVessel) {
   } else {
     const l = d.track[d.track.length - 1].length;
     const lastPoint = d.track[d.track.length - 1][l - 1];
-    if (lastPoint[0] != d.position[0] && lastPoint[1] != d.position[1]) {
+    if (lastPoint[0] !== d.position[0] && lastPoint[1] !== d.position[1]) {
       d.track[d.track.length - 1].push(d.position);
     }
   }

@@ -1,8 +1,7 @@
 /* You can add global styles to this file, and also import other style files */
 @import '../node_modules/ol/ol.css';
-@import url('assets/fonts/material-roboto.css');
-@import url('assets/fonts/material-icons.css');
-@import url('assets/css/foundation-icons.css');
+@import url('../font_resources/material/material-roboto.css');
+@import url('../font_resources/material/material-icons.css');
 
 * { -webkit-tap-highlight-color: transparent; }
 * { tap-highlight-color: transparent; }	
@@ -39,7 +38,7 @@ b { font-weight: 500; }
 .ol-scale-line {
     bottom: unset;
     top: 10px;
-    left: 135px;
+    left: 180px;
     background-color: transparent;
     font-family: 'Roboto';
 }

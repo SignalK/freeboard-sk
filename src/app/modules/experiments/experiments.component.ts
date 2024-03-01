@@ -13,13 +13,9 @@ import { Component, Output, EventEmitter } from '@angular/core';
           <mat-icon>filter_drama</mat-icon>
           <span>EXP_NAME_HERE</span>			
       </a>
-      <a mat-menu-item>
-          <span>None Available</span>	
-      </a>
-      -->
-      <a mat-menu-item (click)="handleSelect('weather_forecast')">
-        <mat-icon>ac_unit</mat-icon>
-        <span>Weather Forecast</span>
+-->
+      <a mat-menu-item [disabled]="true">
+        <span>None Available</span>
       </a>
     </mat-menu>
 
@@ -38,10 +34,12 @@ import { Component, Output, EventEmitter } from '@angular/core';
   styles: [``]
 })
 export class ExperimentsComponent {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   @Output() selected: EventEmitter<any> = new EventEmitter();
 
   //constructor() {}
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   handleSelect(choice: string, value?: any) {
     this.selected.emit({ choice: choice, value: value });
   }

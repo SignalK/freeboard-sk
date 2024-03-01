@@ -41,40 +41,11 @@
             text-align: right;
           "
         >
-          {{ feet ? mToFt(radius) : radius }}
+          {{ radius === -1 ? '--' : feet ? mToFt(radius) : radius.toFixed(0) }}
         </b>
         <b style="position: fixed; top: 105px; left: 109px; text-align: left">
           {{ feet ? 'ft' : 'm' }}
         </b>
-      </div>
-
-      <div>
-        <br />
-        <b>Set Radius:</b>
-      </div>
-      <div style="display: flex">
-        <div>
-          <mat-slider
-            discrete
-            [color]="display.sliderColor"
-            [disabled]="disable"
-            [min]="this.feet ? mToFt(min) : min"
-            [max]="this.feet ? mToFt(max) : max"
-            step="1"
-            tickInterval="1"
-          >
-            <input
-              matSliderThumb
-              [value]="this.feet ? mToFt(sliderValue) : sliderValue"
-              (valueChange)="setRadius($event)"
-            />
-          </mat-slider>
-        </div>
-        <div
-          style="flex: 1; font-size: 10pt; line-height: 3em; text-align: right"
-        >
-          {{ feet ? mToFt(msg.radius) : msg.radius }} {{ feet ? 'ft' : 'm' }}
-        </div>
       </div>
     </mat-card-content>
 
@@ -85,7 +56,7 @@
           RAISE
           <mat-slide-toggle
             #slideCtl
-            color="warn"
+            color="primary"
             [hideIcon]="true"
             [disabled]="disable"
             [checked]="!raised"
@@ -97,4 +68,72 @@
       </div>
     </mat-card-actions>
   </mat-card>
+
+  <div *ngIf="!raised">
+    <mat-stepper
+      orientation="vertical"
+      [linear]="true"
+      [selectedIndex]="rodeOut ? 1 : 0"
+      #stepper
+    >
+      <mat-step label="Let out rode" editable="false">
+        <i>When rode is out click <b>Set</b>.</i>
+        <div>
+          <button
+            mat-mini-fab
+            color="primary"
+            matStepperNext
+            (click)="rodeOut = true; setRadius()"
+          >
+            Set
+          </button>
+        </div>
+      </mat-step>
+      <mat-step label="Adjust" editable="false">
+        <div>
+          <div>
+            <br />
+            <b>Set Radius:</b>
+          </div>
+          <div style="display: flex">
+            <div>
+              <mat-slider
+                discrete
+                color="primary"
+                [disabled]="disable"
+                [min]="this.feet ? mToFt(min) : min"
+                [max]="this.feet ? mToFt(max) : max"
+                step="1"
+                tickInterval="1"
+              >
+                <input
+                  matSliderThumb
+                  [value]="this.feet ? mToFt(sliderValue) : sliderValue"
+                  (valueChange)="setRadius($event)"
+                />
+              </mat-slider>
+            </div>
+            <div
+              style="
+                flex: 1;
+                font-size: 10pt;
+                line-height: 3em;
+                text-align: right;
+              "
+            >
+              {{ feet ? mToFt(msg.radius) : msg.radius }}
+              {{ feet ? 'ft' : 'm' }}
+            </div>
+          </div>
+        </div>
+        <div>
+          <div>
+            <br />
+            <b>Shift Anchor:</b>
+          </div>
+          <nsew-buttons (direction)="shiftAnchor($event)"></nsew-buttons>
+        </div>
+      </mat-step>
+    </mat-stepper>
+  </div>
 </div>

@@ -1,11 +1,18 @@
 # Freeboard-SK
-Freeboard-SK is a stateless, multi-station, Openlayers based chart plotter for Signal K for displaying and managing routes, waypoints, notes, alarms, notifications and more from any web enabled device.
+Freeboard-SK is a stateless, multi-station, Openlayers based chart plotter for Signal K.
+Use it to display:
+- Resources _(i.e. routes, waypoints, notes, charts, etc)_
+- Alarms & notifications
+- AIS information
+- Weather information
+- Signal K instrument WebApps.
+
+and more from any web enabled device.
 
 ![screen](https://user-images.githubusercontent.com/38519157/128667564-0f5e1ed6-eaae-40c7-ad62-5e7011c1f082.png)
 
 
 ## Features:
----
 
 ### Vessel / Chart Display:
 
@@ -72,52 +79,19 @@ Whilst not specifically defined in the Signal K specification, Freeboard-SK supp
 
 Freeboard-SK can display alarms _(visual and audio)_ & messages contained in *Notification* messages transmitted by the Signal K server.
 
-Alarm types supported include:
+Additionally you can set alarms, including _anchor watch_, as well as raise alarms such as _man overboard_, _sinking_, etc directly from the user interface.
+
+Supported alarm types include:
 - Depth
 - Closest Approach
-- Anchor drag
+- Anchor drag / watch
 - "Buddy" notifications
-- All standard Signal K Alarms (i.e. `Man overboard`, `Sinking`, etc.)
+- All Signal K specification defined alarms.
 
-Additionally you can raise `anchor watch` and a number of the standard alarms such as `Man overboard`, `Sinking`, etc directly from the user interface.
 
-Freeboard-SK also implements the following API endpoint to accept requests for raising and clearing notifications for Signal K Standard Alarms:
-```
-/signalk/v2/api/notifications/<standard_alarm>
-```
+Freeboard-SK also implements API endpoints to accept requests for raising and clearing Signal K specification defined alarms. 
 
-_Example: Raise Man overboard alarm (default message):_
-```
-HTTP PUT 'http://host:port/signalk.v2/api/notifications/mob'
-```
-
-_Example: Raise Man overboard alarm (custom message):_
-```
-HTTP PUT 'http://host:port/signalk.v2/api/notifications/mob' {
-    "message": "Man Overboard!"
-}
-```
-
-_Example: Clear Man overboard alarm:_
-```
-HTTP DELETE 'http://host:port/signalk.v2/api/notifications/mob'
-```
-
-_**Signal K Standard Alarms:**_
-- mob
-- fire
-- sinking
-- flooding
-- collision
-- grounding
-- listing
-- adrift
-- piracy
-- abandon
-
-_Vessel Closest Approach alarm:_
-![screen](https://user-images.githubusercontent.com/38519157/128667564-0f5e1ed6-eaae-40c7-ad62-5e7011c1f082.png)
-
+_See OpenAPI documentation in Signal K Server Admin UI for details._
 
 
 ---
@@ -130,13 +104,13 @@ Freeboard-SK supports the Siganl K `playback` api and can replay recorded time-s
 
 ### Instruments: 
 
-Freeboard-SK allows you to use your favourite instrumentation app installed on the Signal K server.
+Freeboard-SK allows you to use your favourite instrumentation apps installed on the Signal K server.
 
-Select one or more from the installed applications listed in the `settings` screen and they will displayed in the instrument panel drawer.
+Select one or more installed applications listed in the `settings` screen and they will displayed in the instrument drawer.
 
-When more than one app is selected you can cycle through them within the instrument panel.
+When more than one app is selected you can cycle through them within the instrument drawer.
 
-_Note: The `Instrument Panel` app is the default application if no user selection has been made._
+_Note: The `Signal K Instrument Panel` app will be displayed if no user selection has been made._
 
 ![instruments](https://user-images.githubusercontent.com/38519157/128668406-02cbb8d8-2353-4e93-ae5e-12e0c7d507fe.png)
 
@@ -144,17 +118,18 @@ _Note: The `Instrument Panel` app is the default application if no user selectio
 
 ### Experiments: 
 
-To get access to experimental Freeboard-SK features ensure you check the **Experimental Features** option in **Settings**.
+Features that are not ready for "prime time" are made available as experiments.
 
-Checking this option will make these features appear in the user interface.
+To make experimental features available from within the Freeboard-SK user interface, you need to ensure the **Experimental Features** option is checked in **Settings**.
+
+_Note: Some experiments will require configuration of Freeboard-SK via the _Plugin Config_ screen of the Signal K Server Admin UI._
 
 ---
 
 ## System Requirements:
 
-Freeboard-SK requires **Signal K API Version 2** as it makes use of both the v2 `Resources` and `Course` APIs.
+**Freeboard-SK requires _Signal K Server Version 2.0 or above**.
 
-_If installed on Signal K v1.x.x Freeboard features may not be fully functional!_
 
 The following features require that the Signal K server have plugins / providers installed to service the following paths:
 
@@ -176,6 +151,7 @@ The following features require that the Signal K server have plugins / providers
 The following plugins are recommended for the *Signal K node server* to enable full functionality:
 
 - @signalk/charts-plugin *(Charts provider)*
+- signalk-pmtiles-plugin *(ProtoMaps chart provider)*
 - signalk-anchoralarm-plugin _(anchor alarm settings & notifications)_
 - signalk-simple-notifications _(depth alarm notifications)_
 - @signalk/course-provider _(course calculations e.g. XTE, DTG, etc.)_
@@ -209,20 +185,7 @@ DEV_SERVER {
 
 _Note: These settings apply in **Development Mode** only!_
 
-```
-npm start
-ng serve 
-ng build
-```
-
-
 _They will __NOT__ apply when using **Production Mode**, the generated application will attempt to connect to a Signal K api / stream on the hosting server._
-
-```
-ng build -c production
-or
-npm run build:web
-```
 
 ---
 
@@ -230,22 +193,21 @@ npm run build:web
 
 __Building the Application:__
 
-To build all components of the application ready for release use the `npm run build:all` command.
+To build all components of the application _(plugin and webapp)_ ready for release use the `npm run build:prod` command.
 
-__Building individual components:__
+__Building components individually:__
 
-- To build only the _web application_ use the `npm run build:web` command.
-- To build only the _helper plugin_ use the `npm run build:helper` command.
+- To build only the _webapp_ use the command `npm run build:web`.
+- To build only the _helper plugin_ use the command `npm run build:helper`.
 
+Built files _(for deployment)_ are placed in the following folders:
+-  `/public` _(Freeboard-SK web app)_
+-  `/plugin` _(Freeboard-SK plugin)_
 
-Built files for deployment are placed in the following folders:
--  `/public` (web application)
--  `/plugin` (helper plugin)
+__Building the NPM package:__
 
-__Building NPM package:__
-
-To build the NPM package use `npm pack` command which will:
-1. Execute `npm run build:all`
+To build the NPM package use the `npm pack` command to:
+1. Execute `npm run build:prod`
 1. Create the NPM package (`.tgz`) file in the root folder of the project.
 
 ---

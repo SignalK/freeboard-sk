@@ -163,7 +163,7 @@ export class ResourceDialog implements OnInit {
   public icon: string;
 
   public resourceTypeList = [
-    { type: '', name: 'Waypoint', icon: './assets/img/marker-gold.png' },
+    { type: '', name: 'Waypoint', icon: './assets/img/marker-yellow.png' },
     {
       type: 'pseudoAtoN',
       name: 'Pseudo AtoN',
@@ -237,57 +237,58 @@ export class ResourceDialog implements OnInit {
       </mat-toolbar>
 
       <mat-card>
-        <div style="display:flex;flex-direction: column;">
-          <div style="display:flex;">
-            <div class="key-label">Name:</div>
-            <div style="flex: 1 1 auto;">{{ vInfo.name }}</div>
-          </div>
-          <div style="display:flex;">
-            <div class="key-label">MMSI:</div>
-            <div style="flex: 1 1 auto;">{{ vInfo.mmsi }}</div>
-          </div>
-          <div style="display:flex;" *ngIf="vInfo.flag">
-            <div class="key-label">Flag:</div>
-            <div style="flex: 1 1 auto;">{{ vInfo.flag }}</div>
-          </div>
-          <div style="display:flex;" *ngIf="vInfo.port">
-            <div class="key-label">Port:</div>
-            <div style="flex: 1 1 auto;">{{ vInfo.port }}</div>
-          </div>
-          <div style="display:flex;" *ngIf="vInfo.callsign">
-            <div class="key-label">Call sign:</div>
-            <div style="flex: 1 1 auto;">{{ vInfo.callsign }}</div>
-          </div>
-          <div style="display:flex;" *ngIf="vInfo.length">
-            <div class="key-label">Dimensions:</div>
-            <div style="flex: 1 1 auto;">
-              {{ vInfo.length }} x {{ vInfo.beam }}
+        <mat-card-content>
+          <div style="display:flex;flex-direction: column;">
+            <div style="display:flex;">
+              <div class="key-label">Name:</div>
+              <div style="flex: 1 1 auto;">{{ vInfo.name }}</div>
+            </div>
+            <div style="display:flex;">
+              <div class="key-label">MMSI:</div>
+              <div style="flex: 1 1 auto;">{{ vInfo.mmsi }}</div>
+            </div>
+            <div style="display:flex;" *ngIf="vInfo.flag">
+              <div class="key-label">Flag:</div>
+              <div style="flex: 1 1 auto;">{{ vInfo.flag }}</div>
+            </div>
+            <div style="display:flex;" *ngIf="vInfo.port">
+              <div class="key-label">Port:</div>
+              <div style="flex: 1 1 auto;">{{ vInfo.port }}</div>
+            </div>
+            <div style="display:flex;" *ngIf="vInfo.callsign">
+              <div class="key-label">Call sign:</div>
+              <div style="flex: 1 1 auto;">{{ vInfo.callsign }}</div>
+            </div>
+            <div style="display:flex;" *ngIf="vInfo.length">
+              <div class="key-label">Dimensions:</div>
+              <div style="flex: 1 1 auto;">
+                {{ vInfo.length }} x {{ vInfo.beam }}
+              </div>
+            </div>
+            <div style="display:flex;" *ngIf="vInfo.draft">
+              <div class="key-label">Draft:</div>
+              <div style="flex: 1 1 auto;">{{ vInfo.draft }}</div>
+            </div>
+            <div style="display:flex;" *ngIf="vInfo.height">
+              <div class="key-label">Height:</div>
+              <div style="flex: 1 1 auto;">{{ vInfo.height }}</div>
+            </div>
+            <div style="display:flex;" *ngIf="vInfo.state">
+              <div class="key-label">State:</div>
+              <div style="flex: 1 1 auto;">{{ vInfo.state }}</div>
+            </div>
+            <div style="display:flex;" *ngIf="vInfo.destination">
+              <div class="key-label">Destination:</div>
+              <div style="flex: 1 1 auto;">{{ vInfo.destination }}</div>
+            </div>
+            <div style="display:flex;" *ngIf="vInfo.eta">
+              <div class="key-label">ETA:</div>
+              <div style="flex: 1 1 auto;">
+                {{ vInfo.eta.toLocaleString() }}
+              </div>
             </div>
           </div>
-          <div style="display:flex;" *ngIf="vInfo.draft">
-            <div class="key-label">Draft:</div>
-            <div style="flex: 1 1 auto;">{{ vInfo.draft }}</div>
-          </div>
-          <div style="display:flex;" *ngIf="vInfo.height">
-            <div class="key-label">Height:</div>
-            <div style="flex: 1 1 auto;">{{ vInfo.height }}</div>
-          </div>
-          <div style="display:flex;" *ngIf="vInfo.state">
-            <div class="key-label">State:</div>
-            <div style="flex: 1 1 auto;">{{ vInfo.state }}</div>
-          </div>
-          <div style="display:flex;" *ngIf="vInfo.destination">
-            <div class="key-label">Destination:</div>
-            <div style="flex: 1 1 auto;">{{ vInfo.destination }}</div>
-          </div>
-          <div style="display:flex;" *ngIf="vInfo.eta">
-            <div class="key-label">ETA:</div>
-            <div style="flex: 1 1 auto;">{{ vInfo.eta.toLocaleString() }}</div>
-          </div>
-          <signalk-details-list
-            [details]="data.target.properties"
-          ></signalk-details-list>
-        </div>
+        </mat-card-content>
       </mat-card>
     </div>
   `,
@@ -304,7 +305,6 @@ export class ResourceDialog implements OnInit {
   ]
 })
 export class AISPropertiesModal implements OnInit {
-  public target: SKVessel;
   public vInfo = {
     name: null,
     mmsi: null,
@@ -334,7 +334,6 @@ export class AISPropertiesModal implements OnInit {
   ) {}
 
   ngOnInit() {
-    this.target = this.data.target;
     this.getVesselInfo();
   }
 
@@ -461,23 +460,32 @@ export class AISPropertiesModal implements OnInit {
       </mat-toolbar>
 
       <mat-card>
-        <div style="display:flex;flex-direction: column;">
-          <div style="display:flex;">
-            <div class="key-label">Name:</div>
-            <div style="flex: 1 1 auto;">{{ data.target.name }}</div>
+        <mat-card-content>
+          <div style="display:flex;flex-direction: column;">
+            <div style="display:flex;">
+              <div class="key-label">Name:</div>
+              <div style="flex: 1 1 auto;">{{ data.target.name }}</div>
+            </div>
+            <div style="display:flex;">
+              <div class="key-label">MMSI:</div>
+              <div style="flex: 1 1 auto;">{{ data.target.mmsi }}</div>
+            </div>
+            <div style="display:flex;">
+              <div class="key-label">Type:</div>
+              <div style="flex: 1 1 auto;">{{ data.target.type.name }}</div>
+            </div>
+            <button mat-stroked-button (click)="toggleProperties()">
+              <span>Show {{ showProperties ? 'Less' : 'More' }}</span>
+              <mat-icon>{{
+                showProperties ? 'expand_less' : 'expand_more'
+              }}</mat-icon>
+            </button>
+            <signalk-details-list
+              *ngIf="showProperties"
+              [details]="properties"
+            ></signalk-details-list>
           </div>
-          <div style="display:flex;">
-            <div class="key-label">MMSI:</div>
-            <div style="flex: 1 1 auto;">{{ data.target.mmsi }}</div>
-          </div>
-          <div style="display:flex;">
-            <div class="key-label">Type:</div>
-            <div style="flex: 1 1 auto;">{{ data.target.type.name }}</div>
-          </div>
-          <signalk-details-list
-            [details]="data.target.properties"
-          ></signalk-details-list>
-        </div>
+        </mat-card-content>
       </mat-card>
     </div>
   `,
@@ -495,20 +503,92 @@ export class AISPropertiesModal implements OnInit {
   ]
 })
 export class AtoNPropertiesModal implements OnInit {
-  public target: SKAtoN;
+  protected showProperties = true;
+  protected properties: { [key: string]: string | number | null };
 
   constructor(
+    private sk: SignalKClient,
+    private app: AppInfo,
     public modalRef: MatBottomSheetRef<AtoNPropertiesModal>,
     @Inject(MAT_BOTTOM_SHEET_DATA)
     public data: {
       title: string;
       target: SKAtoN;
+      id: string;
       icon: string;
+      type: 'aton' | 'sar' | 'meteo';
     }
   ) {}
 
   ngOnInit() {
-    this.target = this.data.target;
+    this.getAtoNInfo();
+  }
+
+  toggleProperties() {
+    this.showProperties = !this.showProperties;
+  }
+
+  // fetch object information
+  private getAtoNInfo() {
+    if (!this.data.id) {
+      return;
+    }
+    const path = this.data.id.split('.').join('/');
+
+    this.sk.api.get(path).subscribe((v) => {
+      if (this.data.type === 'meteo') {
+        this.properties = this.parseMeteo(v);
+      } else {
+        this.properties = this.parseAtoN(v);
+      }
+    });
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private parseMeteo(data: any) {
+    const res = {};
+
+    if (data.navigation && data.navigation.position) {
+      res['navigation.position'] = data.navigation.position.value;
+    }
+    const bk = data.environment.observation ?? data.environment;
+    const pk = data.environment.observation
+      ? 'environment.observation'
+      : 'environment';
+    if (bk) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      Object.keys(bk).forEach((k: any) => {
+        const pathRoot = `${pk}.${k}`;
+        const g = bk[k];
+        if (g.meta) {
+          res[pathRoot] = this.app.formatValueForDisplay(
+            g.value,
+            g.meta.units ? g.meta.units : '',
+            k.indexOf('level') !== -1 // depth values
+          );
+        } else {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          Object.entries(g).forEach((i: any) => {
+            const key = `${pathRoot}.${i[0]}`;
+            res[key] = this.app.formatValueForDisplay(
+              i[1].value,
+              i[1].meta && i[1].meta.units ? i[1].meta.units : '',
+              i[0].indexOf('level') !== -1 // depth values
+            );
+          });
+        }
+      });
+    }
+    return res;
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private parseAtoN(data: any) {
+    const res = {};
+    if (data.navigation && data.navigation.position) {
+      res['navigation.position'] = data.navigation.position.value;
+    }
+    return Object.assign(res, this.data.target.properties);
   }
 }
 
@@ -542,27 +622,32 @@ export class AtoNPropertiesModal implements OnInit {
       </mat-toolbar>
 
       <mat-card>
-        <div style="display:flex;flex-direction: column;">
-          <div style="display:flex;">
-            <div class="key-label">Name:</div>
-            <div style="flex: 1 1 auto;">{{ data.target.name }}</div>
+        <mat-card-content>
+          <div style="display:flex;flex-direction: column;">
+            <div style="display:flex;">
+              <div class="key-label">Name:</div>
+              <div style="flex: 1 1 auto;">{{ data.target.name }}</div>
+            </div>
+            <div style="display:flex;">
+              <div class="key-label">MMSI:</div>
+              <div style="flex: 1 1 auto;">{{ data.target.mmsi }}</div>
+            </div>
+            <div style="display:flex;">
+              <div class="key-label">Call sign:</div>
+              <div style="flex: 1 1 auto;">{{ data.target.callsign }}</div>
+            </div>
+            <button mat-stroked-button (click)="toggleProperties()">
+              <span>Show {{ showProperties ? 'Less' : 'More' }}</span>
+              <mat-icon>{{
+                showProperties ? 'expand_less' : 'expand_more'
+              }}</mat-icon>
+            </button>
+            <signalk-details-list
+              *ngIf="showProperties"
+              [details]="properties"
+            ></signalk-details-list>
           </div>
-          <div style="display:flex;">
-            <div class="key-label">MMSI:</div>
-            <div style="flex: 1 1 auto;">{{ data.target.mmsi }}</div>
-          </div>
-          <div style="display:flex;">
-            <div class="key-label">Call sign:</div>
-            <div style="flex: 1 1 auto;">{{ data.target.callsign }}</div>
-          </div>
-          <!--<div style="display:flex;" *ngFor="let p of data.target.properties | keyvalue">
-                        <div class="key-label">{{p.key}}:</div>
-                        <div style="flex: 1 1 auto;">{{p.value}}</div>
-                    </div>-->
-          <signalk-details-list
-            [details]="data.target.properties"
-          ></signalk-details-list>
-        </div>
+        </mat-card-content>
       </mat-card>
     </div>
   `,
@@ -579,21 +664,51 @@ export class AtoNPropertiesModal implements OnInit {
     `
   ]
 })
-export class AircraftPropertiesModal implements OnInit {
-  public target: SKAircraft;
+export class AircraftPropertiesModal {
+  protected showProperties = true;
+  protected properties: { [key: string]: string | number | null };
 
   constructor(
+    private sk: SignalKClient,
+    private app: AppInfo,
     public modalRef: MatBottomSheetRef<AircraftPropertiesModal>,
     @Inject(MAT_BOTTOM_SHEET_DATA)
     public data: {
       title: string;
       target: SKAircraft;
+      id: string;
       icon: string;
     }
   ) {}
 
   ngOnInit() {
-    this.target = this.data.target;
+    this.getAircraftInfo();
+  }
+
+  // fetch object information
+  private getAircraftInfo() {
+    if (!this.data.id) {
+      return;
+    }
+    const path = this.data.id.split('.').join('/');
+
+    this.sk.api.get(path).subscribe((v) => {
+      this.properties = this.parseAircraft(v);
+    });
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private parseAircraft(data: any) {
+    const res = {};
+
+    if (data.navigation && data.navigation.position) {
+      res['navigation.position'] = data.navigation.position.value;
+    }
+    return res;
+  }
+
+  toggleProperties() {
+    this.showProperties = !this.showProperties;
   }
 }
 
@@ -749,6 +864,7 @@ export class ActiveResourcePropertiesModal implements OnInit {
       title: string;
       type: string;
       resource: SKWaypoint | SKRoute;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       skres: any;
     }
   ) {}
@@ -802,10 +918,15 @@ export class ActiveResourcePropertiesModal implements OnInit {
     }
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   getPointNames(pointsMeta: any[]): string[] {
     return pointsMeta.map((pt) => {
       if (pt.href) {
-        return 'waypoint';
+        const id = pt.href.split('/').slice(-1);
+        const wpt = this.app.data.waypoints.filter((i) => {
+          return i[0] === id[0] ? true : false;
+        });
+        return wpt.length !== 0 ? `* ${wpt[0][1].name}` : '!wpt reference!';
       } else {
         return pt.name ?? '';
       }
@@ -1010,7 +1131,7 @@ export class ChartInfoDialog {
   ) {}
 
   isLocal(url: string) {
-    return url && url.indexOf('signalk') != -1 ? 'map' : 'language';
+    return url && url.indexOf('signalk') !== -1 ? 'map' : 'language';
   }
 }
 
@@ -1061,34 +1182,36 @@ export class ChartInfoDialog {
       </mat-toolbar>
 
       <mat-card *ngFor="let trk of trackList; let idx = index">
-        <div style="display:flex;flex-wrap:no-wrap;">
-          <div style="width:45px;">
-            <mat-checkbox
-              color="primary"
-              [checked]="selTrk[idx]"
-              (change)="handleCheck($event.checked, trk[0], idx)"
-            ></mat-checkbox>
-          </div>
-          <div style="flex:1 1 auto;">
-            <div class="key-label">
-              {{ trk[1].feature?.properties?.name }}
+        <mat-card-content>
+          <div style="display:flex;flex-wrap:no-wrap;">
+            <div style="width:45px;">
+              <mat-checkbox
+                color="primary"
+                [checked]="selTrk[idx]"
+                (change)="handleCheck($event.checked, trk[0], idx)"
+              ></mat-checkbox>
             </div>
-            <div class="key-desc">
-              {{ trk[1].feature?.properties?.description }}
+            <div style="flex:1 1 auto;">
+              <div class="key-label">
+                {{ trk[1].feature?.properties?.name }}
+              </div>
+              <div class="key-desc">
+                {{ trk[1].feature?.properties?.description }}
+              </div>
+            </div>
+            <div style="width:45px;">
+              <button
+                mat-icon-button
+                color="warn"
+                matTooltip="Delete Track"
+                matTooltipPosition="left"
+                (click)="handleDelete(trk[0])"
+              >
+                <mat-icon>delete</mat-icon>
+              </button>
             </div>
           </div>
-          <div style="width:45px;">
-            <button
-              mat-icon-button
-              color="warn"
-              matTooltip="Delete Track"
-              matTooltipPosition="left"
-              (click)="handleDelete(trk[0])"
-            >
-              <mat-icon>delete</mat-icon>
-            </button>
-          </div>
-        </div>
+        </mat-card-content>
       </mat-card>
     </div>
   `,
@@ -1119,6 +1242,7 @@ export class TracksModal implements OnInit {
     @Inject(MAT_BOTTOM_SHEET_DATA)
     public data: {
       title: string;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       skres: any;
     }
   ) {}
@@ -1171,7 +1295,7 @@ export class TracksModal implements OnInit {
     this.data.skres.showTrackDelete(id).subscribe((ok) => {
       if (ok) {
         const i = this.app.config.selections.tracks.indexOf(id);
-        if (i != -1) {
+        if (i !== -1) {
           this.app.config.selections.tracks.splice(i, 1);
         }
         this.data.skres.deleteTrack(id);
@@ -1189,7 +1313,7 @@ export class TracksModal implements OnInit {
       this.app.config.selections.tracks.push(id);
     } else {
       const i = this.app.config.selections.tracks.indexOf(id);
-      if (i != -1) {
+      if (i !== -1) {
         this.app.config.selections.tracks.splice(i, 1);
       }
     }
@@ -1273,25 +1397,27 @@ export class TracksModal implements OnInit {
       </mat-toolbar>
 
       <mat-card *ngFor="let res of resList; let idx = index">
-        <div style="display:flex;flex-wrap:no-wrap;">
-          <div style="width:45px;">
-            <mat-checkbox
-              color="primary"
-              [disabled]="!isResourceSet"
-              [checked]="selRes[idx]"
-              (change)="handleCheck($event.checked, res.id, idx)"
-            ></mat-checkbox>
-          </div>
-          <div style="flex:1 1 auto;">
-            <div class="key-label">
-              {{ res.name }}
+        <mat-card-content>
+          <div style="display:flex;flex-wrap:no-wrap;">
+            <div style="width:45px;">
+              <mat-checkbox
+                color="primary"
+                [disabled]="!isResourceSet"
+                [checked]="selRes[idx]"
+                (change)="handleCheck($event.checked, res.id, idx)"
+              ></mat-checkbox>
             </div>
-            <div class="key-desc">
-              {{ res.description }}
+            <div style="flex:1 1 auto;">
+              <div class="key-label">
+                {{ res.name }}
+              </div>
+              <div class="key-desc">
+                {{ res.description }}
+              </div>
             </div>
+            <div style="width:45px;"></div>
           </div>
-          <div style="width:45px;"></div>
-        </div>
+        </mat-card-content>
       </mat-card>
     </div>
   `,
@@ -1324,6 +1450,7 @@ export class ResourceSetModal implements OnInit {
     @Inject(MAT_BOTTOM_SHEET_DATA)
     public data: {
       path: string;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       skres: any;
     }
   ) {}
@@ -1381,7 +1508,7 @@ export class ResourceSetModal implements OnInit {
     } else {
       const i =
         this.app.config.selections.resourceSets[this.data.path].indexOf(id);
-      if (i != -1) {
+      if (i !== -1) {
         this.app.config.selections.resourceSets[this.data.path].splice(i, 1);
       }
     }

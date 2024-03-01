@@ -80,13 +80,13 @@ export class CPAAlarmComponent implements OnInit, OnDestroy, OnChanges {
       const properties: { [index: string]: any } = {};
 
       for (const key in changes) {
-        if (key == 'targetPosition' || key == 'lineCoords') {
+        if (key === 'targetPosition' || key === 'lineCoords') {
           this.parseValues();
           if (this.source) {
             this.source.clear();
             this.source.addFeatures(this.features);
           }
-        } else if (key == 'layerProperties') {
+        } else if (key === 'layerProperties') {
           this.layer.setProperties(properties, false);
         } else {
           properties[key] = changes[key].currentValue;

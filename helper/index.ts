@@ -1,24 +1,19 @@
-import {
-  Plugin,
-  PluginServerApp,
-  ResourceProviderRegistry
-} from '@signalk/server-api';
+import { Plugin, ServerAPI } from '@signalk/server-api';
 import { IRouter, Application, Request, Response } from 'express';
 import { initAlarms } from './alarms/alarms';
-import { ActionResult } from './lib/types';
 
 import {
-  WEATHER_SERVICES,
+  WEATHER_POLL_INTERVAL,
   WEATHER_CONFIG,
   initWeather,
-  stopWeather,
-  getWeather,
-  listWeather
-} from './weather';
+  stopWeather
+} from './weather/weather-service';
 
-import { initPyPilot, PYPILOT_CONFIG, closePyPilot } from './pypilot';
+import { initPyPilot, PYPILOT_CONFIG, closePyPilot } from './autopilot/pypilot';
 
 import * as openapi from './openApi.json';
+
+const defaultPollInterval = 60;
 
 const CONFIG_SCHEMA = {
   properties: {
@@ -38,7 +33,7 @@ const CONFIG_SCHEMA = {
     weather: {
       type: 'object',
       title: 'Weather API.',
-      description: 'Weather service settings.',
+      description: 'OpenWeather service settings.',
       properties: {
         enable: {
           type: 'boolean',
@@ -53,12 +48,13 @@ const CONFIG_SCHEMA = {
           description:
             'Get your API key at https://openweathermap.org/home/sign_up'
         },
-        service: {
-          type: 'string',
-          title: 'Weather service',
-          default: 'openweather',
-          enum: WEATHER_SERVICES,
-          description: 'Select the weather service'
+        pollInterval: {
+          type: 'number',
+          title: 'Polling Interval',
+          default: 60,
+          enum: WEATHER_POLL_INTERVAL,
+          description:
+            'Select the interval at which the weather service is polled.'
         }
       }
     },
@@ -96,10 +92,13 @@ const CONFIG_UISCHEMA = {
       'ui:help': ' '
     },
     apiKey: {
-      'ui:disabled': false
+      'ui:disabled': false,
+      'ui-help': ''
     },
-    service: {
-      'ui:disabled': false
+    pollInterval: {
+      'ui:widget': 'select',
+      'ui:title': 'Polling Interval (mins)',
+      'ui:help': ' '
     }
   }
 };
@@ -118,18 +117,7 @@ interface OpenApiPlugin extends Plugin {
 
 export interface FreeboardHelperApp
   extends Application,
-    PluginServerApp,
-    ResourceProviderRegistry {
-  statusMessage?: () => string;
-  error: (...msg: any) => void;
-  debug: (...msg: any) => void;
-  setPluginStatus: (pluginId: string, status?: string) => void;
-  setPluginError: (pluginId: string, status?: string) => void;
-  setProviderStatus: (providerId: string, status?: string) => void;
-  setProviderError: (providerId: string, status?: string) => void;
-  getSelfPath: (path: string) => void;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  savePluginOptions: (options: any, callback: () => void) => void;
+    Omit<ServerAPI, 'registerPutHandler'> {
   config: {
     ssl: boolean;
     configPath: string;
@@ -138,7 +126,7 @@ export interface FreeboardHelperApp
   };
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  handleMessage: (id: string | null, msg: any, version?: string) => void;
+  //handleMessage: (id: string | null, msg: any, version?: string) => void;
   streambundle: {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     getSelfBus: (path: string | void) => any;
@@ -151,8 +139,10 @@ export interface FreeboardHelperApp
       path: string,
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       value: any,
-      actionResultCallback: (actionResult: ActionResult) => void
-    ) => ActionResult
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      actionResultCallback: (actionResult: any) => void
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ) => any
   ) => void;
 }
 
@@ -165,7 +155,7 @@ module.exports = (server: FreeboardHelperApp): OpenApiPlugin => {
     weather: {
       enable: false,
       apiKey: '',
-      service: 'openweather'
+      pollInterval: defaultPollInterval
     },
     pypilot: {
       enable: false,
@@ -205,11 +195,12 @@ module.exports = (server: FreeboardHelperApp): OpenApiPlugin => {
       settings.weather = options.weather ?? {
         enable: false,
         apiKey: '',
-        service: 'openweather'
+        pollInterval: defaultPollInterval
       };
       settings.weather.enable = options.weather.enable ?? false;
       settings.weather.apiKey = options.weather.apiKey ?? '';
-      settings.weather.service = options.weather.service ?? 'openweather';
+      settings.weather.pollInterval =
+        options.weather.pollInterval ?? defaultPollInterval;
 
       settings.alarms = options.alarms ?? {
         enable: true
@@ -233,12 +224,7 @@ module.exports = (server: FreeboardHelperApp): OpenApiPlugin => {
 
       let msg = '';
       if (settings.weather.enable) {
-        const result = registerProvider('weather');
-        msg = `Started - ${
-          result.length !== 0
-            ? `${result} not registered!`
-            : 'Providing: weather'
-        }`;
+        msg = `Started - Providing: weather`;
         initWeather(server, plugin.id, settings.weather);
       }
       if (settings.pypilot.enable) {
@@ -263,34 +249,6 @@ module.exports = (server: FreeboardHelperApp): OpenApiPlugin => {
     server.debug('** Un-subscribing from events **');
     const msg = 'Stopped';
     server.setPluginStatus(msg);
-  };
-
-  const registerProvider = (resType: string): string => {
-    let failed = '';
-    try {
-      server.registerResourceProvider({
-        type: resType,
-        methods: {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          listResources: (params: object): any => {
-            return listWeather(params);
-          },
-          getResource: (path: string, property?: string) => {
-            return getWeather(path, property);
-          },
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          setResource: (id: string, value: any) => {
-            throw 'Not implemented!';
-          },
-          deleteResource: (id: string) => {
-            throw 'Not implemented!';
-          }
-        }
-      });
-    } catch (error) {
-      failed = resType;
-    }
-    return failed;
   };
 
   const initApiEndpoints = (router: IRouter) => {

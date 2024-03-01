@@ -84,13 +84,17 @@ export class AnchorAlarmComponent implements OnInit, OnDestroy, OnChanges {
       const properties: { [index: string]: any } = {};
 
       for (const key in changes) {
-        if (key == 'radius' || key == 'anchorPosition' || key == 'lineCoords') {
+        if (
+          key === 'radius' ||
+          key === 'anchorPosition' ||
+          key === 'lineCoords'
+        ) {
           this.parseValues();
           if (this.source) {
             this.source.clear();
             this.source.addFeatures(this.features);
           }
-        } else if (key == 'layerProperties') {
+        } else if (key === 'layerProperties') {
           this.layer.setProperties(properties, false);
         } else {
           properties[key] = changes[key].currentValue;
@@ -126,6 +130,7 @@ export class AnchorAlarmComponent implements OnInit, OnDestroy, OnChanges {
     const fp = new Feature({
       geometry: new Point(fromLonLat(this.anchorPosition))
     });
+    fp.setId('anchor');
     fp.setStyle(this.buildStyle('anchor'));
     fa.push(fp);
     this.features = fa;
