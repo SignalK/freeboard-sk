@@ -226,7 +226,7 @@
                         Animate Map
                     </mat-checkbox>                                        
                 </div>
-            --></div>
+            --></div>                    
           </mat-card>
         </div>
 
@@ -711,6 +711,82 @@
             </div>
           </mat-card>
         </div>
+
+        <div class="setting-group" id="sectS57">
+        <div class="setting-group-title">VECTOR CHART DISPLAY</div>
+        <mat-card>
+          <div class="setting-card-row" style="padding-bottom: 10px">
+            <div class="setting-card-row-item">
+              <mat-form-field style="width: 100%">
+                <mat-select
+                  #s57GraphicsStyle
+                  [(value)]="facade.settings.selections.s57Options.graphicsStyle"
+                  placeholder="Graphicsstyle"
+                >
+                  <mat-option
+                    *ngFor="let i of facade.s57Options.graphicsStyle | keyvalue: noSort"
+                    [value]="i.key"
+                    >{{i.value}}</mat-option
+                  >
+                </mat-select>
+              </mat-form-field>
+            </div>
+            <div class="setting-card-row-item">
+            <mat-form-field style="width: 100%">
+              <mat-select
+                #s57Boundaries
+                [(value)]="facade.settings.selections.s57Options.boundaries"
+                placeholder="Boundaries"
+              >
+                <mat-option
+                  *ngFor="let i of facade.s57Options.boundaries | keyvalue: noSort"
+                  [value]="i.key"
+                  >{{i.value}}</mat-option
+                >
+              </mat-select>
+            </mat-form-field>
+          </div>
+          <div class="setting-card-row-item">
+            <mat-form-field style="width: 100%">
+              <mat-select
+                #s57Colors
+                [(value)]="facade.settings.selections.s57Options.colors"
+                placeholder="Colors"
+              >
+                <mat-option
+                  *ngFor="let i of facade.s57Options.colors"
+                  [value]="i"
+                  >{{i}}</mat-option
+                >
+              </mat-select>
+            </mat-form-field>
+          </div>
+          </div>
+          <div class="setting-card-row" style="padding-bottom: 10px">
+            <div class="setting-card-row-item">
+              <mat-form-field style="width: 100%">
+                <mat-label>Shallow depth</mat-label>
+                <input matInput   [(ngModel)]="facade.settings.selections.s57Options.shallowDepth">
+                <span matSuffix>m</span>
+              </mat-form-field>
+            </div>
+            <div class="setting-card-row-item">
+              <mat-form-field style="width: 100%">
+                <mat-label>Safety depth</mat-label>
+                <input matInput [(ngModel)]="facade.settings.selections.s57Options.safetyDepth">
+                <span matSuffix>m</span>
+              </mat-form-field>
+            </div>
+            <div class="setting-card-row-item">
+              <mat-form-field style="width: 100%">
+                <mat-label>Deep depth</mat-label>
+                <input matInput [(ngModel)]="facade.settings.selections.s57Options.deepDepth">
+                <span matSuffix>m</span>
+              </mat-form-field>
+            </div>
+          </div>
+        </mat-card>      
+        </div>   
 
         <div class="setting-group" id="sectNotes">
           <div class="setting-group-title">RESOURCES: NOTES</div>

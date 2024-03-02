@@ -51,6 +51,7 @@ import { VesselTrailComponent } from './lib/vessel/layer-vessel-trail.component'
 
 export * from './lib/util';
 export { MapService } from './lib/map.service';
+export { S57Service } from './lib/s57.service';
 
 export { ContentComponent } from './lib/content.component';
 export { ControlsDirective } from './lib/controls.directive';

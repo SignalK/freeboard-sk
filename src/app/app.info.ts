@@ -104,6 +104,14 @@ const FreeboardConfig = {
       next23: '1m',
       beyond24: '5m'
     },
+    s57Options: {
+      graphicsStyle:'Paper',
+      boundaries:'Plain',
+      colors:4,
+      shallowDepth:2,
+      safetyDepth: 3,
+      deepDepth:6
+    },
     resourceSets: {}, // additional resources
     signalk: {
       // signal k connection options

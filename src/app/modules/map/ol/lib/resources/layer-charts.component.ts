@@ -11,15 +11,15 @@ import {
 
 import TileLayer from 'ol/layer/Tile';
 import VectorTileLayer from 'ol/layer/VectorTile';
-import VectorTileSource from 'ol/source/VectorTile';
 import { TileWMS, XYZ, TileJSON, WMTS } from 'ol/source';
 import { optionsFromCapabilities } from 'ol/source/WMTS';
 import WMTSCapabilities from 'ol/format/WMTSCapabilities';
-import { Style, Fill, Stroke } from 'ol/style';
+
 import { MapComponent } from '../map.component';
 import { osmLayer } from '../util';
 import { MapService } from '../map.service';
-import { MVT } from 'ol/format';
+import { VectorLayerStyleFactory } from '../vectorLayerStyleFactory'
+
 import DataTile from 'ol/source/DataTile';
 import WebGLTileLayer from 'ol/layer/WebGLTile';
 import * as pmtiles from 'pmtiles';
@@ -34,8 +34,7 @@ import { apply, applyStyle, applyBackground } from 'ol-mapbox-style';
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class FreeboardChartLayerComponent
-  implements OnInit, OnDestroy, OnChanges
-{
+  implements OnInit, OnDestroy, OnChanges {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   protected layers: Map<string, any> = new Map();
 
@@ -47,7 +46,8 @@ export class FreeboardChartLayerComponent
   constructor(
     protected changeDetectorRef: ChangeDetectorRef,
     protected mapComponent: MapComponent,
-    private mapService: MapService
+    private mapService: MapService,
+    private vectorLayerStyleFactory: VectorLayerStyleFactory
   ) {
     this.changeDetectorRef.detach();
   }
@@ -161,56 +161,6 @@ export class FreeboardChartLayerComponent
     });
   }
 
-  // create a PMTile VectorTile layer
-  initPMTilesVectorLayer(
-    url: string,
-    minZoom: number,
-    maxZoom: number,
-    zIndex: number
-  ): VectorTileLayer {
-    const tiles = new pmtiles.PMTiles(url);
-
-    function loader(tile, url) {
-      // the URL construction is done internally by OL, so we need to parse it
-      // back out here using a hacky regex
-      const re = new RegExp(/pmtiles:\/\/(.+)\/(\d+)\/(\d+)\/(\d+)/);
-      const result = url.match(re);
-      const z = +result[2];
-      const x = +result[3];
-      const y = +result[4];
-
-      tile.setLoader((extent, resolution, projection) => {
-        tile.setState(1); // LOADING
-        tiles.getZxy(z, x, y).then((tile_result) => {
-          if (tile_result) {
-            const format = tile.getFormat();
-            const features = format.readFeatures(tile_result.data, {
-              //}.buffer, {
-              extent: extent,
-              featureProjection: projection
-            });
-            tile.setFeatures(features);
-            tile.setState(2); // LOADED
-          } else {
-            tile.setState(4); // EMPTY
-          }
-        });
-      });
-    }
-
-    return new VectorTileLayer({
-      declutter: true,
-      source: new VectorTileSource({
-        maxZoom: maxZoom,
-        minZoom: minZoom,
-        format: new MVT(),
-        url: 'pmtiles://' + url + '/{z}/{x}/{y}',
-        tileLoadFunction: loader
-      }),
-      zIndex: zIndex,
-      style: this.applyVectorStyle
-    });
-  }
 
   async parseCharts(charts: Array<[string, SKChart, boolean]> = this.charts) {
     const map = this.mapComponent.getMap();
@@ -251,35 +201,11 @@ export class FreeboardChartLayerComponent
             } else if (
               charts[i][1].format === 'pbf' ||
               charts[i][1].format === 'mvt'
-            ) {
-              if (charts[i][1].url.indexOf('.pmtiles') !== -1) {
-                // pmtiles source
-                layer = this.initPMTilesVectorLayer(
-                  charts[i][1].url,
-                  charts[i][1].minZoom,
-                  charts[i][1].maxZoom,
-                  this.zIndex + parseInt(i)
-                );
-              } else {
-                // mbtiles source
-                const source = new VectorTileSource({
-                  url: charts[i][1].url,
-                  format: new MVT({
-                    layers:
-                      charts[i][1].layers && charts[i][1].layers.length !== 0
-                        ? charts[i][1].layers
-                        : null
-                  })
-                });
-                layer = new VectorTileLayer({
-                  source: source,
-                  preload: 0,
-                  zIndex: this.zIndex + parseInt(i),
-                  style: this.applyVectorStyle,
-                  minZoom: minZ,
-                  maxZoom: maxZ
-                });
-              }
+            ) {             
+              let styleFactory = this.vectorLayerStyleFactory.CreateVectorLayerStyler(charts[i][1])
+              layer = styleFactory.CreateLayer();
+              styleFactory.ApplyStyle(layer as VectorTileLayer)
+              layer.setZIndex(this.zIndex + parseInt(i))
             } else {
               // raster tile
               let source; // select source type
@@ -381,18 +307,5 @@ export class FreeboardChartLayerComponent
     if (map) {
       map.render();
     }
-  }
-
-  // apply default vector tile style
-  applyVectorStyle() {
-    return new Style({
-      fill: new Fill({
-        color: 'rgba(#224, 209, 14, 0.8)'
-      }),
-      stroke: new Stroke({
-        color: '#444',
-        width: 1
-      })
-    });
   }
 }

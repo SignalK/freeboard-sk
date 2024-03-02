@@ -137,6 +137,22 @@ export class SettingsFacade {
 
   fixedPosition = [0, 0];
 
+
+  s57Options = {
+    graphicsStyle: new Map([
+      ['Simplified','Simplified'],
+      ['Paper','Paper chart'],
+    ]),
+    boundaries: new Map([
+      ['Symbolized','Symbolized'],
+      ['Plain','Plain'],
+    ]),
+    colors: [2,4],
+    shallowDepth:2,
+    safetyDepth:3,
+    deepDepth:6
+  };
+
   // *****************************************************
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   public settings!: any;
