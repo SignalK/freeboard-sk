@@ -129,7 +129,7 @@ Rendering of the Shallow, safety and deep depths and   can be configured in the 
 
 ![S57 Settings](images/S57%20Settings.png)
 
-_Note:  This functionality is not a replacement for official navigatiuonal charts_
+_Note:  This functionality is not a replacement for official navigational charts_
 
 ### Experiments: 
 
