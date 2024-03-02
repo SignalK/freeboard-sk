@@ -18,12 +18,12 @@ export class SettingsDialog implements OnInit {
   public display = { favourites: false };
   public menuItems = [
     { id: 'sectDisplay', text: 'Display' },
+    { id: 'sectS57', text: 'Charts' },
     { id: 'sectUnits', text: 'Units & Values' },
     { id: 'sectCourse', text: 'Course' },
     { id: 'sectVessels', text: 'Vessels' },
     { id: 'sectNotes', text: 'Notes' },
     { id: 'sectVideo', text: 'Video' },
-    { id: 'sectS57', text: 'Vector chart display' },
     { id: 'sectResLayers', text: 'Resources' },
     { id: 'sectResLayers', text: 'Signal K' }
   ];

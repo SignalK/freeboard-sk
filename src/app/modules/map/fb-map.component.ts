@@ -56,7 +56,7 @@ import { ModifyEvent } from 'ol/interaction/Modify';
 import { DrawEvent } from 'ol/interaction/Draw';
 import { Coordinate } from 'ol/coordinate';
 import { ResourceSets, SKNotification } from 'src/app/types';
-import { S57Service} from './ol/lib/s57.service';
+import { S57Service } from './ol/lib/s57.service';
 
 interface IResource {
   id: string;
@@ -327,7 +327,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
       this.app.settings$.subscribe((r: SettingsMessage) => {
         if (r.action === 'save' && r.setting === 'config') {
           this.fbMap.movingMap = this.app.config.map.moveMap;
-          this.s57Service.SetOptions(this.app.config.selections.s57Options)
+          this.s57Service.SetOptions(this.app.config.selections.s57Options);
           this.renderMapContents();
           if (!this.app.config.selections.trailFromServer) {
             this.dfeat.trail = [];

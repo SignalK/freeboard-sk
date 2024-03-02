@@ -18,7 +18,7 @@ import WMTSCapabilities from 'ol/format/WMTSCapabilities';
 import { MapComponent } from '../map.component';
 import { osmLayer } from '../util';
 import { MapService } from '../map.service';
-import { VectorLayerStyleFactory } from '../vectorLayerStyleFactory'
+import { VectorLayerStyleFactory } from '../vectorLayerStyleFactory';
 
 import DataTile from 'ol/source/DataTile';
 import WebGLTileLayer from 'ol/layer/WebGLTile';
@@ -34,7 +34,8 @@ import { apply, applyStyle, applyBackground } from 'ol-mapbox-style';
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class FreeboardChartLayerComponent
-  implements OnInit, OnDestroy, OnChanges {
+  implements OnInit, OnDestroy, OnChanges
+{
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   protected layers: Map<string, any> = new Map();
 
@@ -161,7 +162,6 @@ export class FreeboardChartLayerComponent
     });
   }
 
-
   async parseCharts(charts: Array<[string, SKChart, boolean]> = this.charts) {
     const map = this.mapComponent.getMap();
 
@@ -201,11 +201,14 @@ export class FreeboardChartLayerComponent
             } else if (
               charts[i][1].format === 'pbf' ||
               charts[i][1].format === 'mvt'
-            ) {             
-              let styleFactory = this.vectorLayerStyleFactory.CreateVectorLayerStyler(charts[i][1])
+            ) {
+              let styleFactory =
+                this.vectorLayerStyleFactory.CreateVectorLayerStyler(
+                  charts[i][1]
+                );
               layer = styleFactory.CreateLayer();
-              styleFactory.ApplyStyle(layer as VectorTileLayer)
-              layer.setZIndex(this.zIndex + parseInt(i))
+              styleFactory.ApplyStyle(layer as VectorTileLayer);
+              layer.setZIndex(this.zIndex + parseInt(i));
             } else {
               // raster tile
               let source; // select source type

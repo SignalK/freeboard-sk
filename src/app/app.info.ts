@@ -105,12 +105,12 @@ const FreeboardConfig = {
       beyond24: '5m'
     },
     s57Options: {
-      graphicsStyle:'Paper',
-      boundaries:'Plain',
-      colors:4,
-      shallowDepth:2,
+      graphicsStyle: 'Paper',
+      boundaries: 'Plain',
+      colors: 4,
+      shallowDepth: 2,
       safetyDepth: 3,
-      deepDepth:6
+      deepDepth: 6
     },
     resourceSets: {}, // additional resources
     signalk: {
@@ -278,7 +278,7 @@ export class AppInfo extends Info {
     this.name = 'Freeboard-SK';
     this.shortName = 'Freeboard';
     this.description = `Signal K Chart Plotter.`;
-    this.version = '2.6.0';
+    this.version = '2.6.0-rc2';
     this.url = 'https://github.com/signalk/freeboard-sk';
     this.logo = './assets/img/app_logo.png';
 
@@ -728,6 +728,17 @@ export class AppInfo extends Info {
       ) {
         settings.selections.course.autoNextPointTrigger = 'perpendicularPassed';
       }
+    }
+
+    if (typeof settings.selections.s57Options === 'undefined') {
+      settings.selections.s57Options = {
+        graphicsStyle: 'Paper',
+        boundaries: 'Plain',
+        colors: 4,
+        shallowDepth: 2,
+        safetyDepth: 3,
+        deepDepth: 6
+      };
     }
 
     if (typeof settings.plugins === 'undefined') {

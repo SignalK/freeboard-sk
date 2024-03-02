@@ -54,27 +54,30 @@ export class State {
     }
   }
 
-  //merge new default values in storedvalue
-  merge(storedValue:any,defaultValue:any):any {
+  // merge new default values in storedvalue
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  merge(storedValue: any, defaultValue: any): any {
     Object.keys(defaultValue).forEach((key) => {
       if (!storedValue[key]) {
-        storedValue[key]=defaultValue[key]
+        storedValue[key] = defaultValue[key];
       } else {
-        if( typeof storedValue[key] === 'object' &&
-        !Array.isArray(storedValue[key]) &&
-        storedValue[key] !== null) {
-          storedValue[key]=this.merge(storedValue[key],defaultValue[key])
+        if (
+          typeof storedValue[key] === 'object' &&
+          !Array.isArray(storedValue[key]) &&
+          storedValue[key] !== null
+        ) {
+          storedValue[key] = this.merge(storedValue[key], defaultValue[key]);
         }
       }
-    })
-    return storedValue
+    });
+    return storedValue;
   }
 
   //** load app config **
   loadConfig(defaultValue = {}) {
     const config = this.ls.read('config');
-    return config ? this.merge(config,defaultValue) : defaultValue;
-   // return config ? config : defaultValue;
+    //return config ? this.merge(config,defaultValue) : defaultValue;
+    return config ? config : defaultValue;
   }
 
   //** load app data **
