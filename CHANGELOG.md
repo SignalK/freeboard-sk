@@ -4,6 +4,7 @@
 
 - **Added**: Ability to show/hide toolbar buttons on both sides of the screen.
 - **Added**: Route builder. 1st release allows creating a route from waypoints.
+- **Added**: Support for displaying S57 vector charts converted using [s57-tiler](https://github.com/wdantuma/s57-tiler).
 - **Fixed**: Wind speed values in vessel popover showing 0 rather than - when no value is present.
 
 ### v2.5.0

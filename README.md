@@ -117,19 +117,26 @@ _Note: The `Signal K Instrument Panel` app will be displayed if no user selectio
 
 ---
 
-### S57 charts
+### S57 Charts
 
-Freeboard-SK is able to display S57 ENC's converted to vector tiles with [s57-tiler](https://github.com/wdantuma/s57-tiler), see the s57-tiler README for instructions how to create the vectortiles from downloaded S57 ENC's. Only unencrypted ENC's are supported ( no S63 support). Also the   @signalk/charts-plugin *(Chart paths)* needs to be installed
+Freeboard-SK is able to display S57 ENC charts that have been converted to vector tiles with [s57-tiler](https://github.com/wdantuma/s57-tiler). _(See the [README](https://github.com/wdantuma/s57-tiler) for instructions how to create the vectortiles from downloaded S57 ENC's.)_
 
-See [Open CPN chart sources](https://opencpn.org/OpenCPN/info/chartsource.html) for a list  of possible download locations 
+See [Open CPN chart sources](https://opencpn.org/OpenCPN/info/chartsource.html) for a list of locations to source charts.
 
-![S57 Chart](images/S57%20chart.png)
+_Note: Only unencrypted ENC's are supported (no S63 support)._
+
+**_Requires: @signalk/charts-plugin_**
+
+
+![S57 chart](https://github.com/SignalK/freeboard-sk/assets/38519157/a93b3889-d1c8-4df7-9f6f-97a1666fbf77)
 
 Rendering of the Shallow, safety and deep depths and   can be configured in the settings dialog
 
-![S57 Settings](images/S57%20Settings.png)
+![S57 Settings](https://github.com/SignalK/freeboard-sk/assets/38519157/0409492b-1ee7-4905-b5b0-e5fc8e68bc9a)
 
 _Note:  This functionality is not a replacement for official navigational charts_
+
+---
 
 ### Experiments: 
 
