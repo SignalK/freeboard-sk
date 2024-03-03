@@ -32,6 +32,7 @@ Charts are sourced from the `/resources/charts` path on the Signal K server and 
 
 - Image tiles _(XYZ)_
 - Vector Tiles _(MVT / PBF)_
+- [S57 ENC's converted to vector tiles](#S57-charts) _(MVT / PBF)_
 - WMS _(Web Map Server)_
 - WMTS _(Web Map Tile Server)_
 - PMTiles _(ProtoMap files)_
@@ -115,6 +116,20 @@ _Note: The `Signal K Instrument Panel` app will be displayed if no user selectio
 ![instruments](https://user-images.githubusercontent.com/38519157/128668406-02cbb8d8-2353-4e93-ae5e-12e0c7d507fe.png)
 
 ---
+
+### S57 charts
+
+Freeboard-SK is able to display S57 ENC's converted to vector tiles with [s57-tiler](https://github.com/wdantuma/s57-tiler), see the s57-tiler README for instructions how to create the vectortiles from downloaded S57 ENC's. Only unencrypted ENC's are supported ( no S63 support). Also the   @signalk/charts-plugin *(Chart paths)* needs to be installed
+
+See [Open CPN chart sources](https://opencpn.org/OpenCPN/info/chartsource.html) for a list  of possible download locations 
+
+![S57 Chart](images/S57%20chart.png)
+
+Rendering of the Shallow, safety and deep depths and   can be configured in the settings dialog
+
+![S57 Settings](images/S57%20Settings.png)
+
+_Note:  This functionality is not a replacement for official navigational charts_
 
 ### Experiments: 
 
