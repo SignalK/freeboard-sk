@@ -232,15 +232,21 @@ export class AppInfo extends Info {
 
     this.db = new AppDB();
 
+    // process searchParams
     if (window.location.search) {
       const p = window.location.search.slice(1).split('&');
       p.forEach((i: string) => {
         const a = i.split('=');
-        this.hostParams[a[0].toLowerCase()] =
-          a.length > 1 ? a[1].toLowerCase() : null;
+        this.hostParams[a[0]] = a.length > 1 ? a[1] : null;
       });
     }
 
+    // token
+    if (typeof this.hostParams.token !== 'undefined') {
+      this.persistToken(this.hostParams.token);
+    }
+
+    // host
     this.hostName =
       typeof this.hostParams.host !== 'undefined'
         ? this.hostParams.host
@@ -278,7 +284,7 @@ export class AppInfo extends Info {
     this.name = 'Freeboard-SK';
     this.shortName = 'Freeboard';
     this.description = `Signal K Chart Plotter.`;
-    this.version = '2.6.0-rc2';
+    this.version = '2.6.0-rc3';
     this.url = 'https://github.com/signalk/freeboard-sk';
     this.logo = './assets/img/app_logo.png';
 
@@ -845,10 +851,32 @@ export class AppInfo extends Info {
       'whats-new': [
         {
           type: 'signalk-server-node',
+          title: 'Route Builder',
+          message: `
+            This update includes a new Drag-and-Drop route builder that enables a 
+            route to be compiled from 
+            the available waypoints.
+            <br>&nbsp;<br>
+            You can find it in the <i class="material-icons">edit</i><b>Draw Menu</b>.
+          `
+        },
+        {
+          type: 'signalk-server-node',
+          title: 'S57 Charts',
+          message: `
+            Freeboard now includes support for "tiled" S57 charts created with
+            the <b>s57-tiler</b> utility.
+            <br>&nbsp;<br>
+            See <a href="assets/help/index.html" target="help">HELP</a> 
+            for details.
+          `
+        },
+        {
+          type: 'signalk-server-node',
           title: 'Weather Information',
           message: `
-            Freeboard now includes support for weather station data received
-            via messages with the <i>meteo</i> context.
+            This update also has support to display weather stations on the map
+            via the new <i>meteo</i> context introduced in SK Server v2.6.
             <br>&nbsp;<br>
             See <a href="assets/help/index.html" target="help">HELP</a> 
             for details.
