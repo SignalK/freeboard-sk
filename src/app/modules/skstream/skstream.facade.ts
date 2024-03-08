@@ -279,17 +279,6 @@ export class SKStreamFacade {
       this.app.data.aisMgr.staleList = msg.result.aisStatus.stale;
       this.app.data.aisMgr.removeList = msg.result.aisStatus.expired;
 
-      /*if (!this.app.data.meteo.has('meteo.self')) {
-        const meteo = new SKMeteo();
-        meteo.id = 'meteo.self';
-        meteo.name = 'fbtest';
-        meteo.position = [138.47746,-34.88763];
-        meteo.type.id = -1;
-        meteo.type.name = 'Weather Station';
-        this.app.data.meteo.set(meteo.id, meteo);
-      }
-      this.app.data.aisMgr.updateList.push('meteo.self');*/
-
       // process AIS tracks
       this.app.data.aisMgr.updateList.forEach((id) => {
         const v =
@@ -315,6 +304,7 @@ export class SKStreamFacade {
     }
     this.processVessel(this.app.data.vessels.self);
     this.alarmsFacade.updateAnchorStatus();
+    // resource update handling in AppComponent.OnMessage()
   }
 
   private parseVesselOther(otherVessels: Map<string, SKVessel>) {

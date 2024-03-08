@@ -398,10 +398,31 @@ export class SKResources {
       notes: false,
       regions: false
     };
-    e.forEach((i) => {
-      const r = i.path.split('.');
-      actions[r[1]] = true;
+    e.forEach((item) => {
+      const p = item.path.split('.');
+      if (p.length === 3) {
+        const type = p[1];
+        const id = p[2];
+        const deleted = !item.value ? true : false;
+
+        // in-scope
+        if (['waypoints', 'routes', 'notes', 'regions'].includes(type)) {
+          actions[type] = true;
+          if (!deleted) {
+            // check for existing entry
+            const fr = this.app.data[type].filter((r) => {
+              return r[0] === id;
+            });
+            if (fr.length === 0) {
+              // select to display new entry on map
+              this.app.config.selections[type].push(id);
+              this.app.saveConfig();
+            }
+          }
+        }
+      }
     });
+
     if (actions['routes']) {
       this.getRoutes();
     }
