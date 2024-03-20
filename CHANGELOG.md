@@ -1,5 +1,13 @@
 # CHANGELOG: Freeboard
 
+### v2.6.1
+
+- **Added**: Options to display and configure Heading and COG lines on map. (#138)
+- **Added**: Additional position display format option (e.g. 020° 44.56' E).
+- **Updated**: Use HTTP credentials when user is already logged in via Admin UI. _(signalk-client-angular@2.0.3)_ 
+- **Updated**: Angular framework version (v17.3)
+- **Updated**: OpenLayers (v9.0)
+
 ### v2.6.0
 
 - **Added**: Ability to show / hide toolbar buttons on both sides of the screen.
