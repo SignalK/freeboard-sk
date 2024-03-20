@@ -1,7 +1,7 @@
 /* You can add global styles to this file, and also import other style files */
-@import '../node_modules/ol/ol.css';
-@import url('../font_resources/material/material-roboto.css');
-@import url('../font_resources/material/material-icons.css');
+@use '../node_modules/ol/ol.css';
+@use '../font_resources/material/material-roboto.css';
+@use '../font_resources/material/material-icons.css';
 
 * { -webkit-tap-highlight-color: transparent; }
 * { tap-highlight-color: transparent; }	

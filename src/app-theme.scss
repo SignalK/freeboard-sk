@@ -1,8 +1,7 @@
 @use '@angular/material' as mat;
-@import '@angular/material/theming';
 
 // Include non-theme styles for core.
-@include mat-core();
+@include mat.core();
 
 // Define a theme.
 $my-primary: mat.define-palette(mat.$indigo-palette, 500,700,200);
@@ -35,20 +34,27 @@ $my-dark-theme: mat.define-dark-theme((
  density: 0,
 ));
 
-// Include all theme styles for the components.
-@include mat.all-component-themes($my-theme);
-
 .dark-theme {
     @include mat.all-component-colors($my-dark-theme);
 
     .about-row .item a {
-        color: mat-color($my-dark-accent);
+        color: mat.get-color-from-palette($my-dark-accent);
     }
 
     .welcome a {
-        color: mat-color($my-dark-accent);
-    }
+        color: mat.get-color-from-palette($my-dark-accent);
+    }  
     
+    .popover > .arrow:after {
+        border-color: transparent;
+    }
+    .popover.top > .arrow {
+        border-top-color: mat.get-theme-color($my-dark-theme, background, background);
+    }    
+    .popover.top > .arrow:after {
+        border-top-color: mat.get-theme-color($my-dark-theme, background, background);
+    }
+ 
     /* Track */
     ::-webkit-scrollbar-track {
         background: rgba(0,0,0,.5);
@@ -60,9 +66,23 @@ $my-dark-theme: mat.define-dark-theme((
     }
   }
 
+.popover-title {
+    border-bottom: 1px solid silver;
+}   
+
+.popover > .arrow:after {
+    border-color: transparent;
+}
+.popover.top > .arrow {
+    border-top-color: mat.get-theme-color($my-theme, background, background);
+}    
+.popover.top > .arrow:after {
+    border-top-color: mat.get-theme-color($my-theme, background, background);
+}
+
 // std elements
 .about-row .item a  {
-    color: mat-color($my-primary);
+    color: mat.get-color-from-palette($my-primary);
 }
 
 /* width */
@@ -86,38 +106,8 @@ $my-dark-theme: mat.define-dark-theme((
     background: #555;
 }
 
-@mixin popover-theme($my-theme) {
-    $primary: map-get($my-theme, primary);
-    $accent: map-get($my-theme, accent);
-    $warn: map-get($my-theme, warn);
-    $background: map-get($my-theme, background);
-    $background-color:  map-get($background, background);
 
-    .popover-title {
-        border-bottom: 1px solid $light-primary-text;
-    }   
+// Include all theme styles for the components.
+@include mat.all-component-themes($my-theme);
 
-    .popover > .arrow:after {
-        border-color: transparent;
-    }
-    .popover.top > .arrow {
-        border-top-color: $background-color;
-    }    
-    .popover.top > .arrow:after {
-        border-top-color: $background-color;
-    }     
-}
-
-@mixin popover-typography($config) {
-    .popover {
-        font: {
-            family: mat-font-family($config, body-1);
-            size: mat-font-size($config, body-1);
-            weight: mat-font-weight($config, body-1);
-        }
-    }
-}  
-
-// Include theme styles for custom components.
-@include popover-theme($my-theme);
 
