@@ -9,11 +9,9 @@ import {
   computeDestinationPoint,
   isPointInPolygon
 } from 'geolib';
-import { SKPosition } from '../types';
+import { SKPosition, Position } from '../types';
 
 export type Extent = [number, number, number, number]; // coords [swlon,swlat,nelon,nelat] of a bounding box
-
-export type Position = [number, number, number?]; // [lon,lat, alt]
 
 export class GeoUtils {
   static destCoordinate(

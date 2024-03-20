@@ -15,7 +15,8 @@ import { Style, Stroke, Fill } from 'ol/style';
 import { Collection, Feature } from 'ol';
 
 import { Convert } from 'src/app/lib/convert';
-import { GeoUtils, Position } from 'src/app/lib/geoutils';
+import { GeoUtils } from 'src/app/lib/geoutils';
+import { Position } from 'src/app/types';
 
 import { AppInfo } from 'src/app/app.info';
 import { SettingsMessage } from 'src/app/lib/services';
@@ -55,7 +56,14 @@ import {
 import { ModifyEvent } from 'ol/interaction/Modify';
 import { DrawEvent } from 'ol/interaction/Draw';
 import { Coordinate } from 'ol/coordinate';
-import { ResourceSets, SKNotification } from 'src/app/types';
+import {
+  FBCharts,
+  FBNotes,
+  FBRoutes,
+  FBWaypoints,
+  ResourceSets,
+  SKNotification
+} from 'src/app/types';
 import { S57Service } from './ol/lib/s57.service';
 
 interface IResource {
@@ -86,10 +94,10 @@ interface IFeatureData {
   atons: Map<string, SKAtoN>;
   sar: Map<string, SKSaR>;
   meteo: Map<string, SKMeteo>;
-  routes: Array<SKRoute>;
-  waypoints: Array<SKWaypoint>;
-  charts: Array<SKChart>;
-  notes: Array<SKNote>;
+  routes: FBRoutes;
+  waypoints: FBWaypoints;
+  charts: FBCharts;
+  notes: FBNotes;
   regions: Array<SKRegion>;
   tracks: Array<Position[]>; // self track(s) from server
   trail: Array<Position>; // self trail (appended to tracks)
@@ -696,7 +704,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
               addToFeatureList = true;
               if (t[1] === 'n2k') {
                 text = this.app.data.n2kRoute
-                  ? this.app.data.n2kRoute[0][1].name
+                  ? this.app.data.n2kRoute[1].name
                   : '';
               } else {
                 text = this.app.data.routes.filter((i) => {
@@ -998,7 +1006,8 @@ export class FBMapComponent implements OnInit, OnDestroy {
       cpa: [],
       heading: [],
       awa: [],
-      twd: []
+      twd: [],
+      cog: []
     };
 
     // vessel trail
@@ -1040,17 +1049,36 @@ export class FBMapComponent implements OnInit, OnDestroy {
     // ** CPA line **
     vl.cpa = [this.dfeat.closest.position, this.dfeat.self.position];
 
+    const sog = this.dfeat.active.sog || 0;
+
+    // ** cog line (active) **
+    const cl = sog * (this.app.config.vessel.cogLine * 60);
+    if (this.dfeat.active.cog) {
+      vl.cog = [
+        this.dfeat.active.position,
+        GeoUtils.destCoordinate(
+          this.dfeat.active.position,
+          this.dfeat.active.cog,
+          cl
+        )
+      ];
+    }
+
     // ** heading line (active) **
-    let sog = this.dfeat.active.sog || 0;
-    if (sog > wMax) {
-      sog = wMax;
+    let hl = 0;
+    if (this.app.config.vessel.headingLineSize === -1) {
+      hl = (sog > wMax ? wMax : sog) * offset;
+    } else {
+      hl =
+        Convert.nauticalMilesToKm(this.app.config.vessel.headingLineSize) *
+        1000;
     }
     vl.heading = [
       this.dfeat.active.position,
       GeoUtils.destCoordinate(
         this.dfeat.active.position,
         this.dfeat.active.orientation,
-        sog * offset
+        hl
       )
     ];
 
@@ -1060,7 +1088,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
       aws = wMax;
     }
 
-    const ca = this.app.config.map.northup
+    const ca = this.app.config.map.northUp
       ? this.dfeat.active.wind.awa
       : this.dfeat.active.wind.awa + this.dfeat.active.orientation;
 

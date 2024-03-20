@@ -11,7 +11,8 @@ import {
 import { AppInfo } from 'src/app/app.info';
 import { SKVessel } from 'src/app/modules';
 import { Convert } from 'src/app/lib/convert';
-import { GeoUtils, Position } from 'src/app/lib/geoutils';
+import { GeoUtils } from 'src/app/lib/geoutils';
+import { Position } from 'src/app/types';
 
 /*********** Vessel Popover ***************
 title: string -  title text,

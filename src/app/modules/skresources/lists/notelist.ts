@@ -6,7 +6,7 @@ import {
   ChangeDetectionStrategy
 } from '@angular/core';
 import { AppInfo } from 'src/app/app.info';
-import { Position } from 'src/app/lib/geoutils';
+import { Position } from 'src/app/types';
 import { FBNotes, FBNote, FBResourceSelect, SKPosition } from 'src/app/types';
 
 @Component({

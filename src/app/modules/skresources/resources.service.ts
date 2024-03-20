@@ -8,7 +8,7 @@ import ngeohash from 'ngeohash';
 
 import { SignalKClient } from 'signalk-client-angular';
 import { AppInfo, OSM } from 'src/app/app.info';
-import { GeoUtils, Position } from 'src/app/lib/geoutils';
+import { GeoUtils } from 'src/app/lib/geoutils';
 import { Convert } from 'src/app/lib/convert';
 
 import { LoginDialog } from 'src/app/lib/components/dialogs';
@@ -35,7 +35,9 @@ import {
   RouteResource,
   WaypointResource,
   RegionResource,
-  TrackResource
+  TrackResource,
+  FBNotes,
+  Position
 } from 'src/app/types';
 
 // ** Signal K resource operations
@@ -1980,9 +1982,9 @@ export class SKResources {
       noDesc: true= remove description value
       maxCount: max number of entries to return
   */
-  private processNotes(n: Notes, noDesc = false, maxCount?: number): SKNote[] {
+  private processNotes(n: Notes, noDesc = false, maxCount?: number): FBNotes {
     let r = Object.entries(n);
-    const notes = [];
+    const notes: FBNotes = [];
     // ** set an upper limit of records to process **
     if (maxCount && r.length > maxCount) {
       r = r.slice(0, maxCount - 1);

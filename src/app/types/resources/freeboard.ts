@@ -2,7 +2,8 @@ import {
   SKRoute,
   SKWaypoint,
   SKNote,
-  SKChart
+  SKChart,
+  SKRegion
 } from 'src/app/modules/skresources/resource-classes';
 
 export type FBRoutes = Array<FBRoute>;
@@ -13,6 +14,9 @@ export type FBWaypoint = [string, SKWaypoint, boolean?];
 
 export type FBNotes = Array<FBNote>;
 export type FBNote = [string, SKNote, boolean?];
+
+export type FBRegions = Array<FBRegion>;
+export type FBRegion = [string, SKRegion, boolean?];
 
 export type FBCharts = Array<FBChart>;
 export type FBChart = [string, SKChart, boolean?];

@@ -122,7 +122,7 @@
     [tracks]="app.data.vessels.aisTracks"
     [updateIds]="aisMgr.updateList"
     [removeIds]="aisMgr.removeList"
-    [showTracks]="app.config.aisShowTrack"
+    [showTracks]="app.config.selections.aisShowTrack"
     [minZoom]="10"
     [mapZoom]="fbMap.zoomLevel"
     zIndex="51"
@@ -495,7 +495,7 @@
     [id]="'' + app.data.selfId"
     [activeId]="app.data.vessels.activeId"
     [vesselLines]="vesselLines"
-    [showWind]="app.config.vesselWindVectors"
+    [showWind]="app.config.vessel.windVectors"
     [vesselStyles]="featureStyles.vessel"
     [fixedLocation]="app.config.fixedLocationMode"
     [zIndex]="213"
@@ -503,7 +503,7 @@
   </fb-vessel>
 
   <fb-vessel-trail
-    *ngIf="app.config.vesselTrail && app.data.vessels.showSelf"
+    *ngIf="app.config.vessel.trail && app.data.vessels.showSelf"
     [localTrail]="vesselLines.trail"
     [serverTrail]="dfeat.trail"
     [trailStyles]=""
@@ -567,7 +567,7 @@
     <mat-divider></mat-divider>
     <button
       mat-menu-item
-      *ngIf="app.config.vesselTrail && app.data.trail.length != 0"
+      *ngIf="app.config.vessel.trail && app.data.trail.length != 0"
       (click)="onContextMenuAction('cleartrail', item)"
     >
       <mat-icon>clear_all</mat-icon>

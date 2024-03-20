@@ -5,21 +5,16 @@ import {
   PointFeature,
   PolygonFeature,
   MultiPolygonFeature,
-  MultiLineStringFeature
-} from 'src/app/types/resources/geojson';
-
-import {
+  MultiLineStringFeature,
+  Position,
+  TrackResource,
   SKPosition,
   RouteResource,
   WaypointResource,
   RegionResource,
   NoteResource,
   ChartResource
-} from 'src/app/types/resources/signalk';
-
-import { TrackResource } from 'src/app/types/resources/custom';
-
-import { Position } from 'src/app/lib/geoutils';
+} from 'src/app/types';
 
 // ** Signal K route class
 export class SKRoute {
@@ -203,8 +198,9 @@ export class SKVessel {
   mode = 'day';
   anchor = { maxRadius: null, radius: null, position: null };
   resourceUpdates = [];
-  autopilot: { [key: string]: unknown } = {};
-  track = [];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  autopilot: { [key: string]: any } = {};
+  track: Array<Position[]> = [];
   courseApi = {
     arrivalCircle: 0,
     activeRoute: {},
@@ -246,7 +242,7 @@ export class SKAircraft extends AISBase {
   orientation = 0;
   sog = 0;
   callsign: string;
-  track = [];
+  track: Array<Position[]> = [];
   constructor() {
     super();
   }

@@ -1,5 +1,4 @@
-import { Position } from 'src/app/lib/geoutils';
-
+export type Position = [number, number, number?]; // [lon,lat, alt]
 export type LineString = Position[];
 export type MultiLineString = LineString[];
 export type Polygon = MultiLineString;

@@ -4,7 +4,8 @@ import {
   ALARM_METHOD,
   ALARM_STATE,
   Path,
-  PathValue
+  PathValue,
+  Position
 } from '@signalk/server-api';
 import { FreeboardHelperApp } from '../index';
 
@@ -136,7 +137,7 @@ const handlePutAlarmState = (
   server.debug(JSON.stringify(alarmType));
   let noti: PathValue;
   if (value) {
-    const alm = buildAlarmMessage(value.message, alarmType);
+    const alm = buildAlarmMessage(value.message);
     noti = {
       path: `notifications.${alarmType}` as Path,
       value: {
@@ -170,18 +171,13 @@ const handlePutAlarmState = (
   }
 };
 
-const buildAlarmMessage = (message: string, alarmType?: string) => {
-  let data = null;
-  if (['mob', 'sinking'].includes(alarmType)) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const pos: any = server.getSelfPath('navigation.position');
-    data = {
-      position: pos ? pos.value : null
-    };
-  }
+const buildAlarmMessage = (message: string) => {
+  const pos: {value: Position} = server.getSelfPath('navigation.position');
   return {
     message: message,
-    data: data
+    data: {
+      position: pos ? pos.value : null
+    }
   };
 };
 

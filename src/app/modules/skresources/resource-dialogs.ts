@@ -9,7 +9,7 @@ import {
 } from '@angular/material/bottom-sheet';
 import { CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop';
 import { Convert } from 'src/app/lib/convert';
-import { Position } from 'src/app/lib/geoutils';
+import { Position } from 'src/app/types';
 import { AppInfo } from 'src/app/app.info';
 import { SignalKClient } from 'signalk-client-angular';
 import {

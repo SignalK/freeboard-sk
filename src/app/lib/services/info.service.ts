@@ -5,16 +5,11 @@ import { Injectable, isDevMode } from '@angular/core';
 import { Subject, Observable } from 'rxjs';
 
 import { State } from './state.service';
+import { FBAppConfig, FBAppData, AppUpdateMessage } from 'src/app/types';
 
 export interface SettingsMessage {
   action: 'save' | 'load';
   setting: 'data' | 'config';
-}
-
-export interface AppUpdateMessage {
-  result: 'update' | 'new';
-  previous: string;
-  new: string;
 }
 
 @Injectable()
@@ -32,9 +27,9 @@ export class Info {
   protected devMode: boolean;
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  public config: any; //** holds app configuration settings **
+  public config!: FBAppConfig; //** holds app configuration settings **
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  public data: any; //** holds app data **
+  public data: FBAppData; //** holds app data **
   public state: State;
 
   // Observables
@@ -47,8 +42,8 @@ export class Info {
     this.state = new State();
     this.devMode = isDevMode();
     //** default configuration and data **
-    this.config = {};
-    this.data = {};
+    //this.config = {};
+    //this.data = {};
     this.state.appId = this.id;
     // ** initialise events
     this.upgradedSource = new Subject<AppUpdateMessage>();

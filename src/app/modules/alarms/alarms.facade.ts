@@ -9,7 +9,7 @@ import { SKResources } from 'src/app/modules';
 import { SignalKClient } from 'signalk-client-angular';
 import { SKStreamProvider } from '../skstream/skstream.service';
 import { NotificationMessage, SKNotification } from 'src/app/types';
-import { Position } from '../../lib/geoutils';
+import { Position } from 'src/app/types';
 
 interface IStatus {
   action: string;
