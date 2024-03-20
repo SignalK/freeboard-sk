@@ -6,12 +6,8 @@ import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { Subject, Observable } from 'rxjs';
 
-import {
-  Info,
-  SettingsMessage,
-  AppUpdateMessage,
-  IndexedDB
-} from './lib/services';
+import { Info, SettingsMessage, IndexedDB } from './lib/services';
+
 import {
   AlertDialog,
   ConfirmDialog,
@@ -23,14 +19,15 @@ import { Convert } from './lib/convert';
 import { SignalKClient } from 'signalk-client-angular';
 import { SKVessel, SKChart, SKStreamProvider } from './modules';
 
-export interface PluginSettings {
-  version: string;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  settings: { [key: string]: any };
-}
+import {
+  PluginInfo,
+  PluginSettings,
+  FBAppConfig,
+  AppUpdateMessage
+} from './types';
 
 // ** Configuration template**
-const FreeboardConfig = {
+const FreeboardConfig: FBAppConfig = {
   chartApi: 1, // temp: use v{1|2}/api/resources/charts
   experiments: false,
   version: '',
@@ -48,8 +45,6 @@ const FreeboardConfig = {
   },
   fixedLocationMode: false,
   fixedPosition: [0, 0],
-  vesselTrail: false, // display trail
-  vesselWindVectors: true, // display vessel TWD, AWD vectors
   aisTargets: true, // display ais targets
   courseData: true, // show/hide course data
   toolBarButtons: true, // show/hide toolbar buttons
@@ -69,6 +64,12 @@ const FreeboardConfig = {
     depth: 'm',
     speed: 'kn',
     temperature: 'c'
+  },
+  vessel: {
+    trail: false, // display trail
+    windVectors: true, // display vessel TWD, AWD vectors
+    cogLine: 0, // display COG line
+    headingLineSize: -1 // mode for display of heading line -1 = default
   },
   selections: {
     // ** saved selections
@@ -171,14 +172,6 @@ export const OSM = [
   ]
 ];
 
-interface PluginInfo {
-  enabled: boolean;
-  enabledByDefault: boolean;
-  id: string;
-  name: string;
-  version: string;
-}
-
 @Injectable({ providedIn: 'root' })
 export class AppInfo extends Info {
   private DEV_SERVER = {
@@ -241,11 +234,6 @@ export class AppInfo extends Info {
       });
     }
 
-    // token
-    if (typeof this.hostParams.token !== 'undefined') {
-      this.persistToken(this.hostParams.token);
-    }
-
     // host
     this.hostName =
       typeof this.hostParams.host !== 'undefined'
@@ -295,8 +283,14 @@ export class AppInfo extends Info {
     this.config = JSON.parse(JSON.stringify(FreeboardConfig));
     // ** state data
     this.data = {
+      firstRun: false,
+      updatedRun: null,
+      n2kRoute: null,
+      optAppPanel: false,
+      trueMagChoice: '',
       loggedIn: false,
       loginRequired: false,
+      loggedInBadgeText: '!',
       hasWakeLock: false,
       routes: [],
       waypoints: [],
@@ -304,6 +298,8 @@ export class AppInfo extends Info {
       chartBounds: false,
       alarms: new Map(),
       notes: [],
+      regions: [],
+      tracks: [],
       resourceSets: {}, // additional resource sets
       selfId: null,
       activeRoute: null,
@@ -383,12 +379,13 @@ export class AppInfo extends Info {
       this.handleSettingsEvent(value);
     });
     // ** database events
-    this.db.dbUpdate$.subscribe((res) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    this.db.dbUpdate$.subscribe((res: { action: string; value: any }) => {
       if (res.action) {
         switch (res.action) {
           case 'db_init':
             if (res.value) {
-              if (this.config.vesselTrail) {
+              if (this.config.vessel.trail) {
                 this.db.getTrail().then((t) => {
                   this.data.trail = t && t.value ? t.value : [];
                 });
@@ -405,6 +402,12 @@ export class AppInfo extends Info {
     });
 
     this.init();
+
+    // token from url params
+    if (typeof this.hostParams.token !== 'undefined') {
+      this.persistToken(this.hostParams.token);
+    }
+
     // ** detect if launched in iframe **
     try {
       this.data.optAppPanel = window.self === window.top;
@@ -475,6 +478,8 @@ export class AppInfo extends Info {
     } else {
       this.data.hasToken = false; // show login menu item
       this.signalk.authToken = null;
+      this.data.loggedIn = false;
+      document.cookie = `sktoken=${null}; SameSite=Strict; max-age=0;`;
       this.stream.postMessage({
         cmd: 'auth',
         options: {
@@ -565,7 +570,7 @@ export class AppInfo extends Info {
         if (r) {
           // ** get server stored config for logged in user **
           this.signalk.appDataGet('/').subscribe(
-            (settings) => {
+            (settings: FBAppConfig) => {
               if (Object.keys(settings).length === 0) {
                 return;
               }
@@ -607,7 +612,7 @@ export class AppInfo extends Info {
   }
 
   // ** clean loaded config /settings keys **
-  cleanConfig(settings) {
+  cleanConfig(settings: FBAppConfig) {
     this.debug('Cleaning config keys...');
 
     if (typeof settings.fixedLocationMode === 'undefined') {
@@ -615,6 +620,25 @@ export class AppInfo extends Info {
     }
     if (typeof settings.fixedPosition === 'undefined') {
       settings.fixedPosition = [0, 0];
+    }
+
+    if (typeof settings.vessel === 'undefined') {
+      settings.vessel = {
+        trail: true,
+        windVectors: true,
+        cogLine: 0,
+        headingLineSize: -1
+      };
+    }
+    // changeover 2.7 - for removal
+    if (typeof (settings as any).vesselTrail !== 'undefined') {
+      settings.vessel.trail = (settings as any).vesselTrail;
+      delete (settings as any).vesselTrail;
+    }
+    // changeover 2.7 - for removal
+    if (typeof (settings as any).vesselWindVectors !== 'undefined') {
+      settings.vessel.windVectors = (settings as any).vesselWindVectors;
+      delete (settings as any).vesselWindVectors;
     }
 
     if (typeof settings.map.limitZoom === 'undefined') {
@@ -629,12 +653,13 @@ export class AppInfo extends Info {
       settings.anchorRadius = 40;
     }
 
-    if (typeof settings.vesselWindVectors === 'undefined') {
-      settings.vesselWindVectors = true;
+    if (typeof settings.selections.aisShowTrack === 'undefined') {
+      settings.selections.aisShowTrack = false;
     }
-
-    if (typeof settings.aisShowTrack === 'undefined') {
-      settings.aisShowTrack = false;
+    // changeover 2.7 - for removal
+    if (typeof (settings as any).aisShowTrack !== 'undefined') {
+      settings.selections.aisShowTrack = (settings as any).aisShowTrack;
+      delete (settings as any).aisShowTrack;
     }
 
     if (typeof settings.toolBarButtons === 'undefined') {
@@ -646,8 +671,10 @@ export class AppInfo extends Info {
     }
 
     if (typeof settings.selections === 'undefined') {
-      settings.selections = {};
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (settings as any).selections = {};
     }
+
     if (typeof settings.selections.aisWindMinZoom === 'undefined') {
       settings.selections.aisWindMinZoom = 15;
     }
@@ -712,7 +739,9 @@ export class AppInfo extends Info {
         atons: true,
         aircraft: false,
         sar: false,
-        maxRadius: 0
+        meteo: true,
+        maxRadius: 0,
+        proxied: false
       };
     }
     if (typeof settings.selections.signalk.meteo === 'undefined') {
@@ -748,7 +777,8 @@ export class AppInfo extends Info {
     }
 
     if (typeof settings.plugins === 'undefined') {
-      settings.plugins = {};
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (settings as any).plugins = {};
     }
     if (typeof settings.plugins.parameters === 'undefined') {
       settings.plugins.parameters = null;
@@ -762,11 +792,16 @@ export class AppInfo extends Info {
           getRadius: 20,
           groupNameEdit: false,
           groupRequiresPosition: false
-        }
+        },
+        video: {
+          enable: false,
+          url: ''
+        },
+        paths: []
       };
     } else {
       if (typeof settings.resources.video === 'undefined') {
-        settings.resources.video = { enable: false, url: null };
+        settings.resources.video = { enable: false, url: '' };
       }
       if (typeof settings.resources.paths === 'undefined') {
         settings.resources.paths = [];
@@ -803,7 +838,7 @@ export class AppInfo extends Info {
   }
 
   // ** validate settings against base config **
-  validateConfig(settings): boolean {
+  validateConfig(settings: FBAppConfig): boolean {
     let result = true;
     const skeys = Object.keys(settings);
     Object.keys(FreeboardConfig).forEach((i) => {
@@ -1003,7 +1038,7 @@ export class AppInfo extends Info {
           ? `${value.toFixed(1)} m`
           : `${Convert.metersToFeet(value).toFixed(1)} ft`;
       } else {
-        return this.config.units.distance === 'km'
+        return this.config.units.distance !== 'ft'
           ? `${(value / 1000).toFixed(1)} km`
           : `${Convert.kmToNauticalMiles(value / 1000).toFixed(1)} NM`;
       }

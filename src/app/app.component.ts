@@ -26,7 +26,6 @@ import {
   AlarmsFacade,
   AlarmsDialog,
   SKResources,
-  SKRoute,
   SKVessel,
   SKSaR,
   SKAircraft,
@@ -45,13 +44,15 @@ import {
 
 import { SignalKClient } from 'signalk-client-angular';
 import { Convert } from 'src/app/lib/convert';
-import { GeoUtils, Position } from 'src/app/lib/geoutils';
+import { GeoUtils } from 'src/app/lib/geoutils';
 
 import {
   NotificationMessage,
   UpdateMessage,
   LineString,
-  Polygon
+  Polygon,
+  FBRoute,
+  Position
 } from './types';
 import { Feature } from 'ol';
 
@@ -76,7 +77,6 @@ export class AppComponent {
 
   public display = {
     fullscreen: { active: false, enabled: document.fullscreenEnabled },
-    badge: { hide: true, value: '!' },
     leftMenuPanel: false,
     instrumentPanelOpen: true,
     instrumentAppActive: true,
@@ -506,11 +506,11 @@ export class AppComponent {
             this.signalk.get('/plugins/freeboard-sk').subscribe(
               () => {
                 this.app.debug('User Authenticated');
-                this.display.badge.hide = true;
+                this.app.data.loggedIn = true;
               },
               (err: HttpErrorResponse) => {
                 if (err.status === 401) {
-                  this.display.badge.hide = false;
+                  this.app.data.loggedIn = false;
                 }
               }
             );
@@ -578,7 +578,7 @@ export class AppComponent {
 
   // ** process local vessel trail **
   private processTrail(trailData?) {
-    if (!this.app.config.vesselTrail) {
+    if (!this.app.config.vessel.trail) {
       return;
     }
     // ** update vessel trail **
@@ -687,7 +687,7 @@ export class AppComponent {
         );
       }
       // ** trail **
-      if (this.app.config.vesselTrail) {
+      if (this.app.config.vessel.trail) {
         // show trail
         if (this.app.config.selections.trailFromServer) {
           this.skres.getVesselTrail();
@@ -942,7 +942,6 @@ export class AppComponent {
           this.signalk.login(res.user, res.pwd).subscribe(
             (r) => {
               // ** authenticated
-              this.display.badge.hide = true;
               this.app.persistToken(r['token']);
               this.app.loadSettingsfromServer().subscribe((r) => {
                 const msg = r
@@ -964,7 +963,6 @@ export class AppComponent {
               this.app.persistToken(null);
               this.signalk.isLoggedIn().subscribe((r) => {
                 this.app.data.loggedIn = r;
-                this.display.badge.hide = r;
               });
               if (onConnect) {
                 this.app
@@ -994,9 +992,8 @@ export class AppComponent {
           );
         } else {
           this.app.data.hasToken = false; // show login menu item
-          this.signalk.isLoggedIn().subscribe((r) => {
+          this.signalk.isLoggedIn().subscribe((r: boolean) => {
             this.app.data.loggedIn = r;
-            this.display.badge.hide = r;
           });
           if (onConnect) {
             this.showLogin(null, false, true);
@@ -1153,9 +1150,15 @@ export class AppComponent {
       bearingTrue: null,
       bearingMagnetic: null,
       xte: null,
+      eta: null,
       position: [null, null],
       pointIndex: idx,
-      pointTotal: 0
+      pointTotal: 0,
+      arrivalCircle: null,
+      startPosition: [null, null],
+      pointNames: [],
+      activeRoutePoints: null,
+      destPointName: ''
     };
   }
 
@@ -1179,7 +1182,7 @@ export class AppComponent {
 
   // ** show feature (vessel/AtoN/Aircraft/Route points) properties **
   public featureProperties(e: { id: string; type: string }) {
-    let v: SKRoute | SKVessel | SKSaR | SKAircraft | SKAtoN;
+    let v: FBRoute | SKVessel | SKSaR | SKAircraft | SKAtoN;
     if (e.type === 'route') {
       v = this.app.data.routes.filter((i) => {
         return e.id === i[0] ? true : false;

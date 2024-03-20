@@ -72,6 +72,7 @@ const prefSourcePaths = [
 
 let vessels: ResultPayload; // post message payload
 let stream: SignalKStreamWorker;
+let skToken!: string;
 const unsubscribe = [];
 let timers = [];
 let updateReceived = false;
@@ -244,8 +245,8 @@ function handleCommand(data: MsgFromApp) {
     //** { cmd: 'auth', options: {token: string} }
     case 'auth':
       console.log('Worker control: auth token...');
-      if (data.options) {
-        stream.authToken = data.options.token;
+      if (data.options && typeof data.options.token !== 'undefined') {
+        skToken = data.options.token;
       }
       break;
     /** { cmd: 'trail',options: {
@@ -497,6 +498,7 @@ function openStream(opt) {
       handleStreamEvent({ action: 'onMessage', msg: r })
     )
   );
+  stream.authToken = skToken;
   if (opt.playback) {
     //playback?subscribe=self&startTime=2018-08-24T15:19:09Z&playbackRate=5
     const st = opt.playbackOptions.startTime
