@@ -59,6 +59,7 @@ export class VesselComponent implements OnInit, OnDestroy, OnChanges {
   twdLine: Feature;
   awaLine: Feature;
   headingLine: Feature;
+  cogLine: Feature;
 
   constructor(
     protected changeDetectorRef: ChangeDetectorRef,
@@ -82,6 +83,9 @@ export class VesselComponent implements OnInit, OnDestroy, OnChanges {
     }
     if (this.awaLine) {
       fa.push(this.awaLine);
+    }
+    if (this.cogLine) {
+      fa.push(this.cogLine);
     }
 
     this.source = new VectorSource({ features: fa });
@@ -262,6 +266,16 @@ export class VesselComponent implements OnInit, OnDestroy, OnChanges {
       );
     } else {
       this.removeFeature(this.awaLine);
+    }
+    if ('cog' in this.vesselLines) {
+      this.cogLine = this.updateLine(this.cogLine, this.vesselLines.cog);
+      this.cogLine.setStyle(
+        new Style({
+          stroke: new Stroke({ color: 'rgba(204, 12, 225, 0.7)', width: 1 })
+        })
+      );
+    } else {
+      this.removeFeature(this.cogLine);
     }
   }
 

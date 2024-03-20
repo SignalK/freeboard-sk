@@ -566,15 +566,51 @@
             </div>
             <br />
             <div class="setting-card-row-item">
-              <mat-checkbox
-                #vesselwindvectors
-                color="primary"
-                [(ngModel)]="facade.settings.vesselWindVectors"
-                (change)="onFormChange($event, vesselwindvectors)"
-                label="after"
-              >
-                Display Wind Vectors
-              </mat-checkbox>
+              <fieldset>
+                <legend>Vessel Lines:</legend>
+
+                <mat-checkbox
+                  #vesselwindvectors
+                  color="primary"
+                  [(ngModel)]="facade.settings.vessel.windVectors"
+                  (change)="onFormChange($event, vesselwindvectors)"
+                  label="after"
+                >
+                  Display Wind Vectors
+                </mat-checkbox>
+
+                <mat-form-field style="width: 100%">
+                  <mat-label>Heading Line Length</mat-label>
+                  <mat-select
+                    #vesselheadinglinesize
+                    matTooltip="Length of heading line."
+                    [(value)]="facade.settings.vessel.headingLineSize"
+                    (selectionChange)="onFormChange($event, vesselheadinglinesize)"
+                  >
+                    <mat-option
+                      *ngFor="let i of facade.vesselOptions.headingLine | keyvalue"
+                      [value]="i.key"
+                      >{{i.value}}</mat-option
+                    >
+                  </mat-select>
+                </mat-form-field>
+
+                <mat-form-field style="width: 100%">
+                  <mat-label>COG Line Length</mat-label>
+                  <mat-select
+                    #vesselcoglinesize
+                    matTooltip="Length of COG line."
+                    [(value)]="facade.settings.vessel.cogLine"
+                    (selectionChange)="onFormChange($event, vesselcoglinesize)"
+                  >
+                    <mat-option
+                      *ngFor="let i of facade.vesselOptions.cogLine | keyvalue"
+                      [value]="i.key"
+                      >{{i.value}}</mat-option
+                    >
+                  </mat-select>
+                </mat-form-field>
+              </fieldset>
             </div>
             <br />
             <fieldset>
@@ -582,7 +618,7 @@
                 <mat-checkbox
                   #vesseltrail
                   color="primary"
-                  [(ngModel)]="facade.settings.vesselTrail"
+                  [(ngModel)]="facade.settings.vessel.trail"
                   (change)="onFormChange($event, vesseltrail)"
                   label="after"
                 >
@@ -594,7 +630,7 @@
                   <mat-checkbox
                     #trailFromServer
                     color="primary"
-                    [disabled]="!facade.settings.vesselTrail"
+                    [disabled]="!facade.settings.vessel.trail"
                     [(ngModel)]="facade.settings.selections.trailFromServer"
                     (change)="onFormChange($event, trailFromServer)"
                     matTooltip="Select to source trail data from the server"
@@ -611,7 +647,7 @@
                     min="1"
                     max="96"
                     color="primary"
-                    [disabled]="!facade.settings.selections.trailFromServer || !facade.settings.vesselTrail"
+                    [disabled]="!facade.settings.selections.trailFromServer || !facade.settings.vessel.trail"
                   >
                     <input
                       matSliderThumb
@@ -629,7 +665,7 @@
                     <mat-select
                       #trailRes1
                       [(value)]="facade.settings.selections.trailResolution.lastHour"
-                      [disabled]="!facade.settings.selections.trailFromServer || !facade.settings.vesselTrail"
+                      [disabled]="!facade.settings.selections.trailFromServer || !facade.settings.vessel.trail"
                       (selectionChange)="onFormChange($event, trailRes1)"
                     >
                       <mat-option
@@ -646,7 +682,7 @@
                     <mat-select
                       #trailRes23
                       [(value)]="facade.settings.selections.trailResolution.next23"
-                      [disabled]="!facade.settings.selections.trailFromServer || !facade.settings.vesselTrail"
+                      [disabled]="!facade.settings.selections.trailFromServer || !facade.settings.vessel.trail"
                       (selectionChange)="onFormChange($event, trailRes23)"
                     >
                       <mat-option
@@ -663,7 +699,7 @@
                     <mat-select
                       #trailRes24plus
                       [(value)]="facade.settings.selections.trailResolution.beyond24"
-                      [disabled]="!facade.settings.selections.trailFromServer || !facade.settings.vesselTrail"
+                      [disabled]="!facade.settings.selections.trailFromServer || !facade.settings.vessel.trail"
                       (selectionChange)="onFormChange($event, aisstaleage)"
                     >
                       <mat-option
@@ -753,7 +789,7 @@
                 <mat-checkbox
                   #aisShowTrack
                   color="primary"
-                  [(ngModel)]="facade.settings.aisShowTrack"
+                  [(ngModel)]="facade.settings.selections.aisShowTrack"
                   (change)="onFormChange($event, aisShowTrack)"
                   label="after"
                 >
@@ -1103,6 +1139,16 @@
                     </mat-option>
                   </mat-select>
                 </mat-form-field>
+              </div>
+
+              <div class="setting-card-row-item">
+                <button
+                  mat-icon-button
+                  matTooltip="Clear Auth Token"
+                  (click)="clearAuthToken()"
+                >
+                  <mat-icon>key_off</mat-icon>
+                </button>
               </div>
             </div>
           </mat-card>

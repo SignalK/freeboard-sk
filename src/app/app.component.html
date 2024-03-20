@@ -65,7 +65,7 @@
     <mat-menu #settingsmenu="matMenu">
       <a
         mat-menu-item
-        *ngIf="app.config.vesselTrail && app.data.trail.length != 0"
+        *ngIf="app.config.vessel.trail && app.data.trail.length != 0"
         (click)="clearTrail(app.data.serverTrail)"
       >
         <mat-icon>clear_all</mat-icon>
@@ -73,7 +73,7 @@
       </a>
       <a
         mat-menu-item
-        *ngIf="app.config.vesselTrail && app.data.trail.length != 0"
+        *ngIf="app.config.vessel.trail && app.data.trail.length != 0"
         (click)="trailToRoute()"
       >
         <mat-icon>insights</mat-icon>
@@ -252,12 +252,12 @@
               (click)="sidemenu.close(); showLogin(null, false)"
             >
               <mat-icon
-                [matBadge]="display.badge.value"
+                [matBadge]="app.data.loggedInBadgeText"
                 matBadgeOverlap="true"
                 matBadgeSize="small"
                 matBadgePosition="below after"
                 matBadgeColor="warn"
-                [matBadgeHidden]="display.badge.hide"
+                [matBadgeHidden]="app.data.loggedIn"
               >
                 account_circle
               </mat-icon>
@@ -366,10 +366,10 @@
               (click)="sidemenu.toggle()"
             >
               <mat-icon
-                [matBadge]="display.badge.value"
+                [matBadge]="app.data.loggedInBadgeText"
                 matBadgeOverlap="true"
                 matBadgeColor="warn"
-                [matBadgeHidden]="display.badge.hide"
+                [matBadgeHidden]="app.data.loggedIn"
                 >menu</mat-icon
               >
             </button>

@@ -1869,8 +1869,13 @@
           <b>VESSEL:</b><br />
           This section provides choices when displaying data for the vessel.<br />
           <img
-            src="./img/settings_vessels.png"
+            src="./img/settings_vessels_1.png"
             style="height: 350px"
+            alt=""
+          /><br />
+          <img
+            src="./img/settings_vessels_2.png"
+            style="height: 220px"
             alt=""
           /><br />
 
@@ -1886,6 +1891,21 @@
             <li>
               <b>Display Wind Vectors</b>: Select to display wind vectors for
               the vessel on the map.
+            </li>
+            <li>
+              <b>Heading Line Length</b>: Select length of heading line
+              displayed on the map.
+              <ul>
+                <li>
+                  <b>Default</b>: Calculates the length of the line displayed
+                  based on the vessel SOG and the map scale.
+                </li>
+                <li><b>(x) NM</b> Length of the line to display.</li>
+              </ul>
+            </li>
+            <li>
+              <b>COG Line</b>: Display a line to the predicted location based on
+              the selected time and the vessel's current SOG.
             </li>
             <li>
               <b>Display Vessel Trail</b>: Check this box if you want to display
@@ -1912,8 +1932,8 @@
                   </ul>
                   <span style="color: red"
                     ><b>Note:</b> Selections will determine the volume of data
-                    transferred from the server which may impact performance.
-                  </span>
+                    transferred from the server which may impact performance. </span
+                  ><br />
                   Trail data received from the server undergoes temporal
                   simplification to minimise the data used to display the trail
                   whilst maintianing integrity.

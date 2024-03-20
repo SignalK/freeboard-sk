@@ -127,4 +127,9 @@ export class SettingsDialog implements OnInit {
   noSort() {
     return 0;
   }
+
+  // delete auth token
+  clearAuthToken() {
+    this.facade.clearToken();
+  }
 }
