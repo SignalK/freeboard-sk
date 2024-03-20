@@ -16,6 +16,8 @@ export class CoordsPipe implements PipeTransform {
         return this.toHDd(value, h);
       case 'SHDd':
         return this.toHDdSigned(value, h);
+      case 'DMdH':
+        return this.toDMdH(value, h);
       default:
         return this.toXY(value);
     }
@@ -26,7 +28,7 @@ export class CoordsPipe implements PipeTransform {
     return value.toFixed(precision);
   }
 
-  // returns H D^M'S"sss
+  // returns H D°M'S"sss
   private toHDMS(value: number, hemisphere: string): string {
     return `${hemisphere} ${decimalToSexagesimal(value)}`;
   }
@@ -39,7 +41,17 @@ export class CoordsPipe implements PipeTransform {
     return c;
   }
 
-  // returns H D.ddddd^
+  // returns DDD° MM.ddd' H  (e.g 020° 44.56' E)
+  private toDMdH(value: number, hemisphere: string, precision = 5): string {
+    const D = Math.floor(value) ?? 0;
+    const d = D === 0 ? Math.abs(value) : Math.abs(value % D);
+    const mdec = (d * 60).toFixed(precision);
+    return `${('000' + D.toString()).slice(-3)}${
+      this.symDegree
+    } ${mdec}' ${hemisphere}`;
+  }
+
+  // returns H D.ddddd°
   private toHDd(value: number, hemisphere: string, precision = 5): string {
     let ddec: string = value.toFixed(precision);
     ddec = ddec.substring(ddec.indexOf('.'));
@@ -48,7 +60,7 @@ export class CoordsPipe implements PipeTransform {
     }`;
   }
 
-  // returns H +/-D.ddddd^
+  // returns H +/-D.ddddd°
   private toHDdSigned(
     value: number,
     hemisphere: string,

@@ -7,6 +7,7 @@ import { AppInfo } from 'src/app/app.info';
 import { SettingsMessage } from 'src/app/lib/services';
 import { SignalKClient } from 'signalk-client-angular';
 import { SKStreamFacade } from 'src/app/modules/skstream/skstream.facade';
+import { Position } from 'src/app/types';
 
 interface SKAppsList {
   author: string;
@@ -62,6 +63,7 @@ export class SettingsFacade {
     coords: [
       ['XY', '-28.12345'],
       ['SHDd', `S-28.12345${this.symDegree}`],
+      ['DMdH', `028${this.symDegree} 15.345' S`],
       ['HDd', `S 28.12345${this.symDegree}`],
       ['HDMS', `S 28${this.symDegree}15'46"123`],
       ['DHMS', `28S15'46"123`]
@@ -98,6 +100,27 @@ export class SettingsFacade {
       [100000, '55 NM (100km)']
     ]),
     aisProfiles: new Map([[0, 'Default']]) //,[1,'Navigation'] ])
+  };
+
+  vesselOptions = {
+    headingLine: new Map([
+      [-1, 'Default'],
+      [5, '5 NM (10km)'],
+      [10, '10 NM (20km)'],
+      [15, '15 NM (30km)'],
+      [20, '20 NM (40km)'],
+      [50, '50 NM (90km)'],
+      [100, '100 NM (180km)']
+    ]),
+    cogLine: new Map([
+      [0, 'None'],
+      [5, '5 min'],
+      [10, '10 min'],
+      [30, '30 min'],
+      [60, '60 min'],
+      [2 * 60, '2 hrs'],
+      [24 * 60, '24 hrs']
+    ])
   };
 
   alarmOptions = {
@@ -197,6 +220,11 @@ export class SettingsFacade {
     });
   }
 
+  // delete auth token
+  clearToken() {
+    this.app.persistToken(null);
+  }
+
   // refresh dynamic data from sources
   refresh() {
     this.settings = this.app.config;
@@ -294,7 +322,7 @@ export class SettingsFacade {
 
   applySettings() {
     this.app.debug('Saving Settings..');
-    if (!this.app.config.vesselTrail) {
+    if (!this.app.config.vessel.trail) {
       this.app.config.selections.trailFromServer = false;
     }
     if (
@@ -303,7 +331,8 @@ export class SettingsFacade {
     ) {
       this.settings.fixedPosition = this.fixedPosition.slice();
       if (this.settings.fixedLocationMode) {
-        this.app.data.vessels.self.position = this.fixedPosition.slice();
+        this.app.data.vessels.self.position =
+          this.fixedPosition.slice() as Position;
       }
     }
     this.stream.emitVesselsUpdate();
