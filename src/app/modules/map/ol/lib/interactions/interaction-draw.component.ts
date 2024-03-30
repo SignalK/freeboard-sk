@@ -27,6 +27,7 @@ export class InteractionDrawComponent {
 
   @Input() type = 'LineString';
   @Input() style: Style;
+  @Input() stopClick: boolean;
 
   @Output() change: EventEmitter<DrawEvent> = new EventEmitter();
   @Output() drawStart: EventEmitter<DrawEvent> = new EventEmitter();
@@ -55,7 +56,7 @@ export class InteractionDrawComponent {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const opt: any = {
         type: this.type,
-        stopClick: true
+        stopClick: this.stopClick ?? true
       };
       if (this.style) {
         opt.style = this.style;

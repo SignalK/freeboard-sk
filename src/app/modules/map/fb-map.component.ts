@@ -10,6 +10,7 @@ import {
 } from '@angular/core';
 import { MatMenuTrigger } from '@angular/material/menu';
 
+import { getGreatCircleBearing } from 'geolib';
 import { toLonLat } from 'ol/proj';
 import { Style, Stroke, Fill } from 'ol/style';
 import { Collection, Feature } from 'ol';
@@ -582,8 +583,8 @@ export class FBMapComponent implements OnInit, OnDestroy {
     this.contextMenuPosition.x = e.clientX + 'px';
     this.contextMenuPosition.y = e.clientY + 'px';
     this.contextMenu.menuData = { item: this.mouse.coords };
-    if (this.measureMode) {
-      this.onMeasureClick(this.mouse.xy);
+    if (this.measureMode && this.measure.coords.length !== 0) {
+      this.onMeasureClick(this.mouse.xy.lonlat);
     } else if (!this.modifyMode) {
       if (!this.mouse.xy) {
         return;
@@ -630,10 +631,18 @@ export class FBMapComponent implements OnInit, OnDestroy {
       const c = e.lonlat;
       this.overlay.position = c;
       const l = this.measure.totalDistance + this.measureDistanceToAdd(c);
+      const a = getGreatCircleBearing(
+        this.measure.coords.slice(-1)[0],
+        c
+      ).toFixed(1);
       this.overlay.title =
         this.app.config.units.distance === 'm'
           ? `${(l / 1000).toFixed(2)} km`
           : `${Convert.kmToNauticalMiles(l / 1000).toFixed(2)} NM`;
+
+      this.overlay.title = `${this.overlay.title} ${a}${String.fromCharCode(
+        186
+      )}`;
     }
   }
 
@@ -643,7 +652,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
   }
 
   public onMapMouseClick(e) {
-    if (this.measure.enabled) {
+    if (this.measure.enabled && this.measure.coords.length !== 0) {
       this.onMeasureClick(e.lonlat);
     } else if (!this.draw.enabled && !this.draw.modify) {
       if (!this.app.config.popoverMulti) {
@@ -804,6 +813,9 @@ export class FBMapComponent implements OnInit, OnDestroy {
   }
 
   public onMeasureClick(pt: Position) {
+    if (!Array.isArray(pt)) {
+      return;
+    }
     this.measure.coords.push(pt);
     this.overlay.position = pt;
 
