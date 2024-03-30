@@ -1517,7 +1517,7 @@ export class SKResources {
       wpt = new SKWaypoint();
       wpt.feature.geometry.coordinates = GeoUtils.normaliseCoords(e.position);
       title = 'Drop waypoint:';
-      wpt.name = '';
+      wpt.name = `Wpt-${Date.now().toString().slice(-5)}`;
       wpt.description = '';
     } else {
       // Edit waypoint details
