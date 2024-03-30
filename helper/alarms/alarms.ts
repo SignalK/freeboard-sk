@@ -172,7 +172,7 @@ const handlePutAlarmState = (
 };
 
 const buildAlarmMessage = (message: string) => {
-  const pos: {value: Position} = server.getSelfPath('navigation.position');
+  const pos: { value: Position } = server.getSelfPath('navigation.position');
   return {
     message: message,
     data: {

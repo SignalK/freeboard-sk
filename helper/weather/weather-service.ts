@@ -11,6 +11,7 @@ import { Request, Response } from 'express';
 
 export interface WEATHER_CONFIG {
   enable: boolean;
+  apiVersion: number;
   apiKey: string;
   pollInterval: number;
 }
@@ -139,6 +140,7 @@ let server: FreeboardHelperApp;
 let pluginId: string;
 
 const wakeInterval = 60000;
+let lastWake: number; // last wake time
 let lastFetch: number; // last successful fetch
 let fetchInterval = 3600000; // 1hr
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -165,9 +167,13 @@ export const initWeather = (
 ) => {
   server = app;
   pluginId = id;
-  fetchInterval = config.pollInterval * 60000;
+  fetchInterval = (config.pollInterval ?? 60) * 60000;
+  if (isNaN(fetchInterval)) {
+    fetchInterval = 60 * 60000;
+  }
 
   server.debug(`*** Weather: settings: ${JSON.stringify(config)}`);
+  server.debug(`*** fetchInterval: ${fetchInterval}`);
 
   weatherService = new OpenWeather(config);
   weatherServiceName = 'openweather';
@@ -384,9 +390,24 @@ const fetchWeatherData = () => {
         //server.debug(JSON.stringify(data));
         retryCount = 0;
         lastFetch = Date.now();
+        lastWake = Date.now();
         weatherData = data;
         timer = setInterval(() => {
           server.debug(`*** Weather: wake from sleep....poll provider.`);
+          const dt = Date.now() - lastWake;
+          // check for runaway timer
+          if (dt >= 50000) {
+            server.debug('Wake timer watchdog -> OK');
+            server.debug(`*** Weather: Polling provider.`);
+          } else {
+            server.debug(
+              'Wake timer watchdog -> NOT OK... Stopping wake timer!'
+            );
+            server.debug(`Watch interval < 50 secs. (${dt / 1000} secs)`);
+            clearInterval(timer);
+            server.setPluginError('Weather watch timer error!');
+          }
+          lastWake = Date.now();
           fetchWeatherData();
         }, wakeInterval);
         emitMeteoDeltas();
@@ -682,7 +703,8 @@ const buildObservationMetas = (pathRoot: string) => {
   metas.push({
     path: `${pathRoot}.outside.horizontalVisibilityOverRange`,
     value: {
-      description: 'Visibilty distance is greater than the range of the measuring equipment.'
+      description:
+        'Visibilty distance is greater than the range of the measuring equipment.'
     }
   });
   metas.push({

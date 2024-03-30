@@ -104,7 +104,9 @@ export class OpenWeather implements IWeatherService {
   }
 
   private getUrl(position: Position): string {
-    const api = 'https://api.openweathermap.org/data/2.5/onecall';
+    const v2 = 'https://api.openweathermap.org/data/2.5/onecall';
+    const v3 = 'https://api.openweathermap.org/data/3.0/onecall';
+    const api = this.settings.apiVersion === 3 ? v3 : v2;
     if (!this.settings.apiKey || !position) {
       return '';
     } else {

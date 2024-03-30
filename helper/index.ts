@@ -41,6 +41,13 @@ const CONFIG_SCHEMA = {
           title: 'Enable Weather',
           description: ' '
         },
+        apiVersion: {
+          type: 'number',
+          title: 'API Version',
+          default: 2,
+          enum: [2, 3],
+          description: 'Note: v2 API not supported after April 2024!'
+        },
         apiKey: {
           type: 'string',
           title: 'API Key',
@@ -90,6 +97,10 @@ const CONFIG_UISCHEMA = {
       'ui:widget': 'checkbox',
       'ui:title': ' ',
       'ui:help': ' '
+    },
+    apiVersion: {
+      'ui:widget': 'select',
+      'ui-help': ' '
     },
     apiKey: {
       'ui:disabled': false,
@@ -154,6 +165,7 @@ module.exports = (server: FreeboardHelperApp): OpenApiPlugin => {
     },
     weather: {
       enable: false,
+      apiVersion: 2,
       apiKey: '',
       pollInterval: defaultPollInterval
     },
@@ -194,10 +206,12 @@ module.exports = (server: FreeboardHelperApp): OpenApiPlugin => {
 
       settings.weather = options.weather ?? {
         enable: false,
+        apiVersion: 2,
         apiKey: '',
         pollInterval: defaultPollInterval
       };
       settings.weather.enable = options.weather.enable ?? false;
+      settings.weather.apiVersion = options.weather.apiVersion ?? 2;
       settings.weather.apiKey = options.weather.apiKey ?? '';
       settings.weather.pollInterval =
         options.weather.pollInterval ?? defaultPollInterval;
