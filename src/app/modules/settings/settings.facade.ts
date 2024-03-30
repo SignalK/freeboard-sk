@@ -105,6 +105,8 @@ export class SettingsFacade {
   vesselOptions = {
     headingLine: new Map([
       [-1, 'Default'],
+      [1, '1 NM (2km)'],
+      [2, '2 NM (4km)'],
       [5, '5 NM (10km)'],
       [10, '10 NM (20km)'],
       [15, '15 NM (30km)'],
