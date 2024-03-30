@@ -262,8 +262,6 @@ export class AtoNPopoverComponent {
   ngOnInit() {
     if (!this.aton) {
       this.handleClose();
-    } else {
-      this._title = this.title || this.aton.name || this.aton.mmsi || 'AtoN:';
     }
   }
 
@@ -272,6 +270,7 @@ export class AtoNPopoverComponent {
       this.handleClose();
       return;
     }
+    this._title = this.title || this.aton.name || this.aton.mmsi || 'AtoN:';
     this.timeLastUpdate = `${this.aton.lastUpdated.getHours()}:${(
       '00' + this.aton.lastUpdated.getMinutes()
     ).slice(-2)}`;
