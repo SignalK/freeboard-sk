@@ -245,12 +245,8 @@
               <mat-icon color="primary">settings</mat-icon>
               &nbsp;Settings
             </a>
-
-            <a
-              mat-list-item
-              *ngIf="app.data.loginRequired"
-              (click)="sidemenu.close(); showLogin(null, false)"
-            >
+            @if(!app.hostParams.token && app.data.loginRequired){
+            <a mat-list-item (click)="sidemenu.close(); showLogin(null, false)">
               <mat-icon
                 [matBadge]="app.data.loggedInBadgeText"
                 matBadgeOverlap="true"
@@ -263,6 +259,7 @@
               </mat-icon>
               &nbsp;{{ app.data.loggedIn ? 'Change User' : 'Login' }}
             </a>
+            }
           </mat-nav-list>
         </mat-sidenav>
 

@@ -192,6 +192,7 @@ export interface FBAppData {
   loggedIn: boolean;
   loginRequired: boolean;
   loggedInBadgeText: string;
+  hasToken: boolean;
   hasWakeLock: boolean;
   routes: FBRoutes;
   waypoints: FBWaypoints;
@@ -215,7 +216,6 @@ export interface FBAppData {
   serverTrail: boolean; // trail received from server
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   server: { [key: string]: any }; // SK server info
-  hasToken: boolean;
   lastGet: Position; // map position of last resources GET
   vessels: {
     // received vessel data
