@@ -1510,14 +1510,14 @@ export class SKResources {
       wpt = new SKWaypoint();
       wpt.feature.geometry.coordinates = GeoUtils.normaliseCoords(position);
       title = 'New waypoint:';
-      wpt.name = '';
+      wpt.name = `Wpt-${Date.now().toString().slice(-5)}`;
       wpt.description = '';
     } else if (!e.id && e.position) {
       // add at provided position
       wpt = new SKWaypoint();
       wpt.feature.geometry.coordinates = GeoUtils.normaliseCoords(e.position);
       title = 'Drop waypoint:';
-      wpt.name = `Wpt-${Date.now().toString().slice(-5)}`;
+      wpt.name = ``;
       wpt.description = '';
     } else {
       // Edit waypoint details
