@@ -107,24 +107,25 @@ import {
                 [cdkDropListData]="rtepts"
                 (cdkDropListDropped)="dropEventHandler($event)"
               >
-                <div
-                  class="wpt-box"
-                  mat-background
-                  cdkDrag
-                  *ngFor="let item of rtepts; let idx = index"
-                >
-                  <div style="width:40px;">
-                    <mat-icon color="primary">room</mat-icon>
+                @for(item of rtepts; track item; let idx = $index) {
+                  <div
+                    class="wpt-box"
+                    mat-background
+                    cdkDrag
+                  >
+                    <div style="width:40px;">
+                      <mat-icon color="primary">room</mat-icon>
+                    </div>
+                    <div class="wpt-text" [matTooltip]="item.name">
+                      {{ item.name }}
+                    </div>
+                    <div style="width:40px;">
+                      <button mat-icon-button (click)="deleteFromRoute(idx)">
+                        <mat-icon color="warn">delete</mat-icon>
+                      </button>
+                    </div>
                   </div>
-                  <div class="wpt-text" [matTooltip]="item.name">
-                    {{ item.name }}
-                  </div>
-                  <div style="width:40px;">
-                    <button mat-icon-button (click)="deleteFromRoute(idx)">
-                      <mat-icon color="warn">delete</mat-icon>
-                    </button>
-                  </div>
-                </div>
+                }
               </div>
             </div>
           </div>

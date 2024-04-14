@@ -85,30 +85,32 @@
         </mat-expansion-panel-header>
 
         <div class="list-container-scrollable">
-          <mat-card class="row" *ngFor="let w of gpxData.waypoints;let i=index">
-            <div class="rgrid">
-              <div class="row">
-                <div class="name">
-                  <mat-icon color="accent">place</mat-icon>
-                  {{w.name}}
-                </div>
-                <div class="">
-                  <i>{{w.description}}</i>
-                </div>
-                <div class="check">
-                  <mat-checkbox
-                    color="primary"
-                    [checked]="selWaypoints[i]"
-                    #wval
-                    (change)="checkWpt(wval.checked, i)"
-                    matTooltip="Select Waypoint"
-                    matTooltipPosition="below"
-                  >
-                  </mat-checkbox>
+          @for(w of gpxData.waypoints; track w; let i=$index) {
+            <mat-card class="row">
+              <div class="rgrid">
+                <div class="row">
+                  <div class="name">
+                    <mat-icon color="accent">place</mat-icon>
+                    {{w.name}}
+                  </div>
+                  <div class="">
+                    <i>{{w.description}}</i>
+                  </div>
+                  <div class="check">
+                    <mat-checkbox
+                      color="primary"
+                      [checked]="selWaypoints[i]"
+                      #wval
+                      (change)="checkWpt(wval.checked, i)"
+                      matTooltip="Select Waypoint"
+                      matTooltipPosition="below"
+                    >
+                    </mat-checkbox>
+                  </div>
                 </div>
               </div>
-            </div>
-          </mat-card>
+            </mat-card>
+          }
         </div>
       </mat-expansion-panel>
     </div>
@@ -150,31 +152,33 @@
         </mat-expansion-panel-header>
 
         <div class="list-container-scrollable">
-          <mat-card class="row" *ngFor="let r of gpxData.routes;let i=index">
-            <div class="rgrid">
-              <div class="row">
-                <div class="name">
-                  <mat-icon color="primary">directions</mat-icon>
-                  {{r.name}}
-                </div>
-                <div>
-                  <i>{{r.description}}</i><br />
-                  {{r.length}}
-                </div>
-                <div class="check">
-                  <mat-checkbox
-                    color="primary"
-                    matTooltip="Select this Route"
-                    matTooltipPosition="below"
-                    [checked]="selRoutes[i]"
-                    #rval
-                    (change)="checkRte(rval.checked, i)"
-                  >
-                  </mat-checkbox>
+          @for(r of gpxData.routes; track r; let i=$index) {
+            <mat-card class="row">
+              <div class="rgrid">
+                <div class="row">
+                  <div class="name">
+                    <mat-icon color="primary">directions</mat-icon>
+                    {{r.name}}
+                  </div>
+                  <div>
+                    <i>{{r.description}}</i><br />
+                    {{r.length}}
+                  </div>
+                  <div class="check">
+                    <mat-checkbox
+                      color="primary"
+                      matTooltip="Select this Route"
+                      matTooltipPosition="below"
+                      [checked]="selRoutes[i]"
+                      #rval
+                      (change)="checkRte(rval.checked, i)"
+                    >
+                    </mat-checkbox>
+                  </div>
                 </div>
               </div>
-            </div>
-          </mat-card>
+            </mat-card>
+          }
         </div>
       </mat-expansion-panel>
     </div>
@@ -217,30 +221,32 @@
         </mat-expansion-panel-header>
 
         <div class="list-container-scrollable">
-          <mat-card class="row" *ngFor="let t of gpxData.tracks;let i=index">
-            <div class="rgrid">
-              <div class="row">
-                <div class="name">
-                  <mat-icon color="warn">show_chart</mat-icon>
-                  {{t.name}}
-                </div>
-                <div class="">
-                  <i>{{t.description}}</i>
-                </div>
-                <div class="check">
-                  <mat-checkbox
-                    color="primary"
-                    matTooltip="Select this Track"
-                    matTooltipPosition="below"
-                    [checked]="selTracks[i]"
-                    #tval
-                    (change)="checkTrk(tval.checked, i)"
-                  >
-                  </mat-checkbox>
+          @for(t of gpxData.tracks; track t; let i=$index) {
+            <mat-card class="row">
+              <div class="rgrid">
+                <div class="row">
+                  <div class="name">
+                    <mat-icon color="warn">show_chart</mat-icon>
+                    {{t.name}}
+                  </div>
+                  <div class="">
+                    <i>{{t.description}}</i>
+                  </div>
+                  <div class="check">
+                    <mat-checkbox
+                      color="primary"
+                      matTooltip="Select this Track"
+                      matTooltipPosition="below"
+                      [checked]="selTracks[i]"
+                      #tval
+                      (change)="checkTrk(tval.checked, i)"
+                    >
+                    </mat-checkbox>
+                  </div>
                 </div>
               </div>
-            </div>
-          </mat-card>
+            </mat-card>
+          }
         </div>
       </mat-expansion-panel>
     </div>
