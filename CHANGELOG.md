@@ -1,5 +1,16 @@
 # CHANGELOG: Freeboard
 
+### v2.7.0
+
+- **Added**: OpenWeather OneCall v3.0 support. _(v2.5 is deprecated April 2024)_
+- **Added**: OpenWeather service polling watchdog to protect against excessive API calls.
+- **Added**: Kiosk mode to support view-only operation.
+- **Update**: Hide login / change user menu item when token supplied in url parameter.
+- **Update**: Measurement not shows angle as well as distance. (#145)
+- **Fixed**: Settings menu overflow on smaller screens. (#144)
+- **Fixed**: Weather station name display in popover when not closed. (#147)
+
+
 ### v2.6.1
 
 - **Added**: Options to display and configure Heading and COG lines on map. (#138)
