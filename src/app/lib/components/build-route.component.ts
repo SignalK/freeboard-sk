@@ -85,7 +85,8 @@ import {
                 [cdkDropListConnectedTo]="[rteptList]"
                 (cdkDropListDropped)="dropEventHandler($event)"
               >
-                <div class="wpt-box" cdkDrag *ngFor="let item of wpts">
+                @for(item of wpts; track item) {
+                <div class="wpt-box" cdkDrag>
                   <div style="width:40px;">
                     <mat-icon color="accent">room</mat-icon>
                   </div>
@@ -93,6 +94,7 @@ import {
                     {{ item.name }}
                   </div>
                 </div>
+                }
               </div>
             </div>
 

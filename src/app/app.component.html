@@ -36,20 +36,21 @@
         <mat-icon>save</mat-icon>
         &nbsp;Save to GPX
       </button>
-
-      <div *ngIf="app.config.resources.paths.length != 0">
+      @if(app.config.resources.paths.length !== 0) {
+      <div>
         <mat-divider></mat-divider>
-        <div *ngFor="let p of app.config.resources.paths.sort()" [ngSwitch]="p">
+        @for(p of app.config.resources.paths.sort(); track p) {
+        <div>
+          @switch(p) { @case('tracks') {
           <button
-            *ngSwitchCase="'tracks'"
             mat-menu-item
             (click)="openExperiment({ choice: p, value: null })"
           >
             <mat-icon color="warn">show_chart</mat-icon>
             <span>Tracks</span>
           </button>
+          } @default {
           <button
-            *ngSwitchDefault
             mat-menu-item
             (click)="
               sidemenu.close(); openExperiment({ choice: p, value: null })
@@ -58,31 +59,32 @@
             <mat-icon>category</mat-icon>
             &nbsp;{{ p }}
           </button>
+          } }
         </div>
+        }
       </div>
+      }
     </mat-menu>
 
     <mat-menu #settingsmenu="matMenu">
-      <a
-        mat-menu-item
-        *ngIf="app.config.vessel.trail && app.data.trail.length != 0"
-        (click)="clearTrail(app.data.serverTrail)"
-      >
+      @if(app.config.vessel.trail && app.data.trail.length !== 0) {
+      <a mat-menu-item (click)="clearTrail(app.data.serverTrail)">
         <mat-icon>clear_all</mat-icon>
         <span>{{ app.data.serverTrail ? 'Refresh' : 'Clear' }} Trail</span>
       </a>
-      <a
-        mat-menu-item
-        *ngIf="app.config.vessel.trail && app.data.trail.length != 0"
-        (click)="trailToRoute()"
-      >
+      } @if(app.config.vessel.trail && app.data.trail.length !== 0) {
+      <a mat-menu-item (click)="trailToRoute()">
         <mat-icon>insights</mat-icon>
         <span>Trail to Route</span>
       </a>
+      }
       <a mat-menu-item (click)="clearDestintation()">
         <mat-icon>clear_all</mat-icon>
-        <span *ngIf="app.data.activeRoute">Clear Active Route</span>
-        <span *ngIf="!app.data.activeRoute">Clear Destination</span>
+        @if(app.data.activeRoute) {
+        <span>Clear Active Route</span>
+        } @else {
+        <span>Clear Destination</span>
+        }
       </a>
       <a mat-menu-item (click)="clearCourseData()">
         <mat-icon>clear_all</mat-icon>
@@ -134,9 +136,9 @@
         <span>Build Route</span>
       </a>
       <mat-divider></mat-divider>
+      @if(app.data.vessels.showSelf) {
       <a
         mat-menu-item
-        *ngIf="app.data.vessels.showSelf"
         (click)="
           skres.showWaypointEditor(null, app.data.vessels.active.position)
         "
@@ -144,6 +146,7 @@
         <mat-icon color="accent">add_location</mat-icon>
         <span>Add Waypoint at Vessel</span>
       </a>
+      }
       <a mat-menu-item (click)="drawStart('waypoint')">
         <mat-icon color="accent">edit_location</mat-icon>
         <span>Drop Waypoint</span>
@@ -222,23 +225,20 @@
             </a>
 
             <mat-divider></mat-divider>
+            @if(!draw.enabled || !measure.enabled) {
             <a
               mat-list-item
-              *ngIf="!draw.enabled || !measure.enabled"
               (click)="sidemenu.close(); displayLeftMenu('anchorWatch', true)"
             >
               <mat-icon>anchor</mat-icon>
               &nbsp;Anchor Watch
             </a>
-
-            <a
-              mat-list-item
-              *ngIf="features.playbackAPI"
-              (click)="sidemenu.close(); showPlaybackSettings()"
-            >
+            } @if(features.playbackAPI) {
+            <a mat-list-item (click)="sidemenu.close(); showPlaybackSettings()">
               <mat-icon>history</mat-icon>
               &nbsp;Playback History
             </a>
+            }
 
             <mat-divider></mat-divider>
             <a mat-list-item (click)="sidemenu.close(); openSettings()">
@@ -264,9 +264,9 @@
         </mat-sidenav>
 
         <!--instruments-->
+        @if(app.data.optAppPanel) {
         <mat-sidenav
           #sideright
-          *ngIf="app.data.optAppPanel"
           mode="side"
           position="end"
           (openedChange)="rightSideNavAction($event)"
@@ -280,12 +280,11 @@
                 <a mat-icon-button (click)="sideright.toggle()">
                   <mat-icon>arrow_forward</mat-icon>
                 </a>
-                &nbsp;&nbsp;&nbsp;&nbsp;
+                &nbsp;&nbsp;&nbsp;&nbsp; @if(app.config.plugins.instruments) {
                 <a
                   mat-icon-button
                   [href]="instUrl"
                   (click)="sideright.toggle()"
-                  *ngIf="app.config.plugins.instruments"
                   target="_blank"
                   color="primary"
                   matTooltip="Open Instruments in window."
@@ -293,12 +292,12 @@
                 >
                   <mat-icon>open_in_new</mat-icon>
                 </a>
-                &nbsp;&nbsp;
+                } &nbsp;&nbsp;
                 <a
                   mat-icon-button
                   (click)="selectPlugin()"
                   [disabled]="
-                    app.config.selections.pluginFavourites.length == 0
+                    app.config.selections.pluginFavourites.length === 0
                   "
                   color="primary"
                   matTooltip="Previous plugin"
@@ -310,7 +309,7 @@
                   mat-icon-button
                   (click)="selectPlugin(true)"
                   [disabled]="
-                    app.config.selections.pluginFavourites.length == 0
+                    app.config.selections.pluginFavourites.length === 0
                   "
                   color="primary"
                   matTooltip="Next plugin"
@@ -330,49 +329,47 @@
                 -webkit-overfow-scrolling: touch;
               "
             >
+              @if(display.instrumentAppActive) {
               <iframe
-                *ngIf="display.instrumentAppActive"
                 [src]="instUrl"
                 style="width: 345px; height: 100%"
                 sandbox="allow-scripts allow-same-origin"
               >
               </iframe>
+              }
             </div>
           </div>
         </mat-sidenav>
-
+        }
         <mat-sidenav-content style="overflow: hidden">
-          <autopilot-console
-            *ngIf="app.data.autopilot.console"
-          ></autopilot-console>
-
-          <route-builder
-            *ngIf="app.data.buildRoute.show"
-            (save)="skres.showRouteNew($event)"
-          >
-          </route-builder>
-
+          @if(app.data.autopilot.console) {
+          <autopilot-console></autopilot-console>
+          } @if(app.data.buildRoute.show) {
+          <route-builder (save)="skres.showRouteNew($event)"> </route-builder>
+          } @if(!app.data.kioskMode) {
           <!-- left button bar -->
           <div class="leftTop buttonPanel">
-            <button
-              style="background-color: #e5e0e0"
-              mat-mini-fab
-              [disabled]="draw.enabled || measure.enabled"
-              matTooltip="Menu"
-              matTooltipPosition="right"
-              (click)="sidemenu.toggle()"
-            >
-              <mat-icon
-                [matBadge]="app.data.loggedInBadgeText"
-                matBadgeOverlap="true"
-                matBadgeColor="warn"
-                [matBadgeHidden]="app.data.loggedIn"
-                >menu</mat-icon
+            <div class="buttonPanelItem">
+              <button
+                style="background-color: #e5e0e0"
+                mat-mini-fab
+                [disabled]="draw.enabled || measure.enabled"
+                matTooltip="Menu"
+                matTooltipPosition="right"
+                (click)="sidemenu.toggle()"
               >
-            </button>
+                <mat-icon
+                  [matBadge]="app.data.loggedInBadgeText"
+                  matBadgeOverlap="true"
+                  matBadgeColor="warn"
+                  [matBadgeHidden]="app.data.loggedIn"
+                  >menu</mat-icon
+                >
+              </button>
+            </div>
           </div>
-
-          <div class="buttonPanel left" *ngIf="app.config.toolBarButtons">
+          @if(app.config.toolBarButtons) {
+          <div class="buttonPanel left">
             <div class="buttonPanelItem">
               <button
                 mat-mini-fab
@@ -439,7 +436,8 @@
                 <mat-icon> my_location </mat-icon>
               </button>
             </div>
-            <div class="buttonPanelItem" *ngIf="!app.config.map.moveMap">
+            @if(!app.config.map.moveMap) {
+            <div class="buttonPanelItem">
               <button
                 mat-mini-fab
                 (click)="centerVessel()"
@@ -450,6 +448,7 @@
                 <mat-icon> center_focus_strong </mat-icon>
               </button>
             </div>
+            }
             <div class="buttonPanelItem">
               <button
                 mat-mini-fab
@@ -462,7 +461,8 @@
                 <mat-icon>more_horiz</mat-icon>
               </button>
             </div>
-            <div class="buttonPanelItem" *ngIf="mode == 1">
+            @if(mode === 1) {
+            <div class="buttonPanelItem">
               <!-- Playback mode -->
               <button
                 mat-mini-fab
@@ -474,13 +474,16 @@
                 <mat-icon>cancel</mat-icon>
               </button>
             </div>
+            }
           </div>
+          }
           <!-- /left button bar-->
 
           <!--left menu panel-->
-          <div class="leftMenuPanel" *ngIf="display.leftMenuPanel">
+          @if(display.leftMenuPanel) {
+          <div class="leftMenuPanel">
+            @if(display.routeList) {
             <route-list
-              *ngIf="display.routeList"
               [routes]="app.data.routes"
               [activeRoute]="app.data.activeRoute"
               [editingRouteId]="app.data.editingId"
@@ -495,9 +498,8 @@
               (closed)="displayLeftMenu()"
             >
             </route-list>
-
+            } @if(display.waypointList) {
             <waypoint-list
-              *ngIf="display.waypointList"
               [waypoints]="app.data.waypoints"
               [activeWaypoint]="app.data.activeWaypoint"
               [editingWaypointId]="app.data.editingId"
@@ -512,9 +514,8 @@
               (closed)="displayLeftMenu()"
             >
             </waypoint-list>
-
+            } @if(display.chartList) {
             <chart-list
-              *ngIf="display.chartList"
               [charts]="app.data.charts"
               (select)="skres.chartSelected()"
               (orderChange)="skres.chartOrder()"
@@ -522,20 +523,18 @@
               (closed)="displayLeftMenu()"
             >
             </chart-list>
-
+            } @if(display.noteList) {
             <note-list
               [notes]="app.data.notes"
-              *ngIf="display.noteList"
               (select)="skres.noteSelected($event)"
               (refresh)="skres.getNotes()"
               (pan)="centerResource($event.center, $event.zoomLevel)"
               (closed)="displayLeftMenu()"
             >
             </note-list>
-
+            } @if(display.aisList) {
             <ais-list
               [aisTargets]="app.data.vessels.aisTargets"
-              *ngIf="display.aisList"
               [focusId]="app.data.vessels.activeId"
               (select)="skres.aisSelected($event)"
               (properties)="featureProperties({ id: $event, type: 'ais' })"
@@ -544,61 +543,59 @@
               (pan)="centerResource($event.center, $event.zoomLevel)"
             >
             </ais-list>
-
+            } @if(display.anchorWatch) {
             <anchor-watch
-              *ngIf="display.anchorWatch"
               [disable]="!app.data.vessels.showSelf"
               [radius]="app.data.anchor.radius"
-              [feet]="app.config.units.depth != 'm' ? true : false"
+              [feet]="app.config.units.depth !== 'm' ? true : false"
               [raised]="app.data.anchor.raised"
               (closed)="displayLeftMenu()"
             >
             </anchor-watch>
+            }
           </div>
+          }
 
           <!-- right button bar -->
           <!-- show/hide  -->
           <div class="rightTop buttonPanel">
-            <button
-              mat-mini-fab
-              style="background-color: #e5e0e0"
-              (click)="toggleToolbarButtons()"
-              [matTooltip]="
-                app.config.toolBarButtons ? 'Hide Buttons' : 'Show Buttons'
-              "
-              matTooltipPosition="below"
-            >
-              <mat-icon>{{
-                app.config.toolBarButtons ? 'apps' : 'apps_outage'
-              }}</mat-icon>
-            </button>
-          </div>
-
-          <div class="buttonPanel right" *ngIf="app.config.toolBarButtons">
-            <!-- instrument sidebar open button -->
-            <div class="instrumentPanelToggle buttonPanelItem">
+            <div class="buttonPanelItem">
               <button
                 mat-mini-fab
-                *ngIf="
-                  app.data.optAppPanel &&
-                  !draw.enabled &&
-                  !measure.enabled &&
-                  !app.data.vessels.activeId
+                style="background-color: #e5e0e0"
+                (click)="toggleToolbarButtons()"
+                [matTooltip]="
+                  app.config.toolBarButtons ? 'Hide Buttons' : 'Show Buttons'
                 "
+                matTooltipPosition="below"
+              >
+                <mat-icon>{{
+                  app.config.toolBarButtons ? 'apps' : 'apps_outage'
+                }}</mat-icon>
+              </button>
+            </div>
+          </div>
+          @if(app.config.toolBarButtons) {
+          <div class="buttonPanel right">
+            <!-- instrument sidebar open button -->
+            <div class="instrumentPanelToggle buttonPanelItem">
+              @if(app.data.optAppPanel && !draw.enabled && !measure.enabled &&
+              !app.data.vessels.activeId) {
+              <button
+                mat-mini-fab
                 (click)="sideright.toggle()"
                 matTooltip="Instruments"
                 matTooltipPosition="below"
               >
                 <mat-icon>av_timer</mat-icon>
               </button>
+              }
               <br />&nbsp;<br />&nbsp;
             </div>
 
             <!-- Web audio enable -->
-            <div
-              class="buttonPanelItem"
-              *ngIf="display.audio.state != 'running'"
-            >
+            @if(display.audio.state !== 'running') {
+            <div class="buttonPanelItem">
               <button
                 mat-mini-fab
                 color="warn"
@@ -610,9 +607,11 @@
               </button>
               <br />&nbsp;<br />
             </div>
+            }
 
             <!-- fullscreen enable -->
-            <div class="buttonPanelItem" *ngIf="display.fullscreen.enabled">
+            @if(display.fullscreen.enabled) {
+            <div class="buttonPanelItem">
               <button
                 mat-mini-fab
                 (click)="toggleFullscreen()"
@@ -629,7 +628,7 @@
               </button>
               <br />&nbsp;<br />
             </div>
-
+            }
             <!-- WakeLock enable -->
             <div class="buttonPanelItem">
               <wakelock
@@ -637,29 +636,29 @@
                 (has)="handleHasWakeLock($event)"
                 (change)="handleWakelockChange($event)"
               ></wakelock>
-              <span *ngIf="app.data.hasWakeLock"><br />&nbsp;<br /></span>
+              @if(app.data.hasWakeLock) {
+              <span><br />&nbsp;<br /></span>
+              }
             </div>
 
             <!-- Experiments -->
-            <div class="buttonPanelItem" *ngIf="app.config.experiments">
+            @if(app.config.experiments) {
+            <div class="buttonPanelItem">
               <fb-experiments
                 (selected)="openExperiment($event)"
               ></fb-experiments>
               <br />&nbsp;<br />
             </div>
-
+            }
             <!-- PiP enable -->
-            <div
-              class="buttonPanelItem"
-              *ngIf="
-                app.config.resources.video.enable &&
-                app.config.resources.video.url
-              "
-            >
+            @if(app.config.resources.video.enable &&
+            app.config.resources.video.url) {
+            <div class="buttonPanelItem">
               <pip-video [src]="vidUrl" [muted]="true" (click)="focusMap()">
               </pip-video>
               <br />&nbsp;<br />
             </div>
+            }
 
             <!-- constrain zoom to selected map(s) extent -->
             <div class="buttonPanelItem">
@@ -692,7 +691,8 @@
             </div>
 
             <!-- Autopilot console-->
-            <div class="buttonPanelItem" *ngIf="app.data.autopilot.hasApi">
+            @if(app.data.autopilot.hasApi) {
+            <div class="buttonPanelItem">
               <button
                 mat-mini-fab
                 [color]="
@@ -706,6 +706,7 @@
               </button>
               <br />&nbsp;<br />
             </div>
+            }
 
             <!-- Drop Waypoint button -->
             <div class="buttonPanelItem">
@@ -723,8 +724,9 @@
               <br />&nbsp;<br />
             </div>
           </div>
+          }
           <!-- /right button bar -->
-
+          }
           <!--map panel-->
           <div
             style="display: relative; width: 100%; height: 100%"
@@ -773,30 +775,19 @@
           </div>
 
           <!-- Draw / Measure Help -->
-          <div
-            class="mat-app-background"
-            *ngIf="draw.enabled || draw.modify || measure.enabled"
-            style="
-              position: absolute;
-              top: 60px;
-              left: 48px;
-              width: 150px;
-              border: black 1px solid;
-              font-family: roboto;
-              font-size: 10pt;
-            "
-          >
-            <div *ngIf="draw.enabled">
+          @if(draw.enabled || draw.modify || measure.enabled) {
+          <div class="mat-app-background measurePanel">
+            @if(draw.enabled) {
+            <div>
               <span style="font-weight: bold; padding: 5px">
                 <mat-icon>edit</mat-icon> Drawing Help:
               </span>
-              <div
-                *ngIf="draw.mode === 'waypoint' || draw.mode === 'note'"
-                style="padding: 5px"
-              >
+              @if(draw.mode === 'waypoint' || draw.mode === 'note') {
+              <div style="padding: 5px">
                 Click on the Map where to drop the feature.
               </div>
-              <div *ngIf="draw.mode === 'route'" style="padding: 5px">
+              } @if(draw.mode === 'route') {
+              <div style="padding: 5px">
                 <ol
                   style="
                     margin-block-start: 0.2em;
@@ -808,7 +799,8 @@
                   <li>Click on the last Point to end drawing.</li>
                 </ol>
               </div>
-              <div *ngIf="draw.mode === 'region'" style="padding: 5px">
+              } @if(draw.mode === 'region') {
+              <div style="padding: 5px">
                 <ol
                   style="
                     margin-block-start: 0.2em;
@@ -820,8 +812,10 @@
                   <li>Click on the last point to end drawing.</li>
                 </ol>
               </div>
+              }
             </div>
-            <div *ngIf="draw.modify">
+            } @if(draw.modify) {
+            <div>
               <span style="font-weight: bold; padding: 5px">
                 <mat-icon>edit</mat-icon> Modify:
               </span>
@@ -833,19 +827,17 @@
                     padding-inline-start: 15px;
                   "
                 >
-                  <li *ngIf="draw.forSave.id === 'anchor'">
-                    Click and drag to move anchor.
-                  </li>
-                  <li *ngIf="draw.forSave.id !== 'anchor'">
-                    Click and drag to move point.
-                  </li>
-                  <li *ngIf="draw.forSave.id !== 'anchor'">
-                    Ctrl-Click to remove point from line.
-                  </li>
+                  @if(draw.forSave.id === 'anchor') {
+                  <li>Click and drag to move anchor.</li>
+                  } @if(draw.forSave.id !== 'anchor') {
+                  <li>Click and drag to move point.</li>
+                  <li>Ctrl-Click to remove point from line.</li>
+                  }
                 </ol>
               </div>
             </div>
-            <div *ngIf="measure.enabled">
+            } @if(measure.enabled) {
+            <div>
               <span style="font-weight: bold; padding: 5px">
                 <mat-icon>straighten</mat-icon> Measure:
               </span>
@@ -862,12 +854,13 @@
                 </ol>
               </div>
             </div>
+            }
             <div style="text-align: center">
               <!-- cancel Draw / Measure button -->
+              @if(draw.enabled || draw.modify || measure.enabled) {
               <a
                 mat-raised-button
                 color="warn"
-                *ngIf="draw.enabled || draw.modify || measure.enabled"
                 (click)="cancelDraw()"
                 [matTooltip]="
                   measure.enabled
@@ -881,18 +874,23 @@
                 <mat-icon>close</mat-icon>
                 {{ draw.modify ? 'FINISH' : 'CANCEL' }}
               </a>
+              }
             </div>
           </div>
+          }
 
           <!-- *** Playback panel ***-->
-          <div class="playbackPanel mat-app-background" *ngIf="mode == 1">
+          @if(mode === 1){
+          <div class="playbackPanel mat-app-background">
             <div style="border-radius: 5px">
               <mat-icon color="accent">access_time</mat-icon> <b>Playback:</b>
             </div>
             <div style="text-align: center">{{ display.playback.time }}</div>
           </div>
+          }
 
           <!-- *** Alarm / Mode panel ***-->
+          @if(!app.data.kioskMode) {
           <div class="alarmPanel">
             <span
               *ngFor="let a of alarmsFacade.alarms | keyvalue"
@@ -924,22 +922,20 @@
               </ap-alarm>
             </span>
           </div>
+          }
 
           <!-- *** Nav data panel ***-->
           <div class="navdataPanel">
+            @if(display.navDataPanel.nextPointCtrl) {
             <route-nextpoint
-              *ngIf="display.navDataPanel.nextPointCtrl"
               [index]="app.data.navData.pointIndex"
               [total]="app.data.navData.pointTotal"
               [circular]="app.data.activeRouteCircular"
               (selected)="routeNextPoint($event)"
             >
             </route-nextpoint>
-
-            <div
-              *ngIf="app.config.courseData && display.navDataPanel.show"
-              style="display: flex; flex-wrap: nowrap"
-            >
+            } @if(app.config.courseData && display.navDataPanel.show) {
+            <div style="display: flex; flex-wrap: nowrap">
               <div class="mat-app-background" style="display: flex">
                 <div style="width: 40px">
                   <button
@@ -989,51 +985,53 @@
                   </button>
                 </div>
               </div>
+              @if(app.data.navData.vmg) {
               <ap-dial-text
-                *ngIf="app.data.navData.vmg"
                 [title]="'VMG'"
                 [value]="app.formatSpeed(app.data.navData.vmg, true)"
                 [units]="app.formattedSpeedUnits"
               >
               </ap-dial-text>
+              } @if(app.data.navData.bearing.value) {
               <ap-dial-text
-                *ngIf="app.data.navData.bearing.value"
                 [title]="'BRG'"
                 [value]="app.data.navData.bearing.value.toFixed(1)"
                 [units]="
-                  app.data.navData.bearing.type == 'M' ? 'deg (M)' : 'deg (T)'
+                  app.data.navData.bearing.type === 'M' ? 'deg (M)' : 'deg (T)'
                 "
               >
               </ap-dial-text>
+              } @if(app.data.navData.dtg) {
               <ap-dial-text
-                *ngIf="app.data.navData.dtg"
                 [title]="'DTG'"
                 [value]="app.data.navData.dtg.toFixed(1)"
-                [units]="app.config.units.distance == 'm' ? 'km' : 'NM'"
+                [units]="app.config.units.distance === 'm' ? 'km' : 'NM'"
               >
               </ap-dial-text>
+              } @if(app.data.navData.ttg) {
               <ap-dial-text
-                *ngIf="app.data.navData.ttg"
                 [title]="'TTG'"
                 [value]="app.data.navData.ttg.toFixed(1)"
                 [units]="'mins'"
               >
               </ap-dial-text>
+              } @if(app.data.navData.xte) {
               <ap-dial-text
-                *ngIf="app.data.navData.xte"
                 [title]="'XTE'"
                 [value]="app.data.navData.xte.toFixed(3)"
-                [units]="app.config.units.distance == 'm' ? 'km' : 'NM'"
+                [units]="app.config.units.distance === 'm' ? 'km' : 'NM'"
               >
               </ap-dial-text>
+              } @if(app.data.navData.eta) {
               <ap-dial-text
-                *ngIf="app.data.navData.eta"
                 [title]="'ETA'"
                 [value]="app.data.navData.eta.toLocaleTimeString().slice(0, 5)"
                 [units]="app.data.navData.eta.toLocaleDateString()"
               >
               </ap-dial-text>
+              }
             </div>
+            }
           </div>
         </mat-sidenav-content>
       </mat-sidenav-container>

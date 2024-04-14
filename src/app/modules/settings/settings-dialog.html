@@ -1,7 +1,7 @@
 <mat-menu #settingsMenu="matMenu">
-  <a mat-menu-item *ngFor="let i of menuItems" (click)="jumpTo(i.id, true)">
-    {{i.text}}
-  </a>
+  @for(i of menuItems; track i) {
+  <a mat-menu-item (click)="jumpTo(i.id, true)"> {{i.text}} </a>
+  }
 </mat-menu>
 <mat-toolbar style="background-color: transparent">
   <span class="dialog-icon">
@@ -24,9 +24,9 @@
 <div mat-dialog-content style="display: flex">
   <div class="left-settings-menu">
     <mat-nav-list>
-      <a mat-list-item *ngFor="let i of menuItems" (click)="jumpTo(i.id)">
-        {{i.text}}
-      </a>
+      @for(i of menuItems; track i) {
+      <a mat-list-item (click)="jumpTo(i.id)"> {{i.text}} </a>
+      }
     </mat-nav-list>
   </div>
   <div style="flex: 1 1 auto">
@@ -34,11 +34,10 @@
       <div class="theme-panel">
         <div class="setting-group" id="sectDisplay">
           <div class="setting-group-title">DISPLAY</div>
-          <mat-card class="setting-card" *ngIf="facade.data.optAppPanel">
-            <div
-              class="setting-card-row"
-              *ngIf="facade.list.applications.length>1"
-            >
+          @if(facade.data.optAppPanel) {
+          <mat-card class="setting-card">
+            @if(facade.list.applications.length > 1) {
+            <div class="setting-card-row">
               <div class="setting-card-row-item">
                 <mat-form-field style="width: 100%">
                   <mat-label>Select Instruments App</mat-label>
@@ -47,14 +46,15 @@
                     [(value)]="facade.settings.plugins.instruments"
                     (selectionChange)="onFormChange($event, instruments);facade.buildFavouritesList()"
                   >
+                    @for(i of facade.list.applications; track i) {
                     <mat-option
-                      *ngFor="let i of facade.list.applications"
                       [value]="i.url"
                       [matTooltip]="i.description"
                       matTooltipPosition="right"
                     >
                       {{i.name}}
                     </mat-option>
+                    }
                   </mat-select>
                 </mat-form-field>
               </div>
@@ -97,7 +97,8 @@
                 </button>
               </div>
             </div>
-            <div class="setting-card-row" *ngIf="display.favourites">
+            } @if(display.favourites) {
+            <div class="setting-card-row">
               <div class="setting-card-row-item">
                 <div style="font-style: italic">
                   <br />Select Favourite Apps:
@@ -107,8 +108,8 @@
                   #favs
                   (selectionChange)="onFavSelected($event, favs)"
                 >
+                  @for(fav of facade.list.favourites; track fav) {
                   <mat-list-option
-                    *ngFor="let fav of facade.list.favourites"
                     color="primary"
                     [disabled]="fav.url==facade.settings.plugins.instruments"
                     [selected]="facade.settings.selections.pluginFavourites.includes(fav.url)"
@@ -116,10 +117,13 @@
                   >
                     {{fav.name}}
                   </mat-list-option>
+                  }
                 </mat-selection-list>
               </div>
             </div>
+            }
           </mat-card>
+          }
           <br />
           <mat-card class="setting-card">
             <div class="setting-card-row" style="padding-bottom: 10px">
@@ -275,11 +279,9 @@
                     [(value)]="facade.settings.selections.s57Options.colors"
                     placeholder="Colors"
                   >
-                    <mat-option
-                      *ngFor="let i of facade.s57Options.colors"
-                      [value]="i"
-                      >{{i}}</mat-option
-                    >
+                    @for(i of facade.s57Options.colors; track i) {
+                    <mat-option [value]="i">{{i}}</mat-option>
+                    }
                   </mat-select>
                 </mat-form-field>
               </div>
@@ -394,10 +396,8 @@
                 </mat-form-field>
               </div>
 
-              <div
-                class="setting-card-row-item"
-                *ngIf="facade.preferredValues.coords.length!=0"
-              >
+              @if(facade.preferredValues.coords.length !== 0) {
+              <div class="setting-card-row-item">
                 <mat-form-field style="width: 100%">
                   <mat-label>Position display format</mat-label>
                   <mat-select
@@ -406,14 +406,13 @@
                     [(value)]="facade.settings.selections.positionFormat"
                     (selectionChange)="onFormChange($event, positionformat)"
                   >
-                    <mat-option
-                      *ngFor="let i of facade.preferredValues.coords"
-                      [value]="i[0]"
-                      >{{i[1]}}</mat-option
-                    >
+                    @for(i of facade.preferredValues.coords; track i) {
+                    <mat-option [value]="i[0]">{{i[1]}}</mat-option>
+                    }
                   </mat-select>
                 </mat-form-field>
               </div>
+              }
 
               <div class="setting-card-row-item">
                 <signalk-preferred-paths
@@ -423,10 +422,8 @@
                 </signalk-preferred-paths>
               </div>
 
-              <div
-                class="setting-card-row-item"
-                *ngIf="facade.preferredValues.heading.length !== 0"
-              >
+              @if(facade.preferredValues.heading.length !== 0) {
+              <div class="setting-card-row-item">
                 <mat-form-field style="width: 100%">
                   <mat-label>Prefer True / Magnetic values</mat-label>
                   <mat-select
@@ -435,14 +432,13 @@
                     [(value)]="facade.settings.selections.headingAttribute"
                     (selectionChange)="onFormChange($event, headingattrib)"
                   >
-                    <mat-option
-                      *ngFor="let i of facade.preferredValues.heading"
-                      [value]="i[0]"
-                      >{{i[1]}}</mat-option
-                    >
+                    @for(i of facade.preferredValues.heading; track i) {
+                    <mat-option [value]="i[0]">{{i[1]}}</mat-option>
+                    }
                   </mat-select>
                 </mat-form-field>
               </div>
+              }
             </div>
           </mat-card>
         </div>
@@ -471,11 +467,9 @@
                     [(value)]="facade.settings.selections.course.autoNextPointTrigger"
                     (selectionChange)="onFormChange($event, courseautoadvanceon)"
                   >
-                    <mat-option
-                      *ngFor="let i of facade.list.nextPointTriggers"
-                      [value]="i"
-                      >{{i}}</mat-option
-                    >
+                    @for(i of facade.list.nextPointTriggers; track i) {
+                    <mat-option [value]="i">{{i}}</mat-option>
+                    }
                   </mat-select>
                 </mat-form-field>
 
@@ -533,11 +527,12 @@
                         min="-90"
                         max="90"
                       />
-                      <mat-error
-                        *ngIf="fixedlat.invalid && (fixedlat.dirty || fixedlat.touched)"
-                      >
+                      @if(fixedlat.invalid && (fixedlat.dirty ||
+                      fixedlat.touched)) {
+                      <mat-error>
                         Please enter a value between -90 and 90 (max 9 decimals)
                       </mat-error>
+                      }
                     </mat-form-field>
                     <mat-form-field floatLabel="always">
                       <mat-label>Longitude</mat-label>
@@ -553,12 +548,13 @@
                         min="-180"
                         max="180"
                       />
-                      <mat-error
-                        *ngIf="fixedlon.invalid && (fixedlon.dirty || fixedlon.touched)"
-                      >
+                      @if(fixedlon.invalid && (fixedlon.dirty ||
+                      fixedlon.touched)) {
+                      <mat-error>
                         Please enter a value between -180 and 180 (max 9
                         decimals)
                       </mat-error>
+                      }
                     </mat-form-field>
                   </div>
                 </div>
@@ -776,11 +772,9 @@
                     [(value)]="facade.settings.selections.aisWindMinZoom"
                     (selectionChange)="onFormChange($event, aiswindminzoom)"
                   >
-                    <mat-option
-                      *ngFor="let i of facade.list.minZoom"
-                      [value]="i"
-                      >{{i}}</mat-option
-                    >
+                    @for(i of facade.list.minZoom; track i) {
+                    <mat-option [value]="i">{{i}}</mat-option>
+                    }
                   </mat-select>
                 </mat-form-field>
               </div>
@@ -861,11 +855,9 @@
                     [(value)]="facade.settings.selections.notesMinZoom"
                     (selectionChange)="onFormChange($event, notesminzoom)"
                   >
-                    <mat-option
-                      *ngFor="let i of facade.list.minZoom"
-                      [value]="i"
-                      >{{i}}</mat-option
-                    >
+                    @for(i of facade.list.minZoom; track i) {
+                    <mat-option [value]="i">{{i}}</mat-option>
+                    }
                   </mat-select>
                 </mat-form-field>
               </div>
@@ -885,11 +877,9 @@
                     [(value)]="facade.settings.resources.notes.getRadius"
                     (selectionChange)="onFormChange($event, notesgetradius)"
                   >
-                    <mat-option
-                      *ngFor="let i of facade.list.resourceRadius"
-                      [value]="i"
-                      >{{i}}</mat-option
-                    >
+                    @for(i of facade.list.resourceRadius;track i) {
+                    <mat-option [value]="i">{{i}}</mat-option>
+                    }
                   </mat-select>
                 </mat-form-field>
               </div>
@@ -907,14 +897,15 @@
                     placeholder="?radius=%note:radius%"
                     matTooltip="Filter to apply when retrieving notes"
                   />
+                  @if(notesrootfilter.value) {
                   <button
-                    *ngIf="notesrootfilter.value"
                     matSuffix
                     mat-icon-button
                     (click)="notesrootfilter.value=''"
                   >
                     <mat-icon>close</mat-icon>
                   </button>
+                  }
                 </mat-form-field>
               </div>
             </div>
@@ -976,9 +967,9 @@
                     placeholder="Video stream url"
                     matTooltip="Enter URL of video stream"
                   />
-                  <mat-error *ngIf="videourl.invalid">
-                    Value required.
-                  </mat-error>
+                  @if(videourl.invalid) {
+                  <mat-error> Value required. </mat-error>
+                  }
                 </mat-form-field>
               </div>
             </div>
@@ -997,14 +988,15 @@
                   #respath
                   (selectionChange)="onResPathSelected($event, respath)"
                 >
+                  @for(f of facade.list.resourcePaths; track f) {
                   <mat-list-option
-                    *ngFor="let f of facade.list.resourcePaths"
                     color="primary"
                     [selected]="facade.settings.resources.paths.includes(f)"
                     [value]="f"
                   >
                     {{f}}
                   </mat-list-option>
+                  }
                 </mat-selection-list>
               </div>
             </div>
@@ -1130,13 +1122,9 @@
                     [(value)]="facade.settings.chartApi"
                     (selectionChange)="onFormChange($event, chartApi)"
                   >
-                    <mat-option
-                      *ngFor="let f of facade.list.chartApiChoices"
-                      color="primary"
-                      [value]="f"
-                    >
-                      {{f}}
-                    </mat-option>
+                    @for(f of facade.list.chartApiChoices; track f) {
+                    <mat-option color="primary" [value]="f"> {{f}} </mat-option>
+                    }
                   </mat-select>
                 </mat-form-field>
               </div>

@@ -44,9 +44,9 @@ import { CommonModule } from '@angular/common';
               <mat-form-field>
                 <mat-label>Context</mat-label>
                 <mat-select [(ngModel)]="formData.context">
-                  <mat-option *ngFor="let i of ['self', 'all']" [value]="i">{{
-                    i
-                  }}</mat-option>
+                  @for(i of ['self', 'all']; track i) {
+                  <mat-option [value]="i">{{ i }}</mat-option>
+                  }
                 </mat-select>
               </mat-form-field>
             </div>
@@ -73,18 +73,18 @@ import { CommonModule } from '@angular/common';
               <mat-form-field style="width:100px;">
                 <mat-label>Hour</mat-label>
                 <mat-select [(ngModel)]="formData.startTimeHr">
-                  <mat-option *ngFor="let i of hrValues()" [value]="i">{{
-                    i
-                  }}</mat-option>
+                  @for(i of hrValues(); track i) {
+                  <mat-option [value]="i">{{ i }}</mat-option>
+                  }
                 </mat-select>
               </mat-form-field>
               <b>: </b>
               <mat-form-field style="width:100px;">
                 <mat-label>Minutes</mat-label>
                 <mat-select [(ngModel)]="formData.startTimeMin">
-                  <mat-option *ngFor="let i of minValues()" [value]="i">{{
-                    i
-                  }}</mat-option>
+                  @for(i of minValues(); track i) {
+                  <mat-option [value]="i">{{ i }}</mat-option>
+                  }
                 </mat-select>
               </mat-form-field>
             </div>
@@ -95,9 +95,9 @@ import { CommonModule } from '@angular/common';
               >
                 <mat-label>Playback Rate</mat-label>
                 <mat-select [(ngModel)]="formData.playbackRate">
-                  <mat-option *ngFor="let i of rateValues()" [value]="i">{{
-                    i
-                  }}</mat-option>
+                  @for(i of rateValues(); track i) {
+                  <mat-option [value]="i">{{ i }}</mat-option>
+                  }
                 </mat-select>
               </mat-form-field>
             </div>

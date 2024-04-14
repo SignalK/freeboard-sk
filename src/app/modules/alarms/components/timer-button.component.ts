@@ -21,26 +21,24 @@ import { MatIconModule } from '@angular/material/icon';
   changeDetection: ChangeDetectionStrategy.OnPush,
   styles: [``],
   template: `
-    <div [ngSwitch]="cancelled">
+    <div>
+      @if(cancelled) { &nbsp;
+      <button mat-raised-button color="accent" (click)="action()">
+        @if(icon) {
+        <mat-icon>{{ icon }}</mat-icon>
+        }
+        {{ cancelledLabel }}
+      </button>
+      } @else {
       <button
         color="primary"
         mat-button
-        *ngSwitchCase="false"
         [disabled]="disabled"
         (click)="cancel()"
       >
         {{ label }} {{ timeLeft }} secs
       </button>
-      &nbsp;
-      <button
-        *ngSwitchCase="true"
-        mat-raised-button
-        color="accent"
-        (click)="action()"
-      >
-        <mat-icon *ngIf="icon">{{ icon }}</mat-icon>
-        {{ cancelledLabel }}
-      </button>
+      }
     </div>
   `
 })

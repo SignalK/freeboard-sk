@@ -28,7 +28,8 @@
       </div>
     </mat-card-title>
     <mat-card-content>
-      <div style="display: flex" *ngIf="!displayChartLayers">
+      @if(!displayChartLayers) {
+      <div style="display: flex">
         <div style="flex: 1 1 auto; padding-left: 3px">
           <mat-form-field floatLabel="always" style="width: 150px">
             <mat-label>Type to filter list</mat-label>
@@ -39,15 +40,16 @@
               [value]="filterText"
               (keyup)="buildFilterList(ftext.value)"
             />
+            @if(filterText) {
             <button
               mat-button
-              *ngIf="filterText"
               matSuffix
               mat-icon-button
               (click)="buildFilterList('')"
             >
               <mat-icon>close</mat-icon>
             </button>
+            }
           </mat-form-field>
         </div>
         <div>
@@ -83,8 +85,8 @@
           </mat-checkbox>
         </div>
       </div>
-
-      <div *ngIf="displayChartLayers" style="display: flex">
+      } @else {
+      <div style="display: flex">
         <div>
           <button mat-icon-button (click)="showChartLayers(false)">
             <mat-icon>arrow_back</mat-icon>
@@ -94,15 +96,13 @@
           Chart Order
         </div>
       </div>
+      }
     </mat-card-content>
   </mat-card>
 
   <div class="resources">
-    <cdk-virtual-scroll-viewport
-      class="vscroller"
-      itemSize="80"
-      *ngIf="!displayChartLayers"
-    >
+    @if(!displayChartLayers) {
+    <cdk-virtual-scroll-viewport class="vscroller" itemSize="80">
       <mat-card
         *cdkVirtualFor="let r of filterList; let i= index;"
         style="border-bottom: silver 1px outset"
@@ -158,12 +158,12 @@
         </mat-card-actions>
       </mat-card>
     </cdk-virtual-scroll-viewport>
-
+    } @else {
     <ap-chartlayers
-      *ngIf="displayChartLayers"
       (changed)="handleOrderChange($event)"
       (closed)="showChartLayers(false)"
     >
     </ap-chartlayers>
+    }
   </div>
 </div>

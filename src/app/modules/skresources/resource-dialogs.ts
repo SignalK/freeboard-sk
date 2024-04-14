@@ -59,11 +59,9 @@ import { SKResourceSet } from './sets/resource-set';
                   [disabled]="false"
                   [(ngModel)]="data['name']"
                 />
-                <mat-error
-                  *ngIf="inpname.invalid && (inpname.dirty || inpname.touched)"
-                >
-                  Please enter a waypoint name
-                </mat-error>
+                @if(inpname.invalid && (inpname.dirty || inpname.touched)) {
+                <mat-error> Please enter a waypoint name </mat-error>
+                }
               </mat-form-field>
             </div>
             <div>
@@ -78,7 +76,8 @@ import { SKResourceSet } from './sets/resource-set';
                 </textarea>
               </mat-form-field>
             </div>
-            <div *ngIf="data['type'] === 'waypoint'">
+            @if(data['type'] === 'waypoint') {
+            <div>
               <mat-form-field style="width:100%;" floatLabel="always">
                 <mat-label>Signal K Type</mat-label>
                 <mat-select #resourcetype [(value)]="data['skType']">
@@ -91,7 +90,8 @@ import { SKResourceSet } from './sets/resource-set';
                 </mat-select>
               </mat-form-field>
             </div>
-            <div *ngIf="data['position'][0]" style="font-size: 10pt;">
+            } @if(data['position'][0]) {
+            <div style="font-size: 10pt;">
               <div style="display:flex;">
                 <div style="width:45px;font-weight:bold;">Lat:</div>
                 <div
@@ -113,6 +113,7 @@ import { SKResourceSet } from './sets/resource-set';
                 ></div>
               </div>
             </div>
+            }
           </div>
         </div>
       </mat-dialog-content>
@@ -247,46 +248,56 @@ export class ResourceDialog implements OnInit {
               <div class="key-label">MMSI:</div>
               <div style="flex: 1 1 auto;">{{ vInfo.mmsi }}</div>
             </div>
-            <div style="display:flex;" *ngIf="vInfo.flag">
+            @if(vInfo.flag) {
+            <div style="display:flex;">
               <div class="key-label">Flag:</div>
               <div style="flex: 1 1 auto;">{{ vInfo.flag }}</div>
             </div>
-            <div style="display:flex;" *ngIf="vInfo.port">
+            } @if(vInfo.port) {
+            <div style="display:flex;">
               <div class="key-label">Port:</div>
               <div style="flex: 1 1 auto;">{{ vInfo.port }}</div>
             </div>
-            <div style="display:flex;" *ngIf="vInfo.callsign">
+            } @if(vInfo.callsign) {
+            <div style="display:flex;">
               <div class="key-label">Call sign:</div>
               <div style="flex: 1 1 auto;">{{ vInfo.callsign }}</div>
             </div>
-            <div style="display:flex;" *ngIf="vInfo.length">
+            } @if(vInfo.length) {
+            <div style="display:flex;">
               <div class="key-label">Dimensions:</div>
               <div style="flex: 1 1 auto;">
                 {{ vInfo.length }} x {{ vInfo.beam }}
               </div>
             </div>
-            <div style="display:flex;" *ngIf="vInfo.draft">
+            } @if(vInfo.draft) {
+            <div style="display:flex;">
               <div class="key-label">Draft:</div>
               <div style="flex: 1 1 auto;">{{ vInfo.draft }}</div>
             </div>
-            <div style="display:flex;" *ngIf="vInfo.height">
+            } @if(vInfo.height) {
+            <div style="display:flex;">
               <div class="key-label">Height:</div>
               <div style="flex: 1 1 auto;">{{ vInfo.height }}</div>
             </div>
-            <div style="display:flex;" *ngIf="vInfo.state">
+            } @if(vInfo.state) {
+            <div style="display:flex;">
               <div class="key-label">State:</div>
               <div style="flex: 1 1 auto;">{{ vInfo.state }}</div>
             </div>
-            <div style="display:flex;" *ngIf="vInfo.destination">
+            } @if(vInfo.destination) {
+            <div style="display:flex;">
               <div class="key-label">Destination:</div>
               <div style="flex: 1 1 auto;">{{ vInfo.destination }}</div>
             </div>
-            <div style="display:flex;" *ngIf="vInfo.eta">
+            } @if(vInfo.eta) {
+            <div style="display:flex;">
               <div class="key-label">ETA:</div>
               <div style="flex: 1 1 auto;">
                 {{ vInfo.eta.toLocaleString() }}
               </div>
             </div>
+            }
           </div>
         </mat-card-content>
       </mat-card>
@@ -480,10 +491,9 @@ export class AISPropertiesModal implements OnInit {
                 showProperties ? 'expand_less' : 'expand_more'
               }}</mat-icon>
             </button>
-            <signalk-details-list
-              *ngIf="showProperties"
-              [details]="properties"
-            ></signalk-details-list>
+            @if(showProperties) {
+            <signalk-details-list [details]="properties"></signalk-details-list>
+            }
           </div>
         </mat-card-content>
       </mat-card>
@@ -642,10 +652,9 @@ export class AtoNPropertiesModal implements OnInit {
                 showProperties ? 'expand_less' : 'expand_more'
               }}</mat-icon>
             </button>
-            <signalk-details-list
-              *ngIf="showProperties"
-              [details]="properties"
-            ></signalk-details-list>
+            @if(showProperties) {
+            <signalk-details-list [details]="properties"></signalk-details-list>
+            }
           </div>
         </mat-card-content>
       </mat-card>
@@ -727,16 +736,17 @@ export class AircraftPropertiesModal {
       <div>
         <mat-toolbar style="background-color: transparent">
           <span>
+            @if(showClearButton) {
             <button
               mat-button
               color="primary"
-              *ngIf="showClearButton"
               (click)="deactivate()"
               [matTooltip]="clearButtonText"
             >
               <mat-icon>clear_all</mat-icon>
               Clear
             </button>
+            }
           </span>
           <span
             style="flex: 1 1 auto; padding-left:20px;text-align:center;text-overflow: ellipsis;white-space: nowrap; overflow: hidden;"
@@ -773,13 +783,13 @@ export class AircraftPropertiesModal {
                 style="display:flex;"
                 (click)="selectPoint(i)"
                 [style.cursor]="
-                  points.length > 1 && selIndex != -1 ? 'pointer' : 'initial'
+                  points.length > 1 && selIndex !== -1 ? 'pointer' : 'initial'
                 "
               >
                 <div style="width:35px;">
-                  <mat-icon [color]="'warn'" *ngIf="selIndex === i">
-                    flag
-                  </mat-icon>
+                  @if(selIndex === i) {
+                  <mat-icon [color]="'warn'"> flag </mat-icon>
+                  }
                 </div>
                 <div style="flex: 1 1 auto;">
                   <div style="display:flex;">
@@ -801,18 +811,20 @@ export class AircraftPropertiesModal {
                       "
                     ></div>
                   </div>
-                  <div style="display:flex;" *ngIf="i < pointNames.length">
+                  @if(i < pointNames.length) {
+                  <div style="display:flex;">
                     <div class="key-label">Name:</div>
                     <div
                       style="flex: 1 1 auto;"
                       [innerText]="pointNames[i]"
                     ></div>
                   </div>
+                  }
                 </div>
                 <div cdkDragHandle matTooltip="Drag to re-order points">
-                  <mat-icon *ngIf="data.type === 'route'"
-                    >drag_indicator</mat-icon
-                  >
+                  @if(data.type === 'route') {
+                  <mat-icon>drag_indicator</mat-icon>
+                  }
                 </div>
               </div>
             </mat-card-content>
@@ -1035,11 +1047,12 @@ export class ActiveResourcePropertiesModal implements OnInit {
               </div>
             </div>
           </div>
-          <div style="display:flex;" *ngIf="data['bounds']">
+          @if(data['bounds']) {
+          <div style="display:flex;">
             <div class="key-label">Bounds:</div>
             <div
               style="flex: 1 1 auto; border: gray 1px solid;
-                                max-width: 220px;font-size: 10pt;"
+                                  max-width: 220px;font-size: 10pt;"
             >
               <div style="text-align:right;">
                 <span
@@ -1069,6 +1082,7 @@ export class ActiveResourcePropertiesModal implements OnInit {
               </div>
             </div>
           </div>
+          }
           <div style="display:flex;">
             <div class="key-label">Format:</div>
             <div style="flex: 1 1 auto;">{{ data['format'] }}</div>

@@ -42,7 +42,7 @@ mat-nav-list {
 }
 
 .buttonPanel { 
-    max-width:48px; 
+    width:50px; 
     z-index: 200;
     position: absolute;
     padding: 5px 2px 2px 2px;
@@ -93,11 +93,21 @@ mat-nav-list {
     right: 15%;
 }
 
+.measurePanel {
+    position: absolute;
+    top: 60px;
+    left: 50px;
+    width: 150px;
+    border: black 1px solid;
+    font-family: roboto;
+    font-size: 10pt;
+}
+
 .playbackPanel {
     position: absolute;
     z-index: 4900;
     bottom: 150px; 
-    left: 48px; 
+    left: 50px; 
     top: auto; 
     width:100px; 
     border: gray 1px solid;
@@ -110,7 +120,7 @@ mat-nav-list {
     position: absolute;
     z-index: 4901;
     bottom: 30px;
-    left: 48px;
+    left: 50px;
     max-width:100%;
     max-height: 100px;
     text-align: center;

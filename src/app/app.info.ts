@@ -272,7 +272,7 @@ export class AppInfo extends Info {
     this.name = 'Freeboard-SK';
     this.shortName = 'Freeboard';
     this.description = `Signal K Chart Plotter.`;
-    this.version = '2.6.1';
+    this.version = '2.7.0';
     this.url = 'https://github.com/signalk/freeboard-sk';
     this.logo = './assets/img/app_logo.png';
 
@@ -285,12 +285,14 @@ export class AppInfo extends Info {
     this.data = {
       firstRun: false,
       updatedRun: null,
+      kioskMode: typeof this.hostParams.kiosk !== 'undefined' ? true : false,
       n2kRoute: null,
       optAppPanel: false,
       trueMagChoice: '',
       loggedIn: false,
       loginRequired: false,
       loggedInBadgeText: '!',
+      hasToken: false,
       hasWakeLock: false,
       routes: [],
       waypoints: [],
@@ -311,7 +313,6 @@ export class AppInfo extends Info {
       trail: [], // self vessel track / trail
       serverTrail: false, // trail received from server
       server: null,
-      hasToken: false,
       lastGet: null, // map position of last resources GET
       vessels: {
         // received vessel data
@@ -886,35 +887,12 @@ export class AppInfo extends Info {
       'whats-new': [
         {
           type: 'signalk-server-node',
-          title: 'Route Builder',
+          title: 'OpenWeather 3.0 Support',
           message: `
-            This update includes a new Drag-and-Drop route builder that enables a 
-            route to be compiled from 
-            the available waypoints.
+            OpenWeather is deprecating support for v2.5 of their API in April 2024!
             <br>&nbsp;<br>
-            You can find it in the <i class="material-icons">edit</i><b>Draw Menu</b>.
-          `
-        },
-        {
-          type: 'signalk-server-node',
-          title: 'S57 Charts',
-          message: `
-            Freeboard now includes support for "tiled" S57 charts created with
-            the <b>s57-tiler</b> utility.
-            <br>&nbsp;<br>
-            See <a href="assets/help/index.html" target="help">HELP</a> 
-            for details.
-          `
-        },
-        {
-          type: 'signalk-server-node',
-          title: 'Weather Information',
-          message: `
-            This update also has support to display weather stations on the map
-            via the new <i>meteo</i> context introduced in SK Server v2.6.
-            <br>&nbsp;<br>
-            See <a href="assets/help/index.html" target="help">HELP</a> 
-            for details.
+            Freeboard-SK now supports the v3.0 API which will require you to supply
+            a new API Key in the configuration.
           `
         }
       ]
@@ -924,7 +902,7 @@ export class AppInfo extends Info {
     const messages = [];
     let showPrefs = false;
 
-    if (this.data.firstRun || this.data.updatedRun) {
+    if (!this.data.kioskMode && (this.data.firstRun || this.data.updatedRun)) {
       if (this.data.firstRun) {
         messages.push(WelcomeMessages['welcome']);
         if (this.data.server && this.data.server.id) {

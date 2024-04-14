@@ -28,12 +28,10 @@ import { AlarmsFacade } from '../alarms.facade';
       </mat-toolbar>
       <mat-dialog-content>
         <div style="display:flex;flex-wrap:wrap;">
-          <div class="alarm-item" *ngFor="let i of stdAlarms">
-            <mat-card
-              appearance="outlined"
-              *ngIf="i.cancel || i.displayAlways"
-              style="padding:3px;"
-            >
+          @for(i of stdAlarms; track i) {
+          <div class="alarm-item">
+            @if(i.cancel || i.displayAlways) {
+            <mat-card appearance="outlined" style="padding:3px;">
               <mat-card-title-group>
                 <img
                   width="30px"
@@ -43,27 +41,26 @@ import { AlarmsFacade } from '../alarms.facade';
               </mat-card-title-group>
               <mat-card-content> </mat-card-content>
               <mat-card-actions>
+                @if(!i.cancel) {
                 <button
                   mat-raised-button
                   color="warn"
-                  *ngIf="!i.cancel"
                   (click)="raise(i.key, i.subtitle)"
                 >
                   <mat-icon>alarm_on</mat-icon>
                   RAISE ALARM
                 </button>
-                <button
-                  mat-raised-button
-                  color="accent"
-                  *ngIf="i.cancel"
-                  (click)="clear(i.key)"
-                >
+                } @else {
+                <button mat-raised-button color="accent" (click)="clear(i.key)">
                   <mat-icon>alarm_off</mat-icon>
                   CANCEL ALARM
                 </button>
+                }
               </mat-card-actions>
             </mat-card>
+            }
           </div>
+          }
         </div>
       </mat-dialog-content>
     </div>

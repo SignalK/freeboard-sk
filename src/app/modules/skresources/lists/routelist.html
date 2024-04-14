@@ -27,14 +27,11 @@
               [(ngModel)]="filterText"
               (keyup)="filterKeyUp(ftext.value)"
             />
-            <button
-              *ngIf="filterText"
-              matSuffix
-              mat-icon-button
-              (click)="filterKeyUp('')"
-            >
+            @if(filterText) {
+            <button matSuffix mat-icon-button (click)="filterKeyUp('')">
               <mat-icon>close</mat-icon>
             </button>
+            }
           </mat-form-field>
         </div>
         <div>
@@ -66,9 +63,9 @@
   </mat-card>
 
   <div class="resources">
-    <div *ngIf="routes.length==0" style="text-align: center">
-      <br /><i>No Routes available.</i>
-    </div>
+    @if(routes.length === 0) {
+    <div style="text-align: center"><br /><i>No Routes available.</i></div>
+    }
     <cdk-virtual-scroll-viewport class="vscroller" itemSize="120">
       <mat-card
         *cdkVirtualFor="let r of filterList; let i= index;"
@@ -147,8 +144,8 @@
               >
                 <mat-icon>local_offer</mat-icon>
               </button>
+              @if(r[0] !== activeRoute) {
               <button
-                *ngIf="r[0]!=activeRoute"
                 mat-icon-button
                 color="primary"
                 [disabled]="disableRefresh"
@@ -158,8 +155,8 @@
               >
                 <mat-icon>near_me</mat-icon>
               </button>
+              } @else {
               <button
-                *ngIf="r[0]==activeRoute"
                 mat-icon-button
                 color="primary"
                 [disabled]="disableRefresh"
@@ -169,6 +166,7 @@
               >
                 <mat-icon>clear_all</mat-icon>
               </button>
+              }
             </div>
             <div>
               <button

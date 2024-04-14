@@ -7,6 +7,6 @@
     "sourceMap": false,
     "module": "commonjs"
   },
-  "include": ["helper/**/*"],
+  "include": ["helper/**/*", "helper/openApi.json"],
   "exclude": ["src","projects"]
 }

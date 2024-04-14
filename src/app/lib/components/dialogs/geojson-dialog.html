@@ -9,7 +9,8 @@
     </span>
   </mat-toolbar>
 
-  <div *ngIf="display.notValid">
+  @if(display.notValid) {
+  <div>
     <div mat-dialog-content>
       <b>Invalid GeoJSON Data:</b><br /><br />
       <i
@@ -28,10 +29,10 @@
       </button>
     </div>
   </div>
-
-  <div mat-dialog-content *ngIf="!display.notValid">
+  } @else {
+  <div mat-dialog-content>
     <!--valid GeoJSON file-->
-    <div class="card-group" *ngIf="!display.notValid">
+    <div class="card-group">
       <div class="card-group-title">
         <div style="display: flex; flex-wrap: wrap">
           <div style="flex: 1 1 auto">{{data.fileName}}</div>
@@ -40,7 +41,8 @@
     </div>
 
     <!-- Waypoints -->
-    <div class="card-group" *ngIf="geoData.waypoints.length!=0">
+    @if(geoData.waypoints.length !== 0) {
+    <div class="card-group">
       <mat-card>
         <div class="pnlRow">
           <div class="pnlGeoType">
@@ -58,9 +60,11 @@
         </div>
       </mat-card>
     </div>
+    }
 
     <!-- Routes -->
-    <div class="card-group" *ngIf="geoData.routes.length!=0">
+    @if(geoData.routes.length !== 0) {
+    <div class="card-group">
       <mat-card>
         <div class="pnlRow">
           <div class="pnlGeoType">
@@ -78,12 +82,12 @@
         </div>
       </mat-card>
     </div>
+    }
 
     <!-- Tracks -->
-    <div
-      class="card-group"
-      *ngIf="geoData.tracks.length!=0 && app.config.resources.paths.includes('tracks')"
-    >
+    @if(geoData.tracks.length!=0 &&
+    app.config.resources.paths.includes('tracks')) {
+    <div class="card-group">
       <mat-card>
         <div class="pnlRow">
           <div class="pnlGeoType">
@@ -101,9 +105,11 @@
         </div>
       </mat-card>
     </div>
+    }
 
     <!-- Regions -->
-    <div class="card-group" *ngIf="geoData.regions.length!=0">
+    @if(geoData.regions.length !== 0) {
+    <div class="card-group">
       <mat-card>
         <div class="pnlRow">
           <div class="pnlGeoType">
@@ -121,6 +127,7 @@
         </div>
       </mat-card>
     </div>
+    }
 
     <div mat-dialog-actions align="center">
       <button
@@ -135,4 +142,5 @@
       </button>
     </div>
   </div>
+  }
 </div>

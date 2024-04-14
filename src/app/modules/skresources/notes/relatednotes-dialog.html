@@ -40,17 +40,17 @@
     </span>
   </mat-toolbar>
   <mat-dialog-content>
-    <div
-      style="padding-bottom: 5px; overflow-y: auto"
-      *ngFor="let n of data.notes;"
-    >
+    @for(n of data.notes; track n) {
+    <div style="padding-bottom: 5px; overflow-y: auto">
       <mat-card style="border: whitesmoke 1px solid">
         <mat-card-title style="font-size: unset">
           <mat-icon>local_offer</mat-icon>
           {{n[1].name}}
         </mat-card-title>
         <mat-card-content style="margin-bottom: 0">
-          <p class="draft-watermark" *ngIf="n[1].properties.draft">Draft</p>
+          @if(n[1].properties.draft) {
+          <p class="draft-watermark">Draft</p>
+          }
           <div style="display: flex; flex-direction: column">
             <div style="padding-bottom: 5px; display: flex">
               <div style="font-weight: bold; vertical-align: top">Date:</div>
@@ -69,17 +69,20 @@
               <div [innerHTML]="n[1].description | addTarget: '_notes'"></div>
             </div>
             <div style="padding-bottom: 5px; display: flex">
-              <div *ngIf="n[1].authors && n[1].authors.length!=0">
+              @if(n[1].authors && n[1].authors.length!=0) {
+              <div>
                 <span style="font-weight: bold">Author:</span>
                 &nbsp;{{n[1].authors[0]?.name}} &nbsp;&nbsp;
               </div>
+              }
             </div>
           </div>
         </mat-card-content>
         <mat-card-actions>
           <div style="display: flex">
             <div style="flex: 1 1 auto">
-              <div *ngIf="n[1].url">
+              @if(n[1].url) {
+              <div>
                 <button
                   mat-icon-button
                   (click)="openNoteUrl(n[1].url)"
@@ -88,8 +91,10 @@
                   <mat-icon color="primary">open_in_new</mat-icon>
                 </button>
               </div>
+              }
             </div>
-            <div style="text-align: right" *ngIf="!n[1].properties.readOnly">
+            @if(!n[1].properties.readOnly) {
+            <div style="text-align: right">
               <button
                 mat-icon-button
                 (click)="editNote(n[0])"
@@ -106,10 +111,12 @@
                 <mat-icon color="warn">delete</mat-icon>
               </button>
             </div>
+            }
           </div>
         </mat-card-actions>
       </mat-card>
     </div>
+    }
   </mat-dialog-content>
   <mat-dialog-actions>
     <div style="text-align: center; width: 100%">

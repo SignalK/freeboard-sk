@@ -24,6 +24,7 @@ interface Lookup {
   geometryType: GeometryType;
   lookupTable: LookupTable;
   instruction: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   attributes: any;
   id: number;
   displayPriority: DisplayPriority;
@@ -87,12 +88,12 @@ const LOOKUPINDEXKEY = '$lupIndex';
 export class S57Service {
   private chartSymbols: Map<string, Symbol> = new Map<string, Symbol>();
   private colorTables: ColorTable[] = [];
-  private selectedColorTable: number = 0;
+  private selectedColorTable = 0;
   private chartSymbolsImage: HTMLImageElement;
   private lookups: Lookup[] = [];
   private lookupStartIndex: Map<string, number> = new Map<string, number>();
   public refresh: Subject<void> = new Subject<void>();
-  private selectedSafeContour: number = 1000;
+  private selectedSafeContour = 1000;
 
   //options
 
@@ -107,7 +108,7 @@ export class S57Service {
       this.processLookup(symbolsJson);
       this.processColors(symbolsJson);
       this.refresh.next();
-      let image = new Image();
+      const image = new Image();
       image.onload = () => {
         this.chartSymbolsImage = image;
         this.refresh.next();
@@ -117,11 +118,12 @@ export class S57Service {
     });
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private isChanged(currentValue: any, newValue: any): boolean {
     let changed = false;
-    let keys = Object.keys(newValue);
+    const keys = Object.keys(newValue);
     for (let i = 0; i < keys.length; i++) {
-      if (currentValue[keys[i]] != newValue[keys[i]]) {
+      if (currentValue[keys[i]] !== newValue[keys[i]]) {
         changed = true;
         break;
       }
@@ -136,15 +138,18 @@ export class S57Service {
     }
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private processColors(symbolsJson: any) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (
       symbolsJson['chartsymbols']['color-tables']['color-table'] as any[]
     ).forEach((colortable) => {
-      let colorTable: ColorTable = {
+      const colorTable: ColorTable = {
         symbolfile: colortable['graphics-file']['_name'],
         colors: new Map<string, string>()
       };
-      let colors = colortable['color'] as any[];
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const colors = colortable['color'] as any[];
       colors.forEach((color) => {
         colorTable.colors.set(
           color['_name'],
@@ -160,11 +165,12 @@ export class S57Service {
       this.colorTables.push(colorTable);
     });
   }
-
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private processSymbols(symbolsJson: any) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (symbolsJson['chartsymbols']['symbols']['symbol'] as any[]).forEach(
       (symbol) => {
-        let bitmap = symbol['bitmap'];
+        const bitmap = symbol['bitmap'];
         if (bitmap) {
           this.chartSymbols.set(symbol['name'], {
             image: null,
@@ -183,13 +189,13 @@ export class S57Service {
   }
 
   private compareLookup(a: Lookup, b: Lookup): number {
-    let lt = a.lookupTable - b.lookupTable;
-    if (lt != 0) return lt;
-    let ir = a.name.localeCompare(b.name);
-    if (ir != 0) return ir;
-    let c1 = Object.keys(a.attributes).length;
-    let c2 = Object.keys(a.attributes).length;
-    if (c1 != c2) return c2 - c1;
+    const lt = a.lookupTable - b.lookupTable;
+    if (lt !== 0) return lt;
+    const ir = a.name.localeCompare(b.name);
+    if (ir !== 0) return ir;
+    const c1 = Object.keys(a.attributes).length;
+    const c2 = Object.keys(a.attributes).length;
+    if (c1 !== c2) return c2 - c1;
     return a.id - b.id;
   }
 
@@ -225,10 +231,12 @@ export class S57Service {
     }
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private processLookup(symbolsJson: any) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (symbolsJson['chartsymbols']['lookups']['lookup'] as any[]).forEach(
       (lookup) => {
-        let lup: Lookup = {
+        const lup: Lookup = {
           name: lookup['_name'],
           instruction: lookup['instruction'],
           lookupTable: this.getLookupTable(lookup['table-name']),
@@ -237,8 +245,9 @@ export class S57Service {
           id: parseInt(lookup['_id']),
           displayPriority: this.getDisplayPriority(lookup['disp-prio'])
         };
-        let attributes = lookup['attrib-code'];
+        const attributes = lookup['attrib-code'];
         if (attributes) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           (attributes as any[]).forEach((att) => {
             lup.attributes[att['_index']] = att['__text'];
           });
@@ -251,8 +260,8 @@ export class S57Service {
     // build index
     let lastkey = '';
     this.lookups.forEach((lup, index) => {
-      let key = lup.lookupTable + ',' + lup.name + ',' + lup.geometryType;
-      if (key != lastkey) {
+      const key = lup.lookupTable + ',' + lup.name + ',' + lup.geometryType;
+      if (key !== lastkey) {
         this.lookupStartIndex.set(key, index);
         lastkey = key;
       }
@@ -260,7 +269,7 @@ export class S57Service {
   }
 
   private getSymbol(key: string): Symbol {
-    let icon = this.chartSymbols.get(key);
+    const icon = this.chartSymbols.get(key);
     if (icon && this.chartSymbolsImage) {
       if (!icon.image) {
         icon.image = new Image(icon.width, icon.height);
@@ -271,10 +280,10 @@ export class S57Service {
           icon.width,
           icon.height
         ).then((bitmap) => {
-          let canvas = document.createElement('CANVAS') as HTMLCanvasElement;
+          const canvas = document.createElement('CANVAS') as HTMLCanvasElement;
           canvas.height = icon.height;
           canvas.width = icon.width;
-          let ctx = canvas.getContext('2d');
+          const ctx = canvas.getContext('2d');
           ctx.drawImage(bitmap, 0, 0);
           icon.image.src = canvas.toDataURL();
           //this.refresh.next()
@@ -289,21 +298,21 @@ export class S57Service {
   }
 
   private selectLookup(feature: Feature): number {
-    let properties = feature.getProperties();
-    let geometry = feature.getGeometry();
-    let name = properties['layer'];
-    let geomType = geometry.getType();
+    const properties = feature.getProperties();
+    const geometry = feature.getGeometry();
+    const name = properties['layer'];
+    const geomType = geometry.getType();
     let lookupTable = LookupTable.PAPER_CHART;
     let type = GeometryType.POINT;
-    if (geomType == 'Polygon') {
+    if (geomType === 'Polygon') {
       type = GeometryType.AREA;
-    } else if (geomType == 'LineString') {
+    } else if (geomType === 'LineString') {
       type = GeometryType.LINES;
     }
     switch (type) {
       case GeometryType.POINT:
         {
-          if (this.options.graphicsStyle == 'Paper') {
+          if (this.options.graphicsStyle === 'Paper') {
             lookupTable = LookupTable.PAPER_CHART;
           } else {
             lookupTable = LookupTable.SIMPLIFIED;
@@ -315,7 +324,7 @@ export class S57Service {
         break;
       case GeometryType.AREA:
         {
-          if (this.options.boundaries == 'Plain') {
+          if (this.options.boundaries === 'Plain') {
             lookupTable = LookupTable.PLAIN;
           } else {
             lookupTable = LookupTable.SYMBOLIZED;
@@ -334,22 +343,22 @@ export class S57Service {
       best = startIndex;
       let lmatch = 0;
       while (
-        lup.name == name &&
-        lup.geometryType == type &&
-        lup.lookupTable == lookupTable
+        lup.name === name &&
+        lup.geometryType === type &&
+        lup.lookupTable === lookupTable
       ) {
         let nmatch = 0;
         Object.keys(lup.attributes).forEach((k) => {
-          let v = lup.attributes[k];
-          let parts = this.attMatch.exec(v);
-          let key = parts[1].toUpperCase();
-          let value = parts[2].toUpperCase();
-          if (value == ' ') {
+          const v = lup.attributes[k];
+          const parts = this.attMatch.exec(v);
+          const key = parts[1].toUpperCase();
+          const value = parts[2].toUpperCase();
+          if (value === ' ') {
             nmatch++;
             return;
           }
-          if (value == '?') return;
-          if (properties[key] == value) {
+          if (value === '?') return;
+          if (properties[key] === value) {
             nmatch++;
           }
         });
@@ -366,7 +375,7 @@ export class S57Service {
   }
 
   private getSymbolStyle(symbolName: string): Style {
-    let symbol = this.getSymbol(symbolName);
+    const symbol = this.getSymbol(symbolName);
     if (symbol) {
       return new Style({
         image: new Icon({
@@ -390,26 +399,28 @@ export class S57Service {
   //TODO implement more parameters
   private getTextStyle(text: string, params: string[]): Style {
     if (typeof text !== 'string') {
-      debugger;
+      //debugger;
       return null;
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let textBaseline: any = 'middle';
     let offsetY = 0;
-    if (params[1] == '3') {
+    if (params[1] === '3') {
       textBaseline = 'top';
       offsetY = 15;
-    } else if (params[1] == '1') {
+    } else if (params[1] === '1') {
       textBaseline = 'bottom';
       offsetY = -15;
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let textAlign: any = 'left';
     let offsetX = 15;
-    if (params[0] == '2') {
+    if (params[0] === '2') {
       textAlign = 'right';
       offsetX = -15;
-    } else if (params[0] == '1') {
+    } else if (params[0] === '1') {
       textAlign = 'center';
       offsetX = 0;
     }
@@ -433,9 +444,10 @@ export class S57Service {
     return null;
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private getTextStyleTX(featureProperties: any, parameters: string): Style {
-    let params = parameters.split(',');
-    let text = featureProperties[params[0]];
+    const params = parameters.split(',');
+    const text = featureProperties[params[0]];
     if (!text) {
       return null;
     }
@@ -443,14 +455,15 @@ export class S57Service {
   }
 
   //TODO format string
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private getTextStyleTE(featureProperties: any, parameters: string): Style {
-    let params = parameters.split(',');
-    let text = featureProperties[this.stripQuotes(params[1])];
-    let format = this.stripQuotes(params[0]);
+    const params = parameters.split(',');
+    const text = featureProperties[this.stripQuotes(params[1])];
+    const format = this.stripQuotes(params[0]);
     if (!text || !format) {
       return null;
     }
-    let formatted = format.replace(/%[0-9]*.?[0-9]*l?[sfd]/, text);
+    const formatted = format.replace(/%[0-9]*.?[0-9]*l?[sfd]/, text);
     return this.getTextStyle(formatted, params.slice(2));
   }
 
@@ -502,7 +515,8 @@ export class S57Service {
   }
 
   private getAreaStyle(colorName: string): Style {
-    let color = this.colorTables[this.selectedColorTable].colors.get(colorName);
+    const color =
+      this.colorTables[this.selectedColorTable].colors.get(colorName);
     if (color) {
       return new Style({
         fill: new Fill({
@@ -514,10 +528,12 @@ export class S57Service {
   }
 
   private getLineStyle(params: string): Style {
-    let parts = params.split(',');
-    let color = this.colorTables[this.selectedColorTable].colors.get(parts[2]);
-    let width = parseInt(parts[1]);
-    let lineStyle = parts[0];
+    const parts = params.split(',');
+    const color = this.colorTables[this.selectedColorTable].colors.get(
+      parts[2]
+    );
+    const width = parseInt(parts[1]);
+    const lineStyle = parts[0];
     let lineDash = null;
     switch (lineStyle) {
       case 'DASH':
@@ -541,16 +557,16 @@ export class S57Service {
   //https://github.com/OpenCPN/OpenCPN/blob/20a781ecc507443e5aaa1d33d0cb91852feb07ee/libs/s52plib/src/s52cnsy.cpp#L5809
   private GetCSTOPMAR01(feature: Feature): string[] {
     let rulestring: string = null;
-    let featureProperties = feature.getProperties();
+    const featureProperties = feature.getProperties();
     if (!featureProperties['TOPSHP']) {
       rulestring = 'SY(QUESMRK1)';
     } else {
       let floating = false;
-      let layer = featureProperties['layer'];
-      if (layer == 'LITFLT' || layer == 'LITVES' || layer.startsWith('BOY')) {
+      const layer = featureProperties['layer'];
+      if (layer === 'LITFLT' || layer === 'LITVES' || layer.startsWith('BOY')) {
         floating = true;
       }
-      let topshp = featureProperties['TOPSHP'];
+      const topshp = featureProperties['TOPSHP'];
       if (floating) {
         switch (topshp) {
           case 1:
@@ -778,23 +794,23 @@ export class S57Service {
   //https://github.com/OpenCPN/OpenCPN/blob/c2ffb36ebca8c3777f03ea4d42e24f897aa62609/libs/s52plib/src/s52cnsy.cpp#L4494C40-L4494C40
   private GetCSLIGHTS05(feature: Feature): string[] {
     let rulestring: string = null;
-    let featureProperties = feature.getProperties();
+    const featureProperties = feature.getProperties();
 
     if (featureProperties['COLOUR']) {
-      let colVals = featureProperties['COLOUR'].split(',') as string[];
-      if (colVals.length == 1) {
-        if (colVals[0] == '3') {
+      const colVals = featureProperties['COLOUR'].split(',') as string[];
+      if (colVals.length === 1) {
+        if (colVals[0] === '3') {
           rulestring = 'SY(LIGHTS11)';
-        } else if (colVals[0] == '4') {
+        } else if (colVals[0] === '4') {
           rulestring = 'SY(LIGHTS12)';
         } else if (
-          colVals[0] == '1' ||
-          colVals[0] == '6' ||
-          colVals[0] == '13'
+          colVals[0] === '1' ||
+          colVals[0] === '6' ||
+          colVals[0] === '13'
         ) {
           rulestring = 'SY(LIGHTS13)';
         }
-      } else if (colVals.length == 2) {
+      } else if (colVals.length === 2) {
         if (colVals.includes('1') && colVals.includes('3')) {
           rulestring = 'SY(LIGHTS11)';
         } else if (colVals.includes('1') && colVals.includes('4')) {
@@ -813,7 +829,7 @@ export class S57Service {
     if (drval1 >= 0 && drval2 > 0) {
       retval = ['AC(DEPVS)'];
     }
-    if (this.options.colors == 2) {
+    if (this.options.colors === 2) {
       if (
         drval1 >= this.options.safetyDepth &&
         drval2 > this.options.safetyDepth
@@ -851,10 +867,10 @@ export class S57Service {
   //https://github.com/OpenCPN/OpenCPN/blob/c2ffb36ebca8c3777f03ea4d42e24f897aa62609/libs/s52plib/src/s52cnsy.cpp#L4295
   private GetCSDEPCNT02(feature: Feature): string[] {
     let rulestring: string = null;
-    let featureProperties = feature.getProperties();
-    let geometry = feature.getGeometry();
+    const featureProperties = feature.getProperties();
+    const geometry = feature.getGeometry();
 
-    let safe = false;
+    //const safe = false;
     let drval1 = 0;
     let depth_value = -1;
     let valdco = 0;
@@ -865,7 +881,7 @@ export class S57Service {
       objl = parseInt(featureProperties['OBJL']);
     }
 
-    if (DEPARE == objl && geometry.getType() == 'LineString') {
+    if (DEPARE === objl && geometry.getType() === 'LineString') {
       if (featureProperties['DRVAL1']) {
         drval1 = parseFloat(featureProperties['DRVAL1']);
       }
@@ -883,7 +899,7 @@ export class S57Service {
     if (featureProperties['QUAPOS']) {
       quapos = parseFloat(featureProperties['QUAPOS']);
       if (quapos > 2 && quapos < 10) {
-        if (depth_value == this.selectedSafeContour) {
+        if (depth_value === this.selectedSafeContour) {
           rulestring = 'LS(DASH,2,DEPSC)';
         }
         //  else {
@@ -892,7 +908,7 @@ export class S57Service {
         // }
       }
     } else {
-      if (depth_value == this.selectedSafeContour) {
+      if (depth_value === this.selectedSafeContour) {
         rulestring = 'LS(SOLD,2,DEPSC)';
       }
       // else {
@@ -908,15 +924,15 @@ export class S57Service {
   private getCSDEPARE01(feature: Feature): string[] {
     let retval: string[] = [];
 
-    let featureProperties = feature.getProperties();
+    const featureProperties = feature.getProperties();
 
-    let drval1 = parseFloat(featureProperties['DRVAL1']);
-    let drval2 = parseFloat(featureProperties['DRVAL2']);
+    const drval1 = parseFloat(featureProperties['DRVAL1']);
+    const drval2 = parseFloat(featureProperties['DRVAL2']);
 
     retval = this.GetSeabed01(drval1, drval2);
 
-    let objl = featureProperties['OBJL'];
-    if (parseInt(objl) == DRGARE) {
+    const objl = featureProperties['OBJL'];
+    if (parseInt(objl) === DRGARE) {
       retval.push('AP(DRGARE01)');
       retval.push('LS(DASH,1,CHGRF)');
 
@@ -930,7 +946,7 @@ export class S57Service {
 
   private evalCS(feature: Feature, instruction: string): string[] {
     let retval: string[] = [];
-    let instrParts = this.instructionMatch.exec(instruction);
+    const instrParts = this.instructionMatch.exec(instruction);
     if (instrParts && instrParts.length > 1) {
       switch (instrParts[2]) {
         case 'LIGHTS05':
@@ -954,20 +970,20 @@ export class S57Service {
   }
 
   private getStylesFromRules(lup: Lookup, feature: Feature): Style[] {
-    let styles: Style[] = [];
+    const styles: Style[] = [];
     if (lup) {
-      let properties = feature.getProperties();
-      let instructions = lup.instruction.split(';');
+      const properties = feature.getProperties();
+      const instructions = lup.instruction.split(';');
 
       //PreProcess CS
-      for (var i = 0; i < instructions.length; i++) {
+      for (let i = 0; i < instructions.length; i++) {
         if (instructions[i].startsWith('CS')) {
-          let conditionals = this.evalCS(feature, instructions[i]);
+          const conditionals = this.evalCS(feature, instructions[i]);
           instructions.splice(i, 1, ...conditionals);
         }
       }
       instructions.forEach((instruction) => {
-        let instrParts = this.instructionMatch.exec(instruction);
+        const instrParts = this.instructionMatch.exec(instruction);
         if (instrParts && instrParts.length > 1) {
           let style: Style = null;
           switch (instrParts[1]) {
@@ -989,7 +1005,7 @@ export class S57Service {
             default:
               console.debug('Unsupported instruction:' + instruction);
           }
-          if (style != null) {
+          if (style !== null) {
             style.setZIndex(lup.displayPriority);
             styles.push(style);
           }
@@ -1001,9 +1017,9 @@ export class S57Service {
   }
 
   private updateSafeContour(feature: Feature): number {
-    let properties = feature.getProperties();
+    const properties = feature.getProperties();
     if (properties['DRVAL1']) {
-      let drval1 = properties['DRVAL1'];
+      const drval1 = properties['DRVAL1'];
       if (
         drval1 >= this.options.safetyDepth &&
         drval1 < this.selectedSafeContour
@@ -1013,7 +1029,7 @@ export class S57Service {
       return drval1;
     }
     if (properties['VALDCO']) {
-      let valdco = properties['VALDCO'];
+      const valdco = properties['VALDCO'];
       if (
         valdco >= this.options.safetyDepth &&
         valdco < this.selectedSafeContour
@@ -1028,8 +1044,8 @@ export class S57Service {
   // the interface of this service
 
   public renderOrder = (feature1: Feature, feature2: Feature): number => {
-    let o1 = this.updateSafeContour(feature1);
-    let o2 = this.updateSafeContour(feature2);
+    const o1 = this.updateSafeContour(feature1);
+    const o2 = this.updateSafeContour(feature2);
     let lupIndex1 = feature1[LOOKUPINDEXKEY];
     let lupIndex2 = feature1[LOOKUPINDEXKEY];
     if (!lupIndex1) {
@@ -1042,25 +1058,25 @@ export class S57Service {
     }
 
     if (lupIndex1 >= 0 && lupIndex2 >= 0) {
-      let c1 = this.lookups[lupIndex1].displayPriority;
-      let c2 = this.lookups[lupIndex2].displayPriority;
-      let cmp = c1 - c2;
+      const c1 = this.lookups[lupIndex1].displayPriority;
+      const c2 = this.lookups[lupIndex2].displayPriority;
+      const cmp = c1 - c2;
       if (cmp) {
         return cmp;
       }
     }
 
-    if (o1 != o2) {
+    if (o1 !== o2) {
       return o1 - o2;
     }
 
     return lupIndex1 - lupIndex2;
   };
 
-  public getStyle = (feature: Feature, resolution: number): Style[] => {
-    let lupIndex = feature[LOOKUPINDEXKEY];
+  public getStyle = (feature: Feature): Style[] => {
+    const lupIndex = feature[LOOKUPINDEXKEY];
     if (lupIndex >= 0) {
-      let lup = this.lookups[lupIndex];
+      const lup = this.lookups[lupIndex];
       return this.getStylesFromRules(lup, feature);
     }
     return null;

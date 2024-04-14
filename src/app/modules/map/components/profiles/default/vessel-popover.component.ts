@@ -55,12 +55,12 @@ isSelf: boolean - true if vessel 'self'
           <ap-compass
             [heading]="convert.radiansToDegrees(vessel.orientation)"
             [windtrue]="
-              vessel.wind.direction != null
+              vessel.wind.direction !== null
                 ? convert.radiansToDegrees(vessel.wind.direction)
                 : null
             "
             [windapparent]="
-              vessel.wind.awa != null
+              vessel.wind.awa !== null
                 ? convert.radiansToDegrees(vessel.wind.awa)
                 : null
             "
@@ -100,9 +100,9 @@ isSelf: boolean - true if vessel 'self'
       <div style="display:flex;">
         <div style="flex:1 1 auto;"></div>
         <div style="text-align:right;">
+          @if(isActive) {
           <button
             mat-button
-            *ngIf="isActive"
             (click)="handleMarkPosition()"
             color="primary"
             matTooltip="Add Waypoint at vessel location"
@@ -110,24 +110,25 @@ isSelf: boolean - true if vessel 'self'
             <mat-icon>add_location</mat-icon>
             DROP WPT
           </button>
+          } @else {
           <button
             mat-button
-            *ngIf="!isActive"
             (click)="focusVessel(true)"
             matTooltip="Focus vessel"
           >
             <mat-icon color="primary">center_focus_weak</mat-icon>
             FOCUS
           </button>
+          } @if(isActive && !isSelf) {
           <button
             mat-button
-            *ngIf="isActive && !isSelf"
             (click)="focusVessel(false)"
             matTooltip="Clear vessel focus"
           >
             <mat-icon color="primary">clear_all</mat-icon>
             UNFOCUS
           </button>
+          }
           <button
             mat-button
             (click)="handleInfo()"

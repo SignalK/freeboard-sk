@@ -467,24 +467,24 @@ export class FBMapComponent implements OnInit, OnDestroy {
     // ** locate vessel popover
     if (
       this.overlay.show &&
-      ['ais', 'aton', 'aircraft'].includes(this.overlay['type'])
+      ['ais', 'aton', 'aircraft'].includes(this.overlay.type)
     ) {
       if (this.overlay['isSelf']) {
         this.overlay.position = this.dfeat.self.position;
         this.overlay['vessel'] = this.dfeat.self;
       } else {
         if (
-          (this.overlay['type'] === 'ais' &&
-            !this.dfeat.ais.has(this.overlay['id'])) ||
-          (this.overlay['type'] === 'atons' &&
-            !this.dfeat.atons.has(this.overlay['id'])) ||
-          (this.overlay['type'] === 'aircraft' &&
-            !this.dfeat.aircraft.has(this.overlay['id']))
+          (this.overlay.type === 'ais' &&
+            !this.dfeat.ais.has(this.overlay.id)) ||
+          (this.overlay.type === 'atons' &&
+            !this.dfeat.atons.has(this.overlay.id)) ||
+          (this.overlay.type === 'aircraft' &&
+            !this.dfeat.aircraft.has(this.overlay.id))
         ) {
           this.overlay.show = false;
         } else {
-          if (this.overlay['type'] === 'ais') {
-            this.overlay['vessel'] = this.dfeat.ais.get(this.overlay['id']);
+          if (this.overlay.type === 'ais') {
+            this.overlay['vessel'] = this.dfeat.ais.get(this.overlay.id);
             this.overlay.position = this.overlay['vessel'].position;
           }
         }
@@ -1148,6 +1148,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
     this.overlay.type = null;
     this.overlay.featureCount = this.draw.features.getLength();
     this.overlay.position = coord;
+    this.overlay.isSelf = false;
     let item = null;
     const t = id.split('.');
     let aid: string;
@@ -1161,12 +1162,12 @@ export class FBMapComponent implements OnInit, OnDestroy {
         this.overlay.show = true;
         return;
       case 'alarm':
-        this.overlay['type'] = 'alarm';
+        this.overlay.type = 'alarm';
         aid = id.split('.')[1];
         if (!this.app.data.alarms.has(aid)) {
           return false;
         }
-        this.overlay['id'] = aid;
+        this.overlay.id = aid;
         this.overlay['alarm'] = this.app.data.alarms.get(aid);
         this.overlay.show = true;
         return;
@@ -1174,57 +1175,56 @@ export class FBMapComponent implements OnInit, OnDestroy {
         this.startModify('anchor');
         return;
       case 'vessels':
-        this.overlay['type'] = 'ais';
-        this.overlay['isSelf'] = true;
+        this.overlay.type = 'ais';
+        this.overlay.isSelf = true;
         this.overlay['vessel'] = this.dfeat.self;
         this.overlay.show = true;
         return;
       case 'ais-vessels':
-        this.overlay['type'] = 'ais';
-        this.overlay['isSelf'] = false;
+        this.overlay.type = 'ais';
         aid = id.slice(4);
         if (!this.dfeat.ais.has(aid)) {
           return false;
         }
-        this.overlay['id'] = aid;
-        this.overlay['vessel'] = this.dfeat.ais.get(aid);
+        this.overlay.id = aid;
+        this.overlay.vessel = this.dfeat.ais.get(aid);
         this.overlay.show = true;
         return;
       case 'atons':
       case 'aton':
-        this.overlay['type'] = 'aton';
+        this.overlay.type = 'aton';
         if (!this.app.data.atons.has(id)) {
           return false;
         }
-        this.overlay['id'] = id;
-        this.overlay['aton'] = this.app.data.atons.get(id);
+        this.overlay.id = id;
+        this.overlay.aton = this.app.data.atons.get(id);
         this.overlay.show = true;
         return;
       case 'sar':
-        this.overlay['type'] = 'aton';
+        this.overlay.type = 'aton';
         if (!this.app.data.sar.has(id)) {
           return false;
         }
-        this.overlay['id'] = id;
-        this.overlay['aton'] = this.app.data.sar.get(id);
+        this.overlay.id = id;
+        this.overlay.aton = this.app.data.sar.get(id);
         this.overlay.show = true;
         return;
       case 'meteo':
-        this.overlay['type'] = 'meteo';
+        this.overlay.type = 'meteo';
         if (!this.app.data.meteo.has(id)) {
           return false;
         }
-        this.overlay['id'] = id;
-        this.overlay['aton'] = this.app.data.meteo.get(id);
+        this.overlay.id = id;
+        this.overlay.aton = this.app.data.meteo.get(id);
         this.overlay.show = true;
         return;
       case 'aircraft':
-        this.overlay['type'] = 'aircraft';
+        this.overlay.type = 'aircraft';
         if (!this.app.data.aircraft.has(id)) {
           return false;
         }
-        this.overlay['id'] = id;
-        this.overlay['aircraft'] = this.app.data.aircraft.get(id);
+        this.overlay.id = id;
+        this.overlay.aircraft = this.app.data.aircraft.get(id);
         this.overlay.show = true;
         return;
       case 'region':
@@ -1234,10 +1234,10 @@ export class FBMapComponent implements OnInit, OnDestroy {
         if (!item) {
           return false;
         }
-        this.overlay['id'] = t[1];
-        this.overlay['type'] = 'region';
+        this.overlay.id = t[1];
+        this.overlay.type = 'region';
         this.overlay.title = 'Region';
-        this.overlay['resource'] = item[0];
+        this.overlay.resource = item[0];
         this.overlay.show = true;
         return;
       case 'note':
@@ -1247,10 +1247,10 @@ export class FBMapComponent implements OnInit, OnDestroy {
         if (!item) {
           return false;
         }
-        this.overlay['id'] = t[1];
-        this.overlay['type'] = 'note';
+        this.overlay.id = t[1];
+        this.overlay.type = 'note';
         this.overlay.title = 'Note';
-        this.overlay['resource'] = item[0];
+        this.overlay.resource = item[0];
         this.overlay.show = true;
         return;
       case 'route':
@@ -1264,10 +1264,10 @@ export class FBMapComponent implements OnInit, OnDestroy {
         if (!item) {
           return false;
         }
-        this.overlay['id'] = t[1];
-        this.overlay['type'] = 'route';
+        this.overlay.id = t[1];
+        this.overlay.type = 'route';
         this.overlay.title = 'Route';
-        this.overlay['resource'] = item[0];
+        this.overlay.resource = item[0];
         this.overlay.show = true;
         return;
       case 'waypoint':
@@ -1277,16 +1277,16 @@ export class FBMapComponent implements OnInit, OnDestroy {
         if (!item) {
           return false;
         }
-        this.overlay['id'] = t[1];
-        this.overlay['type'] = 'waypoint';
-        this.overlay['resource'] = item[0];
+        this.overlay.id = t[1];
+        this.overlay.type = 'waypoint';
+        this.overlay.resource = item[0];
         this.overlay.title = 'Waypoint';
         this.overlay.show = true;
         return;
       case 'dest':
-        this.overlay['id'] = id;
-        this.overlay['type'] = 'destination';
-        this.overlay['resource'] = this.skres.buildWaypoint(coord);
+        this.overlay.id = id;
+        this.overlay.type = 'destination';
+        this.overlay.resource = this.skres.buildWaypoint(coord);
         this.overlay.title = this.app.data.navData.destPointName
           ? this.app.data.navData.destPointName
           : 'Destination';

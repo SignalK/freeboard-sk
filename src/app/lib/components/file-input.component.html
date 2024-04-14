@@ -2,10 +2,12 @@
   <div id="ctrl" [ngClass]="{ disabled: disabled }">
     <label>
       <ng-content></ng-content>
-      <span *ngIf="icon">
+      @if(icon) {
+      <span>
         <i class="material-icons">upload</i>
         &nbsp;<span style="font-size: 10pt">{{ label }}</span>
       </span>
+      }
       <input
         #input
         type="file"
@@ -18,8 +20,12 @@
       />
     </label>
   </div>
-  <div id="avatar" *ngIf="preview && avatar" style="display: inline-flex">
+  @if(preview && avatar) {
+  <div id="avatar" style="display: inline-flex">
     <img [attr.src]="avatar" alt="" />
-    <button *ngIf="avatar" (click)="clear()">Clear</button>
+    @if(avatar) {
+    <button (click)="clear()">Clear</button>
+    }
   </div>
+  }
 </div>

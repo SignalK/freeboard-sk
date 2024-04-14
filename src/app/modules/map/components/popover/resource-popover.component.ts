@@ -20,33 +20,37 @@ id: string - resource id
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <ap-popover [title]="title" [canClose]="canClose" (closed)="handleClose()">
-      <div *ngFor="let p of properties" style="display:flex;">
+      @for(p of properties; track p) {
+      <div style="display:flex;">
         <div style="font-weight:bold;">{{ p[0] }}:</div>
+        @if(p[0] !== 'Latitude' && p[0] !== 'Longitude') {
         <div
-          *ngIf="p[0] != 'Latitude' && p[0] != 'Longitude'"
           style="flex: 1 1 auto;text-align:right;
-                            white-space:nowrap;
-                            overflow-x:hidden;
-                            text-overflow:ellipsis;"
+                                white-space:nowrap;
+                                overflow-x:hidden;
+                                text-overflow:ellipsis;"
         >
           {{ p[1] }}
         </div>
+        } @if(p[0] === 'Latitude') {
         <div
-          *ngIf="p[0] == 'Latitude'"
           style="flex: 1 1 auto;text-align:right;"
           [innerText]="
             p[1] | coords : app.config.selections.positionFormat : true
           "
         ></div>
+        } @if(p[0] === 'Longitude') {
         <div
-          *ngIf="p[0] == 'Longitude'"
           style="flex: 1 1 auto;text-align:right;"
           [innerText]="p[1] | coords : app.config.selections.positionFormat"
         ></div>
+        }
       </div>
+      }
 
       <div style="display:flex;flex-wrap: wrap;">
-        <div class="popover-action-button" *ngIf="ctrl.showModifyButton">
+        @if(ctrl.showModifyButton) {
+        <div class="popover-action-button">
           <button
             mat-button
             color="primary"
@@ -58,7 +62,8 @@ id: string - resource id
             MOVE
           </button>
         </div>
-        <div class="popover-action-button" *ngIf="ctrl.showAddNoteButton">
+        } @if(ctrl.showAddNoteButton) {
+        <div class="popover-action-button">
           <button
             mat-button
             color="primary"
@@ -70,7 +75,8 @@ id: string - resource id
             ADD
           </button>
         </div>
-        <div class="popover-action-button" *ngIf="ctrl.showDeleteButton">
+        } @if(ctrl.showDeleteButton) {
+        <div class="popover-action-button">
           <button
             mat-button
             color="warn"
@@ -82,16 +88,14 @@ id: string - resource id
             DELETE
           </button>
         </div>
-        <div
-          class="popover-action-button"
-          *ngIf="ctrl.canActivate && !ctrl.isActive"
-        >
+        } @if(ctrl.canActivate && !ctrl.isActive) {
+        <div class="popover-action-button">
           <button
             mat-button
             color="primary"
             (click)="emitActive(true)"
             [matTooltip]="
-              type == 'waypoint'
+              type === 'waypoint'
                 ? 'Navigate to Waypoint'
                 : 'Make this the Active Route'
             "
@@ -101,7 +105,8 @@ id: string - resource id
             {{ ctrl.activeText }}
           </button>
         </div>
-        <div class="popover-action-button" *ngIf="ctrl.isActive">
+        } @else {
+        <div class="popover-action-button">
           <button
             mat-button
             (click)="emitActive(false)"
@@ -113,7 +118,8 @@ id: string - resource id
             CLEAR
           </button>
         </div>
-        <div class="popover-action-button" *ngIf="ctrl.showRelatedButton">
+        } @if(ctrl.showRelatedButton) {
+        <div class="popover-action-button">
           <button
             mat-button
             (click)="emitRelated()"
@@ -124,7 +130,8 @@ id: string - resource id
             GROUP
           </button>
         </div>
-        <div class="popover-action-button" *ngIf="ctrl.showNotesButton">
+        } @if(ctrl.showNotesButton) {
+        <div class="popover-action-button">
           <button
             mat-button
             (click)="emitNotes()"
@@ -135,7 +142,8 @@ id: string - resource id
             NOTES
           </button>
         </div>
-        <div class="popover-action-button" *ngIf="ctrl.showInfoButton">
+        } @if(ctrl.showInfoButton) {
+        <div class="popover-action-button">
           <button
             mat-button
             [color]="type === 'route' || type === 'waypoint' ? 'primary' : ''"
@@ -149,7 +157,8 @@ id: string - resource id
             {{ type === 'route' || type === 'waypoint' ? 'EDIT' : 'INFO' }}
           </button>
         </div>
-        <div class="popover-action-button" *ngIf="ctrl.showPointsButton">
+        } @if(ctrl.showPointsButton) {
+        <div class="popover-action-button">
           <button
             mat-button
             (click)="emitPoints()"
@@ -160,6 +169,7 @@ id: string - resource id
             POINTS
           </button>
         </div>
+        }
       </div>
     </ap-popover>
   `,

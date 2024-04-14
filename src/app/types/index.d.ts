@@ -35,7 +35,7 @@ export interface SKApiResponse {
 
 export interface SKNotification {
   method: Array<string>;
-  visual: unknown;
+  visual: boolean;
   state: string;
   message: string;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -186,6 +186,7 @@ export interface FBAppConfig {
 export interface FBAppData {
   firstRun: boolean;
   updatedRun: AppUpdateMessage;
+  kioskMode: boolean;
   n2kRoute: FBRoute;
   optAppPanel: boolean;
   trueMagChoice: string;
@@ -199,7 +200,7 @@ export interface FBAppData {
   charts: FBCharts;
   chartBounds: boolean;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  alarms: Map<string, any>;
+  alarms: Map<string, SKNotification>;
   notes: FBNotes;
   regions: FBRegions;
   tracks: SKTrack[];

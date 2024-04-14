@@ -25,10 +25,8 @@ import { AppInfo } from 'src/app/app.info';
             <div>{{ item.value.name }}</div>
           </div>
           <div>
-            <div
-              *ngFor="let path of item.value.available"
-              style="margin: 5px 0 5px 0;"
-            >
+            @for(path of item.value.available; track path) {
+            <div style="margin: 5px 0 5px 0;">
               <mat-radio-button
                 #pathopt
                 color="primary"
@@ -40,6 +38,7 @@ import { AppInfo } from 'src/app/app.info';
                 {{ path.split('.').slice(-1) }}
               </mat-radio-button>
             </div>
+            }
           </div>
         </div>
       </div>

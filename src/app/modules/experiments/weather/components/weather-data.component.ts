@@ -29,15 +29,16 @@ export interface WeatherData {
         <mat-step *ngFor="let item of data; let i = index">
           <div style="display:flex;">
             <div style="min-width:50px;text-align:left;padding-top: 15%;">
+              @if(i !== 0 && data.length > 1) {
               <button
                 mat-icon-button
-                *ngIf="i != 0 && data.length > 1"
                 (click)="currentPage = currentPage - 1"
                 color="primary"
                 matStepperPrevious
               >
                 <mat-icon>keyboard_arrow_left</mat-icon>
               </button>
+              }
             </div>
             <div style="flex: 1 1 auto;">
               <mat-card>
@@ -55,82 +56,97 @@ export interface WeatherData {
                     <div class="key-label">Outlook:</div>
                     <div style="flex: 1 1 auto;">{{ item.description }}</div>
                   </div>
-                  <div style="display:flex;" *ngIf="item.temperature">
+
+                  @if(item.temperature) {
+                  <div style="display:flex;">
                     <div class="key-label">
                       <mat-icon>device_thermostat</mat-icon>
                       Temp:
                     </div>
                     <div style="flex: 1 1 auto;">{{ item.temperature }}</div>
                   </div>
-                  <div style="display:flex;" *ngIf="item.temperatureMin">
+                  } @if(item.temperatureMin) {
+                  <div style="display:flex;">
                     <div class="key-label">Min:</div>
                     <div style="flex: 1 1 auto;">{{ item.temperatureMax }}</div>
                   </div>
-                  <div style="display:flex;" *ngIf="item.temperatureMax">
+                  } @if(item.temperatureMax) {
+                  <div style="display:flex;">
                     <div class="key-label">Max:</div>
                     <div style="flex: 1 1 auto;">{{ item.temperatureMax }}</div>
                   </div>
-                  <div style="display:flex;" *ngIf="item.dewPoint">
+                  } @if(item.dewPoint) {
+                  <div style="display:flex;">
                     <div class="key-label">
                       <mat-icon>opacity</mat-icon>
                       Dew Point:
                     </div>
                     <div style="flex: 1 1 auto;">{{ item.dewPoint }}</div>
                   </div>
-                  <div style="display:flex;" *ngIf="item.wind.speed">
+                  } @if(item.wind.speed) {
+                  <div style="display:flex;">
                     <div class="key-label">
                       <mat-icon>air</mat-icon>
                       Wind Speed:
                     </div>
                     <div style="flex: 1 1 auto;">{{ item.wind.speed }}</div>
                   </div>
-                  <div style="display:flex;" *ngIf="item.wind.gust">
+                  } @if(item.wind.gust) {
+                  <div style="display:flex;">
                     <div class="key-label">
                       <mat-icon>air</mat-icon>
                       Wind Gust:
                     </div>
                     <div style="flex: 1 1 auto;">{{ item.wind.gust }}</div>
                   </div>
-                  <div style="display:flex;" *ngIf="item.wind.direction">
+                  } @if(item.wind.direction) {
+                  <div style="display:flex;">
                     <div class="key-label">
                       <mat-icon>outbound</mat-icon>
                       Wind Direction:
                     </div>
                     <div style="flex: 1 1 auto;">{{ item.wind.direction }}</div>
                   </div>
-                  <div style="display:flex;" *ngIf="item.humidity">
+                  } @if(item.humidity) {
+                  <div style="display:flex;">
                     <div class="key-label">Humidity:</div>
                     <div style="flex: 1 1 auto;">{{ item.humidity }}</div>
                   </div>
-                  <div style="display:flex;" *ngIf="item.pressure">
+                  } @if(item.pressure) {
+                  <div style="display:flex;">
                     <div class="key-label">Pressure:</div>
                     <div style="flex: 1 1 auto;">{{ item.pressure }}</div>
                   </div>
-                  <div style="display:flex;" *ngIf="item.uvIndex">
+                  } @if(item.uvIndex) {
+                  <div style="display:flex;">
                     <div class="key-label">UV Index:</div>
                     <div style="flex: 1 1 auto;">{{ item.uvIndex }}</div>
                   </div>
-                  <div style="display:flex;" *ngIf="item.clouds">
+                  } @if(item.clouds) {
+                  <div style="display:flex;">
                     <div class="key-label">Cloud Cover:</div>
                     <div style="flex: 1 1 auto;">{{ item.clouds }}</div>
                   </div>
-                  <div style="display:flex;" *ngIf="item.visibility">
+                  } @if(item.visibility) {
+                  <div style="display:flex;">
                     <div class="key-label">Visibility:</div>
                     <div style="flex: 1 1 auto;">{{ item.visibility }}</div>
                   </div>
+                  }
                 </div>
               </mat-card>
             </div>
             <div style="min-width:50px;text-align:right;padding-top: 15%;">
+              @if(i !== data.length - 1) {
               <button
                 mat-icon-button
-                *ngIf="i != data.length - 1"
                 (click)="currentPage = currentPage + 1"
                 color="primary"
                 matStepperNext
               >
                 <mat-icon>keyboard_arrow_right</mat-icon>
               </button>
+              }
             </div>
           </div>
         </mat-step>
@@ -138,7 +154,7 @@ export interface WeatherData {
       <div style="text-align:center;font-size:10pt;font-family:roboto;">
         <mat-icon
           *ngFor="let c of data; let i = index"
-          [style.color]="currentPage - 1 == i ? 'blue' : 'gray'"
+          [style.color]="currentPage - 1 === i ? 'blue' : 'gray'"
           style="font-size:8pt;width:12px;"
         >
           fiber_manual_record

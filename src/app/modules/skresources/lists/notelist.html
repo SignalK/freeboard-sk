@@ -27,14 +27,11 @@
               [value]="filterText"
               (keyup)="filterKeyUp(ftext.value)"
             />
-            <button
-              *ngIf="filterText"
-              matSuffix
-              mat-icon-button
-              (click)="filterKeyUp('')"
-            >
+            @if(filterText) {
+            <button matSuffix mat-icon-button (click)="filterKeyUp('')">
               <mat-icon>close</mat-icon>
             </button>
+            }
           </mat-form-field>
         </div>
         <div>
@@ -97,28 +94,30 @@
         <mat-card-actions>
           <div style="display: flex">
             <div style="text-align: left">
+              @if(r[1].properties && r[1].properties.draft) {
               <button
                 mat-icon-button
                 color="accent"
-                *ngIf="r[1].properties && r[1].properties.draft"
                 [disabled]="true"
                 matTooltip="Draft"
                 matTooltipPosition="right"
               >
                 <mat-icon>border_color</mat-icon>
               </button>
+              }
             </div>
             <div style="flex: 1 1 auto; text-align: right">
+              @if(r[1].group && app.config.resources.notes.groupNameEdit) {
               <button
                 mat-icon-button
                 color="primary"
-                *ngIf="r[1].group && app.config.resources.notes.groupNameEdit"
                 (click)="viewNote(r[1].group, true)"
                 matTooltip="View Group"
                 matTooltipPosition="left"
               >
                 <mat-icon>style</mat-icon>
               </button>
+              }
               <button
                 mat-icon-button
                 color="primary"

@@ -22,7 +22,8 @@ import { MatTooltipModule } from '@angular/material/tooltip';
   changeDetection: ChangeDetectionStrategy.OnPush,
   styles: [],
   template: `
-    <div *ngIf="isSupported">
+    @if(isSupported) {
+    <div>
       <button
         mat-mini-fab
         [color]="state ? 'primary' : 'accent'"
@@ -33,6 +34,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
         <mat-icon>{{ state ? 'visibility' : 'visibility_off' }}</mat-icon>
       </button>
     </div>
+    }
   `
 })
 export class WakeLockComponent {

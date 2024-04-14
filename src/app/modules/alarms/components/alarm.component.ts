@@ -22,17 +22,12 @@ interface AlarmData {
 @Component({
   selector: 'ap-alarm',
   template: `
-    <span
-      class="alarmAck"
-      *ngIf="alarm.value.acknowledged"
-      (click)="minClick(alarm.key)"
-    >
+    @if(alarm.value.acknowledged) {
+    <span class="alarmAck" (click)="minClick(alarm.key)">
       <img [src]="iconUrl" [matTooltip]="alarm.title" />
     </span>
-    <mat-card
-      style="padding:5px;"
-      *ngIf="alarm.value.visual && !alarm.value.acknowledged"
-    >
+    } @if(alarm.value.visual && !alarm.value.acknowledged) {
+    <mat-card style="padding:5px;">
       <mat-card-title-group>
         <img width="30px" [src]="iconUrl" />
         <mat-card-title>{{ alarm.value.message }}</mat-card-title>
@@ -46,23 +41,36 @@ interface AlarmData {
             </button>
           </div>
           <div style="text-align: left;">
+            @if(alarm.value.sound) {
             <button
               mat-button
-              *ngIf="alarm.value.sound"
               (click)="muteAlarm(alarm.key)"
               [disabled]="alarm.value.muted"
             >
               <mat-icon color="warn">volume_off</mat-icon>
               {{ alarm.value.muted ? 'MUTED' : 'MUTE' }}
             </button>
-            <div
-              [ngSwitch]="app.config.selections.course.autoNextPointOnArrival"
-              *ngIf="
-                app.data.activeRoute && alarm.key === 'arrivalCircleEntered'
-              "
-            >
+            } @if(app.data.activeRoute && alarm.key === 'arrivalCircleEntered')
+            {
+
+            <div>
+              @if(app.config.selections.course.autoNextPointOnArrival) {
+              <div>
+                @if(app.data.navData.pointIndex !== app.data.navData.pointTotal
+                - 1) {
+                <timer-button
+                  [disabled]="nextPointClicked"
+                  [icon]="'skip_next'"
+                  [label]="'Next point in'"
+                  [cancelledLabel]="'Next Point'"
+                  [period]="app.config.selections.course.autoNextPointDelay"
+                  (nextPoint)="gotoNextPoint()"
+                >
+                </timer-button>
+                }
+              </div>
+              } @else {
               <button
-                *ngSwitchCase="false"
                 mat-button
                 [disabled]="
                   nextPointClicked ||
@@ -74,26 +82,14 @@ interface AlarmData {
                 <mat-icon style="color:green;">skip_next</mat-icon>
                 NEXT POINT
               </button>
-              <div *ngSwitchCase="true">
-                <timer-button
-                  *ngIf="
-                    app.data.navData.pointIndex !==
-                    app.data.navData.pointTotal - 1
-                  "
-                  [disabled]="nextPointClicked"
-                  [icon]="'skip_next'"
-                  [label]="'Next point in'"
-                  [cancelledLabel]="'Next Point'"
-                  [period]="app.config.selections.course.autoNextPointDelay"
-                  (nextPoint)="gotoNextPoint()"
-                >
-                </timer-button>
-              </div>
+              }
             </div>
+            }
           </div>
         </div>
       </mat-card-actions>
     </mat-card>
+    }
   `,
   styles: [
     `

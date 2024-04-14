@@ -38,13 +38,9 @@ import { WeatherData } from './components/weather-data.component';
           </button>
         </span>
       </mat-toolbar>
-      <div
-        style="text-align:center"
-        *ngIf="!forecasts || forecasts.length === 0"
-      >
-        No weather data found!
-      </div>
-
+      @if(!forecasts || forecasts.length === 0) {
+      <div style="text-align:center">No weather data found!</div>
+      }
       <weather-data [data]="forecasts"></weather-data>
     </div>
   `,

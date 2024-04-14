@@ -29,7 +29,7 @@ total: number - total number of points
             color="primary"
             matTooltip="Previous point"
             matTootipPosition="top"
-            [disabled]="!circular && index == 0"
+            [disabled]="!circular && index === 0"
             (click)="changeIndex(-1)"
           >
             <mat-icon>skip_previous</mat-icon><br />

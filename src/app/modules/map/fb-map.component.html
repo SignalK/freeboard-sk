@@ -18,8 +18,8 @@
   [enableAnimation]="false"
 >
   <!-- Draw / modify -->
+  @if(measure.enabled) {
   <ol-draw
-    *ngIf="measure.enabled"
     [type]="'LineString'"
     (drawStart)="onMeasureStart($event)"
     (drawEnd)="onMeasureEnd()"
@@ -27,21 +27,16 @@
     [stopClick]="false"
   >
   </ol-draw>
-
-  <ol-draw
-    *ngIf="draw.enabled"
-    [type]="draw.type"
-    (drawEnd)="onDrawEnd($event)"
-  >
-  </ol-draw>
-
+  } @if(draw.enabled) {
+  <ol-draw [type]="draw.type" (drawEnd)="onDrawEnd($event)"> </ol-draw>
+  } @if(draw.modify && draw.features) {
   <ol-modify
-    *ngIf="draw.modify && draw.features"
     [features]="draw.features"
     (modifyStart)="onModifyStart($event)"
     (modifyEnd)="onModifyEnd($event)"
   >
   </ol-modify>
+  }
 
   <!-- Zoom control -->
   <ol-control>
@@ -78,19 +73,19 @@
             padding: 0 5px 0 5px;
           "
         >
-          <span *ngIf="app.config.selections.positionFormat == 'XY'"
-            >Lat:&nbsp;</span
-          >
+          @if(app.config.selections.positionFormat === 'XY') {
+          <span>Lat:&nbsp;</span>
+          }
           <span
             [innerText]="
               mouse.coords[1]
                 | coords : app.config.selections.positionFormat : true
             "
           ></span>
-          &nbsp;
-          <span *ngIf="app.config.selections.positionFormat == 'XY'"
-            >Lon:&nbsp;</span
-          >
+          &nbsp; @if(app.config.selections.positionFormat === 'XY') {
+          <span>Lon:&nbsp;</span>
+          }
+
           <span
             [innerText]="
               mouse.coords[0] | coords : app.config.selections.positionFormat
@@ -107,8 +102,8 @@
   <fb-charts [zIndex]="10" [charts]="dfeat.charts"> </fb-charts>
 
   <!-- Tracks -->
+  @if(app.config.resources.paths.includes('tracks')) {
   <fb-tracks
-    *ngIf="app.config.resources.paths.includes('tracks')"
     [darkMode]="app.config.map.invertColor"
     [tracks]="dfeat.tracks"
     [labelMinZoom]="0"
@@ -116,10 +111,11 @@
     [zIndex]="50"
   >
   </fb-tracks>
+  }
 
   <!-- AIS target tracks -->
+  @if(app.config.aisTargets) {
   <sk-target-tracks
-    *ngIf="app.config.aisTargets"
     [tracks]="app.data.vessels.aisTracks"
     [updateIds]="aisMgr.updateList"
     [removeIds]="aisMgr.removeList"
@@ -129,11 +125,12 @@
     zIndex="51"
   >
   </sk-target-tracks>
+  }
 
   <!-- Resource Sets -->
   <div *ngFor="let resSet of app.data.resourceSets | keyvalue; let idx = index">
+    @if(resSet.key !== 'tracks') {
     <fb-resource-sets
-      *ngIf="resSet.key != 'tracks'"
       [darkMode]="app.config.map.invertColor"
       [resourceSets]="resSet.value"
       [selected]="app.config.selections.resourceSets[resSet.key]"
@@ -142,6 +139,7 @@
       [zIndex]="52 + idx"
     >
     </fb-resource-sets>
+    }
   </div>
 
   <!-- Routes -->
@@ -157,14 +155,15 @@
   </fb-routes>
 
   <!-- Routes -->
+  @if(activeRoute && !app.data.activeRouteIsEditing) {
   <fb-route-direction
-    *ngIf="activeRoute && !app.data.activeRouteIsEditing"
     [points]="app.data.navData.activeRoutePoints"
     [pointIndex]="app.data.navData.pointIndex"
     [reverse]="app.data.activeRouteReversed"
     [zIndex]="81"
   >
   </fb-route-direction>
+  }
 
   <!-- Waypoints -->
   <fb-waypoints
@@ -208,8 +207,8 @@
   </sk-targets>
 
   <!-- Meteo targets -->
+  @if(app.config.aisTargets) {
   <sk-targets
-    *ngIf="app.config.aisTargets"
     [darkMode]="app.config.map.invertColor"
     [targets]="dfeat.meteo"
     [targetStyles]="featureStyles.meteo"
@@ -223,14 +222,13 @@
     [zIndex]="122"
   >
   </sk-targets>
+  }
 
   <!-- AIS Vessel targets -->
-  <div
-    *ngIf="app.config.aisTargets"
-    [ngSwitch]="app.config.selections.aisProfile"
-  >
+  @if(app.config.aisTargets) {
+  <div>
+    @if(app.config.selections.aisProfile === 0) {
     <sk-ais-vessels
-      *ngSwitchCase="0"
       [darkMode]="app.config.map.invertColor"
       [targets]="dfeat.ais"
       [targetStyles]="featureStyles.aisVessel"
@@ -248,11 +246,13 @@
       [zIndex]="120"
     >
     </sk-ais-vessels>
+    }
   </div>
+  }
 
   <!-- Aircraft targets -->
+  @if(app.config.aisTargets) {
   <sk-targets
-    *ngIf="app.config.aisTargets"
     [darkMode]="app.config.map.invertColor"
     [targets]="dfeat.aircraft"
     [targetStyles]="featureStyles.aircraft"
@@ -266,10 +266,11 @@
     [zIndex]="121"
   >
   </sk-targets>
+  }
 
   <!-- SAR targets -->
+  @if(app.config.aisTargets) {
   <sk-targets
-    *ngIf="app.config.aisTargets"
     [darkMode]="app.config.map.invertColor"
     [targets]="dfeat.sar"
     [targetStyles]="featureStyles.sar"
@@ -283,44 +284,39 @@
     [zIndex]="122"
   >
   </sk-targets>
+  }
 
   <!-- Signal K targets -->
 
   <!-- Regions -->
-  <fb-regions
-    *ngIf="display.layer.notes"
-    [regions]="dfeat.regions"
-    [regionStyles]=""
-    [zIndex]="120"
-  >
+  @if(display.layer.notes) {
+  <fb-regions [regions]="dfeat.regions" [regionStyles]="" [zIndex]="120">
   </fb-regions>
+  }
 
   <!-- Notes -->
+  @if(display.layer.notes) {
   <fb-notes
-    *ngIf="display.layer.notes"
     [notes]="dfeat.notes"
     [noteStyles]="featureStyles.note"
     [zIndex]="121"
   >
   </fb-notes>
+  }
 
   <!-- Popovers -->
-  <ol-overlay
-    *ngIf="overlay.show && !draw.modify"
-    [position]="overlay.position"
-    [positioning]="'top-center'"
-  >
+  @if(overlay.show && !draw.modify) {
+  <ol-overlay [position]="overlay.position" [positioning]="'top-center'">
+    @if(measure.enabled) {
     <ap-popover
-      *ngIf="measure.enabled"
       [title]="overlay.title"
       [canClose]="false"
       [measure]="true"
       (closed)="popoverClosed()"
     >
     </ap-popover>
-
+    } @if(this.overlay.type === 'list') {
     <feature-list-popover
-      *ngIf="this.overlay.type === 'list'"
       [canClose]="app.config.popoverMulti"
       [title]="overlay.title"
       [features]="this.overlay.content"
@@ -328,15 +324,10 @@
       (closed)="popoverClosed()"
     >
     </feature-list-popover>
-
+    } @if(overlay.type === 'destination' || overlay.type === 'waypoint' ||
+    overlay.type === 'route' || overlay.type === 'note' || overlay.type ===
+    'region') {
     <resource-popover
-      *ngIf="
-        overlay.type === 'destination' ||
-        overlay.type === 'waypoint' ||
-        overlay.type === 'route' ||
-        overlay.type === 'note' ||
-        overlay.type === 'region'
-      "
       [canClose]="app.config.popoverMulti"
       [title]="overlay.title"
       [type]="overlay.type"
@@ -366,17 +357,14 @@
       (closed)="popoverClosed()"
     >
     </resource-popover>
-
-    <div
-      *ngIf="overlay.type === 'ais'"
-      [ngSwitch]="app.config.selections.aisProfile"
-    >
+    } @if(overlay.type === 'ais') {
+    <div>
+      @if(app.config.selections.aisProfile === 0) {
       <vessel-popover
-        *ngSwitchCase="0"
         [canClose]="app.config.popoverMulti"
         [vessel]="overlay.vessel"
         [useMagnetic]="app.useMagnetic"
-        [isActive]="app.data.vessels.activeId == overlay.id"
+        [isActive]="app.data.vessels.activeId === overlay.id"
         [isSelf]="overlay.isSelf"
         (info)="
           itemInfo(overlay.id, overlay.type, overlay.isSelf); popoverClosed()
@@ -386,28 +374,26 @@
         (closed)="popoverClosed()"
       >
       </vessel-popover>
+      }
     </div>
-
+    } @if(overlay.type === 'aton' || overlay.type === 'meteo') {
     <aton-popover
-      *ngIf="overlay.type === 'aton' || overlay.type === 'meteo'"
       [canClose]="app.config.popoverMulti"
       [aton]="overlay.aton"
       (info)="itemInfo(overlay.id, overlay.type); popoverClosed()"
       (closed)="popoverClosed()"
     >
     </aton-popover>
-
+    } @if(overlay.type === 'aircraft') {
     <aircraft-popover
-      *ngIf="overlay.type === 'aircraft'"
       [canClose]="app.config.popoverMulti"
       [aircraft]="overlay.aircraft"
       (info)="itemInfo(overlay.id, overlay.type); popoverClosed()"
       (closed)="popoverClosed()"
     >
     </aircraft-popover>
-
+    } @if(overlay.type === 'alarm') {
     <alarm-popover
-      *ngIf="overlay.type === 'alarm'"
       [canClose]="app.config.popoverMulti"
       [alarm]="overlay.alarm"
       [id]="overlay.id"
@@ -415,11 +401,13 @@
       (closed)="popoverClosed()"
     >
     </alarm-popover>
+    }
   </ol-overlay>
+  }
 
   <!-- Alarms -->
+  @if(!app.data.anchor.raised) {
   <fb-anchor-alarm
-    *ngIf="!app.data.anchor.raised"
     [radius]="app.data.anchor.radius"
     [anchorPosition]="app.data.anchor.position"
     [lineCoords]="vesselLines.anchor"
@@ -427,18 +415,18 @@
     [zIndex]="49"
   >
   </fb-anchor-alarm>
-
+  } @if(dfeat.closest.id) {
   <fb-cpa-alarm
-    *ngIf="dfeat.closest.id"
     [targetPosition]="dfeat.closest.position"
     [lineCoords]="vesselLines.cpa"
     [zIndex]="50"
   >
   </fb-cpa-alarm>
+  }
 
   <!-- MOB alarm -->
+  @if(app.data.alarms.has('mob')) {
   <fb-alarm
-    *ngIf="app.data.alarms.has('mob')"
     [position]="
       app.data.alarms.get('mob').data?.position
         ? [
@@ -452,14 +440,12 @@
     [zIndex]="51"
   >
   </fb-alarm>
+  }
 
   <!-- Vessel / destination -->
+  @if(dfeat.navData.startPosition && dfeat.navData.position &&
+  app.data.anchor.raised) {
   <fb-xte-path
-    *ngIf="
-      dfeat.navData.startPosition &&
-      dfeat.navData.position &&
-      app.data.anchor.raised
-    "
     [color]=""
     [lineCoords]="vesselLines.xtePath"
     [zIndex]="212"
@@ -467,9 +453,8 @@
     [layerProperties]=""
   >
   </fb-xte-path>
-
+  } @if(dfeat.navData.position && app.data.anchor.raised) {
   <fb-bearing-line
-    *ngIf="dfeat.navData.position && app.data.anchor.raised"
     [marker]="dfeat.navData.position"
     [lineCoords]="vesselLines.bearing"
     [showMarker]="!app.data.activeWaypoint"
@@ -480,14 +465,14 @@
     [zIndex]="212"
   >
   </fb-bearing-line>
-
+  } @if(app.data.navData.arrivalCircle && dfeat.navData.position) {
   <fb-arrival-circle
-    *ngIf="app.data.navData.arrivalCircle && dfeat.navData.position"
     [radius]="app.data.navData.arrivalCircle"
     [position]="dfeat.navData.position"
     [zIndex]="212"
   >
   </fb-arrival-circle>
+  }
 
   <!-- Vessel (self) -->
   <fb-vessel
@@ -503,22 +488,20 @@
   >
   </fb-vessel>
 
+  @if(app.config.vessel.trail && app.data.vessels.showSelf) {
   <fb-vessel-trail
-    *ngIf="app.config.vessel.trail && app.data.vessels.showSelf"
     [localTrail]="vesselLines.trail"
     [serverTrail]="dfeat.trail"
     [trailStyles]=""
     [zIndex]="200"
   >
   </fb-vessel-trail>
+  }
 
   <!-- chart boundaries-->
-  <fb-chart-bounds
-    *ngIf="app.data.chartBounds"
-    [zIndex]="250"
-    [charts]="dfeat.charts"
-  >
-  </fb-chart-bounds>
+  @if(app.data.chartBounds) {
+  <fb-chart-bounds [zIndex]="250" [charts]="dfeat.charts"> </fb-chart-bounds>
+  }
 </ol-map>
 
 <!-- context menu -->
@@ -547,15 +530,18 @@
       <mat-icon color="primary">add_location</mat-icon>
       Add Waypoint here
     </button>
+
+    @if(fbMap.zoomLevel >= app.config.selections.notesMinZoom) {
     <button
       mat-menu-item
-      *ngIf="fbMap.zoomLevel >= app.config.selections.notesMinZoom"
       (click)="onContextMenuAction('add_note', item)"
       (contextmenu)="$event.preventDefault()"
     >
       <mat-icon style="color: orange">local_offer</mat-icon>
       Add Note here
     </button>
+    }
+
     <mat-divider></mat-divider>
     <button
       mat-menu-item
@@ -566,14 +552,14 @@
       Measure
     </button>
     <mat-divider></mat-divider>
-    <button
-      mat-menu-item
-      *ngIf="app.config.vessel.trail && app.data.trail.length != 0"
-      (click)="onContextMenuAction('cleartrail', item)"
-    >
+
+    @if(app.config.vessel.trail && app.data.trail.length !== 0) {
+    <button mat-menu-item (click)="onContextMenuAction('cleartrail', item)">
       <mat-icon>clear_all</mat-icon>
       <span>{{ app.data.serverTrail ? 'Refresh' : 'Clear' }} Trail</span>
     </button>
+    }
+
     <button
       mat-menu-item
       (click)="onContextMenuAction('trail2route', item)"

@@ -18,15 +18,18 @@ import { MatTooltipModule } from '@angular/material/tooltip';
         <div>{{ title }}</div>
       </div>
       <div class="content">
-        <div class="item" *ngFor="let item of items">
-          <span class="sectionname" *ngIf="item[0] == 0 && item[2] == null">{{
-            item[1]
-          }}</span>
-          <div class="pathvalue" *ngIf="item[2] != null">
+        @for(item of items; track item) {
+        <div class="item">
+          @if(item[0] === 0 && item[2] === null) {
+          <span class="sectionname">{{ item[1] }}</span>
+          } @if(item[2] !== null) {
+          <div class="pathvalue">
             <div class="path" [matTooltip]="item[1]">{{ item[1] }}</div>
             <div class="value" [matTooltip]="item[2]">{{ item[2] }}</div>
           </div>
+          }
         </div>
+        }
       </div>
     </div>
   `

@@ -27,16 +27,20 @@ measure: boolean= measure mode;
     >
       <div class="popover-title">
         <div style="flex: 1 1 auto;overflow-x: auto;">{{ title }}</div>
+        @if(canClose) {
         <div style="">
-          <button mat-icon-button *ngIf="canClose" (click)="handleClose()">
+          <button mat-icon-button (click)="handleClose()">
             <mat-icon>close</mat-icon>
           </button>
         </div>
+        }
       </div>
       <div class="popover-content">
         <ng-content></ng-content>
       </div>
-      <div class="arrow" style="left:50%;" *ngIf="!measure"></div>
+      @if(!measure) {
+      <div class="arrow" style="left:50%;"></div>
+      }
     </div>
   `,
   styleUrls: ['./popover.component.scss']
@@ -63,14 +67,16 @@ features: Array<any> - list of features
   template: `
     <ap-popover [title]="title" [canClose]="canClose" (closed)="handleClose()">
       <mat-nav-list>
-        <mat-list-item *ngFor="let f of features" (click)="handleSelect(f)">
+        @for(f of features; track f) {
+        <mat-list-item (click)="handleSelect(f)">
           <mat-icon
-            [color]="f.text && f.text.indexOf('self') != -1 ? 'warn' : ''"
+            [color]="f.text && f.text.indexOf('self') !== -1 ? 'warn' : ''"
           >
             {{ f.icon }}
           </mat-icon>
           {{ f.text }}
         </mat-list-item>
+        }
       </mat-nav-list>
     </ap-popover>
   `,

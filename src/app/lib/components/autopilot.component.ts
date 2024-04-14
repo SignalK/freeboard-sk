@@ -69,10 +69,8 @@ import { SKStreamFacade } from 'src/app/modules';
           </div>
         </div>
         <div class="content">
-          <div
-            *ngIf="autopilotOptions.states.length > 2"
-            style="display:flex;flex-wrap:nowrap;"
-          >
+          @if(autopilotOptions.states.length > 2) {
+          <div style="display:flex;flex-wrap:nowrap;">
             <mat-form-field floatLabel="always">
               <mat-label>State</mat-label>
               <mat-select
@@ -81,22 +79,20 @@ import { SKStreamFacade } from 'src/app/modules';
                 [(value)]="app.data.vessels.self.autopilot.state"
                 (selectionChange)="onFormChange($event)"
               >
+                @for(i of autopilotOptions.states; track i) {
                 <mat-option
-                  *ngFor="let i of autopilotOptions.states"
                   [value]="i"
                   [matTooltip]="i"
                   matTooltipPosition="right"
                 >
                   {{ i }}
                 </mat-option>
+                }
               </mat-select>
             </mat-form-field>
           </div>
-
-          <div
-            *ngIf="autopilotOptions.modes.length !== 0"
-            style="display:flex;flex-wrap:nowrap;"
-          >
+          } @if(autopilotOptions.modes.length !== 0) {
+          <div style="display:flex;flex-wrap:nowrap;">
             <mat-form-field floatLabel="always">
               <mat-label>Mode</mat-label>
               <mat-select
@@ -105,18 +101,19 @@ import { SKStreamFacade } from 'src/app/modules';
                 [(value)]="app.data.vessels.self.autopilot.mode"
                 (selectionChange)="onFormChange($event)"
               >
+                @for(i of autopilotOptions.modes; track i) {
                 <mat-option
-                  *ngFor="let i of autopilotOptions.modes"
                   [value]="i"
                   [matTooltip]="i"
                   matTooltipPosition="right"
                 >
                   {{ i }}
                 </mat-option>
+                }
               </mat-select>
             </mat-form-field>
           </div>
-
+          }
           <div style="display:flex;flex-wrap:nowrap;">
             <div>
               <button mat-mini-fab (click)="targetAdjust(-10)">-10</button

@@ -27,14 +27,11 @@
               [value]="filterText"
               (keyup)="filterKeyUp(ftext.value)"
             />
-            <button
-              *ngIf="filterText"
-              matSuffix
-              mat-icon-button
-              (click)="filterKeyUp('')"
-            >
+            @if(filterText) {
+            <button matSuffix mat-icon-button (click)="filterKeyUp('')">
               <mat-icon>close</mat-icon>
             </button>
+            }
           </mat-form-field>
         </div>
         <div>
@@ -99,18 +96,18 @@
         <mat-card-actions>
           <div style="display: flex">
             <div style="flex: 1 1 auto">
+              @if(r[0] !== focusId) {
               <button
                 mat-button
-                *ngIf="r[0]!=focusId"
                 (click)="focus(r[0])"
                 matTooltip="Focus vessel"
               >
                 <mat-icon color="primary">center_focus_weak</mat-icon>
                 FOCUS
               </button>
+              } @else {
               <button
                 mat-button
-                *ngIf="r[0]==focusId"
                 (click)="focus();"
                 color="primary"
                 matTooltip="Clear vessel focus"
@@ -118,6 +115,7 @@
                 <mat-icon color="primary">clear_all</mat-icon>
                 UNFOCUS
               </button>
+              }
             </div>
             <button
               mat-button

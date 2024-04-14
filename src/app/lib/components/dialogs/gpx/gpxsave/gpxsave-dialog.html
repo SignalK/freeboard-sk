@@ -37,7 +37,8 @@
     </div>
 
     <!-- Waypoints -->
-    <div class="card-group" *ngIf="resData.waypoints.length!=0">
+    @if(resData.waypoints.length !== 0) {
+    <div class="card-group">
       <mat-expansion-panel
         [expanded]="display.expand.waypoints"
         (opened)="display.expand.waypoints=true"
@@ -99,9 +100,11 @@
         </div>
       </mat-expansion-panel>
     </div>
+    }
 
     <!-- Routes -->
-    <div class="card-group" *ngIf="resData.routes.length!=0">
+    @if(resData.routes.length !== 0) {
+    <div class="card-group">
       <mat-expansion-panel
         [expanded]="display.expand.routes"
         (opened)="display.expand.routes=true"
@@ -163,12 +166,11 @@
         </div>
       </mat-expansion-panel>
     </div>
+    }
 
     <!-- Tracks -->
-    <div
-      class="card-group"
-      *ngIf="!app.data.serverTrail && resData.tracks.length!=0"
-    >
+    @if(!app.data.serverTrail && resData.tracks.length !== 0) {
+    <div class="card-group">
       <mat-expansion-panel [expanded]="false">
         <mat-expansion-panel-header style="padding: 0 12px">
           <mat-panel-title>
@@ -223,5 +225,6 @@
         </div>
       </mat-expansion-panel>
     </div>
+    }
   </div>
 </div>

@@ -20,9 +20,11 @@ import { MAT_SNACK_BAR_DATA } from '@angular/material/snack-bar';
         <h1 mat-dialog-title>{{ data.title }}</h1>
       </div>
       <mat-dialog-content>
-        <div *ngFor="let line of msglines">
+        @for(line of msglines; track line) {
+        <div>
           <div>{{ line }}&nbsp;</div>
         </div>
+        }
       </mat-dialog-content>
       <mat-dialog-actions align="center">
         <button
@@ -77,13 +79,18 @@ export class MsgBox implements OnInit {
       <mat-dialog-content>
         <div style="display:flex;">
           <div class="ap-alert-icon">
-            <img *ngIf="image" [src]="image" style="width:90%" />
-            <mat-icon *ngIf="!image">warning</mat-icon>
+            @if(image) {
+            <img [src]="image" style="width:90%" />
+            } @else {
+            <mat-icon>warning</mat-icon>
+            }
           </div>
           <div style="padding-left: 10px;">
-            <div *ngFor="let line of msglines">
+            @for(line of msglines; track line) {
+            <div>
               <div>{{ line }}&nbsp;</div>
             </div>
+            }
           </div>
         </div>
       </mat-dialog-content>
@@ -163,20 +170,24 @@ export class AlertDialog implements OnInit {
             <mat-icon>help</mat-icon>
           </div>
           <div style="padding-left: 10px;">
-            <div *ngFor="let line of msglines">
+            @for(line of msglines; track line) {
+            <div>
               <div>{{ line }}&nbsp;</div>
             </div>
+            }
           </div>
         </div>
         <div style="display:flex;">
           <div class="ap-confirm-icon"></div>
-          <div style="padding-left: 10px;" *ngIf="data.checkText">
+          @if(data.checkText) {
+          <div style="padding-left: 10px;">
             <div style="font-weight: 500;">
               <mat-checkbox (change)="checked = $event.checked">
                 {{ data.checkText }}&nbsp;
               </mat-checkbox>
             </div>
           </div>
+          }
         </div>
       </mat-dialog-content>
       <mat-dialog-actions align="center">
@@ -261,11 +272,13 @@ export class ConfirmDialog implements OnInit {
             <br /><br />
           </div>
         </div>
-        <div class="about-row" *ngIf="data.url">
+        @if(data.url) {
+        <div class="about-row">
           <div class="item stretch">
             <a [href]="data.url" target="_web" rel="noopener">Visit Website</a>
           </div>
         </div>
+        }
       </mat-dialog-content>
       <mat-dialog-actions align="center">
         <button
@@ -435,11 +448,9 @@ export class LoginDialog implements OnInit {
       <mat-icon>message</mat-icon>&nbsp;&nbsp;
       {{ data.message }}
     </div>
-    <audio
-      src="./assets/sound/ding.mp3"
-      *ngIf="data.sound"
-      [autoplay]="true"
-    ></audio>
+    @if(data.sound) {
+    <audio src="./assets/sound/ding.mp3" [autoplay]="true"></audio>
+    }
   `,
   styles: [
     `
@@ -471,27 +482,29 @@ export class MessageBarComponent {
             </div>
             <div style="display:flex;">
               <div style="min-width:50px;text-align:left;padding-top: 15%;">
+                @if(i !== 0 && data.content.length > 1) {
                 <button
                   mat-icon-button
-                  *ngIf="i != 0 && data.content.length > 1"
                   (click)="currentPage = currentPage - 1"
                   color="primary"
                   matStepperPrevious
                 >
                   <mat-icon>keyboard_arrow_left</mat-icon>
                 </button>
+                }
               </div>
               <div style="flex: 1 1 auto;" [innerHTML]="c.message"></div>
               <div style="min-width:50px;text-align:right;padding-top: 15%;">
+                @if(i !== data.content.length - 1) {
                 <button
                   mat-icon-button
-                  *ngIf="i != data.content.length - 1"
                   (click)="currentPage = currentPage + 1"
                   color="primary"
                   matStepperNext
                 >
                   <mat-icon>keyboard_arrow_right</mat-icon>
                 </button>
+                }
               </div>
             </div>
           </mat-step>
@@ -499,7 +512,7 @@ export class MessageBarComponent {
         <div style="text-align:center;font-size:10pt;font-family:roboto;">
           <mat-icon
             *ngFor="let c of data.content; let i = index"
-            [style.color]="currentPage - 1 == i ? 'blue' : 'gray'"
+            [style.color]="currentPage - 1 === i ? 'blue' : 'gray'"
             style="font-size:8pt;width:12px;"
           >
             fiber_manual_record

@@ -12,7 +12,8 @@
     </span>
   </mat-toolbar>
 
-  <div mat-dialog-content *ngIf="display.notValid">
+  @if(display.notValid) {
+  <div mat-dialog-content>
     <div>
       <b>Invalid GPX Data:</b><br /><br />
       <i
@@ -22,10 +23,10 @@
       >
     </div>
   </div>
-
-  <div mat-dialog-content *ngIf="!display.notValid">
+  } @else {
+  <div mat-dialog-content>
     <!--valid GPX file-->
-    <div class="card-group" *ngIf="!display.notValid">
+    <div class="card-group">
       <div class="card-group-title">
         <div style="display: flex">
           <div></div>
@@ -47,9 +48,9 @@
         </div>
       </div>
     </div>
-
     <!-- Waypoints -->
-    <div class="card-group" *ngIf="gpxData.waypoints.length!=0">
+    @if(gpxData.waypoints.length!=0) {
+    <div class="card-group">
       <mat-expansion-panel
         [expanded]="display.expand.waypoints"
         (opened)="display.expand.waypoints=true"
@@ -111,9 +112,11 @@
         </div>
       </mat-expansion-panel>
     </div>
+    }
 
     <!-- Routes -->
-    <div class="card-group" *ngIf="gpxData.routes.length!=0">
+    @if(gpxData.routes.length!=0) {
+    <div class="card-group">
       <mat-expansion-panel
         [expanded]="display.expand.routes"
         (opened)="display.expand.routes=true"
@@ -175,12 +178,12 @@
         </div>
       </mat-expansion-panel>
     </div>
+    }
 
     <!-- Tracks -->
-    <div
-      class="card-group"
-      *ngIf="gpxData.tracks.length!=0 && app.config.resources.paths.includes('tracks')"
-    >
+    @if(gpxData.tracks.length!=0 &&
+    app.config.resources.paths.includes('tracks')) {
+    <div class="card-group">
       <mat-expansion-panel
         [expanded]="display.expand.tracks"
         (opened)="display.expand.tracks=true"
@@ -241,5 +244,7 @@
         </div>
       </mat-expansion-panel>
     </div>
+    }
   </div>
+  }
 </div>

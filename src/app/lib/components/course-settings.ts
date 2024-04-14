@@ -76,7 +76,7 @@ import { Subscription } from 'rxjs';
         <mat-form-field floatLabel="always">
           <mat-label
             >Arrival Circle radius ({{
-              app.config.units.distance == 'm'
+              app.config.units.distance === 'm'
                 ? app.config.units.distance
                 : 'NM'
             }}):
@@ -139,9 +139,9 @@ import { Subscription } from 'rxjs';
                 [disabled]="!targetArrivalEnabled"
                 (selectionChange)="onFormChange($event)"
               >
-                <mat-option *ngFor="let i of hrValues()" [value]="i">{{
-                  i
-                }}</mat-option>
+                @for(i of hrValues(); track i) {
+                <mat-option [value]="i">{{ i }}</mat-option>
+                }
               </mat-select>
             </mat-form-field>
 
@@ -153,9 +153,9 @@ import { Subscription } from 'rxjs';
                 [disabled]="!targetArrivalEnabled"
                 (selectionChange)="onFormChange($event)"
               >
-                <mat-option *ngFor="let i of minValues()" [value]="i">{{
-                  i
-                }}</mat-option>
+                @for(i of minValues(); track i) {
+                <mat-option [value]="i">{{ i }}</mat-option>
+                }
               </mat-select>
             </mat-form-field>
 
@@ -167,9 +167,9 @@ import { Subscription } from 'rxjs';
                 [disabled]="!targetArrivalEnabled"
                 (selectionChange)="onFormChange($event)"
               >
-                <mat-option *ngFor="let i of minValues()" [value]="i">{{
-                  i
-                }}</mat-option>
+                @for(i of minValues(); track i) {
+                <mat-option [value]="i">{{ i }}</mat-option>
+                }
               </mat-select>
             </mat-form-field>
           </div>
