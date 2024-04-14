@@ -1,5 +1,9 @@
 # CHANGELOG: Freeboard
 
+### v2.7.1
+
+- **Added**: Set a default waypoint name when adding a waypoint at vessel position. (#146)
+
 ### v2.7.0
 
 - **Added**: OpenWeather OneCall v3.0 support. _(v2.5 is deprecated April 2024)_
