@@ -412,3 +412,22 @@ export const meteoStyles = {
     })
   })
 };
+
+export const laylineStyles = {
+  port: new Style({
+    fill: new Fill({ color: 'green' }),
+    stroke: new Stroke({
+      color: 'green',
+      width: 1,
+      lineDash: [5, 5]
+    })
+  }),
+  starboard: new Style({
+    fill: new Fill({ color: 'red' }),
+    stroke: new Stroke({
+      color: 'red',
+      width: 1,
+      lineDash: [5, 5]
+    })
+  })
+};

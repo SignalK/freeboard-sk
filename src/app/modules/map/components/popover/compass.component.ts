@@ -33,7 +33,7 @@ class SvgDialBase {
     this._init();
   }
 
-  //** initaise: calculate scaling **
+  //** initialise: calculate scaling **
   private _init() {
     const a: number =
       this.minAngle > this.maxAngle

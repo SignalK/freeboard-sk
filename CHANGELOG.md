@@ -1,5 +1,13 @@
 # CHANGELOG: Freeboard
 
+### v2.8.0
+
+- **Added**: Option to display laylines when destination is active. (#149)
+- **Added**: Support for Signal K server "Features" API.
+- **Updated**: Measure function to display both segment and total distance. (#153)
+- **Updated**: Clearing an alarm no longer sets the value to `null`, sets alarm state to normal instead.
+
+
 ### v2.7.1
 
 - **Added**: Set a default waypoint name when adding a waypoint at vessel position. (#146)

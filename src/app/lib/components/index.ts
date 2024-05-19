@@ -6,3 +6,4 @@ export * from './pip.component';
 export * from './signalk-details.component';
 export * from './wakelock.component';
 export * from './build-route.component';
+export * from './measurements.component';

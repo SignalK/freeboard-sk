@@ -166,29 +166,29 @@ export class ChartListComponent {
             (cdkDropListDropped)="drop($event)"
           >
             @for(ch of chartList; track ch; let i = $index) {
-              <mat-card cdkDrag>
-                <mat-card-content>
-                  <div class="point-drop-placeholder" *cdkDragPlaceholder></div>
+            <mat-card cdkDrag>
+              <mat-card-content>
+                <div class="point-drop-placeholder" *cdkDragPlaceholder></div>
 
-                  <div
-                    style="display:flex;"
-                    [style.cursor]="i > 0 ? 'pointer' : 'initial'"
-                  >
-                    <div style="width:35px;">
-                      <mat-icon color="">{{ isLocal(ch[1].url) }}</mat-icon>
-                    </div>
-                    <div
-                      style="flex: 1 1 auto;text-overflow: ellipsis;
-                      white-space: pre;overflow-x: hidden;"
-                    >
-                      {{ ch[1].name }}
-                    </div>
-                    <div cdkDragHandle matTooltip="Drag to re-order charts">
-                      <mat-icon>drag_indicator</mat-icon>
-                    </div>
+                <div
+                  style="display:flex;"
+                  [style.cursor]="i > 0 ? 'pointer' : 'initial'"
+                >
+                  <div style="width:35px;">
+                    <mat-icon color="">{{ isLocal(ch[1].url) }}</mat-icon>
                   </div>
-                </mat-card-content>
-              </mat-card>
+                  <div
+                    style="flex: 1 1 auto;text-overflow: ellipsis;
+                      white-space: pre;overflow-x: hidden;"
+                  >
+                    {{ ch[1].name }}
+                  </div>
+                  <div cdkDragHandle matTooltip="Drag to re-order charts">
+                    <mat-icon>drag_indicator</mat-icon>
+                  </div>
+                </div>
+              </mat-card-content>
+            </mat-card>
             }
           </div>
         </div>

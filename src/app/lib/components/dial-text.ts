@@ -1,7 +1,7 @@
 /** Text Dial Component **
  ************************/
 
-import { Component, Input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, Input } from '@angular/core';
 
 /*********** Text Dial ***************
 title: "<string>" title text,
@@ -10,6 +10,7 @@ units: "<string>" dsisplay units,
 ***********************************/
 @Component({
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'ap-dial-text',
   imports: [],
   template: `
@@ -25,6 +26,4 @@ export class TextDialComponent {
   @Input() title: string;
   @Input() value: string;
   @Input() units: string;
-
-  //constructor() {}
 }

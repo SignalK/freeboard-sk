@@ -82,11 +82,9 @@ import { SKResourceSet } from './sets/resource-set';
                 <mat-label>Signal K Type</mat-label>
                 <mat-select #resourcetype [(value)]="data['skType']">
                   @for(i of resourceTypeList; track i) {
-                    <mat-option
-                      [value]="i.type"
-                    >
-                      <mat-icon><img [src]="i.icon" /></mat-icon> {{ i.name }}
-                    </mat-option>
+                  <mat-option [value]="i.type">
+                    <mat-icon><img [src]="i.icon" /></mat-icon> {{ i.name }}
+                  </mat-option>
                   }
                 </mat-select>
               </mat-form-field>
@@ -777,60 +775,60 @@ export class AircraftPropertiesModal {
           (cdkDropListDropped)="drop($event)"
         >
           @for(pt of points; track pt; let i = $index) {
-            <mat-card cdkDrag>
-              <mat-card-content style="padding:3px;">
-                <div class="point-drop-placeholder" *cdkDragPlaceholder></div>
+          <mat-card cdkDrag>
+            <mat-card-content style="padding:3px;">
+              <div class="point-drop-placeholder" *cdkDragPlaceholder></div>
 
-                <div
-                  style="display:flex;"
-                  (click)="selectPoint(i)"
-                  [style.cursor]="
-                    points.length > 1 && selIndex !== -1 ? 'pointer' : 'initial'
-                  "
-                >
-                  <div style="width:35px;">
-                    @if(selIndex === i) {
-                    <mat-icon [color]="'warn'"> flag </mat-icon>
-                    }
-                  </div>
-                  <div style="flex: 1 1 auto;">
-                    <div style="display:flex;">
-                      <div class="key-label">Lat:</div>
-                      <div
-                        style="flex: 1 1 auto;"
-                        [innerText]="
-                          pt[1]
-                            | coords : app.config.selections.positionFormat : true
-                        "
-                      ></div>
-                    </div>
-                    <div style="display:flex;">
-                      <div class="key-label">Lon:</div>
-                      <div
-                        style="flex: 1 1 auto;"
-                        [innerText]="
-                          pt[0] | coords : app.config.selections.positionFormat
-                        "
-                      ></div>
-                    </div>
-                    @if(i < pointNames.length) {
-                    <div style="display:flex;">
-                      <div class="key-label">Name:</div>
-                      <div
-                        style="flex: 1 1 auto;"
-                        [innerText]="pointNames[i]"
-                      ></div>
-                    </div>
-                    }
-                  </div>
-                  <div cdkDragHandle matTooltip="Drag to re-order points">
-                    @if(data.type === 'route') {
-                    <mat-icon>drag_indicator</mat-icon>
-                    }
-                  </div>
+              <div
+                style="display:flex;"
+                (click)="selectPoint(i)"
+                [style.cursor]="
+                  points.length > 1 && selIndex !== -1 ? 'pointer' : 'initial'
+                "
+              >
+                <div style="width:35px;">
+                  @if(selIndex === i) {
+                  <mat-icon [color]="'warn'"> flag </mat-icon>
+                  }
                 </div>
-              </mat-card-content>
-            </mat-card>
+                <div style="flex: 1 1 auto;">
+                  <div style="display:flex;">
+                    <div class="key-label">Lat:</div>
+                    <div
+                      style="flex: 1 1 auto;"
+                      [innerText]="
+                        pt[1]
+                          | coords : app.config.selections.positionFormat : true
+                      "
+                    ></div>
+                  </div>
+                  <div style="display:flex;">
+                    <div class="key-label">Lon:</div>
+                    <div
+                      style="flex: 1 1 auto;"
+                      [innerText]="
+                        pt[0] | coords : app.config.selections.positionFormat
+                      "
+                    ></div>
+                  </div>
+                  @if(i < pointNames.length) {
+                  <div style="display:flex;">
+                    <div class="key-label">Name:</div>
+                    <div
+                      style="flex: 1 1 auto;"
+                      [innerText]="pointNames[i]"
+                    ></div>
+                  </div>
+                  }
+                </div>
+                <div cdkDragHandle matTooltip="Drag to re-order points">
+                  @if(data.type === 'route') {
+                  <mat-icon>drag_indicator</mat-icon>
+                  }
+                </div>
+              </div>
+            </mat-card-content>
+          </mat-card>
           }
         </div>
       </div>
@@ -1198,38 +1196,38 @@ export class ChartInfoDialog {
         </span>
       </mat-toolbar>
       @for(trk of trackList; track trk; let idx = $index) {
-        <mat-card>
-          <mat-card-content>
-            <div style="display:flex;flex-wrap:no-wrap;">
-              <div style="width:45px;">
-                <mat-checkbox
-                  color="primary"
-                  [checked]="selTrk[idx]"
-                  (change)="handleCheck($event.checked, trk[0], idx)"
-                ></mat-checkbox>
+      <mat-card>
+        <mat-card-content>
+          <div style="display:flex;flex-wrap:no-wrap;">
+            <div style="width:45px;">
+              <mat-checkbox
+                color="primary"
+                [checked]="selTrk[idx]"
+                (change)="handleCheck($event.checked, trk[0], idx)"
+              ></mat-checkbox>
+            </div>
+            <div style="flex:1 1 auto;">
+              <div class="key-label">
+                {{ trk[1].feature?.properties?.name }}
               </div>
-              <div style="flex:1 1 auto;">
-                <div class="key-label">
-                  {{ trk[1].feature?.properties?.name }}
-                </div>
-                <div class="key-desc">
-                  {{ trk[1].feature?.properties?.description }}
-                </div>
-              </div>
-              <div style="width:45px;">
-                <button
-                  mat-icon-button
-                  color="warn"
-                  matTooltip="Delete Track"
-                  matTooltipPosition="left"
-                  (click)="handleDelete(trk[0])"
-                >
-                  <mat-icon>delete</mat-icon>
-                </button>
+              <div class="key-desc">
+                {{ trk[1].feature?.properties?.description }}
               </div>
             </div>
-          </mat-card-content>
-        </mat-card>
+            <div style="width:45px;">
+              <button
+                mat-icon-button
+                color="warn"
+                matTooltip="Delete Track"
+                matTooltipPosition="left"
+                (click)="handleDelete(trk[0])"
+              >
+                <mat-icon>delete</mat-icon>
+              </button>
+            </div>
+          </div>
+        </mat-card-content>
+      </mat-card>
       }
     </div>
   `,
@@ -1414,29 +1412,29 @@ export class TracksModal implements OnInit {
         </span>
       </mat-toolbar>
       @for(res of resList; track res; let idx = $index) {
-        <mat-card>
-          <mat-card-content>
-            <div style="display:flex;flex-wrap:no-wrap;">
-              <div style="width:45px;">
-                <mat-checkbox
-                  color="primary"
-                  [disabled]="!isResourceSet"
-                  [checked]="selRes[idx]"
-                  (change)="handleCheck($event.checked, res.id, idx)"
-                ></mat-checkbox>
-              </div>
-              <div style="flex:1 1 auto;">
-                <div class="key-label">
-                  {{ res.name }}
-                </div>
-                <div class="key-desc">
-                  {{ res.description }}
-                </div>
-              </div>
-              <div style="width:45px;"></div>
+      <mat-card>
+        <mat-card-content>
+          <div style="display:flex;flex-wrap:no-wrap;">
+            <div style="width:45px;">
+              <mat-checkbox
+                color="primary"
+                [disabled]="!isResourceSet"
+                [checked]="selRes[idx]"
+                (change)="handleCheck($event.checked, res.id, idx)"
+              ></mat-checkbox>
             </div>
-          </mat-card-content>
-        </mat-card>
+            <div style="flex:1 1 auto;">
+              <div class="key-label">
+                {{ res.name }}
+              </div>
+              <div class="key-desc">
+                {{ res.description }}
+              </div>
+            </div>
+            <div style="width:45px;"></div>
+          </div>
+        </mat-card-content>
+      </mat-card>
       }
     </div>
   `,

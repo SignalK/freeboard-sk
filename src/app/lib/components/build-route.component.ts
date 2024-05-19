@@ -108,23 +108,19 @@ import {
                 (cdkDropListDropped)="dropEventHandler($event)"
               >
                 @for(item of rtepts; track item; let idx = $index) {
-                  <div
-                    class="wpt-box"
-                    mat-background
-                    cdkDrag
-                  >
-                    <div style="width:40px;">
-                      <mat-icon color="primary">room</mat-icon>
-                    </div>
-                    <div class="wpt-text" [matTooltip]="item.name">
-                      {{ item.name }}
-                    </div>
-                    <div style="width:40px;">
-                      <button mat-icon-button (click)="deleteFromRoute(idx)">
-                        <mat-icon color="warn">delete</mat-icon>
-                      </button>
-                    </div>
+                <div class="wpt-box" mat-background cdkDrag>
+                  <div style="width:40px;">
+                    <mat-icon color="primary">room</mat-icon>
                   </div>
+                  <div class="wpt-text" [matTooltip]="item.name">
+                    {{ item.name }}
+                  </div>
+                  <div style="width:40px;">
+                    <button mat-icon-button (click)="deleteFromRoute(idx)">
+                      <mat-icon color="warn">delete</mat-icon>
+                    </button>
+                  </div>
+                </div>
                 }
               </div>
             </div>
@@ -149,6 +145,7 @@ export class BuildRouteComponent {
   wpts = [];
   rtepts = [];
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   @Output() save: EventEmitter<any> = new EventEmitter();
 
   constructor(

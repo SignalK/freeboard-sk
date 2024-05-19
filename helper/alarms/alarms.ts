@@ -5,7 +5,8 @@ import {
   ALARM_STATE,
   Path,
   PathValue,
-  Position
+  Position,
+  SKVersion
 } from '@signalk/server-api';
 import { FreeboardHelperApp } from '../index';
 
@@ -24,6 +25,7 @@ const STANDARD_ALARMS = [
 
 let server: FreeboardHelperApp;
 let pluginId: string;
+const ALARM_API_PATH = '/signalk/v1/api/alarms';
 
 export const initAlarms = (app: FreeboardHelperApp, id: string) => {
   server = app;
@@ -48,12 +50,11 @@ export const initAlarms = (app: FreeboardHelperApp, id: string) => {
 
 const initAlarmEndpoints = () => {
   server.debug(`** Registering Alarm Action API endpoint(s) **`);
-  server.put(
-    '/signalk/v2/api/notifications/:alarmType',
+
+  server.post(
+    `${ALARM_API_PATH}/:alarmType`,
     (req: Request, res: Response, next: NextFunction) => {
-      server.debug(
-        `** PUT /signalk/v2/api/notifications/${req.params.alarmType}`
-      );
+      server.debug(`** POST ${ALARM_API_PATH}/${req.params.alarmType}`);
       if (!STANDARD_ALARMS.includes(req.params.alarmType)) {
         next();
         return;
@@ -82,12 +83,57 @@ const initAlarmEndpoints = () => {
       }
     }
   );
+  server.post(
+    `${ALARM_API_PATH}/:alarmType/silence`,
+    (req: Request, res: Response) => {
+      server.debug(`** POST ${req.path}`);
+      if (!STANDARD_ALARMS.includes(req.params.alarmType)) {
+        res.status(200).json({
+          state: 'COMPLETED',
+          statusCode: 200,
+          message: `Unsupported Alarm (${req.params.alarmType}).`
+        });
+        return;
+      }
+      try {
+        const al = server.getSelfPath(`notifications.${req.params.alarmType}`);
+        if (al && al.value) {
+          server.debug('Alarm value....');
+          if (al.value.method && al.value.method.includes('sound')) {
+            server.debug('Alarm has sound... silence!!!');
+            al.value.method = al.value.method.filter((i) => i !== 'sound');
+            const r = handlePutAlarmState(
+              'vessels.self',
+              `notifications.${req.params.alarmType}` as Path,
+              al.value
+            );
+            res.status(200).json(r);
+          } else {
+            server.debug('Alarm has no sound... no action required.');
+            res.status(200).json({
+              state: 'COMPLETED',
+              statusCode: 200,
+              message: `Alarm (${req.params.alarmType}) is already silent.`
+            });
+          }
+        } else {
+          throw new Error(
+            `Alarm (${req.params.alarmType}) has no value or was not found!`
+          );
+        }
+      } catch (e) {
+        res.status(400).json({
+          state: 'FAILED',
+          statusCode: 400,
+          message: (e as Error).message
+        });
+      }
+    }
+  );
   server.delete(
-    '/signalk/v2/api/notifications/:alarmType',
+    `${ALARM_API_PATH}/:alarmType`,
     (req: Request, res: Response, next: NextFunction) => {
-      server.debug(
-        `** DELETE /signalk/v2/api/notifications/${req.params.alarmType}`
-      );
+      server.debug(`** DELETE ${ALARM_API_PATH}/${req.params.alarmType}`);
       if (!STANDARD_ALARMS.includes(req.params.alarmType)) {
         next();
         return;
@@ -96,7 +142,11 @@ const initAlarmEndpoints = () => {
         const r = handlePutAlarmState(
           'vessels.self',
           `notifications.${req.params.alarmType}` as Path,
-          null
+          {
+            message: '',
+            method: [],
+            state: ALARM_STATE.normal
+          }
         );
         res.status(200).json(r);
       } catch (e) {
@@ -137,16 +187,16 @@ const handlePutAlarmState = (
   server.debug(JSON.stringify(alarmType));
   let noti: PathValue;
   if (value) {
-    const alm = buildAlarmMessage(value.message);
+    const alm = value.state === ALARM_STATE.normal ? null : buildAlarmData();
     noti = {
       path: `notifications.${alarmType}` as Path,
       value: {
         state: value.state ?? null,
         method: value.method ?? null,
-        message: alm.message
+        message: value.message
       }
     };
-    if (alm.data) {
+    if (alm && alm.data) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (noti.value as any).data = alm.data;
     }
@@ -171,10 +221,9 @@ const handlePutAlarmState = (
   }
 };
 
-const buildAlarmMessage = (message: string) => {
+const buildAlarmData = () => {
   const pos: { value: Position } = server.getSelfPath('navigation.position');
   return {
-    message: message,
     data: {
       position: pos ? pos.value : null
     }
@@ -186,5 +235,5 @@ const emitNotification = (msg: PathValue) => {
   const delta = {
     updates: [{ values: [msg] }]
   };
-  server.handleMessage(pluginId, delta);
+  server.handleMessage(pluginId, delta, SKVersion.v2);
 };

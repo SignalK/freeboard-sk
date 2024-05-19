@@ -102,3 +102,34 @@ export class GeoUtils {
     }
   }
 }
+
+export class Angle {
+  /** difference between two angles (in degrees)
+   * @param h: angle 1 (in degrees)
+   * @param b: angle 2 (in degrees)
+   * @returns angle (-ive = port)
+   */
+  static difference(h: number, b: number): number {
+    const d = 360 - b;
+    const hd = h + d;
+    const a = Angle.normalise(hd);
+    return a < 180 ? 0 - a : 360 - a;
+  }
+
+  /** Add two angles (in degrees)
+   * @param h: angle 1 (in degrees)
+   * @param b: angle 2 (in degrees)
+   * @returns sum angle
+   */
+  static add(h: number, b: number): number {
+    return Angle.normalise(h + b);
+  }
+
+  /** Normalises angle to a value between 0 & 360 degrees
+   * @param a: angle (in degrees)
+   * @returns value between 0-360
+   */
+  static normalise(a: number): number {
+    return a < 0 ? a + 360 : a >= 360 ? a - 360 : a;
+  }
+}

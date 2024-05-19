@@ -477,48 +477,48 @@ export class MessageBarComponent {
       <div class="welcome">
         <mat-horizontal-stepper [linear]="false" #stepper>
           @for(c of data.content; track c; let i = $index) {
-            <mat-step>
-              <div style="text-align:center;">
-                <h3>{{ c.title }}</h3>
+          <mat-step>
+            <div style="text-align:center;">
+              <h3>{{ c.title }}</h3>
+            </div>
+            <div style="display:flex;">
+              <div style="min-width:50px;text-align:left;padding-top: 15%;">
+                @if(i !== 0 && data.content.length > 1) {
+                <button
+                  mat-icon-button
+                  (click)="currentPage = currentPage - 1"
+                  color="primary"
+                  matStepperPrevious
+                >
+                  <mat-icon>keyboard_arrow_left</mat-icon>
+                </button>
+                }
               </div>
-              <div style="display:flex;">
-                <div style="min-width:50px;text-align:left;padding-top: 15%;">
-                  @if(i !== 0 && data.content.length > 1) {
-                  <button
-                    mat-icon-button
-                    (click)="currentPage = currentPage - 1"
-                    color="primary"
-                    matStepperPrevious
-                  >
-                    <mat-icon>keyboard_arrow_left</mat-icon>
-                  </button>
-                  }
-                </div>
-                <div style="flex: 1 1 auto;" [innerHTML]="c.message"></div>
-                <div style="min-width:50px;text-align:right;padding-top: 15%;">
-                  @if(i !== data.content.length - 1) {
-                  <button
-                    mat-icon-button
-                    (click)="currentPage = currentPage + 1"
-                    color="primary"
-                    matStepperNext
-                  >
-                    <mat-icon>keyboard_arrow_right</mat-icon>
-                  </button>
-                  }
-                </div>
+              <div style="flex: 1 1 auto;" [innerHTML]="c.message"></div>
+              <div style="min-width:50px;text-align:right;padding-top: 15%;">
+                @if(i !== data.content.length - 1) {
+                <button
+                  mat-icon-button
+                  (click)="currentPage = currentPage + 1"
+                  color="primary"
+                  matStepperNext
+                >
+                  <mat-icon>keyboard_arrow_right</mat-icon>
+                </button>
+                }
               </div>
-            </mat-step>
+            </div>
+          </mat-step>
           }
         </mat-horizontal-stepper>
         <div style="text-align:center;font-size:10pt;font-family:roboto;">
           @for(c of data.content; track c; let i = $index) {
-            <mat-icon
-              [style.color]="currentPage - 1 === i ? 'blue' : 'gray'"
-              style="font-size:8pt;width:12px;"
-            >
-              fiber_manual_record
-            </mat-icon>
+          <mat-icon
+            [style.color]="currentPage - 1 === i ? 'blue' : 'gray'"
+            style="font-size:8pt;width:12px;"
+          >
+            fiber_manual_record
+          </mat-icon>
           }
         </div>
         <div style="text-align:center;">
