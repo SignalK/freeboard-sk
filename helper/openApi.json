@@ -16,14 +16,10 @@
   },
   "servers": [
     {
-      "url": "/signalk/v2/api"
+      "url": "/"
     }
   ],
   "tags": [
-    {
-      "name": "Alarms",
-      "description": "Raise and clear Signal K alarms."
-    },
     {
       "name": "OpenWeather",
       "description": "Weather data from OpenWeather service."
@@ -470,7 +466,7 @@
   },
   "security": [{ "cookieAuth": [] }, { "bearerAuth": [] }],
   "paths": {
-    "/meteo/{id}": {
+    "/signalk/v2/api/meteo/{id}": {
       "parameters": [
         {
           "$ref": "#/components/parameters/StationIdParam"
@@ -493,7 +489,7 @@
         }
       }
     },
-    "/meteo/{id}/observations": {
+    "/signalk/v2/api/meteo/{id}/observations": {
       "parameters": [
         {
           "$ref": "#/components/parameters/StationIdParam"
@@ -519,7 +515,7 @@
         }
       }
     },
-    "/meteo/{id}/observations/{entryId}": {
+    "/signalk/v2/api/meteo/{id}/observations/{entryId}": {
       "parameters": [
         {
           "$ref": "#/components/parameters/StationIdParam"
@@ -545,7 +541,7 @@
         }
       }
     },
-    "/meteo/{id}/forecasts": {
+    "/signalk/v2/api/meteo/{id}/forecasts": {
       "parameters": [
         {
           "$ref": "#/components/parameters/StationIdParam"
@@ -571,7 +567,7 @@
         }
       }
     },
-    "/meteo/{id}/forecasts/{entryId}": {
+    "/signalk/v2/api/meteo/{id}/forecasts/{entryId}": {
       "parameters": [
         {
           "$ref": "#/components/parameters/StationIdParam"
@@ -597,7 +593,7 @@
         }
       }
     },
-    "/meteo/{id}/warnings": {
+    "/signalk/v2/api/meteo/{id}/warnings": {
       "parameters": [
         {
           "$ref": "#/components/parameters/StationIdParam"
@@ -623,7 +619,7 @@
         }
       }
     },    
-    "/meteo/{id}/warnings/{entryId}": {
+    "/signalk/v2/api/meteo/{id}/warnings/{entryId}": {
       "parameters": [
         {
           "$ref": "#/components/parameters/StationIdParam"
@@ -645,31 +641,6 @@
                 }
               }
             }
-          }
-        }
-      }
-    },
-    "/notifications/{alarmType}": {
-      "parameters": [
-        {
-          "$ref": "#/components/parameters/AlarmTypeParam"
-        }
-      ],
-      "put": {
-        "tags": ["Alarms"],
-        "summary": "Raise alarm.",
-        "responses": {
-          "default": {
-            "$ref": "#/components/responses/200OKResponse"
-          }
-        }
-      },
-      "delete": {
-        "tags": ["Alarms"],
-        "summary": "Clear alarm.",
-        "responses": {
-          "default": {
-            "$ref": "#/components/responses/200OKResponse"
           }
         }
       }

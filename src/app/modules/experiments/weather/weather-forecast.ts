@@ -38,10 +38,13 @@ import { WeatherData } from './components/weather-data.component';
           </button>
         </span>
       </mat-toolbar>
-      @if(!forecasts || forecasts.length === 0) {
-      <div style="text-align:center">No weather data found!</div>
-      }
+      @if(isFetching) {
+      <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+      } @else { @if(!forecasts || forecasts.length === 0) {
+      <div style="text-align:center">{{ errorText }}</div>
+      } @else {
       <weather-data [data]="forecasts"></weather-data>
+      } }
     </div>
   `,
   styles: [
@@ -59,6 +62,8 @@ import { WeatherData } from './components/weather-data.component';
 export class WeatherForecastModal implements OnInit {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   public forecasts: any[] = [];
+  protected isFetching = false;
+  protected errorText = 'No weather data found!';
 
   constructor(
     public app: AppInfo,
@@ -90,109 +95,126 @@ export class WeatherForecastModal implements OnInit {
     return val ? `${Convert.msecToKnots(val).toFixed(1)} kn` : '0.0';
   }
 
-  private getForecast(count = 8) {
-    const path = '/meteo/freeboard-sk/forecasts';
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    this.sk.api.get(2, path).subscribe((forecasts: any) => {
-      Object.values(forecasts)
-        .slice(0, count)
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        .forEach((v: any) => {
-          const forecastData: WeatherData = { wind: {} };
-          forecastData.description = v['description'] ?? '';
-          forecastData.time = new Date(v['date']).toLocaleTimeString() ?? '';
+  private getForecast() {
+    let path = '/meteo/freeboard-sk/forecasts';
+    if (this.app.data.weather.hasApi && this.app.data.vessels.self.position) {
+      const pos = this.app.data.vessels.self.position;
+      path = `/weather/forecasts?lat=${pos[1]}&lon=${pos[0]}`;
+    }
+    this.isFetching = true;
+    this.sk.api.get(2, path).subscribe(
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (forecasts: any) => {
+        this.isFetching = false;
+        Object.values(forecasts)
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          .forEach((v: any) => {
+            const forecastData: WeatherData = { wind: {} };
+            forecastData.description = v['description'] ?? '';
+            forecastData.time = new Date(v['date']).toLocaleTimeString() ?? '';
 
-          if (typeof v.outside?.temperature !== 'undefined') {
-            forecastData.temperature =
-              this.app.config.units?.temperature === 'f'
-                ? Convert.kelvinToFarenheit(v.outside.temperature).toFixed(1) +
-                  String.fromCharCode(186) +
-                  'F'
-                : Convert.kelvinToCelcius(v.outside.temperature).toFixed(1) +
-                  String.fromCharCode(186) +
-                  'C';
-          }
-          if (typeof v.outside?.minTemperature?.minimum !== 'undefined') {
-            forecastData.temperatureMin =
-              this.app.config.units?.temperature === 'f'
-                ? Convert.kelvinToFarenheit(v.outside.minTemperature).toFixed(
-                    1
-                  ) +
-                  String.fromCharCode(186) +
-                  'F'
-                : Convert.kelvinToCelcius(v.outside.minTemperature).toFixed(1) +
-                  String.fromCharCode(186) +
-                  'C';
-          }
-          if (typeof v.outside?.maxTemperature !== 'undefined') {
-            forecastData.temperatureMax =
-              this.app.config.units?.temperature === 'f'
-                ? Convert.kelvinToFarenheit(v.outside.maxTemperature).toFixed(
-                    1
-                  ) +
-                  String.fromCharCode(186) +
-                  'F'
-                : Convert.kelvinToCelcius(v.outside.maxTemperature).toFixed(1) +
-                  String.fromCharCode(186) +
-                  'C';
-          }
-          if (typeof v.outside?.dewPointTemperature !== 'undefined') {
-            forecastData.dewPoint =
-              this.app.config.units?.temperature === 'f'
-                ? Convert.kelvinToFarenheit(
-                    v.outside.dewPointTemperature
-                  ).toFixed(1) +
-                  String.fromCharCode(186) +
-                  'F'
-                : Convert.kelvinToCelcius(
-                    v.outside.dewPointTemperature
-                  ).toFixed(1) +
-                  String.fromCharCode(186) +
-                  'C';
-          }
-
-          forecastData.humidity =
-            typeof v.outside?.absoluteHumility !== 'undefined'
-              ? `${v.outside?.absoluteHumility} (%)`
-              : '';
-          forecastData.pressure =
-            typeof v.outside?.pressure !== 'undefined'
-              ? `${v.outside?.pressure} (Pa)`
-              : '';
-
-          if (typeof v.outside?.uvIndex !== 'undefined') {
-            forecastData.uvIndex = v.outside?.uvIndex.toFixed(2);
-          }
-          if (typeof v.outside?.clouds !== 'undefined') {
-            forecastData.clouds =
-              v.outside?.clouds.toFixed(1) +
-              `${v.clouds.units ? ' (' + v.clouds.units + ')' : ''}`;
-          }
-          if (typeof v.outside?.visibility !== 'undefined') {
-            forecastData.visibility = v.outside?.visibility;
-          }
-
-          if (typeof v.wind !== 'undefined') {
-            if (typeof v.wind.speedTrue !== 'undefined') {
-              forecastData.wind.speed =
-                this.app.formatSpeed(v.wind.speedTrue, true) +
-                ' ' +
-                this.app.formattedSpeedUnits;
+            if (typeof v.outside?.temperature !== 'undefined') {
+              forecastData.temperature =
+                this.app.config.units?.temperature === 'f'
+                  ? Convert.kelvinToFarenheit(v.outside.temperature).toFixed(
+                      1
+                    ) +
+                    String.fromCharCode(186) +
+                    'F'
+                  : Convert.kelvinToCelcius(v.outside.temperature).toFixed(1) +
+                    String.fromCharCode(186) +
+                    'C';
             }
-            if (typeof v.wind.gust !== 'undefined') {
-              forecastData.wind.gust =
-                this.app.formatSpeed(v.wind.gust, true) +
-                ' ' +
-                this.app.formattedSpeedUnits;
+            if (typeof v.outside?.minTemperature?.minimum !== 'undefined') {
+              forecastData.temperatureMin =
+                this.app.config.units?.temperature === 'f'
+                  ? Convert.kelvinToFarenheit(v.outside.minTemperature).toFixed(
+                      1
+                    ) +
+                    String.fromCharCode(186) +
+                    'F'
+                  : Convert.kelvinToCelcius(v.outside.minTemperature).toFixed(
+                      1
+                    ) +
+                    String.fromCharCode(186) +
+                    'C';
             }
-            if (typeof v.wind.directionTrue !== 'undefined') {
-              forecastData.wind.direction =
-                Convert.radiansToDegrees(v.wind.directionTrue).toFixed(0) +
-                String.fromCharCode(186);
+            if (typeof v.outside?.maxTemperature !== 'undefined') {
+              forecastData.temperatureMax =
+                this.app.config.units?.temperature === 'f'
+                  ? Convert.kelvinToFarenheit(v.outside.maxTemperature).toFixed(
+                      1
+                    ) +
+                    String.fromCharCode(186) +
+                    'F'
+                  : Convert.kelvinToCelcius(v.outside.maxTemperature).toFixed(
+                      1
+                    ) +
+                    String.fromCharCode(186) +
+                    'C';
             }
-          }
-          this.forecasts.push(forecastData);
-        });
-    });
+            if (typeof v.outside?.dewPointTemperature !== 'undefined') {
+              forecastData.dewPoint =
+                this.app.config.units?.temperature === 'f'
+                  ? Convert.kelvinToFarenheit(
+                      v.outside.dewPointTemperature
+                    ).toFixed(1) +
+                    String.fromCharCode(186) +
+                    'F'
+                  : Convert.kelvinToCelcius(
+                      v.outside.dewPointTemperature
+                    ).toFixed(1) +
+                    String.fromCharCode(186) +
+                    'C';
+            }
+
+            forecastData.humidity =
+              typeof v.outside?.absoluteHumility !== 'undefined'
+                ? `${v.outside?.absoluteHumility} (%)`
+                : '';
+            forecastData.pressure =
+              typeof v.outside?.pressure !== 'undefined'
+                ? `${Math.round(v.outside?.pressure)} (Pa)`
+                : '';
+
+            if (typeof v.outside?.uvIndex !== 'undefined') {
+              forecastData.uvIndex = v.outside?.uvIndex.toFixed(2);
+            }
+            if (typeof v.outside?.clouds !== 'undefined') {
+              forecastData.clouds =
+                v.outside?.clouds.toFixed(1) +
+                `${v.clouds.units ? ' (' + v.clouds.units + ')' : ''}`;
+            }
+            if (typeof v.outside?.visibility !== 'undefined') {
+              forecastData.visibility = v.outside?.visibility;
+            }
+
+            if (typeof v.wind !== 'undefined') {
+              if (typeof v.wind.speedTrue !== 'undefined') {
+                forecastData.wind.speed =
+                  this.app.formatSpeed(v.wind.speedTrue, true) +
+                  ' ' +
+                  this.app.formattedSpeedUnits;
+              }
+              if (typeof v.wind.gust !== 'undefined') {
+                forecastData.wind.gust =
+                  this.app.formatSpeed(v.wind.gust, true) +
+                  ' ' +
+                  this.app.formattedSpeedUnits;
+              }
+              if (typeof v.wind.directionTrue !== 'undefined') {
+                forecastData.wind.direction =
+                  Convert.radiansToDegrees(v.wind.directionTrue).toFixed(0) +
+                  String.fromCharCode(186);
+              }
+            }
+            this.forecasts.push(forecastData);
+          });
+      },
+      () => {
+        this.isFetching = false;
+        this.errorText = 'Error retrieving weather data!';
+      }
+    );
   }
 }

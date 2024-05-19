@@ -669,7 +669,7 @@ const buildObservationMetas = (pathRoot: string) => {
     path: `${pathRoot}.outside.cloudCover`,
     value: {
       description: 'Cloud clover.',
-      units: '%'
+      units: 'ratio'
     }
   });
   metas.push({
@@ -733,14 +733,14 @@ const buildObservationMetas = (pathRoot: string) => {
     path: `${pathRoot}.outside.relativeHumidity`,
     value: {
       description: 'Relative humidity.',
-      units: '%'
+      units: 'ratio'
     }
   });
   metas.push({
     path: `${pathRoot}.outside.absoluteHumidity`,
     value: {
       description: 'Absolute humidity.',
-      units: '%'
+      units: 'ratio'
     }
   });
   metas.push({

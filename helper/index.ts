@@ -17,19 +17,6 @@ const defaultPollInterval = 60;
 
 const CONFIG_SCHEMA = {
   properties: {
-    alarms: {
-      type: 'object',
-      title: 'Standard Alarms.',
-      description: 'Standard Alarms request handler (MOB, etc.)',
-      properties: {
-        enable: {
-          type: 'boolean',
-          default: true,
-          title: 'Enable Standard Alarms',
-          description: ' '
-        }
-      }
-    },
     weather: {
       type: 'object',
       title: 'Weather API.',
@@ -44,8 +31,8 @@ const CONFIG_SCHEMA = {
         apiVersion: {
           type: 'number',
           title: 'API Version',
-          default: 2,
-          enum: [2, 3],
+          default: 3,
+          enum: [3, 2],
           description: 'Note: v2 API not supported after April 2024!'
         },
         apiKey: {
@@ -165,7 +152,7 @@ module.exports = (server: FreeboardHelperApp): OpenApiPlugin => {
     },
     weather: {
       enable: false,
-      apiVersion: 2,
+      apiVersion: 3,
       apiKey: '',
       pollInterval: defaultPollInterval
     },
@@ -206,12 +193,12 @@ module.exports = (server: FreeboardHelperApp): OpenApiPlugin => {
 
       settings.weather = options.weather ?? {
         enable: false,
-        apiVersion: 2,
+        apiVersion: 3,
         apiKey: '',
         pollInterval: defaultPollInterval
       };
       settings.weather.enable = options.weather.enable ?? false;
-      settings.weather.apiVersion = options.weather.apiVersion ?? 2;
+      settings.weather.apiVersion = options.weather.apiVersion ?? 3;
       settings.weather.apiKey = options.weather.apiKey ?? '';
       settings.weather.pollInterval =
         options.weather.pollInterval ?? defaultPollInterval;
@@ -219,7 +206,7 @@ module.exports = (server: FreeboardHelperApp): OpenApiPlugin => {
       settings.alarms = options.alarms ?? {
         enable: true
       };
-      settings.alarms.enable = options.alarms.enable ?? true;
+      settings.alarms.enable = true;
 
       settings.pypilot = options.pypilot ?? {
         enable: false,

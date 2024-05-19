@@ -155,13 +155,13 @@ export class OpenWeather implements IWeatherService {
         },
         outside: {
           uvIndex: current.uvi ?? null,
-          cloudCover: current.clouds ?? null,
+          cloudCover: current.clouds / 100 ?? null,
           horizontalVisibility: current.visibility ?? null,
           temperature: current.temp ?? null,
           feelsLikeTemperature: current.feels_like ?? null,
           dewPointTemperature: current.dew_point ?? null,
           pressure: current.pressure ? current.pressure * 100 : null,
-          absoluteHumidity: current.humidity ?? null,
+          absoluteHumidity: current.humidity / 100 ?? null,
           precipitationType:
             current.rain && typeof current.rain['1h'] !== 'undefined'
               ? 'rain'
@@ -224,11 +224,11 @@ export class OpenWeather implements IWeatherService {
         }
         forecast.outside.dewPointTemperature = f.dew_point ?? null;
         forecast.outside.uvIndex = f.uvi ?? null;
-        forecast.outside.cloudCover = f.clouds ?? null;
+        forecast.outside.cloudCover = f.clouds / 100 ?? null;
 
         forecast.outside.pressure =
           typeof f.pressure !== 'undefined' ? f.pressure * 100 : null;
-        forecast.outside.absoluteHumidity = f.humidity ?? null;
+        forecast.outside.absoluteHumidity = f.humidity / 100 ?? null;
         forecast.wind.speedTrue = f.wind_speed ?? null;
         forecast.wind.directionTrue =
           typeof f.wind_deg !== 'undefined'
