@@ -38,7 +38,8 @@ import {
   PiPVideoComponent,
   WakeLockComponent,
   AutopilotComponent,
-  BuildRouteComponent
+  BuildRouteComponent,
+  Measurements
 } from './lib/components';
 
 @NgModule({
@@ -78,7 +79,8 @@ import {
     PiPVideoComponent,
     WakeLockComponent,
     AutopilotComponent,
-    BuildRouteComponent
+    BuildRouteComponent,
+    Measurements
   ],
   exports: [],
   providers: [],

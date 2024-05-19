@@ -103,6 +103,7 @@ export interface FBAppConfig {
   vessel: {
     trail: boolean; // display trail
     windVectors: boolean; // display vessel TWD, AWD vectors
+    laylines: boolean;
     cogLine: number; // (minutes) length = cogLine * sog
     headingLineSize: number; // mode for display of heading line -1 = default
   };
@@ -218,6 +219,9 @@ export interface FBAppData {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   server: { [key: string]: any }; // SK server info
   lastGet: Position; // map position of last resources GET
+  map: {
+    suppressContextMenu: boolean;
+  };
   vessels: {
     // received vessel data
     showSelf: boolean;
@@ -262,12 +266,12 @@ export interface FBAppData {
     activeRoutePoints: LineString;
     destPointName: string;
   };
-
   anchor: {
     // ** anchor watch
     raised: boolean;
     radius: number;
     position: Position;
+    hasApi: boolean;
   };
   autopilot: {
     console: boolean; // display Autopilot console
@@ -275,5 +279,12 @@ export interface FBAppData {
   };
   buildRoute: {
     show: boolean;
+  };
+  weather: {
+    hasApi: boolean;
+  };
+  measurement: {
+    coords: Array<Position>;
+    index: number;
   };
 }

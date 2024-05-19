@@ -45,6 +45,7 @@ import {
 import { SignalKClient } from 'signalk-client-angular';
 import { Convert } from 'src/app/lib/convert';
 import { GeoUtils } from 'src/app/lib/geoutils';
+import * as semver from 'semver';
 
 import {
   NotificationMessage,
@@ -546,6 +547,57 @@ export class AppComponent {
 
   // ** discover server features **
   private getFeatures() {
+    // check server features
+    this.signalk.get('/signalk/v2/features?enabled=1').subscribe(
+      (res: {
+        apis: string[];
+        plugins: Array<{ id: string; version: string }>;
+      }) => {
+        // detect apis
+        this.app.data.weather.hasApi = res.apis.includes('weather');
+
+        // detect plugins
+        const hasPlugin = {
+          charts: false,
+          pmTiles: false
+        };
+        res.plugins.forEach((p: { id: string; version: string }) => {
+          // anchor alarm
+          if (p.id === 'anchoralarm') {
+            this.app.debug('*** found anchoralarm plugin');
+            this.app.data.anchor.hasApi = true;
+          } else {
+            this.app.debug('*** anchoralarm plugin not found!');
+            this.app.data.anchor.hasApi = false;
+          }
+          // charts v2 api support
+          if (p.id === 'charts') {
+            this.app.debug('*** found charts plugin');
+            hasPlugin.charts = true;
+            if (
+              semver.satisfies(p.version, '>=3.0.0') &&
+              this.app.config.chartApi === 1
+            ) {
+              this.app.config.chartApi = 2;
+            }
+          }
+          // PMTiles support
+          if (p.id === 'signalk-pmtiles-plugin') {
+            this.app.debug('*** found PMTiles plugin');
+            hasPlugin.pmTiles = true;
+          }
+        });
+        // finalise
+        if (hasPlugin.pmTiles && !hasPlugin.charts) {
+          this.app.config.chartApi = 2;
+        }
+      },
+      () => {
+        this.app.debug('*** Features API not present!');
+        this.app.data.anchor.hasApi = true;
+      }
+    );
+
     // check for Autopilot API
     this.signalk.api
       .get(this.app.skApiVersion, 'vessels/self/steering/autopilot')
@@ -1067,11 +1119,19 @@ export class AppComponent {
     this.draw.properties = props && props.group ? props : {};
     this.draw.mode = mode;
     this.draw.enabled = true;
+    this.app.data.map.suppressContextMenu = true;
   }
 
   // ** Enter Measure mode **
   public measureStart() {
     this.measure.enabled = true;
+    this.app.data.map.suppressContextMenu = true;
+  }
+
+  public measureEnd() {
+    this.measure.enabled = false;
+    this.app.data.measurement = { coords: [], index: -1 };
+    this.app.data.map.suppressContextMenu = false;
   }
 
   // ***** OPTIONS MENU ACTONS *******
@@ -1412,6 +1472,7 @@ export class AppComponent {
     this.draw.enabled = false;
     this.draw.modify = true;
     this.draw.forSave = { id: id ?? null, coords: null };
+    this.app.data.map.suppressContextMenu = true;
   }
 
   // ** handle modify end event **
@@ -1470,6 +1531,7 @@ export class AppComponent {
     // clean up
     this.draw.mode = null;
     this.draw.modify = false;
+    this.app.data.map.suppressContextMenu = false;
   }
 
   // ** End Draw / modify / Measure mode **
@@ -1541,6 +1603,8 @@ export class AppComponent {
     this.draw.modify = false;
     this.measure.enabled = false;
     this.app.data.editingId = null;
+    this.app.data.map.suppressContextMenu = false;
+    this.app.data.measurement = { coords: [], index: -1 };
   }
 
   // ******** SIGNAL K STREAM *************

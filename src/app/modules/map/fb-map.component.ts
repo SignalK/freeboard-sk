@@ -10,13 +10,13 @@ import {
 } from '@angular/core';
 import { MatMenuTrigger } from '@angular/material/menu';
 
-import { getGreatCircleBearing } from 'geolib';
+import { computeDestinationPoint, getGreatCircleBearing } from 'geolib';
 import { toLonLat } from 'ol/proj';
-import { Style, Stroke, Fill } from 'ol/style';
+import { Style, Stroke, Fill, Circle } from 'ol/style';
 import { Collection, Feature } from 'ol';
 
 import { Convert } from 'src/app/lib/convert';
-import { GeoUtils } from 'src/app/lib/geoutils';
+import { GeoUtils, Angle } from 'src/app/lib/geoutils';
 import { Position } from 'src/app/types';
 
 import { AppInfo } from 'src/app/app.info';
@@ -52,7 +52,8 @@ import {
   noteStyles,
   anchorStyles,
   alarmStyles,
-  destinationStyles
+  destinationStyles,
+  laylineStyles
 } from './mapconfig';
 import { ModifyEvent } from 'ol/interaction/Modify';
 import { DrawEvent } from 'ol/interaction/Draw';
@@ -66,6 +67,7 @@ import {
   SKNotification
 } from 'src/app/types';
 import { S57Service } from './ol/lib/s57.service';
+import { Geometry } from 'ol/geom';
 
 interface IResource {
   id: string;
@@ -125,6 +127,14 @@ interface IDrawInfo {
   properties: { [key: string]: any };
 }
 
+interface IMeasureInfo {
+  enabled: boolean;
+  end: boolean;
+  style: Style;
+  totalDistance: number;
+  coords: Position[];
+}
+
 enum INTERACTION_MODE {
   MEASURE,
   DRAW,
@@ -176,15 +186,26 @@ export class FBMapComponent implements OnInit, OnDestroy {
   };
 
   // ** measure interaction data
-  public measure = {
+  public measure: IMeasureInfo = {
     enabled: false,
     end: false,
-    geom: null,
     style: new Style({
+      image: new Circle({
+        radius: 6,
+        stroke: new Stroke({
+          width: 2,
+          color: 'white'
+        }),
+        fill: new Fill({
+          color: 'purple'
+        })
+      }),
+      fill: new Fill({
+        color: 'purple'
+      }),
       stroke: new Stroke({
         color: 'purple',
-        lineDash: [10, 10],
-        width: 2
+        width: 3
       })
     }),
     totalDistance: 0,
@@ -199,7 +220,8 @@ export class FBMapComponent implements OnInit, OnDestroy {
     anchor: [],
     trail: [],
     cpa: [],
-    xtePath: []
+    xtePath: [],
+    laylines: { port: [], starboard: [] }
   };
 
   public overlay: IOverlay = {
@@ -245,7 +267,8 @@ export class FBMapComponent implements OnInit, OnDestroy {
     basestation: basestationStyles,
     aircraft: aircraftStyles,
     sar: sarStyles,
-    meteo: meteoStyles
+    meteo: meteoStyles,
+    layline: laylineStyles
   };
 
   // ** map feature data
@@ -579,6 +602,9 @@ export class FBMapComponent implements OnInit, OnDestroy {
 
   // ** handle mouse right click - show context menu **
   public onMapRightClick(e) {
+    if (this.app.data.map.suppressContextMenu) {
+      return;
+    }
     e.preventDefault();
     this.contextMenuPosition.x = e.clientX + 'px';
     this.contextMenuPosition.y = e.clientY + 'px';
@@ -630,19 +656,12 @@ export class FBMapComponent implements OnInit, OnDestroy {
     if (this.measure.enabled && this.measure.coords.length !== 0) {
       const c = e.lonlat;
       this.overlay.position = c;
-      const l = this.measure.totalDistance + this.measureDistanceToAdd(c);
-      const a = getGreatCircleBearing(
-        this.measure.coords.slice(-1)[0],
-        c
-      ).toFixed(1);
+      const lm = this.measureDistanceToAdd(c);
+      const b = getGreatCircleBearing(this.measure.coords.slice(-1)[0], c);
       this.overlay.title =
-        this.app.config.units.distance === 'm'
-          ? `${(l / 1000).toFixed(2)} km`
-          : `${Convert.kmToNauticalMiles(l / 1000).toFixed(2)} NM`;
-
-      this.overlay.title = `${this.overlay.title} ${a}${String.fromCharCode(
-        186
-      )}`;
+        this.app.formatValueForDisplay(lm, 'm') +
+        ' ' +
+        this.app.formatValueForDisplay(b, 'deg');
     }
   }
 
@@ -654,6 +673,8 @@ export class FBMapComponent implements OnInit, OnDestroy {
   public onMapMouseClick(e) {
     if (this.measure.enabled && this.measure.coords.length !== 0) {
       this.onMeasureClick(e.lonlat);
+    } else if (this.draw.enabled && this.draw.mode === 'route') {
+      this.onDrawClick(e.features);
     } else if (!this.draw.enabled && !this.draw.modify) {
       if (!this.app.config.popoverMulti) {
         this.overlay.show = false;
@@ -802,10 +823,32 @@ export class FBMapComponent implements OnInit, OnDestroy {
   }
 
   // ** Map Interaction events **
+  public onDrawClick(fa: Feature[]) {
+    if (!Array.isArray(fa)) {
+      return;
+    }
+    if (this.draw.mode === 'route') {
+      let rPoints: Position[];
+      fa.forEach((f: Feature) => {
+        if (f.getGeometry().getType() === 'LineString') {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          rPoints = (f.getGeometry() as any)
+            .getCoordinates()
+            .map((c: Position) => toLonLat(c));
+          rPoints = rPoints.slice(0, rPoints.length - 1);
+        }
+      });
+      this.app.data.measurement.coords = rPoints;
+    }
+  }
+
   public onMeasureStart(e: DrawEvent) {
-    this.measure.geom = e.feature.getGeometry();
-    const c = toLonLat(this.measure.geom.getLastCoordinate());
-    this.measure.coords.push(c);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let c = (e.feature.getGeometry() as any)
+      .getCoordinates()
+      .map((c: Position) => toLonLat(c));
+    c = c.slice(0, c.length - 1);
+    this.measure.coords = c;
     this.formatPopover(null, null);
     this.overlay.position = c;
     this.overlay.title = '0';
@@ -819,18 +862,21 @@ export class FBMapComponent implements OnInit, OnDestroy {
     this.measure.coords.push(pt);
     this.overlay.position = pt;
 
-    const l = this.measureDistanceToAdd();
-    this.measure.totalDistance += l;
+    const lm = this.measureDistanceToAdd();
+    this.measure.totalDistance += lm;
+    let b = 0;
+    // ** update measurement data
+    const c = this.measure.coords.slice(-2);
+    b = getGreatCircleBearing(c[0], c[1]);
+    this.app.data.measurement.coords = this.measure.coords.slice();
+
     this.overlay.title =
-      this.app.config.units.distance === 'm'
-        ? `${(this.measure.totalDistance / 1000).toFixed(2)} km`
-        : `${Convert.kmToNauticalMiles(
-            this.measure.totalDistance / 1000
-          ).toFixed(2)} NM`;
+      this.app.formatValueForDisplay(lm, 'm') +
+      ' ' +
+      this.app.formatValueForDisplay(b, 'deg');
   }
 
   public onMeasureEnd() {
-    this.measure.geom = null;
     this.overlay.show = false;
     this.measure.enabled = false;
     this.measureEnd.emit(true);
@@ -900,6 +946,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
     let pc;
     if (fid.split('.')[0] === 'route') {
       pc = this.transformCoordsArray(c);
+      this.app.data.measurement.coords = pc;
     } else if (fid.split('.')[0] === 'region') {
       for (let e = 0; e < c.length; e++) {
         if (this.isCoordsArray(c[e])) {
@@ -1019,7 +1066,8 @@ export class FBMapComponent implements OnInit, OnDestroy {
       heading: [],
       awa: [],
       twd: [],
-      cog: []
+      cog: [],
+      laylines: { port: [], starboard: [] }
     };
 
     // vessel trail
@@ -1052,6 +1100,57 @@ export class FBMapComponent implements OnInit, OnDestroy {
         ? this.dfeat.navData.position
         : this.dfeat.active.position;
     vl.bearing = [this.dfeat.active.position, bpos];
+
+    // laylines (active)
+    if (
+      this.app.config.vessel.laylines &&
+      Array.isArray(this.dfeat.navData.position) &&
+      typeof this.dfeat.navData.position[0] === 'number' &&
+      typeof this.app.data.vessels.active.heading === 'number'
+    ) {
+      const hdeg = Convert.radiansToDegrees(
+        this.app.data.vessels.active.heading
+      );
+      const dtg =
+        this.app.config.units.distance === 'm'
+          ? this.app.data.navData.dtg * 1000
+          : Convert.nauticalMilesToKm(this.app.data.navData.dtg * 1000);
+      const bta = Angle.add(hdeg, 90); // tack angle
+
+      const hbdrad = Convert.degreesToRadians(
+        Angle.difference(hdeg, this.app.data.navData.bearing.value)
+      );
+      const dist1 = Math.sin(hbdrad) * dtg;
+      const dist2 = Math.cos(hbdrad) * dtg;
+      const pt1 = computeDestinationPoint(
+        this.app.data.vessels.active.position,
+        dist1,
+        bta
+      );
+      const pt2 = computeDestinationPoint(
+        this.app.data.vessels.active.position,
+        dist2,
+        hdeg
+      );
+      const p1a = [
+        this.app.data.vessels.active.position,
+        [pt1.longitude, pt1.latitude]
+      ];
+      const p1b = [[pt1.longitude, pt1.latitude], this.dfeat.navData.position];
+      const l1 = hbdrad < 0 ? [p1a, p1b] : [p1b, p1a];
+
+      const p2a = [[pt2.longitude, pt2.latitude], this.dfeat.navData.position];
+      const p2b = [
+        this.app.data.vessels.active.position,
+        [pt2.longitude, pt2.latitude]
+      ];
+      const l2 = hbdrad < 0 ? [p2a, p2b] : [p2b, p2a];
+
+      vl.laylines = {
+        port: hbdrad < 0 ? l2 : l1,
+        starboard: hbdrad < 0 ? l1 : l2
+      };
+    }
 
     // ** anchor line (active) **
     if (!this.app.data.anchor.raised) {

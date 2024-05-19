@@ -38,9 +38,8 @@ measure: boolean= measure mode;
       <div class="popover-content">
         <ng-content></ng-content>
       </div>
-      @if(!measure) {
+
       <div class="arrow" style="left:50%;"></div>
-      }
     </div>
   `,
   styleUrls: ['./popover.component.scss']

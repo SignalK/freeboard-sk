@@ -225,7 +225,7 @@
             </a>
 
             <mat-divider></mat-divider>
-            @if(!draw.enabled || !measure.enabled) {
+            @if((!draw.enabled || !measure.enabled) && app.data.anchor.hasApi) {
             <a
               mat-list-item
               (click)="sidemenu.close(); displayLeftMenu('anchorWatch', true)"
@@ -346,7 +346,7 @@
           <autopilot-console></autopilot-console>
           } @if(app.data.buildRoute.show) {
           <route-builder (save)="skres.showRouteNew($event)"> </route-builder>
-          } @if(!app.data.kioskMode) {
+          } @if(!app.data.kioskMode && !this.app.data.map.suppressContextMenu) {
           <!-- left button bar -->
           <div class="leftTop buttonPanel">
             <div class="buttonPanelItem">
@@ -745,7 +745,7 @@
               [activeRoute]="app.data.activeRoute"
               [dblClickZoom]="app.config.mapDoubleClick"
               (measureStart)="measureStart()"
-              (measureEnd)="measure.enabled = false"
+              (measureEnd)="measureEnd()"
               [drawMode]="draw.mode"
               (drawEnd)="handleDrawEnd($event)"
               [modifyMode]="draw.modify"
@@ -774,8 +774,8 @@
             />
           </div>
 
-          <!-- Draw / Measure Help -->
-          @if(draw.enabled || draw.modify || measure.enabled) {
+          <!-- Draw Help -->
+          @if((draw.enabled && draw.mode !== 'route') || draw.modify) {
           <div class="mat-app-background measurePanel">
             @if(draw.enabled) {
             <div>
@@ -836,45 +836,19 @@
                 </ol>
               </div>
             </div>
-            } @if(measure.enabled) {
-            <div>
-              <span style="font-weight: bold; padding: 5px">
-                <mat-icon>straighten</mat-icon> Measure:
-              </span>
-              <div style="padding: 5px">
-                <ol
-                  style="
-                    margin-block-start: 0.2em;
-                    margin-block-end: 0.2em;
-                    padding-inline-start: 15px;
-                  "
-                >
-                  <li>Click on the Map to start measuring.</li>
-                  <li>Click on the last Point to end measuring.</li>
-                </ol>
-              </div>
-            </div>
             }
             <div style="text-align: center">
-              <!-- cancel Draw / Measure button -->
-              @if(draw.enabled || draw.modify || measure.enabled) {
+              <!-- cancel Draw button -->
               <a
                 mat-raised-button
                 color="warn"
                 (click)="cancelDraw()"
-                [matTooltip]="
-                  measure.enabled
-                    ? 'Cancel Measure'
-                    : draw.modify
-                    ? 'Cancel Editing'
-                    : 'Cancel Draw'
-                "
+                [matTooltip]="draw.modify ? 'Cancel Editing' : 'Cancel Draw'"
                 matTooltipPosition="left"
               >
                 <mat-icon>close</mat-icon>
                 {{ draw.modify ? 'FINISH' : 'CANCEL' }}
               </a>
-              }
             </div>
           </div>
           }
@@ -900,6 +874,7 @@
                 [alarm]="a"
                 [audioContext]="app.audio.context"
                 [audioStatus]="display.audio.state"
+                [hasSound]="a.value.sound"
                 [soundFile]="
                   ['nominal', 'warn'].includes(a.value.state)
                     ? './assets/sound/ding.mp3'
@@ -924,7 +899,20 @@
           </div>
           }
 
+          <!-- Measurement panel -->
+          @if(measure.enabled || (draw.mode === 'route' && (draw.enabled ||
+          draw.modify )) ) {
+          <fb-measurements
+            matTooltip="Click on the Map to start. Click cancel or the last point to end."
+            [coords]="this.app.data.measurement.coords"
+            [index]="this.app.data.measurement.index"
+            (cancel)="cancelDraw()"
+          >
+          </fb-measurements>
+          }
+
           <!-- *** Nav data panel ***-->
+          @if(!measure.enabled && !draw.enabled && !draw.modify) {
           <div class="navdataPanel">
             @if(display.navDataPanel.nextPointCtrl) {
             <route-nextpoint
@@ -1033,6 +1021,7 @@
             </div>
             }
           </div>
+          }
         </mat-sidenav-content>
       </mat-sidenav-container>
     </div>

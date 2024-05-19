@@ -28,7 +28,12 @@
   >
   </ol-draw>
   } @if(draw.enabled) {
-  <ol-draw [type]="draw.type" (drawEnd)="onDrawEnd($event)"> </ol-draw>
+  <ol-draw
+    [type]="draw.type"
+    [stopClick]="draw.mode === 'route' ? false : true"
+    (drawEnd)="onDrawEnd($event)"
+  >
+  </ol-draw>
   } @if(draw.modify && draw.features) {
   <ol-modify
     [features]="draw.features"
@@ -130,15 +135,15 @@
   <!-- Resource Sets -->
   <div *ngFor="let resSet of app.data.resourceSets | keyvalue; let idx = index">
     @if(resSet.key !== 'tracks') {
-      <fb-resource-sets
-        [darkMode]="app.config.map.invertColor"
-        [resourceSets]="resSet.value"
-        [selected]="app.config.selections.resourceSets[resSet.key]"
-        [labelMinZoom]="10"
-        [mapZoom]="fbMap.zoomLevel"
-        [zIndex]="52 + idx"
-      >
-      </fb-resource-sets>
+    <fb-resource-sets
+      [darkMode]="app.config.map.invertColor"
+      [resourceSets]="resSet.value"
+      [selected]="app.config.selections.resourceSets[resSet.key]"
+      [labelMinZoom]="10"
+      [mapZoom]="fbMap.zoomLevel"
+      [zIndex]="52 + idx"
+    >
+    </fb-resource-sets>
     }
   </div>
 
@@ -453,6 +458,14 @@
     [layerProperties]=""
   >
   </fb-xte-path>
+  } @if(dfeat.navData.position && app.config.vessel.laylines) {
+  <fb-layline
+    [lines]="vesselLines.laylines"
+    [laylineStyles]="featureStyles.layline"
+    [mapZoom]="fbMap.zoomLevel"
+    [zIndex]="212"
+  >
+  </fb-layline>
   } @if(dfeat.navData.position && app.data.anchor.raised) {
   <fb-bearing-line
     [marker]="dfeat.navData.position"
@@ -484,7 +497,7 @@
     [showWind]="app.config.vessel.windVectors"
     [vesselStyles]="featureStyles.vessel"
     [fixedLocation]="app.config.fixedLocationMode"
-    [zIndex]="213"
+    [zIndex]="250"
   >
   </fb-vessel>
 
