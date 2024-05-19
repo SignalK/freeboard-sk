@@ -5,7 +5,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { Component, OnInit, Inject } from '@angular/core';
 import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { Subscription } from 'rxjs';
-import { Alarm, AlarmState, SignalKClient } from 'signalk-client-angular';
+import { SignalKClient } from 'signalk-client-angular';
 import { AlarmsFacade } from '../alarms.facade';
 
 /********* AlarmsDialog *********
@@ -42,11 +42,7 @@ import { AlarmsFacade } from '../alarms.facade';
               <mat-card-content> </mat-card-content>
               <mat-card-actions>
                 @if(!i.cancel) {
-                <button
-                  mat-raised-button
-                  color="warn"
-                  (click)="raise(i.key, i.subtitle)"
-                >
+                <button mat-raised-button color="warn" (click)="raise(i.key)">
                   <mat-icon>alarm_on</mat-icon>
                   RAISE ALARM
                 </button>
@@ -205,26 +201,18 @@ export class AlarmsDialog implements OnInit {
     });
   }
 
-  raise(alarmType: string, msg: string) {
-    this.signalk.api
-      .raiseAlarm(
-        'self',
-        alarmType,
-        new Alarm(msg, AlarmState.emergency, true, true)
-      )
-      .subscribe(
-        () => {
-          console.log(`Raise Alarm: ${alarmType}`);
-        },
-        (err: HttpErrorResponse) => {
-          console.warn(`Error raising alarm: ${alarmType}`, err);
-        }
-      );
+  raise(alarmType: string) {
+    this.signalk.api.post(`alarms/${alarmType}`, undefined).subscribe(
+      () => undefined,
+      (err: HttpErrorResponse) => {
+        console.warn(`Error raising alarm: ${alarmType}`, err);
+      }
+    );
     this.dialogRef.close();
   }
 
   clear(alarmType: string) {
-    this.signalk.api.clearAlarm('self', alarmType).subscribe(
+    this.signalk.api.delete(`alarms/${alarmType}`).subscribe(
       () => undefined,
       (err: HttpErrorResponse) => {
         console.warn(`Error clearing alarm: ${alarmType}`, err);

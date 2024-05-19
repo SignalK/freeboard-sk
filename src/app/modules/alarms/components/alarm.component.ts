@@ -108,6 +108,7 @@ export class AlarmComponent implements OnInit {
   @Input() audioContext: AudioContext; // Web Audio API
   @Input() audioStatus: string; // changed audio context state
   @Input() soundFile = './assets/sound/woop.mp3';
+  @Input() hasSound = false;
   @Input() loop = true; // true: loop audio file playback
   @Input() mute = false; // true: mute audio playback
 
