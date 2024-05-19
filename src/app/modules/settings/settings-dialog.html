@@ -575,6 +575,16 @@
                   Display Wind Vectors
                 </mat-checkbox>
 
+                <mat-checkbox
+                  #vessellaylines
+                  color="primary"
+                  [(ngModel)]="facade.settings.vessel.laylines"
+                  (change)="onFormChange($event, vessellaylines)"
+                  label="after"
+                >
+                  Display Laylines
+                </mat-checkbox>
+
                 <mat-form-field style="width: 100%">
                   <mat-label>Heading Line Length</mat-label>
                   <mat-select
@@ -1114,21 +1124,6 @@
               </fieldset>
             </div>
             <div class="setting-card-row">
-              <div class="setting-card-row-item">
-                <mat-form-field>
-                  <mat-label>Chart API version</mat-label>
-                  <mat-select
-                    #chartApi
-                    [(value)]="facade.settings.chartApi"
-                    (selectionChange)="onFormChange($event, chartApi)"
-                  >
-                    @for(f of facade.list.chartApiChoices; track f) {
-                    <mat-option color="primary" [value]="f"> {{f}} </mat-option>
-                    }
-                  </mat-select>
-                </mat-form-field>
-              </div>
-
               <div class="setting-card-row-item">
                 <button
                   mat-icon-button

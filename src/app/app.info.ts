@@ -28,7 +28,7 @@ import {
 
 // ** Configuration template**
 const FreeboardConfig: FBAppConfig = {
-  chartApi: 1, // temp: use v{1|2}/api/resources/charts
+  chartApi: 1, // set by feature detection
   experiments: false,
   version: '',
   darkMode: { enabled: false, source: 0 }, // source: 0= browser default, 1= Signal K mode, -1=manual)
@@ -68,6 +68,7 @@ const FreeboardConfig: FBAppConfig = {
   vessel: {
     trail: false, // display trail
     windVectors: true, // display vessel TWD, AWD vectors
+    laylines: false,
     cogLine: 0, // display COG line
     headingLineSize: -1 // mode for display of heading line -1 = default
   },
@@ -272,7 +273,7 @@ export class AppInfo extends Info {
     this.name = 'Freeboard-SK';
     this.shortName = 'Freeboard';
     this.description = `Signal K Chart Plotter.`;
-    this.version = '2.7.1';
+    this.version = '2.8.0';
     this.url = 'https://github.com/signalk/freeboard-sk';
     this.logo = './assets/img/app_logo.png';
 
@@ -314,6 +315,9 @@ export class AppInfo extends Info {
       serverTrail: false, // trail received from server
       server: null,
       lastGet: null, // map position of last resources GET
+      map: {
+        suppressContextMenu: false
+      },
       vessels: {
         // received vessel data
         showSelf: false,
@@ -357,7 +361,8 @@ export class AppInfo extends Info {
         // ** anchor watch
         raised: true,
         radius: 0,
-        position: [0, 0]
+        position: [0, 0],
+        hasApi: true
       },
       autopilot: {
         console: false, // display Autopilot console
@@ -365,8 +370,16 @@ export class AppInfo extends Info {
       },
       buildRoute: {
         show: false
+      },
+      weather: {
+        hasApi: false
+      },
+      measurement: {
+        coords: [],
+        index: -1
       }
     };
+    this.data.map.suppressContextMenu = this.data.kioskMode;
 
     /***************************************
      * Subscribe to App events as required
@@ -627,18 +640,29 @@ export class AppInfo extends Info {
       settings.vessel = {
         trail: true,
         windVectors: true,
+        laylines: false,
         cogLine: 0,
         headingLineSize: -1
       };
     }
+    if (typeof settings.vessel.laylines === 'undefined') {
+      settings.vessel.laylines = false;
+    }
+
     // changeover 2.7 - for removal
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     if (typeof (settings as any).vesselTrail !== 'undefined') {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       settings.vessel.trail = (settings as any).vesselTrail;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       delete (settings as any).vesselTrail;
     }
     // changeover 2.7 - for removal
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     if (typeof (settings as any).vesselWindVectors !== 'undefined') {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       settings.vessel.windVectors = (settings as any).vesselWindVectors;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       delete (settings as any).vesselWindVectors;
     }
 
@@ -658,8 +682,11 @@ export class AppInfo extends Info {
       settings.selections.aisShowTrack = false;
     }
     // changeover 2.7 - for removal
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     if (typeof (settings as any).aisShowTrack !== 'undefined') {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       settings.selections.aisShowTrack = (settings as any).aisShowTrack;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       delete (settings as any).aisShowTrack;
     }
 
@@ -885,7 +912,7 @@ export class AppInfo extends Info {
                     for more details.`
       },
       'whats-new': [
-        {
+        /*{
           type: 'signalk-server-node',
           title: 'OpenWeather 3.0 Support',
           message: `
@@ -894,7 +921,7 @@ export class AppInfo extends Info {
             Freeboard-SK now supports the v3.0 API which will require you to supply
             a new API Key in the configuration.
           `
-        }
+        }*/
       ]
     };
 
@@ -995,7 +1022,7 @@ export class AppInfo extends Info {
    */
   formatValueForDisplay(
     value: number,
-    sourceUnits: 'K' | 'm/s' | 'rad' | 'm',
+    sourceUnits: 'K' | 'm/s' | 'rad' | 'm' | 'ratio' | 'deg',
     depthValue?: boolean
   ): string {
     if (sourceUnits === 'K') {
@@ -1006,10 +1033,16 @@ export class AppInfo extends Info {
         : `${Convert.kelvinToFarenheit(value).toFixed(1)}${String.fromCharCode(
             186
           )}F`;
+    } else if (sourceUnits === 'ratio') {
+      return Math.abs(value) <= 1
+        ? `${(value * 100).toFixed(1)}%`
+        : value.toFixed(4);
     } else if (sourceUnits === 'rad') {
       return `${Convert.radiansToDegrees(value).toFixed(
         1
       )}${String.fromCharCode(186)}`;
+    } else if (sourceUnits === 'deg') {
+      return `${value.toFixed(1)}${String.fromCharCode(186)}`;
     } else if (sourceUnits === 'm') {
       if (depthValue) {
         return this.config.units.depth === 'm'
