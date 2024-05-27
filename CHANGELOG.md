@@ -4,9 +4,9 @@
 
 - **Added**: Option to display laylines when destination is active. (#149)
 - **Added**: Support for Signal K server "Features" API.
-- **Updated**: Measure function to display both segment and total distance. (#153)
-- **Updated**: Clearing an alarm no longer sets the value to `null`, sets alarm state to normal instead.
-
+- **Updated**: Measure function displays both segment details and total distance. (#153)
+- **Updated**: Clearing an alarm sets alarm state to normal rather than `null`.
+- **Fixed**: Inverted label color not correctly applied after feature update.
 
 ### v2.7.1
 

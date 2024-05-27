@@ -2,8 +2,7 @@ import { Injectable } from '@angular/core';
 import { moveItemInArray } from '@angular/cdk/drag-drop';
 import { HttpErrorResponse } from '@angular/common/http';
 import { MatDialog } from '@angular/material/dialog';
-import { forkJoin, of, Subject, Observable } from 'rxjs';
-import { catchError } from 'rxjs/operators';
+import { Subject, Observable } from 'rxjs';
 import ngeohash from 'ngeohash';
 
 import { SignalKClient } from 'signalk-client-angular';
@@ -37,8 +36,10 @@ import {
   RegionResource,
   TrackResource,
   FBNotes,
-  Position
+  Position,
+  Regions
 } from 'src/app/types';
+import { PathValue } from '@signalk/server-api';
 
 // ** Signal K resource operations
 @Injectable({ providedIn: 'root' })
@@ -55,6 +56,232 @@ export class SKResources {
   // ** Observables **
   public update$(): Observable<unknown> {
     return this.updateSource.asObservable();
+  }
+
+  // ******** Resource cache operations ********************
+
+  /** Retrieve cached resource entry (app.data)
+   * @params collection Resource collection to use (e.g. routes, etc.)
+   * @params id Resource identifier
+   * @returns resource entry
+   */
+  public fromCache(collection: string, id: string) {
+    if (
+      !this.app.data[collection] ||
+      !Array.isArray(this.app.data[collection])
+    ) {
+      return;
+    }
+    const item = this.app.data[collection].filter(
+      (i: [string, SKRegion]) => i[0] === id
+    );
+    return item.length === 0 ? undefined : item[0];
+  }
+
+  // ******** SK Resource operations ********************
+
+  /** Submit new resource request to Signal K server.
+   * @param collection The resource collection to which the resource belongs e.g. routes, waypoints, etc.
+   * @param data  Signal K resource entry data.
+   * @param select  determines if resource should be selected for display on map.
+   */
+  public postResource(collection: string, data: unknown, select?: boolean) {
+    this.signalk.api
+      .post(this.app.skApiVersion, `/resources/${collection}`, data)
+      .subscribe(
+        (res: { id: string }) => {
+          if (select && this.app.config.selections[collection]) {
+            this.app.config.selections[collection].push(res.id);
+          }
+          if (collection === 'routes') {
+            this.app.data.buildRoute.show = false;
+          }
+        },
+        (err: HttpErrorResponse) => {
+          if (err.status && err.status === 401) {
+            // unauthorised
+            this.showAuth().subscribe((res) => {
+              if (res.cancel) {
+                this.authResult();
+              } else {
+                // ** authenticate
+                this.signalk.login(res.user, res.pwd).subscribe(
+                  (r) => {
+                    // ** authenticated
+                    this.authResult(r['token']);
+                    this.postResource(collection, data, select);
+                  },
+                  () => {
+                    // ** auth failed
+                    this.authResult();
+                    this.showAuth();
+                  }
+                );
+              }
+            });
+          } else {
+            this.app.showAlert(
+              'ERROR:',
+              `Could not add Resource!\n${err.error.message}`
+            );
+          }
+        }
+      );
+  }
+
+  /** Submit update resource request to Signal K server.
+   * @param collection The resource collection to which the resource belongs e.g. routes, waypoints, etc.
+   * @param id Resource identifier
+   * @param data  Signal K resource entry data.
+   * @param select  determines if resource should be selected for display on map.
+   */
+  public putResource(
+    collection: string,
+    id: string,
+    data: unknown,
+    select?: boolean
+  ) {
+    this.signalk.api
+      .put(this.app.skApiVersion, `/resources/${collection}/${id}`, data)
+      .subscribe(
+        () => {
+          if (select && this.app.config.selections[collection]) {
+            this.app.config.selections[collection].push(id);
+          }
+          if (collection === 'routes') {
+            this.app.data.buildRoute.show = false;
+          }
+        },
+        (err: HttpErrorResponse) => {
+          if (err.status && err.status === 401) {
+            // unauthorised
+            this.showAuth().subscribe((res) => {
+              if (res.cancel) {
+                this.authResult();
+              } else {
+                // ** authenticate
+                this.signalk.login(res.user, res.pwd).subscribe(
+                  (r) => {
+                    // ** authenticated
+                    this.authResult(r['token']);
+                    this.putResource(collection, id, data, select);
+                  },
+                  () => {
+                    // ** auth failed
+                    this.authResult();
+                    this.showAuth();
+                  }
+                );
+              }
+            });
+          } else {
+            this.app.showAlert(
+              'ERROR:',
+              `Could not update Resource!\n${err.error.message}`
+            );
+          }
+        }
+      );
+  }
+
+  /** Submit delete resource request to Signal K server.
+   * @param collection The resource collection to which the resource belongs e.g. routes, waypoints, etc.
+   * @param id Resource identifier
+   */
+  public deleteResource(collection: string, id: string) {
+    this.signalk.api
+      .delete(this.app.skApiVersion, `/resources/${collection}/${id}`)
+      .subscribe(
+        () => {
+          if (
+            this.app.config.selections[collection] &&
+            this.app.config.selections[collection].includes(id)
+          ) {
+            const idx = this.app.config.selections[collection].indexOf(id);
+            this.app.config.selections[collection].splice(idx, 1);
+          }
+        },
+        (err: HttpErrorResponse) => {
+          if (err.status && err.status === 401) {
+            // unauthorised
+            this.showAuth().subscribe((res) => {
+              if (res.cancel) {
+                this.authResult();
+              } else {
+                // ** authenticate
+                this.signalk.login(res.user, res.pwd).subscribe(
+                  (r) => {
+                    // ** authenticated
+                    this.authResult(r['token']);
+                    this.deleteResource(collection, id);
+                  },
+                  () => {
+                    // ** auth failed
+                    this.authResult();
+                    this.showAuth();
+                  }
+                );
+              }
+            });
+          } else {
+            this.app.showAlert(
+              'ERROR:',
+              `Could not delete Resource!\n${err.error.message}`
+            );
+          }
+        }
+      );
+  }
+
+  /** Process Resource Delta message *
+   * @param msg Array of PathValue objects
+   */
+  processDelta(msg: Array<PathValue>) {
+    if (!Array.isArray(msg)) {
+      return;
+    }
+    const action = {
+      routes: false,
+      waypoints: false,
+      notes: false,
+      regions: false
+    };
+    msg.forEach((item) => {
+      const p = item.path.split('.');
+      if (p.length === 3) {
+        const collection = p[1];
+        const id = p[2];
+        const deleted = !item.value ? true : false;
+
+        // in-scope resource types
+        if (['waypoints', 'routes', 'notes', 'regions'].includes(collection)) {
+          action[collection] = true;
+          if (!deleted) {
+            // check for existing entry
+            if (!this.fromCache(collection, id)) {
+              // select to display new entry on map
+              if (this.app.config.selections[collection]) {
+                this.app.config.selections[collection].push(id);
+                this.app.saveConfig();
+              }
+            }
+          }
+        }
+      }
+    });
+
+    if (action['routes']) {
+      this.getRoutes();
+    }
+    if (action['waypoints']) {
+      this.getWaypoints();
+    }
+    if (action['regions']) {
+      this.getRegions();
+    }
+    if (action['notes']) {
+      this.getNotes();
+    }
   }
 
   // ******** Course methods ****************************
@@ -388,54 +615,6 @@ export class SKResources {
 
   // ****************************************************
 
-  // ** process Resource Delta message **
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  processDelta(e: Array<any>) {
-    if (!Array.isArray(e)) {
-      return;
-    }
-    const actions = {
-      routes: false,
-      waypoints: false,
-      notes: false,
-      regions: false
-    };
-    e.forEach((item) => {
-      const p = item.path.split('.');
-      if (p.length === 3) {
-        const type = p[1];
-        const id = p[2];
-        const deleted = !item.value ? true : false;
-
-        // in-scope
-        if (['waypoints', 'routes', 'notes', 'regions'].includes(type)) {
-          actions[type] = true;
-          if (!deleted) {
-            // check for existing entry
-            const fr = this.app.data[type].filter((r) => {
-              return r[0] === id;
-            });
-            if (fr.length === 0) {
-              // select to display new entry on map
-              this.app.config.selections[type].push(id);
-              this.app.saveConfig();
-            }
-          }
-        }
-      }
-    });
-
-    if (actions['routes']) {
-      this.getRoutes();
-    }
-    if (actions['waypoints']) {
-      this.getWaypoints();
-    }
-    if (actions['notes'] || actions['regions']) {
-      this.getNotes();
-    }
-  }
-
   // ** update resource selection data from config (used post server config load)
   alignResourceSelections(saveConfig = false) {
     // charts
@@ -461,32 +640,22 @@ export class SKResources {
 
   // ** UI methods **
   routeSelected() {
-    const t = this.app.data.routes.map((i) => {
-      if (i[2]) {
-        return i[0];
-      }
-    });
-    this.app.config.selections.routes = t.filter((i) => {
-      return i ? true : false;
-    });
+    this.app.config.selections.routes = this.app.data.routes
+      .filter((i) => i[2])
+      .map((i) => i[0]);
     this.app.saveConfig();
     this.updateSource.next({ action: 'selected', mode: 'route' });
   }
 
   waypointSelected() {
-    const t = this.app.data.waypoints.map((i) => {
-      if (i[2]) {
-        return i[0];
-      }
-    });
-    this.app.config.selections.waypoints = t.filter((i) => {
-      return i ? true : false;
-    });
+    this.app.config.selections.waypoints = this.app.data.waypoints
+      .filter((i) => i[2])
+      .map((i) => i[0]);
     this.app.saveConfig();
     this.updateSource.next({ action: 'selected', mode: 'waypoint' });
   }
 
-  noteSelected(e) {
+  noteSelected(e: { id: string; isGroup: boolean }) {
     if (e.isGroup) {
       this.showRelatedNotes(e.id, 'group');
     } else {
@@ -495,21 +664,16 @@ export class SKResources {
     this.updateSource.next({ action: 'selected', mode: 'note' });
   }
 
-  aisSelected(e) {
+  aisSelected(e: string[] | null) {
     this.app.config.selections.aisTargets = e;
     this.app.saveConfig();
     this.updateSource.next({ action: 'selected', mode: 'ais' });
   }
 
   chartSelected() {
-    const t = this.app.data.charts.map((i) => {
-      if (i[2]) {
-        return i[0];
-      }
-    });
-    this.app.config.selections.charts = t.filter((i) => {
-      return i ? true : false;
-    });
+    this.app.config.selections.charts = this.app.data.charts
+      .filter((i) => i[2])
+      .map((i) => i[0]);
     // set map zoom extent
     this.setMapZoomRange();
     this.app.saveConfig();
@@ -545,63 +709,6 @@ export class SKResources {
         this.showRegionInfo(r);
         break;
     }
-  }
-
-  // ** GENERIC RESOURCES **
-
-  // ** Generic Resource on server **
-  createResource(path: string, data: unknown) {
-    this.signalk.api
-      .post(this.app.skApiVersion, `/resources/${path}`, data)
-      .subscribe(
-        (res) => {
-          if (res['statusCode'] === 202) {
-            // pending
-            this.pendingStatus(res).then((r) => {
-              if (r['statusCode'] >= 400) {
-                // response status is error
-                this.app.showAlert(
-                  `ERROR: (${r['statusCode']})`,
-                  r['message'] ? r['message'] : 'Server could not add Resource!'
-                );
-              } else {
-                this.app.showAlert('SUCCESS:', 'Resource loaded successfully.');
-              }
-            });
-          } else if (res['statusCode'] === 200) {
-            // complete
-            this.app.showAlert('SUCCESS:', 'Resource loaded successfully.');
-          }
-        },
-        (err: HttpErrorResponse) => {
-          if (err.status && err.status === 401) {
-            this.showAuth().subscribe((res) => {
-              if (res.cancel) {
-                this.authResult();
-              } else {
-                // ** authenticate
-                this.signalk.login(res.user, res.pwd).subscribe(
-                  (r) => {
-                    // ** authenticated
-                    this.authResult(r['token']);
-                    this.createResource(path, data);
-                  },
-                  () => {
-                    // ** auth failed
-                    this.authResult();
-                    this.showAuth();
-                  }
-                );
-              }
-            });
-          } else {
-            this.app.showAlert(
-              'ERROR:',
-              `Server could not add Resource!\n${err.error.message}`
-            );
-          }
-        }
-      );
   }
 
   // **** TRACKS ****
@@ -641,70 +748,6 @@ export class SKResources {
           this.updateSource.next({ action: 'get', mode: 'track' });
         }
       });
-  }
-
-  // ** delete track on server **
-  private deleteTrack(id: string) {
-    this.signalk.api
-      .delete(this.app.skApiVersion, `/resources/tracks/${id}`)
-      .subscribe(
-        (res) => {
-          if (res['statusCode'] === 202) {
-            // pending
-            this.pendingStatus(res).then((r) => {
-              if (r['statusCode'] >= 400) {
-                // response status is error
-                this.app.showAlert(
-                  `ERROR: (${r['statusCode']})`,
-                  r['message'] ? r['message'] : 'Server could not delete Track!'
-                );
-              } else {
-                this.getTracks(true);
-              }
-            });
-          } else if (res['statusCode'] === 200) {
-            this.getTracks(true);
-          }
-        },
-        (err: HttpErrorResponse) => {
-          if (err.status && err.status === 401) {
-            this.showAuth().subscribe((res) => {
-              if (res.cancel) {
-                this.authResult();
-              } else {
-                // ** authenticate
-                this.signalk.login(res.user, res.pwd).subscribe(
-                  (r) => {
-                    // ** authenticated
-                    this.authResult(r['token']);
-                    this.deleteTrack(id);
-                  },
-                  () => {
-                    // ** auth failed
-                    this.authResult();
-                    this.showAuth();
-                  }
-                );
-              }
-            });
-          } else {
-            this.app.showAlert(
-              'ERROR:',
-              `Server could not delete Track!\n${err.error.message}`
-            );
-          }
-        }
-      );
-  }
-
-  // ** Confirm Track Deletion **
-  showTrackDelete() {
-    return this.app.showConfirm(
-      'Do you want to delete this Track?\n \nTrack will be removed from the server (if configured to permit this operation).',
-      'Delete Track:',
-      'YES',
-      'NO'
-    );
   }
 
   /** get vessel trail from sk server */
@@ -978,169 +1021,6 @@ export class SKResources {
     return [rteUuid, rte];
   }
 
-  // ** create route on server **
-  private createRoute(rte: [string, SKRoute]) {
-    this.signalk.api
-      .put(this.app.skApiVersion, `/resources/routes/${rte[0]}`, rte[1])
-      .subscribe(
-        (res: SKApiResponse) => {
-          if (res['statusCode'] === 202) {
-            // pending
-            this.pendingStatus(res).then((r) => {
-              if (r['statusCode'] >= 400) {
-                // response status is error
-                this.app.showAlert(
-                  `ERROR: (${r['statusCode']})`,
-                  r['message'] ? r['message'] : 'Server could not add Route!'
-                );
-              } else {
-                this.app.config.selections.routes.push(rte[0]);
-                this.app.saveConfig();
-              }
-            });
-          } else if (res['statusCode'] === 200) {
-            // complete
-            this.app.data.buildRoute.show = false;
-            this.app.config.selections.routes.push(rte[0]);
-            this.app.saveConfig();
-          }
-        },
-        (err: HttpErrorResponse) => {
-          if (err.status && err.status === 401) {
-            this.showAuth().subscribe((res) => {
-              if (res.cancel) {
-                this.authResult();
-              } else {
-                // ** authenticate
-                this.signalk.login(res.user, res.pwd).subscribe(
-                  (r) => {
-                    // ** authenticated
-                    this.authResult(r['token']);
-                    this.createRoute(rte);
-                  },
-                  () => {
-                    // ** auth failed
-                    this.authResult();
-                    this.showAuth();
-                  }
-                );
-              }
-            });
-          } else {
-            this.app.showAlert(
-              'ERROR:',
-              `Server could not add Route!\n${err.error.message}`
-            );
-          }
-        }
-      );
-  }
-
-  // ** update route on server **
-  private updateRoute(id: string, rte: SKRoute) {
-    this.signalk.api
-      .put(this.app.skApiVersion, `/resources/routes/${id}`, rte)
-      .subscribe(
-        (res: SKApiResponse) => {
-          if (res['statusCode'] === 202) {
-            // pending
-            this.pendingStatus(res).then((r) => {
-              if (r['statusCode'] >= 400) {
-                // response status is error
-                this.app.showAlert(
-                  `ERROR: (${r['statusCode']})`,
-                  r['message'] ? r['message'] : 'Server could not update Route!'
-                );
-              }
-            });
-          } else {
-            if (this.app.data.activeRoute === id) {
-              this.courseRefresh();
-            }
-          }
-        },
-        (err: HttpErrorResponse) => {
-          this.getRoutes();
-          if (err.status && err.status === 401) {
-            this.showAuth().subscribe((res) => {
-              if (res.cancel) {
-                this.authResult();
-              } else {
-                // ** authenticate
-                this.signalk.login(res.user, res.pwd).subscribe(
-                  (r) => {
-                    // ** authenticated
-                    this.authResult(r['token']);
-                    this.updateRoute(id, rte);
-                  },
-                  () => {
-                    // ** auth failed
-                    this.authResult();
-                    this.showAuth();
-                  }
-                );
-              }
-            });
-          } else {
-            this.app.showAlert(
-              'ERROR:',
-              `Server could not update Route details!\n${err.error.message}`
-            );
-          }
-        }
-      );
-  }
-
-  // ** delete route on server **
-  private deleteRoute(id: string) {
-    this.signalk.api
-      .delete(this.app.skApiVersion, `/resources/routes/${id}`)
-      .subscribe(
-        (res) => {
-          if (res['statusCode'] === 202) {
-            // pending
-            this.pendingStatus(res).then((r) => {
-              if (r['statusCode'] >= 400) {
-                // response status is error
-                this.app.showAlert(
-                  `ERROR: (${r['statusCode']})`,
-                  r['message'] ? r['message'] : 'Server could not delete Route!'
-                );
-              }
-            });
-          }
-        },
-        (err: HttpErrorResponse) => {
-          if (err.status && err.status === 401) {
-            this.showAuth().subscribe((res) => {
-              if (res.cancel) {
-                this.authResult();
-              } else {
-                // ** authenticate
-                this.signalk.login(res.user, res.pwd).subscribe(
-                  (r) => {
-                    // ** authenticated
-                    this.authResult(r['token']);
-                    this.deleteRoute(id);
-                  },
-                  () => {
-                    // ** auth failed
-                    this.authResult();
-                    this.showAuth();
-                  }
-                );
-              }
-            });
-          } else {
-            this.app.showAlert(
-              'ERROR:',
-              `Server could not delete Route!\n${err.error.message}`
-            );
-          }
-        }
-      );
-  }
-
   // Modify Route point coordinates & refrsh course
   updateRouteCoords(
     id: string,
@@ -1148,13 +1028,11 @@ export class SKResources {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     coordsMeta?: Array<any>
   ) {
-    const t = this.app.data.routes.filter((i: [string, SKRoute]) => {
-      if (i[0] === id) return true;
-    });
-    if (t.length === 0) {
+    const t = this.fromCache('routes', id);
+    if (!t) {
       return;
     }
-    const rte = t[0][1];
+    const rte = t[1];
     rte['feature']['geometry']['coordinates'] =
       GeoUtils.normaliseCoords(coords);
     rte.distance = GeoUtils.routeLength(rte.feature.geometry.coordinates);
@@ -1162,7 +1040,7 @@ export class SKResources {
     if (coordsMeta) {
       rte['feature']['properties']['coordinatesMeta'] = coordsMeta;
     }
-    this.updateRoute(id, rte);
+    this.putResource('routes', id, rte);
   }
 
   // Return array of route coordinates
@@ -1170,28 +1048,21 @@ export class SKResources {
     if (!routeId) {
       routeId = this.app.data.activeRoute;
     }
-    const rte = this.app.data.routes.filter((r: [string, SKRoute]) => {
-      if (r[0] === routeId) {
-        return r;
-      }
-    });
-    if (rte.length === 0) {
+    const rte = this.fromCache('routes', routeId);
+    if (!rte) {
       return [];
     } else {
-      return rte[0][1].feature.geometry.coordinates;
+      return rte[1].feature.geometry.coordinates;
     }
   }
 
   // ** Display Edit Route properties Dialog **
   showRouteInfo(e: { id: string }) {
-    const t = this.app.data.routes.filter((i: [string, SKRoute]) => {
-      if (i[0] === e.id) return true;
-    });
-    if (t.length === 0) {
+    const t = this.fromCache('routes', e.id);
+    if (!t) {
       return;
     }
-    const rte = t[0][1];
-    const resId = t[0][0];
+    const rte = t[1];
 
     this.dialog
       .open(ResourceDialog, {
@@ -1209,7 +1080,7 @@ export class SKResources {
           // ** save / update route **
           rte['description'] = r.data.comment;
           rte['name'] = r.data.name;
-          this.updateRoute(resId, rte);
+          this.putResource('routes', e.id, rte);
         }
       });
   }
@@ -1245,7 +1116,7 @@ export class SKResources {
             // ** create route **
             res[1]['description'] = r.data.comment || '';
             res[1]['name'] = r.data.name;
-            this.createRoute(res);
+            this.putResource('routes', res[0], res[1], true);
           }
         }
       );
@@ -1275,7 +1146,7 @@ export class SKResources {
           )
           .subscribe((result: { ok: boolean; checked: boolean }) => {
             if (result && result.ok) {
-              this.deleteRoute(e.id);
+              this.deleteResource('routes', e.id);
               if (result.checked) {
                 na.forEach((id) => {
                   this.deleteNote(id);
@@ -1360,126 +1231,15 @@ export class SKResources {
       });
   }
 
-  // ** create / update waypoint on server **
-  private submitWaypoint(id: string, wpt: SKWaypoint, isNew = false) {
-    this.signalk.api
-      .put(this.app.skApiVersion, `/resources/waypoints/${id}`, wpt)
-      .subscribe(
-        (res: SKApiResponse) => {
-          if (res['statusCode'] === 202) {
-            // pending
-            if (isNew) {
-              this.app.config.selections.waypoints.push(id);
-              this.app.saveConfig();
-            }
-            this.pendingStatus(res).then((r) => {
-              if (r['statusCode'] >= 400) {
-                // response status is error
-                this.app.showAlert(
-                  `ERROR: (${r['statusCode']})`,
-                  r['message']
-                    ? r['message']
-                    : 'Server could not update Waypoint!'
-                );
-              }
-            });
-          } else if (res['statusCode'] === 200) {
-            if (isNew) {
-              this.app.config.selections.waypoints.push(id);
-              this.app.saveConfig();
-            }
-          }
-        },
-        (err: HttpErrorResponse) => {
-          this.getWaypoints();
-          if (err.status && err.status === 401) {
-            this.showAuth().subscribe((res) => {
-              if (res.cancel) {
-                this.authResult();
-              } else {
-                // ** authenticate
-                this.signalk.login(res.user, res.pwd).subscribe(
-                  (r) => {
-                    // ** authenticated
-                    this.authResult(r['token']);
-                    this.submitWaypoint(id, wpt, isNew);
-                  },
-                  () => {
-                    // ** auth failed
-                    this.authResult();
-                    this.showAuth();
-                  }
-                );
-              }
-            });
-          } else {
-            this.app.showAlert(
-              'ERROR:',
-              `Server could not update Waypoint details!\n${err.error.message}`
-            );
-          }
-        }
-      );
-  }
-
   // ** delete waypoint on server **
   private deleteWaypoint(id: string) {
-    this.signalk.api
-      .delete(this.app.skApiVersion, `/resources/waypoints/${id}`)
-      .subscribe(
-        (res) => {
-          if (res['statusCode'] === 202) {
-            // pending
-            this.pendingStatus(res).then((r) => {
-              if (r['statusCode'] >= 400) {
-                // response status is error
-                this.app.showAlert(
-                  `ERROR: (${r['statusCode']})`,
-                  r['message']
-                    ? r['message']
-                    : 'Server could not delete Waypoint!'
-                );
-              }
-            });
-          }
-        },
-        (err: HttpErrorResponse) => {
-          if (err.status && err.status === 401) {
-            this.showAuth().subscribe((res) => {
-              if (res.cancel) {
-                this.authResult();
-              } else {
-                // ** authenticate
-                this.signalk.login(res.user, res.pwd).subscribe(
-                  (r) => {
-                    // ** authenticated
-                    this.authResult(r['token']);
-                    this.deleteWaypoint(id);
-                  },
-                  () => {
-                    // ** auth failed
-                    this.authResult();
-                    this.showAuth();
-                  }
-                );
-              }
-            });
-          } else {
-            this.app.showAlert(
-              'ERROR:',
-              `Server could not delete Waypoint!\n${err.error.message}`
-            );
-          }
-        }
-      );
+    this.deleteResource('waypoints', id);
   }
 
   // ** modify waypoint point coordinates **
   updateWaypointPosition(id: string, position: Position) {
-    const t = this.app.data.waypoints.filter((i: [string, SKWaypoint]) => {
-      if (i[0] === id) return true;
-    });
-    if (t.length === 0) {
+    const t = this.fromCache('waypoints', id);
+    if (!t) {
       return;
     }
     const wpt = t[0][1];
@@ -1489,7 +1249,7 @@ export class SKResources {
       latitude: wpt['feature']['geometry']['coordinates'][1],
       longitude: wpt['feature']['geometry']['coordinates'][0]
     };
-    this.submitWaypoint(id, wpt);
+    this.putResource('waypoints', id, wpt);
   }
 
   // ** Display waypoint properties Dialog **
@@ -1523,13 +1283,11 @@ export class SKResources {
       // Edit waypoint details
       resId = e.id;
       title = 'Waypoint Details:';
-      const w = this.app.data.waypoints.filter((i) => {
-        if (i[0] === resId) return true;
-      });
-      if (w.length === 0) {
+      const w = this.fromCache('waypoints', resId);
+      if (!w) {
         return;
       }
-      wpt = w[0][1];
+      wpt = w[1];
       addMode = false;
     }
 
@@ -1565,7 +1323,7 @@ export class SKResources {
             resId = this.signalk.uuid;
             isNew = true;
           }
-          this.submitWaypoint(resId, wpt, isNew);
+          this.putResource('waypoints', resId, wpt, isNew);
         }
       });
   }
@@ -1612,302 +1370,20 @@ export class SKResources {
 
   // **** REGIONS ****
 
-  // get regions from server
-  getRegions(params: string = null) {
-    params = params && params[0] !== '?' ? `?${params}` : params;
-    return this.signalk.api.get(
-      this.app.skApiVersion,
-      `/resources/regions${params}`
-    );
-  }
-
-  // ** create Region and optionally add note **
-  private createRegion(region: { id: string; data: SKRegion }, note?: SKNote) {
+  // get regions from sk server
+  getRegions() {
     this.signalk.api
-      .put(
-        this.app.skApiVersion,
-        `/resources/regions/${region.id}`,
-        region.data
-      )
-      .subscribe(
-        (res: SKApiResponse) => {
-          if (res['statusCode'] === 202) {
-            // pending
-            this.pendingStatus(res).then((r) => {
-              if (r['statusCode'] >= 400) {
-                // response status is error
-                this.app.showAlert(
-                  `ERROR: (${r['statusCode']})`,
-                  r['message'] ? r['message'] : 'Server could not add Region!'
-                );
-              } else {
-                if (note) {
-                  this.createNote(note);
-                }
-              }
-            });
-          } else if (res['statusCode'] === 200 && note) {
-            this.createNote(note);
-          }
-        },
-        (err: HttpErrorResponse) => {
-          if (err.status && err.status === 401) {
-            this.showAuth().subscribe((res) => {
-              if (res.cancel) {
-                this.authResult();
-              } else {
-                // ** authenticate
-                this.signalk.login(res.user, res.pwd).subscribe(
-                  (r) => {
-                    // ** authenticated
-                    this.authResult(r['token']);
-                    this.createRegion(region, note);
-                  },
-                  () => {
-                    // ** auth failed
-                    this.authResult();
-                    this.showAuth();
-                  }
-                );
-              }
-            });
-          } else {
-            this.app.showAlert(
-              'ERROR:',
-              `Server could not add Region!\n${err.error.message}`
-            );
-          }
-        }
-      );
-  }
-
-  // ** delete Region on server **
-  private deleteRegion(id: string) {
-    this.signalk.api
-      .delete(this.app.skApiVersion, `/resources/regions/${id}`)
-      .subscribe(
-        (res) => {
-          if (res['statusCode'] === 202) {
-            // pending
-            this.pendingStatus(res).then((r) => {
-              if (r['statusCode'] >= 400) {
-                // response status is error
-                this.app.showAlert(
-                  `ERROR: (${r['statusCode']})`,
-                  r['message']
-                    ? r['message']
-                    : 'Server could not delete Region!'
-                );
-              }
-            });
-          }
-        },
-        (err: HttpErrorResponse) => {
-          if (err.status && err.status === 401) {
-            this.showAuth().subscribe((res) => {
-              if (res.cancel) {
-                this.authResult();
-              } else {
-                // ** authenticate
-                this.signalk.login(res.user, res.pwd).subscribe(
-                  (r) => {
-                    // ** authenticated
-                    this.authResult(r['token']);
-                    this.deleteNote(id);
-                  },
-                  () => {
-                    // ** auth failed
-                    this.authResult();
-                    this.showAuth();
-                  }
-                );
-              }
-            });
-          } else {
-            this.app.showAlert(
-              'ERROR:',
-              `Server could not delete Region!\n${err.error.message}`
-            );
-          }
-        }
-      );
-  }
-
-  // ** update region on server **
-  private updateRegion(id: string, reg: SKRegion) {
-    this.signalk.api
-      .put(this.app.skApiVersion, `/resources/regions/${id}`, reg)
-      .subscribe(
-        (res: SKApiResponse) => {
-          if (res['statusCode'] === 202) {
-            // pending
-            this.pendingStatus(res).then((r) => {
-              if (r['statusCode'] >= 400) {
-                // response status is error
-                this.app.showAlert(
-                  `ERROR: (${r['statusCode']})`,
-                  r['message']
-                    ? r['message']
-                    : 'Server could not update Region!'
-                );
-              }
-            });
-          }
-        },
-        (err: HttpErrorResponse) => {
-          if (err.status && err.status === 401) {
-            this.showAuth().subscribe((res) => {
-              if (res.cancel) {
-                this.authResult();
-              } else {
-                // ** authenticate
-                this.signalk.login(res.user, res.pwd).subscribe(
-                  (r) => {
-                    // ** authenticated
-                    this.authResult(r['token']);
-                    this.updateRegion(id, reg);
-                  },
-                  () => {
-                    // ** auth failed
-                    this.authResult();
-                    this.showAuth();
-                  }
-                );
-              }
-            });
-          } else {
-            this.app.showAlert(
-              'ERROR:',
-              `Server could not update Region details!\n${err.error.message}`
-            );
-          }
-        }
-      );
-  }
-
-  // ** modify Region point coordinates **
-  updateRegionCoords(id: string, coords: Array<Array<Position>>) {
-    const t = this.app.data.regions.filter((i: [string, SKRegion]) => {
-      if (i[0] === id) return true;
-    });
-    if (t.length === 0) {
-      return;
-    }
-    const region = t[0][1];
-    region['feature']['geometry']['coordinates'] =
-      GeoUtils.normaliseCoords(coords);
-    this.createRegion({ id: id, data: region });
-  }
-
-  // ** Display Edit Region properties Dialog **
-  showRegionInfo(e: { id: string }) {
-    const t = this.app.data.regions.filter((i: [string, SKRegion]) => {
-      if (i[0] === e.id) return true;
-    });
-    if (t.length === 0) {
-      return;
-    }
-    const reg = t[0][1];
-    const resId = t[0][0];
-
-    this.dialog
-      .open(ResourceDialog, {
-        disableClose: true,
-        data: {
-          title: 'Region Details:',
-          name: reg['name'] ? reg['name'] : null,
-          comment: reg['description'] ? reg['description'] : null,
-          type: 'region'
-        }
-      })
-      .afterClosed()
-      .subscribe((r) => {
-        if (r.result) {
-          // ** save / update region **
-          reg['description'] = r.data.comment;
-          reg['name'] = r.data.name;
-          this.updateRegion(resId, reg);
-        }
-      });
-  }
-
-  // ** confirm Region Deletion **
-  showRegionDelete(e: { id: string }) {
-    // are there notes attached?
-    this.signalk.api
-      .get(
-        this.app.skApiVersion,
-        `/resources/notes?href=/resources/regions/${e.id}`
-      )
-      .subscribe((notes: Notes) => {
-        let checkText: string;
-        const na = Object.keys(notes);
-        if (na.length !== 0) {
-          checkText = 'Check to also delete attached Notes.';
-        }
-        this.app
-          .showConfirm(
-            'Do you want to delete this Region from the server?\n',
-            'Delete Region:',
-            'YES',
-            'NO',
-            checkText
-          )
-          .subscribe((result: { ok: boolean; checked: boolean }) => {
-            if (result && result.ok) {
-              this.deleteRegion(e.id);
-              if (result.checked) {
-                na.forEach((id) => {
-                  this.deleteNote(id);
-                });
-              }
-            }
-          });
-      });
-  }
-
-  // **** NOTES ****
-
-  // ** get notes / regions from sk server
-  getNotes(params: string = null) {
-    let rf = params ? params : this.app.config.resources.notes.rootFilter;
-    rf = this.processTokens(rf);
-    if (rf && rf[0] !== '?') {
-      rf = '?' + rf;
-    }
-    this.app.debug(`${rf}`);
-
-    const req = [];
-    const resRegions = this.getRegions(rf);
-    if (resRegions) {
-      resRegions.pipe(catchError((error) => of(error)));
-      req.push(resRegions);
-    }
-    const resNotes = this.signalk.api.get(
-      this.app.skApiVersion,
-      `/resources/notes${rf}`
-    );
-    if (resNotes) {
-      req.push(resNotes);
-    }
-    if (req.length === 0) {
-      return;
-    }
-    const res = forkJoin(req);
-    res.subscribe((res) => {
-      if (typeof res[0]['error'] === 'undefined') {
-        const r = Object.entries(res[0]);
+      .get(this.app.skApiVersion, `/resources/regions`)
+      .subscribe((res: Regions) => {
         this.app.data.regions = [];
-        r.forEach((i: [string, RegionResource]) => {
+        Object.entries(res).forEach((i: [string, RegionResource]) => {
           i[1] = this.transformRegion(i[1], i[0]);
           if (typeof i[1].feature !== 'undefined') {
-            this.app.data.regions.push([i[0], new SKRegion(i[1]), false]);
+            this.app.data.regions.push([i[0], new SKRegion(i[1]), true]);
           }
         });
-      }
-      this.app.data.notes = this.processNotes(res[1] as Notes, true, 300);
-      this.updateSource.next({ action: 'get', mode: 'note' });
-    });
+        this.updateSource.next({ action: 'get', mode: 'region' });
+      });
   }
 
   // v2 transformation
@@ -1936,6 +1412,100 @@ export class SKResources {
       return r;
     }
   }
+
+  // ** modify Region point coordinates **
+  updateRegionCoords(id: string, coords: Array<Array<Position>>) {
+    const region = this.fromCache('regions', id)[1];
+    region['feature']['geometry']['coordinates'] =
+      GeoUtils.normaliseCoords(coords);
+    this.putResource('regions', id, region);
+  }
+
+  // ** Display Edit Region properties Dialog **
+  showRegionInfo(e: { id: string; region?: SKRegion }) {
+    if (!e.region) {
+      const t = this.fromCache('regions', e.id);
+      if (!t) {
+        return;
+      }
+      e.region = t[1];
+    }
+
+    this.dialog
+      .open(ResourceDialog, {
+        disableClose: true,
+        data: {
+          title: 'Region Details:',
+          name: e.region['name'] ? e.region['name'] : null,
+          comment: e.region['description'] ? e.region['description'] : null,
+          type: 'region'
+        }
+      })
+      .afterClosed()
+      .subscribe((r) => {
+        if (r.result) {
+          // ** save / update region **
+          e.region['description'] = r.data.comment;
+          e.region['name'] = r.data.name;
+          this.putResource('regions', e.id, e.region);
+        }
+      });
+  }
+
+  // ** confirm Region Deletion **
+  showRegionDelete(e: { id: string }) {
+    // are there notes attached?
+    this.signalk.api
+      .get(
+        this.app.skApiVersion,
+        `/resources/notes?href=/resources/regions/${e.id}`
+      )
+      .subscribe((notes: Notes) => {
+        let checkText: string;
+        const na = Object.keys(notes);
+        if (na.length !== 0) {
+          checkText = 'Check to also delete attached Notes.';
+        }
+        this.app
+          .showConfirm(
+            'Do you want to delete this Region from the server?\n',
+            'Delete Region:',
+            'YES',
+            'NO',
+            checkText
+          )
+          .subscribe((result: { ok: boolean; checked: boolean }) => {
+            if (result && result.ok) {
+              this.deleteResource('regions', e.id);
+              if (result.checked) {
+                na.forEach((id) => {
+                  this.deleteResource('notes', id);
+                });
+              }
+            }
+          });
+      });
+  }
+
+  // **** NOTES ****
+
+  // ** get notes / regions from sk server
+  getNotes(params: string = null) {
+    let rf = params ? params : this.app.config.resources.notes.rootFilter;
+    rf = this.processTokens(rf);
+    if (rf && rf[0] !== '?') {
+      rf = '?' + rf;
+    }
+    this.app.debug(`${rf}`);
+
+    this.signalk.api
+      .get(this.app.skApiVersion, `/resources/notes${rf}`)
+      .subscribe((res: Notes) => {
+        this.app.data.notes = this.processNotes(res, true, 300);
+        this.updateSource.next({ action: 'get', mode: 'note' });
+      });
+  }
+
   // v2 transformation
   transformNote(n: NoteResource, id: string): NoteResource {
     // replace title with name
@@ -1978,9 +1548,11 @@ export class SKResources {
     }
     return n;
   }
-  /* returns array of SKNotes 
-      noDesc: true= remove description value
-      maxCount: max number of entries to return
+
+  /** Process SKNotes objects returned from server.
+      @param noDesc: true = remove description value
+      @param maxCount: max number of entries to return
+      @returns Array of SKNotes 
   */
   private processNotes(n: Notes, noDesc = false, maxCount?: number): FBNotes {
     let r = Object.entries(n);
@@ -2006,23 +1578,8 @@ export class SKResources {
     this.signalk.api
       .post(this.app.skApiVersion, `/resources/notes`, note)
       .subscribe(
-        (res) => {
-          if (res['statusCode'] === 202) {
-            // pending
-            this.pendingStatus(res).then((r) => {
-              if (r['statusCode'] >= 400) {
-                // response status is error
-                this.app.showAlert(
-                  `ERROR: (${r['statusCode']})`,
-                  r['message'] ? r['message'] : 'Server could not add Note!'
-                );
-              } else {
-                this.reopenRelatedDialog();
-              }
-            });
-          } else if (res['statusCode'] === 200) {
-            this.reopenRelatedDialog();
-          }
+        () => {
+          this.reopenRelatedDialog();
         },
         (err: HttpErrorResponse) => {
           if (err.status && err.status === 401) {
@@ -2059,23 +1616,8 @@ export class SKResources {
     this.signalk.api
       .put(this.app.skApiVersion, `/resources/notes/${id}`, note)
       .subscribe(
-        (res: SKApiResponse) => {
-          if (res['statusCode'] === 202) {
-            // pending
-            this.pendingStatus(res).then((r) => {
-              if (r['statusCode'] >= 400) {
-                // response status is error
-                this.app.showAlert(
-                  `ERROR: (${r['statusCode']})`,
-                  r['message'] ? r['message'] : 'Server could not update Note!'
-                );
-              } else {
-                this.reopenRelatedDialog();
-              }
-            });
-          } else if (res['statusCode'] === 200) {
-            this.reopenRelatedDialog();
-          }
+        () => {
+          this.reopenRelatedDialog();
         },
         (err: HttpErrorResponse) => {
           if (err.status && err.status === 401) {
@@ -2113,23 +1655,8 @@ export class SKResources {
     this.signalk.api
       .delete(this.app.skApiVersion, `/resources/notes/${id}`)
       .subscribe(
-        (res) => {
-          if (res['statusCode'] === 202) {
-            // pending
-            this.pendingStatus(res).then((r) => {
-              if (r['statusCode'] >= 400) {
-                // response status is error
-                this.app.showAlert(
-                  `ERROR: (${r['statusCode']})`,
-                  r['message'] ? r['message'] : 'Server could not delete Note!'
-                );
-              } else {
-                this.reopenRelatedDialog();
-              }
-            });
-          } else if (res['statusCode'] === 200) {
-            this.reopenRelatedDialog();
-          }
+        () => {
+          this.reopenRelatedDialog();
         },
         (err: HttpErrorResponse) => {
           if (err.status && err.status === 401) {
@@ -2179,10 +1706,7 @@ export class SKResources {
         if (r.result) {
           // ** save / update **
           const note = r.data;
-          if (e.region && e.createRegion) {
-            // add region + note
-            this.createRegion(e.region, note);
-          } else if (!e.noteId) {
+          if (!e.noteId) {
             // add note
             this.createNote(note);
           } else {
@@ -2355,7 +1879,7 @@ export class SKResources {
   }
 
   // ** Note info Dialog **
-  showNoteInfo(e) {
+  showNoteInfo(e: { id: string }) {
     this.signalk.api
       .get(this.app.skApiVersion, `/resources/notes/${e.id}`)
       .subscribe(
@@ -2411,13 +1935,11 @@ export class SKResources {
 
   // ** modify Note position **
   updateNotePosition(id: string, position: Position) {
-    const t = this.app.data.notes.filter((i: [string, SKNote]) => {
-      if (i[0] === id) return true;
-    });
-    if (t.length === 0) {
+    const t = this.fromCache('notes', id);
+    if (!t) {
       return;
     }
-    const note = t[0][1];
+    const note = t[1];
     position = GeoUtils.normaliseCoords(position);
     note['position'] = { latitude: position[1], longitude: position[0] };
     this.updateNote(id, note);

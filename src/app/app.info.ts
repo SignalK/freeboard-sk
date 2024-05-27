@@ -97,6 +97,7 @@ const FreeboardConfig: FBAppConfig = {
     aisProfile: 0, // ais display profile
     aisState: [], // list of ais state values used to filter targets
     notesMinZoom: 10,
+    labelsMinZoom: 8,
     pluginFavourites: [],
     trailFromServer: false,
     trailDuration: 24, // number of hours of trail to fetch from server
@@ -681,6 +682,11 @@ export class AppInfo extends Info {
     if (typeof settings.selections.aisShowTrack === 'undefined') {
       settings.selections.aisShowTrack = false;
     }
+
+    if (typeof settings.selections.labelsMinZoom === 'undefined') {
+      settings.selections.labelsMinZoom = 8;
+    }
+
     // changeover 2.7 - for removal
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     if (typeof (settings as any).aisShowTrack !== 'undefined') {

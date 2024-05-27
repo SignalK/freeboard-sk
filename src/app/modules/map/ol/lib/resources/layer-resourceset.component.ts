@@ -103,10 +103,9 @@ export class ResourceSetLayerComponent implements OnInit, OnDestroy, OnChanges {
           key === 'mapZoom' ||
           key === 'darkMode'
         ) {
-          this.theme =
-            key === 'darkMode' && changes[key].currentValue
-              ? DarkTheme
-              : LightTheme;
+          if (key === 'darkMode') {
+            this.theme = changes[key].currentValue ? DarkTheme : LightTheme;
+          }
           this.handleLabelZoomChange(key, changes[key]);
         } else if (key === 'layerProperties') {
           this.layer.setProperties(properties, false);

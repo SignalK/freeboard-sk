@@ -1,6 +1,6 @@
 // ** Freeboard Map configuration **
 
-import { Style, Icon, Text, Stroke, Fill } from 'ol/style';
+import { Style, Icon, Text, Stroke, Fill, Circle } from 'ol/style';
 
 export const mapInteractions = [
   { name: 'dragpan' },
@@ -430,4 +430,88 @@ export const laylineStyles = {
       lineDash: [5, 5]
     })
   })
+};
+
+export const drawStyles = {
+  default: undefined,
+  measure: [
+    new Style({
+      stroke: new Stroke({
+        color: 'white',
+        width: 5,
+        lineDash: [5, 5]
+      })
+    }),
+    new Style({
+      image: new Circle({
+        radius: 6,
+        stroke: new Stroke({
+          width: 2,
+          color: 'white'
+        }),
+        fill: new Fill({
+          color: '#3399CC'
+        })
+      }),
+      fill: new Fill({
+        color: '#3399CC'
+      }),
+      stroke: new Stroke({
+        color: '#3399CC',
+        width: 3,
+        lineDash: [5, 5]
+      })
+    })
+  ],
+  route: [
+    new Style({
+      stroke: new Stroke({
+        color: 'white',
+        width: 5
+      })
+    }),
+    new Style({
+      image: new Circle({
+        radius: 6,
+        stroke: new Stroke({
+          width: 2,
+          color: 'white'
+        }),
+        fill: new Fill({
+          color: 'green'
+        })
+      }),
+      stroke: new Stroke({
+        color: 'green',
+        width: 3
+      })
+    })
+  ],
+  region: [
+    new Style({
+      stroke: new Stroke({
+        color: 'rgba(255,255,255,0.4)',
+        width: 5
+      }),
+      fill: new Fill({
+        color: 'rgba(255,255,255,0.4)'
+      })
+    }),
+    new Style({
+      stroke: new Stroke({
+        color: 'purple',
+        width: 2
+      }),
+      image: new Circle({
+        radius: 6,
+        stroke: new Stroke({
+          width: 2,
+          color: 'white'
+        }),
+        fill: new Fill({
+          color: 'purple'
+        })
+      })
+    })
+  ]
 };

@@ -12,7 +12,7 @@ import { MatMenuTrigger } from '@angular/material/menu';
 
 import { computeDestinationPoint, getGreatCircleBearing } from 'geolib';
 import { toLonLat } from 'ol/proj';
-import { Style, Stroke, Fill, Circle } from 'ol/style';
+import { Style, Stroke, Fill } from 'ol/style';
 import { Collection, Feature } from 'ol';
 
 import { Convert } from 'src/app/lib/convert';
@@ -53,7 +53,8 @@ import {
   anchorStyles,
   alarmStyles,
   destinationStyles,
-  laylineStyles
+  laylineStyles,
+  drawStyles
 } from './mapconfig';
 import { ModifyEvent } from 'ol/interaction/Modify';
 import { DrawEvent } from 'ol/interaction/Draw';
@@ -67,7 +68,6 @@ import {
   SKNotification
 } from 'src/app/types';
 import { S57Service } from './ol/lib/s57.service';
-import { Geometry } from 'ol/geom';
 
 interface IResource {
   id: string;
@@ -114,6 +114,7 @@ interface IFeatureData {
 
 interface IDrawInfo {
   enabled: boolean;
+  style: Style | Style[] | undefined;
   mode: string | null;
   type: 'Point' | 'LineString' | 'Polygon';
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -130,7 +131,7 @@ interface IDrawInfo {
 interface IMeasureInfo {
   enabled: boolean;
   end: boolean;
-  style: Style;
+  style: Style | Style[];
   totalDistance: number;
   coords: Position[];
 }
@@ -176,6 +177,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
   // ** draw interaction data
   public draw: IDrawInfo = {
     enabled: false,
+    style: drawStyles.default,
     mode: null,
     type: 'Point',
     coordinates: null,
@@ -189,25 +191,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
   public measure: IMeasureInfo = {
     enabled: false,
     end: false,
-    style: new Style({
-      image: new Circle({
-        radius: 6,
-        stroke: new Stroke({
-          width: 2,
-          color: 'white'
-        }),
-        fill: new Fill({
-          color: 'purple'
-        })
-      }),
-      fill: new Fill({
-        color: 'purple'
-      }),
-      stroke: new Stroke({
-        color: 'purple',
-        width: 3
-      })
-    }),
+    style: drawStyles.measure,
     totalDistance: 0,
     coords: []
   };
@@ -542,6 +526,9 @@ export class FBMapComponent implements OnInit, OnDestroy {
       if (value.mode === 'chart') {
         this.dfeat.charts = [].concat(this.app.data.charts);
       }
+      if (value.mode === 'region') {
+        this.dfeat.regions = [].concat(this.app.data.regions);
+      }
       if (value.mode === 'note') {
         this.dfeat.notes = [].concat(this.app.data.notes);
         this.dfeat.regions = [].concat(this.app.data.regions);
@@ -859,6 +846,10 @@ export class FBMapComponent implements OnInit, OnDestroy {
     if (!Array.isArray(pt)) {
       return;
     }
+    const lastPt = this.measure.coords[this.measure.coords.length -1];
+    if (pt[0] === lastPt[0] && pt[1] === lastPt[1]) {
+      return;
+    }
     this.measure.coords.push(pt);
     this.overlay.position = pt;
 
@@ -900,7 +891,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
         });
         this.draw.coordinates = c;
         break;
-      case 'Polygon': // region + Note
+      case 'Polygon': // region
         p = e.feature.getGeometry().getCoordinates();
         if (p.length === 0) {
           this.draw.coordinates = [];
@@ -1474,6 +1465,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
         }
         this.draw.enabled = false;
         this.draw.features = null;
+        this.draw.style = drawStyles.default;
       } else if (value && this.draw.enabled) {
         return;
       } else {
@@ -1489,9 +1481,11 @@ export class FBMapComponent implements OnInit, OnDestroy {
             break;
           case 'route':
             this.draw.type = 'LineString';
+            this.draw.style = drawStyles.route;
             break;
           case 'region':
             this.draw.type = 'Polygon';
+            this.draw.style = drawStyles.region;
             break;
           default:
             this.draw.type = 'Point';

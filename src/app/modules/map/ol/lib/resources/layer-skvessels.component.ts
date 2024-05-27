@@ -83,8 +83,10 @@ export class SKVesselsLayerComponent implements OnInit, OnDestroy, OnChanges {
     this.layer = new VectorLayer(
       Object.assign(this, { ...this.layerProperties })
     );
-    this.parseItems(this.extractKeys(this.targets));
+
     this.theme = this.darkMode ? DarkTheme : LightTheme;
+
+    this.parseItems(this.extractKeys(this.targets));
 
     const map = this.mapComponent.getMap();
     if (this.layer && map) {
@@ -131,10 +133,9 @@ export class SKVesselsLayerComponent implements OnInit, OnDestroy, OnChanges {
           key === 'mapZoom' ||
           key === 'vectorMinZoom'
         ) {
-          this.theme =
-            key === 'darkMode' && changes[key].currentValue
-              ? DarkTheme
-              : LightTheme;
+          if (key === 'darkMode') {
+            this.theme = changes[key].currentValue ? DarkTheme : LightTheme;
+          }
           this.handleLabelZoomChange(key, changes[key]);
         } else if (key === 'layerProperties') {
           this.layer.setProperties(properties, false);
@@ -407,7 +408,7 @@ export class SKVesselsLayerComponent implements OnInit, OnDestroy, OnChanges {
         });
       }
     }
-    s = this.setRotation(this.setTextLabel(s, lbl), item.orientation);
+    s = this.setTextLabel(this.setRotation(s, item.orientation), lbl);
     return s;
   }
 

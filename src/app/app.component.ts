@@ -965,7 +965,7 @@ export class AppComponent {
         } // cancelled
         try {
           const d = JSON.parse(res.data);
-          this.skres.createResource(res.path, d);
+          this.skres.postResource(res.path, d);
         } catch (err) {
           this.app.showAlert(
             'Load Resource',
@@ -1516,16 +1516,19 @@ export class AppComponent {
       case 'route':
         this.skres.showRouteNew({ coordinates: e.coordinates as LineString });
         break;
-      case 'region': // region + Note
+      case 'region':
         region = new SKRegion();
         uuid = this.signalk.uuid;
         region.feature.geometry.coordinates = [
           GeoUtils.normaliseCoords(e.coordinates as Polygon)
         ];
+        this.skres.showRegionInfo({ id: uuid, region: region });
+        /* //region + note
         this.skres.showNoteEditor({
           type: 'region',
           href: { id: uuid, data: region }
         });
+        */
         break;
     }
     // clean up
@@ -1614,6 +1617,7 @@ export class AppComponent {
     this.skres.getRoutes();
     this.skres.getWaypoints();
     this.skres.getCharts();
+    this.skres.getRegions();
     this.skres.getNotes();
     if (allTypes) {
       this.fetchOtherResources(true);

@@ -7,19 +7,21 @@ import {
   OnDestroy,
   OnInit,
   Output,
-  SimpleChanges
+  SimpleChanges,
+  SimpleChange
 } from '@angular/core';
 import { Layer } from 'ol/layer';
 import { Feature } from 'ol';
 import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
-import { Style, Stroke, Fill } from 'ol/style';
+import { Style, Stroke, Fill, Text } from 'ol/style';
 import { Polygon, MultiPolygon } from 'ol/geom';
 import { MapComponent } from '../map.component';
 import { Extent } from '../models';
 import { fromLonLatArray, mapifyCoords } from '../util';
 import { AsyncSubject } from 'rxjs';
 import { SKRegion } from 'src/app/modules';
+import { LightTheme, DarkTheme } from '../themes';
 
 // ** Signal K resource collection format **
 @Component({
@@ -31,6 +33,7 @@ export class RegionLayerComponent implements OnInit, OnDestroy, OnChanges {
   protected layer: Layer;
   public source: VectorSource;
   protected features: Array<Feature>;
+  protected theme = LightTheme;
 
   /**
    * This event is triggered after the layer is initialized
@@ -40,6 +43,9 @@ export class RegionLayerComponent implements OnInit, OnDestroy, OnChanges {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   @Input() regions: { [key: string]: any };
   @Input() regionStyles: { [key: string]: Style };
+  @Input() darkMode = false;
+  @Input() labelMinZoom = 10;
+  @Input() mapZoom = 10;
   @Input() opacity: number;
   @Input() visible: boolean;
   @Input() extent: Extent;
@@ -62,6 +68,8 @@ export class RegionLayerComponent implements OnInit, OnDestroy, OnChanges {
     this.layer = new VectorLayer(
       Object.assign(this, { ...this.layerProperties })
     );
+
+    this.theme = this.darkMode ? DarkTheme : LightTheme;
 
     const map = this.mapComponent.getMap();
     if (this.layer && map) {
@@ -86,6 +94,15 @@ export class RegionLayerComponent implements OnInit, OnDestroy, OnChanges {
           }
         } else if (key === 'regionStyles') {
           // handle region style change
+        } else if (
+          key === 'labelMinZoom' ||
+          key === 'mapZoom' ||
+          key === 'darkMode'
+        ) {
+          if (key === 'darkMode') {
+            this.theme = changes[key].currentValue ? DarkTheme : LightTheme;
+          }
+          this.handleLabelZoomChange(key, changes[key]);
         } else if (key === 'layerProperties') {
           this.layer.setProperties(properties, false);
         } else {
@@ -147,28 +164,80 @@ export class RegionLayerComponent implements OnInit, OnDestroy, OnChanges {
     }
   }
 
+  // ** assess attribute change **
+  handleLabelZoomChange(key: string, change: SimpleChange) {
+    if (key === 'labelMinZoom') {
+      if (typeof this.mapZoom !== 'undefined') {
+        this.updateLabels();
+      }
+    } else if (key === 'mapZoom') {
+      if (typeof this.labelMinZoom !== 'undefined') {
+        if (
+          (change.currentValue >= this.labelMinZoom &&
+            change.previousValue < this.labelMinZoom) ||
+          (change.currentValue < this.labelMinZoom &&
+            change.previousValue >= this.labelMinZoom)
+        ) {
+          this.updateLabels();
+        }
+      }
+    } else if (key === 'darkMode') {
+      this.updateLabels();
+    }
+  }
+
   // build region style
   buildStyle(id: string, reg): Style {
     if (typeof this.regionStyles !== 'undefined') {
       if (reg.feature.properties.skType) {
-        return this.regionStyles[reg.feature.properties.skType];
+        return this.setTextLabel(
+          this.regionStyles[reg.feature.properties.skType],
+          reg.name
+        );
       } else {
-        return this.regionStyles.default;
+        return this.setTextLabel(this.regionStyles.default, reg.name);
       }
     } else if (this.layerProperties && this.layerProperties.style) {
-      return this.layerProperties.style;
+      return this.setTextLabel(this.layerProperties.style, reg.name);
     } else {
       // default styles
-      return new Style({
-        fill: new Fill({
-          color: 'rgba(255,0,255,0.1)'
+      return this.setTextLabel(
+        new Style({
+          fill: new Fill({
+            color: 'rgba(255,0,255,0.1)'
+          }),
+          stroke: new Stroke({
+            color: 'purple',
+            width: 1
+          }),
+          text: new Text({
+            text: '',
+            offsetY: 0
+          })
         }),
-        stroke: new Stroke({
-          color: 'purple',
-          width: 1
-        })
-      });
+        reg.name
+      );
     }
+  }
+
+  // update feature labels
+  updateLabels() {
+    this.source.getFeatures().forEach((f: Feature) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const s: any = f.getStyle();
+      f.setStyle(this.setTextLabel(s, f.get('name')));
+    });
+  }
+
+  // return a Style with label text
+  setTextLabel(s: Style, text = ''): Style {
+    const cs = s.clone();
+    const ts = cs.getText();
+    if (ts) {
+      ts.setText(Math.abs(this.mapZoom) >= this.labelMinZoom ? text : '');
+      ts.setFill(new Fill({ color: this.theme.labelText.color }));
+    }
+    return cs;
   }
 }
 

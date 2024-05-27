@@ -123,21 +123,16 @@ export class BearingLineComponent implements OnInit, OnDestroy, OnChanges {
   parseValues() {
     this.mapifiedLine = mapifyCoords(this.lineCoords);
     const fa: Feature[] = [];
-    let f = new Feature({
+    const fl = new Feature({
       geometry: new LineString(fromLonLatArray(this.mapifiedLine))
     });
-    f.setStyle(this.buildStyle('base'));
-    fa.push(f);
-    f = new Feature({
-      geometry: new LineString(fromLonLatArray(this.mapifiedLine))
-    });
-    f.setStyle(this.buildStyle('line'));
-    fa.push(f);
+    fl.setStyle(this.buildStyle('line'));
+    fa.push(fl);
     let fp = new Feature({
       geometry: new Point(fromLonLat(this.marker))
     });
     fp.setId('d.base');
-    fp.setStyle(this.buildStyle('marker-base'));
+    fp.setStyle(this.buildStyle('line'));
     this.updateLabel(fp);
     fa.push(fp);
     if (this.showMarker) {
@@ -153,7 +148,7 @@ export class BearingLineComponent implements OnInit, OnDestroy, OnChanges {
   }
 
   // build target style
-  buildStyle(key: string): Style {
+  buildStyle(key: string): Style | Style[] {
     if (this.bearingStyles && this.bearingStyles[key]) {
       return this.bearingStyles[key];
     } else {
@@ -161,28 +156,14 @@ export class BearingLineComponent implements OnInit, OnDestroy, OnChanges {
         return this.layerProperties.style;
       } else {
         // default style
-        if (key === 'base') {
-          return new Style({
+        return [
+          new Style({
             stroke: new Stroke({
-              width: 6,
-              color: 'white'
-            }),
-            fill: new Fill({
-              color: 'white'
-            }),
-            image: new Circle({
-              radius: 5,
-              stroke: new Stroke({
-                width: 2,
-                color: 'white'
-              }),
-              fill: new Fill({
-                color: 'rgba(221, 149, 0, 1)'
-              })
+              color: 'white',
+              width: 6
             })
-          });
-        } else if (key === 'marker-base') {
-          return new Style({
+          }),
+          new Style({
             image: new Circle({
               radius: 5,
               stroke: new Stroke({
@@ -192,24 +173,18 @@ export class BearingLineComponent implements OnInit, OnDestroy, OnChanges {
               fill: new Fill({
                 color: 'rgba(221, 149, 0, 1)'
               })
+            }),
+            stroke: new Stroke({
+              color: 'rgba(221, 149, 0, 1)',
+              width: 2
             }),
             text: new Text({
               text: '',
               offsetX: 0,
               offsetY: -29
             })
-          });
-        } else {
-          return new Style({
-            stroke: new Stroke({
-              width: 2,
-              color: 'rgba(221, 149, 0, 1)'
-            }),
-            fill: new Fill({
-              color: 'rgba(221, 149, 0, 1)'
-            })
-          });
-        }
+          })
+        ];
       }
     }
   }
@@ -239,10 +214,12 @@ export class BearingLineComponent implements OnInit, OnDestroy, OnChanges {
     if (!f && this.source) {
       f = this.source.getFeatureById('d.base') as Feature;
     }
-    const s: StyleLike = f.getStyle();
+    let s: StyleLike = f.getStyle();
     if (!s) {
       return;
     }
+    s = Array.isArray(s) ? s[1] : s;
+
     const ts = (s as Style).getText();
     if (!ts) {
       return;

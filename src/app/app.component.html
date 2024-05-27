@@ -152,13 +152,16 @@
         <span>Drop Waypoint</span>
       </a>
       <mat-divider></mat-divider>
+      @if(this.app.config.map.zoomLevel >=
+      this.app.config.selections.notesMinZoom) {
       <a mat-menu-item (click)="drawStart('note')">
         <mat-icon color="">local_offer</mat-icon>
         <span>Add Note</span>
       </a>
+      }
       <a mat-menu-item (click)="drawStart('region')">
         <mat-icon color="">tab_unselected</mat-icon>
-        <span>Draw Region + Note</span>
+        <span>Draw Region</span>
       </a>
     </mat-menu>
     <!--/toolbar button menus-->
@@ -741,9 +744,9 @@
               [northUp]="app.config.map.northUp"
               [movingMap]="app.config.map.moveMap"
               [vesselTrail]="app.data.trail"
-              [measureMode]="measure.enabled"
               [activeRoute]="app.data.activeRoute"
               [dblClickZoom]="app.config.mapDoubleClick"
+              [measureMode]="measure.enabled"
               (measureStart)="measureStart()"
               (measureEnd)="measureEnd()"
               [drawMode]="draw.mode"

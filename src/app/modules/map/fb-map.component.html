@@ -31,6 +31,7 @@
   <ol-draw
     [type]="draw.type"
     [stopClick]="draw.mode === 'route' ? false : true"
+    [style]="draw.style"
     (drawEnd)="onDrawEnd($event)"
   >
   </ol-draw>
@@ -139,7 +140,7 @@
       [darkMode]="app.config.map.invertColor"
       [resourceSets]="resSet.value"
       [selected]="app.config.selections.resourceSets[resSet.key]"
-      [labelMinZoom]="10"
+      [labelMinZoom]="this.app.config.selections.labelsMinZoom"
       [mapZoom]="fbMap.zoomLevel"
       [zIndex]="52 + idx"
     >
@@ -153,7 +154,7 @@
     [routeStyles]="featureStyles.route"
     [activeRoute]="activeRoute"
     [darkMode]="app.config.map.invertColor"
-    [labelMinZoom]="10"
+    [labelMinZoom]="this.app.config.selections.labelsMinZoom"
     [mapZoom]="fbMap.zoomLevel"
     [zIndex]="80"
   >
@@ -176,7 +177,7 @@
     [waypoints]="dfeat.waypoints"
     [waypointStyles]="featureStyles.waypoint"
     [activeWaypoint]="app.data.activeWaypoint"
-    [labelMinZoom]="10"
+    [labelMinZoom]="this.app.config.selections.labelsMinZoom"
     [mapZoom]="fbMap.zoomLevel"
     [zIndex]="90"
   >
@@ -191,7 +192,7 @@
     targetType="aton"
     [updateIds]="aisMgr.updateList"
     [removeIds]="aisMgr.removeList"
-    [labelMinZoom]="10"
+    [labelMinZoom]="this.app.config.selections.labelsMinZoom"
     [mapZoom]="fbMap.zoomLevel"
     [zIndex]="45"
   >
@@ -205,7 +206,7 @@
     targetType="shore.basestations"
     [updateIds]="aisMgr.updateList"
     [removeIds]="aisMgr.removeList"
-    [labelMinZoom]="10"
+    [labelMinZoom]="this.app.config.selections.labelsMinZoom"
     [mapZoom]="fbMap.zoomLevel"
     [zIndex]="45"
   >
@@ -218,7 +219,7 @@
     [targets]="dfeat.meteo"
     [targetStyles]="featureStyles.meteo"
     targetType="meteo"
-    [labelMinZoom]="10"
+    [labelMinZoom]="this.app.config.selections.labelsMinZoom"
     [mapZoom]="fbMap.zoomLevel"
     [updateIds]="aisMgr.updateList"
     [staleIds]="aisMgr.staleList"
@@ -238,7 +239,7 @@
       [targets]="dfeat.ais"
       [targetStyles]="featureStyles.aisVessel"
       [mapZoom]="fbMap.zoomLevel"
-      [labelMinZoom]="10"
+      [labelMinZoom]="this.app.config.selections.labelsMinZoom"
       [showVector]="true"
       [vectorMinZoom]="app.config.selections.aisWindMinZoom"
       [vectorApparent]="app.config.selections.aisWindApparent"
@@ -262,7 +263,7 @@
     [targets]="dfeat.aircraft"
     [targetStyles]="featureStyles.aircraft"
     targetType="aircraft"
-    [labelMinZoom]="10"
+    [labelMinZoom]="this.app.config.selections.labelsMinZoom"
     [mapZoom]="fbMap.zoomLevel"
     [updateIds]="aisMgr.updateList"
     [staleIds]="aisMgr.staleList"
@@ -280,7 +281,7 @@
     [targets]="dfeat.sar"
     [targetStyles]="featureStyles.sar"
     targetType="sar"
-    [labelMinZoom]="10"
+    [labelMinZoom]="this.app.config.selections.labelsMinZoom"
     [mapZoom]="fbMap.zoomLevel"
     [updateIds]="aisMgr.updateList"
     [staleIds]="aisMgr.staleList"
@@ -290,14 +291,18 @@
   >
   </sk-targets>
   }
-
-  <!-- Signal K targets -->
+  <!-- /Signal K targets -->
 
   <!-- Regions -->
-  @if(display.layer.notes) {
-  <fb-regions [regions]="dfeat.regions" [regionStyles]="" [zIndex]="120">
+  <fb-regions
+    [darkMode]="app.config.map.invertColor"
+    [regions]="dfeat.regions"
+    [regionStyles]=""
+    [labelMinZoom]="this.app.config.selections.labelsMinZoom"
+    [mapZoom]="fbMap.zoomLevel"
+    [zIndex]="120"
+  >
   </fb-regions>
-  }
 
   <!-- Notes -->
   @if(display.layer.notes) {
@@ -473,7 +478,7 @@
     [showMarker]="!app.data.activeWaypoint"
     [markerName]="app.data.navData.destPointName"
     [bearingStyles]="featureStyles.destination"
-    [labelMinZoom]="10"
+    [labelMinZoom]="this.app.config.selections.labelsMinZoom"
     [mapZoom]="fbMap.zoomLevel"
     [zIndex]="212"
   >

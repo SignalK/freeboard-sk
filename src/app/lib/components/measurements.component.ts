@@ -10,11 +10,11 @@ import { CommonModule } from '@angular/common';
 import { MatTooltip } from '@angular/material/tooltip';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { MatCardModule } from '@angular/material/card';
 import { AppInfo } from 'src/app/app.info';
 import { Position } from 'src/app/types';
 import { getGreatCircleBearing } from 'geolib';
 import { GeoUtils } from '../geoutils';
+import { MatToolbarModule } from '@angular/material/toolbar';
 
 // ********* Measurements Component ********
 
@@ -24,85 +24,66 @@ import { GeoUtils } from '../geoutils';
   selector: 'fb-measurements',
   imports: [
     CommonModule,
-    MatCardModule,
     MatIconModule,
     MatButtonModule,
-    MatTooltip
+    MatTooltip,
+    MatToolbarModule
   ],
   template: `
     <div class="_ap_measurements">
-      <div style="flex: 2;">&nbsp;</div>
-      <div>
-        <mat-card>
-          <mat-card-content>
-            <div class="_ap_row">
-              <div class="icon-label"><mat-icon>straighten</mat-icon></div>
-              <div class="row-label">Total</div>
-              <div class="value-label">Distance:</div>
-              <div class="value">{{ totalDistance }}</div>
+      <mat-toolbar style="background-color: #00796b; color: white; padding: 0 5px;">
+        <div class="_ap_row">
+          <div class="_ap_row">
+            <div class="icon-label">
+              <mat-icon>straighten</mat-icon>
             </div>
+            <div class="value">
+              {{ totalDistance }}<br>
+            </div>
+          </div>
+          <div class="_ap_row">
             <div class="_ap_row">
-              <div class="icon-label"><mat-icon>square_foot</mat-icon></div>
-              <div class="row-label">
+              <div style="font-size: 12pt;">
+                <mat-icon>square_foot</mat-icon><br>
                 {{
-                  this.coords.length === 0
-                    ? 0
+                  this.coords.length < 2
+                    ? '-'
                     : this.index === -1
                     ? this.coords.length - 1
                     : this.index + 1
                 }}
-                of {{ this.coords.length === 0 ? 0 : this.coords.length - 1 }}
               </div>
-              <div class="value-label">Dist:</div>
-              <div class="value">{{ legDistance }}</div>
-              <div class="value-label">Bearing:</div>
-              <div class="value">{{ legBearing }}</div>
+              <div class="value">
+                {{ legDistance }}<br>
+                {{ legBearing }}
+              </div>
             </div>
-          </mat-card-content>
-          <mat-card-actions align="start">
-            <button
-              matTooltip="Previous leg"
-              matTooltipPosition="above"
-              mat-icon-button
-              [disabled]="this.btnDisable.prev"
-              (click)="select(true)"
-            >
-              <mat-icon>arrow_back</mat-icon>
-            </button>
-            <button
-              matTooltip="Next leg"
-              matTooltipPosition="above"
-              mat-icon-button
-              [disabled]="this.btnDisable.next"
-              (click)="select()"
-            >
-              <mat-icon>arrow_forward</mat-icon>
-            </button>
+          </div>
+          <div>
             <button
               matTooltip="Cancel"
-              matTooltipPosition="above"
+              matTooltipPosition="below"
               mat-icon-button
               (click)="close()"
             >
-              <mat-icon color="warn">close</mat-icon>
+              <mat-icon>close</mat-icon>
             </button>
-          </mat-card-actions>
-        </mat-card>
-      </div>
-      <div style="flex: 2;">&nbsp;</div>
-    </div>
+          </div>
+        </div>
+      </mat-toolbar>
   `,
   styles: [
     `
       ._ap_measurements {
         position: fixed;
         top: 0;
-        display: flex;
-        width: 100%;
+        width: 500px;
       }
 
       ._ap_row {
         display: flex;
+        flex-wrap: no-wrap;
+        flex: 2;
       }
       ._ap_row .icon-label {
         width: 30px;
@@ -111,12 +92,15 @@ import { GeoUtils } from '../geoutils';
         font-weight: 500;
         min-width: 60px;
       }
-      ._ap_row .value-label {
-        font-weight: 500;
-        padding-right: 5px;
-      }
       ._ap_measurements .value {
         padding-right: 10px;
+      }
+
+      @media only screen and (max-width: 500px) {  
+        ._ap_measurements {
+          left: 0;
+          width: 100%;
+        }       
       }
     `
   ]

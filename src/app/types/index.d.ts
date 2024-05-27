@@ -132,6 +132,7 @@ export interface FBAppConfig {
     aisProfile: number; // ais display profile
     aisState: string[]; // list of ais state values used to filter targets
     notesMinZoom: number;
+    labelsMinZoom: number;
     pluginFavourites: string[];
     trailFromServer: boolean;
     trailDuration: number; // number of hours of trail to fetch from server

@@ -1314,7 +1314,7 @@ export class TracksModal implements OnInit {
         if (i !== -1) {
           this.app.config.selections.tracks.splice(i, 1);
         }
-        this.data.skres.deleteTrack(id);
+        this.data.skres.deleteResource('tracks', id);
         setTimeout(this.getTracks.bind(this), 2000);
         this.app.saveConfig();
       } else {
