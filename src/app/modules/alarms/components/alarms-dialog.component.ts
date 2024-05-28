@@ -7,6 +7,7 @@ import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { Subscription } from 'rxjs';
 import { SignalKClient } from 'signalk-client-angular';
 import { AlarmsFacade } from '../alarms.facade';
+import { AppInfo } from 'src/app/app.info';
 
 /********* AlarmsDialog *********
 	data: {
@@ -90,6 +91,7 @@ export class AlarmsDialog implements OnInit {
   private obs: Subscription;
 
   constructor(
+    private app: AppInfo,
     private signalk: SignalKClient,
     private facade: AlarmsFacade,
     public dialogRef: MatDialogRef<AlarmsDialog>,
@@ -202,7 +204,7 @@ export class AlarmsDialog implements OnInit {
   }
 
   raise(alarmType: string) {
-    this.signalk.api.post(`alarms/${alarmType}`, undefined).subscribe(
+    this.signalk.api.post(this.app.skApiVersion,`alarms/${alarmType}`, undefined).subscribe(
       () => undefined,
       (err: HttpErrorResponse) => {
         console.warn(`Error raising alarm: ${alarmType}`, err);
@@ -212,7 +214,7 @@ export class AlarmsDialog implements OnInit {
   }
 
   clear(alarmType: string) {
-    this.signalk.api.delete(`alarms/${alarmType}`).subscribe(
+    this.signalk.api.delete(this.app.skApiVersion,`alarms/${alarmType}`).subscribe(
       () => undefined,
       (err: HttpErrorResponse) => {
         console.warn(`Error clearing alarm: ${alarmType}`, err);

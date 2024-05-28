@@ -25,7 +25,7 @@ const STANDARD_ALARMS = [
 
 let server: FreeboardHelperApp;
 let pluginId: string;
-const ALARM_API_PATH = '/signalk/v1/api/alarms';
+const ALARM_API_PATH = '/signalk/v2/api/alarms';
 
 export const initAlarms = (app: FreeboardHelperApp, id: string) => {
   server = app;

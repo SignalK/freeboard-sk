@@ -214,7 +214,7 @@ export class AlarmsFacade {
 
   muteAlarm(id: string) {
     this.alarms.get(id)['muted'] = true;
-    this.signalk.api.post(`alarms/${id}/silence`, undefined).subscribe(
+    this.signalk.api.post(this.app.skApiVersion,`alarms/${id}/silence`, undefined).subscribe(
       () => undefined,
       (err: HttpErrorResponse) => {
         console.warn(`Error silencing alarm: ${id}`, err);

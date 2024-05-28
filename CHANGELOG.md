@@ -1,5 +1,9 @@
 # CHANGELOG: Freeboard
 
+### v2.8.1
+
+- **Fixed**: Unable to clearing alarms on server v2.8 or greater due to 'DELETE' requests not being passed to plugins.
+
 ### v2.8.0
 
 - **Added**: Option to display laylines when destination is active. (#149)
