@@ -38,6 +38,7 @@ import {
   ActiveResourcePropertiesModal,
   TracksModal,
   ResourceSetModal,
+  ResourceSetFeatureModal,
   ResourceImportDialog,
   WeatherForecastModal
 } from 'src/app/modules';
@@ -132,7 +133,7 @@ export class AppComponent {
     public alarmsFacade: AlarmsFacade,
     private stream: SKStreamFacade,
     public skres: SKResources,
-    public skOtherRes: SKOtherResources,
+    public skresOther: SKOtherResources,
     public signalk: SignalKClient,
     private dom: DomSanitizer,
     private overlayContainer: OverlayContainer,
@@ -464,7 +465,7 @@ export class AppComponent {
           this.bottomSheet
             .open(ResourceSetModal, {
               disableClose: true,
-              data: { path: e.choice, skres: this.skOtherRes }
+              data: { path: e.choice, skres: this.skresOther }
             })
             .afterDismissed()
             .subscribe(() => {
@@ -1244,9 +1245,7 @@ export class AppComponent {
   public featureProperties(e: { id: string; type: string }) {
     let v: FBRoute | SKVessel | SKSaR | SKAircraft | SKAtoN;
     if (e.type === 'route') {
-      v = this.app.data.routes.filter((i) => {
-        return e.id === i[0] ? true : false;
-      })[0];
+      v = this.skres.fromCache('routes', e.id);
       if (v) {
         this.bottomSheet
           .open(ActiveResourcePropertiesModal, {
@@ -1318,6 +1317,19 @@ export class AppComponent {
       }
     } else if (e.type === 'alarm') {
       this.openAlarmsDialog();
+    } else if (e.type === 'rset') {
+      v = this.skres.resSetFromCache(e.id);
+      if (v) {
+        this.bottomSheet
+          .open(ResourceSetFeatureModal, {
+            disableClose: true,
+            data: { id: e.id, skres: v }
+          })
+          .afterDismissed()
+          .subscribe(() => {
+            this.focusMap();
+          });
+      }
     } else {
       v =
         e.type === 'self'
@@ -1628,7 +1640,7 @@ export class AppComponent {
   fetchOtherResources(onlySelected = false) {
     this.skres.getTracks(onlySelected);
     this.app.config.resources.paths.forEach((i) => {
-      this.skOtherRes.getItems(i, onlySelected);
+      this.skresOther.getItems(i, onlySelected);
     });
   }
 

@@ -204,21 +204,25 @@ export class AlarmsDialog implements OnInit {
   }
 
   raise(alarmType: string) {
-    this.signalk.api.post(this.app.skApiVersion,`alarms/${alarmType}`, undefined).subscribe(
-      () => undefined,
-      (err: HttpErrorResponse) => {
-        console.warn(`Error raising alarm: ${alarmType}`, err);
-      }
-    );
+    this.signalk.api
+      .post(this.app.skApiVersion, `alarms/${alarmType}`, undefined)
+      .subscribe(
+        () => undefined,
+        (err: HttpErrorResponse) => {
+          console.warn(`Error raising alarm: ${alarmType}`, err);
+        }
+      );
     this.dialogRef.close();
   }
 
   clear(alarmType: string) {
-    this.signalk.api.delete(this.app.skApiVersion,`alarms/${alarmType}`).subscribe(
-      () => undefined,
-      (err: HttpErrorResponse) => {
-        console.warn(`Error clearing alarm: ${alarmType}`, err);
-      }
-    );
+    this.signalk.api
+      .delete(this.app.skApiVersion, `alarms/${alarmType}`)
+      .subscribe(
+        () => undefined,
+        (err: HttpErrorResponse) => {
+          console.warn(`Error clearing alarm: ${alarmType}`, err);
+        }
+      );
   }
 }

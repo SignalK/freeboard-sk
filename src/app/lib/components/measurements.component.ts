@@ -31,20 +31,20 @@ import { MatToolbarModule } from '@angular/material/toolbar';
   ],
   template: `
     <div class="_ap_measurements">
-      <mat-toolbar style="background-color: #00796b; color: white; padding: 0 5px;">
+      <mat-toolbar
+        style="background-color: #00796b; color: white; padding: 0 5px;"
+      >
         <div class="_ap_row">
           <div class="_ap_row">
             <div class="icon-label">
               <mat-icon>straighten</mat-icon>
             </div>
-            <div class="value">
-              {{ totalDistance }}<br>
-            </div>
+            <div class="value">{{ totalDistance }}<br /></div>
           </div>
           <div class="_ap_row">
             <div class="_ap_row">
               <div style="font-size: 12pt;">
-                <mat-icon>square_foot</mat-icon><br>
+                <mat-icon>square_foot</mat-icon><br />
                 {{
                   this.coords.length < 2
                     ? '-'
@@ -54,7 +54,7 @@ import { MatToolbarModule } from '@angular/material/toolbar';
                 }}
               </div>
               <div class="value">
-                {{ legDistance }}<br>
+                {{ legDistance }}<br />
                 {{ legBearing }}
               </div>
             </div>
@@ -71,6 +71,7 @@ import { MatToolbarModule } from '@angular/material/toolbar';
           </div>
         </div>
       </mat-toolbar>
+    </div>
   `,
   styles: [
     `
@@ -96,11 +97,11 @@ import { MatToolbarModule } from '@angular/material/toolbar';
         padding-right: 10px;
       }
 
-      @media only screen and (max-width: 500px) {  
+      @media only screen and (max-width: 500px) {
         ._ap_measurements {
           left: 0;
           width: 100%;
-        }       
+        }
       }
     `
   ]

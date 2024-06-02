@@ -122,9 +122,7 @@ export class ChartListComponent {
   }
 
   itemProperties(id: string) {
-    const ch = this.charts.filter((c: FBChart) => {
-      return c[0] === id ? true : false;
-    })[0][1];
+    const ch = this.charts.filter((c: FBChart) => c[0] === id)[0][1];
     this.dialog.open(ChartInfoDialog, { data: ch });
   }
 
