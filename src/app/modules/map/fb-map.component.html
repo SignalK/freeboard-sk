@@ -138,6 +138,7 @@
     @if(resSet.key !== 'tracks') {
     <fb-resource-sets
       [darkMode]="app.config.map.invertColor"
+      [collection]="resSet.key"
       [resourceSets]="resSet.value"
       [selected]="app.config.selections.resourceSets[resSet.key]"
       [labelMinZoom]="this.app.config.selections.labelsMinZoom"
@@ -367,6 +368,17 @@
       (closed)="popoverClosed()"
     >
     </resource-popover>
+    } @if(overlay.type === 'rset') {
+    <resourceset-popover
+      [canClose]="app.config.popoverMulti"
+      [title]="overlay.title"
+      [resource]="overlay.resource"
+      (modify)="startModify(); popoverClosed()"
+      (delete)="deleteFeature(overlay.id, overlay.type); popoverClosed()"
+      (info)="itemInfo(overlay.id, overlay.type); popoverClosed()"
+      (closed)="popoverClosed()"
+    >
+    </resourceset-popover>
     } @if(overlay.type === 'ais') {
     <div>
       @if(app.config.selections.aisProfile === 0) {
@@ -467,6 +479,8 @@
   <fb-layline
     [lines]="vesselLines.laylines"
     [laylineStyles]="featureStyles.layline"
+    [heading]="app.data.vessels.self.heading"
+    [awa]="app.data.vessels.self.wind.awa"
     [mapZoom]="fbMap.zoomLevel"
     [zIndex]="212"
   >

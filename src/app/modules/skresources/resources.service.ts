@@ -30,7 +30,6 @@ import {
   Charts,
   LineString,
   SKPosition,
-  SKApiResponse,
   RouteResource,
   WaypointResource,
   RegionResource,
@@ -40,11 +39,12 @@ import {
   Regions
 } from 'src/app/types';
 import { PathValue } from '@signalk/server-api';
+import { SKResourceSet } from './resources.module';
 
 // ** Signal K resource operations
 @Injectable({ providedIn: 'root' })
 export class SKResources {
-  private reOpen: { key; value };
+  private reOpen: { key?: string; value?: string };
   private updateSource: Subject<unknown> = new Subject<unknown>();
 
   constructor(
@@ -76,6 +76,31 @@ export class SKResources {
       (i: [string, SKRegion]) => i[0] === id
     );
     return item.length === 0 ? undefined : item[0];
+  }
+
+  /** Retrieve cached Resource Set | feature at index (app.data)
+   * @params id Map feature id.
+   * @params getFeature  true = return Feature entry, false = return whole RecordSet
+   * @returns Feature OR Resource Set.
+   */
+  public resSetFromCache(mapFeatureId: string, getFeature?: boolean) {
+    const t = mapFeatureId.split('.');
+    if (t[0] !== 'rset') {
+      return;
+    }
+    const collection = t[1];
+    const rSetId = t[2];
+    const index = Number(t[t.length - 1]);
+    if (
+      !this.app.data.resourceSets[collection] ||
+      !Array.isArray(this.app.data.resourceSets[collection])
+    ) {
+      return;
+    }
+    const item = this.app.data.resourceSets[collection].filter(
+      (i: SKResourceSet) => i.id === rSetId
+    )[0];
+    return getFeature ? item.values.features[index] : item;
   }
 
   // ******** SK Resource operations ********************
@@ -1550,9 +1575,9 @@ export class SKResources {
   }
 
   /** Process SKNotes objects returned from server.
-      @param noDesc: true = remove description value
-      @param maxCount: max number of entries to return
-      @returns Array of SKNotes 
+    @param noDesc: true = remove description value
+    @param maxCount: max number of entries to return
+    @returns Array of SKNotes 
   */
   private processNotes(n: Notes, noDesc = false, maxCount?: number): FBNotes {
     let r = Object.entries(n);
@@ -1946,54 +1971,6 @@ export class SKResources {
   }
 
   // *******************************
-
-  // ** check pending request
-  private async pendingStatus(status, max = 10, waitTime = 1000) {
-    if (!status.href) {
-      return { state: 'COMPLETED', statusCode: 200 };
-    }
-    let pending = true;
-    let pollCount = 0;
-    let result: SKApiResponse;
-
-    while (pending) {
-      pollCount++;
-      const r = await this.poll(status.href, waitTime);
-      if (r['state'] && r['state'] !== 'PENDING') {
-        pending = false;
-        result = r;
-      } else {
-        if (pollCount >= max) {
-          pending = false;
-          result = {
-            state: 'COMPLETED',
-            statusCode: 410,
-            message: `Max. number of ${max} status requests reached.`
-          };
-        }
-      }
-    }
-    return result;
-  }
-  // ** poll pending operation **
-  private poll(href: string, waitTime = 1000): Promise<SKApiResponse> {
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        this.signalk.get(href).subscribe(
-          (res: SKApiResponse) => {
-            resolve(res);
-          },
-          () => {
-            resolve({
-              state: 'FAILED',
-              statusCode: 404,
-              message: 'Server returned error when polling request status!'
-            });
-          }
-        );
-      }, waitTime);
-    });
-  }
 
   // ** show login dialog **
   private showAuth(message?: string) {

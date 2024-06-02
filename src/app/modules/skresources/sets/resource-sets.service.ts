@@ -70,7 +70,7 @@ export class SKOtherResources {
   }
 
   // ** process data and apply styles
-  processItems(res: CustomResources) {
+  private processItems(res: CustomResources) {
     let resList = [];
     if (!Array.isArray(res)) {
       // convert returned object to array
@@ -89,11 +89,11 @@ export class SKOtherResources {
     }
   }
 
-  resourceSelected() {
+  private resourceSelected() {
     this.updateSource.next({ action: 'selected', mode: 'resource-set' });
   }
 
-  processResourceSet(resList: Array<[string, ResourceSet]>) {
+  private processResourceSet(resList: Array<[string, ResourceSet]>) {
     const items = [];
     // process ResourceSet
     resList.forEach((r: [string, ResourceSet]) => {
@@ -131,7 +131,7 @@ export class SKOtherResources {
   }
 
   // ** process Non ResourceSet responses into generic return value
-  processOther(resList: Array<unknown>) {
+  private processOther(resList: Array<unknown>) {
     const items = [];
     resList.forEach((r) => {
       const i = {};

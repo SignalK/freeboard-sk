@@ -911,23 +911,6 @@ export class ActiveResourcePropertiesModal implements OnInit {
           );
         }
       }
-      /*else {
-          if(this.app.data.activeRoute) {
-              const rte= this.app.data.routes.filter(i=> { 
-                  return (i[0]===this.app.data.activeRoute) ? true : false;
-              })[0];
-              if(rte.length!=0) {
-                  this.points= rte[1].feature.geometry.coordinates;
-                  this.data.title= (rte[1].name) ? `${rte[1].name} Points` : 'Active Route Points';
-                  this.selIndex= this.app.data.navData.pointIndex;
-              }
-          }
-          else { 
-              this.data.title= (this.data.title) ? this.data.title : 'Destination';
-              this.points= [this.data.resource[1].feature.geometry.coordinates];
-              this.clearButtonText= 'Clear Destination';
-          }
-      }*/
     }
   }
 
@@ -1364,6 +1347,7 @@ export class TracksModal implements OnInit {
 }
 
 /********* ResourceSetModal **********
+ * Fetches ResouorceSets from server for selection
 	data: {
         path: "<string>" resource path
         skres: SKResource
@@ -1556,5 +1540,97 @@ export class ResourceSetModal implements OnInit {
         ? true
         : false;
     });
+  }
+}
+
+/********* ResourceSetFeatureModal **********
+ * Displays information about a ResourceSet feature
+	data: {
+    id: string
+    skres: SKResourceSet;
+  }
+***********************************/
+@Component({
+  selector: 'ap-resourceset-feature-modal',
+  template: `
+    <div class="_ap-resource-set-feature">
+      <mat-toolbar style="background-color: transparent">
+        <span> </span>
+        <span style="flex: 1 1 auto; padding-left:20px;text-align:center;">
+          {{ title }}
+        </span>
+        <span>
+          <button
+            mat-icon-button
+            (click)="closeModal()"
+            matTooltip="Close"
+            matTooltipPosition="left"
+          >
+            <mat-icon>keyboard_arrow_down</mat-icon>
+          </button>
+        </span>
+      </mat-toolbar>
+
+      <mat-card>
+        <mat-card-content>
+          <signalk-details-list [details]="properties"></signalk-details-list>
+        </mat-card-content>
+      </mat-card>
+    </div>
+  `,
+  styles: [
+    `
+      ._ap-resource-set-feature {
+        font-family: arial;
+        min-width: 300px;
+      }
+      ._ap-resource-set-feature .key-label {
+        font-weight: 500;
+      }
+      ._ap-resource-set-feature .key-desc {
+        font-style: italic;
+      }
+    `
+  ]
+})
+export class ResourceSetFeatureModal implements OnInit {
+  protected properties = {};
+  protected title = 'ResourceSet Feature: ';
+
+  constructor(
+    public app: AppInfo,
+    private cdr: ChangeDetectorRef,
+    public modalRef: MatBottomSheetRef<ResourceSetFeatureModal>,
+    @Inject(MAT_BOTTOM_SHEET_DATA)
+    public data: {
+      id: string;
+      skres: SKResourceSet;
+    }
+  ) {}
+
+  ngOnInit() {
+    this.parse();
+  }
+
+  closeModal() {
+    this.modalRef.dismiss();
+  }
+
+  parse() {
+    const t = this.data.id.split('.');
+    const fIndex = Number(t[t.length - 1]);
+    const features = this.data.skres.values.features;
+    const feature = fIndex < features.length ? features[fIndex] : features[0];
+
+    this.title = feature.properties.name ?? 'Feature';
+    this.properties = {
+      name: feature.properties.name ?? '',
+      description: feature.properties.description ?? '',
+      'position.latitude': feature.geometry.coordinates[1],
+      'position.longitude': feature.geometry.coordinates[0],
+      'resourceset.name': this.data.skres.name,
+      'resourceset.description': this.data.skres.description,
+      'resourceset.collection': t[1]
+    };
   }
 }

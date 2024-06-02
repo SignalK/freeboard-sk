@@ -42,7 +42,8 @@ import {
   ActiveResourcePropertiesModal,
   ChartInfoDialog,
   TracksModal,
-  ResourceSetModal
+  ResourceSetModal,
+  ResourceSetFeatureModal
 } from './resource-dialogs';
 import { ResourceImportDialog } from './sets/resource-upload-dialog';
 
@@ -87,6 +88,7 @@ import { ResourceImportDialog } from './sets/resource-upload-dialog';
     ChartLayers,
     TracksModal,
     ResourceSetModal,
+    ResourceSetFeatureModal,
     ResourceImportDialog
   ],
   exports: [
@@ -104,6 +106,7 @@ import { ResourceImportDialog } from './sets/resource-upload-dialog';
     ChartLayers,
     TracksModal,
     ResourceSetModal,
+    ResourceSetFeatureModal,
     ResourceImportDialog
   ]
 })

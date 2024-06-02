@@ -413,3 +413,96 @@ export class ResourcePopoverComponent {
     this.closed.emit();
   }
 }
+
+/*********** ResourceSet Popover ***************
+title: string -  title text,
+resource: resource data
+type: string - resource type
+id: string - resource id
+*************************************************/
+@Component({
+  selector: 'resourceset-popover',
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  template: `
+    <ap-popover [title]="title" [canClose]="canClose" (closed)="handleClose()">
+      @for(p of properties; track p) {
+      <div style="display:flex;">
+        <div style="font-weight:bold;">{{ p[0] }}:</div>
+        @if(p[0] !== 'Latitude' && p[0] !== 'Longitude') {
+        <div
+          style="flex: 1 1 auto;text-align:right;
+                                white-space:nowrap;
+                                overflow-x:hidden;
+                                text-overflow:ellipsis;"
+        >
+          {{ p[1] }}
+        </div>
+        } @if(p[0] === 'Latitude') {
+        <div
+          style="flex: 1 1 auto;text-align:right;"
+          [innerText]="
+            p[1] | coords : app.config.selections.positionFormat : true
+          "
+        ></div>
+        } @if(p[0] === 'Longitude') {
+        <div
+          style="flex: 1 1 auto;text-align:right;"
+          [innerText]="p[1] | coords : app.config.selections.positionFormat"
+        ></div>
+        }
+      </div>
+      }
+      <div style="display:flex;flex-wrap: wrap;">
+        <div class="popover-action-button">
+          <button
+            mat-button
+            (click)="emitInfo()"
+            matTooltip="Show Properties"
+            matTooltipPosition="after"
+          >
+            <mat-icon>info_outline</mat-icon>
+            INFO
+          </button>
+        </div>
+      </div>
+    </ap-popover>
+  `,
+  styleUrls: [`./popover.component.scss`]
+})
+export class ResourceSetPopoverComponent {
+  @Input() title: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  @Input() resource: any;
+  @Input() canClose: boolean;
+  @Output() info: EventEmitter<string> = new EventEmitter();
+  @Output() closed: EventEmitter<void> = new EventEmitter();
+
+  properties: Array<unknown>; // ** resource properties
+
+  constructor(public app: AppInfo) {}
+
+  ngOnChanges() {
+    this.parse();
+  }
+
+  parse() {
+    this.properties = [];
+    if (this.resource.properties.name) {
+      this.properties.push(['Name', this.resource.properties.name]);
+    }
+    if (this.resource.properties.description) {
+      this.properties.push(['Desc.', this.resource.properties.description]);
+    }
+    this.properties.push(['Latitude', this.resource.geometry.coordinates[1]]);
+    this.properties.push(['Longitude', this.resource.geometry.coordinates[0]]);
+  }
+
+  // *** BUTTON actions *******
+  emitInfo() {
+    this.info.emit();
+  }
+
+  handleClose() {
+    this.closed.emit();
+  }
+}

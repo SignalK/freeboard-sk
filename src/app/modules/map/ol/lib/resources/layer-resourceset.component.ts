@@ -49,6 +49,7 @@ export class ResourceSetLayerComponent implements OnInit, OnDestroy, OnChanges {
    */
   @Output() layerReady: AsyncSubject<Layer> = new AsyncSubject(); // AsyncSubject will only store the last value, and only publish it when the sequence is completed
   @Input() darkMode = false;
+  @Input() collection: string;
   @Input() resourceSets: Array<SKResourceSet> = [];
   @Input() selected: Array<string> = [];
   @Input() labelMinZoom = 10;
@@ -70,13 +71,13 @@ export class ResourceSetLayerComponent implements OnInit, OnDestroy, OnChanges {
   }
 
   ngOnInit() {
+    this.theme = this.darkMode ? DarkTheme : LightTheme;
     this.parseResourceSets(this.resourceSets);
+
     this.source = new VectorSource({ features: this.features });
     this.layer = new VectorLayer(
       Object.assign(this, { ...this.layerProperties })
     );
-
-    this.theme = this.darkMode ? DarkTheme : LightTheme;
 
     const map = this.mapComponent.getMap();
     if (this.layer && map) {
@@ -140,45 +141,47 @@ export class ResourceSetLayerComponent implements OnInit, OnDestroy, OnChanges {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   parseResources(rSet: { [key: string]: any }) {
     const fa: Feature[] = [];
+    let count = 0;
     for (const w of rSet.values.features) {
       let f: Feature;
       if (w.geometry.type === 'Point') {
         f = new Feature({
           geometry: new Point(fromLonLat(w.geometry.coordinates)),
-          name: w.properties.name
+          name: w.properties.name ?? `Point ${count}`
         });
       }
       if (w.geometry.type === 'MultiPoint') {
         f = new Feature({
           geometry: new MultiPoint(fromLonLatArray(w.geometry.coordinates)),
-          name: w.properties.name
+          name: w.properties.name ?? `Pt ${count}`
         });
       } else if (w.geometry.type === 'LineString') {
         f = new Feature({
           geometry: new LineString(fromLonLatArray(w.geometry.coordinates)),
-          name: w.properties.name
+          name: w.properties.name ?? `L${count}`
         });
       } else if (w.geometry.type === 'MultiLineString') {
         f = new Feature({
           geometry: new MultiLineString(
             fromLonLatArray(w.geometry.coordinates)
           ),
-          name: w.properties.name
+          name: w.properties.name ?? `L${count}`
         });
       } else if (w.geometry.type === 'Polygon') {
         f = new Feature({
           geometry: new Polygon(fromLonLatArray(w.geometry.coordinates)),
-          name: w.properties.name
+          name: w.properties.name ?? `P${count}`
         });
       } else if (w.geometry.type === 'MultiPolygon') {
         f = new Feature({
           geometry: new MultiPolygon(fromLonLatArray(w.geometry.coordinates)),
-          name: w.properties.name
+          name: w.properties.name ?? `P${count}`
         });
       }
       if (!f) {
         continue;
       }
+      f.setId(`rset.${this.collection}.${rSet.id}.${count}`);
       // set style
       if (typeof rSet.styles !== 'undefined') {
         let rs: Style;
@@ -195,6 +198,7 @@ export class ResourceSetLayerComponent implements OnInit, OnDestroy, OnChanges {
         f.setStyle(this.setTextLabel(rs, w.properties.name));
       }
       fa.push(f);
+      count++;
     }
     this.features = this.features.concat(fa);
   }
@@ -237,10 +241,11 @@ export class ResourceSetLayerComponent implements OnInit, OnDestroy, OnChanges {
       new Text({
         text: Math.abs(this.mapZoom) >= this.labelMinZoom ? text : '',
         rotateWithView: false,
-        offsetY: -12
+        offsetY: -12,
+        fill: new Fill({ color: this.theme.labelText.color })
       })
     );
-    cs.setFill(new Fill({ color: this.theme.labelText.color }));
+    //cs.setFill(new Fill({ color: this.theme.labelText.color }));
     return cs;
   }
 
