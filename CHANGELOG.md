@@ -1,5 +1,10 @@
 # CHANGELOG: Freeboard
 
+### v2.8.2
+
+- **Updated**: Show laylines only when destination is upwind (#149).
+- **Fixed**: Apparent wind vector not correct in North-Up mode.
+
 ### v2.8.1
 
 - **Fixed**: Unable to clearing alarms on server v2.8 or greater due to 'DELETE' requests not being passed to plugins.
