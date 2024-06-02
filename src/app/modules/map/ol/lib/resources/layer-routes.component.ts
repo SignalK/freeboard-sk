@@ -66,13 +66,12 @@ export class RouteLayerComponent implements OnInit, OnDestroy, OnChanges {
   }
 
   ngOnInit() {
+    this.theme = this.darkMode ? DarkTheme : LightTheme;
     this.parseRoutes(this.routes);
     this.source = new VectorSource({ features: this.features });
     this.layer = new VectorLayer(
       Object.assign(this, { ...this.layerProperties })
     );
-
-    this.theme = this.darkMode ? DarkTheme : LightTheme;
 
     const map = this.mapComponent.getMap();
     if (this.layer && map) {

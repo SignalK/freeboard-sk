@@ -85,7 +85,6 @@ export class SKVesselsLayerComponent implements OnInit, OnDestroy, OnChanges {
     );
 
     this.theme = this.darkMode ? DarkTheme : LightTheme;
-
     this.parseItems(this.extractKeys(this.targets));
 
     const map = this.mapComponent.getMap();

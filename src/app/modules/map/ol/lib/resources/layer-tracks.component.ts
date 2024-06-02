@@ -63,12 +63,12 @@ export class TrackLayerComponent implements OnInit, OnDestroy, OnChanges {
   }
 
   ngOnInit() {
+    this.theme = this.darkMode ? DarkTheme : LightTheme;
     this.parseTracks(this.tracks);
     this.source = new VectorSource({ features: this.features });
     this.layer = new VectorLayer(
       Object.assign(this, { ...this.layerProperties })
     );
-    this.theme = this.darkMode ? DarkTheme : LightTheme;
 
     const map = this.mapComponent.getMap();
     if (this.layer && map) {
