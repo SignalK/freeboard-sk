@@ -14,6 +14,7 @@ import { computeDestinationPoint, getGreatCircleBearing } from 'geolib';
 import { toLonLat } from 'ol/proj';
 import { Style, Stroke, Fill } from 'ol/style';
 import { Collection, Feature } from 'ol';
+import { Feature as GeoJsonFeature } from 'geojson';
 
 import { Convert } from 'src/app/lib/convert';
 import { GeoUtils, Angle } from 'src/app/lib/geoutils';
@@ -83,7 +84,9 @@ interface IOverlay {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   content: any[];
   featureCount: number;
-  resource?: [string, SKRoute | SKWaypoint | SKNote | SKRegion];
+  resource?:
+    | [string, SKRoute | SKWaypoint | SKNote | SKRegion]
+    | GeoJsonFeature;
   vessel?: SKVessel;
   isSelf?: boolean;
   aton?: SKAtoN;
@@ -683,6 +686,11 @@ export class FBMapComponent implements OnInit, OnDestroy {
           let icon: string;
           let text: string;
           switch (t[0]) {
+            case 'rset':
+              addToFeatureList = true;
+              icon = 'star';
+              text = feature.get('name');
+              break;
             case 'alarm':
               addToFeatureList = true;
               icon = 'notification_important';
@@ -846,7 +854,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
     if (!Array.isArray(pt)) {
       return;
     }
-    const lastPt = this.measure.coords[this.measure.coords.length -1];
+    const lastPt = this.measure.coords[this.measure.coords.length - 1];
     if (pt[0] === lastPt[0] && pt[1] === lastPt[1]) {
       return;
     }
@@ -1190,15 +1198,11 @@ export class FBMapComponent implements OnInit, OnDestroy {
       aws = wMax;
     }
 
-    const ca = this.app.config.map.northUp
-      ? this.dfeat.active.wind.awa
-      : this.dfeat.active.wind.awa + this.dfeat.active.orientation;
-
     vl.awa = [
       this.dfeat.active.position,
       GeoUtils.destCoordinate(
         this.dfeat.active.position,
-        ca,
+        this.dfeat.active.wind.awa + this.dfeat.active.orientation,
         typeof this.dfeat.active.orientation === 'number' ? aws * offset : 0
       )
     ];
@@ -1318,9 +1322,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
         this.overlay.show = true;
         return;
       case 'region':
-        item = this.app.data.regions.filter((i) => {
-          if (i[0] === t[1]) return true;
-        });
+        item = [this.skres.fromCache('regions', t[1])];
         if (!item) {
           return false;
         }
@@ -1331,9 +1333,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
         this.overlay.show = true;
         return;
       case 'note':
-        item = this.app.data.notes.filter((i) => {
-          if (i[0] === t[1]) return true;
-        });
+        item = [this.skres.fromCache('notes', t[1])];
         if (!item) {
           return false;
         }
@@ -1347,9 +1347,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
         if (t[1] === 'n2k') {
           item = [this.app.data.n2kRoute];
         } else {
-          item = this.app.data.routes.filter((i) => {
-            if (i[0] === t[1]) return true;
-          });
+          item = [this.skres.fromCache('routes', t[1])];
         }
         if (!item) {
           return false;
@@ -1361,9 +1359,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
         this.overlay.show = true;
         return;
       case 'waypoint':
-        item = this.app.data.waypoints.filter((i) => {
-          if (i[0] === t[1]) return true;
-        });
+        item = [this.skres.fromCache('waypoints', t[1])];
         if (!item) {
           return false;
         }
@@ -1377,9 +1373,17 @@ export class FBMapComponent implements OnInit, OnDestroy {
         this.overlay.id = id;
         this.overlay.type = 'destination';
         this.overlay.resource = this.skres.buildWaypoint(coord);
-        this.overlay.title = this.app.data.navData.destPointName
-          ? this.app.data.navData.destPointName
-          : 'Destination';
+        this.overlay.title =
+          this.app.data.navData.destPointName ?? 'Destination';
+        this.overlay.show = true;
+        return;
+      case 'rset':
+        this.overlay.id = id;
+        this.overlay.type = 'rset';
+        this.overlay.resource = this.skres.resSetFromCache(id, true);
+        this.overlay.title =
+          (this.overlay.resource as GeoJsonFeature).properties.name ??
+          'Resource Set';
         this.overlay.show = true;
         return;
     }
