@@ -250,7 +250,7 @@
       [staleIds]="aisMgr.staleList"
       [removeIds]="aisMgr.removeList"
       [inactiveTime]="app.config.selections.aisStaleAge"
-      [zIndex]="120"
+      [zIndex]="220"
     >
     </sk-ais-vessels>
     }
@@ -480,6 +480,7 @@
     [lines]="vesselLines.laylines"
     [laylineStyles]="featureStyles.layline"
     [heading]="app.data.vessels.self.heading"
+    [bearing]="app.data.navData.bearing.value"
     [awa]="app.data.vessels.self.wind.awa"
     [mapZoom]="fbMap.zoomLevel"
     [zIndex]="212"
