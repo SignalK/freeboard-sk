@@ -251,6 +251,9 @@ export class SKAircraft extends AISBase {
 // ** Meteo / weather class **
 export class SKMeteo extends SKAtoN {
   callsign: string;
+  twd: number;
+  tws: number;
+  temperature: number;
   constructor() {
     super();
   }

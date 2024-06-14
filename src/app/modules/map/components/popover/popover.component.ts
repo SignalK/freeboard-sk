@@ -9,8 +9,9 @@ import {
   ChangeDetectionStrategy
 } from '@angular/core';
 import { AppInfo } from 'src/app/app.info';
-import { SKAtoN, SKAircraft } from 'src/app/modules';
+import { SKAircraft, SKMeteo } from 'src/app/modules';
 import { SKNotification } from 'src/app/types';
+import { Convert } from 'src/app/lib/convert';
 
 /*********** Popover ***************
 title: string -  title text,
@@ -234,6 +235,27 @@ aton: SKAtoN - aton data
           {{ timeLastUpdate }} {{ timeAgo }}
         </div>
       </div>
+      @if(isMeteo && aton.temperature !== undefined) {
+      <div style="display:flex;">
+        <div style="font-weight:bold;">Temperature:</div>
+        <div style="flex: 1 1 auto;text-align:right;">
+          {{ this.app.formatValueForDisplay(aton.temperature, 'K') }}
+        </div>
+      </div>
+      } @if(isMeteo && aton.tws !== undefined && aton.twd !== undefined) {
+      <div style="display:flex;flex-wrap:no-wrap;">
+        <div style="font-weight:bold;">Wind:</div>
+        <div style="width:150px;">
+          <ap-compass
+            [windtrue]="convert.radiansToDegrees(aton.twd)"
+            [heading]="convert.radiansToDegrees(aton.twd)"
+            [speed]="app.formatSpeed(aton.tws)"
+            [speedunits]="app.formattedSpeedUnits"
+          >
+          </ap-compass>
+        </div>
+      </div>
+      }
       <div style="display:flex;">
         <div style="flex:1 1 auto;">&nbsp;</div>
         <div class="popover-action-button">
@@ -253,7 +275,7 @@ aton: SKAtoN - aton data
 })
 export class AtoNPopoverComponent {
   @Input() title: string;
-  @Input() aton: SKAtoN;
+  @Input() aton: SKMeteo;
   @Input() canClose: boolean;
   @Output() info: EventEmitter<string> = new EventEmitter();
   @Output() closed: EventEmitter<void> = new EventEmitter();
@@ -261,12 +283,16 @@ export class AtoNPopoverComponent {
   _title: string;
   timeLastUpdate: string;
   timeAgo: string; // last update in minutes ago
+  protected convert = Convert;
+  isMeteo: boolean;
 
   constructor(public app: AppInfo) {}
 
   ngOnInit() {
     if (!this.aton) {
       this.handleClose();
+    } else {
+      this.isMeteo = this.aton.id.includes('meteo');
     }
   }
 
