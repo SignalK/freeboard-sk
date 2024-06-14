@@ -24,8 +24,10 @@ export class Convert {
     return (val * 180) / Math.PI;
   }
 
-  /** return Direction 0-360 (radians) for given angle (radians)
-   * from the suplied reference value(radians) -ive = port **
+  /** Return resultant direction direction (0 - 2Pi radians) 
+   @params angle (+/- in radians)
+   @params ref Base value the angle is offset from (in radians) -ive = port **
+   @returns Direction (0 - 2Pi radians) 
    */
   static angleToDirection(angle: number, ref: number) {
     const p = Math.PI * 2;
@@ -48,7 +50,11 @@ export class Convert {
     }
   }
 
-  // ** return Angle (-180 to 180 in radians) for given direction from the suplied reference value (radians) **
+  /** Return resultant Angle (-Pi to Pi radians)  
+   @params Direction (0 - 2Pi radians)
+   @params ref Base value the angle is offset from (in radians) 
+   @returns   angle (+/- in radians) -ive = port
+  */
   static directionToAngle(direction, ref) {
     const p = Math.PI * 2;
     if (!ref) {

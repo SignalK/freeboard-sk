@@ -7,7 +7,8 @@ import {
   getPathLength,
   getCenter,
   computeDestinationPoint,
-  isPointInPolygon
+  isPointInPolygon,
+  getGreatCircleBearing
 } from 'geolib';
 import { SKPosition, Position } from '../types';
 
@@ -35,6 +36,39 @@ export class GeoUtils {
   //** Calculate the length of an array of points in metres
   static routeLength(points: Position[]) {
     return getPathLength(points);
+  }
+
+  /** Calculate distance bearing between each point in an array
+   * @param points Array of points
+   * @returns Array of objects (same length as points) containing bearing & distance.
+   */
+  static routeLegs(
+    points: Position[],
+    vessel?: Position
+  ): { bearing: number; distance: number }[] {
+    if (points.length < 2) {
+      return [];
+    }
+    const legs = [];
+    if (vessel) {
+      legs.push({
+        bearing: getGreatCircleBearing(vessel, points[0]),
+        distance: GeoUtils.distanceTo(vessel, points[0])
+      });
+    } else {
+      legs.push({
+        bearing: 0,
+        distance: 0
+      });
+    }
+    for (let i = 1; i < points.length; ++i) {
+      const l = {
+        bearing: getGreatCircleBearing(points[i - 1], points[i]),
+        distance: GeoUtils.distanceTo(points[i - 1], points[i])
+      };
+      legs.push(l);
+    }
+    return legs;
   }
 
   //** Calculate the centre of polygon

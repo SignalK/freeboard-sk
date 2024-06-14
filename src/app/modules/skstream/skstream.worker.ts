@@ -8,7 +8,6 @@ import {
   SKSaR,
   SKMeteo
 } from 'src/app/modules/skresources/resource-classes';
-import { Convert } from 'src/app/lib/convert';
 import { GeoUtils, Extent } from 'src/app/lib/geoutils';
 import {
   NotificationMessage,
@@ -17,6 +16,8 @@ import {
   ResultPayload
 } from 'src/app/types/stream';
 import { SimplifyAP } from 'simplify-ts';
+import { Convert } from 'src/app/lib/convert';
+import { PathValue } from '@signalk/server-api';
 
 interface AisStatus {
   updated: { [key: string]: boolean };
@@ -881,9 +882,6 @@ function processVessel(d: SKVessel, v, isSelf = false) {
     apDeviceId = v.value;
   }
 
-  // ensure a value due to use in wind angle calc
-  d.heading = d.heading === null && d.cog !== null ? d.cog : d.heading;
-
   // use preferred heading value for orientation **
   if (
     typeof preferredPaths['heading'] !== 'undefined' &&
@@ -906,13 +904,13 @@ function processVessel(d: SKVessel, v, isSelf = false) {
     d.wind.direction =
       v.path === 'environment.wind.angleTrueGround' ||
       v.path === 'environment.wind.angleTrueWater'
-        ? Convert.angleToDirection(v.value, d.heading)
+        ? Convert.angleToDirection(v.value, d.orientation ?? 0)
         : v.value;
   }
 }
 
 // process notification messages **
-function processNotifications(v, vessel?: string) {
+function processNotifications(v: PathValue, vessel?: string) {
   const data = { path: v.path, value: v.value, context: vessel || null };
   let type: string;
   const seg = v.path.split('.');
@@ -1114,6 +1112,12 @@ function processMeteo(id: string, v) {
     }
   } else if (v.path === 'communication.callsignVhf') {
     d.callsign = v.value;
+  } else if (v.path === 'environment.outside.temperature') {
+    d.temperature = v.value;
+  } else if (v.path === 'environment.wind.directionTrue') {
+    d.twd = v.value;
+  } else if (v.path === 'environment.wind.averageSpeed') {
+    d.tws = v.value;
   } else if (v.path === 'navigation.position' && v.value) {
     d.position = GeoUtils.normaliseCoords([
       v.value.longitude,
