@@ -5,11 +5,13 @@ Signal K Details list component
 import { Component, Input, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { AppInfo } from 'src/app/app.info';
+import { PipesModule } from '../pipes';
 
 @Component({
   standalone: true,
   selector: 'signalk-details-list',
-  imports: [MatTooltipModule, CommonModule],
+  imports: [MatTooltipModule, CommonModule, PipesModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   styleUrls: ['./signalk-details.component.css'],
   template: `
@@ -25,7 +27,21 @@ import { MatTooltipModule } from '@angular/material/tooltip';
           } @if(item[2] !== null) {
           <div class="pathvalue">
             <div class="path" [matTooltip]="item[1]">{{ item[1] }}</div>
+            @if(item[1] === 'latitude') {
+            <div class="value" [matTooltip]="item[2]">
+              {{
+                item[2] | coords : app.config.selections.positionFormat : true
+              }}
+            </div>
+            } @else if (item[1] === 'longitude') {
+            <div class="value" [matTooltip]="item[2]">
+              {{
+                item[2] | coords : app.config.selections.positionFormat : false
+              }}
+            </div>
+            } @else {
             <div class="value" [matTooltip]="item[2]">{{ item[2] }}</div>
+            }
           </div>
           }
         </div>
@@ -41,7 +57,7 @@ export class SignalKDetailsComponent {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   public items: any;
 
-  //constructor() { }
+  constructor(protected app: AppInfo) {}
 
   ngOnChanges() {
     if (this.details) {
