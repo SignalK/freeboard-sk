@@ -20,6 +20,7 @@ import { Extent, Coordinate } from '../models';
 import { fromLonLatArray, mapifyCoords } from '../util';
 import { AsyncSubject } from 'rxjs';
 import { Convert } from 'src/app/lib/convert';
+import { Angle } from 'src/app/lib/geoutils';
 
 // ** Freeboard Layline component **
 @Component({
@@ -43,6 +44,7 @@ export class LaylineComponent implements OnInit, OnDestroy, OnChanges {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   @Input() laylineStyles: { [key: string]: any };
   @Input() heading: number;
+  @Input() bearing: number;
   @Input() awa: number;
   @Input() opacity: number;
   @Input() visible: boolean;
@@ -117,13 +119,20 @@ export class LaylineComponent implements OnInit, OnDestroy, OnChanges {
   }
 
   parseValues() {
+    if (
+      typeof this.bearing !== 'number' ||
+      typeof this.heading !== 'number' ||
+      typeof this.awa !== 'number'
+    ) {
+      this.features = [];
+      return;
+    }
+
     const fa: Feature[] = [];
     let idx = 0;
-    // is upwind
-    if (
-      typeof this.heading !== 'number' ||
-      Math.abs(Convert.radiansToDegrees(this.awa)) >= 90
-    ) {
+    // is destination upwind
+    const awd = Angle.add(this.heading, Convert.radiansToDegrees(this.awa));
+    if (Math.abs(Angle.difference(this.bearing, awd)) >= 90) {
       this.features = [];
       return;
     }
