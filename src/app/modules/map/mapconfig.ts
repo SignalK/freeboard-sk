@@ -318,7 +318,150 @@ export const aisVesselStyles = {
       text: '',
       offsetY: -12
     })
-  })
+  }),
+  // vessel state
+  moored: new Style({
+    // moored state
+    image: new Circle({
+      radius: 5,
+      stroke: new Stroke({
+        width: 2,
+        color: 'white'
+      }),
+      fill: new Fill({
+        color: '#FF00FF'
+      })
+    }),
+    text: new Text({
+      text: '',
+      offsetY: -12
+    })
+  }),
+  // vessel type & state
+  50: {
+    // special
+    default: new Style({
+      image: new Icon({
+        src: './assets/img/ais_special.png',
+        rotateWithView: true,
+        rotation: 0
+      }),
+      text: new Text({
+        text: '',
+        offsetY: -12
+      })
+    }),
+    moored: new Style({
+      // moored state
+      image: new Circle({
+        radius: 5,
+        stroke: new Stroke({
+          width: 2,
+          color: '#000000'
+        }),
+        fill: new Fill({
+          color: '#808080'
+        })
+      }),
+      text: new Text({
+        text: '',
+        offsetY: -12
+      })
+    })
+  },
+  60: {
+    // passenger
+    default: new Style({
+      image: new Icon({
+        src: './assets/img/ais_passenger.png',
+        rotateWithView: true,
+        rotation: 0
+      }),
+      text: new Text({
+        text: '',
+        offsetY: -12
+      })
+    }),
+    moored: new Style({
+      // moored state
+      image: new Circle({
+        radius: 5,
+        stroke: new Stroke({
+          width: 2,
+          color: '#7F6A00'
+        }),
+        fill: new Fill({
+          color: '#FFE97F'
+        })
+      }),
+      text: new Text({
+        text: '',
+        offsetY: -12
+      })
+    })
+  },
+  70: {
+    // cargo
+    default: new Style({
+      image: new Icon({
+        src: './assets/img/ais_cargo.png',
+        rotateWithView: true,
+        rotation: 0
+      }),
+      text: new Text({
+        text: '',
+        offsetY: -12
+      })
+    }),
+    moored: new Style({
+      // moored state
+      image: new Circle({
+        radius: 5,
+        stroke: new Stroke({
+          width: 2,
+          color: '#267F00'
+        }),
+        fill: new Fill({
+          color: '#4CFF00'
+        })
+      }),
+      text: new Text({
+        text: '',
+        offsetY: -12
+      })
+    })
+  },
+  80: {
+    // tanker
+    default: new Style({
+      image: new Icon({
+        src: './assets/img/ais_tanker.png',
+        rotateWithView: true,
+        rotation: 0
+      }),
+      text: new Text({
+        text: '',
+        offsetY: -12
+      })
+    }),
+    moored: new Style({
+      // moored state
+      image: new Circle({
+        radius: 5,
+        stroke: new Stroke({
+          width: 2,
+          color: '#0026FF'
+        }),
+        fill: new Fill({
+          color: '#0094FF'
+        })
+      }),
+      text: new Text({
+        text: '',
+        offsetY: -12
+      })
+    })
+  }
 };
 
 export const atonStyles = {

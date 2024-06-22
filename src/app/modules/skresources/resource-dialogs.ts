@@ -248,7 +248,12 @@ export class ResourceDialog implements OnInit {
               <div class="key-label">MMSI:</div>
               <div style="flex: 1 1 auto;">{{ vInfo.mmsi }}</div>
             </div>
-            @if(vInfo.flag) {
+            @if(vInfo.shipType) {
+            <div style="display:flex;">
+              <div class="key-label">Type:</div>
+              <div style="flex: 1 1 auto;">{{ vInfo.shipType }}</div>
+            </div>
+            } @if(vInfo.flag) {
             <div style="display:flex;">
               <div class="key-label">Flag:</div>
               <div style="flex: 1 1 auto;">{{ vInfo.flag }}</div>

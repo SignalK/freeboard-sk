@@ -338,12 +338,13 @@ export class SKVesselsLayerComponent implements OnInit, OnDestroy, OnChanges {
   }
 
   // build target style
-  buildTargetStyle(id: string, item, setStale = false): Style {
+  buildTargetStyle(id: string, item: SKVessel, setStale = false): Style {
     let s: Style;
     const lbl = item.name ?? item.callsign ?? item.mmsi ?? '';
 
     // ** stale check time ref
     const now = new Date().valueOf();
+    const st = item.type.id ? Math.floor(item.type.id / 10) * 10 : -1;
     if (typeof this.targetStyles !== 'undefined') {
       if (id === this.focusId && this.targetStyles.focus) {
         s = this.targetStyles.focus;
@@ -354,10 +355,24 @@ export class SKVesselsLayerComponent implements OnInit, OnDestroy, OnChanges {
       ) {
         // stale
         s = this.targetStyles.inactive;
+      } else if (item.type && this.targetStyles[st]) {
+        // ship type & state
+        if (item.state && this.targetStyles[st][item.state]) {
+          s = this.targetStyles[st][item.state];
+        } else {
+          s = this.targetStyles[st]['default'];
+        }
       } else if (item.buddy && this.targetStyles.buddy) {
+        // buddy
         s = this.targetStyles.buddy;
       } else {
-        s = this.targetStyles.default;
+        // all others
+        if (item.state && this.targetStyles[item.state]) {
+          // state only
+          s = this.targetStyles[item.state];
+        } else {
+          s = this.targetStyles.default;
+        }
       }
     } else if (this.layerProperties && this.layerProperties.style) {
       s = this.layerProperties.style;
