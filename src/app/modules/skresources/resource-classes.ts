@@ -179,6 +179,7 @@ export class SKVessel {
   sog: number;
   name: string;
   mmsi: string;
+  type: { id: number; name: string } = { id: -1, name: '' };
   callsign: string;
   state: string;
   wind = {
@@ -206,6 +207,9 @@ export class SKVessel {
     activeRoute: {},
     nextPoint: {},
     previousPoint: {}
+  };
+  performance = {
+    beatAngle: null
   };
   properties = {};
 }

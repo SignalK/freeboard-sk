@@ -43,9 +43,9 @@ export class LaylineComponent implements OnInit, OnDestroy, OnChanges {
   @Input() mapZoom = 10;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   @Input() laylineStyles: { [key: string]: any };
-  @Input() heading: number;
-  @Input() bearing: number;
-  @Input() awa: number;
+  @Input() bearing: number; // degrees
+  @Input() twd: number; // radians
+  @Input() tackAngle = Math.PI / 4; // radians (45 deg)
   @Input() opacity: number;
   @Input() visible: boolean;
   @Input() extent: Extent;
@@ -88,9 +88,9 @@ export class LaylineComponent implements OnInit, OnDestroy, OnChanges {
       for (const key in changes) {
         if (
           key === 'lines' ||
-          key === 'heading' ||
           key === 'bearing' ||
-          key === 'awa'
+          key === 'twd' ||
+          key === 'tackAngle'
         ) {
           this.parseValues();
           if (this.source) {
@@ -121,8 +121,8 @@ export class LaylineComponent implements OnInit, OnDestroy, OnChanges {
   parseValues() {
     if (
       typeof this.bearing !== 'number' ||
-      typeof this.heading !== 'number' ||
-      typeof this.awa !== 'number'
+      typeof this.twd !== 'number' ||
+      typeof this.tackAngle !== 'number'
     ) {
       this.features = [];
       return;
@@ -130,10 +130,13 @@ export class LaylineComponent implements OnInit, OnDestroy, OnChanges {
 
     const fa: Feature[] = [];
     let idx = 0;
-    // is destination upwind
-    const awd = Angle.add(this.heading, Convert.radiansToDegrees(this.awa));
-    if (Math.abs(Angle.difference(this.bearing, awd)) >= 90) {
-      this.features = [];
+
+    const tad = Convert.radiansToDegrees(this.tackAngle);
+    const wd = Convert.radiansToDegrees(this.twd);
+    const destUpwind = Math.abs(Angle.difference(this.bearing, wd)) < tad;
+
+    if (!destUpwind) {
+      this.features = fa;
       return;
     }
 

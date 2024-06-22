@@ -766,8 +766,12 @@ function processVessel(d: SKVessel, v, isSelf = false) {
     if (typeof v.value.buddy !== 'undefined') {
       d.buddy = v.value.buddy;
     }
+  } else if (v.path === 'performance.beatAngle') {
+    d.performance.beatAngle = v.value;
   } else if (v.path === 'communication.callsignVhf') {
     d.callsign = v.value;
+  } else if (v.path === 'design.aisShipType') {
+    d.type = v.value;
   } else if (v.path === 'navigation.position' && v.value) {
     // position is not null
     if (

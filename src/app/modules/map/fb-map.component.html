@@ -479,9 +479,9 @@
   <fb-layline
     [lines]="vesselLines.laylines"
     [laylineStyles]="featureStyles.layline"
-    [heading]="app.data.vessels.self.heading"
     [bearing]="app.data.navData.bearing.value"
-    [awa]="app.data.vessels.self.wind.awa"
+    [twd]="app.data.vessels.self.wind.twd"
+    [tackAngle]="app.data.vessels.self.performance.beatAngle"
     [mapZoom]="fbMap.zoomLevel"
     [zIndex]="212"
   >
