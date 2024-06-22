@@ -746,6 +746,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
               break;
             case 'atons':
             case 'aton':
+            case 'shore':
               icon = 'beenhere';
               addToFeatureList = true;
               aton = this.app.data.atons.get(id);
@@ -1286,6 +1287,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
         return;
       case 'atons':
       case 'aton':
+      case 'shore':
         this.overlay.type = 'aton';
         if (!this.app.data.atons.has(id)) {
           return false;
