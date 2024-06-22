@@ -1,10 +1,17 @@
 # CHANGELOG: Freeboard
 
+### v2.8.4
+
+- **Fixed**: shore.basestation popover & properties not displayed.
+- **Fixed**: Use performance data values to control layline display (#149).
+- **Updated**: Display moored vessels with different image (#164).
+- **Updated**: Color AIS vessels based on value of `design.asiShipType` (#162).
+
 ### v2.8.3
 
 - **Fixed**: Laylines being shown when vessel is upwind (#149).
 - **Fixed**: True wind vector display when using `angleTrueGround` or `angleTrueWater`.
-- **Fixed**: Focussed AIS target hidden behind other vessels (#165).
+- **Fixed**: Focussed AIS target hidden behind other vessels.
 - **Updated**: Display position in preferred format in properties modals.
 - **Updated**: Meteo popover to display wind & temperature values. 
 
