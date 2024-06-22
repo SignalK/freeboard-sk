@@ -181,12 +181,14 @@
         </div>
         }
         <div class="note-editor">
+          @defer{
           <angular-editor
             [config]="editorConfig"
             [placeholder]="'Add note text here.'"
             [(ngModel)]="data.note.description"
           >
           </angular-editor>
+          }
         </div>
 
         <div>
