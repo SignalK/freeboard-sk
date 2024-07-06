@@ -9,6 +9,16 @@ import {
   ElementRef
 } from '@angular/core';
 
+import { MatButtonModule } from '@angular/material/button';
+import { MatCardModule } from '@angular/material/card';
+import { MatIconModule } from '@angular/material/icon';
+import { MatSlideToggleModule } from '@angular/material/slide-toggle';
+import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatSliderModule } from '@angular/material/slider';
+import { MatStepperModule } from '@angular/material/stepper';
+
+import { NSEWButtonsComponent } from './nsew-buttons.component';
+
 import { computeDestinationPoint } from 'geolib';
 
 import { AlarmsFacade } from '../alarms.facade';
@@ -21,6 +31,17 @@ interface OutputMessage {
 
 @Component({
   selector: 'anchor-watch',
+  standalone: true,
+  imports: [
+    MatIconModule,
+    MatButtonModule,
+    MatCardModule,
+    MatSlideToggleModule,
+    MatSliderModule,
+    MatTooltipModule,
+    MatStepperModule,
+    NSEWButtonsComponent
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './anchor-watch.component.html',
   styleUrls: ['./anchor-watch.component.css']

@@ -1,0 +1,123 @@
+<style>
+  .ap-confirm-icon {
+    min-width: 35px;
+    max-width: 35px;
+    text-align: left;
+  }
+
+  .mat-form-field {
+    width: 100%;
+  }
+  .nosmall {
+    display: none;
+  }
+  @media only screen and (min-device-width: 768px) and (max-device-width: 1024px),
+    only screen and (min-width: 800px) {
+    .ap-confirm-icon {
+      min-width: 25%;
+      max-width: 25%;
+    }
+
+    .nosmall {
+      display: flex;
+    }
+  }
+</style>
+
+<div style="min-width: 400px">
+  <mat-toolbar style="background-color: transparent">
+    <span class="dialog-icon"><mat-icon>local_offer</mat-icon></span>
+    <span style="flex: 1 1 auto; text-align: center">{{relatedBy}} Notes</span>
+    <span style="text-align: right">
+      <button mat-icon-button (click)="dialogRef.close({result:false})">
+        <mat-icon>close</mat-icon>
+      </button>
+    </span>
+  </mat-toolbar>
+  <mat-dialog-content>
+    @for(n of data.notes; track n) {
+    <div style="padding-bottom: 5px; overflow-y: auto">
+      <mat-card style="border: whitesmoke 1px solid">
+        <mat-card-header>
+          <mat-card-title> {{n[1].name}} </mat-card-title>
+        </mat-card-header>
+        <mat-card-content style="margin-bottom: 0">
+          @if(n[1].properties.draft) {
+          <p class="draft-watermark">Draft</p>
+          }
+          <div style="display: flex; flex-direction: column">
+            <div style="padding-bottom: 5px; display: flex">
+              <div style="font-weight: bold; vertical-align: top">Date:</div>
+              <div style="padding-left: 10px">
+                <i>{{n[1].timestamp?.slice(0,10)}}</i>
+              </div>
+            </div>
+            <div style="padding-bottom: 5px; display: flex">
+              <div style="font-weight: bold; vertical-align: top">Group:</div>
+              <div style="padding-left: 10px">{{n[1].group}}</div>
+            </div>
+            <div style="padding-bottom: 5px">
+              <div style="font-weight: bold; vertical-align: top">
+                Description:
+              </div>
+              <div [innerHTML]="n[1].description | addTarget: '_notes'"></div>
+            </div>
+            <div style="padding-bottom: 5px; display: flex">
+              @if(n[1].authors && n[1].authors.length!=0) {
+              <div>
+                <span style="font-weight: bold">Author:</span>
+                &nbsp;{{n[1].authors[0]?.name}} &nbsp;&nbsp;
+              </div>
+              }
+            </div>
+          </div>
+        </mat-card-content>
+        <mat-card-actions>
+          <div style="display: flex">
+            <div style="flex: 1 1 auto">
+              @if(n[1].url) {
+              <div>
+                <button
+                  mat-icon-button
+                  (click)="openNoteUrl(n[1].url)"
+                  matTooltip="Open Note link in browser window"
+                >
+                  <mat-icon color="primary">open_in_new</mat-icon>
+                </button>
+              </div>
+              }
+            </div>
+            @if(!n[1].properties.readOnly) {
+            <div style="text-align: right">
+              <button
+                mat-icon-button
+                (click)="editNote(n[0])"
+                matTooltip="Edit Note"
+              >
+                <mat-icon color="primary">edit</mat-icon>
+              </button>
+              &nbsp;
+              <button
+                mat-icon-button
+                (click)="deleteNote(n[0])"
+                matTooltip="Delete Note"
+              >
+                <mat-icon color="warn">delete</mat-icon>
+              </button>
+            </div>
+            }
+          </div>
+        </mat-card-actions>
+      </mat-card>
+    </div>
+    }
+  </mat-dialog-content>
+  <mat-dialog-actions>
+    <div style="text-align: center; width: 100%">
+      <button mat-raised-button (click)="addNote()">
+        <mat-icon color="primary">local_offer</mat-icon>
+        ADD
+      </button>
+    </div>
+  </mat-dialog-actions>
+</div>

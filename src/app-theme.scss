@@ -4,33 +4,33 @@
 @include mat.core();
 
 // Define a theme.
-$my-primary: mat.define-palette(mat.$indigo-palette, 500,700,200);
-$my-accent:  mat.define-palette(mat.$amber-palette, 500,700,200);
+$my-primary: mat.m2-define-palette(mat.$m2-indigo-palette, 500,700,200);
+$my-accent:  mat.m2-define-palette(mat.$m2-amber-palette, 500,700,200);
 // The "warn" palette is optional and defaults to red if not specified.
-$my-warn:    mat.define-palette(mat.$red-palette, 500,700,200);
+$my-warn:    mat.m2-define-palette(mat.$m2-red-palette, 500,700,200);
 
-$my-theme: mat.define-light-theme((
+$my-theme: mat.m2-define-light-theme((
  color: (
    primary: $my-primary,
    accent: $my-accent,
    warn: $my-warn,
  ),
- typography: mat.define-typography-config(),
+ typography: mat.m2-define-typography-config(),
  density: 0,
 ));
 
 // Define a dark theme.
-$my-dark-primary: mat.define-palette(mat.$light-blue-palette, 200,300,400);
-$my-dark-accent:  mat.define-palette(mat.$amber-palette, A400, A100, A700);
-$my-dark-warn:    mat.define-palette(mat.$deep-orange-palette, A400);
+$my-dark-primary: mat.m2-define-palette(mat.$m2-light-blue-palette, 200,300,400);
+$my-dark-accent:  mat.m2-define-palette(mat.$m2-amber-palette, A400, A100, A700);
+$my-dark-warn:    mat.m2-define-palette(mat.$m2-deep-orange-palette, A400);
 
-$my-dark-theme: mat.define-dark-theme((
+$my-dark-theme: mat.m2-define-dark-theme((
  color: (
    primary: $my-dark-primary,
    accent: $my-dark-accent,
    warn: $my-dark-warn,
  ),
- typography: mat.define-typography-config(),
+ typography: mat.m2-define-typography-config(),
  density: 0,
 ));
 
@@ -38,11 +38,11 @@ $my-dark-theme: mat.define-dark-theme((
     @include mat.all-component-colors($my-dark-theme);
 
     .about-row .item a {
-        color: mat.get-color-from-palette($my-dark-accent);
+        color: mat.m2-get-color-from-palette($my-dark-accent);
     }
 
     .welcome a {
-        color: mat.get-color-from-palette($my-dark-accent);
+        color: mat.m2-get-color-from-palette($my-dark-accent);
     }  
     
     .popover > .arrow:after {
@@ -55,12 +55,12 @@ $my-dark-theme: mat.define-dark-theme((
         border-top-color: mat.get-theme-color($my-dark-theme, background, background);
     }
  
-    /* Track */
+    
     ::-webkit-scrollbar-track {
         background: rgba(0,0,0,.5);
     }
     
-    /* Handle on hover */
+    
     ::-webkit-scrollbar-thumb:hover {
         background: #999;
     }
@@ -82,26 +82,26 @@ $my-dark-theme: mat.define-dark-theme((
 
 // std elements
 .about-row .item a  {
-    color: mat.get-color-from-palette($my-primary);
+    color: mat.m2-get-color-from-palette($my-primary);
 }
 
-/* width */
+
 ::-webkit-scrollbar {
     width: 6px;
     height: 6px;
 }
 
-/* Track */
+
 ::-webkit-scrollbar-track {
     background: #f1f1f1;
 }
 
-/* Handle */
+
 ::-webkit-scrollbar-thumb {
     background: #888;
 }
 
-/* Handle on hover */
+
 ::-webkit-scrollbar-thumb:hover {
     background: #555;
 }
@@ -109,5 +109,4 @@ $my-dark-theme: mat.define-dark-theme((
 
 // Include all theme styles for the components.
 @include mat.all-component-themes($my-theme);
-
 

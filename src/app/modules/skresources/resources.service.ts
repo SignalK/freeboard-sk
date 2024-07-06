@@ -11,8 +11,10 @@ import { GeoUtils } from 'src/app/lib/geoutils';
 import { Convert } from 'src/app/lib/convert';
 
 import { LoginDialog } from 'src/app/lib/components/dialogs';
-import { NoteDialog, RelatedNotesDialog } from './notes';
-import { ResourceDialog } from './resource-dialogs';
+import { NoteDialog, RelatedNotesDialog } from '.';
+import { ResourceDialog } from './components/resource-dialog';
+import { SKResourceSet } from '.';
+
 import {
   SKChart,
   SKRoute,
@@ -39,7 +41,6 @@ import {
   Regions
 } from 'src/app/types';
 import { PathValue } from '@signalk/server-api';
-import { SKResourceSet } from './resources.module';
 
 // ** Signal K resource operations
 @Injectable({ providedIn: 'root' })

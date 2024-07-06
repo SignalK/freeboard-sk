@@ -18,9 +18,10 @@ export abstract class VectorLayerStyler {
         : chart.minZoom;
     this.MaxZ = chart.maxZoom;
   }
-
-  public abstract ApplyStyle(vectorLayer: VectorTileLayer);
-  public abstract CreateLayer(): VectorTileLayer;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  public abstract ApplyStyle(vectorLayer: any);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  public abstract CreateLayer(): VectorTileLayer<any>;
 }
 
 class S57LayerStyler extends VectorLayerStyler {
@@ -28,11 +29,13 @@ class S57LayerStyler extends VectorLayerStyler {
     super(chart);
   }
 
-  public CreateLayer(): VectorTileLayer {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  public CreateLayer(): VectorTileLayer<any> {
     return new VectorTileLayer();
   }
 
-  public ApplyStyle(vectorLayer: VectorTileLayer) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  public ApplyStyle(vectorLayer: VectorTileLayer<any>) {
     vectorLayer.set('declutter', true);
     const source = new VectorTileSource({
       url: this.chart.url,
@@ -59,7 +62,8 @@ class DefaultLayerStyler extends VectorLayerStyler {
     super(chart);
   }
 
-  public CreateLayer(): VectorTileLayer {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  public CreateLayer(): VectorTileLayer<any> {
     return new VectorTileLayer();
   }
 
@@ -76,7 +80,8 @@ class DefaultLayerStyler extends VectorLayerStyler {
     });
   }
 
-  public ApplyStyle(vectorLayer: VectorTileLayer) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  public ApplyStyle(vectorLayer: VectorTileLayer<any>) {
     // mbtiles source
     const source = new VectorTileSource({
       url: this.chart.url,
@@ -101,11 +106,13 @@ class PMLayerStyler extends DefaultLayerStyler {
     super(chart);
   }
 
-  public CreateLayer(): VectorTileLayer {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  public CreateLayer(): VectorTileLayer<any> {
     return new VectorTileLayer({ declutter: true });
   }
 
-  public ApplyStyle(vectorLayer: VectorTileLayer) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  public ApplyStyle(vectorLayer: VectorTileLayer<any>) {
     vectorLayer.set('declutter', true);
     const tiles = new pmtiles.PMTiles(this.chart.url);
 

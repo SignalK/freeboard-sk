@@ -19,8 +19,7 @@ import { MapComponent } from '../map.component';
 import { Extent, Coordinate } from '../models';
 import { fromLonLatArray, mapifyCoords } from '../util';
 import { AsyncSubject } from 'rxjs';
-import { Convert } from 'src/app/lib/convert';
-import { Angle } from 'src/app/lib/geoutils';
+import { Position } from 'src/app/types';
 
 // ** Freeboard Layline component **
 @Component({
@@ -43,9 +42,8 @@ export class LaylineComponent implements OnInit, OnDestroy, OnChanges {
   @Input() mapZoom = 10;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   @Input() laylineStyles: { [key: string]: any };
-  @Input() bearing: number; // degrees
-  @Input() twd: number; // radians
-  @Input() tackAngle = Math.PI / 4; // radians (45 deg)
+  @Input() position: Position; //(change trigger)
+  @Input() twd: number; //(change trigger)
   @Input() opacity: number;
   @Input() visible: boolean;
   @Input() extent: Extent;
@@ -86,12 +84,7 @@ export class LaylineComponent implements OnInit, OnDestroy, OnChanges {
       const properties: { [index: string]: any } = {};
 
       for (const key in changes) {
-        if (
-          key === 'lines' ||
-          key === 'bearing' ||
-          key === 'twd' ||
-          key === 'tackAngle'
-        ) {
+        if (key === 'lines' || key === 'twd' || key === 'bearing') {
           this.parseValues();
           if (this.source) {
             this.source.clear();
@@ -119,26 +112,8 @@ export class LaylineComponent implements OnInit, OnDestroy, OnChanges {
   }
 
   parseValues() {
-    if (
-      typeof this.bearing !== 'number' ||
-      typeof this.twd !== 'number' ||
-      typeof this.tackAngle !== 'number'
-    ) {
-      this.features = [];
-      return;
-    }
-
     const fa: Feature[] = [];
     let idx = 0;
-
-    const tad = Convert.radiansToDegrees(this.tackAngle);
-    const wd = Convert.radiansToDegrees(this.twd);
-    const destUpwind = Math.abs(Angle.difference(this.bearing, wd)) < tad;
-
-    if (!destUpwind) {
-      this.features = fa;
-      return;
-    }
 
     if (this.lines) {
       if (this.lines.port && Array.isArray(this.lines.port)) {

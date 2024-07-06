@@ -1516,19 +1516,41 @@
           </div>
           <div style="display: flex">
             <div style="width: 30px; text-align: center">
-              <img src="../img/ais_active.png" style="width: 24px" alt="" />
-            </div>
-            <div>
-              Vessel with updated data <i>(&lt;6 mins since last update)</i>
-            </div>
-          </div>
-          <div style="display: flex">
-            <div style="width: 30px; text-align: center">
               <img src="../img/ais_inactive.png" style="width: 24px" alt="" />
             </div>
             <div>
               Vessel with stale data <i>(&gt;6 mins since last update)</i>
             </div>
+          </div>
+          <div style="display: flex">
+            <div style="width: 30px; text-align: center">
+              <img src="../img/ais_buddy.png" style="width: 24px" alt="" />
+            </div>
+            <div>Vessel marked as "Buddy"</div>
+          </div>
+          <div style="display: flex">
+            <div style="width: 30px; text-align: center">
+              <img src="../img/ais_active.png" style="width: 24px" alt="" />
+            </div>
+            <div>Unspecified <i>(AIS type 10-19)</i></div>
+          </div>
+          <div style="display: flex">
+            <div style="width: 30px; text-align: center">
+              <img src="../img/ais_active.png" style="width: 24px" alt="" />
+            </div>
+            <div>Wing in Ground <i>(AIS type 20-29)</i></div>
+          </div>
+          <div style="display: flex">
+            <div style="width: 30px; text-align: center">
+              <img src="../img/ais_active.png" style="width: 24px" alt="" />
+            </div>
+            <div>Pleasure <i>(AIS type 30-39)</i></div>
+          </div>
+          <div style="display: flex">
+            <div style="width: 30px; text-align: center">
+              <img src="../img/ais_highspeed.png" style="width: 24px" alt="" />
+            </div>
+            <div>High Speed Vessel <i>(AIS type 40-49)</i></div>
           </div>
           <div style="display: flex">
             <div style="width: 30px; text-align: center">
@@ -1556,9 +1578,9 @@
           </div>
           <div style="display: flex">
             <div style="width: 30px; text-align: center">
-              <img src="../img/ais_buddy.png" style="width: 24px" alt="" />
+              <img src="../img/ais_special.png" style="width: 24px" alt="" />
             </div>
-            <div>Vessel marked as "Buddy"</div>
+            <div>Other <i>(AIS type 90-99)</i></div>
           </div>
 
           Freeboard provides the ability to de-clutter the screen of vessels in
@@ -1599,9 +1621,24 @@
               <i class="material-icons">directions_boat</i> <b>Vessels</b>.
             </li>
           </ul>
+
+          <div>
+            From this screen you can filter and select the vessels you wish to
+            display on the map OR <br />
+            by selecting <i>Filter by Vessel type</i> vessels can be displayed
+            based on their AIS Ship Type.
+          </div>
+
           <div style="display: flex; flex-wrap: wrap">
             <div>
               <img src="./img/ais_list.png" style="max-width: 250px" alt="" />
+            </div>
+            <div>
+              <img
+                src="./img/ais_shiptypes.png"
+                style="max-width: 250px"
+                alt=""
+              />
             </div>
             <div style="padding-left: 15px">
               <ul>

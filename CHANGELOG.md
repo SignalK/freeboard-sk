@@ -1,5 +1,15 @@
 # CHANGELOG: Freeboard
 
+### v2.9.0
+
+- **Added**: Ability to filter vessels by `AIS Ship Type` (#163).
+- **Added**: Display `performance.beatAngle` vectors on the map.
+- **Fixed**: Meteo properties `environment.water.waves` display formatting.
+- **Fixed**: Anchor watch not available when plugin is installed and enabled.
+- **Fixed**: Laylines not displayed if performance paths do not contain values.
+- **Updated**: Don't show internet map service dialog in kiosk mode. (#166)
+- **Updated**: Angular framework to v18
+
 ### v2.8.4
 
 - **Fixed**: shore.basestation popover & properties not displayed.

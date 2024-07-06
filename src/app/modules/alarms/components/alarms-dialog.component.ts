@@ -3,7 +3,17 @@
 
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, OnInit, Inject } from '@angular/core';
-import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
+import {
+  MatDialogModule,
+  MatDialogRef,
+  MAT_DIALOG_DATA
+} from '@angular/material/dialog';
+import { MatButtonModule } from '@angular/material/button';
+import { MatCardModule } from '@angular/material/card';
+import { MatIconModule } from '@angular/material/icon';
+import { MatToolbarModule } from '@angular/material/toolbar';
+import { MatTooltipModule } from '@angular/material/tooltip';
+
 import { Subscription } from 'rxjs';
 import { SignalKClient } from 'signalk-client-angular';
 import { AlarmsFacade } from '../alarms.facade';
@@ -16,6 +26,15 @@ import { AppInfo } from 'src/app/app.info';
 ***********************************/
 @Component({
   selector: 'ap-alarmsdialog',
+  standalone: true,
+  imports: [
+    MatDialogModule,
+    MatIconModule,
+    MatButtonModule,
+    MatCardModule,
+    MatTooltipModule,
+    MatToolbarModule
+  ],
   template: `
     <div class="_ap-alarms">
       <mat-toolbar style="background-color: transparent">

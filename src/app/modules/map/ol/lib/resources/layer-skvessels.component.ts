@@ -52,6 +52,8 @@ export class SKVesselsLayerComponent implements OnInit, OnDestroy, OnChanges {
   @Input() showVector = true;
   @Input() vectorMinZoom = 15;
   @Input() vectorApparent = false;
+  @Input() filterByShipType: boolean;
+  @Input() filterShipTypes: Array<number>;
   @Input() filterIds: Array<string>;
   @Input() updateIds: Array<string> = [];
   @Input() staleIds: Array<string> = [];
@@ -112,16 +114,18 @@ export class SKVesselsLayerComponent implements OnInit, OnDestroy, OnChanges {
           this.parseItems(this.extractKeys(changes[key].currentValue));
         } else if (key === 'updateIds') {
           this.parseItems(changes[key].currentValue);
-        } else if (key === 'staleIds') {
-          this.parseItems(changes[key].currentValue, true);
         } else if (key === 'removeIds') {
           this.removeItems(changes[key].currentValue);
+        } else if (key === 'staleIds') {
+          this.parseItems(changes[key].currentValue, true);
         } else if (key === 'inactiveTime') {
           this.parseItems(this.extractKeys(this.targets));
         } else if (
           key === 'focusId' ||
           key === 'filterIds' ||
-          key === 'vectorApparent'
+          key === 'vectorApparent' ||
+          key === 'filterShipTypes' ||
+          key === 'filterByShipType'
         ) {
           this.parseItems(this.extractKeys(this.targets));
         } else if (key === 'targetStyles' && !changes[key].firstChange) {
@@ -208,6 +212,10 @@ export class SKVesselsLayerComponent implements OnInit, OnDestroy, OnChanges {
   okToRender(id: string, vector?: boolean): boolean {
     if (vector && !this.showVector) {
       return false;
+    }
+    if (this.filterByShipType && Array.isArray(this.filterShipTypes)) {
+      const st = Math.floor(this.targets.get(id).type.id / 10) * 10;
+      return this.filterShipTypes.includes(st);
     }
     if (!this.filterIds) {
       return true;

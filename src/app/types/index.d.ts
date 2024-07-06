@@ -124,6 +124,8 @@ export interface FBAppConfig {
     };
     positionFormat: 'XY' | 'SHDd' | 'HDd' | 'DMdH' | 'HDMS' | 'DHMS';
     aisTargets: string[];
+    aisTargetTypes: number[];
+    aisFilterByShipType: boolean;
     aisWindApparent: boolean;
     aisWindMinZoom: number;
     aisShowTrack: boolean;

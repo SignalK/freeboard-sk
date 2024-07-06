@@ -17,8 +17,16 @@ import {
   GPXImportDialog,
   GPXExportDialog
 } from 'src/app/lib/components/dialogs';
-import { CourseSettingsModal } from 'src/app/lib/components';
+
 import {
+  AISPropertiesModal,
+  AtoNPropertiesModal,
+  AircraftPropertiesModal,
+  ActiveResourcePropertiesModal,
+  TracksModal,
+  ResourceImportDialog,
+  ResourceSetModal,
+  ResourceSetFeatureModal,
   SettingsDialog,
   SKStreamFacade,
   SKSTREAM_MODE,
@@ -32,15 +40,8 @@ import {
   SKAtoN,
   SKOtherResources,
   SKRegion,
-  AISPropertiesModal,
-  AtoNPropertiesModal,
-  AircraftPropertiesModal,
-  ActiveResourcePropertiesModal,
-  TracksModal,
-  ResourceSetModal,
-  ResourceSetFeatureModal,
-  ResourceImportDialog,
-  WeatherForecastModal
+  WeatherForecastModal,
+  CourseSettingsModal
 } from 'src/app/modules';
 
 import { SignalKClient } from 'signalk-client-angular';
@@ -562,14 +563,12 @@ export class AppComponent {
           charts: false,
           pmTiles: false
         };
+        this.app.data.anchor.hasApi = false;
         res.plugins.forEach((p: { id: string; version: string }) => {
           // anchor alarm
           if (p.id === 'anchoralarm') {
             this.app.debug('*** found anchoralarm plugin');
             this.app.data.anchor.hasApi = true;
-          } else {
-            this.app.debug('*** anchoralarm plugin not found!');
-            this.app.data.anchor.hasApi = false;
           }
           // charts v2 api support
           if (p.id === 'charts') {

@@ -1,0 +1,40 @@
+.resourcelist {
+    min-width: 180px;
+    position: relative;
+    height: 100%;
+}
+
+.resourcelist .title-block {
+    padding-left: 5px;
+    display: flex;
+}
+
+.resourcelist .title-block .title-text {
+    font-family: roboto;
+    font-size: 14pt;
+    font-weight: 500;
+}
+
+.resourcelist .resources {
+    overflow-y: auto;
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    top: 130px;
+}
+
+.resourcelist .resources.vessels,
+.resourcelist .resources.charts
+ {
+    top: 175px;
+}
+
+.resourcelist .vscroller {
+    position: absolute;
+    top: 0px;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    border-top: silver 1px outset;
+}

@@ -2,6 +2,13 @@
  ********************************/
 
 import { Component, OnInit, Input, Output, EventEmitter } from '@angular/core';
+
+import { MatButtonModule } from '@angular/material/button';
+import { MatCardModule } from '@angular/material/card';
+import { MatIconModule } from '@angular/material/icon';
+import { MatTooltipModule } from '@angular/material/tooltip';
+import { TimerButtonComponent } from './timer-button.component';
+
 import { AppInfo } from 'src/app/app.info';
 
 interface AlarmData {
@@ -21,6 +28,14 @@ interface AlarmData {
 /********* AlarmComponent ********/
 @Component({
   selector: 'ap-alarm',
+  standalone: true,
+  imports: [
+    MatIconModule,
+    MatButtonModule,
+    MatCardModule,
+    MatTooltipModule,
+    TimerButtonComponent
+  ],
   template: `
     @if(alarm.value.acknowledged) {
     <span class="alarmAck" (click)="minClick(alarm.key)">

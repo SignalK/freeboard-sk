@@ -39,6 +39,7 @@ mat-nav-list {
     padding-left: 0px;
     z-index: 5000; 
     background-color: rgba(200,200,200,.4);
+    width: 315px;
 }
 
 .buttonPanel { 

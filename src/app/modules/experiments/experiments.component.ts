@@ -2,10 +2,25 @@
  ********************************/
 
 import { Component, Output, EventEmitter } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
+import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatMenuModule } from '@angular/material/menu';
+import { CommonDialogs } from 'src/app/lib/components/dialogs';
 
 /********* ExperimentsComponent ********/
 @Component({
   selector: 'fb-experiments',
+  standalone: true,
+  imports: [
+    CommonModule,
+    MatMenuModule,
+    MatIconModule,
+    MatButtonModule,
+    MatTooltipModule,
+    CommonDialogs
+  ],
   template: `
     <mat-menu #experimentsmenu="matMenu">
       <!--

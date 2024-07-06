@@ -6,14 +6,14 @@
         mat-menu-item
         (click)="sidemenu.close(); displayLeftMenu('routeList', true)"
       >
-        <mat-icon color="primary">directions</mat-icon>
+        <mat-icon class="icon-route" color="primary">directions</mat-icon>
         &nbsp;Routes
       </button>
       <button
         mat-menu-item
         (click)="sidemenu.close(); displayLeftMenu('waypointList', true)"
       >
-        <mat-icon color="accent">location_on</mat-icon>
+        <mat-icon class="icon-waypoint" color="accent">location_on</mat-icon>
         &nbsp;Waypoints
       </button>
       <button
@@ -46,7 +46,7 @@
             mat-menu-item
             (click)="openExperiment({ choice: p, value: null })"
           >
-            <mat-icon color="warn">show_chart</mat-icon>
+            <mat-icon class="icon-warn" color="warn">show_chart</mat-icon>
             <span>Tracks</span>
           </button>
           } @default {
@@ -128,11 +128,11 @@
       </a>
       <mat-divider></mat-divider>
       <a mat-menu-item (click)="drawStart('route')">
-        <mat-icon color="primary">directions</mat-icon>
+        <mat-icon class="icon-route" color="primary">directions</mat-icon>
         <span>Draw Route</span>
       </a>
       <a mat-menu-item (click)="app.data.buildRoute.show = true">
-        <mat-icon color="warn">directions</mat-icon>
+        <mat-icon class="icon-route" color="warn">directions</mat-icon>
         <span>Build Route</span>
       </a>
       <mat-divider></mat-divider>
@@ -143,24 +143,24 @@
           skres.showWaypointEditor(null, app.data.vessels.active.position)
         "
       >
-        <mat-icon color="accent">add_location</mat-icon>
+        <mat-icon class="icon-waypoint" color="accent">add_location</mat-icon>
         <span>Add Waypoint at Vessel</span>
       </a>
       }
       <a mat-menu-item (click)="drawStart('waypoint')">
-        <mat-icon color="accent">edit_location</mat-icon>
+        <mat-icon class="icon-waypoint" color="accent">edit_location</mat-icon>
         <span>Drop Waypoint</span>
       </a>
       <mat-divider></mat-divider>
       @if(this.app.config.map.zoomLevel >=
       this.app.config.selections.notesMinZoom) {
       <a mat-menu-item (click)="drawStart('note')">
-        <mat-icon color="">local_offer</mat-icon>
+        <mat-icon>local_offer</mat-icon>
         <span>Add Note</span>
       </a>
       }
       <a mat-menu-item (click)="drawStart('region')">
-        <mat-icon color="">tab_unselected</mat-icon>
+        <mat-icon>tab_unselected</mat-icon>
         <span>Draw Region</span>
       </a>
     </mat-menu>
@@ -375,6 +375,7 @@
           <div class="buttonPanel left">
             <div class="buttonPanelItem">
               <button
+                class="button-warn"
                 mat-mini-fab
                 color="warn"
                 matTooltip="Alarms"
@@ -412,6 +413,7 @@
               <button
                 mat-mini-fab
                 [color]="app.config.map.northUp ? 'accent' : 'primary'"
+                [ngClass]="{ 'button-primary': !app.config.map.northUp }"
                 (click)="toggleNorthUp()"
                 [matTooltip]="
                   app.config.map.northUp ? 'Show Heading Up' : 'Show North Up'
@@ -427,6 +429,7 @@
               <button
                 mat-mini-fab
                 [color]="app.config.map.moveMap ? 'primary' : 'accent'"
+                [ngClass]="{ 'button-primary': app.config.map.moveMap }"
                 (click)="toggleMoveMap()"
                 [disabled]="!app.data.vessels.showSelf"
                 [matTooltip]="
@@ -485,7 +488,7 @@
           <!--left menu panel-->
           @if(display.leftMenuPanel) {
           <div class="leftMenuPanel">
-            @if(display.routeList) {
+            @if(display.routeList) { @defer {
             <route-list
               [routes]="app.data.routes"
               [activeRoute]="app.data.activeRoute"
@@ -501,7 +504,7 @@
               (closed)="displayLeftMenu()"
             >
             </route-list>
-            } @if(display.waypointList) {
+            } } @if(display.waypointList) { @defer {
             <waypoint-list
               [waypoints]="app.data.waypoints"
               [activeWaypoint]="app.data.activeWaypoint"
@@ -517,7 +520,7 @@
               (closed)="displayLeftMenu()"
             >
             </waypoint-list>
-            } @if(display.chartList) {
+            } } @if(display.chartList) { @defer {
             <chart-list
               [charts]="app.data.charts"
               (select)="skres.chartSelected()"
@@ -526,7 +529,7 @@
               (closed)="displayLeftMenu()"
             >
             </chart-list>
-            } @if(display.noteList) {
+            } } @if(display.noteList) { @defer {
             <note-list
               [notes]="app.data.notes"
               (select)="skres.noteSelected($event)"
@@ -535,7 +538,7 @@
               (closed)="displayLeftMenu()"
             >
             </note-list>
-            } @if(display.aisList) {
+            } } @if(display.aisList) { @defer {
             <ais-list
               [aisTargets]="app.data.vessels.aisTargets"
               [focusId]="app.data.vessels.activeId"
@@ -546,7 +549,7 @@
               (pan)="centerResource($event.center, $event.zoomLevel)"
             >
             </ais-list>
-            } @if(display.anchorWatch) {
+            } } @if(display.anchorWatch) {
             <anchor-watch
               [disable]="!app.data.vessels.showSelf"
               [radius]="app.data.anchor.radius"
@@ -606,7 +609,7 @@
                 matTooltipPosition="left"
                 (click)="enableAudio()"
               >
-                <mat-icon>volume_off</mat-icon>
+                <mat-icon class="icon-warn">volume_off</mat-icon>
               </button>
               <br />&nbsp;<br />
             </div>
@@ -617,8 +620,13 @@
             <div class="buttonPanelItem">
               <button
                 mat-mini-fab
+                [ngClass]="{ 'icon-warn': display.fullscreen.active }"
                 (click)="toggleFullscreen()"
-                matTooltip="Go Fullscreen"
+                [matTooltip]="
+                  display.fullscreen.active
+                    ? 'Exit Fullscreen '
+                    : 'Go Fullscreen'
+                "
                 matTooltipPosition="left"
               >
                 <mat-icon>
@@ -668,6 +676,7 @@
               <button
                 mat-mini-fab
                 [color]="app.config.map.limitZoom ? 'primary' : 'accent'"
+                [ngClass]="{ 'button-primary': app.config.map.limitZoom }"
                 (click)="toggleLimitMapZoom()"
                 matTooltip="Constrain map zoom."
                 matTooltipPosition="left"
@@ -682,6 +691,7 @@
               <button
                 mat-mini-fab
                 [color]="app.config.map.invertColor ? 'primary' : 'accent'"
+                [ngClass]="{ 'button-primary': app.config.map.invertColor }"
                 (click)="invertAISTextColor()"
                 matTooltip="Invert feature text color."
                 matTooltipPosition="left"
@@ -714,6 +724,7 @@
             <!-- Drop Waypoint button -->
             <div class="buttonPanelItem">
               <button
+                class="button-accent"
                 mat-mini-fab
                 color="accent"
                 (click)="
@@ -773,7 +784,8 @@
               #northArrow
               src="./assets/img/north_arrow.svg"
               [style.transform]="getOrientation()"
-              style="width: 50px"
+              width="50"
+              height="70"
             />
           </div>
 
@@ -843,13 +855,14 @@
             <div style="text-align: center">
               <!-- cancel Draw button -->
               <a
+                class="icon-warn"
                 mat-raised-button
                 color="warn"
                 (click)="cancelDraw()"
                 [matTooltip]="draw.modify ? 'Cancel Editing' : 'Cancel Draw'"
                 matTooltipPosition="left"
               >
-                <mat-icon>close</mat-icon>
+                <mat-icon class="icon-warn">close</mat-icon>
                 {{ draw.modify ? 'FINISH' : 'CANCEL' }}
               </a>
             </div>

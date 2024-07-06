@@ -245,6 +245,8 @@
       [vectorMinZoom]="app.config.selections.aisWindMinZoom"
       [vectorApparent]="app.config.selections.aisWindApparent"
       [focusId]="app.data.vessels.activeId"
+      [filterByShipType]="app.config.selections.aisFilterByShipType"
+      [filterShipTypes]="app.config.selections.aisTargetTypes"
       [filterIds]="app.config.selections.aisTargets"
       [updateIds]="aisMgr.updateList"
       [staleIds]="aisMgr.staleList"
@@ -479,13 +481,21 @@
   <fb-layline
     [lines]="vesselLines.laylines"
     [laylineStyles]="featureStyles.layline"
-    [bearing]="app.data.navData.bearing.value"
+    [position]="app.data.vessels.active.position"
     [twd]="app.data.vessels.self.wind.twd"
-    [tackAngle]="app.data.vessels.self.performance.beatAngle"
     [mapZoom]="fbMap.zoomLevel"
     [zIndex]="212"
   >
   </fb-layline>
+  <fb-target-angle
+    [line]="vesselLines.targetAngle"
+    [lineStyle]="featureStyles.targetAngle"
+    [position]="app.data.vessels.active.position"
+    [twd]="app.data.vessels.self.wind.twd"
+    [mapZoom]="fbMap.zoomLevel"
+    [zIndex]="212"
+  >
+  </fb-target-angle>
   } @if(dfeat.navData.position && app.data.anchor.raised) {
   <fb-bearing-line
     [marker]="dfeat.navData.position"
@@ -560,7 +570,7 @@
       (click)="onContextMenuAction('add_wpt', item)"
       (contextmenu)="$event.preventDefault()"
     >
-      <mat-icon color="primary">add_location</mat-icon>
+      <mat-icon class="icon-waypoint">add_location</mat-icon>
       Add Waypoint here
     </button>
 
@@ -570,7 +580,7 @@
       (click)="onContextMenuAction('add_note', item)"
       (contextmenu)="$event.preventDefault()"
     >
-      <mat-icon style="color: orange">local_offer</mat-icon>
+      <mat-icon class="icon-note">local_offer</mat-icon>
       Add Note here
     </button>
     }

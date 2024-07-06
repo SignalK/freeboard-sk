@@ -8,16 +8,38 @@ import {
   ViewChild,
   SimpleChanges
 } from '@angular/core';
-import { MatMenuTrigger } from '@angular/material/menu';
 
-import { computeDestinationPoint, getGreatCircleBearing } from 'geolib';
+import { CommonModule } from '@angular/common';
+import { MatButtonModule } from '@angular/material/button';
+import { MatCardModule } from '@angular/material/card';
+import { MatListModule } from '@angular/material/list';
+import { MatIconModule } from '@angular/material/icon';
+import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatMenuModule, MatMenuTrigger } from '@angular/material/menu';
+
+// ** OL & popvers **
+import {
+  PopoverComponent,
+  FeatureListPopoverComponent,
+  AtoNPopoverComponent,
+  AircraftPopoverComponent,
+  AlarmPopoverComponent,
+  ResourcePopoverComponent,
+  ResourceSetPopoverComponent,
+  VesselPopoverComponent
+} from './popovers';
+
+import { FreeboardOpenlayersModule } from 'src/app/modules/map/ol';
+import { PipesModule } from 'src/app/lib/pipes';
+
+import { getGreatCircleBearing } from 'geolib';
 import { toLonLat } from 'ol/proj';
 import { Style, Stroke, Fill } from 'ol/style';
 import { Collection, Feature } from 'ol';
 import { Feature as GeoJsonFeature } from 'geojson';
 
 import { Convert } from 'src/app/lib/convert';
-import { GeoUtils, Angle } from 'src/app/lib/geoutils';
+import { GeoUtils } from 'src/app/lib/geoutils';
 import { Position } from 'src/app/types';
 
 import { AppInfo } from 'src/app/app.info';
@@ -55,7 +77,8 @@ import {
   alarmStyles,
   destinationStyles,
   laylineStyles,
-  drawStyles
+  drawStyles,
+  targetAngleStyle
 } from './mapconfig';
 import { ModifyEvent } from 'ol/interaction/Modify';
 import { DrawEvent } from 'ol/interaction/Draw';
@@ -69,6 +92,7 @@ import {
   SKNotification
 } from 'src/app/types';
 import { S57Service } from './ol/lib/s57.service';
+import { VesselLinesResult } from './vessel-calcs.types';
 
 interface IResource {
   id: string;
@@ -139,6 +163,20 @@ interface IMeasureInfo {
   coords: Position[];
 }
 
+interface VesselLines {
+  twd: Array<Position>;
+  awa: Array<Position>;
+  cog: Array<Position>;
+  bearing: Array<Position>;
+  heading: Array<Position>;
+  anchor: Array<Position>;
+  trail: Array<Position>;
+  cpa: Array<Position>;
+  xtePath: Array<Position>;
+  laylines: { port: number[][][]; starboard: number[][][] };
+  targetAngle: Array<Position>;
+}
+
 enum INTERACTION_MODE {
   MEASURE,
   DRAW,
@@ -147,6 +185,27 @@ enum INTERACTION_MODE {
 
 @Component({
   selector: 'fb-map',
+  standalone: true,
+  imports: [
+    CommonModule,
+    MatTooltipModule,
+    MatListModule,
+    MatIconModule,
+    MatButtonModule,
+    MatTooltipModule,
+    PipesModule,
+    MatCardModule,
+    MatMenuModule,
+    FreeboardOpenlayersModule,
+    PopoverComponent,
+    FeatureListPopoverComponent,
+    AtoNPopoverComponent,
+    AircraftPopoverComponent,
+    AlarmPopoverComponent,
+    ResourcePopoverComponent,
+    ResourceSetPopoverComponent,
+    VesselPopoverComponent
+  ],
   templateUrl: './fb-map.component.html',
   styleUrls: ['./fb-map.component.css']
 })
@@ -199,16 +258,18 @@ export class FBMapComponent implements OnInit, OnDestroy {
     coords: []
   };
 
-  public vesselLines = {
-    twd: [null, null],
-    awa: [null, null],
-    bearing: [null, null],
-    heading: [null, null],
+  public vesselLines: VesselLines = {
+    twd: [],
+    awa: [],
+    bearing: [],
+    heading: [],
     anchor: [],
     trail: [],
     cpa: [],
+    cog: [],
     xtePath: [],
-    laylines: { port: [], starboard: [] }
+    laylines: { port: [], starboard: [] },
+    targetAngle: []
   };
 
   public overlay: IOverlay = {
@@ -255,7 +316,8 @@ export class FBMapComponent implements OnInit, OnDestroy {
     aircraft: aircraftStyles,
     sar: sarStyles,
     meteo: meteoStyles,
-    layline: laylineStyles
+    layline: laylineStyles,
+    targetAngle: targetAngleStyle
   };
 
   // ** map feature data
@@ -307,6 +369,8 @@ export class FBMapComponent implements OnInit, OnDestroy {
 
   private obsList = [];
 
+  private worker: Worker;
+
   constructor(
     public app: AppInfo,
     public s57Service: S57Service,
@@ -314,7 +378,12 @@ export class FBMapComponent implements OnInit, OnDestroy {
     public skresOther: SKOtherResources,
     private skstream: SKStreamFacade,
     private alarmsFacade: AlarmsFacade
-  ) {}
+  ) {
+    this.worker = new Worker(new URL('./vessel-calcs.worker', import.meta.url));
+    this.worker.onmessage = ({ data }) => {
+      this.drawVesselLinesResult(data);
+    };
+  }
 
   ngAfterViewInit() {
     // ** set map focus **
@@ -361,6 +430,11 @@ export class FBMapComponent implements OnInit, OnDestroy {
   ngOnDestroy() {
     this.stopSaveTimer();
     this.obsList.forEach((i) => i.unsubscribe());
+    if (this.worker) {
+      console.log('Terminating Vessel-Calcs Worker....');
+      this.worker.terminate();
+      this.worker = undefined;
+    }
   }
 
   ngOnChanges(changes: SimpleChanges) {
@@ -1045,29 +1119,31 @@ export class FBMapComponent implements OnInit, OnDestroy {
     }
   }
 
-  // ** center map to active vessel position
+  // center map to active vessel position
   public centerVessel() {
     const t = this.dfeat.active.position;
     t[0] += 0.0000000000001;
     this.fbMap.center = t;
   }
 
+  // trigger line calcs worker
   public drawVesselLines(vesselUpdate = false) {
-    const z = this.fbMap.zoomLevel;
-    const offset = z < 29 ? this.zoomOffsetLevel[Math.floor(z)] : 60;
-    const wMax = 10; // ** max line length
+    this.worker.postMessage({
+      vesselConfig: this.app.config.vessel,
+      vesselSelf: this.app.data.vessels.self,
+      vesselActive: this.app.data.vessels.active,
+      navData: this.app.data.navData,
+      mapZoomLevel: this.fbMap.zoomLevel,
+      zoomOffsetLevel: this.zoomOffsetLevel,
+      units: this.app.config.units
+    });
 
     const vl = {
       trail: [],
       xtePath: [],
       bearing: [],
       anchor: [],
-      cpa: [],
-      heading: [],
-      awa: [],
-      twd: [],
-      cog: [],
-      laylines: { port: [], starboard: [] }
+      cpa: []
     };
 
     // vessel trail
@@ -1101,57 +1177,6 @@ export class FBMapComponent implements OnInit, OnDestroy {
         : this.dfeat.active.position;
     vl.bearing = [this.dfeat.active.position, bpos];
 
-    // laylines (active)
-    if (
-      this.app.config.vessel.laylines &&
-      Array.isArray(this.dfeat.navData.position) &&
-      typeof this.dfeat.navData.position[0] === 'number' &&
-      typeof this.app.data.vessels.active.heading === 'number'
-    ) {
-      const hdeg = Convert.radiansToDegrees(
-        this.app.data.vessels.active.heading
-      );
-      const dtg =
-        this.app.config.units.distance === 'm'
-          ? this.app.data.navData.dtg * 1000
-          : Convert.nauticalMilesToKm(this.app.data.navData.dtg * 1000);
-      const bta = Angle.add(hdeg, 90); // tack angle
-
-      const hbdrad = Convert.degreesToRadians(
-        Angle.difference(hdeg, this.app.data.navData.bearing.value)
-      );
-      const dist1 = Math.sin(hbdrad) * dtg;
-      const dist2 = Math.cos(hbdrad) * dtg;
-      const pt1 = computeDestinationPoint(
-        this.app.data.vessels.active.position,
-        dist1,
-        bta
-      );
-      const pt2 = computeDestinationPoint(
-        this.app.data.vessels.active.position,
-        dist2,
-        hdeg
-      );
-      const p1a = [
-        this.app.data.vessels.active.position,
-        [pt1.longitude, pt1.latitude]
-      ];
-      const p1b = [[pt1.longitude, pt1.latitude], this.dfeat.navData.position];
-      const l1 = hbdrad < 0 ? [p1a, p1b] : [p1b, p1a];
-
-      const p2a = [[pt2.longitude, pt2.latitude], this.dfeat.navData.position];
-      const p2b = [
-        this.app.data.vessels.active.position,
-        [pt2.longitude, pt2.latitude]
-      ];
-      const l2 = hbdrad < 0 ? [p2a, p2b] : [p2b, p2a];
-
-      vl.laylines = {
-        port: hbdrad < 0 ? l2 : l1,
-        starboard: hbdrad < 0 ? l1 : l2
-      };
-    }
-
     // ** anchor line (active) **
     if (!this.app.data.anchor.raised) {
       vl.anchor = [this.app.data.anchor.position, this.dfeat.active.position];
@@ -1160,69 +1185,12 @@ export class FBMapComponent implements OnInit, OnDestroy {
     // ** CPA line **
     vl.cpa = [this.dfeat.closest.position, this.dfeat.self.position];
 
-    const sog = this.dfeat.active.sog || 0;
+    this.vesselLines = Object.assign({}, this.vesselLines, vl);
+  }
 
-    // ** cog line (active) **
-    const cl = sog * (this.app.config.vessel.cogLine * 60);
-    if (this.dfeat.active.cog) {
-      vl.cog = [
-        this.dfeat.active.position,
-        GeoUtils.destCoordinate(
-          this.dfeat.active.position,
-          this.dfeat.active.cog,
-          cl
-        )
-      ];
-    }
-
-    // ** heading line (active) **
-    let hl = 0;
-    if (this.app.config.vessel.headingLineSize === -1) {
-      hl = (sog > wMax ? wMax : sog) * offset;
-    } else {
-      hl =
-        Convert.nauticalMilesToKm(this.app.config.vessel.headingLineSize) *
-        1000;
-    }
-    vl.heading = [
-      this.dfeat.active.position,
-      GeoUtils.destCoordinate(
-        this.dfeat.active.position,
-        this.dfeat.active.orientation,
-        hl
-      )
-    ];
-
-    // ** awa (focused) **
-    let aws = this.dfeat.active.wind.aws || 0;
-    if (aws > wMax) {
-      aws = wMax;
-    }
-
-    vl.awa = [
-      this.dfeat.active.position,
-      GeoUtils.destCoordinate(
-        this.dfeat.active.position,
-        this.dfeat.active.wind.awa + this.dfeat.active.orientation,
-        typeof this.dfeat.active.orientation === 'number' ? aws * offset : 0
-      )
-    ];
-
-    // ** twd (focused) **
-    let tws = this.dfeat.active.wind.tws || 0;
-    if (tws > wMax) {
-      tws = wMax;
-    }
-    vl.twd = [
-      this.dfeat.active.position,
-      GeoUtils.destCoordinate(
-        this.dfeat.active.position,
-        this.dfeat.active.wind.direction || 0,
-        typeof this.dfeat.active.orientation === 'number' ? tws * offset : 0
-      )
-    ];
-
-    this.vesselLines = vl;
+  // worker call back
+  private drawVesselLinesResult(data: VesselLinesResult) {
+    this.vesselLines = Object.assign({}, this.vesselLines, data);
   }
 
   // ******** OVERLAY ACTIONS ************

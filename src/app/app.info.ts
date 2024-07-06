@@ -55,7 +55,7 @@ const FreeboardConfig: FBAppConfig = {
   anchorRadius: 40, // most recent anchor radius setting
   plugins: {
     instruments: '/@signalk/instrumentpanel',
-    startOnOpen: false,
+    startOnOpen: true,
     parameters: null
   },
   units: {
@@ -89,6 +89,8 @@ const FreeboardConfig: FBAppConfig = {
     },
     positionFormat: 'XY',
     aisTargets: null,
+    aisTargetTypes: [],
+    aisFilterByShipType: false,
     aisWindApparent: false,
     aisWindMinZoom: 15,
     aisShowTrack: false,
@@ -274,7 +276,7 @@ export class AppInfo extends Info {
     this.name = 'Freeboard-SK';
     this.shortName = 'Freeboard';
     this.description = `Signal K Chart Plotter.`;
-    this.version = '2.8.4';
+    this.version = '2.9.0';
     this.url = 'https://github.com/signalk/freeboard-sk';
     this.logo = './assets/img/app_logo.png';
 
@@ -451,12 +453,14 @@ export class AppInfo extends Info {
         console.warn('No Internet connection detected!');
         const mapsel = this.config.selections.charts;
         if (mapsel.includes('openstreetmap') || mapsel.includes('openseamap')) {
-          this.showAlert(
-            'Internet Map Service Unavailable: ',
-            `Unable to display Open Street / Sea Maps!\n
-                    Please check your Internet connection or select maps from the local network.\n
-                    `
-          );
+          if (!this.data.kioskMode) {
+            this.showAlert(
+              'Internet Map Service Unavailable: ',
+              `Unable to display Open Street / Sea Maps!\n
+                      Please check your Internet connection or select maps from the local network.\n
+                      `
+            );
+          }
         }
       });
   }
@@ -681,6 +685,14 @@ export class AppInfo extends Info {
 
     if (typeof settings.selections.aisShowTrack === 'undefined') {
       settings.selections.aisShowTrack = false;
+    }
+
+    if (typeof settings.selections.aisTargetTypes === 'undefined') {
+      settings.selections.aisTargetTypes = [];
+    }
+
+    if (typeof settings.selections.aisFilterByShipType === 'undefined') {
+      settings.selections.aisFilterByShipType = false;
     }
 
     if (typeof settings.selections.labelsMinZoom === 'undefined') {
@@ -918,16 +930,15 @@ export class AppInfo extends Info {
                     for more details.`
       },
       'whats-new': [
-        /*{
+        {
           type: 'signalk-server-node',
-          title: 'OpenWeather 3.0 Support',
+          title: 'AIS Vessels',
           message: `
-            OpenWeather is deprecating support for v2.5 of their API in April 2024!
+            Freeboard-SK now supports filtering the disply of vessels by AIS ship type.
             <br>&nbsp;<br>
-            Freeboard-SK now supports the v3.0 API which will require you to supply
-            a new API Key in the configuration.
+            Select  <b>Vessels</b> from the menu and turn on <b>View by Vessel type</b>.
           `
-        }*/
+        }
       ]
     };
 
