@@ -30,6 +30,7 @@ interface Lookup {
   attributes: any;
   id: number;
   displayPriority: DisplayPriority;
+  displayCategory: DisplayCategory;
 }
 
 export interface Options {
@@ -72,6 +73,16 @@ enum DisplayPriority {
   PRIO_ROUTEING = 7, // routeing lines
   PRIO_HAZARDS = 8, // hazards
   PRIO_MARINERS = 9 // VRM, EBL, own ship
+}
+
+
+enum DisplayCategory {
+  DISPLAYBASE = 0,        //
+  STANDARD = 1,           //
+  OTHER = 2,              // O for OTHER
+  MARINERS_STANDARD = 3,  // Mariner specified
+  MARINERS_OTHER = 4,     // value not defined
+  DISP_CAT_NUM = 5        // value not defined
 }
 
 enum LookupTable {
@@ -247,6 +258,7 @@ export class S57Service {
           instruction: lookup['INSTRUCTION'][0],
           lookupTable: this.getLookupTable(lookup['TABLE-NAME'][0]),
           geometryType: this.getGeometryType(lookup['TYPE'][0]),
+          displayCategory: this.getDisplayCategory(lookup['DISPLAY-CAT'][0]),
           attributes: {},
           id: parseInt(lookup['$']['ID']),
           displayPriority: this.getDisplayPriority(lookup['DISP-PRIO'][0])
@@ -512,6 +524,19 @@ export class S57Service {
         width: 1
       })
     });
+  }
+
+  private getDisplayCategory(dispCategory: string): DisplayCategory {
+    switch (dispCategory) {
+      case 'Displaybase':
+        return DisplayCategory.DISPLAYBASE
+      case 'Standard':
+        return DisplayCategory.STANDARD;
+      case 'Mariners':
+        return DisplayCategory.MARINERS_STANDARD;
+      default:
+        return DisplayCategory.OTHER;
+    }
   }
 
   private getDisplayPriority(dispPrio: string): DisplayPriority {
@@ -1133,13 +1158,17 @@ export class S57Service {
   
     return 0;
   };
+  
 
-  public getStyle = (feature: Feature): Style[] => {
+  public getStyle = (feature: Feature): Style[] => {    
     const props = feature.getProperties();
     const lupIndex = feature[LOOKUPINDEXKEY];
     if (lupIndex >= 0) {
       const lup = this.lookups[lupIndex];
-      return this.getStylesFromRules(lup, feature);
+      // simple feature filter
+      if ( lup.displayCategory == DisplayCategory.DISPLAYBASE || lup.displayCategory == DisplayCategory.STANDARD || lup.displayCategory == DisplayCategory.MARINERS_STANDARD||lup.name == "DEPCNT") {
+        return this.getStylesFromRules(lup, feature);
+      }
     }
     return null;
   };
