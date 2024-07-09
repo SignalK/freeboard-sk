@@ -24,7 +24,8 @@ import WebGLTileLayer from 'ol/layer/WebGLTile';
 import * as pmtiles from 'pmtiles';
 import { SKChart } from 'src/app/modules';
 import LayerGroup from 'ol/layer/Group';
-import { apply } from 'ol-mapbox-style';
+import { FeatureLike } from 'ol/Feature';
+import { apply, applyStyle, applyBackground } from 'ol-mapbox-style';
 
 // ** Freeboard resource collection format **
 @Component({
@@ -206,7 +207,7 @@ export class FreeboardChartLayerComponent
                   charts[i][1]
                 );
               layer = styleFactory.CreateLayer();
-              styleFactory.ApplyStyle(layer);
+              styleFactory.ApplyStyle(layer as VectorTileLayer<FeatureLike>);
               layer.setZIndex(this.zIndex + parseInt(i));
             } else {
               // raster tile

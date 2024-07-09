@@ -3,6 +3,8 @@ import { HttpClient } from '@angular/common/http';
 import { Style, Fill, Stroke, Icon, Text } from 'ol/style';
 import { Feature } from 'ol';
 import { Subject } from 'rxjs';
+import * as xml2js from 'xml2js';
+import { Point } from 'ol/geom';
 
 const DRGARE = 46; // Dredged area
 const DEPARE = 42; // Depth Area
@@ -103,10 +105,14 @@ export class S57Service {
   private instructionMatch = new RegExp('([A-Z][A-Z])\\((.*)\\)');
 
   constructor(private http: HttpClient) {
-    http.get('assets/s57/chartsymbols.json').subscribe((symbolsJson) => {
-      this.processSymbols(symbolsJson);
-      this.processLookup(symbolsJson);
-      this.processColors(symbolsJson);
+    http.get('assets/s57/chartsymbols.xml',{ responseType: "text" }).subscribe((symbolsXml) => {
+      const parser = new xml2js.Parser({ strict: false, trim: true });
+      parser.parseString(symbolsXml, (err, symbolsJs) => {
+        this.processSymbols(symbolsJs);
+        this.processLookup(symbolsJs);
+        this.processColors(symbolsJs);
+      });
+     
       this.refresh.next();
       const image = new Image();
       image.onload = () => {
@@ -142,23 +148,23 @@ export class S57Service {
   private processColors(symbolsJson: any) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (
-      symbolsJson['chartsymbols']['color-tables']['color-table'] as any[]
+      symbolsJson['CHARTSYMBOLS']['COLOR-TABLES'][0]['COLOR-TABLE'] as any[]
     ).forEach((colortable) => {
       const colorTable: ColorTable = {
-        symbolfile: colortable['graphics-file']['_name'],
+        symbolfile: colortable['GRAPHICS-FILE'][0]['$']['NAME'],
         colors: new Map<string, string>()
       };
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const colors = colortable['color'] as any[];
+      const colors = colortable['COLOR'] as any[];
       colors.forEach((color) => {
         colorTable.colors.set(
-          color['_name'],
-          'rgba(' +
-            color['_r'] +
+          color['$']['NAME'],
+          'RGBA(' +
+            color['$']['R'] +
             ', ' +
-            color['_g'] +
+            color['$']['G']  +
             ', ' +
-            color['_b'] +
+            color['$']['B']  +
             ',1)'
         );
       });
@@ -168,20 +174,20 @@ export class S57Service {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private processSymbols(symbolsJson: any) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (symbolsJson['chartsymbols']['symbols']['symbol'] as any[]).forEach(
+    (symbolsJson['CHARTSYMBOLS']['SYMBOLS'][0]['SYMBOL'] as any[]).forEach(
       (symbol) => {
-        const bitmap = symbol['bitmap'];
+        const bitmap = symbol['BITMAP'];
         if (bitmap) {
-          this.chartSymbols.set(symbol['name'], {
+          this.chartSymbols.set(symbol['NAME'][0], {
             image: null,
-            pivotX: parseInt(bitmap['pivot']['_x']),
-            pivotY: parseInt(bitmap['pivot']['_y']),
-            originX: parseInt(bitmap['origin']['_x']),
-            originY: parseInt(bitmap['origin']['_y']),
-            width: parseInt(bitmap['_width']),
-            height: parseInt(bitmap['_height']),
-            locationX: parseInt(bitmap['graphics-location']['_x']),
-            locationY: parseInt(bitmap['graphics-location']['_y'])
+            pivotX: parseInt(bitmap[0]['PIVOT'][0]['$']['X']),
+            pivotY: parseInt(bitmap[0]['PIVOT'][0]['$']['Y']),
+            originX: parseInt(bitmap[0]['ORIGIN'][0]['$']['X']),
+            originY: parseInt(bitmap[0]['ORIGIN'][0]['$']['Y']),
+            width: parseInt(bitmap[0]['$']['WIDTH']),
+            height: parseInt(bitmap[0]['$']['HEIGHT']),
+            locationX: parseInt(bitmap[0]['GRAPHICS-LOCATION'][0]['$']['X']),
+            locationY: parseInt(bitmap[0]['GRAPHICS-LOCATION'][0]['$']['Y'])
           });
         }
       }
@@ -191,7 +197,7 @@ export class S57Service {
   private compareLookup(a: Lookup, b: Lookup): number {
     const lt = a.lookupTable - b.lookupTable;
     if (lt !== 0) return lt;
-    const ir = a.name.localeCompare(b.name);
+    const ir = a.name.localeCompare(b.name,"en", { sensitivity: "base" });
     if (ir !== 0) return ir;
     const c1 = Object.keys(a.attributes).length;
     const c2 = Object.keys(a.attributes).length;
@@ -234,22 +240,22 @@ export class S57Service {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private processLookup(symbolsJson: any) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (symbolsJson['chartsymbols']['lookups']['lookup'] as any[]).forEach(
+    (symbolsJson['CHARTSYMBOLS']['LOOKUPS'][0]['LOOKUP'] as any[]).forEach(
       (lookup) => {
         const lup: Lookup = {
-          name: lookup['_name'],
-          instruction: lookup['instruction'],
-          lookupTable: this.getLookupTable(lookup['table-name']),
-          geometryType: this.getGeometryType(lookup['type']),
+          name: lookup['$']['NAME'],
+          instruction: lookup['INSTRUCTION'][0],
+          lookupTable: this.getLookupTable(lookup['TABLE-NAME'][0]),
+          geometryType: this.getGeometryType(lookup['TYPE'][0]),
           attributes: {},
-          id: parseInt(lookup['_id']),
-          displayPriority: this.getDisplayPriority(lookup['disp-prio'])
+          id: parseInt(lookup['$']['ID']),
+          displayPriority: this.getDisplayPriority(lookup['DISP-PRIO'][0])
         };
-        const attributes = lookup['attrib-code'];
+        const attributes = lookup['ATTRIB-CODE'];
         if (attributes) {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           (attributes as any[]).forEach((att) => {
-            lup.attributes[att['_index']] = att['__text'];
+            lup.attributes[att['$']['INDEX']] = att['_'];
           });
         }
         this.lookups.push(lup);
@@ -260,7 +266,7 @@ export class S57Service {
     // build index
     let lastkey = '';
     this.lookups.forEach((lup, index) => {
-      const key = lup.lookupTable + ',' + lup.name + ',' + lup.geometryType;
+      const key = lup.lookupTable + ',' + lup.name.toUpperCase() + ',' + lup.geometryType;
       if (key !== lastkey) {
         this.lookupStartIndex.set(key, index);
         lastkey = key;
@@ -297,11 +303,21 @@ export class S57Service {
     }
   }
 
+  private propertyCompare(a:any, b:string):number {
+    let t = typeof a;
+    switch(t) {
+      case "number":  let b1 = parseInt(b);return a-b1;
+      case "string": return (a as string).localeCompare(b);
+      default: return -1
+    }
+  }
+
   private selectLookup(feature: Feature): number {
-    const properties = feature.getProperties();
+    const properties = feature.getProperties();    
     const geometry = feature.getGeometry();
     const name = properties['layer'];
     const geomType = geometry.getType();
+      
     let lookupTable = LookupTable.PAPER_CHART;
     let type = GeometryType.POINT;
     if (geomType === 'Polygon') {
@@ -336,14 +352,14 @@ export class S57Service {
     let best = -1;
 
     let startIndex = this.lookupStartIndex.get(
-      lookupTable + ',' + name + ',' + type
+      lookupTable + ',' + name.toUpperCase() + ',' + type
     );
-    if (startIndex) {
-      let lup = this.lookups[startIndex];
-      best = startIndex;
+    let currentIndex = startIndex;
+    if (currentIndex) {
+      let lup = this.lookups[currentIndex];
       let lmatch = 0;
       while (
-        lup.name === name &&
+        lup.name.localeCompare(name,"en", { sensitivity: "base" }) === 0 &&
         lup.geometryType === type &&
         lup.lookupTable === lookupTable
       ) {
@@ -358,18 +374,37 @@ export class S57Service {
             return;
           }
           if (value === '?') return;
-          if (properties[key] === value) {
+          if (this.propertyCompare(properties[key],value) == 0) {
             nmatch++;
           }
         });
-        if (nmatch >= lmatch) {
-          best = startIndex;
+        // According to S52 specs, match must be perfect,
+        // and the first 100% match is selected
+        if (Object.keys(lup.attributes).length == nmatch && nmatch > lmatch) {
+          best = currentIndex;
           lmatch = nmatch;
         }
-        startIndex++;
-        lup = this.lookups[startIndex];
+        currentIndex++;
+        lup = this.lookups[currentIndex];
       }
-      return best;
+      // If no match found, return the first LUP in the list which has no attributes
+      if (best==-1) {
+        let currentIndex = startIndex;
+        let lup = this.lookups[currentIndex];
+        while (
+          lup.name.localeCompare(name,"en", { sensitivity: "base" }) === 0 &&
+          lup.geometryType === type &&
+          lup.lookupTable === lookupTable
+        ) {
+          if(Object.keys(lup.attributes).length==0) {
+             best=currentIndex;
+             break;
+          }
+          currentIndex++;
+          lup = this.lookups[currentIndex];
+        }
+      }
+      return  best;
     }
     return -1;
   }
@@ -447,7 +482,7 @@ export class S57Service {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private getTextStyleTX(featureProperties: any, parameters: string): Style {
     const params = parameters.split(',');
-    const text = featureProperties[params[0]];
+    const text = featureProperties[params[0]];   
     if (!text) {
       return null;
     }
@@ -458,7 +493,7 @@ export class S57Service {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private getTextStyleTE(featureProperties: any, parameters: string): Style {
     const params = parameters.split(',');
-    const text = featureProperties[this.stripQuotes(params[1])];
+    const text = featureProperties[this.stripQuotes(params[1])];   
     const format = this.stripQuotes(params[0]);
     if (!text || !format) {
       return null;
@@ -521,7 +556,7 @@ export class S57Service {
       return new Style({
         fill: new Fill({
           color: color
-        })
+        }),
       });
     }
     return null;
@@ -824,7 +859,6 @@ export class S57Service {
   //https://github.com/OpenCPN/OpenCPN/blob/c2ffb36ebca8c3777f03ea4d42e24f897aa62609/libs/s52plib/src/s52cnsy.cpp#L5597
   private GetSeabed01(drval1: number, drval2: number): string[] {
     let retval: string[] = ['AC(DEPIT)'];
-    let shallow = true;
 
     if (drval1 >= 0 && drval2 > 0) {
       retval = ['AC(DEPVS)'];
@@ -835,7 +869,6 @@ export class S57Service {
         drval2 > this.options.safetyDepth
       ) {
         retval = ['AC(DEPDW)'];
-        shallow = false;
       }
     } else {
       if (
@@ -849,17 +882,15 @@ export class S57Service {
         drval2 > this.options.safetyDepth
       ) {
         retval = ['AC(DEPMD)'];
-        shallow = false;
       }
-      if (drval1 >= this.options.deepDepth && drval2 > this.options.deepDepth) {
+      if (
+        drval1 >= this.options.deepDepth && 
+        drval2 > this.options.deepDepth) {
         retval = ['AC(DEPDW)'];
-        shallow = false;
       }
-    }
-
-    if (shallow) {
-      retval.push('AP(DIAMOND1)');
-    }
+    }    
+    // debug
+    // retval.push("LS(DASH,1,DEPSC)")
 
     return retval;
   }
@@ -926,8 +957,18 @@ export class S57Service {
 
     const featureProperties = feature.getProperties();
 
-    const drval1 = parseFloat(featureProperties['DRVAL1']);
-    const drval2 = parseFloat(featureProperties['DRVAL2']);
+    let drval1:number = -1
+
+    const dv1 = parseFloat(featureProperties['DRVAL1']);
+    if(!Number.isNaN(dv1)) {
+      drval1=dv1
+    }
+
+    let drval2:number=drval1+0.01;
+    const dv2 = parseFloat(featureProperties['DRVAL2']);
+    if(!Number.isNaN(dv2)) {
+      drval2=dv2
+    }
 
     retval = this.GetSeabed01(drval1, drval2);
 
@@ -944,7 +985,7 @@ export class S57Service {
     return retval;
   }
 
-  private evalCS(feature: Feature, instruction: string): string[] {
+  private evalCS(feature: Feature, instruction: string): string[] {    
     let retval: string[] = [];
     const instrParts = this.instructionMatch.exec(instruction);
     if (instrParts && instrParts.length > 1) {
@@ -972,8 +1013,9 @@ export class S57Service {
   private getStylesFromRules(lup: Lookup, feature: Feature): Style[] {
     const styles: Style[] = [];
     if (lup) {
-      const properties = feature.getProperties();
-      const instructions = lup.instruction.split(';');
+      const properties = feature.getProperties();  
+
+      const instructions = lup.instruction.split(';');      
 
       //PreProcess CS
       for (let i = 0; i < instructions.length; i++) {
@@ -1006,7 +1048,6 @@ export class S57Service {
               console.debug('Unsupported instruction:' + instruction);
           }
           if (style !== null) {
-            style.setZIndex(lup.displayPriority);
             styles.push(style);
           }
         }
@@ -1041,9 +1082,26 @@ export class S57Service {
     return 0;
   }
 
+
+  private layerOrder(feature:Feature):number {
+    const properties=feature.getProperties();
+
+    const layer = properties["layer"];
+    switch(layer) {
+      case "SEAARE":return 1;
+      case "DEPARE":return 2;
+      case "DEPCNT":return 3;
+      case "LNDARE":return 4;
+      case "BUAARE":return 6;
+      default: return 99;
+    }
+  }
+
   // the interface of this service
 
   public renderOrder = (feature1: Feature, feature2: Feature): number => {
+    const l1 = this.layerOrder(feature1);
+    const l2 = this.layerOrder(feature2);   
     const o1 = this.updateSafeContour(feature1);
     const o2 = this.updateSafeContour(feature2);
     let lupIndex1 = feature1[LOOKUPINDEXKEY];
@@ -1055,25 +1113,29 @@ export class S57Service {
     if (!lupIndex2) {
       lupIndex2 = this.selectLookup(feature2);
       feature2[LOOKUPINDEXKEY] = lupIndex2;
-    }
+    }    
+
+    if (l1 !== l2 ) {
+      return l1-l2;
+    }   
 
     if (lupIndex1 >= 0 && lupIndex2 >= 0) {
       const c1 = this.lookups[lupIndex1].displayPriority;
       const c2 = this.lookups[lupIndex2].displayPriority;
-      const cmp = c1 - c2;
-      if (cmp) {
-        return cmp;
+      if (c1 != c2) {
+        return c1-c2;
       }
     }
 
-    if (o1 !== o2) {
+    if (o1 !== o2) {    
       return o1 - o2;
     }
-
-    return lupIndex1 - lupIndex2;
+  
+    return 0;
   };
 
   public getStyle = (feature: Feature): Style[] => {
+    const props = feature.getProperties();
     const lupIndex = feature[LOOKUPINDEXKEY];
     if (lupIndex >= 0) {
       const lup = this.lookups[lupIndex];
