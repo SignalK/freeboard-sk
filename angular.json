@@ -15,16 +15,12 @@
       "prefix": "app",
       "architect": {
         "build": {
-          "builder": "@angular-devkit/build-angular:application",
+          "builder": "@angular-devkit/build-angular:browser",
           "options": {
-            "outputPath": {
-              "base": "public",
-              "browser": ""
-            },
+            "outputPath": "public",
             "index": "src/index.html",
-            "polyfills": [
-              "src/polyfills.ts"
-            ],
+            "main": "src/main.ts",
+            "polyfills": "src/polyfills.ts",
             "tsConfig": "tsconfig.app.json",
             "assets": [
               "src/favicon.ico",
@@ -37,7 +33,9 @@
               "src/styles.scss"
             ],
             "scripts": [],
+            "vendorChunk": true,
             "extractLicenses": false,
+            "buildOptimizer": false,
             "sourceMap": true,
             "optimization": false,
             "namedChunks": true,
@@ -45,8 +43,7 @@
             "allowedCommonJsDependencies": [
               "geolib",
               "simplify-ts"
-          ],
-          "browser": "src/main.ts"
+           ]
           },
           "configurations": {
             "production": {
@@ -61,6 +58,8 @@
               "sourceMap": false,
               "namedChunks": false,
               "extractLicenses": true,
+              "vendorChunk": false,
+              "buildOptimizer": true,
               "budgets": [
                 {
                   "type": "initial",

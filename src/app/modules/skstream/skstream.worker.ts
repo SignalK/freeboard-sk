@@ -768,6 +768,8 @@ function processVessel(d: SKVessel, v, isSelf = false) {
     }
   } else if (v.path === 'performance.beatAngle') {
     d.performance.beatAngle = v.value;
+  } else if (v.path === 'performance.gybeAngle') {
+    d.performance.gybeAngle = v.value;
   } else if (v.path === 'communication.callsignVhf') {
     d.callsign = v.value;
   } else if (v.path === 'design.aisShipType') {

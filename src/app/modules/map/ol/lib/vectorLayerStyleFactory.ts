@@ -6,6 +6,7 @@ import VectorTileSource from 'ol/source/VectorTile';
 import { MVT } from 'ol/format';
 import { Style, Fill, Stroke } from 'ol/style';
 import * as pmtiles from 'pmtiles';
+import { FeatureLike } from 'ol/Feature';
 
 export abstract class VectorLayerStyler {
   public MinZ: number;
@@ -18,10 +19,9 @@ export abstract class VectorLayerStyler {
         : chart.minZoom;
     this.MaxZ = chart.maxZoom;
   }
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  public abstract ApplyStyle(vectorLayer: any);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  public abstract CreateLayer(): VectorTileLayer<any>;
+
+  public abstract ApplyStyle(vectorLayer: VectorTileLayer<FeatureLike>);
+  public abstract CreateLayer(): VectorTileLayer<FeatureLike>;
 }
 
 class S57LayerStyler extends VectorLayerStyler {
@@ -29,13 +29,11 @@ class S57LayerStyler extends VectorLayerStyler {
     super(chart);
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  public CreateLayer(): VectorTileLayer<any> {
+  public CreateLayer(): VectorTileLayer<FeatureLike> {
     return new VectorTileLayer();
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  public ApplyStyle(vectorLayer: VectorTileLayer<any>) {
+  public ApplyStyle(vectorLayer: VectorTileLayer<FeatureLike>) {
     vectorLayer.set('declutter', true);
     const source = new VectorTileSource({
       url: this.chart.url,
@@ -62,8 +60,7 @@ class DefaultLayerStyler extends VectorLayerStyler {
     super(chart);
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  public CreateLayer(): VectorTileLayer<any> {
+  public CreateLayer(): VectorTileLayer<FeatureLike> {
     return new VectorTileLayer();
   }
 
@@ -80,8 +77,7 @@ class DefaultLayerStyler extends VectorLayerStyler {
     });
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  public ApplyStyle(vectorLayer: VectorTileLayer<any>) {
+  public ApplyStyle(vectorLayer: VectorTileLayer<FeatureLike>) {
     // mbtiles source
     const source = new VectorTileSource({
       url: this.chart.url,
@@ -106,13 +102,11 @@ class PMLayerStyler extends DefaultLayerStyler {
     super(chart);
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  public CreateLayer(): VectorTileLayer<any> {
+  public CreateLayer(): VectorTileLayer<FeatureLike> {
     return new VectorTileLayer({ declutter: true });
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  public ApplyStyle(vectorLayer: VectorTileLayer<any>) {
+  public ApplyStyle(vectorLayer: VectorTileLayer<FeatureLike>) {
     vectorLayer.set('declutter', true);
     const tiles = new pmtiles.PMTiles(this.chart.url);
 

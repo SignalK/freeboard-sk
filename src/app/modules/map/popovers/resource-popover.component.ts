@@ -10,7 +10,6 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { PipesModule } from 'src/app/lib/pipes';
-
 import { PopoverComponent } from './popover.component';
 
 import { AppInfo } from 'src/app/app.info';
@@ -25,6 +24,7 @@ id: string - resource id
 *************************************************/
 @Component({
   selector: 'resource-popover',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [
     MatButtonModule,
@@ -33,7 +33,6 @@ id: string - resource id
     PipesModule,
     PopoverComponent
   ],
-  changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <ap-popover [title]="title" [canClose]="canClose" (closed)="handleClose()">
       @for(p of properties; track p) {

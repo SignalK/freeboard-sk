@@ -275,9 +275,7 @@ export class ConfirmDialog implements OnInit {
         @if(data.url) {
         <div class="about-row">
           <div class="item stretch">
-            <a mat-button [href]="data.url" target="_web" rel="noopener"
-              >Visit Website</a
-            >
+            <a [href]="data.url" target="_web" rel="noopener">Visit Website</a>
           </div>
         </div>
         }

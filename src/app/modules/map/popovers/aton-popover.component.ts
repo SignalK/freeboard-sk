@@ -5,22 +5,19 @@ import {
   EventEmitter,
   ChangeDetectionStrategy
 } from '@angular/core';
-
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { PipesModule } from 'src/app/lib/pipes';
 import { PopoverComponent } from './popover.component';
 import { CompassComponent } from './compass.component';
-
 import { SKMeteo } from 'src/app/modules';
 import { AppInfo } from 'src/app/app.info';
 import { Convert } from 'src/app/lib/convert';
-
 /*********** AtoN Popover ***************
-title: string -  title text,
-aton: SKAtoN - aton data
-*************************************************/
+  title: string -  title text,
+  aton: SKAtoN - aton data
+  *************************************************/
 @Component({
   selector: 'aton-popover',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -39,7 +36,6 @@ aton: SKAtoN - aton data
         <div style="font-weight:bold;">Type:</div>
         <div style="flex: 1 1 auto;text-align:right;">{{ aton.type.name }}</div>
       </div>
-
       <div style="display:flex;">
         <div style="font-weight:bold;">Latitude:</div>
         <div
@@ -59,7 +55,6 @@ aton: SKAtoN - aton data
           "
         ></div>
       </div>
-
       <div style="display:flex;">
         <div style="font-weight:bold;">Last Update:</div>
         <div style="flex: 1 1 auto;text-align:right;">
@@ -110,15 +105,12 @@ export class AtoNPopoverComponent {
   @Input() canClose: boolean;
   @Output() info: EventEmitter<string> = new EventEmitter();
   @Output() closed: EventEmitter<void> = new EventEmitter();
-
   _title: string;
   timeLastUpdate: string;
   timeAgo: string; // last update in minutes ago
   protected convert = Convert;
   isMeteo: boolean;
-
   constructor(public app: AppInfo) {}
-
   ngOnInit() {
     if (!this.aton) {
       this.handleClose();
@@ -126,7 +118,6 @@ export class AtoNPopoverComponent {
       this.isMeteo = this.aton.id.includes('meteo');
     }
   }
-
   ngOnChanges() {
     if (!this.aton) {
       this.handleClose();
@@ -139,11 +130,9 @@ export class AtoNPopoverComponent {
     const td = (new Date().valueOf() - this.aton.lastUpdated.valueOf()) / 1000;
     this.timeAgo = td < 60 ? '' : `(${Math.floor(td / 60)} min ago)`;
   }
-
   handleInfo() {
     this.info.emit(this.aton.id);
   }
-
   handleClose() {
     this.closed.emit();
   }

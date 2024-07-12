@@ -10,6 +10,7 @@ import {
 } from '@angular/core';
 
 import TileLayer from 'ol/layer/Tile';
+import VectorTileLayer from 'ol/layer/VectorTile';
 import { TileWMS, XYZ, TileJSON, WMTS } from 'ol/source';
 import { optionsFromCapabilities } from 'ol/source/WMTS';
 import WMTSCapabilities from 'ol/format/WMTSCapabilities';
@@ -25,6 +26,7 @@ import * as pmtiles from 'pmtiles';
 import { SKChart } from 'src/app/modules';
 import LayerGroup from 'ol/layer/Group';
 import { apply } from 'ol-mapbox-style';
+import { FeatureLike } from 'ol/Feature';
 
 // ** Freeboard resource collection format **
 @Component({
@@ -206,7 +208,7 @@ export class FreeboardChartLayerComponent
                   charts[i][1]
                 );
               layer = styleFactory.CreateLayer();
-              styleFactory.ApplyStyle(layer);
+              styleFactory.ApplyStyle(layer as VectorTileLayer<FeatureLike>);
               layer.setZIndex(this.zIndex + parseInt(i));
             } else {
               // raster tile
