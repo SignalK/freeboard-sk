@@ -434,7 +434,8 @@ export class S57Service {
           opacity: 1,
           anchorXUnits: 'pixels',
           anchorYUnits: 'pixels',
-          anchor: [symbol.pivotX, symbol.pivotY]
+          anchor: [symbol.pivotX, symbol.pivotY],
+          declutterMode:'none'
         })
       });
     }
@@ -486,7 +487,7 @@ export class S57Service {
           textBaseline: textBaseline,
           scale: 1.5,
           offsetX: offsetX,
-          offsetY: offsetY
+          offsetY: offsetY,
         })
       });
     }
@@ -1316,7 +1317,6 @@ export class S57Service {
   public getStyle = (feature: Feature, resolution: number): Style[] => {
     if (!this.showAtScale(feature, resolution))
       return null;
-
     const lupIndex = feature[LOOKUPINDEXKEY];
     if (lupIndex >= 0) {
       const lup = this.lookups[lupIndex];

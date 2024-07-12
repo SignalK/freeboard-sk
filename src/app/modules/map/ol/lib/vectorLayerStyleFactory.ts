@@ -30,11 +30,10 @@ class S57LayerStyler extends VectorLayerStyler {
   }
 
   public CreateLayer(): VectorTileLayer<FeatureLike> {
-    return new VectorTileLayer();
+    return new VectorTileLayer({declutter:true});
   }
 
   public ApplyStyle(vectorLayer: VectorTileLayer<FeatureLike>) {
-    vectorLayer.set('declutter', true);
     const source = new VectorTileSource({
       url: this.chart.url,
       minZoom: this.chart.minZoom,
