@@ -5,18 +5,16 @@ import {
   EventEmitter,
   ChangeDetectionStrategy
 } from '@angular/core';
-
 import { MatListModule } from '@angular/material/list';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { PipesModule } from 'src/app/lib/pipes';
 import { PopoverComponent } from './popover.component';
-
 /*********** feature List Popover ***************
-title: string -  title text,
-features: Array<any> - list of features
-*************************************************/
+  title: string -  title text,
+  features: Array<any> - list of features
+  *************************************************/
 @Component({
   selector: 'feature-list-popover',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -54,14 +52,11 @@ export class FeatureListPopoverComponent {
   @Output() closed: EventEmitter<void> = new EventEmitter();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   @Output() selected: EventEmitter<any> = new EventEmitter();
-
   //constructor() {}
-
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   handleSelect(item: any) {
     this.selected.emit(item);
   }
-
   handleClose() {
     this.closed.emit();
   }

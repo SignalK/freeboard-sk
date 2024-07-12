@@ -8,7 +8,6 @@ import {
   ViewChild,
   SimpleChanges
 } from '@angular/core';
-
 import { CommonModule } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
@@ -28,18 +27,17 @@ import {
   ResourceSetPopoverComponent,
   VesselPopoverComponent
 } from './popovers';
-
 import { FreeboardOpenlayersModule } from 'src/app/modules/map/ol';
 import { PipesModule } from 'src/app/lib/pipes';
 
-import { getGreatCircleBearing } from 'geolib';
+import { computeDestinationPoint, getGreatCircleBearing } from 'geolib';
 import { toLonLat } from 'ol/proj';
 import { Style, Stroke, Fill } from 'ol/style';
 import { Collection, Feature } from 'ol';
 import { Feature as GeoJsonFeature } from 'geojson';
 
 import { Convert } from 'src/app/lib/convert';
-import { GeoUtils } from 'src/app/lib/geoutils';
+import { GeoUtils, Angle } from 'src/app/lib/geoutils';
 import { Position } from 'src/app/types';
 
 import { AppInfo } from 'src/app/app.info';
@@ -92,7 +90,6 @@ import {
   SKNotification
 } from 'src/app/types';
 import { S57Service } from './ol/lib/s57.service';
-import { VesselLinesResult } from './vessel-calcs.types';
 
 interface IResource {
   id: string;
@@ -161,20 +158,6 @@ interface IMeasureInfo {
   style: Style | Style[];
   totalDistance: number;
   coords: Position[];
-}
-
-interface VesselLines {
-  twd: Array<Position>;
-  awa: Array<Position>;
-  cog: Array<Position>;
-  bearing: Array<Position>;
-  heading: Array<Position>;
-  anchor: Array<Position>;
-  trail: Array<Position>;
-  cpa: Array<Position>;
-  xtePath: Array<Position>;
-  laylines: { port: number[][][]; starboard: number[][][] };
-  targetAngle: Array<Position>;
 }
 
 enum INTERACTION_MODE {
@@ -258,7 +241,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
     coords: []
   };
 
-  public vesselLines: VesselLines = {
+  public vesselLines = {
     twd: [],
     awa: [],
     bearing: [],
@@ -266,7 +249,6 @@ export class FBMapComponent implements OnInit, OnDestroy {
     anchor: [],
     trail: [],
     cpa: [],
-    cog: [],
     xtePath: [],
     laylines: { port: [], starboard: [] },
     targetAngle: []
@@ -369,8 +351,6 @@ export class FBMapComponent implements OnInit, OnDestroy {
 
   private obsList = [];
 
-  private worker: Worker;
-
   constructor(
     public app: AppInfo,
     public s57Service: S57Service,
@@ -378,12 +358,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
     public skresOther: SKOtherResources,
     private skstream: SKStreamFacade,
     private alarmsFacade: AlarmsFacade
-  ) {
-    this.worker = new Worker(new URL('./vessel-calcs.worker', import.meta.url));
-    this.worker.onmessage = ({ data }) => {
-      this.drawVesselLinesResult(data);
-    };
-  }
+  ) {}
 
   ngAfterViewInit() {
     // ** set map focus **
@@ -430,11 +405,6 @@ export class FBMapComponent implements OnInit, OnDestroy {
   ngOnDestroy() {
     this.stopSaveTimer();
     this.obsList.forEach((i) => i.unsubscribe());
-    if (this.worker) {
-      console.log('Terminating Vessel-Calcs Worker....');
-      this.worker.terminate();
-      this.worker = undefined;
-    }
   }
 
   ngOnChanges(changes: SimpleChanges) {
@@ -1119,31 +1089,30 @@ export class FBMapComponent implements OnInit, OnDestroy {
     }
   }
 
-  // center map to active vessel position
+  // ** center map to active vessel position
   public centerVessel() {
     const t = this.dfeat.active.position;
     t[0] += 0.0000000000001;
     this.fbMap.center = t;
   }
 
-  // trigger line calcs worker
   public drawVesselLines(vesselUpdate = false) {
-    this.worker.postMessage({
-      vesselConfig: this.app.config.vessel,
-      vesselSelf: this.app.data.vessels.self,
-      vesselActive: this.app.data.vessels.active,
-      navData: this.app.data.navData,
-      mapZoomLevel: this.fbMap.zoomLevel,
-      zoomOffsetLevel: this.zoomOffsetLevel,
-      units: this.app.config.units
-    });
+    const z = this.fbMap.zoomLevel;
+    const offset = z < 29 ? this.zoomOffsetLevel[Math.floor(z)] : 60;
+    const wMax = 10; // ** max line length
 
     const vl = {
       trail: [],
       xtePath: [],
       bearing: [],
       anchor: [],
-      cpa: []
+      cpa: [],
+      heading: [],
+      awa: [],
+      twd: [],
+      cog: [],
+      laylines: { port: [], starboard: [] },
+      targetAngle: []
     };
 
     // vessel trail
@@ -1177,6 +1146,117 @@ export class FBMapComponent implements OnInit, OnDestroy {
         : this.dfeat.active.position;
     vl.bearing = [this.dfeat.active.position, bpos];
 
+    // laylines (active)
+    if (
+      this.app.config.vessel.laylines &&
+      Array.isArray(this.dfeat.navData.position) &&
+      typeof this.dfeat.navData.position[0] === 'number' &&
+      typeof this.app.data.vessels.active.heading === 'number'
+    ) {
+      const twd_deg = Convert.radiansToDegrees(
+        this.app.data.vessels.self.wind.twd
+      );
+      const destUpwind =
+        Math.abs(
+          Angle.difference(this.app.data.navData.bearing.value, twd_deg)
+        ) < 90;
+      const ba_deg = Convert.radiansToDegrees(
+        this.app.data.vessels.self.performance.beatAngle ?? Math.PI / 4
+      );
+      const destInTarget =
+        Math.abs(
+          Angle.difference(this.app.data.navData.bearing.value, twd_deg)
+        ) < ba_deg;
+      const dtg =
+        this.app.config.units.distance === 'm'
+          ? this.app.data.navData.dtg * 1000
+          : Convert.nauticalMilesToKm(this.app.data.navData.dtg * 1000);
+
+      if (destInTarget) {
+        const bta = Angle.add(twd_deg, 90); // tack angle = 90
+
+        const hbd_rad = Convert.degreesToRadians(
+          Angle.difference(twd_deg, this.app.data.navData.bearing.value)
+        );
+        const dist1 = Math.sin(hbd_rad) * dtg;
+        const dist2 = Math.cos(hbd_rad) * dtg;
+        const pt1 = computeDestinationPoint(
+          this.app.data.vessels.active.position,
+          dist1,
+          bta
+        );
+        const pt2 = computeDestinationPoint(
+          this.app.data.vessels.active.position,
+          dist2,
+          twd_deg
+        );
+        const p1a = [
+          this.app.data.vessels.active.position,
+          [pt1.longitude, pt1.latitude]
+        ];
+        const p1b = [
+          [pt1.longitude, pt1.latitude],
+          this.dfeat.navData.position
+        ];
+        const l1 = hbd_rad < 0 ? [p1a, p1b] : [p1b, p1a];
+
+        const p2a = [
+          [pt2.longitude, pt2.latitude],
+          this.dfeat.navData.position
+        ];
+        const p2b = [
+          this.app.data.vessels.active.position,
+          [pt2.longitude, pt2.latitude]
+        ];
+        const l2 = hbd_rad < 0 ? [p2a, p2b] : [p2b, p2a];
+
+        vl.laylines = {
+          port: hbd_rad < 0 ? l2 : l1,
+          starboard: hbd_rad < 0 ? l1 : l2
+        };
+      }
+      // target angle lines
+      if (destUpwind && destInTarget) {
+        const bapt1 = computeDestinationPoint(
+          this.app.data.vessels.active.position,
+          dtg,
+          Angle.add(twd_deg, ba_deg)
+        );
+        const bapt2 = computeDestinationPoint(
+          this.app.data.vessels.active.position,
+          dtg,
+          Angle.add(twd_deg, 0 - ba_deg)
+        );
+        vl.targetAngle = [
+          [bapt1.longitude, bapt1.latitude],
+          this.app.data.vessels.active.position,
+          [bapt2.longitude, bapt2.latitude]
+        ];
+      } else if (
+        !destUpwind &&
+        typeof this.app.data.vessels.self.performance.gybeAngle === 'number'
+      ) {
+        const ga_deg = Convert.radiansToDegrees(
+          this.app.data.vessels.self.performance.gybeAngle
+        );
+        const gapt1 = computeDestinationPoint(
+          this.app.data.vessels.active.position,
+          dtg,
+          Angle.add(this.app.data.navData.bearing.value, ga_deg)
+        );
+        const gapt2 = computeDestinationPoint(
+          this.app.data.vessels.active.position,
+          dtg,
+          Angle.add(this.app.data.navData.bearing.value, 0 - ga_deg)
+        );
+        vl.targetAngle = [
+          [gapt1.longitude, gapt1.latitude],
+          this.app.data.vessels.active.position,
+          [gapt2.longitude, gapt2.latitude]
+        ];
+      }
+    }
+
     // ** anchor line (active) **
     if (!this.app.data.anchor.raised) {
       vl.anchor = [this.app.data.anchor.position, this.dfeat.active.position];
@@ -1185,12 +1265,69 @@ export class FBMapComponent implements OnInit, OnDestroy {
     // ** CPA line **
     vl.cpa = [this.dfeat.closest.position, this.dfeat.self.position];
 
-    this.vesselLines = Object.assign({}, this.vesselLines, vl);
-  }
+    const sog = this.dfeat.active.sog || 0;
 
-  // worker call back
-  private drawVesselLinesResult(data: VesselLinesResult) {
-    this.vesselLines = Object.assign({}, this.vesselLines, data);
+    // ** cog line (active) **
+    const cl = sog * (this.app.config.vessel.cogLine * 60);
+    if (this.dfeat.active.cog) {
+      vl.cog = [
+        this.dfeat.active.position,
+        GeoUtils.destCoordinate(
+          this.dfeat.active.position,
+          this.dfeat.active.cog,
+          cl
+        )
+      ];
+    }
+
+    // ** heading line (active) **
+    let hl = 0;
+    if (this.app.config.vessel.headingLineSize === -1) {
+      hl = (sog > wMax ? wMax : sog) * offset;
+    } else {
+      hl =
+        Convert.nauticalMilesToKm(this.app.config.vessel.headingLineSize) *
+        1000;
+    }
+    vl.heading = [
+      this.dfeat.active.position,
+      GeoUtils.destCoordinate(
+        this.dfeat.active.position,
+        this.dfeat.active.orientation,
+        hl
+      )
+    ];
+
+    // ** awa (focused) **
+    let aws = this.dfeat.active.wind.aws || 0;
+    if (aws > wMax) {
+      aws = wMax;
+    }
+
+    vl.awa = [
+      this.dfeat.active.position,
+      GeoUtils.destCoordinate(
+        this.dfeat.active.position,
+        this.dfeat.active.wind.awa + this.dfeat.active.orientation,
+        typeof this.dfeat.active.orientation === 'number' ? aws * offset : 0
+      )
+    ];
+
+    // ** twd (focused) **
+    let tws = this.dfeat.active.wind.tws || 0;
+    if (tws > wMax) {
+      tws = wMax;
+    }
+    vl.twd = [
+      this.dfeat.active.position,
+      GeoUtils.destCoordinate(
+        this.dfeat.active.position,
+        this.dfeat.active.wind.direction || 0,
+        typeof this.dfeat.active.orientation === 'number' ? tws * offset : 0
+      )
+    ];
+
+    this.vesselLines = vl;
   }
 
   // ******** OVERLAY ACTIONS ************

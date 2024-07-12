@@ -209,7 +209,8 @@ export class SKVessel {
     previousPoint: {}
   };
   performance = {
-    beatAngle: null
+    beatAngle: null,
+    gybeAngle: null
   };
   properties = {};
 }

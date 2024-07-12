@@ -107,10 +107,9 @@ export class AISListComponent {
       id: 90,
       description: 'Other',
       selected: false,
-      icon: './assets/img/ais_special.png'
+      icon: './assets/img/ais_other.png'
     }
   ];
-  otherShiptypes = [10, 20, 30, 90];
 
   constructor(public app: AppInfo) {}
 

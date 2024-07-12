@@ -84,7 +84,7 @@ export class LaylineComponent implements OnInit, OnDestroy, OnChanges {
       const properties: { [index: string]: any } = {};
 
       for (const key in changes) {
-        if (key === 'lines' || key === 'twd' || key === 'bearing') {
+        if (key === 'lines' || key === 'twd' || key === 'position') {
           this.parseValues();
           if (this.source) {
             this.source.clear();

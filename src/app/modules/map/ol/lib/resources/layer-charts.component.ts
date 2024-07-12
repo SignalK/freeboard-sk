@@ -10,6 +10,7 @@ import {
 } from '@angular/core';
 
 import TileLayer from 'ol/layer/Tile';
+import VectorTileLayer from 'ol/layer/VectorTile';
 import { TileWMS, XYZ, TileJSON, WMTS } from 'ol/source';
 import { optionsFromCapabilities } from 'ol/source/WMTS';
 import WMTSCapabilities from 'ol/format/WMTSCapabilities';
@@ -25,8 +26,8 @@ import VectorTileLayer from 'ol/layer/VectorTile';
 import * as pmtiles from 'pmtiles';
 import { SKChart } from 'src/app/modules';
 import LayerGroup from 'ol/layer/Group';
+import { apply } from 'ol-mapbox-style';
 import { FeatureLike } from 'ol/Feature';
-import { apply, applyStyle, applyBackground } from 'ol-mapbox-style';
 
 // ** Freeboard resource collection format **
 @Component({

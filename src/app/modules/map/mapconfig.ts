@@ -313,6 +313,11 @@ const ais80 = new Icon({
   rotateWithView: true,
   rotation: 0
 });
+const ais90 = new Icon({
+  src: './assets/img/ais_other.png',
+  rotateWithView: true,
+  rotation: 0
+});
 const aisBuddy = new Icon({
   src: './assets/img/ais_buddy.png',
   rotateWithView: true,
@@ -506,7 +511,7 @@ export const aisVesselStyles = {
   90: {
     // other
     default: new Style({
-      image: ais50,
+      image: ais90,
       text: new Text({
         text: '',
         offsetY: -12

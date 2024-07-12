@@ -276,7 +276,7 @@ export class AppInfo extends Info {
     this.name = 'Freeboard-SK';
     this.shortName = 'Freeboard';
     this.description = `Signal K Chart Plotter.`;
-    this.version = '2.9.0';
+    this.version = '2.9.1';
     this.url = 'https://github.com/signalk/freeboard-sk';
     this.logo = './assets/img/app_logo.png';
 
@@ -930,15 +930,16 @@ export class AppInfo extends Info {
                     for more details.`
       },
       'whats-new': [
-        {
+        /*{
           type: 'signalk-server-node',
-          title: 'AIS Vessels',
+          title: 'OpenWeather 3.0 Support',
           message: `
-            Freeboard-SK now supports filtering the disply of vessels by AIS ship type.
+            OpenWeather is deprecating support for v2.5 of their API in April 2024!
             <br>&nbsp;<br>
-            Select  <b>Vessels</b> from the menu and turn on <b>View by Vessel type</b>.
+            Freeboard-SK now supports the v3.0 API which will require you to supply
+            a new API Key in the configuration.
           `
-        }
+        }*/
       ]
     };
 

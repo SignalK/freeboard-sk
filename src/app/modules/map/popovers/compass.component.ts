@@ -6,6 +6,7 @@ import {
   ChangeDetectionStrategy,
   Renderer2
 } from '@angular/core';
+
 import { CommonModule } from '@angular/common';
 
 //** Base class **

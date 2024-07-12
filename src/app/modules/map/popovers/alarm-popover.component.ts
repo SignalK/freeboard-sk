@@ -5,20 +5,17 @@ import {
   EventEmitter,
   ChangeDetectionStrategy
 } from '@angular/core';
-
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { PipesModule } from 'src/app/lib/pipes';
 import { PopoverComponent } from './popover.component';
-
 import { AppInfo } from 'src/app/app.info';
 import { SKNotification } from 'src/app/types';
-
 /*********** Alarm Popover ***************
-title: string -  title text,
-aton: SKNotification - alarm data
-*************************************************/
+  title: string -  title text,
+  aton: SKNotification - alarm data
+  *************************************************/
 @Component({
   selector: 'alarm-popover',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -36,12 +33,10 @@ aton: SKNotification - alarm data
         <div style="font-weight:bold;">Message:</div>
         <div style="flex: 1 1 auto;text-align:right;">{{ alarm.message }}</div>
       </div>
-
       <div style="display:flex;">
         <div style="font-weight:bold;">Type:</div>
         <div style="flex: 1 1 auto;text-align:right;">{{ id }}</div>
       </div>
-
       <div style="display:flex;">
         <div style="font-weight:bold;">Latitude:</div>
         <div
@@ -62,7 +57,6 @@ aton: SKNotification - alarm data
           "
         ></div>
       </div>
-
       <div style="display:flex;">
         <div style="flex:1 1 auto;">&nbsp;</div>
         <div class="popover-action-button">
@@ -87,11 +81,8 @@ export class AlarmPopoverComponent {
   @Input() canClose: boolean;
   @Output() info: EventEmitter<string> = new EventEmitter();
   @Output() closed: EventEmitter<void> = new EventEmitter();
-
   _title: string;
-
   constructor(public app: AppInfo) {}
-
   ngOnInit() {
     if (!this.alarm) {
       this.handleClose();
@@ -99,18 +90,15 @@ export class AlarmPopoverComponent {
       this._title = this.title || 'Alarm:';
     }
   }
-
   ngOnChanges() {
     if (!this.alarm) {
       this.handleClose();
       return;
     }
   }
-
   handleInfo() {
     this.info.emit(this.alarm.id);
   }
-
   handleClose() {
     this.closed.emit();
   }

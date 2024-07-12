@@ -13,7 +13,6 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { PipesModule } from 'src/app/lib/pipes';
-
 import { PopoverComponent } from './popover.component';
 import { CompassComponent } from './compass.component';
 

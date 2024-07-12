@@ -5,20 +5,17 @@ import {
   EventEmitter,
   ChangeDetectionStrategy
 } from '@angular/core';
-
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { PipesModule } from 'src/app/lib/pipes';
 import { PopoverComponent } from './popover.component';
-
 import { AppInfo } from 'src/app/app.info';
 import { SKAircraft } from 'src/app/modules';
-
 /*********** Aircraft Popover ***************
-title: string -  title text,
-aircraft: SKAircraft - aircraft data
-*************************************************/
+  title: string -  title text,
+  aircraft: SKAircraft - aircraft data
+  *************************************************/
 @Component({
   selector: 'aircraft-popover',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -36,14 +33,12 @@ aircraft: SKAircraft - aircraft data
         <div style="font-weight:bold;">Name:</div>
         <div style="flex: 1 1 auto;text-align:right;">{{ aircraft.name }}</div>
       </div>
-
       <div style="display:flex;">
         <div style="font-weight:bold;">Call sign:</div>
         <div style="flex: 1 1 auto;text-align:right;">
           {{ aircraft.callsign }}
         </div>
       </div>
-
       <div style="display:flex;">
         <div style="font-weight:bold;">Latitude:</div>
         <div
@@ -63,7 +58,6 @@ aircraft: SKAircraft - aircraft data
           "
         ></div>
       </div>
-
       <div style="display:flex;">
         <div style="font-weight:bold;">Last Update:</div>
         <div style="flex: 1 1 auto;text-align:right;">
@@ -93,13 +87,10 @@ export class AircraftPopoverComponent {
   @Input() canClose: boolean;
   @Output() info: EventEmitter<string> = new EventEmitter();
   @Output() closed: EventEmitter<void> = new EventEmitter();
-
   _title: string;
   timeLastUpdate: string;
   timeAgo: string; // last update in minutes ago
-
   constructor(public app: AppInfo) {}
-
   ngOnInit() {
     if (!this.aircraft) {
       this.handleClose();
@@ -108,7 +99,6 @@ export class AircraftPopoverComponent {
         this.title || this.aircraft.name || this.aircraft.mmsi || 'Aircraft:';
     }
   }
-
   ngOnChanges() {
     if (!this.aircraft) {
       this.handleClose();
@@ -121,11 +111,9 @@ export class AircraftPopoverComponent {
       (new Date().valueOf() - this.aircraft.lastUpdated.valueOf()) / 1000;
     this.timeAgo = td < 60 ? '' : `(${Math.floor(td / 60)} min ago)`;
   }
-
   handleInfo() {
     this.info.emit(this.aircraft.id);
   }
-
   handleClose() {
     this.closed.emit();
   }

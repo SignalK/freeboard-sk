@@ -46,7 +46,6 @@ import { ArrivalCircleComponent } from './lib/navigation/layer-arrival-circle.co
 import { XTEPathComponent } from './lib/navigation/layer-xte-path.component';
 import { BearingLineComponent } from './lib/navigation/layer-bearing-line.component';
 import { LaylineComponent } from './lib/navigation/layer-layline.component';
-import { TargetAngleComponent } from './lib/navigation/layer-target-angle.component';
 import { DirectionOfTravelComponent } from './lib/navigation/layer-dot.component';
 import { VesselComponent } from './lib/vessel/layer-vessel.component';
 import { VesselTrailComponent } from './lib/vessel/layer-vessel-trail.component';
@@ -99,6 +98,7 @@ export { XTEPathComponent } from './lib/navigation/layer-xte-path.component';
 export { BearingLineComponent } from './lib/navigation/layer-bearing-line.component';
 export { LaylineComponent } from './lib/navigation/layer-layline.component';
 export { TargetAngleComponent } from './lib/navigation/layer-target-angle.component';
+import { TargetAngleComponent } from './lib/navigation/layer-target-angle.component';
 export { DirectionOfTravelComponent } from './lib/navigation/layer-dot.component';
 export { VesselComponent } from './lib/vessel/layer-vessel.component';
 export { VesselTrailComponent } from './lib/vessel/layer-vessel-trail.component';
