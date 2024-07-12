@@ -10,7 +10,6 @@ import {
 } from '@angular/core';
 
 import TileLayer from 'ol/layer/Tile';
-import VectorTileLayer from 'ol/layer/VectorTile';
 import { TileWMS, XYZ, TileJSON, WMTS } from 'ol/source';
 import { optionsFromCapabilities } from 'ol/source/WMTS';
 import WMTSCapabilities from 'ol/format/WMTSCapabilities';
