@@ -616,10 +616,90 @@ export class S57Service {
     });
   }
 
+  //https://github.com/OpenCPN/OpenCPN/blob/20a781ecc507443e5aaa1d33d0cb91852feb07ee/libs/s52plib/src/s52cnsy.cpp#L2121
+  private GetCSQQUALIN01(feature: Feature): string[] {
+    let retval: string[] = [];
+    const featureProperties = feature.getProperties();
+
+    let quapos = 0;
+    let bquapos = false
+    if (featureProperties["QUAPOS"]) {
+      quapos = parseFloat(featureProperties['QUAPOS']);
+      bquapos = true
+    }
+    if(bquapos) {
+      if(2<= quapos && quapos < 10) {
+        retval.push("LC(LOWACC21")
+      }
+    } else {
+      if(featureProperties["layer"]=="COALNE") {
+        let conrad = 0;
+        let bconrad = false
+        if (featureProperties["CONRAD"]) {
+          quapos = parseFloat(featureProperties['CONRAD']);
+          bquapos = true
+        }
+        if(bconrad) {
+          if(conrad==1) {
+            retval.push("LS(SOLD,3,CHMGF)");
+            retval.push("LS(SOLD,1,CSTLN)");
+          } else {
+            retval.push("LS(SOLD,1,CSTLN)");
+          }
+        } else {
+          retval.push("LS(SOLD,1,CSTLN)");
+        }
+      } else {
+        retval.push("LS(SOLD,1,CSTLN)");
+      }
+    }
+
+    return retval
+  }
+
+  // https://github.com/OpenCPN/OpenCPN/blob/20a781ecc507443e5aaa1d33d0cb91852feb07ee/libs/s52plib/src/s52cnsy.cpp#L2185
+  private GetCSQQUAPNT01(feature: Feature): string[] {
+    let retval: string[] = [];
+    const featureProperties = feature.getProperties();
+
+    let accurate=true
+    let quapos = 0;
+    let bquapos = false
+    if (featureProperties["QUAPOS"]) {
+      quapos = parseInt(featureProperties['QUAPOS']);
+      bquapos = true
+    }
+    if(bquapos)     {
+      if(2<= quapos && quapos <10) {
+        accurate=false
+      }
+      if(accurate) {
+         switch(quapos) {
+          case 4:retval.push("SY(QUAPOS01)");break;
+          case 5:retval.push("SY(QUAPOS02)");break;
+          case 7:
+          case 8:retval.push("SY(QUAPOS03)");break;
+          default:retval.push("SY(LOWACC03)");break;
+         }
+      }
+    }
+    return retval
+  }
+
+  //https://github.com/OpenCPN/OpenCPN/blob/20a781ecc507443e5aaa1d33d0cb91852feb07ee/libs/s52plib/src/s52cnsy.cpp#L2072
+  private GetCSQUAPOS01(feature: Feature): string[] {
+    const geometry = feature.getGeometry();
+
+    if (geometry.getType() === 'LineString') {
+      return this.GetCSQQUALIN01(feature);
+    } else {
+      return this.GetCSQQUAPNT01(feature);     
+    }
+  }
+
   //https://github.com/OpenCPN/OpenCPN/blob/20a781ecc507443e5aaa1d33d0cb91852feb07ee/libs/s52plib/src/s52cnsy.cpp#L2232
   private GetCSSLCONS03(feature: Feature): string[] {
     let retval: string[] = [];
-    let rulestring: string = null;
     const featureProperties = feature.getProperties();
     const geometry = feature.getGeometry();
 
@@ -670,9 +750,9 @@ export class S57Service {
               watlev = parseInt(featureProperties['WATLEV']);
               bwatlev = true
             }
-            if(bwatlev && watlev==2) {
+            if (bwatlev && watlev == 2) {
               retval.push("LS(SOLD,2,CSTLN)");
-            } else if (bwatlev && (watlev==3 || watlev==4)) {
+            } else if (bwatlev && (watlev == 3 || watlev == 4)) {
               retval.push("LS(DASH,2,CSTLN)");
             } else {
               retval.push("LS(SOLD,2,CSTLN)");
@@ -1101,6 +1181,9 @@ export class S57Service {
           break;
         case 'SLCONS03':
           retval = this.GetCSSLCONS03(feature);
+          break;
+        case 'QUAPOS01':
+          retval = this.GetCSQUAPOS01(feature);
           break;
         default:
           console.debug('Unsupported CS:' + instruction);
