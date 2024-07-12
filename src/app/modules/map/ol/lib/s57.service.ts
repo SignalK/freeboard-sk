@@ -107,6 +107,7 @@ export class S57Service {
   private lookupStartIndex: Map<string, number> = new Map<string, number>();
   public refresh: Subject<void> = new Subject<void>();
   private selectedSafeContour = 1000;
+  private dpi:number;
 
   //options
 
@@ -122,6 +123,7 @@ export class S57Service {
         this.processSymbols(symbolsJs);
         this.processLookup(symbolsJs);
         this.processColors(symbolsJs);
+        this.dpi = 90
       });
      
       this.refresh.next();
@@ -1107,26 +1109,9 @@ export class S57Service {
     return 0;
   }
 
-
-  private layerOrder(feature:Feature):number {
-    const properties=feature.getProperties();
-
-    const layer = properties["layer"];
-    switch(layer) {
-      case "SEAARE":return 1;
-      case "DEPARE":return 2;
-      case "DEPCNT":return 3;
-      case "LNDARE":return 4;
-      case "BUAARE":return 6;
-      default: return 99;
-    }
-  }
-
   // the interface of this service
 
   public renderOrder = (feature1: Feature, feature2: Feature): number => {
-    const l1 = this.layerOrder(feature1);
-    const l2 = this.layerOrder(feature2);   
     const o1 = this.updateSafeContour(feature1);
     const o2 = this.updateSafeContour(feature2);
     let lupIndex1 = feature1[LOOKUPINDEXKEY];
@@ -1139,10 +1124,6 @@ export class S57Service {
       lupIndex2 = this.selectLookup(feature2);
       feature2[LOOKUPINDEXKEY] = lupIndex2;
     }    
-
-    if (l1 !== l2 ) {
-      return l1-l2;
-    }   
 
     if (lupIndex1 >= 0 && lupIndex2 >= 0) {
       const c1 = this.lookups[lupIndex1].displayPriority;
@@ -1158,11 +1139,30 @@ export class S57Service {
   
     return 0;
   };
+
+  private showAtScale(feature: Feature, resolution):boolean {
+    //resolution is m / pixel
+    //this.dpi is pixel / inch on the screen
+    const currentDeviceScale = 1 / 0.0254 * this.dpi * resolution
+    const properties = feature.getProperties();
+    if (properties["SCAMIN"]) { 
+      if(properties["SCAMIN"]<currentDeviceScale) 
+        return false
+    }
+    if (properties["SCAMAX"]) {
+      if(properties["SCAMAX"]>currentDeviceScale) 
+        return false
+    }
+
+    return true;
+  }
   
 
-  public getStyle = (feature: Feature): Style[] => {    
-    const props = feature.getProperties();
-    const lupIndex = feature[LOOKUPINDEXKEY];
+  public getStyle = (feature: Feature,resolution:number): Style[] => {    
+    if(!this.showAtScale(feature,resolution))
+      return null;
+
+    const lupIndex = feature[LOOKUPINDEXKEY];    
     if (lupIndex >= 0) {
       const lup = this.lookups[lupIndex];
       // simple feature filter
