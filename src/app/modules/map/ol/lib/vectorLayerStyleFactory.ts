@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { SKChart } from 'src/app/modules';
 import { S57Service } from './s57.service';
+import { S57Style } from './s57Style';
 import VectorTileLayer from 'ol/layer/VectorTile';
 import VectorTileSource from 'ol/source/VectorTile';
 import { MVT } from 'ol/format';
@@ -38,15 +39,17 @@ class S57LayerStyler extends VectorLayerStyler {
       url: this.chart.url,
       minZoom: this.chart.minZoom,
       maxZoom: this.chart.maxZoom,
-      format: new MVT({})
+      format: new MVT({}),
     });
+
+    const style = new S57Style(this.s57service)
 
     vectorLayer.setSource(source);
     vectorLayer.setPreload(0);
-    vectorLayer.setStyle(this.s57service.getStyle);
-    vectorLayer.setMinZoom(13);
+    vectorLayer.setStyle(style.getStyle);
+    vectorLayer.setMinZoom(this.chart.minZoom+1);
     vectorLayer.setMaxZoom(23);
-    vectorLayer.setRenderOrder(this.s57service.renderOrder);
+    vectorLayer.setRenderOrder(style.renderOrder);
 
     this.s57service.refresh.subscribe(() => {
       source.refresh();
