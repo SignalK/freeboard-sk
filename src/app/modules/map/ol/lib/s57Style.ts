@@ -71,7 +71,7 @@ export class S57Style {
       if (typeof tx !== 'string') {
         tx = text.toString();
       }
-      return new Style({
+      const style = new Style({
         text: new Text({
           text: tx,
           textAlign: textAlign,
@@ -81,6 +81,8 @@ export class S57Style {
           offsetY: offsetY,
         })
       });
+      style.setZIndex(99); // text always on top
+      return style
     }
     return null;
   }
@@ -625,6 +627,7 @@ export class S57Style {
     let rulestring: string = null;
     const featureProperties = feature.getProperties();
     const geometry = feature.getGeometry();
+    let retval: string[] = [];
 
     //const safe = false;
     let drval1 = 0;
@@ -649,31 +652,30 @@ export class S57Style {
       }
     }
     if (depth_value < this.s57Service.options.safetyDepth) {
-      return [];
+      retval.push("LS(SOLD,1,DEPCN)")
+      return retval;
     }
 
     if (featureProperties['QUAPOS']) {
       quapos = parseFloat(featureProperties['QUAPOS']);
       if (quapos > 2 && quapos < 10) {
         if (depth_value === this.selectedSafeContour) {
-          rulestring = 'LS(DASH,2,DEPSC)';
+          retval.push('LS(DASH,2,DEPSC)');
         }
-        //  else {
-        //   rulestring="LS(DASH,1,DEPCN)"
-
-        // }
+          else {
+            retval.push("LS(DASH,1,DEPCN)")
+         }
       }
     } else {
       if (depth_value === this.selectedSafeContour) {
-        rulestring = 'LS(SOLD,2,DEPSC)';
+        retval.push('LS(SOLD,2,DEPSC)');
       }
-      // else {
-      //   rulestring="LS(SOLD,1,DEPCN)"
-
-      // }
+       else {
+         retval.push("LS(SOLD,1,DEPCN)")
+       }
     }
 
-    return rulestring ? [rulestring] : [];
+    return  retval
   }
 
   //https://github.com/OpenCPN/OpenCPN/blob/c2ffb36ebca8c3777f03ea4d42e24f897aa62609/libs/s52plib/src/s52cnsy.cpp#L4247
@@ -846,9 +848,9 @@ export class S57Style {
         feature2[LOOKUPINDEXKEY] = lupIndex2;
       }
   
-      if (l1 !== l2 ) {
-        return l1-l2;
-      }   
+      // if (l1 !== l2 ) {
+      //   return l1-l2;
+      // }   
   
       if (lupIndex1 >= 0 && lupIndex2 >= 0) {
         const c1 = this.s57Service.getLookup(lupIndex1).displayPriority;
