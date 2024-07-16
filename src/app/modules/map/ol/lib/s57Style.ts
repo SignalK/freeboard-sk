@@ -848,9 +848,9 @@ export class S57Style {
         feature2[LOOKUPINDEXKEY] = lupIndex2;
       }
   
-      // if (l1 !== l2 ) {
-      //   return l1-l2;
-      // }   
+      if (l1 !== l2 ) {
+        return l1-l2;
+      }   
   
       if (lupIndex1 >= 0 && lupIndex2 >= 0) {
         const c1 = this.s57Service.getLookup(lupIndex1).displayPriority;
