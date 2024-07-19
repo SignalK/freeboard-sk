@@ -131,6 +131,17 @@ html {
         color: black !important;
     }
 
+    .about-row .item a,
+    .welcome a {
+        color: mat.get-theme-color($light-theme, tertiary);
+    }
+    .welcome .step-current {
+        color: mat.get-theme-color($light-theme, tertiary);
+    }
+    .welcome .step-other {
+        color: mat.get-theme-color($light-theme, secondary);
+    }
+
 
   //@media (prefers-color-scheme: dark) {
   .dark-theme {
@@ -180,6 +191,12 @@ html {
     .about-row .item a,
     .welcome a {
         color: mat.get-theme-color($dark-theme, tertiary);
+    }
+    .welcome .step-current {
+        color: mat.get-theme-color($dark-theme, tertiary);
+    }
+    .welcome .step-other {
+        color: mat.get-theme-color($dark-theme, secondary);
     }
   }
 }

@@ -515,7 +515,7 @@ export class MessageBarComponent {
         <div style="text-align:center;font-size:10pt;font-family:roboto;">
           @for(c of data.content; track c; let i = $index) {
           <mat-icon
-            [style.color]="currentPage - 1 === i ? 'blue' : 'gray'"
+            [ngClass] = "{'step-current': currentPage - 1 === i, 'step-other': currentPage - 1 !== i}"
             style="font-size:8pt;width:12px;"
           >
             fiber_manual_record
