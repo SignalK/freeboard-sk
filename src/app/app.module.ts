@@ -1,6 +1,9 @@
 import { BrowserModule } from '@angular/platform-browser';
 import { NgModule } from '@angular/core';
-import { HttpClientModule } from '@angular/common/http';
+import {
+  provideHttpClient,
+  withInterceptorsFromDi
+} from '@angular/common/http';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 
 import { MatBadgeModule } from '@angular/material/badge';
@@ -39,8 +42,9 @@ import {
 
 @NgModule({
   declarations: [AppComponent],
+  exports: [],
+  bootstrap: [AppComponent],
   imports: [
-    HttpClientModule,
     MatMenuModule,
     MatSidenavModule,
     MatBadgeModule,
@@ -70,8 +74,6 @@ import {
     AlarmsDialog,
     RouteNextPointComponent
   ],
-  exports: [],
-  providers: [],
-  bootstrap: [AppComponent]
+  providers: [provideHttpClient(withInterceptorsFromDi())]
 })
 export class AppModule {}

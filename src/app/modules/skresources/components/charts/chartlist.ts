@@ -34,7 +34,7 @@ import { FBCharts, FBChart, FBResourceSelect } from 'src/app/types';
   imports: [MatTooltipModule, MatIconModule, MatCardModule, DragDropModule],
   template: `
     <div class="_ap-chartlayers">
-      <mat-card>
+      <mat-card style="border-radius: unset;">
         <mat-card-content>
           <div
             style="display:flex; font-style:italic; border-bottom:gray 1px solid;"
@@ -58,7 +58,7 @@ import { FBCharts, FBChart, FBResourceSelect } from 'src/app/types';
             (cdkDropListDropped)="drop($event)"
           >
             @for(ch of chartList; track ch; let i = $index) {
-            <mat-card cdkDrag>
+            <mat-card cdkDrag style="border-radius: unset;">
               <mat-card-content>
                 <div class="point-drop-placeholder" *cdkDragPlaceholder></div>
 
@@ -86,7 +86,7 @@ import { FBCharts, FBChart, FBResourceSelect } from 'src/app/types';
         </div>
       </div>
 
-      <mat-card>
+      <mat-card style="border-radius: unset;">
         <mat-card-content>
           <div
             style="display:flex; font-style:italic; border-top:gray 1px solid;"

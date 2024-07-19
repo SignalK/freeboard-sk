@@ -62,12 +62,22 @@ import { AppInfo } from 'src/app/app.info';
               <mat-card-content> </mat-card-content>
               <mat-card-actions>
                 @if(!i.cancel) {
-                <button mat-raised-button color="warn" (click)="raise(i.key)">
+                <button
+                  class="button-warn"
+                  mat-raised-button
+                  color="warn"
+                  (click)="raise(i.key)"
+                >
                   <mat-icon>alarm_on</mat-icon>
                   RAISE ALARM
                 </button>
                 } @else {
-                <button mat-raised-button color="accent" (click)="clear(i.key)">
+                <button
+                  class="button-accent"
+                  mat-raised-button
+                  color="accent"
+                  (click)="clear(i.key)"
+                >
                   <mat-icon>alarm_off</mat-icon>
                   CANCEL ALARM
                 </button>

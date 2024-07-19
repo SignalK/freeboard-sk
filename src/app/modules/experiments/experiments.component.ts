@@ -36,6 +36,7 @@ import { CommonDialogs } from 'src/app/lib/components/dialogs';
 
     <div>
       <button
+        class="button-toolbar"
         mat-mini-fab
         [color]="''"
         [matMenuTriggerFor]="experimentsmenu"

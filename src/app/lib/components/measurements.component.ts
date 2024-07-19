@@ -31,9 +31,7 @@ import { MatToolbarModule } from '@angular/material/toolbar';
   ],
   template: `
     <div class="_ap_measurements">
-      <mat-toolbar
-        style="background-color: #00796b; color: white; padding: 0 5px;"
-      >
+      <mat-toolbar class="bg-primary">
         <div class="_ap_row">
           <div class="_ap_row">
             <div class="icon-label">

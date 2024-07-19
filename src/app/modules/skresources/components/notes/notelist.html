@@ -73,7 +73,7 @@
     <cdk-virtual-scroll-viewport class="vscroller" itemSize="72">
       <mat-card
         *cdkVirtualFor="let r of filterList; let i= index;"
-        style="border-bottom: silver 1px outset"
+        style="border-bottom: silver 1px outset; border-radius: unset"
       >
         <mat-card-content>
           <div style="display: flex">
@@ -92,7 +92,7 @@
           </div>
         </mat-card-content>
         <mat-card-actions>
-          <div style="display: flex">
+          <div style="display: flex; width: 100%">
             <div style="text-align: left">
               @if(r[1].properties && r[1].properties.draft) {
               <button
@@ -128,6 +128,7 @@
               >
                 <mat-icon>center_focus_strong</mat-icon>
               </button>
+
               <button
                 mat-icon-button
                 color="primary"

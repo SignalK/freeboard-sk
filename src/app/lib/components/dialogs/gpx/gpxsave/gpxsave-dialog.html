@@ -46,7 +46,7 @@
       >
         <mat-expansion-panel-header style="padding: 0 12px">
           <mat-panel-title>
-            <mat-icon color="accent">place</mat-icon>
+            <mat-icon class="icon-waypoint" color="accent">place</mat-icon>
             &nbsp;&nbsp;
             <b>Waypoints:</b>
           </mat-panel-title>
@@ -75,28 +75,32 @@
         <div class="list-container-scrollable">
           @for(w of resData.waypoints;track w;let i=$index) {
           <mat-card class="row">
-            <div class="rgrid">
-              <div class="row">
-                <div class="name">
-                  <mat-icon color="accent">place</mat-icon>
-                  {{w.name}}
-                </div>
-                <div class="">
-                  <i></i>
-                </div>
-                <div class="check">
-                  <mat-checkbox
-                    color="primary"
-                    [checked]="selWaypoints[i]"
-                    #wval
-                    (change)="checkWpt(wval.checked, i)"
-                    matTooltip="Select Waypoint"
-                    matTooltipPosition="below"
-                  >
-                  </mat-checkbox>
+            <mat-card-content>
+              <div class="rgrid">
+                <div class="row">
+                  <div class="name">
+                    <mat-icon class="icon-waypoint" color="accent"
+                      >place</mat-icon
+                    >
+                    {{w.name}}
+                  </div>
+                  <div class="">
+                    <i></i>
+                  </div>
+                  <div class="check">
+                    <mat-checkbox
+                      color="primary"
+                      [checked]="selWaypoints[i]"
+                      #wval
+                      (change)="checkWpt(wval.checked, i)"
+                      matTooltip="Select Waypoint"
+                      matTooltipPosition="below"
+                    >
+                    </mat-checkbox>
+                  </div>
                 </div>
               </div>
-            </div>
+            </mat-card-content>
           </mat-card>
           }
         </div>
@@ -114,7 +118,7 @@
       >
         <mat-expansion-panel-header style="padding: 0 12px">
           <mat-panel-title>
-            <mat-icon color="primary">directions</mat-icon>
+            <mat-icon class="icon-route" color="primary">directions</mat-icon>
             &nbsp;&nbsp;
             <b>Routes:</b>
           </mat-panel-title>
@@ -142,29 +146,33 @@
         <div class="list-container-scrollable">
           @for(r of resData.routes; track r; let i=$index) {
           <mat-card class="row">
-            <div class="rgrid">
-              <div class="row">
-                <div class="name">
-                  <mat-icon color="primary">directions</mat-icon>
-                  {{r.name}}
-                </div>
-                <div>
-                  <i>{{r.description}}</i><br />
-                  {{r.length}}
-                </div>
-                <div class="check">
-                  <mat-checkbox
-                    color="primary"
-                    matTooltip="Select this Route"
-                    matTooltipPosition="below"
-                    [checked]="selRoutes[i]"
-                    #rval
-                    (change)="checkRte(rval.checked, i)"
-                  >
-                  </mat-checkbox>
+            <mat-card-content>
+              <div class="rgrid">
+                <div class="row">
+                  <div class="name">
+                    <mat-icon class="icon-route" color="primary"
+                      >directions</mat-icon
+                    >
+                    {{r.name}}
+                  </div>
+                  <div>
+                    <i>{{r.description}}</i><br />
+                    {{r.length}}
+                  </div>
+                  <div class="check">
+                    <mat-checkbox
+                      color="primary"
+                      matTooltip="Select this Route"
+                      matTooltipPosition="below"
+                      [checked]="selRoutes[i]"
+                      #rval
+                      (change)="checkRte(rval.checked, i)"
+                    >
+                    </mat-checkbox>
+                  </div>
                 </div>
               </div>
-            </div>
+            </mat-card-content>
           </mat-card>
           }
         </div>
@@ -178,7 +186,7 @@
       <mat-expansion-panel [expanded]="false">
         <mat-expansion-panel-header style="padding: 0 12px">
           <mat-panel-title>
-            <mat-icon color="warn">show_chart</mat-icon>
+            <mat-icon class="icon-track" color="warn">show_chart</mat-icon>
             &nbsp;&nbsp;
             <b>Tracks:</b>
           </mat-panel-title>
@@ -206,26 +214,30 @@
         <div class="list-container-scrollable">
           @for(r of resData.tracks; track r; let i=$index) {
           <mat-card class="row">
-            <div class="rgrid">
-              <div class="row">
-                <div class="name">
-                  <mat-icon color="warn">directions_boat</mat-icon>
-                  Vessel Trail
-                </div>
-                <div></div>
-                <div class="check">
-                  <mat-checkbox
-                    color="primary"
-                    matTooltip="Select this Track"
-                    matTooltipPosition="below"
-                    [checked]="selTracks[i]"
-                    #tval
-                    (change)="checkTrk(tval.checked, i)"
-                  >
-                  </mat-checkbox>
+            <mat-card-content>
+              <div class="rgrid">
+                <div class="row">
+                  <div class="name">
+                    <mat-icon class="icon-track" color="warn"
+                      >directions_boat</mat-icon
+                    >
+                    Vessel Trail
+                  </div>
+                  <div></div>
+                  <div class="check">
+                    <mat-checkbox
+                      color="primary"
+                      matTooltip="Select this Track"
+                      matTooltipPosition="below"
+                      [checked]="selTracks[i]"
+                      #tval
+                      (change)="checkTrk(tval.checked, i)"
+                    >
+                    </mat-checkbox>
+                  </div>
                 </div>
               </div>
-            </div>
+            </mat-card-content>
           </mat-card>
           }
         </div>

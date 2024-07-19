@@ -5,7 +5,8 @@ import { Injectable, isDevMode } from '@angular/core';
 import { Subject, Observable } from 'rxjs';
 
 import { State } from './state.service';
-import { FBAppConfig, FBAppData, AppUpdateMessage } from 'src/app/types';
+import { FBAppData, AppUpdateMessage } from '../../types';
+import { IAppConfig } from '../../app.settings';
 
 export interface SettingsMessage {
   action: 'save' | 'load';
@@ -14,20 +15,18 @@ export interface SettingsMessage {
 
 @Injectable()
 export class Info {
-  public id = 'appId';
-  public name = 'appName';
-  public shortName = 'appShortName';
-  public description = `appDescription`;
-  public version = '17.12.05';
-  public released = '17/12/2017';
-  public url = 'http://panazzolo.com';
-  public bitlyUrl = 'http://bit.ly/HbOf0b';
+  public id = '';
+  public name = '';
+  public shortName = '';
+  public description = ``;
+  public version = '';
+  public url = '';
   public logo = './assets/img/app_logo.png';
 
   protected devMode: boolean;
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  public config!: FBAppConfig; //** holds app configuration settings **
+  public config!: IAppConfig; //** holds app configuration settings **
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   public data: FBAppData; //** holds app data **
   public state: State;

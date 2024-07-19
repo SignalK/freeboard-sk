@@ -258,6 +258,7 @@ export class ConfirmDialog implements OnInit {
   template: `
     <div class="about">
       <h1 mat-dialog-title>About:</h1>
+
       <mat-dialog-content>
         <div class="about-row">
           <div class="item"><img [src]="data.logo" /></div>
@@ -272,15 +273,15 @@ export class ConfirmDialog implements OnInit {
             <br /><br />
           </div>
         </div>
+      </mat-dialog-content>
+      <mat-dialog-actions align="right">
         @if(data.url) {
-        <div class="about-row">
-          <div class="item stretch">
-            <a [href]="data.url" target="_web" rel="noopener">Visit Website</a>
-          </div>
+        <div class="item stretch">
+          <a mat-button [href]="data.url" target="_web" rel="noopener"
+            >Visit Website</a
+          >
         </div>
         }
-      </mat-dialog-content>
-      <mat-dialog-actions align="center">
         <button
           mat-raised-button
           color="primary"
@@ -582,8 +583,8 @@ export class WelcomeDialog {
     const sh = document.getElementsByClassName(
       'mat-horizontal-stepper-header-container'
     );
-    sh[0]['style']['display'] = 'none';
-    const dc = document.getElementsByClassName('mat-dialog-container');
-    dc[0]['style']['padding'] = 0;
+    if (sh) {
+      sh[0]['style']['display'] = 'none';
+    }
   }
 }

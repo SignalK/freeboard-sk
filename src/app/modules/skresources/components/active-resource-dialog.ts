@@ -94,12 +94,14 @@ import { GeoUtils } from 'src/app/lib/geoutils';
               >
                 <div style="width:35px;">
                   @if(selIndex === i) {
-                  <mat-icon [color]="'warn'"> flag </mat-icon>
+                  <mat-icon class="icon-warn" color="warn"> flag </mat-icon>
                   }
                 </div>
                 <div style="flex: 1 1 auto;">
                   <div style="display:flex;">
-                    <div class="key-label">Name:</div>
+                    <div class="key-label">
+                      <mat-icon> text_fields </mat-icon>
+                    </div>
                     <div
                       style="flex: 1 1 auto;"
                       [innerText]="pointMeta[i].name"

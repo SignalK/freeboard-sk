@@ -3,111 +3,183 @@
 // Include non-theme styles for core.
 @include mat.core();
 
-// Define a theme.
-$my-primary: mat.define-palette(mat.$indigo-palette, 500,700,200);
-$my-accent:  mat.define-palette(mat.$amber-palette, 500,700,200);
-// The "warn" palette is optional and defaults to red if not specified.
-$my-warn:    mat.define-palette(mat.$red-palette, 500,700,200);
-
-$my-theme: mat.define-light-theme((
- color: (
-   primary: $my-primary,
-   accent: $my-accent,
-   warn: $my-warn,
- ),
- typography: mat.define-typography-config(),
- density: 0,
+$light-theme: mat.define-theme((
+  color: (
+    theme-type: light,
+    primary: mat.$azure-palette,
+    tertiary: mat.$blue-palette
+  ),
+  typography: (
+    brand-family: 'Roboto',
+    bold-weight: 500
+  ),
+  density: (
+    scale: -1
+  )
 ));
 
-// Define a dark theme.
-$my-dark-primary: mat.define-palette(mat.$light-blue-palette, 200,300,400);
-$my-dark-accent:  mat.define-palette(mat.$amber-palette, A400, A100, A700);
-$my-dark-warn:    mat.define-palette(mat.$deep-orange-palette, A400);
-
-$my-dark-theme: mat.define-dark-theme((
- color: (
-   primary: $my-dark-primary,
-   accent: $my-dark-accent,
-   warn: $my-dark-warn,
- ),
- typography: mat.define-typography-config(),
- density: 0,
+$dark-theme: mat.define-theme((
+  color: (
+    theme-type: dark,
+    primary: mat.$red-palette,
+    tertiary: mat.$orange-palette
+  ),
+  typography: (
+    brand-family: 'Roboto',
+    bold-weight: 500
+  ),
+  density: (
+    scale: -1
+  )
 ));
 
-.dark-theme {
-    @include mat.all-component-colors($my-dark-theme);
 
-    .about-row .item a {
-        color: mat.get-color-from-palette($my-dark-accent);
+html {
+    @include mat.core-color($light-theme);
+    @include mat.all-component-themes($light-theme);
+
+    ::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
     }
 
-    .welcome a {
-        color: mat.get-color-from-palette($my-dark-accent);
-    }  
-    
+    ::-webkit-scrollbar-track {
+        background: #f1f1f1;
+    }
+
+    ::-webkit-scrollbar-thumb {
+        background: #888;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+        background: #555;
+    }
+
+    .popover-title {
+        border-bottom: 1px solid silver;
+    }   
+
     .popover > .arrow:after {
         border-color: transparent;
     }
+
     .popover.top > .arrow {
-        border-top-color: mat.get-theme-color($my-dark-theme, background, background);
-    }    
+        border-top-color: mat.get-theme-color($light-theme, surface);
+    }   
+
     .popover.top > .arrow:after {
-        border-top-color: mat.get-theme-color($my-dark-theme, background, background);
+        border-top-color: mat.get-theme-color($light-theme, surface);
     }
- 
-    /* Track */
+
+    .bg-primary {
+        background-color: mat.get-theme-color($light-theme, primary) !important;
+        color: mat.get-theme-color($light-theme, on-primary) !important;
+    }
+    .bg-primary .mat-icon {
+        color: mat.get-theme-color($light-theme, on-primary) !important;
+    }
+    .bg-tertiary {
+        background-color: mat.get-theme-color($light-theme, tertiary) !important;
+        color: mat.get-theme-color($light-theme, on-tertiary) !important;
+    }
+    .bg-tertiary .mat-icon {
+        color: mat.get-theme-color($light-theme, on-tertiary) !important;
+    }
+
+    .icon-note {
+        color: unset;
+    }
+    .icon-region {
+        color: purple !important;
+    }
+    .icon-waypoint,
+    .icon-accent {
+        color: orange !important;
+    }
+    .icon-route,
+    .icon-primary {
+        color: mat.get-theme-color($light-theme, primary) !important;
+    }
+    .icon-track,
+    .icon-warn {
+        color: red !important;
+    }
+
+    .button-primary {
+        background-color: mat.get-theme-color($light-theme, primary) !important;
+        color: white !important;
+    }
+    .button-secondary {
+        background-color: mat.get-theme-color($light-theme, secondary) !important;
+        color: white !important;
+    }
+    .button-tertiary {
+        background-color: mat.get-theme-color($light-theme, tertiary) !important;
+        color: white !important;
+    }
+    .button-error,
+    .button-warn {
+        background-color: mat.get-theme-color($light-theme, error) !important;
+        color: white !important;
+    }
+    .button-accent {
+        background-color: orange!important;
+        color: black !important;
+    }
+    .button-toolbar {
+        background-color: #e0e0ff !important;
+        color: black !important;
+    }
+
+
+  //@media (prefers-color-scheme: dark) {
+  .dark-theme {
+    @include mat.all-component-colors($dark-theme);
+    @include mat.color-variants-backwards-compatibility($dark-theme);
+
     ::-webkit-scrollbar-track {
         background: rgba(0,0,0,.5);
     }
     
-    /* Handle on hover */
     ::-webkit-scrollbar-thumb:hover {
         background: #999;
     }
+
+    .popover.top > .arrow {
+        border-top-color: mat.get-theme-color($dark-theme, surface);
+    }
+    
+    .popover.top > .arrow:after {
+        border-top-color: mat.get-theme-color($dark-theme, surface);
+    }
+
+    .title-bar-bg {
+        background-color: mat.get-theme-color($dark-theme, tertiary) !important;
+        color: mat.get-theme-color($dark-theme, on-tertiary) !important;
+    }
+
+    .icon-route{
+        color: mat.get-theme-color($dark-theme, tertiary) !important;
+    }
+
+
+    .bg-primary {
+        background-color: mat.get-theme-color($dark-theme, primary) !important;
+        color: mat.get-theme-color($dark-theme, on-primary) !important;
+    }
+    .bg-primary .mat-icon {
+        color: mat.get-theme-color($dark-theme, on-primary) !important;
+    }
+    .bg-tertiary {
+        background-color: mat.get-theme-color($dark-theme, tertiary) !important;
+        color: mat.get-theme-color($dark-theme, on-tertiary) !important;
+    }
+    .bg-tertiary .mat-icon {
+        color: mat.get-theme-color($dark-theme, on-tertiary) !important;
+    }
+    .about-row .item a,
+    .welcome a {
+        color: mat.get-theme-color($dark-theme, tertiary);
+    }
   }
-
-.popover-title {
-    border-bottom: 1px solid silver;
-}   
-
-.popover > .arrow:after {
-    border-color: transparent;
 }
-.popover.top > .arrow {
-    border-top-color: mat.get-theme-color($my-theme, background, background);
-}    
-.popover.top > .arrow:after {
-    border-top-color: mat.get-theme-color($my-theme, background, background);
-}
-
-// std elements
-.about-row .item a  {
-    color: mat.get-color-from-palette($my-primary);
-}
-
-/* width */
-::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
-}
-
-/* Track */
-::-webkit-scrollbar-track {
-    background: #f1f1f1;
-}
-
-/* Handle */
-::-webkit-scrollbar-thumb {
-    background: #888;
-}
-
-/* Handle on hover */
-::-webkit-scrollbar-thumb:hover {
-    background: #555;
-}
-
-
-// Include all theme styles for the components.
-@include mat.all-component-themes($my-theme);
-
-

@@ -176,28 +176,35 @@
           (openedChange)="leftSideNavAction($event)"
         >
           <mat-nav-list>
-            <a mat-list-item (click)="sidemenu.close()">
-              <mat-icon>arrow_back</mat-icon>
-              <span matLine>
-                <a
-                  mat-icon-button
-                  (click)="openAbout()"
-                  matTooltip="About Freeboard"
-                  matTooltipPosition="right"
-                >
-                  <mat-icon color="primary">info_outline</mat-icon>
-                </a>
+            <mat-list-item>
+              <div style="display: flex">
+                <div>
+                  <a (click)="sidemenu.close()">
+                    <mat-icon>arrow_back</mat-icon>
+                  </a>
+                </div>
+                <div style="flex: 1 1 auto; text-align: right">
+                  <a
+                    class="icon-primary"
+                    mat-icon-button
+                    (click)="openAbout()"
+                    matTooltip="About Freeboard"
+                    matTooltipPosition="right"
+                  >
+                    <mat-icon color="primary">info_outline</mat-icon>
+                  </a>
 
-                <button
-                  mat-icon-button
-                  (click)="app.showHelp()"
-                  matTooltip="Open Help."
-                  matTooltipPosition="right"
-                >
-                  <mat-icon color="primary">help</mat-icon>
-                </button>
-              </span>
-            </a>
+                  <button
+                    mat-icon-button
+                    (click)="app.showHelp()"
+                    matTooltip="Open Help."
+                    matTooltipPosition="right"
+                  >
+                    <mat-icon color="primary">help</mat-icon>
+                  </button>
+                </div>
+              </div>
+            </mat-list-item>
             <mat-divider></mat-divider>
 
             <ap-file-input [astext]="true" (chosen)="processGPX($event)">
@@ -354,7 +361,7 @@
           <div class="leftTop buttonPanel">
             <div class="buttonPanelItem">
               <button
-                style="background-color: #e5e0e0"
+                class="button-secondary"
                 mat-mini-fab
                 [disabled]="draw.enabled || measure.enabled"
                 matTooltip="Menu"
@@ -387,6 +394,7 @@
             </div>
             <div class="buttonPanelItem">
               <button
+                class="button-accent"
                 mat-mini-fab
                 [disabled]="draw.enabled || measure.enabled"
                 matTooltip="Routes, Waypoints, Notes, etc."
@@ -399,6 +407,7 @@
             </div>
             <div class="buttonPanelItem">
               <button
+                class="button-toolbar"
                 mat-mini-fab
                 [disabled]="draw.enabled || measure.enabled"
                 matTooltip="Draw / Measure"
@@ -413,7 +422,10 @@
               <button
                 mat-mini-fab
                 [color]="app.config.map.northUp ? 'accent' : 'primary'"
-                [ngClass]="{ 'button-primary': !app.config.map.northUp }"
+                [ngClass]="{
+                  'button-primary': !app.config.map.northUp,
+                  'button-toolbar': app.config.map.northUp
+                }"
                 (click)="toggleNorthUp()"
                 [matTooltip]="
                   app.config.map.northUp ? 'Show Heading Up' : 'Show North Up'
@@ -429,7 +441,10 @@
               <button
                 mat-mini-fab
                 [color]="app.config.map.moveMap ? 'primary' : 'accent'"
-                [ngClass]="{ 'button-primary': app.config.map.moveMap }"
+                [ngClass]="{
+                  'button-primary': app.config.map.moveMap,
+                  'button-toolbar': !app.config.map.moveMap
+                }"
                 (click)="toggleMoveMap()"
                 [disabled]="!app.data.vessels.showSelf"
                 [matTooltip]="
@@ -445,6 +460,7 @@
             @if(!app.config.map.moveMap) {
             <div class="buttonPanelItem">
               <button
+                class="button-toolbar"
                 mat-mini-fab
                 (click)="centerVessel()"
                 [disabled]="!app.data.vessels.showSelf"
@@ -457,6 +473,7 @@
             }
             <div class="buttonPanelItem">
               <button
+                class="button-toolbar"
                 mat-mini-fab
                 [disabled]="draw.enabled || measure.enabled"
                 matTooltip="More actions"
@@ -471,6 +488,7 @@
             <div class="buttonPanelItem">
               <!-- Playback mode -->
               <button
+                class="button-warn"
                 mat-mini-fab
                 color="warn"
                 matTooltip="Exit playback mode"
@@ -567,8 +585,8 @@
           <div class="rightTop buttonPanel">
             <div class="buttonPanelItem">
               <button
+                class="button-secondary"
                 mat-mini-fab
-                style="background-color: #e5e0e0"
                 (click)="toggleToolbarButtons()"
                 [matTooltip]="
                   app.config.toolBarButtons ? 'Hide Buttons' : 'Show Buttons'
@@ -588,6 +606,7 @@
               @if(app.data.optAppPanel && !draw.enabled && !measure.enabled &&
               !app.data.vessels.activeId) {
               <button
+                class="button-toolbar"
                 mat-mini-fab
                 (click)="sideright.toggle()"
                 matTooltip="Instruments"
@@ -603,6 +622,7 @@
             @if(display.audio.state !== 'running') {
             <div class="buttonPanelItem">
               <button
+                class="button-toolbar"
                 mat-mini-fab
                 color="warn"
                 matTooltip="Web Audio off! Click to enable."
@@ -620,7 +640,10 @@
             <div class="buttonPanelItem">
               <button
                 mat-mini-fab
-                [ngClass]="{ 'icon-warn': display.fullscreen.active }"
+                [ngClass]="{
+                  'icon-warn': display.fullscreen.active,
+                  'button-toolbar': !display.fullscreen.active
+                }"
                 (click)="toggleFullscreen()"
                 [matTooltip]="
                   display.fullscreen.active
@@ -676,7 +699,10 @@
               <button
                 mat-mini-fab
                 [color]="app.config.map.limitZoom ? 'primary' : 'accent'"
-                [ngClass]="{ 'button-primary': app.config.map.limitZoom }"
+                [ngClass]="{
+                  'button-primary': app.config.map.limitZoom,
+                  'button-toolbar': !app.config.map.limitZoom
+                }"
                 (click)="toggleLimitMapZoom()"
                 matTooltip="Constrain map zoom."
                 matTooltipPosition="left"
@@ -691,7 +717,10 @@
               <button
                 mat-mini-fab
                 [color]="app.config.map.invertColor ? 'primary' : 'accent'"
-                [ngClass]="{ 'button-primary': app.config.map.invertColor }"
+                [ngClass]="{
+                  'button-primary': app.config.map.invertColor,
+                  'button-toolbar': !app.config.map.invertColor
+                }"
                 (click)="invertAISTextColor()"
                 matTooltip="Invert feature text color."
                 matTooltipPosition="left"
@@ -708,6 +737,10 @@
             <div class="buttonPanelItem">
               <button
                 mat-mini-fab
+                [ngClass]="{
+                  'button-primary': app.data.vessels.self.autopilot.enabled,
+                  'button-toolbar': !app.data.vessels.self.autopilot.enabled
+                }"
                 [color]="
                   app.data.vessels.self.autopilot.enabled ? 'primary' : 'accent'
                 "

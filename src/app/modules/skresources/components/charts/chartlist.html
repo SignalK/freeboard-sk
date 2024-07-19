@@ -45,7 +45,7 @@
             mat-icon-button
             (click)="itemRefresh()"
             matTooltip="Reload Charts"
-            matTooltipPosition="left"
+            matTooltipPosition="below"
           >
             <mat-icon>refresh</mat-icon>
           </button>
@@ -58,7 +58,7 @@
             [indeterminate]="someSel"
             (change)="selectAll($event.checked)"
             [matTooltip]="(!selall.checked || someSel) ? 'Select All' : 'Deselect All'"
-            matTooltipPosition="right"
+            matTooltipPosition="below"
           >
           </mat-checkbox>
         </div>
@@ -82,7 +82,7 @@
         mat-button
         (click)="toggleChartBoundaries()"
         matTooltip="Chart boundaries"
-        matTooltipPosition="right"
+        matTooltipPosition="above"
       >
         <mat-icon
           [color]="app.data.chartBounds ? 'primary' : ''"
@@ -96,7 +96,7 @@
         mat-button
         (click)="showChartLayers(true)"
         matTooltip="Re-order Charts"
-        matTooltipPosition="right"
+        matTooltipPosition="above"
       >
         <mat-icon>import_export</mat-icon>
         Re-order
@@ -110,7 +110,7 @@
     <cdk-virtual-scroll-viewport class="vscroller" itemSize="80">
       <mat-card
         *cdkVirtualFor="let r of filterList; let i= index;"
-        style="border-bottom: silver 1px outset"
+        style="border-bottom: silver 1px outset; border-radius: unset"
       >
         <mat-card-content>
           <div style="display: flex">

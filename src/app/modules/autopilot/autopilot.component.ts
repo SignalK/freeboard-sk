@@ -48,93 +48,98 @@ import { SKStreamFacade } from 'src/app/modules';
         (cdkDragReleased)="dragEventHandler($event, 'released')"
       >
         <div class="title">
-          <div style="flex: 1 1 auto;">
-            Autopilot:
-            <mat-slide-toggle
-              id="autopilotenable"
-              color="primary"
-              labelPosition="after"
-              [hideIcon]="true"
-              [disabled]="!this.app.data.autopilot.hasApi"
-              [checked]="app.data.vessels.self.autopilot.enabled"
-              (change)="onFormChange($event)"
-            >
-              Engage
-            </mat-slide-toggle>
-          </div>
+          <div style="flex: 1 1 auto;">Autopilot:</div>
           <div class="closer">
             <mat-icon (click)="app.data.autopilot.console = false"
               >close</mat-icon
             >
           </div>
         </div>
-        <div class="content">
-          @if(autopilotOptions.states.length > 2) {
-          <div style="display:flex;flex-wrap:nowrap;">
-            <mat-form-field floatLabel="always">
-              <mat-label>State</mat-label>
-              <mat-select
-                id="autopilotstate"
-                [disabled]="!this.app.data.autopilot.hasApi"
-                [(value)]="app.data.vessels.self.autopilot.state"
-                (selectionChange)="onFormChange($event)"
-              >
-                @for(i of autopilotOptions.states; track i) {
-                <mat-option
-                  [value]="i"
-                  [matTooltip]="i"
-                  matTooltipPosition="right"
+        <mat-card-content>
+          <div class="content">
+            @if(autopilotOptions.states.length > 2) {
+            <div style="display:flex;flex-wrap:nowrap;">
+              <mat-form-field floatLabel="always">
+                <mat-label>State</mat-label>
+                <mat-select
+                  id="autopilotstate"
+                  [disabled]="!this.app.data.autopilot.hasApi"
+                  [(value)]="app.data.vessels.self.autopilot.state"
+                  (selectionChange)="onFormChange($event)"
                 >
-                  {{ i }}
-                </mat-option>
-                }
-              </mat-select>
-            </mat-form-field>
-          </div>
-          } @if(autopilotOptions.modes.length !== 0) {
-          <div style="display:flex;flex-wrap:nowrap;">
-            <mat-form-field floatLabel="always">
-              <mat-label>Mode</mat-label>
-              <mat-select
-                id="autopilotmode"
-                [disabled]="!this.app.data.autopilot.hasApi"
-                [(value)]="app.data.vessels.self.autopilot.mode"
-                (selectionChange)="onFormChange($event)"
-              >
-                @for(i of autopilotOptions.modes; track i) {
-                <mat-option
-                  [value]="i"
-                  [matTooltip]="i"
-                  matTooltipPosition="right"
-                >
-                  {{ i }}
-                </mat-option>
-                }
-              </mat-select>
-            </mat-form-field>
-          </div>
-          }
-          <div style="display:flex;flex-wrap:nowrap;">
-            <div>
-              <button mat-mini-fab (click)="targetAdjust(-10)">-10</button
-              ><br />
-              <button mat-mini-fab (click)="targetAdjust(-1)">-1</button>
+                  @for(i of autopilotOptions.states; track i) {
+                  <mat-option
+                    [value]="i"
+                    [matTooltip]="i"
+                    matTooltipPosition="right"
+                  >
+                    {{ i }}
+                  </mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
             </div>
-
-            <div class="dial-text mat-app-background">
-              <div class="dial-text-title">Target</div>
-              <div class="dial-text-value">
-                {{ formatTargetValue(app.data.vessels.self.autopilot.target) }}
+            } @if(autopilotOptions.modes.length !== 0) {
+            <div style="display:flex;flex-wrap:nowrap;">
+              <mat-form-field floatLabel="always">
+                <mat-label>Mode</mat-label>
+                <mat-select
+                  id="autopilotmode"
+                  [disabled]="!this.app.data.autopilot.hasApi"
+                  [(value)]="app.data.vessels.self.autopilot.mode"
+                  (selectionChange)="onFormChange($event)"
+                >
+                  @for(i of autopilotOptions.modes; track i) {
+                  <mat-option
+                    [value]="i"
+                    [matTooltip]="i"
+                    matTooltipPosition="right"
+                  >
+                    {{ i }}
+                  </mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
+            </div>
+            }
+            <div style="display:flex;flex-wrap:nowrap;">
+              <div>
+                <button mat-mini-fab (click)="targetAdjust(-10)">-10</button
+                ><br />
+                <button mat-mini-fab (click)="targetAdjust(-1)">-1</button>
               </div>
-              <div class="dial-text-units">degrees</div>
-            </div>
 
-            <div>
-              <button mat-mini-fab (click)="targetAdjust(10)">10</button><br />
-              <button mat-mini-fab (click)="targetAdjust(1)">1</button>
+              <div class="dial-text mat-app-background">
+                <div class="dial-text-title">Target</div>
+                <div class="dial-text-value">
+                  {{
+                    formatTargetValue(app.data.vessels.self.autopilot.target)
+                  }}
+                </div>
+                <div class="dial-text-units">degrees</div>
+              </div>
+
+              <div>
+                <button mat-mini-fab (click)="targetAdjust(10)">10</button
+                ><br />
+                <button mat-mini-fab (click)="targetAdjust(1)">1</button>
+              </div>
             </div>
           </div>
-        </div>
+        </mat-card-content>
+        <mat-card-actions>
+          <mat-slide-toggle
+            id="autopilotenable"
+            color="primary"
+            labelPosition="after"
+            [hideIcon]="true"
+            [disabled]="!this.app.data.autopilot.hasApi"
+            [checked]="app.data.vessels.self.autopilot.enabled"
+            (change)="onFormChange($event)"
+          >
+            Engage
+          </mat-slide-toggle>
+        </mat-card-actions>
       </div>
     </mat-card>
   `

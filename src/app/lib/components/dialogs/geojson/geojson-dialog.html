@@ -44,20 +44,22 @@
     @if(geoData.waypoints.length !== 0) {
     <div class="card-group">
       <mat-card>
-        <div class="pnlRow">
-          <div class="pnlGeoType">
-            <b>Point:</b>
-            &nbsp;
+        <mat-card-content>
+          <div class="pnlRow">
+            <div class="pnlGeoType">
+              <b>Point:</b>
+              &nbsp;
+            </div>
+            <div class="pnlArrow">
+              <mat-icon>arrow_forward</mat-icon>
+            </div>
+            <div class="pnlSKType">
+              <mat-icon class="icon-waypoint" color="accent">place</mat-icon>
+              <b>Waypoints:</b>
+              &nbsp;({{geoData?.waypoints.length}})
+            </div>
           </div>
-          <div class="pnlArrow">
-            <mat-icon>arrow_forward</mat-icon>
-          </div>
-          <div class="pnlSKType">
-            <mat-icon color="accent">place</mat-icon>
-            <b>Waypoints:</b>
-            &nbsp;({{geoData?.waypoints.length}})
-          </div>
-        </div>
+        </mat-card-content>
       </mat-card>
     </div>
     }
@@ -66,20 +68,22 @@
     @if(geoData.routes.length !== 0) {
     <div class="card-group">
       <mat-card>
-        <div class="pnlRow">
-          <div class="pnlGeoType">
-            <b>LineString:</b>
-            &nbsp;
+        <mat-card-content>
+          <div class="pnlRow">
+            <div class="pnlGeoType">
+              <b>LineString:</b>
+              &nbsp;
+            </div>
+            <div class="pnlArrow">
+              <mat-icon>arrow_forward</mat-icon>
+            </div>
+            <div class="pnlSKType">
+              <mat-icon class="icon-route" color="primary">directions</mat-icon>
+              <b>Routes:</b>
+              &nbsp;({{geoData?.routes.length}})
+            </div>
           </div>
-          <div class="pnlArrow">
-            <mat-icon>arrow_forward</mat-icon>
-          </div>
-          <div class="pnlSKType">
-            <mat-icon color="primary">directions</mat-icon>
-            <b>Routes:</b>
-            &nbsp;({{geoData?.routes.length}})
-          </div>
-        </div>
+        </mat-card-content>
       </mat-card>
     </div>
     }
@@ -89,20 +93,22 @@
     app.config.resources.paths.includes('tracks')) {
     <div class="card-group">
       <mat-card>
-        <div class="pnlRow">
-          <div class="pnlGeoType">
-            <b>MultiLineString:</b>
-            &nbsp;
+        <mat-card-content>
+          <div class="pnlRow">
+            <div class="pnlGeoType">
+              <b>MultiLineString:</b>
+              &nbsp;
+            </div>
+            <div class="pnlArrow">
+              <mat-icon>arrow_forward</mat-icon>
+            </div>
+            <div class="pnlSKType">
+              <mat-icon class="icon-track" color="warn">show_chart</mat-icon>
+              <b>Tracks:</b>
+              &nbsp;({{geoData?.tracks.length}})
+            </div>
           </div>
-          <div class="pnlArrow">
-            <mat-icon>arrow_forward</mat-icon>
-          </div>
-          <div class="pnlSKType">
-            <mat-icon color="warn">show_chart</mat-icon>
-            <b>Tracks:</b>
-            &nbsp;({{geoData?.tracks.length}})
-          </div>
-        </div>
+        </mat-card-content>
       </mat-card>
     </div>
     }
@@ -111,20 +117,22 @@
     @if(geoData.regions.length !== 0) {
     <div class="card-group">
       <mat-card>
-        <div class="pnlRow">
-          <div class="pnlGeoType">
-            <b>Polygon:</b>
-            &nbsp;
+        <mat-card-content>
+          <div class="pnlRow">
+            <div class="pnlGeoType">
+              <b>Polygon:</b>
+              &nbsp;
+            </div>
+            <div class="pnlArrow">
+              <mat-icon>arrow_forward</mat-icon>
+            </div>
+            <div class="pnlSKType">
+              <mat-icon>tab_unselected</mat-icon>
+              <b>Regions:</b>
+              &nbsp;({{geoData?.regions.length}})
+            </div>
           </div>
-          <div class="pnlArrow">
-            <mat-icon>arrow_forward</mat-icon>
-          </div>
-          <div class="pnlSKType">
-            <mat-icon>tab_unselected</mat-icon>
-            <b>Regions:</b>
-            &nbsp;({{geoData?.regions.length}})
-          </div>
-        </div>
+        </mat-card-content>
       </mat-card>
     </div>
     }
