@@ -10,7 +10,6 @@ import {
 } from '@angular/core';
 
 import TileLayer from 'ol/layer/Tile';
-import VectorTileLayer from 'ol/layer/VectorTile';
 import { TileWMS, XYZ, TileJSON, WMTS } from 'ol/source';
 import { optionsFromCapabilities } from 'ol/source/WMTS';
 import WMTSCapabilities from 'ol/format/WMTSCapabilities';
@@ -22,6 +21,7 @@ import { VectorLayerStyleFactory } from '../vectorLayerStyleFactory';
 
 import DataTile from 'ol/source/DataTile';
 import WebGLTileLayer from 'ol/layer/WebGLTile';
+import VectorTileLayer from 'ol/layer/VectorTile';
 import * as pmtiles from 'pmtiles';
 import { SKChart } from 'src/app/modules';
 import LayerGroup from 'ol/layer/Group';
