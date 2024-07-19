@@ -1,5 +1,11 @@
 # CHANGELOG: Freeboard
 
+### v2.10.0
+
+- **Updated**: Compass widget in Weather Station popover (#173).
+- **Updated**: Angular framework to v18 & Material 3 
+
+
 ### v2.9.1
 
 - **Added**: Ability to filter vessels by `AIS Ship Type` (#163).
