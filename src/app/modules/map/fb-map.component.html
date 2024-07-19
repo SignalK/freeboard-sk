@@ -49,6 +49,7 @@
     <ol-content>
       <div class="ol-zoom">
         <button
+          class="button-accent"
           mat-mini-fab
           (click)="zoomMap(false)"
           [disabled]="fbMap.zoomLevel <= app.MAP_ZOOM_EXTENT.min"
@@ -58,6 +59,7 @@
         </button>
         &nbsp;
         <button
+          class="button-accent"
           mat-mini-fab
           (click)="zoomMap(true)"
           [disabled]="fbMap.zoomLevel >= app.MAP_ZOOM_EXTENT.max"

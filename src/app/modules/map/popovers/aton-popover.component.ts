@@ -10,7 +10,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { PipesModule } from 'src/app/lib/pipes';
 import { PopoverComponent } from './popover.component';
-import { CompassComponent } from './compass.component';
+import { NorthUpCompassComponent } from './compass.component';
 import { SKMeteo } from 'src/app/modules';
 import { AppInfo } from 'src/app/app.info';
 import { Convert } from 'src/app/lib/convert';
@@ -28,7 +28,7 @@ import { Convert } from 'src/app/lib/convert';
     MatIconModule,
     PipesModule,
     PopoverComponent,
-    CompassComponent
+    NorthUpCompassComponent
   ],
   template: `
     <ap-popover [title]="_title" [canClose]="canClose" (closed)="handleClose()">
@@ -72,13 +72,12 @@ import { Convert } from 'src/app/lib/convert';
       <div style="display:flex;flex-wrap:no-wrap;">
         <div style="font-weight:bold;">Wind:</div>
         <div style="width:150px;">
-          <ap-compass
-            [windtrue]="convert.radiansToDegrees(aton.twd)"
+          <ap-compass-northup
             [heading]="convert.radiansToDegrees(aton.twd)"
             [speed]="app.formatSpeed(aton.tws)"
-            [speedunits]="app.formattedSpeedUnits"
+            [label]="app.formattedSpeedUnits"
           >
-          </ap-compass>
+          </ap-compass-northup>
         </div>
       </div>
       }

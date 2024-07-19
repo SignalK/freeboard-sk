@@ -1,3 +1,4 @@
+<!--<?xml version="1.0" encoding="UTF-8" standalone="no"?>-->
 <svg 
    xmlns:svg="http://www.w3.org/2000/svg"
    xmlns="http://www.w3.org/2000/svg"
@@ -8,32 +9,33 @@
    encoding="UTF-8"
    viewBox="0 0 200 200">
    
-   <defs>
-	  <filter
-		 x="-0.5"
-		 y="-0.5"
-		 width="2"
-		 height="2"
-		 color-interpolation-filters="sRGB"
-		 id="shadow">
-		<feGaussianBlur stdDeviation="5" />
-	  </filter>
-		  <filter
-		 x="-0.5"
-		 y="-0.5"
-		 width="3"
-		 height="3"
-		 color-interpolation-filters="sRGB"
-		 id="shadow2">
-		<feGaussianBlur stdDeviation="1" />
-	  </filter>
-   </defs>
-	   
-   <style type="text/css" >
+	<defs>
+		<filter
+			x="-0.5"
+			y="-0.5"
+			width="2"
+			height="2"
+			color-interpolation-filters="sRGB"
+			id="shadow">
+			<feGaussianBlur stdDeviation="5" />
+		</filter>
+		<filter
+			x="-0.5"
+			y="-0.5"
+			width="3"
+			height="3"
+			color-interpolation-filters="sRGB"
+			id="shadow2">
+			<feGaussianBlur stdDeviation="1" />
+		</filter>
+	</defs>
+  
+	<style type="text/css" >
 		.hide {
 			display:none;
 		}
-		.compass text  {
+
+		text  {
 			font-style:normal;
 			font-variant:normal;
 			font-weight:normal;
@@ -44,47 +46,44 @@
 			stroke:none;
 			fill-opacity:1;		
 		}
-	
-		.compass text.label {           /** label **/
-			font-size:10px;
-			fill: #dcff85;			  
+		
+		.compass_nup text.label {           /** label **/
+			font-size:12px;
+			fill: black;		  
 		}
-		.compass text.value,
-		.compass text.unit {				/** units **/
+		.compass_nup text.value,
+		.compass_nup text.unit {				/** units **/
 			font-size:12px;
 			font-weight: bold;
-            fill: black; 
+			fill: black;
 			fill-opacity:0.9;
 		}
-		.compass text.speedunits {
-			font-size:10pt;
-			fill: black;
+		.compass_nup text.value {			/** Heading Value **/
+			font-size:20px;
 		}
-		.compass text.value {			/** Heading Value **/
-			font-size:22px;
-		}		  
-		.compass text.cardinal_point {	/** scale 12,3,6,9 oclock positions **/
+
+		.compass_nup text.cardinal_point {	/** scale 12,3,6,9 oclock positions **/
 			font-size:20px;
 			font-weight: bold;
-            fill: black;  
+			fill: black;
 		}
 		
-		.compass text.intermediate_point {	/** scale remainder **/
+		.compass_nup text.intermediate_point {	/** scale remainder **/
 			font-size:16px;
-            fill: black;  
+			fill: black;
 			font-weight:  bold;
 		}   
-	
-		.compass text.scale {
+		
+		.compass_nup text.scale {
 			font-size:   12px;
 			font-weight: bold;
-            fill: black;            
+			fill: black;
 		}	
 		
-		.compass path.shortDiv  {
+		.compass_nup path.shortDiv  {
 			fill:none;
 			fill-rule:evenodd;
-            stroke: black;
+			stroke: gray;
 			stroke-width:0.5;
 			stroke-linecap:butt;
 			stroke-linejoin:miter;
@@ -93,11 +92,10 @@
 			stroke-opacity:1;
 		}
 		
-		.compass path.longDiv  {
+		.compass_nup path.longDiv  {
 			fill:none;
 			fill-rule:evenodd;
-            /*stroke: #dcff85;*/
-            stroke: black;
+			stroke: black;
 			stroke-width:2;
 			stroke-linecap:butt;
 			stroke-linejoin:miter;
@@ -106,118 +104,79 @@
 			stroke-opacity:1;
 		}
 		
-		rect.compass.bgRect {
+		rect.compass_nup.bgRect {
 			fill:transparent;
 			stroke: none; 
 		}
-        
-        .compass .bgDial {
-            fill: lightgray;
-            stroke: gray;
-            stroke-width: 2px;
-        }    
 		
-		.compass #pointerShaftInner {
-			fill: orangered;
-			stroke:orangered;
-			stroke-width:0.3;
-			stroke-opacity:1;
+		.compass_nup .bgDial {
+			fill: lightgray;
+			stroke: black;
+			stroke-width: 2px;
+		}    
+		
+		.compass_nup #pointerShaftInner {
+			fill: #9d4626;
+			stroke: #9d4626;
+			stroke-width: 0.3;
+			stroke-opacity: 1;
 			display: block;
 		}
 				
-		.compass #hiPointer {
-			fill:olive;
+		.compass_nup #hiPointer {
+			fill:#FF0000;
 			fill-opacity:0.8;
 			display: block;
 		}
 		
-		.compass #loPointer {
-			fill: rgb(16, 75, 16);
+		.compass_nup #loPointer {
+			fill:#0088FF;
 			fill-opacity:0.8;
 			display: block;
-		}	
-
-		.compass #topMark {
-			stroke: #3d3b3b;
-			stroke-width: 1;
-			fill: gray;
-			fill-opacity:1;
-			display: block;
-        }	
-
-        .compass path.port  {
-			fill:none;
-			stroke: red;
-			stroke-width:6;
-			stroke-linecap:butt;
-			stroke-linejoin:miter;
-			stroke-miterlimit:4;
-			stroke-dasharray:none;
-			stroke-opacity:1;
-		}        
-		.compass path.starboard  {
-			fill:none;
-			stroke: green;
-			stroke-width:6;
-			stroke-linecap:butt;
-			stroke-linejoin:miter;
-			stroke-miterlimit:4;
-			stroke-dasharray:none;
-			stroke-opacity:1;
 		}
+
 		.dark-theme {
-			.compass text.speedunits,
-			.compass text.label {           /** label **/
+			.compass_nup text.label {           /** label **/
 				fill: #dcff85;		  
 			}
-			.compass text.value,
-			.compass text.unit {			/** units **/
+			.compass_nup text.value,
+			.compass_nup text.unit {			/** units **/
 				fill: #00ff00;
 			}
-			.compass text.scale {
-				fill: #dcff85;
-			}	
-
-			.compass .bgDial {
+			.compass_nup .bgDial {
 				fill: transparent;
 				stroke: #deff8b;
 			}
-			.compass #topMark {
+			.compass_nup text.scale {
 				fill: #dcff85;
-				stroke: unset;
 			}	
-			
-			.compass text.cardinal_point {	/** scale 12,3,6,9 oclock positions **/
+
+			.compass_nup text.cardinal_point {	/** scale 12,3,6,9 oclock positions **/
 				fill: #dcff85;
 			}
-			.compass text.intermediate_point {	/** scale remainder **/
+			.compass_nup text.intermediate_point {	/** scale remainder **/
 				fill: #dcff85;
 			}  
 
-			.compass path.shortDiv  {
+			.compass_nup path.shortDiv  {
+				stroke: red;
+			}
+			.compass_nup path.longDiv  {
 				stroke: #dcff85;
 			}
-			.compass path.longDiv  {
-				stroke: #dcff85;
-			}
-		}   
-   </style>
+		}      
+	</style>
 
-    <rect x="0" width="200" y="0" height="200" class="compass bgRect" />
-    <g class="compass">
+    <rect x="0" width="200" y="0" height="200" class="compass_nup bgRect" />
+    <g class="compass_nup">
         <circle cx="100" cy="100" r="90" class="bgDial"/>
     </g>
-
-    <g class="compass">
-        <path class="starboard" d="M 100 185 A 85 85 0 0 0 100 15" />
-        <path class="port"  d="M 99.99999999999999 15 A 85 85 0 0 0 100 185" />          
-    </g>    
-   
-	<g #dial id="dial" class="compass">
+  
+   <g #dial id="dial" class="compass_nup">
 		<path class='longDiv' d='M 100,45 L 100,65' />
 		<path class='longDiv' d='M 100,155 L 100,135' />
-		<path class='shortDiv' d='M 45,100 L 65,100' />
-		<path class='shortDiv' d='M 155,100 L 135,100' />
+		<path class='longDiv' d='M 45,100 L 65,100' />
+		<path class='longDiv' d='M 155,100 L 135,100' />
 
 		<path class='longDiv' d='M 100,30 L 100,19' />
 		<path class='shortDiv' d='M 101.30893048279626,25.011422863270653 L 101.41364492141996,19.012336692332312' />
@@ -596,44 +555,35 @@
 		<text x="100" y="40" id="pcNE" transform="rotate(45,100,100)"  class="scale">NE</text>
 		<text x="100" y="40" id="pcSE" transform="rotate(135,100,100)" class="scale">SE</text>
 		<text x="100" y="40" id="pcSW" transform="rotate(225,100,100)" class="scale">SW</text>
-        <text x="100" y="40" id="pcNW" transform="rotate(315,100,100)" class="scale">NW</text>	      		
-    </g>
-    
-	<!-- text fields -->
-	<g class="compass" style="z-index: 1000;">
-		<text x="100" y="95"  #headingtext id="headingtext" class="value">0&#186;</text>
-        <text x="100" y="115"  #speedtext id="speedtext" class="value" ></text>	  
-        <text x="100" y="130"  #speedunitstext class="speedunits"></text>	
+		<text x="100" y="40" id="pcNW" transform="rotate(315,100,100)" class="scale">NW</text>			
 	</g>
 
-   <!-- Apparent wind direction pointer -->
-   <g id="gLoPointer" class="compass" [ngClass]="{'hide': windapparent==null || windapparent==undefined}">
-	    <g transform="rotate(0 100 100)" #needlelo id="needlelo">
-		    <!--<path d="M 100,79 l 5,-69 -10,0 5,69 z" id="loPointer" />-->
-            <path d="M 100,79 l 6,-49 -6,-20 -6,20 6,49 z" id="loPointer" />
-	    </g>
-   </g>
-   
-   <!-- True Wind direction pointer -->
-   <g id="gHiPointer" class="compass" [ngClass]="{'hide': windtrue==null || windtrue==undefined}">
-	    <g transform="rotate(0 100 100)" #needlehi id="needlehi">
-		    <!--<path d="M 100,79 l 5,-69 -10,0 5,69 z" id="hiPointer" />-->
-            <path d="M 100,79 l 5,-49 -5,-10 -5,10 5,49 z" id="hiPointer" />
-	    </g>
-   </g>   
-   
-   <!-- Pointer --> 
-   <g class="compass" #pointer id="pointer" [ngClass]="{'hide': needle==null || needle==undefined}">
-	    <g transform="rotate(0 100 100)" id="needle">
-			<path d="M 95,70 l 5,-30 5,30 -10,0 z" id="pointerShaftInner" />
-	    </g>
-   </g>
+	<!-- text fields -->
+	<g class="compass_nup" style="z-index: 1000;">
+		<text x="100" y="95"  #headingtext id="headingtext"  class="value">0&#186;</text>
+		<text x="100" y="115"  id="speedtext"  class="value" #speedtext>0</text>
+		<text x="100" y="130"  id="labeltext"  class="label" #labeltext>Heading</text>	  
+	</g>
 
-   <!-- top marker -->
-   <g class="compass">
-		<g transform="rotate(0 100 100)">
-			<path d="M 100,20 l 8,-10 -16,0 8,10 z" id="topMark" />
+	<!-- apparent wind direction pointer -->
+	<g id="gLoPointer" class="compass_nup" [ngClass]="{'hide': !showWindApparent}">
+		<g transform="rotate(0 100 100)" #needlelo id="needlelo">
+			<path d="M 100,79 l 5,-69 -10,0 5,69 z" id="loPointer" />
+		</g>
+	</g>
+	
+	<!-- True wind direction pointer -->
+	<g id="gHiPointer" class="compass_nup" [ngClass]="{'hide': !showWindTrue}">
+		<g transform="rotate(0 100 100)" #needlehi id="needlehi">
+			<path d="M 100,79 l 5,-69 -10,0 5,69 z" id="hiPointer" />
 		</g>
 	</g>   
+	
+	<!-- Heading --> 
+	<g class="compass_nup" #pointer id="pointer" [ngClass]="{'hide': !showPointer}">
+		<g transform="rotate(0 100 100)" id="needle">
+			<path d="M 95,70 l 5,-30 5,30 -10,0 z" id="pointerShaftInner" />
+		</g>
+	</g>
  
 </svg>

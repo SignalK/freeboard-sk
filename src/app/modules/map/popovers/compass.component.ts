@@ -4,18 +4,26 @@ import {
   Input,
   ViewChild,
   ChangeDetectionStrategy,
-  Renderer2
+  Renderer2,
+  SimpleChanges
 } from '@angular/core';
 
 import { CommonModule } from '@angular/common';
 
+interface DialConfig {
+  minValue: number;
+  maxValue: number;
+  minAngle: number;
+  maxAngle: number;
+}
+
 //** Base class **
-class SvgDialBase {
+class SvgDialBase implements DialConfig {
   //** config variables **
-  protected minValue = 0; //** min scale value
-  protected maxValue = 360; //** max scale value
-  protected minAngle = 0; //** pointer angle when showing min value
-  protected maxAngle = 360; //** pointer angle when showing max value
+  minValue = 0; //** min scale value
+  maxValue = 360; //** max scale value
+  minAngle = 0; //** pointer angle when showing min value
+  maxAngle = 360; //** pointer angle when showing max value
   private _scale = 1; //** scaling variables
   protected pointers = {
     //** dial pointers
@@ -24,7 +32,7 @@ class SvgDialBase {
     hi: null
   };
 
-  constructor(config) {
+  constructor(config?: DialConfig) {
     if (config) {
       //** set config here
       this.minValue = config.minValue ? config.minValue : this.minValue;
@@ -114,7 +122,7 @@ export class CompassComponent extends SvgDialBase {
   }
 
   //** handle inputs changes
-  ngOnChanges(changes) {
+  ngOnChanges(changes: SimpleChanges) {
     this.updateDial(changes);
   }
 
@@ -142,7 +150,7 @@ export class CompassComponent extends SvgDialBase {
     this.renderer.setProperty(
       this.speedtext.nativeElement,
       'innerHTML',
-      `${this.speed ? this.speed.toFixed(1) : '-'}`
+      `${typeof this.speed === 'number' ? this.speed.toFixed(1) : '-'}`
     );
     this.renderer.setProperty(
       this.speedunitstext.nativeElement,
@@ -226,6 +234,148 @@ export class CompassComponent extends SvgDialBase {
           'rotate(' + val + ' 100 100)'
         );
       }
+    }
+  }
+}
+
+/*** North Up Compass component *************
+ <ap-compass-northup>
+	[heading]="<number>" pointer value to display
+	[windtrue]="<number>" wind true direction 0-359
+	[windapparent]="<number>" wind apparent direction 0-359
+	[label]="<string>" label text to display
+***********************************/
+@Component({
+  selector: 'ap-compass-northup',
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  standalone: true,
+  imports: [CommonModule],
+  templateUrl: './compass-northup.component.svg'
+})
+export class NorthUpCompassComponent extends SvgDialBase {
+  @Input() label = '';
+  @Input() speed: number | undefined;
+  @Input() heading: number | undefined;
+  @Input() windtrue: number | undefined;
+  @Input() windapparent: number | undefined;
+  @ViewChild('labeltext', { static: true }) labeltext: ElementRef;
+  @ViewChild('headingtext', { static: true }) headingtext: ElementRef;
+  @ViewChild('speedtext', { static: true }) speedtext: ElementRef;
+  @ViewChild('pointer', { static: true }) pointer: ElementRef;
+  @ViewChild('needlehi', { static: true }) needlehi: ElementRef;
+  @ViewChild('needlelo', { static: true }) needlelo: ElementRef;
+
+  public showPointer = true;
+  public showWindTrue = true;
+  public showWindApparent = true;
+
+  constructor(private renderer: Renderer2) {
+    super(null);
+  }
+
+  ngOnInit() {
+    this.updateDial();
+  }
+
+  //** handle inputs changes
+  ngOnChanges(changes: SimpleChanges) {
+    this.updateDial(changes);
+  }
+
+  // render numeric value as string
+  renderValue(value: number, precision = 0, leadingZero = false): string {
+    if (isNaN(value) || typeof value !== 'number') {
+      return '--';
+    }
+    const res =
+      typeof precision === 'number'
+        ? value.toFixed(precision)
+        : value.toString();
+    return value < 10 && leadingZero ? '0' + res : res;
+  }
+
+  updateDial(changes?: SimpleChanges) {
+    const d = {
+      heading: null,
+      windtrue: null,
+      windapparent: null,
+      label: null,
+      speed: null
+    };
+    d.heading =
+      changes && changes['heading']
+        ? changes['heading'].currentValue
+        : this.heading;
+    d.speed =
+      changes && changes['speed'] ? changes['speed'].currentValue : this.speed;
+    d.windtrue =
+      changes && changes['windtrue']
+        ? changes['windtrue'].currentValue
+        : this.windtrue;
+    d.windapparent =
+      changes && changes['windapparent']
+        ? changes['windapparent'].currentValue
+        : this.windapparent;
+    d.label =
+      changes && changes['label'] ? changes['label'].currentValue : this.label;
+
+    if (this.labeltext && this.labeltext.nativeElement) {
+      this.renderer.setProperty(
+        this.labeltext.nativeElement,
+        'innerHTML',
+        d.label
+      );
+    }
+
+    if (this.speedtext && this.speedtext.nativeElement) {
+      this.renderer.setProperty(
+        this.speedtext.nativeElement,
+        'innerHTML',
+        this.renderValue(d.speed, 1)
+      );
+    }
+
+    const rHeading = this.renderValue(d.heading, 0);
+    const rAngle = rHeading === '--' ? this.minValue : d.heading;
+    this.showPointer = rHeading === '--' ? false : true;
+
+    if (this.pointer && this.pointer.nativeElement) {
+      this.renderer.setAttribute(
+        this.pointer.nativeElement,
+        'transform',
+        'rotate(' + this.getAngle(rAngle) + ' 100 100)'
+      );
+    }
+    if (this.headingtext && this.headingtext.nativeElement) {
+      this.renderer.setProperty(
+        this.headingtext.nativeElement,
+        'innerHTML',
+        rHeading + String.fromCharCode(186)
+      );
+    }
+
+    const rWindTrue = this.renderValue(d.windtrue, 0);
+    const rTAngle = rWindTrue === '--' ? this.minValue : d.windtrue;
+    this.showWindTrue = rWindTrue === '--' ? false : true;
+
+    if (this.needlehi && this.needlehi.nativeElement) {
+      this.renderer.setAttribute(
+        this.needlehi.nativeElement,
+        'transform',
+        'rotate(' + this.getAngle(rTAngle) + ' 100 100)'
+      );
+    }
+
+    const rWindApp = this.renderValue(d.windapparent, 0);
+    const rAAngle = rWindApp === '--' ? this.minValue : d.windapparent;
+    this.showWindApparent = rWindApp === '--' ? false : true;
+
+    if (this.needlehi && this.needlehi.nativeElement) {
+      this.renderer.setAttribute(
+        this.needlelo.nativeElement,
+        'transform',
+        'rotate(' + this.getAngle(rAAngle) + ' 100 100)'
+      );
     }
   }
 }
