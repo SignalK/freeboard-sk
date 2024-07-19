@@ -4,7 +4,7 @@ import { HttpClient } from '@angular/common/http';
 import { Feature } from 'ol';
 import { Subject } from 'rxjs';
 import * as xml2js from 'xml2js';
-import { Point } from 'ol/geom';
+import { Style  } from 'ol/style';
 
 interface Symbol {
   image: HTMLImageElement;
@@ -99,6 +99,7 @@ export class S57Service {
   private chartSymbolsImage: HTMLImageElement;
   private lookups: Lookup[] = [];
   private lookupStartIndex: Map<string, number> = new Map<string, number>();
+  private styles: Map<string, Style> = new Map<string, Style>();
   public refresh: Subject<void> = new Subject<void>();
 
   //options
@@ -127,6 +128,14 @@ export class S57Service {
         image.src =
           'assets/s57/' + this.colorTables[this.selectedColorTable].symbolfile;
       });
+  }
+
+  public getStyle(key:string):Style {
+    return this.styles[key]
+  }
+
+  public setStyle(key:string,style:Style) {
+    this.styles[key]=style
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

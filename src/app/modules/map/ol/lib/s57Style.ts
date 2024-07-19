@@ -36,12 +36,7 @@ export class S57Style {
   }
 
   //TODO implement more parameters
-  private getTextStyle(text: string, params: string[]): Style {
-    if (typeof text !== 'string') {
-      //debugger;
-      return null;
-    }
-
+  private getTextStyle(params: string[]): Style {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let textBaseline: any = 'middle';
     let offsetY = 0;
@@ -64,52 +59,51 @@ export class S57Style {
       offsetX = 0;
     }
 
-    if (text) {
-      let tx = text;
-      if (typeof tx !== 'string') {
-        tx = text.toString();
-      }
-      const style = new Style({
-        text: new Text({
-          text: tx,
-          textAlign: textAlign,
-          textBaseline: textBaseline,
-          scale: 1.5,
-          offsetX: offsetX,
-          offsetY: offsetY
-        })
-      });
-      style.setZIndex(99); // text always on top
-      return style;
-    }
-    return null;
+    const style = new Style({
+      text: new Text({
+        textAlign: textAlign,
+        textBaseline: textBaseline,
+        scale: 1.5,
+        offsetX: offsetX,
+        offsetY: offsetY,
+      })
+    });
+    style.setZIndex(99); // text always on top
+    return style
+
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private getTextStyleTX(featureProperties: any, parameters: string): Style {
+  private getTextStyleTXStyle(featureProperties: any, parameters: string): Style {
+    const params = parameters.split(',');
+    return this.getTextStyle(params.slice(1));
+  }
+
+  private getTextStyleTXText(featureProperties: any, parameters: string): string {
     const params = parameters.split(',');
     const text = featureProperties[params[0]];
-    if (!text) {
-      return null;
-    }
-    return this.getTextStyle(text, params.slice(1));
+    return text
   }
 
   private stripQuotes(text: string): string {
     return text.substring(1).substring(0, text.length - 2);
   }
 
-  //TODO format string
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private getTextStyleTE(featureProperties: any, parameters: string): Style {
+  private getTextStyleTEText(featureProperties: any, parameters: string): string {
     const params = parameters.split(',');
     const text = featureProperties[this.stripQuotes(params[1])];
     const format = this.stripQuotes(params[0]);
     if (!text || !format) {
       return null;
     }
-    const formatted = format.replace(/%[0-9]*.?[0-9]*l?[sfd]/, text);
-    return this.getTextStyle(formatted, params.slice(2));
+    return format.replace(/%[0-9]*.?[0-9]*l?[sfd]/, text);
+  }
+
+  private getTextStyleTEStyle(featureProperties: any, parameters: string): Style {
+    const params = parameters.split(',');
+    return this.getTextStyle(params.slice(2));
   }
 
   private getDefaultStyle(): Style {
@@ -743,6 +737,7 @@ export class S57Style {
     return retval;
   }
 
+
   private getStylesFromRules(lup: Lookup, feature: Feature): Style[] {
     const styles: Style[] = [];
     if (lup) {
@@ -761,26 +756,39 @@ export class S57Style {
         const instrParts = this.instructionMatch.exec(instruction);
         if (instrParts && instrParts.length > 1) {
           let style: Style = null;
-          switch (instrParts[1]) {
-            case 'SY':
-              style = this.getSymbolStyle(instrParts[2]);
-              break;
-            case 'AC':
-              style = this.getAreaStyle(instrParts[2]);
-              break;
-            case 'TX':
-              style = this.getTextStyleTX(properties, instrParts[2]);
-              break;
-            case 'TE':
-              style = this.getTextStyleTE(properties, instrParts[2]);
-              break;
-            case 'LS':
-              style = this.getLineStyle(instrParts[2]);
-              break;
-            default:
-              console.debug('Unsupported instruction:' + instruction);
+          let cacheKey = instrParts[1] + "_" + instrParts[2]         
+          style = this.s57Service.getStyle(cacheKey)
+          if (!style) {
+            switch (instrParts[1]) {
+              case 'SY':
+                style = this.getSymbolStyle(instrParts[2]);
+                break;
+              case 'AC':
+                style = this.getAreaStyle(instrParts[2]);
+                break;
+              case 'TX':
+                style = this.getTextStyleTXStyle(properties, instrParts[2]);
+                break;
+              case 'TE':
+                style = this.getTextStyleTEStyle(properties, instrParts[2]);
+                break;
+              case 'LS':
+                style = this.getLineStyle(instrParts[2]);
+                break;
+              default:
+                debugger
+                console.debug('Unsupported instruction:' + instruction);
+            }
+            this.s57Service.setStyle(cacheKey, style)
           }
-          if (style !== null) {
+
+          if (style) {
+            if(instrParts[1]=="TE") {
+              style.getText().setText(this.getTextStyleTEText(properties,instrParts[2]))
+            }
+            if(instrParts[1]=="TX") {
+              style.getText().setText(this.getTextStyleTXText(properties,instrParts[2]))
+            }
             styles.push(style);
           }
         }
