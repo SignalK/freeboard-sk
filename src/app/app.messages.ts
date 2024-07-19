@@ -1,14 +1,23 @@
 const WHATS_NEW = [
-  /*{
+  {
     type: 'signalk-server-node',
-    title: 'OpenWeather 3.0 Support',
+    title: 'Material 3.0 Theming',
     message: `
-        OpenWeather is deprecating support for v2.5 of their API in April 2024!
+        Freeboard-SK user interface now uses Material 3 themes. 
         <br>&nbsp;<br>
-        Freeboard-SK now supports the v3.0 API which will require you to supply
-        a new API Key in the configuration.
+        The result is a refreshed user interface appearance, components and light / dark themes.
       `
-  }*/
+  },
+  {
+    type: 'signalk-server-node',
+    title: 'S57 Updates',
+    message: `
+        This release contains updates to S57 map styles:
+        <br>&nbsp;<br>
+        <li>Show only layers from Base and Standard categories.</li>
+        <li>Buoy top markings.</li>
+      `
+  }
 ];
 
 export const WELCOME_MESSAGES = {

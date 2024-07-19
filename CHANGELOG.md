@@ -3,6 +3,7 @@
 ### v2.10.0
 
 - **Updated**: Compass widget in Weather Station popover (#173).
+- **Updated**: S57 chart styles (@wdantuma).
 - **Updated**: Angular framework to v18 & Material 3 
 
 
