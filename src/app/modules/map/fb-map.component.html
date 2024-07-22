@@ -599,7 +599,8 @@
 
   <!-- chart boundaries-->
   @if(app.data.chartBounds) {
-  <fb-chart-bounds [zIndex]="250" [charts]="dfeat.charts"> </fb-chart-bounds>
+    
+  <fb-chart-bounds [zIndex]="250" [charts]="dfeat.charts" (chartSelected)="onSelect($event)" > </fb-chart-bounds>
   }
 </ol-map>
 
