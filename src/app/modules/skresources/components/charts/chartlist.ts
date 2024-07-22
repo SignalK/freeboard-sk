@@ -168,7 +168,6 @@ export class ChartLayers implements OnInit {
 @Component({
   selector: 'chart-list',
   standalone: true,
-  changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './chartlist.html',
   styleUrls: ['../resourcelist.css'],
   imports: [
