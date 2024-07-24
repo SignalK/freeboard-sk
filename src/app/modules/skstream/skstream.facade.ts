@@ -163,6 +163,7 @@ export class SKStreamFacade {
           { path: 'buddy', period: 1000, policy: 'fixed' },
           { path: 'uuid', period: 1000, policy: 'fixed' },
           { path: 'name', period: 1000, policy: 'fixed' },
+          { path: 'registrations', period: 1000, policy: 'fixed' },
           { path: 'communication.callsignVhf', period: 1000, policy: 'fixed' },
           { path: 'mmsi', period: 1000, policy: 'fixed' },
           { path: 'port', period: 1000, policy: 'fixed' },

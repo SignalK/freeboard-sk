@@ -67,20 +67,7 @@ export const vesselStyles = {
   })
 };
 
-export const routeStyles = {
-  default: new Style({
-    stroke: new Stroke({
-      color: 'green',
-      width: 2,
-      lineDash: [20, 5, 5, 5]
-    })
-  }),
-  active: new Style({
-    stroke: new Stroke({
-      color: 'blue',
-      width: 4
-    })
-  }),
+export const raceCourseStyles = {
   startPin: new Style({
     image: new Icon({
       src: './assets/img/startflag.png',
@@ -143,6 +130,26 @@ export const routeStyles = {
     text: new Text({
       text: '',
       offsetY: 10
+    })
+  })
+};
+
+export const routeStyles = {
+  default: new Style({
+    stroke: new Stroke({
+      color: 'green',
+      width: 2,
+      lineDash: [20, 5, 5, 5]
+    }),
+    text: new Text({
+      text: '',
+      offsetY: 10
+    })
+  }),
+  active: new Style({
+    stroke: new Stroke({
+      color: 'blue',
+      width: 4
     })
   })
 };

@@ -72,14 +72,13 @@ export enum DisplayPriority {
   PRIO_MARINERS = 9 // VRM, EBL, own ship
 }
 
-
 export enum DisplayCategory {
-  DISPLAYBASE = 0,        //
-  STANDARD = 1,           //
-  OTHER = 2,              // O for OTHER
-  MARINERS_STANDARD = 3,  // Mariner specified
-  MARINERS_OTHER = 4,     // value not defined
-  DISP_CAT_NUM = 5        // value not defined
+  DISPLAYBASE = 0, //
+  STANDARD = 1, //
+  OTHER = 2, // O for OTHER
+  MARINERS_STANDARD = 3, // Mariner specified
+  MARINERS_OTHER = 4, // value not defined
+  DISP_CAT_NUM = 5 // value not defined
 }
 
 enum LookupTable {
@@ -107,25 +106,27 @@ export class S57Service {
   public options: Options = DefaultOptions;
 
   private attMatch = new RegExp('([A-Za-z0-9]{6})([0-9,\\?]*)');
-  
-  constructor(private http: HttpClient) {
-    http.get('assets/s57/chartsymbols.xml', { responseType: "text" }).subscribe((symbolsXml) => {
-      const parser = new xml2js.Parser({ strict: false, trim: true });
-      parser.parseString(symbolsXml, (err, symbolsJs) => {
-        this.processSymbols(symbolsJs);
-        this.processLookup(symbolsJs);
-        this.processColors(symbolsJs);
-      });
 
-      this.refresh.next();
-      const image = new Image();
-      image.onload = () => {
-        this.chartSymbolsImage = image;
+  constructor(private http: HttpClient) {
+    http
+      .get('assets/s57/chartsymbols.xml', { responseType: 'text' })
+      .subscribe((symbolsXml) => {
+        const parser = new xml2js.Parser({ strict: false, trim: true });
+        parser.parseString(symbolsXml, (err, symbolsJs) => {
+          this.processSymbols(symbolsJs);
+          this.processLookup(symbolsJs);
+          this.processColors(symbolsJs);
+        });
+
         this.refresh.next();
-      };
-      image.src =
-        'assets/s57/' + this.colorTables[this.selectedColorTable].symbolfile;
-    });
+        const image = new Image();
+        image.onload = () => {
+          this.chartSymbolsImage = image;
+          this.refresh.next();
+        };
+        image.src =
+          'assets/s57/' + this.colorTables[this.selectedColorTable].symbolfile;
+      });
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -148,12 +149,12 @@ export class S57Service {
     }
   }
 
-  public getLookup(lookupIndex:number):Lookup {
-    return this.lookups[lookupIndex]
+  public getLookup(lookupIndex: number): Lookup {
+    return this.lookups[lookupIndex];
   }
 
-  public getColor(colorName:string):string {
-    return  this.colorTables[this.selectedColorTable].colors.get(colorName);
+  public getColor(colorName: string): string {
+    return this.colorTables[this.selectedColorTable].colors.get(colorName);
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -172,12 +173,12 @@ export class S57Service {
         colorTable.colors.set(
           color['$']['NAME'],
           'RGBA(' +
-          color['$']['R'] +
-          ', ' +
-          color['$']['G'] +
-          ', ' +
-          color['$']['B'] +
-          ',1)'
+            color['$']['R'] +
+            ', ' +
+            color['$']['G'] +
+            ', ' +
+            color['$']['B'] +
+            ',1)'
         );
       });
       this.colorTables.push(colorTable);
@@ -209,7 +210,7 @@ export class S57Service {
   private compareLookup(a: Lookup, b: Lookup): number {
     const lt = a.lookupTable - b.lookupTable;
     if (lt !== 0) return lt;
-    const ir = a.name.localeCompare(b.name, "en", { sensitivity: "base" });
+    const ir = a.name.localeCompare(b.name, 'en', { sensitivity: 'base' });
     if (ir !== 0) return ir;
     const c1 = Object.keys(a.attributes).length;
     const c2 = Object.keys(a.attributes).length;
@@ -279,7 +280,8 @@ export class S57Service {
     // build index
     let lastkey = '';
     this.lookups.forEach((lup, index) => {
-      const key = lup.lookupTable + ',' + lup.name.toUpperCase() + ',' + lup.geometryType;
+      const key =
+        lup.lookupTable + ',' + lup.name.toUpperCase() + ',' + lup.geometryType;
       if (key !== lastkey) {
         this.lookupStartIndex.set(key, index);
         lastkey = key;
@@ -319,9 +321,13 @@ export class S57Service {
   private propertyCompare(a: any, b: string): number {
     let t = typeof a;
     switch (t) {
-      case "number": let b1 = parseInt(b); return a - b1;
-      case "string": return (a as string).localeCompare(b);
-      default: return -1
+      case 'number':
+        let b1 = parseInt(b);
+        return a - b1;
+      case 'string':
+        return (a as string).localeCompare(b);
+      default:
+        return -1;
     }
   }
 
@@ -372,7 +378,7 @@ export class S57Service {
       let lup = this.lookups[currentIndex];
       let lmatch = 0;
       while (
-        lup.name.localeCompare(name, "en", { sensitivity: "base" }) === 0 &&
+        lup.name.localeCompare(name, 'en', { sensitivity: 'base' }) === 0 &&
         lup.geometryType === type &&
         lup.lookupTable === lookupTable
       ) {
@@ -405,7 +411,7 @@ export class S57Service {
         let currentIndex = startIndex;
         let lup = this.lookups[currentIndex];
         while (
-          lup.name.localeCompare(name, "en", { sensitivity: "base" }) === 0 &&
+          lup.name.localeCompare(name, 'en', { sensitivity: 'base' }) === 0 &&
           lup.geometryType === type &&
           lup.lookupTable === lookupTable
         ) {
@@ -425,7 +431,7 @@ export class S57Service {
   private getDisplayCategory(dispCategory: string): DisplayCategory {
     switch (dispCategory) {
       case 'Displaybase':
-        return DisplayCategory.DISPLAYBASE
+        return DisplayCategory.DISPLAYBASE;
       case 'Standard':
         return DisplayCategory.STANDARD;
       case 'Mariners':
@@ -470,9 +476,5 @@ export class S57Service {
     }
   }
 
-
   // the interface of this service
-
 }
-
- 

@@ -179,6 +179,7 @@ export class SKVessel {
   sog: number;
   name: string;
   mmsi: string;
+  registrations: { [key: string]: string } = {};
   type: { id: number; name: string } = { id: -1, name: '' };
   callsign: string;
   state: string;

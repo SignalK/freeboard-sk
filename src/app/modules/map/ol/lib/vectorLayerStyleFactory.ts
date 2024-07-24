@@ -4,7 +4,7 @@ import { S57Service } from './s57.service';
 import { S57Style } from './s57Style';
 import VectorTileLayer from 'ol/layer/VectorTile';
 import VectorTileSource from 'ol/source/VectorTile';
-import {Extent,applyTransform} from 'ol/extent'
+import { Extent, applyTransform } from 'ol/extent';
 import { transformExtent } from 'ol/proj';
 import { MVT } from 'ol/format';
 import { Style, Fill, Stroke } from 'ol/style';
@@ -34,25 +34,23 @@ class S57LayerStyler extends VectorLayerStyler {
   }
 
   public CreateLayer(): VectorTileLayer<FeatureLike> {
-    let extent:Extent = null
+    let extent: Extent = null;
     if (this.chart.bounds && this.chart.bounds.length > 0) {
-       extent=transformExtent(this.chart.bounds,"EPSG:4326","EPSG:3857")      
+      extent = transformExtent(this.chart.bounds, 'EPSG:4326', 'EPSG:3857');
     }
-    return new VectorTileLayer({declutter:true,extent:extent});
+    return new VectorTileLayer({ declutter: true, extent: extent });
   }
 
   public ApplyStyle(vectorLayer: VectorTileLayer<FeatureLike>) {
-   
     const source = new VectorTileSource({
       url: this.chart.url,
       minZoom: this.chart.minZoom,
       maxZoom: this.chart.maxZoom,
       format: new MVT({}),
-      tileSize:256
+      tileSize: 256
     });
 
-
-    const style = new S57Style(this.s57service)
+    const style = new S57Style(this.s57service);
 
     vectorLayer.setSource(source);
     vectorLayer.setPreload(0);

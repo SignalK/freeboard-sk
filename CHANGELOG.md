@@ -2,7 +2,9 @@
 
 ### v2.10.0
 
+- **Added**: Option to filter out vessels without an IMO registration (#174).
 - **Updated**: Compass widget in Weather Station popover (#173).
+- **Updated**: Add waypoint styles to routes (#168).
 - **Updated**: S57 chart styles (@wdantuma).
 - **Updated**: Angular framework to v18 & Material 3 
 

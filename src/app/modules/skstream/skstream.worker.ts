@@ -763,6 +763,9 @@ function processVessel(d: SKVessel, v, isSelf = false) {
     if (typeof v.value.mmsi !== 'undefined') {
       d.mmsi = v.value.mmsi;
     }
+    if (typeof v.value.registrations !== 'undefined') {
+      d.registrations = v.value.registrations;
+    }
     if (typeof v.value.buddy !== 'undefined') {
       d.buddy = v.value.buddy;
     }

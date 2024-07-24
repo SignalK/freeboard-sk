@@ -213,17 +213,35 @@ export class SKVesselsLayerComponent implements OnInit, OnDestroy, OnChanges {
     if (vector && !this.showVector) {
       return false;
     }
+
+    // IMO only
+    const imo =
+      Array.isArray(this.filterShipTypes) &&
+      this.filterShipTypes.includes(-999);
+    const checkImo = (id: string) => {
+      if (imo) {
+        const t = this.targets.get(id);
+        if ('imo' in t.registrations) {
+          return true;
+        } else {
+          return false;
+        }
+      } else {
+        return true;
+      }
+    };
+
     if (this.filterByShipType && Array.isArray(this.filterShipTypes)) {
       const st = Math.floor(this.targets.get(id).type.id / 10) * 10;
-      return this.filterShipTypes.includes(st);
+      return this.filterShipTypes.includes(st) && checkImo(id);
     }
     if (!this.filterIds) {
-      return true;
+      return checkImo(id);
     }
     if (Array.isArray(this.filterIds)) {
-      return this.filterIds.includes(id);
+      return this.filterIds.includes(id) && checkImo(id);
     } else {
-      return true;
+      return checkImo(id);
     }
   }
 

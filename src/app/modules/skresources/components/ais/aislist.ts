@@ -50,6 +50,7 @@ export class AISListComponent {
     new EventEmitter();
 
   aisAvailable = [];
+  onlyIMO = false;
   filterList = [];
   filterText = '';
   someSel = false;
@@ -156,6 +157,7 @@ export class AISListComponent {
     this.shipTypes.forEach((i) => {
       i.selected = this.app.config.selections.aisTargetTypes.includes(i.id);
     });
+    this.onlyIMO = this.app.config.selections.aisTargetTypes.includes(-999);
   }
 
   toggleFilterType(e: boolean) {
@@ -175,6 +177,7 @@ export class AISListComponent {
         t.splice(t.indexOf(id), 1);
       }
     }
+    this.onlyIMO = t.includes(-999);
     this.app.config.selections.aisTargetTypes = [].concat(t);
     this.alignSelections();
     this.app.saveConfig();

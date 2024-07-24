@@ -26,31 +26,29 @@ total: number - total number of points
       class="mat-app-background"
       style="height: 96px;border: 1px rgba(0,0,0,0) solid;"
     >
-      <div style="display: flex; flex-wrap: nowrap;">
-        <div>
+      <div style="display: flex; flex: auto; flex-wrap: nowrap; width:90px;">
+        <div style="flex: auto">
           <button
             class="nav-button"
-            mat-stroked-button
-            color="primary"
+            mat-icon-button
             matTooltip="Previous point"
             matTootipPosition="top"
             [disabled]="!circular && index === 0"
             (click)="changeIndex(-1)"
           >
-            <mat-icon>skip_previous</mat-icon><br />
+            <mat-icon>skip_previous</mat-icon>
           </button>
         </div>
-        <div>
+        <div style="flex: auto">
           <button
             class="nav-button"
-            mat-stroked-button
-            color="primary"
+            mat-icon-button
             matTooltip="Next point"
             matTootipPosition="top"
             [disabled]="!circular && index >= total - 1"
             (click)="changeIndex(1)"
           >
-            <mat-icon>skip_next</mat-icon><br />
+            <mat-icon>skip_next</mat-icon>
           </button>
         </div>
       </div>

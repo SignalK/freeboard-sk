@@ -1,4 +1,4 @@
-import { S57Service,Lookup,DisplayCategory } from "./s57.service";
+import { S57Service, Lookup, DisplayCategory } from './s57.service';
 import { Feature } from 'ol';
 import { Style, Fill, Stroke, Icon, Text } from 'ol/style';
 
@@ -8,34 +8,32 @@ const DEPARE = 42; // Depth Area
 const LOOKUPINDEXKEY = '$lupIndex';
 
 export class S57Style {
-    private s57Service:S57Service;
-    private selectedSafeContour = 1000;
-    private instructionMatch = new RegExp('([A-Z][A-Z])\\((.*)\\)');
+  private s57Service: S57Service;
+  private selectedSafeContour = 1000;
+  private instructionMatch = new RegExp('([A-Z][A-Z])\\((.*)\\)');
 
+  constructor(s57Service: S57Service) {
+    this.s57Service = s57Service;
+  }
 
-    constructor(s57Service:S57Service) {
-      this.s57Service = s57Service
+  private getSymbolStyle(symbolName: string): Style {
+    const symbol = this.s57Service.getSymbol(symbolName);
+    if (symbol) {
+      return new Style({
+        image: new Icon({
+          width: symbol.width,
+          height: symbol.height,
+          img: symbol.image,
+          opacity: 1,
+          anchorXUnits: 'pixels',
+          anchorYUnits: 'pixels',
+          anchor: [symbol.pivotX, symbol.pivotY],
+          declutterMode: 'none'
+        })
+      });
     }
-
-    private getSymbolStyle(symbolName: string): Style {
-        const symbol = this.s57Service.getSymbol(symbolName);
-        if (symbol) {
-          return new Style({
-            image: new Icon({
-              width: symbol.width,
-              height: symbol.height,
-              img: symbol.image,
-              opacity: 1,
-              anchorXUnits: 'pixels',
-              anchorYUnits: 'pixels',
-              anchor: [symbol.pivotX, symbol.pivotY],
-              declutterMode:'none'
-            })
-          });
-        }
-        return null;
-      }
-
+    return null;
+  }
 
   //TODO implement more parameters
   private getTextStyle(text: string, params: string[]): Style {
@@ -78,11 +76,11 @@ export class S57Style {
           textBaseline: textBaseline,
           scale: 1.5,
           offsetX: offsetX,
-          offsetY: offsetY,
+          offsetY: offsetY
         })
       });
       style.setZIndex(99); // text always on top
-      return style
+      return style;
     }
     return null;
   }
@@ -100,7 +98,6 @@ export class S57Style {
   private stripQuotes(text: string): string {
     return text.substring(1).substring(0, text.length - 2);
   }
-
 
   //TODO format string
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -128,12 +125,12 @@ export class S57Style {
   }
 
   private getAreaStyle(colorName: string): Style {
-    const color = this.s57Service.getColor(colorName)
+    const color = this.s57Service.getColor(colorName);
     if (color) {
       return new Style({
         fill: new Fill({
           color: color
-        }),
+        })
       });
     }
     return null;
@@ -141,9 +138,7 @@ export class S57Style {
 
   private getLineStyle(params: string): Style {
     const parts = params.split(',');
-    const color = this.s57Service.getColor(
-      parts[2]
-    );
+    const color = this.s57Service.getColor(parts[2]);
     const width = parseInt(parts[1]);
     const lineStyle = parts[0];
     let lineDash = null;
@@ -165,7 +160,6 @@ export class S57Style {
       })
     });
   }
-  
 
   //https://github.com/OpenCPN/OpenCPN/blob/20a781ecc507443e5aaa1d33d0cb91852feb07ee/libs/s52plib/src/s52cnsy.cpp#L2121
   private GetCSQQUALIN01(feature: Feature): string[] {
@@ -173,39 +167,39 @@ export class S57Style {
     const featureProperties = feature.getProperties();
 
     let quapos = 0;
-    let bquapos = false
-    if (featureProperties["QUAPOS"]) {
+    let bquapos = false;
+    if (featureProperties['QUAPOS']) {
       quapos = parseFloat(featureProperties['QUAPOS']);
-      bquapos = true
+      bquapos = true;
     }
-    if(bquapos) {
-      if(2<= quapos && quapos < 10) {
-        retval.push("LC(LOWACC21")
+    if (bquapos) {
+      if (2 <= quapos && quapos < 10) {
+        retval.push('LC(LOWACC21');
       }
     } else {
-      if(featureProperties["layer"]=="COALNE") {
+      if (featureProperties['layer'] == 'COALNE') {
         let conrad = 0;
-        let bconrad = false
-        if (featureProperties["CONRAD"]) {
+        let bconrad = false;
+        if (featureProperties['CONRAD']) {
           quapos = parseFloat(featureProperties['CONRAD']);
-          bquapos = true
+          bquapos = true;
         }
-        if(bconrad) {
-          if(conrad==1) {
-            retval.push("LS(SOLD,3,CHMGF)");
-            retval.push("LS(SOLD,1,CSTLN)");
+        if (bconrad) {
+          if (conrad == 1) {
+            retval.push('LS(SOLD,3,CHMGF)');
+            retval.push('LS(SOLD,1,CSTLN)');
           } else {
-            retval.push("LS(SOLD,1,CSTLN)");
+            retval.push('LS(SOLD,1,CSTLN)');
           }
         } else {
-          retval.push("LS(SOLD,1,CSTLN)");
+          retval.push('LS(SOLD,1,CSTLN)');
         }
       } else {
-        retval.push("LS(SOLD,1,CSTLN)");
+        retval.push('LS(SOLD,1,CSTLN)');
       }
     }
 
-    return retval
+    return retval;
   }
 
   // https://github.com/OpenCPN/OpenCPN/blob/20a781ecc507443e5aaa1d33d0cb91852feb07ee/libs/s52plib/src/s52cnsy.cpp#L2185
@@ -213,28 +207,36 @@ export class S57Style {
     let retval: string[] = [];
     const featureProperties = feature.getProperties();
 
-    let accurate=true
+    let accurate = true;
     let quapos = 0;
-    let bquapos = false
-    if (featureProperties["QUAPOS"]) {
+    let bquapos = false;
+    if (featureProperties['QUAPOS']) {
       quapos = parseInt(featureProperties['QUAPOS']);
-      bquapos = true
+      bquapos = true;
     }
-    if(bquapos)     {
-      if(2<= quapos && quapos <10) {
-        accurate=false
+    if (bquapos) {
+      if (2 <= quapos && quapos < 10) {
+        accurate = false;
       }
-      if(accurate) {
-         switch(quapos) {
-          case 4:retval.push("SY(QUAPOS01)");break;
-          case 5:retval.push("SY(QUAPOS02)");break;
+      if (accurate) {
+        switch (quapos) {
+          case 4:
+            retval.push('SY(QUAPOS01)');
+            break;
+          case 5:
+            retval.push('SY(QUAPOS02)');
+            break;
           case 7:
-          case 8:retval.push("SY(QUAPOS03)");break;
-          default:retval.push("SY(LOWACC03)");break;
-         }
+          case 8:
+            retval.push('SY(QUAPOS03)');
+            break;
+          default:
+            retval.push('SY(LOWACC03)');
+            break;
+        }
       }
     }
-    return retval
+    return retval;
   }
 
   //https://github.com/OpenCPN/OpenCPN/blob/20a781ecc507443e5aaa1d33d0cb91852feb07ee/libs/s52plib/src/s52cnsy.cpp#L2072
@@ -244,7 +246,7 @@ export class S57Style {
     if (geometry.getType() === 'LineString') {
       return this.GetCSQQUALIN01(feature);
     } else {
-      return this.GetCSQQUAPNT01(feature);     
+      return this.GetCSQQUAPNT01(feature);
     }
   }
 
@@ -255,58 +257,57 @@ export class S57Style {
     const geometry = feature.getGeometry();
 
     let quapos = 0;
-    let bquapos = false
-    if (featureProperties["QUAPOS"]) {
+    let bquapos = false;
+    if (featureProperties['QUAPOS']) {
       quapos = parseFloat(featureProperties['QUAPOS']);
-      bquapos = true
+      bquapos = true;
     }
-
 
     if (geometry.getType() === 'Point') {
       if (bquapos) {
         if (2 <= quapos && quapos < 10) {
-          retval.push("SY(LOWACC01)");
+          retval.push('SY(LOWACC01)');
         }
       }
     } else {
       if (geometry.getType() === 'Polygon') {
-        retval.push("AP(CROSSX01");
+        retval.push('AP(CROSSX01');
       }
       if (bquapos) {
         if (2 <= quapos && quapos < 10) {
-          retval.push("LC(LOWACC01)");
+          retval.push('LC(LOWACC01)');
         }
       } else {
-        let bcondtn = false
-        let condtn = 0
-        if (featureProperties["QUAPOS"]) {
+        let bcondtn = false;
+        let condtn = 0;
+        if (featureProperties['QUAPOS']) {
           condtn = parseInt(featureProperties['CONDTN']);
-          bcondtn = true
+          bcondtn = true;
         }
         if (bcondtn && (condtn == 1 || condtn == 2)) {
-          retval.push("LS(DASH,1,CSTLN)");
+          retval.push('LS(DASH,1,CSTLN)');
         } else {
-          let bcatslc = false
-          let catslc = 0
-          if (featureProperties["CATSLC"]) {
+          let bcatslc = false;
+          let catslc = 0;
+          if (featureProperties['CATSLC']) {
             catslc = parseInt(featureProperties['CATSLC']);
-            bcatslc = true
+            bcatslc = true;
           }
           if (bcatslc && (catslc == 6 || catslc == 15 || catslc == 16)) {
-            retval.push("LS(SOLD,4,CSTLN)");
+            retval.push('LS(SOLD,4,CSTLN)');
           } else {
-            let bwatlev = false
-            let watlev = 0
-            if (featureProperties["WATLEV"]) {
+            let bwatlev = false;
+            let watlev = 0;
+            if (featureProperties['WATLEV']) {
               watlev = parseInt(featureProperties['WATLEV']);
-              bwatlev = true
+              bwatlev = true;
             }
             if (bwatlev && watlev == 2) {
-              retval.push("LS(SOLD,2,CSTLN)");
+              retval.push('LS(SOLD,2,CSTLN)');
             } else if (bwatlev && (watlev == 3 || watlev == 4)) {
-              retval.push("LS(DASH,2,CSTLN)");
+              retval.push('LS(DASH,2,CSTLN)');
             } else {
-              retval.push("LS(SOLD,2,CSTLN)");
+              retval.push('LS(SOLD,2,CSTLN)');
             }
           }
         }
@@ -612,7 +613,8 @@ export class S57Style {
       }
       if (
         drval1 >= this.s57Service.options.deepDepth &&
-        drval2 > this.s57Service.options.deepDepth) {
+        drval2 > this.s57Service.options.deepDepth
+      ) {
         retval = ['AC(DEPDW)'];
       }
     }
@@ -652,7 +654,7 @@ export class S57Style {
       }
     }
     if (depth_value < this.s57Service.options.safetyDepth) {
-      retval.push("LS(SOLD,1,DEPCN)")
+      retval.push('LS(SOLD,1,DEPCN)');
       return retval;
     }
 
@@ -661,21 +663,19 @@ export class S57Style {
       if (quapos > 2 && quapos < 10) {
         if (depth_value === this.selectedSafeContour) {
           retval.push('LS(DASH,2,DEPSC)');
+        } else {
+          retval.push('LS(DASH,1,DEPCN)');
         }
-          else {
-            retval.push("LS(DASH,1,DEPCN)")
-         }
       }
     } else {
       if (depth_value === this.selectedSafeContour) {
         retval.push('LS(SOLD,2,DEPSC)');
+      } else {
+        retval.push('LS(SOLD,1,DEPCN)');
       }
-       else {
-         retval.push("LS(SOLD,1,DEPCN)")
-       }
     }
 
-    return  retval
+    return retval;
   }
 
   //https://github.com/OpenCPN/OpenCPN/blob/c2ffb36ebca8c3777f03ea4d42e24f897aa62609/libs/s52plib/src/s52cnsy.cpp#L4247
@@ -684,17 +684,17 @@ export class S57Style {
 
     const featureProperties = feature.getProperties();
 
-    let drval1: number = -1
+    let drval1: number = -1;
 
     const dv1 = parseFloat(featureProperties['DRVAL1']);
     if (!Number.isNaN(dv1)) {
-      drval1 = dv1
+      drval1 = dv1;
     }
 
     let drval2: number = drval1 + 0.01;
     const dv2 = parseFloat(featureProperties['DRVAL2']);
     if (!Number.isNaN(dv2)) {
-      drval2 = dv2
+      drval2 = dv2;
     }
 
     retval = this.GetSeabed01(drval1, drval2);
@@ -790,94 +790,100 @@ export class S57Style {
     return styles;
   }
 
- 
+  private layerOrder(feature: Feature): number {
+    const properties = feature.getProperties();
 
-  private layerOrder(feature:Feature):number {
-    const properties=feature.getProperties();
-
-    const layer = properties["layer"];
-    switch(layer) {
-      case "SEAARE":return 2;
-      case "DEPARE":return 3;
-      case "DEPCNT":return 4;
-      case "LNDARE":return 5;
-      case "BUAARE":return 6;
-      default: return 99;
+    const layer = properties['layer'];
+    switch (layer) {
+      case 'SEAARE':
+        return 2;
+      case 'DEPARE':
+        return 3;
+      case 'DEPCNT':
+        return 4;
+      case 'LNDARE':
+        return 5;
+      case 'BUAARE':
+        return 6;
+      default:
+        return 99;
     }
   }
 
+  private updateSafeContour(feature: Feature): number {
+    const properties = feature.getProperties();
+    if (properties['DRVAL1']) {
+      const drval1 = properties['DRVAL1'];
+      if (
+        drval1 >= this.s57Service.options.safetyDepth &&
+        drval1 < this.selectedSafeContour
+      ) {
+        this.selectedSafeContour = drval1;
+      }
+      return drval1;
+    }
+    if (properties['VALDCO']) {
+      const valdco = properties['VALDCO'];
+      if (
+        valdco >= this.s57Service.options.safetyDepth &&
+        valdco < this.selectedSafeContour
+      ) {
+        this.selectedSafeContour = valdco;
+      }
+      return valdco;
+    }
+    return 0;
+  }
 
-    private updateSafeContour(feature: Feature): number {
-      const properties = feature.getProperties();
-      if (properties['DRVAL1']) {
-        const drval1 = properties['DRVAL1'];
-        if (
-          drval1 >= this.s57Service.options.safetyDepth &&
-          drval1 < this.selectedSafeContour
-        ) {
-          this.selectedSafeContour = drval1;
-        }
-        return drval1;
-      }
-      if (properties['VALDCO']) {
-        const valdco = properties['VALDCO'];
-        if (
-          valdco >= this.s57Service.options.safetyDepth &&
-          valdco < this.selectedSafeContour
-        ) {
-          this.selectedSafeContour = valdco;
-        }
-        return valdco;
-      }
-      return 0;
+  public renderOrder = (feature1: Feature, feature2: Feature): number => {
+    const l1 = this.layerOrder(feature1);
+    const l2 = this.layerOrder(feature2);
+    const o1 = this.updateSafeContour(feature1);
+    const o2 = this.updateSafeContour(feature2);
+    let lupIndex1 = feature1[LOOKUPINDEXKEY];
+    let lupIndex2 = feature1[LOOKUPINDEXKEY];
+    if (!lupIndex1) {
+      lupIndex1 = this.s57Service.selectLookup(feature1);
+      feature1[LOOKUPINDEXKEY] = lupIndex1;
+    }
+    if (!lupIndex2) {
+      lupIndex2 = this.s57Service.selectLookup(feature2);
+      feature2[LOOKUPINDEXKEY] = lupIndex2;
     }
 
-    public renderOrder = (feature1: Feature, feature2: Feature): number => {
-      const l1 = this.layerOrder(feature1);
-      const l2 = this.layerOrder(feature2); 
-      const o1 = this.updateSafeContour(feature1);
-      const o2 = this.updateSafeContour(feature2);
-      let lupIndex1 = feature1[LOOKUPINDEXKEY];
-      let lupIndex2 = feature1[LOOKUPINDEXKEY];
-      if (!lupIndex1) {
-        lupIndex1 = this.s57Service.selectLookup(feature1);
-        feature1[LOOKUPINDEXKEY] = lupIndex1;
+    if (l1 !== l2) {
+      return l1 - l2;
+    }
+
+    if (lupIndex1 >= 0 && lupIndex2 >= 0) {
+      const c1 = this.s57Service.getLookup(lupIndex1).displayPriority;
+      const c2 = this.s57Service.getLookup(lupIndex1).displayPriority;
+      if (c1 != c2) {
+        return c1 - c2;
       }
-      if (!lupIndex2) {
-        lupIndex2 = this.s57Service.selectLookup(feature2);
-        feature2[LOOKUPINDEXKEY] = lupIndex2;
+    }
+
+    if (o1 !== o2) {
+      return o1 - o2;
+    }
+
+    return 0;
+  };
+
+  public getStyle = (feature: Feature, resolution: number): Style[] => {
+    const lupIndex = feature[LOOKUPINDEXKEY];
+    if (lupIndex >= 0) {
+      const lup = this.s57Service.getLookup(lupIndex);
+      // simple feature filter
+      if (
+        lup.displayCategory == DisplayCategory.DISPLAYBASE ||
+        lup.displayCategory == DisplayCategory.STANDARD ||
+        lup.displayCategory == DisplayCategory.MARINERS_STANDARD ||
+        lup.name == 'DEPCNT'
+      ) {
+        return this.getStylesFromRules(lup, feature);
       }
-  
-      if (l1 !== l2 ) {
-        return l1-l2;
-      }   
-  
-      if (lupIndex1 >= 0 && lupIndex2 >= 0) {
-        const c1 = this.s57Service.getLookup(lupIndex1).displayPriority;
-        const c2 = this.s57Service.getLookup(lupIndex1).displayPriority;
-        if (c1 != c2) {
-          return c1 - c2;
-        }
-      }
-  
-      if (o1 !== o2) {
-        return o1 - o2;
-      }
-  
-      return 0;
-    };
-  
-    public getStyle = (feature: Feature, resolution: number): Style[] => {
-      const lupIndex = feature[LOOKUPINDEXKEY];
-      if (lupIndex >= 0) {
-        const lup = this.s57Service.getLookup(lupIndex);
-        // simple feature filter
-        if (lup.displayCategory == DisplayCategory.DISPLAYBASE || lup.displayCategory == DisplayCategory.STANDARD || lup.displayCategory == DisplayCategory.MARINERS_STANDARD || lup.name == "DEPCNT") {
-          return this.getStylesFromRules(lup, feature);
-        }
-      }
-      return null;
-    };
-  }
-  
- 
+    }
+    return null;
+  };
+}

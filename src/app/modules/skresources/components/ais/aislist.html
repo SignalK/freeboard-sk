@@ -62,12 +62,19 @@
       </div>
     </mat-card-content>
     <mat-card-actions>
+      Filter:&nbsp;
       <mat-slide-toggle
-        color="primary"
         [checked]="app.config.selections.aisFilterByShipType"
         (change)="toggleFilterType($event.checked)"
       >
-        Filter by Vessel type
+        Ship Type
+      </mat-slide-toggle>
+      &nbsp;
+      <mat-slide-toggle
+        [checked]="onlyIMO"
+        (change)="shipTypeSelect($event.checked, -999)"
+      >
+        IMO Only
       </mat-slide-toggle>
     </mat-card-actions>
   </mat-card>
