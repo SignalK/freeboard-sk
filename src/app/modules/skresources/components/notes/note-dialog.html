@@ -61,7 +61,7 @@
                 (click)="dialogRef.close({result:true, data: 'group', value: data.note.group})"
                 matTooltip="View Group Notes"
               >
-                <mat-icon color="primary">style</mat-icon>
+                <mat-icon>style</mat-icon>
               </button>
             </div>
             }
@@ -106,7 +106,7 @@
                 (click)="openNoteUrl()"
                 matTooltip="Open Note link in browser window"
               >
-                <mat-icon color="primary">open_in_new</mat-icon>
+                <mat-icon>open_in_new</mat-icon>
               </button>
             </div>
             }
@@ -118,7 +118,7 @@
               (click)="dialogRef.close({result:true, data: 'edit'})"
               matTooltip="Edit Note"
             >
-              <mat-icon color="primary">edit</mat-icon>
+              <mat-icon>edit</mat-icon>
             </button>
             &nbsp;
             <button
@@ -126,7 +126,7 @@
               (click)="dialogRef.close({result:true, data: 'delete'})"
               matTooltip="Delete Note"
             >
-              <mat-icon color="warn">delete</mat-icon>
+              <mat-icon>delete</mat-icon>
             </button>
           </div>
           }
@@ -199,7 +199,6 @@
         </div>
         <div>
           <mat-slide-toggle
-            color="primary"
             labelPosition="before"
             [hideIcon]="true"
             [checked]="data.note.properties.draft"
@@ -227,7 +226,6 @@
     <div style="text-align: center; width: 100%">
       <button
         mat-raised-button
-        color="primary"
         [disabled]="inptitle.invalid"
         (click)="dialogRef.close({result:true, data: data.note, action: 'save'})"
       >

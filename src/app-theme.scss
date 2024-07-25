@@ -92,11 +92,13 @@ html {
     .icon-region {
         color: purple !important;
     }
+    .icon-route {
+        color: green !important;
+    }
     .icon-waypoint,
     .icon-accent {
         color: orange !important;
     }
-    .icon-route,
     .icon-primary {
         color: mat.get-theme-color($light-theme, primary) !important;
     }
@@ -168,11 +170,6 @@ html {
         background-color: mat.get-theme-color($dark-theme, tertiary) !important;
         color: mat.get-theme-color($dark-theme, on-tertiary) !important;
     }
-
-    .icon-route{
-        color: mat.get-theme-color($dark-theme, tertiary) !important;
-    }
-
 
     .bg-primary {
         background-color: mat.get-theme-color($dark-theme, primary) !important;

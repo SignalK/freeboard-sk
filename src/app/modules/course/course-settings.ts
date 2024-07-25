@@ -96,7 +96,6 @@ import { Subscription } from 'rxjs';
         <div style="padding-right: 10px;">
           <mat-slide-toggle
             id="targetarrivalenable"
-            color="primary"
             labelPosition="before"
             [hideIcon]="true"
             [(checked)]="targetArrivalEnabled"

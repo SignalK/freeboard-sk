@@ -34,7 +34,6 @@ import { AppInfo } from 'src/app/app.info';
             <div style="margin: 5px 0 5px 0;">
               <mat-radio-button
                 #pathopt
-                color="primary"
                 [name]="item.key"
                 [value]="path"
                 [checked]="path === item.value.current"

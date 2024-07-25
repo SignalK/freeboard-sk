@@ -49,7 +49,6 @@
         <div>
           <mat-checkbox
             #selall
-            color="primary"
             [checked]="allSel"
             [disabled]="app.config.selections.aisFilterByShipType"
             [indeterminate]="someSel"
@@ -98,7 +97,6 @@
           </div>
           <div style="text-align: right">
             <mat-checkbox
-              color="primary"
               [checked]="i.selected"
               (change)="shipTypeSelect($event.checked, i.id)"
               matTooltip="Show in Map"
@@ -134,7 +132,6 @@
             </div>
             <div style="text-align: right">
               <mat-checkbox
-                color="primary"
                 [checked]="r[2]"
                 (change)="itemSelect($event.checked, r[0])"
                 matTooltip="Show in Map"
@@ -153,17 +150,16 @@
                 (click)="focus(r[0])"
                 matTooltip="Focus vessel"
               >
-                <mat-icon color="primary">center_focus_weak</mat-icon>
+                <mat-icon>center_focus_weak</mat-icon>
                 FOCUS
               </button>
               } @else {
               <button
                 mat-button
                 (click)="focus();"
-                color="primary"
                 matTooltip="Clear vessel focus"
               >
-                <mat-icon color="primary">clear_all</mat-icon>
+                <mat-icon>clear_all</mat-icon>
                 UNFOCUS
               </button>
               }
@@ -174,7 +170,7 @@
               (click)="emitCenter(r[1].position)"
               matTooltip="Center Vessel"
             >
-              <mat-icon color="primary">center_focus_strong</mat-icon>
+              <mat-icon>center_focus_strong</mat-icon>
               CENTER
             </button>
             <div>
@@ -183,7 +179,7 @@
                 (click)="itemProperties(r[0])"
                 matTooltip="Vessel Properties"
               >
-                <mat-icon color="primary">info_outline</mat-icon>
+                <mat-icon>info_outline</mat-icon>
                 INFO
               </button>
             </div>

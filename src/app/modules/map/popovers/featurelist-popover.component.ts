@@ -5,12 +5,14 @@ import {
   EventEmitter,
   ChangeDetectionStrategy
 } from '@angular/core';
+import { CommonModule } from '@angular/common';
 import { MatListModule } from '@angular/material/list';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { PipesModule } from 'src/app/lib/pipes';
 import { PopoverComponent } from './popover.component';
+
 /*********** feature List Popover ***************
   title: string -  title text,
   features: Array<any> - list of features
@@ -20,6 +22,7 @@ import { PopoverComponent } from './popover.component';
   changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [
+    CommonModule,
     MatListModule,
     MatButtonModule,
     MatTooltipModule,
@@ -33,7 +36,7 @@ import { PopoverComponent } from './popover.component';
         @for(f of features; track f) {
         <mat-list-item (click)="handleSelect(f)">
           <mat-icon
-            [color]="f.text && f.text.indexOf('self') !== -1 ? 'warn' : ''"
+            [ngClass]="{ 'icon-warn': f.text && f.text.indexOf('self') !== -1 }"
           >
             {{ f.icon }}
           </mat-icon>

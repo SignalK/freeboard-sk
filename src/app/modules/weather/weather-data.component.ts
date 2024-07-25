@@ -60,7 +60,6 @@ export interface WeatherData {
               <button
                 mat-icon-button
                 (click)="currentPage = currentPage - 1"
-                color="primary"
                 matStepperPrevious
               >
                 <mat-icon>keyboard_arrow_left</mat-icon>
@@ -176,7 +175,6 @@ export interface WeatherData {
               <button
                 mat-icon-button
                 (click)="currentPage = currentPage + 1"
-                color="primary"
                 matStepperNext
               >
                 <mat-icon>keyboard_arrow_right</mat-icon>

@@ -35,7 +35,7 @@ import { SignalKDetailsComponent } from '../../components/signalk-details.compon
     <div class="_ap-aircraft">
       <mat-toolbar style="background-color: transparent">
         <span>
-          <mat-icon color="primary"> airplanemode_active</mat-icon>
+          <mat-icon> airplanemode_active</mat-icon>
         </span>
         <span style="flex: 1 1 auto; padding-left:20px;text-align:center;">
           {{ data.title }}

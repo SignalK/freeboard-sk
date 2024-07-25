@@ -48,7 +48,6 @@
         <div>
           <mat-checkbox
             #selall
-            color="primary"
             [disabled]="waypoints.length === 0 || disableRefresh"
             [checked]="allSel"
             [indeterminate]="someSel"
@@ -82,7 +81,7 @@
                 "
               >
                 <mat-icon
-                  [color]="r[1].feature.properties.skType=='pseudoAtoN' ? 'warn' : 'accent'"
+                  [ngClass]="{'icon-warn': r[1].feature.properties.skType=='pseudoAtoN'}"
                 >
                   room
                 </mat-icon>
@@ -91,7 +90,6 @@
             </div>
             <div style="text-align: right">
               <mat-checkbox
-                color="primary"
                 [disabled]="r[0] === activeWaypoint || disableRefresh"
                 [checked]="r[2]"
                 (change)="itemSelect($event.checked, r[0])"
@@ -107,7 +105,6 @@
             <div>
               <button
                 mat-icon-button
-                color="warn"
                 [disabled]="r[0] === activeWaypoint || disableRefresh"
                 (click)="itemDelete(r[0])"
                 [matTooltip]="r[1].feature.properties.skType ? 'Delete ' + r[1].feature.properties.skType : 'Delete Waypoint'"
@@ -128,7 +125,6 @@
               @if(!activeWaypoint || activeWaypoint !== r[0]) {
               <button
                 mat-icon-button
-                color="primary"
                 [disabled]="disableRefresh"
                 (click)="itemGoTo(r[0])"
                 matTooltip="Navigate to Waypoint"
@@ -139,7 +135,6 @@
               } @if(activeWaypoint === r[0]) {
               <button
                 mat-icon-button
-                color="primary"
                 [disabled]="disableRefresh"
                 (click)="itemClearActive()"
                 matTooltip="Clear Destination"
@@ -161,7 +156,6 @@
               </button>
               <button
                 mat-icon-button
-                color="primary"
                 [disabled]="disableRefresh"
                 (click)="itemProperties(r[0])"
                 matTooltip="Edit Waypoint Properties"

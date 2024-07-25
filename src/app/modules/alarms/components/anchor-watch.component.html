@@ -56,7 +56,6 @@
           RAISE
           <mat-slide-toggle
             #slideCtl
-            color="primary"
             [hideIcon]="true"
             [disabled]="disable"
             [checked]="!raised"
@@ -81,7 +80,6 @@
         <div>
           <button
             mat-mini-fab
-            color="primary"
             matStepperNext
             (click)="rodeOut = true; setRadius()"
           >
@@ -99,7 +97,6 @@
             <div>
               <mat-slider
                 discrete
-                color="primary"
                 [disabled]="disable"
                 [min]="this.feet ? mToFt(min) : min"
                 [max]="this.feet ? mToFt(max) : max"

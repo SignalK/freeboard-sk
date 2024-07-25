@@ -53,7 +53,7 @@ import { SKTrack } from 'src/app/modules/skresources/resource-classes';
             matTooltipPosition="right"
             (click)="getTracks()"
           >
-            <mat-icon color="primary">refresh</mat-icon>
+            <mat-icon>refresh</mat-icon>
           </button>
         </span>
         <span style="flex: 1 1 auto; padding-left:20px;text-align:center;">
@@ -76,7 +76,6 @@ import { SKTrack } from 'src/app/modules/skresources/resource-classes';
           <div style="display:flex;flex-wrap:no-wrap;">
             <div style="width:45px;">
               <mat-checkbox
-                color="primary"
                 [checked]="selTrk[idx]"
                 (change)="handleCheck($event.checked, trk[0], idx)"
               ></mat-checkbox>
@@ -92,7 +91,6 @@ import { SKTrack } from 'src/app/modules/skresources/resource-classes';
             <div style="width:45px;">
               <button
                 mat-icon-button
-                color="warn"
                 matTooltip="Delete Track"
                 matTooltipPosition="left"
                 (click)="handleDelete(trk[0])"

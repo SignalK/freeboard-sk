@@ -77,7 +77,6 @@
                 <div class="setting-card-row-item">
                   <mat-checkbox
                     #startOnOpen
-                    color="primary"
                     [(ngModel)]="facade.settings.plugins.startOnOpen"
                     (change)="onFormChange($event, startOnOpen)"
                     matTooltip="Stop instrument app when hidden"
@@ -93,7 +92,7 @@
                     matTooltip="Favourite Apps"
                     label="after"
                   >
-                    <mat-icon color="primary">star</mat-icon>
+                    <mat-icon>star</mat-icon>
                     FAVOURITES
                   </button>
                 </div>
@@ -111,7 +110,6 @@
                   >
                     @for(fav of facade.list.favourites; track fav) {
                     <mat-list-option
-                      color="primary"
                       [disabled]="fav.url==facade.settings.plugins.instruments"
                       [selected]="facade.settings.selections.pluginFavourites.includes(fav.url)"
                       [value]="fav.url"
@@ -133,7 +131,6 @@
                 <div class="setting-card-row-item">
                   <mat-checkbox
                     #depthalarm
-                    color="primary"
                     [(ngModel)]="facade.settings.depthAlarm.enabled"
                     (change)="onFormChange($event, depthalarm)"
                     label="after"
@@ -169,7 +166,6 @@
                 <div class="setting-card-row-item">
                   <mat-checkbox
                     #wakelock
-                    color="primary"
                     [(ngModel)]="facade.settings.selections.wakeLock"
                     (change)="onFormChange($event, wakelock)"
                     label="after"
@@ -205,7 +201,6 @@
                 <div class="setting-card-row-item">
                   <mat-checkbox
                     #popoverMulti
-                    color="primary"
                     [(ngModel)]="facade.settings.popoverMulti"
                     (change)="onFormChange($event, popoverMulti)"
                     matTooltip="Add close button to popovers"
@@ -217,7 +212,6 @@
                 <div class="setting-card-row-item">
                   <mat-checkbox
                     #mapDoubleClick
-                    color="primary"
                     [(ngModel)]="facade.settings.mapDoubleClick"
                     (change)="onFormChange($event, mapDoubleClick)"
                     matTooltip="Double Click map to zoom"
@@ -229,7 +223,7 @@
                 <!--
                 <br>                         
                 <div class="setting-card-row-item">
-                    <mat-checkbox #mapAnimate color="primary"
+                    <mat-checkbox #mapAnimate 
                         [(ngModel)]="facade.settings.map.animate" 
                         (change)="onFormChange($event, mapAnimate)"
                         matTooltip="Animate Map movement"
@@ -462,7 +456,6 @@
                 <div class="setting-card-row-item">
                   <mat-checkbox
                     #courseautoadvance
-                    color="primary"
                     [(ngModel)]="facade.settings.selections.course.autoNextPointOnArrival"
                     (change)="onFormChange($event, courseautoadvance)"
                     label="after"
@@ -516,7 +509,6 @@
                   <legend>
                     <mat-checkbox
                       #vesselfixedlocationmode
-                      color="primary"
                       [(ngModel)]="facade.settings.fixedLocationMode"
                       (change)="onFormChange($event, vesselfixedlocationmode)"
                       label="after"
@@ -582,7 +574,6 @@
 
                   <mat-checkbox
                     #vesselwindvectors
-                    color="primary"
                     [(ngModel)]="facade.settings.vessel.windVectors"
                     (change)="onFormChange($event, vesselwindvectors)"
                     label="after"
@@ -592,7 +583,6 @@
 
                   <mat-checkbox
                     #vessellaylines
-                    color="primary"
                     [(ngModel)]="facade.settings.vessel.laylines"
                     (change)="onFormChange($event, vessellaylines)"
                     label="after"
@@ -638,7 +628,6 @@
                 <legend>
                   <mat-checkbox
                     #vesseltrail
-                    color="primary"
                     [(ngModel)]="facade.settings.vessel.trail"
                     (change)="onFormChange($event, vesseltrail)"
                     label="after"
@@ -650,7 +639,6 @@
                   <div class="setting-card-row-item">
                     <mat-checkbox
                       #trailFromServer
-                      color="primary"
                       [disabled]="!facade.settings.vessel.trail"
                       [(ngModel)]="facade.settings.selections.trailFromServer"
                       (change)="onFormChange($event, trailFromServer)"
@@ -667,7 +655,6 @@
                       tickInterval="1"
                       min="1"
                       max="96"
-                      color="primary"
                       [disabled]="!facade.settings.selections.trailFromServer || !facade.settings.vessel.trail"
                     >
                       <input
@@ -809,7 +796,6 @@
                 <div class="setting-card-row-item">
                   <mat-checkbox
                     #aisShowTrack
-                    color="primary"
                     [(ngModel)]="facade.settings.selections.aisShowTrack"
                     (change)="onFormChange($event, aisShowTrack)"
                     label="after"
@@ -819,7 +805,6 @@
                   &nbsp;
                   <mat-checkbox
                     #aisStateMoored
-                    color="primary"
                     [(ngModel)]="aisStateFilter.moored"
                     (change)="onAisStateFilter()"
                     label="after"
@@ -829,7 +814,6 @@
                   &nbsp;
                   <mat-checkbox
                     #aisStateAnchored
-                    color="primary"
                     [(ngModel)]="aisStateFilter.anchored"
                     (change)="onAisStateFilter()"
                     label="after"
@@ -867,7 +851,6 @@
                 <div class="setting-card-row-item">
                   <mat-checkbox
                     #shownotes
-                    color="primary"
                     [(ngModel)]="facade.settings.notes"
                     (change)="onFormChange($event, shownotes)"
                     label="after"
@@ -942,7 +925,6 @@
                 <div class="setting-card-row-item">
                   <mat-checkbox
                     #groupeditable
-                    color="primary"
                     [(ngModel)]="facade.settings.resources.notes.groupNameEdit"
                     (change)="onFormChange($event, groupeditable)"
                     matTooltip="Allow group name editing."
@@ -954,7 +936,6 @@
                 <div class="setting-card-row-item">
                   <mat-checkbox
                     #groupposition
-                    color="primary"
                     [(ngModel)]="facade.settings.resources.notes.groupRequiresPosition"
                     (change)="onFormChange($event, groupposition)"
                     matTooltip="Require position information when adding notes to a group."
@@ -976,7 +957,6 @@
                 <div class="setting-card-row-item">
                   <mat-checkbox
                     #enablevideo
-                    color="primary"
                     [(ngModel)]="facade.settings.resources.video.enable"
                     (change)="onFormChange($event, enablevideo)"
                     label="after"
@@ -1023,7 +1003,6 @@
                   >
                     @for(f of facade.list.resourcePaths; track f) {
                     <mat-list-option
-                      color="primary"
                       [selected]="facade.settings.resources.paths.includes(f)"
                       [value]="f"
                     >
@@ -1044,7 +1023,6 @@
               <div class="setting-card-row-item">
                 <mat-checkbox
                   #skproxied
-                  color="primary"
                   [(ngModel)]="facade.settings.selections.signalk.proxied"
                   (change)="onFormChange($event, skproxied)"
                   matToolTip="Check if Signal K server is behind a proxy"
@@ -1065,7 +1043,6 @@
                   <div class="setting-card-row-item">
                     <mat-checkbox
                       #skfiltervessels
-                      color="primary"
                       [(ngModel)]="facade.settings.selections.signalk.vessels"
                       (change)="onFormChange($event, skfiltervessels)"
                       matToolTip="Check to receive other vessel data"
@@ -1077,7 +1054,6 @@
                   <div class="setting-card-row-item">
                     <mat-checkbox
                       #skfilteratons
-                      color="primary"
                       [(ngModel)]="facade.settings.selections.signalk.atons"
                       (change)="onFormChange($event, skfilteratons)"
                       matToolTip="Check to receive AtoN data"
@@ -1090,7 +1066,6 @@
                   <div class="setting-card-row-item">
                     <mat-checkbox
                       #skfilterairsraft
-                      color="primary"
                       [(ngModel)]="facade.settings.selections.signalk.aircraft"
                       (change)="onFormChange($event, skfilterairsraft)"
                       matTooltip="Check to receive aircraft data"
@@ -1103,7 +1078,6 @@
                   <div class="setting-card-row-item">
                     <mat-checkbox
                       #skfiltersar
-                      color="primary"
                       [(ngModel)]="facade.settings.selections.signalk.sar"
                       (change)="onFormChange($event, skfiltersar)"
                       matToolTip="Check to receive SaR data"
@@ -1116,7 +1090,6 @@
                   <div class="setting-card-row-item">
                     <mat-checkbox
                       #skfiltermeteo
-                      color="primary"
                       [(ngModel)]="facade.settings.selections.signalk.meteo"
                       (change)="onFormChange($event, skfiltermeteo)"
                       matToolTip="Check to receive Weather / Meteo data"
@@ -1167,7 +1140,6 @@
           <div class="setting-card-row-item">
             <mat-checkbox
               #experiments
-              color="primary"
               [(ngModel)]="facade.settings.experiments"
               (change)="onFormChange($event, experiments)"
               matTooltip="Enable Experimental Features"

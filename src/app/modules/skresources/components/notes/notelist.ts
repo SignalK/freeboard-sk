@@ -5,6 +5,7 @@ import {
   EventEmitter,
   ChangeDetectionStrategy
 } from '@angular/core';
+import { CommonModule } from '@angular/common';
 
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatIconModule } from '@angular/material/icon';
@@ -26,6 +27,7 @@ import { FBNotes, FBNote, FBResourceSelect, SKPosition } from 'src/app/types';
   templateUrl: './notelist.html',
   styleUrls: ['../resourcelist.css'],
   imports: [
+    CommonModule,
     MatTooltipModule,
     MatIconModule,
     MatCardModule,

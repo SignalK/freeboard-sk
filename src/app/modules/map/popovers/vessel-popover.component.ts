@@ -121,7 +121,6 @@ isSelf: boolean - true if vessel 'self'
           <button
             mat-button
             (click)="handleMarkPosition()"
-            color="primary"
             matTooltip="Add Waypoint at vessel location"
           >
             <mat-icon>add_location</mat-icon>
@@ -133,7 +132,7 @@ isSelf: boolean - true if vessel 'self'
             (click)="focusVessel(true)"
             matTooltip="Focus vessel"
           >
-            <mat-icon color="primary">center_focus_weak</mat-icon>
+            <mat-icon>center_focus_weak</mat-icon>
             FOCUS
           </button>
           } @if(isActive && !isSelf) {
@@ -142,7 +141,7 @@ isSelf: boolean - true if vessel 'self'
             (click)="focusVessel(false)"
             matTooltip="Clear vessel focus"
           >
-            <mat-icon color="primary">clear_all</mat-icon>
+            <mat-icon>clear_all</mat-icon>
             UNFOCUS
           </button>
           }
@@ -151,7 +150,7 @@ isSelf: boolean - true if vessel 'self'
             (click)="handleInfo()"
             matTooltip="Show Properties"
           >
-            <mat-icon color="primary">info_outline</mat-icon>
+            <mat-icon>info_outline</mat-icon>
             INFO
           </button>
         </div>

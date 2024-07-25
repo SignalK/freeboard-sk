@@ -130,7 +130,6 @@ import { SKStreamFacade } from 'src/app/modules';
         <mat-card-actions>
           <mat-slide-toggle
             id="autopilotenable"
-            color="primary"
             labelPosition="after"
             [hideIcon]="true"
             [disabled]="!this.app.data.autopilot.hasApi"

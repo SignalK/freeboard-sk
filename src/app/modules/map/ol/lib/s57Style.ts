@@ -756,7 +756,7 @@ export class S57Style {
         const instrParts = this.instructionMatch.exec(instruction);
         if (instrParts && instrParts.length > 1) {
           let style: Style = null;
-          let cacheKey = instrParts[1] + "_" + instrParts[2]         
+          const cacheKey = instrParts[1] + "_" + instrParts[2]         
           style = this.s57Service.getStyle(cacheKey)
           if (!style) {
             switch (instrParts[1]) {
@@ -776,7 +776,7 @@ export class S57Style {
                 style = this.getLineStyle(instrParts[2]);
                 break;
               default:
-                debugger
+                //debugger
                 console.debug('Unsupported instruction:' + instruction);
             }
             this.s57Service.setStyle(cacheKey, style)

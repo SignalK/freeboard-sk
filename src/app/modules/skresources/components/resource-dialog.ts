@@ -2,6 +2,7 @@
  ********************************/
 
 import { Component, OnInit, Inject } from '@angular/core';
+import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
@@ -30,6 +31,7 @@ import { PipesModule } from 'src/app/lib/pipes';
   selector: 'ap-resourcedialog',
   standalone: true,
   imports: [
+    CommonModule,
     FormsModule,
     MatInputModule,
     MatSelectModule,
@@ -46,9 +48,15 @@ import { PipesModule } from 'src/app/lib/pipes';
     <div class="_ap-resource">
       <div style="display:flex;">
         <div style="padding: 15px 0 0 10px;">
-          <mat-icon [color]="data.type === 'waypoint' ? 'accent' : 'primary'">{{
-            icon
-          }}</mat-icon>
+          <mat-icon
+            [ngClass]="{
+              'icon-waypoint': data.type === 'waypoint',
+              'icon-route': data.type === 'route',
+              'icon-note': data.type === 'note',
+              'icon-region': data.type === 'region'
+            }"
+            >{{ icon }}</mat-icon
+          >
         </div>
         <div>
           <h1 mat-dialog-title>{{ data['title'] }}</h1>
@@ -130,7 +138,6 @@ import { PipesModule } from 'src/app/lib/pipes';
         <div style="text-align:center;width:100%;">
           <button
             mat-raised-button
-            color="primary"
             [disabled]="inpname.invalid"
             (click)="dialogRef.close({ result: true, data: data })"
           >

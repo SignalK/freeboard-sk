@@ -27,11 +27,7 @@ import { MAT_SNACK_BAR_DATA } from '@angular/material/snack-bar';
         }
       </mat-dialog-content>
       <mat-dialog-actions align="center">
-        <button
-          mat-raised-button
-          color="accent"
-          (click)="dialogRef.close(true)"
-        >
+        <button mat-raised-button (click)="dialogRef.close(true)">
           {{ data.buttonText }}
         </button>
       </mat-dialog-actions>
@@ -95,11 +91,7 @@ export class MsgBox implements OnInit {
         </div>
       </mat-dialog-content>
       <mat-dialog-actions align="center">
-        <button
-          mat-raised-button
-          color="accent"
-          (click)="dialogRef.close(true)"
-        >
+        <button mat-raised-button (click)="dialogRef.close(true)">
           {{ data.buttonText }}
         </button>
       </mat-dialog-actions>
@@ -193,7 +185,6 @@ export class AlertDialog implements OnInit {
       <mat-dialog-actions align="center">
         <button
           mat-raised-button
-          color="accent"
           (click)="dialogRef.close({ ok: true, checked: checked })"
         >
           {{ data.button1Text }}
@@ -282,11 +273,7 @@ export class ConfirmDialog implements OnInit {
           >
         </div>
         }
-        <button
-          mat-raised-button
-          color="primary"
-          (click)="dialogRef.close(false)"
-        >
+        <button mat-raised-button (click)="dialogRef.close(false)">
           Close
         </button>
       </mat-dialog-actions>
@@ -371,7 +358,6 @@ export class AboutDialog {
           <button
             default
             mat-raised-button
-            color="primary"
             [disabled]="username.value.length === 0"
             (click)="login(username.value, password.value)"
           >
@@ -488,7 +474,6 @@ export class MessageBarComponent {
                 <button
                   mat-icon-button
                   (click)="currentPage = currentPage - 1"
-                  color="primary"
                   matStepperPrevious
                 >
                   <mat-icon>keyboard_arrow_left</mat-icon>
@@ -501,7 +486,6 @@ export class MessageBarComponent {
                 <button
                   mat-icon-button
                   (click)="currentPage = currentPage + 1"
-                  color="primary"
                   matStepperNext
                 >
                   <mat-icon>keyboard_arrow_right</mat-icon>
@@ -526,11 +510,7 @@ export class MessageBarComponent {
           }
         </div>
         <div style="text-align:center;">
-          <button
-            mat-raised-button
-            color="primary"
-            (click)="dialogRef.close(data.showPrefs)"
-          >
+          <button mat-raised-button (click)="dialogRef.close(data.showPrefs)">
             {{ data.buttonText }}
           </button>
           <br />&nbsp;

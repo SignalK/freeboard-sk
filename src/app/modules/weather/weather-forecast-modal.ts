@@ -48,7 +48,7 @@ import { WeatherData, WeatherDataComponent } from './weather-data.component';
     <div class="_weather-forecast">
       <mat-toolbar style="background-color: transparent">
         <span>
-          <mat-icon color="primary">air</mat-icon>
+          <mat-icon>air</mat-icon>
         </span>
         <span style="flex: 1 1 auto; padding-left:20px;text-align:center;">
           {{ data.title }}

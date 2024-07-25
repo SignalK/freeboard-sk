@@ -36,7 +36,7 @@ import { SignalKDetailsComponent } from '../../components/signalk-details.compon
     <div class="_ap-aton">
       <mat-toolbar style="background-color: transparent">
         <span>
-          <mat-icon color="primary"> {{ data.icon }}</mat-icon>
+          <mat-icon> {{ data.icon }}</mat-icon>
         </span>
         <span style="flex: 1 1 auto; padding-left:20px;text-align:center;">
           {{ data.title }}

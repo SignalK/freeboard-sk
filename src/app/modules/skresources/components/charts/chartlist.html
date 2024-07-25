@@ -53,7 +53,6 @@
         <div>
           <mat-checkbox
             #selall
-            color="primary"
             [checked]="allSel"
             [indeterminate]="someSel"
             (change)="selectAll($event.checked)"
@@ -84,10 +83,7 @@
         matTooltip="Chart boundaries"
         matTooltipPosition="above"
       >
-        <mat-icon
-          [color]="app.data.chartBounds ? 'primary' : ''"
-          [ngClass]="{'icon-warn': app.data.chartBounds}"
-        >
+        <mat-icon [ngClass]="{'icon-warn': app.data.chartBounds}">
           {{app.data.chartBounds ? 'deselect_all' : 'select_all'}}</mat-icon
         >
         Boundaries
@@ -137,7 +133,6 @@
             </div>
             <div style="text-align: right">
               <mat-checkbox
-                color="primary"
                 [checked]="r[2]"
                 (change)="itemSelect($event.checked, r[0])"
                 matTooltip="Show in Map"

@@ -88,7 +88,7 @@ import {
                 @for(item of wpts; track item) {
                 <div class="wpt-box" cdkDrag>
                   <div style="width:40px;">
-                    <mat-icon color="accent">room</mat-icon>
+                    <mat-icon>room</mat-icon>
                   </div>
                   <div class="wpt-text" [matTooltip]="item.name">
                     {{ item.name }}
@@ -110,14 +110,14 @@ import {
                 @for(item of rtepts; track item; let idx = $index) {
                 <div class="wpt-box" mat-background cdkDrag>
                   <div style="width:40px;">
-                    <mat-icon color="primary">room</mat-icon>
+                    <mat-icon>room</mat-icon>
                   </div>
                   <div class="wpt-text" [matTooltip]="item.name">
                     {{ item.name }}
                   </div>
                   <div style="width:40px;">
                     <button mat-icon-button (click)="deleteFromRoute(idx)">
-                      <mat-icon color="warn">delete</mat-icon>
+                      <mat-icon>delete</mat-icon>
                     </button>
                   </div>
                 </div>
@@ -130,7 +130,6 @@ import {
         <div style="text-align:center;padding: 5px;">
           <button
             mat-raised-button
-            color="primary"
             [disabled]="rtepts.length < 2"
             (click)="doSave()"
           >

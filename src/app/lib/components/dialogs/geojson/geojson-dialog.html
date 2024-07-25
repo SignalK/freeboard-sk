@@ -19,11 +19,7 @@
       ><br />
     </div>
     <div mat-dialog-actions align="center">
-      <button
-        mat-raised-button
-        color="accent"
-        (click)="app.showHelp('geojson')"
-      >
+      <button mat-raised-button (click)="app.showHelp('geojson')">
         <mat-icon>help</mat-icon>
         Help
       </button>
@@ -54,7 +50,7 @@
               <mat-icon>arrow_forward</mat-icon>
             </div>
             <div class="pnlSKType">
-              <mat-icon class="icon-waypoint" color="accent">place</mat-icon>
+              <mat-icon class="icon-waypoint">place</mat-icon>
               <b>Waypoints:</b>
               &nbsp;({{geoData?.waypoints.length}})
             </div>
@@ -78,7 +74,7 @@
               <mat-icon>arrow_forward</mat-icon>
             </div>
             <div class="pnlSKType">
-              <mat-icon class="icon-route" color="primary">directions</mat-icon>
+              <mat-icon class="icon-route">directions</mat-icon>
               <b>Routes:</b>
               &nbsp;({{geoData?.routes.length}})
             </div>
@@ -103,7 +99,7 @@
               <mat-icon>arrow_forward</mat-icon>
             </div>
             <div class="pnlSKType">
-              <mat-icon class="icon-track" color="warn">show_chart</mat-icon>
+              <mat-icon class="icon-track">show_chart</mat-icon>
               <b>Tracks:</b>
               &nbsp;({{geoData?.tracks.length}})
             </div>
@@ -140,7 +136,6 @@
     <div mat-dialog-actions align="center">
       <button
         mat-raised-button
-        color="primary"
         matTooltip="Load features"
         matTooltipPosition="below"
         (click)="load()"

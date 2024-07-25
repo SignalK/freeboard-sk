@@ -38,7 +38,6 @@ import { CommonDialogs } from 'src/app/lib/components/dialogs';
       <button
         class="button-toolbar"
         mat-mini-fab
-        [color]="''"
         [matMenuTriggerFor]="experimentsmenu"
         matTooltip="Experiments"
         matTooltipPosition="left"

@@ -45,11 +45,7 @@
           <i>Selected file does not contain valid data. </i><br />
         </div>
         <div style="width: 100%; text-align: center">
-          <button
-            mat-raised-button
-            color="accent"
-            (click)="app.showHelp('resource')"
-          >
+          <button mat-raised-button (click)="app.showHelp('resource')">
             <mat-icon>help</mat-icon>
             Help
           </button>
@@ -73,7 +69,6 @@
           <button
             mat-raised-button
             [disabled]="!targetPath || !source.name"
-            color="primary"
             matTooltip="Load features"
             matTooltipPosition="below"
             (click)="load()"

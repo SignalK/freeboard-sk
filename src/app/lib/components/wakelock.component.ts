@@ -27,7 +27,6 @@ import { MatTooltipModule } from '@angular/material/tooltip';
       <button
         mat-mini-fab
         [ngClass]="{ 'button-primary': state, 'button-toolbar': !state }"
-        [color]="state ? 'primary' : 'accent'"
         [matTooltip]="tipText"
         matTooltipPosition="left"
         (click)="toggle()"

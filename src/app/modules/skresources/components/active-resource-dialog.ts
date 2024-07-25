@@ -1,4 +1,5 @@
 import { Component, OnInit, Inject } from '@angular/core';
+import { CommonModule } from '@angular/common';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatIconModule } from '@angular/material/icon';
 import { MatCardModule } from '@angular/material/card';
@@ -14,7 +15,6 @@ import { AppInfo } from 'src/app/app.info';
 import { SignalKDetailsComponent } from '../components/signalk-details.component';
 
 import { SKWaypoint, SKRoute } from '../resource-classes';
-
 import { GeoUtils } from 'src/app/lib/geoutils';
 
 /********* ActiveResourcePropertiesModal **********
@@ -29,6 +29,7 @@ import { GeoUtils } from 'src/app/lib/geoutils';
   selector: 'ap-dest-modal',
   standalone: true,
   imports: [
+    CommonModule,
     MatTooltipModule,
     MatIconModule,
     MatCardModule,
@@ -44,7 +45,6 @@ import { GeoUtils } from 'src/app/lib/geoutils';
             @if(showClearButton) {
             <button
               mat-button
-              color="primary"
               (click)="deactivate()"
               [matTooltip]="clearButtonText"
             >
@@ -94,7 +94,7 @@ import { GeoUtils } from 'src/app/lib/geoutils';
               >
                 <div style="width:35px;">
                   @if(selIndex === i) {
-                  <mat-icon class="icon-warn" color="warn"> flag </mat-icon>
+                  <mat-icon class="icon-warn"> flag </mat-icon>
                   }
                 </div>
                 <div style="flex: 1 1 auto;">
@@ -120,7 +120,7 @@ import { GeoUtils } from 'src/app/lib/geoutils';
 
                   <div style="display:flex;">
                     <div class="key-label">
-                      <mat-icon [color]="i === 0 ? 'primary' : ''"
+                      <mat-icon [ngClass]="{ 'icon-primary': i === 0 }"
                         >square_foot</mat-icon
                       >
                     </div>

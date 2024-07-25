@@ -5,6 +5,7 @@ import {
   EventEmitter,
   ChangeDetectionStrategy
 } from '@angular/core';
+import { CommonModule } from '@angular/common';
 
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -27,6 +28,7 @@ id: string - resource id
   changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [
+    CommonModule,
     MatButtonModule,
     MatTooltipModule,
     MatIconModule,
@@ -68,7 +70,6 @@ id: string - resource id
         <div class="popover-action-button">
           <button
             mat-button
-            color="primary"
             (click)="emitModify()"
             matTooltip="Modify / Move"
             matTooltipPosition="after"
@@ -81,7 +82,6 @@ id: string - resource id
         <div class="popover-action-button">
           <button
             mat-button
-            color="primary"
             (click)="emitAddNote()"
             matTooltip="Add Note"
             matTooltipPosition="after"
@@ -94,7 +94,6 @@ id: string - resource id
         <div class="popover-action-button">
           <button
             mat-button
-            color="warn"
             (click)="emitDelete()"
             matTooltip="Delete"
             matTooltipPosition="after"
@@ -107,7 +106,6 @@ id: string - resource id
         <div class="popover-action-button">
           <button
             mat-button
-            color="primary"
             (click)="emitActive(true)"
             [matTooltip]="
               type === 'waypoint'
@@ -120,12 +118,11 @@ id: string - resource id
             {{ ctrl.activeText }}
           </button>
         </div>
-        } @else {
+        } @else if (ctrl.canActivate && ctrl.isActive) {
         <div class="popover-action-button">
           <button
             mat-button
             (click)="emitActive(false)"
-            color="primary"
             matTooltip="Clear Destination"
             matTooltipPosition="after"
           >
@@ -161,7 +158,9 @@ id: string - resource id
         <div class="popover-action-button">
           <button
             mat-button
-            [color]="type === 'route' || type === 'waypoint' ? 'primary' : ''"
+            [ngClass]="{
+              'icon-primary': type === 'route' || type === 'waypoint'
+            }"
             (click)="emitInfo()"
             matTooltip="Show Properties"
             matTooltipPosition="after"

@@ -38,12 +38,7 @@ import { MatIconModule } from '@angular/material/icon';
       <div class="btnRow">
         <div class="btnDiv"></div>
         <div class="btnDiv">
-          <button
-            mat-mini-fab
-            color="primary"
-            [disabled]="disabled"
-            (click)="action(0)"
-          >
+          <button mat-mini-fab [disabled]="disabled" (click)="action(0)">
             <mat-icon>arrow_upward</mat-icon>
           </button>
         </div>
@@ -52,23 +47,13 @@ import { MatIconModule } from '@angular/material/icon';
 
       <div class="btnRow">
         <div class="btnDiv">
-          <button
-            mat-mini-fab
-            color="primary"
-            [disabled]="disabled"
-            (click)="action(270)"
-          >
+          <button mat-mini-fab [disabled]="disabled" (click)="action(270)">
             <mat-icon>arrow_back</mat-icon>
           </button>
         </div>
         <div class="btnDiv"></div>
         <div class="btnDiv">
-          <button
-            mat-mini-fab
-            color="primary"
-            [disabled]="disabled"
-            (click)="action(90)"
-          >
+          <button mat-mini-fab [disabled]="disabled" (click)="action(90)">
             <mat-icon>arrow_forward</mat-icon>
           </button>
         </div>
@@ -77,12 +62,7 @@ import { MatIconModule } from '@angular/material/icon';
       <div class="btnRow">
         <div class="btnDiv"></div>
         <div class="btnDiv">
-          <button
-            mat-mini-fab
-            color="primary"
-            [disabled]="disabled"
-            (click)="action(180)"
-          >
+          <button mat-mini-fab [disabled]="disabled" (click)="action(180)">
             <mat-icon>arrow_downward</mat-icon>
           </button>
         </div>

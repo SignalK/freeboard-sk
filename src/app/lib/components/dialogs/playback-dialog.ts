@@ -108,7 +108,6 @@ import { CommonModule } from '@angular/common';
         <div style="text-align:center;width:100%;">
           <button
             mat-raised-button
-            color="primary"
             [disabled]="!formData.startDate"
             (click)="submit()"
           >

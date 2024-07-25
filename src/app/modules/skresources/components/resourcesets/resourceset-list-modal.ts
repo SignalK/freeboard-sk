@@ -57,7 +57,7 @@ import { SKResourceSet } from '../../resourceset-class';
             matTooltipPosition="right"
             (click)="getItems()"
           >
-            <mat-icon color="primary">refresh</mat-icon>
+            <mat-icon>refresh</mat-icon>
           </button>
         </span>
         <span style="flex: 1 1 auto; padding-left:20px;text-align:center;">
@@ -80,7 +80,6 @@ import { SKResourceSet } from '../../resourceset-class';
           <div style="display:flex;flex-wrap:no-wrap;">
             <div style="width:45px;">
               <mat-checkbox
-                color="primary"
                 [disabled]="!isResourceSet"
                 [checked]="selRes[idx]"
                 (change)="handleCheck($event.checked, res.id, idx)"

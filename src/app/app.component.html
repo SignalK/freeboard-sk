@@ -6,14 +6,14 @@
         mat-menu-item
         (click)="sidemenu.close(); displayLeftMenu('routeList', true)"
       >
-        <mat-icon class="icon-route" color="primary">directions</mat-icon>
+        <mat-icon class="icon-route">directions</mat-icon>
         &nbsp;Routes
       </button>
       <button
         mat-menu-item
         (click)="sidemenu.close(); displayLeftMenu('waypointList', true)"
       >
-        <mat-icon class="icon-waypoint" color="accent">location_on</mat-icon>
+        <mat-icon class="icon-waypoint">location_on</mat-icon>
         &nbsp;Waypoints
       </button>
       <button
@@ -46,7 +46,7 @@
             mat-menu-item
             (click)="openExperiment({ choice: p, value: null })"
           >
-            <mat-icon class="icon-warn" color="warn">show_chart</mat-icon>
+            <mat-icon class="icon-warn">show_chart</mat-icon>
             <span>Tracks</span>
           </button>
           } @default {
@@ -116,7 +116,7 @@
       </a>
       <mat-divider></mat-divider>
       <a mat-menu-item (click)="openSettings()">
-        <mat-icon color="primary">settings</mat-icon>
+        <mat-icon>settings</mat-icon>
         <span>Settings</span>
       </a>
     </mat-menu>
@@ -128,11 +128,11 @@
       </a>
       <mat-divider></mat-divider>
       <a mat-menu-item (click)="drawStart('route')">
-        <mat-icon class="icon-route" color="primary">directions</mat-icon>
+        <mat-icon class="icon-route">directions</mat-icon>
         <span>Draw Route</span>
       </a>
       <a mat-menu-item (click)="app.data.buildRoute.show = true">
-        <mat-icon class="icon-route" color="warn">directions</mat-icon>
+        <mat-icon class="icon-route">directions</mat-icon>
         <span>Build Route</span>
       </a>
       <mat-divider></mat-divider>
@@ -143,12 +143,12 @@
           skres.showWaypointEditor(null, app.data.vessels.active.position)
         "
       >
-        <mat-icon class="icon-waypoint" color="accent">add_location</mat-icon>
+        <mat-icon class="icon-waypoint">add_location</mat-icon>
         <span>Add Waypoint at Vessel</span>
       </a>
       }
       <a mat-menu-item (click)="drawStart('waypoint')">
-        <mat-icon class="icon-waypoint" color="accent">edit_location</mat-icon>
+        <mat-icon class="icon-waypoint">edit_location</mat-icon>
         <span>Drop Waypoint</span>
       </a>
       <mat-divider></mat-divider>
@@ -191,7 +191,7 @@
                     matTooltip="About Freeboard"
                     matTooltipPosition="right"
                   >
-                    <mat-icon color="primary">info_outline</mat-icon>
+                    <mat-icon>info_outline</mat-icon>
                   </a>
 
                   <button
@@ -200,7 +200,7 @@
                     matTooltip="Open Help."
                     matTooltipPosition="right"
                   >
-                    <mat-icon color="primary">help</mat-icon>
+                    <mat-icon>help</mat-icon>
                   </button>
                 </div>
               </div>
@@ -252,7 +252,7 @@
 
             <mat-divider></mat-divider>
             <a mat-list-item (click)="sidemenu.close(); openSettings()">
-              <mat-icon color="primary">settings</mat-icon>
+              <mat-icon>settings</mat-icon>
               &nbsp;Settings
             </a>
             @if(!app.hostParams.token && app.data.loginRequired){
@@ -260,9 +260,8 @@
               <mat-icon
                 [matBadge]="app.data.loggedInBadgeText"
                 matBadgeOverlap="true"
-                matBadgeSize="small"
+                matBadgeSize="medium"
                 matBadgePosition="below after"
-                matBadgeColor="warn"
                 [matBadgeHidden]="app.data.loggedIn"
               >
                 account_circle
@@ -296,7 +295,6 @@
                   [href]="instUrl"
                   (click)="sideright.toggle()"
                   target="_blank"
-                  color="primary"
                   matTooltip="Open Instruments in window."
                   matTooltipPosition="right"
                 >
@@ -309,7 +307,6 @@
                   [disabled]="
                     app.config.selections.pluginFavourites.length === 0
                   "
-                  color="primary"
                   matTooltip="Previous plugin"
                   matTooltipPosition="below"
                 >
@@ -321,7 +318,6 @@
                   [disabled]="
                     app.config.selections.pluginFavourites.length === 0
                   "
-                  color="primary"
                   matTooltip="Next plugin"
                   matTooltipPosition="below"
                 >
@@ -371,7 +367,6 @@
                 <mat-icon
                   [matBadge]="app.data.loggedInBadgeText"
                   matBadgeOverlap="true"
-                  matBadgeColor="warn"
                   [matBadgeHidden]="app.data.loggedIn"
                   >menu</mat-icon
                 >
@@ -384,7 +379,6 @@
               <button
                 class="button-warn"
                 mat-mini-fab
-                color="warn"
                 matTooltip="Alarms"
                 matTooltipPosition="right"
                 (click)="sidemenu.close(); openAlarmsDialog()"
@@ -421,7 +415,6 @@
             <div class="buttonPanelItem">
               <button
                 mat-mini-fab
-                [color]="app.config.map.northUp ? 'accent' : 'primary'"
                 [ngClass]="{
                   'button-primary': !app.config.map.northUp,
                   'button-toolbar': app.config.map.northUp
@@ -440,7 +433,6 @@
             <div class="buttonPanelItem">
               <button
                 mat-mini-fab
-                [color]="app.config.map.moveMap ? 'primary' : 'accent'"
                 [ngClass]="{
                   'button-primary': app.config.map.moveMap,
                   'button-toolbar': !app.config.map.moveMap
@@ -490,7 +482,6 @@
               <button
                 class="button-warn"
                 mat-mini-fab
-                color="warn"
                 matTooltip="Exit playback mode"
                 matTooltipPosition="right"
                 (click)="showSelectMode()"
@@ -624,7 +615,6 @@
               <button
                 class="button-toolbar"
                 mat-mini-fab
-                color="warn"
                 matTooltip="Web Audio off! Click to enable."
                 matTooltipPosition="left"
                 (click)="enableAudio()"
@@ -698,7 +688,6 @@
             <div class="buttonPanelItem">
               <button
                 mat-mini-fab
-                [color]="app.config.map.limitZoom ? 'primary' : 'accent'"
                 [ngClass]="{
                   'button-primary': app.config.map.limitZoom,
                   'button-toolbar': !app.config.map.limitZoom
@@ -716,7 +705,6 @@
             <div class="buttonPanelItem">
               <button
                 mat-mini-fab
-                [color]="app.config.map.invertColor ? 'primary' : 'accent'"
                 [ngClass]="{
                   'button-primary': app.config.map.invertColor,
                   'button-toolbar': !app.config.map.invertColor
@@ -741,9 +729,6 @@
                   'button-primary': app.data.vessels.self.autopilot.enabled,
                   'button-toolbar': !app.data.vessels.self.autopilot.enabled
                 }"
-                [color]="
-                  app.data.vessels.self.autopilot.enabled ? 'primary' : 'accent'
-                "
                 matTooltip="Autopilot"
                 matTooltipPosition="left"
                 (click)="app.data.autopilot.console = true"
@@ -759,7 +744,6 @@
               <button
                 class="button-accent"
                 mat-mini-fab
-                color="accent"
                 (click)="
                   skres.showWaypointEditor(null, app.data.vessels.self.position)
                 "
@@ -890,7 +874,6 @@
               <a
                 class="icon-warn"
                 mat-raised-button
-                color="warn"
                 (click)="cancelDraw()"
                 [matTooltip]="draw.modify ? 'Cancel Editing' : 'Cancel Draw'"
                 matTooltipPosition="left"
@@ -906,7 +889,7 @@
           @if(mode === 1){
           <div class="playbackPanel mat-app-background">
             <div style="border-radius: 5px">
-              <mat-icon color="accent">access_time</mat-icon> <b>Playback:</b>
+              <mat-icon>access_time</mat-icon> <b>Playback:</b>
             </div>
             <div style="text-align: center">{{ display.playback.time }}</div>
           </div>

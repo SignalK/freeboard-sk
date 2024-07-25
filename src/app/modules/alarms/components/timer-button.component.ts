@@ -23,19 +23,14 @@ import { MatIconModule } from '@angular/material/icon';
   template: `
     <div>
       @if(cancelled) { &nbsp;
-      <button mat-raised-button color="accent" (click)="action()">
+      <button mat-raised-button (click)="action()">
         @if(icon) {
         <mat-icon>{{ icon }}</mat-icon>
         }
         {{ cancelledLabel }}
       </button>
       } @else {
-      <button
-        color="primary"
-        mat-button
-        [disabled]="disabled"
-        (click)="cancel()"
-      >
+      <button mat-button [disabled]="disabled" (click)="cancel()">
         {{ label }} {{ timeLeft }} secs
       </button>
       }

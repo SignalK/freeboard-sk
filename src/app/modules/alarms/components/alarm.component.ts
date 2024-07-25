@@ -62,7 +62,7 @@ interface AlarmData {
               (click)="muteAlarm(alarm.key)"
               [disabled]="alarm.value.muted"
             >
-              <mat-icon color="warn">volume_off</mat-icon>
+              <mat-icon>volume_off</mat-icon>
               {{ alarm.value.muted ? 'MUTED' : 'MUTE' }}
             </button>
             } @if(app.data.activeRoute && alarm.key === 'arrivalCircleEntered')

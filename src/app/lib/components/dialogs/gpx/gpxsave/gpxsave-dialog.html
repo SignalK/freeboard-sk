@@ -22,7 +22,6 @@
             <button
               style="width: 85px"
               mat-raised-button
-              color="primary"
               matTooltip="Load all selected resources"
               matTooltipPosition="below"
               [disabled]="!display.saveRoutesOK && !display.saveWaypointsOK && !display.saveTracksOK"
@@ -46,7 +45,7 @@
       >
         <mat-expansion-panel-header style="padding: 0 12px">
           <mat-panel-title>
-            <mat-icon class="icon-waypoint" color="accent">place</mat-icon>
+            <mat-icon class="icon-waypoint">place</mat-icon>
             &nbsp;&nbsp;
             <b>Waypoints:</b>
           </mat-panel-title>
@@ -65,7 +64,6 @@
                   (click)="$event.cancelBubble=true"
                   matTooltip="Select all Waypoints"
                   matTooltipPosition="before"
-                  color="primary"
                 ></mat-checkbox>
               </span>
             </div>
@@ -79,9 +77,7 @@
               <div class="rgrid">
                 <div class="row">
                   <div class="name">
-                    <mat-icon class="icon-waypoint" color="accent"
-                      >place</mat-icon
-                    >
+                    <mat-icon class="icon-waypoint">place</mat-icon>
                     {{w.name}}
                   </div>
                   <div class="">
@@ -89,7 +85,6 @@
                   </div>
                   <div class="check">
                     <mat-checkbox
-                      color="primary"
                       [checked]="selWaypoints[i]"
                       #wval
                       (change)="checkWpt(wval.checked, i)"
@@ -118,7 +113,7 @@
       >
         <mat-expansion-panel-header style="padding: 0 12px">
           <mat-panel-title>
-            <mat-icon class="icon-route" color="primary">directions</mat-icon>
+            <mat-icon class="icon-route">directions</mat-icon>
             &nbsp;&nbsp;
             <b>Routes:</b>
           </mat-panel-title>
@@ -136,7 +131,6 @@
                   (click)="$event.cancelBubble=true"
                   matTooltip="Select all Routes"
                   matTooltipPosition="before"
-                  color="primary"
                 ></mat-checkbox>
               </span>
             </div>
@@ -150,9 +144,7 @@
               <div class="rgrid">
                 <div class="row">
                   <div class="name">
-                    <mat-icon class="icon-route" color="primary"
-                      >directions</mat-icon
-                    >
+                    <mat-icon class="icon-route">directions</mat-icon>
                     {{r.name}}
                   </div>
                   <div>
@@ -161,7 +153,6 @@
                   </div>
                   <div class="check">
                     <mat-checkbox
-                      color="primary"
                       matTooltip="Select this Route"
                       matTooltipPosition="below"
                       [checked]="selRoutes[i]"
@@ -186,7 +177,7 @@
       <mat-expansion-panel [expanded]="false">
         <mat-expansion-panel-header style="padding: 0 12px">
           <mat-panel-title>
-            <mat-icon class="icon-track" color="warn">show_chart</mat-icon>
+            <mat-icon class="icon-track">show_chart</mat-icon>
             &nbsp;&nbsp;
             <b>Tracks:</b>
           </mat-panel-title>
@@ -204,7 +195,6 @@
                   (click)="$event.cancelBubble=true"
                   matTooltip="Vessel Trail to Track"
                   matTooltipPosition="before"
-                  color="primary"
                 >
                 </mat-checkbox>
               </span>
@@ -218,15 +208,12 @@
               <div class="rgrid">
                 <div class="row">
                   <div class="name">
-                    <mat-icon class="icon-track" color="warn"
-                      >directions_boat</mat-icon
-                    >
+                    <mat-icon class="icon-track">directions_boat</mat-icon>
                     Vessel Trail
                   </div>
                   <div></div>
                   <div class="check">
                     <mat-checkbox
-                      color="primary"
                       matTooltip="Select this Track"
                       matTooltipPosition="below"
                       [checked]="selTracks[i]"

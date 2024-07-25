@@ -89,7 +89,7 @@ import { Convert } from 'src/app/lib/convert';
             (click)="handleInfo()"
             matTooltip="Show Properties"
           >
-            <mat-icon color="primary">info_outline</mat-icon>
+            <mat-icon>info_outline</mat-icon>
             INFO
           </button>
         </div>
