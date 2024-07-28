@@ -275,15 +275,18 @@ export const destinationStyles = {
   })
 };
 
+const aisScale = 1.3;
 const aisActive = new Icon({
   src: './assets/img/ais_active.png',
   rotateWithView: true,
-  rotation: 0
+  rotation: 0,
+  scale: aisScale
 });
 const aisInactive = new Icon({
   src: './assets/img/ais_inactive.png',
   rotateWithView: true,
-  rotation: 0
+  rotation: 0,
+  scale: aisScale
 });
 const aisFocus = new Icon({
   src: './assets/img/ais_self.png',
@@ -298,37 +301,44 @@ const aisFocus = new Icon({
 const ais40 = new Icon({
   src: './assets/img/ais_highspeed.png',
   rotateWithView: true,
-  rotation: 0
+  rotation: 0,
+  scale: aisScale
 });
 const ais50 = new Icon({
   src: './assets/img/ais_special.png',
   rotateWithView: true,
-  rotation: 0
+  rotation: 0,
+  scale: aisScale
 });
 const ais60 = new Icon({
   src: './assets/img/ais_passenger.png',
   rotateWithView: true,
-  rotation: 0
+  rotation: 0,
+  scale: aisScale
 });
 const ais70 = new Icon({
   src: './assets/img/ais_cargo.png',
   rotateWithView: true,
-  rotation: 0
+  rotation: 0,
+  scale: aisScale
 });
 const ais80 = new Icon({
   src: './assets/img/ais_tanker.png',
   rotateWithView: true,
-  rotation: 0
+  rotation: 0,
+  scale: aisScale
 });
 const ais90 = new Icon({
   src: './assets/img/ais_other.png',
   rotateWithView: true,
-  rotation: 0
+  rotation: 0,
+  scale: aisScale
 });
 const aisBuddy = new Icon({
   src: './assets/img/ais_buddy.png',
   rotateWithView: true,
-  rotation: 0
+  rotation: 0,
+  scale: aisScale
 });
 
 export const aisVesselStyles = {
@@ -552,7 +562,8 @@ export const atonStyles = {
       rotation: 0,
       anchor: [12.5, 12.5],
       anchorXUnits: 'pixels',
-      anchorYUnits: 'pixels'
+      anchorYUnits: 'pixels',
+      scale: 0.75
     }),
     text: new Text({
       text: '',
@@ -570,7 +581,8 @@ export const basestationStyles = {
       rotation: 0,
       anchor: [12.5, 14.5],
       anchorXUnits: 'pixels',
-      anchorYUnits: 'pixels'
+      anchorYUnits: 'pixels',
+      scale: 0.75
     }),
     text: new Text({
       text: '',
@@ -628,7 +640,8 @@ export const meteoStyles = {
       size: [35, 25],
       anchor: [1, 25],
       anchorXUnits: 'pixels',
-      anchorYUnits: 'pixels'
+      anchorYUnits: 'pixels',
+      scale: 0.75
     }),
     text: new Text({
       text: '',

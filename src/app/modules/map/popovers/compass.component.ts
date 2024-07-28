@@ -256,8 +256,8 @@ export class NorthUpCompassComponent extends SvgDialBase {
   @Input() label = '';
   @Input() speed: number | undefined;
   @Input() heading: number | undefined;
-  @Input() windtrue: number | undefined;
-  @Input() windapparent: number | undefined;
+  @Input() windtrue: boolean;
+  @Input() windapparent: boolean;
   @ViewChild('labeltext', { static: true }) labeltext: ElementRef;
   @ViewChild('headingtext', { static: true }) headingtext: ElementRef;
   @ViewChild('speedtext', { static: true }) speedtext: ElementRef;
@@ -296,10 +296,10 @@ export class NorthUpCompassComponent extends SvgDialBase {
 
   updateDial(changes?: SimpleChanges) {
     const d = {
-      heading: null,
-      windtrue: null,
-      windapparent: null,
+      windtrue: false,
+      windapparent: false,
       label: null,
+      heading: null,
       speed: null
     };
     d.heading =
@@ -308,14 +308,6 @@ export class NorthUpCompassComponent extends SvgDialBase {
         : this.heading;
     d.speed =
       changes && changes['speed'] ? changes['speed'].currentValue : this.speed;
-    d.windtrue =
-      changes && changes['windtrue']
-        ? changes['windtrue'].currentValue
-        : this.windtrue;
-    d.windapparent =
-      changes && changes['windapparent']
-        ? changes['windapparent'].currentValue
-        : this.windapparent;
     d.label =
       changes && changes['label'] ? changes['label'].currentValue : this.label;
 
@@ -337,8 +329,11 @@ export class NorthUpCompassComponent extends SvgDialBase {
 
     const rHeading = this.renderValue(d.heading, 0);
     const rAngle = rHeading === '--' ? this.minValue : d.heading;
-    this.showPointer = rHeading === '--' ? false : true;
 
+    this.showPointer =
+      (rHeading === '--' ? false : true) &&
+      !this.windtrue &&
+      !this.windapparent;
     if (this.pointer && this.pointer.nativeElement) {
       this.renderer.setAttribute(
         this.pointer.nativeElement,
@@ -354,27 +349,22 @@ export class NorthUpCompassComponent extends SvgDialBase {
       );
     }
 
-    const rWindTrue = this.renderValue(d.windtrue, 0);
-    const rTAngle = rWindTrue === '--' ? this.minValue : d.windtrue;
-    this.showWindTrue = rWindTrue === '--' ? false : true;
-
+    this.showWindTrue = (rHeading === '--' ? false : true) && this.windtrue;
     if (this.needlehi && this.needlehi.nativeElement) {
       this.renderer.setAttribute(
         this.needlehi.nativeElement,
         'transform',
-        'rotate(' + this.getAngle(rTAngle) + ' 100 100)'
+        'rotate(' + this.getAngle(rAngle) + ' 100 100)'
       );
     }
 
-    const rWindApp = this.renderValue(d.windapparent, 0);
-    const rAAngle = rWindApp === '--' ? this.minValue : d.windapparent;
-    this.showWindApparent = rWindApp === '--' ? false : true;
-
+    this.showWindApparent =
+      (rHeading === '--' ? false : true) && this.windapparent && !this.windtrue;
     if (this.needlehi && this.needlehi.nativeElement) {
       this.renderer.setAttribute(
         this.needlelo.nativeElement,
         'transform',
-        'rotate(' + this.getAngle(rAAngle) + ' 100 100)'
+        'rotate(' + this.getAngle(rAngle) + ' 100 100)'
       );
     }
   }

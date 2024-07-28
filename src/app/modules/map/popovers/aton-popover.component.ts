@@ -76,6 +76,7 @@ import { Convert } from 'src/app/lib/convert';
             [heading]="convert.radiansToDegrees(aton.twd)"
             [speed]="app.formatSpeed(aton.tws)"
             [label]="app.formattedSpeedUnits"
+            [windtrue]="true"
           >
           </ap-compass-northup>
         </div>

@@ -124,14 +124,14 @@
 		}
 				
 		.compass_nup #hiPointer {
-			fill:#FF0000;
-			fill-opacity:0.8;
+			fill:olive;
+			fill-opacity:1;
 			display: block;
 		}
 		
 		.compass_nup #loPointer {
-			fill:#0088FF;
-			fill-opacity:0.8;
+			fill: rgb(16, 75, 16);
+			fill-opacity:1;
 			display: block;
 		}
 
@@ -577,7 +577,7 @@
 		<g transform="rotate(0 100 100)" #needlehi id="needlehi">
 			<path d="M 100,79 l 5,-69 -10,0 5,69 z" id="hiPointer" />
 		</g>
-	</g>   
+	</g>
 	
 	<!-- Heading --> 
 	<g class="compass_nup" #pointer id="pointer" [ngClass]="{'hide': !showPointer}">
