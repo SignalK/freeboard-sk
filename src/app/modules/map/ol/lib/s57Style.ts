@@ -65,33 +65,41 @@ export class S57Style {
         textBaseline: textBaseline,
         scale: 1.5,
         offsetX: offsetX,
-        offsetY: offsetY,
+        offsetY: offsetY
       })
     });
     style.setZIndex(99); // text always on top
-    return style
-
+    return style;
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private getTextStyleTXStyle(featureProperties: any, parameters: string): Style {
+  private getTextStyleTXStyle(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    featureProperties: any,
+    parameters: string
+  ): Style {
     const params = parameters.split(',');
     return this.getTextStyle(params.slice(1));
   }
 
-  private getTextStyleTXText(featureProperties: any, parameters: string): string {
+  private getTextStyleTXText(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    featureProperties: any,
+    parameters: string
+  ): string {
     const params = parameters.split(',');
     const text = featureProperties[params[0]];
-    return text
+    return text;
   }
 
   private stripQuotes(text: string): string {
     return text.substring(1).substring(0, text.length - 2);
   }
 
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private getTextStyleTEText(featureProperties: any, parameters: string): string {
+  private getTextStyleTEText(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    featureProperties: any,
+    parameters: string
+  ): string {
     const params = parameters.split(',');
     const text = featureProperties[this.stripQuotes(params[1])];
     const format = this.stripQuotes(params[0]);
@@ -101,7 +109,11 @@ export class S57Style {
     return format.replace(/%[0-9]*.?[0-9]*l?[sfd]/, text);
   }
 
-  private getTextStyleTEStyle(featureProperties: any, parameters: string): Style {
+  private getTextStyleTEStyle(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    featureProperties: any,
+    parameters: string
+  ): Style {
     const params = parameters.split(',');
     return this.getTextStyle(params.slice(2));
   }
@@ -157,7 +169,7 @@ export class S57Style {
 
   //https://github.com/OpenCPN/OpenCPN/blob/20a781ecc507443e5aaa1d33d0cb91852feb07ee/libs/s52plib/src/s52cnsy.cpp#L2121
   private GetCSQQUALIN01(feature: Feature): string[] {
-    let retval: string[] = [];
+    const retval: string[] = [];
     const featureProperties = feature.getProperties();
 
     let quapos = 0;
@@ -171,7 +183,7 @@ export class S57Style {
         retval.push('LC(LOWACC21');
       }
     } else {
-      if (featureProperties['layer'] == 'COALNE') {
+      if (featureProperties['layer'] === 'COALNE') {
         let conrad = 0;
         let bconrad = false;
         if (featureProperties['CONRAD']) {
@@ -179,7 +191,7 @@ export class S57Style {
           bquapos = true;
         }
         if (bconrad) {
-          if (conrad == 1) {
+          if (conrad === 1) {
             retval.push('LS(SOLD,3,CHMGF)');
             retval.push('LS(SOLD,1,CSTLN)');
           } else {
@@ -198,7 +210,7 @@ export class S57Style {
 
   // https://github.com/OpenCPN/OpenCPN/blob/20a781ecc507443e5aaa1d33d0cb91852feb07ee/libs/s52plib/src/s52cnsy.cpp#L2185
   private GetCSQQUAPNT01(feature: Feature): string[] {
-    let retval: string[] = [];
+    const retval: string[] = [];
     const featureProperties = feature.getProperties();
 
     let accurate = true;
@@ -246,7 +258,7 @@ export class S57Style {
 
   //https://github.com/OpenCPN/OpenCPN/blob/20a781ecc507443e5aaa1d33d0cb91852feb07ee/libs/s52plib/src/s52cnsy.cpp#L2232
   private GetCSSLCONS03(feature: Feature): string[] {
-    let retval: string[] = [];
+    const retval: string[] = [];
     const featureProperties = feature.getProperties();
     const geometry = feature.getGeometry();
 
@@ -278,7 +290,7 @@ export class S57Style {
           condtn = parseInt(featureProperties['CONDTN']);
           bcondtn = true;
         }
-        if (bcondtn && (condtn == 1 || condtn == 2)) {
+        if (bcondtn && (condtn === 1 || condtn === 2)) {
           retval.push('LS(DASH,1,CSTLN)');
         } else {
           let bcatslc = false;
@@ -287,7 +299,7 @@ export class S57Style {
             catslc = parseInt(featureProperties['CATSLC']);
             bcatslc = true;
           }
-          if (bcatslc && (catslc == 6 || catslc == 15 || catslc == 16)) {
+          if (bcatslc && (catslc === 6 || catslc === 15 || catslc === 16)) {
             retval.push('LS(SOLD,4,CSTLN)');
           } else {
             let bwatlev = false;
@@ -296,9 +308,9 @@ export class S57Style {
               watlev = parseInt(featureProperties['WATLEV']);
               bwatlev = true;
             }
-            if (bwatlev && watlev == 2) {
+            if (bwatlev && watlev === 2) {
               retval.push('LS(SOLD,2,CSTLN)');
-            } else if (bwatlev && (watlev == 3 || watlev == 4)) {
+            } else if (bwatlev && (watlev === 3 || watlev === 4)) {
               retval.push('LS(DASH,2,CSTLN)');
             } else {
               retval.push('LS(SOLD,2,CSTLN)');
@@ -620,10 +632,10 @@ export class S57Style {
 
   //https://github.com/OpenCPN/OpenCPN/blob/c2ffb36ebca8c3777f03ea4d42e24f897aa62609/libs/s52plib/src/s52cnsy.cpp#L4295
   private GetCSDEPCNT02(feature: Feature): string[] {
-    let rulestring: string = null;
+    //let rulestring: string = null;
     const featureProperties = feature.getProperties();
     const geometry = feature.getGeometry();
-    let retval: string[] = [];
+    const retval: string[] = [];
 
     //const safe = false;
     let drval1 = 0;
@@ -678,7 +690,7 @@ export class S57Style {
 
     const featureProperties = feature.getProperties();
 
-    let drval1: number = -1;
+    let drval1 = -1;
 
     const dv1 = parseFloat(featureProperties['DRVAL1']);
     if (!Number.isNaN(dv1)) {
@@ -737,7 +749,6 @@ export class S57Style {
     return retval;
   }
 
-
   private getStylesFromRules(lup: Lookup, feature: Feature): Style[] {
     const styles: Style[] = [];
     if (lup) {
@@ -756,8 +767,8 @@ export class S57Style {
         const instrParts = this.instructionMatch.exec(instruction);
         if (instrParts && instrParts.length > 1) {
           let style: Style = null;
-          const cacheKey = instrParts[1] + "_" + instrParts[2]         
-          style = this.s57Service.getStyle(cacheKey)
+          const cacheKey = instrParts[1] + '_' + instrParts[2];
+          style = this.s57Service.getStyle(cacheKey);
           if (!style) {
             switch (instrParts[1]) {
               case 'SY':
@@ -779,15 +790,19 @@ export class S57Style {
                 //debugger
                 console.debug('Unsupported instruction:' + instruction);
             }
-            this.s57Service.setStyle(cacheKey, style)
+            this.s57Service.setStyle(cacheKey, style);
           }
 
           if (style) {
-            if(instrParts[1]=="TE") {
-              style.getText().setText(this.getTextStyleTEText(properties,instrParts[2]))
+            if (instrParts[1] === 'TE') {
+              style
+                .getText()
+                .setText(this.getTextStyleTEText(properties, instrParts[2]));
             }
-            if(instrParts[1]=="TX") {
-              style.getText().setText(this.getTextStyleTXText(properties,instrParts[2]))
+            if (instrParts[1] === 'TX') {
+              style
+                .getText()
+                .setText(this.getTextStyleTXText(properties, instrParts[2]));
             }
             styles.push(style);
           }
@@ -866,7 +881,7 @@ export class S57Style {
     if (lupIndex1 >= 0 && lupIndex2 >= 0) {
       const c1 = this.s57Service.getLookup(lupIndex1).displayPriority;
       const c2 = this.s57Service.getLookup(lupIndex1).displayPriority;
-      if (c1 != c2) {
+      if (c1 !== c2) {
         return c1 - c2;
       }
     }
@@ -884,10 +899,10 @@ export class S57Style {
       const lup = this.s57Service.getLookup(lupIndex);
       // simple feature filter
       if (
-        lup.displayCategory == DisplayCategory.DISPLAYBASE ||
-        lup.displayCategory == DisplayCategory.STANDARD ||
-        lup.displayCategory == DisplayCategory.MARINERS_STANDARD ||
-        lup.name == 'DEPCNT'
+        lup.displayCategory === DisplayCategory.DISPLAYBASE ||
+        lup.displayCategory === DisplayCategory.STANDARD ||
+        lup.displayCategory === DisplayCategory.MARINERS_STANDARD ||
+        lup.name === 'DEPCNT'
       ) {
         return this.getStylesFromRules(lup, feature);
       }

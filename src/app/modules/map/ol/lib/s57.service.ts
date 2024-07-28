@@ -4,7 +4,7 @@ import { HttpClient } from '@angular/common/http';
 import { Feature } from 'ol';
 import { Subject } from 'rxjs';
 import * as xml2js from 'xml2js';
-import { Style  } from 'ol/style';
+import { Style } from 'ol/style';
 
 interface Symbol {
   image: HTMLImageElement;
@@ -130,12 +130,12 @@ export class S57Service {
       });
   }
 
-  public getStyle(key:string):Style {
-    return this.styles[key]
+  public getStyle(key: string): Style {
+    return this.styles[key];
   }
 
-  public setStyle(key:string,style:Style) {
-    this.styles[key]=style
+  public setStyle(key: string, style: Style) {
+    this.styles[key] = style;
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -168,6 +168,7 @@ export class S57Service {
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private processColors(symbolsJson: any) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (
       symbolsJson['CHARTSYMBOLS']['COLOR-TABLES'][0]['COLOR-TABLE'] as any[]
@@ -327,11 +328,13 @@ export class S57Service {
     }
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private propertyCompare(a: any, b: string): number {
-    let t = typeof a;
+    const t = typeof a;
+    let b1: number;
     switch (t) {
       case 'number':
-        let b1 = parseInt(b);
+        b1 = parseInt(b);
         return a - b1;
       case 'string':
         return (a as string).localeCompare(b);
@@ -379,7 +382,7 @@ export class S57Service {
 
     let best = -1;
 
-    let startIndex = this.lookupStartIndex.get(
+    const startIndex = this.lookupStartIndex.get(
       lookupTable + ',' + name.toUpperCase() + ',' + type
     );
     let currentIndex = startIndex;
@@ -402,13 +405,13 @@ export class S57Service {
             return;
           }
           if (value === '?') return;
-          if (this.propertyCompare(properties[key], value) == 0) {
+          if (this.propertyCompare(properties[key], value) === 0) {
             nmatch++;
           }
         });
         // According to S52 specs, match must be perfect,
         // and the first 100% match is selected
-        if (Object.keys(lup.attributes).length == nmatch && nmatch > lmatch) {
+        if (Object.keys(lup.attributes).length === nmatch && nmatch > lmatch) {
           best = currentIndex;
           lmatch = nmatch;
         }
@@ -416,7 +419,7 @@ export class S57Service {
         lup = this.lookups[currentIndex];
       }
       // If no match found, return the first LUP in the list which has no attributes
-      if (best == -1) {
+      if (best === -1) {
         let currentIndex = startIndex;
         let lup = this.lookups[currentIndex];
         while (
@@ -424,7 +427,7 @@ export class S57Service {
           lup.geometryType === type &&
           lup.lookupTable === lookupTable
         ) {
-          if (Object.keys(lup.attributes).length == 0) {
+          if (Object.keys(lup.attributes).length === 0) {
             best = currentIndex;
             break;
           }
