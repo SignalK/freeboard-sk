@@ -60,55 +60,55 @@ export class AISListComponent {
       id: 10,
       description: 'Unspecified',
       selected: false,
-      icon: './assets/img/ais_active.png'
+      icon: './assets/img/ais_active.svg'
     },
     {
       id: 20,
       description: 'Wing in Ground',
       selected: false,
-      icon: './assets/img/ais_active.png'
+      icon: './assets/img/ais_active.svg'
     },
     {
       id: 30,
       description: 'Pleasure',
       selected: false,
-      icon: './assets/img/ais_active.png'
+      icon: './assets/img/ais_active.svg'
     },
     {
       id: 40,
       description: 'High Speed',
       selected: false,
-      icon: './assets/img/ais_highspeed.png'
+      icon: './assets/img/ais_highspeed.svg'
     },
     {
       id: 50,
       description: 'Special',
       selected: false,
-      icon: './assets/img/ais_special.png'
+      icon: './assets/img/ais_special.svg'
     },
     {
       id: 60,
       description: 'Passenger',
       selected: false,
-      icon: './assets/img/ais_passenger.png'
+      icon: './assets/img/ais_passenger.svg'
     },
     {
       id: 70,
       description: 'Cargo',
       selected: false,
-      icon: './assets/img/ais_cargo.png'
+      icon: './assets/img/ais_cargo.svg'
     },
     {
       id: 80,
       description: 'Tanker',
       selected: false,
-      icon: './assets/img/ais_tanker.png'
+      icon: './assets/img/ais_tanker.svg'
     },
     {
       id: 90,
       description: 'Other',
       selected: false,
-      icon: './assets/img/ais_other.png'
+      icon: './assets/img/ais_other.svg'
     }
   ];
 

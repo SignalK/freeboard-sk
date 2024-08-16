@@ -630,7 +630,7 @@ export class AppComponent {
 
   // ** process local vessel trail **
   private processTrail(trailData?) {
-    if (!this.app.config.vessel.trail) {
+    if (!this.app.config.selections.vessel.trail) {
       return;
     }
     // ** update vessel trail **
@@ -739,7 +739,7 @@ export class AppComponent {
         );
       }
       // ** trail **
-      if (this.app.config.vessel.trail) {
+      if (this.app.config.selections.vessel.trail) {
         // show trail
         if (this.app.config.selections.trailFromServer) {
           this.skres.getVesselTrail();

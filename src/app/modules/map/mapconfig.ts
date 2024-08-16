@@ -93,7 +93,7 @@ export const raceCourseStyles = {
     }),
     text: new Text({
       text: '',
-      offsetY: 20
+      offsetY: 10
     })
   }),
   startLine: new Style({
@@ -275,19 +275,9 @@ export const destinationStyles = {
   })
 };
 
-const aisScale = 1.3;
-const aisActive = new Icon({
-  src: './assets/img/ais_active.png',
-  rotateWithView: true,
-  rotation: 0,
-  scale: aisScale
-});
-const aisInactive = new Icon({
-  src: './assets/img/ais_inactive.png',
-  rotateWithView: true,
-  rotation: 0,
-  scale: aisScale
-});
+const aisScale = 1.0;
+const aisIconAnchor = [17, 16];
+
 const aisFocus = new Icon({
   src: './assets/img/ais_self.png',
   rotateWithView: true,
@@ -298,69 +288,110 @@ const aisFocus = new Icon({
   size: [50, 50],
   scale: 0.75
 });
-const ais40 = new Icon({
-  src: './assets/img/ais_highspeed.png',
+const aisActive = new Icon({
+  src: './assets/img/ais_active.svg',
   rotateWithView: true,
   rotation: 0,
-  scale: aisScale
+  scale: aisScale,
+  anchor: aisIconAnchor,
+  anchorXUnits: 'pixels',
+  anchorYUnits: 'pixels'
+});
+const aisInactive = new Icon({
+  src: './assets/img/ais_inactive.svg',
+  rotateWithView: true,
+  rotation: 0,
+  scale: aisScale,
+  anchor: aisIconAnchor,
+  anchorXUnits: 'pixels',
+  anchorYUnits: 'pixels'
+});
+const ais40 = new Icon({
+  src: './assets/img/ais_highspeed.svg',
+  rotateWithView: true,
+  rotation: 0,
+  scale: aisScale,
+  anchor: aisIconAnchor,
+  anchorXUnits: 'pixels',
+  anchorYUnits: 'pixels'
 });
 const ais50 = new Icon({
-  src: './assets/img/ais_special.png',
+  src: './assets/img/ais_special.svg',
   rotateWithView: true,
   rotation: 0,
-  scale: aisScale
+  scale: aisScale,
+  anchor: aisIconAnchor,
+  anchorXUnits: 'pixels',
+  anchorYUnits: 'pixels'
 });
 const ais60 = new Icon({
-  src: './assets/img/ais_passenger.png',
+  src: './assets/img/ais_passenger.svg',
   rotateWithView: true,
   rotation: 0,
-  scale: aisScale
+  scale: aisScale,
+  anchor: aisIconAnchor,
+  anchorXUnits: 'pixels',
+  anchorYUnits: 'pixels'
 });
 const ais70 = new Icon({
-  src: './assets/img/ais_cargo.png',
+  src: './assets/img/ais_cargo.svg',
   rotateWithView: true,
   rotation: 0,
-  scale: aisScale
+  scale: aisScale,
+  anchor: aisIconAnchor,
+  anchorXUnits: 'pixels',
+  anchorYUnits: 'pixels'
 });
 const ais80 = new Icon({
-  src: './assets/img/ais_tanker.png',
+  src: './assets/img/ais_tanker.svg',
   rotateWithView: true,
   rotation: 0,
-  scale: aisScale
+  scale: aisScale,
+  anchor: aisIconAnchor,
+  anchorXUnits: 'pixels',
+  anchorYUnits: 'pixels'
 });
 const ais90 = new Icon({
-  src: './assets/img/ais_other.png',
+  src: './assets/img/ais_other.svg',
   rotateWithView: true,
   rotation: 0,
-  scale: aisScale
+  scale: aisScale,
+  anchor: aisIconAnchor,
+  anchorXUnits: 'pixels',
+  anchorYUnits: 'pixels'
 });
 const aisBuddy = new Icon({
-  src: './assets/img/ais_buddy.png',
+  src: './assets/img/ais_buddy.svg',
   rotateWithView: true,
   rotation: 0,
-  scale: aisScale
+  scale: aisScale,
+  anchor: aisIconAnchor,
+  anchorXUnits: 'pixels',
+  anchorYUnits: 'pixels'
 });
 
+const aisTextOffset = 22;
+const aisMooredTextOffset = 12;
 export const aisVesselStyles = {
   default: new Style({
     image: aisActive,
     text: new Text({
       text: '',
-      offsetY: -12
+      offsetY: aisTextOffset
     })
   }),
   inactive: new Style({
     image: aisInactive,
     text: new Text({
       text: '',
-      offsetY: -12
+      offsetY: aisTextOffset
     })
   }),
   focus: new Style({
     image: aisFocus,
     text: new Text({
       text: '',
-      offsetY: -12
+      offsetY: aisTextOffset
     }),
     zIndex: 500
   }),
@@ -368,7 +399,7 @@ export const aisVesselStyles = {
     image: aisBuddy,
     text: new Text({
       text: '',
-      offsetY: -12
+      offsetY: aisTextOffset
     })
   }),
   // vessel state
@@ -386,7 +417,7 @@ export const aisVesselStyles = {
     }),
     text: new Text({
       text: '',
-      offsetY: -12
+      offsetY: aisMooredTextOffset
     })
   }),
   // vessel type & state
@@ -396,7 +427,7 @@ export const aisVesselStyles = {
       image: ais40,
       text: new Text({
         text: '',
-        offsetY: -12
+        offsetY: aisTextOffset
       })
     }),
     moored: new Style({
@@ -413,7 +444,7 @@ export const aisVesselStyles = {
       }),
       text: new Text({
         text: '',
-        offsetY: -12
+        offsetY: aisMooredTextOffset
       })
     })
   },
@@ -423,7 +454,7 @@ export const aisVesselStyles = {
       image: ais50,
       text: new Text({
         text: '',
-        offsetY: -12
+        offsetY: aisTextOffset
       })
     }),
     moored: new Style({
@@ -435,12 +466,12 @@ export const aisVesselStyles = {
           color: '#000000'
         }),
         fill: new Fill({
-          color: '#808080'
+          color: '#00ffff'
         })
       }),
       text: new Text({
         text: '',
-        offsetY: -12
+        offsetY: aisMooredTextOffset
       })
     })
   },
@@ -450,7 +481,7 @@ export const aisVesselStyles = {
       image: ais60,
       text: new Text({
         text: '',
-        offsetY: -12
+        offsetY: aisTextOffset
       })
     }),
     moored: new Style({
@@ -462,12 +493,12 @@ export const aisVesselStyles = {
           color: '#0026FF'
         }),
         fill: new Fill({
-          color: '#0094FF'
+          color: '#0026FF'
         })
       }),
       text: new Text({
         text: '',
-        offsetY: -12
+        offsetY: aisMooredTextOffset
       })
     })
   },
@@ -477,7 +508,7 @@ export const aisVesselStyles = {
       image: ais70,
       text: new Text({
         text: '',
-        offsetY: -12
+        offsetY: aisTextOffset
       })
     }),
     moored: new Style({
@@ -494,7 +525,7 @@ export const aisVesselStyles = {
       }),
       text: new Text({
         text: '',
-        offsetY: -12
+        offsetY: aisMooredTextOffset
       })
     })
   },
@@ -504,7 +535,7 @@ export const aisVesselStyles = {
       image: ais80,
       text: new Text({
         text: '',
-        offsetY: -12
+        offsetY: aisTextOffset
       })
     }),
     moored: new Style({
@@ -521,7 +552,7 @@ export const aisVesselStyles = {
       }),
       text: new Text({
         text: '',
-        offsetY: -12
+        offsetY: aisMooredTextOffset
       })
     })
   },
@@ -531,7 +562,7 @@ export const aisVesselStyles = {
       image: ais90,
       text: new Text({
         text: '',
-        offsetY: -12
+        offsetY: aisTextOffset
       })
     }),
     moored: new Style({
@@ -548,7 +579,7 @@ export const aisVesselStyles = {
       }),
       text: new Text({
         text: '',
-        offsetY: -12
+        offsetY: aisMooredTextOffset
       })
     })
   }

@@ -59,11 +59,22 @@ import { Convert } from 'src/app/lib/convert';
               <div class="key-label">Name:</div>
               <div style="flex: 1 1 auto;">{{ vInfo.name }}</div>
             </div>
+            @if(vInfo.mmsi) {
             <div style="display:flex;">
               <div class="key-label">MMSI:</div>
-              <div style="flex: 1 1 auto;">{{ vInfo.mmsi }}</div>
+              <div style="flex: 1 1 auto;">
+                <a
+                  target="aisinfo"
+                  [href]="
+                    'https://www.marinetraffic.com/en/ais/details/ships/mmsi:' +
+                    vInfo.mmsi
+                  "
+                >
+                  {{ vInfo.mmsi }}
+                </a>
+              </div>
             </div>
-            @if(vInfo.shipType) {
+            } @if(vInfo.shipType) {
             <div style="display:flex;">
               <div class="key-label">Type:</div>
               <div style="flex: 1 1 auto;">{{ vInfo.shipType }}</div>
@@ -78,12 +89,17 @@ import { Convert } from 'src/app/lib/convert';
               <div class="key-label">Port:</div>
               <div style="flex: 1 1 auto;">{{ vInfo.port }}</div>
             </div>
-            } @if(vInfo.callsign) {
+            } @if(vInfo.callsignVhf) {
             <div style="display:flex;">
-              <div class="key-label">Call sign:</div>
-              <div style="flex: 1 1 auto;">{{ vInfo.callsign }}</div>
+              <div class="key-label">Call sign VHF:</div>
+              <div style="flex: 1 1 auto;">{{ vInfo.callsignVhf }}</div>
             </div>
-            } @if(vInfo.length) {
+            } @if(vInfo.callsignHf) {
+            <div style="display:flex;">
+              <div class="key-label">Call sign HF:</div>
+              <div style="flex: 1 1 auto;">{{ vInfo.callsignHf }}</div>
+            </div>
+            }@if(vInfo.length) {
             <div style="display:flex;">
               <div class="key-label">Dimensions:</div>
               <div style="flex: 1 1 auto;">
@@ -139,7 +155,8 @@ export class AISPropertiesModal implements OnInit {
   public vInfo = {
     name: null,
     mmsi: null,
-    callsign: null,
+    callsignVhf: null,
+    callsignHf: null,
     length: null,
     beam: null,
     draft: null,
@@ -203,7 +220,10 @@ export class AISPropertiesModal implements OnInit {
       }
       if (typeof v['communication'] !== 'undefined') {
         if (typeof v['communication']['callsignVhf'] !== 'undefined') {
-          this.vInfo.callsign = v['communication']['callsignVhf'];
+          this.vInfo.callsignVhf = v['communication']['callsignVhf'];
+        }
+        if (typeof v['communication']['callsignHf'] !== 'undefined') {
+          this.vInfo.callsignHf = v['communication']['callsignHf'];
         }
       }
       if (typeof v['navigation'] !== 'undefined') {

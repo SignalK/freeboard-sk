@@ -14,7 +14,7 @@ import { Layer } from 'ol/layer';
 import { Feature } from 'ol';
 import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
-import { Style, RegularShape, Fill, Stroke } from 'ol/style';
+import { Style, RegularShape, Fill, Stroke, Circle } from 'ol/style';
 import { Point, LineString } from 'ol/geom';
 import { fromLonLat } from 'ol/proj';
 import { MapComponent } from '../map.component';
@@ -23,6 +23,8 @@ import { GeoUtils } from 'src/app/lib/geoutils';
 import { AsyncSubject } from 'rxjs';
 import { SKVessel } from 'src/app/modules';
 import { LightTheme, DarkTheme } from '../themes';
+import { fromLonLatArray } from '../util';
+import { Coordinate } from 'ol/coordinate';
 
 // ** Signal K Other Vessels  **
 @Component({
@@ -87,7 +89,7 @@ export class SKVesselsLayerComponent implements OnInit, OnDestroy, OnChanges {
     );
 
     this.theme = this.darkMode ? DarkTheme : LightTheme;
-    this.parseItems(this.extractKeys(this.targets));
+    this.reloadTargets();
 
     const map = this.mapComponent.getMap();
     if (this.layer && map) {
@@ -102,48 +104,59 @@ export class SKVesselsLayerComponent implements OnInit, OnDestroy, OnChanges {
     if (this.layer) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const properties: { [index: string]: any } = {};
-      for (const key in changes) {
-        if (key === 'targets' && changes[key].firstChange) {
-          if (!changes[key].currentValue) {
-            return;
-          }
-          if (!this.source) {
-            return;
-          }
-          this.source.clear();
-          this.parseItems(this.extractKeys(changes[key].currentValue));
-        } else if (key === 'updateIds') {
-          this.parseItems(changes[key].currentValue);
-        } else if (key === 'removeIds') {
-          this.removeItems(changes[key].currentValue);
-        } else if (key === 'staleIds') {
-          this.parseItems(changes[key].currentValue, true);
-        } else if (key === 'inactiveTime') {
-          this.parseItems(this.extractKeys(this.targets));
-        } else if (
-          key === 'focusId' ||
-          key === 'filterIds' ||
-          key === 'vectorApparent' ||
-          key === 'filterShipTypes' ||
-          key === 'filterByShipType'
+      const keys = Object.keys(changes);
+      if (
+        (keys.includes('targets') &&
+          changes['targets'].previousValue.size === 0) ||
+        keys.includes('filterShipTypes') ||
+        keys.includes('filterByShipType')
+      ) {
+        this.reloadTargets();
+      } else {
+        if (keys.includes('removeIds')) {
+          this.removeTargetIds(changes['removeIds'].currentValue);
+        }
+        if (keys.includes('updateIds')) {
+          this.updateTargetIds(changes['updateIds'].currentValue);
+        }
+        if (keys.includes('staleIds')) {
+          this.updateTargetIds(changes['staleIds'].currentValue, true);
+        }
+        if (
+          (keys.includes('targetStyles') &&
+            !changes['targetStyles'].firstChange) ||
+          keys.some((k) =>
+            ['inactiveTime', 'focusId', 'filterIds', 'vectorApparent'].includes(
+              k
+            )
+          )
         ) {
-          this.parseItems(this.extractKeys(this.targets));
-        } else if (key === 'targetStyles' && !changes[key].firstChange) {
-          this.parseItems(this.extractKeys(this.targets));
-        } else if (
-          key === 'darkMode' ||
-          key === 'labelMinZoom' ||
-          key === 'mapZoom' ||
-          key === 'vectorMinZoom'
+          this.updateTargetIds(this.extractKeys(this.targets));
+        }
+      }
+
+      for (const key in changes) {
+        if (
+          ['darkMode', 'labelMinZoom', 'mapZoom', 'vectorMinZoom'].includes(key)
         ) {
           if (key === 'darkMode') {
             this.theme = changes[key].currentValue ? DarkTheme : LightTheme;
           }
-          this.handleLabelZoomChange(key, changes[key]);
-        } else if (key === 'layerProperties') {
-          this.layer.setProperties(properties, false);
+          this.handleAttributeChanges(key, changes[key]);
         } else {
-          properties[key] = changes[key].currentValue;
+          if (key === 'layerProperties') {
+            this.layer.setProperties(properties, false);
+          } else {
+            [
+              'opacity',
+              'visible',
+              'extent',
+              'zIndex',
+              'minResolution',
+              'maxResolution'
+            ].includes(key);
+            properties[key] = changes[key].currentValue;
+          }
         }
       }
       this.layer.setProperties(properties, false);
@@ -159,46 +172,7 @@ export class SKVesselsLayerComponent implements OnInit, OnDestroy, OnChanges {
     }
   }
 
-  // ** assess attribute change **
-  handleLabelZoomChange(key: string, change: SimpleChange) {
-    if (key === 'labelMinZoom' || key === 'darkMode') {
-      if (typeof this.mapZoom !== 'undefined') {
-        this.updateLabels();
-      }
-    } else if (key === 'vectorMinZoom') {
-      if (typeof this.mapZoom !== 'undefined') {
-        this.targets.forEach((v, k) => {
-          this.parseWindVector(k, v);
-        });
-      }
-    } else if (key === 'mapZoom') {
-      if (typeof this.labelMinZoom !== 'undefined') {
-        if (
-          (change.currentValue >= this.labelMinZoom &&
-            change.previousValue < this.labelMinZoom) ||
-          (change.currentValue < this.labelMinZoom &&
-            change.previousValue >= this.labelMinZoom)
-        ) {
-          this.updateLabels();
-        }
-      }
-      if (typeof this.vectorMinZoom !== 'undefined') {
-        if (
-          (change.currentValue >= this.vectorMinZoom &&
-            change.previousValue < this.vectorMinZoom) ||
-          (change.currentValue < this.vectorMinZoom &&
-            change.previousValue >= this.vectorMinZoom)
-        ) {
-          this.targets.forEach((v, k) => {
-            this.parseWindVector(k, v);
-          });
-        }
-      }
-    }
-  }
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  extractKeys(m: Map<string, any>): Array<string> {
+  extractKeys(m: Map<string, SKVessel>): Array<string> {
     const keys = [];
     m.forEach((v, k) => {
       if (k.indexOf(this.targetType) !== -1) {
@@ -208,12 +182,8 @@ export class SKVesselsLayerComponent implements OnInit, OnDestroy, OnChanges {
     return keys;
   }
 
-  // returns true if item should be rendered
-  okToRender(id: string, vector?: boolean): boolean {
-    if (vector && !this.showVector) {
-      return false;
-    }
-
+  // returns true if target should be rendered
+  okToRenderTarget(id: string): boolean {
     // IMO only
     const imo =
       Array.isArray(this.filterShipTypes) &&
@@ -245,106 +215,83 @@ export class SKVesselsLayerComponent implements OnInit, OnDestroy, OnChanges {
     }
   }
 
-  // add update features
-  parseItems(ids: Array<string>, stale = false) {
-    if (!ids || !Array.isArray(ids)) {
+  // reload all Features from this.targets
+  reloadTargets() {
+    if (!this.targets || !this.source) {
       return;
     }
+    this.source.clear();
+    this.extractKeys(this.targets).forEach((id: string) =>
+      this.addTargetWithId(id)
+    );
+  }
+
+  // update Features with supplied ids
+  updateTargetIds(ids: Array<string>, areStale = false) {
     if (!this.source) {
       return;
     }
-    ids.forEach((w) => {
-      if (w.indexOf('vessel') === -1) {
-        return;
-      }
-      if (this.targets.has(w)) {
-        const target = this.targets.get(w);
-        // ** target **
-        let f = this.source.getFeatureById('ais-' + w) as Feature;
-        if (f) {
-          // exists so update it
-          if (this.okToRender(w) && target.position) {
-            f.setGeometry(new Point(fromLonLat(target.position)));
-            f.setStyle(this.buildTargetStyle(w, target, stale));
-            f.set(
-              'name',
-              target.name ?? target.callsign ?? target.mmsi ?? '',
-              true
-            );
-          } else {
-            this.source.removeFeature(f);
-          }
+    ids.forEach((id: string) => {
+      if (id.includes('vessel') && this.targets.has(id)) {
+        const target = this.targets.get(id);
+        const f = this.source.getFeatureById('ais-' + id) as Feature;
+        if (!f) {
+          this.addTargetWithId(id);
         } else {
-          // does not exist so create it
-          if (this.okToRender(w) && target.position) {
-            f = new Feature({
-              geometry: new Point(fromLonLat(target.position)),
-              name: target.name
-            });
-            f.setId('ais-' + w);
-            f.setStyle(this.buildTargetStyle(w, target, stale));
-            f.set(
-              'name',
-              target.name ?? target.callsign ?? target.mmsi ?? '',
-              true
+          if (this.okToRenderTarget(id) && target.position) {
+            const label =
+              target.name ??
+              target.callsignVhf ??
+              target.callsignHf ??
+              target.mmsi ??
+              '';
+            f.setGeometry(new Point(fromLonLat(target.position)));
+            f.set('name', label, true);
+            const s = this.buildTargetStyle(id, target, areStale).clone();
+            f.setStyle(
+              this.setTextLabel(this.setRotation(s, target.orientation), label)
             );
-            this.source.addFeature(f);
+            this.parseWindVector(id, target);
+            this.parseCogLine(id, target);
+          } else {
+            this.removeTargetIds([id]);
           }
         }
-        this.parseWindVector(w, target);
       }
     });
   }
 
-  // add update Wind vector
-  parseWindVector(id: string, target) {
-    if (!this.source) {
+  // add new target feature
+  addTargetWithId(id: string) {
+    if (!id.includes('vessel') || !this.targets.has(id)) {
       return;
     }
-    if (!target.wind || typeof target.orientation === 'undefined') {
-      return;
-    }
-    const windDirection = this.vectorApparent
-      ? typeof target.wind.awa !== 'undefined'
-        ? target.orientation + target.wind.awa
-        : null
-      : target.wind.direction;
-    if (typeof windDirection !== 'number') {
-      return;
-    }
-
-    let wf = this.source.getFeatureById('wind-' + id) as Feature;
-    if (!this.okToRender(id, true) || !target.position) {
-      if (wf) {
-        this.source.removeFeature(wf);
-      }
-      return;
-    }
-
-    const windc = GeoUtils.destCoordinate(
-      target.position,
-      windDirection,
-      this.zoomOffsetLevel[Math.floor(this.mapZoom)]
-    );
-    if (wf) {
-      // update vector
-      wf.setGeometry(
-        new LineString([fromLonLat(target.position), fromLonLat(windc)])
+    const target = this.targets.get(id);
+    if (this.okToRenderTarget(id) && target.position) {
+      const label =
+        target.name ??
+        target.callsignVhf ??
+        target.callsignHf ??
+        target.mmsi ??
+        '';
+      const f = new Feature({
+        geometry: new Point(fromLonLat(target.position)),
+        name: target.name
+      });
+      f.setId('ais-' + id);
+      f.set('name', label, true);
+      const s = this.buildTargetStyle(id, target).clone();
+      f.setStyle(
+        this.setTextLabel(this.setRotation(s, target.orientation), label)
       );
-      wf.setStyle(this.buildVectorStyle(id));
-    } else {
-      // create vector
-      wf = new Feature(
-        new LineString([fromLonLat(target.position), fromLonLat(windc)])
-      );
-      wf.setId('wind-' + id);
-      wf.setStyle(this.buildVectorStyle(id));
-      this.source.addFeature(wf);
+      this.source.addFeature(f);
+      this.parseWindVector(id, target);
+      this.parseCogLine(id, target);
     }
   }
 
-  // remove features
-  removeItems(ids: Array<string>) {
+  // remove target features
+  removeTargetIds(ids: Array<string>) {
     if (!ids || !Array.isArray(ids)) {
       return;
     }
@@ -360,17 +307,21 @@ export class SKVesselsLayerComponent implements OnInit, OnDestroy, OnChanges {
       if (f) {
         this.source.removeFeature(f);
       }
+      f = this.source.getFeatureById('cog-' + w) as Feature;
+      if (f) {
+        this.source.removeFeature(f);
+      }
     });
   }
 
-  // build target style
+  // build target feature style
   buildTargetStyle(id: string, item: SKVessel, setStale = false): Style {
     let s: Style;
-    const lbl = item.name ?? item.callsign ?? item.mmsi ?? '';
 
     // ** stale check time ref
     const now = new Date().valueOf();
     const st = item.type.id ? Math.floor(item.type.id / 10) * 10 : -1;
+
     if (typeof this.targetStyles !== 'undefined') {
       if (id === this.focusId && this.targetStyles.focus) {
         s = this.targetStyles.focus;
@@ -448,15 +399,183 @@ export class SKVesselsLayerComponent implements OnInit, OnDestroy, OnChanges {
         });
       }
     }
-    s = this.setTextLabel(this.setRotation(s, item.orientation), lbl);
     return s;
   }
 
+  handleAttributeChanges(key: string, change: SimpleChange) {
+    if (key === 'labelMinZoom' || key === 'darkMode') {
+      if (typeof this.mapZoom !== 'undefined') {
+        this.updateLabels();
+      }
+    } else if (key === 'vectorMinZoom') {
+      if (typeof this.mapZoom !== 'undefined') {
+        this.targets.forEach((v, k) => {
+          this.parseWindVector(k, v);
+        });
+      }
+    } else if (key === 'mapZoom') {
+      if (typeof this.labelMinZoom !== 'undefined') {
+        if (
+          (change.currentValue >= this.labelMinZoom &&
+            change.previousValue < this.labelMinZoom) ||
+          (change.currentValue < this.labelMinZoom &&
+            change.previousValue >= this.labelMinZoom)
+        ) {
+          this.updateLabels();
+          this.toggleCogLines();
+        }
+      }
+      if (typeof this.vectorMinZoom !== 'undefined') {
+        if (
+          (change.currentValue >= this.vectorMinZoom &&
+            change.previousValue < this.vectorMinZoom) ||
+          (change.currentValue < this.vectorMinZoom &&
+            change.previousValue >= this.vectorMinZoom)
+        ) {
+          this.targets.forEach((v, k) => {
+            this.parseWindVector(k, v);
+          });
+        }
+      }
+    }
+  }
+
+  // add update Wind vector
+  parseWindVector(id: string, target: SKVessel) {
+    if (!this.source) {
+      return;
+    }
+    if (!target.wind || typeof target.orientation === 'undefined') {
+      return;
+    }
+    const windDirection = this.vectorApparent
+      ? typeof target.wind.awa !== 'undefined'
+        ? target.orientation + target.wind.awa
+        : null
+      : target.wind.direction;
+    if (typeof windDirection !== 'number') {
+      return;
+    }
+
+    let wf = this.source.getFeatureById('wind-' + id) as Feature;
+    if (!this.showVector || !target.position) {
+      if (wf) {
+        this.source.removeFeature(wf);
+      }
+      return;
+    }
+
+    const windc = GeoUtils.destCoordinate(
+      target.position,
+      windDirection,
+      this.zoomOffsetLevel[Math.floor(this.mapZoom)]
+    );
+    if (wf) {
+      // update vector
+      wf.setGeometry(
+        new LineString([fromLonLat(target.position), fromLonLat(windc)])
+      );
+      wf.setStyle(this.buildVectorStyle(id));
+    } else {
+      // create vector
+      wf = new Feature(
+        new LineString([fromLonLat(target.position), fromLonLat(windc)])
+      );
+      wf.setId('wind-' + id);
+      wf.setStyle(this.buildVectorStyle(id));
+      this.source.addFeature(wf);
+    }
+  }
+
+  // add update COG vector
+  parseCogLine(id: string, target: SKVessel) {
+    if (!this.source || !target.vectors.cog) {
+      return;
+    }
+
+    let cf = this.source.getFeatureById('cog-' + id) as Feature;
+    if (
+      !this.okToRenderCogLines ||
+      !this.okToRenderTarget(id) ||
+      !target.position
+    ) {
+      if (cf) {
+        this.source.removeFeature(cf);
+      }
+      return;
+    }
+
+    if (cf) {
+      // update vector
+      cf.setGeometry(new LineString(fromLonLatArray(target.vectors.cog)));
+      cf.setStyle(this.buildCogLineStyle(id, cf));
+    } else {
+      // create vector
+      cf = new Feature(new LineString(fromLonLatArray(target.vectors.cog)));
+      cf.setId('cog-' + id);
+      cf.setStyle(this.buildCogLineStyle(id, cf));
+      this.source.addFeature(cf);
+    }
+  }
+
+  // ok to show cog lines
+  okToRenderCogLines() {
+    return this.mapZoom >= this.labelMinZoom;
+  }
+
+  // show / hide cog vector
+  toggleCogLines() {
+    if (!this.okToRenderCogLines()) {
+      this.source.forEachFeature((cl: Feature<LineString>) => {
+        if ((cl.getId() as string).includes('cog-')) {
+          this.source.removeFeature(cl);
+        }
+      });
+    } else {
+      this.targets.forEach((v, k) => {
+        this.parseCogLine(k, v);
+      });
+    }
+  }
+
+  buildCogLineStyle(id: string, feature: Feature) {
+    const opacity =
+      this.okToRenderTarget(id) && this.okToRenderCogLines() ? 0.7 : 0;
+    const geometry = feature.getGeometry() as LineString;
+    const color = `rgba(0,0,0, ${opacity})`;
+    const styles = [];
+    styles.push(
+      new Style({
+        stroke: new Stroke({
+          color: color,
+          width: 1,
+          lineDash: [5, 5]
+        })
+      })
+    );
+    geometry.forEachSegment((start: Coordinate, end: Coordinate) => {
+      styles.push(
+        new Style({
+          geometry: new Point(end),
+          image: new Circle({
+            radius: 2,
+            stroke: new Stroke({
+              color: color,
+              width: 1
+            }),
+            fill: new Fill({ color: 'transparent' })
+          })
+        })
+      );
+    });
+    return styles;
+  }
+
   // build wind vector style
-  buildVectorStyle(id): Style {
+  buildVectorStyle(id: string): Style {
     const color = this.vectorApparent ? '16, 75, 16' : '128, 128, 0';
-    let opacity = this.okToRender(id) ? 1 : 0;
-    opacity &= this.mapZoom < this.vectorMinZoom ? 0 : 1;
+    let opacity = this.okToRenderTarget(id) ? 1 : 0;
+    opacity = this.mapZoom < this.vectorMinZoom ? 0 : opacity;
     return new Style({
       stroke: new Stroke({
         width: 2,
@@ -469,9 +588,8 @@ export class SKVesselsLayerComponent implements OnInit, OnDestroy, OnChanges {
   updateLabels() {
     this.source.getFeatures().forEach((f: Feature) => {
       const id = f.getId();
-      if ((id as string).indexOf('ais-') !== -1) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const s: any = f.getStyle();
+      if ((id as string).includes('ais-')) {
+        const s: Style = f.getStyle() as Style;
         f.setStyle(this.setTextLabel(s, f.get('name')));
       }
     });
@@ -482,14 +600,13 @@ export class SKVesselsLayerComponent implements OnInit, OnDestroy, OnChanges {
     if (!s) {
       return s;
     }
-    const cs = s.clone();
-    const ts = cs.getText();
+    const ts = s.getText();
     if (ts) {
       ts.setText(Math.abs(this.mapZoom) >= this.labelMinZoom ? text : '');
       ts.setFill(new Fill({ color: this.theme.labelText.color }));
-      cs.setText(ts);
+      s.setText(ts);
     }
-    return cs;
+    return s;
   }
 
   // return a Style with rotation set
@@ -497,12 +614,11 @@ export class SKVesselsLayerComponent implements OnInit, OnDestroy, OnChanges {
     if (!s) {
       return s;
     }
-    const cs = s.clone();
-    const im = cs.getImage();
+    const im = s.getImage();
     if (im) {
       im.setRotation(value ?? 0);
-      cs.setImage(im);
+      s.setImage(im);
     }
-    return cs;
+    return s;
   }
 }

@@ -24,24 +24,34 @@ export function cleanConfig(
     settings.fixedPosition = [0, 0];
   }
 
-  if (typeof settings.vessel === 'undefined') {
-    settings.vessel = {
+  // changeover 2.10.1 - for removal
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  if (typeof (settings as any).vessel !== 'undefined') {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    settings.selections.vessel = Object.assign({}, (settings as any).vessel);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    delete (settings as any).vessel;
+  }
+
+  if (typeof settings.selections.vessel === 'undefined') {
+    settings.selections.vessel = {
       trail: true,
       windVectors: true,
       laylines: false,
-      cogLine: 0,
+      cogLine: 10,
+      aisCogLine: 10,
       headingLineSize: -1
     };
   }
-  if (typeof settings.vessel.laylines === 'undefined') {
-    settings.vessel.laylines = false;
+  if (typeof settings.selections.vessel.laylines === 'undefined') {
+    settings.selections.vessel.laylines = false;
   }
 
   // changeover 2.7 - for removal
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   if (typeof (settings as any).vesselTrail !== 'undefined') {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    settings.vessel.trail = (settings as any).vesselTrail;
+    settings.selections.vessel.trail = (settings as any).vesselTrail;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     delete (settings as any).vesselTrail;
   }
@@ -49,7 +59,9 @@ export function cleanConfig(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   if (typeof (settings as any).vesselWindVectors !== 'undefined') {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    settings.vessel.windVectors = (settings as any).vesselWindVectors;
+    settings.selections.vessel.windVectors = (
+      settings as any
+    ).vesselWindVectors;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     delete (settings as any).vesselWindVectors;
   }
@@ -304,13 +316,6 @@ export const DefaultConfig: IAppConfig = {
     speed: 'kn',
     temperature: 'c'
   },
-  vessel: {
-    trail: false, // display trail
-    windVectors: true, // display vessel TWD, AWD vectors
-    laylines: false,
-    cogLine: 0, // display COG line
-    headingLineSize: -1 // mode for display of heading line -1 = default
-  },
   selections: {
     // ** saved selections
     routes: [],
@@ -325,6 +330,14 @@ export const DefaultConfig: IAppConfig = {
       twd: 'environment.wind.directionTrue',
       heading: 'navigation.courseOverGroundTrue',
       course: 'navigation.courseGreatCircle'
+    },
+    vessel: {
+      trail: false, // display trail
+      windVectors: true, // display vessel TWD, AWD vectors
+      laylines: false,
+      cogLine: 10, // display COG line
+      aisCogLine: 10,
+      headingLineSize: -1 // mode for display of heading line -1 = default
     },
     positionFormat: 'XY',
     aisTargets: null,
@@ -428,13 +441,6 @@ export interface IAppConfig {
     speed: 'kn' | 'msec' | 'kmh' | 'mph';
     temperature: 'c' | 'f';
   };
-  vessel: {
-    trail: boolean; // display trail
-    windVectors: boolean; // display vessel TWD, AWD vectors
-    laylines: boolean;
-    cogLine: number; // (minutes) length = cogLine * sog
-    headingLineSize: number; // mode for display of heading line -1 = default
-  };
   selections: {
     // ** saved selections
     routes: string[];
@@ -449,6 +455,14 @@ export interface IAppConfig {
       twd: string;
       heading: string;
       course: string;
+    };
+    vessel: {
+      trail: boolean; // display trail
+      windVectors: boolean; // display vessel TWD, AWD vectors
+      laylines: boolean;
+      cogLine: number; // (minutes) length = cogLine * sog
+      aisCogLine: number; // (minutes) length = cogLine * sog
+      headingLineSize: number; // mode for display of heading line -1 = default
     };
     positionFormat: 'XY' | 'SHDd' | 'HDd' | 'DMdH' | 'HDMS' | 'DHMS';
     aisTargets: string[];

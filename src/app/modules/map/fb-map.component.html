@@ -5,10 +5,11 @@
   [olControls]="fbMap.controls"
   [setFocus]="fbMap.focus"
   (mapSingleClick)="onMapMouseClick($event)"
+  (mapRightClick)="onMapMouseRightClick($event)"
   (mapMoveEnd)="onMapMove($event)"
   (mapPointerMove)="onMapPointerMove($event)"
   (mapPointerDrag)="onMapPointerDrag()"
-  (contextmenu)="onMapRightClick($event)"
+  (contextmenu)="onContextMenu($event)"
   olView
   [zoom]="fbMap.zoomLevel"
   [center]="fbMap.center"
@@ -237,6 +238,24 @@
   @if(app.config.aisTargets) {
   <div>
     @if(app.config.selections.aisProfile === 0) {
+    <sk-ais-flags
+      [flagged]="app.data.vessels.flagged"
+      [targetContext]="'vessels'"
+      [targets]="dfeat.ais"
+      [mapZoom]="fbMap.zoomLevel"
+      [labelMinZoom]="this.app.config.selections.labelsMinZoom"
+      [focusId]="app.data.vessels.activeId"
+      [filterIds]="app.config.selections.aisTargets"
+      [filterByShipType]="app.config.selections.aisFilterByShipType"
+      [filterShipTypes]="app.config.selections.aisTargetTypes"
+      [updateIds]="aisMgr.updateList"
+      [staleIds]="aisMgr.staleList"
+      [removeIds]="aisMgr.removeList"
+      [inactiveTime]="app.config.selections.aisStaleAge"
+      [zIndex]="221"
+      [darkMode]="app.config.map.invertColor"
+    >
+    </sk-ais-flags>
     <sk-ais-vessels
       [darkMode]="app.config.map.invertColor"
       [targets]="dfeat.ais"
@@ -297,6 +316,18 @@
   </sk-targets>
   }
   <!-- /Signal K targets -->
+
+  <!-- Racing -->
+  <racing-start-line
+    [startLine]="app.data.racing.startLine"
+    [racecourseStyles]="featureStyles.raceCourse"
+    [darkMode]="app.config.map.invertColor"
+    [labelMinZoom]="this.app.config.selections.labelsMinZoom"
+    [mapZoom]="fbMap.zoomLevel"
+    [zIndex]="123"
+  >
+  </racing-start-line>
+  <!-- /Racing -->
 
   <!-- Regions -->
   <fb-regions
@@ -479,7 +510,7 @@
     [layerProperties]=""
   >
   </fb-xte-path>
-  } @if(dfeat.navData.position && app.config.vessel.laylines) {
+  } @if(dfeat.navData.position && app.config.selections.vessel.laylines) {
   <fb-layline
     [lines]="vesselLines.laylines"
     [laylineStyles]="featureStyles.layline"
@@ -526,14 +557,14 @@
     [id]="'' + app.data.selfId"
     [activeId]="app.data.vessels.activeId"
     [vesselLines]="vesselLines"
-    [showWind]="app.config.vessel.windVectors"
+    [showWind]="app.config.selections.vessel.windVectors"
     [vesselStyles]="featureStyles.vessel"
     [fixedLocation]="app.config.fixedLocationMode"
     [zIndex]="250"
   >
   </fb-vessel>
 
-  @if(app.config.vessel.trail && app.data.vessels.showSelf) {
+  @if(app.config.selections.vessel.trail && app.data.vessels.showSelf) {
   <fb-vessel-trail
     [localTrail]="vesselLines.trail"
     [serverTrail]="dfeat.trail"
@@ -582,7 +613,7 @@
       (click)="onContextMenuAction('add_note', item)"
       (contextmenu)="$event.preventDefault()"
     >
-      <mat-icon style="color: orange">local_offer</mat-icon>
+      <mat-icon>local_offer</mat-icon>
       Add Note here
     </button>
     }
@@ -598,7 +629,7 @@
     </button>
     <mat-divider></mat-divider>
 
-    @if(app.config.vessel.trail && app.data.trail.length !== 0) {
+    @if(app.config.selections.vessel.trail && app.data.trail.length !== 0) {
     <button mat-menu-item (click)="onContextMenuAction('cleartrail', item)">
       <mat-icon>clear_all</mat-icon>
       <span>{{ app.data.serverTrail ? 'Refresh' : 'Clear' }} Trail</span>

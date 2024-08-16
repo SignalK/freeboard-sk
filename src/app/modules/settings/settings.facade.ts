@@ -323,7 +323,7 @@ export class SettingsFacade {
 
   applySettings() {
     this.app.debug('Saving Settings..');
-    if (!this.app.config.vessel.trail) {
+    if (!this.app.config.selections.vessel.trail) {
       this.app.config.selections.trailFromServer = false;
     }
     if (

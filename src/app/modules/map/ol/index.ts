@@ -49,6 +49,9 @@ import { LaylineComponent } from './lib/navigation/layer-layline.component';
 import { DirectionOfTravelComponent } from './lib/navigation/layer-dot.component';
 import { VesselComponent } from './lib/vessel/layer-vessel.component';
 import { VesselTrailComponent } from './lib/vessel/layer-vessel-trail.component';
+import { FBFeatureLayerComponent } from './lib/sk-feature.component';
+import { RacingStartLineLayerComponent } from './lib/racing/layer-racing-startline.component';
+import { SKFlagsLayerComponent } from './lib/resources/layer-aisflags.component';
 
 export * from './lib/util';
 export { MapService } from './lib/map.service';
@@ -102,6 +105,9 @@ import { TargetAngleComponent } from './lib/navigation/layer-target-angle.compon
 export { DirectionOfTravelComponent } from './lib/navigation/layer-dot.component';
 export { VesselComponent } from './lib/vessel/layer-vessel.component';
 export { VesselTrailComponent } from './lib/vessel/layer-vessel-trail.component';
+export { FBFeatureLayerComponent } from './lib/sk-feature.component';
+export { RacingStartLineLayerComponent } from './lib/racing/layer-racing-startline.component';
+export { SKFlagsLayerComponent } from './lib/resources/layer-aisflags.component';
 
 const declarations = [
   ContentComponent,
@@ -139,7 +145,10 @@ const declarations = [
   VesselComponent,
   VesselTrailComponent,
   SKVesselsLayerComponent,
-  DirectionOfTravelComponent
+  DirectionOfTravelComponent,
+  FBFeatureLayerComponent,
+  RacingStartLineLayerComponent,
+  SKFlagsLayerComponent
 ];
 
 @NgModule({

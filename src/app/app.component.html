@@ -67,12 +67,12 @@
     </mat-menu>
 
     <mat-menu #settingsmenu="matMenu">
-      @if(app.config.vessel.trail && app.data.trail.length !== 0) {
+      @if(app.config.selections.vessel.trail && app.data.trail.length !== 0) {
       <a mat-menu-item (click)="clearTrail(app.data.serverTrail)">
         <mat-icon>clear_all</mat-icon>
         <span>{{ app.data.serverTrail ? 'Refresh' : 'Clear' }} Trail</span>
       </a>
-      } @if(app.config.vessel.trail && app.data.trail.length !== 0) {
+      } @if(app.config.selections.vessel.trail && app.data.trail.length !== 0) {
       <a mat-menu-item (click)="trailToRoute()">
         <mat-icon>insights</mat-icon>
         <span>Trail to Route</span>

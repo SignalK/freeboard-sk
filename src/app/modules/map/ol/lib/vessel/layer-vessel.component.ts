@@ -13,7 +13,7 @@ import { Layer } from 'ol/layer';
 import { Feature } from 'ol';
 import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
-import { Style, RegularShape, Fill, Stroke } from 'ol/style';
+import { Style, RegularShape, Fill, Stroke, Circle } from 'ol/style';
 import { Geometry, Point, LineString } from 'ol/geom';
 import { fromLonLat } from 'ol/proj';
 import { MapComponent } from '../map.component';
@@ -269,11 +269,31 @@ export class VesselComponent implements OnInit, OnDestroy, OnChanges {
     }
     if ('cog' in this.vesselLines) {
       this.cogLine = this.updateLine(this.cogLine, this.vesselLines.cog);
-      this.cogLine.setStyle(
-        new Style({
-          stroke: new Stroke({ color: 'rgba(204, 12, 225, 0.7)', width: 1 })
-        })
-      );
+      this.cogLine.setStyle((feature: Feature) => {
+        const geometry = feature.getGeometry() as LineString;
+        const styles = [];
+        styles.push(
+          new Style({
+            stroke: new Stroke({ color: 'rgba(204, 12, 225, 0.7)', width: 1 })
+          })
+        );
+        geometry.forEachSegment((start: Coordinate, end: Coordinate) => {
+          styles.push(
+            new Style({
+              geometry: new Point(end),
+              image: new Circle({
+                radius: 3,
+                stroke: new Stroke({
+                  color: 'rgba(204, 12, 225, 0.7)',
+                  width: 1
+                }),
+                fill: new Fill({ color: 'transparent' })
+              })
+            })
+          );
+        });
+        return styles;
+      });
     } else {
       this.removeFeature(this.cogLine);
     }

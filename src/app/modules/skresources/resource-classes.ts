@@ -166,10 +166,24 @@ export class SKTrack {
   }
 }
 
-// ** Vessel Data **
-export class SKVessel {
+// ** SK Target Base class **
+class SKTargetBase {
   id: string;
+  name: string;
+  mmsi: string;
   position: Position = [0, 0];
+  state: string;
+  type: { id: number; name: string } = { id: -1, name: '' };
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  properties: { [key: string]: any } = {};
+  lastUpdated = new Date();
+  callsignVhf: string;
+  callsignHf: string;
+  orientation = 0;
+}
+
+// ** Vessel Data **
+export class SKVessel extends SKTargetBase {
   heading: number;
   headingTrue: number = null;
   headingMagnetic: number = null;
@@ -177,12 +191,8 @@ export class SKVessel {
   cogTrue: number = null;
   cogMagnetic: number = null;
   sog: number;
-  name: string;
-  mmsi: string;
   registrations: { [key: string]: string } = {};
   type: { id: number; name: string } = { id: -1, name: '' };
-  callsign: string;
-  state: string;
   wind = {
     direction: null,
     mwd: null,
@@ -193,8 +203,6 @@ export class SKVessel {
     awa: null,
     aws: null
   };
-  lastUpdated = new Date();
-  orientation = 0;
   buddy = false;
   closestApproach = null;
   mode = 'day';
@@ -213,41 +221,29 @@ export class SKVessel {
     beatAngle: null,
     gybeAngle: null
   };
-  properties = {};
-}
-
-// ** AIS Base class **
-class AISBase {
-  id: string;
-  lastUpdated = new Date();
-  name: string;
-  mmsi: string;
-  position: Position = [0, 0];
-  properties = {};
-  state: string;
+  racing: { [key: string]: string };
+  vectors = {
+    cog: [] // cog vector
+  };
 }
 
 // ** AtoN class **
-export class SKAtoN extends AISBase {
-  type: { id: number; name: string } = { id: -1, name: '' };
+export class SKAtoN extends SKTargetBase {
   constructor() {
     super();
   }
 }
 
 // ** SaR class **
-export class SKSaR extends SKAtoN {
-  callsign: string;
+export class SKSaR extends SKTargetBase {
   constructor() {
     super();
   }
 }
 
 // ** Aircraft Data **
-export class SKAircraft extends AISBase {
-  orientation = 0;
+export class SKAircraft extends SKTargetBase {
   sog = 0;
-  callsign: string;
   track: Array<Position[]> = [];
   constructor() {
     super();
@@ -256,7 +252,6 @@ export class SKAircraft extends AISBase {
 
 // ** Meteo / weather class **
 export class SKMeteo extends SKAtoN {
-  callsign: string;
   twd: number;
   tws: number;
   temperature: number;

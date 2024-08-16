@@ -1,5 +1,13 @@
 # CHANGELOG: Freeboard
 
+### v2.11.0
+
+- **Added**: COG vector for AIS vessels. (#180)
+- **Added**: Flag / Un-flag AIS vessels. (#165)
+- **Added**: Initial support for `navigation.racing`. _(Display start line)_
+- **Updated**: Improved AIS target processing.
+- **Fixed**: AIS vessels not correctly oriented when preferred path is not available. (#182)
+
 ### v2.10.0
 
 - **Updated**: Scale up AIS icon sizes (#180).
@@ -9,7 +17,6 @@
 - **Updated**: Add waypoint styles to routes (#168).
 - **Updated**: S57 chart styles (@wdantuma).
 - **Updated**: Angular framework to v18 & Material 3
-
 
 ### v2.9.1
 

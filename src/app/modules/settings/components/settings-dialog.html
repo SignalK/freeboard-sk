@@ -574,7 +574,7 @@
 
                   <mat-checkbox
                     #vesselwindvectors
-                    [(ngModel)]="facade.settings.vessel.windVectors"
+                    [(ngModel)]="facade.settings.selections.vessel.windVectors"
                     (change)="onFormChange($event, vesselwindvectors)"
                     label="after"
                   >
@@ -583,7 +583,7 @@
 
                   <mat-checkbox
                     #vessellaylines
-                    [(ngModel)]="facade.settings.vessel.laylines"
+                    [(ngModel)]="facade.settings.selections.vessel.laylines"
                     (change)="onFormChange($event, vessellaylines)"
                     label="after"
                   >
@@ -595,7 +595,7 @@
                     <mat-select
                       #vesselheadinglinesize
                       matTooltip="Length of heading line."
-                      [(value)]="facade.settings.vessel.headingLineSize"
+                      [(value)]="facade.settings.selections.vessel.headingLineSize"
                       (selectionChange)="onFormChange($event, vesselheadinglinesize)"
                     >
                       <mat-option
@@ -611,7 +611,7 @@
                     <mat-select
                       #vesselcoglinesize
                       matTooltip="Length of COG line."
-                      [(value)]="facade.settings.vessel.cogLine"
+                      [(value)]="facade.settings.selections.vessel.cogLine"
                       (selectionChange)="onFormChange($event, vesselcoglinesize)"
                     >
                       <mat-option
@@ -628,7 +628,7 @@
                 <legend>
                   <mat-checkbox
                     #vesseltrail
-                    [(ngModel)]="facade.settings.vessel.trail"
+                    [(ngModel)]="facade.settings.selections.vessel.trail"
                     (change)="onFormChange($event, vesseltrail)"
                     label="after"
                   >
@@ -639,7 +639,7 @@
                   <div class="setting-card-row-item">
                     <mat-checkbox
                       #trailFromServer
-                      [disabled]="!facade.settings.vessel.trail"
+                      [disabled]="!facade.settings.selections.vessel.trail"
                       [(ngModel)]="facade.settings.selections.trailFromServer"
                       (change)="onFormChange($event, trailFromServer)"
                       matTooltip="Select to source trail data from the server"
@@ -655,7 +655,7 @@
                       tickInterval="1"
                       min="1"
                       max="96"
-                      [disabled]="!facade.settings.selections.trailFromServer || !facade.settings.vessel.trail"
+                      [disabled]="!facade.settings.selections.trailFromServer || !facade.settings.selections.vessel.trail"
                     >
                       <input
                         matSliderThumb
@@ -673,7 +673,7 @@
                       <mat-select
                         #trailRes1
                         [(value)]="facade.settings.selections.trailResolution.lastHour"
-                        [disabled]="!facade.settings.selections.trailFromServer || !facade.settings.vessel.trail"
+                        [disabled]="!facade.settings.selections.trailFromServer || !facade.settings.selections.vessel.trail"
                         (selectionChange)="onFormChange($event, trailRes1)"
                       >
                         <mat-option
@@ -690,7 +690,7 @@
                       <mat-select
                         #trailRes23
                         [(value)]="facade.settings.selections.trailResolution.next23"
-                        [disabled]="!facade.settings.selections.trailFromServer || !facade.settings.vessel.trail"
+                        [disabled]="!facade.settings.selections.trailFromServer || !facade.settings.selections.vessel.trail"
                         (selectionChange)="onFormChange($event, trailRes23)"
                       >
                         <mat-option
@@ -707,7 +707,7 @@
                       <mat-select
                         #trailRes24plus
                         [(value)]="facade.settings.selections.trailResolution.beyond24"
-                        [disabled]="!facade.settings.selections.trailFromServer || !facade.settings.vessel.trail"
+                        [disabled]="!facade.settings.selections.trailFromServer || !facade.settings.selections.vessel.trail"
                         (selectionChange)="onFormChange($event, aisstaleage)"
                       >
                         <mat-option

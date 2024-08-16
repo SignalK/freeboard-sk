@@ -64,8 +64,12 @@ import { SignalKDetailsComponent } from '../../components/signalk-details.compon
               <div style="flex: 1 1 auto;">{{ data.target.mmsi }}</div>
             </div>
             <div style="display:flex;">
-              <div class="key-label">Call sign:</div>
-              <div style="flex: 1 1 auto;">{{ data.target.callsign }}</div>
+              <div class="key-label">Call sign VHF:</div>
+              <div style="flex: 1 1 auto;">{{ data.target.callsignVhf }}</div>
+            </div>
+            <div style="display:flex;">
+              <div class="key-label">Call sign HF:</div>
+              <div style="flex: 1 1 auto;">{{ data.target.callsignHf }}</div>
             </div>
             <button mat-stroked-button (click)="toggleProperties()">
               <span>Show {{ showProperties ? 'Less' : 'More' }}</span>

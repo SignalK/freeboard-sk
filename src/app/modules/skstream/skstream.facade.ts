@@ -163,8 +163,6 @@ export class SKStreamFacade {
           { path: 'buddy', period: 1000, policy: 'fixed' },
           { path: 'uuid', period: 1000, policy: 'fixed' },
           { path: 'name', period: 1000, policy: 'fixed' },
-          { path: 'registrations', period: 1000, policy: 'fixed' },
-          { path: 'communication.callsignVhf', period: 1000, policy: 'fixed' },
           { path: 'mmsi', period: 1000, policy: 'fixed' },
           { path: 'port', period: 1000, policy: 'fixed' },
           { path: 'flag', period: 1000, policy: 'fixed' },
@@ -304,24 +302,44 @@ export class SKStreamFacade {
     if (this.app.config.fixedLocationMode) {
       this.app.data.vessels.self.position = [...this.app.config.fixedPosition];
     }
+    this.parseSelfRacing(v);
     this.processVessel(this.app.data.vessels.self);
     this.alarmsFacade.updateAnchorStatus();
-    // resource update handling in AppComponent.OnMessage()
+    // resource update handling is in AppComponent.OnMessage()
+  }
+
+  parseSelfRacing(v: SKVessel) {
+    if (
+      v.properties['navigation.racing.startLineStb'] &&
+      v.properties['navigation.racing.startLinePort']
+    ) {
+      const sls = v.properties['navigation.racing.startLineStb'];
+      const slp = v.properties['navigation.racing.startLinePort'];
+      this.app.data.racing.startLine = [
+        [slp.longitude, slp.latitude],
+        [sls.longitude, sls.latitude]
+      ];
+    } else {
+      this.app.data.racing.startLine = [];
+    }
   }
 
   private parseVesselOther(otherVessels: Map<string, SKVessel>) {
     this.app.data.vessels.aisTargets = otherVessels;
     this.app.data.vessels.aisTargets.forEach((value, key) => {
       this.processVessel(value);
+
       value.wind.direction = this.app.useMagnetic
         ? value.wind.mwd
         : value.wind.twd;
+
       value.orientation =
-        value.heading !== null
-          ? value.heading
-          : value.cog !== null
-          ? value.cog
-          : 0;
+        value.cogTrue ??
+        value.headingTrue ??
+        value.cogMagnetic ??
+        value.headingMagnetic ??
+        0;
+
       if (`vessels.${this.app.data.vessels.closest.id}` === key) {
         if (!value.closestApproach) {
           this.alarmsFacade.updateAlarm('cpa', null);

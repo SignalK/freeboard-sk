@@ -34,9 +34,15 @@ import { SKAircraft } from 'src/app/modules';
         <div style="flex: 1 1 auto;text-align:right;">{{ aircraft.name }}</div>
       </div>
       <div style="display:flex;">
-        <div style="font-weight:bold;">Call sign:</div>
+        <div style="font-weight:bold;">Call sign VHF:</div>
         <div style="flex: 1 1 auto;text-align:right;">
-          {{ aircraft.callsign }}
+          {{ aircraft.callsignVhf }}
+        </div>
+      </div>
+      <div style="display:flex;">
+        <div style="font-weight:bold;">Call sign HF:</div>
+        <div style="flex: 1 1 auto;text-align:right;">
+          {{ aircraft.callsignHf }}
         </div>
       </div>
       <div style="display:flex;">

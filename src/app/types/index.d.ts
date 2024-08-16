@@ -99,6 +99,11 @@ export interface FBAppData {
   lastGet: Position; // map position of last resources GET
   map: {
     suppressContextMenu: boolean;
+    atClick: {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      features: any[];
+      lonlat: Position;
+    };
   };
   vessels: {
     // received vessel data
@@ -115,6 +120,7 @@ export interface FBAppData {
       position: Position;
     };
     prefAvailablePaths: { [key: string]: string }; // preference paths available from source
+    flagged: string[];
   };
   aircraft: Map<string, SKAircraft>; // received AIS aircraft data
   atons: Map<string, SKAtoN>; // received AIS AtoN data
@@ -143,6 +149,10 @@ export interface FBAppData {
     pointNames: string[];
     activeRoutePoints: LineString;
     destPointName: string;
+  };
+  racing: {
+    startLine: LineString;
+    finishLine: LineString;
   };
   anchor: {
     // ** anchor watch

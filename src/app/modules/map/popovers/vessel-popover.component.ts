@@ -127,6 +127,11 @@ isSelf: boolean - true if vessel 'self'
             DROP WPT
           </button>
           } @else {
+          <button mat-button (click)="toggleFlag()" matTooltip="Flag vessel">
+            <mat-icon>{{ isFlagged ? 'clear_all' : 'flag' }}</mat-icon>
+            {{ isFlagged ? 'UN-FLAG' : 'FLAG' }}
+          </button>
+
           <button
             mat-button
             (click)="focusVessel(true)"
@@ -178,13 +183,16 @@ export class VesselPopoverComponent {
   speedUnits: string;
 
   position: Position = [0, 0];
+  isFlagged = false;
 
   constructor(public app: AppInfo) {}
 
   ngOnInit() {
     if (!this.vessel) {
       this.handleClose();
+      return;
     }
+    this.isFlagged = this.app.data.vessels.flagged.includes(this.vessel.id);
   }
 
   ngOnChanges(changes: SimpleChanges) {
@@ -193,12 +201,14 @@ export class VesselPopoverComponent {
         this.handleClose();
         return;
       }
+      this.isFlagged = this.app.data.vessels.flagged.includes(this.vessel.id);
       this._title =
         this.title ||
         this.vessel.name ||
         this.vessel.mmsi ||
-        this.vessel.callsign ||
-        'Vessel:';
+        this.vessel.callsignVhf ||
+        this.vessel.callsignHf;
+      ('Vessel:');
       this.position = [
         changes.vessel.currentValue.position[0],
         changes.vessel.currentValue.position[1]
@@ -222,7 +232,32 @@ export class VesselPopoverComponent {
   }
 
   focusVessel(setFocus: boolean) {
+    this.removeFlag();
     this.focused.emit(setFocus);
+  }
+
+  toggleFlag() {
+    if (this.isFlagged) {
+      this.removeFlag();
+    } else {
+      if (!this.app.data.vessels.flagged.includes(this.vessel.id)) {
+        this.app.data.vessels.flagged = [this.vessel.id].concat(
+          this.app.data.vessels.flagged
+        );
+      }
+    }
+    this.isFlagged = !this.isFlagged;
+    this.closed.emit();
+  }
+
+  private removeFlag() {
+    if (this.app.data.vessels.flagged.includes(this.vessel.id)) {
+      this.app.data.vessels.flagged.splice(
+        this.app.data.vessels.flagged.indexOf(this.vessel.id),
+        1
+      );
+      this.app.data.vessels.flagged = [].concat(this.app.data.vessels.flagged);
+    }
   }
 
   handleClose() {

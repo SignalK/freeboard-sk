@@ -19,6 +19,7 @@ import { MapReadyEvent } from './models';
 import { AsyncSubject } from 'rxjs';
 import { toLonLat, transformExtent } from 'ol/proj';
 import { Coordinate } from 'ol/coordinate';
+import { FeatureLike } from 'ol/Feature';
 
 @Component({
   selector: 'ol-map',
@@ -50,6 +51,10 @@ export class MapComponent implements OnInit, OnDestroy {
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   @Output() mapClick: EventEmitter<any> = new EventEmitter<any>();
+  @Output() mapRightClick: EventEmitter<{
+    features: FeatureLike[];
+    lonlat: Coordinate;
+  }> = new EventEmitter<{ features: FeatureLike[]; lonlat: Coordinate }>();
   @Output() mapSingleClick: EventEmitter<MapBrowserEvent<UIEvent>> =
     new EventEmitter<MapBrowserEvent<UIEvent>>();
   @Output() mapDblClick: EventEmitter<MapBrowserEvent<UIEvent>> =
@@ -109,6 +114,10 @@ export class MapComponent implements OnInit, OnDestroy {
     this.map.un('postcompose', this.emitPostComposeEvent);
     this.map.un('postrender', this.emitPostRenderEvent);
     this.map.un('precompose', this.emitPreComposeEvent);
+    // right click handler
+    this.map
+      .getViewport()
+      .removeEventListener('contextmenu', this.emitRightClickEvent);
 
     window.removeEventListener('resize', this.updateSizeThrottle);
     window.removeEventListener('orientationchange', this.updateSizeThrottle);
@@ -137,6 +146,11 @@ export class MapComponent implements OnInit, OnDestroy {
     this.map.on('postcompose', this.emitPostComposeEvent);
     this.map.on('postrender', this.emitPostRenderEvent);
     this.map.on('precompose', this.emitPreComposeEvent);
+
+    // right click handler
+    this.map
+      .getViewport()
+      .addEventListener('contextmenu', this.emitRightClickEvent);
 
     // react on window events
     window.addEventListener('resize', this.updateSizeThrottle, false);
@@ -194,6 +208,19 @@ export class MapComponent implements OnInit, OnDestroy {
     this.mapClick.emit(this.augmentClickEvent(event));
   };
 
+  private emitRightClickEvent = (event: MouseEvent) => {
+    event.preventDefault();
+    const c = this.map.getEventCoordinate(event);
+    this.mapRightClick.emit({
+      features: this.map.getFeaturesAtPixel(
+        this.map.getPixelFromCoordinateInternal(c),
+        {
+          hitTolerance: this.hitTolerance
+        }
+      ),
+      lonlat: toLonLat(c)
+    });
+  };
   private emitSingleClickEvent = (event: MapBrowserEvent<UIEvent>) => {
     this.mapSingleClick.emit(this.augmentClickEvent(event));
   };

@@ -76,7 +76,8 @@ import {
   destinationStyles,
   laylineStyles,
   drawStyles,
-  targetAngleStyle
+  targetAngleStyle,
+  raceCourseStyles
 } from './mapconfig';
 import { ModifyEvent } from 'ol/interaction/Modify';
 import { DrawEvent } from 'ol/interaction/Draw';
@@ -299,7 +300,8 @@ export class FBMapComponent implements OnInit, OnDestroy {
     sar: sarStyles,
     meteo: meteoStyles,
     layline: laylineStyles,
-    targetAngle: targetAngleStyle
+    targetAngle: targetAngleStyle,
+    raceCourse: raceCourseStyles
   };
 
   // ** map feature data
@@ -634,8 +636,14 @@ export class FBMapComponent implements OnInit, OnDestroy {
     }
   }
 
-  // ** handle mouse right click - show context menu **
-  public onMapRightClick(e) {
+  // ** handle mouse right click **
+  public onMapMouseRightClick(e) {
+    this.app.data.map.atClick = e;
+    this.app.debug(this.app.data.map.atClick);
+  }
+
+  // ** handle context menu **
+  public onContextMenu(e) {
     if (this.app.data.map.suppressContextMenu) {
       return;
     }
@@ -705,6 +713,10 @@ export class FBMapComponent implements OnInit, OnDestroy {
   }
 
   public onMapMouseClick(e) {
+    this.app.data.map.atClick = {
+      features: e.features,
+      lonlat: e.lonlat
+    };
     if (this.measure.enabled && this.measure.coords.length !== 0) {
       this.onMeasureClick(e.lonlat);
     } else if (this.draw.enabled && this.draw.mode === 'route') {
@@ -1067,7 +1079,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
 
   // ****** MAP control functions *******
 
-  // ** handle map zoom controls
+  // handle map zoom controls
   public zoomMap(zoomIn: boolean) {
     if (zoomIn) {
       if (this.app.config.map.zoomLevel < this.app.MAP_ZOOM_EXTENT.max) {
@@ -1080,7 +1092,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
     }
   }
 
-  // ** orient map heading up / north up **
+  // orient map heading up / north up
   public rotateMap() {
     if (this.fbMap.northUp) {
       this.fbMap.rotation = 0;
@@ -1089,7 +1101,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
     }
   }
 
-  // ** center map to active vessel position
+  // center map to active vessel position
   public centerVessel() {
     const t = this.dfeat.active.position;
     t[0] += 0.0000000000001;
@@ -1099,7 +1111,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
   public drawVesselLines(vesselUpdate = false) {
     const z = this.fbMap.zoomLevel;
     const offset = z < 29 ? this.zoomOffsetLevel[Math.floor(z)] : 60;
-    const wMax = 10; // ** max line length
+    const wMax = 10; // max line length
 
     const vl = {
       trail: [],
@@ -1123,7 +1135,46 @@ export class FBMapComponent implements OnInit, OnDestroy {
       }
     }
 
-    // ** xtePath **
+    // anchor line (active)
+    if (!this.app.data.anchor.raised) {
+      vl.anchor = [this.app.data.anchor.position, this.dfeat.active.position];
+    }
+
+    // CPA line
+    vl.cpa = [this.dfeat.closest.position, this.dfeat.self.position];
+
+    // COG line (active)
+    vl.cog = this.dfeat.active.vectors.cog ?? [];
+
+    // heading line (active)
+    const sog = this.dfeat.active.sog || 0;
+    let hl = 0;
+    if (this.app.config.selections.vessel.headingLineSize === -1) {
+      hl = (sog > wMax ? wMax : sog) * offset;
+    } else {
+      hl =
+        Convert.nauticalMilesToKm(
+          this.app.config.selections.vessel.headingLineSize
+        ) * 1000;
+    }
+    vl.heading = [
+      this.dfeat.active.position,
+      GeoUtils.destCoordinate(
+        this.dfeat.active.position,
+        this.dfeat.active.orientation,
+        hl
+      )
+    ];
+
+    // bearing line (active)
+    const bpos =
+      this.dfeat.navData.position &&
+      typeof this.dfeat.navData.position[0] === 'number'
+        ? this.dfeat.navData.position
+        : this.dfeat.active.position;
+    vl.bearing = [this.dfeat.active.position, bpos];
+
+    // xtePath
     if (
       this.dfeat.navData.startPosition &&
       typeof this.dfeat.navData.startPosition[0] === 'number' &&
@@ -1138,17 +1189,9 @@ export class FBMapComponent implements OnInit, OnDestroy {
       vl.xtePath;
     }
 
-    // ** bearing line (active) **
-    const bpos =
-      this.dfeat.navData.position &&
-      typeof this.dfeat.navData.position[0] === 'number'
-        ? this.dfeat.navData.position
-        : this.dfeat.active.position;
-    vl.bearing = [this.dfeat.active.position, bpos];
-
     // laylines (active)
     if (
-      this.app.config.vessel.laylines &&
+      this.app.config.selections.vessel.laylines &&
       Array.isArray(this.dfeat.navData.position) &&
       typeof this.dfeat.navData.position[0] === 'number' &&
       typeof this.app.data.vessels.active.heading === 'number'
@@ -1257,48 +1300,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
       }
     }
 
-    // ** anchor line (active) **
-    if (!this.app.data.anchor.raised) {
-      vl.anchor = [this.app.data.anchor.position, this.dfeat.active.position];
-    }
-
-    // ** CPA line **
-    vl.cpa = [this.dfeat.closest.position, this.dfeat.self.position];
-
-    const sog = this.dfeat.active.sog || 0;
-
-    // ** cog line (active) **
-    const cl = sog * (this.app.config.vessel.cogLine * 60);
-    if (this.dfeat.active.cog) {
-      vl.cog = [
-        this.dfeat.active.position,
-        GeoUtils.destCoordinate(
-          this.dfeat.active.position,
-          this.dfeat.active.cog,
-          cl
-        )
-      ];
-    }
-
-    // ** heading line (active) **
-    let hl = 0;
-    if (this.app.config.vessel.headingLineSize === -1) {
-      hl = (sog > wMax ? wMax : sog) * offset;
-    } else {
-      hl =
-        Convert.nauticalMilesToKm(this.app.config.vessel.headingLineSize) *
-        1000;
-    }
-    vl.heading = [
-      this.dfeat.active.position,
-      GeoUtils.destCoordinate(
-        this.dfeat.active.position,
-        this.dfeat.active.orientation,
-        hl
-      )
-    ];
-
-    // ** awa (focused) **
+    // AWA (focused)
     let aws = this.dfeat.active.wind.aws || 0;
     if (aws > wMax) {
       aws = wMax;
@@ -1313,7 +1315,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
       )
     ];
 
-    // ** twd (focused) **
+    // TWD (focused)
     let tws = this.dfeat.active.wind.tws || 0;
     if (tws > wMax) {
       tws = wMax;

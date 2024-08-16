@@ -100,6 +100,8 @@ const aisMgr = {
   maxTrack: 20 // max point count in track
 };
 
+let vesselPrefs = { cogLine: 10, aisCogLine: 10 }; // selections.vessel
+
 // ** Vessel trail management **
 const trailMgr: VesselTrailConfig = {
   trailDuration: 24,
@@ -313,6 +315,9 @@ function applySettings(opt: { [key: string]: any } = {}) {
     ) {
       targetFilter.aisState = opt.selections.aisState;
     }
+
+    vesselPrefs = opt.selections.vessel;
+
     console.log('Worker: AIS Filter...', targetFilter);
   }
 }
@@ -600,6 +605,9 @@ function parseStreamMessage(data) {
           case 'vessels': // vessels
             if (stream.isSelf(data)) {
               // self
+              if (!vessels.self.id) {
+                vessels.self.id = data.context;
+              }
               processVessel(vessels.self, v, true), processNotifications(v);
             } else {
               // other vessels
@@ -735,6 +743,7 @@ function clearTimers() {
 function selectVessel(id: string): SKVessel {
   if (!vessels.aisTargets.has(id)) {
     const vessel = new SKVessel();
+    vessel.id = id;
     vessel.position = null;
     vessels.aisTargets.set(id, vessel);
   }
@@ -754,6 +763,10 @@ function processVessel(d: SKVessel, v, isSelf = false) {
     if (prefSourcePaths.indexOf(cp) !== -1) {
       vessels.paths[cp] = null;
     }
+    // racing properties
+    if (v.path.includes('navigation.racing')) {
+      d.properties[v.path] = v.value;
+    }
   }
 
   if (v.path === '') {
@@ -769,12 +782,14 @@ function processVessel(d: SKVessel, v, isSelf = false) {
     if (typeof v.value.buddy !== 'undefined') {
       d.buddy = v.value.buddy;
     }
+    if (typeof v.value.communication !== 'undefined') {
+      d.callsignVhf = v.value.communication.callsignVhf ?? '';
+      d.callsignHf = v.value.communication.callsignHf ?? '';
+    }
   } else if (v.path === 'performance.beatAngle') {
     d.performance.beatAngle = v.value;
   } else if (v.path === 'performance.gybeAngle') {
     d.performance.gybeAngle = v.value;
-  } else if (v.path === 'communication.callsignVhf') {
-    d.callsign = v.value;
   } else if (v.path === 'design.aisShipType') {
     d.type = v.value;
   } else if (v.path === 'navigation.position' && v.value) {
@@ -797,20 +812,6 @@ function processVessel(d: SKVessel, v, isSelf = false) {
     d.state = v.value;
   } else if (v.path === 'navigation.speedOverGround') {
     d.sog = v.value;
-  }
-
-  // ** cog **
-  else if (v.path === 'navigation.courseOverGroundTrue') {
-    d.cogTrue = v.value;
-  } else if (v.path === 'navigation.courseOverGroundMagnetic') {
-    d.cogMagnetic = v.value;
-  }
-
-  // ** heading **
-  else if (v.path === 'navigation.headingTrue') {
-    d.headingTrue = v.value;
-  } else if (v.path === 'navigation.headingMagnetic') {
-    d.headingMagnetic = v.value;
   }
 
   // ** environment.wind **
@@ -891,6 +892,20 @@ function processVessel(d: SKVessel, v, isSelf = false) {
     apDeviceId = v.value;
   }
 
+  // ** cog **
+  else if (v.path === 'navigation.courseOverGroundTrue') {
+    d.cogTrue = v.value;
+  } else if (v.path === 'navigation.courseOverGroundMagnetic') {
+    d.cogMagnetic = v.value;
+  }
+
+  // ** heading **
+  else if (v.path === 'navigation.headingTrue') {
+    d.headingTrue = v.value;
+  } else if (v.path === 'navigation.headingMagnetic') {
+    d.headingMagnetic = v.value;
+  }
+
   // use preferred heading value for orientation **
   if (
     typeof preferredPaths['heading'] !== 'undefined' &&
@@ -898,6 +913,7 @@ function processVessel(d: SKVessel, v, isSelf = false) {
   ) {
     d.orientation = v.value;
   }
+
   // use preferred path value for tws **
   if (
     typeof preferredPaths['tws'] !== 'undefined' &&
@@ -915,6 +931,16 @@ function processVessel(d: SKVessel, v, isSelf = false) {
       v.path === 'environment.wind.angleTrueWater'
         ? Convert.angleToDirection(v.value, d.orientation ?? 0)
         : v.value;
+  }
+
+  // ** cog vector **
+  const cog = d.cogTrue ?? d.cogMagnetic ?? undefined;
+  if (typeof cog !== 'undefined' && d.position) {
+    const cvlen = (d.sog ?? 0) * (vesselPrefs.aisCogLine ?? 10 * 60);
+    d.vectors.cog = [
+      d.position,
+      GeoUtils.destCoordinate(d.position, cog, cvlen)
+    ];
   }
 }
 
@@ -1090,7 +1116,9 @@ function processSaR(id: string, v) {
       d.mmsi = v.value.mmsi;
     }
   } else if (v.path === 'communication.callsignVhf') {
-    d.callsign = v.value;
+    d.callsignVhf = v.value;
+  } else if (v.path === 'communication.callsignHf') {
+    d.callsignHf = v.value;
   } else if (v.path === 'navigation.position' && v.value) {
     d.position = GeoUtils.normaliseCoords([
       v.value.longitude,
@@ -1120,7 +1148,9 @@ function processMeteo(id: string, v) {
       d.mmsi = nid.length === 2 ? `${nid[0]}:${nid[1]}` : v.value.mmsi;
     }
   } else if (v.path === 'communication.callsignVhf') {
-    d.callsign = v.value;
+    d.callsignVhf = v.value;
+  } else if (v.path === 'communication.callsignHf') {
+    d.callsignHf = v.value;
   } else if (v.path === 'environment.outside.temperature') {
     d.temperature = v.value;
   } else if (v.path === 'environment.wind.directionTrue') {
@@ -1152,7 +1182,9 @@ function processAircraft(id: string, v) {
       d.mmsi = v.value.mmsi;
     }
   } else if (v.path === 'communication.callsignVhf') {
-    d.callsign = v.value;
+    d.callsignVhf = v.value;
+  } else if (v.path === 'communication.callsignHf') {
+    d.callsignHf = v.value;
   } else if (v.path === 'navigation.position' && v.value) {
     d.position = GeoUtils.normaliseCoords([
       v.value.longitude,

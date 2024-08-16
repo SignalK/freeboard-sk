@@ -233,7 +233,8 @@ export class SKTargetsLayerComponent implements OnInit, OnDestroy, OnChanges {
   buildStyle(item: any, setStale = false): Style {
     let s: Style;
     // label text
-    const lbl = item.name ?? item.callsign ?? item.mmsi ?? '';
+    const lbl =
+      item.name ?? item.callsignVhf ?? item.callsignHf ?? item.mmsi ?? '';
     // ** stale check time ref
     const now = new Date().valueOf();
     if (typeof this.targetStyles !== 'undefined') {

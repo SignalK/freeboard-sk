@@ -1,21 +1,21 @@
 const WHATS_NEW = [
   {
     type: 'signalk-server-node',
-    title: 'Material 3.0 Theming',
+    title: 'AIS Vessels',
     message: `
-        Freeboard-SK user interface now uses Material 3 themes. 
+        The following new features have been added:
         <br>&nbsp;<br>
-        The result is a refreshed user interface appearance, components and light / dark themes.
+        <li>Ability to Flag vessels.</li>
+        <li>COG line is now displayed for AIS vessels.</li>
       `
   },
   {
     type: 'signalk-server-node',
-    title: 'S57 Updates',
+    title: 'Racing Support',
     message: `
-        This release contains updates to S57 map styles:
+        This release contains initial support for <i>navigation.racing</i> paths.
         <br>&nbsp;<br>
-        <li>Show only layers from Base and Standard categories.</li>
-        <li>Buoy top markings.</li>
+        <li>Display start line.</li>
       `
   }
 ];

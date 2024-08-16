@@ -160,7 +160,7 @@ export class AppInfo extends Info {
     this.name = 'Freeboard-SK';
     this.shortName = 'Freeboard';
     this.description = `Signal K Chart Plotter.`;
-    this.version = '2.10.0';
+    this.version = '2.11.0';
     this.url = 'https://github.com/signalk/freeboard-sk';
     this.logo = './assets/img/app_logo.png';
 
@@ -203,7 +203,11 @@ export class AppInfo extends Info {
       server: null,
       lastGet: null, // map position of last resources GET
       map: {
-        suppressContextMenu: false
+        suppressContextMenu: false,
+        atClick: {
+          features: [],
+          lonlat: [0, 0]
+        }
       },
       vessels: {
         // received vessel data
@@ -214,7 +218,8 @@ export class AppInfo extends Info {
         activeId: null,
         active: null,
         closest: { id: null, distance: null, timeTo: null, position: [0, 0] },
-        prefAvailablePaths: {} // preference paths available from source
+        prefAvailablePaths: {}, // preference paths available from source,
+        flagged: [] // flagged ais targets
       },
       aircraft: new Map(), // received AIS aircraft data
       atons: new Map(), // received AIS AtoN data
@@ -243,6 +248,10 @@ export class AppInfo extends Info {
         pointNames: [],
         activeRoutePoints: [],
         destPointName: ''
+      },
+      racing: {
+        startLine: [],
+        finishLine: []
       },
       anchor: {
         // ** anchor watch
@@ -286,7 +295,7 @@ export class AppInfo extends Info {
         switch (res.action) {
           case 'db_init':
             if (res.value) {
-              if (this.config.vessel.trail) {
+              if (this.config.selections.vessel.trail) {
                 this.db.getTrail().then((t) => {
                   this.data.trail = t && t.value ? t.value : [];
                 });
