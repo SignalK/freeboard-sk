@@ -1,6 +1,6 @@
 /public
 /dist
 /plugin
-/node_modules
+node_modules
 package-lock.json
 .angular
