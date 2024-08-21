@@ -21,13 +21,13 @@ import { Extent } from '../models';
 import { fromLonLatArray, mapifyCoords } from '../util';
 import { AsyncSubject } from 'rxjs';
 
-// ** Signal K target tracks  **
+// ** Signal K AIS targets track  **
 @Component({
-  selector: 'ol-map > sk-target-tracks',
+  selector: 'ol-map > ais-targets-track',
   template: '<ng-content></ng-content>',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class SKTargetTracksLayerComponent
+export class AISTargetsTrackLayerComponent
   implements OnInit, OnDestroy, OnChanges
 {
   protected layer: Layer;

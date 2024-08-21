@@ -36,9 +36,6 @@ import { FreeboardChartLayerComponent } from './lib/resources/layer-charts.compo
 import { ChartBoundsLayerComponent } from './lib/resources/layer-chart-bounds.component';
 import { TrackLayerComponent } from './lib/resources/layer-tracks.component';
 import { ResourceSetLayerComponent } from './lib/resources/layer-resourceset.component';
-import { SKTargetsLayerComponent } from './lib/resources/layer-sktargets.component';
-import { SKVesselsLayerComponent } from './lib/resources/layer-skvessels.component';
-import { SKTargetTracksLayerComponent } from './lib/resources/layer-sktarget-tracks.component';
 import { AnchorAlarmComponent } from './lib/alarms/layer-anchor-alarm.component';
 import { AlarmComponent } from './lib/alarms/layer-alarm.component';
 import { CPAAlarmComponent } from './lib/alarms/layer-cpa-alarm.component';
@@ -51,7 +48,11 @@ import { VesselComponent } from './lib/vessel/layer-vessel.component';
 import { VesselTrailComponent } from './lib/vessel/layer-vessel-trail.component';
 import { FBFeatureLayerComponent } from './lib/sk-feature.component';
 import { RacingStartLineLayerComponent } from './lib/racing/layer-racing-startline.component';
-import { SKFlagsLayerComponent } from './lib/resources/layer-aisflags.component';
+import { AISFlagsLayerComponent } from './lib/resources/layer-aisflags.component';
+import { AISWindLayerComponent } from './lib/resources/layer-aiswind.component';
+import { AISTargetsLayerComponent } from './lib/resources/layer-aistargets.component';
+import { AISVesselsLayerComponent } from './lib/resources/layer-aisvessels.component';
+import { AISTargetsTrackLayerComponent } from './lib/resources/layer-aistargets-track.component';
 
 export * from './lib/util';
 export { MapService } from './lib/map.service';
@@ -90,9 +91,6 @@ export { FreeboardChartLayerComponent } from './lib/resources/layer-charts.compo
 export { ChartBoundsLayerComponent } from './lib/resources/layer-chart-bounds.component';
 export { TrackLayerComponent } from './lib/resources/layer-tracks.component';
 export { ResourceSetLayerComponent } from './lib/resources/layer-resourceset.component';
-export { SKTargetsLayerComponent } from './lib/resources/layer-sktargets.component';
-export { SKVesselsLayerComponent } from './lib/resources/layer-skvessels.component';
-export { SKTargetTracksLayerComponent } from './lib/resources/layer-sktarget-tracks.component';
 export { AnchorAlarmComponent } from './lib/alarms/layer-anchor-alarm.component';
 export { AlarmComponent } from './lib/alarms/layer-alarm.component';
 export { CPAAlarmComponent } from './lib/alarms/layer-cpa-alarm.component';
@@ -107,7 +105,11 @@ export { VesselComponent } from './lib/vessel/layer-vessel.component';
 export { VesselTrailComponent } from './lib/vessel/layer-vessel-trail.component';
 export { FBFeatureLayerComponent } from './lib/sk-feature.component';
 export { RacingStartLineLayerComponent } from './lib/racing/layer-racing-startline.component';
-export { SKFlagsLayerComponent } from './lib/resources/layer-aisflags.component';
+export { AISFlagsLayerComponent } from './lib/resources/layer-aisflags.component';
+export { AISWindLayerComponent } from './lib/resources/layer-aiswind.component';
+export { AISTargetsLayerComponent } from './lib/resources/layer-aistargets.component';
+export { AISVesselsLayerComponent } from './lib/resources/layer-aisvessels.component';
+export { AISTargetsTrackLayerComponent } from './lib/resources/layer-aistargets-track.component';
 
 const declarations = [
   ContentComponent,
@@ -132,8 +134,6 @@ const declarations = [
   FreeboardChartLayerComponent,
   ChartBoundsLayerComponent,
   ResourceSetLayerComponent,
-  SKTargetsLayerComponent,
-  SKTargetTracksLayerComponent,
   AnchorAlarmComponent,
   AlarmComponent,
   CPAAlarmComponent,
@@ -144,11 +144,14 @@ const declarations = [
   TargetAngleComponent,
   VesselComponent,
   VesselTrailComponent,
-  SKVesselsLayerComponent,
   DirectionOfTravelComponent,
   FBFeatureLayerComponent,
   RacingStartLineLayerComponent,
-  SKFlagsLayerComponent
+  AISFlagsLayerComponent,
+  AISWindLayerComponent,
+  AISTargetsLayerComponent,
+  AISVesselsLayerComponent,
+  AISTargetsTrackLayerComponent
 ];
 
 @NgModule({

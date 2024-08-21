@@ -91,7 +91,7 @@ export function cleanConfig(
   }
 
   if (typeof settings.selections.labelsMinZoom === 'undefined') {
-    settings.selections.labelsMinZoom = 8;
+    settings.selections.labelsMinZoom = 10;
   }
 
   // changeover 2.7 - for removal

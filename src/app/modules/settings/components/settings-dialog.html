@@ -74,6 +74,7 @@
                     />
                   </mat-form-field>
                 </div>
+
                 <div class="setting-card-row-item">
                   <mat-checkbox
                     #startOnOpen
@@ -98,7 +99,7 @@
                 </div>
               </div>
               } @if(display.favourites) {
-              <div class="setting-card-row">
+              <div class="setting-card-row" style="padding-bottom: 10px">
                 <div class="setting-card-row-item">
                   <div style="font-style: italic">
                     <br />Select Favourite Apps:
@@ -198,6 +199,20 @@
           <mat-card>
             <mat-card-content>
               <div class="setting-card-row" style="padding-bottom: 10px">
+                <div class="setting-card-row-item">
+                  <mat-form-field style="width: 100%">
+                    <mat-label>Feature label zoom level</mat-label>
+                    <mat-select
+                      #labelsminzoom
+                      [(value)]="facade.settings.selections.labelsMinZoom"
+                      (selectionChange)="onFormChange($event, labelsminzoom)"
+                    >
+                      @for(i of facade.list.minZoom; track i) {
+                      <mat-option [value]="i">{{i}}</mat-option>
+                      }
+                    </mat-select>
+                  </mat-form-field>
+                </div>
                 <div class="setting-card-row-item">
                   <mat-checkbox
                     #popoverMulti

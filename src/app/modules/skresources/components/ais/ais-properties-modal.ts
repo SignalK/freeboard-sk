@@ -63,6 +63,7 @@ import { Convert } from 'src/app/lib/convert';
             <div style="display:flex;">
               <div class="key-label">MMSI:</div>
               <div style="flex: 1 1 auto;">
+                {{ vInfo.mmsi }}
                 <a
                   target="aisinfo"
                   [href]="
@@ -70,7 +71,7 @@ import { Convert } from 'src/app/lib/convert';
                     vInfo.mmsi
                   "
                 >
-                  {{ vInfo.mmsi }}
+                  <mat-icon>info</mat-icon>
                 </a>
               </div>
             </div>

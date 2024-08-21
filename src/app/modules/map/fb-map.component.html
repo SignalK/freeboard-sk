@@ -124,7 +124,7 @@
 
   <!-- AIS target tracks -->
   @if(app.config.aisTargets) {
-  <sk-target-tracks
+  <ais-targets-track
     [tracks]="app.data.vessels.aisTracks"
     [updateIds]="aisMgr.updateList"
     [removeIds]="aisMgr.removeList"
@@ -133,7 +133,7 @@
     [mapZoom]="fbMap.zoomLevel"
     zIndex="51"
   >
-  </sk-target-tracks>
+  </ais-targets-track>
   }
 
   <!-- Resource Sets -->
@@ -189,40 +189,44 @@
 
   <!-- Signal K targets -->
   <!-- AtoN targets -->
-  <sk-targets
+  <sk-ais-targets
     [darkMode]="app.config.map.invertColor"
     [targets]="dfeat.atons"
     [targetStyles]="featureStyles.aton"
-    targetType="aton"
-    [updateIds]="aisMgr.updateList"
-    [removeIds]="aisMgr.removeList"
+    targetContext="atons"
     [labelMinZoom]="this.app.config.selections.labelsMinZoom"
     [mapZoom]="fbMap.zoomLevel"
+    [updateIds]="aisMgr.updateList"
+    [staleIds]="aisMgr.staleList"
+    [removeIds]="aisMgr.removeList"
+    [inactiveTime]="app.config.selections.aisStaleAge"
     [zIndex]="45"
   >
-  </sk-targets>
+  </sk-ais-targets>
 
   <!-- shore.basestations targets -->
-  <sk-targets
+  <sk-ais-targets
     [darkMode]="app.config.map.invertColor"
     [targets]="dfeat.atons"
-    [targetStyles]="featureStyles.basestation"
-    targetType="shore.basestations"
-    [updateIds]="aisMgr.updateList"
-    [removeIds]="aisMgr.removeList"
+    [targetStyles]="featureStyles.aton"
+    targetContext="shore.basestations"
     [labelMinZoom]="this.app.config.selections.labelsMinZoom"
     [mapZoom]="fbMap.zoomLevel"
-    [zIndex]="45"
+    [updateIds]="aisMgr.updateList"
+    [staleIds]="aisMgr.staleList"
+    [removeIds]="aisMgr.removeList"
+    [inactiveTime]="app.config.selections.aisStaleAge"
+    [zIndex]="46"
   >
-  </sk-targets>
+  </sk-ais-targets>
 
   <!-- Meteo targets -->
   @if(app.config.aisTargets) {
-  <sk-targets
+  <sk-ais-targets
     [darkMode]="app.config.map.invertColor"
     [targets]="dfeat.meteo"
     [targetStyles]="featureStyles.meteo"
-    targetType="meteo"
+    targetContext="meteo"
     [labelMinZoom]="this.app.config.selections.labelsMinZoom"
     [mapZoom]="fbMap.zoomLevel"
     [updateIds]="aisMgr.updateList"
@@ -231,13 +235,33 @@
     [inactiveTime]="app.config.selections.aisStaleAge"
     [zIndex]="122"
   >
-  </sk-targets>
+  </sk-ais-targets>
   }
 
   <!-- AIS Vessel targets -->
   @if(app.config.aisTargets) {
   <div>
-    @if(app.config.selections.aisProfile === 0) {
+    @if(app.config.selections.aisProfile === 0) { @if( fbMap.zoomLevel >=
+    app.config.selections.aisWindMinZoom) {
+    <sk-ais-wind
+      [targetContext]="'vessels'"
+      [targets]="dfeat.ais"
+      [vectorApparent]="app.config.selections.aisWindApparent"
+      [mapZoom]="fbMap.zoomLevel"
+      [labelMinZoom]="this.app.config.selections.labelsMinZoom"
+      [focusId]="app.data.vessels.activeId"
+      [filterIds]="app.config.selections.aisTargets"
+      [filterByShipType]="app.config.selections.aisFilterByShipType"
+      [filterShipTypes]="app.config.selections.aisTargetTypes"
+      [updateIds]="aisMgr.updateList"
+      [staleIds]="aisMgr.staleList"
+      [removeIds]="aisMgr.removeList"
+      [inactiveTime]="app.config.selections.aisStaleAge"
+      [zIndex]="221"
+      [darkMode]="app.config.map.invertColor"
+    >
+    </sk-ais-wind>
+    }
     <sk-ais-flags
       [flagged]="app.data.vessels.flagged"
       [targetContext]="'vessels'"
@@ -260,20 +284,18 @@
       [darkMode]="app.config.map.invertColor"
       [targets]="dfeat.ais"
       [targetStyles]="featureStyles.aisVessel"
-      [mapZoom]="fbMap.zoomLevel"
+      targetContext="vessels"
       [labelMinZoom]="this.app.config.selections.labelsMinZoom"
-      [showVector]="true"
-      [vectorMinZoom]="app.config.selections.aisWindMinZoom"
-      [vectorApparent]="app.config.selections.aisWindApparent"
-      [focusId]="app.data.vessels.activeId"
-      [filterIds]="app.config.selections.aisTargets"
-      [filterByShipType]="app.config.selections.aisFilterByShipType"
-      [filterShipTypes]="app.config.selections.aisTargetTypes"
+      [mapZoom]="fbMap.zoomLevel"
       [updateIds]="aisMgr.updateList"
       [staleIds]="aisMgr.staleList"
       [removeIds]="aisMgr.removeList"
       [inactiveTime]="app.config.selections.aisStaleAge"
       [zIndex]="220"
+      [focusId]="app.data.vessels.activeId"
+      [filterIds]="app.config.selections.aisTargets"
+      [filterByShipType]="app.config.selections.aisFilterByShipType"
+      [filterShipTypes]="app.config.selections.aisTargetTypes"
     >
     </sk-ais-vessels>
     }
@@ -282,11 +304,11 @@
 
   <!-- Aircraft targets -->
   @if(app.config.aisTargets) {
-  <sk-targets
+  <sk-ais-targets
     [darkMode]="app.config.map.invertColor"
     [targets]="dfeat.aircraft"
     [targetStyles]="featureStyles.aircraft"
-    targetType="aircraft"
+    targetContext="aircraft"
     [labelMinZoom]="this.app.config.selections.labelsMinZoom"
     [mapZoom]="fbMap.zoomLevel"
     [updateIds]="aisMgr.updateList"
@@ -295,16 +317,16 @@
     [inactiveTime]="app.config.selections.aisStaleAge"
     [zIndex]="121"
   >
-  </sk-targets>
+  </sk-ais-targets>
   }
 
   <!-- SAR targets -->
   @if(app.config.aisTargets) {
-  <sk-targets
+  <sk-ais-targets
     [darkMode]="app.config.map.invertColor"
     [targets]="dfeat.sar"
     [targetStyles]="featureStyles.sar"
-    targetType="sar"
+    targetContext="sar"
     [labelMinZoom]="this.app.config.selections.labelsMinZoom"
     [mapZoom]="fbMap.zoomLevel"
     [updateIds]="aisMgr.updateList"
@@ -313,7 +335,7 @@
     [inactiveTime]="app.config.selections.aisStaleAge"
     [zIndex]="122"
   >
-  </sk-targets>
+  </sk-ais-targets>
   }
   <!-- /Signal K targets -->
 

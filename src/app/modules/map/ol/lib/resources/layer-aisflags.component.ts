@@ -15,13 +15,13 @@ import { fromLonLat } from 'ol/proj';
 import { MapComponent } from '../map.component';
 import { AISBaseLayerComponent } from './ais-base.component';
 
-// ** Signal K Vessel Flags  **
+// ** Signal K AIS Vessel Flags  **
 @Component({
   selector: 'ol-map > sk-ais-flags',
   template: '<ng-content></ng-content>',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class SKFlagsLayerComponent
+export class AISFlagsLayerComponent
   extends AISBaseLayerComponent
   implements OnInit, OnDestroy, OnChanges
 {
@@ -55,7 +55,7 @@ export class SKFlagsLayerComponent
 
   // add new flag feature
   addFlagWithId(id: string) {
-    if (!id.includes('vessel') || !this.targets.has(id)) {
+    if (!id.includes(this.targetContext) || !this.targets.has(id)) {
       return;
     }
     const target = this.targets.get(id);
@@ -100,7 +100,7 @@ export class SKFlagsLayerComponent
   // update flag when target updated
   override onUpdateTargets(ids: Array<string>) {
     ids.forEach((id: string) => {
-      if (id.includes('vessel') && this.flagged.includes(id)) {
+      if (id.includes(this.targetContext) && this.flagged.includes(id)) {
         const f = this.source.getFeatureById('flag-' + id) as Feature;
         if (this.okToRenderTarget(id)) {
           if (this.targets.has(id)) {

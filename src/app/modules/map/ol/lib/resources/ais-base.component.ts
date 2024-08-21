@@ -132,6 +132,30 @@ export class AISBaseLayerComponent
     }
   }
 
+  /** Determine if target is stale
+   * @params target AIS target
+   * @returns true if target is stale
+   */
+  protected isStale(target: SKTarget): boolean {
+    if (isNaN(this.inactiveTime)) {
+      return false;
+    }
+    const now = new Date().valueOf();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return target.lastUpdated.valueOf() < now - this.inactiveTime;
+  }
+
+  /** Return a feature label */
+  protected buildLabel(target: SKTarget) {
+    return (
+      target.name ??
+      target.callsignVhf ??
+      target.callsignHf ??
+      target.mmsi ??
+      ''
+    );
+  }
+
   // reload all Features from this.targets
   private reloadTargets() {
     if (!this.targets || !this.source) {
