@@ -4,7 +4,9 @@ import {
   Component,
   OnChanges,
   OnDestroy,
-  OnInit
+  OnInit,
+  Input,
+  SimpleChanges
 } from '@angular/core';
 import { Feature } from 'ol';
 import { Style, RegularShape, Fill, Stroke, Circle } from 'ol/style';
@@ -26,6 +28,8 @@ export class AISVesselsLayerComponent
   extends AISBaseLayerComponent
   implements OnInit, OnDestroy, OnChanges
 {
+  @Input() cogLineLength = 0;
+
   constructor(
     protected mapComponent: MapComponent,
     protected changeDetectorRef: ChangeDetectorRef
@@ -36,6 +40,14 @@ export class AISVesselsLayerComponent
   ngOnInit() {
     super.ngOnInit();
     this.labelPrefixes = ['ais-'];
+  }
+
+  ngOnChanges(changes: SimpleChanges) {
+    super.ngOnChanges(changes);
+    if ('cogLineLength' in changes) {
+      this.cogLineLength = changes['cogLineLength'].currentValue ?? 0;
+      this.onUpdateTargets(this.extractKeys(this.targets));
+    }
   }
 
   // reload all Features from this.targets
@@ -292,6 +304,6 @@ export class AISVesselsLayerComponent
 
   // ok to show cog lines
   okToRenderCogLines() {
-    return this.mapZoom >= this.labelMinZoom;
+    return this.cogLineLength !== 0 && this.mapZoom >= this.labelMinZoom;
   }
 }

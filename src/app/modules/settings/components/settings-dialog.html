@@ -839,6 +839,21 @@
 
                 <div class="setting-card-row-item">
                   <mat-form-field style="width: 100%">
+                    <mat-label>COG Line</mat-label>
+                    <mat-select
+                      #aiscogline
+                      [(value)]="facade.settings.selections.vessel.aisCogLine"
+                      (selectionChange)="onFormChange($event, aiscogline)"
+                    >
+                      @for(i of facade.list.aisCogLine; track i[0]) {
+                      <mat-option [value]="i[0]">{{i[1]}}</mat-option>
+                      }
+                    </mat-select>
+                  </mat-form-field>
+                </div>
+
+                <div class="setting-card-row-item">
+                  <mat-form-field style="width: 100%">
                     <mat-label>Display Profile</mat-label>
                     <mat-select
                       #aisprofile

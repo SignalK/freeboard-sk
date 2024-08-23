@@ -936,7 +936,8 @@ function processVessel(d: SKVessel, v, isSelf = false) {
   // ** cog vector **
   const cog = d.cogTrue ?? d.cogMagnetic ?? undefined;
   if (typeof cog !== 'undefined' && d.position) {
-    const cvlen = (d.sog ?? 0) * (vesselPrefs.aisCogLine ?? 10 * 60);
+    const cogLen = isSelf ? vesselPrefs.cogLine : vesselPrefs.aisCogLine;
+    const cvlen = (d.sog ?? 0) * (cogLen * 60);
     d.vectors.cog = [
       d.position,
       GeoUtils.destCoordinate(d.position, cog, cvlen)

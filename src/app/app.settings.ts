@@ -46,6 +46,9 @@ export function cleanConfig(
   if (typeof settings.selections.vessel.laylines === 'undefined') {
     settings.selections.vessel.laylines = false;
   }
+  if (typeof settings.selections.vessel.aisCogLine === 'undefined') {
+    settings.selections.vessel.aisCogLine = 10;
+  }
 
   // changeover 2.7 - for removal
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -335,8 +338,8 @@ export const DefaultConfig: IAppConfig = {
       trail: false, // display trail
       windVectors: true, // display vessel TWD, AWD vectors
       laylines: false,
-      cogLine: 10, // display COG line
-      aisCogLine: 10,
+      cogLine: 10, // self COG line time (mins)
+      aisCogLine: 10, // self COG line time (mins)
       headingLineSize: -1 // mode for display of heading line -1 = default
     },
     positionFormat: 'XY',

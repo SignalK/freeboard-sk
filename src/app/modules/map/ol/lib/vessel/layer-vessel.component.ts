@@ -270,11 +270,12 @@ export class VesselComponent implements OnInit, OnDestroy, OnChanges {
     if ('cog' in this.vesselLines) {
       this.cogLine = this.updateLine(this.cogLine, this.vesselLines.cog);
       this.cogLine.setStyle((feature: Feature) => {
+        const color = 'rgba(204, 12, 225, 0.7)';
         const geometry = feature.getGeometry() as LineString;
         const styles = [];
         styles.push(
           new Style({
-            stroke: new Stroke({ color: 'rgba(204, 12, 225, 0.7)', width: 1 })
+            stroke: new Stroke({ color: color, width: 1 })
           })
         );
         geometry.forEachSegment((start: Coordinate, end: Coordinate) => {
@@ -282,9 +283,9 @@ export class VesselComponent implements OnInit, OnDestroy, OnChanges {
             new Style({
               geometry: new Point(end),
               image: new Circle({
-                radius: 3,
+                radius: 2,
                 stroke: new Stroke({
-                  color: 'rgba(204, 12, 225, 0.7)',
+                  color: color,
                   width: 1
                 }),
                 fill: new Fill({ color: 'transparent' })

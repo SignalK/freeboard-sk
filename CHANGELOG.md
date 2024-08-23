@@ -1,5 +1,10 @@
 # CHANGELOG: Freeboard
 
+### v2.11.1
+
+- **Fixed**: Display of AIS COG vector does not honor setting value. (#180)
+- **Added**: Separate setting for AIS COG vector.
+
 ### v2.11.0
 
 - **Added**: COG vector for AIS vessels. (#180)

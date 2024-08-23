@@ -98,6 +98,10 @@ export class SettingsFacade {
       [75000, '40 NM (75km)'],
       [100000, '55 NM (100km)']
     ]),
+    aisCogLine: new Map([
+      [0, 'Off'],
+      [10, 'On']
+    ]),
     aisProfiles: new Map([[0, 'Default']]) //,[1,'Navigation'] ])
   };
 
