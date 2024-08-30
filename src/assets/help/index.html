@@ -1314,7 +1314,7 @@
               Click and select (or drop) the file containing the resource data.
             </li>
             <li>
-              Click <b>Load</b> to upload the fiel contents to the server.
+              Click <b>Load</b> to upload the file contents to the server.
             </li>
             <b
               >Important:
@@ -1802,6 +1802,11 @@
               <i>Instrument Panel</i>.
             </li>
             <li>
+              <b>Do not Play Sounds</b>: Check this box if you do not want any
+              sounds played.
+              <i>(Overrides ALARM_METHOD in notification message.)</i>
+            </li>
+            <li>
               <b>Show DEPTH Alarm Messages</b>: Check this box if you want
               received DEPTH notifications from the Signal K server to be
               displayed as an alarm message.
@@ -1849,6 +1854,7 @@
             </li>
           </ul>
           <b>MAP:</b><br />
+          <img src="./img/settings_map.png" style="width: 300px" alt="" /><br />
           <ul>
             <li>
               <b>Feature label zoom level</b>: Select the zoom level at which
@@ -2079,6 +2085,11 @@
               <i>'anchored'</i>. Note: Display is updated when next vessel
               update is received.
             </li>
+            <li>
+              <b>COG Line</b>: Select to show / hide COG vector for AIS
+              vessels.<br />
+              <i>Note: COG line length is calculated for 10 mins duration.</i>
+            </li>
           </ul>
           <hr />
           <b>RESOURCES: NOTES</b><br />
@@ -2260,10 +2271,10 @@
             alt=""
           /><br />
 
-          <b>Signal K server is behind a proxy:</b><br />
+          <!--<b>Signal K server is behind a proxy:</b><br />
           Check this option when your browser is connecting to a Signal K server
           that is behind a proxy server. This enables Freeboard-SK to correctly
-          detect and connect to the endpoints exposed by the Signal K Server.<br />&nbsp;<br />
+          detect and connect to the endpoints exposed by the Signal K Server.<br />&nbsp;<br />-->
 
           <b>Filter Stream Data:</b>
           Use the options in this section to select which Signal K

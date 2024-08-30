@@ -1,5 +1,12 @@
 # CHANGELOG: Freeboard
 
+### v2.11.2
+
+- **Updated**: Proxy mode operation is now the default and configuration option removed. (#159)
+- **Added**: Setting to mute all sounds regardless of notification ALARM_METHOD value.(#178)
+- **Updated**: Show total length of Route when editing. (#171)
+- **Added**: Toggle charts on/of by clicking chart boundaries on map.
+
 ### v2.11.1
 
 - **Fixed**: Display of AIS COG vector does not honor setting value. (#180)
