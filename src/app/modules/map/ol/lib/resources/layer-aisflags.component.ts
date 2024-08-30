@@ -3,9 +3,6 @@ import {
   ChangeDetectorRef,
   Component,
   Input,
-  OnChanges,
-  OnDestroy,
-  OnInit,
   SimpleChanges
 } from '@angular/core';
 import { Feature } from 'ol';
@@ -21,10 +18,7 @@ import { AISBaseLayerComponent } from './ais-base.component';
   template: '<ng-content></ng-content>',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class AISFlagsLayerComponent
-  extends AISBaseLayerComponent
-  implements OnInit, OnDestroy, OnChanges
-{
+export class AISFlagsLayerComponent extends AISBaseLayerComponent {
   @Input() flagged: Array<string>;
 
   constructor(

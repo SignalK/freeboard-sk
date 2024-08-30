@@ -17,7 +17,7 @@ import { Layer } from 'ol/layer';
 import { Feature } from 'ol';
 import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
-import { Style, Fill } from 'ol/style';
+import { Style, Fill, Text } from 'ol/style';
 import { MapComponent } from './map.component';
 import { Extent } from './models';
 import { AsyncSubject } from 'rxjs';
@@ -180,14 +180,22 @@ export class FBFeatureLayerComponent implements OnInit, OnDestroy, OnChanges {
    * @param text string containing
    */
   setTextLabel(style: Style, text: string): Style {
+    let ts: Text;
     if (!style || typeof style === 'function') {
       return style;
+    } else if (Array.isArray(style)) {
+      ts = style[0].getText();
+    } else {
+      ts = style.getText();
     }
-    const ts = style.getText();
     if (ts) {
       ts.setText(Math.abs(this.mapZoom) >= this.labelMinZoom ? text : '');
       ts.setFill(new Fill({ color: this.theme.labelText.color }));
-      style.setText(ts);
+      if (Array.isArray(style)) {
+        style[0].setText(ts);
+      } else {
+        style.setText(ts);
+      }
     }
     return style;
   }

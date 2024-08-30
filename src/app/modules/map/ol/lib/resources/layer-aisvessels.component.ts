@@ -2,9 +2,6 @@ import {
   ChangeDetectionStrategy,
   ChangeDetectorRef,
   Component,
-  OnChanges,
-  OnDestroy,
-  OnInit,
   Input,
   SimpleChanges
 } from '@angular/core';
@@ -24,10 +21,7 @@ import { fromLonLatArray } from '../util';
   template: '<ng-content></ng-content>',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class AISVesselsLayerComponent
-  extends AISBaseLayerComponent
-  implements OnInit, OnDestroy, OnChanges
-{
+export class AISVesselsLayerComponent extends AISBaseLayerComponent {
   @Input() cogLineLength = 0;
 
   constructor(

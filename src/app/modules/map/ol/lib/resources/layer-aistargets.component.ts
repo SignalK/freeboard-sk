@@ -1,10 +1,7 @@
 import {
   ChangeDetectionStrategy,
   ChangeDetectorRef,
-  Component,
-  OnChanges,
-  OnDestroy,
-  OnInit
+  Component
 } from '@angular/core';
 import { Feature } from 'ol';
 import { Style, RegularShape, Fill, Stroke } from 'ol/style';
@@ -19,10 +16,7 @@ import { AISBaseLayerComponent } from './ais-base.component';
   template: '<ng-content></ng-content>',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class AISTargetsLayerComponent
-  extends AISBaseLayerComponent
-  implements OnInit, OnDestroy, OnChanges
-{
+export class AISTargetsLayerComponent extends AISBaseLayerComponent {
   constructor(
     protected mapComponent: MapComponent,
     protected changeDetectorRef: ChangeDetectorRef

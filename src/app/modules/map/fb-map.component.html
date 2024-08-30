@@ -123,13 +123,13 @@
   }
 
   <!-- AIS target tracks -->
-  @if(app.config.aisTargets) {
+  @if(app.config.aisTargets && app.config.selections.aisShowTrack) {
   <ais-targets-track
     [tracks]="app.data.vessels.aisTracks"
+    [tracksMinZoom]="10"
+    targetContext="vessels"
     [updateIds]="aisMgr.updateList"
     [removeIds]="aisMgr.removeList"
-    [showTracks]="app.config.selections.aisShowTrack"
-    [minZoom]="10"
     [mapZoom]="fbMap.zoomLevel"
     zIndex="51"
   >
@@ -354,9 +354,8 @@
 
   <!-- Regions -->
   <fb-regions
-    [darkMode]="app.config.map.invertColor"
     [regions]="dfeat.regions"
-    [regionStyles]=""
+    [darkMode]="app.config.map.invertColor"
     [labelMinZoom]="this.app.config.selections.labelsMinZoom"
     [mapZoom]="fbMap.zoomLevel"
     [zIndex]="120"
@@ -406,7 +405,7 @@
       "
       [featureCount]="overlay.featureCount"
       [units]="this.app.config.units.distance"
-      (modify)="startModify(); popoverClosed()"
+      (modify)="startModify(overlay.type); popoverClosed()"
       (delete)="deleteFeature(overlay.id, overlay.type); popoverClosed()"
       (addNote)="
         skres.showNoteEditor({
@@ -431,7 +430,7 @@
       [canClose]="app.config.popoverMulti"
       [title]="overlay.title"
       [resource]="overlay.resource"
-      (modify)="startModify(); popoverClosed()"
+      (modify)="startModify(overlay.type); popoverClosed()"
       (delete)="deleteFeature(overlay.id, overlay.type); popoverClosed()"
       (info)="itemInfo(overlay.id, overlay.type); popoverClosed()"
       (closed)="popoverClosed()"
@@ -599,8 +598,7 @@
 
   <!-- chart boundaries-->
   @if(app.data.chartBounds) {
-    
-  <fb-chart-bounds [zIndex]="250" [charts]="dfeat.charts" (chartSelected)="onSelect($event)" > </fb-chart-bounds>
+  <fb-chart-bounds [zIndex]="250" [charts]="dfeat.charts"> </fb-chart-bounds>
   }
 </ol-map>
 

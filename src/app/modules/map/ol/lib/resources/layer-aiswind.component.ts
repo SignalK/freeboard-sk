@@ -3,9 +3,6 @@ import {
   ChangeDetectorRef,
   Component,
   Input,
-  OnChanges,
-  OnDestroy,
-  OnInit,
   SimpleChanges
 } from '@angular/core';
 import { Feature } from 'ol';
@@ -23,10 +20,7 @@ import { SKVessel } from 'src/app/modules/skresources';
   template: '<ng-content></ng-content>',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class AISWindLayerComponent
-  extends AISBaseLayerComponent
-  implements OnInit, OnDestroy, OnChanges
-{
+export class AISWindLayerComponent extends AISBaseLayerComponent {
   @Input() vectorApparent = false;
 
   protected zoomOffsetLevel = [

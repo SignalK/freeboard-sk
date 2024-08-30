@@ -3,17 +3,9 @@ import {
   ChangeDetectorRef,
   Component,
   Input,
-  OnChanges,
-  OnDestroy,
-  OnInit,
-  Output,
-  SimpleChange,
   SimpleChanges
 } from '@angular/core';
-import { Layer } from 'ol/layer';
 import { Feature } from 'ol';
-import VectorLayer from 'ol/layer/Vector';
-import VectorSource from 'ol/source/Vector';
 import { Circle, Fill, Stroke, Style, Text } from 'ol/style';
 import {
   Point,
@@ -25,11 +17,9 @@ import {
 } from 'ol/geom';
 import { fromLonLat } from 'ol/proj';
 import { MapComponent } from '../map.component';
-import { Extent } from '../models';
 import { fromLonLatArray } from '../util';
-import { AsyncSubject } from 'rxjs';
 import { SKResourceSet } from 'src/app/modules';
-import { LightTheme, DarkTheme } from '../themes';
+import { FBFeatureLayerComponent } from '../sk-feature.component';
 
 // ** Signal K resource collection format **
 @Component({
@@ -37,93 +27,31 @@ import { LightTheme, DarkTheme } from '../themes';
   template: '<ng-content></ng-content>',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class ResourceSetLayerComponent implements OnInit, OnDestroy, OnChanges {
-  protected layer: Layer;
-  public source: VectorSource;
+export class ResourceSetLayerComponent extends FBFeatureLayerComponent {
   protected features: Array<Feature>;
-  protected theme = LightTheme;
 
-  /**
-   * This event is triggered after the layer is initialized
-   * Use this to have access to the layer and some helper functions
-   */
-  @Output() layerReady: AsyncSubject<Layer> = new AsyncSubject(); // AsyncSubject will only store the last value, and only publish it when the sequence is completed
-  @Input() darkMode = false;
   @Input() collection: string;
   @Input() resourceSets: Array<SKResourceSet> = [];
   @Input() selected: Array<string> = [];
-  @Input() labelMinZoom = 10;
-  @Input() mapZoom = 10;
-  @Input() opacity: number;
-  @Input() visible: boolean;
-  @Input() extent: Extent;
-  @Input() zIndex: number;
-  @Input() minResolution: number;
-  @Input() maxResolution: number;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  @Input() layerProperties: { [index: string]: any };
 
   constructor(
-    protected changeDetectorRef: ChangeDetectorRef,
-    protected mapComponent: MapComponent
+    protected mapComponent: MapComponent,
+    protected changeDetectorRef: ChangeDetectorRef
   ) {
-    this.changeDetectorRef.detach();
+    super(mapComponent, changeDetectorRef);
   }
 
   ngOnInit() {
-    this.theme = this.darkMode ? DarkTheme : LightTheme;
+    super.ngOnInit();
+    this.labelPrefixes = ['rset'];
     this.parseResourceSets(this.resourceSets);
-
-    this.source = new VectorSource({ features: this.features });
-    this.layer = new VectorLayer(
-      Object.assign(this, { ...this.layerProperties })
-    );
-
-    const map = this.mapComponent.getMap();
-    if (this.layer && map) {
-      map.addLayer(this.layer);
-      map.render();
-      this.layerReady.next(this.layer);
-      this.layerReady.complete();
-    }
   }
 
   ngOnChanges(changes: SimpleChanges) {
-    if (this.layer) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const properties: { [index: string]: any } = {};
-      for (const key in changes) {
-        if (key === 'resourceSets') {
-          this.parseResourceSets(changes[key].currentValue);
-          if (this.source) {
-            this.source.clear();
-            this.source.addFeatures(this.features);
-          }
-        } else if (
-          key === 'labelMinZoom' ||
-          key === 'mapZoom' ||
-          key === 'darkMode'
-        ) {
-          if (key === 'darkMode') {
-            this.theme = changes[key].currentValue ? DarkTheme : LightTheme;
-          }
-          this.handleLabelZoomChange(key, changes[key]);
-        } else if (key === 'layerProperties') {
-          this.layer.setProperties(properties, false);
-        } else {
-          properties[key] = changes[key].currentValue;
-        }
-      }
-      this.layer.setProperties(properties, false);
-    }
-  }
-
-  ngOnDestroy() {
-    const map = this.mapComponent.getMap();
-    if (this.layer && map) {
-      map.removeLayer(this.layer);
-      map.render();
-      this.layer = null;
+    super.ngOnChanges(changes);
+    if (this.source && 'resourceSets' in changes) {
+      this.source.clear();
+      this.parseResourceSets(changes['resourceSets'].currentValue);
     }
   }
 
@@ -135,6 +63,7 @@ export class ResourceSetLayerComponent implements OnInit, OnDestroy, OnChanges {
         this.parseResources(r);
       }
     }
+    this.source.addFeatures(this.features);
   }
 
   // process a resource set
@@ -203,54 +132,8 @@ export class ResourceSetLayerComponent implements OnInit, OnDestroy, OnChanges {
     this.features = this.features.concat(fa);
   }
 
-  // ** assess attribute change **
-  handleLabelZoomChange(key: string, change: SimpleChange) {
-    if (key === 'labelMinZoom') {
-      if (typeof this.mapZoom !== 'undefined') {
-        this.updateLabels();
-      }
-    } else if (key === 'mapZoom') {
-      if (typeof this.labelMinZoom !== 'undefined') {
-        if (
-          (change.currentValue >= this.labelMinZoom &&
-            change.previousValue < this.labelMinZoom) ||
-          (change.currentValue < this.labelMinZoom &&
-            change.previousValue >= this.labelMinZoom)
-        ) {
-          this.updateLabels();
-        }
-      }
-    } else if (key === 'darkMode') {
-      this.updateLabels();
-    }
-  }
-
-  // update feature labels
-  updateLabels() {
-    this.source.getFeatures().forEach((f: Feature) => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const s: any = f.getStyle();
-      f.setStyle(this.setTextLabel(s, f.get('name')));
-    });
-  }
-
-  // return a Style with label text
-  setTextLabel(s: Style, text: string): Style {
-    const cs = s.clone();
-    cs.setText(
-      new Text({
-        text: Math.abs(this.mapZoom) >= this.labelMinZoom ? text : '',
-        rotateWithView: false,
-        offsetY: -12,
-        fill: new Fill({ color: this.theme.labelText.color })
-      })
-    );
-    //cs.setFill(new Fill({ color: this.theme.labelText.color }));
-    return cs;
-  }
-
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  buildStyle(styleDef: { [key: string]: any }, geom): Style {
+  buildStyle(styleDef: { [key: string]: any }, geom: string): Style {
     const s = new Style();
     if (geom === 'Point' || geom === 'MulitPoint') {
       s.setImage(
@@ -262,6 +145,12 @@ export class ResourceSetLayerComponent implements OnInit, OnDestroy, OnChanges {
             width: 2,
             lineDash: styleDef.lineDash ?? [1]
           })
+        })
+      );
+      s.setText(
+        new Text({
+          text: '',
+          offsetY: -20
         })
       );
     } else {

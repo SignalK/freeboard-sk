@@ -3,155 +3,64 @@ import {
   ChangeDetectorRef,
   Component,
   Input,
-  OnChanges,
-  OnDestroy,
-  OnInit,
-  Output,
   SimpleChanges,
   SimpleChange
 } from '@angular/core';
-import { Layer } from 'ol/layer';
 import { Feature } from 'ol';
-import VectorLayer from 'ol/layer/Vector';
-import VectorSource from 'ol/source/Vector';
 import { Style, Stroke, Text, Fill, Circle, RegularShape } from 'ol/style';
 import { Geometry, LineString, Point } from 'ol/geom';
 import { toLonLat } from 'ol/proj';
 import { MapComponent } from '../map.component';
-import { Extent } from '../models';
 import { fromLonLatArray, mapifyCoords } from '../util';
-import { AsyncSubject } from 'rxjs';
-import { SKRoute } from 'src/app/modules';
-import { LightTheme, DarkTheme } from '../themes';
 import { getRhumbLineBearing } from 'geolib';
 import { GeolibInputCoordinates } from 'geolib/es/types';
 import { StyleLike } from 'ol/style/Style';
+import { FBFeatureLayerComponent } from '../sk-feature.component';
+import { FBRoutes, Routes } from 'src/app/types';
 
-// ** Signal K resource collection format **
 @Component({
-  selector: 'ol-map > sk-routes',
+  selector: 'ol-map > sk-routes-base',
   template: '<ng-content></ng-content>',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class RouteLayerComponent implements OnInit, OnDestroy, OnChanges {
-  protected layer: Layer;
-  public source: VectorSource;
-  protected features: Array<Feature>;
-  protected theme = LightTheme;
-
-  /**
-   * This event is triggered after the layer is initialized
-   * Use this to have access to the layer and some helper functions
-   */
-  @Output() layerReady: AsyncSubject<Layer> = new AsyncSubject(); // AsyncSubject will only store the last value, and only publish it when the sequence is completed
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  @Input() routes: { [key: string]: any };
+export class RoutesBaseComponent extends FBFeatureLayerComponent {
   @Input() routeStyles: { [key: string]: Style };
   @Input() activeRoute: string;
-  @Input() darkMode = false;
-  @Input() labelMinZoom = 10;
-  @Input() mapZoom = 10;
-  @Input() opacity: number;
-  @Input() visible: boolean;
-  @Input() extent: Extent;
-  @Input() zIndex: number;
-  @Input() minResolution: number;
-  @Input() maxResolution: number;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  @Input() layerProperties: { [index: string]: any };
 
   constructor(
-    protected changeDetectorRef: ChangeDetectorRef,
-    protected mapComponent: MapComponent
+    protected mapComponent: MapComponent,
+    protected changeDetectorRef: ChangeDetectorRef
   ) {
-    this.changeDetectorRef.detach();
+    super(mapComponent, changeDetectorRef);
   }
 
   ngOnInit() {
-    this.theme = this.darkMode ? DarkTheme : LightTheme;
-    this.parseRoutes(this.routes);
-    this.source = new VectorSource({ features: this.features });
-    this.layer = new VectorLayer(
-      Object.assign(this, { ...this.layerProperties })
-    );
-
-    const map = this.mapComponent.getMap();
-    if (this.layer && map) {
-      map.addLayer(this.layer);
-      map.render();
-      this.layerReady.next(this.layer);
-      this.layerReady.complete();
-    }
+    super.ngOnInit();
+    this.labelPrefixes = ['route'];
   }
 
   ngOnChanges(changes: SimpleChanges) {
-    if (this.layer) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const properties: { [index: string]: any } = {};
-
-      if ('routes' in changes || 'activeRoute' in changes) {
-        if ('routes' in changes) {
-          this.parseRoutes(changes['routes'].currentValue);
-        } else {
-          this.parseRoutes(this.routes);
-        }
-        if (this.source) {
-          this.source.clear();
-          this.source.addFeatures(this.features);
-          this.updateLabels();
-        }
+    super.ngOnChanges(changes);
+    if (this.source && ('routes' in changes || 'activeRoute' in changes)) {
+      this.source.clear();
+      if ('routes' in changes) {
+        this.parseRoutes(changes['routes']);
+      } else if ('activeRoute' in changes) {
+        this.onActivateRoute();
       }
-
-      for (const key in changes) {
-        if (key === 'labelMinZoom' || key === 'mapZoom' || key === 'darkMode') {
-          if (key === 'darkMode') {
-            this.theme = changes[key].currentValue ? DarkTheme : LightTheme;
-          }
-          this.handleLabelZoomChange(key, changes[key]);
-        } else if (key === 'layerProperties') {
-          this.layer.setProperties(properties, false);
-        } else {
-          properties[key] = changes[key].currentValue;
-        }
-      }
-      this.layer.setProperties(properties, false);
     }
   }
 
-  ngOnDestroy() {
-    const map = this.mapComponent.getMap();
-    if (this.layer && map) {
-      map.removeLayer(this.layer);
-      map.render();
-      this.layer = null;
-    }
+  onActivateRoute() {
+    // overridable function
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  parseRoutes(routes: { [key: string]: any } = this.routes) {
-    const fa: Feature[] = [];
-    for (const w in routes) {
-      const c = fromLonLatArray(
-        mapifyCoords(routes[w].feature.geometry.coordinates)
-      );
-      const f = new Feature({
-        geometry: new LineString(c),
-        name: routes[w].name
-      });
-      f.setId('route.' + w);
-      f.set(
-        'pointMetadata',
-        routes[w].feature.properties.coordinatesMeta ?? null
-      );
-      f.setStyle(this.styleFunction(f));
-      fa.push(f);
-    }
-    this.features = fa;
+  parseRoutes(change: SimpleChange) {
+    // overridable function
   }
 
-  // style function
-  styleFunction(feature: Feature) {
+  // Route style function
+  buildStyle(feature: Feature) {
     const geometry = feature.getGeometry() as LineString;
     const styles = [];
     const id = (feature.getId() as string).split('.').slice(-1)[0];
@@ -173,7 +82,7 @@ export class RouteLayerComponent implements OnInit, OnDestroy, OnChanges {
         color: this.routeStyles.active.getStroke().getColor()
       });
     } else {
-      styles.push(this.routeStyles.default);
+      styles.push(this.routeStyles.default.clone());
       ptFill = new Fill({
         color: this.routeStyles.default.getStroke().getColor()
       });
@@ -260,43 +169,57 @@ export class RouteLayerComponent implements OnInit, OnDestroy, OnChanges {
     });
     return styles;
   }
+}
 
-  // ** assess attribute change **
-  handleLabelZoomChange(key: string, change: SimpleChange) {
-    if (key === 'labelMinZoom') {
-      if (typeof this.mapZoom !== 'undefined') {
-        this.updateLabels();
-      }
-    } else if (key === 'mapZoom') {
-      if (typeof this.labelMinZoom !== 'undefined') {
-        if (
-          (change.currentValue >= this.labelMinZoom &&
-            change.previousValue < this.labelMinZoom) ||
-          (change.currentValue < this.labelMinZoom &&
-            change.previousValue >= this.labelMinZoom)
-        ) {
-          this.updateLabels();
-        }
-      }
-    } else if (key === 'darkMode') {
-      this.updateLabels();
-    }
+// ** Signal K resource collection format **
+@Component({
+  selector: 'ol-map > sk-routes',
+  template: '<ng-content></ng-content>',
+  changeDetection: ChangeDetectionStrategy.OnPush
+})
+export class RouteLayerComponent extends RoutesBaseComponent {
+  @Input() routes: Routes;
+
+  constructor(
+    protected mapComponent: MapComponent,
+    protected changeDetectorRef: ChangeDetectorRef
+  ) {
+    super(mapComponent, changeDetectorRef);
   }
 
-  // update feature labels
-  updateLabels() {
-    const showLabels = Math.abs(this.mapZoom) >= this.labelMinZoom;
-    this.source.getFeatures().forEach((f: Feature) => {
-      const s: StyleLike = f.getStyle();
-      if (Array.isArray(s)) {
-        // route label
-        const cs = s[0].clone();
-        cs.getText()?.setText(showLabels ? f.get('name') : '');
-        cs.getText()?.setFill(new Fill({ color: this.theme.labelText.color }));
-        s[0] = cs;
-      }
-      f.setStyle(s);
-    });
+  ngOnInit() {
+    super.ngOnInit();
+    this.parseSKRoutes(this.routes);
+  }
+
+  override parseRoutes(change: SimpleChange) {
+    this.parseSKRoutes(change.currentValue);
+  }
+
+  override onActivateRoute() {
+    this.parseSKRoutes(this.routes);
+  }
+
+  parseSKRoutes(routes: Routes = this.routes) {
+    const fa: Feature[] = [];
+    for (const r in routes) {
+      const c = fromLonLatArray(
+        mapifyCoords(routes[r].feature.geometry.coordinates)
+      );
+      const f = new Feature({
+        geometry: new LineString(c),
+        name: routes[r].name
+      });
+      f.setId('route.' + r);
+      f.set(
+        'pointMetadata',
+        routes[r].feature.properties.coordinatesMeta ?? null
+      );
+      f.setStyle(this.buildStyle(f));
+      fa.push(f);
+    }
+    this.source.addFeatures(fa);
+    this.updateLabels();
   }
 }
 
@@ -306,33 +229,47 @@ export class RouteLayerComponent implements OnInit, OnDestroy, OnChanges {
   template: '<ng-content></ng-content>',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class FreeboardRouteLayerComponent extends RouteLayerComponent {
-  @Input() routes: Array<[string, SKRoute, boolean]> = [];
+export class FreeboardRouteLayerComponent extends RoutesBaseComponent {
+  @Input() routes: FBRoutes = [];
 
   constructor(
-    protected changeDetectorRef: ChangeDetectorRef,
-    protected mapComponent: MapComponent
+    protected mapComponent: MapComponent,
+    protected changeDetectorRef: ChangeDetectorRef
   ) {
-    super(changeDetectorRef, mapComponent);
+    super(mapComponent, changeDetectorRef);
   }
 
-  parseRoutes(routes: Array<[string, SKRoute, boolean]> = this.routes) {
+  ngOnInit() {
+    super.ngOnInit();
+    this.parseFBRoutes(this.routes);
+  }
+
+  override parseRoutes(change: SimpleChange) {
+    this.parseFBRoutes(change.currentValue);
+  }
+
+  override onActivateRoute() {
+    this.parseFBRoutes(this.routes);
+  }
+
+  parseFBRoutes(routes: FBRoutes = this.routes) {
     const fa: Feature[] = [];
-    for (const w of routes) {
-      if (w[2]) {
+    for (const r of routes) {
+      if (r[2]) {
         // selected
-        const mc = mapifyCoords(w[1].feature.geometry.coordinates);
+        const mc = mapifyCoords(r[1].feature.geometry.coordinates);
         const c = fromLonLatArray(mc);
         const f = new Feature({
           geometry: new LineString(c),
-          name: w[1].name
+          name: r[1].name
         });
-        f.setId('route.' + w[0]);
-        f.set('pointMetadata', w[1].feature.properties.coordinatesMeta ?? null);
-        f.setStyle(this.styleFunction(f));
+        f.setId('route.' + r[0]);
+        f.set('pointMetadata', r[1].feature.properties.coordinatesMeta ?? null);
+        f.setStyle(this.buildStyle(f));
         fa.push(f);
       }
     }
-    this.features = fa;
+    this.source.addFeatures(fa);
+    this.updateLabels();
   }
 }

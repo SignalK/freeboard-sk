@@ -38,7 +38,7 @@ import { Feature as GeoJsonFeature } from 'geojson';
 
 import { Convert } from 'src/app/lib/convert';
 import { GeoUtils, Angle } from 'src/app/lib/geoutils';
-import { FBChart, FBResourceSelect, Position } from 'src/app/types';
+import { FBChart, FBRoute, FBWaypoint, Position } from 'src/app/types';
 
 import { AppInfo } from 'src/app/app.info';
 import { SettingsMessage } from 'src/app/lib/services';
@@ -209,7 +209,8 @@ export class FBMapComponent implements OnInit, OnDestroy {
   @Output() measureEnd: EventEmitter<boolean> = new EventEmitter();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   @Output() drawEnd: EventEmitter<any> = new EventEmitter();
-  @Output() modifyStart: EventEmitter<string> = new EventEmitter();
+  @Output() modifyStart: EventEmitter<{ id: string; type: string }> =
+    new EventEmitter();
   @Output() modifyEnd: EventEmitter<Array<Position>> = new EventEmitter();
   @Output() activate: EventEmitter<string> = new EventEmitter();
   @Output() deactivate: EventEmitter<string> = new EventEmitter();
@@ -217,7 +218,6 @@ export class FBMapComponent implements OnInit, OnDestroy {
   @Output() exitedMovingMap: EventEmitter<boolean> = new EventEmitter();
   @Output() focusVessel: EventEmitter<string> = new EventEmitter();
   @Output() menuItemSelected: EventEmitter<string> = new EventEmitter();
-  @Output() chartSelected:EventEmitter<FBResourceSelect> = new EventEmitter<FBResourceSelect>()
 
   @ViewChild(MatMenuTrigger, { static: true }) contextMenu: MatMenuTrigger;
 
@@ -713,6 +713,28 @@ export class FBMapComponent implements OnInit, OnDestroy {
     this.exitedMovingMap.emit(true);
   }
 
+  // toggle display of resource feature
+  toggleFeatureSelection(
+    id: string,
+    resType: 'charts' | 'routes' | 'waypoints'
+  ) {
+    this.app.data[resType].forEach((r: FBChart | FBRoute | FBWaypoint) => {
+      if (r[0] === id) {
+        r[2] = !r[2];
+      }
+    });
+    switch (resType) {
+      case 'charts':
+        this.skres.chartSelected();
+        break;
+      case 'routes':
+        this.skres.routeSelected();
+        break;
+      case 'waypoints':
+        this.skres.waypointSelected();
+    }
+  }
+
   public onMapMouseClick(e) {
     this.app.data.map.atClick = {
       features: e.features,
@@ -728,11 +750,11 @@ export class FBMapComponent implements OnInit, OnDestroy {
       }
       const flist = new Map();
       const fa = [];
+      let maskPopover = false;
       // process list of features at click location
       e.features.forEach((feature: Feature) => {
-        let id = feature.getId();
+        const id = feature.getId();
         let addToFeatureList = false;
-        let notForModify = false;
         let aton: SKAtoN;
         let sar: SKSaR;
         let meteo: SKMeteo;
@@ -742,6 +764,15 @@ export class FBMapComponent implements OnInit, OnDestroy {
           const t = id.split('.');
           let icon: string;
           let text: string;
+
+          if (t[0] === 'chart-backdrop') {
+            maskPopover = true;
+            return;
+          }
+          if (t[0] === 'chart-bound') {
+            this.toggleFeatureSelection(t[1], 'charts');
+            return;
+          }
           switch (t[0]) {
             case 'rset':
               addToFeatureList = true;
@@ -767,17 +798,6 @@ export class FBMapComponent implements OnInit, OnDestroy {
               icon = 'local_offer';
               addToFeatureList = true;
               text = this.app.data.notes.filter((i) => {
-                return i[0] === t[1] ? i[1].name : null;
-              })[0][1].name;
-              break;
-            case 'sptroute': // route start / end points
-            case 'eptroute':
-              icon = 'directions';
-              t[0] = 'route';
-              id = t.join('.');
-              addToFeatureList = true;
-              notForModify = true;
-              text = this.app.data.routes.filter((i) => {
                 return i[0] === t[1] ? i[1].name : null;
               })[0][1].name;
               break;
@@ -853,16 +873,13 @@ export class FBMapComponent implements OnInit, OnDestroy {
               icon: icon,
               text: text
             });
-            if (notForModify) {
-              // get route feature when end points clicked
-              //let f= layer.getSource().getFeatureById(id);
-              //if(f) { fa.push(f) }
-            } else {
-              fa.push(feature);
-            }
+            fa.push(feature);
           }
         }
       });
+      if (maskPopover) {
+        return;
+      }
       this.draw.features = new Collection(fa); // features collection for modify interaction
       if (flist.size === 1) {
         // only 1 feature
@@ -1033,18 +1050,6 @@ export class FBMapComponent implements OnInit, OnDestroy {
     }
     this.draw.forSave['coords'] = pc;
     this.modifyEnd.emit(this.draw.forSave);
-  }
-
-  public onSelect(chart:FBChart) {
-    let e:boolean = false
-    this.dfeat.charts.forEach((i: FBChart) => {
-      if (i === chart) {
-        i[2] = !i[2];
-        e=i[2]
-      }
-    });
-    this.chartSelected.emit({ id: chart[0], value: e
-     });
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -1628,13 +1633,14 @@ export class FBMapComponent implements OnInit, OnDestroy {
       } else if (value && this.draw.modify) {
         return;
       } else {
+        // enter modify mode
         this.startModify();
-      } // enter modify mode
+      }
     }
   }
 
   // ** Enter modify mode **
-  public startModify(id?: string) {
+  public startModify(type?: string) {
     if (this.draw.features.getLength() === 0) {
       return;
     }
@@ -1645,7 +1651,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
     this.draw.properties = {};
     this.draw.enabled = false;
     this.draw.modify = true;
-    this.modifyStart.emit(id);
+    this.modifyStart.emit({ id: this.overlay.id, type: type });
   }
 
   // ********************************************************

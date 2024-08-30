@@ -3,133 +3,54 @@ import {
   ChangeDetectorRef,
   Component,
   Input,
-  OnChanges,
-  OnDestroy,
-  OnInit,
-  Output,
+  SimpleChange,
   SimpleChanges
 } from '@angular/core';
-import { Layer } from 'ol/layer';
 import { Feature } from 'ol';
-import VectorLayer from 'ol/layer/Vector';
-import VectorSource from 'ol/source/Vector';
 import { Style, RegularShape, Stroke, Fill } from 'ol/style';
 import { Point } from 'ol/geom';
 import { fromLonLat } from 'ol/proj';
 import { MapComponent } from '../map.component';
-import { Extent } from '../models';
-import { AsyncSubject } from 'rxjs';
-import { SKNote } from 'src/app/modules';
+import { FBFeatureLayerComponent } from '../sk-feature.component';
+import { FBNotes, Notes } from 'src/app/types';
 
-// ** Signal K resource collection format **
 @Component({
-  selector: 'ol-map > sk-notes',
+  selector: 'ol-map > sk-notes-base',
   template: '<ng-content></ng-content>',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class NoteLayerComponent implements OnInit, OnDestroy, OnChanges {
-  protected layer: Layer;
-  public source: VectorSource;
-  protected features: Array<Feature>;
-
-  /**
-   * This event is triggered after the layer is initialized
-   * Use this to have access to the layer and some helper functions
-   */
-  @Output() layerReady: AsyncSubject<Layer> = new AsyncSubject(); // AsyncSubject will only store the last value, and only publish it when the sequence is completed
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  @Input() notes: { [key: string]: any };
+export class NotesBaseComponent extends FBFeatureLayerComponent {
   @Input() noteStyles: { [key: string]: Style };
-  @Input() opacity: number;
-  @Input() visible: boolean;
-  @Input() extent: Extent;
-  @Input() zIndex: number;
-  @Input() minResolution: number;
-  @Input() maxResolution: number;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  @Input() layerProperties: { [index: string]: any };
 
   constructor(
-    protected changeDetectorRef: ChangeDetectorRef,
-    protected mapComponent: MapComponent
+    protected mapComponent: MapComponent,
+    protected changeDetectorRef: ChangeDetectorRef
   ) {
-    this.changeDetectorRef.detach();
+    super(mapComponent, changeDetectorRef);
   }
 
   ngOnInit() {
-    this.parseNotes(this.notes);
-    this.source = new VectorSource({ features: this.features });
-    this.layer = new VectorLayer(
-      Object.assign(this, { ...this.layerProperties })
-    );
-
-    const map = this.mapComponent.getMap();
-    if (this.layer && map) {
-      map.addLayer(this.layer);
-      map.render();
-      this.layerReady.next(this.layer);
-      this.layerReady.complete();
-    }
+    super.ngOnInit();
+    this.labelPrefixes = ['note'];
   }
 
   ngOnChanges(changes: SimpleChanges) {
-    if (this.layer) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const properties: { [index: string]: any } = {};
-
-      for (const key in changes) {
-        if (key === 'notes') {
-          this.parseNotes(changes[key].currentValue);
-          if (this.source) {
-            this.source.clear();
-            this.source.addFeatures(this.features);
-          }
-        } else if (key === 'noteStyles') {
-          // handle note style change
-        } else if (key === 'layerProperties') {
-          this.layer.setProperties(properties, false);
-        } else {
-          properties[key] = changes[key].currentValue;
-        }
-      }
-      this.layer.setProperties(properties, false);
+    super.ngOnChanges(changes);
+    if (this.source && 'notes' in changes) {
+      this.source.clear();
+      this.parseNotes(changes['notes']);
     }
   }
 
-  ngOnDestroy() {
-    const map = this.mapComponent.getMap();
-    if (this.layer && map) {
-      map.removeLayer(this.layer);
-      map.render();
-      this.layer = null;
-    }
+  parseNotes(change: SimpleChange) {
+    // overridable function
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  parseNotes(notes: { [key: string]: any } = this.notes) {
-    const fa: Feature[] = [];
-    for (const w in notes) {
-      if (!notes[w].position) {
-        continue;
-      }
-      const f = new Feature({
-        geometry: new Point(
-          fromLonLat([notes[w].position.longitude, notes[w].position.latitude])
-        ),
-        name: notes[w].name
-      });
-      f.setId('note.' + w);
-      f.setStyle(this.buildStyle(w, notes[w]));
-      fa.push(f);
-    }
-    this.features = fa;
-  }
-
-  // build note style
+  // build note feature style
   buildStyle(id: string, note): Style {
     if (typeof this.noteStyles !== 'undefined') {
       if (note.properties?.skType) {
-        return this.noteStyles[note.properties?.skType];
+        return this.noteStyles[note.properties.skType];
       } else {
         return this.noteStyles.default;
       }
@@ -153,38 +74,92 @@ export class NoteLayerComponent implements OnInit, OnDestroy, OnChanges {
   }
 }
 
+// ** Signal K resource collection format **
+@Component({
+  selector: 'ol-map > sk-notes',
+  template: '<ng-content></ng-content>',
+  changeDetection: ChangeDetectionStrategy.OnPush
+})
+export class NoteLayerComponent extends NotesBaseComponent {
+  @Input() notes: Notes;
+
+  constructor(
+    protected mapComponent: MapComponent,
+    protected changeDetectorRef: ChangeDetectorRef
+  ) {
+    super(mapComponent, changeDetectorRef);
+  }
+
+  ngOnInit() {
+    super.ngOnInit();
+    this.parseSKNotes(this.notes);
+  }
+
+  override parseNotes(change: SimpleChange) {
+    this.parseSKNotes(change.currentValue);
+  }
+
+  parseSKNotes(notes: Notes = this.notes) {
+    const fa: Feature[] = [];
+    for (const n in notes) {
+      if (!notes[n].position) {
+        continue;
+      }
+      const f = new Feature({
+        geometry: new Point(
+          fromLonLat([notes[n].position.longitude, notes[n].position.latitude])
+        ),
+        name: notes[n].name
+      });
+      f.setId('note.' + n);
+      f.setStyle(this.buildStyle(n, notes[n]).clone());
+      fa.push(f);
+    }
+    this.source.addFeatures(fa);
+  }
+}
+
 // ** Freeboard resource collection format **
 @Component({
   selector: 'ol-map > fb-notes',
   template: '<ng-content></ng-content>',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class FreeboardNoteLayerComponent extends NoteLayerComponent {
-  @Input() notes: Array<[string, SKNote, boolean]> = [];
+export class FreeboardNoteLayerComponent extends NotesBaseComponent {
+  @Input() notes: FBNotes = [];
 
   constructor(
-    protected changeDetectorRef: ChangeDetectorRef,
-    protected mapComponent: MapComponent
+    protected mapComponent: MapComponent,
+    protected changeDetectorRef: ChangeDetectorRef
   ) {
-    super(changeDetectorRef, mapComponent);
+    super(mapComponent, changeDetectorRef);
   }
 
-  parseNotes(notes: Array<[string, SKNote, boolean]> = this.notes) {
+  ngOnInit() {
+    super.ngOnInit();
+    this.parseFBNotes(this.notes);
+  }
+
+  override parseNotes(change: SimpleChange) {
+    this.parseFBNotes(change.currentValue);
+  }
+
+  parseFBNotes(notes: FBNotes = this.notes) {
     const fa: Feature[] = [];
-    for (const w of notes) {
-      if (!w[1].position) {
+    for (const n of notes) {
+      if (!n[1].position) {
         continue;
       }
       const f = new Feature({
         geometry: new Point(
-          fromLonLat([w[1].position.longitude, w[1].position.latitude])
+          fromLonLat([n[1].position.longitude, n[1].position.latitude])
         ),
-        name: w[1].name
+        name: n[1].name
       });
-      f.setId('note.' + w[0]);
-      f.setStyle(this.buildStyle(w[0], w[1]));
+      f.setId('note.' + n[0]);
+      f.setStyle(this.buildStyle(n[0], n[1]).clone());
       fa.push(f);
     }
-    this.features = fa;
+    this.source.addFeatures(fa);
   }
 }

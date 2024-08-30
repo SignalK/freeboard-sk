@@ -3,23 +3,14 @@ import {
   ChangeDetectorRef,
   Component,
   Input,
-  OnChanges,
-  OnDestroy,
-  OnInit,
-  Output,
-  SimpleChanges,
-  SimpleChange
+  SimpleChanges
 } from '@angular/core';
-import { Layer } from 'ol/layer';
 import { Feature } from 'ol';
-import VectorLayer from 'ol/layer/Vector';
-import VectorSource from 'ol/source/Vector';
 import { Style, Stroke } from 'ol/style';
 import { MultiLineString } from 'ol/geom';
 import { MapComponent } from '../map.component';
-import { Extent } from '../models';
 import { fromLonLatArray, mapifyCoords } from '../util';
-import { AsyncSubject } from 'rxjs';
+import { AISBaseLayerComponent } from './ais-base.component';
 
 // ** Signal K AIS targets track  **
 @Component({
@@ -27,169 +18,101 @@ import { AsyncSubject } from 'rxjs';
   template: '<ng-content></ng-content>',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class AISTargetsTrackLayerComponent
-  implements OnInit, OnDestroy, OnChanges
-{
-  protected layer: Layer;
-  public source: VectorSource;
-
-  /**
-   * This event is triggered after the layer is initialized
-   * Use this to have access to the layer and some helper functions
-   */
-  @Output() layerReady: AsyncSubject<Layer> = new AsyncSubject(); // AsyncSubject will only store the last value, and only publish it when the sequence is completed
-
+export class AISTargetsTrackLayerComponent extends AISBaseLayerComponent {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   @Input() tracks: Map<string, any> = new Map();
-  @Input() minZoom = 10;
+  @Input() tracksMinZoom = 10;
   @Input() mapZoom = 10;
   @Input() showTracks = true;
-  @Input() updateIds: Array<string> = [];
-  @Input() removeIds: Array<string> = [];
-  @Input() opacity: number;
-  @Input() visible: boolean;
-  @Input() extent: Extent;
-  @Input() zIndex: number;
-  @Input() minResolution: number;
-  @Input() maxResolution: number;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  @Input() layerProperties: { [index: string]: any };
 
   constructor(
-    protected changeDetectorRef: ChangeDetectorRef,
-    protected mapComponent: MapComponent
+    protected mapComponent: MapComponent,
+    protected changeDetectorRef: ChangeDetectorRef
   ) {
-    this.changeDetectorRef.detach();
+    super(mapComponent, changeDetectorRef);
   }
 
   ngOnInit() {
-    this.source = new VectorSource();
-    this.layer = new VectorLayer(
-      Object.assign(this, { ...this.layerProperties })
-    );
-    this.parseItems(this.extractKeys(this.tracks));
-
-    const map = this.mapComponent.getMap();
-    if (this.layer && map) {
-      map.addLayer(this.layer);
-      map.render();
-      this.layerReady.next(this.layer);
-      this.layerReady.complete();
-    }
+    super.ngOnInit();
+    this.reloadTracks();
   }
 
   ngOnChanges(changes: SimpleChanges) {
+    super.ngOnChanges(changes);
     if (this.layer) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const properties: { [index: string]: any } = {};
-      for (const key in changes) {
-        if (key === 'tracks' && changes[key].firstChange) {
-          if (!changes[key].currentValue) {
-            return;
+      const keys = Object.keys(changes);
+      if (
+        keys.includes('tracks') &&
+        changes['tracks'].previousValue.size === 0
+      ) {
+        this.reloadTracks();
+      } else {
+        if (keys.includes('tracksMinZoom')) {
+          if (typeof this.mapZoom !== 'undefined') {
+            this.reloadTracks();
           }
-          if (!this.source) {
-            return;
+        }
+        if (keys.includes('mapZoom')) {
+          if (typeof this.tracksMinZoom !== 'undefined') {
+            if (
+              changes['mapZoom'].currentValue >= this.tracksMinZoom &&
+              changes['mapZoom'].previousValue < this.tracksMinZoom
+            ) {
+              this.reloadTracks();
+            } else if (
+              changes['mapZoom'].currentValue < this.tracksMinZoom &&
+              changes['mapZoom'].previousValue >= this.tracksMinZoom
+            ) {
+              this.source.clear();
+            }
           }
-          this.source.clear();
-          this.parseItems(this.extractKeys(changes[key].currentValue));
-        } else if (key === 'updateIds') {
-          this.parseItems(changes[key].currentValue);
-        } else if (key === 'removeIds') {
-          this.removeItems(changes[key].currentValue);
-        } else if (key === 'showTracks' && !changes[key].firstChange) {
-          if (changes[key].currentValue) {
-            this.parseItems(this.extractKeys(this.tracks));
+        }
+      }
+    }
+  }
+
+  okToRenderTracks() {
+    return this.mapZoom >= this.tracksMinZoom;
+  }
+
+  reloadTracks() {
+    if (!this.tracks || !this.source) {
+      return;
+    }
+    this.source.clear();
+    if (this.okToRenderTracks) {
+      this.onUpdateTargets(this.extractKeys(this.tracks));
+    }
+  }
+
+  // update track features
+  override onUpdateTargets(ids: Array<string>) {
+    if (this.okToRenderTracks) {
+      ids.forEach((id: string) => {
+        if (id.includes(this.targetContext)) {
+          const f = this.source.getFeatureById('track-' + id) as Feature;
+          if (this.okToRenderTarget(id)) {
+            if (this.tracks.has(id)) {
+              const track = this.tracks.get(id);
+              if (f) {
+                f.setGeometry(
+                  new MultiLineString(this.parseCoordinates(track))
+                );
+                f.setStyle(this.buildStyle(id));
+              } else {
+                this.addTrackWithId(id);
+              }
+            }
           } else {
-            this.source.clear();
+            this.source.removeFeature(f);
           }
-        } else if (key === 'labelMinZoom' || key === 'mapZoom') {
-          this.handleLabelZoomChange(key, changes[key]);
-        } else if (key === 'layerProperties') {
-          this.layer.setProperties(properties, false);
-        } else {
-          properties[key] = changes[key].currentValue;
         }
-      }
-      this.layer.setProperties(properties, false);
+      });
     }
   }
 
-  ngOnDestroy() {
-    const map = this.mapComponent.getMap();
-    if (this.layer && map) {
-      map.removeLayer(this.layer);
-      map.render();
-      this.layer = null;
-    }
-  }
-
-  // ** assess attribute change **
-  handleLabelZoomChange(key: string, change: SimpleChange) {
-    if (key === 'labelMinZoom') {
-      if (typeof this.mapZoom !== 'undefined') {
-        this.parseItems(this.extractKeys(this.tracks));
-      }
-    } else if (key === 'mapZoom') {
-      if (typeof this.minZoom !== 'undefined') {
-        if (
-          (change.currentValue >= this.minZoom &&
-            change.previousValue < this.minZoom) ||
-          (change.currentValue < this.minZoom &&
-            change.previousValue >= this.minZoom)
-        ) {
-          this.parseItems(this.extractKeys(this.tracks));
-        }
-      }
-    }
-  }
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  extractKeys(m: Map<string, any>): Array<string> {
-    const keys = [];
-    m.forEach((v, k) => {
-      keys.push(k);
-    });
-    return keys;
-  }
-
-  // add update features
-  parseItems(ids: Array<string>) {
-    if (!ids || !Array.isArray(ids)) {
-      return;
-    }
-    if (!this.source) {
-      return;
-    }
-    ids.forEach((w) => {
-      if (this.tracks.has(w)) {
-        const target = this.tracks.get(w);
-        // ** target **
-        let f = this.source.getFeatureById('track-' + w) as Feature;
-        if (f) {
-          // exists so update it
-          f.setGeometry(new MultiLineString(this.parseCoordinates(target)));
-          f.setStyle(this.buildStyle(w));
-        } else {
-          // does not exist so create it
-          f = new Feature({
-            geometry: new MultiLineString(this.parseCoordinates(target))
-          });
-          f.setId('track-' + w);
-          f.setStyle(this.buildStyle(w));
-          this.source.addFeature(f);
-        }
-      }
-    });
-  }
-
-  // remove features
-  removeItems(ids: Array<string>) {
-    if (!ids || !Array.isArray(ids)) {
-      return;
-    }
-    if (!this.source) {
-      return;
-    }
+  // remove track features
+  override onRemoveTargets(ids: Array<string>) {
     ids.forEach((w) => {
       const f = this.source.getFeatureById('track-' + w) as Feature;
       if (f) {
@@ -198,11 +121,25 @@ export class AISTargetsTrackLayerComponent
     });
   }
 
-  // build target style
+  // add new track feature
+  addTrackWithId(id: string) {
+    if (!id.includes(this.targetContext) || !this.tracks.has(id)) {
+      return;
+    }
+    const track = this.tracks.get(id);
+    const f = new Feature({
+      geometry: new MultiLineString(this.parseCoordinates(track))
+    });
+    f.setId('track-' + id);
+    f.setStyle(this.buildStyle(id));
+    this.source.addFeature(f);
+  }
+
+  // build track style
   buildStyle(id: string): Style {
     const rgb = id.indexOf('aircraft') !== -1 ? '0, 0, 255' : '255, 0, 255';
     let color =
-      this.mapZoom < this.minZoom ? `rgba(${rgb},0)` : `rgba(${rgb},1)`;
+      this.mapZoom < this.tracksMinZoom ? `rgba(${rgb},0)` : `rgba(${rgb},1)`;
     color = this.showTracks ? `rgba(${rgb},1)` : `rgba(${rgb},0)`;
     if (this.layerProperties && this.layerProperties.style) {
       const cs = this.layerProperties.style.clone();
