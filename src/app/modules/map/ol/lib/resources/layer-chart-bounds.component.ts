@@ -7,19 +7,25 @@ import {
   OnDestroy,
   OnInit,
   Output,
-  SimpleChanges
+  SimpleChanges,
+  EventEmitter
 } from '@angular/core';
 import { Layer } from 'ol/layer';
 import { Feature } from 'ol';
 import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
-import { Style, Stroke, Fill, Text } from 'ol/style';
+import { Style, Stroke, Fill, Text,RegularShape } from 'ol/style';
 import { Polygon, Point } from 'ol/geom';
 import { MapComponent } from '../map.component';
 import { Extent } from '../models';
 import { fromLonLatArray, mapifyCoords } from '../util';
 import { AsyncSubject } from 'rxjs';
-import { SKChart } from 'src/app/modules';
+import { FBChart, FBCharts } from 'src/app/types';
+
+const CHART_PROPERTY = "chart"
+const COLOR_INDEX_PROPERTY = "colorIndex"
+const boundStyles = ['red', 'magenta', 'blue', 'purple', 'green'];
+
 
 // ** Show Chart bounds on map **
 @Component({
@@ -38,7 +44,7 @@ export class ChartBoundsLayerComponent implements OnInit, OnDestroy, OnChanges {
    */
   @Output() layerReady: AsyncSubject<Layer> = new AsyncSubject(); // AsyncSubject will only store the last value, and only publish it when the sequence is completed
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  @Input() charts: Array<[string, SKChart, boolean]> = [];
+  @Input() charts: FBCharts;
   @Input() opacity: number;
   @Input() visible: boolean;
   @Input() extent: Extent;
@@ -47,8 +53,7 @@ export class ChartBoundsLayerComponent implements OnInit, OnDestroy, OnChanges {
   @Input() maxResolution: number;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   @Input() layerProperties: { [index: string]: any };
-
-  private boundStyles = ['red', 'magenta', 'blue', 'purple', 'green'];
+  @Output() chartSelected: EventEmitter<FBChart> = new EventEmitter<FBChart>();
 
   constructor(
     protected changeDetectorRef: ChangeDetectorRef,
@@ -70,8 +75,20 @@ export class ChartBoundsLayerComponent implements OnInit, OnDestroy, OnChanges {
       map.render();
       this.layerReady.next(this.layer);
       this.layerReady.complete();
+
+      // select
+      map.on('singleclick', (e) => {
+        if(this.layer) {
+          this.layer.getFeatures(e.pixel).then((f) => {
+            f.filter((f) => f.get(CHART_PROPERTY)).forEach((f) => {
+              this.chartSelected.emit(f.get(CHART_PROPERTY))
+            })
+          })  
+        }
+      })
     }
   }
+
 
   ngOnChanges(changes: SimpleChanges) {
     if (this.layer) {
@@ -104,9 +121,9 @@ export class ChartBoundsLayerComponent implements OnInit, OnDestroy, OnChanges {
     }
   }
 
-  parseChartBounds(charts: Array<[string, SKChart, boolean]> = this.charts) {
+  parseChartBounds(charts: FBCharts) {
     const fa: Feature[] = [];
-    let i = 0;
+    let colorIndex = 0;
 
     // backdrop
     const f = new Feature({
@@ -125,7 +142,7 @@ export class ChartBoundsLayerComponent implements OnInit, OnDestroy, OnChanges {
     f.setStyle(
       new Style({
         fill: new Fill({
-          color: 'rgba(255,255,255,0.5 )'
+          color: 'rgba(255,255,255,0.4 )'
         })
       })
     );
@@ -138,22 +155,16 @@ export class ChartBoundsLayerComponent implements OnInit, OnDestroy, OnChanges {
       // rectangle
       const f = new Feature({
         geometry: new Polygon(c),
-        name: w[1].name
+        name: w[0],
+        [CHART_PROPERTY]: w,
+        [COLOR_INDEX_PROPERTY]: colorIndex
       });
       f.setId('chart-bound.' + w[0]);
-      f.setStyle(this.buildStyle(i));
+      f.setStyle(this.buildStyles);
       fa.push(f);
-      // label
-      const t = new Feature({
-        geometry: new Point(c[0][3]),
-        name: w[1].name
-      });
-      t.setId('chart-bound-label.' + w[0]);
-      t.setStyle(this.buildLabelStyle(w[0], i));
-      fa.push(t);
       //
-      i++;
-      i = i === this.boundStyles.length ? 0 : i;
+      colorIndex++;
+      colorIndex = colorIndex === boundStyles.length ? 0 : colorIndex;
     }
     this.features = fa;
   }
@@ -184,28 +195,29 @@ export class ChartBoundsLayerComponent implements OnInit, OnDestroy, OnChanges {
   }
 
   // build bounds rect style
-  buildStyle(styleIndex = 0): Style {
-    return new Style({
-      stroke: new Stroke({
-        color: this.boundStyles[styleIndex],
-        width: 3
-      })
-    });
-  }
-
-  // build bounds label style
-  buildLabelStyle(text: string, styleIndex = 0): Style {
-    return new Style({
-      text: new Text({
-        text: text,
-        offsetX: 5,
-        offsetY: 5,
-        fill: new Fill({
-          color: this.boundStyles[styleIndex]
+  buildStyles(feature: Feature): Style[] {
+    return [
+      new Style({
+        stroke: new Stroke({
+          color: boundStyles[feature.get(COLOR_INDEX_PROPERTY)],
         }),
-        textAlign: 'left',
-        textBaseline: 'top'
-      })
-    });
+        fill: new Fill({
+          color: 'rgba(255,255,255,0.0 )' // needed for click
+        })
+      }),
+      new Style({
+        geometry:new Point((feature.getGeometry() as Polygon).getCoordinates()[0][3]),
+        text: new Text({
+          text: feature.get(CHART_PROPERTY)[0] ,
+          overflow: true,
+          offsetX: 5,
+          offsetY: 5,
+          fill: new Fill({
+            color: boundStyles[feature.get(COLOR_INDEX_PROPERTY)]
+          }),
+          textAlign: 'left',
+          textBaseline: 'top'
+        })
+      })]
   }
 }

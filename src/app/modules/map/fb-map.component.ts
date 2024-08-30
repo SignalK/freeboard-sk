@@ -38,7 +38,7 @@ import { Feature as GeoJsonFeature } from 'geojson';
 
 import { Convert } from 'src/app/lib/convert';
 import { GeoUtils, Angle } from 'src/app/lib/geoutils';
-import { Position } from 'src/app/types';
+import { FBChart, FBResourceSelect, Position } from 'src/app/types';
 
 import { AppInfo } from 'src/app/app.info';
 import { SettingsMessage } from 'src/app/lib/services';
@@ -217,6 +217,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
   @Output() exitedMovingMap: EventEmitter<boolean> = new EventEmitter();
   @Output() focusVessel: EventEmitter<string> = new EventEmitter();
   @Output() menuItemSelected: EventEmitter<string> = new EventEmitter();
+  @Output() chartSelected:EventEmitter<FBResourceSelect> = new EventEmitter<FBResourceSelect>()
 
   @ViewChild(MatMenuTrigger, { static: true }) contextMenu: MatMenuTrigger;
 
@@ -1032,6 +1033,18 @@ export class FBMapComponent implements OnInit, OnDestroy {
     }
     this.draw.forSave['coords'] = pc;
     this.modifyEnd.emit(this.draw.forSave);
+  }
+
+  public onSelect(chart:FBChart) {
+    let e:boolean = false
+    this.dfeat.charts.forEach((i: FBChart) => {
+      if (i === chart) {
+        i[2] = !i[2];
+        e=i[2]
+      }
+    });
+    this.chartSelected.emit({ id: chart[0], value: e
+     });
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
