@@ -33,7 +33,7 @@
     <div class="theme-page settings right-settings-content">
       <div class="theme-panel">
         <div class="setting-group" id="sectDisplay">
-          <div class="setting-group-title">DISPLAY</div>
+          <div class="setting-group-title">DISPLAY &amp; SOUND</div>
           @if(facade.data.optAppPanel) {
           <mat-card class="setting-card">
             <mat-card-content>
@@ -129,6 +129,17 @@
           <mat-card class="setting-card">
             <mat-card-content>
               <div class="setting-card-row" style="padding-bottom: 10px">
+                <div class="setting-card-row-item">
+                  <mat-checkbox
+                    #muteAllSound
+                    [(ngModel)]="facade.settings.muteSound"
+                    (change)="onFormChange($event, muteAllSound)"
+                    matTooltip="Do not play sounds"
+                    label="after"
+                  >
+                    Do not Play Sounds
+                  </mat-checkbox>
+                </div>
                 <div class="setting-card-row-item">
                   <mat-checkbox
                     #depthalarm
@@ -1050,7 +1061,7 @@
           <div class="setting-group-title">SIGNAL K: CONNECTION</div>
           <mat-card class="setting-card">
             <mat-card-content>
-              <div class="setting-card-row-item">
+              <!--<div class="setting-card-row-item">
                 <mat-checkbox
                   #skproxied
                   [(ngModel)]="facade.settings.selections.signalk.proxied"
@@ -1062,7 +1073,7 @@
                   Signal K server is behind a proxy.
                 </mat-checkbox>
                 <mat-error>Refresh required after change!</mat-error>
-              </div>
+              </div>-->
               <div class="setting-card-row">
                 <fieldset>
                   <legend>Filter Stream data:</legend>

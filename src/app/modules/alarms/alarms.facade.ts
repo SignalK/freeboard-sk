@@ -270,10 +270,15 @@ export class AlarmsFacade {
         this.alarms.delete(id);
       }
     } else if (notification.state !== 'normal') {
+      const sound = this.app.config.muteSound
+        ? false
+        : notification.method.includes('sound')
+        ? true
+        : false;
       if (!alarm) {
         // create alarm entry
         this.alarms.set(id, {
-          sound: notification.method.includes('sound') ? true : false,
+          sound: sound,
           visual: notification.method.includes('visual') ? true : false,
           state: notification.state,
           message: notification.message,
@@ -285,7 +290,7 @@ export class AlarmsFacade {
         // update alarm entry
         alarm.state = notification.state;
         alarm.message = notification.message;
-        alarm.sound = notification.method.includes('sound') ? true : false;
+        alarm.sound = sound;
       }
     }
     this.alarmSource.next(true);
@@ -293,6 +298,11 @@ export class AlarmsFacade {
 
   // ** process notification messages **
   private processNotifications(msg: NotificationMessage) {
+    const sound = this.app.config.muteSound
+      ? false
+      : msg.result.value.method.includes('sound')
+      ? true
+      : false;
     switch (msg.type) {
       case 'depth':
         if (this.app.config.depthAlarm.enabled) {
@@ -300,11 +310,7 @@ export class AlarmsFacade {
         }
         break;
       case 'buddy':
-        this.app.showMessage(
-          msg.result.value.message,
-          msg.result.value.method.includes('sound') !== -1 ? true : false,
-          5000
-        );
+        this.app.showMessage(msg.result.value.message, sound, 5000);
         break;
       case 'closestApproach':
         this.updateClosestApproach(msg);
@@ -333,7 +339,7 @@ export class AlarmsFacade {
           this.skres.coursePointIndex(this.app.data.navData.pointIndex + 1);
           this.app.showMessage(
             'Arrived: Advancing to next point.',
-            msg.result.value.method.includes('sound') !== -1 ? true : false,
+            sound,
             5000
           );
         }

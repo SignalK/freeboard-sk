@@ -59,7 +59,7 @@ interface PreferredPathsResult {
 export class SettingsDialog implements OnInit {
   public display = { favourites: false };
   public menuItems = [
-    { id: 'sectDisplay', text: 'Display' },
+    { id: 'sectDisplay', text: 'Display & Sound' },
     { id: 'sectS57', text: 'Charts' },
     { id: 'sectUnits', text: 'Units & Values' },
     { id: 'sectCourse', text: 'Course' },

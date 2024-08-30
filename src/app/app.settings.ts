@@ -23,6 +23,9 @@ export function cleanConfig(
   if (typeof settings.fixedPosition === 'undefined') {
     settings.fixedPosition = [0, 0];
   }
+  if (typeof settings.muteSound === 'undefined') {
+    settings.muteSound = false;
+  }
 
   // changeover 2.10.1 - for removal
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -184,9 +187,12 @@ export function cleanConfig(
       sar: false,
       meteo: true,
       maxRadius: 0,
-      proxied: false
+      proxied: true
     };
   }
+  // force proxied = true for stored config.
+  settings.selections.signalk.proxied = true;
+
   if (typeof settings.selections.signalk.meteo === 'undefined') {
     settings.selections.signalk.meteo = true;
   }
@@ -305,6 +311,7 @@ export const DefaultConfig: IAppConfig = {
   notes: true, // display notes
   popoverMulti: false, // close popovers using cose button
   mapDoubleClick: false, // true=zoom
+  muteSound: false,
   depthAlarm: { enabled: false, smoothing: 10000 },
   anchorRadius: 40, // most recent anchor radius setting
   plugins: {
@@ -381,7 +388,7 @@ export const DefaultConfig: IAppConfig = {
       sar: false,
       meteo: true,
       maxRadius: 0, // max radius within which AIS targets are displayed
-      proxied: false // server behind a proxy server
+      proxied: true // server behind a proxy server
     },
     wakeLock: false,
     course: {
@@ -430,6 +437,7 @@ export interface IAppConfig {
   notes: boolean; // display notes
   popoverMulti: boolean; // close popovers using cose button
   mapDoubleClick: boolean; // true=zoom
+  muteSound: boolean;
   depthAlarm: { enabled: boolean; smoothing: number };
   anchorRadius: number; // most recent anchor radius setting
   plugins: {

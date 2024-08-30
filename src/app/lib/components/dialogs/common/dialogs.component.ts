@@ -425,7 +425,7 @@ export class LoginDialog implements OnInit {
 /********* MessageBarComponent ****************
     data: {
         message: '',  
-        sound: 'Log in'
+        sound: boolean
     }
 ***************************************/
 @Component({
