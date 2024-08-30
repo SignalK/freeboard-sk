@@ -26,6 +26,7 @@ import {
 import { AppInfo } from 'src/app/app.info';
 import { ChartPropertiesDialog } from './chart-properties-dialog';
 import { FBCharts, FBChart, FBResourceSelect } from 'src/app/types';
+import { MatSlideToggle } from '@angular/material/slide-toggle';
 
 /********* ChartLayersList***********/
 @Component({
@@ -168,6 +169,7 @@ export class ChartLayers implements OnInit {
 @Component({
   selector: 'chart-list',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './chartlist.html',
   styleUrls: ['../resourcelist.css'],
   imports: [
@@ -180,11 +182,13 @@ export class ChartLayers implements OnInit {
     FormsModule,
     MatInputModule,
     ScrollingModule,
+    MatSlideToggle,
     ChartLayers
   ]
 })
 export class ChartListComponent {
   @Input() charts: FBCharts;
+  @Input() selectedCharts: Array<string>;
   @Output() select: EventEmitter<FBResourceSelect> = new EventEmitter();
   @Output() refresh: EventEmitter<void> = new EventEmitter();
   @Output() closed: EventEmitter<void> = new EventEmitter();

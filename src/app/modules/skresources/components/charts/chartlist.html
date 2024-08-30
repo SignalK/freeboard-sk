@@ -77,17 +77,13 @@
     </mat-card-content>
     <mat-card-actions>
       @if(!displayChartLayers) {
-      <button
-        mat-button
-        (click)="toggleChartBoundaries()"
-        matTooltip="Chart boundaries"
-        matTooltipPosition="above"
+      <mat-slide-toggle
+        [hideIcon]="true"
+        [checked]="app.data.chartBounds"
+        (change)="toggleChartBoundaries()"
       >
-        <mat-icon [ngClass]="{'icon-warn': app.data.chartBounds}">
-          {{app.data.chartBounds ? 'deselect_all' : 'select_all'}}</mat-icon
-        >
         Boundaries
-      </button>
+      </mat-slide-toggle>
       <button
         mat-button
         (click)="showChartLayers(true)"
