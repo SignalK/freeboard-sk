@@ -105,6 +105,7 @@ export class AppComponent {
     mode: null,
     type: null,
     modify: false,
+    modifyMode: null,
     forSave: null,
     properties: {}
   };
@@ -1477,13 +1478,20 @@ export class AppComponent {
   // ******** DRAW / EDIT EVENT HANDLERS ************
 
   // ** handle modify start event **
-  public handleModifyStart(id?: string) {
+  public handleModifyStart(e: { id: string; type: string }) {
     this.draw.type = null;
     this.draw.mode = null;
     this.draw.enabled = false;
     this.draw.modify = true;
-    this.draw.forSave = { id: id ?? null, coords: null };
+    this.draw.modifyMode = e.type;
+    this.draw.forSave = { id: e.type ?? null, coords: null };
     this.app.data.map.suppressContextMenu = true;
+    if (e.type === 'route') {
+      this.app.data.measurement.coords = this.skres.fromCache(
+        'routes',
+        e.id
+      )[1].feature.geometry.coordinates;
+    }
   }
 
   // ** handle modify end event **

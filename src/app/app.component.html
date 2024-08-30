@@ -532,6 +532,7 @@
             } } @if(display.chartList) { @defer {
             <chart-list
               [charts]="app.data.charts"
+              [selectedCharts]="app.config.selections.charts"
               (select)="skres.chartSelected()"
               (orderChange)="skres.chartOrder()"
               (refresh)="skres.getCharts()"
@@ -787,7 +788,6 @@
               (exitedMovingMap)="toggleMoveMap($event)"
               (focusVessel)="switchActiveVessel($event)"
               (info)="featureProperties($event)"
-              (chartSelected)="skres.chartSelected()"
               (menuItemSelected)="
                 sidemenu.close(); handleContextMenuSelection($event)
               "
@@ -808,7 +808,8 @@
           </div>
 
           <!-- Draw Help -->
-          @if((draw.enabled && draw.mode !== 'route') || draw.modify) {
+          @if((draw.enabled && draw.mode !== 'route') || (draw.modify &&
+          draw.modifyMode !== 'route')) {
           <div class="mat-app-background measurePanel">
             @if(draw.enabled) {
             <div>
@@ -818,19 +819,6 @@
               @if(draw.mode === 'waypoint' || draw.mode === 'note') {
               <div style="padding: 5px">
                 Click on the Map where to drop the feature.
-              </div>
-              } @if(draw.mode === 'route') {
-              <div style="padding: 5px">
-                <ol
-                  style="
-                    margin-block-start: 0.2em;
-                    margin-block-end: 0.2em;
-                    padding-inline-start: 15px;
-                  "
-                >
-                  <li>Click on the Map to place a point along the Route.</li>
-                  <li>Click on the last Point to end drawing.</li>
-                </ol>
               </div>
               } @if(draw.mode === 'region') {
               <div style="padding: 5px">
@@ -933,12 +921,13 @@
           }
 
           <!-- Measurement panel -->
-          @if(measure.enabled || (draw.mode === 'route' && (draw.enabled ||
-          draw.modify )) ) {
+          @if(measure.enabled || (draw.mode === 'route' && draw.enabled) ||
+          (draw.modify && draw.modifyMode === 'route')) {
           <fb-measurements
             matTooltip="Click on the Map to start. Click cancel or the last point to end."
-            [coords]="this.app.data.measurement.coords"
-            [index]="this.app.data.measurement.index"
+            [coords]="app.data.measurement.coords"
+            [index]="app.data.measurement.index"
+            [totalOnly]="draw.modifyMode === 'route'"
             (cancel)="cancelDraw()"
           >
           </fb-measurements>

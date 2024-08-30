@@ -39,6 +39,7 @@ import { MatToolbarModule } from '@angular/material/toolbar';
             </div>
             <div class="value">{{ totalDistance }}<br /></div>
           </div>
+          @if(!totalOnly) {
           <div class="_ap_row">
             <div class="_ap_row">
               <div style="font-size: 12pt;">
@@ -57,6 +58,7 @@ import { MatToolbarModule } from '@angular/material/toolbar';
               </div>
             </div>
           </div>
+          }
           <div>
             <button
               matTooltip="Cancel"
@@ -76,7 +78,7 @@ import { MatToolbarModule } from '@angular/material/toolbar';
       ._ap_measurements {
         position: fixed;
         top: 0;
-        width: 500px;
+        min-width: 200px;
       }
 
       ._ap_row {
@@ -107,6 +109,7 @@ import { MatToolbarModule } from '@angular/material/toolbar';
 export class Measurements {
   @Input() coords: Array<Position> = [];
   @Input() index = -1;
+  @Input() totalOnly = false;
   @Output() cancel: EventEmitter<boolean> = new EventEmitter();
 
   protected totalDistance: string;
