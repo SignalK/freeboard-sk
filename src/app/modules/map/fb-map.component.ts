@@ -30,7 +30,13 @@ import {
 import { FreeboardOpenlayersModule } from 'src/app/modules/map/ol';
 import { PipesModule } from 'src/app/lib/pipes';
 
-import { computeDestinationPoint, getGreatCircleBearing } from 'geolib';
+import {
+  computeDestinationPoint,
+  getGreatCircleBearing,
+  getDistanceFromLine,
+  getDistance,
+  getPreciseDistance
+} from 'geolib';
 import { toLonLat } from 'ol/proj';
 import { Style, Stroke, Fill } from 'ol/style';
 import { Collection, Feature } from 'ol';
@@ -709,8 +715,10 @@ export class FBMapComponent implements OnInit, OnDestroy {
   }
 
   public onMapPointerDrag() {
-    this.fbMap.movingMap = false;
-    this.exitedMovingMap.emit(true);
+    if (!this.app.config.map.lockMoveMap) {
+      this.fbMap.movingMap = false;
+      this.exitedMovingMap.emit(true);
+    }
   }
 
   // toggle display of resource feature
@@ -1215,106 +1223,118 @@ export class FBMapComponent implements OnInit, OnDestroy {
       typeof this.app.data.vessels.active.heading === 'number'
     ) {
       const twd_deg = Convert.radiansToDegrees(
-        this.app.data.vessels.self.wind.twd
+        this.app.data.vessels.self.wind.direction
       );
+
+      const twd_inv = Angle.add(twd_deg, 180);
+
       const destUpwind =
         Math.abs(
           Angle.difference(this.app.data.navData.bearing.value, twd_deg)
         ) < 90;
+
       const ba_deg = Convert.radiansToDegrees(
         this.app.data.vessels.self.performance.beatAngle ?? Math.PI / 4
       );
-      const destInTarget =
-        Math.abs(
-          Angle.difference(this.app.data.navData.bearing.value, twd_deg)
-        ) < ba_deg;
+
+      const ga_deg = Convert.radiansToDegrees(
+        this.app.data.vessels.self.performance.gybeAngle ?? Math.PI / 6
+      );
+
+      const destInTarget = destUpwind
+        ? Math.abs(
+            Angle.difference(this.app.data.navData.bearing.value, twd_deg)
+          ) < ba_deg
+        : Math.abs(
+            Angle.difference(this.app.data.navData.bearing.value, twd_deg)
+          ) > ga_deg;
+
       const dtg =
         this.app.config.units.distance === 'm'
           ? this.app.data.navData.dtg * 1000
           : Convert.nauticalMilesToKm(this.app.data.navData.dtg * 1000);
 
-      if (destInTarget) {
-        const bta = Angle.add(twd_deg, 90); // tack angle = 90
-
-        const hbd_rad = Convert.degreesToRadians(
-          Angle.difference(twd_deg, this.app.data.navData.bearing.value)
-        );
-        const dist1 = Math.sin(hbd_rad) * dtg;
-        const dist2 = Math.cos(hbd_rad) * dtg;
-        const pt1 = computeDestinationPoint(
-          this.app.data.vessels.active.position,
-          dist1,
-          bta
-        );
-        const pt2 = computeDestinationPoint(
-          this.app.data.vessels.active.position,
-          dist2,
-          twd_deg
-        );
-        const p1a = [
-          this.app.data.vessels.active.position,
-          [pt1.longitude, pt1.latitude]
-        ];
-        const p1b = [
-          [pt1.longitude, pt1.latitude],
-          this.dfeat.navData.position
-        ];
-        const l1 = hbd_rad < 0 ? [p1a, p1b] : [p1b, p1a];
-
-        const p2a = [
-          [pt2.longitude, pt2.latitude],
-          this.dfeat.navData.position
-        ];
-        const p2b = [
-          this.app.data.vessels.active.position,
-          [pt2.longitude, pt2.latitude]
-        ];
-        const l2 = hbd_rad < 0 ? [p2a, p2b] : [p2b, p2a];
-
-        vl.laylines = {
-          port: hbd_rad < 0 ? l2 : l1,
-          starboard: hbd_rad < 0 ? l1 : l2
-        };
-      }
-      // target angle lines
-      if (destUpwind && destInTarget) {
+      // mark laylines
+      let markLines = [];
+      if (destUpwind) {
         const bapt1 = computeDestinationPoint(
-          this.app.data.vessels.active.position,
+          this.dfeat.navData.position,
           dtg,
-          Angle.add(twd_deg, ba_deg)
+          Angle.add(twd_inv, ba_deg)
         );
         const bapt2 = computeDestinationPoint(
-          this.app.data.vessels.active.position,
+          this.dfeat.navData.position,
           dtg,
-          Angle.add(twd_deg, 0 - ba_deg)
+          Angle.add(twd_inv, 0 - ba_deg)
         );
-        vl.targetAngle = [
+
+        markLines = [
           [bapt1.longitude, bapt1.latitude],
-          this.app.data.vessels.active.position,
+          this.dfeat.navData.position,
           [bapt2.longitude, bapt2.latitude]
         ];
-      } else if (
-        !destUpwind &&
-        typeof this.app.data.vessels.self.performance.gybeAngle === 'number'
-      ) {
-        const ga_deg = Convert.radiansToDegrees(
-          this.app.data.vessels.self.performance.gybeAngle
-        );
+      } else {
         const gapt1 = computeDestinationPoint(
-          this.app.data.vessels.active.position,
+          this.dfeat.navData.position,
           dtg,
-          Angle.add(this.app.data.navData.bearing.value, ga_deg)
+          Angle.add(twd_deg, ga_deg)
         );
         const gapt2 = computeDestinationPoint(
-          this.app.data.vessels.active.position,
+          this.dfeat.navData.position,
           dtg,
-          Angle.add(this.app.data.navData.bearing.value, 0 - ga_deg)
+          Angle.add(twd_deg, 0 - ga_deg)
         );
-        vl.targetAngle = [
+
+        markLines = [
           [gapt1.longitude, gapt1.latitude],
-          this.app.data.vessels.active.position,
+          this.dfeat.navData.position,
           [gapt2.longitude, gapt2.latitude]
         ];
+      }
+
+      vl.targetAngle = markLines;
+
+      // vessel laylines
+      if (destInTarget && destUpwind) {
+        // Vector angles
+        const hbd_deg = Angle.difference(
+          twd_deg,
+          this.app.data.navData.bearing.value
+        );
+        const C_RAD = Convert.degreesToRadians(ba_deg - hbd_deg);
+        const B_RAD = Convert.degreesToRadians(ba_deg + hbd_deg);
+        const A_RAD = Math.PI - (B_RAD + C_RAD);
+        // Vector lengths
+        const b = (dtg * Math.sin(B_RAD)) / Math.sin(A_RAD);
+        const c = (dtg * Math.sin(C_RAD)) / Math.sin(A_RAD);
+        // intersection points
+        const ipts = computeDestinationPoint(
+          this.app.data.vessels.active.position,
+          b,
+          Angle.add(twd_deg, ba_deg)
+        );
+        const iptp = computeDestinationPoint(
+          this.app.data.vessels.active.position,
+          c,
+          Angle.add(twd_deg, 0 - ba_deg)
+        );
+
+        vl.laylines = {
+          port: [
+            [
+              [iptp.longitude, iptp.latitude],
+              this.app.data.vessels.active.position
+            ],
+            [
+              [ipts.longitude, ipts.latitude],
+              this.app.data.vessels.active.position
+            ]
+          ],
+          starboard: [
+            [[ipts.longitude, ipts.latitude], markLines[1]],
+            [markLines[1], [iptp.longitude, iptp.latitude]]
+          ]
+        };
       }
     }
 

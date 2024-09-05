@@ -131,6 +131,17 @@
               <div class="setting-card-row" style="padding-bottom: 10px">
                 <div class="setting-card-row-item">
                   <mat-checkbox
+                    #lockMoveMap
+                    [(ngModel)]="facade.settings.map.lockMoveMap"
+                    (change)="onFormChange($event, lockMoveMap)"
+                    matTooltip="Do not exit follow vessel when map is panned."
+                    label="after"
+                  >
+                    Lock Follow Vessel
+                  </mat-checkbox>
+                </div>
+                <div class="setting-card-row-item">
+                  <mat-checkbox
                     #muteAllSound
                     [(ngModel)]="facade.settings.muteSound"
                     (change)="onFormChange($event, muteAllSound)"

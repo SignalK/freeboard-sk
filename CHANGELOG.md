@@ -6,6 +6,8 @@
 - **Added**: Setting to mute all sounds regardless of notification ALARM_METHOD value.(#178)
 - **Updated**: Show total length of Route when editing. (#171)
 - **Added**: Toggle charts on/of by clicking chart boundaries on map.
+- **Added**: Lock in `Follow Vessel` setting to remain in this mode when map is panned. (#185)
+- **Fixed**: Not rendering laylines when preferred path is `environment.wind.directionMagnetic`. (#184)
 
 ### v2.11.1
 

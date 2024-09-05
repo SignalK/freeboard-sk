@@ -53,31 +53,16 @@ export function cleanConfig(
     settings.selections.vessel.aisCogLine = 10;
   }
 
-  // changeover 2.7 - for removal
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  if (typeof (settings as any).vesselTrail !== 'undefined') {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    settings.selections.vessel.trail = (settings as any).vesselTrail;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    delete (settings as any).vesselTrail;
-  }
-  // changeover 2.7 - for removal
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  if (typeof (settings as any).vesselWindVectors !== 'undefined') {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    settings.selections.vessel.windVectors = (
-      settings as any
-    ).vesselWindVectors;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    delete (settings as any).vesselWindVectors;
-  }
-
   if (typeof settings.map.limitZoom === 'undefined') {
     settings.map.limitZoom = false;
   }
 
   if (typeof settings.map.invertColor === 'undefined') {
     settings.map.invertColor = false;
+  }
+
+  if (typeof settings.map.lockMoveMap === 'undefined') {
+    settings.map.lockMoveMap = false;
   }
 
   if (typeof settings.anchorRadius === 'undefined') {
@@ -98,15 +83,6 @@ export function cleanConfig(
 
   if (typeof settings.selections.labelsMinZoom === 'undefined') {
     settings.selections.labelsMinZoom = 10;
-  }
-
-  // changeover 2.7 - for removal
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  if (typeof (settings as any).aisShowTrack !== 'undefined') {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    settings.selections.aisShowTrack = (settings as any).aisShowTrack;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    delete (settings as any).aisShowTrack;
   }
 
   if (typeof settings.toolBarButtons === 'undefined') {
@@ -298,6 +274,7 @@ export const DefaultConfig: IAppConfig = {
     center: [0, 0],
     rotation: 0,
     moveMap: false,
+    lockMoveMap: true,
     northUp: true,
     animate: false,
     limitZoom: false,
@@ -424,6 +401,7 @@ export interface IAppConfig {
     center: Position;
     rotation: number;
     moveMap: boolean;
+    lockMoveMap: boolean;
     northUp: boolean;
     animate: boolean;
     limitZoom: boolean;

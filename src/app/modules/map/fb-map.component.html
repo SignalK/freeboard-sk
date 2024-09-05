@@ -533,24 +533,24 @@
   >
   </fb-xte-path>
   } @if(dfeat.navData.position && app.config.selections.vessel.laylines) {
-  <fb-layline
-    [lines]="vesselLines.laylines"
-    [laylineStyles]="featureStyles.layline"
-    [position]="app.data.vessels.active.position"
-    [twd]="app.data.vessels.self.wind.twd"
-    [mapZoom]="fbMap.zoomLevel"
-    [zIndex]="212"
-  >
-  </fb-layline>
   <fb-target-angle
     [line]="vesselLines.targetAngle"
     [lineStyle]="featureStyles.targetAngle"
     [position]="app.data.vessels.active.position"
-    [twd]="app.data.vessels.self.wind.twd"
+    [twd]="app.data.vessels.self.wind.direction"
     [mapZoom]="fbMap.zoomLevel"
     [zIndex]="212"
   >
   </fb-target-angle>
+  <fb-layline
+    [lines]="vesselLines.laylines"
+    [laylineStyles]="featureStyles.layline"
+    [position]="app.data.vessels.active.position"
+    [twd]="app.data.vessels.self.wind.direction"
+    [mapZoom]="fbMap.zoomLevel"
+    [zIndex]="212"
+  >
+  </fb-layline>
   } @if(dfeat.navData.position && app.data.anchor.raised) {
   <fb-bearing-line
     [marker]="dfeat.navData.position"

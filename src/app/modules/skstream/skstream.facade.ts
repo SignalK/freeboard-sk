@@ -360,6 +360,7 @@ export class SKStreamFacade {
   private processVessel(d: SKVessel) {
     d.cog = this.app.useMagnetic ? d.cogMagnetic : d.cogTrue;
     d.heading = this.app.useMagnetic ? d.headingMagnetic : d.headingTrue;
+    d.wind.direction = this.app.useMagnetic ? d.wind.mwd : d.wind.twd;
   }
 
   // ** process course data
