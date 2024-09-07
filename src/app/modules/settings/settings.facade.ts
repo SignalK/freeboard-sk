@@ -61,12 +61,12 @@ export class SettingsFacade {
       [true, 'Wind Apparent']
     ]),
     coords: [
-      ['XY', '-28.12345'],
-      ['SHDd', `S-28.12345${this.symDegree}`],
-      ['DMdH', `028${this.symDegree} 15.345' S`],
-      ['HDd', `S 28.12345${this.symDegree}`],
-      ['HDMS', `S 28${this.symDegree}15'46"123`],
-      ['DHMS', `28S15'46"123`]
+      ['XY', '-128.12345'],
+      ['SHDd', `W-128.12345${this.symDegree}`],
+      ['DMdH', `128${this.symDegree} 15.34567' W`],
+      ['HDd', `W 128.12345${this.symDegree}`],
+      ['HDMS', `W 128${this.symDegree}15'46"123`],
+      ['DHMS', `128W15'46"123`]
     ]
   };
 
