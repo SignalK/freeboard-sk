@@ -30,13 +30,7 @@ import {
 import { FreeboardOpenlayersModule } from 'src/app/modules/map/ol';
 import { PipesModule } from 'src/app/lib/pipes';
 
-import {
-  computeDestinationPoint,
-  getGreatCircleBearing,
-  getDistanceFromLine,
-  getDistance,
-  getPreciseDistance
-} from 'geolib';
+import { computeDestinationPoint, getGreatCircleBearing } from 'geolib';
 import { toLonLat } from 'ol/proj';
 import { Style, Stroke, Fill } from 'ol/style';
 import { Collection, Feature } from 'ol';

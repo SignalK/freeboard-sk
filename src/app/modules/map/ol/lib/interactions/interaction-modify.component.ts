@@ -53,8 +53,11 @@ export class InteractionModifyComponent {
         features: this.features,
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         deleteCondition: (e: MapBrowserEvent<any>) => {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          if (e.type === 'click' && (e.originalEvent as any).ctrlKey) {
+          if (
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            (e.type === 'click' && (e.originalEvent as any).ctrlKey) ||
+            e.type === 'contextmenu'
+          ) {
             return true;
           } else {
             return false;

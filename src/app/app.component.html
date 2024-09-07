@@ -808,8 +808,7 @@
           </div>
 
           <!-- Draw Help -->
-          @if((draw.enabled && draw.mode !== 'route') || (draw.modify &&
-          draw.modifyMode !== 'route')) {
+          @if((draw.enabled && draw.mode !== 'route') || draw.modify) {
           <div class="mat-app-background measurePanel">
             @if(draw.enabled) {
             <div>
@@ -852,12 +851,12 @@
                   <li>Click and drag to move anchor.</li>
                   } @if(draw.forSave.id !== 'anchor') {
                   <li>Click and drag to move point.</li>
-                  <li>Ctrl-Click to remove point from line.</li>
+                  <li>Ctrl-Click or Right click to remove point from line.</li>
                   }
                 </ol>
               </div>
             </div>
-            }
+            } @if( !(draw.modify && draw.modifyMode === 'route')) {
             <div style="text-align: center">
               <!-- cancel Draw button -->
               <a
@@ -871,6 +870,7 @@
                 {{ draw.modify ? 'FINISH' : 'CANCEL' }}
               </a>
             </div>
+            }
           </div>
           }
 
