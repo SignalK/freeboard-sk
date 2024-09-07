@@ -11,6 +11,7 @@ and more from any web enabled device.
 
 ![screen](https://user-images.githubusercontent.com/38519157/128667564-0f5e1ed6-eaae-40c7-ad62-5e7011c1f082.png)
 
+See the [FAQs](https://github.com/SignalK/freeboard-sk/wiki) for more information.
 
 ## Features:
 
