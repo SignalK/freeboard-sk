@@ -265,14 +265,12 @@ export class ConfirmDialog implements OnInit {
           </div>
         </div>
       </mat-dialog-content>
-      <mat-dialog-actions align="right">
+      <mat-dialog-actions align="center">
         @if(data.url) {
-        <div class="item stretch">
-          <a mat-button [href]="data.url" target="_web" rel="noopener"
-            >Visit Website</a
-          >
-        </div>
-        }
+        <a mat-button [href]="data.url" target="_web" rel="noopener"
+          >Visit Website</a
+        >
+        &nbsp; }
         <button mat-raised-button (click)="dialogRef.close(false)">
           Close
         </button>

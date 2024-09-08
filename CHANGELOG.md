@@ -1,5 +1,9 @@
 # CHANGELOG: Freeboard
 
+### v2.11.3
+
+- **Fixed**: VMG not being displayed in course data when destination is active. 
+
 ### v2.11.2
 
 - **Updated**: Proxy mode operation is now the default and configuration option removed. (#159)
@@ -8,7 +12,7 @@
 - **Updated**: When editing a route (on a touch device) `long-press` on a route point to delete it. (#169)
 - **Added**: Toggle charts on/of by clicking chart boundaries on map.
 - **Added**: Lock in `Follow Vessel` setting to remain in this mode when map is panned. (#185)
-- **Fixed**: Not rendering laylines when preferred path is `environment.wind.directionMagnetic`.
+- **Fixed**: Not rendering laylines when preferred path is `environment.wind.directionMagnetic`. (#184)
 - **Fixed**: Cursor position display formatting issue when using `028°15.345'S` format. (#188)
 
 ### v2.11.1

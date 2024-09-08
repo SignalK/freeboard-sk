@@ -404,7 +404,7 @@ export class SKStreamFacade {
       }
     }
     if (typeof v['course.velocityMadeGood'] !== 'undefined') {
-      this.app.data.navData.vmg = v['course.nextPoint.velocityMadeGood'];
+      this.app.data.navData.vmg = v['course.velocityMadeGood'];
     }
     if (typeof v['course.timeToGo'] !== 'undefined') {
       this.app.data.navData.ttg = v['course.timeToGo'] / 60;

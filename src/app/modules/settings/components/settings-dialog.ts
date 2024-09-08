@@ -20,6 +20,7 @@ import { MatSliderModule } from '@angular/material/slider';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatToolbarModule } from '@angular/material/toolbar';
+import { MatTabsModule } from '@angular/material/tabs';
 
 import { SignalKPreferredPathsComponent } from './signalk-preferredpaths.component';
 import { SettingsFacade } from '../settings.facade';
@@ -51,6 +52,7 @@ interface PreferredPathsResult {
     MatInputModule,
     MatMenuModule,
     MatToolbarModule,
+    MatTabsModule,
     SignalKPreferredPathsComponent
   ],
   templateUrl: './settings-dialog.html',
