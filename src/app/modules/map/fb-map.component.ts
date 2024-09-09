@@ -1217,7 +1217,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
       typeof this.app.data.vessels.active.heading === 'number'
     ) {
       const twd_deg = Convert.radiansToDegrees(
-        this.app.data.vessels.self.wind.direction
+        this.app.data.vessels.self.wind.direction ?? 0
       );
 
       const twd_inv = Angle.add(twd_deg, 180);
