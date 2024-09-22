@@ -247,9 +247,8 @@ export class ConfirmDialog implements OnInit {
 @Component({
   selector: 'ap-about-dialog',
   template: `
-    <div class="about">
+    <div>
       <h1 mat-dialog-title>About:</h1>
-
       <mat-dialog-content>
         <div class="about-row">
           <div class="item"><img [src]="data.logo" /></div>
@@ -287,12 +286,8 @@ export class ConfirmDialog implements OnInit {
         align-content: stretch;
         font-family: roboto;
       }
-      .about-row .item.stretch {
-        text-align: center;
-        width: 100%;
-      }
       .about-row .item {
-        padding-left: 5px;
+        padding-left: 10px;
       }
       .about-row img {
         width: 42px;
