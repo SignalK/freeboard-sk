@@ -97,11 +97,14 @@ import { PipesModule } from 'src/app/lib/pipes';
             @if(data['type'] === 'waypoint') {
             <div>
               <mat-form-field style="width:100%;" floatLabel="always">
-                <mat-label>Signal K Type</mat-label>
+                <mat-label>Waypoint Type</mat-label>
                 <mat-select #resourcetype [(value)]="data['skType']">
                   @for(i of resourceTypeList; track i) {
                   <mat-option [value]="i.type">
-                    <mat-icon><img [src]="i.icon" /></mat-icon> {{ i.name }}
+                    <mat-icon>
+                      <img [src]="i.icon" style="width: 21px; height:23px" />
+                    </mat-icon>
+                    {{ i.name }}
                   </mat-option>
                   }
                 </mat-select>
@@ -180,11 +183,20 @@ export class ResourceDialog implements OnInit {
   public icon: string;
 
   public resourceTypeList = [
-    { type: '', name: 'Waypoint', icon: './assets/img/marker-yellow.png' },
     {
-      type: 'pseudoAtoN',
+      type: '',
+      name: 'Waypoint',
+      icon: './assets/img/waypoints/marker-yellow.png'
+    },
+    {
+      type: 'pseudoaton',
       name: 'Pseudo AtoN',
-      icon: './assets/img/marker-red.png'
+      icon: './assets/img/waypoints/marker-red.png'
+    },
+    {
+      type: 'whale',
+      name: 'Whale Sighting',
+      icon: './assets/img/waypoints/whale.svg'
     }
   ];
 

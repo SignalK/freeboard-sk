@@ -157,7 +157,7 @@ export const routeStyles = {
 export const waypointStyles = {
   default: new Style({
     image: new Icon({
-      src: './assets/img/marker-yellow.png',
+      src: './assets/img/waypoints/marker-yellow.png',
       rotateWithView: false,
       size: [25, 25],
       anchor: [10.5, 25],
@@ -171,7 +171,7 @@ export const waypointStyles = {
   }),
   active: new Style({
     image: new Icon({
-      src: './assets/img/marker-blue.png',
+      src: './assets/img/waypoints/marker-blue.png',
       rotateWithView: false,
       size: [25, 25],
       anchor: [10.5, 25],
@@ -183,12 +183,26 @@ export const waypointStyles = {
       offsetY: -30
     })
   }),
-  pseudoAtoN: new Style({
+  pseudoaton: new Style({
     image: new Icon({
-      src: './assets/img/marker-red.png',
+      src: './assets/img/waypoints/marker-red.png',
       rotateWithView: false,
       size: [25, 25],
       anchor: [10.5, 25],
+      anchorXUnits: 'pixels',
+      anchorYUnits: 'pixels'
+    }),
+    text: new Text({
+      text: '',
+      offsetY: -30
+    })
+  }),
+  whale: new Style({
+    image: new Icon({
+      src: './assets/img/waypoints/whale.svg',
+      rotateWithView: false,
+      scale: 0.15,
+      anchor: [65, 188],
       anchorXUnits: 'pixels',
       anchorYUnits: 'pixels'
     }),

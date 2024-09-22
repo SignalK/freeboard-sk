@@ -80,9 +80,7 @@
                   white-space: pre;
                 "
               >
-                <mat-icon
-                  [ngClass]="{'icon-warn': r[1].feature.properties.skType=='pseudoAtoN'}"
-                >
+                <mat-icon [ngClass]="{'icon-warn': r[1].type=='pseudoAtoN'}">
                   room
                 </mat-icon>
                 <b>{{(r[1].name) ? r[1].name : 'Wpt-' + r[0].slice(-6)}}</b>
@@ -107,7 +105,7 @@
                 mat-icon-button
                 [disabled]="r[0] === activeWaypoint || disableRefresh"
                 (click)="itemDelete(r[0])"
-                [matTooltip]="r[1].feature.properties.skType ? 'Delete ' + r[1].feature.properties.skType : 'Delete Waypoint'"
+                matTooltip="Delete Waypoint"
                 matTooltipPosition="right"
               >
                 <mat-icon>delete</mat-icon>

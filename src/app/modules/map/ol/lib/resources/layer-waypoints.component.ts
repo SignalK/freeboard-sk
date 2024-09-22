@@ -65,9 +65,9 @@ export class WaypointsBaseComponent extends FBFeatureLayerComponent {
         typeof this.waypointStyles.active !== 'undefined'
       ) {
         return this.setTextLabel(this.waypointStyles.active, wpt.name);
-      } else if (wpt.feature.properties.skType) {
+      } else if (wpt.type && this.waypointStyles[wpt.type.toLowerCase()]) {
         return this.setTextLabel(
-          this.waypointStyles[wpt.feature.properties.skType],
+          this.waypointStyles[wpt.type.toLowerCase()],
           wpt.name
         );
       } else {

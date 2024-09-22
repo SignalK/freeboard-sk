@@ -1218,6 +1218,13 @@ export class SKResources {
         w.description = w.feature.properties.cmt;
       }
     }
+    if (w.feature.properties.skType) {
+      w.type = w.feature.properties.skType;
+      delete w.feature.properties.skType;
+    }
+    if (w.type) {
+      w.type = w.type.toLowerCase();
+    }
     return w;
   }
 
@@ -1326,21 +1333,14 @@ export class SKResources {
           comment: wpt.description ?? '',
           position: wpt.feature.geometry['coordinates'],
           addMode: addMode,
-          skType:
-            typeof wpt.feature.properties['skType'] !== 'undefined'
-              ? wpt.feature.properties['skType']
-              : null
+          skType: wpt.type ?? ''
         }
       })
       .afterClosed()
       .subscribe((r) => {
         wpt.description = r.data.comment || '';
         wpt.name = r.data.name || '';
-        if (r.data.skType) {
-          wpt.feature.properties['skType'] = r.data.skType;
-        } else {
-          delete wpt.feature.properties['skType'];
-        }
+        wpt.type = r.data.skType;
         if (r.result) {
           // ** save / update waypoint **
           let isNew = false;
