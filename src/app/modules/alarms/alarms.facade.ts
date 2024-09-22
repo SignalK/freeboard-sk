@@ -300,7 +300,7 @@ export class AlarmsFacade {
   private processNotifications(msg: NotificationMessage) {
     const sound = this.app.config.muteSound
       ? false
-      : msg.result.value.method.includes('sound')
+      : msg.result.value?.method.includes('sound')
       ? true
       : false;
     switch (msg.type) {
