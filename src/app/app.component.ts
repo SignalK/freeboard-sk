@@ -447,9 +447,19 @@ export class AppComponent {
     }
   }
 
-  // ** display selected experiment UI **
-  public openExperiment(e) {
+  // display selected experiment UI
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  public openExperiment(e: { choice: string; value?: any }) {
     switch (e.choice) {
+      case 'debugCapture':
+        navigator.clipboard.writeText(
+          JSON.stringify({
+            data: this.app.data,
+            config: this.app.config
+          })
+        );
+        this.app.showMessage('Debug data catpured to clipboard.');
+        break;
       case 'tracks': // tracks
         this.bottomSheet
           .open(TracksModal, {

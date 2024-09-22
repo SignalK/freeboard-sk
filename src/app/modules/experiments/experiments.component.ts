@@ -28,9 +28,13 @@ import { CommonDialogs } from 'src/app/lib/components/dialogs';
           <mat-icon>filter_drama</mat-icon>
           <span>EXP_NAME_HERE</span>			
       </a>
--->
       <a mat-menu-item [disabled]="true">
         <span>None Available</span>
+      </a>
+      -->
+      <a mat-menu-item (click)="handleSelect('debugCapture')">
+        <mat-icon>adb</mat-icon>
+        <span>Capture Debug Info</span>
       </a>
     </mat-menu>
 
