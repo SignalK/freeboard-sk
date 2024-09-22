@@ -1,5 +1,10 @@
 # CHANGELOG: Freeboard
 
+### v2.11.4
+
+- **Updated**: Style waypoints using defined list of "type" attribute values.
+- **Added**: Debug data capture option to experiments. 
+
 ### v2.11.3
 
 - **Fixed**: VMG not being displayed in course data when destination is active. 

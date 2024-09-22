@@ -100,7 +100,7 @@ _See OpenAPI documentation in Signal K Server Admin UI for details._
 
 ### History Playback
 
-Freeboard-SK supports the Siganl K `playback` api and can replay recorded time-series data captured on a Signal K server equipped with the `signalk-to-infludb` plugin.
+Freeboard-SK supports the Signal K `playback` api and can replay recorded time-series data captured on a Signal K server equipped with the `signalk-to-infludb` plugin.
 
 ---
 
@@ -120,7 +120,7 @@ _Note: The `Signal K Instrument Panel` app will be displayed if no user selectio
 
 ### S57 Charts
 
-Freeboard-SK is able to display S57 ENC charts that have been converted to vector tiles with [s57-tiler](https://github.com/wdantuma/s57-tiler). _(See the [README](https://github.com/wdantuma/s57-tiler) for instructions how to create the vectortiles from downloaded S57 ENC's.)_
+Freeboard-SK is able to display S57 ENC charts that have been converted to vector tiles with [s57-tiler](https://github.com/wdantuma/s57-tiler). _(See the [README](https://github.com/wdantuma/s57-tiler) for instructions how to create the vector tiles from downloaded S57 ENC's.)_
 
 See [Open CPN chart sources](https://opencpn.org/OpenCPN/info/chartsource.html) for a list of locations to source charts.
 
@@ -131,11 +131,11 @@ _Note: Only unencrypted ENC's are supported (no S63 support)._
 
 ![S57 chart](https://github.com/SignalK/freeboard-sk/assets/38519157/a93b3889-d1c8-4df7-9f6f-97a1666fbf77)
 
-Rendering of the Shallow, safety and deep depths and   can be configured in the settings dialog
+Rendering of the Shallow, safety and deep depths and can be configured in the settings dialog
 
 ![S57 Settings](https://github.com/SignalK/freeboard-sk/assets/38519157/0409492b-1ee7-4905-b5b0-e5fc8e68bc9a)
 
-_Note:  This functionality is not a replacement for official navigational charts_
+_Note: This functionality is not a replacement for official navigational charts_
 
 ---
 
@@ -171,13 +171,13 @@ The following features require that the Signal K server have plugins / providers
 
 ### Recommended Plugins:
 
-The following plugins are recommended for the *Signal K node server* to enable full functionality:
+The following plugins are recommended for installation on the Signal K Server to enable full functionality:
 
-- @signalk/charts-plugin *(Charts provider)*
+- @signalk/course-provider _(Course calculations e.g. XTE, DTG, etc.)_
+- @signalk/charts-plugin *(Mapbox tiles chart provider)*
 - signalk-pmtiles-plugin *(ProtoMaps chart provider)*
-- signalk-anchoralarm-plugin _(anchor alarm settings & notifications)_
-- signalk-simple-notifications _(depth alarm notifications)_
-- @signalk/course-provider _(course calculations e.g. XTE, DTG, etc.)_
+- signalk-anchoralarm-plugin _(Anchor alarm settings & notifications)_
+- signalk-simple-notifications _(Depth alarm notifications)_
 
 ---
 
@@ -189,7 +189,7 @@ It is recommended that the Angular CLI be installed globally `npm i -g @angular/
 
 1. Clone this repository.
 
-2. Run `npm i` to install project dependencies. *Note: this will also build the project placing the deployable application files in the `public` folder.*
+2. Run `npm i` to install project dependencies.
 
 3. Run `npm start` or `ng serve` to start a development web server and then navigate to `http://localhost:4200/` to load the application. The application will automatically reload once you save changes to any of the source files.
 
