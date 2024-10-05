@@ -1275,7 +1275,7 @@ export class SKResources {
     if (!t) {
       return;
     }
-    const wpt = t[0][1];
+    const wpt = t[1];
     wpt['feature']['geometry']['coordinates'] =
       GeoUtils.normaliseCoords(position);
     wpt['position'] = {
