@@ -1,5 +1,11 @@
 # CHANGELOG: Freeboard
 
+### v2.11.5
+
+- **Fixed**: Issue when moving waypoint.
+- **Fixed**: Downwind mark laylines. 
+- **Fixed**: Chart type metadata value processing. 
+
 ### v2.11.4
 
 - **Updated**: Style waypoints using defined list of "type" attribute values.
