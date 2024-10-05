@@ -247,7 +247,7 @@ export class ChartListComponent {
   }
 
   isLocal(url: string) {
-    return url && url.indexOf('signalk') !== -1 ? 'map' : 'language';
+    return url && url.indexOf(this.app.hostName) !== -1 ? 'map' : 'language';
   }
 
   toggleChartBoundaries() {

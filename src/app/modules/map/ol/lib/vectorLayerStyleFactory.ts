@@ -170,7 +170,7 @@ export class VectorLayerStyleFactory {
   public CreateVectorLayerStyler(chart: SKChart): VectorLayerStyler {
     if (chart.url.indexOf('.pmtiles') !== -1) {
       return new PMLayerStyler(chart);
-    } else if (chart.type === 'S-57') {
+    } else if (chart.type === 'S-57' || chart.type === 's-57') {
       return new S57LayerStyler(chart, this.s57service);
     } else {
       return new DefaultLayerStyler(chart);
