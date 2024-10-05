@@ -1232,16 +1232,14 @@ export class FBMapComponent implements OnInit, OnDestroy {
       );
 
       const ga_deg = Convert.radiansToDegrees(
-        this.app.data.vessels.self.performance.gybeAngle ?? Math.PI / 6
+        this.app.data.vessels.self.performance.gybeAngle ?? Math.PI / 9
       );
 
-      const destInTarget = destUpwind
-        ? Math.abs(
-            Angle.difference(this.app.data.navData.bearing.value, twd_deg)
-          ) < ba_deg
-        : Math.abs(
-            Angle.difference(this.app.data.navData.bearing.value, twd_deg)
-          ) > ga_deg;
+      const destInTarget =
+        destUpwind &&
+        Math.abs(
+          Angle.difference(this.app.data.navData.bearing.value, twd_deg)
+        ) < ba_deg;
 
       const dtg =
         this.app.config.units.distance === 'm'
@@ -1271,12 +1269,12 @@ export class FBMapComponent implements OnInit, OnDestroy {
         const gapt1 = computeDestinationPoint(
           this.dfeat.navData.position,
           dtg,
-          Angle.add(twd_deg, ga_deg)
+          Angle.add(twd_inv, ga_deg)
         );
         const gapt2 = computeDestinationPoint(
           this.dfeat.navData.position,
           dtg,
-          Angle.add(twd_deg, 0 - ga_deg)
+          Angle.add(twd_inv, 0 - ga_deg)
         );
 
         markLines = [
