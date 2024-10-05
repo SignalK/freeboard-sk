@@ -452,13 +452,20 @@ export class AppComponent {
   public openExperiment(e: { choice: string; value?: any }) {
     switch (e.choice) {
       case 'debugCapture':
-        navigator.clipboard.writeText(
-          JSON.stringify({
-            data: this.app.data,
-            config: this.app.config
-          })
-        );
-        this.app.showMessage('Debug data catpured to clipboard.');
+        if (window.isSecureContext) {
+          navigator.clipboard.writeText(
+            JSON.stringify({
+              data: this.app.data,
+              config: this.app.config
+            })
+          );
+          this.app.showMessage('Debug data catpured to clipboard.');
+        } else {
+          this.app.showAlert(
+            'Feature Unavailable',
+            'This feature is only available in a secure context!\n e.g. https, http://localhost, http://127.0.0.1'
+          );
+        }
         break;
       case 'tracks': // tracks
         this.bottomSheet
