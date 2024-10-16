@@ -197,7 +197,7 @@ It is recommended that the Angular CLI be installed globally `npm i -g @angular/
 
 The Freeboard-SK application will look to connect to a Signal K server at the *ip address:port* contained in the url of your browser. 
 
-In development mode you are able to specify the Signal K server host address and port you wish to connect to by editing the `DEV_SERVER` object in the `src/app.info.ts` file.
+In development mode you are able to specify the Signal K server host address and port you wish to connect to by editing the `DEV_SERVER` object in the `src/app/app.info.ts` file.
 ```
 DEV_SERVER { 
     host: '192.168.99.100', 
