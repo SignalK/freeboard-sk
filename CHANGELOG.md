@@ -1,5 +1,14 @@
 # CHANGELOG: Freeboard
 
+### v2.12.0
+
+- **Added**: Define chart sources from within the Charts List including: WMTS, Mapbox Style and TileJSON.
+- **Updated**: Measure distances < 1km are displayed in meters and < 0.5NM uses depth units (#194). 
+- **Updated**: Ensure weather forecast times use 24 hr format. (#193).
+- **Updated**: OpenSea Map min / max zoom levels.
+- **Updated**: OpenLayers v10. 
+- **Fixed**: gybeAngle null value handling.
+
 ### v2.11.5
 
 - **Fixed**: Issue when moving waypoint.

@@ -117,7 +117,11 @@ export class OpenWeather implements IWeatherService {
   fetchData = async (position: Position): Promise<ParsedResponse> => {
     const url = this.getUrl(position);
     const response = await fetch(url);
-    return this.parseResponse(response as OWResponse);
+    if ('cod' in response) {
+      throw new Error(response.message);
+    } else {
+      return this.parseResponse(response as OWResponse);
+    }
   };
 
   private parseResponse = (owData: OWResponse): ParsedResponse => {

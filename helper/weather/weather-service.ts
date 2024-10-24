@@ -380,14 +380,13 @@ const fetchWeatherData = () => {
     server.debug(
       `*** Weather: Calling service API.....(attempt: ${retryCount})`
     );
-
     server.debug(`Position: ${JSON.stringify(pos.value)}`);
     server.debug(`*** Weather: polling weather provider.`);
     weatherService
       .fetchData(pos.value)
       .then((data) => {
         server.debug(`*** Weather: data received....`);
-        //server.debug(JSON.stringify(data));
+        server.debug(JSON.stringify(data));
         retryCount = 0;
         lastFetch = Date.now();
         lastWake = Date.now();
@@ -419,7 +418,8 @@ const fetchWeatherData = () => {
             retryInterval / 1000
           } sec)`
         );
-        server.debug(err.message);
+        console.log(err.message);
+        server.setPluginError(err.message);
         // sleep and retry
         retryTimer = setTimeout(() => fetchWeatherData(), retryInterval);
       });

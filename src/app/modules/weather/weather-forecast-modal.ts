@@ -137,7 +137,8 @@ export class WeatherForecastModal implements OnInit {
           .forEach((v: any) => {
             const forecastData: WeatherData = { wind: {} };
             forecastData.description = v['description'] ?? '';
-            forecastData.time = new Date(v['date']).toLocaleTimeString() ?? '';
+            const d = new Date(v['date']);
+            forecastData.time = d ? `${d.getHours()}:${d.getMinutes()}:00` : '';
 
             if (typeof v.outside?.temperature !== 'undefined') {
               forecastData.temperature =

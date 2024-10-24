@@ -64,8 +64,22 @@ export interface ChartResource {
   scale?: number;
   url?: string;
   layers?: string[];
+  $source?: string;
   //v1
   tilemapUrl?: string; // replaced by url
   chartLayers?: string[]; // replaced by layers
   serverType?: string; // replaced by type
+}
+
+export interface ChartProvider {
+  identifier?: string;
+  name: string;
+  description: string;
+  type: 'WMTS' | 'mapboxstyle';
+  url: string;
+  layers?: string[];
+  bounds?: number[];
+  minzoom?: number;
+  maxzoom?: number;
+  format?: string;
 }

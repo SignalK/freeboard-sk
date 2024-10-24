@@ -192,7 +192,7 @@ export class FreeboardChartLayerComponent
                 : charts[i][1].minZoom;
             const maxZ = charts[i][1].maxZoom;
 
-            if (charts[i][1].type === 'mapstyleJSON') {
+            if (charts[i][1].type.toLowerCase() === 'mapboxstyle') {
               const lg = new LayerGroup({
                 zIndex: this.zIndex + parseInt(i)
               });
@@ -208,7 +208,7 @@ export class FreeboardChartLayerComponent
                   charts[i][1]
                 );
               layer = styleFactory.CreateLayer();
-              styleFactory.ApplyStyle(layer as VectorTileLayer<FeatureLike>);
+              styleFactory.ApplyStyle(layer as VectorTileLayer<never>);
               layer.setZIndex(this.zIndex + parseInt(i));
             } else {
               // raster tile
@@ -266,7 +266,8 @@ export class FreeboardChartLayerComponent
               ) {
                 // tileJSON
                 source = new TileJSON({
-                  url: charts[i][1].url
+                  url: charts[i][1].url,
+                  crossOrigin: 'anonymous'
                 });
               } else {
                 // XYZ tilelayer

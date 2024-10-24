@@ -1,23 +1,21 @@
 const WHATS_NEW = [
-  {
+  /*{
     type: 'signalk-server-node',
-    title: 'AIS Vessels',
+    title: 'Chart Sources',
     message: `
-        The following new features have been added:
+        Initial support for defining the following chart sources directly 
+        from the Chart List:
+        <li>WMTS (WebMap Tile Server)</li>
+        <li>TileJSON</li>
+        <li>Mapbox Style</li>
+        <br>
+        <i>Note: This functionality requires an upcoming release of 
+        Signal K Server.</i>
         <br>&nbsp;<br>
-        <li>Ability to Flag vessels.</li>
-        <li>COG line is now displayed for AIS vessels.</li>
+        See <a href="assets/help/index.html" target="help">HELP</a> 
+                  for more details.
       `
-  },
-  {
-    type: 'signalk-server-node',
-    title: 'Racing Support',
-    message: `
-        This release contains initial support for <i>navigation.racing</i> paths.
-        <br>&nbsp;<br>
-        <li>Display start line.</li>
-      `
-  }
+  }*/
 ];
 
 export const WELCOME_MESSAGES = {

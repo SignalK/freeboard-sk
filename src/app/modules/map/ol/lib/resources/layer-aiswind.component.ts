@@ -6,8 +6,8 @@ import {
   SimpleChanges
 } from '@angular/core';
 import { Feature } from 'ol';
-import { Style, Icon, Stroke } from 'ol/style';
-import { LineString, Point } from 'ol/geom';
+import { Style, Stroke } from 'ol/style';
+import { LineString } from 'ol/geom';
 import { fromLonLat } from 'ol/proj';
 import { MapComponent } from '../map.component';
 import { AISBaseLayerComponent } from './ais-base.component';
@@ -75,10 +75,8 @@ export class AISWindLayerComponent extends AISBaseLayerComponent {
       }
       const f = new Feature(new LineString(v));
       f.setId('wind-' + id);
-      //const s = this.buildStyle('').clone();
-      //f.setStyle(this.setRotation(s, target.orientation));
       f.setStyle(this.buildVectorStyle());
-      this.source.addFeature(f);
+      this.source?.addFeature(f);
     }
   }
 
@@ -93,19 +91,6 @@ export class AISWindLayerComponent extends AISBaseLayerComponent {
     });
   }
 
-  /*private buildStyle(label?: string) {
-    return new Style({
-      image: new Icon({
-        src: './assets/img/ais_flag.svg',
-        rotateWithView: true,
-        scale: 0.2,
-        anchor: [27, 187],
-        anchorXUnits: 'pixels',
-        anchorYUnits: 'pixels'
-      })
-    });
-  }*/
-
   // reload all Features from this.targets
   override onReloadTargets() {
     this.extractKeys(this.targets).forEach((id) => {
@@ -117,7 +102,7 @@ export class AISWindLayerComponent extends AISBaseLayerComponent {
   override onUpdateTargets(ids: Array<string>) {
     ids.forEach((id: string) => {
       if (id.includes(this.targetContext)) {
-        const f = this.source.getFeatureById('wind-' + id) as Feature;
+        const f = this.source?.getFeatureById('wind-' + id) as Feature;
         if (this.okToRenderTarget(id)) {
           if (this.targets.has(id)) {
             if (f) {

@@ -1,4 +1,10 @@
 <div class="resourcelist" style="width: 320px">
+  <mat-menu #addchartmenu="matMenu">
+    <button mat-menu-item (click)="addChartSource('wmts')">WMTS</button>
+    <button mat-menu-item (click)="addChartSource('json')">
+      JSON Map Source
+    </button>
+  </mat-menu>
   <mat-card>
     <mat-card-title>
       <div class="title-block">
@@ -93,6 +99,15 @@
         <mat-icon>import_export</mat-icon>
         Re-order
       </button>
+
+      <button
+        mat-button
+        matTooltip="Add Chart"
+        matTooltipPosition="above"
+        [matMenuTriggerFor]="addchartmenu"
+      >
+        <mat-icon>add</mat-icon>
+      </button>
       }
     </mat-card-actions>
   </mat-card>
@@ -140,6 +155,18 @@
         </mat-card-content>
         <mat-card-actions>
           <div style="display: flex">
+            @if(r[1].source && r[1].source === 'resources-provider') {
+            <div style="width: 100%; text-align: right">
+              <button
+                mat-icon-button
+                (click)="itemDelete(r[0])"
+                matTooltip="Remove Chart"
+                matTooltipPosition="right"
+              >
+                <mat-icon>delete</mat-icon>
+              </button>
+            </div>
+            }
             <div style="width: 100%; text-align: right">
               <button
                 mat-icon-button

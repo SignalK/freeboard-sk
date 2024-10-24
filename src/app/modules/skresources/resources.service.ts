@@ -214,7 +214,7 @@ export class SKResources {
    * @param collection The resource collection to which the resource belongs e.g. routes, waypoints, etc.
    * @param id Resource identifier
    */
-  public deleteResource(collection: string, id: string) {
+  public deleteResource(collection: string, id: string, refresh?: boolean) {
     this.signalk.api
       .delete(this.app.skApiVersion, `/resources/${collection}/${id}`)
       .subscribe(
@@ -225,6 +225,9 @@ export class SKResources {
           ) {
             const idx = this.app.config.selections[collection].indexOf(id);
             this.app.config.selections[collection].splice(idx, 1);
+          }
+          if (refresh && collection === 'charts') {
+            this.getCharts();
           }
         },
         (err: HttpErrorResponse) => {
@@ -813,6 +816,22 @@ export class SKResources {
       });
       this.app.debug('*** MAP_ZOOM_EXTENT', this.app.MAP_ZOOM_EXTENT);
     }
+  }
+
+  // ** Confirm Chart Deletion **
+  showChartDelete(e: { id: string }) {
+    this.app
+      .showConfirm(
+        'Do you want to delete this Chart source?\n',
+        'Delete Chart:',
+        'YES',
+        'NO'
+      )
+      .subscribe((result: { ok: boolean }) => {
+        if (result && result.ok) {
+          this.deleteResource('charts', e.id, true);
+        }
+      });
   }
 
   OSMCharts = [].concat(OSM);

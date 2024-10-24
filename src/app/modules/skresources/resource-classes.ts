@@ -127,6 +127,7 @@ export class SKChart {
   maxZoom = 24;
   type: string;
   url: string;
+  source: string;
 
   constructor(chart?: ChartResource) {
     this.identifier = chart?.identifier ? chart.identifier : undefined;
@@ -145,7 +146,7 @@ export class SKChart {
       typeof chart?.scale !== 'undefined' && !isNaN(chart?.scale)
         ? chart.scale
         : this.scale;
-    this.url = chart?.url ? chart.url : undefined;
+    this.source = chart?.$source ?? undefined;
   }
 }
 

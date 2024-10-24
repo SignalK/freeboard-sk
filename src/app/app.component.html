@@ -36,6 +36,7 @@
         <mat-icon>save</mat-icon>
         &nbsp;Save to GPX
       </button>
+
       @if(app.config.resources.paths.length !== 0) {
       <div>
         <mat-divider></mat-divider>
@@ -534,6 +535,7 @@
               [charts]="app.data.charts"
               [selectedCharts]="app.config.selections.charts"
               (select)="skres.chartSelected()"
+              (delete)="skres.showChartDelete($event)"
               (orderChange)="skres.chartOrder()"
               (refresh)="skres.getCharts()"
               (closed)="displayLeftMenu()"

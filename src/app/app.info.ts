@@ -51,8 +51,8 @@ export const OSM = [
       name: 'Sea Map',
       description: 'Open Sea Map',
       url: 'https://tiles.openseamap.org/seamark/{z}/{x}/{y}.png',
-      minzoom: 12,
-      maxzoom: 18,
+      minzoom: 1,
+      maxzoom: 24,
       bounds: [-180, -90, 180, 90],
       type: 'tilelayer'
     }),
@@ -160,7 +160,7 @@ export class AppInfo extends Info {
     this.name = 'Freeboard-SK';
     this.shortName = 'Freeboard';
     this.description = `Signal K Chart Plotter.`;
-    this.version = '2.11.5';
+    this.version = '2.12.0';
     this.url = 'https://github.com/signalk/freeboard-sk';
     this.logo = './assets/img/app_logo.png';
 
@@ -657,9 +657,16 @@ export class AppInfo extends Info {
           ? `${value.toFixed(1)} m`
           : `${Convert.metersToFeet(value).toFixed(1)} ft`;
       } else {
-        return this.config.units.distance !== 'ft'
-          ? `${(value / 1000).toFixed(1)} km`
-          : `${Convert.kmToNauticalMiles(value / 1000).toFixed(1)} NM`;
+        if (this.config.units.distance !== 'ft') {
+          return value < 1000
+            ? `${value.toFixed(0)} m`
+            : `${(value / 1000).toFixed(1)} km`;
+        } else {
+          const nm = Convert.kmToNauticalMiles(value / 1000);
+          return nm < 0.5
+            ? this.formatValueForDisplay(value, 'm', true)
+            : `${nm.toFixed(1)} NM`;
+        }
       }
     } else if (sourceUnits === 'm/s') {
       switch (this.config.units.speed) {

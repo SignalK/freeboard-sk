@@ -91,6 +91,7 @@ import {
   SKNotification
 } from 'src/app/types';
 import { S57Service } from './ol/lib/s57.service';
+import { Position as SKPosition } from '@signalk/server-api';
 
 interface IResource {
   id: string;
@@ -1231,15 +1232,24 @@ export class FBMapComponent implements OnInit, OnDestroy {
         this.app.data.vessels.self.performance.beatAngle ?? Math.PI / 4
       );
 
-      const ga_deg = Convert.radiansToDegrees(
-        this.app.data.vessels.self.performance.gybeAngle ?? Math.PI / 9
-      );
+      let ga_deg: number;
+      let ga_diff: number;
+      if (
+        typeof this.app.data.vessels.self.performance.gybeAngle === 'number'
+      ) {
+        ga_deg = Convert.radiansToDegrees(
+          this.app.data.vessels.self.performance.gybeAngle
+        );
+        ga_diff = Math.abs(180 - ga_deg);
+      }
 
-      const destInTarget =
-        destUpwind &&
-        Math.abs(
-          Angle.difference(this.app.data.navData.bearing.value, twd_deg)
-        ) < ba_deg;
+      const destInTarget = destUpwind
+        ? Math.abs(
+            Angle.difference(this.app.data.navData.bearing.value, twd_deg)
+          ) < ba_deg
+        : Math.abs(
+            Angle.difference(this.app.data.navData.bearing.value, twd_inv)
+          ) < (ga_diff ?? 0);
 
       const dtg =
         this.app.config.units.distance === 'm'
@@ -1265,7 +1275,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
           this.dfeat.navData.position,
           [bapt2.longitude, bapt2.latitude]
         ];
-      } else {
+      } else if (typeof ga_deg === 'number') {
         const gapt1 = computeDestinationPoint(
           this.dfeat.navData.position,
           dtg,
@@ -1287,30 +1297,58 @@ export class FBMapComponent implements OnInit, OnDestroy {
       vl.targetAngle = markLines;
 
       // vessel laylines
-      if (destInTarget && destUpwind) {
-        // Vector angles
+      if (destInTarget) {
         const hbd_deg = Angle.difference(
           twd_deg,
           this.app.data.navData.bearing.value
         );
-        const C_RAD = Convert.degreesToRadians(ba_deg - hbd_deg);
-        const B_RAD = Convert.degreesToRadians(ba_deg + hbd_deg);
-        const A_RAD = Math.PI - (B_RAD + C_RAD);
         // Vector lengths
-        const b = (dtg * Math.sin(B_RAD)) / Math.sin(A_RAD);
-        const c = (dtg * Math.sin(C_RAD)) / Math.sin(A_RAD);
+        let b: number;
+        let c: number;
         // intersection points
-        const ipts = computeDestinationPoint(
-          this.app.data.vessels.active.position,
-          b,
-          Angle.add(twd_deg, ba_deg)
-        );
-        const iptp = computeDestinationPoint(
-          this.app.data.vessels.active.position,
-          c,
-          Angle.add(twd_deg, 0 - ba_deg)
-        );
+        let ipts: SKPosition;
+        let iptp: SKPosition;
 
+        if (destUpwind) {
+          // Vector angles
+          const C_RAD = Convert.degreesToRadians(ba_deg - hbd_deg);
+          const B_RAD = Convert.degreesToRadians(ba_deg + hbd_deg);
+          const A_RAD = Math.PI - (B_RAD + C_RAD);
+          b = (dtg * Math.sin(B_RAD)) / Math.sin(A_RAD);
+          c = (dtg * Math.sin(C_RAD)) / Math.sin(A_RAD);
+          // intersection points
+          ipts = computeDestinationPoint(
+            this.app.data.vessels.active.position,
+            b,
+            Angle.add(twd_deg, ba_deg)
+          );
+          iptp = computeDestinationPoint(
+            this.app.data.vessels.active.position,
+            c,
+            Angle.add(twd_deg, 0 - ba_deg)
+          );
+        } else {
+          // downwind
+          if (markLines.length !== 0 && typeof ga_diff === 'number') {
+            // Vector angles
+            const C_RAD = Convert.degreesToRadians(ga_diff - hbd_deg);
+            const B_RAD = Convert.degreesToRadians(ga_diff + hbd_deg);
+            const A_RAD = Math.PI - (B_RAD + C_RAD);
+            b = (dtg * Math.sin(B_RAD)) / Math.sin(A_RAD);
+            c = (dtg * Math.sin(C_RAD)) / Math.sin(A_RAD);
+            // intersection points
+            ipts = computeDestinationPoint(
+              this.app.data.vessels.active.position,
+              b,
+              Angle.add(twd_deg, ga_diff)
+            );
+            iptp = computeDestinationPoint(
+              this.app.data.vessels.active.position,
+              c,
+              Angle.add(twd_deg, 0 - ga_diff)
+            );
+          }
+        }
         vl.laylines = {
           port: [
             [

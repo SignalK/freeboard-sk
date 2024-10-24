@@ -7,6 +7,7 @@ import {
   ChangeDetectionStrategy
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { MatDialog, MatDialogRef } from '@angular/material/dialog';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatIconModule } from '@angular/material/icon';
 import { MatCardModule } from '@angular/material/card';
@@ -15,8 +16,8 @@ import { MatButtonModule } from '@angular/material/button';
 import { FormsModule } from '@angular/forms';
 import { MatInputModule } from '@angular/material/input';
 import { ScrollingModule } from '@angular/cdk/scrolling';
-
-import { MatDialog } from '@angular/material/dialog';
+import { MatSlideToggle } from '@angular/material/slide-toggle';
+import { MatMenuModule } from '@angular/material/menu';
 import {
   DragDropModule,
   CdkDragDrop,
@@ -26,7 +27,11 @@ import {
 import { AppInfo } from 'src/app/app.info';
 import { ChartPropertiesDialog } from './chart-properties-dialog';
 import { FBCharts, FBChart, FBResourceSelect } from 'src/app/types';
-import { MatSlideToggle } from '@angular/material/slide-toggle';
+import { forkJoin, of } from 'rxjs';
+import { catchError } from 'rxjs/operators';
+import { WMTSDialog } from './wmts-dialog';
+import { JsonMapSourceDialog } from './jsonmapsource-dialog';
+import { SignalKClient } from 'signalk-client-angular';
 
 /********* ChartLayersList***********/
 @Component({
@@ -183,6 +188,7 @@ export class ChartLayers implements OnInit {
     MatInputModule,
     ScrollingModule,
     MatSlideToggle,
+    MatMenuModule,
     ChartLayers
   ]
 })
@@ -193,6 +199,7 @@ export class ChartListComponent {
   @Output() refresh: EventEmitter<void> = new EventEmitter();
   @Output() closed: EventEmitter<void> = new EventEmitter();
   @Output() orderChange: EventEmitter<string[]> = new EventEmitter();
+  @Output() delete: EventEmitter<FBResourceSelect> = new EventEmitter();
 
   filterList = [];
   filterText = '';
@@ -201,7 +208,11 @@ export class ChartListComponent {
 
   displayChartLayers = false;
 
-  constructor(protected app: AppInfo, private dialog: MatDialog) {}
+  constructor(
+    protected app: AppInfo,
+    private dialog: MatDialog,
+    private signalk: SignalKClient
+  ) {}
 
   ngOnInit() {
     this.initItems();
@@ -293,6 +304,64 @@ export class ChartListComponent {
   itemProperties(id: string) {
     const ch = this.charts.filter((c: FBChart) => c[0] === id)[0][1];
     this.dialog.open(ChartPropertiesDialog, { data: ch });
+  }
+
+  itemDelete(id: string) {
+    this.delete.emit({ id: id });
+  }
+
+  public addChartSource(type: 'wmts' | 'json') {
+    let dref: MatDialogRef<WMTSDialog | JsonMapSourceDialog>;
+
+    if (type === 'wmts') {
+      dref = this.dialog.open(WMTSDialog, {
+        disableClose: true,
+        data: {}
+      });
+    }
+    if (type === 'json') {
+      dref = this.dialog.open(JsonMapSourceDialog, {
+        disableClose: true,
+        data: {}
+      });
+    }
+    if (!dref) {
+      this.app.showAlert(
+        'Message',
+        `Invalid Chart source type (${type}) provided! `
+      );
+      return;
+    }
+    dref.afterClosed().subscribe((sources) => {
+      if (sources && sources.length !== 0) {
+        const req = [];
+        sources.forEach((cs) => {
+          req.push(
+            this.signalk.api.post(
+              this.app.skApiVersion,
+              `/resources/charts?provider=resources-provider`,
+              cs
+            )
+          );
+        });
+
+        const r = forkJoin(req).pipe(catchError((error) => of(error)));
+        r.subscribe((r) => {
+          if (r.error) {
+            this.app.showAlert(
+              'Add Chart Sources',
+              `Error saving chart source!\n(${r.error.statusCode}: ${r.error.message})`
+            );
+          } else {
+            this.app.showAlert(
+              'Add Chart Sources',
+              'Chart sources added successfully.'
+            );
+            this.itemRefresh();
+          }
+        });
+      }
+    });
   }
 
   showChartLayers(show = false) {

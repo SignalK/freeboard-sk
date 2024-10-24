@@ -719,7 +719,7 @@ export const targetAngleStyle = new Style({
   stroke: new Stroke({
     color: 'gray',
     width: 1,
-    lineDash: [5, 5]
+    lineDash: [15, 5, 3, 5]
   })
 });
 
