@@ -1,10 +1,17 @@
 # CHANGELOG: Freeboard
 
+### v2.12.1
+- **Added**: WMS sources to the types of chart sources that can be defined.
+- **Fixed**: Date / time formating in weather forecast. (#193)
+- **Fixed**: Fix issue where anchor watch controls are not visible on small screens. (#198)
+- **Fixed**: Vessel Call sign not displayed correctly in AIS Properties screen. (#199)
+
+
 ### v2.12.0
 
 - **Added**: Define chart sources from within the Charts List including: WMTS, Mapbox Style and TileJSON.
 - **Updated**: Measure distances < 1km are displayed in meters and < 0.5NM uses depth units (#194). 
-- **Updated**: Ensure weather forecast times use 24 hr format. (#193).
+- **Updated**: Ensure weather forecast times use 24 hr format. (#193)
 - **Updated**: OpenSea Map min / max zoom levels.
 - **Updated**: OpenLayers v10. 
 - **Fixed**: gybeAngle null value handling.

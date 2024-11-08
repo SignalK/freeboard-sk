@@ -69,7 +69,7 @@ import { WeatherData, WeatherDataComponent } from './weather-data.component';
       } @else { @if(!forecasts || forecasts.length === 0) {
       <div style="text-align:center">{{ errorText }}</div>
       } @else {
-      <weather-data [data]="forecasts"></weather-data>
+      <weather-data [data]="forecasts.slice(0, 18)"></weather-data>
       } }
     </div>
   `,
@@ -121,6 +121,8 @@ export class WeatherForecastModal implements OnInit {
     return val ? `${Convert.msecToKnots(val).toFixed(1)} kn` : '0.0';
   }
 
+  private dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
   private getForecast() {
     let path = '/meteo/freeboard-sk/forecasts';
     if (this.app.data.weather.hasApi && this.app.data.vessels.self.position) {
@@ -138,7 +140,11 @@ export class WeatherForecastModal implements OnInit {
             const forecastData: WeatherData = { wind: {} };
             forecastData.description = v['description'] ?? '';
             const d = new Date(v['date']);
-            forecastData.time = d ? `${d.getHours()}:${d.getMinutes()}:00` : '';
+            forecastData.time = d
+              ? `${this.dayNames[d.getDay()]} ${d.getHours()}:${(
+                  '00' + d.getMinutes()
+                ).slice(-2)}`
+              : '';
 
             if (typeof v.outside?.temperature !== 'undefined') {
               forecastData.temperature =

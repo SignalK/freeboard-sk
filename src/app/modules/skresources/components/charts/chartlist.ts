@@ -30,6 +30,7 @@ import { FBCharts, FBChart, FBResourceSelect } from 'src/app/types';
 import { forkJoin, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import { WMTSDialog } from './wmts-dialog';
+import { WMSDialog } from './wms-dialog';
 import { JsonMapSourceDialog } from './jsonmapsource-dialog';
 import { SignalKClient } from 'signalk-client-angular';
 
@@ -310,11 +311,17 @@ export class ChartListComponent {
     this.delete.emit({ id: id });
   }
 
-  public addChartSource(type: 'wmts' | 'json') {
-    let dref: MatDialogRef<WMTSDialog | JsonMapSourceDialog>;
+  public addChartSource(type: 'wms' | 'wmts' | 'json') {
+    let dref: MatDialogRef<WMTSDialog | WMSDialog | JsonMapSourceDialog>;
 
     if (type === 'wmts') {
       dref = this.dialog.open(WMTSDialog, {
+        disableClose: true,
+        data: {}
+      });
+    }
+    if (type === 'wms') {
+      dref = this.dialog.open(WMSDialog, {
         disableClose: true,
         data: {}
       });

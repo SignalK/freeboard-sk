@@ -74,8 +74,9 @@ export interface ChartResource {
 export interface ChartProvider {
   identifier?: string;
   name: string;
+  title?: string;
   description: string;
-  type: 'WMTS' | 'mapboxstyle';
+  type: 'tilejson' | 'WMS' | 'WMTS' | 'mapboxstyle';
   url: string;
   layers?: string[];
   bounds?: number[];

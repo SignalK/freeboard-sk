@@ -34,16 +34,14 @@
       >
         <b
           style="
-            position: fixed;
-            top: 105px;
-            left: 69px;
+            position: relative;
+            top: 30px;
+            left: 80px;
             width: 35px;
             text-align: right;
           "
         >
           {{ radius === -1 ? '--' : feet ? mToFt(radius) : radius.toFixed(0) }}
-        </b>
-        <b style="position: fixed; top: 105px; left: 109px; text-align: left">
           {{ feet ? 'ft' : 'm' }}
         </b>
       </div>

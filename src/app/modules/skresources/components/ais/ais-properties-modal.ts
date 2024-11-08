@@ -221,10 +221,10 @@ export class AISPropertiesModal implements OnInit {
       }
       if (typeof v['communication'] !== 'undefined') {
         if (typeof v['communication']['callsignVhf'] !== 'undefined') {
-          this.vInfo.callsignVhf = v['communication']['callsignVhf'];
+          this.vInfo.callsignVhf = v['communication']['callsignVhf']['value'];
         }
         if (typeof v['communication']['callsignHf'] !== 'undefined') {
-          this.vInfo.callsignHf = v['communication']['callsignHf'];
+          this.vInfo.callsignHf = v['communication']['callsignHf']['value'];
         }
       }
       if (typeof v['navigation'] !== 'undefined') {

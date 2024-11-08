@@ -75,7 +75,7 @@ export interface WeatherData {
                     </div>
                     <div class="key-label">Time:</div>
                     <div style="flex: 1 1 auto;">
-                      {{ item.time.split(':').slice(0, 2).join(':') }}
+                      {{ item.time }}
                     </div>
                   </div>
                   @if(item.description) {
