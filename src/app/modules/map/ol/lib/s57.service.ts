@@ -344,9 +344,15 @@ export class S57Service {
   }
 
   public selectLookup(feature: Feature): number {
-    const properties = feature.getProperties();
+    const props = feature.getProperties();
+    const properties={};
+    Object.keys(props).forEach((k) => {      
+      properties[k.toUpperCase()]=props[k]
+    })
+
+
     const geometry = feature.getGeometry();
-    const name = properties['layer'];
+    const name = properties['LAYER'];
     const geomType = geometry.getType();
 
     let lookupTable = LookupTable.PAPER_CHART;
