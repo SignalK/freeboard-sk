@@ -1,7 +1,14 @@
 # CHANGELOG: Freeboard
 
+
+### v2.12.2
+- **Fixed**: Issue applying URL query parameters. (#201)
+- **Fixed**: S57 symbol display issue. (#202)
+- **Added**: Watch for SK login info token changes.
+
+
 ### v2.12.1
-- **Added**: WMS sources to the types of chart sources that can be defined.
+- **Added**: WMS sources to the type of chart sources that can be defined.
 - **Fixed**: Date / time formating in weather forecast. (#193)
 - **Fixed**: Fix issue where anchor watch controls are not visible on small screens. (#198)
 - **Fixed**: Vessel Call sign not displayed correctly in AIS Properties screen. (#199)
