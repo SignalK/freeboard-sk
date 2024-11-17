@@ -61,7 +61,7 @@ export class SKStreamFacade {
           this.post({
             cmd: 'auth',
             options: {
-              token: this.app.getToken()
+              token: this.app.getFBToken()
             }
           });
           this.onConnect.next(msg);
