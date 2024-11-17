@@ -345,11 +345,10 @@ export class S57Service {
 
   public selectLookup(feature: Feature): number {
     const props = feature.getProperties();
-    const properties={};
-    Object.keys(props).forEach((k) => {      
-      properties[k.toUpperCase()]=props[k]
-    })
-
+    const properties = {};
+    Object.keys(props).forEach((k) => {
+      properties[k.toUpperCase()] = props[k];
+    });
 
     const geometry = feature.getGeometry();
     const name = properties['LAYER'];
