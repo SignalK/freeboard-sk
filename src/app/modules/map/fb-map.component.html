@@ -522,8 +522,8 @@
   }
 
   <!-- Vessel / destination -->
-  @if(dfeat.navData.startPosition && dfeat.navData.position &&
-  app.data.anchor.raised) {
+  @if (app.data.anchor.raised && dfeat.navData.position) {
+  @if(dfeat.navData.startPosition) {
   <fb-xte-path
     [color]=""
     [lineCoords]="vesselLines.xtePath"
@@ -532,7 +532,7 @@
     [layerProperties]=""
   >
   </fb-xte-path>
-  } @if(dfeat.navData.position && app.config.selections.vessel.laylines) {
+  } @if(app.config.selections.vessel.laylines) {
   <fb-target-angle
     [line]="vesselLines.targetAngle"
     [lineStyle]="featureStyles.targetAngle"
@@ -551,7 +551,7 @@
     [zIndex]="212"
   >
   </fb-layline>
-  } @if(dfeat.navData.position && app.data.anchor.raised) {
+  }
   <fb-bearing-line
     [marker]="dfeat.navData.position"
     [lineCoords]="vesselLines.bearing"
@@ -563,14 +563,14 @@
     [zIndex]="212"
   >
   </fb-bearing-line>
-  } @if(app.data.navData.arrivalCircle && dfeat.navData.position) {
+  @if(app.data.navData.arrivalCircle) {
   <fb-arrival-circle
     [radius]="app.data.navData.arrivalCircle"
     [position]="dfeat.navData.position"
     [zIndex]="212"
   >
   </fb-arrival-circle>
-  }
+  } }
 
   <!-- Vessel (self) -->
   <fb-vessel
