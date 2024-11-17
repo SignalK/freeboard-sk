@@ -245,19 +245,21 @@ export function cleanConfig(
 
   // apply url params
   if (typeof hostParams.northup !== 'undefined') {
-    this.config.map.northUp = hostParams.northup === '0' ? false : true;
+    settings.map.northUp = hostParams.northup === '0' ? false : true;
   }
   if (typeof hostParams.movemap !== 'undefined') {
-    this.config.map.moveMap = hostParams.movemap === '0' ? false : true;
+    settings.map.moveMap = hostParams.movemap === '0' ? false : true;
   }
   if (hostParams.zoom) {
     try {
       const z = parseInt(hostParams.zoom as string);
       if (!isNaN(z)) {
-        this.config.map.zoomLevel = z > 28 ? 28 : z < 1 ? 1 : z;
+        settings.map.zoomLevel = z > 28 ? 28 : z < 1 ? 1 : z;
       }
     } catch (error) {
-      console.warn('Invalid zoom level supplied!');
+      console.warn(
+        `Invalid zoom level parameter (${hostParams.zoom} supplied!`
+      );
     }
   }
 }
