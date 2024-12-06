@@ -1,5 +1,11 @@
 # CHANGELOG: Freeboard
 
+### v2.12.3
+- **Fixed**: Navigation data panel alignment on smaller screens. (#212)
+- **Fixed**: Notes popover disables move & delete buttons when readOnly property is set. (#214)
+- **Added**: Additional aisCogLine length options. (#209)
+- **Added**: Configuration to retrieve only the Resource Set features that fall within a specified radius of the map center. (#207)
+
 
 ### v2.12.2
 - **Fixed**: Issue applying URL query parameters. (#201)
