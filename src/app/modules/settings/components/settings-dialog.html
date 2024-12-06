@@ -941,7 +941,7 @@
                       [(value)]="facade.settings.resources.notes.getRadius"
                       (selectionChange)="onFormChange($event, notesgetradius)"
                     >
-                      @for(i of facade.list.resourceRadius;track i) {
+                      @for(i of facade.list.noteRadius;track i) {
                       <mat-option [value]="i">{{i}}</mat-option>
                       }
                     </mat-select>
@@ -1044,6 +1044,52 @@
           <div class="setting-group-title">RESOURCES: LAYERS</div>
           <mat-card class="setting-card">
             <mat-card-content>
+              <div class="setting-card-row">
+                <div class="setting-card-row-item">
+                  <mat-form-field style="width: 100%">
+                    <mat-label
+                      >{{'Fetch radius: (' +
+                      facade.availableUnits.distance.get(distunits.value) +
+                      ')'}}</mat-label
+                    >
+                    <mat-select
+                      id="resfetchradius"
+                      #resfetchradius
+                      [(value)]="facade.settings.resources.fetchRadius"
+                      (selectionChange)="onFormChange($event, resfetchradius)"
+                    >
+                      @for(i of facade.list.resourceRadius;track i) {
+                      <mat-option [value]="i">{{i}}</mat-option>
+                      }
+                    </mat-select>
+                  </mat-form-field>
+                </div>
+              </div>
+              <!--<div class="setting-card-row">
+                <div class="setting-card-row-item">
+                  <mat-form-field style="width: 100%" floatLabel="always">
+                    <mat-label>Fetch filter:</mat-label>
+                    <input
+                      matInput
+                      type="text"
+                      #resfetchfilter
+                      [(ngModel)]="facade.settings.resources.fetchFilter"
+                      (change)="onFormChange($event, resfetchfilter)"
+                      placeholder="?radius=%fetch:radius%"
+                      matTooltip="Filter to apply when retrieving resource sets"
+                    />
+                    @if(resfetchfilter.value) {
+                    <button
+                      matSuffix
+                      mat-icon-button
+                      (click)="resfetchfilter.value=''"
+                    >
+                      <mat-icon>close</mat-icon>
+                    </button>
+                    }
+                  </mat-form-field>
+                </div>
+              </div>-->
               <div class="setting-card-row">
                 <div class="setting-card-row-item">
                   <div style="font-style: italic">

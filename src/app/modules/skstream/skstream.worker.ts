@@ -786,6 +786,10 @@ function processVessel(d: SKVessel, v, isSelf = false) {
       d.callsignVhf = v.value.communication.callsignVhf ?? '';
       d.callsignHf = v.value.communication.callsignHf ?? '';
     }
+  } else if (v.path === 'communication.callsignVhf') {
+    d.callsignVhf = v.value;
+  } else if (v.path === 'communication.callsignHf') {
+    d.callsignHf = v.value;
   } else if (v.path === 'performance.beatAngle') {
     d.performance.beatAngle = v.value;
   } else if (v.path === 'performance.gybeAngle') {
@@ -1116,6 +1120,10 @@ function processSaR(id: string, v) {
     if (typeof v.value.mmsi !== 'undefined') {
       d.mmsi = v.value.mmsi;
     }
+    if (typeof v.value.communication !== 'undefined') {
+      d.callsignVhf = v.value.communication.callsignVhf ?? '';
+      d.callsignHf = v.value.communication.callsignHf ?? '';
+    }
   } else if (v.path === 'communication.callsignVhf') {
     d.callsignVhf = v.value;
   } else if (v.path === 'communication.callsignHf') {
@@ -1147,6 +1155,10 @@ function processMeteo(id: string, v) {
     if (typeof v.value.mmsi !== 'undefined') {
       const nid = id.split(':').slice(-2); //meteo extended id
       d.mmsi = nid.length === 2 ? `${nid[0]}:${nid[1]}` : v.value.mmsi;
+    }
+    if (typeof v.value.communication !== 'undefined') {
+      d.callsignVhf = v.value.communication.callsignVhf ?? '';
+      d.callsignHf = v.value.communication.callsignHf ?? '';
     }
   } else if (v.path === 'communication.callsignVhf') {
     d.callsignVhf = v.value;
@@ -1181,6 +1193,10 @@ function processAircraft(id: string, v) {
     }
     if (typeof v.value.mmsi !== 'undefined') {
       d.mmsi = v.value.mmsi;
+    }
+    if (typeof v.value.communication !== 'undefined') {
+      d.callsignVhf = v.value.communication.callsignVhf ?? '';
+      d.callsignHf = v.value.communication.callsignHf ?? '';
     }
   } else if (v.path === 'communication.callsignVhf') {
     d.callsignVhf = v.value;

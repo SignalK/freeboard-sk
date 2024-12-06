@@ -2139,7 +2139,7 @@
               values.<br />
               <i
                 >e.g.
-                ?position=%map:longitude%,%map:latitude%&radius=%note:radius%</i
+                ?position=[%map:longitude%,%map:latitude%]&distance=%note:radius%</i
               >
             </li>
             <li>
@@ -2189,40 +2189,54 @@
           play and the video window can be moved, resized and playback
           controlled using the controls provided by the browser.
 
+          <hr />
           <span id="resourcepaths"></span>
-          <b>RESOURCES: PATHS</b><br />
+          <b>RESOURCES: LAYERS</b><br />
           Freeboard provides the ability display feature data contained in
           compliant JSON format layers on the map. The available resource paths
           are listed in this section and can be selected to enable them for use
-          with Freeboard.
+          with Freeboard.<br />
 
           <i
             >Note: This functionality requires that you have configured the
-            <b>sk-resources-fs</b> plugin to serve the required resource
+            <b>Resources Provider</b> plugin to serve the required resource
             paths.</i
           >
 
+          <img
+            src="./img/settings_resources_layers.png"
+            style="height: 200px"
+            alt=""
+          /><br />
+
           <br />&nbsp;<br />
-          Two types of resource data is supported:
+          Two types of resource layers are supported:
           <ol>
             <li>Tracks</li>
-            <li>ResourceSets</li>
+            <li>Resource Sets</li>
           </ol>
 
           <br />
+          <ul>
+            <li>
+              <b>Fetch Radius</b>: When set, will only fetch resource set
+              features with a position that is within the specified distance
+              from the current map center. Select <i>0</i> to retrieve all
+              features.
+            </li>
+          </ul>
 
           <h5>Tracks:</h5>
           The Track data structure supported by Freeboard is generated via the
           <b>Load from GPX</b> functionality.<br />
           What Freeboard requires is that the
-          <i>/signalk/vi/api/resources/tracks</i> path is available from which
+          <i>/signalk/v2/api/resources/tracks</i> path is available from which
           to write and retrieve track data.<br />
           This requires the following action:
           <ul>
             <li>
               Configure the
-              <b>sk-resources-fs</b> plugin (v1.3.0 or later) to serve the
-              <b>tracks</b> path.
+              <b>Resources Provider</b> plugin to serve the <b>tracks</b> path.
             </li>
             <li>Re-start the Signal K server</li>
             <li>
@@ -2238,7 +2252,7 @@
             </li>
           </ul>
           &nbsp;<br />
-          <h5>Resource Sets:</h5>
+
           Data from all other resource paths that you enable in Freeboard
           Settings will be treated as ResourceSets.<br />
 

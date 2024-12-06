@@ -1755,23 +1755,18 @@ export class FBMapComponent implements OnInit, OnDestroy {
 
   // ** called by onMapMove() to render features within map extent
   private renderMapContents() {
-    if (this.fetchNotes()) {
+    if (this.shouldFetchNotes()) {
       this.skres.getNotes();
       this.app.debug(`fetching Notes...`);
     }
+    if (this.shouldFetchResourceSets()) {
+      this.app.debug(`fetching ResourceSets...`);
+      this.skresOther.getItemsInBounds();
+    }
   }
 
-  // ** returns true if skres.getNotes() should be called
-  private fetchNotes() {
-    this.display.layer.notes =
-      this.app.config.notes &&
-      this.app.config.map.zoomLevel >= this.app.config.selections.notesMinZoom;
-
-    this.app.debug(`lastGet: ${this.app.data.lastGet}`);
-    this.app.debug(`getRadius: ${this.app.config.resources.notes.getRadius}`);
-    if (this.fbMap.zoomLevel < this.app.config.selections.notesMinZoom) {
-      return false;
-    }
+  // returns true when map center has moved a distance > (threshold / 2)
+  private mapMoveThresholdExceeded(threshold: number): boolean {
     if (!this.app.data.lastGet) {
       this.app.data.lastGet = this.app.config.map.center;
       return true;
@@ -1785,14 +1780,46 @@ export class FBMapComponent implements OnInit, OnDestroy {
     // ** if d is more than half the getRadius
     const cr =
       this.app.config.units.distance === 'ft'
-        ? Convert.nauticalMilesToKm(this.app.config.resources.notes.getRadius) *
-          1000
-        : this.app.config.resources.notes.getRadius * 1000;
+        ? Convert.nauticalMilesToKm(threshold) * 1000
+        : threshold * 1000;
 
+    this.app.debug(`mapMoveThresholdExceeded: ${d >= cr / 2}`);
     if (d >= cr / 2) {
       this.app.data.lastGet = this.app.config.map.center;
       return true;
+    } else {
+      return false;
     }
-    return false;
+  }
+
+  // ** returns true if skresOther.getItemsInBounds() should be called
+  private shouldFetchResourceSets() {
+    if (
+      this.app.config.resources.fetchRadius &&
+      this.app.config.resources.fetchFilter
+    ) {
+      if (!this.skresOther.hasSelections()) {
+        return false;
+      }
+      return this.mapMoveThresholdExceeded(50);
+    } else {
+      return false;
+    }
+  }
+
+  // ** returns true if skres.getNotes() should be called
+  private shouldFetchNotes() {
+    this.display.layer.notes =
+      this.app.config.notes &&
+      this.app.config.map.zoomLevel >= this.app.config.selections.notesMinZoom;
+
+    this.app.debug(`lastGet: ${this.app.data.lastGet}`);
+    this.app.debug(`getRadius: ${this.app.config.resources.notes.getRadius}`);
+    if (this.fbMap.zoomLevel < this.app.config.selections.notesMinZoom) {
+      return false;
+    }
+    return this.mapMoveThresholdExceeded(
+      this.app.config.resources.notes.getRadius
+    );
   }
 }

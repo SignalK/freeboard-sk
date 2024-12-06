@@ -164,6 +164,7 @@ export interface FBAppData {
   autopilot: {
     console: boolean; // display Autopilot console
     hasApi: boolean; // Server implements Autopilot API
+    isLocal: boolean; // true if FB plugin AP API is enabled
   };
   buildRoute: {
     show: boolean;

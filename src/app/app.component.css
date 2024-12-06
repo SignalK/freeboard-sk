@@ -121,7 +121,7 @@ mat-nav-list {
     position: absolute;
     z-index: 4901;
     bottom: 30px;
-    left: 50px;
+    left: 10px;
     max-width: calc(100% - 55px);
     max-height: 100px;
     text-align: center;
@@ -192,4 +192,10 @@ mat-nav-list {
     .instrumentPanelToggle {
         display: none;
     }     
+}
+
+@media only screen and (max-height: 600px) { 
+    .navdataPanel {
+        left: 50px;
+    }
 }

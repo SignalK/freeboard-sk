@@ -5,6 +5,7 @@ import { SignalKClient } from 'signalk-client-angular';
 import { AppInfo } from 'src/app/app.info';
 import { SKResourceSet } from './resourceset-class';
 import { ResourceSet, CustomResources } from 'src/app/types';
+import { processUrlTokens } from 'src/app/app.settings';
 
 // ** Signal K custom / other resource(s) operations
 @Injectable({ providedIn: 'root' })
@@ -15,7 +16,7 @@ export class SKOtherResources {
     return this.updateSource.asObservable();
   }
 
-  private ignore = ['tracks'];
+  private ignore = ['tracks', 'buddies'];
 
   constructor(
     public dialog: MatDialog,
@@ -25,6 +26,31 @@ export class SKOtherResources {
 
   // **** ITEMS ****
 
+  // returns true if one or more ResourceSets of any type are selected
+  hasSelections(): boolean {
+    let result = false;
+    Object.entries(this.app.config.selections.resourceSets)
+      .filter((r) => !this.ignore.includes(r[0]))
+      .forEach((r) => {
+        if (r[1].length > 0) {
+          result = true;
+        }
+      });
+    return result;
+  }
+
+  // retrieve items within url params bounds for all active resource-set-types
+  getItemsInBounds() {
+    Object.keys(this.app.config.selections.resourceSets)
+      .filter((r) => !this.ignore.includes(r))
+      .forEach((resType: string) => {
+        if (this.app.config.selections.resourceSets[resType].length !== 0) {
+          console.log(`getItemsInBounds(${resType})`);
+          this.getItems(resType, true);
+        }
+      });
+  }
+
   /** get items(s) from sk server
    * selected: true= only include selected items
    * noUpdate: true= suppress updateSource event
@@ -33,7 +59,21 @@ export class SKOtherResources {
     if (this.ignore.includes(resType)) {
       return;
     }
-    const path = `/resources/${resType}`;
+    let rf = '';
+    if (
+      this.app.config.resources.fetchRadius &&
+      this.app.config.resources.fetchFilter
+    ) {
+      rf = processUrlTokens(
+        this.app.config.resources.fetchFilter,
+        this.app.config
+      );
+      if (rf && rf[0] !== '?') {
+        rf = '?' + rf;
+      }
+    }
+    this.app.debug(`${rf}`);
+    const path = `/resources/${resType}${rf}`;
     this.signalk.api
       .get(this.app.skApiVersion, path)
       .subscribe((res: CustomResources) => {
@@ -55,7 +95,7 @@ export class SKOtherResources {
         }
 
         // ** clean up selections
-        if (this.app.config.selections.resourceSets[resType]) {
+        /*if (this.app.config.selections.resourceSets[resType]) {
           const k = Object.keys(res);
           this.app.config.selections.resourceSets[resType] =
             this.app.config.selections.resourceSets[resType]
@@ -65,7 +105,7 @@ export class SKOtherResources {
               .filter((i) => {
                 return i;
               });
-        }
+        }*/
       });
   }
 

@@ -158,7 +158,7 @@ const initApiRoutes = () => {
       return;
     }
 
-    let deg = req.body.value * (180 / Math.PI);
+    let deg = req.body.value;
     if (deg > 359) {
       deg = 359;
     } else if (deg < -179) {
@@ -181,8 +181,7 @@ const initApiRoutes = () => {
       return;
     }
 
-    const v = req.body.value * (180 / Math.PI);
-    let deg = apData.target + v;
+    let deg = apData.target + req.body.value;
     if (deg > 360) {
       deg = 360;
     } else if (deg < -180) {

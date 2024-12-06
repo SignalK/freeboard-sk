@@ -73,6 +73,7 @@ id: string - resource id
             (click)="emitModify()"
             matTooltip="Modify / Move"
             matTooltipPosition="after"
+            [disabled]="this.ctrl.isReadOnly"
           >
             <mat-icon>touch_app</mat-icon>
             MOVE
@@ -97,6 +98,7 @@ id: string - resource id
             (click)="emitDelete()"
             matTooltip="Delete"
             matTooltipPosition="after"
+            [disabled]="this.ctrl.isReadOnly"
           >
             <mat-icon>delete</mat-icon>
             DELETE
@@ -220,7 +222,8 @@ export class ResourcePopoverComponent {
     showNotesButton: false,
     canActivate: false,
     isActive: false,
-    activeText: 'ACTIVE'
+    activeText: 'ACTIVE',
+    isReadOnly: false
   };
 
   constructor(public app: AppInfo) {}
@@ -293,6 +296,7 @@ export class ResourcePopoverComponent {
     this.ctrl.showAddNoteButton = false;
     this.ctrl.showPointsButton = false;
     this.ctrl.showRelatedButton = false;
+    this.ctrl.isReadOnly = this.resource[1].feature.properties?.readOnly;
     this.properties = [];
     if (this.resource[1].name) {
       this.properties.push(['Name', this.resource[1].name]);
@@ -334,6 +338,7 @@ export class ResourcePopoverComponent {
       this.ctrl.showAddNoteButton = false;
       this.ctrl.showRelatedButton = false;
       this.ctrl.showDeleteButton = this.ctrl.isActive ? false : true;
+      this.ctrl.isReadOnly = this.resource[1].feature.properties?.readOnly;
     }
     this.properties = [];
     this.properties.push(['Name', this.resource[1].name]);
@@ -366,6 +371,7 @@ export class ResourcePopoverComponent {
         : false;
     this.properties = [];
     this.properties.push(['Name', this.resource[1].name]);
+    this.ctrl.isReadOnly = this.resource[1].properties?.readOnly;
   }
 
   parseRegion() {
@@ -380,6 +386,7 @@ export class ResourcePopoverComponent {
     this.ctrl.showNotesButton = true;
     this.ctrl.showPointsButton = false;
     this.ctrl.showRelatedButton = false;
+    this.ctrl.isReadOnly = this.resource[1].feature.properties?.readOnly;
     this.properties = [];
     this.properties.push(['Name', this.resource[1].name]);
     this.properties.push(['Description', this.resource[1].description]);

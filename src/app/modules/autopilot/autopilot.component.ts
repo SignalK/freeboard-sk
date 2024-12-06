@@ -146,14 +146,18 @@ import { SKStreamFacade } from 'src/app/modules';
 export class AutopilotComponent {
   protected autopilotOptions = { modes: [], states: [] };
   private deltaSub: Subscription;
-  private autopilotApiPath = 'vessels/self/steering/autopilot/default';
+  private autopilotApiPath: string;
 
   constructor(
     protected app: AppInfo,
     private signalk: SignalKClient,
     private stream: SKStreamFacade,
     private cdr: ChangeDetectorRef
-  ) {}
+  ) {
+    this.autopilotApiPath = this.app.data.autopilot.isLocal
+      ? 'vessels/self/steering/autopilot/default'
+      : 'vessels/self/autopilots/_default';
+  }
 
   ngOnInit() {
     this.deltaSub = this.stream.delta$().subscribe((e: UpdateMessage) => {
@@ -192,16 +196,15 @@ export class AutopilotComponent {
   }
 
   targetAdjust(value: number) {
-    const rad = value ? Convert.degreesToRadians(value) : 0;
-    if (!rad) {
+    if (typeof value !== 'number') {
       return;
     }
     this.signalk.api
       .put(this.app.skApiVersion, `${this.autopilotApiPath}/target/adjust`, {
-        value: rad
+        value: value,
+        units: 'deg'
       })
       .subscribe(
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         () => {
           this.app.debug(`Target adjusted: ${value} deg.`);
         },

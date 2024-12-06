@@ -73,7 +73,8 @@ export class SettingsFacade {
   list = {
     nextPointTriggers: ['perpendicularPassed', 'arrivalCircleEntered'],
     minZoom: [8, 9, 10, 11, 12, 13, 14, 15, 16, 17],
-    resourceRadius: [5, 10, 20, 50, 100, 150, 200, 500],
+    resourceRadius: [0, 5, 10, 20, 50, 100, 150, 200, 500],
+    noteRadius: [5, 10, 20, 50, 100, 150, 200, 500],
     applications: [],
     favourites: [],
     resourcePaths: [],
@@ -100,7 +101,9 @@ export class SettingsFacade {
     ]),
     aisCogLine: new Map([
       [0, 'Off'],
-      [10, 'On']
+      [10, '10 min'],
+      [30, '30 min'],
+      [60, '60 min']
     ]),
     aisProfiles: new Map([[0, 'Default']]) //,[1,'Navigation'] ])
   };

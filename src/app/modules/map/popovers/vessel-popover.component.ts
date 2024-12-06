@@ -43,6 +43,23 @@ isSelf: boolean - true if vessel 'self'
   ],
   template: `
     <ap-popover [title]="_title" [canClose]="canClose" (closed)="handleClose()">
+      @if(vessel.callsignVhf) {
+      <div style="display:flex;">
+        <div style="font-weight:bold;">Callsign (VHF):</div>
+        <div
+          style="flex: 1 1 auto;text-align:right;"
+          [innerText]="vessel.callsignVhf"
+        ></div>
+      </div>
+      } @else if(vessel.callsignHf) {
+      <div style="display:flex;">
+        <div style="font-weight:bold;">Callsign (HF):</div>
+        <div
+          style="flex: 1 1 auto;text-align:right;"
+          [innerText]="vessel.callsignHf"
+        ></div>
+      </div>
+      }
       <div style="display:flex;">
         <div style="font-weight:bold;">Latitude:</div>
         <div

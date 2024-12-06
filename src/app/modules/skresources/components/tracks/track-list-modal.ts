@@ -44,7 +44,7 @@ import { SKTrack } from 'src/app/modules/skresources/resource-classes';
             matTooltipPosition="right"
             (click)="clearSelections()"
           >
-            <mat-icon>check_box_outline_blank</mat-icon>
+            <mat-icon>clear_all</mat-icon>
           </button>
 
           <button

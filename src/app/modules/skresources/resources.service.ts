@@ -8,12 +8,12 @@ import ngeohash from 'ngeohash';
 import { SignalKClient } from 'signalk-client-angular';
 import { AppInfo, OSM } from 'src/app/app.info';
 import { GeoUtils } from 'src/app/lib/geoutils';
-import { Convert } from 'src/app/lib/convert';
 
 import { LoginDialog } from 'src/app/lib/components/dialogs';
 import { NoteDialog, RelatedNotesDialog } from '.';
 import { ResourceDialog } from './components/resource-dialog';
 import { SKResourceSet } from '.';
+import { processUrlTokens } from 'src/app/app.settings';
 
 import {
   SKChart,
@@ -1535,9 +1535,9 @@ export class SKResources {
   // **** NOTES ****
 
   // ** get notes / regions from sk server
-  getNotes(params: string = null) {
+  getNotes(params?: string) {
     let rf = params ? params : this.app.config.resources.notes.rootFilter;
-    rf = this.processTokens(rf);
+    rf = processUrlTokens(rf, this.app.config);
     if (rf && rf[0] !== '?') {
       rf = '?' + rf;
     }
@@ -2005,34 +2005,5 @@ export class SKResources {
   // ** record authentication token **
   private authResult(token: string = null) {
     this.app.persistToken(token);
-  }
-
-  // ** process url tokens
-  private processTokens(s: string): string {
-    if (!s) {
-      return s;
-    }
-    const ts = s.split('%');
-    if (ts.length > 1) {
-      const uts = ts.map((i) => {
-        if (i === 'map:latitude') {
-          return this.app.config.map.center[1];
-        } else if (i === 'map:longitude') {
-          return this.app.config.map.center[0];
-        } else if (i === 'note:radius') {
-          const dist =
-            this.app.config.units.distance === 'm'
-              ? this.app.config.resources.notes.getRadius
-              : Convert.nauticalMilesToKm(
-                  this.app.config.resources.notes.getRadius
-                );
-          return dist * 1000;
-        } else {
-          return i;
-        }
-      });
-      s = uts.join('');
-    }
-    return s;
   }
 }

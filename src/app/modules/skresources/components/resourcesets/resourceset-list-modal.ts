@@ -48,7 +48,7 @@ import { SKResourceSet } from '../../resourceset-class';
             matTooltipPosition="right"
             (click)="clearSelections()"
           >
-            <mat-icon>check_box_outline_blank</mat-icon>
+            <mat-icon>clear_all</mat-icon>
           </button>
 
           <button

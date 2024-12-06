@@ -587,6 +587,20 @@ export class AppComponent {
       }) => {
         // detect apis
         this.app.data.weather.hasApi = res.apis.includes('weather');
+        this.app.data.autopilot.hasApi = res.apis.includes('autopilot');
+
+        // prefer FB Autopilot API if enabled
+        this.signalk.api
+          .get(this.app.skApiVersion, 'vessels/self/steering/autopilot')
+          .subscribe(
+            () => {
+              this.app.data.autopilot.hasApi = true;
+              this.app.data.autopilot.isLocal = true;
+            },
+            () => {
+              this.app.debug('No local AP API found.');
+            }
+          );
 
         // detect plugins
         const hasPlugin = {
@@ -627,18 +641,6 @@ export class AppComponent {
         this.app.data.anchor.hasApi = true;
       }
     );
-
-    // check for Autopilot API
-    this.signalk.api
-      .get(this.app.skApiVersion, 'vessels/self/steering/autopilot')
-      .subscribe(
-        () => {
-          this.app.data.autopilot.hasApi = true;
-        },
-        () => {
-          this.app.data.autopilot.hasApi = false;
-        }
-      );
   }
 
   // ** start trail / AIS timers
