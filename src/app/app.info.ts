@@ -167,7 +167,7 @@ export class AppInfo extends Info {
     this.name = 'Freeboard-SK';
     this.shortName = 'Freeboard';
     this.description = `Signal K Chart Plotter.`;
-    this.version = '2.12.3';
+    this.version = '2.13.0';
     this.url = 'https://github.com/signalk/freeboard-sk';
     this.logo = './assets/img/app_logo.png';
 
@@ -271,6 +271,9 @@ export class AppInfo extends Info {
         console: false, // display Autopilot console
         hasApi: false, // Server implements Autopilot API
         isLocal: false // FB AP API
+      },
+      skIcons: {
+        hasApi: false
       },
       buildRoute: {
         show: false

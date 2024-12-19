@@ -61,7 +61,7 @@ export class SKOtherResources {
     }
     let rf = '';
     if (
-      this.app.config.resources.fetchRadius &&
+      this.app.config.resources.fetchRadius !== 0 &&
       this.app.config.resources.fetchFilter
     ) {
       rf = processUrlTokens(

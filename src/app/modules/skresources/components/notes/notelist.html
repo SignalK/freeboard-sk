@@ -1,18 +1,18 @@
 <div class="resourcelist">
-  <mat-card>
+  <mat-card style="border-radius: unset">
     <mat-card-title>
       <div class="title-block">
-        <div style="flex: 1 1 auto; padding-top: 7px">Notes:</div>
         <div style="width: 50px">
           <button
             mat-icon-button
             (click)="close()"
             matTooltip="Close Note List"
-            matTooltipPosition="left"
+            matTooltipPosition="right"
           >
-            <mat-icon>close</mat-icon>
+            <mat-icon>arrow_back</mat-icon>
           </button>
         </div>
+        <div style="flex: 1 1 auto; padding-top: 7px">Notes:</div>
       </div>
     </mat-card-title>
     <mat-card-content>

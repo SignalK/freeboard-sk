@@ -77,6 +77,19 @@ Whilst not specifically defined in the Signal K specification, Freeboard-SK supp
 
 ---
 
+### Autopilot Console:  
+
+Freeboard-SK supports the Signal K Autopilot API which enables common operations to be performed
+including:
+- Engage / Disengage the autopilot
+- Setting the operation mode e.g. compass, route, gps, etc.
+- Setting and adjusting the target heading
+- Dodging obstacles
+
+![image](https://github.com/user-attachments/assets/e771fa83-92cd-4e65-ad78-a349646049c8)
+
+---
+
 ### Alarms and Notifications:
 
 Freeboard-SK can display alarms _(visual and audio)_ & messages contained in *Notification* messages transmitted by the Signal K server.

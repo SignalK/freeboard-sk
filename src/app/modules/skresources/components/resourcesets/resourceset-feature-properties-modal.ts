@@ -14,7 +14,6 @@ import {
 } from '@angular/material/bottom-sheet';
 import { AppInfo } from 'src/app/app.info';
 import { SKResourceSet } from '../../resourceset-class';
-import { SignalKDetailsComponent } from '../../components/signalk-details.component';
 
 /********* ResourceSetFeatureModal **********
  * Displays information about a ResourceSet feature
@@ -32,8 +31,7 @@ import { SignalKDetailsComponent } from '../../components/signalk-details.compon
     MatCardModule,
     MatButtonModule,
     MatToolbarModule,
-    MatCheckboxModule,
-    SignalKDetailsComponent
+    MatCheckboxModule
   ],
   template: `
     <div class="_ap-resource-set-feature">
@@ -56,7 +54,30 @@ import { SignalKDetailsComponent } from '../../components/signalk-details.compon
 
       <mat-card>
         <mat-card-content>
-          <signalk-details-list [details]="properties"></signalk-details-list>
+          <div style="padding-bottom: 5px; display: flex">
+            <div style="font-weight: bold; vertical-align: top">Name:</div>
+            <div style="padding-left: 10px">{{ properties.name }}</div>
+          </div>
+          <div style="font-weight: bold; vertical-align: top">Description:</div>
+          <div style="overflow-y: auto; height: 60px" target="notelink">
+            {{ properties.description }}
+          </div>
+          <div style="padding-bottom: 5px; display: flex">
+            <div style="font-weight: bold; vertical-align: top">
+              Resource Set:
+            </div>
+            <div style="padding-left: 10px">
+              {{ properties['resourceset.name'] }}
+            </div>
+          </div>
+          <div style="padding-bottom: 5px; display: flex">
+            <div style="font-weight: bold; vertical-align: top">
+              Collection:
+            </div>
+            <div style="padding-left: 10px">
+              {{ properties['resourceset.collection'] }}
+            </div>
+          </div>
         </mat-card-content>
       </mat-card>
     </div>
@@ -77,7 +98,8 @@ import { SignalKDetailsComponent } from '../../components/signalk-details.compon
   ]
 })
 export class ResourceSetFeatureModal implements OnInit {
-  protected properties = {};
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  protected properties: any = {};
   protected title = 'ResourceSet Feature: ';
 
   constructor(

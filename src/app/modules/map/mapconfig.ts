@@ -1,6 +1,7 @@
 // ** Freeboard Map configuration **
 
 import { Style, Icon, Text, Stroke, Fill, Circle } from 'ol/style';
+export * from './signalk-icons';
 
 export const mapInteractions = [
   { name: 'dragpan' },
@@ -154,75 +155,83 @@ export const routeStyles = {
   })
 };
 
+// ***********
+const wptIcon = new Icon({
+  src: './assets/img/waypoints/marker-yellow.png',
+  rotateWithView: false,
+  size: [25, 25],
+  anchor: [10.5, 25],
+  anchorXUnits: 'pixels',
+  anchorYUnits: 'pixels'
+});
+
+const wptActiveIcon = new Icon({
+  src: './assets/img/waypoints/marker-blue.png',
+  rotateWithView: false,
+  size: [25, 25],
+  anchor: [10.5, 25],
+  anchorXUnits: 'pixels',
+  anchorYUnits: 'pixels'
+});
+
+const pseudoAtoNIcon = new Icon({
+  src: './assets/img/waypoints/marker-red.png',
+  rotateWithView: false,
+  size: [25, 25],
+  anchor: [10.5, 25],
+  anchorXUnits: 'pixels',
+  anchorYUnits: 'pixels'
+});
+
+const whaleIcon = new Icon({
+  src: './assets/img/ob/whale.svg',
+  rotateWithView: false
+});
+
 export const waypointStyles = {
   default: new Style({
-    image: new Icon({
-      src: './assets/img/waypoints/marker-yellow.png',
-      rotateWithView: false,
-      size: [25, 25],
-      anchor: [10.5, 25],
-      anchorXUnits: 'pixels',
-      anchorYUnits: 'pixels'
-    }),
+    image: wptIcon,
     text: new Text({
       text: '',
       offsetY: -30
     })
   }),
   active: new Style({
-    image: new Icon({
-      src: './assets/img/waypoints/marker-blue.png',
-      rotateWithView: false,
-      size: [25, 25],
-      anchor: [10.5, 25],
-      anchorXUnits: 'pixels',
-      anchorYUnits: 'pixels'
-    }),
+    image: wptActiveIcon,
     text: new Text({
       text: '',
       offsetY: -30
     })
   }),
   pseudoaton: new Style({
-    image: new Icon({
-      src: './assets/img/waypoints/marker-red.png',
-      rotateWithView: false,
-      size: [25, 25],
-      anchor: [10.5, 25],
-      anchorXUnits: 'pixels',
-      anchorYUnits: 'pixels'
-    }),
+    image: pseudoAtoNIcon,
     text: new Text({
       text: '',
       offsetY: -30
     })
   }),
   whale: new Style({
-    image: new Icon({
-      src: './assets/img/waypoints/whale.svg',
-      rotateWithView: false,
-      scale: 0.15,
-      anchor: [65, 188],
-      anchorXUnits: 'pixels',
-      anchorYUnits: 'pixels'
-    }),
+    image: whaleIcon,
     text: new Text({
       text: '',
-      offsetY: -30
+      offsetY: -15
     })
   })
 };
 
+// ***********
+const noteIcon = new Icon({
+  src: './assets/img/note.png',
+  rotateWithView: false,
+  size: [25, 25],
+  anchor: [5, 3],
+  anchorXUnits: 'pixels',
+  anchorYUnits: 'pixels'
+});
+
 export const noteStyles = {
   default: new Style({
-    image: new Icon({
-      src: './assets/img/note.png',
-      rotateWithView: false,
-      size: [25, 25],
-      anchor: [5, 3],
-      anchorXUnits: 'pixels',
-      anchorYUnits: 'pixels'
-    }),
+    image: noteIcon,
     text: new Text({
       text: '',
       offsetY: -12
@@ -260,16 +269,15 @@ export const anchorStyles = {
   })
 };
 
+// ***********
+const pobIcon = new Icon({
+  src: './assets/img/ob/alarm-pob.svg',
+  rotateWithView: false
+});
+
 export const alarmStyles = {
   mob: new Style({
-    image: new Icon({
-      src: './assets/img/alarms/mob_map.png',
-      scale: 1,
-      anchor: [13, 13],
-      anchorXUnits: 'pixels',
-      anchorYUnits: 'pixels',
-      rotateWithView: false
-    })
+    image: pobIcon
   })
 };
 
@@ -289,6 +297,7 @@ export const destinationStyles = {
   })
 };
 
+// ***********
 const aisScale = 1.0;
 const aisIconAnchor = [17, 16];
 
@@ -599,17 +608,20 @@ export const aisVesselStyles = {
   }
 };
 
+// ***********
+const atonIcon = new Icon({
+  src: './assets/img/aton.png',
+  rotateWithView: false,
+  rotation: 0,
+  anchor: [12.5, 12.5],
+  anchorXUnits: 'pixels',
+  anchorYUnits: 'pixels',
+  scale: 0.75
+});
+
 export const atonStyles = {
   default: new Style({
-    image: new Icon({
-      src: './assets/img/aton.png',
-      rotateWithView: false,
-      rotation: 0,
-      anchor: [12.5, 12.5],
-      anchorXUnits: 'pixels',
-      anchorYUnits: 'pixels',
-      scale: 0.75
-    }),
+    image: atonIcon,
     text: new Text({
       text: '',
       offsetX: 0,
@@ -618,17 +630,19 @@ export const atonStyles = {
   })
 };
 
+const baseStationIcon = new Icon({
+  src: './assets/img/aton_basestation.png',
+  rotateWithView: false,
+  rotation: 0,
+  anchor: [12.5, 14.5],
+  anchorXUnits: 'pixels',
+  anchorYUnits: 'pixels',
+  scale: 0.75
+});
+
 export const basestationStyles = {
   default: new Style({
-    image: new Icon({
-      src: './assets/img/aton_basestation.png',
-      rotateWithView: false,
-      rotation: 0,
-      anchor: [12.5, 14.5],
-      anchorXUnits: 'pixels',
-      anchorYUnits: 'pixels',
-      scale: 0.75
-    }),
+    image: baseStationIcon,
     text: new Text({
       text: '',
       offsetX: 0,
@@ -637,24 +651,29 @@ export const basestationStyles = {
   })
 };
 
+// ***********
+const aircraftActiveIcon = new Icon({
+  src: './assets/img/aircraft_active.png',
+  rotateWithView: true,
+  rotation: 0
+});
+
+const aircraftInactiveIcon = new Icon({
+  src: './assets/img/aircraft_inactive.png',
+  rotateWithView: true,
+  rotation: 0
+});
+
 export const aircraftStyles = {
   default: new Style({
-    image: new Icon({
-      src: './assets/img/aircraft_active.png',
-      rotateWithView: true,
-      rotation: 0
-    }),
+    image: aircraftActiveIcon,
     text: new Text({
       text: '',
       offsetY: -12
     })
   }),
   inactive: new Style({
-    image: new Icon({
-      src: './assets/img/aircraft_inactive.png',
-      rotateWithView: true,
-      rotation: 0
-    }),
+    image: aircraftInactiveIcon,
     text: new Text({
       text: '',
       offsetY: -12
@@ -662,13 +681,16 @@ export const aircraftStyles = {
   })
 };
 
+// ***********
+const sarIcon = new Icon({
+  src: './assets/img/sar_active.png',
+  rotateWithView: false,
+  rotation: 0
+});
+
 export const sarStyles = {
   default: new Style({
-    image: new Icon({
-      src: './assets/img/sar_active.png',
-      rotateWithView: false,
-      rotation: 0
-    }),
+    image: sarIcon,
     text: new Text({
       text: '',
       offsetY: -18
@@ -676,18 +698,21 @@ export const sarStyles = {
   })
 };
 
+// ***********
+const metoIcon = new Icon({
+  src: './assets/img/weather_station.png',
+  rotateWithView: false,
+  rotation: 0,
+  size: [35, 25],
+  anchor: [1, 25],
+  anchorXUnits: 'pixels',
+  anchorYUnits: 'pixels',
+  scale: 0.75
+});
+
 export const meteoStyles = {
   default: new Style({
-    image: new Icon({
-      src: './assets/img/weather_station.png',
-      rotateWithView: false,
-      rotation: 0,
-      size: [35, 25],
-      anchor: [1, 25],
-      anchorXUnits: 'pixels',
-      anchorYUnits: 'pixels',
-      scale: 0.75
-    }),
+    image: metoIcon,
     text: new Text({
       text: '',
       offsetY: -30
@@ -695,6 +720,7 @@ export const meteoStyles = {
   })
 };
 
+// ***********
 export const laylineStyles = {
   port: new Style({
     fill: new Fill({ color: 'green' }),

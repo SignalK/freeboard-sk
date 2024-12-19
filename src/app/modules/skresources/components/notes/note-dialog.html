@@ -30,7 +30,9 @@
 @if(!data.editable) {
 <div style="min-width: 400px">
   <mat-toolbar style="background-color: transparent">
-    <span class="dialog-icon"><mat-icon>local_offer</mat-icon></span>
+    <span class="dialog-icon"
+      ><mat-icon class="icon-note">local_offer</mat-icon></span
+    >
     <span style="flex: 1 1 auto; text-align: center">Note Details</span>
     <span style="text-align: right">
       <button mat-icon-button (click)="dialogRef.close({result:false})">

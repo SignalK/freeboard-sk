@@ -1,6 +1,7 @@
 import { Component, ViewChild } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
 import { MatDialog } from '@angular/material/dialog';
+import { MatIconRegistry } from '@angular/material/icon';
 import { MatBottomSheet } from '@angular/material/bottom-sheet';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { OverlayContainer } from '@angular/cdk/overlay';
@@ -58,6 +59,8 @@ import {
   Position
 } from './types';
 import { Feature } from 'ol';
+import { SignalKIcons } from './modules/map/signalk-icons';
+import { OpenBridgeIcons } from './app.icons';
 
 interface DrawEndEvent {
   coordinates: LineString | Position | Polygon;
@@ -136,14 +139,24 @@ export class AppComponent {
     private stream: SKStreamFacade,
     public skres: SKResources,
     public skresOther: SKOtherResources,
+    private skIcons: SignalKIcons,
     public signalk: SignalKClient,
     private dom: DomSanitizer,
     private overlayContainer: OverlayContainer,
     private bottomSheet: MatBottomSheet,
-    private dialog: MatDialog
+    private dialog: MatDialog,
+    private iconReg: MatIconRegistry
   ) {
     // set self to active vessel
     this.app.data.vessels.active = this.app.data.vessels.self;
+
+    // load custom icons
+    OpenBridgeIcons.ids.forEach((s: string) => {
+      this.iconReg.addSvgIcon(
+        s.slice(0, s.indexOf('.')),
+        this.dom.bypassSecurityTrustResourceUrl(`${OpenBridgeIcons.path}/${s}`)
+      );
+    });
   }
 
   // ********* LIFECYCLE ****************
@@ -641,6 +654,7 @@ export class AppComponent {
         this.app.data.anchor.hasApi = true;
       }
     );
+    this.skIcons.init();
   }
 
   // ** start trail / AIS timers

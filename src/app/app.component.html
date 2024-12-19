@@ -6,7 +6,7 @@
         mat-menu-item
         (click)="sidemenu.close(); displayLeftMenu('routeList', true)"
       >
-        <mat-icon class="icon-route">directions</mat-icon>
+        <mat-icon class="icon-route" svgIcon="route"></mat-icon>
         &nbsp;Routes
       </button>
       <button
@@ -33,8 +33,8 @@
 
       <mat-divider></mat-divider>
       <button mat-menu-item (click)="sidemenu.close(); saveToGPX()">
-        <mat-icon>save</mat-icon>
-        &nbsp;Save to GPX
+        <mat-icon class="ob" svgIcon="route-export"></mat-icon>
+        &nbsp;Export
       </button>
 
       @if(app.config.resources.paths.length !== 0) {
@@ -57,7 +57,10 @@
               sidemenu.close(); openExperiment({ choice: p, value: null })
             "
           >
-            <mat-icon>category</mat-icon>
+            <mat-icon
+              class="ob"
+              svgIcon="chart-display-settings-iec"
+            ></mat-icon>
             &nbsp;{{ p }}
           </button>
           } }
@@ -129,11 +132,11 @@
       </a>
       <mat-divider></mat-divider>
       <a mat-menu-item (click)="drawStart('route')">
-        <mat-icon class="icon-route">directions</mat-icon>
+        <mat-icon class="icon-route" svgIcon="route-planning"></mat-icon>
         <span>Draw Route</span>
       </a>
       <a mat-menu-item (click)="app.data.buildRoute.show = true">
-        <mat-icon class="icon-route">directions</mat-icon>
+        <mat-icon class="icon-route" svgIcon="route-planning"></mat-icon>
         <span>Build Route</span>
       </a>
       <mat-divider></mat-divider>
@@ -210,7 +213,7 @@
 
             <ap-file-input [astext]="true" (chosen)="processGPX($event)">
               <a mat-list-item>
-                <mat-icon>streetview</mat-icon>
+                <mat-icon class="ob" svgIcon="route-import"></mat-icon>
                 &nbsp;Load GPX
               </a>
             </ap-file-input>
@@ -223,7 +226,10 @@
             </ap-file-input>
 
             <a mat-list-item (click)="sidemenu.close(); uploadResources()">
-              <mat-icon>category</mat-icon>
+              <mat-icon
+                class="ob"
+                svgIcon="chart-display-settings-iec"
+              ></mat-icon>
               &nbsp;Load Resource
             </a>
 
@@ -426,8 +432,12 @@
                 "
                 matTooltipPosition="right"
               >
-                <mat-icon>
-                  {{ app.config.map.northUp ? 'navigation' : 'explore' }}
+                <mat-icon
+                  class="ob"
+                  [svgIcon]="
+                    app.config.map.northUp ? 'heading-n-up' : 'heading-h-up'
+                  "
+                >
                 </mat-icon>
               </button>
             </div>
@@ -447,7 +457,7 @@
                 "
                 matTooltipPosition="right"
               >
-                <mat-icon> my_location </mat-icon>
+                <mat-icon class="ob" svgIcon="cent-iec"></mat-icon>
               </button>
             </div>
             @if(!app.config.map.moveMap) {
@@ -955,7 +965,7 @@
                     matTooltip="Course Settings"
                     (click)="openCourseSettings()"
                   >
-                    <mat-icon>settings</mat-icon>
+                    <mat-icon class="ob" svgIcon="navigation-route"></mat-icon>
                   </button>
                   <br />
                   <button

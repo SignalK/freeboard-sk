@@ -77,7 +77,8 @@ import {
   laylineStyles,
   drawStyles,
   targetAngleStyle,
-  raceCourseStyles
+  raceCourseStyles,
+  SignalKIcons
 } from './mapconfig';
 import { ModifyEvent } from 'ol/interaction/Modify';
 import { DrawEvent } from 'ol/interaction/Draw';
@@ -287,10 +288,13 @@ export class FBMapComponent implements OnInit, OnDestroy {
   };
 
   // ** map feature styles
-  featureStyles = {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  featureStyles: any = {
     vessel: vesselStyles,
     aisVessel: aisVesselStyles,
-    note: noteStyles,
+    note: {
+      default: noteStyles.default
+    },
     route: routeStyles,
     waypoint: waypointStyles,
     anchor: anchorStyles,
@@ -361,7 +365,8 @@ export class FBMapComponent implements OnInit, OnDestroy {
     public skres: SKResources,
     public skresOther: SKOtherResources,
     private skstream: SKStreamFacade,
-    private alarmsFacade: AlarmsFacade
+    private alarmsFacade: AlarmsFacade,
+    private skicons: SignalKIcons
   ) {}
 
   ngAfterViewInit() {
@@ -412,6 +417,13 @@ export class FBMapComponent implements OnInit, OnDestroy {
   }
 
   ngOnChanges(changes: SimpleChanges) {
+    // Apply SK Icon styles if available
+    // if (this.app.data.skIcons.hasApi && !this.featureStyles.note.skIcons) {
+    if (!this.featureStyles.note.skIcons) {
+      this.featureStyles.note = Object.assign(this.featureStyles.note, {
+        skIcons: this.skicons.styles
+      });
+    }
     if (changes.vesselTrail) {
       this.drawVesselLines();
     }
@@ -805,7 +817,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
               })[0][1].name;
               break;
             case 'route':
-              icon = 'directions';
+              icon = 'route'; //'directions';
               addToFeatureList = true;
               if (t[1] === 'n2k') {
                 text = this.app.data.n2kRoute
@@ -859,7 +871,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
               break;
             case 'region':
               addToFeatureList = true;
-              icon = '360';
+              icon = 'tab_unselected';
               text = 'Region';
               break;
             case 'aircraft':
@@ -1795,7 +1807,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
   // ** returns true if skresOther.getItemsInBounds() should be called
   private shouldFetchResourceSets() {
     if (
-      this.app.config.resources.fetchRadius &&
+      this.app.config.resources.fetchRadius !== 0 &&
       this.app.config.resources.fetchFilter
     ) {
       if (!this.skresOther.hasSelections()) {

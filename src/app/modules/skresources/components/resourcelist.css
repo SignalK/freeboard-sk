@@ -21,13 +21,13 @@
     left: 0;
     right: 0;
     bottom: 0;
-    top: 130px;
+    top: 125px;
 }
 
 .resourcelist .resources.vessels,
 .resourcelist .resources.charts
  {
-    top: 165px;
+    top: 160px;
 }
 
 .resourcelist .vscroller {

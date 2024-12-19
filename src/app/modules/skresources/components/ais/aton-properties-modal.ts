@@ -71,7 +71,7 @@ import { SignalKDetailsComponent } from '../../components/signalk-details.compon
             <button mat-stroked-button (click)="toggleProperties()">
               <span>Show {{ showProperties ? 'Less' : 'More' }}</span>
               <mat-icon>{{
-                showProperties ? 'expand_less' : 'expand_more'
+                showProperties ? 'keyboard_arrow_down' : 'keyboard_arrow_right'
               }}</mat-icon>
             </button>
             @if(showProperties) {

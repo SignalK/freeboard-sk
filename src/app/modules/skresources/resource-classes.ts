@@ -71,8 +71,10 @@ export class SKNote {
   mimeType: string;
   url: string;
   group: string;
-  authors: Array<unknown>;
-  properties: { [key: string]: unknown };
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  authors: Array<any>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  properties: { [key: string]: any };
 
   constructor(note?: NoteResource) {
     this.name = note?.name ?? '';

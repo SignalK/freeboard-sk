@@ -1,21 +1,19 @@
 const WHATS_NEW = [
-  /*{
+  {
     type: 'signalk-server-node',
-    title: 'Chart Sources',
+    title: 'Autopilot API',
     message: `
-        Initial support for defining the following chart sources directly 
-        from the Chart List:
-        <li>WMTS (WebMap Tile Server)</li>
-        <li>TileJSON</li>
-        <li>Mapbox Style</li>
-        <br>
-        <i>Note: This functionality requires an upcoming release of 
-        Signal K Server.</i>
+        This release includes support for the new Signal K Autopilot API.
         <br>&nbsp;<br>
-        See <a href="assets/help/index.html" target="help">HELP</a> 
-                  for more details.
+        <i>Note: PyPilot support in the Freeboard-SK plugin will be DEPRECATED 
+          in a future version.<br>
+          This is functionality is replaced by the <a href="https://github.com/panaaj/pypilot-autopilot-provider" target="blank">
+          pypilot autopilot provider plugin</a>.
+        </i>
+        <br>&nbsp;<br>
+        See Signal K server help for more details.
       `
-  }*/
+  }
 ];
 
 export const WELCOME_MESSAGES = {

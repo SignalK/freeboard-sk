@@ -53,7 +53,7 @@ import { Subscription } from 'rxjs';
     <div class="_ap-course">
       <mat-toolbar style="background-color: transparent">
         <span>
-          <mat-icon>settings</mat-icon>
+          <mat-icon class="ob" svgIcon="navigation-route"></mat-icon>
         </span>
         <span style="flex: 1 1 auto; padding-left:20px;text-align:center;">
           {{ data.title }}

@@ -45,9 +45,11 @@ export interface NoteResource {
   mimeType?: string;
   url?: string;
   // ca reports attributes
-  group: string;
-  authors: Array<unknown>;
-  properties: { [key: string]: unknown };
+  group?: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  authors?: Array<any>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  properties: { [key: string]: any };
   timestamp: string;
   source: string;
 }

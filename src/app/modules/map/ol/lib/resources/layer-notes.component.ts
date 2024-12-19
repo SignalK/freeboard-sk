@@ -49,8 +49,12 @@ export class NotesBaseComponent extends FBFeatureLayerComponent {
   // build note feature style
   buildStyle(id: string, note): Style {
     if (typeof this.noteStyles !== 'undefined') {
-      if (note.properties?.skType) {
-        return this.noteStyles[note.properties.skType];
+      if (
+        note.properties?.skIcon &&
+        this.noteStyles['skIcons'] &&
+        this.noteStyles['skIcons'][note.properties.skIcon]
+      ) {
+        return this.noteStyles['skIcons'][note.properties.skIcon];
       } else {
         return this.noteStyles.default;
       }
