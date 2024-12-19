@@ -2,57 +2,73 @@
     position: absolute;
     z-index: 5000;
     top: 130px;
-    left: 10px;
+    left: 50px;
     display: flex;
     flex-direction: column;  
     font-family: Roboto, Arial, Helvetica, sans-serif; 
     font-size: 10pt;
-    width: 230px;
+    width: 238px;
+    height: 400px;
+    background-image: url('src/assets/img/ap/autopilot.png');
+    background-color: transparent;
+    border-radius: 115px;
 }
 .autopilot-console .title {
-    padding: 3px 5px 0 5px;
+    padding: 10px 0 0 0;
     font-weight: 500;
     font-size: 14px;
     line-height: 23px;
     display: flex;
+    color: rgb(237, 224, 221);
+    text-align: center;
 }
 
-.autopilot-console .title .closer {
-    width:25px;
-}
 .autopilot-console .title .closer:hover {
     cursor: pointer;
 }
 
 .autopilot-console .content {
     padding: 0 5px;
-    line-height: 23px;
     margin: 0;
     flex: 1 1 auto;
-    overflow: auto;
     text-align: center;
 }
 
+.autopilot-console .content .lcd{
+    padding: 5px 0;
+    color:black;
+}
+
 .autopilot-console .content .dial-text {
-    padding: 0 10px;
-    height: 96px;
     font-family: roboto;
-    border: transparent 1px solid;
     flex: 1 1 auto;
 }
 
 .autopilot-console .content .dial-text-title {
-    font-size: 12pt;
+    font-size: 10pt;
     font-weight: 500;
+    flex: 1;
 }
 
 .autopilot-console .content .dial-text-value {
-    font-size: 22pt;
+    font-size: 40pt;
     font-weight: 500;
 }
 
 .autopilot-console .content .dial-text-units {
     font-size: 10pt;
 }
+
+.autopilot-console .content .button-bar {
+    display:flex;
+    flex-wrap:nowrap;
+    padding: 30px 0 10px 0;
+}
+
+.autopilot-console .content .button-bar-thin {
+    display:flex;
+    flex-wrap:nowrap;
+    padding: 10px 0 0 0;
+} 
 
 
