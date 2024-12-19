@@ -48,15 +48,18 @@ import { PipesModule } from 'src/app/lib/pipes';
     <div class="_ap-resource">
       <div style="display:flex;">
         <div style="padding: 15px 0 0 10px;">
+          @if(data.type === "route") {
+          <mat-icon class="icon-route" svgIcon="route"></mat-icon>
+          } @else {
           <mat-icon
             [ngClass]="{
               'icon-waypoint': data.type === 'waypoint',
-              'icon-route': data.type === 'route',
               'icon-note': data.type === 'note',
               'icon-region': data.type === 'region'
             }"
             >{{ icon }}</mat-icon
           >
+          }
         </div>
         <div>
           <h1 mat-dialog-title>{{ data['title'] }}</h1>
@@ -101,9 +104,13 @@ import { PipesModule } from 'src/app/lib/pipes';
                 <mat-select #resourcetype [(value)]="data['skType']">
                   @for(i of resourceTypeList; track i) {
                   <mat-option [value]="i.type">
+                    @if(i.type === 'whale') {
+                    <mat-icon class="ob" svgIcon="whale"></mat-icon>
+                    } @else {
                     <mat-icon>
                       <img [src]="i.icon" style="width: 21px; height:23px" />
                     </mat-icon>
+                    }
                     {{ i.name }}
                   </mat-option>
                   }
@@ -195,8 +202,7 @@ export class ResourceDialog implements OnInit {
     },
     {
       type: 'whale',
-      name: 'Whale Sighting',
-      icon: './assets/img/waypoints/whale.svg'
+      name: 'Whale Sighting'
     }
   ];
 
@@ -226,7 +232,7 @@ export class ResourceDialog implements OnInit {
       this.data['type'] === 'route'
         ? 'directions'
         : this.data['type'] === 'region'
-        ? '360'
+        ? 'tab_unselected'
         : this.data['type'] === 'note'
         ? 'local_offer'
         : this.data['addMode']

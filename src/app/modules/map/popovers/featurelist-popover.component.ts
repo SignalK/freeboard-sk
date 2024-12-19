@@ -35,11 +35,15 @@ import { PopoverComponent } from './popover.component';
       <mat-nav-list>
         @for(f of features; track f) {
         <mat-list-item (click)="handleSelect(f)">
+          @if(f.icon === 'route') {
+          <mat-icon class="ob" [svgIcon]="f.icon"></mat-icon>
+          } @else {
           <mat-icon
             [ngClass]="{ 'icon-warn': f.text && f.text.indexOf('self') !== -1 }"
           >
             {{ f.icon }}
           </mat-icon>
+          }
           {{ f.text }}
         </mat-list-item>
         }
