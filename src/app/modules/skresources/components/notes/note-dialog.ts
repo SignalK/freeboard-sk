@@ -3,6 +3,7 @@
 
 import { Component, OnInit, Inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { PipesModule } from 'src/app/lib/pipes';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import {
@@ -45,6 +46,7 @@ import { AppInfo } from 'src/app/app.info';
     MatInputModule,
     MatToolbarModule,
     AngularEditorModule,
+    PipesModule,
     AddTargetPipe
   ],
   templateUrl: `note-dialog.html`,
@@ -91,7 +93,7 @@ export class NoteDialog implements OnInit {
     editable: true,
     spellcheck: false,
     height: 'auto',
-    minHeight: '0',
+    minHeight: '150',
     maxHeight: 'auto',
     width: 'auto',
     minWidth: '0',

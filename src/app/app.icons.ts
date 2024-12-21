@@ -16,3 +16,19 @@ export const OpenBridgeIcons = {
     'whale.svg'
   ]
 };
+
+export const PoiIcons = {
+  path: '../assets/img/poi',
+  ids: [
+    'anchorage.svg',
+    'boatramp.svg',
+    'bridge.svg',
+    'business.svg',
+    'dam.svg',
+    'ferry.svg',
+    'hazard.svg',
+    'inlet.svg',
+    'lock.svg',
+    'marina.svg'
+  ]
+};

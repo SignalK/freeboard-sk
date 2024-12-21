@@ -1,16 +1,16 @@
 # CHANGELOG: Freeboard
 
 ### v2.13.0
-- **New**: Use of maritime icons from [OpenBridge](https://www.figma.com/community/file/1445713209741917748)
 - **New**: Support for Signal K [Autopilot API](https://demo.signalk.org/documentation/develop/rest-api/open_api.html).
-- **New**: Display different Note icons when "skIcon" property is an Active Captain POI type.
+- **New**: Use of maritime icons from [OpenBridge](https://www.figma.com/community/file/1445713209741917748)
+- **New**: Display specific Note icons when "skIcon" property matches a POI type.
+- **Fixed**: Notes popover and dialog formatting. (#214, #223)
 - **Fixed**: Navigation data panel alignment on smaller screens. (#212)
-- **Fixed**: Notes popover disables move & delete buttons when readOnly property is set. (#214)
 - **Updated**: Resource Set feature popover formatting. (#213)
-- **Updated**: Show more / less ui icons. (#217)
+- **Updated**: Show more / less ui icons in AIS properties. (#217)
 - **Updated**: Relocated close button on resource lists. (#218)
 - **Updated**: Additional aisCogLine length options. (#209)
-- **Added**: Configuration to retrieve only the Resource Set features that fall within a specified radius of the map center. (#207)
+- **Added**: %map:zoom% token for use in Notes fetch filter (#222)
 
 
 ### v2.12.2

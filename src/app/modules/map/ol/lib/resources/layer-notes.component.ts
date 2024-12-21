@@ -116,6 +116,7 @@ export class NoteLayerComponent extends NotesBaseComponent {
         name: notes[n].name
       });
       f.setId('note.' + n);
+      f.set('icon', notes[n].properties?.skIcon ?? 'local_offer');
       f.setStyle(this.buildStyle(n, notes[n]).clone());
       fa.push(f);
     }
@@ -161,6 +162,12 @@ export class FreeboardNoteLayerComponent extends NotesBaseComponent {
         name: n[1].name
       });
       f.setId('note.' + n[0]);
+      f.set(
+        'icon',
+        n[1].properties?.skIcon
+          ? `sk-${n[1].properties?.skIcon}`
+          : 'local_offer'
+      );
       f.setStyle(this.buildStyle(n[0], n[1]).clone());
       fa.push(f);
     }

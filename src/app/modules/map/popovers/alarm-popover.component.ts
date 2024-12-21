@@ -53,7 +53,7 @@ import { SKNotification } from 'src/app/types';
           style="flex: 1 1 auto;text-align:right;"
           [innerText]="
             alarm.data.position.longitude
-              | coords : app.config.selections.positionFormat : true
+              | coords : app.config.selections.positionFormat : false
           "
         ></div>
       </div>

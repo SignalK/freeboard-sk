@@ -62,7 +62,10 @@ import { SKStreamFacade } from 'src/app/modules';
         </div>
         <mat-card-content>
           <div class="content">
-            <div style="height: 45px;color:whitesmoke;">Autopilot</div>
+            <div style="height: 45px;color:whitesmoke;">
+              Autopilot<br />
+              {{ app.data.vessels.self.autopilot.default ?? '' }}
+            </div>
             <div class="lcd">
               <div style="padding: 5px 0;display: flex;">
                 <div class="dial-text-title">Target</div>

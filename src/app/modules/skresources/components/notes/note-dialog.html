@@ -14,8 +14,7 @@
   :host ::ng-deep .ck.ck-editor__main > .ck-editor__editable {
     color: black;
   }
-  @media only screen and (min-device-width: 768px) and (max-device-width: 1024px),
-    only screen and (min-width: 800px) {
+  @media only screen and (min-width: 600px) {
     .ap-confirm-icon {
       min-width: 25%;
       max-width: 25%;
@@ -24,15 +23,26 @@
     .nosmall {
       display: flex;
     }
+    .nosmall.block {
+      display: block;
+    }
+
+    .note-details {
+      min-width: 400px;
+    }
   }
 </style>
 
 @if(!data.editable) {
-<div style="min-width: 400px">
+<div class="note-details">
   <mat-toolbar style="background-color: transparent">
-    <span class="dialog-icon"
-      ><mat-icon class="icon-note">local_offer</mat-icon></span
-    >
+    <span class="dialog-icon">
+      @if(data.note?.properties?.skIcon) {
+      <mat-icon [svgIcon]="'sk-' + data.note?.properties?.skIcon"></mat-icon>
+      } @else {
+      <mat-icon class="icon-note">local_offer</mat-icon>
+      }
+    </span>
     <span style="flex: 1 1 auto; text-align: center">Note Details</span>
     <span style="text-align: right">
       <button mat-icon-button (click)="dialogRef.close({result:false})">
@@ -51,6 +61,7 @@
             <div style="font-weight: bold; vertical-align: top">Name:</div>
             <div style="padding-left: 10px">{{data.note?.name}}</div>
           </div>
+          @if(data.note.group) {
           <div style="padding-bottom: 5px; display: flex">
             <div style="font-weight: bold; vertical-align: top">Group:</div>
             <div style="padding-left: 10px; flex: 1 1 auto">
@@ -68,6 +79,7 @@
             </div>
             }
           </div>
+          }
           <div style="flex: 1 1 auto; padding: 5px 0 5px 0">
             <div style="font-weight: bold; vertical-align: top">
               Description:
@@ -78,15 +90,8 @@
               [innerHTML]="data.note.description | addTarget: '_notes'"
             ></div>
           </div>
-          @if(data.note.position) {
-          <div class="nosmall" style="font-size: 10pt; padding: 5px 0 5px 0">
-            <div style="width: 45px; font-weight: bold">Lat:</div>
-            <div>{{data.note?.position?.latitude}}</div>
-            &nbsp;
-            <div style="width: 45px; font-weight: bold">Lon:</div>
-            <div>{{data.note?.position?.longitude}}</div>
-          </div>
-          }
+
+          <!--
           <div class="nosmall" style="font-size: 10pt; padding: 5px 0 5px 0">
             @if(data.note.authors && data.note.authors.length !== 0) {
             <div>
@@ -96,25 +101,22 @@
             }
             <div><i>{{data.note?.timestamp?.slice(0,10)}}</i></div>
           </div>
+          -->
         </div>
       </mat-card-content>
+      @if(data.note.url || !data.note.properties.readOnly){
       <mat-card-actions>
-        <div style="display: flex">
-          <div style="flex: 1 1 auto">
+        <div style="display: flex; width: 100%">
+          <div>
             @if(data.note.url) {
-            <div>
-              <button
-                mat-icon-button
-                (click)="openNoteUrl()"
-                matTooltip="Open Note link in browser window"
-              >
-                <mat-icon>open_in_new</mat-icon>
-              </button>
-            </div>
-            }
-          </div>
-          @if(!data.note.properties.readOnly) {
-          <div style="text-align: right">
+            <button
+              mat-icon-button
+              (click)="openNoteUrl()"
+              matTooltip="Open Note link in browser window"
+            >
+              <mat-icon>open_in_new</mat-icon>
+            </button>
+            &nbsp; } @if(!data.note.properties.readOnly) {
             <button
               mat-icon-button
               (click)="dialogRef.close({result:true, data: 'edit'})"
@@ -130,10 +132,28 @@
             >
               <mat-icon>delete</mat-icon>
             </button>
+            }
+          </div>
+          @if(data.note.position) {
+          <div
+            class="nosmall block"
+            style="flex: 1; font-size: 10pt; padding: 0 0 0 10px"
+          >
+            <span style="font-weight: bold">Lat:</span>&nbsp;
+            {{data.note?.position?.latitude | coords :
+            app.config.selections.positionFormat : true}}
+
+            <br />
+            <span>
+              <span style="font-weight: bold">Lon:</span>&nbsp;
+              {{data.note?.position?.longitude | coords :
+              app.config.selections.positionFormat : false}}
+            </span>
           </div>
           }
         </div>
       </mat-card-actions>
+      }
     </mat-card>
   </mat-dialog-content>
 </div>
@@ -146,7 +166,7 @@
     >
   </mat-toolbar>
   <mat-dialog-content>
-    <div style="display: flex">
+    <div class="note-details" style="display: flex">
       <div style="flex: 1 1 auto">
         <div>
           <mat-form-field floatLabel="always" style="width: 100%">
@@ -180,6 +200,7 @@
         <div class="note-editor">
           @defer{
           <angular-editor
+            height
             [config]="editorConfig"
             [placeholder]="'Add note text here.'"
             [(ngModel)]="data.note.description"

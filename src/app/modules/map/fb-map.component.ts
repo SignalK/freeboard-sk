@@ -810,7 +810,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
               text = 'Destination';
               break;
             case 'note':
-              icon = 'local_offer';
+              icon = feature.get('icon');
               addToFeatureList = true;
               text = this.app.data.notes.filter((i) => {
                 return i[0] === t[1] ? i[1].name : null;

@@ -539,6 +539,8 @@ export const processUrlTokens = (s: string, config: IAppConfig): string => {
         return config.map.center[1];
       } else if (i === 'map:longitude') {
         return config.map.center[0];
+      } else if (i === 'map:zoom') {
+        return Math.floor(config.map.zoomLevel);
       } else if (i === 'note:radius') {
         const dist =
           config.units.distance === 'm'

@@ -37,6 +37,8 @@ import { PopoverComponent } from './popover.component';
         <mat-list-item (click)="handleSelect(f)">
           @if(f.icon === 'route') {
           <mat-icon class="ob" [svgIcon]="f.icon"></mat-icon>
+          } @else if(f.icon.indexOf('sk-') === 0) {
+          <mat-icon [svgIcon]="f.icon"></mat-icon>
           } @else {
           <mat-icon
             [ngClass]="{ 'icon-warn': f.text && f.text.indexOf('self') !== -1 }"
@@ -59,7 +61,7 @@ export class FeatureListPopoverComponent {
   @Output() closed: EventEmitter<void> = new EventEmitter();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   @Output() selected: EventEmitter<any> = new EventEmitter();
-  //constructor() {}
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   handleSelect(item: any) {
     this.selected.emit(item);

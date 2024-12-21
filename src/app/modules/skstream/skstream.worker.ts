@@ -893,6 +893,7 @@ function processVessel(d: SKVessel, v, isSelf = false) {
   ) {
     d.autopilot.enabled = v.value;
   } else if (v.path === 'steering.autopilot.defaultPilot') {
+    d.autopilot.default = v.value;
     apDeviceId = v.value;
   }
 

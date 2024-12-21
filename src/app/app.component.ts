@@ -60,7 +60,7 @@ import {
 } from './types';
 import { Feature } from 'ol';
 import { SignalKIcons } from './modules/map/signalk-icons';
-import { OpenBridgeIcons } from './app.icons';
+import { OpenBridgeIcons, PoiIcons } from './app.icons';
 
 interface DrawEndEvent {
   coordinates: LineString | Position | Polygon;
@@ -155,6 +155,12 @@ export class AppComponent {
       this.iconReg.addSvgIcon(
         s.slice(0, s.indexOf('.')),
         this.dom.bypassSecurityTrustResourceUrl(`${OpenBridgeIcons.path}/${s}`)
+      );
+    });
+    PoiIcons.ids.forEach((s: string) => {
+      this.iconReg.addSvgIcon(
+        `sk-${s.slice(0, s.indexOf('.'))}`,
+        this.dom.bypassSecurityTrustResourceUrl(`${PoiIcons.path}/${s}`)
       );
     });
   }
