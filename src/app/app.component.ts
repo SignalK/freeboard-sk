@@ -1137,18 +1137,10 @@ export class AppComponent {
   // ********** TOOLBAR ACTIONS **********
 
   public openAlarmsDialog() {
-    if (this.app.data.loginRequired && !this.app.data.loggedIn) {
-      this.showLogin(null, false, false).subscribe((r) => {
-        if (r) {
-          this.openAlarmsDialog();
-        }
-      });
-    } else {
-      this.dialog
-        .open(AlarmsDialog, { disableClose: true })
-        .afterClosed()
-        .subscribe(() => this.focusMap());
-    }
+    this.dialog
+      .open(AlarmsDialog, { disableClose: true })
+      .afterClosed()
+      .subscribe(() => this.focusMap());
   }
 
   public toggleMoveMap(exit = false) {
@@ -1862,8 +1854,8 @@ export class AppComponent {
     }
 
     this.display.navDataPanel.apModeText = this.app.data.vessels.self.autopilot
-      .enabled
-      ? 'Autopilot: ' + this.app.data.vessels.self.autopilot.mode
+      .default
+      ? 'Autopilot: ' + this.app.data.vessels.self.autopilot.default
       : '';
   }
 }

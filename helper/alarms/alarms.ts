@@ -33,14 +33,14 @@ export const initAlarms = (app: FreeboardHelperApp, id: string) => {
 
   server.debug(`** initAlarms() **`);
 
-  if (server.registerPutHandler) {
+  if (server.registerActionHandler) {
     server.debug(`** Registering Alarm Action Handler(s) **`);
     STANDARD_ALARMS.forEach((i) => {
       server.debug(`** Registering ${i} Handler **`);
       server.registerPutHandler(
         'vessels.self',
         `notifications.${i}`,
-        handlePutAlarmState
+        handleV1PutRequest
       );
     });
   }
@@ -54,7 +54,9 @@ const initAlarmEndpoints = () => {
   server.post(
     `${ALARM_API_PATH}/:alarmType`,
     (req: Request, res: Response, next: NextFunction) => {
-      server.debug(`** POST ${ALARM_API_PATH}/${req.params.alarmType}`);
+      server.debug(
+        `** ${req.method} ${ALARM_API_PATH}/${req.params.alarmType}`
+      );
       if (!STANDARD_ALARMS.includes(req.params.alarmType)) {
         next();
         return;
@@ -64,15 +66,17 @@ const initAlarmEndpoints = () => {
           ? req.body.message
           : (req.params.alarmType as string);
 
-        const r = handlePutAlarmState(
+        const r = handleAlarm(
           'vessels.self',
           `notifications.${req.params.alarmType}` as Path,
           {
             message: msg,
             method: [ALARM_METHOD.sound, ALARM_METHOD.visual],
-            state: ALARM_STATE.emergency
+            state: ALARM_STATE.emergency,
+            data: buildAlarmData()
           }
         );
+
         res.status(200).json(r);
       } catch (e) {
         res.status(400).json({
@@ -86,7 +90,7 @@ const initAlarmEndpoints = () => {
   server.post(
     `${ALARM_API_PATH}/:alarmType/silence`,
     (req: Request, res: Response) => {
-      server.debug(`** POST ${req.path}`);
+      server.debug(`** ${req.method} ${req.path}`);
       if (!STANDARD_ALARMS.includes(req.params.alarmType)) {
         res.status(200).json({
           state: 'COMPLETED',
@@ -102,7 +106,7 @@ const initAlarmEndpoints = () => {
           if (al.value.method && al.value.method.includes('sound')) {
             server.debug('Alarm has sound... silence!!!');
             al.value.method = al.value.method.filter((i) => i !== 'sound');
-            const r = handlePutAlarmState(
+            const r = handleAlarm(
               'vessels.self',
               `notifications.${req.params.alarmType}` as Path,
               al.value
@@ -133,13 +137,15 @@ const initAlarmEndpoints = () => {
   server.delete(
     `${ALARM_API_PATH}/:alarmType`,
     (req: Request, res: Response, next: NextFunction) => {
-      server.debug(`** DELETE ${ALARM_API_PATH}/${req.params.alarmType}`);
+      server.debug(
+        `** ${req.method} ${ALARM_API_PATH}/${req.params.alarmType}`
+      );
       if (!STANDARD_ALARMS.includes(req.params.alarmType)) {
         next();
         return;
       }
       try {
-        const r = handlePutAlarmState(
+        const r = handleAlarm(
           'vessels.self',
           `notifications.${req.params.alarmType}` as Path,
           {
@@ -160,18 +166,43 @@ const initAlarmEndpoints = () => {
   );
 };
 
-const handlePutAlarmState = (
+const handleV1PutRequest = (
+  context: string,
+  path: Path,
+  value: any,
+  cb: (actionResult: any) => void
+) => {
+  cb(handleAlarm(
+    context,
+    path,
+    value
+  ));
+}
+
+const buildAlarmData = () => {
+  const pos: { value: Position } = server.getSelfPath('navigation.position');
+  return {
+    position: pos ? pos.value : null,
+    timestamp: new Date().toISOString()
+  };
+};
+
+const handleAlarm = (
   context: string,
   path: Path,
   value: {
     message: string;
     state: ALARM_STATE;
     method: ALARM_METHOD[];
+    data?: {
+      position: Position;
+      timestamp: string;
+    };
   }
 ) => {
-  server.debug(context);
-  server.debug(path);
-  server.debug(JSON.stringify(value));
+  server.debug(`context: ${context}`);
+  server.debug(`path: ${path}`);
+  server.debug(`value: ${JSON.stringify(value)}`);
   if (!path) {
     server.debug('Error: no path provided!');
     return {
@@ -184,32 +215,13 @@ const handlePutAlarmState = (
 
   const pa = path.split('.');
   const alarmType = pa[pa.length - 1];
-  server.debug(JSON.stringify(alarmType));
-  let noti: PathValue;
-  if (value) {
-    const alm = value.state === ALARM_STATE.normal ? null : buildAlarmData();
-    noti = {
-      path: `notifications.${alarmType}` as Path,
-      value: {
-        state: value.state ?? null,
-        method: value.method ?? null,
-        message: value.message
-      }
-    };
-    if (alm && alm.data) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (noti.value as any).data = alm.data;
-    }
-  } else {
-    noti = {
-      path,
-      value: null
-    };
-  }
+  server.debug(`alarmType: ${JSON.stringify(alarmType)}`);
   if (STANDARD_ALARMS.includes(alarmType)) {
-    // ** send delta **
     server.debug(`****** Sending Delta (Std Alarm Notification): ******`);
-    emitNotification(noti);
+    emitNotification({
+      path: path,
+      value: value ?? null
+    });
     return { state: 'COMPLETED', resultStatus: 200, statusCode: 200 };
   } else {
     return {
@@ -219,15 +231,6 @@ const handlePutAlarmState = (
       message: `Invalid reference!`
     };
   }
-};
-
-const buildAlarmData = () => {
-  const pos: { value: Position } = server.getSelfPath('navigation.position');
-  return {
-    data: {
-      position: pos ? pos.value : null
-    }
-  };
 };
 
 // ** send notification delta message **
