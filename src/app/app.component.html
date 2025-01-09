@@ -734,7 +734,8 @@
             </div>
 
             <!-- Autopilot console-->
-            @if(app.data.autopilot.hasApi) {
+            @if(app.data.autopilot.hasApi &&
+            app.data.vessels.self.autopilot.default) {
             <div class="buttonPanelItem">
               <button
                 mat-mini-fab

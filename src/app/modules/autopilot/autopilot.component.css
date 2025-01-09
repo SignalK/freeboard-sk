@@ -37,6 +37,7 @@
 .autopilot-console .content .lcd{
     padding: 5px 0;
     color:black;
+    margin: 0 15px;
 }
 
 .autopilot-console .content .dial-text {
@@ -51,7 +52,7 @@
 }
 
 .autopilot-console .content .dial-text-value {
-    font-size: 40pt;
+    font-size: 37pt;
     font-weight: 500;
 }
 

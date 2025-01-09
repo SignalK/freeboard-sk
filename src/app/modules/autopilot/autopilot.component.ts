@@ -68,23 +68,44 @@ import { SKStreamFacade } from 'src/app/modules';
             </div>
             <div class="lcd">
               <div style="padding: 5px 0;display: flex;">
-                <div class="dial-text-title">Target</div>
+                <div class="dial-text-title">
+                  @if(app.data.vessels.self.autopilot.default) {
+                  <span>Target</span>
+                  } @else {
+                  <span>No Pilot</span>
+                  }
+                </div>
               </div>
 
               <div class="dial-text">
                 <div class="dial-text-value">
-                  {{
+                  @if(app.data.vessels.self.autopilot.default ||
+                  app.data.vessels.self.autopilot.state === 'off-line') {
+                  <span>{{
                     formatTargetValue(app.data.vessels.self.autopilot.target)
-                  }}&deg;
+                  }}</span>
+                  } @else {
+                  <span>--</span>
+                  } &deg;
                 </div>
               </div>
 
               <div style="padding: 10px 0;display: flex;">
                 <div class="dial-text-title">
-                  {{ app.data.vessels.self.autopilot.mode }}
+                  @if(app.data.vessels.self.autopilot.default ||
+                  app.data.vessels.self.autopilot.state === 'off-line') {
+                  <span>{{ app.data.vessels.self.autopilot.state }}</span>
+                  } @else {
+                  <span>--</span>
+                  }
                 </div>
                 <div class="dial-text-title">
-                  {{ app.data.vessels.self.autopilot.state }}
+                  @if(app.data.vessels.self.autopilot.default ||
+                  app.data.vessels.self.autopilot.state === 'off-line') {
+                  <span>{{ app.data.vessels.self.autopilot.mode }}</span>
+                  } @else {
+                  <span>--</span>
+                  }
                 </div>
               </div>
             </div>
@@ -96,6 +117,10 @@ import { SKStreamFacade } from 'src/app/modules';
                 <button
                   class="button-secondary"
                   mat-mini-fab
+                  [disabled]="
+                    !app.data.vessels.self.autopilot.default ||
+                    app.data.vessels.self.autopilot.state === 'off-line'
+                  "
                   (click)="dodgeAdjust(-10)"
                 >
                   &lt;&lt;</button
@@ -103,6 +128,10 @@ import { SKStreamFacade } from 'src/app/modules';
                 <button
                   class="button-toolbar"
                   mat-mini-fab
+                  [disabled]="
+                    !app.data.vessels.self.autopilot.default ||
+                    app.data.vessels.self.autopilot.state === 'off-line'
+                  "
                   (click)="dodgeAdjust(-1)"
                 >
                   &lt;
@@ -113,6 +142,10 @@ import { SKStreamFacade } from 'src/app/modules';
                 <button
                   class="button-toolbar"
                   mat-mini-fab
+                  [disabled]="
+                    !app.data.vessels.self.autopilot.default ||
+                    app.data.vessels.self.autopilot.state === 'off-line'
+                  "
                   (click)="dodgeAdjust(1)"
                 >
                   &gt;</button
@@ -120,6 +153,10 @@ import { SKStreamFacade } from 'src/app/modules';
                 <button
                   class="button-secondary"
                   mat-mini-fab
+                  [disabled]="
+                    !app.data.vessels.self.autopilot.default ||
+                    app.data.vessels.self.autopilot.state === 'off-line'
+                  "
                   (click)="dodgeAdjust(10)"
                 >
                   &gt;&gt;
@@ -132,6 +169,10 @@ import { SKStreamFacade } from 'src/app/modules';
                 <button
                   class="button-secondary"
                   mat-mini-fab
+                  [disabled]="
+                    !app.data.vessels.self.autopilot.default ||
+                    app.data.vessels.self.autopilot.state === 'off-line'
+                  "
                   (click)="targetAdjust(-10)"
                 >
                   -10</button
@@ -139,6 +180,10 @@ import { SKStreamFacade } from 'src/app/modules';
                 <button
                   class="button-toolbar"
                   mat-mini-fab
+                  [disabled]="
+                    !app.data.vessels.self.autopilot.default ||
+                    app.data.vessels.self.autopilot.state === 'off-line'
+                  "
                   (click)="targetAdjust(-1)"
                 >
                   -1
@@ -149,6 +194,10 @@ import { SKStreamFacade } from 'src/app/modules';
                 <button
                   class="button-toolbar"
                   mat-mini-fab
+                  [disabled]="
+                    !app.data.vessels.self.autopilot.default ||
+                    app.data.vessels.self.autopilot.state === 'off-line'
+                  "
                   (click)="targetAdjust(1)"
                 >
                   +1</button
@@ -156,6 +205,10 @@ import { SKStreamFacade } from 'src/app/modules';
                 <button
                   class="button-secondary"
                   mat-mini-fab
+                  [disabled]="
+                    !app.data.vessels.self.autopilot.default ||
+                    app.data.vessels.self.autopilot.state === 'off-line'
+                  "
                   (click)="targetAdjust(10)"
                 >
                   +10
@@ -172,7 +225,8 @@ import { SKStreamFacade } from 'src/app/modules';
                   (click)="toggleEngaged()"
                   [disabled]="
                     !app.data.autopilot.hasApi ||
-                    app.data.vessels.self.autopilot.state === 'offline' ||
+                    !app.data.vessels.self.autopilot.default ||
+                    app.data.vessels.self.autopilot.state === 'off-line' ||
                     !app.data.vessels.self.autopilot.state
                   "
                   [ngClass]="{
@@ -191,7 +245,8 @@ import { SKStreamFacade } from 'src/app/modules';
                   [matMenuTriggerFor]="modemenu"
                   [disabled]="
                     !app.data.autopilot.hasApi ||
-                    app.data.vessels.self.autopilot.state === 'offline' ||
+                    !app.data.vessels.self.autopilot.default ||
+                    app.data.vessels.self.autopilot.state === 'off-line' ||
                     !app.data.vessels.self.autopilot.state
                   "
                 >
@@ -210,7 +265,8 @@ import { SKStreamFacade } from 'src/app/modules';
                   }"
                   [disabled]="
                     !app.data.autopilot.hasApi ||
-                    app.data.vessels.self.autopilot.state === 'offline' ||
+                    !app.data.vessels.self.autopilot.default ||
+                    app.data.vessels.self.autopilot.state === 'off-line' ||
                     !app.data.vessels.self.autopilot.state
                   "
                   mat-raised-button
@@ -271,6 +327,7 @@ export class AutopilotComponent {
         () => {
           this.autopilotOptions = { modes: [], states: [] };
           this.app.data.autopilot.hasApi = false;
+          this.app.showMessage('No autopilot providers found!');
         }
       );
   }
@@ -289,8 +346,12 @@ export class AutopilotComponent {
         let msg = `Error setting Autopilot state!\n`;
         if (error.status === 403) {
           msg += 'Unauthorised: Please login.';
+          this.app.showAlert(`Error (${error.status}):`, msg);
+        } else {
+          this.app.showMessage(
+            error.error?.message ?? 'Device returned an error!'
+          );
         }
-        this.app.showAlert(`Error (${error.status}):`, msg);
       }
     );
   }
@@ -308,8 +369,15 @@ export class AutopilotComponent {
         () => {
           this.app.debug(`Target adjusted: ${value} deg.`);
         },
-        (err: HttpErrorResponse) => {
-          this.app.debug(err);
+        (error: HttpErrorResponse) => {
+          if (error.status === 403) {
+            const msg = 'Unauthorised: Please login.';
+            this.app.showAlert(`Error (${error.status}):`, msg);
+          } else {
+            this.app.showMessage(
+              error.error?.message ?? 'Device returned an error!'
+            );
+          }
         }
       );
   }
@@ -322,8 +390,15 @@ export class AutopilotComponent {
           () => {
             this.app.debug(`Set dodge mode.`);
           },
-          (err: HttpErrorResponse) => {
-            this.app.debug(err);
+          (error: HttpErrorResponse) => {
+            if (error.status === 403) {
+              const msg = 'Unauthorised: Please login.';
+              this.app.showAlert(`Error (${error.status}):`, msg);
+            } else {
+              this.app.showMessage(
+                error.error?.message ?? 'Device returned an error!'
+              );
+            }
           }
         );
     } else {
@@ -333,8 +408,15 @@ export class AutopilotComponent {
           () => {
             this.app.debug(`Clear dodge mode.`);
           },
-          (err: HttpErrorResponse) => {
-            this.app.debug(err);
+          (error: HttpErrorResponse) => {
+            if (error.status === 403) {
+              const msg = 'Unauthorised: Please login.';
+              this.app.showAlert(`Error (${error.status}):`, msg);
+            } else {
+              this.app.showMessage(
+                error.error?.message ?? 'Device returned an error!'
+              );
+            }
           }
         );
     }
@@ -353,22 +435,17 @@ export class AutopilotComponent {
         () => {
           this.app.debug(`Dodge port / starboard: ${value} deg.`);
         },
-        (err: HttpErrorResponse) => {
-          this.app.debug(err);
+        (error: HttpErrorResponse) => {
+          if (error.status === 403) {
+            const msg = 'Unauthorised: Please login.';
+            this.app.showAlert(`Error (${error.status}):`, msg);
+          } else {
+            this.app.showMessage(
+              error.error?.message ?? 'Device returned an error!'
+            );
+          }
         }
       );
-  }
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  dragEventHandler(e: any, type: string) {
-    this.app.debug(
-      'e:',
-      e,
-      'type:',
-      type,
-      e.event.srcElement.clientLeft,
-      e.event.srcElement.clientTop
-    );
   }
 
   setMode(mode: string) {
@@ -384,11 +461,27 @@ export class AutopilotComponent {
             let msg = `Error setting Autopilot mode!\n`;
             if (error.status === 403) {
               msg += 'Unauthorised: Please login.';
+              this.app.showAlert(`Error (${error.status}):`, msg);
+            } else {
+              this.app.showMessage(
+                error.error?.message ?? 'Device returned an error!'
+              );
             }
-            this.app.showAlert(`Error (${error.status}):`, msg);
           }
         );
     }
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  dragEventHandler(e: any, type: string) {
+    this.app.debug(
+      'e:',
+      e,
+      'type:',
+      type,
+      e.event.srcElement.clientLeft,
+      e.event.srcElement.clientTop
+    );
   }
 
   formatTargetValue(value: number) {
