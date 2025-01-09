@@ -10,7 +10,6 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatBottomSheetModule } from '@angular/material/bottom-sheet';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatStepperModule } from '@angular/material/stepper';
-import { MatProgressBar } from '@angular/material/progress-bar';
 
 export interface WeatherData {
   description?: string;
@@ -46,8 +45,7 @@ export interface WeatherData {
     MatFormFieldModule,
     MatInputModule,
     MatToolbarModule,
-    MatStepperModule,
-    MatProgressBar
+    MatStepperModule
   ],
   template: `
     <div class="weather-data">

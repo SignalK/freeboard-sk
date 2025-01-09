@@ -12,7 +12,6 @@ import {
 import { CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop';
 import { Position } from 'src/app/types';
 import { AppInfo } from 'src/app/app.info';
-import { SignalKDetailsComponent } from '../components/signalk-details.component';
 
 import { SKWaypoint, SKRoute } from '../resource-classes';
 import { GeoUtils } from 'src/app/lib/geoutils';
@@ -34,8 +33,7 @@ import { GeoUtils } from 'src/app/lib/geoutils';
     MatIconModule,
     MatCardModule,
     MatButtonModule,
-    MatToolbarModule,
-    SignalKDetailsComponent
+    MatToolbarModule
   ],
   template: `
     <div class="_ap-dest" style="display:flex;flex-direction:column;">
