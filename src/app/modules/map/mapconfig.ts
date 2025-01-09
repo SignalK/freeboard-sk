@@ -156,6 +156,7 @@ export const routeStyles = {
 };
 
 // ***********
+
 const wptIcon = new Icon({
   src: './assets/img/waypoints/marker-yellow.png',
   rotateWithView: false,
@@ -188,6 +189,11 @@ const whaleIcon = new Icon({
   rotateWithView: false
 });
 
+const pobIcon = new Icon({
+  src: './assets/img/ob/alarm-pob.svg',
+  rotateWithView: false
+});
+
 export const waypointStyles = {
   default: new Style({
     image: wptIcon,
@@ -212,6 +218,20 @@ export const waypointStyles = {
   }),
   whale: new Style({
     image: whaleIcon,
+    text: new Text({
+      text: '',
+      offsetY: -15
+    })
+  }),
+  'alarm-pob': new Style({
+    image: pobIcon,
+    text: new Text({
+      text: '',
+      offsetY: -15
+    })
+  }),
+  mob: new Style({
+    image: pobIcon,
     text: new Text({
       text: '',
       offsetY: -15
@@ -270,10 +290,6 @@ export const anchorStyles = {
 };
 
 // ***********
-const pobIcon = new Icon({
-  src: './assets/img/ob/alarm-pob.svg',
-  rotateWithView: false
-});
 
 export const alarmStyles = {
   mob: new Style({

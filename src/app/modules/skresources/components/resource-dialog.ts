@@ -102,17 +102,21 @@ import { PipesModule } from 'src/app/lib/pipes';
               <mat-form-field style="width:100%;" floatLabel="always">
                 <mat-label>Waypoint Type</mat-label>
                 <mat-select #resourcetype [(value)]="data['skType']">
-                  @for(i of resourceTypeList; track i) {
-                  <mat-option [value]="i.type">
-                    @if(i.type === 'whale') {
-                    <mat-icon class="ob" svgIcon="whale"></mat-icon>
-                    } @else {
-                    <mat-icon>
-                      <img [src]="i.icon" style="width: 21px; height:23px" />
-                    </mat-icon>
+                  @for(rl of resourceTypeList; track rl) {
+                  <mat-optgroup [label]="rl.group">
+                    @for(i of rl.icons; track i) {
+                    <mat-option [value]="i.type">
+                      @if(['whale','alarm-pob'].includes(i.type)) {
+                      <mat-icon class="ob" [svgIcon]="i.type"></mat-icon>
+                      } @else {
+                      <mat-icon>
+                        <img [src]="i.icon" style="width: 21px; height:23px" />
+                      </mat-icon>
+                      }
+                      {{ i.name }}
+                    </mat-option>
                     }
-                    {{ i.name }}
-                  </mat-option>
+                  </mat-optgroup>
                   }
                 </mat-select>
               </mat-form-field>
@@ -191,18 +195,32 @@ export class ResourceDialog implements OnInit {
 
   public resourceTypeList = [
     {
-      type: '',
-      name: 'Waypoint',
-      icon: './assets/img/waypoints/marker-yellow.png'
+      group: 'Points of Interest',
+      icons: [
+        {
+          type: '',
+          name: 'Waypoint',
+          icon: './assets/img/waypoints/marker-yellow.png'
+        },
+        {
+          type: 'pseudoaton',
+          name: 'Pseudo AtoN',
+          icon: './assets/img/waypoints/marker-red.png'
+        },
+        {
+          type: 'whale',
+          name: 'Whale Sighting'
+        }
+      ]
     },
     {
-      type: 'pseudoaton',
-      name: 'Pseudo AtoN',
-      icon: './assets/img/waypoints/marker-red.png'
-    },
-    {
-      type: 'whale',
-      name: 'Whale Sighting'
+      group: 'Alarms',
+      icons: [
+        {
+          type: 'alarm-pob',
+          name: 'Person Overboard'
+        }
+      ]
     }
   ];
 

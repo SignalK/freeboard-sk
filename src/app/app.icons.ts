@@ -1,7 +1,6 @@
-// OpenBridge Components
-
+// OpenBridge Icons
 export const OpenBridgeIcons = {
-  path: '../assets/img/ob',
+  path: './assets/img/ob',
   ids: [
     'cent-iec.svg',
     'cent-off-iec.svg',
@@ -13,12 +12,14 @@ export const OpenBridgeIcons = {
     'route-export.svg',
     'route-import.svg',
     'route-planning.svg',
-    'whale.svg'
+    'whale.svg',
+    'alarm-pob.svg'
   ]
 };
 
+// Points of Interest Icons
 export const PoiIcons = {
-  path: '../assets/img/poi',
+  path: './assets/img/poi',
   ids: [
     'anchorage.svg',
     'boatramp.svg',
