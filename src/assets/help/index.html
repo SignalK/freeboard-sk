@@ -119,6 +119,34 @@
           >
         </div>
 
+        <div
+          class="panel"
+          id="deprecations"
+          style="background-color: rgba(255, 0, 0, 0.4)"
+        >
+          <h3>Deprecations</h3>
+          <i
+            >Please note the following features that are marked for
+            deprecation:</i
+          ><br />
+          <ul>
+            <li>
+              <b>PyPilot - </b> Built-in PyPilot support is deprecated as of
+              v2.13.0 in preference of support for the Signal K Autopilot
+              APIwhich allows Freeboard-SK to operate with a wider range of
+              autopilot devices.<br />
+              To continue using autopilot functionality, install the
+              <a
+                href="https://www.npmjs.com/package/pypilot-autopilot-provider"
+                target="npmjs"
+                >pypilot-autopilot-provider</a
+              >
+              plugin.<br />
+              <b>PyPilot feature will be removed in v2.14.0</b>
+            </li>
+          </ul>
+        </div>
+
         <div class="panel" id="server">
           <h3>Signal K Server</h3>
 
@@ -131,6 +159,7 @@
               <b>Resources API:</b> for the storage and retrieval of resources
             </li>
             <li><b>Course API:</b> to set a destination or activate a route</li>
+            <li><b>Autopilot API:</b> to enable autopilot operations</li>
           </ul>
 
           Freeboard is a "stateless" application which can be used concurrently

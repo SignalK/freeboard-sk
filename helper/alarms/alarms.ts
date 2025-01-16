@@ -172,12 +172,8 @@ const handleV1PutRequest = (
   value: any,
   cb: (actionResult: any) => void
 ) => {
-  cb(handleAlarm(
-    context,
-    path,
-    value
-  ));
-}
+  cb(handleAlarm(context, path, value));
+};
 
 const buildAlarmData = () => {
   const pos: { value: Position } = server.getSelfPath('navigation.position');

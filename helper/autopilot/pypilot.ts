@@ -27,6 +27,7 @@ const apData: any = {
 let server: FreeboardHelperApp;
 let pluginId: string;
 let socket: Socket;
+let isEnabled = false;
 
 const AUTOPILOT_API_PATH = '/signalk/v2/api/vessels/self/steering/autopilot';
 const DEAFULT_AP = `${AUTOPILOT_API_PATH}/default`;
@@ -39,21 +40,24 @@ export const initPyPilot = (
 ) => {
   server = app;
   pluginId = id;
+  isEnabled = config.enable;
 
-  server.debug(`** Connecting to PyPilot **`);
-  socket = io(`http://${config.host}:${config.port}`);
+  if (isEnabled) {
+    server.debug(`** Connecting to PyPilot **`);
+    socket = io(`http://${config.host}:${config.port}`);
 
-  if (!socket) {
-    console.log(
-      `PyPilot NOT connected @ ${config.host}:${config.port}... ensure 'pypilot_web' is running.`
-    );
+    if (!socket) {
+      console.log(
+        `PyPilot NOT connected @ ${config.host}:${config.port}... ensure 'pypilot_web' is running.`
+      );
+    }
+
+    // API endpoints
+    initApiRoutes();
+    emitAPDelta('defaultPilot' as Path, pluginId);
+
+    initPyPilotListeners();
   }
-
-  // API endpoints
-  initApiRoutes();
-  emitAPDelta('defaultPilot' as Path, pluginId);
-
-  initPyPilotListeners();
 };
 
 export const closePyPilot = () => {
@@ -67,15 +71,20 @@ const initApiRoutes = () => {
 
   server.get(`${DEAFULT_AP}`, (req: Request, res: Response) => {
     server.debug(`${req.method} ${DEAFULT_AP}`);
-    res.status(200);
-    res.json(apData);
+    res.status(200).json(apData);
   });
 
   server.get(`${AUTOPILOT_API_PATH}`, (req: Request, res: Response) => {
-    server.debug(`${req.method} ${AUTOPILOT_API_PATH}`);
-    res.status(200).json({
-      'freeboard-sk': { provider: 'freeboard-sk', isDefault: true }
-    });
+    server.debug(
+      `${req.method} ${AUTOPILOT_API_PATH} (isEnabled: ${isEnabled})`
+    );
+    if (isEnabled) {
+      res.status(200).json({
+        'freeboard-sk': { provider: 'freeboard-sk', isDefault: true }
+      });
+    } else {
+      res.status(400).json({});
+    }
   });
 
   server.get(
