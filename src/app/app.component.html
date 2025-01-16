@@ -1032,16 +1032,15 @@
               >
               </ap-dial-text>
               } @if(app.data.navData.ttg) {
-              <ap-dial-text
-                [title]="'TTG'"
-                [value]="app.data.navData.ttg.toFixed(1)"
-                [units]="'mins'"
-              >
-              </ap-dial-text>
+              <ap-dial-ttg [value]="app.data.navData.ttg"> </ap-dial-ttg>
               } @if(app.data.navData.xte) {
               <ap-dial-text
                 [title]="'XTE'"
-                [value]="app.data.navData.xte.toFixed(3)"
+                [value]="
+                  app.data.navData.xte > 10
+                    ? app.data.navData.xte.toFixed(1)
+                    : app.data.navData.xte.toFixed(3)
+                "
                 [units]="app.config.units.distance === 'm' ? 'km' : 'NM'"
               >
               </ap-dial-text>

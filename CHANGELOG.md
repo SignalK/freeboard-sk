@@ -6,12 +6,12 @@
 - **New**: Display specific Note icons when "skIcon" property matches a POI type.
 - **Fixed**: Notes popover and dialog formatting. (#214, #223)
 - **Fixed**: Navigation data panel alignment on smaller screens. (#212)
+- **Fixed**: Update TTG display format based on magnitude of value. (#226)
 - **Updated**: Resource Set feature popover formatting. (#213)
 - **Updated**: Show more / less ui icons in AIS properties. (#217)
 - **Updated**: Relocated close button on resource lists. (#218)
 - **Updated**: Additional aisCogLine length options. (#209)
 - **Added**: %map:zoom% token for use in Notes fetch filter (#222)
-
 
 ### v2.12.2
 - **Fixed**: Issue applying URL query parameters. (#201)

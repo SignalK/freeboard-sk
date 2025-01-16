@@ -34,6 +34,7 @@ import {
 
 import {
   TextDialComponent,
+  TTGDialComponent,
   FileInputComponent,
   PiPVideoComponent,
   WakeLockComponent,
@@ -56,6 +57,7 @@ import {
     BrowserAnimationsModule,
     FBMapComponent,
     TextDialComponent,
+    TTGDialComponent,
     FileInputComponent,
     PiPVideoComponent,
     WakeLockComponent,

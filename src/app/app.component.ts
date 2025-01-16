@@ -613,8 +613,19 @@ export class AppComponent {
           .get(this.app.skApiVersion, 'vessels/self/steering/autopilot')
           .subscribe(
             () => {
+              const sap = this.app.data.autopilot.hasApi;
               this.app.data.autopilot.hasApi = true;
               this.app.data.autopilot.isLocal = true;
+              if (sap && this.app.data.autopilot.isLocal) {
+                setTimeout(() =>
+                  this.app.showMessage(
+                    'Built-in PyPilot support is deprecated! See Help for more.',
+                    true,
+                    5000
+                  )
+                ),
+                  10000;
+              }
             },
             () => {
               this.app.debug('No local AP API found.');
