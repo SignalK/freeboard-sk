@@ -20,6 +20,24 @@ import { AsyncSubject } from 'rxjs';
 import { toLonLat, transformExtent } from 'ol/proj';
 import { Coordinate } from 'ol/coordinate';
 import { FeatureLike } from 'ol/Feature';
+import { Extent } from 'ol/extent';
+
+export interface FBMapEvent extends MapEvent {
+  lonlat: Coordinate;
+  zoom: number;
+  zoomChanged: boolean;
+  extent: Extent;
+  projCode: string;
+}
+
+export interface FBClickEvent extends MapBrowserEvent<UIEvent> {
+  features: Array<FeatureLike>;
+  lonlat: Coordinate;
+}
+
+export interface FBPointerEvent extends MapBrowserEvent<UIEvent> {
+  lonlat: Coordinate;
+}
 
 @Component({
   selector: 'ol-map',
@@ -55,16 +73,21 @@ export class MapComponent implements OnInit, OnDestroy {
     features: FeatureLike[];
     lonlat: Coordinate;
   }> = new EventEmitter<{ features: FeatureLike[]; lonlat: Coordinate }>();
-  @Output() mapSingleClick: EventEmitter<MapBrowserEvent<UIEvent>> =
-    new EventEmitter<MapBrowserEvent<UIEvent>>();
-  @Output() mapDblClick: EventEmitter<MapBrowserEvent<UIEvent>> =
-    new EventEmitter<MapBrowserEvent<UIEvent>>();
-  @Output() mapMoveStart: EventEmitter<MapEvent> = new EventEmitter<MapEvent>();
-  @Output() mapMoveEnd: EventEmitter<MapEvent> = new EventEmitter<MapEvent>();
-  @Output() mapPointerDrag: EventEmitter<MapBrowserEvent<UIEvent>> =
-    new EventEmitter<MapBrowserEvent<UIEvent>>();
-  @Output() mapPointerMove: EventEmitter<MapBrowserEvent<UIEvent>> =
-    new EventEmitter<MapBrowserEvent<UIEvent>>();
+  @Output() mapContextMenu: EventEmitter<{
+    features: FeatureLike[];
+    lonlat: Coordinate;
+  }> = new EventEmitter<{ features: FeatureLike[]; lonlat: Coordinate }>();
+  @Output() mapSingleClick: EventEmitter<FBClickEvent> =
+    new EventEmitter<FBClickEvent>();
+  @Output() mapDblClick: EventEmitter<FBClickEvent> =
+    new EventEmitter<FBClickEvent>();
+  @Output() mapMoveStart: EventEmitter<MapEvent> =
+    new EventEmitter<FBMapEvent>();
+  @Output() mapMoveEnd: EventEmitter<MapEvent> = new EventEmitter<FBMapEvent>();
+  @Output() mapPointerDrag: EventEmitter<FBPointerEvent> =
+    new EventEmitter<FBPointerEvent>();
+  @Output() mapPointerMove: EventEmitter<FBPointerEvent> =
+    new EventEmitter<FBPointerEvent>();
   @Output() mapPostCompose: EventEmitter<RenderEvent> =
     new EventEmitter<RenderEvent>();
   @Output() mapPostRender: EventEmitter<MapEvent> =
@@ -117,8 +140,13 @@ export class MapComponent implements OnInit, OnDestroy {
     // right click handler
     this.map
       .getViewport()
-      .removeEventListener('contextmenu', this.emitRightClickEvent);
-
+      .removeEventListener('contextmenu', this.rightClickHandler);
+    this.map
+      .getViewport()
+      .removeEventListener('pointerdown', this.pointerDownHandler);
+    this.map
+      .getViewport()
+      .removeEventListener('pointerup', this.pointerUpHandler);
     window.removeEventListener('resize', this.updateSizeThrottle);
     window.removeEventListener('orientationchange', this.updateSizeThrottle);
 
@@ -150,7 +178,11 @@ export class MapComponent implements OnInit, OnDestroy {
     // right click handler
     this.map
       .getViewport()
-      .addEventListener('contextmenu', this.emitRightClickEvent);
+      .addEventListener('contextmenu', this.rightClickHandler);
+    this.map
+      .getViewport()
+      .addEventListener('pointerdown', this.pointerDownHandler);
+    this.map.getViewport().addEventListener('pointerup', this.pointerUpHandler);
 
     // react on window events
     window.addEventListener('resize', this.updateSizeThrottle, false);
@@ -170,40 +202,33 @@ export class MapComponent implements OnInit, OnDestroy {
     }
   }
 
-  focusMap() {
-    this.element.nativeElement.firstElementChild.focus();
-  }
-
-  getMap() {
-    return this.map;
-  }
-
-  updateSize() {
-    this.updateSizeThrottle();
-  }
-
-  getMapCenter(): Coordinate {
-    if (!this.map) {
-      return [0, 0];
-    }
-    return toLonLat(this.map.getView().getCenter());
-  }
-
-  getMapExtent() {
-    if (!this.map) {
-      return [0, 0, 0, 0];
-    }
-    const v = this.map.getView();
-    const mrid = v.getProjection().getCode();
-
-    return transformExtent(
-      v.calculateExtent(this.map.getSize()),
-      mrid,
-      'EPSG:4326'
-    );
-  }
-
   // Only arrow function works with addEventListener
+
+  // Long Press Detection (iOS & Android)
+  private touchTimer: any;
+  private evCache: { [id: number]: MouseEvent } = {};
+  private clearTouchTimer = () => {
+    clearTimeout(this.touchTimer);
+    this.evCache = {};
+  };
+  private touchHold = () => {
+    if (Object.keys(this.evCache).length === 1) {
+      this.mapContextMenu.emit(Object.values(this.evCache)[0] as any);
+      this.rightClickHandler(Object.values(this.evCache)[0]);
+    }
+  };
+  private pointerDownHandler = (event) => {
+    this.evCache[event.pointerId] = event;
+    this.touchTimer = setTimeout(this.touchHold, 500);
+  };
+  private pointerUpHandler = (event) => {
+    this.clearTouchTimer();
+  };
+  private rightClickHandler = (event: MouseEvent) => {
+    this.clearTouchTimer();
+    this.emitRightClickEvent(event);
+  };
+
   private emitClickEvent = (event: MapBrowserEvent<UIEvent>) => {
     this.mapClick.emit(this.augmentClickEvent(event));
   };
@@ -238,7 +263,9 @@ export class MapComponent implements OnInit, OnDestroy {
     });
   }
 
+  private zoomAtStart: number;
   private emitMoveStartEvent = (event: MapEvent) => {
+    this.zoomAtStart = this.map.getView().getZoom();
     this.mapMoveStart.emit(this.augmentMoveEvent(event));
   };
   private emitMoveEndEvent = (event: MapEvent) => {
@@ -247,18 +274,22 @@ export class MapComponent implements OnInit, OnDestroy {
 
   // ** add {lonlat, zoom, extent, projection code} fields to event
   private augmentMoveEvent(event: MapEvent) {
+    const zoom = this.map.getView().getZoom();
     return Object.assign(event, {
       lonlat: this.getMapCenter(),
-      zoom: this.map.getView().getZoom(),
+      zoom: zoom,
+      zoomChanged: this.zoomAtStart !== zoom,
       extent: this.getMapExtent(),
       projCode: this.map.getView().getProjection().getCode()
     });
   }
 
   private emitPointerDragEvent = (event: MapBrowserEvent<UIEvent>) => {
+    this.clearTouchTimer();
     this.mapPointerDrag.emit(this.augmentPointerEvent(event));
   };
   private emitPointerMoveEvent = (event: MapBrowserEvent<UIEvent>) => {
+    this.clearTouchTimer();
     this.mapPointerMove.emit(this.augmentPointerEvent(event));
   };
 
@@ -282,4 +313,37 @@ export class MapComponent implements OnInit, OnDestroy {
       this.map.updateSize();
     }, 100);
   };
+
+  focusMap() {
+    this.element.nativeElement.firstElementChild.focus();
+  }
+
+  getMap() {
+    return this.map;
+  }
+
+  updateSize() {
+    this.updateSizeThrottle();
+  }
+
+  getMapCenter(): Coordinate {
+    if (!this.map) {
+      return [0, 0];
+    }
+    return toLonLat(this.map.getView().getCenter());
+  }
+
+  getMapExtent() {
+    if (!this.map) {
+      return [0, 0, 0, 0];
+    }
+    const v = this.map.getView();
+    const mrid = v.getProjection().getCode();
+
+    return transformExtent(
+      v.calculateExtent(this.map.getSize()),
+      mrid,
+      'EPSG:4326'
+    );
+  }
 }

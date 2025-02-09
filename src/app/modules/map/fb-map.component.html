@@ -6,9 +6,10 @@
   [setFocus]="fbMap.focus"
   (mapSingleClick)="onMapMouseClick($event)"
   (mapRightClick)="onMapMouseRightClick($event)"
-  (mapMoveEnd)="onMapMove($event)"
+  (mapMoveEnd)="onMapMoveEnd($event)"
   (mapPointerMove)="onMapPointerMove($event)"
   (mapPointerDrag)="onMapPointerDrag()"
+  (mapContextMenu)="onMapContextMenu($event)"
   (contextmenu)="onContextMenu($event)"
   olView
   [zoom]="fbMap.zoomLevel"
@@ -666,6 +667,20 @@
       <mat-icon>insights</mat-icon>
       Trail to Route
     </button>
+    @if(app.data.navData.position){
+    <button
+      mat-menu-item
+      (click)="onContextMenuAction('cleardestination', item)"
+    >
+      <mat-icon>clear_all</mat-icon>
+      @if(app.data.activeRoute) {
+      <span>Clear Active Route</span>
+      } @else {
+      <span>Clear Destination</span>
+      }
+    </button>
+    }
+
     <mat-divider></mat-divider>
     <button
       mat-menu-item

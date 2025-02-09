@@ -93,6 +93,7 @@ import {
 } from 'src/app/types';
 import { S57Service } from './ol/lib/s57.service';
 import { Position as SKPosition } from '@signalk/server-api';
+import { FBMapEvent, FBPointerEvent } from './ol/lib/map.component';
 
 interface IResource {
   id: string;
@@ -400,7 +401,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
         if (r.action === 'save' && r.setting === 'config') {
           this.fbMap.movingMap = this.app.config.map.moveMap;
           this.s57Service.SetOptions(this.app.config.selections.s57Options);
-          this.renderMapContents();
+          this.renderMapContents(r.signals?.fetchNotes);
           if (!this.app.config.selections.trailFromServer) {
             this.dfeat.trail = [];
           }
@@ -439,6 +440,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
       this.fbMap.zoomLevel = changes.mapZoom.currentValue
         ? changes.mapZoom.currentValue
         : this.fbMap.zoomLevel;
+      this.renderMapContents(true);
     }
     if (changes && changes.movingMap && !changes.movingMap.firstChange) {
       this.fbMap.movingMap = changes.movingMap.currentValue;
@@ -493,7 +495,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
     if (!this.saveTimer) {
       this.saveTimer = setInterval(() => {
         if (this.isDirty) {
-          this.app.saveConfig(true);
+          this.app.saveConfig({ suppressTrailFetch: true });
           this.isDirty = false;
         }
       }, 30000);
@@ -656,7 +658,12 @@ export class FBMapComponent implements OnInit, OnDestroy {
     this.app.debug(this.app.data.map.atClick);
   }
 
-  // ** handle context menu **
+  // ** handle Map context menu event **
+  public onMapContextMenu(e) {
+    this.onContextMenu(e);
+  }
+
+  // ** handle ol-map container context menu event **
   public onContextMenu(e) {
     if (this.app.data.map.suppressContextMenu) {
       return;
@@ -681,39 +688,37 @@ export class FBMapComponent implements OnInit, OnDestroy {
     }
   }
 
-  // parse zoom level change
-  parseZoomChange(zoom: number) {
-    this.app.config.map.zoomLevel = zoom;
-  }
-
-  // ** handle map move **
-  public onMapMove(e) {
-    this.parseZoomChange(e.zoom);
+  // handle map move / zoom
+  public onMapMoveEnd(e: FBMapEvent) {
+    this.app.config.map.zoomLevel = e.zoom;
 
     this.fbMap.extent = e.extent;
-    this.app.config.map.center = e.lonlat;
+    this.app.config.map.center = e.lonlat as Position;
 
     this.drawVesselLines();
     if (!this.fbMap.movingMap) {
-      this.app.saveConfig(true);
+      this.app.saveConfig({ suppressTrailFetch: true });
       this.isDirty = false;
     } else {
       this.isDirty = true;
     }
 
     // render map features
-    this.renderMapContents();
+    this.renderMapContents(e.zoomChanged);
   }
 
-  public onMapPointerMove(e) {
+  public onMapPointerMove(e: FBPointerEvent) {
     this.mouse.pixel = e.pixel;
     this.mouse.xy = e.coordinate;
-    this.mouse.coords = GeoUtils.normaliseCoords(e.lonlat);
+    this.mouse.coords = GeoUtils.normaliseCoords(e.lonlat as Position);
     if (this.measure.enabled && this.measure.coords.length !== 0) {
       const c = e.lonlat;
       this.overlay.position = c;
-      const lm = this.measureDistanceToAdd(c);
-      const b = getGreatCircleBearing(this.measure.coords.slice(-1)[0], c);
+      const lm = this.measureDistanceToAdd(c as Position);
+      const b = getGreatCircleBearing(
+        this.measure.coords.slice(-1)[0],
+        c as Position
+      );
       this.overlay.title =
         this.app.formatValueForDisplay(lm, 'm') +
         ' ' +
@@ -1117,10 +1122,12 @@ export class FBMapComponent implements OnInit, OnDestroy {
     if (zoomIn) {
       if (this.app.config.map.zoomLevel < this.app.MAP_ZOOM_EXTENT.max) {
         ++this.app.config.map.zoomLevel;
+        //this.renderMapContents(true);
       }
     } else {
       if (this.app.config.map.zoomLevel > this.app.MAP_ZOOM_EXTENT.min) {
         --this.app.config.map.zoomLevel;
+        //this.renderMapContents(true);
       }
     }
   }
@@ -1252,7 +1259,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
         ga_deg = Convert.radiansToDegrees(
           this.app.data.vessels.self.performance.gybeAngle
         );
-        ga_diff = Math.abs(180 - ga_deg);
+        ga_diff = 180 - Math.abs(ga_deg);
       }
 
       const destInTarget = destUpwind
@@ -1765,13 +1772,13 @@ export class FBMapComponent implements OnInit, OnDestroy {
     });
   }
 
-  // ** called by onMapMove() to render features within map extent
-  private renderMapContents() {
-    if (this.shouldFetchNotes()) {
+  // ** called by onMapMoveEnd() to render features within map extent
+  private renderMapContents(zoomChanged?: boolean) {
+    if (this.shouldFetchNotes(zoomChanged)) {
       this.skres.getNotes();
       this.app.debug(`fetching Notes...`);
     }
-    if (this.shouldFetchResourceSets()) {
+    if (this.shouldFetchResourceSets(zoomChanged)) {
       this.app.debug(`fetching ResourceSets...`);
       this.skresOther.getItemsInBounds();
     }
@@ -1805,13 +1812,16 @@ export class FBMapComponent implements OnInit, OnDestroy {
   }
 
   // ** returns true if skresOther.getItemsInBounds() should be called
-  private shouldFetchResourceSets() {
+  private shouldFetchResourceSets(zoomChanged: boolean) {
     if (
       this.app.config.resources.fetchRadius !== 0 &&
       this.app.config.resources.fetchFilter
     ) {
       if (!this.skresOther.hasSelections()) {
         return false;
+      }
+      if (zoomChanged) {
+        return true;
       }
       return this.mapMoveThresholdExceeded(50);
     } else {
@@ -1820,15 +1830,20 @@ export class FBMapComponent implements OnInit, OnDestroy {
   }
 
   // ** returns true if skres.getNotes() should be called
-  private shouldFetchNotes() {
+  private shouldFetchNotes(zoomChanged: boolean) {
     this.display.layer.notes =
       this.app.config.notes &&
       this.app.config.map.zoomLevel >= this.app.config.selections.notesMinZoom;
 
     this.app.debug(`lastGet: ${this.app.data.lastGet}`);
     this.app.debug(`getRadius: ${this.app.config.resources.notes.getRadius}`);
-    if (this.fbMap.zoomLevel < this.app.config.selections.notesMinZoom) {
-      return false;
+
+    if (zoomChanged) {
+      if (this.fbMap.zoomLevel < this.app.config.selections.notesMinZoom) {
+        return false;
+      } else {
+        return true;
+      }
     }
     return this.mapMoveThresholdExceeded(
       this.app.config.resources.notes.getRadius
