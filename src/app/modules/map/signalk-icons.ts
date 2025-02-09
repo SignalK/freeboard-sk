@@ -17,14 +17,18 @@ const SK_ICONS_PATH = 'resources/icons';
 export class SignalKIcons {
   private _styles = {};
   private fetched = false;
+  private _iconFiles = [];
 
   constructor(private app: AppInfo, private signalk: SignalKClient) {}
 
   get styles() {
-    if (Object.keys(this._styles).length === 0 && !this.fetched) {
-      this.init();
-    }
+    this.init();
     return this._styles;
+  }
+
+  get files(): Array<string> {
+    this.init();
+    return this._iconFiles;
   }
 
   // check for Signal K Icon resources and initialise data structures
@@ -42,35 +46,44 @@ export class SignalKIcons {
         this.fetched = true;
       }
     );*/
-    const poi = [
-      'anchorage',
-      'boatramp',
-      'bridge',
-      'business',
-      'dam',
-      'ferry',
-      'hazard',
-      'inlet',
-      'lock',
-      'marina'
-    ];
-    poi.forEach((p) => {
-      const i = new Icon({
-        src: `./assets/img/poi/${p}.svg`,
-        rotateWithView: false,
-        scale: 0.65,
-        anchor: [1, 37],
-        anchorXUnits: 'pixels',
-        anchorYUnits: 'pixels'
+    if (Object.keys(this._styles).length === 0 && !this.fetched) {
+      const poi = [
+        'anchorage',
+        'boatramp',
+        'bridge',
+        'business',
+        'dam',
+        'ferry',
+        'hazard',
+        'inlet',
+        'lock',
+        'marina',
+        'dock',
+        'turning-basin',
+        'radio-call-point',
+        'transhipment-dock',
+        'notice-to-mariners'
+      ];
+      poi.forEach((p) => {
+        this._iconFiles.push(`${p}.svg`);
+        const i = new Icon({
+          src: `./assets/img/poi/${p}.svg`,
+          rotateWithView: false,
+          scale: 0.65,
+          anchor: [1, 37],
+          anchorXUnits: 'pixels',
+          anchorYUnits: 'pixels',
+          opacity: 1
+        });
+        this._styles[p] = new Style({
+          image: i,
+          text: new Text({
+            text: '',
+            offsetY: -30
+          })
+        });
       });
-      this._styles[p] = new Style({
-        image: i,
-        text: new Text({
-          text: '',
-          offsetY: -30
-        })
-      });
-    });
+    }
   }
 
   private buildStyles(icons: SKIconMeta[]) {
@@ -97,7 +110,7 @@ export class SignalKIcons {
     return new Icon({
       src: `${path}/${id}`,
       rotateWithView: false,
-      scale: 0.65,
+      scale: 1.65,
       anchor: [1, 37],
       anchorXUnits: 'pixels',
       anchorYUnits: 'pixels'
