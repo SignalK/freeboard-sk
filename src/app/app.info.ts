@@ -6,7 +6,12 @@ import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { Subject, Observable } from 'rxjs';
 
-import { Info, SettingsMessage, IndexedDB } from './lib/services';
+import {
+  Info,
+  SettingsMessage,
+  IndexedDB,
+  SettingsSignals
+} from './lib/services';
 
 import {
   AlertDialog,
@@ -167,7 +172,7 @@ export class AppInfo extends Info {
     this.name = 'Freeboard-SK';
     this.shortName = 'Freeboard';
     this.description = `Signal K Chart Plotter.`;
-    this.version = '2.13.0';
+    this.version = '2.13.1';
     this.url = 'https://github.com/signalk/freeboard-sk';
     this.logo = './assets/img/app_logo.png';
 
@@ -266,6 +271,9 @@ export class AppInfo extends Info {
         radius: 0,
         position: [0, 0],
         hasApi: true
+      },
+      buddyList: {
+        hasApi: false
       },
       autopilot: {
         console: false, // display Autopilot console
@@ -551,9 +559,9 @@ export class AppInfo extends Info {
   }
 
   // ** overloaded saveConfig() **
-  saveConfig(suppressEvent?: boolean) {
-    this.suppressTrailFetch = suppressEvent ?? false;
-    super.saveConfig();
+  saveConfig(signals?: SettingsSignals) {
+    this.suppressTrailFetch = signals?.suppressTrailFetch ?? false;
+    super.saveConfig(signals);
     if (this.data.loggedIn) {
       this.signalk.appDataSet('/', this.config).subscribe(
         () => this.debug('saveConfig: config saved to server.'),
