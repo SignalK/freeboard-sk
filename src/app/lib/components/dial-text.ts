@@ -72,10 +72,38 @@ export class TTGDialComponent {
       const dm = days * minPerDay;
       const rhm = cv - dm;
       const hours = Math.floor(rhm / 60);
-      const minutes = Math.floor(rhm - hours * 60);
-
-      this.ttg = `${days}:${hours}:${minutes}`;
+      const minutes = `00${Math.floor(rhm - hours * 60)}`.slice(-2);
+      this.ttg = `${days}:${('00' + hours).slice(-2)}:${minutes}`;
       this.units = 'day:hr:min';
     }
+  }
+}
+
+/*********** ETA Text Dial ***************
+value: "<Date>" ETA date
+***********************************/
+@Component({
+  standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  selector: 'ap-dial-eta',
+  imports: [],
+  template: `
+    <div class="dial-text mat-app-background">
+      <div class="dial-text-title">ETA</div>
+      <div class="dial-text-value">{{ etaTime }}</div>
+      <div class="dial-text-units">{{ etaDate }}</div>
+    </div>
+  `,
+  styleUrls: ['./dial-text.css']
+})
+export class ETADialComponent {
+  @Input() value: Date;
+  protected etaTime: string = '--';
+  protected etaDate: string = '--';
+
+  ngOnChanges(changes: SimpleChanges) {
+    const cv = changes.value.currentValue;
+    this.etaTime = cv.toLocaleTimeString().split(':').slice(0, 2).join(':');
+    this.etaDate = cv.toLocaleDateString();
   }
 }
