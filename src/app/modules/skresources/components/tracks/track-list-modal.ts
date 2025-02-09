@@ -181,19 +181,26 @@ export class TracksModal implements OnInit {
     this.trackList = this.trackList.filter((t) => {
       return t[0] === id ? false : true;
     });
-    this.data.skres.showTrackDelete(id).subscribe((ok) => {
-      if (ok) {
-        const i = this.app.config.selections.tracks.indexOf(id);
-        if (i !== -1) {
-          this.app.config.selections.tracks.splice(i, 1);
+    this.app
+      .showConfirm(
+        'Do you want to delete this Track?\n',
+        'Delete Track:',
+        'YES',
+        'NO'
+      )
+      .subscribe((result: { ok: boolean; checked: boolean }) => {
+        if (result && result.ok) {
+          const i = this.app.config.selections.tracks.indexOf(id);
+          if (i !== -1) {
+            this.app.config.selections.tracks.splice(i, 1);
+          }
+          this.data.skres.deleteResource('tracks', id);
+          setTimeout(this.getTracks.bind(this), 2000);
+          this.app.saveConfig();
+        } else {
+          this.getTracks();
         }
-        this.data.skres.deleteResource('tracks', id);
-        setTimeout(this.getTracks.bind(this), 2000);
-        this.app.saveConfig();
-      } else {
-        this.getTracks();
-      }
-    });
+      });
   }
 
   handleCheck(checked: boolean, id: string, idx: number) {
