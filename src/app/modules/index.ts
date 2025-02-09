@@ -1,5 +1,6 @@
 export * from './alarms';
 export * from './autopilot';
+export * from './buddies/buddy.service';
 export * from './course';
 export * from './map';
 export * from './settings';

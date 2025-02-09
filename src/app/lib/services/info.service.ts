@@ -8,9 +8,14 @@ import { State } from './state.service';
 import { FBAppData, AppUpdateMessage } from '../../types';
 import { IAppConfig } from '../../app.settings';
 
+export interface SettingsSignals {
+  fetchNotes?: boolean;
+  suppressTrailFetch?: boolean;
+}
 export interface SettingsMessage {
   action: 'save' | 'load';
   setting: 'data' | 'config';
+  signals?: SettingsSignals;
 }
 
 @Injectable()
@@ -120,9 +125,9 @@ export class Info {
   }
 
   //** persist app config **
-  saveConfig() {
+  saveConfig(signals?: SettingsSignals) {
     this.state.saveConfig(this.config);
-    this.settings.next({ action: 'save', setting: 'config' });
+    this.settings.next({ action: 'save', setting: 'config', signals: signals });
   }
 
   //** persist app data **

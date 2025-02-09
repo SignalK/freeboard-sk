@@ -4,7 +4,7 @@ import { Injectable } from '@angular/core';
 import { Subject } from 'rxjs';
 
 import { AppInfo } from 'src/app/app.info';
-import { SettingsMessage } from 'src/app/lib/services';
+import { SettingsMessage, SettingsSignals } from 'src/app/lib/services';
 import { SignalKClient } from 'signalk-client-angular';
 import { SKStreamFacade } from 'src/app/modules/skstream/skstream.facade';
 import { Position } from 'src/app/types';
@@ -328,7 +328,7 @@ export class SettingsFacade {
     }
   }
 
-  applySettings() {
+  applySettings(signals?: SettingsSignals) {
     this.app.debug('Saving Settings..');
     if (!this.app.config.selections.vessel.trail) {
       this.app.config.selections.trailFromServer = false;
@@ -343,7 +343,6 @@ export class SettingsFacade {
           this.fixedPosition.slice() as Position;
       }
     }
-    this.stream.emitVesselsUpdate();
-    this.app.saveConfig();
+    this.app.saveConfig(signals ?? {});
   }
 }

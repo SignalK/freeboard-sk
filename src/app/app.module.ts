@@ -35,6 +35,7 @@ import {
 import {
   TextDialComponent,
   TTGDialComponent,
+  ETADialComponent,
   FileInputComponent,
   PiPVideoComponent,
   WakeLockComponent,
@@ -58,6 +59,7 @@ import {
     FBMapComponent,
     TextDialComponent,
     TTGDialComponent,
+    ETADialComponent,
     FileInputComponent,
     PiPVideoComponent,
     WakeLockComponent,

@@ -170,11 +170,11 @@ function handleStreamEvent({ action, msg }) {
       });
       break;
     case 'onClose':
-      console.warn('streamEvent: ', msg);
+      //console.warn('streamEvent: ', msg);
       closeStream(false);
       break;
     case 'onError':
-      console.warn('streamEvent: ', msg);
+      //console.warn('streamEvent: ', msg);
       postMessage({
         action: 'error',
         playback: playbackMode,
@@ -206,33 +206,33 @@ function handleCommand(data: MsgFromApp) {
   switch (data.cmd) {
     // { cmd: 'open', options: { url: string, subscribe: string, token: string} }
     case 'open':
-      console.log('Worker control: opening stream...');
+      //console.log('Worker control: opening stream...');
       applySettings(data.options);
       openStream(data.options);
       break;
     //** { cmd: 'close', options: {terminate: boolean} }
     case 'close':
-      console.log('Worker control: closing stream...');
+      //console.log('Worker control: closing stream...');
       closeStream(true);
       break;
     //** { cmd: 'subscribe' , options: {context: string, path: Array<any>} }
     case 'subscribe':
-      console.log('Worker control: subscribing to paths...');
+      //console.log('Worker control: subscribing to paths...');
       stream.subscribe(data.options.context, data.options.path);
       break;
     //** { cmd: 'settings' , options: {..}
     case 'settings':
-      console.log('Worker control: settings...');
+      //console.log('Worker control: settings...');
       applySettings(data.options);
       break;
     //** { cmd: 'alarm', options: {raise: boolean, type: string, msg: string, state: string} }
     case 'alarm':
-      console.log('Worker control: alarm action...');
+      //console.log('Worker control: alarm action...');
       actionAlarm(data.options);
       break;
     //** { cmd: 'vessel', options: {context: string, name: string} }
     case 'vessel':
-      console.log('Worker control: vessel setting...');
+      //console.log('Worker control: vessel setting...');
       if (data.options) {
         let v: SKVessel;
         if (data.options.context === 'self') {
@@ -247,7 +247,7 @@ function handleCommand(data: MsgFromApp) {
       break;
     //** { cmd: 'auth', options: {token: string} }
     case 'auth':
-      console.log('Worker control: auth token...');
+      //console.log('Worker control: auth token...');
       if (data.options && typeof data.options.token !== 'undefined') {
         skToken = data.options.token;
       }
@@ -263,7 +263,7 @@ function handleCommand(data: MsgFromApp) {
           }
       */
     case 'trail':
-      console.log('Worker control: Fetch vessel trail from server...');
+      //console.log('Worker control: Fetch vessel trail from server...');
       if (data.options) {
         trailMgr.trailDuration = data.options.trailDuration ?? 24;
         if (data.options.trailResolution) {
@@ -318,7 +318,7 @@ function applySettings(opt: { [key: string]: any } = {}) {
 
     vesselPrefs = opt.selections.vessel;
 
-    console.log('Worker: AIS Filter...', targetFilter);
+    //console.log('Worker: AIS Filter...', targetFilter);
   }
 }
 
@@ -374,13 +374,13 @@ function getAISTracks() {
     })
     .catch(() => {
       hasTrackPlugin = false;
-      console.warn('Unable to fetch AIS tracks!');
+      //console.warn('Unable to fetch AIS tracks!');
     });
 }
 
 // fetch vessel trail from server
 function getVesselTrail(opt: VesselTrailConfig) {
-  console.info('Worker: Fetching vessel trail from server', opt);
+  //console.info('Worker: Fetching vessel trail from server', opt);
   const url = apiUrl + '/self/track?';
   const req = [];
   const tolerance = 0.0005; //0.0001
@@ -647,7 +647,7 @@ function filterContext(
     let obj = group.get(context);
     // filter on state
     if (obj && state.includes(obj?.state)) {
-      console.log(`state match => ${state}, ${context}`);
+      //console.log(`state match => ${state}, ${context}`);
       targetStatus.expired[context] = true;
       obj = null; // skip subsequent filters
     }
@@ -723,7 +723,7 @@ function startTimers() {
   }
   timers.push(
     setInterval(() => {
-      console.warn('hasTrackPlugin', hasTrackPlugin);
+      //console.warn('hasTrackPlugin', hasTrackPlugin);
       if (hasTrackPlugin) {
         getAISTracks();
       }

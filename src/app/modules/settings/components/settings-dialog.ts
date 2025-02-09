@@ -23,6 +23,7 @@ import { MatToolbarModule } from '@angular/material/toolbar';
 
 import { SignalKPreferredPathsComponent } from './signalk-preferredpaths.component';
 import { SettingsFacade } from '../settings.facade';
+import { SettingsSignals } from 'src/app/lib/services';
 
 interface PreferredPathsResult {
   save: boolean;
@@ -120,7 +121,13 @@ export class SettingsDialog implements OnInit {
       this.saveOnClose = true;
     } else {
       if (!f.invalid) {
-        this.facade.applySettings();
+        const signals: SettingsSignals = {};
+        if (
+          ['notesminzoom', 'notesgetradius', 'notesrootfilter'].includes(f.id)
+        ) {
+          signals.fetchNotes = true;
+        }
+        this.facade.applySettings(signals);
       } else {
         console.warn('SETTINGS:', 'Form field invalid: Config NOT Saved!');
       }
