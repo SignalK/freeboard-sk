@@ -1,5 +1,17 @@
 # CHANGELOG: Freeboard
 
+### v2.13.1
+
+- **Change**: `Load GPX` and `Load GeoJSON` menu options have been combined as `Import` option in the Resource Layers menu.
+- **Change**: To support context menu display on all touch devices, on non-touch devices the menu is now only displayed by clicking and holding down the mouse button.
+- **Fixed**: Issue where context menu is not displayed on IOS devices. (#219)
+- **Fixed**: ETA display formatting. (#227)
+- **Fixed**: Issue where notes not being fetched on zoom change. (#232)
+- **Fixed**: handling of negtive `gybeAngle` values. (#234)
+- **Fixed**: Error which prevents track from being deleted. (#237)
+- **Added**: Addidtional POI icons. (#233)
+- **New**: Mark vessel as a buddy _(requires signalk-buddylist-plugin >1.2.0)_. (#229)
+
 ### v2.13.0
 - **New**: Support for Signal K [Autopilot API](https://demo.signalk.org/documentation/develop/rest-api/open_api.html).
 - **New**: Use of maritime icons from [OpenBridge](https://www.figma.com/community/file/1445713209741917748)

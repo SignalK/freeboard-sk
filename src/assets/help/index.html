@@ -689,8 +689,8 @@
           specified resources (Routes, Waypoints, Notes, Charts) as well as
           additional available resource paths enabled in Settings.
           <br />
-          Additionally resources can be saved to a GPX file by selecting the
-          <b><i class="material-icons">save</i> Save to GPX</b> menu.
+          Additionally resources can be exported to a GPX file by selecting the
+          <b><i class="material-icons">save</i> Export</b> menu.
           <hr />
           <ul>
             <li class="nobullet">
@@ -1108,15 +1108,15 @@
         </div>
 
         <div class="panel" id="gpxsave">
-          <h4><i class="material-icons">save</i>Save to GPX</h4>
+          <h4><i class="material-icons">save</i>Export (to GPX)</h4>
           <br />
           <ul>
             <li class="nobullet">
               Click the
               <i class="material-icons" style="color: green">layers</i>
               <b>Resources</b> toolbar button and select the
-              <i class="material-icons">save</i> <b>Save to GPX</b> option from
-              the menu.
+              <i class="material-icons">save</i> <b>Export</b> option from the
+              menu.
             </li>
           </ul>
           <div style="display: flex; flex-wrap: wrap">
@@ -1150,6 +1150,143 @@
               After selecting the required resources click <b>Save</b> to choose
               the name and location of the GPX file.
             </div>
+          </div>
+        </div>
+
+        <div class="panel" id="import">
+          <h4><i class="material-icons">upload</i>Import (GPX, GeoJSON)</h4>
+          <ul>
+            <li class="nobullet">
+              Click the
+              <i class="material-icons" style="color: green">layers</i>
+              <b>Resources</b> toolbar button and select the
+              <i class="material-icons">upload</i> <b>Import</b> option from the
+              menu.
+            </li>
+          </ul>
+          <div style="padding-left: 15px">
+            Select a GPX file or GeoJSON file containing a "FeatureCollection"
+            from the Open File dialog.<br />
+            Depending on the type of file selected, you will be presented with
+            one of the following.
+            <br />
+            &nbsp;
+          </div>
+          <h5>GPX File</h5>
+          <div>
+            <div>
+              <img src="./img/gpx_load.png" style="max-width: 250px" alt="" />
+            </div>
+            <div style="padding-left: 15px">
+              Select some or all of the Route and Waypoint resources contained
+              in the file.<br />
+              <ul>
+                <li>
+                  <b>Waypoints:</b> Click the checkbox to select all Waypoints
+                  or expand the list and select the Waypoints to import.
+                </li>
+                <li>
+                  <b>Routes:</b> Click the checkbox to select all Routes or
+                  expand the list and select the Routes to import.
+                </li>
+              </ul>
+              After selecting the resources click <b>Load Selected</b> to load
+              the resources onto the Signal K server.
+            </div>
+          </div>
+
+          <div>&nbsp;</div>
+
+          <h5>GeoJSON Feature Collection</h5>
+          <div>
+            A GeoJSON <i>FeatureCollection</i> is used to define the features to
+            import.<br />
+            The following GeoJSON features are supported and are mapped to one
+            of the Signal K resource types:
+            <table>
+              <thead>
+                <tr>
+                  <td>GeoJSON feature type</td>
+                  <td></td>
+                  <td>Signal K Resource type</td>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>LineString</td>
+                  <td><i class="material-icons">arrow_forward</i></td>
+                  <td>Route</td>
+                </tr>
+                <tr>
+                  <td>Point</td>
+                  <td><i class="material-icons">arrow_forward</i></td>
+                  <td>Waypoint</td>
+                </tr>
+                <tr>
+                  <td>Polygon</td>
+                  <td><i class="material-icons">arrow_forward</i></td>
+                  <td>Region</td>
+                </tr>
+                <tr>
+                  <td>MultiPolygon</td>
+                  <td><i class="material-icons">arrow_forward</i></td>
+                  <td>Region</td>
+                </tr>
+                <tr>
+                  <td>MultiLineString</td>
+                  <td><i class="material-icons">arrow_forward</i></td>
+                  <td>Track</td>
+                </tr>
+              </tbody>
+            </table>
+            <div>
+              Additionally the feature <i>properties</i> object can be used to
+              specify Signal K resource properties such as <i>name</i> or
+              <i>description</i>.<br />
+              <i
+                >Check out the Freeboard
+                <a
+                  target="_blank"
+                  href="https://github.com/SignalK/freeboard-sk/wiki"
+                  >WIKI</a
+                >
+                for more details.</i
+              >
+            </div>
+            <i>Example:</i><br />
+            <pre>
+<samp>
+{
+    "type": "FeatureCollection",
+    "features": [
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "LineString",
+                "coordinates": [..]
+            },
+            "properties": {
+                "name": "myRoute",
+                "description": "a GeoJSON route"
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [..]
+            },
+            "properties": {..}
+        }
+    ]
+}
+</samp>
+</pre>
+            <br />&nbsp;<br />
+            <i
+              >For Track data see <a href="#resourcepaths">Resource Paths</a></i
+            >
+            <br />&nbsp;<br />
           </div>
         </div>
 
@@ -1229,146 +1366,21 @@
           </div>
         </div>
 
-        <div class="panel" id="gpx">
-          <h4><i class="material-icons">streetview</i>Load from GPX</h4>
-          <ul>
-            <li class="nobullet">
-              <i class="material-icons">menu</i>
-              <b>Main Menu:</b>
-              Access the <i class="material-icons">streetview</i>
-              <b>Load from GPX</b> option from the Main menu.
-            </li>
-          </ul>
-          <div style="display: flex; flex-wrap: wrap">
-            <div>
-              <img src="./img/gpx_load.png" style="max-width: 250px" alt="" />
-            </div>
-            <div style="padding-left: 15px">
-              After selecting a GPX file from the Open File dialog you will be
-              presented with a screen that will allow you to select some or all
-              of the Route and Waypoint resources contained in the file.<br />
-              <ul>
-                <li>
-                  <b>Waypoints:</b> Click the checkbox to select all Waypoints
-                  or expand the list and select the Waypoints to import.
-                </li>
-                <li>
-                  <b>Routes:</b> Click the checkbox to select all Routes or
-                  expand the list and select the Routes to import.
-                </li>
-              </ul>
-              After selecting the resources click <b>Load Selected</b> to load
-              the resources onto the Signal K server.
-            </div>
-          </div>
-          <br />
-          <i>For Track data see <a href="#resourcepaths">Resource Paths</a></i>
-        </div>
-
-        <div class="panel" id="geojson">
-          <h4><i class="material-icons">public</i>Load from GeoJSON</h4>
-          Freeboard can import GeoJSON features contained in a
-          <i>FeatureCollection</i> as Signal K Route, Waypoint, Note, Region
-          resources using files containg data the format outlined below.<br />
-
-          A GeoJSON <i>FeatureCollection</i> is used to define the features to
-          import.<br />
-          The following GeoJSON features are supported and are mapped to one of
-          the Signal K resource types:
-          <table>
-            <thead>
-              <tr>
-                <td>GeoJSON feature type</td>
-                <td></td>
-                <td>Signal K Resource type</td>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td>LineString</td>
-                <td><i class="material-icons">arrow_forward</i></td>
-                <td>Route</td>
-              </tr>
-              <tr>
-                <td>Point</td>
-                <td><i class="material-icons">arrow_forward</i></td>
-                <td>Waypoint</td>
-              </tr>
-              <tr>
-                <td>Polygon</td>
-                <td><i class="material-icons">arrow_forward</i></td>
-                <td>Region</td>
-              </tr>
-              <tr>
-                <td>MultiPolygon</td>
-                <td><i class="material-icons">arrow_forward</i></td>
-                <td>Region</td>
-              </tr>
-              <tr>
-                <td>MultiLineString</td>
-                <td><i class="material-icons">arrow_forward</i></td>
-                <td>Track</td>
-              </tr>
-            </tbody>
-          </table>
-
-          Additionally the feature <i>properties</i> object can be used to
-          specify Signal K resource properties such as <i>name</i> or
-          <i>description</i>. <br />&nbsp;<br />
-          <i>Example:</i><br />
-          <pre>
-<samp>
-{
-    "type": "FeatureCollection",
-    "features": [
-        {
-            "type": "Feature",
-            "geometry": {
-                "type": "LineString",
-                "coordinates": [..]
-            },
-            "properties": {
-                "name": "myRoute",
-                "description": "a GeoJSON route"
-            }
-        },
-        {
-            "type": "Feature",
-            "geometry": {
-                "type": "Point",
-                "coordinates": [..]
-            },
-            "properties": {..}
-        }
-    ]
-}
-</samp>
-</pre>
-          <br />&nbsp;<br />
-          <i>For Track data see <a href="#resourcepaths">Resource Paths</a></i>
-          <br />&nbsp;<br />
-          Check out the Freeboard
-          <a target="_blank" href="https://github.com/SignalK/freeboard-sk/wiki"
-            >WIKI</a
-          >
-          for more details.
-        </div>
-
         <div class="panel" id="resourceset">
-          <h4><i class="material-icons">category</i>Load Resource</h4>
+          <h4><i class="material-icons">upload</i>Resource Set</h4>
           Freeboard allows you to upload resource data stored in files to
           `non-standard` resource paths that accept `PUT` or `POST` requests.
           <br />&nbsp;<br />
           To upload data:
           <ul>
             <li>
-              Select the <i class="material-icons">category</i>Load Resource
-              menu option.
+              Select the <i class="material-icons">upload</i>Resource Set menu
+              option.
             </li>
             <li>
               Select the desired destination path from the drop-down list.<br />
               <i
-                >Note: only paths detected under `signalk/v1/api/resources` are
+                >Note: only paths detected under `signalk/v2/api/resources` are
                 listed.</i
               >
             </li>
@@ -1387,7 +1399,7 @@
               </i></b
             >
           </ul>
-          For information about using `ResourceSets` see
+          For information about using <i>ResourceSets</i> see
           <a href="#resourcepaths">Resource Paths</a> in in <i>Settings</i>.
         </div>
 
