@@ -7,7 +7,7 @@
 - **Fixed**: Issue where context menu is not displayed on IOS devices. (#219)
 - **Fixed**: ETA display formatting. (#227)
 - **Fixed**: Issue where notes not being fetched on zoom change. (#232)
-- **Fixed**: handling of negtive `gybeAngle` values. (#234)
+- **Fixed**: handling of negative `gybeAngle` values. (#234)
 - **Fixed**: Error which prevents track from being deleted. (#237)
 - **Added**: Addidtional POI icons. (#233)
 - **New**: Mark vessel as a buddy _(requires signalk-buddylist-plugin >1.2.0)_. (#229)
