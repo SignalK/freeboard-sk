@@ -42,7 +42,8 @@ import {
   SKOtherResources,
   SKRegion,
   WeatherForecastModal,
-  CourseSettingsModal
+  CourseSettingsModal,
+  Buddies
 } from 'src/app/modules';
 
 import { SignalKClient } from 'signalk-client-angular';
@@ -60,7 +61,7 @@ import {
 } from './types';
 import { Feature } from 'ol';
 import { SignalKIcons } from './modules/map/signalk-icons';
-import { OpenBridgeIcons, PoiIcons } from './app.icons';
+import { OpenBridgeIcons } from './app.icons';
 
 interface DrawEndEvent {
   coordinates: LineString | Position | Polygon;
@@ -145,7 +146,8 @@ export class AppComponent {
     private overlayContainer: OverlayContainer,
     private bottomSheet: MatBottomSheet,
     private dialog: MatDialog,
-    private iconReg: MatIconRegistry
+    private iconReg: MatIconRegistry,
+    private buddies: Buddies
   ) {
     // set self to active vessel
     this.app.data.vessels.active = this.app.data.vessels.self;
@@ -157,10 +159,12 @@ export class AppComponent {
         this.dom.bypassSecurityTrustResourceUrl(`${OpenBridgeIcons.path}/${s}`)
       );
     });
-    PoiIcons.ids.forEach((s: string) => {
+
+    // Points of Interest Icons
+    skIcons.files.forEach((s: string) => {
       this.iconReg.addSvgIcon(
         `sk-${s.slice(0, s.indexOf('.'))}`,
-        this.dom.bypassSecurityTrustResourceUrl(`${PoiIcons.path}/${s}`)
+        this.dom.bypassSecurityTrustResourceUrl(`./assets/img/poi/${s}`)
       );
     });
   }
@@ -436,6 +440,9 @@ export class AppComponent {
       case 'trail2route':
         this.trailToRoute();
         break;
+      case 'cleardestination':
+        this.clearDestination();
+        break;
       case 'anchor':
         this.displayLeftMenu('anchorWatch', true);
         break;
@@ -583,15 +590,12 @@ export class AppComponent {
           this.openSKStream();
         },
         () => {
-          this.app
-            .showAlert(
-              'Connection Error:',
-              'Unable to contact Signal K server!',
-              'Try Again'
-            )
-            .subscribe(() => {
-              this.connectSignalKServer();
-            });
+          this.app.showMessage(
+            'Unable to contact Signal K server! (Retrying in 5 secs)',
+            false,
+            5000
+          );
+          setTimeout(() => this.connectSignalKServer(), 5000);
         }
       );
   }
@@ -643,6 +647,11 @@ export class AppComponent {
           if (p.id === 'anchoralarm') {
             this.app.debug('*** found anchoralarm plugin');
             this.app.data.anchor.hasApi = true;
+          }
+          // buddy list
+          if (p.id === 'signalk-buddylist-plugin') {
+            this.app.debug('*** found buddylist plugin');
+            this.app.data.buddyList.hasApi = semver.satisfies(p.version, '>1.2.0') ? true : false
           }
           // charts v2 api support
           if (p.id === 'charts') {
@@ -920,14 +929,28 @@ export class AppComponent {
       });
   }
 
-  // ** GPX File processing **
-  public processGPX(e) {
+  /** GPX / GeoJSON imports */
+  public importFile(f: { data: string | ArrayBuffer; name: string }) {
+    if ((f.data as string).indexOf('<gpx ') !== -1) {
+      this.processGPX(f);
+    } else if (
+      (f.data as string).indexOf(`"type": "FeatureCollection",`) !== -1
+    ) {
+      this.processGeoJSON(f);
+    } else {
+      this.app.showAlert('Import', 'File format not supported!');
+    }
+    this.focusMap();
+  }
+
+  /** process GPX file */
+  public processGPX(f: { data: string | ArrayBuffer; name: string }) {
     this.dialog
       .open(GPXImportDialog, {
         disableClose: true,
         data: {
-          fileData: e.data,
-          fileName: e.name
+          fileData: f.data,
+          fileName: f.name
         }
       })
       .afterClosed()
@@ -953,8 +976,8 @@ export class AppComponent {
       });
   }
 
-  // ** Save resources to GPX File **
-  public saveToGPX() {
+  /** Export resources to GPX file */
+  public exportToGPX() {
     this.dialog
       .open(GPXExportDialog, {
         disableClose: true,
@@ -983,14 +1006,14 @@ export class AppComponent {
       });
   }
 
-  // process GeoJSON file
-  processGeoJSON(e) {
+  /** process GeoJSON file */
+  processGeoJSON(f: { data: string | ArrayBuffer; name: string }) {
     this.dialog
       .open(GeoJSONImportDialog, {
         disableClose: true,
         data: {
-          fileData: e.data,
-          fileName: e.name
+          fileData: f.data,
+          fileName: f.name
         }
       })
       .afterClosed()
@@ -1014,8 +1037,8 @@ export class AppComponent {
       });
   }
 
-  // Upload Resources
-  uploadResources() {
+  /** Import ResourceSet */
+  importResourceSet() {
     this.dialog
       .open(ResourceImportDialog, {
         disableClose: true,
@@ -1278,7 +1301,7 @@ export class AppComponent {
   }
 
   // ** clear active destination **
-  public clearDestintation() {
+  public clearDestination() {
     this.skres.clearCourse(this.app.data.vessels.activeId);
   }
 
@@ -1314,7 +1337,7 @@ export class AppComponent {
           .afterDismissed()
           .subscribe((deactivate: boolean) => {
             if (deactivate) {
-              this.clearDestintation();
+              this.clearDestination();
             }
             this.focusMap();
           });

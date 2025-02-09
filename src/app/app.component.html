@@ -32,7 +32,17 @@
       </button>
 
       <mat-divider></mat-divider>
-      <button mat-menu-item (click)="sidemenu.close(); saveToGPX()">
+      <ap-file-input
+        accept=".gpx,.json"
+        [astext]="true"
+        (chosen)="importFile($event)"
+      >
+        <a mat-list-item>
+          <mat-icon class="ob" svgIcon="route-import"></mat-icon>
+          &nbsp;Import
+        </a>
+      </ap-file-input>
+      <button mat-menu-item (click)="sidemenu.close(); exportToGPX()">
         <mat-icon class="ob" svgIcon="route-export"></mat-icon>
         &nbsp;Export
       </button>
@@ -81,8 +91,8 @@
         <mat-icon>insights</mat-icon>
         <span>Trail to Route</span>
       </a>
-      }
-      <a mat-menu-item (click)="clearDestintation()">
+      } @if(app.data.navData.position){
+      <a mat-menu-item (click)="clearDestination()">
         <mat-icon>clear_all</mat-icon>
         @if(app.data.activeRoute) {
         <span>Clear Active Route</span>
@@ -94,6 +104,7 @@
         <mat-icon>clear_all</mat-icon>
         <span>Clear Course Data</span>
       </a>
+      }
       <mat-divider></mat-divider>
       <a mat-menu-item (click)="toggleCourseData()">
         <mat-icon>{{
@@ -210,29 +221,15 @@
               </div>
             </mat-list-item>
             <mat-divider></mat-divider>
-
-            <ap-file-input [astext]="true" (chosen)="processGPX($event)">
-              <a mat-list-item>
-                <mat-icon class="ob" svgIcon="route-import"></mat-icon>
-                &nbsp;Load GPX
-              </a>
-            </ap-file-input>
-
-            <ap-file-input [astext]="true" (chosen)="processGeoJSON($event)">
-              <a mat-list-item>
-                <mat-icon>public</mat-icon>
-                &nbsp;Load GeoJSON
-              </a>
-            </ap-file-input>
-
-            <a mat-list-item (click)="sidemenu.close(); uploadResources()">
-              <mat-icon
-                class="ob"
-                svgIcon="chart-display-settings-iec"
-              ></mat-icon>
-              &nbsp;Load Resource
+            @if((!draw.enabled || !measure.enabled) && app.data.anchor.hasApi) {
+            <a
+              mat-list-item
+              (click)="sidemenu.close(); displayLeftMenu('anchorWatch', true)"
+            >
+              <mat-icon>anchor</mat-icon>
+              &nbsp;Anchor Watch
             </a>
-
+            }
             <a
               mat-list-item
               (click)="sidemenu.close(); displayLeftMenu('aisList', true)"
@@ -242,15 +239,16 @@
             </a>
 
             <mat-divider></mat-divider>
-            @if((!draw.enabled || !measure.enabled) && app.data.anchor.hasApi) {
             <a
               mat-list-item
-              (click)="sidemenu.close(); displayLeftMenu('anchorWatch', true)"
+              (click)="sidemenu.close(); importResourceSet()"
+              matTooltip="Import ResourceSet"
             >
-              <mat-icon>anchor</mat-icon>
-              &nbsp;Anchor Watch
+              <mat-icon>upload</mat-icon>
+              &nbsp;Resource Set
             </a>
-            } @if(features.playbackAPI) {
+
+            @if(features.playbackAPI) {
             <a mat-list-item (click)="sidemenu.close(); showPlaybackSettings()">
               <mat-icon>history</mat-icon>
               &nbsp;Playback History
@@ -516,7 +514,7 @@
               (select)="skres.routeSelected()"
               (delete)="skres.showRouteDelete($event)"
               (activate)="activateRoute($event.id)"
-              (deactivate)="clearDestintation()"
+              (deactivate)="clearDestination()"
               (refresh)="skres.getRoutes()"
               (properties)="skres.resourceProperties($event)"
               (points)="featureProperties({ id: $event.id, type: 'route' })"
@@ -532,7 +530,7 @@
               (select)="skres.waypointSelected()"
               (delete)="skres.showWaypointDelete($event)"
               (goto)="skres.navigateToWaypoint($event)"
-              (deactivate)="clearDestintation()"
+              (deactivate)="clearDestination()"
               (refresh)="skres.getWaypoints()"
               (properties)="skres.resourceProperties($event)"
               (center)="centerResource($event)"
@@ -797,7 +795,7 @@
               (modifyStart)="handleModifyStart($event)"
               (modifyEnd)="handleModifyEnd($event)"
               (activate)="activateRoute($event)"
-              (deactivate)="clearDestintation()"
+              (deactivate)="clearDestination()"
               (exitedMovingMap)="toggleMoveMap($event)"
               (focusVessel)="switchActiveVessel($event)"
               (info)="featureProperties($event)"
@@ -1045,12 +1043,8 @@
               >
               </ap-dial-text>
               } @if(app.data.navData.eta) {
-              <ap-dial-text
-                [title]="'ETA'"
-                [value]="app.data.navData.eta.toLocaleTimeString().slice(0, 5)"
-                [units]="app.data.navData.eta.toLocaleDateString()"
-              >
-              </ap-dial-text>
+              <ap-dial-eta [title]="'ETA'" [value]="app.data.navData.eta">
+              </ap-dial-eta>
               }
             </div>
             }

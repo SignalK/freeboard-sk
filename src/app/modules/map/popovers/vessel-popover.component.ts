@@ -17,10 +17,11 @@ import { PopoverComponent } from './popover.component';
 import { CompassComponent } from './compass.component';
 
 import { AppInfo } from 'src/app/app.info';
-import { SKVessel } from 'src/app/modules';
+import { Buddies, SKVessel } from 'src/app/modules';
 import { Convert } from 'src/app/lib/convert';
 import { GeoUtils } from 'src/app/lib/geoutils';
 import { Position } from 'src/app/types';
+import { HttpErrorResponse } from '@angular/common/http';
 
 /*********** Vessel Popover ***************
 title: string -  title text,
@@ -149,6 +150,15 @@ isSelf: boolean - true if vessel 'self'
             {{ isFlagged ? 'UN-FLAG' : 'FLAG' }}
           </button>
 
+          @if(!isSelf &&  app.data.buddyList.hasApi) {
+          <button mat-button (click)="toggleBuddy()" matTooltip="Is Buddy">
+            <mat-icon>{{
+              vessel.buddy ? 'group_remove' : 'group_add'
+            }}</mat-icon>
+            {{ vessel.buddy ? 'UN-BUDDY' : 'BUDDY' }}
+          </button>
+          }
+
           <button
             mat-button
             (click)="focusVessel(true)"
@@ -202,7 +212,7 @@ export class VesselPopoverComponent {
   position: Position = [0, 0];
   isFlagged = false;
 
-  constructor(public app: AppInfo) {}
+  constructor(protected app: AppInfo, private buddies: Buddies) {}
 
   ngOnInit() {
     if (!this.vessel) {
@@ -251,6 +261,34 @@ export class VesselPopoverComponent {
   focusVessel(setFocus: boolean) {
     this.removeFlag();
     this.focused.emit(setFocus);
+  }
+
+  toggleBuddy() {
+    const urn = this.vessel.id.split('.').slice(1).join('.');
+    if (this.vessel.buddy) {
+      this.buddies.remove(urn).subscribe(
+        () => {
+          //console.log('buddy revedmo:', urn);
+        },
+        (err: HttpErrorResponse) => {
+          //console.log('Error removing buddy!', err);
+        }
+      );
+    } else {
+      const name =
+        this.vessel.name ??
+        this.vessel.mmsi ??
+        this.vessel.callsignVhf ??
+        urn.slice(-5);
+      this.buddies.add(urn, name).subscribe(
+        () => {
+          //console.log('buddy added:', name);
+        },
+        (err: HttpErrorResponse) => {
+          //console.log('Error adding buddy!', err);
+        }
+      );
+    }
   }
 
   toggleFlag() {

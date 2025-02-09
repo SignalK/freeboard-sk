@@ -166,6 +166,9 @@ export interface FBAppData {
     hasApi: boolean; // Server implements Autopilot API
     isLocal: boolean; // true if FB plugin AP API is enabled
   };
+  buddyList: {
+    hasApi: boolean; // Server has buddy list plugin
+  };
   skIcons: {
     hasApi: boolean; // Server implements SignalK Icon resources endpoint
   };
