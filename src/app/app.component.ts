@@ -651,7 +651,12 @@ export class AppComponent {
           // buddy list
           if (p.id === 'signalk-buddylist-plugin') {
             this.app.debug('*** found buddylist plugin');
-            this.app.data.buddyList.hasApi = semver.satisfies(p.version, '>1.2.0') ? true : false
+            this.app.data.buddyList.hasApi = semver.satisfies(
+              p.version,
+              '>1.2.0'
+            )
+              ? true
+              : false;
           }
           // charts v2 api support
           if (p.id === 'charts') {

@@ -55,7 +55,7 @@ export class SKOtherResources {
    * selected: true= only include selected items
    * noUpdate: true= suppress updateSource event
    */
-  getItems(resType: string, selected = false) {
+  getItems(resType: string, selected = false, noUpdate = false) {
     if (this.ignore.includes(resType)) {
       return;
     }
@@ -106,6 +106,9 @@ export class SKOtherResources {
                 return i;
               });
         }*/
+        if (!noUpdate) {
+          this.updateSource.next({ action: 'get', mode: 'resource-set' });
+        }
       });
   }
 

@@ -898,21 +898,19 @@
           <!-- *** Alarm / Mode panel ***-->
           @if(!app.data.kioskMode) {
           <div class="alarmPanel">
-            <span
-              *ngFor="let a of alarmsFacade.alarms | keyvalue"
-              style="margin-bottom: 5px"
-            >
+            @for(a of alarmsFacade.alarms; track a[0]) {
+            <span style="margin-bottom: 5px">
               <ap-alarm
-                [alarm]="a"
+                [alarm]="{ key: a[0], value: a[1] }"
                 [audioContext]="app.audio.context"
                 [audioStatus]="display.audio.state"
-                [hasSound]="a.value.sound"
+                [hasSound]="a[1].sound"
                 [soundFile]="
-                  ['nominal', 'warn'].includes(a.value.state)
+                  ['nominal', 'warn'].includes(a[1].state)
                     ? './assets/sound/ding.mp3'
                     : './assets/sound/woop.mp3'
                 "
-                [mute]="a.value.muted || a.value.acknowledged"
+                [mute]="a[1].muted || a[1].acknowledged"
                 (muted)="alarmsFacade.muteAlarm($event); focusMap()"
                 (acknowledge)="
                   alarmsFacade.acknowledgeAlarm($event); focusMap()
@@ -928,6 +926,7 @@
               >
               </ap-alarm>
             </span>
+            }
           </div>
           }
 

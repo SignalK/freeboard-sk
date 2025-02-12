@@ -25,19 +25,20 @@ import { AppInfo } from 'src/app/app.info';
     <fieldset>
       <legend style="font-size: 10pt;">{{ title }}</legend>
       <div>
-        <div class="sk-details" *ngFor="let item of pathChoices | keyvalue">
+        @for(item of pathChoicesArray; track item[0]) {
+        <div class="sk-details">
           <div class="title">
-            <div>{{ item.value.name }}</div>
+            <div>{{ item[1].name }}</div>
           </div>
           <div>
-            @for(path of item.value.available; track path) {
+            @for(path of item[1].available; track path) {
             <div style="margin: 5px 0 5px 0;">
               <mat-radio-button
                 #pathopt
-                [name]="item.key"
+                [name]="item[0]"
                 [value]="path"
-                [checked]="path === item.value.current"
-                (change)="item.value.current = pathopt.value; save(true)"
+                [checked]="path === item[1].current"
+                (change)="item[1].current = pathopt.value; save(true)"
               >
                 {{ path.split('.').slice(-1) }}
               </mat-radio-button>
@@ -45,6 +46,7 @@ import { AppInfo } from 'src/app/app.info';
             }
           </div>
         </div>
+        }
       </div>
     </fieldset>
   `
@@ -54,7 +56,7 @@ export class SignalKPreferredPathsComponent {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   @Output() chosen: any = new EventEmitter<any>();
 
-  public pathChoices = {
+  private pathChoices = {
     tws: {
       name: 'True Wind Speed',
       choices: [
@@ -86,14 +88,9 @@ export class SignalKPreferredPathsComponent {
       available: [],
       current: ''
     }
-    /*,
-    course: {
-      name: 'Course',
-      choices: ['navigation.courseGreatCircle', 'navigation.courseRhumbline'],
-      available: [],
-      current: ''
-    }*/
   };
+
+  protected pathChoicesArray = Object.entries(this.pathChoices);
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   public availPaths: any;
@@ -103,8 +100,6 @@ export class SignalKPreferredPathsComponent {
   ngOnInit() {
     this.initEntries();
   }
-
-  //ngOnChanges() {}
 
   // ** initialise items from settings
   initEntries() {
@@ -117,8 +112,6 @@ export class SignalKPreferredPathsComponent {
       this.app.config.selections.preferredPaths.twd;
     this.pathChoices.heading.current =
       this.app.config.selections.preferredPaths.heading;
-    /*this.pathChoices.course.current =
-      this.app.config.selections.preferredPaths.course;*/
 
     const u = Object.entries(this.pathChoices);
     u.forEach((x) => {

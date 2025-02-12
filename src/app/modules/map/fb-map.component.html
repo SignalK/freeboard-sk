@@ -138,20 +138,22 @@
   }
 
   <!-- Resource Sets -->
-  <div *ngFor="let resSet of app.data.resourceSets | keyvalue; let idx = index">
-    @if(resSet.key !== 'tracks') {
+  @for(resSet of dfeat.resourceSets; track resSet[0]; let idx = $index) {
+  <div>
+    @if(resSet[0] !== 'tracks') {
     <fb-resource-sets
       [darkMode]="app.config.map.invertColor"
-      [collection]="resSet.key"
-      [resourceSets]="resSet.value"
-      [selected]="app.config.selections.resourceSets[resSet.key]"
-      [labelMinZoom]="this.app.config.selections.labelsMinZoom"
+      [collection]="resSet[0]"
+      [resourceSets]="resSet[1]"
+      [selected]="app.config.selections.resourceSets[resSet[0]]"
+      [labelMinZoom]="app.config.selections.labelsMinZoom"
       [mapZoom]="fbMap.zoomLevel"
       [zIndex]="52 + idx"
     >
     </fb-resource-sets>
     }
   </div>
+  }
 
   <!-- Routes -->
   <fb-routes

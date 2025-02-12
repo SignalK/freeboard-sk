@@ -171,11 +171,9 @@
                       [(value)]="facade.settings.depthAlarm.smoothing"
                       (selectionChange)="onFormChange($event, depthsmoothing)"
                     >
-                      <mat-option
-                        *ngFor="let i of facade.alarmOptions.smoothing | keyvalue"
-                        [value]="i.key"
-                        >{{i.value}}</mat-option
-                      >
+                      @for(i of facade.alarmOptions.smoothing; track i[0]) {
+                      <mat-option [value]="i[0]">{{i[1]}}</mat-option>
+                      }
                     </mat-select>
                   </mat-form-field>
                 </div>
@@ -205,11 +203,9 @@
                       [(value)]="facade.settings.darkMode.source"
                       (selectionChange)="onFormChange($event, darkmode)"
                     >
-                      <mat-option
-                        *ngFor="let i of facade.darkModeOptions | keyvalue"
-                        [value]="i.key"
-                        >{{i.value}}</mat-option
-                      >
+                      @for(i of facade.darkModeOptions; track i[0]) {
+                      <mat-option [value]="i[0]">{{i[1]}}</mat-option>
+                      }
                     </mat-select>
                   </mat-form-field>
                 </div>
@@ -286,11 +282,9 @@
                       [(value)]="facade.settings.selections.s57Options.graphicsStyle"
                       placeholder="Graphicsstyle"
                     >
-                      <mat-option
-                        *ngFor="let i of facade.s57Options.graphicsStyle | keyvalue: noSort"
-                        [value]="i.key"
-                        >{{i.value}}</mat-option
-                      >
+                      @for(i of facade.s57Options.graphicsStyle; track i[0]) {
+                      <mat-option [value]="i[0]">{{i[1]}}</mat-option>
+                      }
                     </mat-select>
                   </mat-form-field>
                 </div>
@@ -302,11 +296,9 @@
                       [(value)]="facade.settings.selections.s57Options.boundaries"
                       placeholder="Boundaries"
                     >
-                      <mat-option
-                        *ngFor="let i of facade.s57Options.boundaries | keyvalue: noSort"
-                        [value]="i.key"
-                        >{{i.value}}</mat-option
-                      >
+                      @for(i of facade.s57Options.boundaries; track i[0]) {
+                      <mat-option [value]="i[0]">{{i[1]}}</mat-option>
+                      }
                     </mat-select>
                   </mat-form-field>
                 </div>
@@ -375,11 +367,9 @@
                       [(value)]="facade.settings.units.distance"
                       (selectionChange)="onFormChange($event, distunits)"
                     >
-                      <mat-option
-                        *ngFor="let i of facade.availableUnits.distance | keyvalue"
-                        [value]="i.key"
-                        >{{i.value}}</mat-option
-                      >
+                      @for(i of facade.availableUnits.distance; track i[0]) {
+                      <mat-option [value]="i[0]">{{i[1]}}</mat-option>
+                      }
                     </mat-select>
                   </mat-form-field>
                 </div>
@@ -392,11 +382,9 @@
                       [(value)]="facade.settings.units.depth"
                       (selectionChange)="onFormChange($event, depthunits)"
                     >
-                      <mat-option
-                        *ngFor="let i of facade.availableUnits.depth | keyvalue"
-                        [value]="i.key"
-                        >{{i.value}}</mat-option
-                      >
+                      @for(i of facade.availableUnits.depth; track i[0]) {
+                      <mat-option [value]="i[0]">{{i[1]}}</mat-option>
+                      }
                     </mat-select>
                   </mat-form-field>
                 </div>
@@ -410,11 +398,9 @@
                       [(value)]="facade.settings.units.speed"
                       (selectionChange)="onFormChange($event, speedunits)"
                     >
-                      <mat-option
-                        *ngFor="let i of facade.availableUnits.speed | keyvalue"
-                        [value]="i.key"
-                        >{{i.value}}</mat-option
-                      >
+                      @for(i of facade.availableUnits.speed; track i[0]) {
+                      <mat-option [value]="i[0]">{{i[1]}}</mat-option>
+                      }
                     </mat-select>
                   </mat-form-field>
                 </div>
@@ -428,11 +414,9 @@
                       [(value)]="facade.settings.units.temperature"
                       (selectionChange)="onFormChange($event, tempunits)"
                     >
-                      <mat-option
-                        *ngFor="let i of facade.availableUnits.temperature | keyvalue"
-                        [value]="i.key"
-                        >{{i.value}}</mat-option
-                      >
+                      @for(i of facade.availableUnits.temperature; track i[0]) {
+                      <mat-option [value]="i[0]">{{i[1]}}</mat-option>
+                      }
                     </mat-select>
                   </mat-form-field>
                 </div>
@@ -524,11 +508,9 @@
                       [(value)]="facade.settings.selections.course.autoNextPointDelay"
                       (selectionChange)="onFormChange($event, courseautoadvancedelay)"
                     >
-                      <mat-option
-                        *ngFor="let i of facade.alarmOptions.smoothing | keyvalue"
-                        [value]="i.key"
-                        >{{i.value}}</mat-option
-                      >
+                      @for(i of facade.alarmOptions.smoothing; track i[0]) {
+                      <mat-option [value]="i[0]">{{i[1]}}</mat-option>
+                      }
                     </mat-select>
                   </mat-form-field>
                 </div>
@@ -635,11 +617,9 @@
                       [(value)]="facade.settings.selections.vessel.headingLineSize"
                       (selectionChange)="onFormChange($event, vesselheadinglinesize)"
                     >
-                      <mat-option
-                        *ngFor="let i of facade.vesselOptions.headingLine | keyvalue"
-                        [value]="i.key"
-                        >{{i.value}}</mat-option
-                      >
+                      @for(i of facade.vesselOptions.headingLine; track i[0] ) {
+                      <mat-option [value]="i[0]">{{i[1]}}</mat-option>
+                      }
                     </mat-select>
                   </mat-form-field>
 
@@ -651,11 +631,9 @@
                       [(value)]="facade.settings.selections.vessel.cogLine"
                       (selectionChange)="onFormChange($event, vesselcoglinesize)"
                     >
-                      <mat-option
-                        *ngFor="let i of facade.vesselOptions.cogLine | keyvalue"
-                        [value]="i.key"
-                        >{{i.value}}</mat-option
-                      >
+                      @for(i of facade.vesselOptions.cogLine; track i[0]) {
+                      <mat-option [value]="i[0]">{{i[1]}}</mat-option>
+                      }
                     </mat-select>
                   </mat-form-field>
                 </fieldset>
@@ -713,11 +691,10 @@
                         [disabled]="!facade.settings.selections.trailFromServer || !facade.settings.selections.vessel.trail"
                         (selectionChange)="onFormChange($event, trailRes1)"
                       >
-                        <mat-option
-                          *ngFor="let i of facade.trailOptions.highResolution | keyvalue: noSort"
-                          [value]="i.key"
-                          >{{i.value}}</mat-option
-                        >
+                        @for(i of facade.trailOptions.highResolution; track
+                        i[0]) {
+                        <mat-option [value]="i[0]">{{i[1]}}</mat-option>
+                        }
                       </mat-select>
                     </mat-form-field>
                   </div>
@@ -730,11 +707,10 @@
                         [disabled]="!facade.settings.selections.trailFromServer || !facade.settings.selections.vessel.trail"
                         (selectionChange)="onFormChange($event, trailRes23)"
                       >
-                        <mat-option
-                          *ngFor="let i of facade.trailOptions.highResolution | keyvalue: noSort"
-                          [value]="i.key"
-                          >{{i.value}}</mat-option
-                        >
+                        @for(i of facade.trailOptions.highResolution; track
+                        i[0]){
+                        <mat-option [value]="i[0]">{{i[1]}}</mat-option>
+                        }
                       </mat-select>
                     </mat-form-field>
                   </div>
@@ -747,11 +723,10 @@
                         [disabled]="!facade.settings.selections.trailFromServer || !facade.settings.selections.vessel.trail"
                         (selectionChange)="onFormChange($event, aisstaleage)"
                       >
-                        <mat-option
-                          *ngFor="let i of facade.trailOptions.mediumResolution | keyvalue: noSort"
-                          [value]="i.key"
-                          >{{i.value}}</mat-option
-                        >
+                        @for(i of facade.trailOptions.mediumResolution; track
+                        i[0]) {
+                        <mat-option [value]="i[0]">{{i[1]}}</mat-option>
+                        }
                       </mat-select>
                     </mat-form-field>
                   </div>
@@ -772,11 +747,9 @@
                       [(value)]="facade.settings.selections.aisStaleAge"
                       (selectionChange)="onFormChange($event, aisstaleage)"
                     >
-                      <mat-option
-                        *ngFor="let i of facade.list.aisTimeouts | keyvalue"
-                        [value]="i.key"
-                        >{{i.value}}</mat-option
-                      >
+                      @for(i of facade.list.aisTimeouts; track i[0]) {
+                      <mat-option [value]="i[0]">{{i[1]}}</mat-option>
+                      }
                     </mat-select>
                   </mat-form-field>
                 </div>
@@ -789,11 +762,9 @@
                       [(value)]="facade.settings.selections.aisMaxAge"
                       (selectionChange)="onFormChange($event, aismaxage)"
                     >
-                      <mat-option
-                        *ngFor="let i of facade.list.aisTimeouts | keyvalue"
-                        [value]="i.key"
-                        >{{i.value}}</mat-option
-                      >
+                      @for(i of facade.list.aisTimeouts; track i[0]) {
+                      <mat-option [value]="i[0]">{{i[1]}}</mat-option>
+                      }
                     </mat-select>
                   </mat-form-field>
                 </div>
@@ -806,11 +777,9 @@
                       [(value)]="facade.settings.selections.aisWindApparent"
                       (selectionChange)="onFormChange($event, aiswindvector)"
                     >
-                      <mat-option
-                        *ngFor="let i of facade.preferredValues.wind | keyvalue"
-                        [value]="i.key"
-                        >{{i.value}}</mat-option
-                      >
+                      @for(i of facade.preferredValues.wind; track i[0]) {
+                      <mat-option [value]="i[0]">{{i[1]}}</mat-option>
+                      }
                     </mat-select>
                   </mat-form-field>
                 </div>
@@ -882,11 +851,9 @@
                       [(value)]="facade.settings.selections.aisProfile"
                       (selectionChange)="onFormChange($event, aisprofile)"
                     >
-                      <mat-option
-                        *ngFor="let i of facade.list.aisProfiles | keyvalue"
-                        [value]="i.key"
-                        >{{i.value}}</mat-option
-                      >
+                      @for(i of facade.list.aisProfiles; track i[0]) {
+                      <mat-option [value]="i[0]">{{i[1]}}</mat-option>
+                      }
                     </mat-select>
                   </mat-form-field>
                 </div>
@@ -1214,11 +1181,9 @@
                         matToolTip="Only include AIS targets within this distance"
                         matTooltipPosition="below"
                       >
-                        <mat-option
-                          *ngFor="let i of facade.list.aisMaxRadius | keyvalue"
-                          [value]="i.key"
-                          >{{i.value}}</mat-option
-                        >
+                        @for(i of facade.list.aisMaxRadius; track i[0]) {
+                        <mat-option [value]="i[0]">{{i[1]}}</mat-option>
+                        }
                       </mat-select>
                     </mat-form-field>
                   </div>

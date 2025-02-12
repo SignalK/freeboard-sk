@@ -38,7 +38,13 @@ import { Feature as GeoJsonFeature } from 'geojson';
 
 import { Convert } from 'src/app/lib/convert';
 import { GeoUtils, Angle } from 'src/app/lib/geoutils';
-import { FBChart, FBRoute, FBWaypoint, Position } from 'src/app/types';
+import {
+  FBChart,
+  FBRoute,
+  FBWaypoint,
+  Position,
+  ResourceSet
+} from 'src/app/types';
 
 import { AppInfo } from 'src/app/app.info';
 import { SettingsMessage } from 'src/app/lib/services';
@@ -137,7 +143,7 @@ interface IFeatureData {
   active: SKVessel; // focussed vessel
   navData: { position: Position; startPosition: Position };
   closest: { id: string; position: Position };
-  resourceSets: ResourceSets;
+  resourceSets: Array<[string, ResourceSet]>;
 }
 
 interface IDrawInfo {
@@ -329,7 +335,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
     active: new SKVessel(), // focussed vessel
     navData: { position: null, startPosition: null },
     closest: { id: null, position: [0, 0] },
-    resourceSets: {}
+    resourceSets: []
   };
 
   // ** AIS target management
@@ -609,7 +615,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
         }
       }
       if (value.mode === 'resource-set') {
-        this.dfeat.resourceSets = Object.assign({}, this.app.data.resourceSets);
+        this.dfeat.resourceSets = Object.entries(this.app.data.resourceSets);
       }
     }
   }

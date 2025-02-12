@@ -150,7 +150,7 @@ isSelf: boolean - true if vessel 'self'
             {{ isFlagged ? 'UN-FLAG' : 'FLAG' }}
           </button>
 
-          @if(!isSelf &&  app.data.buddyList.hasApi) {
+          @if(!isSelf && app.data.buddyList.hasApi) {
           <button mat-button (click)="toggleBuddy()" matTooltip="Is Buddy">
             <mat-icon>{{
               vessel.buddy ? 'group_remove' : 'group_add'
@@ -269,9 +269,10 @@ export class VesselPopoverComponent {
       this.buddies.remove(urn).subscribe(
         () => {
           //console.log('buddy revedmo:', urn);
+          this.app.showMessage(`Buddy successfully removed.`, false, 3000);
         },
         (err: HttpErrorResponse) => {
-          //console.log('Error removing buddy!', err);
+          this.app.showMessage(`Error removing buddy!`, false, 3000);
         }
       );
     } else {
@@ -282,10 +283,10 @@ export class VesselPopoverComponent {
         urn.slice(-5);
       this.buddies.add(urn, name).subscribe(
         () => {
-          //console.log('buddy added:', name);
+          this.app.showMessage(`Buddy added (${name})`, false, 3000);
         },
         (err: HttpErrorResponse) => {
-          //console.log('Error adding buddy!', err);
+          this.app.showMessage(`Error adding buddy!(${name})`, false, 5000);
         }
       );
     }
