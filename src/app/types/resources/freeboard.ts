@@ -21,6 +21,8 @@ export type FBRegion = [string, SKRegion, boolean?];
 export type FBCharts = Array<FBChart>;
 export type FBChart = [string, SKChart, boolean?];
 
+export type FBResource = FBRoute | FBWaypoint | FBNote | FBRegion | FBChart;
+
 export type FBResourceSelect = {
   id: string;
   value?: boolean;

@@ -18,7 +18,7 @@ import { MatCardModule } from '@angular/material/card';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import { CommonDialogs } from 'src/app/lib/components/dialogs';
-import { AppInfo } from 'src/app/app.info';
+import { AppFacade } from 'src/app/app.facade';
 import { SignalKClient } from 'signalk-client-angular';
 import { Convert } from 'src/app/lib/convert';
 import { SKStreamFacade } from 'src/app/modules';
@@ -209,7 +209,7 @@ export class CourseSettingsModal implements OnInit {
   : 'self';*/
 
   constructor(
-    public app: AppInfo,
+    public app: AppFacade,
     private stream: SKStreamFacade,
     private cdr: ChangeDetectorRef,
     private signalk: SignalKClient,

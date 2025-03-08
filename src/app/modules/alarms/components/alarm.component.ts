@@ -9,7 +9,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { TimerButtonComponent } from './timer-button.component';
 
-import { AppInfo } from 'src/app/app.info';
+import { AppFacade } from 'src/app/app.facade';
 
 interface AlarmData {
   key: string;
@@ -45,8 +45,11 @@ interface AlarmData {
     <mat-card style="padding:5px;">
       <mat-card-title-group>
         <img width="30px" [src]="iconUrl" />
-        <mat-card-title>{{ alarm.value.message }}</mat-card-title>
+        <mat-card-title>{{ alarm.title }}</mat-card-title>
       </mat-card-title-group>
+      <mat-card-content>
+        {{ alarm.value.message }}
+      </mat-card-content>
       <mat-card-actions>
         <div style="display:flex;flex-wrap: wrap;">
           <div>
@@ -156,7 +159,7 @@ export class AlarmComponent implements OnInit {
   private source: MediaElementAudioSourceNode;
   nextPointClicked = false;
 
-  constructor(public app: AppInfo) {}
+  constructor(public app: AppFacade) {}
 
   ngOnInit() {
     this.canUnAck =

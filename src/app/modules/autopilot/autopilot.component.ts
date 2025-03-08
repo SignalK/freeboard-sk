@@ -16,7 +16,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
-import { AppInfo } from 'src/app/app.info';
+import { AppFacade } from 'src/app/app.facade';
 import { SignalKClient } from 'signalk-client-angular';
 import { Convert } from 'src/app/lib/convert';
 import { Subscription } from 'rxjs';
@@ -289,7 +289,7 @@ export class AutopilotComponent {
   private autopilotApiPath: string;
 
   constructor(
-    protected app: AppInfo,
+    protected app: AppFacade,
     private signalk: SignalKClient,
     private stream: SKStreamFacade,
     private cdr: ChangeDetectorRef

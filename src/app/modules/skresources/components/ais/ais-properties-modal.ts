@@ -9,7 +9,7 @@ import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatToolbarModule } from '@angular/material/toolbar';
 
-import { AppInfo } from 'src/app/app.info';
+import { AppFacade } from 'src/app/app.facade';
 import { SignalKClient } from 'signalk-client-angular';
 import { SKVessel } from 'src/app/modules/skresources/resource-classes';
 import { Convert } from 'src/app/lib/convert';
@@ -171,7 +171,7 @@ export class AISPropertiesModal implements OnInit {
   };
 
   constructor(
-    public app: AppInfo,
+    public app: AppFacade,
     private sk: SignalKClient,
     public modalRef: MatBottomSheetRef<AISPropertiesModal>,
     @Inject(MAT_BOTTOM_SHEET_DATA)

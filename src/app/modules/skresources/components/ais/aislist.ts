@@ -16,7 +16,7 @@ import { MatInputModule } from '@angular/material/input';
 import { ScrollingModule } from '@angular/cdk/scrolling';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 
-import { AppInfo } from 'src/app/app.info';
+import { AppFacade } from 'src/app/app.facade';
 import { SKVessel } from 'src/app/modules';
 import { Position } from 'src/app/types';
 
@@ -112,7 +112,7 @@ export class AISListComponent {
     }
   ];
 
-  constructor(public app: AppInfo) {}
+  constructor(public app: AppFacade) {}
 
   ngOnInit() {
     this.initItems();

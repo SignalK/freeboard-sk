@@ -37,11 +37,9 @@
 <div class="note-details">
   <mat-toolbar style="background-color: transparent">
     <span class="dialog-icon">
-      @if(data.note?.properties?.skIcon) {
-      <mat-icon [svgIcon]="'sk-' + data.note?.properties?.skIcon"></mat-icon>
-      } @else {
-      <mat-icon class="icon-note">local_offer</mat-icon>
-      }
+      <mat-icon [class]="icon.class" [svgIcon]="icon.svgIcon"
+        >{{icon.name}}</mat-icon
+      >
     </span>
     <span style="flex: 1 1 auto; text-align: center">Note Details</span>
     <span style="text-align: right">
@@ -51,7 +49,7 @@
     </span>
   </mat-toolbar>
   <mat-dialog-content>
-    <mat-card style="border: whitesmoke 1px solid">
+    <mat-card appearance="outlined">
       <mat-card-content>
         @if(data.note.properties.draft) {
         <p class="draft-watermark">Draft</p>
@@ -85,23 +83,12 @@
               Description:
             </div>
             <div
+              class="note-description"
               style="overflow-y: auto; height: 150px"
               target="notelink"
               [innerHTML]="data.note.description | addTarget: '_notes'"
             ></div>
           </div>
-
-          <!--
-          <div class="nosmall" style="font-size: 10pt; padding: 5px 0 5px 0">
-            @if(data.note.authors && data.note.authors.length !== 0) {
-            <div>
-              <span style="font-weight: bold">Author:</span>
-              &nbsp;{{data.note?.authors[0]?.name}} &nbsp;&nbsp;
-            </div>
-            }
-            <div><i>{{data.note?.timestamp?.slice(0,10)}}</i></div>
-          </div>
-          -->
         </div>
       </mat-card-content>
       @if(data.note.url || !data.note.properties.readOnly){

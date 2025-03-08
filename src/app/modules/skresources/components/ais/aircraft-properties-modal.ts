@@ -9,7 +9,7 @@ import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatToolbarModule } from '@angular/material/toolbar';
 
-import { AppInfo } from 'src/app/app.info';
+import { AppFacade } from 'src/app/app.facade';
 import { SignalKClient } from 'signalk-client-angular';
 import { SKAircraft } from 'src/app/modules/skresources/resource-classes';
 import { SignalKDetailsComponent } from '../../components/signalk-details.component';
@@ -104,7 +104,7 @@ export class AircraftPropertiesModal {
 
   constructor(
     private sk: SignalKClient,
-    private app: AppInfo,
+    private app: AppFacade,
     public modalRef: MatBottomSheetRef<AircraftPropertiesModal>,
     @Inject(MAT_BOTTOM_SHEET_DATA)
     public data: {

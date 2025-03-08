@@ -3,7 +3,7 @@
 import { Injectable } from '@angular/core';
 import { Subject, Observable } from 'rxjs';
 
-import { AppInfo } from 'src/app/app.info';
+import { AppFacade } from 'src/app/app.facade';
 import { SignalKClient } from 'signalk-client-angular';
 import {
   SKResources,
@@ -32,7 +32,7 @@ export class GeoJSONLoadFacade {
   // *******************************************************
 
   constructor(
-    private app: AppInfo,
+    private app: AppFacade,
     private skres: SKResources,
     public signalk: SignalKClient
   ) {

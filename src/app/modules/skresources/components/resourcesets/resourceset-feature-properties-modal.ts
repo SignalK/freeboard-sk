@@ -12,7 +12,7 @@ import {
   MatBottomSheetRef,
   MAT_BOTTOM_SHEET_DATA
 } from '@angular/material/bottom-sheet';
-import { AppInfo } from 'src/app/app.info';
+import { AppFacade } from 'src/app/app.facade';
 import { SKResourceSet } from '../../resourceset-class';
 
 /********* ResourceSetFeatureModal **********
@@ -103,7 +103,7 @@ export class ResourceSetFeatureModal implements OnInit {
   protected title = 'ResourceSet Feature: ';
 
   constructor(
-    public app: AppInfo,
+    public app: AppFacade,
     private cdr: ChangeDetectorRef,
     public modalRef: MatBottomSheetRef<ResourceSetFeatureModal>,
     @Inject(MAT_BOTTOM_SHEET_DATA)

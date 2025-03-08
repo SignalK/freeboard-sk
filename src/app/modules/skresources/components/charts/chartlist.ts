@@ -24,7 +24,7 @@ import {
   moveItemInArray
 } from '@angular/cdk/drag-drop';
 
-import { AppInfo } from 'src/app/app.info';
+import { AppFacade } from 'src/app/app.facade';
 import { ChartPropertiesDialog } from './chart-properties-dialog';
 import { FBCharts, FBChart, FBResourceSelect } from 'src/app/types';
 import { forkJoin, of } from 'rxjs';
@@ -146,7 +146,7 @@ import { SignalKClient } from 'signalk-client-angular';
 export class ChartLayers implements OnInit {
   @Output() changed: EventEmitter<string[]> = new EventEmitter();
 
-  constructor(public app: AppInfo) {}
+  constructor(public app: AppFacade) {}
 
   chartList = [];
 
@@ -210,7 +210,7 @@ export class ChartListComponent {
   displayChartLayers = false;
 
   constructor(
-    protected app: AppInfo,
+    protected app: AppFacade,
     private dialog: MatDialog,
     private signalk: SignalKClient
   ) {}

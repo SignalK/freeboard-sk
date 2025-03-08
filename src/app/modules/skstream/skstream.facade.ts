@@ -3,7 +3,7 @@
 import { Injectable } from '@angular/core';
 import { Observable, Subject } from 'rxjs';
 
-import { AppInfo } from 'src/app/app.info';
+import { AppFacade } from 'src/app/app.facade';
 import { SettingsMessage } from 'src/app/lib/services';
 import { SignalKClient } from 'signalk-client-angular';
 import { SKStreamProvider } from './skstream.service';
@@ -47,7 +47,7 @@ export class SKStreamFacade {
   // *******************************************************
 
   constructor(
-    private app: AppInfo,
+    private app: AppFacade,
     private signalk: SignalKClient,
     private alarmsFacade: AlarmsFacade,
     private skres: SKResources,

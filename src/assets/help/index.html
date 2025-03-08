@@ -1413,33 +1413,26 @@
             <b>Anchor Watch</b> option from the Main menu.
           </div>
 
-          <div style="display: flex; flex-wrap: wrap">
-            <div>
+          <div>
+            <div style="padding-left: 15px">
+              The following modes of operation are available:
+              <ol>
+                <li>Drop and set (calculated radius using position)</li>
+                <li>Drop and set (specified radius)</li>
+                <li>Manual set (calculated radius using rode length)</li>
+              </ol>
+            </div>
+
+            <div style="padding-left: 15px">
+              <h5>1. Drop and set (calculated radius using position)</h5>
               <img
                 src="./img/anchor_watch.png"
                 style="max-width: 250px"
                 alt=""
               />
-
-              <img
-                src="./img/anchor_watch_rode.png"
-                style="max-width: 250px"
-                alt=""
-              />
-
-              <img
-                src="./img/anchor_watch_adjust.png"
-                style="max-width: 250px"
-                alt=""
-              />
-              <img
-                src="./img/anchor_circle.png"
-                style="max-width: 250px"
-                alt=""
-              />
-            </div>
-            <div style="padding-left: 15px">
-              After dropping the anchor, slide the toggle to <b>Drop</b> then:
+              <br />
+              In this mode of operation, after dropping the physical anchor,
+              slide the toggle to <b>Drop</b> then:
               <ol>
                 <li>
                   Let out the rode and when complete click <b>Set</b>. This will
@@ -1447,19 +1440,74 @@
                   will commence watching the vessel position and raise an alarm
                   if the vessel moves outside the maximum radius distance.
                 </li>
-                <li>
-                  The alarm radius can be adjusted by moving the
-                  <b>Set Radius</b> slider to the desired distance.<br />
-                  The <b>Anchor Position</b> can be shifted by using the arrow
-                  buttons <b>OR</b> on the map:
-                  <ul>
-                    <li>Click the anchor icon (to enter modify mode)</li>
-                    <li>Drag the anchor feature to the new location.</li>
-                    <li>Click <b>Finish</b> to exit modify mode.</li>
-                  </ul>
-                </li>
+              </ol>
+              <img
+                src="./img/anchor_watch_rode.png"
+                style="max-width: 250px"
+                alt=""
+              />
+            </div>
+            <div style="padding-left: 15px">
+              <h5>2. Drop and set (specified radius)</h5>
+              <img
+                src="./img/anchor_watch_2.png"
+                style="max-width: 250px"
+                alt=""
+              />
+              <br />
+              In this mode of operation, after dropping the physical anchor:
+              <ol>
+                <li>Check <b>Set Radius</b>.</li>
+                <li>Set the desired alarm radius (in meters).</li>
+                <li>Slide the toggle to <b>Drop</b></li>
               </ol>
             </div>
+            <div style="padding-left: 15px">
+              <h5>3. Manual set (calculated radius using rode length)</h5>
+              <img
+                src="./img/anchor_watch_3.png"
+                style="max-width: 250px"
+                alt=""
+              />
+              <br />
+              In this mode of operation, after dropping the anchor, and letting
+              out the rode:
+              <ol>
+                <li>Check the box next to the <b>Manual Set</b> button.</li>
+                <li>Set the rode length (in meters).</li>
+                <li>Click the <b>Manual Set</b> button.</li>
+              </ol>
+            </div>
+            <div>
+              Once set the anchor position and alarm radius are displayed on the
+              map.
+              <br />
+              <img
+                src="./img/anchor_circle.png"
+                style="max-width: 250px"
+                alt=""
+              />
+            </div>
+            <div>
+              <p>
+                The alarm radius can be adjusted by moving the
+                <b>Set Radius</b> slider to the desired distance.
+              </p>
+              <img
+                src="./img/anchor_watch_adjust.png"
+                style="max-width: 250px"
+                alt=""
+              />
+              <br />
+              The <b>Anchor Position</b> can be shifted by using the arrow
+              buttons <b>OR</b> on the map:
+              <ul>
+                <li>Click the anchor icon (to enter modify mode)</li>
+                <li>Drag the anchor feature to the new location.</li>
+                <li>Click <b>Finish</b> to exit modify mode.</li>
+              </ul>
+            </div>
+
             <div>
               <p>
                 When the server calculates that the maxumum radius has been

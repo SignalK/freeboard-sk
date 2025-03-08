@@ -10,7 +10,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { PipesModule } from 'src/app/lib/pipes';
 import { PopoverComponent } from './popover.component';
-import { AppInfo } from 'src/app/app.info';
+import { AppFacade } from 'src/app/app.facade';
 import { SKNotification } from 'src/app/types';
 /*********** Alarm Popover ***************
   title: string -  title text,
@@ -82,7 +82,7 @@ export class AlarmPopoverComponent {
   @Output() info: EventEmitter<string> = new EventEmitter();
   @Output() closed: EventEmitter<void> = new EventEmitter();
   _title: string;
-  constructor(public app: AppInfo) {}
+  constructor(public app: AppFacade) {}
   ngOnInit() {
     if (!this.alarm) {
       this.handleClose();

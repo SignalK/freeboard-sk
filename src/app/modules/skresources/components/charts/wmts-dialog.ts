@@ -12,7 +12,7 @@ import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatInputModule } from '@angular/material/input';
 import { MatListModule, MatSelectionListChange } from '@angular/material/list';
-import { AppInfo } from 'src/app/app.info';
+import { AppFacade } from 'src/app/app.facade';
 import { SKChart } from 'src/app/modules/skresources/resource-classes';
 import { PipesModule } from 'src/app/lib/pipes';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
@@ -131,7 +131,7 @@ export class WMTSDialog {
   protected hostUrl = '';
 
   constructor(
-    public app: AppInfo,
+    public app: AppFacade,
     public dialogRef: MatDialogRef<WMTSDialog>,
     private http: HttpClient,
     @Inject(MAT_DIALOG_DATA) public data: SKChart

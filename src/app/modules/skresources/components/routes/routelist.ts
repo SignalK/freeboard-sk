@@ -15,7 +15,7 @@ import { FormsModule } from '@angular/forms';
 import { MatInputModule } from '@angular/material/input';
 import { ScrollingModule } from '@angular/cdk/scrolling';
 
-import { AppInfo } from 'src/app/app.info';
+import { AppFacade } from 'src/app/app.facade';
 import { Convert } from 'src/app/lib/convert';
 import {
   FBRoutes,
@@ -51,7 +51,8 @@ export class RouteListComponent {
   @Output() refresh: EventEmitter<void> = new EventEmitter();
   @Output() properties: EventEmitter<FBResourceSelect> = new EventEmitter();
   @Output() points: EventEmitter<FBResourceSelect> = new EventEmitter();
-  @Output() notes: EventEmitter<FBResourceSelect> = new EventEmitter();
+  @Output() notes: EventEmitter<{ id: string; readOnly: boolean }> =
+    new EventEmitter();
   @Output() closed: EventEmitter<void> = new EventEmitter();
 
   filterList = [];
@@ -60,7 +61,7 @@ export class RouteListComponent {
   allSel = false;
   disableRefresh = false;
 
-  constructor(public app: AppInfo) {}
+  constructor(public app: AppFacade) {}
 
   ngOnInit() {
     this.initItems();
@@ -118,8 +119,11 @@ export class RouteListComponent {
   itemViewPoints(id: string) {
     this.points.emit({ id: id });
   }
-  itemViewNotes(id: string) {
-    this.notes.emit({ id: id });
+  itemViewNotes(rte: FBRoute) {
+    this.notes.emit({
+      id: rte[0],
+      readOnly: rte[1].feature?.properties?.readOnly ?? false
+    });
   }
 
   itemSetActive(id: string) {

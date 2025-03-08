@@ -12,13 +12,13 @@
             <mat-icon>arrow_back</mat-icon>
           </button>
         </div>
-        <div style="flex: 1 1 auto; padding-top: 7px">Notes:</div>
+        <div style="flex: 1 1 auto; padding-top: 7px">Notes</div>
       </div>
     </mat-card-title>
     <mat-card-content>
       <div style="display: flex">
         <div style="flex: 1 1 auto; padding-left: 3px">
-          <mat-form-field floatLabel="always" style="max-width: 127px">
+          <mat-form-field floatLabel="always" style="max-width: 170px">
             <mat-label>Type to filter list</mat-label>
             <input
               #ftext
@@ -76,7 +76,16 @@
       >
         <mat-card-content>
           <div style="display: flex">
-            <div style="flex: 1 1 auto; width: 215px">
+            <div style="flex: 1 1 auto; width: 215px; display: flex">
+              <div>
+                @if(r[1].properties?.skIcon) {
+                <mat-icon
+                  [svgIcon]="'sk-' + r[1].properties?.skIcon"
+                ></mat-icon>
+                } @else {
+                <mat-icon class="icon-note icon-accent">local_offer</mat-icon>
+                }
+              </div>
               <div
                 style="
                   text-overflow: ellipsis;
@@ -84,7 +93,6 @@
                   white-space: pre;
                 "
               >
-                <mat-icon>local_offer</mat-icon>
                 &nbsp;<b>{{r[1].name}}</b>
               </div>
             </div>

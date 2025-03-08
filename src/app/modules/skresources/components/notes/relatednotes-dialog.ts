@@ -19,7 +19,7 @@ import { MatToolbarModule } from '@angular/material/toolbar';
 
 import { AddTargetPipe } from './safe.pipe';
 
-import { AppInfo } from 'src/app/app.info';
+import { AppFacade } from 'src/app/app.facade';
 
 /********* RelatedNotesDialog **********
 	data: {
@@ -49,7 +49,7 @@ export class RelatedNotesDialog implements OnInit {
   relatedBy: string;
 
   constructor(
-    public app: AppInfo,
+    public app: AppFacade,
     public dialogRef: MatDialogRef<RelatedNotesDialog>,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     @Inject(MAT_DIALOG_DATA) public data: any

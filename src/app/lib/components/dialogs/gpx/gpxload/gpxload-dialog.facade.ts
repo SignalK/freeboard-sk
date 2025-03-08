@@ -3,9 +3,9 @@
 import { Injectable } from '@angular/core';
 import { Subject, Observable } from 'rxjs';
 
-import { AppInfo } from 'src/app/app.info';
+import { AppFacade } from 'src/app/app.facade';
 import { SignalKClient } from 'signalk-client-angular';
-import { SKResources } from 'src/app/modules';
+import { SKResources, SKTrack } from 'src/app/modules';
 import {
   GPX,
   GPXRoute,
@@ -27,7 +27,7 @@ export class GPXLoadFacade {
   // *******************************************************
 
   constructor(
-    private app: AppInfo,
+    private app: AppFacade,
     private skres: SKResources,
     public signalk: SignalKClient
   ) {
@@ -83,7 +83,7 @@ export class GPXLoadFacade {
   }
 
   // ** upload selected resources to Signal K server **
-  uploadToServer(res) {
+  async uploadToServer(res) {
     this.errorCount = 0;
     this.subCount = 0;
 
@@ -99,10 +99,30 @@ export class GPXLoadFacade {
       }
     }
 
+    const trkIds = [];
     for (let i = 0; i < res.trk.selected.length; i++) {
       if (res.trk.selected[i]) {
-        this.transformTrack(this.gpx.trk[i]);
+        const trk = this.transformTrack(this.gpx.trk[i]);
+        this.subCount++;
+        try {
+          const res = await this.skres.postToServer('tracks', trk);
+          this.subCount--;
+          if (Math.floor(res['statusCode'] / 100) === 2) {
+            trkIds.push(res.id);
+            this.app.debug('SUCCESS: Track added.');
+          } else {
+            this.errorCount++;
+          }
+          this.checkComplete();
+        } catch (err) {
+          this.errorCount++;
+          this.subCount--;
+          this.checkComplete();
+        }
       }
+    }
+    if (trkIds.length !== 0) {
+      this.skres.trackCacheFetchIds(trkIds);
     }
   }
 
@@ -260,25 +280,6 @@ export class GPXLoadFacade {
     if (gpxtrk.type) {
       trk.feature.properties['type'] = gpxtrk.type;
     }
-
-    this.subCount++;
-    this.signalk.api
-      .post(this.app.skApiVersion, `/resources/tracks`, trk)
-      .subscribe(
-        (r) => {
-          this.subCount--;
-          if (Math.floor(r['statusCode'] / 100) === 2) {
-            this.app.debug('SUCCESS: Track added.');
-          } else {
-            this.errorCount++;
-          }
-          this.checkComplete();
-        },
-        () => {
-          this.errorCount++;
-          this.subCount--;
-          this.checkComplete();
-        }
-      );
+    return trk;
   }
 }

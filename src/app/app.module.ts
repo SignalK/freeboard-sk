@@ -13,6 +13,7 @@ import { MatListModule } from '@angular/material/list';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatSidenavModule } from '@angular/material/sidenav';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatProgressBarModule } from '@angular/material/progress-bar';
 
 // ***
 import { AppComponent } from './app.component';
@@ -28,6 +29,7 @@ import {
   WaypointListComponent,
   ChartListComponent,
   NoteListComponent,
+  TrackListComponent,
   AISListComponent,
   BuildRouteComponent
 } from './modules';
@@ -54,6 +56,7 @@ import {
     MatListModule,
     MatIconModule,
     MatTooltipModule,
+    MatProgressBarModule,
     BrowserModule,
     BrowserAnimationsModule,
     FBMapComponent,
@@ -70,6 +73,7 @@ import {
     WaypointListComponent,
     ChartListComponent,
     NoteListComponent,
+    TrackListComponent,
     AISListComponent,
     BuildRouteComponent,
     ExperimentsComponent,

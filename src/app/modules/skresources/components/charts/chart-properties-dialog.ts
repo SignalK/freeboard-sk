@@ -9,7 +9,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatToolbarModule } from '@angular/material/toolbar';
-import { AppInfo } from 'src/app/app.info';
+import { AppFacade } from 'src/app/app.facade';
 import { SKChart } from 'src/app/modules/skresources/resource-classes';
 import { PipesModule } from 'src/app/lib/pipes';
 
@@ -158,7 +158,7 @@ export class ChartPropertiesDialog {
   public icon: string;
 
   constructor(
-    public app: AppInfo,
+    public app: AppFacade,
     public dialogRef: MatDialogRef<ChartPropertiesDialog>,
     @Inject(MAT_DIALOG_DATA) public data: SKChart
   ) {}

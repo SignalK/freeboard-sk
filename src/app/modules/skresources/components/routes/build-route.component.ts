@@ -15,7 +15,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
-import { AppInfo } from 'src/app/app.info';
+import { AppFacade } from 'src/app/app.facade';
 import { SignalKClient } from 'signalk-client-angular';
 import {
   CdkDragDrop,
@@ -148,7 +148,7 @@ export class BuildRouteComponent {
   @Output() save: EventEmitter<any> = new EventEmitter();
 
   constructor(
-    protected app: AppInfo,
+    protected app: AppFacade,
     private signalk: SignalKClient,
     private cdr: ChangeDetectorRef
   ) {}

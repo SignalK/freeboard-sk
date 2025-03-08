@@ -81,8 +81,6 @@ export interface FBAppData {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   alarms: Map<string, SKNotification>;
   notes: FBNotes;
-  regions: FBRegions;
-  tracks: SKTrack[];
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   resourceSets: { [key: string]: any }; // additional resource sets
   selfId: string;

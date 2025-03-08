@@ -1,7 +1,10 @@
 // OpenBridge Icons
-export const OpenBridgeIcons = {
+
+import { AppIconSet } from './app.icons';
+
+export const OpenBridgeIcons: AppIconSet = {
   path: './assets/img/ob',
-  ids: [
+  files: [
     'cent-iec.svg',
     'cent-off-iec.svg',
     'chart-display-settings-iec.svg',

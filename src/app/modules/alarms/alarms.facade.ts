@@ -4,7 +4,7 @@ import { Injectable } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Subject, Observable } from 'rxjs';
 
-import { AppInfo } from 'src/app/app.info';
+import { AppFacade } from 'src/app/app.facade';
 import { SKResources } from 'src/app/modules';
 import { SignalKClient } from 'signalk-client-angular';
 import { SKStreamProvider } from '../skstream/skstream.service';
@@ -16,6 +16,13 @@ interface IStatus {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   error: any;
   result: unknown;
+}
+
+export interface AnchorEvent {
+  radius?: number | null;
+  action: 'drop' | 'raise' | 'setRadius' | 'position' | undefined;
+  mode?: 'setManualAnchor' | 'dropAnchor' | undefined;
+  rodeLength?: number | null;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -31,7 +38,7 @@ export class AlarmsFacade {
   // *******************************************************
 
   constructor(
-    private app: AppInfo,
+    private app: AppFacade,
     private signalk: SignalKClient,
     private stream: SKStreamProvider,
     private skres: SKResources
@@ -57,11 +64,7 @@ export class AlarmsFacade {
   }
 
   // ******** ANCHOR WATCH EVENTS ************
-  anchorEvent(
-    e: { radius?: number; action: string },
-    context?: string,
-    position?: Position
-  ) {
+  anchorEvent(e: AnchorEvent, context?: string, position?: Position) {
     return new Promise((resolve, reject) => {
       context = context ? context : 'self';
       if (e.action === 'setRadius') {
@@ -80,18 +83,44 @@ export class AlarmsFacade {
           }
         );
       } else if (e.action === 'drop') {
-        // ** drop anchor
-        this.app.config.anchorRadius = e.radius;
-        this.signalk.post('/plugins/anchoralarm/dropAnchor', {}).subscribe(
-          () => {
-            this.app.saveConfig();
-          },
-          (err: HttpErrorResponse) => {
-            this.parseAnchorError(err, 'drop');
-            this.queryAnchorStatus(context, position);
+        if (e.mode === 'setManualAnchor') {
+          if (typeof e.rodeLength !== 'number') {
             reject();
+            return;
           }
-        );
+          // rode is already out
+          this.signalk
+            .post('/plugins/anchoralarm/setManualAnchor', {
+              rodeLength: e.rodeLength
+            })
+            .subscribe(
+              () => {
+                this.app.saveConfig();
+              },
+              (err: HttpErrorResponse) => {
+                this.parseAnchorError(err, 'drop');
+                this.queryAnchorStatus(context, position);
+                reject();
+              }
+            );
+        } else {
+          // ** drop anchor
+          this.app.config.anchorRadius = e.radius;
+          const params =
+            typeof e.radius === 'number' ? { radius: e.radius } : {};
+          this.signalk
+            .post('/plugins/anchoralarm/dropAnchor', params)
+            .subscribe(
+              () => {
+                this.app.saveConfig();
+              },
+              (err: HttpErrorResponse) => {
+                this.parseAnchorError(err, 'drop');
+                this.queryAnchorStatus(context, position);
+                reject();
+              }
+            );
+        }
       } else if (e.action === 'raise') {
         // ** raise anchor
         this.app.data.alarms.delete('anchor');
@@ -300,7 +329,7 @@ export class AlarmsFacade {
   private processNotifications(msg: NotificationMessage) {
     const sound = this.app.config.muteSound
       ? false
-      : msg.result.value?.method.includes('sound')
+      : msg.result.value?.method?.includes('sound')
       ? true
       : false;
     switch (msg.type) {

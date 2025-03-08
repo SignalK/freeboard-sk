@@ -12,7 +12,7 @@ import {
   MatBottomSheetRef,
   MAT_BOTTOM_SHEET_DATA
 } from '@angular/material/bottom-sheet';
-import { AppInfo } from 'src/app/app.info';
+import { AppFacade } from 'src/app/app.facade';
 import { SignalKClient } from 'signalk-client-angular';
 import { SKResourceSet } from '../../resourceset-class';
 
@@ -122,7 +122,7 @@ export class ResourceSetModal implements OnInit {
   public isResourceSet = false;
 
   constructor(
-    public app: AppInfo,
+    public app: AppFacade,
     private cdr: ChangeDetectorRef,
     private sk: SignalKClient,
     public modalRef: MatBottomSheetRef<ResourceSetModal>,

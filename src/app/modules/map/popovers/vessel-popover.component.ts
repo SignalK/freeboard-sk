@@ -16,7 +16,7 @@ import { PipesModule } from 'src/app/lib/pipes';
 import { PopoverComponent } from './popover.component';
 import { CompassComponent } from './compass.component';
 
-import { AppInfo } from 'src/app/app.info';
+import { AppFacade } from 'src/app/app.facade';
 import { Buddies, SKVessel } from 'src/app/modules';
 import { Convert } from 'src/app/lib/convert';
 import { GeoUtils } from 'src/app/lib/geoutils';
@@ -212,7 +212,7 @@ export class VesselPopoverComponent {
   position: Position = [0, 0];
   isFlagged = false;
 
-  constructor(protected app: AppInfo, private buddies: Buddies) {}
+  constructor(protected app: AppFacade, private buddies: Buddies) {}
 
   ngOnInit() {
     if (!this.vessel) {

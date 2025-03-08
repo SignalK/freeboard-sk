@@ -1,7 +1,6 @@
 // ** Freeboard Map configuration **
 
 import { Style, Icon, Text, Stroke, Fill, Circle } from 'ol/style';
-export * from './signalk-icons';
 
 export const mapInteractions = [
   { name: 'dragpan' },
@@ -240,24 +239,6 @@ export const waypointStyles = {
 };
 
 // ***********
-const noteIcon = new Icon({
-  src: './assets/img/note.png',
-  rotateWithView: false,
-  size: [25, 25],
-  anchor: [5, 3],
-  anchorXUnits: 'pixels',
-  anchorYUnits: 'pixels'
-});
-
-export const noteStyles = {
-  default: new Style({
-    image: noteIcon,
-    text: new Text({
-      text: '',
-      offsetY: -12
-    })
-  })
-};
 
 export const anchorStyles = {
   line: new Style({
@@ -285,6 +266,24 @@ export const anchorStyles = {
       anchorXUnits: 'pixels',
       anchorYUnits: 'pixels',
       rotateWithView: false
+    })
+  })
+};
+
+// ***********
+export const regionStyles = {
+  'notice-to-mariners': new Style({
+    stroke: new Stroke({
+      color: 'rgb(206, 107, 132)',
+      lineDash: [5, 5],
+      width: 2
+    }),
+    fill: new Fill({
+      color: 'rgba(206, 107, 132, 0.2)'
+    }),
+    text: new Text({
+      text: '',
+      offsetY: 0
     })
   })
 };
@@ -625,35 +624,15 @@ export const aisVesselStyles = {
 };
 
 // ***********
-const atonIcon = new Icon({
-  src: './assets/img/aton.png',
-  rotateWithView: false,
-  rotation: 0,
-  anchor: [12.5, 12.5],
-  anchorXUnits: 'pixels',
-  anchorYUnits: 'pixels',
-  scale: 0.75
-});
-
-export const atonStyles = {
-  default: new Style({
-    image: atonIcon,
-    text: new Text({
-      text: '',
-      offsetX: 0,
-      offsetY: -18
-    })
-  })
-};
 
 const baseStationIcon = new Icon({
-  src: './assets/img/aton_basestation.png',
-  rotateWithView: false,
-  rotation: 0,
-  anchor: [12.5, 14.5],
+  src: './assets/img/atons/basestation.svg',
+  scale: 0.4,
+  anchor: [23, 49],
   anchorXUnits: 'pixels',
   anchorYUnits: 'pixels',
-  scale: 0.75
+  rotateWithView: false,
+  rotation: 0
 });
 
 export const basestationStyles = {
@@ -710,28 +689,6 @@ export const sarStyles = {
     text: new Text({
       text: '',
       offsetY: -18
-    })
-  })
-};
-
-// ***********
-const metoIcon = new Icon({
-  src: './assets/img/weather_station.png',
-  rotateWithView: false,
-  rotation: 0,
-  size: [35, 25],
-  anchor: [1, 25],
-  anchorXUnits: 'pixels',
-  anchorYUnits: 'pixels',
-  scale: 0.75
-});
-
-export const meteoStyles = {
-  default: new Style({
-    image: metoIcon,
-    text: new Text({
-      text: '',
-      offsetY: -30
     })
   })
 };

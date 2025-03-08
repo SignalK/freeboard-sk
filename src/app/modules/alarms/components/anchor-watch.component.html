@@ -2,9 +2,6 @@
   <mat-card>
     <mat-card-title>
       <div class="title-block">
-        <div style="flex: 1 1 auto">
-          <div style="padding-top: 7px">Anchor Watch:</div>
-        </div>
         <div style="width: 50px">
           <button
             mat-icon-button
@@ -12,12 +9,12 @@
             matTooltip="Close"
             matTooltipPosition="left"
           >
-            <mat-icon>close</mat-icon>
+            <mat-icon>arrow_back</mat-icon>
           </button>
         </div>
+        <div style="flex: 1 1 auto; padding-top: 7px">Anchor Watch</div>
       </div>
     </mat-card-title>
-
     <mat-card-content>
       <div>
         <b>Status:</b>
@@ -48,19 +45,95 @@
     </mat-card-content>
 
     <mat-card-actions>
-      <div style="display: flex">
-        <div></div>
-        <div style="flex: 1 1 auto; text-align: right">
+      <div style="width: 100%">
+        <div>
           RAISE
           <mat-slide-toggle
             #slideCtl
             [hideIcon]="true"
-            [disabled]="disable"
+            [disabled]="disableRaiseDrop || ctlAlarmRadius.invalid"
             [checked]="!raised"
-            (change)="setAnchor($event)"
+            (change)="dropRaiseAnchor($event)"
           >
           </mat-slide-toggle>
           DROP
+        </div>
+        <div [style.display]="raised ? 'flex' : 'none'">
+          <div style="flex: 2">
+            <mat-checkbox
+              #chkDefaultRadius
+              (change)="onDefaultRadiusChecked($event)"
+              [checked]="useDefaultRadius"
+              [disabled]="!raised || useSetManual"
+              >Set Radius
+            </mat-checkbox>
+          </div>
+          <div>
+            <mat-form-field floatLabel="always" style="max-width: 130px">
+              <mat-label>Alarm Radius (m)</mat-label>
+              <input
+                #ctlAlarmRadius="ngModel"
+                [(ngModel)]="defaultAlarmRadius"
+                [disabled]="!raised || !useDefaultRadius || useSetManual"
+                matInput
+                required
+                type="number"
+                min="1"
+                step="1"
+              />
+              @if(ctlAlarmRadius.invalid && (ctlAlarmRadius.dirty ||
+              ctlAlarmRadius.touched)) {
+              <mat-error>Value must be greater than 0.</mat-error>
+              }
+            </mat-form-field>
+          </div>
+        </div>
+
+        <div [style.display]="raised ? 'flex' : 'none'">
+          <div>
+            <mat-checkbox
+              #chkSetManual
+              (change)="onSetManualCheck($event)"
+              [checked]="useSetManual"
+              [disabled]="!raised || useDefaultRadius"
+            >
+            </mat-checkbox>
+          </div>
+
+          <div style="flex: 2">
+            <button
+              mat-raised-button
+              (click)="setManualAnchor()"
+              [disabled]="
+                !raised ||
+                useDefaultRadius ||
+                !useSetManual ||
+                ctlRodeLength.invalid
+              "
+            >
+              Manual Set
+            </button>
+          </div>
+
+          <div>
+            <mat-form-field floatLabel="always" style="max-width: 130px">
+              <mat-label>Rode Length (m)</mat-label>
+              <input
+                #ctlRodeLength="ngModel"
+                [(ngModel)]="defaultRodeLength"
+                [disabled]="!raised || useDefaultRadius || !useSetManual"
+                matInput
+                required
+                type="number"
+                min="1"
+                step="1"
+              />
+              @if(ctlRodeLength.invalid && (ctlRodeLength.dirty ||
+              ctlRodeLength.touched)) {
+              <mat-error>Value must be greater than 0.</mat-error>
+              }
+            </mat-form-field>
+          </div>
         </div>
       </div>
     </mat-card-actions>
@@ -73,14 +146,13 @@
       [selectedIndex]="rodeOut ? 1 : 0"
       #stepper
     >
-      <mat-step label="Let out rode" editable="false">
+      <mat-step
+        [label]="rodeOut ? 'Anchor Set' : 'Let out rode'"
+        editable="false"
+      >
         <i>When rode is out click <b>Set</b>.</i>
         <div>
-          <button
-            mat-mini-fab
-            matStepperNext
-            (click)="rodeOut = true; setRadius()"
-          >
+          <button mat-mini-fab matStepperNext (click)="stepSetRode()">
             Set
           </button>
         </div>
@@ -89,13 +161,13 @@
         <div>
           <div>
             <br />
-            <b>Set Radius:</b>
+            <b>Adjust Radius:</b>
           </div>
           <div style="display: flex">
             <div>
               <mat-slider
                 discrete
-                [disabled]="disable"
+                [disabled]="disableRaiseDrop"
                 [min]="this.feet ? mToFt(min) : min"
                 [max]="this.feet ? mToFt(max) : max"
                 step="1"

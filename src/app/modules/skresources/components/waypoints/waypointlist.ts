@@ -16,7 +16,7 @@ import { FormsModule } from '@angular/forms';
 import { MatInputModule } from '@angular/material/input';
 import { ScrollingModule } from '@angular/cdk/scrolling';
 
-import { AppInfo } from 'src/app/app.info';
+import { AppFacade } from 'src/app/app.facade';
 import { Position } from 'src/app/types';
 import { FBWaypoints, FBWaypoint, FBResourceSelect } from 'src/app/types';
 
@@ -50,7 +50,8 @@ export class WaypointListComponent {
   @Output() properties: EventEmitter<FBResourceSelect> = new EventEmitter();
   @Output() closed: EventEmitter<void> = new EventEmitter();
   @Output() center: EventEmitter<Position> = new EventEmitter();
-  @Output() notes: EventEmitter<FBResourceSelect> = new EventEmitter();
+  @Output() notes: EventEmitter<{ id: string; readOnly: boolean }> =
+    new EventEmitter();
 
   filterList = [];
   filterText = '';
@@ -58,7 +59,7 @@ export class WaypointListComponent {
   allSel = false;
   disableRefresh = false;
 
-  constructor(public app: AppInfo) {}
+  constructor(public app: AppFacade) {}
 
   ngOnInit() {
     this.initItems();
@@ -141,8 +142,11 @@ export class WaypointListComponent {
     this.refresh.emit();
   }
 
-  itemViewNotes(id: string) {
-    this.notes.emit({ id: id });
+  itemViewNotes(wpt: FBWaypoint) {
+    this.notes.emit({
+      id: wpt[0],
+      readOnly: wpt[1].feature?.properties?.readOnly ?? false
+    });
   }
 
   filterKeyUp(e: string) {

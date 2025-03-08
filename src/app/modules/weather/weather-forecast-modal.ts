@@ -17,7 +17,7 @@ import {
   MatBottomSheetRef,
   MAT_BOTTOM_SHEET_DATA
 } from '@angular/material/bottom-sheet';
-import { AppInfo } from 'src/app/app.info';
+import { AppFacade } from 'src/app/app.facade';
 import { SignalKClient } from 'signalk-client-angular';
 import { Convert } from 'src/app/lib/convert';
 import { WeatherData, WeatherDataComponent } from './weather-data.component';
@@ -92,7 +92,7 @@ export class WeatherForecastModal implements OnInit {
   protected errorText = 'No weather data found!';
 
   constructor(
-    public app: AppInfo,
+    public app: AppFacade,
     private sk: SignalKClient,
     public modalRef: MatBottomSheetRef<WeatherForecastModal>,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

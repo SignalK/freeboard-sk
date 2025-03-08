@@ -2,31 +2,19 @@
   <div class="appframe mat-app-background">
     <!--toolbar button menus-->
     <mat-menu #layersmenu="matMenu">
-      <button
-        mat-menu-item
-        (click)="sidemenu.close(); displayLeftMenu('routeList', true)"
-      >
+      <button mat-menu-item (click)="displayLeftMenu('routeList', true)">
         <mat-icon class="icon-route" svgIcon="route"></mat-icon>
         &nbsp;Routes
       </button>
-      <button
-        mat-menu-item
-        (click)="sidemenu.close(); displayLeftMenu('waypointList', true)"
-      >
+      <button mat-menu-item (click)="displayLeftMenu('waypointList', true)">
         <mat-icon class="icon-waypoint">location_on</mat-icon>
         &nbsp;Waypoints
       </button>
-      <button
-        mat-menu-item
-        (click)="sidemenu.close(); displayLeftMenu('noteList', true)"
-      >
+      <button mat-menu-item (click)="displayLeftMenu('noteList', true)">
         <mat-icon>local_offer</mat-icon>
         &nbsp;Notes
       </button>
-      <button
-        mat-menu-item
-        (click)="sidemenu.close(); displayLeftMenu('chartList', true)"
-      >
+      <button mat-menu-item (click)="displayLeftMenu('chartList', true)">
         <mat-icon>map</mat-icon>
         &nbsp;Charts
       </button>
@@ -42,7 +30,7 @@
           &nbsp;Import
         </a>
       </ap-file-input>
-      <button mat-menu-item (click)="sidemenu.close(); exportToGPX()">
+      <button mat-menu-item (click)="exportToGPX()">
         <mat-icon class="ob" svgIcon="route-export"></mat-icon>
         &nbsp;Export
       </button>
@@ -53,19 +41,14 @@
         @for(p of app.config.resources.paths.sort(); track p) {
         <div>
           @switch(p) { @case('tracks') {
-          <button
-            mat-menu-item
-            (click)="openExperiment({ choice: p, value: null })"
-          >
+          <button mat-menu-item (click)="displayLeftMenu('trackList', true)">
             <mat-icon class="icon-warn">show_chart</mat-icon>
-            <span>Tracks</span>
+            &nbsp;Tracks
           </button>
           } @default {
           <button
             mat-menu-item
-            (click)="
-              sidemenu.close(); openExperiment({ choice: p, value: null })
-            "
+            (click)="openExperiment({ choice: p, value: null })"
           >
             <mat-icon
               class="ob"
@@ -179,104 +162,67 @@
         <span>Draw Region</span>
       </a>
     </mat-menu>
+
+    <mat-menu #mainmenu="matMenu">
+      @if(!app.hostParams.token && app.data.loginRequired){
+      <a mat-menu-item (click)="showLogin(null, false)">
+        <mat-icon
+          [matBadge]="app.data.loggedInBadgeText"
+          matBadgeOverlap="true"
+          matBadgeSize="medium"
+          matBadgePosition="below after"
+          [matBadgeHidden]="app.data.loggedIn"
+        >
+          account_circle
+        </mat-icon>
+        <span>{{ app.data.loggedIn ? 'Change User' : 'Login' }}</span>
+      </a>
+      }
+      <mat-divider></mat-divider>
+      @if((!draw.enabled || !measure.enabled) && app.data.anchor.hasApi) {
+      <a mat-menu-item (click)="displayLeftMenu('anchorWatch', true)">
+        <mat-icon>anchor</mat-icon>
+        <span>Anchor Watch</span>
+      </a>
+      }
+      <a mat-menu-item (click)="displayLeftMenu('aisList', true)">
+        <mat-icon>directions_boat</mat-icon>
+        <span>Vessels</span>
+      </a>
+
+      <a mat-menu-item (click)="importResourceSet()">
+        <mat-icon>upload</mat-icon>
+        <span>Resource Sets</span>
+      </a>
+
+      @if(features.playbackAPI) {
+      <a mat-menu-item (click)="showPlaybackSettings()">
+        <mat-icon>history</mat-icon>
+        <span>Playback History</span>
+      </a>
+      }
+
+      <mat-divider></mat-divider>
+      <a mat-menu-item (click)="openSettings()">
+        <mat-icon>settings</mat-icon>
+        <span>Settings</span>
+      </a>
+      <mat-divider></mat-divider>
+      <a mat-menu-item (click)="openAbout()">
+        <mat-icon class="icon-accent">info_outline</mat-icon>
+        <span>About</span>
+      </a>
+
+      <button mat-menu-item (click)="app.showHelp()">
+        <mat-icon class="icon-accent">help</mat-icon>
+        <span>Help</span>
+      </button>
+    </mat-menu>
     <!--/toolbar button menus-->
 
     <!-- content -->
     <div class="view" theme-main>
       <mat-sidenav-container hasBackdrop="false">
-        <!--left menu-->
-        <mat-sidenav
-          #sidemenu
-          mode="over"
-          (openedChange)="leftSideNavAction($event)"
-        >
-          <mat-nav-list>
-            <mat-list-item>
-              <div style="display: flex">
-                <div>
-                  <a (click)="sidemenu.close()">
-                    <mat-icon>arrow_back</mat-icon>
-                  </a>
-                </div>
-                <div style="flex: 1 1 auto; text-align: right">
-                  <a
-                    class="icon-primary"
-                    mat-icon-button
-                    (click)="openAbout()"
-                    matTooltip="About Freeboard"
-                    matTooltipPosition="right"
-                  >
-                    <mat-icon>info_outline</mat-icon>
-                  </a>
-
-                  <button
-                    mat-icon-button
-                    (click)="app.showHelp()"
-                    matTooltip="Open Help."
-                    matTooltipPosition="right"
-                  >
-                    <mat-icon>help</mat-icon>
-                  </button>
-                </div>
-              </div>
-            </mat-list-item>
-            <mat-divider></mat-divider>
-            @if((!draw.enabled || !measure.enabled) && app.data.anchor.hasApi) {
-            <a
-              mat-list-item
-              (click)="sidemenu.close(); displayLeftMenu('anchorWatch', true)"
-            >
-              <mat-icon>anchor</mat-icon>
-              &nbsp;Anchor Watch
-            </a>
-            }
-            <a
-              mat-list-item
-              (click)="sidemenu.close(); displayLeftMenu('aisList', true)"
-            >
-              <mat-icon>directions_boat</mat-icon>
-              &nbsp;Vessels
-            </a>
-
-            <mat-divider></mat-divider>
-            <a
-              mat-list-item
-              (click)="sidemenu.close(); importResourceSet()"
-              matTooltip="Import ResourceSet"
-            >
-              <mat-icon>upload</mat-icon>
-              &nbsp;Resource Set
-            </a>
-
-            @if(features.playbackAPI) {
-            <a mat-list-item (click)="sidemenu.close(); showPlaybackSettings()">
-              <mat-icon>history</mat-icon>
-              &nbsp;Playback History
-            </a>
-            }
-
-            <mat-divider></mat-divider>
-            <a mat-list-item (click)="sidemenu.close(); openSettings()">
-              <mat-icon>settings</mat-icon>
-              &nbsp;Settings
-            </a>
-            @if(!app.hostParams.token && app.data.loginRequired){
-            <a mat-list-item (click)="sidemenu.close(); showLogin(null, false)">
-              <mat-icon
-                [matBadge]="app.data.loggedInBadgeText"
-                matBadgeOverlap="true"
-                matBadgeSize="medium"
-                matBadgePosition="below after"
-                [matBadgeHidden]="app.data.loggedIn"
-              >
-                account_circle
-              </mat-icon>
-              &nbsp;{{ app.data.loggedIn ? 'Change User' : 'Login' }}
-            </a>
-            }
-          </mat-nav-list>
-        </mat-sidenav>
-
         <!--instruments-->
         @if(app.data.optAppPanel) {
         <mat-sidenav
@@ -353,7 +299,19 @@
         </mat-sidenav>
         }
         <mat-sidenav-content style="overflow: hidden">
-          @if(app.data.autopilot.console) {
+          @if(app.sIsFetching()) {
+          <div
+            style="
+              z-index: 1000;
+              position: fixed;
+              top: 0px;
+              left: 0px;
+              width: 100%;
+            "
+          >
+            <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+          </div>
+          } @if(app.data.autopilot.console) {
           <autopilot-console></autopilot-console>
           } @if(app.data.buildRoute.show) {
           <route-builder (save)="skres.showRouteNew($event)"> </route-builder>
@@ -367,7 +325,7 @@
                 [disabled]="draw.enabled || measure.enabled"
                 matTooltip="Menu"
                 matTooltipPosition="right"
-                (click)="sidemenu.toggle()"
+                [matMenuTriggerFor]="mainmenu"
               >
                 <mat-icon
                   [matBadge]="app.data.loggedInBadgeText"
@@ -386,7 +344,7 @@
                 mat-mini-fab
                 matTooltip="Alarms"
                 matTooltipPosition="right"
-                (click)="sidemenu.close(); openAlarmsDialog()"
+                (click)="openAlarmsDialog()"
               >
                 <mat-icon>warning </mat-icon>
               </button>
@@ -398,7 +356,6 @@
                 [disabled]="draw.enabled || measure.enabled"
                 matTooltip="Routes, Waypoints, Notes, etc."
                 matTooltipPosition="right"
-                (click)="sidemenu.close()"
                 [matMenuTriggerFor]="layersmenu"
               >
                 <mat-icon>layers</mat-icon>
@@ -411,7 +368,6 @@
                 [disabled]="draw.enabled || measure.enabled"
                 matTooltip="Draw / Measure"
                 matTooltipPosition="right"
-                (click)="sidemenu.close()"
                 [matMenuTriggerFor]="editmenu"
               >
                 <mat-icon>edit</mat-icon>
@@ -421,8 +377,8 @@
               <button
                 mat-mini-fab
                 [ngClass]="{
-                  'button-primary': !app.config.map.northUp,
-                  'button-toolbar': app.config.map.northUp
+                  'button-primary': !app.sMapNorthUp(),
+                  'button-toolbar': app.sMapNorthUp()
                 }"
                 (click)="toggleNorthUp()"
                 [matTooltip]="
@@ -479,7 +435,6 @@
                 [disabled]="draw.enabled || measure.enabled"
                 matTooltip="More actions"
                 matTooltipPosition="right"
-                (click)="sidemenu.close()"
                 [matMenuTriggerFor]="settingsmenu"
               >
                 <mat-icon>more_horiz</mat-icon>
@@ -518,7 +473,9 @@
               (refresh)="skres.getRoutes()"
               (properties)="skres.resourceProperties($event)"
               (points)="featureProperties({ id: $event.id, type: 'route' })"
-              (notes)="skres.showRelatedNotes($event.id, 'route')"
+              (notes)="
+                skres.showRelatedNotes($event.id, 'route', $event.readOnly)
+              "
               (closed)="displayLeftMenu()"
             >
             </route-list>
@@ -534,7 +491,9 @@
               (refresh)="skres.getWaypoints()"
               (properties)="skres.resourceProperties($event)"
               (center)="centerResource($event)"
-              (notes)="skres.showRelatedNotes($event.id, 'waypoint')"
+              (notes)="
+                skres.showRelatedNotes($event.id, 'waypoint', $event.readOnly)
+              "
               (closed)="displayLeftMenu()"
             >
             </waypoint-list>
@@ -558,6 +517,12 @@
               (closed)="displayLeftMenu()"
             >
             </note-list>
+            } } @if(display.trackList) { @defer {
+            <track-list
+              (center)="centerResource($event)"
+              (closed)="displayLeftMenu()"
+            >
+            </track-list>
             } } @if(display.aisList) { @defer {
             <ais-list
               [aisTargets]="app.data.vessels.aisTargets"
@@ -571,7 +536,7 @@
             </ais-list>
             } } @if(display.anchorWatch) {
             <anchor-watch
-              [disable]="!app.data.vessels.showSelf"
+              [disableRaiseDrop]="!app.data.vessels.showSelf"
               [radius]="app.data.anchor.radius"
               [feet]="app.config.units.depth !== 'm' ? true : false"
               [raised]="app.data.anchor.raised"
@@ -781,7 +746,7 @@
               [setFocus]="display.map.setFocus"
               [mapCenter]="display.map.center"
               [mapZoom]="app.config.map.zoomLevel"
-              [northUp]="app.config.map.northUp"
+              [northUp]="app.sMapNorthUp()"
               [movingMap]="app.config.map.moveMap"
               [vesselTrail]="app.data.trail"
               [activeRoute]="app.data.activeRoute"
@@ -799,9 +764,7 @@
               (exitedMovingMap)="toggleMoveMap($event)"
               (focusVessel)="switchActiveVessel($event)"
               (info)="featureProperties($event)"
-              (menuItemSelected)="
-                sidemenu.close(); handleContextMenuSelection($event)
-              "
+              (menuItemSelected)="handleContextMenuSelection($event)"
             >
             </fb-map>
           </div>

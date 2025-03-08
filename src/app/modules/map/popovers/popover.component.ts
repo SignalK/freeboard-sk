@@ -37,7 +37,13 @@ measure: boolean= measure mode;
       [ngClass]="{ measure: measure }"
     >
       <div class="popover-title">
-        <div style="flex: 1 1 auto;overflow-x: auto;">{{ title }}</div>
+        <div style="flex: 1 1 auto;overflow-x: auto;">
+          @if(icon) {
+          <mat-icon [class]="icon.class" [svgIcon]="icon.svgIcon">{{
+            icon.name
+          }}</mat-icon>
+          } &nbsp;{{ title }}
+        </div>
         @if(canClose) {
         <div style="">
           <button mat-icon-button (click)="handleClose()">
@@ -57,6 +63,7 @@ measure: boolean= measure mode;
 })
 export class PopoverComponent {
   @Input() title: string;
+  @Input() icon: { class: string; name?: string; svgIcon?: string };
   @Input() canClose = true;
   @Input() measure = false;
   @Output() closed: EventEmitter<void> = new EventEmitter();

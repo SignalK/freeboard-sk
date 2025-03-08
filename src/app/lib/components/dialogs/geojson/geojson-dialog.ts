@@ -17,7 +17,7 @@ import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 
 import { GeoJSONLoadFacade } from './geojson-dialog.facade';
-import { AppInfo } from 'src/app/app.info';
+import { AppFacade } from 'src/app/app.facade';
 
 //** GeoJSON import dialog **
 @Component({
@@ -57,7 +57,7 @@ export class GeoJSONImportDialog implements OnInit {
   private unsubscribe = [];
 
   constructor(
-    public app: AppInfo,
+    public app: AppFacade,
     public facade: GeoJSONLoadFacade,
     public dialogRef: MatDialogRef<GeoJSONImportDialog>,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

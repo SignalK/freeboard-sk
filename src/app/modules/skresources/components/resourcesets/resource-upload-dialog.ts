@@ -18,7 +18,7 @@ import {
 import { PipesModule } from 'src/app/lib/pipes';
 import { SignalKClient } from 'signalk-client-angular';
 import { FileInputComponent } from 'src/app/lib/components';
-import { AppInfo } from 'src/app/app.info';
+import { AppFacade } from 'src/app/app.facade';
 
 //** Resources upload dialog **
 @Component({
@@ -53,7 +53,7 @@ export class ResourceImportDialog implements OnInit {
   private unsubscribe = [];
 
   constructor(
-    public app: AppInfo,
+    public app: AppFacade,
     public skclient: SignalKClient,
     public dialogRef: MatDialogRef<ResourceImportDialog>,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

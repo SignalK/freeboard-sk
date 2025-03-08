@@ -16,7 +16,7 @@ import { FormsModule } from '@angular/forms';
 import { MatInputModule } from '@angular/material/input';
 import { ScrollingModule } from '@angular/cdk/scrolling';
 
-import { AppInfo } from 'src/app/app.info';
+import { AppFacade } from 'src/app/app.facade';
 import { Position } from 'src/app/types';
 import { FBNotes, FBNote, FBResourceSelect, SKPosition } from 'src/app/types';
 
@@ -52,7 +52,7 @@ export class NoteListComponent {
   showNotes = false;
   draftOnly = false;
 
-  constructor(public app: AppInfo) {}
+  constructor(public app: AppFacade) {}
 
   ngOnInit() {
     this.showNotes = this.app.config.notes;

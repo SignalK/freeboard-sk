@@ -17,7 +17,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { Subscription } from 'rxjs';
 import { SignalKClient } from 'signalk-client-angular';
 import { AlarmsFacade } from '../alarms.facade';
-import { AppInfo } from 'src/app/app.info';
+import { AppFacade } from 'src/app/app.facade';
 
 /********* AlarmsDialog *********
 	data: {
@@ -118,7 +118,7 @@ export class AlarmsDialog implements OnInit {
   private obs: Subscription;
 
   constructor(
-    private app: AppInfo,
+    private app: AppFacade,
     private signalk: SignalKClient,
     private facade: AlarmsFacade,
     public dialogRef: MatDialogRef<AlarmsDialog>,

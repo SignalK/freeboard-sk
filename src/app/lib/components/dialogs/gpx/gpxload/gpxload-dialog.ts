@@ -2,7 +2,7 @@ import { Component, OnInit, Inject } from '@angular/core';
 import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 
 import { GPXLoadFacade } from './gpxload-dialog.facade';
-import { AppInfo } from 'src/app/app.info';
+import { AppFacade } from 'src/app/app.facade';
 
 //** GPXLoad dialog **
 @Component({
@@ -42,7 +42,7 @@ export class GPXImportDialog implements OnInit {
   private unsubscribe = [];
 
   constructor(
-    public app: AppInfo,
+    public app: AppFacade,
     public facade: GPXLoadFacade,
     public dialogRef: MatDialogRef<GPXImportDialog>,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

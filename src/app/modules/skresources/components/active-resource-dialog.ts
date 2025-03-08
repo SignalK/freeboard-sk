@@ -9,12 +9,18 @@ import {
   MatBottomSheetRef,
   MAT_BOTTOM_SHEET_DATA
 } from '@angular/material/bottom-sheet';
-import { CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop';
+import {
+  CdkDragDrop,
+  moveItemInArray,
+  CdkDrag,
+  CdkDropList
+} from '@angular/cdk/drag-drop';
 import { Position } from 'src/app/types';
-import { AppInfo } from 'src/app/app.info';
+import { AppFacade } from 'src/app/app.facade';
 
 import { SKWaypoint, SKRoute } from '../resource-classes';
 import { GeoUtils } from 'src/app/lib/geoutils';
+import { SKResources } from '../resources.service';
 
 /********* ActiveResourcePropertiesModal **********
 	data: {
@@ -33,7 +39,9 @@ import { GeoUtils } from 'src/app/lib/geoutils';
     MatIconModule,
     MatCardModule,
     MatButtonModule,
-    MatToolbarModule
+    MatToolbarModule,
+    CdkDrag,
+    CdkDropList
   ],
   template: `
     <div class="_ap-dest" style="display:flex;flex-direction:column;">
@@ -79,7 +87,7 @@ import { GeoUtils } from 'src/app/lib/geoutils';
           (cdkDropListDropped)="drop($event)"
         >
           @for(pt of points; track pt; let i = $index) {
-          <mat-card cdkDrag>
+          <mat-card cdkDrag [cdkDragDisabled]="readOnly">
             <mat-card-content style="padding:3px;">
               <div class="point-drop-placeholder" *cdkDragPlaceholder></div>
 
@@ -128,32 +136,12 @@ import { GeoUtils } from 'src/app/lib/geoutils';
                       <span [innerText]="legs[i].distance"></span>
                     </div>
                   </div>
-                  <!--
-                  <div style="display:flex;">
-                    <div class="key-label"></div>
-                    <div
-                      style="flex: 1 1 auto;">
-                      <span
-                        [innerText]="
-                          pt[1]
-                            | coords : app.config.selections.positionFormat : true
-                        "
-                      ></span>
-                      &nbsp;
-                      <span
-                        [innerText]="
-                          pt[0] | coords : app.config.selections.positionFormat
-                        "
-                      ></span>
-                    </div>
-                  </div>
-                  -->
                 </div>
+                @if(!readOnly && data.type === 'route') {
                 <div cdkDragHandle matTooltip="Drag to re-order points">
-                  @if(data.type === 'route') {
                   <mat-icon>drag_indicator</mat-icon>
-                  }
                 </div>
+                }
               </div>
             </mat-card-content>
           </mat-card>
@@ -197,17 +185,17 @@ export class ActiveResourcePropertiesModal implements OnInit {
   protected selIndex = -1;
   protected clearButtonText = 'Clear';
   protected showClearButton = false;
+  protected readOnly: boolean;
 
   constructor(
-    public app: AppInfo,
+    public app: AppFacade,
     public modalRef: MatBottomSheetRef<ActiveResourcePropertiesModal>,
     @Inject(MAT_BOTTOM_SHEET_DATA)
     public data: {
       title: string;
       type: string;
       resource: SKWaypoint | SKRoute;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      skres: any;
+      skres: SKResources;
     }
   ) {}
 
@@ -230,7 +218,9 @@ export class ActiveResourcePropertiesModal implements OnInit {
           this.selIndex = this.app.data.navData.pointIndex;
           this.showClearButton = true;
         }
-        this.pointMeta = this.getPointMeta();
+        this.readOnly =
+          this.data.resource[1].feature.properties?.readOnly ?? false;
+        this.pointMeta = this.getPointsMeta();
       }
     }
   }
@@ -245,7 +235,7 @@ export class ActiveResourcePropertiesModal implements OnInit {
     });
   }
 
-  getPointMeta() {
+  getPointsMeta() {
     if (
       this.data.resource[1].feature.properties.coordinatesMeta &&
       Array.isArray(this.data.resource[1].feature.properties.coordinatesMeta)
@@ -307,7 +297,7 @@ export class ActiveResourcePropertiesModal implements OnInit {
           e.currentIndex
         );
       }
-      this.pointMeta = this.getPointMeta();
+      moveItemInArray(this.pointMeta, e.previousIndex, e.currentIndex);
 
       this.updateFlag(selPosition);
       this.data.skres.updateRouteCoords(

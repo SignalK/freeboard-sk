@@ -4,9 +4,10 @@
   [olInteractions]="fbMap.interactions"
   [olControls]="fbMap.controls"
   [setFocus]="fbMap.focus"
-  (mapSingleClick)="onMapMouseClick($event)"
-  (mapRightClick)="onMapMouseRightClick($event)"
   (mapMoveEnd)="onMapMoveEnd($event)"
+  (mapSingleClick)="onMapSingleClick($event)"
+  (mapRightClick)="onMapRightClick($event)"
+  (mapPointerDown)="onMapPointerDown($event)"
   (mapPointerMove)="onMapPointerMove($event)"
   (mapPointerDrag)="onMapPointerDrag()"
   (mapContextMenu)="onMapContextMenu($event)"
@@ -115,7 +116,7 @@
   @if(app.config.resources.paths.includes('tracks')) {
   <fb-tracks
     [darkMode]="app.config.map.invertColor"
-    [tracks]="dfeat.tracks"
+    [tracks]="tracks()"
     [labelMinZoom]="0"
     [mapZoom]="fbMap.zoomLevel"
     [zIndex]="50"
@@ -195,7 +196,6 @@
   <sk-ais-targets
     [darkMode]="app.config.map.invertColor"
     [targets]="dfeat.atons"
-    [targetStyles]="featureStyles.aton"
     targetContext="atons"
     [labelMinZoom]="this.app.config.selections.labelsMinZoom"
     [mapZoom]="fbMap.zoomLevel"
@@ -211,7 +211,7 @@
   <sk-ais-targets
     [darkMode]="app.config.map.invertColor"
     [targets]="dfeat.atons"
-    [targetStyles]="featureStyles.aton"
+    [targetStyles]="featureStyles.basestation"
     targetContext="shore.basestations"
     [labelMinZoom]="this.app.config.selections.labelsMinZoom"
     [mapZoom]="fbMap.zoomLevel"
@@ -228,7 +228,6 @@
   <sk-ais-targets
     [darkMode]="app.config.map.invertColor"
     [targets]="dfeat.meteo"
-    [targetStyles]="featureStyles.meteo"
     targetContext="meteo"
     [labelMinZoom]="this.app.config.selections.labelsMinZoom"
     [mapZoom]="fbMap.zoomLevel"
@@ -357,7 +356,8 @@
 
   <!-- Regions -->
   <fb-regions
-    [regions]="dfeat.regions"
+    [regions]="skres.regions()"
+    [regionStyles]="featureStyles.region"
     [darkMode]="app.config.map.invertColor"
     [labelMinZoom]="this.app.config.selections.labelsMinZoom"
     [mapZoom]="fbMap.zoomLevel"
@@ -367,12 +367,7 @@
 
   <!-- Notes -->
   @if(display.layer.notes) {
-  <fb-notes
-    [notes]="dfeat.notes"
-    [noteStyles]="featureStyles.note"
-    [zIndex]="121"
-  >
-  </fb-notes>
+  <fb-notes [notes]="dfeat.notes" [zIndex]="121"> </fb-notes>
   }
 
   <!-- Popovers -->
@@ -421,7 +416,8 @@
       (deactivated)="clearActiveFeature(); popoverClosed()"
       (related)="skres.showRelatedNotes($event, 'group'); popoverClosed()"
       (notes)="
-        skres.showRelatedNotes(overlay.id, overlay.type); popoverClosed()
+        skres.showRelatedNotes(overlay.id, overlay.type, overlay.readOnly);
+        popoverClosed()
       "
       (info)="skres.resourceProperties(overlay); popoverClosed()"
       (points)="itemInfo(overlay.id, overlay.type); popoverClosed()"

@@ -4,11 +4,12 @@ import {
   Component
 } from '@angular/core';
 import { Feature } from 'ol';
-import { Style, RegularShape, Fill, Stroke } from 'ol/style';
+import { Style, RegularShape, Fill, Stroke, Text, Icon } from 'ol/style';
 import { Point } from 'ol/geom';
 import { fromLonLat } from 'ol/proj';
 import { MapComponent } from '../map.component';
-import { AISBaseLayerComponent } from './ais-base.component';
+import { AISBaseLayerComponent, SKTarget } from './ais-base.component';
+import { MapImageRegistry } from '../map-image-registry.service';
 
 // ** Signal K non-vessel targets **
 @Component({
@@ -19,7 +20,8 @@ import { AISBaseLayerComponent } from './ais-base.component';
 export class AISTargetsLayerComponent extends AISBaseLayerComponent {
   constructor(
     protected mapComponent: MapComponent,
-    protected changeDetectorRef: ChangeDetectorRef
+    protected changeDetectorRef: ChangeDetectorRef,
+    protected mapImages: MapImageRegistry
   ) {
     super(mapComponent, changeDetectorRef);
   }
@@ -49,7 +51,7 @@ export class AISTargetsLayerComponent extends AISBaseLayerComponent {
               if (target.position) {
                 f.setGeometry(new Point(fromLonLat(target.position)));
               }
-              const s = this.buildStyle(label, this.isStale(target)).clone();
+              const s = this.buildStyle(target).clone();
               f.set('name', label, true);
               f.setStyle(
                 this.setTextLabel(
@@ -94,7 +96,7 @@ export class AISTargetsLayerComponent extends AISBaseLayerComponent {
       });
       f.setId(id);
       f.set('name', label, true);
-      const s = this.buildStyle(label, this.isStale(target)).clone();
+      const s = this.buildStyle(target).clone();
       f.setStyle(
         this.setTextLabel(this.setRotation(s, target.orientation), label)
       );
@@ -103,11 +105,25 @@ export class AISTargetsLayerComponent extends AISBaseLayerComponent {
   }
 
   // build target style
-  buildStyle(label?: string, setStale = false): Style {
+  buildStyle(target: SKTarget): Style {
+    const icon = this.mapImages.getAtoN(target.type?.id, target.virtual);
+    if (icon && typeof this.targetStyles === 'undefined') {
+      if (icon) {
+        return new Style({
+          image: icon,
+          text: new Text({
+            text: '',
+            offsetX: 0,
+            offsetY: -18
+          })
+        });
+      }
+      return;
+    }
     let s: Style;
+    const setStale = this.isStale(target);
     if (typeof this.targetStyles !== 'undefined') {
       if (setStale) {
-        // stale
         s = this.targetStyles.inactive ?? this.targetStyles.default;
       } else {
         s = this.targetStyles.default;

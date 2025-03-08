@@ -13,9 +13,10 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { PipesModule } from 'src/app/lib/pipes';
 import { PopoverComponent } from './popover.component';
 
-import { AppInfo } from 'src/app/app.info';
+import { AppFacade } from 'src/app/app.facade';
 import { Convert } from 'src/app/lib/convert';
 import { SKRoute, SKWaypoint, SKNote, SKRegion } from 'src/app/modules';
+import { getResourceIcon } from 'src/app/modules/icons';
 
 /*********** Resource Popover ***************
 title: string -  title text,
@@ -36,16 +37,30 @@ id: string - resource id
     PopoverComponent
   ],
   template: `
-    <ap-popover [title]="title" [canClose]="canClose" (closed)="handleClose()">
+    <ap-popover
+      [title]="title"
+      [icon]="icon"
+      [canClose]="canClose"
+      (closed)="handleClose()"
+    >
+      <div
+        style="flex: 1 1 auto;text-align:left;font-style: italic; overflow: hidden;
+                                display: -webkit-box;
+                                -webkit-box-orient: vertical;
+                                -webkit-line-clamp: 2;
+                                text-overflow:ellipsis;"
+      >
+        {{ resource[1].description ?? '' }}
+      </div>
       @for(p of properties; track p) {
       <div style="display:flex;">
         <div style="font-weight:bold;">{{ p[0] }}:</div>
         @if(p[0] !== 'Latitude' && p[0] !== 'Longitude') {
         <div
           style="flex: 1 1 auto;text-align:right;
-                                white-space:nowrap;
-                                overflow-x:hidden;
-                                text-overflow:ellipsis;"
+                                  white-space:nowrap;
+                                  overflow-x:hidden;
+                                  text-overflow:ellipsis;"
         >
           {{ p[1] }}
         </div>
@@ -161,13 +176,11 @@ id: string - resource id
           <button
             mat-button
             (click)="emitInfo()"
-            matTooltip="Show Properties"
+            matTooltip="Show Details"
             matTooltipPosition="after"
           >
-            <mat-icon>{{
-              type === 'route' || type === 'waypoint' ? 'edit' : 'info_outline'
-            }}</mat-icon>
-            {{ type === 'route' || type === 'waypoint' ? 'EDIT' : 'INFO' }}
+            <mat-icon>info_outline</mat-icon>
+            INFO
           </button>
         </div>
         } @if(ctrl.showPointsButton) {
@@ -223,7 +236,9 @@ export class ResourcePopoverComponent {
     isReadOnly: false
   };
 
-  constructor(public app: AppInfo) {}
+  protected icon: { class: string; name?: string; svgIcon?: string };
+
+  constructor(public app: AppFacade) {}
 
   ngOnChanges() {
     this.parse();
@@ -254,6 +269,7 @@ export class ResourcePopoverComponent {
   }
 
   parseDestination() {
+    this.icon = undefined;
     this.ctrl.isActive = this.app.data.activeRoute ? false : true;
     this.ctrl.activeText = 'GO TO';
     this.ctrl.canActivate = this.app.data.activeRoute ? false : true;
@@ -295,12 +311,10 @@ export class ResourcePopoverComponent {
     this.ctrl.showRelatedButton = false;
     this.ctrl.isReadOnly = this.resource[1].feature.properties?.readOnly;
     this.properties = [];
-    if (this.resource[1].name) {
-      this.properties.push(['Name', this.resource[1].name]);
-    }
-    if (this.resource[1].description) {
-      this.properties.push(['Desc.', this.resource[1].description]);
-    }
+
+    this.icon = getResourceIcon('waypoints', this.resource[1]);
+    this.title = this.resource[1].name ?? '';
+
     this.properties.push([
       'Latitude',
       this.resource[1].feature.geometry.coordinates[1]
@@ -337,8 +351,10 @@ export class ResourcePopoverComponent {
       this.ctrl.showDeleteButton = this.ctrl.isActive ? false : true;
       this.ctrl.isReadOnly = this.resource[1].feature.properties?.readOnly;
     }
+
+    this.icon = getResourceIcon('routes', this.resource[1]);
+    this.title = this.resource[1].name ?? '';
     this.properties = [];
-    this.properties.push(['Name', this.resource[1].name]);
     const d =
       this.units === 'm'
         ? [(this.resource[1].distance / 1000).toFixed(1), 'km']
@@ -349,7 +365,6 @@ export class ResourcePopoverComponent {
             'NM'
           ];
     this.properties.push(['Distance', `${d[0]} ${d[1]}`]);
-    this.properties.push(['Desc.', this.resource[1].description]);
   }
 
   parseNote() {
@@ -366,8 +381,10 @@ export class ResourcePopoverComponent {
       this.resource[1].group && this.app.config.resources.notes.groupNameEdit
         ? true
         : false;
+
+    this.icon = getResourceIcon('notes', this.resource[1]);
+    this.title = this.resource[1].name ?? '';
     this.properties = [];
-    this.properties.push(['Name', this.resource[1].name]);
     this.ctrl.isReadOnly = this.resource[1].properties?.readOnly;
   }
 
@@ -385,8 +402,8 @@ export class ResourcePopoverComponent {
     this.ctrl.showRelatedButton = false;
     this.ctrl.isReadOnly = this.resource[1].feature.properties?.readOnly;
     this.properties = [];
-    this.properties.push(['Name', this.resource[1].name]);
-    this.properties.push(['Description', this.resource[1].description]);
+    this.icon = getResourceIcon('regions', this.resource[1]);
+    this.title = this.resource[1].name ?? '';
   }
 
   // *** BUTTON actions *******
@@ -494,7 +511,7 @@ export class ResourceSetPopoverComponent {
 
   properties: Array<unknown>; // ** resource properties
 
-  constructor(public app: AppInfo) {}
+  constructor(public app: AppFacade) {}
 
   ngOnChanges() {
     this.parse();

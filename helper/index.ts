@@ -54,8 +54,8 @@ const CONFIG_SCHEMA = {
     },
     pypilot: {
       type: 'object',
-      title: 'PyPilot.',
-      description: 'PyPilot host connection settings.',
+      title: 'PyPilot (deprecated).',
+      description: 'Please use pypilot-autopilot-provider plugin instead.',
       properties: {
         enable: {
           type: 'boolean',

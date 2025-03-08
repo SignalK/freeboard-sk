@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { SignalKClient } from 'signalk-client-angular';
-import { AppInfo } from 'src/app/app.info';
+import { AppFacade } from 'src/app/app.facade';
 
 interface BuddyProperties {
   urn: string;
@@ -12,7 +12,7 @@ const BUDDIES_URI = '/resources/buddies';
 // ** Signal K Buddies operations
 @Injectable({ providedIn: 'root' })
 export class Buddies {
-  constructor(public signalk: SignalKClient, public app: AppInfo) {}
+  constructor(public signalk: SignalKClient, public app: AppFacade) {}
 
   list() {
     return this.signalk.api.get(this.app.skApiVersion, `${BUDDIES_URI}`);

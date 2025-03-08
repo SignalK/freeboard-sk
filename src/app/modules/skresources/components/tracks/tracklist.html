@@ -1,0 +1,146 @@
+<div class="resourcelist">
+  <mat-card style="border-radius: unset">
+    <mat-card-title>
+      <div class="title-block">
+        <div style="width: 50px">
+          <button
+            mat-icon-button
+            (click)="close()"
+            matTooltip="Close Track List"
+            matTooltipPosition="right"
+          >
+            <mat-icon>arrow_back</mat-icon>
+          </button>
+        </div>
+        <div style="flex: 1 1 auto; padding-top: 7px">Tracks</div>
+      </div>
+    </mat-card-title>
+    <mat-card-content>
+      <div style="display: flex">
+        <div style="flex: 1 1 auto; padding-left: 3px">
+          <mat-form-field floatLabel="always" style="width: 180px">
+            <mat-label>Type to filter list</mat-label>
+            <input
+              #ftext
+              type="text"
+              matInput
+              [(ngModel)]="filterText"
+              (keyup)="filterKeyUp(ftext.value)"
+            />
+            @if(filterText) {
+            <button matSuffix mat-icon-button (click)="filterKeyUp('')">
+              <mat-icon>close</mat-icon>
+            </button>
+            }
+          </mat-form-field>
+        </div>
+        <div>
+          <button
+            mat-icon-button
+            (click)="itemRefresh()"
+            matTooltip="Reload Tracks"
+            matTooltipPosition="left"
+          >
+            <mat-icon>refresh</mat-icon>
+          </button>
+        </div>
+        <div>
+          <mat-checkbox
+            #selall
+            [disabled]="trackList.length === 0"
+            [checked]="allSel"
+            [indeterminate]="someSel"
+            (change)="toggleAll($event.checked)"
+            [matTooltip]="(!selall.checked || someSel) ? 'Select All' : 'Deselect All'"
+            matTooltipPosition="right"
+          >
+          </mat-checkbox>
+        </div>
+      </div>
+    </mat-card-content>
+  </mat-card>
+
+  <div class="resources">
+    @if(!this.app.sIsFetching() && trackList.length === 0) {
+    <div style="text-align: center"><br /><i>No Tracks available.</i></div>
+    } @if(this.app.sIsFetching()) {
+    <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+    }
+    <cdk-virtual-scroll-viewport class="vscroller" itemSize="120">
+      <mat-card
+        *cdkVirtualFor="let r of filteredList(); let i= index;"
+        style="border-bottom: silver 1px outset; border-radius: unset"
+      >
+        <mat-card-content>
+          <div style="display: flex; padding-left: 5px">
+            <div style="flex: 1 1 auto; width: 215px">
+              <div
+                style="
+                  padding-top: 11px;
+                  text-overflow: ellipsis;
+                  overflow-x: hidden;
+                  white-space: pre;
+                "
+              >
+                <b>{{r[1].feature.properties?.name || i}}</b>
+              </div>
+              <div
+                style="
+                  text-overflow: ellipsis;
+                  overflow-x: hidden;
+                  white-space: pre;
+                "
+              >
+                {{r[1].feature.properties?.description}}
+              </div>
+            </div>
+            <div style="text-align: right">
+              <mat-checkbox
+                [checked]="r[2]"
+                (change)="itemSelect($event.checked, r[0])"
+                matTooltip="Show on Map"
+                matTooltipPosition="left"
+              >
+              </mat-checkbox>
+            </div>
+          </div>
+        </mat-card-content>
+        <mat-card-actions>
+          <div style="display: flex">
+            <div style="flex: 1 1 auto">
+              <button
+                mat-icon-button
+                (click)="itemDelete(r[0])"
+                matTooltip="Delete Track"
+                matTooltipPosition="right"
+              >
+                <mat-icon>delete</mat-icon>
+              </button>
+            </div>
+            <div>
+              <button
+                mat-icon-button
+                (click)="itemProperties(r[0])"
+                matTooltip="Track Properties"
+                matTooltipPosition="right"
+              >
+                <mat-icon>edit</mat-icon>
+              </button>
+            </div>
+            <div>
+              <button
+                mat-icon-button
+                [disabled]="app.config.map.moveMap"
+                (click)="emitCenter(r[1].feature.geometry.coordinates[0][0])"
+                matTooltip="Center Track"
+                matTooltipPosition="left"
+              >
+                <mat-icon>center_focus_strong</mat-icon>
+              </button>
+            </div>
+          </div>
+        </mat-card-actions>
+      </mat-card>
+    </cdk-virtual-scroll-viewport>
+  </div>
+</div>

@@ -59,28 +59,23 @@ export class MsgBox implements OnInit {
 
 /********* AlertDialog ************
 	data: {
-        message: "<string>" text to display,
-        title: "<string>" title text,
-        buttonText"<string>" button text,
-        image: "<string>" path to image file
-    }
+      message: "<string>" text to display,
+      title: "<string>" title text,
+      buttonText"<string>" button text,
+  }
 ***********************************/
 @Component({
   selector: 'ap-alertdialog',
   template: `
     <div class="_ap-alert">
       <div>
-        <h1 mat-dialog-title>{{ data.title }}</h1>
+        <h1 mat-dialog-title>
+          <mat-icon style="color: orange;">warning</mat-icon>
+          &nbsp;{{ data.title }}
+        </h1>
       </div>
       <mat-dialog-content>
         <div style="display:flex;">
-          <div class="ap-alert-icon">
-            @if(image) {
-            <img [src]="image" style="width:90%" />
-            } @else {
-            <mat-icon>warning</mat-icon>
-            }
-          </div>
           <div style="padding-left: 10px;">
             @for(line of msglines; track line) {
             <div>
@@ -100,23 +95,7 @@ export class MsgBox implements OnInit {
   styles: [
     `
       ._ap-alert {
-        font-family: Roboto;
         min-width: 150px;
-      }
-      .ap-alert-icon {
-        min-width: 35px;
-        max-width: 35px;
-        color: darkorange;
-        text-align: left;
-      }
-
-      @media only screen and (min-device-width: 768px) and (max-device-width: 1024px),
-        only screen and (min-width: 800px) {
-        .ap-alert-icon {
-          min-width: 25%;
-          max-width: 25%;
-          text-align: center;
-        }
       }
     `
   ]
@@ -134,9 +113,6 @@ export class AlertDialog implements OnInit {
   ngOnInit() {
     this.data.buttonText = this.data.buttonText || 'OK';
     this.msglines = this.data.message.split('\n');
-    if (this.data.image) {
-      this.image = this.data.image;
-    }
   }
 }
 
@@ -154,13 +130,13 @@ export class AlertDialog implements OnInit {
   template: `
     <div class="_ap-confirm">
       <div>
-        <h1 mat-dialog-title>{{ data.title }}</h1>
+        <h1 mat-dialog-title>
+          <mat-icon style="color:orange;">help</mat-icon>
+          &nbsp;{{ data.title }}
+        </h1>
       </div>
       <mat-dialog-content style="overflow:unset">
         <div style="display:flex;">
-          <div class="ap-confirm-icon">
-            <mat-icon>help</mat-icon>
-          </div>
           <div style="padding-left: 10px;">
             @for(line of msglines; track line) {
             <div>
@@ -170,7 +146,6 @@ export class AlertDialog implements OnInit {
           </div>
         </div>
         <div style="display:flex;">
-          <div class="ap-confirm-icon"></div>
           @if(data.checkText) {
           <div style="padding-left: 10px;">
             <div style="font-weight: 500;">
@@ -200,20 +175,6 @@ export class AlertDialog implements OnInit {
       ._ap-confirm {
         font-family: Roboto;
         min-width: 150px;
-      }
-      .ap-confirm-icon {
-        min-width: 35px;
-        max-width: 35px;
-        color: darkorange;
-        text-align: left;
-      }
-
-      @media only screen and (min-device-width: 768px) and (max-device-width: 1024px),
-        only screen and (min-width: 800px) {
-        .ap-confirm-icon {
-          min-width: 25%;
-          max-width: 25%;
-        }
       }
     `
   ]
@@ -248,7 +209,7 @@ export class ConfirmDialog implements OnInit {
   selector: 'ap-about-dialog',
   template: `
     <div>
-      <h1 mat-dialog-title>About:</h1>
+      <h1 mat-dialog-title><mat-icon>info</mat-icon>&nbsp;About</h1>
       <mat-dialog-content>
         <div class="about-row">
           <div class="item"><img [src]="data.logo" /></div>

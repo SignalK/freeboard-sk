@@ -12,7 +12,7 @@ import { PipesModule } from 'src/app/lib/pipes';
 import { PopoverComponent } from './popover.component';
 import { NorthUpCompassComponent } from './compass.component';
 import { SKMeteo } from 'src/app/modules';
-import { AppInfo } from 'src/app/app.info';
+import { AppFacade } from 'src/app/app.facade';
 import { Convert } from 'src/app/lib/convert';
 /*********** AtoN Popover ***************
   title: string -  title text,
@@ -110,7 +110,7 @@ export class AtoNPopoverComponent {
   timeAgo: string; // last update in minutes ago
   protected convert = Convert;
   isMeteo: boolean;
-  constructor(public app: AppInfo) {}
+  constructor(public app: AppFacade) {}
   ngOnInit() {
     if (!this.aton) {
       this.handleClose();

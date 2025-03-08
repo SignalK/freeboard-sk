@@ -47,37 +47,42 @@ export class RegionsBaseComponent extends FBFeatureLayerComponent {
   }
 
   // build region feature style
-  buildStyle(id: string, reg): Style {
-    if (typeof this.regionStyles !== 'undefined') {
-      if (reg.feature.properties.skType) {
-        return this.setTextLabel(
-          this.regionStyles[reg.feature.properties.skType],
+  buildStyle(id: string, reg: any): Style {
+    // default style
+    let theStyle = this.setTextLabel(
+      new Style({
+        fill: new Fill({
+          color: 'rgba(255,0,255,0.1)'
+        }),
+        stroke: new Stroke({
+          color: 'purple',
+          width: 1
+        }),
+        text: new Text({
+          text: '',
+          offsetY: 0
+        })
+      }),
+      reg.name
+    );
+
+    if (this.regionStyles) {
+      if (
+        reg.feature.properties?.skIcon &&
+        this.regionStyles[reg.feature.properties.skIcon]
+      ) {
+        theStyle = this.setTextLabel(
+          this.regionStyles[reg.feature.properties.skIcon],
           reg.name
         );
-      } else {
-        return this.setTextLabel(this.regionStyles.default, reg.name);
+      } else if (this.regionStyles.default) {
+        theStyle = this.setTextLabel(this.regionStyles.default, reg.name);
       }
     } else if (this.layerProperties && this.layerProperties.style) {
-      return this.setTextLabel(this.layerProperties.style, reg.name);
-    } else {
-      // default styles
-      return this.setTextLabel(
-        new Style({
-          fill: new Fill({
-            color: 'rgba(255,0,255,0.1)'
-          }),
-          stroke: new Stroke({
-            color: 'purple',
-            width: 1
-          }),
-          text: new Text({
-            text: '',
-            offsetY: 0
-          })
-        }),
-        reg.name
-      );
+      theStyle = this.setTextLabel(this.layerProperties.style, reg.name);
     }
+
+    return theStyle;
   }
 
   // mapify and transform MultiLineString coordinates
@@ -141,6 +146,8 @@ export class RegionLayerComponent extends RegionsBaseComponent {
         name: regions[r].name
       });
       f.setId('region.' + r);
+      f.set('name', regions[r].name);
+      f.set('icon', 'region');
       f.setStyle(this.buildStyle(r, regions[r]));
       fa.push(f);
     }
@@ -188,6 +195,8 @@ export class FreeboardRegionLayerComponent extends RegionsBaseComponent {
         name: r[1].name
       });
       f.setId('region.' + r[0]);
+      f.set('name', r[1].name);
+      f.set('icon', 'region');
       f.setStyle(this.buildStyle(r[0], r[1]));
       fa.push(f);
     }

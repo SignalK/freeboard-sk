@@ -1,13 +1,12 @@
-import { Component, ViewChild } from '@angular/core';
+import { Component, ViewChild, effect } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
 import { MatDialog } from '@angular/material/dialog';
-import { MatIconRegistry } from '@angular/material/icon';
 import { MatBottomSheet } from '@angular/material/bottom-sheet';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { OverlayContainer } from '@angular/cdk/overlay';
 import { Observable, Subject } from 'rxjs';
 
-import { AppInfo } from './app.info';
+import { AppFacade } from './app.facade';
 import { SettingsMessage } from './lib/services';
 import {
   AboutDialog,
@@ -24,7 +23,6 @@ import {
   AtoNPropertiesModal,
   AircraftPropertiesModal,
   ActiveResourcePropertiesModal,
-  TracksModal,
   ResourceImportDialog,
   ResourceSetModal,
   ResourceSetFeatureModal,
@@ -42,8 +40,7 @@ import {
   SKOtherResources,
   SKRegion,
   WeatherForecastModal,
-  CourseSettingsModal,
-  Buddies
+  CourseSettingsModal
 } from 'src/app/modules';
 
 import { SignalKClient } from 'signalk-client-angular';
@@ -60,8 +57,6 @@ import {
   Position
 } from './types';
 import { Feature } from 'ol';
-import { SignalKIcons } from './modules/map/signalk-icons';
-import { OpenBridgeIcons } from './app.icons';
 
 interface DrawEndEvent {
   coordinates: LineString | Position | Polygon;
@@ -91,6 +86,7 @@ export class AppComponent {
     waypointList: false,
     chartList: false,
     noteList: false,
+    trackList: false,
     aisList: false,
     anchorWatch: false,
     navDataPanel: {
@@ -116,13 +112,13 @@ export class AppComponent {
 
   public measure = { enabled: false };
 
-  // ** APP features / mode **
+  // APP features / mode
   public features = { playbackAPI: true };
   public mode: SKSTREAM_MODE = SKSTREAM_MODE.REALTIME; // current mode
 
   private timers = [];
 
-  // ** external resources **
+  // external resources
   private lastInstUrl: string;
   private lastInstParams: string;
   public instUrl: SafeResourceUrl;
@@ -135,37 +131,23 @@ export class AppComponent {
   private streamOptions = { options: null, toMode: null };
 
   constructor(
-    public app: AppInfo,
+    public app: AppFacade,
     public alarmsFacade: AlarmsFacade,
     private stream: SKStreamFacade,
     public skres: SKResources,
     public skresOther: SKOtherResources,
-    private skIcons: SignalKIcons,
     public signalk: SignalKClient,
     private dom: DomSanitizer,
     private overlayContainer: OverlayContainer,
     private bottomSheet: MatBottomSheet,
-    private dialog: MatDialog,
-    private iconReg: MatIconRegistry,
-    private buddies: Buddies
+    private dialog: MatDialog
   ) {
     // set self to active vessel
     this.app.data.vessels.active = this.app.data.vessels.self;
 
-    // load custom icons
-    OpenBridgeIcons.ids.forEach((s: string) => {
-      this.iconReg.addSvgIcon(
-        s.slice(0, s.indexOf('.')),
-        this.dom.bypassSecurityTrustResourceUrl(`${OpenBridgeIcons.path}/${s}`)
-      );
-    });
-
-    // Points of Interest Icons
-    skIcons.files.forEach((s: string) => {
-      this.iconReg.addSvgIcon(
-        `sk-${s.slice(0, s.indexOf('.'))}`,
-        this.dom.bypassSecurityTrustResourceUrl(`./assets/img/poi/${s}`)
-      );
+    // handle signals
+    effect(() => {
+      this.app.debug('** sMapNorthUp:', this.app.sMapNorthUp());
     });
   }
 
@@ -501,17 +483,6 @@ export class AppComponent {
           );
         }
         break;
-      case 'tracks': // tracks
-        this.bottomSheet
-          .open(TracksModal, {
-            disableClose: true,
-            data: { title: 'Tracks', skres: this.skres }
-          })
-          .afterDismissed()
-          .subscribe(() => {
-            this.focusMap();
-          });
-        break;
       default:
         // resource set
         if (this.app.config.resources.paths.includes(e.choice)) {
@@ -685,7 +656,6 @@ export class AppComponent {
         this.app.data.anchor.hasApi = true;
       }
     );
-    this.skIcons.init();
   }
 
   // ** start trail / AIS timers
@@ -846,12 +816,6 @@ export class AppComponent {
 
   // ********* SIDENAV ACTIONS *************
 
-  public leftSideNavAction(e: boolean) {
-    if (!e) {
-      this.focusMap();
-    } // set when closed
-  }
-
   public rightSideNavAction(e: boolean) {
     this.display.instrumentPanelOpen = e;
     if (this.app.config.plugins.startOnOpen) {
@@ -868,6 +832,7 @@ export class AppComponent {
     this.display.waypointList = false;
     this.display.chartList = false;
     this.display.noteList = false;
+    this.display.trackList = false;
     this.display.aisList = false;
     this.display.anchorWatch = false;
     switch (menulist) {
@@ -882,6 +847,9 @@ export class AppComponent {
         break;
       case 'noteList':
         this.display.noteList = show;
+        break;
+      case 'trackList':
+        this.display.trackList = show;
         break;
       case 'anchorWatch':
         this.display.anchorWatch = show;
@@ -1191,8 +1159,11 @@ export class AppComponent {
   }
 
   public toggleNorthUp() {
-    this.app.config.map.northUp = !this.app.config.map.northUp;
-    this.app.saveConfig();
+    this.app.sMapNorthUp.update((nup) => {
+      this.app.config.map.northUp = !nup;
+      this.app.saveConfig();
+      return this.app.config.map.northUp;
+    });
   }
 
   // ***** EDIT MENU ACTONS *******
@@ -1619,17 +1590,10 @@ export class AppComponent {
         break;
       case 'region':
         region = new SKRegion();
-        uuid = this.signalk.uuid;
         region.feature.geometry.coordinates = [
           GeoUtils.normaliseCoords(e.coordinates as Polygon)
         ];
-        this.skres.showRegionInfo({ id: uuid, region: region });
-        /* //region + note
-        this.skres.showNoteEditor({
-          type: 'region',
-          href: { id: uuid, data: region }
-        });
-        */
+        this.skres.createRegion(region);
         break;
     }
     // clean up
@@ -1718,7 +1682,7 @@ export class AppComponent {
     this.skres.getRoutes();
     this.skres.getWaypoints();
     this.skres.getCharts();
-    this.skres.getRegions();
+    //this.skres.getRegions();
     this.skres.getNotes();
     if (allTypes) {
       this.fetchOtherResources(true);
@@ -1727,7 +1691,7 @@ export class AppComponent {
 
   // ** fetch non-standard resources from server **
   fetchOtherResources(onlySelected = false) {
-    this.skres.getTracks(onlySelected);
+    this.skres.trackCacheRefresh();
     this.app.config.resources.paths.forEach((i) => {
       this.skresOther.getItems(i, onlySelected);
     });

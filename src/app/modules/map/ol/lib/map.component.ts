@@ -73,10 +73,8 @@ export class MapComponent implements OnInit, OnDestroy {
     features: FeatureLike[];
     lonlat: Coordinate;
   }> = new EventEmitter<{ features: FeatureLike[]; lonlat: Coordinate }>();
-  @Output() mapContextMenu: EventEmitter<{
-    features: FeatureLike[];
-    lonlat: Coordinate;
-  }> = new EventEmitter<{ features: FeatureLike[]; lonlat: Coordinate }>();
+  @Output() mapContextMenu: EventEmitter<FBPointerEvent> =
+    new EventEmitter<FBPointerEvent>();
   @Output() mapSingleClick: EventEmitter<FBClickEvent> =
     new EventEmitter<FBClickEvent>();
   @Output() mapDblClick: EventEmitter<FBClickEvent> =
@@ -87,6 +85,8 @@ export class MapComponent implements OnInit, OnDestroy {
   @Output() mapPointerDrag: EventEmitter<FBPointerEvent> =
     new EventEmitter<FBPointerEvent>();
   @Output() mapPointerMove: EventEmitter<FBPointerEvent> =
+    new EventEmitter<FBPointerEvent>();
+  @Output() mapPointerDown: EventEmitter<FBPointerEvent> =
     new EventEmitter<FBPointerEvent>();
   @Output() mapPostCompose: EventEmitter<RenderEvent> =
     new EventEmitter<RenderEvent>();
@@ -220,6 +220,8 @@ export class MapComponent implements OnInit, OnDestroy {
   private pointerDownHandler = (event) => {
     this.evCache[event.pointerId] = event;
     this.touchTimer = setTimeout(this.touchHold, 500);
+    const c = toLonLat(this.map.getEventCoordinate(event));
+    this.mapPointerDown.emit(Object.assign(event, { lonlat: c }));
   };
   private pointerUpHandler = (event) => {
     this.clearTouchTimer();

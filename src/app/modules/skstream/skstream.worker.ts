@@ -1091,6 +1091,8 @@ function processAtoN(id: string, v): string {
     }
   } else if (v.path === 'atonType') {
     d.type = v.value;
+  } else if (v.path === 'virtual') {
+    d.virtual = v.value;
   } else if (v.path === 'navigation.position') {
     d.position = [v.value.longitude, v.value.latitude];
     d['positionReceived'] = true;

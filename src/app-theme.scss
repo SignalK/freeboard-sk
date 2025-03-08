@@ -164,6 +164,10 @@ html {
         color: mat.get-theme-color($light-theme, secondary);
     }
 
+    .note-description a {
+        color: mat.get-theme-color($light-theme, primary);
+    }
+
 
   //@media (prefers-color-scheme: dark) {
   .dark-theme {
@@ -214,6 +218,9 @@ html {
     }
     .welcome .step-other {
         color: mat.get-theme-color($dark-theme, secondary);
+    }
+    .note-description a {
+        color: mat.get-theme-color($dark-theme, primary);
     }
 
     .ob path {

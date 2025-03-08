@@ -1,7 +1,9 @@
 /** Application Information Service **
  * perform version checking etc. here
  * ************************************/
-import { Injectable } from '@angular/core';
+import { Injectable, signal } from '@angular/core';
+import { DomSanitizer } from '@angular/platform-browser';
+import { MatIconRegistry } from '@angular/material/icon';
 import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { Subject, Observable } from 'rxjs';
@@ -39,6 +41,7 @@ import {
 } from './app.settings';
 
 import { WELCOME_MESSAGES } from './app.messages';
+import { getSvgList } from './modules/icons';
 
 // ** default OSM charts **
 export const OSM = [
@@ -66,7 +69,7 @@ export const OSM = [
 ];
 
 @Injectable({ providedIn: 'root' })
-export class AppInfo extends Info {
+export class AppFacade extends Info {
   private DEV_SERVER = {
     host: 'localhost', //'192.168.86.32', // host name || ip address
     port: 3000, // port number
@@ -112,18 +115,39 @@ export class AppInfo extends Info {
   public skLogin$: Observable<string>;
   private watchingSKLogin: number;
 
+  // signals
+  sMapNorthUp = signal(true); // map North / Heading Up
+  sIsFetching = signal(false); // show progress for fetching data from server
+
   constructor(
     public signalk: SignalKClient,
     private stream: SKStreamProvider,
     private dialog: MatDialog,
-    private snackbar: MatSnackBar
+    private snackbar: MatSnackBar,
+    private iconReg: MatIconRegistry,
+    private dom: DomSanitizer
   ) {
     super();
 
+    this.id = 'freeboard';
+    this.name = 'Freeboard-SK';
+    this.shortName = 'Freeboard';
+    this.description = `Signal K Chart Plotter.`;
+    this.version = '2.13.2';
+    this.url = 'https://github.com/signalk/freeboard-sk';
+    this.logo = './assets/img/app_logo.png';
+
+    this.signalk.setAppId(this.id); // server stored data appId
+    this.signalk.setAppVersion('1.0.0'); // server stored data version
+
     this.db = new AppDB();
 
+    // events / observables
     this.skLoginSource = new Subject<string>();
     this.skLogin$ = this.skLoginSource.asObservable();
+
+    // Initialiase IconRegistry
+    this.initAppIcons();
 
     // process searchParams
     if (window.location.search) {
@@ -168,17 +192,6 @@ export class AppInfo extends Info {
 
     this.debug('host:', this.host);
 
-    this.id = 'freeboard';
-    this.name = 'Freeboard-SK';
-    this.shortName = 'Freeboard';
-    this.description = `Signal K Chart Plotter.`;
-    this.version = '2.13.1';
-    this.url = 'https://github.com/signalk/freeboard-sk';
-    this.logo = './assets/img/app_logo.png';
-
-    this.signalk.setAppId(this.id); // server stored data appId
-    this.signalk.setAppVersion('1.0.0'); // server stored data version
-
     // apply base config
     this.config = JSON.parse(JSON.stringify(DefaultConfig));
     // apply default data
@@ -200,8 +213,6 @@ export class AppInfo extends Info {
       chartBounds: false,
       alarms: new Map(),
       notes: [],
-      regions: [],
-      tracks: [],
       resourceSets: {}, // additional resource sets
       selfId: null,
       activeRoute: null,
@@ -377,6 +388,16 @@ export class AppInfo extends Info {
       });
   }
 
+  // Initialise IconRegistry with custom icons
+  private initAppIcons() {
+    getSvgList().forEach((s: { id: string; path: string }) => {
+      this.iconReg.addSvgIcon(
+        s.id,
+        this.dom.bypassSecurityTrustResourceUrl(s.path)
+      );
+    });
+  }
+
   // get plugin information
   fetchPluginSettings() {
     this.signalk
@@ -515,6 +536,7 @@ export class AppInfo extends Info {
         this.data.vessels.showSelf = true;
         this.config.map.center = [...this.config.fixedPosition];
       }
+      this.sMapNorthUp.set(this.config.map.northUp);
     }
   }
 

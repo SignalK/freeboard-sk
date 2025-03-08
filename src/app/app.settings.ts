@@ -28,13 +28,9 @@ export function cleanConfig(
     settings.muteSound = false;
   }
 
-  // changeover 2.10.1 - for removal
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  if (typeof (settings as any).vessel !== 'undefined') {
+  if (typeof settings.selections === 'undefined') {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    settings.selections.vessel = Object.assign({}, (settings as any).vessel);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    delete (settings as any).vessel;
+    (settings as any).selections = {};
   }
 
   if (typeof settings.selections.vessel === 'undefined') {
@@ -54,22 +50,6 @@ export function cleanConfig(
     settings.selections.vessel.aisCogLine = 10;
   }
 
-  if (typeof settings.map.limitZoom === 'undefined') {
-    settings.map.limitZoom = false;
-  }
-
-  if (typeof settings.map.invertColor === 'undefined') {
-    settings.map.invertColor = false;
-  }
-
-  if (typeof settings.map.lockMoveMap === 'undefined') {
-    settings.map.lockMoveMap = false;
-  }
-
-  if (typeof settings.anchorRadius === 'undefined') {
-    settings.anchorRadius = 40;
-  }
-
   if (typeof settings.selections.aisShowTrack === 'undefined') {
     settings.selections.aisShowTrack = false;
   }
@@ -84,19 +64,6 @@ export function cleanConfig(
 
   if (typeof settings.selections.labelsMinZoom === 'undefined') {
     settings.selections.labelsMinZoom = 10;
-  }
-
-  if (typeof settings.toolBarButtons === 'undefined') {
-    settings.toolBarButtons = true;
-  }
-
-  if (typeof settings.units.temperature === 'undefined') {
-    settings.units.temperature = 'c';
-  }
-
-  if (typeof settings.selections === 'undefined') {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (settings as any).selections = {};
   }
 
   if (typeof settings.selections.aisWindMinZoom === 'undefined') {
@@ -202,6 +169,39 @@ export function cleanConfig(
     };
   }
 
+  if (typeof settings.map.limitZoom === 'undefined') {
+    settings.map.limitZoom = false;
+  }
+
+  if (typeof settings.map.invertColor === 'undefined') {
+    settings.map.invertColor = false;
+  }
+
+  if (typeof settings.map.lockMoveMap === 'undefined') {
+    settings.map.lockMoveMap = false;
+  }
+
+  if (typeof settings.anchorRadius === 'undefined') {
+    settings.anchorRadius = 40;
+  }
+  if (typeof settings.anchorSetRadius === 'undefined') {
+    settings.anchorSetRadius = false;
+  }
+  if (typeof settings.anchorManualSet === 'undefined') {
+    settings.anchorManualSet = false;
+  }
+  if (typeof settings.anchorRodeLength === 'undefined') {
+    settings.anchorRodeLength = 50;
+  }
+
+  if (typeof settings.toolBarButtons === 'undefined') {
+    settings.toolBarButtons = true;
+  }
+
+  if (typeof settings.units.temperature === 'undefined') {
+    settings.units.temperature = 'c';
+  }
+
   if (typeof settings.plugins === 'undefined') {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (settings as any).plugins = {};
@@ -294,6 +294,9 @@ export const DefaultConfig: IAppConfig = {
   muteSound: false,
   depthAlarm: { enabled: false, smoothing: 10000 },
   anchorRadius: 40, // most recent anchor radius setting
+  anchorSetRadius: false,
+  anchorManualSet: false, // checks manual set setting
+  anchorRodeLength: 50, // rode length setting
   plugins: {
     instruments: '/@signalk/instrumentpanel',
     startOnOpen: true,
@@ -310,7 +313,7 @@ export const DefaultConfig: IAppConfig = {
     // ** saved selections
     routes: [],
     waypoints: [],
-    tracks: [],
+    tracks: null,
     charts: ['openstreetmap', 'openseamap'],
     notes: [],
     chartOrder: [], // chart layer ordering
@@ -425,6 +428,9 @@ export interface IAppConfig {
   muteSound: boolean;
   depthAlarm: { enabled: boolean; smoothing: number };
   anchorRadius: number; // most recent anchor radius setting
+  anchorSetRadius: boolean; // checks inital anchor radius setting
+  anchorManualSet: boolean; // checks manual set setting
+  anchorRodeLength: number; // rode length setting
   plugins: {
     instruments: string;
     startOnOpen: boolean;
@@ -441,7 +447,7 @@ export interface IAppConfig {
     // ** saved selections
     routes: string[];
     waypoints: string[];
-    tracks: string[];
+    tracks: string[] | null;
     charts: string[];
     notes: string[];
     chartOrder: string[]; // chart layer ordering

@@ -19,7 +19,7 @@ import { CommonDialogs } from 'src/app/lib/components/dialogs';
 import { FreeboardOpenlayersModule } from 'src/app/modules/map/ol';
 import { SimplifyAP } from 'simplify-ts';
 import { SKRoute, SKResources, SKStreamFacade } from 'src/app/modules';
-import { AppInfo } from 'src/app/app.info';
+import { AppFacade } from 'src/app/app.facade';
 
 /********* Trail2RouteDialog **********
 	data: {
@@ -70,7 +70,7 @@ export class Trail2RouteDialog implements OnInit {
 
   constructor(
     private skres: SKResources,
-    protected app: AppInfo,
+    protected app: AppFacade,
     private stream: SKStreamFacade,
     public dialogRef: MatDialogRef<Trail2RouteDialog>,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

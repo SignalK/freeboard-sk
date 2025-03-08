@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, signal } from '@angular/core';
 import { moveItemInArray } from '@angular/cdk/drag-drop';
 import { HttpErrorResponse } from '@angular/common/http';
 import { MatDialog } from '@angular/material/dialog';
@@ -6,12 +6,18 @@ import { Subject, Observable } from 'rxjs';
 import ngeohash from 'ngeohash';
 
 import { SignalKClient } from 'signalk-client-angular';
-import { AppInfo, OSM } from 'src/app/app.info';
+import { AppFacade, OSM } from 'src/app/app.facade';
 import { GeoUtils } from 'src/app/lib/geoutils';
 
 import { LoginDialog } from 'src/app/lib/components/dialogs';
-import { NoteDialog, RelatedNotesDialog } from '.';
-import { ResourceDialog } from './components/resource-dialog';
+import {
+  NoteDialog,
+  RegionDialog,
+  RouteDialog,
+  WaypointDialog,
+  RelatedNotesDialog,
+  TrackDialog
+} from '.';
 import { SKResourceSet } from '.';
 import { processUrlTokens } from 'src/app/app.settings';
 
@@ -38,20 +44,24 @@ import {
   TrackResource,
   FBNotes,
   Position,
-  Regions
+  Regions,
+  FBResource,
+  ChartResource
 } from 'src/app/types';
 import { PathValue } from '@signalk/server-api';
+
+export type SKResourceType = 'routes' | 'waypoints' | 'regions' | 'notes';
 
 // ** Signal K resource operations
 @Injectable({ providedIn: 'root' })
 export class SKResources {
-  private reOpen: { key?: string; value?: string };
+  private reOpen: { key?: string; value?: string; readOnly?: boolean };
   private updateSource: Subject<unknown> = new Subject<unknown>();
 
   constructor(
     public dialog: MatDialog,
     public signalk: SignalKClient,
-    public app: AppInfo
+    public app: AppFacade
   ) {}
 
   // ** Observables **
@@ -59,27 +69,172 @@ export class SKResources {
     return this.updateSource.asObservable();
   }
 
+  // ******** Http Error Message handling *****************
+
+  /**
+   * @description Parse and display error message
+   * @param err Error response
+   */
+  parseHttpErrorResponse(err: HttpErrorResponse) {
+    if (err.status && [401, 403].includes(err.status)) {
+      // unauthorised / forbidden
+      this.app.showAlert(
+        `${err.status}: ${err.statusText}`,
+        'Signal K server requires authentication to update resources.\nPlease login and try again.'
+      );
+    } else {
+      this.app.showAlert(
+        'ERROR',
+        `Operation could not be completed!\n${err.error.message}`
+      );
+    }
+  }
+
   // ******** Resource cache operations ********************
 
-  /** Retrieve cached resource entry (app.data)
-   * @params collection Resource collection to use (e.g. routes, etc.)
+  /**
+   * @description Return reference to cache for supplied resource type
+   * @param collection
+   * @returns Reference to resource cache
+   */
+  private getCache(collection: SKResourceType) {
+    switch (collection) {
+      case 'regions':
+        return this.regionCacheSignal;
+      /*case 'routes':
+        cache = [].concat(this.regionCacheSignal());
+        remove(id);
+        this.regionCacheSignal.set(cache);
+      case 'waypoints':
+        cache = [].concat(this.regionCacheSignal());
+        remove(id);
+        this.regionCacheSignal.set(cache);
+      case 'notes':
+        cache = [].concat(this.regionCacheSignal());
+        remove(id);
+        this.regionCacheSignal.set(cache);*/
+    }
+  }
+
+  /**
+   * @description Refresh the cache for the supplied Resource type
+   * @param collection Signal K resource collection type
+   * @param query (optional) Filter parameters
+   * @returns resolved promise true: successful, false: on error.
+   */
+  cacheRefresh(collection: SKResourceType, query?: string): Promise<boolean> {
+    query = query ?? '';
+    this.app.debug(`** cacheRefresh(${collection}, ${query})`);
+    return new Promise((resolve) => {
+      const resCache = this.getCache(collection);
+      if (!resCache) {
+        resolve(false);
+      }
+      const skf = this.signalk.api.get(
+        this.app.skApiVersion,
+        `/resources/${collection}${query}`
+      );
+
+      skf?.subscribe(
+        (res: Routes | Waypoints | Regions | Notes) => {
+          switch (collection) {
+            /*case 'routes':
+              this.regionCacheRefresh(res as Regions);
+              break;
+              case 'waypoints':
+                this.regionCacheRefresh(res as Regions);
+                break;*/
+            case 'regions':
+              this.regionCacheRefresh(res as Regions);
+              break;
+            /*case 'notes':
+              this.regionCacheRefresh(res as Regions);
+              break;*/
+          }
+          resolve(true);
+        },
+        (error: HttpErrorResponse) => {
+          resolve(false);
+        }
+      );
+    });
+  }
+
+  /**
+   * @description Remove item(s) from the resource cache.
+   * @param collection Signal K resource collection type
+   * @param id resource identifier(s)
+   */
+  cacheRemove(collection: SKResourceType, id: string | string[]) {
+    this.app.debug(`** cacheRemove(${collection}, ${id})`);
+    const removeItem = (id: string) => {
+      let idx = cache.findIndex((item: FBResource) => item[0] === id);
+      if (idx !== -1) {
+        cache.splice(idx, 1);
+      }
+      if (this.app.config.selections[collection]) {
+        idx = this.app.config.selections[collection].indexOf(id);
+        if (idx !== -1) {
+          this.app.config.selections[collection].splice(idx, 1);
+        }
+      }
+    };
+    const remove = (id: string | string[]) => {
+      if (Array.isArray(id)) {
+        id.forEach((tid: string) => {
+          removeItem(tid);
+        });
+      } else {
+        removeItem(id);
+      }
+    };
+    const resCache = this.getCache(collection);
+    if (!resCache) {
+      return;
+    }
+    const cache = [].concat(resCache());
+    remove(id);
+    resCache.set(cache);
+    this.app.saveConfig();
+  }
+
+  /**
+   * @description Fetch resource(s) from server and add to the cache
+   * @param ids Array of track ids to from server into the cache
+   */
+  cacheAddFromServer(collection: SKResourceType, id: string | string[]) {
+    this.app.debug(`** cacheAddFromServer(${collection}, ${id})`);
+    if (id && this.app.config.selections[collection]) {
+      id = !Array.isArray(id) ? [id] : id;
+      id.forEach((resId: string) => {
+        if (!this.app.config.selections[collection].includes(resId)) {
+          this.app.config.selections[collection].push(resId);
+        }
+      });
+      this.cacheRefresh(collection);
+    }
+  }
+
+  /**
+   * @description Retrieve cached resource entry (app.data)
+   * @params cache Resource cache to use (e.g. routes, etc.)
    * @params id Resource identifier
    * @returns resource entry
    */
-  public fromCache(collection: string, id: string) {
-    if (
-      !this.app.data[collection] ||
-      !Array.isArray(this.app.data[collection])
-    ) {
-      return;
+  public fromCache(cache: SKResourceType, id: string) {
+    if (cache === 'regions') {
+      return this.regionCacheSignal().find((r) => r[0] === id);
+    } else {
+      if (!this.app.data[cache] || !Array.isArray(this.app.data[cache])) {
+        return;
+      }
+      const item = this.app.data[cache].find((i) => i[0] === id);
+      return item ?? undefined;
     }
-    const item = this.app.data[collection].filter(
-      (i: [string, SKRegion]) => i[0] === id
-    );
-    return item.length === 0 ? undefined : item[0];
   }
 
-  /** Retrieve cached Resource Set | feature at index (app.data)
+  /**
+   * @description Retrieve cached Resource Set | feature at index (app.data)
    * @params id Map feature id.
    * @params getFeature  true = return Feature entry, false = return whole RecordSet
    * @returns Feature OR Resource Set.
@@ -106,53 +261,141 @@ export class SKResources {
 
   // ******** SK Resource operations ********************
 
+  /**
+   * @description Delete resource from server
+   * @param collection
+   * @param id
+   * @returns resolved Promise on success, rejects with HTTPErrorResponse
+   */
+  public deleteFromServer(
+    collection: SKResourceType | 'tracks',
+    id: string
+  ): Promise<void> {
+    return new Promise((resolve, reject) => {
+      this.signalk.api
+        .delete(this.app.skApiVersion, `/resources/${collection}/${id}`)
+        .subscribe(
+          () => resolve(),
+          (err: HttpErrorResponse) => reject(err)
+        );
+    });
+  }
+
+  /**
+   * @description Put resource to server
+   * @param collection
+   * @param id Resource identifier
+   * @param data Resource data
+   * @returns resolved Promise containing response on success, rejects with HTTPErrorResponse
+   */
+  public putToServer(
+    collection: SKResourceType,
+    id: string,
+    data: SKRoute | SKWaypoint | SKRegion | SKNote | SKChart
+  ): Promise<any> {
+    return new Promise((resolve, reject) => {
+      this.signalk.api
+        .put(this.app.skApiVersion, `/resources/${collection}/${id}`, data)
+        .subscribe(
+          (res) => resolve(res),
+          (err: HttpErrorResponse) => reject(err)
+        );
+    });
+  }
+
+  /**
+   * @description Post resource to server
+   * @param collection
+   * @param data Resource data
+   * @returns resolved Promise containing response on success, rejects with HTTPErrorResponse
+   */
+  public postToServer(
+    collection: SKResourceType | 'tracks',
+    data:
+      | RouteResource
+      | WaypointResource
+      | RegionResource
+      | NoteResource
+      | ChartResource
+      | any
+  ): Promise<any> {
+    return new Promise((resolve, reject) => {
+      this.signalk.api
+        .post(this.app.skApiVersion, `/resources/${collection}`, data)
+        .subscribe(
+          (res) => resolve(res),
+          (err: HttpErrorResponse) => reject(err)
+        );
+    });
+  }
+
+  /**
+   * @description Fetch resource from Signal K server (used by getNotes).
+   * @param collection The resource collection to which the resource belongs e.g. routes, waypoints, etc.
+   * @param id  Resource identifier
+   * @returns Observable<HttpResponse>
+   * @deprecated Will be replaced by Cache methods
+   */
+  public fetchResource(collection: SKResourceType, id: string) {
+    return this.signalk.api.get(
+      this.app.skApiVersion,
+      `/resources/${collection}/${id}`
+    );
+  }
+
   /** Submit new resource request to Signal K server.
    * @param collection The resource collection to which the resource belongs e.g. routes, waypoints, etc.
    * @param data  Signal K resource entry data.
    * @param select  determines if resource should be selected for display on map.
+   * @returns Promise<boolean> Resolves true if successful, resolves false if error.
+   * @deprecated Use postToServer
    */
   public postResource(collection: string, data: unknown, select?: boolean) {
-    this.signalk.api
-      .post(this.app.skApiVersion, `/resources/${collection}`, data)
-      .subscribe(
-        (res: { id: string }) => {
-          if (select && this.app.config.selections[collection]) {
-            this.app.config.selections[collection].push(res.id);
+    return new Promise((resolve) => {
+      this.signalk.api
+        .post(this.app.skApiVersion, `/resources/${collection}`, data)
+        .subscribe(
+          (res: { id: string }) => {
+            if (select && this.app.config.selections[collection]) {
+              this.app.config.selections[collection].push(res.id);
+            }
+            if (collection === 'routes') {
+              this.app.data.buildRoute.show = false;
+            }
+            resolve(true);
+          },
+          (err: HttpErrorResponse) => {
+            if (err.status && err.status === 401) {
+              // unauthorised
+              this.showAuth().subscribe((res) => {
+                if (res.cancel) {
+                  this.authResult();
+                } else {
+                  // ** authenticate
+                  this.signalk.login(res.user, res.pwd).subscribe(
+                    (r) => {
+                      // ** authenticated
+                      this.authResult(r['token']);
+                      this.postResource(collection, data, select);
+                    },
+                    () => {
+                      // ** auth failed
+                      this.authResult();
+                      this.showAuth();
+                    }
+                  );
+                }
+              });
+            } else {
+              this.app.showAlert(
+                'ERROR:',
+                `Could not add Resource!\n${err.error.message}`
+              );
+            }
+            resolve(false);
           }
-          if (collection === 'routes') {
-            this.app.data.buildRoute.show = false;
-          }
-        },
-        (err: HttpErrorResponse) => {
-          if (err.status && err.status === 401) {
-            // unauthorised
-            this.showAuth().subscribe((res) => {
-              if (res.cancel) {
-                this.authResult();
-              } else {
-                // ** authenticate
-                this.signalk.login(res.user, res.pwd).subscribe(
-                  (r) => {
-                    // ** authenticated
-                    this.authResult(r['token']);
-                    this.postResource(collection, data, select);
-                  },
-                  () => {
-                    // ** auth failed
-                    this.authResult();
-                    this.showAuth();
-                  }
-                );
-              }
-            });
-          } else {
-            this.app.showAlert(
-              'ERROR:',
-              `Could not add Resource!\n${err.error.message}`
-            );
-          }
-        }
-      );
+        );
+    });
   }
 
   /** Submit update resource request to Signal K server.
@@ -160,106 +403,123 @@ export class SKResources {
    * @param id Resource identifier
    * @param data  Signal K resource entry data.
    * @param select  determines if resource should be selected for display on map.
+   * @returns Promise<boolean> Resolves true if successful, resolves false if error.
+   * @deprecated Use putToServer
    */
   public putResource(
     collection: string,
     id: string,
     data: unknown,
     select?: boolean
-  ) {
-    this.signalk.api
-      .put(this.app.skApiVersion, `/resources/${collection}/${id}`, data)
-      .subscribe(
-        () => {
-          if (select && this.app.config.selections[collection]) {
-            this.app.config.selections[collection].push(id);
+  ): Promise<boolean> {
+    return new Promise((resolve) => {
+      this.signalk.api
+        .put(this.app.skApiVersion, `/resources/${collection}/${id}`, data)
+        .subscribe(
+          () => {
+            if (select && this.app.config.selections[collection]) {
+              this.app.config.selections[collection].push(id);
+            }
+            if (collection === 'routes') {
+              this.app.data.buildRoute.show = false;
+            }
+            resolve(true);
+          },
+          (err: HttpErrorResponse) => {
+            if (err.status && err.status === 401) {
+              // unauthorised
+              this.showAuth().subscribe((res) => {
+                if (res.cancel) {
+                  this.authResult();
+                } else {
+                  // ** authenticate
+                  this.signalk.login(res.user, res.pwd).subscribe(
+                    (r) => {
+                      // ** authenticated
+                      this.authResult(r['token']);
+                      this.putResource(collection, id, data, select);
+                    },
+                    () => {
+                      // ** auth failed
+                      this.authResult();
+                      this.showAuth();
+                    }
+                  );
+                }
+              });
+            } else {
+              this.app.showAlert(
+                'ERROR:',
+                `Could not update Resource!\n${err.error.message}`
+              );
+            }
+            resolve(false);
           }
-          if (collection === 'routes') {
-            this.app.data.buildRoute.show = false;
-          }
-        },
-        (err: HttpErrorResponse) => {
-          if (err.status && err.status === 401) {
-            // unauthorised
-            this.showAuth().subscribe((res) => {
-              if (res.cancel) {
-                this.authResult();
-              } else {
-                // ** authenticate
-                this.signalk.login(res.user, res.pwd).subscribe(
-                  (r) => {
-                    // ** authenticated
-                    this.authResult(r['token']);
-                    this.putResource(collection, id, data, select);
-                  },
-                  () => {
-                    // ** auth failed
-                    this.authResult();
-                    this.showAuth();
-                  }
-                );
-              }
-            });
-          } else {
-            this.app.showAlert(
-              'ERROR:',
-              `Could not update Resource!\n${err.error.message}`
-            );
-          }
-        }
-      );
+        );
+    });
   }
 
-  /** Submit delete resource request to Signal K server.
+  /** Delete resource from server and update selections.
    * @param collection The resource collection to which the resource belongs e.g. routes, waypoints, etc.
    * @param id Resource identifier
+   * @param refresh @optional If true refreshes charts collection
+   * @returns Promise<boolean> Resolves true if successful, resolves false if error.
+   * @deprecated Use deleteFromServer
    */
-  public deleteResource(collection: string, id: string, refresh?: boolean) {
-    this.signalk.api
-      .delete(this.app.skApiVersion, `/resources/${collection}/${id}`)
-      .subscribe(
-        () => {
-          if (
-            this.app.config.selections[collection] &&
-            this.app.config.selections[collection].includes(id)
-          ) {
-            const idx = this.app.config.selections[collection].indexOf(id);
-            this.app.config.selections[collection].splice(idx, 1);
+  public deleteResource(
+    collection: string,
+    id: string,
+    refresh?: boolean
+  ): Promise<boolean> {
+    return new Promise((resolve) => {
+      this.signalk.api
+        .delete(this.app.skApiVersion, `/resources/${collection}/${id}`)
+        .subscribe(
+          () => {
+            if (
+              this.app.config.selections[collection] &&
+              this.app.config.selections[collection].includes(id)
+            ) {
+              const idx = this.app.config.selections[collection].indexOf(id);
+              this.app.config.selections[collection].splice(idx, 1);
+            }
+            if (refresh && collection === 'charts') {
+              this.getCharts();
+            }
+            resolve(true);
+          },
+          (err: HttpErrorResponse) => {
+            if (err.status && err.status === 401) {
+              // unauthorised
+              this.showAuth().subscribe((res) => {
+                if (res.cancel) {
+                  this.authResult();
+                } else {
+                  // ** authenticate
+                  this.signalk.login(res.user, res.pwd).subscribe(
+                    (r) => {
+                      // ** authenticated
+                      this.authResult(r['token']);
+                      this.deleteResource(collection, id);
+                    },
+                    () => {
+                      // ** auth failed
+                      this.authResult();
+                      this.showAuth();
+                    }
+                  );
+                }
+              });
+            } else {
+              this.app.showAlert(
+                'ERROR:',
+                `Could not delete Resource!\n${err.error.message}`
+              );
+            }
+            resolve(false);
           }
-          if (refresh && collection === 'charts') {
-            this.getCharts();
-          }
-        },
-        (err: HttpErrorResponse) => {
-          if (err.status && err.status === 401) {
-            // unauthorised
-            this.showAuth().subscribe((res) => {
-              if (res.cancel) {
-                this.authResult();
-              } else {
-                // ** authenticate
-                this.signalk.login(res.user, res.pwd).subscribe(
-                  (r) => {
-                    // ** authenticated
-                    this.authResult(r['token']);
-                    this.deleteResource(collection, id);
-                  },
-                  () => {
-                    // ** auth failed
-                    this.authResult();
-                    this.showAuth();
-                  }
-                );
-              }
-            });
-          } else {
-            this.app.showAlert(
-              'ERROR:',
-              `Could not delete Resource!\n${err.error.message}`
-            );
-          }
-        }
-      );
+        );
+    });
   }
 
   /** Process Resource Delta message *
@@ -287,7 +547,7 @@ export class SKResources {
           action[collection] = true;
           if (!deleted) {
             // check for existing entry
-            if (!this.fromCache(collection, id)) {
+            if (!this.fromCache(collection as SKResourceType, id)) {
               // select to display new entry on map
               if (this.app.config.selections[collection]) {
                 this.app.config.selections[collection].push(id);
@@ -713,10 +973,6 @@ export class SKResources {
     this.updateSource.next({ action: 'selected', mode: 'chart' });
   }
 
-  trackSelected() {
-    this.updateSource.next({ action: 'selected', mode: 'track' });
-  }
-
   // ** Set waypoint as nextPoint **
   navigateToWaypoint(e: { id: string }) {
     this.setDestination(`/resources/waypoints/${e.id}`);
@@ -735,48 +991,199 @@ export class SKResources {
         this.showNoteInfo(r);
         break;
       case 'region':
-        this.showRegionInfo(r);
+        this.updateRegionInfo(r.id);
+        break;
+      case 'track':
+        this.showTrackInfo(r.id);
         break;
     }
   }
 
   // **** TRACKS ****
 
-  /** get track(s) from sk server
-   * selected: true= only include selected tracks
-   * noUpdate: true= suppress updateSource event
-   */
-  getTracks(selected = false, noUpdate = false) {
-    const path = `/resources/tracks`;
-    this.signalk.api
-      .get(this.app.skApiVersion, path)
-      .subscribe((res: Tracks) => {
-        this.app.data.tracks = [];
-        Object.entries(res).forEach((r: [string, TrackResource]) => {
-          const t = new SKTrack(r[1]);
-          t.feature.id = r[0].toString();
-          if (selected) {
-            if (this.app.config.selections.tracks.includes(r[0])) {
-              this.app.data.tracks.push(t);
-            }
-          } else {
-            this.app.data.tracks.push(t);
-          }
-        });
-        // ** clean up selections
-        const k = Object.keys(res);
-        this.app.config.selections.tracks = this.app.config.selections.tracks
-          .map((i) => {
-            return k.indexOf(i) !== -1 ? i : null;
-          })
-          .filter((i) => {
-            return i;
-          });
-
-        if (!noUpdate) {
-          this.updateSource.next({ action: 'get', mode: 'track' });
+  /** 
+   @description Display Track properties dialog
+   @param id Track identifier
+  */
+  showTrackInfo(id: string) {
+    const track = this.trackCacheSignal().find(
+      (trk: SKTrack) => trk.feature?.id === id
+    );
+    if (!track) {
+      this.app.showAlert('Error', 'Unable to retrieve Track details!');
+      return;
+    }
+    this.dialog
+      .open(TrackDialog, {
+        disableClose: true,
+        data: {
+          // clone track for editing
+          track: Object.assign(
+            Object.create(Object.getPrototypeOf(track)),
+            track
+          )
+        }
+      })
+      .afterClosed()
+      .subscribe((r: { save: boolean; track: SKTrack }) => {
+        if (r.save) {
+          this.putResource('tracks', track.feature.id, track);
         }
       });
+  }
+
+  private trackCacheSignal = signal([]);
+  readonly tracks = this.trackCacheSignal.asReadonly();
+
+  /**
+   * @description Sets selections list = null.
+   * @param value true: set cache to unfiltered, false: set cache to filtered
+   * @param  ids (optional) Array of track ids to add to selection list
+   */
+  trackCacheUnfilter(value: boolean, ids?: string[]) {
+    const changed =
+      (value && Array.isArray(this.app.config.selections.tracks)) ||
+      (!value && !Array.isArray(this.app.config.selections.tracks));
+    if (!changed) {
+      return;
+    }
+    if (value) {
+      this.app.config.selections.tracks = null;
+    } else {
+      this.app.config.selections.tracks = Array.isArray(ids) ? ids : [];
+    }
+    this.app.saveConfig();
+    this.trackCacheRefresh();
+  }
+
+  /**
+   * @description Returns if track cache is unfiltered.
+   * @returns true: is filtered, false: not filtered.
+   */
+  trackCacheIsUnfiltered(): boolean {
+    return !Array.isArray(this.app.config.selections.tracks);
+  }
+
+  /**
+   * @description Loads the resource cache with only the tracks selected for display.
+   * @returns Resolved Promise true: success, false: error.
+   */
+  trackCacheRefresh(): Promise<boolean> {
+    return new Promise((resolve) => {
+      this.signalk.api
+        .get(this.app.skApiVersion, `/resources/tracks`)
+        .subscribe(
+          (tracks: Tracks) => {
+            const tc = Object.entries(tracks)
+              .map((trk: [string, TrackResource]) => {
+                const track = new SKTrack(trk[1]);
+                track.feature.id = trk[0].toString();
+                return this.trackCacheIsUnfiltered() ||
+                  this.app.config.selections.tracks?.includes(trk[0])
+                  ? track
+                  : null;
+              })
+              .filter((item: SKTrack) => {
+                return item ? true : false;
+              });
+            this.trackCacheSignal.set(tc);
+            resolve(true);
+          },
+          (error: HttpErrorResponse) => {
+            resolve(false);
+          }
+        );
+    });
+  }
+
+  /**
+   * @param ids Array of track ids to from server into the cache
+   */
+  trackCacheFetchIds(ids: string[]) {
+    if (!this.trackCacheIsUnfiltered()) {
+      ids.forEach((id) => {
+        if (!this.app.config.selections.tracks?.includes(id)) {
+          this.app.config.selections.tracks.push(id);
+        }
+      });
+    }
+    this.trackCacheRefresh();
+  }
+
+  /**
+   * @description Adds track to the resource cache and update selections list. Emits update$ event.
+   * @param track Track(s)
+   */
+  trackCacheAdd(track: SKTrack | SKTrack[]) {
+    const addItem = (track: SKTrack) => {
+      if (!track.feature?.id) {
+        return;
+      }
+      const etrk = tc.find(
+        (item: SKTrack) => item.feature?.id === track.feature?.id
+      );
+      if (!etrk) {
+        tc.push(track);
+        if (
+          !this.trackCacheIsUnfiltered() &&
+          !this.app.config.selections.tracks?.includes(track.feature?.id)
+        ) {
+          this.app.config.selections.tracks.push(track.feature?.id);
+        }
+      }
+    };
+
+    const tc = [].concat(this.trackCacheSignal());
+    if (Array.isArray(track)) {
+      track.forEach((trk: SKTrack) => {
+        addItem(trk);
+      });
+    } else {
+      addItem(track);
+    }
+    this.app.saveConfig();
+    this.trackCacheSignal.set(tc);
+  }
+
+  /**
+   * @description Remove track from the resource cache and update selections list. Emits update$ event.
+   * @param id Track identifier(s)
+   */
+  trackCacheRemove(id: string | string[]) {
+    const removeItem = (id: string) => {
+      let idx = tc.findIndex((item: SKTrack) => item.feature?.id === id);
+      if (idx !== -1) {
+        tc.splice(idx, 1);
+      }
+      if (!this.trackCacheIsUnfiltered()) {
+        idx = this.app.config.selections.tracks.indexOf(id);
+        if (idx !== -1) {
+          this.app.config.selections.tracks.splice(idx, 1);
+        }
+      }
+    };
+
+    const tc = [].concat(this.trackCacheSignal());
+    if (Array.isArray(id)) {
+      id.forEach((tid: string) => {
+        removeItem(tid);
+      });
+    } else {
+      removeItem(id);
+    }
+    this.app.saveConfig();
+    this.trackCacheSignal.set(tc);
+  }
+
+  /**
+   * @description Clear track resource cache and update selections list. Emits update$ event.
+   */
+  trackCacheClear() {
+    this.trackCacheSignal.set([]);
+    if (!this.trackCacheIsUnfiltered()) {
+      this.app.config.selections.tracks = [];
+    }
+    this.app.saveConfig();
   }
 
   /** get vessel trail from sk server */
@@ -1107,25 +1514,19 @@ export class SKResources {
     if (!t) {
       return;
     }
-    const rte = t[1];
 
     this.dialog
-      .open(ResourceDialog, {
+      .open(RouteDialog, {
         disableClose: true,
         data: {
-          title: 'Route Details:',
-          name: rte['name'] ? rte['name'] : null,
-          comment: rte['description'] ? rte['description'] : null,
-          type: 'route'
+          // clone route for editing
+          route: Object.assign(Object.create(Object.getPrototypeOf(t[1])), t[1])
         }
       })
       .afterClosed()
-      .subscribe((r) => {
-        if (r.result) {
-          // ** save / update route **
-          rte['description'] = r.data.comment;
-          rte['name'] = r.data.name;
-          this.putResource('routes', e.id, rte);
+      .subscribe((r: { save: boolean; route: SKRoute }) => {
+        if (r.save) {
+          this.putResource('routes', e.id, r.route);
         }
       });
   }
@@ -1138,33 +1539,24 @@ export class SKResources {
     if (!e.coordinates) {
       return;
     }
-    const res = this.buildRoute(e.coordinates);
+    const rte = this.buildRoute(e.coordinates);
     if (e.meta && Array.isArray(e.meta)) {
-      res[1].feature.properties.coordinatesMeta = e.meta;
+      rte[1].feature.properties.coordinatesMeta = e.meta;
     }
 
     this.dialog
-      .open(ResourceDialog, {
+      .open(RouteDialog, {
         disableClose: true,
         data: {
-          title: 'New Route:',
-          name: null,
-          comment: null,
-          type: 'route',
-          addMode: true
+          route: rte[1]
         }
       })
       .afterClosed()
-      .subscribe(
-        (r: { result: boolean; data: { name: string; comment: string } }) => {
-          if (r.result) {
-            // ** create route **
-            res[1]['description'] = r.data.comment || '';
-            res[1]['name'] = r.data.name;
-            this.putResource('routes', res[0], res[1], true);
-          }
+      .subscribe((r: { save: boolean; route: SKRoute }) => {
+        if (r.save) {
+          this.putResource('routes', rte[0], r.route);
         }
-      );
+      });
   }
 
   // ** Confirm Route Deletion **
@@ -1309,7 +1701,7 @@ export class SKResources {
     e: { id?: string; position?: Position } = null,
     position: Position = null
   ) {
-    let resId = null;
+    let resId = this.signalk.uuid;
     let title: string;
     let wpt: SKWaypoint;
     let addMode = true;
@@ -1339,36 +1731,25 @@ export class SKResources {
       if (!w) {
         return;
       }
-      wpt = w[1];
+      // clone of chached resource
+      wpt = Object.assign(Object.create(Object.getPrototypeOf(w[1])), w[1]);
       addMode = false;
     }
 
     this.dialog
-      .open(ResourceDialog, {
+      .open(WaypointDialog, {
         disableClose: true,
         data: {
           title: title,
-          name: wpt.name ?? '',
-          comment: wpt.description ?? '',
-          position: wpt.feature.geometry['coordinates'],
           addMode: addMode,
-          skType: wpt.type ?? ''
+          waypoint: wpt
         }
       })
       .afterClosed()
-      .subscribe((r) => {
-        wpt.description = r.data.comment || '';
-        wpt.name = r.data.name || '';
-        wpt.type = r.data.skType;
-        if (r.result) {
+      .subscribe((r: { save: boolean; waypoint: SKWaypoint }) => {
+        if (r.save) {
           // ** save / update waypoint **
-          let isNew = false;
-          if (!resId) {
-            // add
-            resId = this.signalk.uuid;
-            isNew = true;
-          }
-          this.putResource('waypoints', resId, wpt, isNew);
+          this.putResource('waypoints', resId, r.waypoint, addMode);
         }
       });
   }
@@ -1415,32 +1796,54 @@ export class SKResources {
 
   // **** REGIONS ****
 
-  // get regions from sk server
-  getRegions() {
-    this.signalk.api
-      .get(this.app.skApiVersion, `/resources/regions`)
-      .subscribe((res: Regions) => {
-        this.app.data.regions = [];
-        Object.entries(res).forEach((i: [string, RegionResource]) => {
-          i[1] = this.transformRegion(i[1], i[0]);
-          if (typeof i[1].feature !== 'undefined') {
-            this.app.data.regions.push([i[0], new SKRegion(i[1]), true]);
-          }
-        });
-        this.updateSource.next({ action: 'get', mode: 'region' });
-      });
+  private regionCacheSignal = signal([]);
+  readonly regions = this.regionCacheSignal.asReadonly();
+
+  /**
+   * @description Refresh Regions cache
+   * @param regions Response object from Signal K server
+   */
+  private regionCacheRefresh(regions: Regions) {
+    const rc = Object.entries(regions).map((item: [string, RegionResource]) => {
+      const treg = this.transformRegion(item[1], item[0]);
+      return [item[0], new SKRegion(treg), true];
+    });
+    this.regionCacheSignal.set(rc);
   }
 
-  // v2 transformation
-  transformRegion(r: RegionResource, id: string): RegionResource {
+  /**
+   * @description Fill cache with regions from sk server
+   * @param query
+   */
+  getRegions(query?: string) {
+    query =
+      query ??
+      processUrlTokens(
+        this.app.config.resources.notes.rootFilter,
+        this.app.config
+      );
+    if (query && query[0] !== '?') {
+      query = '?' + query;
+    }
+    this.app.debug(`**query: ${query}`);
+    this.cacheRefresh('regions', query);
+  }
+
+  /**
+   * @description Signal K v2 API transformation
+   * @param region Region entry from server
+   * @param id Resource id
+   * @returns Transformed resource entry
+   */
+  private transformRegion(region: RegionResource, id: string): RegionResource {
     if (
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      typeof (r as any).geohash !== 'undefined' &&
+      typeof (region as any).geohash !== 'undefined' &&
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      typeof (r as any).geohash === 'string'
+      typeof (region as any).geohash === 'string'
     ) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const gh = ngeohash.decode_bbox((r as any).geohash);
+      const gh = ngeohash.decode_bbox((region as any).geohash);
       const reg = new SKRegion();
       reg.name = 'Region-' + id.slice(-6);
       reg.feature.geometry.coordinates = [
@@ -1454,56 +1857,94 @@ export class SKResources {
       ];
       return reg;
     } else {
-      return r;
+      return region;
     }
   }
 
-  // ** modify Region point coordinates **
-  updateRegionCoords(id: string, coords: Array<Array<Position>>) {
-    const region = this.fromCache('regions', id)[1];
-    region['feature']['geometry']['coordinates'] =
-      GeoUtils.normaliseCoords(coords);
-    this.putResource('regions', id, region);
-  }
-
-  // ** Display Edit Region properties Dialog **
-  showRegionInfo(e: { id: string; region?: SKRegion }) {
-    if (!e.region) {
-      const t = this.fromCache('regions', e.id);
-      if (!t) {
-        return;
-      }
-      e.region = t[1];
+  /**
+   * @description Create new Region entry on server
+   * @param region
+   */
+  createRegion(region: SKRegion) {
+    if (!region) {
+      return;
     }
-
     this.dialog
-      .open(ResourceDialog, {
+      .open(RegionDialog, {
         disableClose: true,
         data: {
-          title: 'Region Details:',
-          name: e.region['name'] ? e.region['name'] : null,
-          comment: e.region['description'] ? e.region['description'] : null,
-          type: 'region'
+          region: region
         }
       })
       .afterClosed()
-      .subscribe((r) => {
-        if (r.result) {
-          // ** save / update region **
-          e.region['description'] = r.data.comment;
-          e.region['name'] = r.data.name;
-          this.putResource('regions', e.id, e.region);
+      .subscribe(async (r: { save: boolean; region: RegionResource }) => {
+        if (r.save) {
+          this.postToServer('regions', r.region).catch((err) =>
+            this.parseHttpErrorResponse(err)
+          );
         }
       });
   }
 
-  // ** confirm Region Deletion **
-  showRegionDelete(e: { id: string }) {
+  /**
+   * @description Update Region coordinates and push to server
+   * @param id Region identifier
+   * @param coords Coordinates to assign to region
+   */
+  updateRegionCoords(id: string, coords: Array<Array<Position>>) {
+    const region = this.fromCache('regions', id)[1];
+    region['feature']['geometry']['coordinates'] =
+      GeoUtils.normaliseCoords(coords);
+    this.putToServer('regions', id, region).catch((err) =>
+      this.parseHttpErrorResponse(err)
+    );
+  }
+
+  /**
+   * @description Display dialog to edit Region properties
+   * @param id region identifier
+   */
+  updateRegionInfo(id: string) {
+    if (!id) {
+      return;
+    }
+    const t = this.fromCache('regions', id);
+    if (!t) {
+      return;
+    }
+    // clone for editing
+    const regionClone = Object.assign(
+      Object.create(Object.getPrototypeOf(t[1])),
+      t[1]
+    );
+
+    this.dialog
+      .open(RegionDialog, {
+        disableClose: true,
+        data: {
+          region: regionClone
+        }
+      })
+      .afterClosed()
+      .subscribe((r: { save: boolean; region: SKRegion }) => {
+        if (r.save) {
+          this.putToServer('regions', id, r.region).catch((err) =>
+            this.parseHttpErrorResponse(err)
+          );
+        }
+      });
+  }
+
+  /**
+   * @description Confirm Region Deletion
+   * @param id Object containgin region identifier
+   */
+  confirmRegionDelete(id: string) {
     // are there notes attached?
     this.signalk.api
       .get(
         this.app.skApiVersion,
-        `/resources/notes?href=/resources/regions/${e.id}`
+        `/resources/notes?href=/resources/regions/${id}`
       )
       .subscribe((notes: Notes) => {
         let checkText: string;
@@ -1521,12 +1962,20 @@ export class SKResources {
           )
           .subscribe((result: { ok: boolean; checked: boolean }) => {
             if (result && result.ok) {
-              this.deleteResource('regions', e.id);
-              if (result.checked) {
-                na.forEach((id) => {
-                  this.deleteResource('notes', id);
-                });
-              }
+              this.deleteFromServer('regions', id)
+                .then(() => {
+                  // refresh cache
+                  this.cacheRemove('regions', id);
+                  if (result.checked) {
+                    // remove linked notes
+                    na.forEach((noteId: string) => {
+                      this.deleteResource('notes', noteId);
+                    });
+                  }
+                })
+                .catch((err: HttpErrorResponse) =>
+                  this.parseHttpErrorResponse(err)
+                );
             }
           });
       });
@@ -1536,19 +1985,26 @@ export class SKResources {
 
   // ** get notes / regions from sk server
   getNotes(params?: string) {
-    let rf = params ? params : this.app.config.resources.notes.rootFilter;
-    rf = processUrlTokens(rf, this.app.config);
-    if (rf && rf[0] !== '?') {
-      rf = '?' + rf;
+    let query = params ? params : this.app.config.resources.notes.rootFilter;
+    query = processUrlTokens(query, this.app.config);
+    if (query && query[0] !== '?') {
+      query = '?' + query;
     }
-    this.app.debug(`${rf}`);
+    this.app.debug(`**query: ${query}`);
+    query = query ?? '';
+    // fetch notes
+    const skf = this.signalk.api.get(
+      this.app.skApiVersion,
+      `/resources/notes${query}`
+    );
 
-    this.signalk.api
-      .get(this.app.skApiVersion, `/resources/notes${rf}`)
-      .subscribe((res: Notes) => {
-        this.app.data.notes = this.processNotes(res, true, 300);
-        this.updateSource.next({ action: 'get', mode: 'note' });
-      });
+    skf?.subscribe((res: Notes) => {
+      this.app.data.notes = this.processNotes(res, true, 300);
+      this.updateSource.next({ action: 'get', mode: 'note' });
+    });
+
+    // fetch regions
+    this.getRegions(query);
   }
 
   // v2 transformation
@@ -1584,13 +2040,13 @@ export class SKResources {
       }
     }
     // only one of href || position (href has priority)
-    if (typeof n.position !== 'undefined' && typeof n.href !== 'undefined') {
+    /*if (typeof n.position !== 'undefined' && typeof n.href !== 'undefined') {
       if (n.href) {
         delete n.position;
       } else {
         delete n.href;
       }
-    }
+    }*/
     return n;
   }
 
@@ -1768,17 +2224,25 @@ export class SKResources {
   // ** reopen last related dialog **
   private reopenRelatedDialog(noReset = false) {
     if (this.reOpen && this.reOpen.key) {
-      this.showRelatedNotes(this.reOpen.value, this.reOpen.key);
+      this.showRelatedNotes(
+        this.reOpen.value,
+        this.reOpen.key,
+        this.reOpen.readOnly
+      );
       if (noReset) {
         return;
       } else {
-        this.reOpen = { key: null, value: null };
+        this.reOpen = { key: null, value: null, readOnly: undefined };
       }
     }
   }
 
   // ** Show Related Notes dialog **
-  showRelatedNotes(id: string, relatedBy = 'region') {
+  showRelatedNotes(
+    id: string,
+    relatedBy = 'region',
+    readOnly: boolean = false
+  ) {
     let paramName: string;
     if (relatedBy !== 'group') {
       id = id.indexOf(relatedBy) === -1 ? `/resources/${relatedBy}s/${id}` : id;
@@ -1786,10 +2250,12 @@ export class SKResources {
     } else {
       paramName = relatedBy;
     }
+    this.app.sIsFetching.set(true);
     this.signalk.api
       .get(this.app.skApiVersion, `/resources/notes?${paramName}=${id}`)
       .subscribe(
         (res: Notes) => {
+          this.app.sIsFetching.set(false);
           const notes = [];
           Object.entries(res).forEach((i) => {
             i[1] = this.transformNote(i[1], i[0]);
@@ -1798,15 +2264,19 @@ export class SKResources {
           this.dialog
             .open(RelatedNotesDialog, {
               disableClose: true,
-              data: { notes: notes, relatedBy: relatedBy }
+              data: { notes: notes, relatedBy: relatedBy, readOnly: readOnly }
             })
             .afterClosed()
             .subscribe((r) => {
               if (r.result) {
                 if (relatedBy) {
-                  this.reOpen = { key: relatedBy, value: id };
+                  this.reOpen = {
+                    key: relatedBy,
+                    value: id,
+                    readOnly: readOnly
+                  };
                 } else {
-                  this.reOpen = { key: null, value: null };
+                  this.reOpen = { key: null, value: null, readOnly: undefined };
                 }
                 switch (r.data) {
                   case 'edit':
@@ -1834,6 +2304,7 @@ export class SKResources {
             });
         },
         () => {
+          this.app.sIsFetching.set(false);
           this.app.showAlert(
             'ERROR',
             'Unable to retrieve Notes for specified Region!'
@@ -1904,60 +2375,62 @@ export class SKResources {
       this.openNoteForEdit(data);
     } else {
       // edit selected note details
-      this.signalk.api
-        .get(this.app.skApiVersion, `/resources/notes/${e.id}`)
-        .subscribe(
-          (res) => {
-            // ** note data
-            res = this.transformNote(res as NoteResource, e.id);
-            data.noteId = e.id;
-            data.title = 'Edit Note';
-            data.note = res;
-            data.addNote = false;
-            this.openNoteForEdit(data);
-          },
-          () => {
-            this.app.showAlert('ERROR', 'Unable to retrieve Note!');
-          }
-        );
+      this.app.sIsFetching.set(true);
+      this.fetchResource('notes', e.id).subscribe(
+        (res) => {
+          this.app.sIsFetching.set(false);
+          // ** note data
+          res = this.transformNote(res as NoteResource, e.id);
+          data.noteId = e.id;
+          data.title = 'Edit Note';
+          data.note = res;
+          data.addNote = false;
+          this.openNoteForEdit(data);
+        },
+        () => {
+          this.app.sIsFetching.set(false);
+          this.app.showAlert('ERROR', 'Unable to retrieve Note!');
+        }
+      );
     }
   }
 
   // ** Note info Dialog **
   showNoteInfo(e: { id: string }) {
-    this.signalk.api
-      .get(this.app.skApiVersion, `/resources/notes/${e.id}`)
-      .subscribe(
-        (res: NoteResource) => {
-          res = this.transformNote(res as NoteResource, e.id);
-          this.dialog
-            .open(NoteDialog, {
-              disableClose: true,
-              data: { note: res, editable: false }
-            })
-            .afterClosed()
-            .subscribe((r) => {
-              if (r.result) {
-                // ** open in tab **
-                if (r.data === 'url') {
-                  window.open(res['url'], 'note');
-                }
-                if (r.data === 'edit') {
-                  this.showNoteEditor({ id: e.id });
-                }
-                if (r.data === 'delete') {
-                  this.showNoteDelete({ id: e.id });
-                }
-                if (r.data === 'group') {
-                  this.showRelatedNotes(r.value, r.data);
-                }
+    this.app.sIsFetching.set(true);
+    this.fetchResource('notes', e.id).subscribe(
+      (res: NoteResource) => {
+        this.app.sIsFetching.set(false);
+        res = this.transformNote(res as NoteResource, e.id);
+        this.dialog
+          .open(NoteDialog, {
+            disableClose: true,
+            data: { note: res, editable: false }
+          })
+          .afterClosed()
+          .subscribe((r) => {
+            if (r.result) {
+              // ** open in tab **
+              if (r.data === 'url') {
+                window.open(res['url'], 'note');
               }
-            });
-        },
-        () => {
-          this.app.showAlert('ERROR', 'Unable to retrieve Note!');
-        }
-      );
+              if (r.data === 'edit') {
+                this.showNoteEditor({ id: e.id });
+              }
+              if (r.data === 'delete') {
+                this.showNoteDelete({ id: e.id });
+              }
+              if (r.data === 'group') {
+                this.showRelatedNotes(r.value, r.data);
+              }
+            }
+          });
+      },
+      () => {
+        this.app.sIsFetching.set(false);
+        this.app.showAlert('ERROR', 'Unable to retrieve Note!');
+      }
+    );
   }
 
   // ** confirm Note Deletion **

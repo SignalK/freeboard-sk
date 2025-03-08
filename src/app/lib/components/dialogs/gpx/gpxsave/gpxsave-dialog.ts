@@ -2,7 +2,7 @@ import { Component, OnInit, Inject } from '@angular/core';
 import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 
 import { GPXSaveFacade } from './gpxsave-dialog.facade';
-import { AppInfo } from 'src/app/app.info';
+import { AppFacade } from 'src/app/app.facade';
 
 //** GPXSave dialog **
 @Component({
@@ -41,7 +41,7 @@ export class GPXExportDialog implements OnInit {
   private unsubscribe = [];
 
   constructor(
-    public app: AppInfo,
+    public app: AppFacade,
     public facade: GPXSaveFacade,
     public dialogRef: MatDialogRef<GPXExportDialog>,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

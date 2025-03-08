@@ -11,7 +11,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatInputModule } from '@angular/material/input';
-import { AppInfo } from 'src/app/app.info';
+import { AppFacade } from 'src/app/app.facade';
 import { SKChart } from 'src/app/modules/skresources/resource-classes';
 import { ChartProvider } from 'src/app/types';
 import { PipesModule } from 'src/app/lib/pipes';
@@ -164,7 +164,7 @@ export class JsonMapSourceDialog {
   };
 
   constructor(
-    public app: AppInfo,
+    public app: AppFacade,
     public dialogRef: MatDialogRef<JsonMapSourceDialog>,
     private http: HttpClient,
     @Inject(MAT_DIALOG_DATA) public data: SKChart

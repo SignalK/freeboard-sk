@@ -10,7 +10,7 @@ import { CommonModule } from '@angular/common';
 import { MatTooltip } from '@angular/material/tooltip';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { AppInfo } from 'src/app/app.info';
+import { AppFacade } from 'src/app/app.facade';
 import { Position } from 'src/app/types';
 import { getGreatCircleBearing } from 'geolib';
 import { GeoUtils } from '../geoutils';
@@ -120,7 +120,7 @@ export class Measurements {
     next: false
   };
 
-  constructor(public app: AppInfo) {
+  constructor(public app: AppFacade) {
     this.init();
   }
 

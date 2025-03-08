@@ -177,6 +177,7 @@ class SKTargetBase {
   position: Position = [0, 0];
   state: string;
   type: { id: number; name: string } = { id: -1, name: '' };
+  virtual?: boolean;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   properties: { [key: string]: any } = {};
   lastUpdated = new Date();

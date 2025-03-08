@@ -6,7 +6,8 @@ import {
   Output,
   EventEmitter,
   ViewChild,
-  SimpleChanges
+  SimpleChanges,
+  Signal
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
@@ -46,7 +47,7 @@ import {
   ResourceSet
 } from 'src/app/types';
 
-import { AppInfo } from 'src/app/app.info';
+import { AppFacade } from 'src/app/app.facade';
 import { SettingsMessage } from 'src/app/lib/services';
 import {
   SKResources,
@@ -62,29 +63,27 @@ import {
   SKSaR,
   SKMeteo,
   SKStreamFacade,
-  AlarmsFacade
+  AlarmsFacade,
+  SKTrack
 } from 'src/app/modules';
 import {
   mapInteractions,
   mapControls,
   vesselStyles,
   aisVesselStyles,
-  atonStyles,
   basestationStyles,
   aircraftStyles,
   sarStyles,
-  meteoStyles,
   waypointStyles,
+  regionStyles,
   routeStyles,
-  noteStyles,
   anchorStyles,
   alarmStyles,
   destinationStyles,
   laylineStyles,
   drawStyles,
   targetAngleStyle,
-  raceCourseStyles,
-  SignalKIcons
+  raceCourseStyles
 } from './mapconfig';
 import { ModifyEvent } from 'ol/interaction/Modify';
 import { DrawEvent } from 'ol/interaction/Draw';
@@ -94,12 +93,12 @@ import {
   FBNotes,
   FBRoutes,
   FBWaypoints,
-  ResourceSets,
   SKNotification
 } from 'src/app/types';
 import { S57Service } from './ol/lib/s57.service';
 import { Position as SKPosition } from '@signalk/server-api';
 import { FBMapEvent, FBPointerEvent } from './ol/lib/map.component';
+import { FeatureLike } from 'ol/Feature';
 
 interface IResource {
   id: string;
@@ -109,6 +108,7 @@ interface IResource {
 interface IOverlay {
   id: string;
   type: string;
+  icon?: string;
   position: Coordinate;
   show: boolean;
   title: string;
@@ -124,6 +124,7 @@ interface IOverlay {
   meteo?: SKMeteo;
   aircraft?: SKAircraft;
   alarm?: SKNotification;
+  readOnly: boolean;
 }
 
 interface IFeatureData {
@@ -268,11 +269,13 @@ export class FBMapComponent implements OnInit, OnDestroy {
   public overlay: IOverlay = {
     id: null,
     type: null,
+    icon: null,
     position: [0, 0],
     show: false,
     title: '',
     content: null,
-    featureCount: 0
+    featureCount: 0,
+    readOnly: false
   };
 
   private zoomOffsetLevel = [
@@ -299,19 +302,15 @@ export class FBMapComponent implements OnInit, OnDestroy {
   featureStyles: any = {
     vessel: vesselStyles,
     aisVessel: aisVesselStyles,
-    note: {
-      default: noteStyles.default
-    },
     route: routeStyles,
     waypoint: waypointStyles,
+    region: regionStyles,
     anchor: anchorStyles,
     alarm: alarmStyles,
     destination: destinationStyles,
-    aton: atonStyles,
     basestation: basestationStyles,
     aircraft: aircraftStyles,
     sar: sarStyles,
-    meteo: meteoStyles,
     layline: laylineStyles,
     targetAngle: targetAngleStyle,
     raceCourse: raceCourseStyles
@@ -365,16 +364,19 @@ export class FBMapComponent implements OnInit, OnDestroy {
   contextMenuPosition = { x: '0px', y: '0px' };
 
   private obsList = [];
+  protected tracks: Signal<SKTrack[]>;
 
   constructor(
-    public app: AppInfo,
+    public app: AppFacade,
     public s57Service: S57Service,
     public skres: SKResources,
     public skresOther: SKOtherResources,
     private skstream: SKStreamFacade,
-    private alarmsFacade: AlarmsFacade,
-    private skicons: SignalKIcons
-  ) {}
+    private alarmsFacade: AlarmsFacade
+  ) {
+    // Signals
+    this.tracks = this.skres.tracks; // track resources cache
+  }
 
   ngAfterViewInit() {
     // ** set map focus **
@@ -424,13 +426,6 @@ export class FBMapComponent implements OnInit, OnDestroy {
   }
 
   ngOnChanges(changes: SimpleChanges) {
-    // Apply SK Icon styles if available
-    // if (this.app.data.skIcons.hasApi && !this.featureStyles.note.skIcons) {
-    if (!this.featureStyles.note.skIcons) {
-      this.featureStyles.note = Object.assign(this.featureStyles.note, {
-        skIcons: this.skicons.styles
-      });
-    }
     if (changes.vesselTrail) {
       this.drawVesselLines();
     }
@@ -597,16 +592,8 @@ export class FBMapComponent implements OnInit, OnDestroy {
       if (value.mode === 'chart') {
         this.dfeat.charts = [].concat(this.app.data.charts);
       }
-      if (value.mode === 'region') {
-        this.dfeat.regions = [].concat(this.app.data.regions);
-      }
       if (value.mode === 'note') {
         this.dfeat.notes = [].concat(this.app.data.notes);
-        this.dfeat.regions = [].concat(this.app.data.regions);
-      }
-      if (value.mode === 'track') {
-        // track resources
-        this.dfeat.tracks = [].concat(this.app.data.tracks);
       }
       if (value.mode === 'trail') {
         // vessel trail
@@ -658,42 +645,6 @@ export class FBMapComponent implements OnInit, OnDestroy {
     }
   }
 
-  // ** handle mouse right click **
-  public onMapMouseRightClick(e) {
-    this.app.data.map.atClick = e;
-    this.app.debug(this.app.data.map.atClick);
-  }
-
-  // ** handle Map context menu event **
-  public onMapContextMenu(e) {
-    this.onContextMenu(e);
-  }
-
-  // ** handle ol-map container context menu event **
-  public onContextMenu(e) {
-    if (this.app.data.map.suppressContextMenu) {
-      return;
-    }
-    e.preventDefault();
-    this.contextMenuPosition.x = e.clientX + 'px';
-    this.contextMenuPosition.y = e.clientY + 'px';
-    this.contextMenu.menuData = { item: this.mouse.coords };
-    if (this.measureMode && this.measure.coords.length !== 0) {
-      this.onMeasureClick(this.mouse.xy.lonlat);
-    } else if (!this.modifyMode) {
-      if (!this.mouse.xy) {
-        return;
-      }
-      this.contextMenu.openMenu();
-      document
-        .getElementsByClassName('cdk-overlay-backdrop')[0]
-        .addEventListener('contextmenu', (offEvent) => {
-          offEvent.preventDefault(); // prevent default context menu for overlay
-          this.contextMenu.closeMenu();
-        });
-    }
-  }
-
   // handle map move / zoom
   public onMapMoveEnd(e: FBMapEvent) {
     this.app.config.map.zoomLevel = e.zoom;
@@ -713,6 +664,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
     this.renderMapContents(e.zoomChanged);
   }
 
+  // pointer events
   public onMapPointerMove(e: FBPointerEvent) {
     this.mouse.pixel = e.pixel;
     this.mouse.xy = e.coordinate;
@@ -739,29 +691,13 @@ export class FBMapComponent implements OnInit, OnDestroy {
     }
   }
 
-  // toggle display of resource feature
-  toggleFeatureSelection(
-    id: string,
-    resType: 'charts' | 'routes' | 'waypoints'
-  ) {
-    this.app.data[resType].forEach((r: FBChart | FBRoute | FBWaypoint) => {
-      if (r[0] === id) {
-        r[2] = !r[2];
-      }
-    });
-    switch (resType) {
-      case 'charts':
-        this.skres.chartSelected();
-        break;
-      case 'routes':
-        this.skres.routeSelected();
-        break;
-      case 'waypoints':
-        this.skres.waypointSelected();
-    }
+  public onMapPointerDown(e: FBPointerEvent) {
+    this.mouse.coords = GeoUtils.normaliseCoords(e.lonlat as Position);
+    this.contextMenuPosition.x = (e as any).clientX + 'px';
+    this.contextMenuPosition.y = (e as any).clientY + 'px';
   }
 
-  public onMapMouseClick(e) {
+  public onMapSingleClick(e) {
     this.app.data.map.atClick = {
       features: e.features,
       lonlat: e.lonlat
@@ -883,7 +819,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
             case 'region':
               addToFeatureList = true;
               icon = 'tab_unselected';
-              text = 'Region';
+              text = feature.get('name');
               break;
             case 'aircraft':
               icon = 'airplanemode_active';
@@ -915,6 +851,64 @@ export class FBMapComponent implements OnInit, OnDestroy {
         //show list of features
         this.formatPopover('list.', e.lonlat, flist);
       }
+    }
+  }
+
+  // ** handle right click / touch hold**
+  public onMapRightClick(e: { features: FeatureLike[]; lonlat: Position }) {
+    this.app.data.map.atClick = e;
+    this.app.debug(this.app.data.map.atClick);
+  }
+
+  // ** handle Map context menu event **
+  public onMapContextMenu(e: PointerEvent) {
+    this.onContextMenu(e);
+  }
+
+  // ** handle ol-map container context menu event **
+  public onContextMenu(e: PointerEvent) {
+    if (this.app.data.map.suppressContextMenu) {
+      return;
+    }
+    e.preventDefault();
+    this.contextMenuPosition.x = e.clientX + 'px';
+    this.contextMenuPosition.y = e.clientY + 'px';
+    this.contextMenu.menuData = { item: this.mouse.coords };
+    if (this.measureMode && this.measure.coords.length !== 0) {
+      this.onMeasureClick(this.mouse.xy.lonlat);
+    } else if (!this.modifyMode) {
+      if (!this.mouse.xy) {
+        return;
+      }
+      this.contextMenu.openMenu();
+      document
+        .getElementsByClassName('cdk-overlay-backdrop')[0]
+        .addEventListener('contextmenu', (offEvent) => {
+          offEvent.preventDefault(); // prevent default context menu for overlay
+          this.contextMenu.closeMenu();
+        });
+    }
+  }
+
+  // toggle display of resource feature
+  toggleFeatureSelection(
+    id: string,
+    resType: 'charts' | 'routes' | 'waypoints'
+  ) {
+    this.app.data[resType].forEach((r: FBChart | FBRoute | FBWaypoint) => {
+      if (r[0] === id) {
+        r[2] = !r[2];
+      }
+    });
+    switch (resType) {
+      case 'charts':
+        this.skres.chartSelected();
+        break;
+      case 'routes':
+        this.skres.routeSelected();
+        break;
+      case 'waypoints':
+        this.skres.waypointSelected();
     }
   }
 
@@ -1444,6 +1438,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
     this.overlay.featureCount = this.draw.features.getLength();
     this.overlay.position = coord;
     this.overlay.isSelf = false;
+    this.overlay.readOnly = false;
     let item = null;
     const t = id.split('.');
     let aid: string;
@@ -1533,17 +1528,25 @@ export class FBMapComponent implements OnInit, OnDestroy {
         this.overlay.title = 'Region';
         this.overlay.resource = item[0];
         this.overlay.show = true;
+        this.overlay.readOnly =
+          this.overlay.resource[1]?.feature?.properties?.readOnly ?? false;
         return;
       case 'note':
-        item = [this.skres.fromCache('notes', t[1])];
+        item = this.skres.fromCache('notes', t[1]);
         if (!item) {
           return false;
         }
-        this.overlay.id = t[1];
-        this.overlay.type = 'note';
-        this.overlay.title = 'Note';
-        this.overlay.resource = item[0];
-        this.overlay.show = true;
+        this.overlay.readOnly = item[1]?.properties?.readOnly ?? false;
+        if (this.overlay.readOnly) {
+          this.overlay.show = false;
+          this.skres.showNoteInfo({ id: item[0] });
+        } else {
+          this.overlay.id = t[1];
+          this.overlay.type = 'note';
+          this.overlay.title = 'Note';
+          this.overlay.resource = item;
+          this.overlay.show = true;
+        }
         return;
       case 'route':
         if (t[1] === 'n2k') {
@@ -1559,6 +1562,8 @@ export class FBMapComponent implements OnInit, OnDestroy {
         this.overlay.title = 'Route';
         this.overlay.resource = item[0];
         this.overlay.show = true;
+        this.overlay.readOnly =
+          this.overlay.resource[1]?.feature?.properties?.readOnly ?? false;
         return;
       case 'waypoint':
         item = [this.skres.fromCache('waypoints', t[1])];
@@ -1570,6 +1575,8 @@ export class FBMapComponent implements OnInit, OnDestroy {
         this.overlay.resource = item[0];
         this.overlay.title = 'Waypoint';
         this.overlay.show = true;
+        this.overlay.readOnly =
+          this.overlay.resource[1]?.feature?.properties?.readOnly ?? false;
         return;
       case 'dest':
         this.overlay.id = id;
@@ -1617,7 +1624,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
         this.skres.showNoteDelete({ id: id });
         break;
       case 'region':
-        this.skres.showRegionDelete({ id: id });
+        this.skres.confirmRegionDelete(id);
         break;
     }
   }

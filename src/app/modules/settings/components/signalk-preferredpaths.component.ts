@@ -13,7 +13,7 @@ import { CommonModule } from '@angular/common';
 
 import { MatRadioModule } from '@angular/material/radio';
 
-import { AppInfo } from 'src/app/app.info';
+import { AppFacade } from 'src/app/app.facade';
 
 @Component({
   selector: 'signalk-preferred-paths',
@@ -95,7 +95,7 @@ export class SignalKPreferredPathsComponent {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   public availPaths: any;
 
-  constructor(public app: AppInfo) {}
+  constructor(public app: AppFacade) {}
 
   ngOnInit() {
     this.initEntries();

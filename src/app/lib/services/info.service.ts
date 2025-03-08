@@ -84,7 +84,7 @@ export class Info {
       if (this.version.indexOf(cv.version) === -1) {
         value.result = 'update';
         this.debug(
-          `AppInfo: Version update detected.. (${cv.version} -> ${this.version})`,
+          `AppFacade: Version update detected.. (${cv.version} -> ${this.version})`,
           'info'
         );
         this.upgradedSource.next(value);
@@ -93,7 +93,7 @@ export class Info {
       // **  new install **
       value.result = 'new';
       this.saveInfo();
-      this.debug(`AppInfo: New Install detected.. (${this.version})`, 'info');
+      this.debug(`AppFacade: New Install detected.. (${this.version})`, 'info');
       this.upgradedSource.next(value);
     }
     return value;

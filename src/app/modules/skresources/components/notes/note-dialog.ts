@@ -24,7 +24,8 @@ import {
 } from '@kolkov/angular-editor';
 import { AddTargetPipe } from './safe.pipe';
 
-import { AppInfo } from 'src/app/app.info';
+import { AppFacade } from 'src/app/app.facade';
+import { getResourceIcon } from 'src/app/modules/icons';
 
 /********* NoteDialog **********
 	data: {
@@ -111,9 +112,11 @@ export class NoteDialog implements OnInit {
     toolbarHiddenButtons: this.editorHiddenButtons
   };
 
+  protected icon: { class: string; name?: string; svgIcon?: string };
+
   constructor(
-    public app: AppInfo,
-    public dialogRef: MatDialogRef<NoteDialog>,
+    protected app: AppFacade,
+    protected dialogRef: MatDialogRef<NoteDialog>,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     @Inject(MAT_DIALOG_DATA) public data: any
   ) {}
@@ -128,6 +131,7 @@ export class NoteDialog implements OnInit {
     if (this.data.note.properties.readOnly) {
       this.data.editable = false;
     }
+    this.icon = getResourceIcon('notes', this.data.note);
   }
 
   openNoteUrl() {

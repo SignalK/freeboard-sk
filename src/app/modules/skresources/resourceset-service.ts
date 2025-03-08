@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
 import { Subject, Observable } from 'rxjs';
 import { SignalKClient } from 'signalk-client-angular';
-import { AppInfo } from 'src/app/app.info';
+import { AppFacade } from 'src/app/app.facade';
 import { SKResourceSet } from './resourceset-class';
 import { ResourceSet, CustomResources } from 'src/app/types';
 import { processUrlTokens } from 'src/app/app.settings';
@@ -21,7 +21,7 @@ export class SKOtherResources {
   constructor(
     public dialog: MatDialog,
     public signalk: SignalKClient,
-    public app: AppInfo
+    public app: AppFacade
   ) {}
 
   // **** ITEMS ****

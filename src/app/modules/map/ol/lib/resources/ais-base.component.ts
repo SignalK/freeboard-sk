@@ -13,7 +13,7 @@ import { MapComponent } from '../map.component';
 import { SKAircraft, SKAtoN, SKSaR, SKVessel, SKMeteo } from 'src/app/modules';
 import { FBFeatureLayerComponent } from '../sk-feature.component';
 
-type SKTarget = SKVessel | SKAircraft | SKAtoN | SKSaR | SKMeteo;
+export type SKTarget = SKVessel | SKAircraft | SKAtoN | SKSaR | SKMeteo;
 
 // ** Signal K AIS Target Base Compnent  **
 @Component({

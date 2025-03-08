@@ -7,12 +7,14 @@ import {
   SimpleChanges
 } from '@angular/core';
 import { Feature } from 'ol';
-import { Style, RegularShape, Stroke, Fill } from 'ol/style';
+import { Style, RegularShape, Stroke, Fill, Text } from 'ol/style';
 import { Point } from 'ol/geom';
 import { fromLonLat } from 'ol/proj';
 import { MapComponent } from '../map.component';
 import { FBFeatureLayerComponent } from '../sk-feature.component';
-import { FBNotes, Notes } from 'src/app/types';
+import { FBNotes, NoteResource, Notes } from 'src/app/types';
+import { MapImageRegistry } from '../map-image-registry.service';
+import { SKNote } from 'src/app/modules/skresources';
 
 @Component({
   selector: 'ol-map > sk-notes-base',
@@ -20,11 +22,10 @@ import { FBNotes, Notes } from 'src/app/types';
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class NotesBaseComponent extends FBFeatureLayerComponent {
-  @Input() noteStyles: { [key: string]: Style };
-
   constructor(
     protected mapComponent: MapComponent,
-    protected changeDetectorRef: ChangeDetectorRef
+    protected changeDetectorRef: ChangeDetectorRef,
+    protected mapImages: MapImageRegistry
   ) {
     super(mapComponent, changeDetectorRef);
   }
@@ -47,21 +48,18 @@ export class NotesBaseComponent extends FBFeatureLayerComponent {
   }
 
   // build note feature style
-  buildStyle(id: string, note): Style {
-    if (typeof this.noteStyles !== 'undefined') {
-      if (
-        note.properties?.skIcon &&
-        this.noteStyles['skIcons'] &&
-        this.noteStyles['skIcons'][note.properties.skIcon]
-      ) {
-        return this.noteStyles['skIcons'][note.properties.skIcon];
-      } else {
-        return this.noteStyles.default;
-      }
-    } else if (this.layerProperties && this.layerProperties.style) {
-      return this.layerProperties.style;
+  buildStyle(note: SKNote | NoteResource): Style {
+    const icon = this.mapImages.getPOI(note.properties.skIcon ?? 'default');
+    if (icon) {
+      return new Style({
+        image: icon,
+        text: new Text({
+          text: '',
+          offsetX: 0,
+          offsetY: -12
+        })
+      });
     } else {
-      // default styles
       return new Style({
         image: new RegularShape({
           points: 4,
@@ -89,9 +87,10 @@ export class NoteLayerComponent extends NotesBaseComponent {
 
   constructor(
     protected mapComponent: MapComponent,
-    protected changeDetectorRef: ChangeDetectorRef
+    protected changeDetectorRef: ChangeDetectorRef,
+    protected mapImages: MapImageRegistry
   ) {
-    super(mapComponent, changeDetectorRef);
+    super(mapComponent, changeDetectorRef, mapImages);
   }
 
   ngOnInit() {
@@ -117,7 +116,7 @@ export class NoteLayerComponent extends NotesBaseComponent {
       });
       f.setId('note.' + n);
       f.set('icon', notes[n].properties?.skIcon ?? 'local_offer');
-      f.setStyle(this.buildStyle(n, notes[n]).clone());
+      f.setStyle(this.buildStyle(notes[n]).clone());
       fa.push(f);
     }
     this.source.addFeatures(fa);
@@ -135,9 +134,10 @@ export class FreeboardNoteLayerComponent extends NotesBaseComponent {
 
   constructor(
     protected mapComponent: MapComponent,
-    protected changeDetectorRef: ChangeDetectorRef
+    protected changeDetectorRef: ChangeDetectorRef,
+    protected mapImages: MapImageRegistry
   ) {
-    super(mapComponent, changeDetectorRef);
+    super(mapComponent, changeDetectorRef, mapImages);
   }
 
   ngOnInit() {
@@ -168,7 +168,7 @@ export class FreeboardNoteLayerComponent extends NotesBaseComponent {
           ? `sk-${n[1].properties?.skIcon}`
           : 'local_offer'
       );
-      f.setStyle(this.buildStyle(n[0], n[1]).clone());
+      f.setStyle(this.buildStyle(n[1]).clone());
       fa.push(f);
     }
     this.source.addFeatures(fa);

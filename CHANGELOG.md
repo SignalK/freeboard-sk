@@ -1,5 +1,19 @@
 # CHANGELOG: Freeboard
 
+### v2.13.2
+
+- **Added**: Data loading progress indicator. (#240)
+- **Added**: Ability to edit waypoint coordinates in details dialog. (#238)
+- **Added**: Additional operating modes for anchor watch. (#248)
+- **Change**: Main menu style / layout. (#243)
+- **Change**: CSS style of links in note descriptions. (#245)
+- **Change**: Track list layout. (#251)
+- **Fixed**: Read-only flag not respected by Region Details dialog and formatting. (#244, #258)
+- **Fixed**: "Navigate To" not correctly determining pointer location on IOS devices. (#241)
+- **Fixed**: Heading up setting sometimes not applied at startup. (#254)
+- **Fixed**: Regions not being fetched after initial app load. (#256)
+- **Fixed**: Route point drag / drop re-ordering.
+
 ### v2.13.1
 
 - **Change**: `Load GPX` and `Load GeoJSON` menu options have been combined as `Import` option in the Resource Layers menu.

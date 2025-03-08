@@ -10,7 +10,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { PipesModule } from 'src/app/lib/pipes';
 import { PopoverComponent } from './popover.component';
-import { AppInfo } from 'src/app/app.info';
+import { AppFacade } from 'src/app/app.facade';
 import { SKAircraft } from 'src/app/modules';
 /*********** Aircraft Popover ***************
   title: string -  title text,
@@ -96,7 +96,7 @@ export class AircraftPopoverComponent {
   _title: string;
   timeLastUpdate: string;
   timeAgo: string; // last update in minutes ago
-  constructor(public app: AppInfo) {}
+  constructor(public app: AppFacade) {}
   ngOnInit() {
     if (!this.aircraft) {
       this.handleClose();

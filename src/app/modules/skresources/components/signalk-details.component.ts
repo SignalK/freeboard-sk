@@ -5,7 +5,7 @@ Signal K Details list component
 import { Component, Input, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { AppInfo } from 'src/app/app.info';
+import { AppFacade } from 'src/app/app.facade';
 import { PipesModule } from '../../../lib/pipes';
 
 @Component({
@@ -57,7 +57,7 @@ export class SignalKDetailsComponent {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   public items: any;
 
-  constructor(protected app: AppInfo) {}
+  constructor(protected app: AppFacade) {}
 
   ngOnChanges() {
     if (this.details) {
