@@ -1,6 +1,6 @@
 .autopilot-console {
     position: absolute;
-    z-index: 5000;
+    z-index: 6010;
     top: 130px;
     left: 50px;
     display: flex;

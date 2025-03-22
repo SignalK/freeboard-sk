@@ -57,7 +57,8 @@ import {
             style="flex: 1 1 auto;
             font-size: 14pt;
             line-height: 2.5em;
-            text-align: center;"
+            text-align: center;
+            cursor: grab;"
           >
             Build Route:
           </div>

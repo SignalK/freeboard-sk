@@ -19,7 +19,8 @@ import {
   AlertDialog,
   ConfirmDialog,
   WelcomeDialog,
-  MessageBarComponent
+  MessageBarComponent,
+  MsgBox
 } from './lib/components/dialogs';
 
 import { Convert } from './lib/convert';
@@ -118,6 +119,7 @@ export class AppFacade extends Info {
   // signals
   sMapNorthUp = signal(true); // map North / Heading Up
   sIsFetching = signal(false); // show progress for fetching data from server
+  sAlertListShow = signal(false); // display AlertList
 
   constructor(
     public signalk: SignalKClient,
@@ -133,7 +135,7 @@ export class AppFacade extends Info {
     this.name = 'Freeboard-SK';
     this.shortName = 'Freeboard';
     this.description = `Signal K Chart Plotter.`;
-    this.version = '2.13.2';
+    this.version = '2.14.0';
     this.url = 'https://github.com/signalk/freeboard-sk';
     this.logo = './assets/img/app_logo.png';
 
@@ -211,7 +213,6 @@ export class AppFacade extends Info {
       waypoints: [],
       charts: [].concat(OSM),
       chartBounds: false,
-      alarms: new Map(),
       notes: [],
       resourceSets: {}, // additional resource sets
       selfId: null,
@@ -240,7 +241,7 @@ export class AppFacade extends Info {
         aisTracks: new Map(), // AIS targets track (tracks plugin)
         activeId: null,
         active: null,
-        closest: { id: null, distance: null, timeTo: null, position: [0, 0] },
+        closest: [],
         prefAvailablePaths: {}, // preference paths available from source,
         flagged: [] // flagged ais targets
       },
@@ -288,8 +289,7 @@ export class AppFacade extends Info {
       },
       autopilot: {
         console: false, // display Autopilot console
-        hasApi: false, // Server implements Autopilot API
-        isLocal: false // FB AP API
+        hasApi: false // Server implements Autopilot API
       },
       skIcons: {
         hasApi: false
@@ -645,6 +645,20 @@ export class AppFacade extends Info {
         }
       });
     }
+  }
+
+  // ** display MsgBox dialog
+  showMsgBox(title: string, message: string, btn?: string) {
+    return this.dialog
+      .open(MsgBox, {
+        disableClose: false,
+        data: {
+          message: message,
+          title: title,
+          buttonText: btn
+        }
+      })
+      .afterClosed();
   }
 
   // ** display alert dialog

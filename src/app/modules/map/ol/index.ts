@@ -28,10 +28,7 @@ import {
   RouteLayerComponent,
   FreeboardRouteLayerComponent
 } from './lib/resources/layer-routes.component';
-import {
-  RegionLayerComponent,
-  FreeboardRegionLayerComponent
-} from './lib/resources/layer-regions.component';
+import { FreeboardRegionLayerComponent } from './lib/resources/layer-regions.component';
 import { FreeboardChartLayerComponent } from './lib/resources/layer-charts.component';
 import { ChartBoundsLayerComponent } from './lib/resources/layer-chart-bounds.component';
 import { TrackLayerComponent } from './lib/resources/layer-tracks.component';
@@ -83,10 +80,7 @@ export {
   RouteLayerComponent,
   FreeboardRouteLayerComponent
 } from './lib/resources/layer-routes.component';
-export {
-  RegionLayerComponent,
-  FreeboardRegionLayerComponent
-} from './lib/resources/layer-regions.component';
+export { FreeboardRegionLayerComponent } from './lib/resources/layer-regions.component';
 export { FreeboardChartLayerComponent } from './lib/resources/layer-charts.component';
 export { ChartBoundsLayerComponent } from './lib/resources/layer-chart-bounds.component';
 export { TrackLayerComponent } from './lib/resources/layer-tracks.component';
@@ -128,7 +122,6 @@ const declarations = [
   FreeboardNoteLayerComponent,
   RouteLayerComponent,
   FreeboardRouteLayerComponent,
-  RegionLayerComponent,
   FreeboardRegionLayerComponent,
   TrackLayerComponent,
   FreeboardChartLayerComponent,

@@ -189,7 +189,7 @@ const whaleIcon = new Icon({
 });
 
 const pobIcon = new Icon({
-  src: './assets/img/ob/alarm-pob.svg',
+  src: './assets/img/ob/alarm-mob.svg',
   rotateWithView: false
 });
 
@@ -222,7 +222,7 @@ export const waypointStyles = {
       offsetY: -15
     })
   }),
-  'alarm-pob': new Style({
+  'alarm-mob': new Style({
     image: pobIcon,
     text: new Text({
       text: '',
@@ -292,14 +292,22 @@ export const regionStyles = {
 
 export const alarmStyles = {
   mob: new Style({
-    image: pobIcon
+    image: new Icon({
+      src: './assets/img/alarms/mob.svg',
+      rotateWithView: false,
+      rotation: 0,
+      scale: 1,
+      anchor: [12, 12],
+      anchorXUnits: 'pixels',
+      anchorYUnits: 'pixels'
+    })
   })
 };
 
 export const destinationStyles = {
   marker: new Style({
     image: new Icon({
-      src: './assets/img/marker-blue.png',
+      src: './assets/img/waypoints/marker-green.png',
       anchor: [10.5, 25],
       anchorXUnits: 'pixels',
       anchorYUnits: 'pixels',

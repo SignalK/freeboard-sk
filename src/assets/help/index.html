@@ -55,7 +55,7 @@
           <li><a href="#menus">Menus</a></li>
           <li><a href="#aistargets">- Vessels</a></li>
           <li><a href="#anchor">- Anchor Watch</a></li>
-          <li><a href="#alarms">- Alarms</a></li>
+          <li><a href="#alerts">- Alerts</a></li>
           <li><a href="#playback">- Playback</a></li>
           <li><a href="#settings">Settings</a></li>
           <li><a href="#parameters">- URL parameters</a></li>
@@ -125,24 +125,22 @@
           style="background-color: rgba(255, 0, 0, 0.4)"
         >
           <h3>Deprecations</h3>
-          <i
-            >Please note the following features that are marked for
-            deprecation:</i
-          ><br />
+          <i>Please note the following feature has been deprecated:</i><br />
           <ul>
             <li>
-              <b>PyPilot - </b> Built-in PyPilot support is deprecated as of
-              v2.13.0 in preference of support for the Signal K Autopilot
-              APIwhich allows Freeboard-SK to operate with a wider range of
-              autopilot devices.<br />
-              To continue using autopilot functionality, install the
-              <a
-                href="https://www.npmjs.com/package/pypilot-autopilot-provider"
-                target="npmjs"
-                >pypilot-autopilot-provider</a
-              >
-              plugin.<br />
-              <b>PyPilot feature will be removed in v2.14.0</b>
+              <b>Built-in PyPilot support -</b> Freeboard-SK now uses the Signal
+              K Autopilot API exclusively and PyPilot settings have been removed
+              from PLugin Config. The Signal K Autopilot API aenables operation
+              with a wider range of autopilot devices.<br />
+              <b
+                >To continue using autopilot functionality, install the
+                <a
+                  href="https://www.npmjs.com/package/pypilot-autopilot-provider"
+                  target="npmjs"
+                  >pypilot-autopilot-provider</a
+                >
+                plugin on the Signal K server.<br />
+              </b>
             </li>
           </ul>
         </div>
@@ -248,6 +246,12 @@
                 <td>Closest approach / Crossing vessel</td>
                 <td>
                   <b>signalk-derived-data</b>
+                </td>
+              </tr>
+              <tr>
+                <td>History Playback</td>
+                <td>
+                  <b>signalk-to-influxdb</b>
                 </td>
               </tr>
               <tr>
@@ -1547,15 +1551,14 @@
           </div>
         </div>
 
-        <div class="panel" id="alarms">
-          <h4>
-            <i class="material-icons">warning</i> Alarms &amp; Notifications
-          </h4>
+        <div class="panel" id="alerts">
+          <h4><i class="material-icons">warning</i> Alerts &amp; Alarms</h4>
 
-          Freeboard will display Notifications and also provides the ability to
-          raise alarms.
+          Freeboard will display Alerts and also provides the ability to raise
+          alarms.
           <br />
-          Notifications are displayed using:
+          When notifications are received, they are actioned as alerts based on
+          their priority and method:
           <ul>
             <li>Visual only <i>(popup at the top of the screen)</i></li>
             <li>Sound only</li>
@@ -1563,9 +1566,10 @@
             as specified by the notification message received from the Signal K
             server.
           </ul>
+          All Alerts are available to view via the Alerts List.<br />
           The following Alarms can be raised:
           <div>
-            <img src="./img/alarms.png" style="max-width: 250px" alt="" />
+            <img src="./img/alarms.png" style="max-width: 350px" alt="" />
           </div>
 
           <br />
@@ -1574,51 +1578,34 @@
             <li>
               Click the
               <i class="material-icons" style="color: orangered">warning</i>
-              button on the toolbar to display the Alarms dialog:
+              button on the toolbar to display the Alerts List:
             </li>
             <li>
-              Click the <b>RAISE ALARM</b> button for the desired alarm type.
+              Click the <b>RAISE</b> button and select the desired alarm type.
             </li>
-            An alarm notification will be sent to the Signal K server.<br />
-            &nbsp;<br />
-            Freeboard will display the received alarm from the server. This
-            alarm can be
-            <i>Acknowledged</i>
-            and / or
-            <i>Muted</i
-            >.<br />
-            <li>
-              Acknowledging the alarm will minimise the alarm icon until the
-              alarm has been cleared.
-            </li>
-            <img
-              src="./img/ackalarms.png"
-              style="max-width: 250px; height: 60px"
-              alt=""
-            />
-            <li>The raised alarm will remain until it is cancelled.</li>
-            <br />
-            <h5>To CANCEL an alarm:</h5>
-            <li>
-              Click the
-              <i class="material-icons" style="color: orangered">warning</i>
-              button on the toolbar to display the Alarms dialog:
-            </li>
-            <li>Click the <b>CANCEL ALARM</b> button.</li>
+          </ul>
 
-            <br />
-            <h5>NOTIFICATIONS:</h5>
-            Freeboard displays the following Notifications:
-            <li>Depth</li>
-            <li>Anchor - see <a href="#anchor">Anchor Watch</a></li>
-            <li>Closest Approach</li>
-            <img
-              src="./img/closest_approach.png"
-              style="width: 250px"
-              alt=""
-            /><br />
-            <li>Buddy - <i>via signalk-buddylist-plugin</i></li>
-            <img src="./img/buddy.png" style="width: 250px" alt="" />
+          An alarm request will be sent to the Signal K server which will emit a
+          notification which clients will receive. <br />
+
+          Freeboard allows alerts to be <i>Acknowledged</i> and / or
+          <i>Silenced</i>.
+          <ul>
+            <li>
+              Silencing the alert will mute any sound and the alert card remains
+              visible.
+            </li>
+            <li>
+              Acknowledging the alert will close the alert card and silence any
+              sound. The alert remains an entry in the Alert List.
+            </li>
+          </ul>
+
+          Alerts remain in the Alert List until:
+          <ul>
+            <li>The Alert is cancelled.</li>
+            <li>The alert condition is returned to a normal state.</li>
+            <li>The notification for the alert path value is null.</li>
           </ul>
         </div>
 

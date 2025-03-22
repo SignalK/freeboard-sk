@@ -1,5 +1,20 @@
 # CHANGELOG: Freeboard
 
+### v2.14.0
+
+#### Deprecated: Local PyPilot support.
+ `pypilot-autopilot-provider` plugin now required!
+
+---
+
+- **New**: Alert list to display and manage alerts and raise alarms.
+
+- **Fixed**: Raised alarms do not include identifier in path. (#261)
+- **Fixed**: Track list not displaying tracks when filer text is undefined. (#262)
+- **Fixed**: Export to GPX dialog formatting. (#263)
+- **Fixed**: Re-ordered map layers. (#265)
+- **Added**: Additional CEVNI icons. (#264)
+
 ### v2.13.2
 
 - **Added**: Data loading progress indicator. (#240)

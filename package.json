@@ -1,6 +1,6 @@
 {
   "name": "@signalk/freeboard-sk",
-  "version": "2.13.2",
+  "version": "2.14.0",
   "description": "Openlayers chart plotter implementation for Signal K",
   "keywords": [
     "signalk-webapp",
@@ -41,7 +41,8 @@
   "dependencies": {
     "@signalk/server-api": "^2.3.0",
     "socket.io-client": "^4.6.0",
-    "tslib": "^2.0.0"
+    "tslib": "^2.0.0",
+    "uuid": "^11.1.0"
   },
   "devDependencies": {
     "@angular-devkit/build-angular": "^18.1.0",

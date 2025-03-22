@@ -65,7 +65,7 @@ import { WeatherData, WeatherDataComponent } from './weather-data.component';
         </span>
       </mat-toolbar>
       @if(isFetching) {
-      <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+      <mat-progress-bar mode="query"></mat-progress-bar>
       } @else { @if(!forecasts || forecasts.length === 0) {
       <div style="text-align:center">{{ errorText }}</div>
       } @else {

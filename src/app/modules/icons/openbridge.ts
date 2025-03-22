@@ -15,7 +15,26 @@ export const OpenBridgeIcons: AppIconSet = {
     'route-export.svg',
     'route-import.svg',
     'route-planning.svg',
+    'sound-high-fill.svg',
+    'sound-off-fill.svg',
+    'sound-unavailable-fill.svg',
     'whale.svg',
-    'alarm-pob.svg'
+    'alert-list.svg',
+    'alerts-active.svg',
+    'alarm-mob.svg',
+    'alarm-abandon.svg',
+    'alarm-aground.svg',
+    'alarm-arrival.svg',
+    'alarm-depth.svg',
+    'alarm-fire.svg',
+    'alarm-cpa.svg',
+    'alarm-silenced.svg',
+    'alarm-unack-iec.svg',
+    'alarm-acknowledged-iec.svg',
+    'alarm-emergency-iec.svg',
+    'warning-acknowledged-iec.svg',
+    'warning-unack-iec.svg',
+    'warning-silenced-iec.svg',
+    'warning-unack-iec.svg'
   ]
 };

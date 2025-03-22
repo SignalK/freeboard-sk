@@ -21,8 +21,8 @@ import {
   FBMapComponent,
   ExperimentsComponent,
   AnchorWatchComponent,
-  AlarmComponent,
-  AlarmsDialog,
+  AlertComponent,
+  AlertListComponent,
   AutopilotComponent,
   RouteNextPointComponent,
   RouteListComponent,
@@ -78,8 +78,8 @@ import {
     BuildRouteComponent,
     ExperimentsComponent,
     AnchorWatchComponent,
-    AlarmComponent,
-    AlarmsDialog,
+    AlertComponent,
+    AlertListComponent,
     RouteNextPointComponent
   ],
   providers: [provideHttpClient(withInterceptorsFromDi())]

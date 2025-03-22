@@ -15,6 +15,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatDividerModule } from '@angular/material/divider';
 
 // ** components **
 
@@ -34,7 +35,8 @@ import { GPXExportDialog } from './gpxsave/gpxsave-dialog';
     MatTooltipModule,
     MatToolbarModule,
     MatFormFieldModule,
-    MatInputModule
+    MatInputModule,
+    MatDividerModule
   ],
   declarations: [GPXImportDialog, GPXExportDialog],
   exports: [GPXImportDialog, GPXExportDialog],

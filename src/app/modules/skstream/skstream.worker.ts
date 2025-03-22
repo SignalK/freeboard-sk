@@ -861,11 +861,6 @@ function processVessel(d: SKVessel, v, isSelf = false) {
     }
   }
 
-  // ** closest approach **
-  else if (v.path.indexOf('navigation.closestApproach') !== -1) {
-    d.closestApproach = v.value;
-  }
-
   // anchor radius / position
   else if (v.path === 'navigation.anchor.position') {
     d.anchor.position = v.value;
@@ -951,78 +946,15 @@ function processVessel(d: SKVessel, v, isSelf = false) {
 }
 
 // process notification messages **
-function processNotifications(v: PathValue, vessel?: string) {
-  const data = { path: v.path, value: v.value, context: vessel || null };
-  let type: string;
-  const seg = v.path.split('.');
-
-  // ** Depth **
-  if (
-    v.path === 'notifications.environment.depth.belowTransducer' ||
-    v.path === 'notifications.environment.depth.belowSurface' ||
-    v.path === 'notifications.environment.depth.belowKeel'
-  ) {
-    type = seg[2];
-  }
-
-  // ** Anchor **
-  if (v.path === 'notifications.navigation.anchor') {
-    type = seg[2];
-  }
-
-  // ** Standard Alarms **
-  if (
-    [
-      'mob',
-      'sinking',
-      'fire',
-      'piracy',
-      'flooding',
-      'collision',
-      'grounding',
-      'listing',
-      'adrift',
-      'abandon'
-    ].indexOf(seg[seg.length - 1]) !== -1
-  ) {
-    type = seg[seg.length - 1];
-  }
-
-  // ** closest Approach **
-  if (v.path.indexOf('notifications.navigation.closestApproach') !== -1) {
-    type = seg[2];
-    data.context = seg[3];
-  }
-
-  // ** Buddy **
-  if (v.path.indexOf('notifications.buddy') !== -1) {
-    type = seg[1];
-    data.context = seg[2];
-  }
-
-  // ** arrivalCircle **
-  if (
-    v.path.indexOf('notifications.navigation.course.arrivalCircleEntered') !==
-    -1
-  ) {
-    type = seg[3];
-  }
-  // ** perpendicularPassed **
-  if (
-    v.path.indexOf('notifications.navigation.course.perpendicularPassed') !== -1
-  ) {
-    type = seg[3];
-  }
-
-  // ** weather warning **
-  if (v.path.indexOf('notifications.meteo.warning') !== -1) {
-    type = seg[1];
-  }
-
-  if (type) {
-    const msg = new NotificationMessage(type);
+function processNotifications(v: PathValue) {
+  if (v.path.includes('notifications.')) {
+    const msg = new NotificationMessage();
     msg.playback = playbackMode;
-    msg.result = data;
+    msg.result = {
+      path: v.path,
+      value: v.value,
+      sourceRef: $source
+    };
     postMessage(msg);
   }
 }

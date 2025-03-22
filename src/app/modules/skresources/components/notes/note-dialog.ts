@@ -25,7 +25,7 @@ import {
 import { AddTargetPipe } from './safe.pipe';
 
 import { AppFacade } from 'src/app/app.facade';
-import { getResourceIcon } from 'src/app/modules/icons';
+import { AppIconDef, getResourceIcon } from 'src/app/modules/icons';
 
 /********* NoteDialog **********
 	data: {
@@ -112,7 +112,7 @@ export class NoteDialog implements OnInit {
     toolbarHiddenButtons: this.editorHiddenButtons
   };
 
-  protected icon: { class: string; name?: string; svgIcon?: string };
+  protected icon: AppIconDef;
 
   constructor(
     protected app: AppFacade,

@@ -43,6 +43,7 @@ import {
   FBChart,
   FBRoute,
   FBWaypoint,
+  LineString,
   Position,
   ResourceSet
 } from 'src/app/types';
@@ -63,8 +64,10 @@ import {
   SKSaR,
   SKMeteo,
   SKStreamFacade,
-  AlarmsFacade,
-  SKTrack
+  AnchorFacade,
+  SKTrack,
+  NotificationManager,
+  AlertData
 } from 'src/app/modules';
 import {
   mapInteractions,
@@ -88,13 +91,7 @@ import {
 import { ModifyEvent } from 'ol/interaction/Modify';
 import { DrawEvent } from 'ol/interaction/Draw';
 import { Coordinate } from 'ol/coordinate';
-import {
-  FBCharts,
-  FBNotes,
-  FBRoutes,
-  FBWaypoints,
-  SKNotification
-} from 'src/app/types';
+import { FBCharts, FBNotes, FBRoutes, FBWaypoints } from 'src/app/types';
 import { S57Service } from './ol/lib/s57.service';
 import { Position as SKPosition } from '@signalk/server-api';
 import { FBMapEvent, FBPointerEvent } from './ol/lib/map.component';
@@ -123,7 +120,7 @@ interface IOverlay {
   aton?: SKAtoN;
   meteo?: SKMeteo;
   aircraft?: SKAircraft;
-  alarm?: SKNotification;
+  alarm?: AlertData;
   readOnly: boolean;
 }
 
@@ -143,7 +140,7 @@ interface IFeatureData {
   ais: Map<string, SKVessel>; // other vessels
   active: SKVessel; // focussed vessel
   navData: { position: Position; startPosition: Position };
-  closest: { id: string; position: Position };
+  closest: Array<LineString>;
   resourceSets: Array<[string, ResourceSet]>;
 }
 
@@ -232,7 +229,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
   @ViewChild(MatMenuTrigger, { static: true }) contextMenu: MatMenuTrigger;
 
   // ** draw interaction data
-  public draw: IDrawInfo = {
+  protected draw: IDrawInfo = {
     enabled: false,
     style: drawStyles.default,
     mode: null,
@@ -245,7 +242,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
   };
 
   // ** measure interaction data
-  public measure: IMeasureInfo = {
+  protected measure: IMeasureInfo = {
     enabled: false,
     end: false,
     style: drawStyles.measure,
@@ -253,20 +250,19 @@ export class FBMapComponent implements OnInit, OnDestroy {
     coords: []
   };
 
-  public vesselLines = {
+  protected vesselLines = {
     twd: [],
     awa: [],
     bearing: [],
     heading: [],
     anchor: [],
     trail: [],
-    cpa: [],
     xtePath: [],
     laylines: { port: [], starboard: [] },
     targetAngle: []
   };
 
-  public overlay: IOverlay = {
+  protected overlay: IOverlay = {
     id: null,
     type: null,
     icon: null,
@@ -285,7 +281,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
   ];
 
   // ** map ctrl **
-  fbMap = {
+  protected fbMap = {
     rotation: 0,
     center: [0, 0],
     zoomLevel: 1,
@@ -299,7 +295,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
 
   // ** map feature styles
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  featureStyles: any = {
+  protected featureStyles: any = {
     vessel: vesselStyles,
     aisVessel: aisVesselStyles,
     route: routeStyles,
@@ -317,7 +313,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
   };
 
   // ** map feature data
-  dfeat: IFeatureData = {
+  protected dfeat: IFeatureData = {
     aircraft: new Map(),
     atons: new Map(),
     sar: new Map(),
@@ -333,19 +329,19 @@ export class FBMapComponent implements OnInit, OnDestroy {
     ais: new Map(), // other vessels
     active: new SKVessel(), // focussed vessel
     navData: { position: null, startPosition: null },
-    closest: { id: null, position: [0, 0] },
+    closest: [],
     resourceSets: []
   };
 
   // ** AIS target management
-  aisMgr = {
+  protected aisMgr = {
     updateList: [],
     staleList: [],
     removeList: []
   };
 
   // ** map layer display
-  display = {
+  protected display = {
     layer: {
       notes: false,
       wind: false,
@@ -356,7 +352,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
   private saveTimer;
   private isDirty = false;
 
-  public mouse = {
+  protected mouse = {
     pixel: null,
     coords: [0, 0],
     xy: null
@@ -372,7 +368,8 @@ export class FBMapComponent implements OnInit, OnDestroy {
     public skres: SKResources,
     public skresOther: SKOtherResources,
     private skstream: SKStreamFacade,
-    private alarmsFacade: AlarmsFacade
+    private anchorFacade: AnchorFacade,
+    protected notiMgr: NotificationManager
   ) {
     // Signals
     this.tracks = this.skres.tracks; // track resources cache
@@ -527,10 +524,21 @@ export class FBMapComponent implements OnInit, OnDestroy {
     this.dfeat.active = this.app.data.vessels.active;
     this.dfeat.navData.position = this.app.data.navData.position;
     this.dfeat.navData.startPosition = this.app.data.navData.startPosition;
-    this.dfeat.closest = {
-      id: this.app.data.vessels.closest.id,
-      position: this.app.data.vessels.closest.position
+    // calculate CPA lines
+    const parseClosest = () => {
+      const v = [];
+      if (this.app.data.vessels.self.position) {
+        this.app.data.vessels.closest.forEach((id: string) => {
+          if (this.app.data.vessels.aisTargets.has(id)) {
+            const a = this.app.data.vessels.aisTargets.get(id);
+            v.push([a.position, this.app.data.vessels.self.position]);
+          }
+        });
+      }
+      return v;
     };
+
+    this.dfeat.closest = parseClosest();
     this.aisMgr = this.app.data.aisMgr;
 
     // ** update vessel on map **
@@ -744,7 +752,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
             case 'alarm':
               addToFeatureList = true;
               icon = 'notification_important';
-              text = `${t[1]} ${t[0]}`;
+              text = `Alarm: ${feature.get('type')}`;
               break;
             case 'anchor':
               addToFeatureList = true;
@@ -1061,7 +1069,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
       pc = toLonLat(c);
       // shift anchor
       if (fid === 'anchor') {
-        this.alarmsFacade
+        this.anchorFacade
           .anchorEvent({ action: 'position' }, undefined, pc)
           .catch(() => {
             this.app.showAlert('Alert', 'Error shifting anchor position!');
@@ -1158,7 +1166,6 @@ export class FBMapComponent implements OnInit, OnDestroy {
       xtePath: [],
       bearing: [],
       anchor: [],
-      cpa: [],
       heading: [],
       awa: [],
       twd: [],
@@ -1179,9 +1186,6 @@ export class FBMapComponent implements OnInit, OnDestroy {
     if (!this.app.data.anchor.raised) {
       vl.anchor = [this.app.data.anchor.position, this.dfeat.active.position];
     }
-
-    // CPA line
-    vl.cpa = [this.dfeat.closest.position, this.dfeat.self.position];
 
     // COG line (active)
     vl.cog = this.dfeat.active.vectors.cog ?? [];
@@ -1453,12 +1457,12 @@ export class FBMapComponent implements OnInit, OnDestroy {
         return;
       case 'alarm':
         this.overlay.type = 'alarm';
-        aid = id.split('.')[1];
-        if (!this.app.data.alarms.has(aid)) {
+        aid = id.split('.').slice(1).join('.');
+        this.overlay['alarm'] = this.notiMgr.getAlert(aid) as any;
+        if (!this.overlay['alarm']) {
           return false;
         }
         this.overlay.id = aid;
-        this.overlay['alarm'] = this.app.data.alarms.get(aid);
         this.overlay.show = true;
         return;
       case 'anchor':

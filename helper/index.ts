@@ -9,8 +9,6 @@ import {
   stopWeather
 } from './weather/weather-service';
 
-import { initPyPilot, PYPILOT_CONFIG, closePyPilot } from './autopilot/pypilot';
-
 import * as openapi from './openApi.json';
 
 const defaultPollInterval = 60;
@@ -51,29 +49,6 @@ const CONFIG_SCHEMA = {
             'Select the interval at which the weather service is polled.'
         }
       }
-    },
-    pypilot: {
-      type: 'object',
-      title: 'PyPilot (deprecated).',
-      description: 'Please use pypilot-autopilot-provider plugin instead.',
-      properties: {
-        enable: {
-          type: 'boolean',
-          default: false,
-          title: 'Enable PyPilot',
-          description: ' '
-        },
-        host: {
-          type: 'string',
-          title: 'Host name / address',
-          default: 'localhost'
-        },
-        port: {
-          type: 'number',
-          title: 'Port number',
-          default: 8000
-        }
-      }
     }
   }
 };
@@ -105,7 +80,6 @@ interface SETTINGS {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   alarms: { [key: string]: any };
   weather: WEATHER_CONFIG;
-  pypilot: PYPILOT_CONFIG;
 }
 
 interface OpenApiPlugin extends Plugin {
@@ -155,11 +129,6 @@ module.exports = (server: FreeboardHelperApp): OpenApiPlugin => {
       apiVersion: 3,
       apiKey: '',
       pollInterval: defaultPollInterval
-    },
-    pypilot: {
-      enable: false,
-      host: 'localhost',
-      port: 8000
     }
   };
 
@@ -208,15 +177,6 @@ module.exports = (server: FreeboardHelperApp): OpenApiPlugin => {
       };
       settings.alarms.enable = true;
 
-      settings.pypilot = options.pypilot ?? {
-        enable: false,
-        host: 'localhost',
-        port: 8000
-      };
-      settings.pypilot.enable = options.pypilot.enable ?? false;
-      settings.pypilot.host = options.pypilot.host ?? 'localhost';
-      settings.pypilot.port = options.pypilot.port ?? 8000;
-
       server.debug(`Applied config: ${JSON.stringify(settings)}`);
 
       if (settings.alarms.enable) {
@@ -228,8 +188,6 @@ module.exports = (server: FreeboardHelperApp): OpenApiPlugin => {
         msg = `Started - Providing: weather`;
         initWeather(server, plugin.id, settings.weather);
       }
-      // *** DEPRECATED ***
-      initPyPilot(server, plugin.id, settings.pypilot);
 
       server.setPluginStatus(msg);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -245,7 +203,6 @@ module.exports = (server: FreeboardHelperApp): OpenApiPlugin => {
   const doShutdown = () => {
     server.debug('** shutting down **');
     stopWeather();
-    closePyPilot();
     server.debug('** Un-subscribing from events **');
     const msg = 'Stopped';
     server.setPluginStatus(msg);

@@ -82,7 +82,7 @@ interface LayerNode {
           }
         </mat-form-field>
         } @if (isFetching) {
-        <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+        <mat-progress-bar mode="query"></mat-progress-bar>
         } @else { @if (errorMsg) {
         <mat-error>Error retrieving capabilities from server!</mat-error>
         } @else {

@@ -127,7 +127,7 @@ html {
     }
     .button-error,
     .button-warn {
-        background-color: mat.get-theme-color($light-theme, error) !important;
+        background-color: rgb(230,0,0) !important;
         color: white !important;
     }
     .button-primary .ob path,

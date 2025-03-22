@@ -27,7 +27,11 @@ export const PoiIcons: AppIconSet = {
     'turning-basin.svg',
     'radio-call-point.svg',
     'transhipment-dock.svg',
-    'notice-to-mariners.svg'
+    'notice-to-mariners.svg',
+    'navigation-structure.svg',
+    'fuel.svg',
+    'tunnel.svg',
+    'waterway-guage.svg'
   ]
 };
 

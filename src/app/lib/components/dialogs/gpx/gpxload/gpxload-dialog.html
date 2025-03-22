@@ -1,15 +1,26 @@
 <div class="gpxload-dialog">
   <mat-toolbar style="background-color: transparent">
-    <span class="dialog-icon"
-      ><mat-icon
-        ><img src="./assets/img/gpx.png" style="height: 35px" /></mat-icon
-    ></span>
-    <span style="flex: 1 1 auto; text-align: center">Load GPX</span>
-    <span style="text-align: right">
-      <button mat-icon-button (click)="this.dialogRef.close(-1);">
-        <mat-icon>close</mat-icon>
-      </button>
-    </span>
+    <div style="display: flex; width: 100%">
+      <div>
+        <button
+          style="width: 85px"
+          mat-raised-button
+          matTooltip="Load selected resources"
+          matTooltipPosition="right"
+          [disabled]="!display.loadRoutesOK && !display.loadWaypointsOK && !display.loadTracksOK"
+          (click)="load()"
+        >
+          <mat-icon>file_upload</mat-icon>
+          &nbsp;Load
+        </button>
+      </div>
+      <div style="flex: 1 1 auto; text-align: center">Import GPX</div>
+      <div style="text-align: right">
+        <button mat-icon-button (click)="this.dialogRef.close(-1);">
+          <mat-icon>close</mat-icon>
+        </button>
+      </div>
+    </div>
   </mat-toolbar>
 
   @if(display.notValid) {
@@ -27,25 +38,23 @@
   <div mat-dialog-content>
     <!--valid GPX file-->
     <div class="card-group">
-      <div class="card-group-title">
-        <div style="display: flex">
-          <div></div>
-          <div style="flex: 1 1 auto">{{data.fileName}}</div>
-          <div>
-            <button
-              style="width: 85px"
-              mat-raised-button
-              matTooltip="Load all selected resources"
-              matTooltipPosition="below"
-              [disabled]="!display.loadRoutesOK && !display.loadWaypointsOK && !display.loadTracksOK"
-              (click)="load()"
-            >
-              <mat-icon>file_upload</mat-icon>
-              &nbsp;Load&nbsp;
-            </button>
-          </div>
+      <div style="display: flex">
+        <div>File:</div>
+        <div
+          style="
+            flex: 1 1 auto;
+            padding-left: 10px;
+            overflow: hidden;
+            display: -webkit-box;
+            -webkit-box-orient: vertical;
+            -webkit-line-clamp: 1;
+            text-overflow: ellipsis;
+          "
+        >
+          {{data.fileName}}
         </div>
       </div>
+      <mat-divider></mat-divider>
     </div>
     <!-- Waypoints -->
     @if(gpxData.waypoints.length!=0) {
@@ -84,31 +93,19 @@
 
         <div class="list-container-scrollable">
           @for(w of gpxData.waypoints; track w; let i=$index) {
-          <mat-card class="row">
-            <mat-card-content>
-              <div class="rgrid">
-                <div class="row">
-                  <div class="name">
-                    <mat-icon class="icon-waypoint">place</mat-icon>
-                    {{w.name}}
-                  </div>
-                  <div class="">
-                    <i>{{w.description}}</i>
-                  </div>
-                  <div class="check">
-                    <mat-checkbox
-                      [checked]="selWaypoints[i]"
-                      #wval
-                      (change)="checkWpt(wval.checked, i)"
-                      matTooltip="Select Waypoint"
-                      matTooltipPosition="below"
-                    >
-                    </mat-checkbox>
-                  </div>
-                </div>
-              </div>
-            </mat-card-content>
-          </mat-card>
+          <div class="item-row">
+            <div class="name">{{w.name}}</div>
+            <div class="check">
+              <mat-checkbox
+                [checked]="selWaypoints[i]"
+                #wval
+                (change)="checkWpt(wval.checked, i)"
+                matTooltip="Select Waypoint"
+                matTooltipPosition="below"
+              >
+              </mat-checkbox>
+            </div>
+          </div>
           }
         </div>
       </mat-expansion-panel>
@@ -151,32 +148,19 @@
 
         <div class="list-container-scrollable">
           @for(r of gpxData.routes; track r; let i=$index) {
-          <mat-card class="row">
-            <mat-card-content>
-              <div class="rgrid">
-                <div class="row">
-                  <div class="name">
-                    <mat-icon class="icon-route">directions</mat-icon>
-                    {{r.name}}
-                  </div>
-                  <div>
-                    <i>{{r.description}}</i><br />
-                    {{r.length}}
-                  </div>
-                  <div class="check">
-                    <mat-checkbox
-                      matTooltip="Select this Route"
-                      matTooltipPosition="below"
-                      [checked]="selRoutes[i]"
-                      #rval
-                      (change)="checkRte(rval.checked, i)"
-                    >
-                    </mat-checkbox>
-                  </div>
-                </div>
-              </div>
-            </mat-card-content>
-          </mat-card>
+          <div class="item-row">
+            <div class="name">{{r.name}}</div>
+            <div class="check">
+              <mat-checkbox
+                matTooltip="Select this Route"
+                matTooltipPosition="below"
+                [checked]="selRoutes[i]"
+                #rval
+                (change)="checkRte(rval.checked, i)"
+              >
+              </mat-checkbox>
+            </div>
+          </div>
           }
         </div>
       </mat-expansion-panel>
@@ -220,31 +204,19 @@
 
         <div class="list-container-scrollable">
           @for(t of gpxData.tracks; track t; let i=$index) {
-          <mat-card class="row">
-            <mat-card-content>
-              <div class="rgrid">
-                <div class="row">
-                  <div class="name">
-                    <mat-icon class="icon-track">show_chart</mat-icon>
-                    {{t.name}}
-                  </div>
-                  <div class="">
-                    <i>{{t.description}}</i>
-                  </div>
-                  <div class="check">
-                    <mat-checkbox
-                      matTooltip="Select this Track"
-                      matTooltipPosition="below"
-                      [checked]="selTracks[i]"
-                      #tval
-                      (change)="checkTrk(tval.checked, i)"
-                    >
-                    </mat-checkbox>
-                  </div>
-                </div>
-              </div>
-            </mat-card-content>
-          </mat-card>
+          <div class="item-row">
+            <div class="name">{{t.name}}</div>
+            <div class="check">
+              <mat-checkbox
+                matTooltip="Select this Track"
+                matTooltipPosition="below"
+                [checked]="selTracks[i]"
+                #tval
+                (change)="checkTrk(tval.checked, i)"
+              >
+              </mat-checkbox>
+            </div>
+          </div>
           }
         </div>
       </mat-expansion-panel>

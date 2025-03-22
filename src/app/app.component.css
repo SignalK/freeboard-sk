@@ -44,7 +44,7 @@ mat-nav-list {
 
 .buttonPanel { 
     width:50px; 
-    z-index: 200;
+    z-index: 4800;
     position: absolute;
     padding: 5px 2px 2px 2px;
     overflow: auto;

@@ -50,7 +50,12 @@ import {
 } from 'src/app/types';
 import { PathValue } from '@signalk/server-api';
 
-export type SKResourceType = 'routes' | 'waypoints' | 'regions' | 'notes';
+export type SKResourceType =
+  | 'routes'
+  | 'waypoints'
+  | 'regions'
+  | 'notes'
+  | 'charts';
 
 // ** Signal K resource operations
 @Injectable({ providedIn: 'root' })
@@ -97,22 +102,27 @@ export class SKResources {
    * @param collection
    * @returns Reference to resource cache
    */
-  private getCache(collection: SKResourceType) {
+  private getCacheRef(collection: SKResourceType) {
     switch (collection) {
       case 'regions':
         return this.regionCacheSignal;
       /*case 'routes':
-        cache = [].concat(this.regionCacheSignal());
+        cache = [].concat(this.routeCacheSignal());
         remove(id);
-        this.regionCacheSignal.set(cache);
+        this.routeCacheSignal.set(cache);
       case 'waypoints':
-        cache = [].concat(this.regionCacheSignal());
+        cache = [].concat(this.waypointCacheSignal());
         remove(id);
-        this.regionCacheSignal.set(cache);
+        this.waypointCacheSignal.set(cache);
       case 'notes':
-        cache = [].concat(this.regionCacheSignal());
+        cache = [].concat(this.noteCacheSignal());
         remove(id);
-        this.regionCacheSignal.set(cache);*/
+        this.noteCacheSignal.set(cache);
+      case 'charts':
+        cache = [].concat(this.chartCacheSignal());
+        remove(id);
+        this.chartCacheSignal.set(cache);
+        */
     }
   }
 
@@ -126,7 +136,7 @@ export class SKResources {
     query = query ?? '';
     this.app.debug(`** cacheRefresh(${collection}, ${query})`);
     return new Promise((resolve) => {
-      const resCache = this.getCache(collection);
+      const resCache = this.getCacheRef(collection);
       if (!resCache) {
         resolve(false);
       }
@@ -136,7 +146,7 @@ export class SKResources {
       );
 
       skf?.subscribe(
-        (res: Routes | Waypoints | Regions | Notes) => {
+        (res: Routes | Waypoints | Regions | Notes | Charts) => {
           switch (collection) {
             /*case 'routes':
               this.regionCacheRefresh(res as Regions);
@@ -188,7 +198,7 @@ export class SKResources {
         removeItem(id);
       }
     };
-    const resCache = this.getCache(collection);
+    const resCache = this.getCacheRef(collection);
     if (!resCache) {
       return;
     }
@@ -238,6 +248,7 @@ export class SKResources {
    * @params id Map feature id.
    * @params getFeature  true = return Feature entry, false = return whole RecordSet
    * @returns Feature OR Resource Set.
+   * @deprecated
    */
   public resSetFromCache(mapFeatureId: string, getFeature?: boolean) {
     const t = mapFeatureId.split('.');
@@ -260,6 +271,55 @@ export class SKResources {
   }
 
   // ******** SK Resource operations ********************
+
+  /**
+   * @description Fetch resource with specified identifier from Signal K server.
+   * @param collection The resource collection to which the resource belongs e.g. routes, waypoints, etc.
+   * @param id  Resource identifier
+   * @returns resolved Promise on success, rejects with HTTPErrorResponse
+   */
+  public fromServer(collection: SKResourceType, id: string): Promise<any> {
+    return new Promise((resolve, reject) => {
+      this.signalk.api
+        .get(this.app.skApiVersion, `/resources/${collection}/${id}`)
+        .subscribe(
+          (res) => resolve(this.transform(collection, res, id)),
+          (err: HttpErrorResponse) => reject(err)
+        );
+    });
+  }
+
+  /**
+   * @description Transform Resource response to instance of a Resource Class
+   * @param collection
+   * @param resource
+   * @param id
+   * @returns
+   */
+  private transform(
+    collection: SKResourceType,
+    resource:
+      | RouteResource
+      | WaypointResource
+      | RegionResource
+      | NoteResource
+      | ChartResource,
+    id: string
+  ): SKRoute | SKWaypoint | SKRegion | SKNote | SKChart {
+    switch (collection) {
+      case 'regions':
+        return this.transformRegion(resource as RegionResource, id);
+      /*case 'routes':
+        return this.transformRute((resource as RouteResource), id);
+      case 'waypoints':
+        return this.transformWaypoint((resource as WaypointResource), id);
+      case 'notes':
+        return this.transformNote((resource as NoteResource), id);
+      case 'charts':
+        return this.transformChart((resource as ChartResource), id);
+        */
+    }
+  }
 
   /**
    * @description Delete resource from server
@@ -317,7 +377,7 @@ export class SKResources {
       | RegionResource
       | NoteResource
       | ChartResource
-      | any
+      | any // track
   ): Promise<any> {
     return new Promise((resolve, reject) => {
       this.signalk.api
@@ -334,7 +394,7 @@ export class SKResources {
    * @param collection The resource collection to which the resource belongs e.g. routes, waypoints, etc.
    * @param id  Resource identifier
    * @returns Observable<HttpResponse>
-   * @deprecated Will be replaced by Cache methods
+   * @deprecated Replaced by fromServer()
    */
   public fetchResource(collection: SKResourceType, id: string) {
     return this.signalk.api.get(
@@ -566,7 +626,7 @@ export class SKResources {
       this.getWaypoints();
     }
     if (action['regions']) {
-      this.getRegions();
+      this.fetchRegions();
     }
     if (action['notes']) {
       this.getNotes();
@@ -1800,22 +1860,21 @@ export class SKResources {
   readonly regions = this.regionCacheSignal.asReadonly();
 
   /**
-   * @description Refresh Regions cache
+   * @description Refresh Regions cache. Called after fetch from server.
    * @param regions Response object from Signal K server
    */
   private regionCacheRefresh(regions: Regions) {
     const rc = Object.entries(regions).map((item: [string, RegionResource]) => {
-      const treg = this.transformRegion(item[1], item[0]);
-      return [item[0], new SKRegion(treg), true];
+      return [item[0], this.transformRegion(item[1], item[0]), true];
     });
     this.regionCacheSignal.set(rc);
   }
 
   /**
-   * @description Fill cache with regions from sk server
-   * @param query
+   * @description Fill cache with regions fetched from sk server
+   * @param query Filter criteris for regions in placed in the cache
    */
-  getRegions(query?: string) {
+  fetchRegions(query?: string) {
     query =
       query ??
       processUrlTokens(
@@ -1833,9 +1892,9 @@ export class SKResources {
    * @description Signal K v2 API transformation
    * @param region Region entry from server
    * @param id Resource id
-   * @returns Transformed resource entry
+   * @returns SKRegion object
    */
-  private transformRegion(region: RegionResource, id: string): RegionResource {
+  private transformRegion(region: RegionResource, id: string): SKRegion {
     if (
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       typeof (region as any).geohash !== 'undefined' &&
@@ -1857,7 +1916,7 @@ export class SKResources {
       ];
       return reg;
     } else {
-      return region;
+      return new SKRegion(region);
     }
   }
 
@@ -1895,34 +1954,35 @@ export class SKResources {
     const region = this.fromCache('regions', id)[1];
     region['feature']['geometry']['coordinates'] =
       GeoUtils.normaliseCoords(coords);
-    this.putToServer('regions', id, region).catch((err) =>
-      this.parseHttpErrorResponse(err)
-    );
+    this.putToServer('regions', id, region).catch((err) => {
+      this.fetchRegions();
+      this.parseHttpErrorResponse(err);
+    });
   }
 
   /**
    * @description Display dialog to edit Region properties
    * @param id region identifier
    */
-  updateRegionInfo(id: string) {
+  async updateRegionInfo(id: string) {
     if (!id) {
       return;
     }
-    const t = this.fromCache('regions', id);
-    if (!t) {
+    let region: SKRegion;
+    try {
+      this.app.sIsFetching.set(true);
+      region = await this.fromServer('regions', id);
+      this.app.sIsFetching.set(false);
+    } catch (err) {
+      this.app.sIsFetching.set(false);
+      this.parseHttpErrorResponse(err as HttpErrorResponse);
       return;
     }
-    // clone for editing
-    const regionClone = Object.assign(
-      Object.create(Object.getPrototypeOf(t[1])),
-      t[1]
-    );
-
     this.dialog
       .open(RegionDialog, {
         disableClose: true,
         data: {
-          region: regionClone
+          region: region
         }
       })
       .afterClosed()
@@ -2004,7 +2064,7 @@ export class SKResources {
     });
 
     // fetch regions
-    this.getRegions(query);
+    this.fetchRegions(query);
   }
 
   // v2 transformation

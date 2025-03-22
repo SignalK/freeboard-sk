@@ -8,7 +8,7 @@ import { SettingsMessage } from 'src/app/lib/services';
 import { SignalKClient } from 'signalk-client-angular';
 import { SKStreamProvider } from './skstream.service';
 import { Convert } from 'src/app/lib/convert';
-import { SKResources, SKRoute, SKVessel, AlarmsFacade } from 'src/app/modules';
+import { SKRoute, SKVessel, AnchorFacade } from 'src/app/modules';
 import {
   NotificationMessage,
   UpdateMessage,
@@ -49,8 +49,7 @@ export class SKStreamFacade {
   constructor(
     private app: AppFacade,
     private signalk: SignalKClient,
-    private alarmsFacade: AlarmsFacade,
-    private skres: SKResources,
+    private anchorFacade: AnchorFacade,
     private stream: SKStreamProvider
   ) {
     // ** SIGNAL K STREAM **
@@ -227,7 +226,7 @@ export class SKStreamFacade {
   }
 
   // ** process selfTrail message from worker and emit trail$ **
-  parseSelfTrail(msg: TrailMessage) {
+  private parseSelfTrail(msg: TrailMessage) {
     if (msg.result) {
       if (!this.app.data.serverTrail) {
         this.app.data.serverTrail = true;
@@ -237,11 +236,6 @@ export class SKStreamFacade {
       console.warn('Unable to fetch vessel trail from server.');
       this.app.data.serverTrail = false;
     }
-  }
-
-  // ** trigger vessels$ event
-  emitVesselsUpdate() {
-    this.vesselsUpdate.next();
   }
 
   // ** parse delta message and update Vessel Data -> vesselsUpdate.next()
@@ -304,11 +298,11 @@ export class SKStreamFacade {
     }
     this.parseSelfRacing(v);
     this.processVessel(this.app.data.vessels.self);
-    this.alarmsFacade.updateAnchorStatus();
+    this.anchorFacade.updateAnchorStatus();
     // resource update handling is in AppComponent.OnMessage()
   }
 
-  parseSelfRacing(v: SKVessel) {
+  private parseSelfRacing(v: SKVessel) {
     if (
       v.properties['navigation.racing.startLineStb'] &&
       v.properties['navigation.racing.startLinePort']
@@ -339,20 +333,6 @@ export class SKStreamFacade {
         value.cogMagnetic ??
         value.headingMagnetic ??
         0;
-
-      if (`vessels.${this.app.data.vessels.closest.id}` === key) {
-        if (!value.closestApproach) {
-          this.alarmsFacade.updateAlarm('cpa', null);
-          this.app.data.vessels.closest = {
-            id: null,
-            distance: null,
-            timeTo: null,
-            position: [0, 0]
-          };
-        } else {
-          this.app.data.vessels.closest.position = value.position;
-        }
-      }
     });
   }
 
@@ -424,14 +404,14 @@ export class SKStreamFacade {
     this.navDataUpdate.next();
   }
 
-  clearCourseData() {
+  private clearCourseData() {
     this.app.data.navData.startPosition = null;
     this.app.data.navData.position = null;
     this.app.data.activeWaypoint = null;
     this.clearRouteData();
   }
 
-  clearRouteData() {
+  private clearRouteData() {
     this.app.data.activeRoute = null;
     this.app.data.navData.pointIndex = -1;
     this.app.data.navData.pointTotal = 0;
@@ -441,7 +421,7 @@ export class SKStreamFacade {
   }
 
   // ** process courseApi values into navData
-  processCourseApi(value) {
+  private processCourseApi(value) {
     if (!value) {
       this.clearCourseData();
       return;

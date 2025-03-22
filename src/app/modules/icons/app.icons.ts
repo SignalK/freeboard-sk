@@ -1,3 +1,4 @@
+import { AlertData } from '../alarms';
 import {
   SKNote,
   SKRegion,
@@ -14,6 +15,12 @@ export interface AppIconSet {
   files: Array<string>;
   scale?: number;
   anchor?: [number, number];
+}
+
+export interface AppIconDef {
+  class?: string;
+  svgIcon?: string;
+  name?: string;
 }
 
 /** Return a list of SVG Icons
@@ -46,7 +53,7 @@ export const getSvgList = (): Array<{ id: string; path: string }> => {
 export const getResourceIcon = (
   resourceType: SKResourceType,
   resource?: SKRoute | SKWaypoint | SKRegion | SKNote | string
-): { class: string; svgIcon: string; name: string } => {
+): AppIconDef => {
   if (resourceType === 'routes') {
     return { class: 'icon-route', svgIcon: 'route', name: undefined };
   }
@@ -87,7 +94,7 @@ export const getResourceIcon = (
     }
     const icon =
       typeof resource === 'string' ? resource : (resource as SKWaypoint).type;
-    if (!icon || !['pseudoaton', 'whale', 'alarm-pob'].includes(icon)) {
+    if (!icon || !['pseudoaton', 'whale', 'alarm-mob'].includes(icon)) {
       return iconDef;
     }
     if (icon === 'pseudoaton') {
@@ -100,5 +107,68 @@ export const getResourceIcon = (
       };
     }
     return iconDef;
+  }
+};
+
+/**
+ * @description Return an icon definition for an Alert
+ * @param alert AlertData object
+ * @returns Icon Definition object
+ */
+export const getAlertIcon = (alert: AlertData): AppIconDef => {
+  if (
+    ['mob', 'fire', 'abandon', 'aground', 'cpa', 'depth'].includes(alert.type)
+  ) {
+    return {
+      class: 'ob',
+      svgIcon: `alarm-${alert.type}`,
+      name: undefined
+    };
+  } else if (alert.type === 'arrival') {
+    return {
+      class: undefined,
+      svgIcon: `alarm-${alert.type}`,
+      name: 'anchor'
+    };
+  } else if (alert.type === 'anchor') {
+    return {
+      class: undefined,
+      svgIcon: undefined,
+      name: 'anchor'
+    };
+  } else if (alert.type === 'meteo') {
+    return {
+      class: undefined,
+      svgIcon: undefined,
+      name: 'air'
+    };
+  } else if (alert.priority === 'warn') {
+    return {
+      class: 'ob',
+      svgIcon: 'warning-unack-iec',
+      name: undefined
+    };
+  } else if (['emergency', 'alarm'].includes(alert.priority)) {
+    const icon = alert.acknowledged
+      ? 'alarm-acknowledged-iec'
+      : alert.silenced
+      ? 'alarm-silenced-iec'
+      : 'alarm-acknowledged-iec';
+    return {
+      class: undefined,
+      svgIcon: icon,
+      name: undefined
+    };
+  } else {
+    const icon = alert.acknowledged
+      ? 'warning-acknowledged-iec'
+      : alert.silenced
+      ? 'warning-silenced-iec'
+      : 'warning-unack-iec';
+    return {
+      class: undefined,
+      svgIcon: icon,
+      name: undefined
+    };
   }
 };

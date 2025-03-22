@@ -31,7 +31,7 @@ import { NSEWButtonsComponent } from './nsew-buttons.component';
 
 import { computeDestinationPoint } from 'geolib';
 
-import { AlarmsFacade, AnchorEvent } from '../alarms.facade';
+import { AnchorFacade, AnchorEvent } from '../anchor.facade';
 import { AppFacade } from 'src/app/app.facade';
 
 @Component({
@@ -83,7 +83,7 @@ export class AnchorWatchComponent {
   protected useSetManual: boolean;
   protected defaultRodeLength: number;
 
-  constructor(private facade: AlarmsFacade, private app: AppFacade) {}
+  constructor(private facade: AnchorFacade, private app: AppFacade) {}
 
   ngOnInit() {
     this.msg.radius = this.sliderValue;

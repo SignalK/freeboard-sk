@@ -1,14 +1,14 @@
 const WHATS_NEW = [
   {
     type: 'signalk-server-node',
-    title: 'Autopilot API',
+    title: 'Deprecated PyPilot Settings',
     message: `
-        This release includes support for the new Signal K Autopilot API.
+        This release removes the Pypilot settings from the Plugin Config
+        and only uses the Signal K Autopilot API.
         <br>&nbsp;<br>
-        <i>Note: PyPilot support in the Freeboard-SK plugin will be DEPRECATED 
-          in a future version.<br>
-          This is functionality is replaced by the <a href="https://github.com/panaaj/pypilot-autopilot-provider" target="blank">
-          pypilot autopilot provider plugin</a>.
+        <i>Note: To continue Pypilot operation in Freeboard-SK
+          install and configure the <a href="https://github.com/panaaj/pypilot-autopilot-provider" target="blank">
+          pypilot autopilot provider plugin</a>  on your Signal K server.
         </i>
         <br>&nbsp;<br>
         See Signal K server help for more details.

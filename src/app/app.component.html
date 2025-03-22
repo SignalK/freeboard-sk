@@ -172,6 +172,7 @@
           matBadgeSize="medium"
           matBadgePosition="below after"
           [matBadgeHidden]="app.data.loggedIn"
+          aria-hidden="false"
         >
           account_circle
         </mat-icon>
@@ -302,14 +303,14 @@
           @if(app.sIsFetching()) {
           <div
             style="
-              z-index: 1000;
+              z-index: 4700;
               position: fixed;
               top: 0px;
               left: 0px;
               width: 100%;
             "
           >
-            <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+            <mat-progress-bar mode="query"></mat-progress-bar>
           </div>
           } @if(app.data.autopilot.console) {
           <autopilot-console></autopilot-console>
@@ -323,16 +324,15 @@
                 class="button-secondary"
                 mat-mini-fab
                 [disabled]="draw.enabled || measure.enabled"
+                [matBadge]="app.data.loggedInBadgeText"
+                matBadgeOverlap="true"
+                [matBadgeHidden]="app.data.loggedIn"
                 matTooltip="Menu"
                 matTooltipPosition="right"
                 [matMenuTriggerFor]="mainmenu"
+                aria-hidden="false"
               >
-                <mat-icon
-                  [matBadge]="app.data.loggedInBadgeText"
-                  matBadgeOverlap="true"
-                  [matBadgeHidden]="app.data.loggedIn"
-                  >menu</mat-icon
-                >
+                <mat-icon>menu</mat-icon>
               </button>
             </div>
           </div>
@@ -343,10 +343,14 @@
                 class="button-warn"
                 mat-mini-fab
                 matTooltip="Alarms"
-                matTooltipPosition="right"
-                (click)="openAlarmsDialog()"
+                matTooltipPosition="left"
+                [matBadge]="notiMgr.alerts().length"
+                matBadgeOverlap="true"
+                [matBadgeHidden]="notiMgr.alerts().length === 0"
+                (click)="toggleAlertList(true)"
+                aria-hidden="false"
               >
-                <mat-icon>warning </mat-icon>
+                <mat-icon class="ob" svgIcon="alert-list"></mat-icon>
               </button>
             </div>
             <div class="buttonPanelItem">
@@ -859,35 +863,26 @@
           }
 
           <!-- *** Alarm / Mode panel ***-->
-          @if(!app.data.kioskMode) {
+          @if(!app.data.kioskMode) { @if( app.sAlertListShow()) {
+          <alert-list
+            [alerts]="notiMgr.alerts()"
+            (closed)="toggleAlertList(false)"
+          ></alert-list>
+          }
           <div class="alarmPanel">
-            @for(a of alarmsFacade.alarms; track a[0]) {
+            @for(n of notiMgr.alerts(); track n[0]) {
             <span style="margin-bottom: 5px">
-              <ap-alarm
-                [alarm]="{ key: a[0], value: a[1] }"
-                [audioContext]="app.audio.context"
+              <fb-alert
                 [audioStatus]="display.audio.state"
-                [hasSound]="a[1].sound"
-                [soundFile]="
-                  ['nominal', 'warn'].includes(a[1].state)
-                    ? './assets/sound/ding.mp3'
-                    : './assets/sound/woop.mp3'
-                "
-                [mute]="a[1].muted || a[1].acknowledged"
-                (muted)="alarmsFacade.muteAlarm($event); focusMap()"
-                (acknowledge)="
-                  alarmsFacade.acknowledgeAlarm($event); focusMap()
-                "
-                (unacknowledge)="
-                  alarmsFacade.unAcknowledgeAlarm($event); focusMap()
-                "
-                (clear)="alarmsFacade.clearAlarm($event); focusMap()"
-                (open)="openAlarmsDialog()"
+                [alert]="n[1]"
+                [acknowledged]="n[1].acknowledged"
+                [silenced]="n[1].silenced"
+                [doNotPlaySound]="app.config.muteSound"
                 (nextPoint)="
                   skres.coursePointIndex(app.data.navData.pointIndex + 1)
                 "
               >
-              </ap-alarm>
+              </fb-alert>
             </span>
             }
           </div>

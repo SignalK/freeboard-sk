@@ -64,7 +64,7 @@
     @if(!this.app.sIsFetching() && trackList.length === 0) {
     <div style="text-align: center"><br /><i>No Tracks available.</i></div>
     } @if(this.app.sIsFetching()) {
-    <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+    <mat-progress-bar mode="query"></mat-progress-bar>
     }
     <cdk-virtual-scroll-viewport class="vscroller" itemSize="120">
       <mat-card

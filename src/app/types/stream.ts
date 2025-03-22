@@ -1,3 +1,4 @@
+import { PathValue } from '@signalk/server-api';
 import {
   SKVessel,
   SKAtoN,
@@ -11,7 +12,7 @@ type AisIds = Array<string>;
 interface WorkerMessageBase {
   action: string;
   playback: boolean;
-  result: ResultPayload;
+  result: ResultPayload | PathValue;
   self: string;
   timestamp: string;
 }
@@ -32,17 +33,12 @@ export interface ResultPayload {
 }
 
 export class NotificationMessage implements WorkerMessageBase {
-  action: string;
+  action = 'notification';
   playback = false;
   result = null;
-  type: string;
   self = null;
-  timestamp: string;
-
-  constructor(type: string) {
-    this.action = 'notification';
-    this.type = type;
-  }
+  timestamp = new Date().toISOString();
+  sourceRef!: string;
 }
 
 export class UpdateMessage implements WorkerMessageBase {

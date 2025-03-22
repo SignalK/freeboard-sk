@@ -30,8 +30,7 @@ import {
   SKStreamFacade,
   SKSTREAM_MODE,
   StreamOptions,
-  AlarmsFacade,
-  AlarmsDialog,
+  AnchorFacade,
   SKResources,
   SKVessel,
   SKSaR,
@@ -40,7 +39,8 @@ import {
   SKOtherResources,
   SKRegion,
   WeatherForecastModal,
-  CourseSettingsModal
+  CourseSettingsModal,
+  NotificationManager
 } from 'src/app/modules';
 
 import { SignalKClient } from 'signalk-client-angular';
@@ -132,7 +132,8 @@ export class AppComponent {
 
   constructor(
     public app: AppFacade,
-    public alarmsFacade: AlarmsFacade,
+    public anchorFacade: AnchorFacade,
+    protected notiMgr: NotificationManager,
     private stream: SKStreamFacade,
     public skres: SKResources,
     public skresOther: SKOtherResources,
@@ -267,7 +268,7 @@ export class AppComponent {
     // ** NOTIFICATIONS - Anchor Status **
     this.obsList.push(
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      this.alarmsFacade.anchorStatus$().subscribe((r: any) => {
+      this.anchorFacade.anchorStatus$().subscribe((r: any) => {
         if (r.error) {
           if (r.result.status === 401) {
             this.showLogin();
@@ -314,6 +315,10 @@ export class AppComponent {
     this.app.config.toolBarButtons = !this.app.config.toolBarButtons;
     this.app.saveConfig();
     this.focusMap();
+  }
+
+  public toggleAlertList(show: boolean) {
+    this.app.sAlertListShow.set(show);
   }
 
   public toggleLimitMapZoom() {
@@ -582,30 +587,6 @@ export class AppComponent {
         // detect apis
         this.app.data.weather.hasApi = res.apis.includes('weather');
         this.app.data.autopilot.hasApi = res.apis.includes('autopilot');
-
-        // prefer FB Autopilot API if enabled
-        this.signalk.api
-          .get(this.app.skApiVersion, 'vessels/self/steering/autopilot')
-          .subscribe(
-            () => {
-              const sap = this.app.data.autopilot.hasApi;
-              this.app.data.autopilot.hasApi = true;
-              this.app.data.autopilot.isLocal = true;
-              if (sap && this.app.data.autopilot.isLocal) {
-                setTimeout(() =>
-                  this.app.showMessage(
-                    'Built-in PyPilot support is deprecated! See Help for more.',
-                    true,
-                    5000
-                  )
-                ),
-                  10000;
-              }
-            },
-            () => {
-              this.app.debug('No local AP API found.');
-            }
-          );
 
         // detect plugins
         const hasPlugin = {
@@ -935,7 +916,7 @@ export class AppComponent {
         }
         this.fetchResources();
         if (errCount === 0) {
-          this.app.showAlert(
+          this.app.showMsgBox(
             'GPX Load',
             'GPX file resources loaded successfully.'
           );
@@ -968,7 +949,7 @@ export class AppComponent {
           return;
         }
         if (errCount === 0) {
-          this.app.showAlert(
+          this.app.showMsgBox(
             'GPX Save',
             'Resources saved to GPX file successfully.'
           );
@@ -996,7 +977,7 @@ export class AppComponent {
         } // cancelled
         this.fetchResources();
         if (errCount === 0) {
-          this.app.showAlert(
+          this.app.showMsgBox(
             'GeoJSON Load',
             'GeoJSON features loaded successfully.'
           );
@@ -1142,13 +1123,6 @@ export class AppComponent {
   }
 
   // ********** TOOLBAR ACTIONS **********
-
-  public openAlarmsDialog() {
-    this.dialog
-      .open(AlarmsDialog, { disableClose: true })
-      .afterClosed()
-      .subscribe(() => this.focusMap());
-  }
 
   public toggleMoveMap(exit = false) {
     const doSave: boolean = !this.app.config.map.moveMap && exit ? false : true;
@@ -1369,7 +1343,7 @@ export class AppComponent {
           .subscribe(() => this.focusMap());
       }
     } else if (e.type === 'alarm') {
-      this.openAlarmsDialog();
+      this.notiMgr.showAlertInfo(e.id);
     } else if (e.type === 'rset') {
       v = this.skres.resSetFromCache(e.id);
       if (v) {
@@ -1471,13 +1445,10 @@ export class AppComponent {
     this.app.data.activeRoute = null;
     this.clearTrail(true);
     this.clearCourseData();
-    this.alarmsFacade.queryAnchorStatus(
+    this.anchorFacade.queryAnchorStatus(
       this.app.data.vessels.activeId,
       this.app.data.vessels.active.position
     );
-    //this.skres.getRoutes(); // get activeroute from active vessel
-    this.alarmsFacade.alarms.clear(); // reset displayed alarm(s)
-
     this.app.debug(`** Active vessel: ${this.app.data.vessels.activeId} `);
     this.app.debug(this.app.data.vessels.active);
   }
@@ -1682,7 +1653,7 @@ export class AppComponent {
     this.skres.getRoutes();
     this.skres.getWaypoints();
     this.skres.getCharts();
-    //this.skres.getRegions();
+    //this.skres.fetchRegions();
     this.skres.getNotes();
     if (allTypes) {
       this.fetchOtherResources(true);
@@ -1730,7 +1701,7 @@ export class AppComponent {
           this.skres.getVesselTrail(); // request trail from server
         }
         // ** query anchor alarm status
-        this.alarmsFacade.queryAnchorStatus(
+        this.anchorFacade.queryAnchorStatus(
           this.app.data.vessels.activeId,
           this.app.data.vessels.active.position
         );

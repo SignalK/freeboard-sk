@@ -16,7 +16,7 @@ import { PopoverComponent } from './popover.component';
 import { AppFacade } from 'src/app/app.facade';
 import { Convert } from 'src/app/lib/convert';
 import { SKRoute, SKWaypoint, SKNote, SKRegion } from 'src/app/modules';
-import { getResourceIcon } from 'src/app/modules/icons';
+import { AppIconDef, getResourceIcon } from 'src/app/modules/icons';
 
 /*********** Resource Popover ***************
 title: string -  title text,
@@ -48,6 +48,7 @@ id: string - resource id
                                 display: -webkit-box;
                                 -webkit-box-orient: vertical;
                                 -webkit-line-clamp: 2;
+                                line-clamp: 2;
                                 text-overflow:ellipsis;"
       >
         {{ resource[1].description ?? '' }}
@@ -236,7 +237,7 @@ export class ResourcePopoverComponent {
     isReadOnly: false
   };
 
-  protected icon: { class: string; name?: string; svgIcon?: string };
+  protected icon: AppIconDef;
 
   constructor(public app: AppFacade) {}
 

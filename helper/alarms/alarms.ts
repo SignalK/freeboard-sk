@@ -9,6 +9,7 @@ import {
   SKVersion
 } from '@signalk/server-api';
 import { FreeboardHelperApp } from '../index';
+import * as uuid from 'uuid'
 
 const STANDARD_ALARMS = [
   'mob',
@@ -20,7 +21,8 @@ const STANDARD_ALARMS = [
   'listing',
   'adrift',
   'piracy',
-  'abandon'
+  'abandon',
+  'aground'
 ];
 
 let server: FreeboardHelperApp;
@@ -62,22 +64,24 @@ const initAlarmEndpoints = () => {
         return;
       }
       try {
+        const id = uuid.v4();
         const msg = req.body.message
           ? req.body.message
           : (req.params.alarmType as string);
 
         const r = handleAlarm(
           'vessels.self',
-          `notifications.${req.params.alarmType}` as Path,
-          {
-            message: msg,
-            method: [ALARM_METHOD.sound, ALARM_METHOD.visual],
-            state: ALARM_STATE.emergency,
-            data: buildAlarmData()
-          }
+          `notifications.${req.params.alarmType}.${id}` as Path,
+          Object.assign(
+            {
+              message: msg,
+              method: [ALARM_METHOD.sound, ALARM_METHOD.visual],
+              state: ALARM_STATE.emergency
+            },
+            buildAlarmData()
+          )
         );
-
-        res.status(200).json(r);
+        res.status(r.statusCode).json(Object.assign(r, {id: id}));
       } catch (e) {
         res.status(400).json({
           state: 'FAILED',
@@ -88,7 +92,7 @@ const initAlarmEndpoints = () => {
     }
   );
   server.post(
-    `${ALARM_API_PATH}/:alarmType/silence`,
+    `${ALARM_API_PATH}/:alarmType/:id/silence`,
     (req: Request, res: Response) => {
       server.debug(`** ${req.method} ${req.path}`);
       if (!STANDARD_ALARMS.includes(req.params.alarmType)) {
@@ -100,18 +104,18 @@ const initAlarmEndpoints = () => {
         return;
       }
       try {
-        const al = server.getSelfPath(`notifications.${req.params.alarmType}`);
+        const al = server.getSelfPath(`notifications.${req.params.alarmType}.${req.params.id}`);
         if (al && al.value) {
           server.debug('Alarm value....');
           if (al.value.method && al.value.method.includes('sound')) {
             server.debug('Alarm has sound... silence!!!');
-            al.value.method = al.value.method.filter((i) => i !== 'sound');
+            al.value.method = al.value.method.filter(i => i !== 'sound');
             const r = handleAlarm(
               'vessels.self',
-              `notifications.${req.params.alarmType}` as Path,
+              `notifications.${req.params.alarmType}.${req.params.id}` as Path,
               al.value
             );
-            res.status(200).json(r);
+            res.status(r.statusCode).json(r);
           } else {
             server.debug('Alarm has no sound... no action required.');
             res.status(200).json({
@@ -122,7 +126,7 @@ const initAlarmEndpoints = () => {
           }
         } else {
           throw new Error(
-            `Alarm (${req.params.alarmType}) has no value or was not found!`
+            `Alarm (${req.params.alarmType}.${req.params.id}) has no value or was not found!`
           );
         }
       } catch (e) {
@@ -135,7 +139,7 @@ const initAlarmEndpoints = () => {
     }
   );
   server.delete(
-    `${ALARM_API_PATH}/:alarmType`,
+    `${ALARM_API_PATH}/:alarmType/:id`,
     (req: Request, res: Response, next: NextFunction) => {
       server.debug(
         `** ${req.method} ${ALARM_API_PATH}/${req.params.alarmType}`
@@ -147,14 +151,14 @@ const initAlarmEndpoints = () => {
       try {
         const r = handleAlarm(
           'vessels.self',
-          `notifications.${req.params.alarmType}` as Path,
+          `notifications.${req.params.alarmType}.${req.params.id}` as Path,
           {
             message: '',
             method: [],
             state: ALARM_STATE.normal
           }
         );
-        res.status(200).json(r);
+        res.status(r.statusCode).json(r);
       } catch (e) {
         res.status(400).json({
           state: 'FAILED',
@@ -177,10 +181,13 @@ const handleV1PutRequest = (
 
 const buildAlarmData = () => {
   const pos: { value: Position } = server.getSelfPath('navigation.position');
-  return {
-    position: pos ? pos.value : null,
-    timestamp: new Date().toISOString()
+  const r: any = {
+    createdAt: new Date().toISOString()
   };
+  if (pos) {
+    r.position = pos.value
+  }
+  return r;
 };
 
 const handleAlarm = (
@@ -210,7 +217,7 @@ const handleAlarm = (
   }
 
   const pa = path.split('.');
-  const alarmType = pa[pa.length - 1];
+  const alarmType = pa[1];
   server.debug(`alarmType: ${JSON.stringify(alarmType)}`);
   if (STANDARD_ALARMS.includes(alarmType)) {
     server.debug(`****** Sending Delta (Std Alarm Notification): ******`);

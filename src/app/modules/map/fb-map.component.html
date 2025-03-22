@@ -119,7 +119,7 @@
     [tracks]="tracks()"
     [labelMinZoom]="0"
     [mapZoom]="fbMap.zoomLevel"
-    [zIndex]="50"
+    [zIndex]="100"
   >
   </fb-tracks>
   }
@@ -133,7 +133,7 @@
     [updateIds]="aisMgr.updateList"
     [removeIds]="aisMgr.removeList"
     [mapZoom]="fbMap.zoomLevel"
-    zIndex="51"
+    zIndex="110"
   >
   </ais-targets-track>
   }
@@ -149,7 +149,7 @@
       [selected]="app.config.selections.resourceSets[resSet[0]]"
       [labelMinZoom]="app.config.selections.labelsMinZoom"
       [mapZoom]="fbMap.zoomLevel"
-      [zIndex]="52 + idx"
+      [zIndex]="120 + idx"
     >
     </fb-resource-sets>
     }
@@ -164,7 +164,7 @@
     [darkMode]="app.config.map.invertColor"
     [labelMinZoom]="this.app.config.selections.labelsMinZoom"
     [mapZoom]="fbMap.zoomLevel"
-    [zIndex]="80"
+    [zIndex]="500"
   >
   </fb-routes>
 
@@ -174,7 +174,7 @@
     [points]="app.data.navData.activeRoutePoints"
     [pointIndex]="app.data.navData.pointIndex"
     [reverse]="app.data.activeRouteReversed"
-    [zIndex]="81"
+    [zIndex]="550"
   >
   </fb-route-direction>
   }
@@ -187,7 +187,7 @@
     [activeWaypoint]="app.data.activeWaypoint"
     [labelMinZoom]="this.app.config.selections.labelsMinZoom"
     [mapZoom]="fbMap.zoomLevel"
-    [zIndex]="90"
+    [zIndex]="600"
   >
   </fb-waypoints>
 
@@ -203,7 +203,7 @@
     [staleIds]="aisMgr.staleList"
     [removeIds]="aisMgr.removeList"
     [inactiveTime]="app.config.selections.aisStaleAge"
-    [zIndex]="45"
+    [zIndex]="200"
   >
   </sk-ais-targets>
 
@@ -219,7 +219,7 @@
     [staleIds]="aisMgr.staleList"
     [removeIds]="aisMgr.removeList"
     [inactiveTime]="app.config.selections.aisStaleAge"
-    [zIndex]="46"
+    [zIndex]="210"
   >
   </sk-ais-targets>
 
@@ -235,7 +235,7 @@
     [staleIds]="aisMgr.staleList"
     [removeIds]="aisMgr.removeList"
     [inactiveTime]="app.config.selections.aisStaleAge"
-    [zIndex]="122"
+    [zIndex]="220"
   >
   </sk-ais-targets>
   }
@@ -259,7 +259,7 @@
       [staleIds]="aisMgr.staleList"
       [removeIds]="aisMgr.removeList"
       [inactiveTime]="app.config.selections.aisStaleAge"
-      [zIndex]="221"
+      [zIndex]="900"
       [darkMode]="app.config.map.invertColor"
     >
     </sk-ais-wind>
@@ -278,7 +278,7 @@
       [staleIds]="aisMgr.staleList"
       [removeIds]="aisMgr.removeList"
       [inactiveTime]="app.config.selections.aisStaleAge"
-      [zIndex]="221"
+      [zIndex]="985"
       [darkMode]="app.config.map.invertColor"
     >
     </sk-ais-flags>
@@ -293,7 +293,7 @@
       [staleIds]="aisMgr.staleList"
       [removeIds]="aisMgr.removeList"
       [inactiveTime]="app.config.selections.aisStaleAge"
-      [zIndex]="220"
+      [zIndex]="980"
       [focusId]="app.data.vessels.activeId"
       [filterIds]="app.config.selections.aisTargets"
       [filterByShipType]="app.config.selections.aisFilterByShipType"
@@ -318,7 +318,7 @@
     [staleIds]="aisMgr.staleList"
     [removeIds]="aisMgr.removeList"
     [inactiveTime]="app.config.selections.aisStaleAge"
-    [zIndex]="121"
+    [zIndex]="910"
   >
   </sk-ais-targets>
   }
@@ -336,7 +336,7 @@
     [staleIds]="aisMgr.staleList"
     [removeIds]="aisMgr.removeList"
     [inactiveTime]="app.config.selections.aisStaleAge"
-    [zIndex]="122"
+    [zIndex]="920"
   >
   </sk-ais-targets>
   }
@@ -349,7 +349,7 @@
     [darkMode]="app.config.map.invertColor"
     [labelMinZoom]="this.app.config.selections.labelsMinZoom"
     [mapZoom]="fbMap.zoomLevel"
-    [zIndex]="123"
+    [zIndex]="540"
   >
   </racing-start-line>
   <!-- /Racing -->
@@ -361,13 +361,13 @@
     [darkMode]="app.config.map.invertColor"
     [labelMinZoom]="this.app.config.selections.labelsMinZoom"
     [mapZoom]="fbMap.zoomLevel"
-    [zIndex]="120"
+    [zIndex]="400"
   >
   </fb-regions>
 
   <!-- Notes -->
   @if(display.layer.notes) {
-  <fb-notes [notes]="dfeat.notes" [zIndex]="121"> </fb-notes>
+  <fb-notes [notes]="dfeat.notes" [zIndex]="450"> </fb-notes>
   }
 
   <!-- Popovers -->
@@ -476,6 +476,7 @@
       [alarm]="overlay.alarm"
       [id]="overlay.id"
       (info)="itemInfo(overlay.id, overlay.type); popoverClosed()"
+      (goto)="onContextMenuAction('nav_to', $event); popoverClosed()"
       (closed)="popoverClosed()"
     >
     </alarm-popover>
@@ -490,35 +491,20 @@
     [anchorPosition]="app.data.anchor.position"
     [lineCoords]="vesselLines.anchor"
     [anchorStyles]="featureStyles.anchor"
-    [zIndex]="49"
+    [zIndex]="300"
   >
   </fb-anchor-alarm>
-  } @if(dfeat.closest.id) {
-  <fb-cpa-alarm
-    [targetPosition]="dfeat.closest.position"
-    [lineCoords]="vesselLines.cpa"
-    [zIndex]="50"
-  >
-  </fb-cpa-alarm>
+  } @if(dfeat.closest.length !==0) {
+  <fb-cpa-alarms [cpaLines]="dfeat.closest" [zIndex]="350"> </fb-cpa-alarms>
   }
 
-  <!-- MOB alarm -->
-  @if(app.data.alarms.has('mob')) {
-  <fb-alarm
-    [position]="
-      app.data.alarms.get('mob').data?.position
-        ? [
-            app.data.alarms.get('mob').data?.position?.longitude,
-            app.data.alarms.get('mob').data?.position?.latitude
-          ]
-        : null
-    "
-    [alarmType]="'mob'"
+  <!-- MOB alarms -->
+  <fb-alarms
+    [alarms]="notiMgr.mobAlerts()"
     [alarmStyles]="featureStyles.alarm"
-    [zIndex]="51"
+    [zIndex]="310"
   >
-  </fb-alarm>
-  }
+  </fb-alarms>
 
   <!-- Vessel / destination -->
   @if (app.data.anchor.raised && dfeat.navData.position) {
@@ -526,7 +512,7 @@
   <fb-xte-path
     [color]=""
     [lineCoords]="vesselLines.xtePath"
-    [zIndex]="212"
+    [zIndex]="340"
     [visible]="true"
     [layerProperties]=""
   >
@@ -538,7 +524,7 @@
     [position]="app.data.vessels.active.position"
     [twd]="app.data.vessels.self.wind.direction"
     [mapZoom]="fbMap.zoomLevel"
-    [zIndex]="212"
+    [zIndex]="345"
   >
   </fb-target-angle>
   <fb-layline
@@ -547,7 +533,7 @@
     [position]="app.data.vessels.active.position"
     [twd]="app.data.vessels.self.wind.direction"
     [mapZoom]="fbMap.zoomLevel"
-    [zIndex]="212"
+    [zIndex]="330"
   >
   </fb-layline>
   }
@@ -559,14 +545,14 @@
     [bearingStyles]="featureStyles.destination"
     [labelMinZoom]="this.app.config.selections.labelsMinZoom"
     [mapZoom]="fbMap.zoomLevel"
-    [zIndex]="212"
+    [zIndex]="335"
   >
   </fb-bearing-line>
   @if(app.data.navData.arrivalCircle) {
   <fb-arrival-circle
     [radius]="app.data.navData.arrivalCircle"
     [position]="dfeat.navData.position"
-    [zIndex]="212"
+    [zIndex]="335"
   >
   </fb-arrival-circle>
   } }
@@ -581,7 +567,7 @@
     [showWind]="app.config.selections.vessel.windVectors"
     [vesselStyles]="featureStyles.vessel"
     [fixedLocation]="app.config.fixedLocationMode"
-    [zIndex]="250"
+    [zIndex]="999"
   >
   </fb-vessel>
 
@@ -590,7 +576,7 @@
     [localTrail]="vesselLines.trail"
     [serverTrail]="dfeat.trail"
     [trailStyles]=""
-    [zIndex]="200"
+    [zIndex]="990"
   >
   </fb-vessel-trail>
   }
@@ -618,6 +604,19 @@
       <mat-icon>near_me</mat-icon>
       Navigate to here
     </button>
+    @if(app.data.navData.position){
+    <button
+      mat-menu-item
+      (click)="onContextMenuAction('cleardestination', item)"
+    >
+      <mat-icon>clear_all</mat-icon>
+      @if(app.data.activeRoute) {
+      <span>Clear Active Route</span>
+      } @else {
+      <span>Clear Destination</span>
+      }
+    </button>
+    }
     <mat-divider></mat-divider>
     <button
       mat-menu-item
@@ -665,19 +664,6 @@
       <mat-icon>insights</mat-icon>
       Trail to Route
     </button>
-    @if(app.data.navData.position){
-    <button
-      mat-menu-item
-      (click)="onContextMenuAction('cleardestination', item)"
-    >
-      <mat-icon>clear_all</mat-icon>
-      @if(app.data.activeRoute) {
-      <span>Clear Active Route</span>
-      } @else {
-      <span>Clear Destination</span>
-      }
-    </button>
-    }
 
     <mat-divider></mat-divider>
     <button

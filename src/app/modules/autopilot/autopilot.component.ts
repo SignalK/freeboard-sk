@@ -50,10 +50,11 @@ import { SKStreamFacade } from 'src/app/modules';
         cdkDrag
         (cdkDragReleased)="dragEventHandler($event, 'released')"
       >
-        <div class="title">
-          <div style="text-align: center;width: 100%">
+        <div class="title" style="cursor: grab;">
+          <div style="text-align: center;width: 100%;">
             <mat-icon
               class="icon-warn"
+              style="cursor: pointer;"
               matTooltip="Close"
               (click)="app.data.autopilot.console = false"
               >close</mat-icon
@@ -110,8 +111,7 @@ import { SKStreamFacade } from 'src/app/modules';
               </div>
             </div>
 
-            @if(!app.data.autopilot.isLocal &&
-            app.data.vessels.self.autopilot.mode === 'dodge') {
+            @if(app.data.vessels.self.autopilot.mode === 'dodge') {
             <div class="button-bar">
               <div style="width:50%;">
                 <button
@@ -257,7 +257,6 @@ import { SKStreamFacade } from 'src/app/modules';
 
             <div class="button-bar-thin">
               <div style="text-align:center;width:100%;">
-                @if(!app.data.autopilot.isLocal) {
                 <button
                   [ngClass]="{
                     'button-accent': app.data.vessels.self.autopilot.mode === 'dodge',
@@ -274,7 +273,6 @@ import { SKStreamFacade } from 'src/app/modules';
                 >
                   Dodge
                 </button>
-                }
               </div>
             </div>
           </div>
@@ -294,9 +292,7 @@ export class AutopilotComponent {
     private stream: SKStreamFacade,
     private cdr: ChangeDetectorRef
   ) {
-    this.autopilotApiPath = this.app.data.autopilot.isLocal
-      ? 'vessels/self/steering/autopilot/default'
-      : 'vessels/self/autopilots/_default';
+    this.autopilotApiPath = 'vessels/self/autopilots/_default';
   }
 
   ngOnInit() {

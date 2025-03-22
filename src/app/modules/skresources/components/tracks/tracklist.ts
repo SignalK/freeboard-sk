@@ -218,7 +218,7 @@ export class TrackListComponent {
   }
 
   filterKeyUp(value: string) {
-    this.filterText = value;
+    this.filterText = value ?? '';
     this.doFilter();
   }
 
@@ -238,7 +238,7 @@ export class TrackListComponent {
       fl = this.trackList.filter((item: [string, SKTrack, boolean]) => {
         return item[1].feature.properties?.name
           ?.toLowerCase()
-          .includes(this.filterText.toLowerCase());
+          .includes(this.filterText?.toLowerCase());
       });
     }
     sortList();

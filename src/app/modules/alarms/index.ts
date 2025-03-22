@@ -1,5 +1,7 @@
-export * from './alarms.facade';
-export * from './components/alarm.component';
-export * from './components/alarms-dialog.component';
+export * from './notification-manager';
+export * from './components/alert-list.component';
+export * from './components/alert.component';
+export * from './components/alert-properties-modal';
 
 export * from './components/anchor-watch.component';
+export * from './anchor.facade';
