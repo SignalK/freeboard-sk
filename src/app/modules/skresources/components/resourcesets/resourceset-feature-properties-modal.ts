@@ -24,7 +24,6 @@ import { SKResourceSet } from '../../resourceset-class';
 ***********************************/
 @Component({
   selector: 'ap-resourceset-feature-modal',
-  standalone: true,
   imports: [
     MatTooltipModule,
     MatIconModule,

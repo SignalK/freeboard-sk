@@ -24,7 +24,6 @@ import { ChartProvider } from 'src/app/types';
 ***********************************/
 @Component({
   selector: 'wmts-dialog',
-  standalone: true,
   imports: [
     MatTooltipModule,
     MatIconModule,

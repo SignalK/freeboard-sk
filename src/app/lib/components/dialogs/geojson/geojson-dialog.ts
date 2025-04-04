@@ -21,7 +21,6 @@ import { AppFacade } from 'src/app/app.facade';
 
 //** GeoJSON import dialog **
 @Component({
-  standalone: true,
   selector: 'geojson-dialog',
   imports: [
     CommonModule,

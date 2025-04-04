@@ -21,7 +21,6 @@ import { SKRegion } from '../../resource-classes';
 ***********************************/
 @Component({
   selector: 'ap-regiondialog',
-  standalone: true,
   imports: [
     CommonModule,
     FormsModule,

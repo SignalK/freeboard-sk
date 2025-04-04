@@ -7,7 +7,9 @@ import {
   EventEmitter,
   ViewChild,
   SimpleChanges,
-  Signal
+  Signal,
+  computed,
+  effect
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
@@ -96,6 +98,7 @@ import { S57Service } from './ol/lib/s57.service';
 import { Position as SKPosition } from '@signalk/server-api';
 import { FBMapEvent, FBPointerEvent } from './ol/lib/map.component';
 import { FeatureLike } from 'ol/Feature';
+import { HttpErrorResponse } from '@angular/common/http';
 
 interface IResource {
   id: string;
@@ -176,7 +179,6 @@ enum INTERACTION_MODE {
 
 @Component({
   selector: 'fb-map',
-  standalone: true,
   imports: [
     CommonModule,
     MatTooltipModule,
@@ -360,20 +362,16 @@ export class FBMapComponent implements OnInit, OnDestroy {
   contextMenuPosition = { x: '0px', y: '0px' };
 
   private obsList = [];
-  protected tracks: Signal<SKTrack[]>;
 
   constructor(
-    public app: AppFacade,
-    public s57Service: S57Service,
-    public skres: SKResources,
-    public skresOther: SKOtherResources,
-    private skstream: SKStreamFacade,
-    private anchorFacade: AnchorFacade,
+    protected app: AppFacade,
+    protected s57Service: S57Service,
+    protected skres: SKResources,
+    protected skresOther: SKOtherResources,
+    protected skstream: SKStreamFacade,
+    protected anchor: AnchorFacade,
     protected notiMgr: NotificationManager
-  ) {
-    // Signals
-    this.tracks = this.skres.tracks; // track resources cache
-  }
+  ) {}
 
   ngAfterViewInit() {
     // ** set map focus **
@@ -1069,11 +1067,9 @@ export class FBMapComponent implements OnInit, OnDestroy {
       pc = toLonLat(c);
       // shift anchor
       if (fid === 'anchor') {
-        this.anchorFacade
-          .anchorEvent({ action: 'position' }, undefined, pc)
-          .catch(() => {
-            this.app.showAlert('Alert', 'Error shifting anchor position!');
-          });
+        this.anchor.setAnchorPosition(pc).catch((err: HttpErrorResponse) => {
+          this.app.parseHttpErrorResponse(err);
+        });
       }
     }
     this.draw.forSave['coords'] = pc;
@@ -1178,13 +1174,13 @@ export class FBMapComponent implements OnInit, OnDestroy {
     if (this.app.data.trail) {
       vl.trail = [].concat(this.app.data.trail);
       if (vesselUpdate) {
-        vl.trail.push(this.dfeat.active.position);
+        vl.trail.push(this.dfeat.self.position);
       }
     }
 
     // anchor line (active)
-    if (!this.app.data.anchor.raised) {
-      vl.anchor = [this.app.data.anchor.position, this.dfeat.active.position];
+    if (!this.anchor.raised()) {
+      vl.anchor = [this.anchor.position(), this.dfeat.self.position];
     }
 
     // COG line (active)

@@ -45,7 +45,6 @@ const SoundFiles = {
 
 @Component({
   selector: 'fb-alert',
-  standalone: true,
   imports: [
     MatIconModule,
     MatButtonModule,

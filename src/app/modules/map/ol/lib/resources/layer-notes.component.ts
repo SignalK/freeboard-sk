@@ -19,7 +19,8 @@ import { SKNote } from 'src/app/modules/skresources';
 @Component({
   selector: 'ol-map > sk-notes-base',
   template: '<ng-content></ng-content>',
-  changeDetection: ChangeDetectionStrategy.OnPush
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  standalone: false
 })
 export class NotesBaseComponent extends FBFeatureLayerComponent {
   constructor(
@@ -80,7 +81,8 @@ export class NotesBaseComponent extends FBFeatureLayerComponent {
 @Component({
   selector: 'ol-map > sk-notes',
   template: '<ng-content></ng-content>',
-  changeDetection: ChangeDetectionStrategy.OnPush
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  standalone: false
 })
 export class NoteLayerComponent extends NotesBaseComponent {
   @Input() notes: Notes;
@@ -127,7 +129,8 @@ export class NoteLayerComponent extends NotesBaseComponent {
 @Component({
   selector: 'ol-map > fb-notes',
   template: '<ng-content></ng-content>',
-  changeDetection: ChangeDetectionStrategy.OnPush
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  standalone: false
 })
 export class FreeboardNoteLayerComponent extends NotesBaseComponent {
   @Input() notes: FBNotes = [];

@@ -21,7 +21,6 @@ import { Convert } from 'src/app/lib/convert';
 @Component({
   selector: 'aton-popover',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  standalone: true,
   imports: [
     MatButtonModule,
     MatTooltipModule,

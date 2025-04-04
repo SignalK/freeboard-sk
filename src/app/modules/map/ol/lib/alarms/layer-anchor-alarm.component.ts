@@ -25,7 +25,8 @@ import { AsyncSubject } from 'rxjs';
 @Component({
   selector: 'ol-map > fb-anchor-alarm',
   template: '<ng-content></ng-content>',
-  changeDetection: ChangeDetectionStrategy.OnPush
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  standalone: false
 })
 export class AnchorAlarmComponent implements OnInit, OnDestroy, OnChanges {
   protected layer: Layer;
@@ -114,7 +115,10 @@ export class AnchorAlarmComponent implements OnInit, OnDestroy, OnChanges {
   }
 
   parseValues() {
-    this.mapifiedRadius = mapifyRadius(this.radius, this.anchorPosition);
+    this.mapifiedRadius = mapifyRadius(
+      this.radius < 0 ? 0 : this.radius,
+      this.anchorPosition
+    );
     this.mapifiedLine = mapifyCoords(this.lineCoords);
     const fa: Feature[] = [];
     const f = new Feature({

@@ -17,7 +17,6 @@ import { AppFacade } from 'src/app/app.facade';
 
 @Component({
   selector: 'signalk-preferred-paths',
-  standalone: true,
   imports: [CommonModule, MatRadioModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   styleUrls: ['./signalk-preferredpaths.component.css'],

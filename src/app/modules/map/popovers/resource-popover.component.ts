@@ -27,7 +27,6 @@ id: string - resource id
 @Component({
   selector: 'resource-popover',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  standalone: true,
   imports: [
     CommonModule,
     MatButtonModule,
@@ -459,7 +458,6 @@ id: string - resource id
 @Component({
   selector: 'resourceset-popover',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  standalone: true,
   imports: [
     MatButtonModule,
     MatTooltipModule,

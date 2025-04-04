@@ -21,7 +21,6 @@ import { SKTrack } from '../../resource-classes';
 ***********************************/
 @Component({
   selector: 'ap-trackdialog',
-  standalone: true,
   imports: [
     CommonModule,
     FormsModule,

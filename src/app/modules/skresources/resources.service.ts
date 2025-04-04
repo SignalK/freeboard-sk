@@ -74,27 +74,6 @@ export class SKResources {
     return this.updateSource.asObservable();
   }
 
-  // ******** Http Error Message handling *****************
-
-  /**
-   * @description Parse and display error message
-   * @param err Error response
-   */
-  parseHttpErrorResponse(err: HttpErrorResponse) {
-    if (err.status && [401, 403].includes(err.status)) {
-      // unauthorised / forbidden
-      this.app.showAlert(
-        `${err.status}: ${err.statusText}`,
-        'Signal K server requires authentication to update resources.\nPlease login and try again.'
-      );
-    } else {
-      this.app.showAlert(
-        'ERROR',
-        `Operation could not be completed!\n${err.error.message}`
-      );
-    }
-  }
-
   // ******** Resource cache operations ********************
 
   /**
@@ -1054,7 +1033,10 @@ export class SKResources {
         this.updateRegionInfo(r.id);
         break;
       case 'track':
-        this.showTrackInfo(r.id);
+        const track = this.trackCacheSignal().find(
+          (trk: SKTrack) => trk.feature?.id === r.id
+        );
+        this.showTrackInfo(track);
         break;
     }
   }
@@ -1063,12 +1045,9 @@ export class SKResources {
 
   /** 
    @description Display Track properties dialog
-   @param id Track identifier
+   @param id Track
   */
-  showTrackInfo(id: string) {
-    const track = this.trackCacheSignal().find(
-      (trk: SKTrack) => trk.feature?.id === id
-    );
+  showTrackInfo(track: SKTrack) {
     if (!track) {
       this.app.showAlert('Error', 'Unable to retrieve Track details!');
       return;
@@ -1939,7 +1918,7 @@ export class SKResources {
       .subscribe(async (r: { save: boolean; region: RegionResource }) => {
         if (r.save) {
           this.postToServer('regions', r.region).catch((err) =>
-            this.parseHttpErrorResponse(err)
+            this.app.parseHttpErrorResponse(err)
           );
         }
       });
@@ -1956,7 +1935,7 @@ export class SKResources {
       GeoUtils.normaliseCoords(coords);
     this.putToServer('regions', id, region).catch((err) => {
       this.fetchRegions();
-      this.parseHttpErrorResponse(err);
+      this.app.parseHttpErrorResponse(err);
     });
   }
 
@@ -1975,7 +1954,7 @@ export class SKResources {
       this.app.sIsFetching.set(false);
     } catch (err) {
       this.app.sIsFetching.set(false);
-      this.parseHttpErrorResponse(err as HttpErrorResponse);
+      this.app.parseHttpErrorResponse(err as HttpErrorResponse);
       return;
     }
     this.dialog
@@ -1989,7 +1968,7 @@ export class SKResources {
       .subscribe((r: { save: boolean; region: SKRegion }) => {
         if (r.save) {
           this.putToServer('regions', id, r.region).catch((err) =>
-            this.parseHttpErrorResponse(err)
+            this.app.parseHttpErrorResponse(err)
           );
         }
       });
@@ -2034,7 +2013,7 @@ export class SKResources {
                   }
                 })
                 .catch((err: HttpErrorResponse) =>
-                  this.parseHttpErrorResponse(err)
+                  this.app.parseHttpErrorResponse(err)
                 );
             }
           });

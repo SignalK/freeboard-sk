@@ -208,7 +208,7 @@ export class SKVessel extends SKTargetBase {
     aws: null
   };
   buddy = false;
-  closestApproach = null;
+  distanceToSelf: number;
   mode = 'day';
   anchor = { maxRadius: null, radius: null, position: null };
   resourceUpdates = [];

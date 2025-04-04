@@ -25,7 +25,8 @@ import { FBFeatureLayerComponent } from '../sk-feature.component';
 @Component({
   selector: 'ol-map > fb-resource-sets',
   template: '<ng-content></ng-content>',
-  changeDetection: ChangeDetectionStrategy.OnPush
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  standalone: false
 })
 export class ResourceSetLayerComponent extends FBFeatureLayerComponent {
   protected features: Array<Feature>;

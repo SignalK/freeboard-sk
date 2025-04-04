@@ -2,6 +2,7 @@
   <mat-toolbar style="background-color: transparent">
     <div style="display: flex; width: 100%">
       <div>
+        @if(!app.sIsFetching()) {
         <button
           style="width: 85px"
           mat-raised-button
@@ -13,10 +14,15 @@
           <mat-icon>file_upload</mat-icon>
           &nbsp;Load
         </button>
+        }
       </div>
       <div style="flex: 1 1 auto; text-align: center">Import GPX</div>
       <div style="text-align: right">
-        <button mat-icon-button (click)="this.dialogRef.close(-1);">
+        <button
+          mat-icon-button
+          [disabled]="app.sIsFetching()"
+          (click)="this.dialogRef.close(-1);"
+        >
           <mat-icon>close</mat-icon>
         </button>
       </div>
@@ -36,6 +42,9 @@
   </div>
   } @else {
   <div mat-dialog-content>
+    @if (app.sIsFetching()) {
+    <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+    } @else{
     <!--valid GPX file-->
     <div class="card-group">
       <div style="display: flex">
@@ -48,6 +57,7 @@
             display: -webkit-box;
             -webkit-box-orient: vertical;
             -webkit-line-clamp: 1;
+            line-clamp: 1;
             text-overflow: ellipsis;
           "
         >
@@ -221,7 +231,7 @@
         </div>
       </mat-expansion-panel>
     </div>
-    }
+    } }
   </div>
   }
 </div>

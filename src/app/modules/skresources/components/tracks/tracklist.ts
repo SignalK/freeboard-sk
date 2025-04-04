@@ -27,7 +27,6 @@ import { SKStreamFacade } from 'src/app/modules';
 
 @Component({
   selector: 'track-list',
-  standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './tracklist.html',
   styleUrls: ['../resourcelist.css'],
@@ -183,7 +182,12 @@ export class TrackListComponent {
   }
 
   itemProperties(id: string) {
-    this.skres.showTrackInfo(id);
+    const track = this.trackList.find(
+      (trk: [string, SKTrack, boolean]) => trk[1].feature?.id === id
+    );
+    if (track) {
+      this.skres.showTrackInfo(track[1]);
+    }
   }
 
   itemDelete(id: string) {
@@ -203,7 +207,7 @@ export class TrackListComponent {
               // refresh cache
             })
             .catch((err: HttpErrorResponse) =>
-              this.skres.parseHttpErrorResponse(err)
+              this.app.parseHttpErrorResponse(err)
             );
         }
       });
@@ -226,8 +230,8 @@ export class TrackListComponent {
   doFilter() {
     const sortList = () => {
       fl.sort((a, b) => {
-        const x = a[1].feature?.properties?.name.toLowerCase();
-        const y = b[1].feature?.properties?.name.toLowerCase();
+        const x = a[1].feature?.properties?.name?.toLowerCase();
+        const y = b[1].feature?.properties?.name?.toLowerCase();
         return x > y ? 1 : -1;
       });
     };

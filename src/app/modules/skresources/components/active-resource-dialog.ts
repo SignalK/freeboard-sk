@@ -32,7 +32,6 @@ import { SKResources } from '../resources.service';
 ***********************************/
 @Component({
   selector: 'ap-dest-modal',
-  standalone: true,
   imports: [
     CommonModule,
     MatTooltipModule,

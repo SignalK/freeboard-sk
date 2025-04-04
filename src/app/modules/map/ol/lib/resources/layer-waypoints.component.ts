@@ -17,7 +17,8 @@ import { FBWaypoints, Waypoints } from 'src/app/types';
 @Component({
   selector: 'ol-map > sk-waypoints-base',
   template: '<ng-content></ng-content>',
-  changeDetection: ChangeDetectionStrategy.OnPush
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  standalone: false
 })
 export class WaypointsBaseComponent extends FBFeatureLayerComponent {
   @Input() waypointStyles: { [key: string]: Style };
@@ -118,7 +119,8 @@ export class WaypointsBaseComponent extends FBFeatureLayerComponent {
 @Component({
   selector: 'ol-map > sk-waypoints',
   template: '<ng-content></ng-content>',
-  changeDetection: ChangeDetectionStrategy.OnPush
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  standalone: false
 })
 export class WaypointLayerComponent extends WaypointsBaseComponent {
   @Input() waypoints: Waypoints;
@@ -164,7 +166,8 @@ export class WaypointLayerComponent extends WaypointsBaseComponent {
 @Component({
   selector: 'ol-map > fb-waypoints',
   template: '<ng-content></ng-content>',
-  changeDetection: ChangeDetectionStrategy.OnPush
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  standalone: false
 })
 export class FreeboardWaypointLayerComponent extends WaypointsBaseComponent {
   @Input() waypoints: FBWaypoints = [];

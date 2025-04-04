@@ -19,7 +19,8 @@ import { fromLonLatArray } from '../util';
 @Component({
   selector: 'ol-map > sk-ais-vessels',
   template: '<ng-content></ng-content>',
-  changeDetection: ChangeDetectionStrategy.OnPush
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  standalone: false
 })
 export class AISVesselsLayerComponent extends AISBaseLayerComponent {
   @Input() cogLineLength = 0;

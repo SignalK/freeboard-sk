@@ -1,229 +1,113 @@
 /** Settings abstraction Facade
  * ************************************/
-import { Injectable } from '@angular/core';
+import { effect, Injectable, signal } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
-import { Subject, Observable } from 'rxjs';
 
 import { AppFacade } from 'src/app/app.facade';
-import { SKResources } from 'src/app/modules';
 import { SignalKClient } from 'signalk-client-angular';
-import { SKStreamProvider } from '../skstream/skstream.service';
-import { NotificationMessage } from 'src/app/types';
 import { Position } from 'src/app/types';
-
-interface IStatus {
-  action: string;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  error: any;
-  result: unknown;
-}
-
-export interface AnchorEvent {
-  radius?: number | null;
-  action: 'drop' | 'raise' | 'setRadius' | 'position' | undefined;
-  mode?: 'setManualAnchor' | 'dropAnchor' | undefined;
-  rodeLength?: number | null;
-}
+import { SKStreamFacade } from '../skstream/skstream.facade';
 
 @Injectable({ providedIn: 'root' })
 export class AnchorFacade {
   // **************** ATTRIBUTES ***************************
-
-  private anchorSource = new Subject<IStatus>();
-  private alarmSource = new Subject<boolean>();
-  private closestApproachSource = new Subject<NotificationMessage>();
-
+  private raisedSignal = signal<boolean>(true);
+  readonly raised = this.raisedSignal.asReadonly();
+  private positionSignal = signal<Position>(null);
+  readonly position = this.positionSignal.asReadonly();
+  private radiusSignal = signal<number>(0);
+  readonly radius = this.radiusSignal.asReadonly();
   // *******************************************************
 
   constructor(
     private app: AppFacade,
     private signalk: SignalKClient,
-    private stream: SKStreamProvider,
-    private skres: SKResources
-  ) {}
-
-  anchorStatus$(): Observable<IStatus> {
-    return this.anchorSource.asObservable();
-  }
-  closestApproach$(): Observable<NotificationMessage> {
-    return this.closestApproachSource.asObservable();
-  }
-  update$(): Observable<boolean> {
-    return this.alarmSource.asObservable();
-  }
-
-  // ******** ANCHOR WATCH EVENTS ************
-  anchorEvent(e: AnchorEvent, context?: string, position?: Position) {
-    return new Promise((resolve, reject) => {
-      context = context ? context : 'self';
-      if (e.action === 'setRadius') {
-        //send radius value only
-        const val = typeof e.radius === 'number' ? { radius: e.radius } : {};
-        this.app.config.anchorRadius = e.radius;
-        this.signalk.post('/plugins/anchoralarm/setRadius', val).subscribe(
-          () => {
-            this.app.saveConfig();
-            resolve(true);
-          },
-          (err: HttpErrorResponse) => {
-            this.parseAnchorError(err, 'radius');
-            this.queryAnchorStatus(context, position);
-            reject();
-          }
-        );
-      } else if (e.action === 'drop') {
-        if (e.mode === 'setManualAnchor') {
-          if (typeof e.rodeLength !== 'number') {
-            reject();
-            return;
-          }
-          // rode is already out
-          this.signalk
-            .post('/plugins/anchoralarm/setManualAnchor', {
-              rodeLength: e.rodeLength
-            })
-            .subscribe(
-              () => {
-                this.app.saveConfig();
-              },
-              (err: HttpErrorResponse) => {
-                this.parseAnchorError(err, 'drop');
-                this.queryAnchorStatus(context, position);
-                reject();
-              }
-            );
-        } else {
-          // ** drop anchor
-          this.app.config.anchorRadius = e.radius;
-          const params =
-            typeof e.radius === 'number' ? { radius: e.radius } : {};
-          this.signalk
-            .post('/plugins/anchoralarm/dropAnchor', params)
-            .subscribe(
-              () => {
-                this.app.saveConfig();
-              },
-              (err: HttpErrorResponse) => {
-                this.parseAnchorError(err, 'drop');
-                this.queryAnchorStatus(context, position);
-                reject();
-              }
-            );
-        }
-      } else if (e.action === 'raise') {
-        // ** raise anchor
-        this.signalk.post('/plugins/anchoralarm/raiseAnchor', {}).subscribe(
-          () => resolve(true),
-          (err: HttpErrorResponse) => {
-            this.parseAnchorError(err, 'raise');
-            this.queryAnchorStatus(context, position);
-            reject();
-          }
-        );
-      } else if (e.action === 'position') {
-        this.signalk
-          .post('/plugins/anchoralarm/setAnchorPosition', {
-            position: {
-              latitude: position[1],
-              longitude: position[0]
-            }
-          })
-          .subscribe(
-            () => resolve(true),
-            (err: HttpErrorResponse) => {
-              this.parseAnchorError(err, 'position');
-              this.queryAnchorStatus(context, position);
-              reject();
-            }
-          );
+    private stream: SKStreamFacade
+  ) {
+    effect(() => {
+      if (this.stream.selfAnchor()) {
+        this.parseAnchorStatus(this.stream.selfAnchor());
       }
     });
   }
 
-  // ** update anchor status from received vessel data**
-  updateAnchorStatus() {
-    this.parseAnchorStatus(this.app.data.vessels.self.anchor);
+  /**
+   * @description Set the value of the raisedSignal
+   * @param value value to set for the signal
+   */
+  public setRaisedSignal(value: boolean) {
+    this.raisedSignal.set(value);
   }
 
-  // ** query anchor status
-  queryAnchorStatus(context: string, position?: Position) {
+  /**
+   * @description Set anchor position
+   * @param position
+   * @returns Promise
+   */
+  public setAnchorPosition(position: Position) {
+    if (!position) {
+      return;
+    }
+    return new Promise((resolve, reject) => {
+      this.signalk
+        .post('/plugins/anchoralarm/setAnchorPosition', {
+          position: {
+            latitude: position[1],
+            longitude: position[0]
+          }
+        })
+        .subscribe(
+          () => resolve(true),
+          (err: HttpErrorResponse) => {
+            reject(err);
+          }
+        );
+    });
+  }
+
+  /**
+   * @description Query anchor status from server
+   */
+  public queryAnchorStatus(context: string, position?: Position) {
     this.app.debug('Retrieving anchor status...');
     context = !context || context === 'self' ? 'vessels/self' : context;
     this.signalk.api.get(`/${context}/navigation/anchor`).subscribe(
-      (r) => {
-        const aData = { position: null, maxRadius: null };
-        if (r['position']) {
-          aData.position =
-            typeof r['position']['value'] !== 'undefined'
-              ? r['position']['value']
-              : null;
-        }
-        if (r['maxRadius']) {
-          aData.maxRadius =
-            typeof r['maxRadius']['value'] === 'number'
-              ? r['maxRadius']['value']
-              : null;
-        }
-        this.parseAnchorStatus(aData, position);
+      (r: any) => {
+        const pos: Position = r.position?.value
+          ? [r.position.value.longitude, r.position.value.latitude]
+          : null;
+        const data = {
+          position: pos,
+          maxRadius: r.maxRadius?.value ? r.maxRadius.value : null,
+          radius: r.currentRadius?.value ? r.currentRadius.value : null
+        };
+        this.parseAnchorStatus(data, position);
       },
       () => {
-        this.app.data.anchor.position = [0, 0];
-        this.app.data.anchor.raised = true;
+        this.positionSignal.set([0, 0]);
+        this.raisedSignal.set(true);
       }
     );
   }
 
-  // ** process anchor watch errors
-  parseAnchorError(e, action: string) {
-    this.app.debug(e);
-    if (e.status && e.status === 401) {
-      // ** emit anchorStatus$ **
-      this.anchorSource.next({
-        action: action,
-        error: true,
-        result: e
-      });
-      return;
-    }
-
-    if (e.status && e.status !== 200) {
-      this.anchorSource.next({
-        action: action,
-        error: true,
-        result: e
-      });
-    }
-  }
-
   // ** process anchor status
-  parseAnchorStatus(
-    r: { maxRadius: number; position: { latitude: number; longitude: number } },
+  private parseAnchorStatus(
+    r: { maxRadius?: number; position?: Position; radius?: number },
     position?: Position
   ) {
     if (
       r.position &&
-      typeof r.position.latitude === 'number' &&
-      typeof r.position.longitude === 'number'
+      typeof r.position[0] === 'number' &&
+      typeof r.position[0] === 'number'
     ) {
-      this.app.data.anchor.position = [
-        r.position.longitude,
-        r.position.latitude
-      ];
-      this.app.data.anchor.raised = false;
+      this.positionSignal.set(r.position);
+      this.raisedSignal.set(false);
     } else {
       if (position) {
-        this.app.data.anchor.position = position;
+        this.positionSignal.set(position);
       }
-      this.app.data.anchor.raised = true;
+      this.raisedSignal.set(true);
     }
-
-    this.app.data.anchor.radius = r.maxRadius ?? -1;
-
-    // ** emit anchorStatus$ **
-    this.anchorSource.next({
-      action: 'query',
-      error: false,
-      result: this.app.data.anchor
-    });
+    this.radiusSignal.set(r.maxRadius ?? -1);
   }
 }

@@ -23,7 +23,6 @@ measure: boolean= measure mode;
 @Component({
   selector: 'ap-popover',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  standalone: true,
   imports: [
     CommonModule,
     MatButtonModule,

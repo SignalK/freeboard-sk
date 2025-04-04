@@ -1,7 +1,10 @@
 import { Pipe, PipeTransform } from '@angular/core';
 import { decimalToSexagesimal } from 'geolib';
 
-@Pipe({ name: 'coords' })
+@Pipe({
+  name: 'coords',
+  standalone: false
+})
 export class CoordsPipe implements PipeTransform {
   private symDegree = String.fromCharCode(186);
 

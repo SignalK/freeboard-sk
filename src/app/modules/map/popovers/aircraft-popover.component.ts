@@ -19,7 +19,6 @@ import { SKAircraft } from 'src/app/modules';
 @Component({
   selector: 'aircraft-popover',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  standalone: true,
   imports: [
     MatButtonModule,
     MatTooltipModule,

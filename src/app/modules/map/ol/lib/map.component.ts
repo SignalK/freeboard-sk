@@ -49,7 +49,8 @@ export interface FBPointerEvent extends MapBrowserEvent<UIEvent> {
     ></div>
     <ng-content></ng-content>
   `,
-  changeDetection: ChangeDetectionStrategy.OnPush
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  standalone: false
 })
 export class MapComponent implements OnInit, OnDestroy {
   private map: Map;

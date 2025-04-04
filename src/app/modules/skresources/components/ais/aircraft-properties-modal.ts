@@ -22,7 +22,6 @@ import { SignalKDetailsComponent } from '../../components/signalk-details.compon
 ***********************************/
 @Component({
   selector: 'ap-aircraft-modal',
-  standalone: true,
   imports: [
     MatTooltipModule,
     MatIconModule,

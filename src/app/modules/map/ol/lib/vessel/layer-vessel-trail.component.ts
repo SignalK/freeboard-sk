@@ -24,7 +24,8 @@ import { AsyncSubject } from 'rxjs';
 @Component({
   selector: 'ol-map > fb-vessel-trail',
   template: '<ng-content></ng-content>',
-  changeDetection: ChangeDetectionStrategy.OnPush
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  standalone: false
 })
 export class VesselTrailComponent implements OnInit, OnDestroy, OnChanges {
   protected layer: Layer;

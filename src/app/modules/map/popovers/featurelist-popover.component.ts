@@ -20,7 +20,6 @@ import { PopoverComponent } from './popover.component';
 @Component({
   selector: 'feature-list-popover',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  standalone: true,
   imports: [
     CommonModule,
     MatListModule,

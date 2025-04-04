@@ -11,7 +11,8 @@ import {
 import { MapComponent } from './map.component';
 
 @Directive({
-  selector: 'ol-map > [olControls]'
+  selector: 'ol-map > [olControls]',
+  standalone: false
 })
 export class ControlsDirective implements OnInit {
   private controls = [];

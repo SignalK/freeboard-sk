@@ -25,7 +25,8 @@ import { Position } from 'src/app/types';
 @Component({
   selector: 'ol-map > fb-target-angle',
   template: '<ng-content></ng-content>',
-  changeDetection: ChangeDetectionStrategy.OnPush
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  standalone: false
 })
 export class TargetAngleComponent implements OnInit, OnDestroy, OnChanges {
   protected layer: Layer;

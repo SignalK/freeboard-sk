@@ -14,7 +14,6 @@ value: "<string>" display value,
 units: "<string>" dsisplay units,
 ***********************************/
 @Component({
-  standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'ap-dial-text',
   imports: [],
@@ -37,7 +36,6 @@ export class TextDialComponent {
 value: "<number>" TTG value in minutes
 ***********************************/
 @Component({
-  standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'ap-dial-ttg',
   imports: [],
@@ -83,7 +81,6 @@ export class TTGDialComponent {
 value: "<Date>" ETA date
 ***********************************/
 @Component({
-  standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'ap-dial-eta',
   imports: [],

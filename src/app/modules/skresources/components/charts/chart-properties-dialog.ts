@@ -18,7 +18,6 @@ import { PipesModule } from 'src/app/lib/pipes';
 ***********************************/
 @Component({
   selector: 'ap-chartproperties',
-  standalone: true,
   imports: [
     MatTooltipModule,
     MatIconModule,

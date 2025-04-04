@@ -16,7 +16,6 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
 
 @Component({
-  standalone: true,
   selector: 'wakelock',
   imports: [CommonModule, MatButtonModule, MatTooltipModule, MatIconModule],
   changeDetection: ChangeDetectionStrategy.OnPush,

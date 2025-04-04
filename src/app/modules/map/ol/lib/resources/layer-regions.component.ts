@@ -16,7 +16,8 @@ import { FBRegions } from 'src/app/types';
 @Component({
   selector: 'ol-map > fb-regions',
   template: '<ng-content></ng-content>',
-  changeDetection: ChangeDetectionStrategy.OnPush
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  standalone: false
 })
 export class FreeboardRegionLayerComponent extends FBFeatureLayerComponent {
   @Input() regions: FBRegions = [];

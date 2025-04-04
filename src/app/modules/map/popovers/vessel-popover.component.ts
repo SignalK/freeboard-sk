@@ -33,7 +33,6 @@ isSelf: boolean - true if vessel 'self'
 @Component({
   selector: 'vessel-popover',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  standalone: true,
   imports: [
     MatButtonModule,
     MatTooltipModule,
@@ -79,6 +78,14 @@ isSelf: boolean - true if vessel 'self'
           "
         ></div>
       </div>
+      @if(!isSelf) { @if(vessel.distanceToSelf) {
+      <div style="display:flex;">
+        <div style="font-weight:bold;">Distance:</div>
+        <div style="flex: 1 1 auto;text-align:right;">
+          {{ distToSelf }}
+        </div>
+      </div>
+      } }
       <div style="display:flex;">
         <div style="font-weight:bold;">Last Update:</div>
         <div style="flex: 1 1 auto;text-align:right;">
@@ -208,6 +215,7 @@ export class VesselPopoverComponent {
   timeLastUpdate: string;
   timeAgo: string; // last update in minutes ago
   speedUnits: string;
+  protected distToSelf: string;
 
   position: Position = [0, 0];
   isFlagged = false;
@@ -248,6 +256,10 @@ export class VesselPopoverComponent {
     const td =
       (new Date().valueOf() - this.vessel.lastUpdated.valueOf()) / 1000;
     this.timeAgo = td < 60 ? '' : `(${Math.floor(td / 60)} min ago)`;
+    this.distToSelf = this.app.formatValueForDisplay(
+      this.vessel.distanceToSelf,
+      'm'
+    );
   }
 
   handleMarkPosition() {

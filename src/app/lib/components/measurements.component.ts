@@ -19,7 +19,6 @@ import { MatToolbarModule } from '@angular/material/toolbar';
 // ********* Measurements Component ********
 
 @Component({
-  standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'fb-measurements',
   imports: [

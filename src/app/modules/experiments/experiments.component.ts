@@ -12,7 +12,6 @@ import { CommonDialogs } from 'src/app/lib/components/dialogs';
 /********* ExperimentsComponent ********/
 @Component({
   selector: 'fb-experiments',
-  standalone: true,
   imports: [
     CommonModule,
     MatMenuModule,

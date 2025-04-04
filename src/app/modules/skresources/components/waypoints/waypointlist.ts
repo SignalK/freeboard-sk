@@ -22,7 +22,6 @@ import { FBWaypoints, FBWaypoint, FBResourceSelect } from 'src/app/types';
 
 @Component({
   selector: 'waypoint-list',
-  standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './waypointlist.html',
   styleUrls: ['../resourcelist.css'],

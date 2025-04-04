@@ -16,7 +16,8 @@ import { AISBaseLayerComponent } from './ais-base.component';
 @Component({
   selector: 'ol-map > ais-targets-track',
   template: '<ng-content></ng-content>',
-  changeDetection: ChangeDetectionStrategy.OnPush
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  standalone: false
 })
 export class AISTargetsTrackLayerComponent extends AISBaseLayerComponent {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

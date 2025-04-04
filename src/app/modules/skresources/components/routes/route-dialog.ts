@@ -21,7 +21,6 @@ import { SKRoute } from '../../resource-classes';
 ***********************************/
 @Component({
   selector: 'ap-routedialog',
-  standalone: true,
   imports: [
     CommonModule,
     FormsModule,

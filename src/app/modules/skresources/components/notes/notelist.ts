@@ -22,7 +22,6 @@ import { FBNotes, FBNote, FBResourceSelect, SKPosition } from 'src/app/types';
 
 @Component({
   selector: 'note-list',
-  standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './notelist.html',
   styleUrls: ['../resourcelist.css'],

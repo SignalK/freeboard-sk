@@ -20,16 +20,16 @@
       </button>
 
       <mat-divider></mat-divider>
-      <ap-file-input
-        accept=".gpx,.json"
-        [astext]="true"
-        (chosen)="importFile($event)"
-      >
-        <a mat-list-item>
+      <button mat-menu-item>
+        <ap-file-input
+          accept=".gpx,.json"
+          [astext]="true"
+          (chosen)="importFile($event)"
+        >
           <mat-icon class="ob" svgIcon="route-import"></mat-icon>
-          &nbsp;Import
-        </a>
-      </ap-file-input>
+          Import
+        </ap-file-input>
+      </button>
       <button mat-menu-item (click)="exportToGPX()">
         <mat-icon class="ob" svgIcon="route-export"></mat-icon>
         &nbsp;Export
@@ -540,10 +540,10 @@
             </ais-list>
             } } @if(display.anchorWatch) {
             <anchor-watch
-              [disableRaiseDrop]="!app.data.vessels.showSelf"
-              [radius]="app.data.anchor.radius"
+              [showSelf]="app.data.vessels.showSelf"
+              [radius]="this.anchor.radius()"
               [feet]="app.config.units.depth !== 'm' ? true : false"
-              [raised]="app.data.anchor.raised"
+              [raised]="anchor.raised()"
               (closed)="displayLeftMenu()"
             >
             </anchor-watch>

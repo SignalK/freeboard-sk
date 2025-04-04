@@ -25,7 +25,8 @@ import { AsyncSubject } from 'rxjs';
 @Component({
   selector: 'ol-map > fb-arrival-circle',
   template: '<ng-content></ng-content>',
-  changeDetection: ChangeDetectionStrategy.OnPush
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  standalone: false
 })
 export class ArrivalCircleComponent implements OnInit, OnDestroy, OnChanges {
   protected layer: Layer;

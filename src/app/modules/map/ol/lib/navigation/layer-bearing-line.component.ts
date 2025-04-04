@@ -27,7 +27,8 @@ import { AsyncSubject } from 'rxjs';
 @Component({
   selector: 'ol-map > fb-bearing-line',
   template: '<ng-content></ng-content>',
-  changeDetection: ChangeDetectionStrategy.OnPush
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  standalone: false
 })
 export class BearingLineComponent implements OnInit, OnDestroy, OnChanges {
   protected layer: Layer;

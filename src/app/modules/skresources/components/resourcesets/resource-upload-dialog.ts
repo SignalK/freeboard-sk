@@ -25,7 +25,6 @@ import { AppFacade } from 'src/app/app.facade';
   selector: 'resource-upload-dialog',
   templateUrl: './resource-upload-dialog.html',
   styleUrls: ['./resource-upload-dialog.css'],
-  standalone: true,
   imports: [
     FormsModule,
     MatInputModule,

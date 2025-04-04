@@ -21,7 +21,8 @@ import { FBRoutes, Routes } from 'src/app/types';
 @Component({
   selector: 'ol-map > sk-routes-base',
   template: '<ng-content></ng-content>',
-  changeDetection: ChangeDetectionStrategy.OnPush
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  standalone: false
 })
 export class RoutesBaseComponent extends FBFeatureLayerComponent {
   @Input() routeStyles: { [key: string]: Style };
@@ -175,7 +176,8 @@ export class RoutesBaseComponent extends FBFeatureLayerComponent {
 @Component({
   selector: 'ol-map > sk-routes',
   template: '<ng-content></ng-content>',
-  changeDetection: ChangeDetectionStrategy.OnPush
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  standalone: false
 })
 export class RouteLayerComponent extends RoutesBaseComponent {
   @Input() routes: Routes;
@@ -227,7 +229,8 @@ export class RouteLayerComponent extends RoutesBaseComponent {
 @Component({
   selector: 'ol-map > fb-routes',
   template: '<ng-content></ng-content>',
-  changeDetection: ChangeDetectionStrategy.OnPush
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  standalone: false
 })
 export class FreeboardRouteLayerComponent extends RoutesBaseComponent {
   @Input() routes: FBRoutes = [];

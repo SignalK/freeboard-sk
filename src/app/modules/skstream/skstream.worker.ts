@@ -751,7 +751,7 @@ function selectVessel(id: string): SKVessel {
 }
 
 // ** process common vessel data and true / magnetic preference **
-function processVessel(d: SKVessel, v, isSelf = false) {
+function processVessel(d: SKVessel, v: any, isSelf = false) {
   d.lastUpdated = new Date();
 
   // ** record received preferred path names for selection
@@ -766,6 +766,11 @@ function processVessel(d: SKVessel, v, isSelf = false) {
     // racing properties
     if (v.path.includes('navigation.racing')) {
       d.properties[v.path] = v.value;
+    }
+  } else {
+    // not self
+    if (v.path.includes('navigation.distanceToSelf')) {
+      d.distanceToSelf = v.value;
     }
   }
 
@@ -948,7 +953,7 @@ function processVessel(d: SKVessel, v, isSelf = false) {
 // process notification messages **
 function processNotifications(v: PathValue) {
   if (v.path.includes('notifications.')) {
-    const msg = new NotificationMessage();
+    const msg: NotificationMessage = new NotificationMessage();
     msg.playback = playbackMode;
     msg.result = {
       path: v.path,

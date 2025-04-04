@@ -23,7 +23,6 @@ import { Position } from 'src/app/types';
 //** AIS Dialog **
 @Component({
   selector: 'ais-list',
-  standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './aislist.html',
   styleUrls: ['../resourcelist.css'],

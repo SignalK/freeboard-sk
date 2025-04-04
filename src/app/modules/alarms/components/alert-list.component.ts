@@ -23,7 +23,6 @@ import { AlertData } from './alert.component';
 import { NotificationManager } from '../notification-manager';
 
 @Component({
-  standalone: true,
   selector: 'alert-list',
   imports: [
     MatTooltipModule,

@@ -36,7 +36,6 @@ interface LayerNode {
 ***********************************/
 @Component({
   selector: 'wms-dialog',
-  standalone: true,
   imports: [
     MatTreeModule,
     MatCheckboxModule,

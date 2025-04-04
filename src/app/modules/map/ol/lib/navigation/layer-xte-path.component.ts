@@ -24,7 +24,8 @@ import { AsyncSubject } from 'rxjs';
 @Component({
   selector: 'ol-map > fb-xte-path',
   template: '<ng-content></ng-content>',
-  changeDetection: ChangeDetectionStrategy.OnPush
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  standalone: false
 })
 export class XTEPathComponent implements OnInit, OnDestroy, OnChanges {
   protected layer: Layer;

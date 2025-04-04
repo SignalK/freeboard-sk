@@ -116,7 +116,7 @@
   @if(app.config.resources.paths.includes('tracks')) {
   <fb-tracks
     [darkMode]="app.config.map.invertColor"
-    [tracks]="tracks()"
+    [tracks]="skres.tracks()"
     [labelMinZoom]="0"
     [mapZoom]="fbMap.zoomLevel"
     [zIndex]="100"
@@ -485,10 +485,10 @@
   }
 
   <!-- Alarms -->
-  @if(!app.data.anchor.raised) {
+  @if(!anchor.raised()) {
   <fb-anchor-alarm
-    [radius]="app.data.anchor.radius"
-    [anchorPosition]="app.data.anchor.position"
+    [radius]="anchor.radius()"
+    [anchorPosition]="anchor.position()"
     [lineCoords]="vesselLines.anchor"
     [anchorStyles]="featureStyles.anchor"
     [zIndex]="300"
@@ -507,7 +507,7 @@
   </fb-alarms>
 
   <!-- Vessel / destination -->
-  @if (app.data.anchor.raised && dfeat.navData.position) {
+  @if (anchor.raised() && dfeat.navData.position) {
   @if(dfeat.navData.startPosition) {
   <fb-xte-path
     [color]=""

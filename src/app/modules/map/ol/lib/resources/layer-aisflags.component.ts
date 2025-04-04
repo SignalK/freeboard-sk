@@ -16,7 +16,8 @@ import { AISBaseLayerComponent } from './ais-base.component';
 @Component({
   selector: 'ol-map > sk-ais-flags',
   template: '<ng-content></ng-content>',
-  changeDetection: ChangeDetectionStrategy.OnPush
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  standalone: false
 })
 export class AISFlagsLayerComponent extends AISBaseLayerComponent {
   @Input() flagged: Array<string>;

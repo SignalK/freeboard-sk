@@ -27,7 +27,6 @@ import { AppFacade } from 'src/app/app.facade';
     }
 ***********************************/
 @Component({
-  standalone: true,
   selector: 'ap-relatednotesdialog',
   imports: [
     CommonModule,

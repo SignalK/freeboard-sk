@@ -18,7 +18,6 @@ total: number - total number of points
 ***********************************/
 @Component({
   selector: 'route-nextpoint',
-  standalone: true,
   imports: [MatButtonModule, MatTooltipModule, MatIconModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `

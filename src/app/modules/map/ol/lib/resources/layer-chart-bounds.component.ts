@@ -18,7 +18,8 @@ import { FBCharts } from 'src/app/types';
 @Component({
   selector: 'ol-map > fb-chart-bounds',
   template: '<ng-content></ng-content>',
-  changeDetection: ChangeDetectionStrategy.OnPush
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  standalone: false
 })
 export class ChartBoundsLayerComponent extends FBFeatureLayerComponent {
   @Input() charts: FBCharts = [];

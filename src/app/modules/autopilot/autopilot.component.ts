@@ -24,7 +24,6 @@ import { UpdateMessage } from 'src/app/types';
 import { SKStreamFacade } from 'src/app/modules';
 
 @Component({
-  standalone: true,
   selector: 'autopilot-console',
   imports: [
     MatTooltipModule,

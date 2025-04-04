@@ -37,7 +37,6 @@ import { getResourceIcon } from 'src/app/modules/icons';
 ***********************************/
 @Component({
   selector: 'ap-waypointdialog',
-  standalone: true,
   imports: [
     CommonModule,
     FormsModule,

@@ -29,7 +29,6 @@ import { WeatherData, WeatherDataComponent } from './weather-data.component';
 ***********************************/
 @Component({
   selector: 'weather-forecast-modal',
-  standalone: true,
   imports: [
     MatCardModule,
     MatListModule,

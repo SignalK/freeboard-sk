@@ -20,7 +20,6 @@ import { AlertData } from '../../alarms';
 @Component({
   selector: 'alarm-popover',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  standalone: true,
   imports: [
     MatButtonModule,
     MatTooltipModule,

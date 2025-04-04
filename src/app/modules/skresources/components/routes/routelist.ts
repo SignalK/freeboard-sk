@@ -25,7 +25,6 @@ import {
 
 @Component({
   selector: 'route-list',
-  standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './routelist.html',
   styleUrls: ['../resourcelist.css'],

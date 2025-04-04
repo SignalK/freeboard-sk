@@ -15,7 +15,8 @@ import { MapImageRegistry } from '../map-image-registry.service';
 @Component({
   selector: 'ol-map > sk-ais-targets',
   template: '<ng-content></ng-content>',
-  changeDetection: ChangeDetectionStrategy.OnPush
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  standalone: false
 })
 export class AISTargetsLayerComponent extends AISBaseLayerComponent {
   constructor(

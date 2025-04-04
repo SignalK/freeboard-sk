@@ -9,7 +9,7 @@ import {
 } from '@signalk/server-api';
 import { NotificationMessage } from 'src/app/types';
 import { AppFacade } from 'src/app/app.facade';
-import { SKStreamProvider } from '../skstream/skstream.service';
+import { SKWorkerService } from '../skstream/skstream.service';
 import { AlertData } from './components/alert.component';
 import { getAlertIcon } from '../icons';
 import { SignalKClient } from 'signalk-client-angular';
@@ -30,17 +30,15 @@ export class NotificationManager {
 
   constructor(
     private app: AppFacade,
-    private stream: SKStreamProvider,
+    private worker: SKWorkerService,
     private signalk: SignalKClient,
     private bottomSheet: MatBottomSheet
   ) {
     this.alertMap = new Map();
 
     // ** SIGNAL K STREAM Message**
-    this.stream.message$().subscribe((msg: NotificationMessage) => {
-      if (msg.action === 'notification') {
-        this.processMessage(msg);
-      }
+    this.worker.notification$().subscribe((msg: NotificationMessage) => {
+      this.processMessage(msg);
     });
   }
 

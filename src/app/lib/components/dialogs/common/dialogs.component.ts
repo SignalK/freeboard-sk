@@ -40,7 +40,8 @@ import { MAT_SNACK_BAR_DATA } from '@angular/material/snack-bar';
         min-width: 150px;
       }
     `
-  ]
+  ],
+  standalone: false
 })
 export class MsgBox implements OnInit {
   public msglines = [];
@@ -98,7 +99,8 @@ export class MsgBox implements OnInit {
         min-width: 150px;
       }
     `
-  ]
+  ],
+  standalone: false
 })
 export class AlertDialog implements OnInit {
   public msglines = [];
@@ -177,7 +179,8 @@ export class AlertDialog implements OnInit {
         min-width: 150px;
       }
     `
-  ]
+  ],
+  standalone: false
 })
 export class ConfirmDialog implements OnInit {
   public msglines = [];
@@ -257,7 +260,8 @@ export class ConfirmDialog implements OnInit {
         font-size: 12pt;
       }
     `
-  ]
+  ],
+  standalone: false
 })
 export class AboutDialog {
   constructor(
@@ -324,7 +328,8 @@ export class AboutDialog {
         </mat-card-actions>
       </mat-card>
     </mat-dialog-content>
-  `
+  `,
+  standalone: false
 })
 export class LoginDialog implements OnInit {
   @ViewChild('username', { static: false }) username;
@@ -399,7 +404,8 @@ export class LoginDialog implements OnInit {
         font-family: roboto;
       }
     `
-  ]
+  ],
+  standalone: false
 })
 export class MessageBarComponent {
   constructor(@Inject(MAT_SNACK_BAR_DATA) public data) {}
@@ -506,7 +512,8 @@ export class MessageBarComponent {
         font-size: 12pt;
       }
     `
-  ]
+  ],
+  standalone: false
 })
 export class WelcomeDialog {
   public currentPage = 1;

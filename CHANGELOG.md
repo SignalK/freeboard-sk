@@ -1,5 +1,14 @@
 # CHANGELOG: Freeboard
 
+### v2.14.1
+
+- **Fixed**: Unhandled error when Track resource has an undefined name property. (#262)
+- **Fixed**: Self Vessel trail is not reset when focus is given to another vessel. (#268)
+- **Update**: Display distance from self vessel in AIS vessel information. (#269)
+- **Update**: GPX Import error reporting.
+- **Update**: Angular v19.
+
+
 ### v2.14.0
 
 #### Deprecated: Local PyPilot support.

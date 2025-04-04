@@ -26,7 +26,8 @@ import { SKPosition } from 'src/app/types';
 @Component({
   selector: 'ol-map > fb-route-direction',
   template: '<ng-content></ng-content>',
-  changeDetection: ChangeDetectionStrategy.OnPush
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  standalone: false
 })
 export class DirectionOfTravelComponent
   implements OnInit, OnDestroy, OnChanges

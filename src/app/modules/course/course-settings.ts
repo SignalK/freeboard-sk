@@ -31,7 +31,6 @@ import { Subscription } from 'rxjs';
     }
 ***********************************/
 @Component({
-  standalone: true,
   selector: 'ap-course-modal',
   imports: [
     CommonModule,

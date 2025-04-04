@@ -18,7 +18,6 @@ interface PiPVideoElement extends HTMLVideoElement {
 
 //** Picture in Picture video component **
 @Component({
-  standalone: true,
   selector: 'pip-video',
   imports: [MatButtonModule, MatTooltipModule, MatIconModule],
   template: `

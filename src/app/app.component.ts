@@ -13,9 +13,7 @@ import {
   LoginDialog,
   PlaybackDialog,
   GeoJSONImportDialog,
-  Trail2RouteDialog,
-  GPXImportDialog,
-  GPXExportDialog
+  Trail2RouteDialog
 } from 'src/app/lib/components/dialogs';
 
 import {
@@ -40,7 +38,9 @@ import {
   SKRegion,
   WeatherForecastModal,
   CourseSettingsModal,
-  NotificationManager
+  NotificationManager,
+  GPXImportDialog,
+  GPXExportDialog
 } from 'src/app/modules';
 
 import { SignalKClient } from 'signalk-client-angular';
@@ -54,7 +54,8 @@ import {
   LineString,
   Polygon,
   FBRoute,
-  Position
+  Position,
+  ErrorList
 } from './types';
 import { Feature } from 'ol';
 
@@ -72,7 +73,8 @@ interface DrawEndEvent {
 @Component({
   selector: 'app-root',
   templateUrl: './app.component.html',
-  styleUrls: ['./app.component.css']
+  styleUrls: ['./app.component.css'],
+  standalone: false
 })
 export class AppComponent {
   @ViewChild('sideright', { static: false }) sideright;
@@ -132,7 +134,7 @@ export class AppComponent {
 
   constructor(
     public app: AppFacade,
-    public anchorFacade: AnchorFacade,
+    protected anchor: AnchorFacade,
     protected notiMgr: NotificationManager,
     private stream: SKStreamFacade,
     public skres: SKResources,
@@ -263,20 +265,6 @@ export class AppComponent {
       this.app.settings$.subscribe((value: SettingsMessage) =>
         this.handleSettingsEvent(value)
       )
-    );
-
-    // ** NOTIFICATIONS - Anchor Status **
-    this.obsList.push(
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      this.anchorFacade.anchorStatus$().subscribe((r: any) => {
-        if (r.error) {
-          if (r.result.status === 401) {
-            this.showLogin();
-          } else {
-            this.app.showAlert('Anchor Watch:', r.result.message);
-          }
-        }
-      })
     );
 
     // fullscreen event handlers
@@ -665,14 +653,14 @@ export class AppComponent {
     const t = this.app.data.trail.slice(-1);
     if (this.app.data.vessels.showSelf) {
       if (t.length === 0) {
-        this.app.data.trail.push(this.app.data.vessels.active.position);
+        this.app.data.trail.push(this.app.data.vessels.self.position);
         return;
       }
       if (
-        this.app.data.vessels.active.position[0] !== t[0][0] ||
-        this.app.data.vessels.active.position[1] !== t[0][1]
+        this.app.data.vessels.self.position[0] !== t[0][0] ||
+        this.app.data.vessels.self.position[1] !== t[0][1]
       ) {
-        this.app.data.trail.push(this.app.data.vessels.active.position);
+        this.app.data.trail.push(this.app.data.vessels.self.position);
       }
     }
     if (!trailData || trailData.length === 0) {
@@ -908,23 +896,20 @@ export class AppComponent {
         }
       })
       .afterClosed()
-      .subscribe((errCount) => {
-        if (errCount < 0) {
+      .subscribe((res: { errCount: number; errList: ErrorList }) => {
+        if (typeof res.errCount === 'undefined' || res.errCount < 0) {
           // cancelled
           this.focusMap();
           return;
         }
         this.fetchResources();
-        if (errCount === 0) {
+        if (res.errCount === 0) {
           this.app.showMsgBox(
             'GPX Load',
             'GPX file resources loaded successfully.'
           );
         } else {
-          this.app.showAlert(
-            'GPX Load',
-            'Completed with errors!\nNot all resources were loaded.'
-          );
+          this.app.showErrorList(res.errList);
         }
         this.focusMap();
       });
@@ -1443,12 +1428,7 @@ export class AppComponent {
       }
     }
     this.app.data.activeRoute = null;
-    this.clearTrail(true);
     this.clearCourseData();
-    this.anchorFacade.queryAnchorStatus(
-      this.app.data.vessels.activeId,
-      this.app.data.vessels.active.position
-    );
     this.app.debug(`** Active vessel: ${this.app.data.vessels.activeId} `);
     this.app.debug(this.app.data.vessels.active);
   }
@@ -1690,6 +1670,7 @@ export class AppComponent {
         'The connected Signal K server is not supported by this version of Freeboard-SK.\n Signal K server version 2 or later is required!'
       );
     }
+    this.app.alignResourcesPaths();
     this.signalk.api.getSelf().subscribe(
       (r) => {
         this.stream.post({
@@ -1701,9 +1682,9 @@ export class AppComponent {
           this.skres.getVesselTrail(); // request trail from server
         }
         // ** query anchor alarm status
-        this.anchorFacade.queryAnchorStatus(
-          this.app.data.vessels.activeId,
-          this.app.data.vessels.active.position
+        this.anchor.queryAnchorStatus(
+          undefined,
+          this.app.data.vessels.self.position
         );
       },
       (err: HttpErrorResponse) => {

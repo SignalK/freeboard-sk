@@ -2,6 +2,7 @@
  * ************************************/
 import { Injectable } from '@angular/core';
 import { Subject } from 'rxjs';
+import { NotificationMessage } from 'src/app/types';
 
 interface IWorkerCommand {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -10,10 +11,11 @@ interface IWorkerCommand {
 }
 
 @Injectable({ providedIn: 'root' })
-export class SKStreamProvider {
+export class SKWorkerService {
   private worker: Worker;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private messageSource = new Subject<any>();
+  private notificationSource = new Subject<NotificationMessage>();
 
   constructor() {
     this.worker = new Worker(new URL('./skstream.worker', import.meta.url));
@@ -24,6 +26,10 @@ export class SKStreamProvider {
 
   message$() {
     return this.messageSource.asObservable();
+  }
+
+  notification$() {
+    return this.notificationSource.asObservable();
   }
 
   // ************ Worker Functions *********************
@@ -59,7 +65,11 @@ export class SKStreamProvider {
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private handleMessage(msg: any) {
-    this.messageSource.next(msg);
+    if (msg.action === 'notification') {
+      this.notificationSource.next(msg as NotificationMessage);
+    } else {
+      this.messageSource.next(msg);
+    }
   }
 
   // *********************************

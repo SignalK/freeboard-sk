@@ -34,7 +34,6 @@ export interface WeatherData {
 /********* Weather Data viewer component ****************/
 @Component({
   selector: 'weather-data',
-  standalone: true,
   imports: [
     MatCardModule,
     MatListModule,

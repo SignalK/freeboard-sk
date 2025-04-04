@@ -12,7 +12,8 @@ import { MapComponent } from './map.component';
 @Component({
   selector: 'ol-map > ol-control',
   template: '<ng-content></ng-content>',
-  changeDetection: ChangeDetectionStrategy.OnPush
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  standalone: false
 })
 export class ControlComponent implements OnInit, OnDestroy {
   protected control: Control;

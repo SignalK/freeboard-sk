@@ -17,7 +17,6 @@ import { MatDatepickerModule } from '@angular/material/datepicker';
 import { CommonModule } from '@angular/common';
 
 @Component({
-  standalone: true,
   selector: 'ap-playbackdialog',
   imports: [
     CommonModule,

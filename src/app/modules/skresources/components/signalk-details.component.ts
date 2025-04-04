@@ -9,7 +9,6 @@ import { AppFacade } from 'src/app/app.facade';
 import { PipesModule } from '../../../lib/pipes';
 
 @Component({
-  standalone: true,
   selector: 'signalk-details-list',
   imports: [MatTooltipModule, CommonModule, PipesModule],
   changeDetection: ChangeDetectionStrategy.OnPush,

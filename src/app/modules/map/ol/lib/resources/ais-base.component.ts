@@ -19,7 +19,8 @@ export type SKTarget = SKVessel | SKAircraft | SKAtoN | SKSaR | SKMeteo;
 @Component({
   selector: 'ol-map > sk-ais-target-base',
   template: '<ng-content></ng-content>',
-  changeDetection: ChangeDetectionStrategy.OnPush
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  standalone: false
 })
 export class AISBaseLayerComponent
   extends FBFeatureLayerComponent

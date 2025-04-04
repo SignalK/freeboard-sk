@@ -1,18 +1,18 @@
 import { Component, OnInit, Inject } from '@angular/core';
 import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 
-import { GPXLoadFacade } from './gpxload-dialog.facade';
+import { GPXSaveFacade } from './gpxsave-dialog.facade';
 import { AppFacade } from 'src/app/app.facade';
 
-//** GPXLoad dialog **
+//** GPXSave dialog **
 @Component({
-  selector: 'gpxload-dialog',
-  templateUrl: './gpxload-dialog.html',
-  styleUrls: ['./gpxload-dialog.css']
+  selector: 'gpxsave-dialog',
+  templateUrl: './gpxsave-dialog.html',
+  styleUrls: ['./gpxsave-dialog.css'],
+  standalone: false
 })
-export class GPXImportDialog implements OnInit {
-  public gpxData = {
-    name: '',
+export class GPXExportDialog implements OnInit {
+  public resData = {
     routes: [],
     waypoints: [],
     tracks: []
@@ -31,9 +31,9 @@ export class GPXImportDialog implements OnInit {
     someWptChecked: false,
     someRteChecked: false,
     someTrkChecked: false,
-    loadRoutesOK: false,
-    loadWaypointsOK: false,
-    loadTracksOK: false,
+    saveRoutesOK: false,
+    saveWaypointsOK: false,
+    saveTracksOK: false,
     routeViewer: false,
     selCount: { routes: 0, waypoints: 0, tracks: 0 },
     expand: { routes: false, waypoints: false, tracks: false }
@@ -43,15 +43,14 @@ export class GPXImportDialog implements OnInit {
 
   constructor(
     public app: AppFacade,
-    public facade: GPXLoadFacade,
-    public dialogRef: MatDialogRef<GPXImportDialog>,
+    public facade: GPXSaveFacade,
+    public dialogRef: MatDialogRef<GPXExportDialog>,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     @Inject(MAT_DIALOG_DATA) public data: any
   ) {}
 
   ngOnInit() {
-    this.data.fileData = this.data.fileData || null;
-    this.parseGPXData(this.data.fileData);
+    this.parseResourceData();
 
     // ** close dialog returning error count **
     this.unsubscribe.push(
@@ -67,70 +66,45 @@ export class GPXImportDialog implements OnInit {
   }
 
   // ** load selected resources **
-  load() {
-    this.facade.uploadToServer({
+  save() {
+    this.facade.saveToFile(this.resData, {
       rte: { selected: this.selRoutes },
       wpt: { selected: this.selWaypoints },
       trk: { selected: this.selTracks }
     });
   }
 
-  async parseGPXData(data) {
+  parseResourceData() {
     this.display.allRoutesChecked = false;
-    this.display.loadRoutesOK = false;
+    this.display.saveRoutesOK = false;
     this.selRoutes = [];
     this.display.allWaypointsChecked = false;
-    this.display.loadWaypointsOK = false;
+    this.display.saveWaypointsOK = false;
     this.selWaypoints = [];
     this.display.allTracksChecked = false;
-    this.display.loadTracksOK = false;
+    this.display.saveTracksOK = false;
     this.selTracks = [];
     this.display.selCount = { routes: 0, waypoints: 0, tracks: 0 };
     this.display.expand = { routes: false, waypoints: false, tracks: false };
     this.display.notValid = false;
 
-    this.gpxData = await this.facade.parseFileData(data);
-    if (!this.gpxData) {
-      console.warn(
-        'Selected file does not contain GPX data or\ndoes not correctly implement namespaced <extensions> attributes',
-        'Invalid GPX Data:'
-      );
-      this.display.notValid = true;
-      return;
-    }
+    this.resData = this.facade.prepData(this.data);
 
-    this.gpxData.routes.forEach(() => {
+    this.resData.routes.forEach(() => {
       this.selRoutes.push(false);
     });
     if (this.selRoutes.length === 1) {
       this.selRoutes[0] = true;
       this.display.allRoutesChecked = true;
       this.display.expand.routes = true;
-      this.display.loadRoutesOK = true;
-      this.display.selCount.routes = 1;
+      this.display.saveRoutesOK = true;
     }
 
-    this.gpxData.waypoints.forEach(() => {
+    this.resData.waypoints.forEach(() => {
       this.selWaypoints.push(false);
     });
-    if (this.selWaypoints.length === 1) {
-      this.selWaypoints[0] = true;
-      this.display.allWaypointsChecked = true;
-      this.display.expand.waypoints = true;
-      this.display.loadWaypointsOK = true;
-      this.display.selCount.waypoints = 1;
-    }
 
-    this.gpxData.tracks.forEach(() => {
-      this.selTracks.push(false);
-    });
-    if (this.selTracks.length === 1) {
-      this.selTracks[0] = true;
-      this.display.allTracksChecked = true;
-      this.display.expand.tracks = true;
-      this.display.loadTracksOK = true;
-      this.display.selCount.tracks = 1;
-    }
+    this.selTracks.push(false);
   }
 
   // ** select Route idx=-1 -> check all
@@ -138,19 +112,19 @@ export class GPXImportDialog implements OnInit {
     let selcount = 0;
     if (idx !== -1) {
       this.selRoutes[idx] = checked;
-      this.display.loadRoutesOK = checked;
+      this.display.saveRoutesOK = checked;
       for (const c of this.selRoutes) {
         if (c) {
           selcount++;
         }
       }
-      this.display.loadRoutesOK = selcount !== 0 ? true : false;
+      this.display.saveRoutesOK = selcount !== 0 ? true : false;
       this.display.selCount.routes = selcount;
       this.display.allRoutesChecked = selcount === this.selRoutes.length;
     } else {
       for (let i = 0; i < this.selRoutes.length; i++) {
         this.selRoutes[i] = checked;
-        this.display.loadRoutesOK = checked;
+        this.display.saveRoutesOK = checked;
         this.display.allRoutesChecked = checked;
       }
       this.display.selCount.routes = checked ? this.selRoutes.length : 0;
@@ -164,19 +138,19 @@ export class GPXImportDialog implements OnInit {
     let selcount = 0;
     if (idx !== -1) {
       this.selWaypoints[idx] = checked;
-      this.display.loadWaypointsOK = checked;
+      this.display.saveWaypointsOK = checked;
       for (const c of this.selWaypoints) {
         if (c) {
           selcount++;
         }
       }
-      this.display.loadWaypointsOK = selcount !== 0 ? true : false;
+      this.display.saveWaypointsOK = selcount !== 0 ? true : false;
       this.display.selCount.waypoints = selcount;
       this.display.allWaypointsChecked = selcount === this.selWaypoints.length;
     } else {
       for (let i = 0; i < this.selWaypoints.length; i++) {
         this.selWaypoints[i] = checked;
-        this.display.loadWaypointsOK = checked;
+        this.display.saveWaypointsOK = checked;
         this.display.allWaypointsChecked = checked;
       }
       this.display.selCount.waypoints = checked ? this.selWaypoints.length : 0;
@@ -190,19 +164,19 @@ export class GPXImportDialog implements OnInit {
     let selcount = 0;
     if (idx !== -1) {
       this.selTracks[idx] = checked;
-      this.display.loadTracksOK = checked;
+      this.display.saveTracksOK = checked;
       for (const c of this.selTracks) {
         if (c) {
           selcount++;
         }
       }
-      this.display.loadTracksOK = selcount !== 0 ? true : false;
+      this.display.saveTracksOK = selcount !== 0 ? true : false;
       this.display.selCount.tracks = selcount;
       this.display.allTracksChecked = selcount === this.selTracks.length;
     } else {
       for (let i = 0; i < this.selTracks.length; i++) {
         this.selTracks[i] = checked;
-        this.display.loadTracksOK = checked;
+        this.display.saveTracksOK = checked;
         this.display.allTracksChecked = checked;
       }
       this.display.selCount.tracks = checked ? this.selTracks.length : 0;

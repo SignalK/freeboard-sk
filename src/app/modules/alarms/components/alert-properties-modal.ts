@@ -20,7 +20,6 @@ import { NotificationManager } from '../notification-manager';
 ***********************************/
 @Component({
   selector: 'ap-alert-modal',
-  standalone: true,
   imports: [
     MatTooltipModule,
     MatIconModule,

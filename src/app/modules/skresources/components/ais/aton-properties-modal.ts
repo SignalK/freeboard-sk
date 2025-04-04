@@ -23,7 +23,6 @@ import { SignalKDetailsComponent } from '../../components/signalk-details.compon
 ***********************************/
 @Component({
   selector: 'ap-aton-modal',
-  standalone: true,
   imports: [
     MatTooltipModule,
     MatIconModule,

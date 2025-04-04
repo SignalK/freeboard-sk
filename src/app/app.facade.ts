@@ -20,18 +20,20 @@ import {
   ConfirmDialog,
   WelcomeDialog,
   MessageBarComponent,
-  MsgBox
+  MsgBox,
+  ErrorListDialog
 } from './lib/components/dialogs';
 
 import { Convert } from './lib/convert';
 import { SignalKClient } from 'signalk-client-angular';
-import { SKVessel, SKChart, SKStreamProvider } from './modules';
+import { SKVessel, SKChart, SKWorkerService } from './modules';
 
 import {
   PluginInfo,
   PluginSettings,
   AppUpdateMessage,
-  Position
+  Position,
+  ErrorList
 } from './types';
 
 import {
@@ -43,6 +45,7 @@ import {
 
 import { WELCOME_MESSAGES } from './app.messages';
 import { getSvgList } from './modules/icons';
+import { HttpErrorResponse } from '@angular/common/http';
 
 // ** default OSM charts **
 export const OSM = [
@@ -123,7 +126,7 @@ export class AppFacade extends Info {
 
   constructor(
     public signalk: SignalKClient,
-    private stream: SKStreamProvider,
+    private worker: SKWorkerService,
     private dialog: MatDialog,
     private snackbar: MatSnackBar,
     private iconReg: MatIconRegistry,
@@ -135,7 +138,7 @@ export class AppFacade extends Info {
     this.name = 'Freeboard-SK';
     this.shortName = 'Freeboard';
     this.description = `Signal K Chart Plotter.`;
-    this.version = '2.14.0';
+    this.version = '2.14.1';
     this.url = 'https://github.com/signalk/freeboard-sk';
     this.logo = './assets/img/app_logo.png';
 
@@ -278,10 +281,6 @@ export class AppFacade extends Info {
         finishLine: []
       },
       anchor: {
-        // ** anchor watch
-        raised: true,
-        radius: 0,
-        position: [0, 0],
         hasApi: true
       },
       buddyList: {
@@ -419,7 +418,7 @@ export class AppFacade extends Info {
   persistToken(value: string) {
     if (value) {
       this.signalk.authToken = value;
-      this.stream.postMessage({
+      this.worker.postMessage({
         cmd: 'auth',
         options: {
           token: value
@@ -432,7 +431,7 @@ export class AppFacade extends Info {
       this.signalk.authToken = null;
       this.data.loggedIn = false;
       document.cookie = `sktoken=${null}; SameSite=Strict; max-age=0;`;
-      this.stream.postMessage({
+      this.worker.postMessage({
         cmd: 'auth',
         options: {
           token: null
@@ -487,7 +486,7 @@ export class AppFacade extends Info {
       this.suppressTrailFetch = false;
       return;
     }
-    this.stream.postMessage({
+    this.worker.postMessage({
       cmd: 'trail',
       options: {
         trailDuration: this.config.selections.trailDuration,
@@ -540,8 +539,10 @@ export class AppFacade extends Info {
     }
   }
 
-  // ** get user / plugin settings from server **
-  loadSettingsfromServer(): Observable<boolean> {
+  /**  
+   * @description Retrieve and apply user / plugin settings from server
+  */
+  public loadSettingsfromServer(): Observable<boolean> {
     const sub: Subject<boolean> = new Subject();
     this.signalk.isLoggedIn().subscribe(
       (r) => {
@@ -561,6 +562,7 @@ export class AppFacade extends Info {
                 this.saveConfig();
                 sub.next(true);
               }
+              this.alignResourcesPaths();
             },
             () => {
               console.info(
@@ -578,6 +580,19 @@ export class AppFacade extends Info {
       }
     );
     return sub.asObservable();
+  }
+
+  /**
+   * @description Align selected custom resource paths with those enabled on the server.
+   */
+  public alignResourcesPaths() {
+    // check resources paths
+    this.signalk.api.get(this.skApiVersion,'/resources').subscribe(
+      (res: {[key:string]: {description:string}}) => {
+        const paths = Object.keys(res).filter( i=> !['routes','waypoints','regions','notes','charts'].includes(i));
+        this.config.resources.paths = this.config.resources.paths.filter( k => paths.includes(k));
+      }
+    );
   }
 
   // ** overloaded saveConfig() **
@@ -675,6 +690,19 @@ export class AppFacade extends Info {
       .afterClosed();
   }
 
+  // ** display error list dialog
+  showErrorList(errList: ErrorList, btn?: string) {
+    return this.dialog
+      .open(ErrorListDialog, {
+        disableClose: false,
+        data: {
+          errorList: errList,
+          buttonText: btn
+        }
+      })
+      .afterClosed();
+  }
+
   // ** display message bar
   showMessage(message: string, sound = false, duration = 5000) {
     this.snackbar.openFromComponent(MessageBarComponent, {
@@ -703,6 +731,27 @@ export class AppFacade extends Info {
         }
       })
       .afterClosed();
+  }
+
+  // ******** Http Error Message handling *****************
+
+  /**
+   * @description Parse and display error message
+   * @param err Error response
+   */
+  parseHttpErrorResponse(err: HttpErrorResponse) {
+    let msg: string = '';
+    if (err.status && [401, 403].includes(err.status)) {
+      // unauthorised / forbidden
+      msg =
+        'Signal K server requires authentication to update resources.\nPlease login and try again.\n';
+    } else {
+      msg = 'Operation could not be completed!\n';
+    }
+    this.showAlert(
+      `${err.status}: ${err.statusText}`,
+      msg + `${err.error.message}`
+    );
   }
 
   /** returns a formatted string containing the value (converted to the preferred units)

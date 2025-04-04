@@ -13,7 +13,6 @@ import {
 } from '@angular/core';
 
 @Component({
-  standalone: true,
   selector: 'ap-file-input',
   imports: [CommonModule],
   templateUrl: './file-input.component.html',

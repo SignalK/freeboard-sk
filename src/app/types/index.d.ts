@@ -22,6 +22,8 @@ export * from './resources/geojson';
 export * from './resources/freeboard';
 export * from './stream';
 
+export type ErrorList = Array<{ status: number; message: string }>;
+
 export interface SKApiResponse {
   state: 'FAILED' | 'COMPLETED' | 'PENDING';
   statusCode: number;
@@ -135,10 +137,6 @@ export interface FBAppData {
     finishLine: LineString;
   };
   anchor: {
-    // ** anchor watch
-    raised: boolean;
-    radius: number;
-    position: Position;
     hasApi: boolean;
   };
   autopilot: {

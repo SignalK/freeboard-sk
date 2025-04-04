@@ -33,7 +33,6 @@ import { AppIconDef, getResourceIcon } from 'src/app/modules/icons';
     }
 ***********************************/
 @Component({
-  standalone: true,
   selector: 'ap-notedialog',
   imports: [
     FormsModule,

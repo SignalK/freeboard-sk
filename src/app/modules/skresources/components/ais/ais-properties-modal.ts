@@ -23,7 +23,6 @@ import { Convert } from 'src/app/lib/convert';
 ***********************************/
 @Component({
   selector: 'ap-ais-modal',
-  standalone: true,
   imports: [
     MatTooltipModule,
     MatIconModule,

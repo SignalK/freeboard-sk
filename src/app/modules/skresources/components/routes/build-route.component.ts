@@ -26,7 +26,6 @@ import {
 } from '@angular/cdk/drag-drop';
 
 @Component({
-  standalone: true,
   selector: 'route-builder',
   imports: [
     MatTooltipModule,

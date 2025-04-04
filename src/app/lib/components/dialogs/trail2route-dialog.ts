@@ -26,7 +26,6 @@ import { AppFacade } from 'src/app/app.facade';
     }
 ***********************************/
 @Component({
-  standalone: true,
   selector: 'ap-trail2routedialog',
   imports: [
     CommonModule,

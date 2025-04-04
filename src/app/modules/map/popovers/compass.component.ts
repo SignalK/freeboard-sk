@@ -88,7 +88,6 @@ class SvgDialBase implements DialConfig {
 @Component({
   selector: 'ap-compass',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  standalone: true,
   imports: [CommonModule],
   templateUrl: './compass.component.svg'
 })
@@ -248,7 +247,6 @@ export class CompassComponent extends SvgDialBase {
 @Component({
   selector: 'ap-compass-northup',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  standalone: true,
   imports: [CommonModule],
   templateUrl: './compass-northup.component.svg'
 })

@@ -48,7 +48,6 @@ interface TileJson {
 ***********************************/
 @Component({
   selector: 'json-mapsource-dialog',
-  standalone: true,
   imports: [
     MatTooltipModule,
     MatIconModule,

@@ -17,7 +17,8 @@ import { Coordinate } from './models';
 @Component({
   selector: 'ol-map > ol-overlay',
   template: '<ng-content></ng-content>',
-  changeDetection: ChangeDetectionStrategy.OnPush
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  standalone: false
 })
 export class OverlayComponent implements OnInit, OnChanges, OnDestroy {
   protected overlay: Overlay;

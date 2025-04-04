@@ -18,7 +18,8 @@ import { SKVessel } from 'src/app/modules/skresources';
 @Component({
   selector: 'ol-map > sk-ais-wind',
   template: '<ng-content></ng-content>',
-  changeDetection: ChangeDetectionStrategy.OnPush
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  standalone: false
 })
 export class AISWindLayerComponent extends AISBaseLayerComponent {
   @Input() vectorApparent = false;

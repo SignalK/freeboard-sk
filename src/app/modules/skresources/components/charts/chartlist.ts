@@ -37,7 +37,6 @@ import { SignalKClient } from 'signalk-client-angular';
 /********* ChartLayersList***********/
 @Component({
   selector: 'ap-chartlayers',
-  standalone: true,
   imports: [MatTooltipModule, MatIconModule, MatCardModule, DragDropModule],
   template: `
     <div class="_ap-chartlayers">
@@ -174,7 +173,6 @@ export class ChartLayers implements OnInit {
 
 @Component({
   selector: 'chart-list',
-  standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './chartlist.html',
   styleUrls: ['../resourcelist.css'],

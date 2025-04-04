@@ -1,19 +1,19 @@
 /** Signal K Stream Provider abstraction Facade
  * ************************************/
-import { Injectable } from '@angular/core';
+import { Injectable, signal } from '@angular/core';
 import { Observable, Subject } from 'rxjs';
 
 import { AppFacade } from 'src/app/app.facade';
 import { SettingsMessage } from 'src/app/lib/services';
 import { SignalKClient } from 'signalk-client-angular';
-import { SKStreamProvider } from './skstream.service';
+import { SKWorkerService } from './skstream.service';
 import { Convert } from 'src/app/lib/convert';
-import { SKRoute, SKVessel, AnchorFacade } from 'src/app/modules';
+import { SKRoute, SKVessel } from 'src/app/modules';
 import {
-  NotificationMessage,
   UpdateMessage,
   TrailMessage,
-  MultiLineString
+  MultiLineString,
+  Position
 } from 'src/app/types';
 import { GeoUtils } from 'src/app/lib/geoutils';
 
@@ -31,12 +31,10 @@ export interface StreamOptions {
 @Injectable({ providedIn: 'root' })
 export class SKStreamFacade {
   // **************** ATTRIBUTES ***************************
-  private onConnect: Subject<NotificationMessage | UpdateMessage> =
-    new Subject();
-  private onClose: Subject<NotificationMessage | UpdateMessage> = new Subject();
-  private onError: Subject<NotificationMessage | UpdateMessage> = new Subject();
-  private onMessage: Subject<NotificationMessage | UpdateMessage> =
-    new Subject();
+  private onConnect: Subject<UpdateMessage> = new Subject();
+  private onClose: Subject<UpdateMessage> = new Subject();
+  private onError: Subject<UpdateMessage> = new Subject();
+  private onMessage: Subject<UpdateMessage> = new Subject();
   private onSelfTrail: Subject<{
     action: 'get';
     mode: 'trail';
@@ -44,37 +42,40 @@ export class SKStreamFacade {
   }> = new Subject();
   private vesselsUpdate: Subject<void> = new Subject();
   private navDataUpdate: Subject<void> = new Subject();
-  // *******************************************************
+  // **************** SIGNALS ***********************************
+  private anchorSignal = signal<{
+    maxRadius?: number;
+    radius?: number;
+    position?: Position;
+  }>({});
+  readonly selfAnchor = this.anchorSignal.asReadonly();
 
   constructor(
     private app: AppFacade,
     private signalk: SignalKClient,
-    private anchorFacade: AnchorFacade,
-    private stream: SKStreamProvider
+    private worker: SKWorkerService
   ) {
     // ** SIGNAL K STREAM **
-    this.stream
-      .message$()
-      .subscribe((msg: NotificationMessage | UpdateMessage) => {
-        if (msg.action === 'open') {
-          this.post({
-            cmd: 'auth',
-            options: {
-              token: this.app.getFBToken()
-            }
-          });
-          this.onConnect.next(msg);
-        } else if (msg.action === 'close') {
-          this.onClose.next(msg);
-        } else if (msg.action === 'error') {
-          this.onError.next(msg);
-        } else if (msg.action === 'trail') {
-          this.parseSelfTrail(msg);
-        } else {
-          this.parseUpdate(msg);
-          this.onMessage.next(msg);
-        }
-      });
+    this.worker.message$().subscribe((msg: UpdateMessage | TrailMessage) => {
+      if (msg.action === 'open') {
+        this.post({
+          cmd: 'auth',
+          options: {
+            token: this.app.getFBToken()
+          }
+        });
+        this.onConnect.next(msg);
+      } else if (msg.action === 'close') {
+        this.onClose.next(msg);
+      } else if (msg.action === 'error') {
+        this.onError.next(msg);
+      } else if (msg.action === 'trail') {
+        this.parseSelfTrail(msg as TrailMessage);
+      } else {
+        this.parseUpdate(msg);
+        this.onMessage.next(msg as UpdateMessage);
+      }
+    });
 
     // ** SETTINGS - handle settings load / save events
     this.app.settings$.subscribe((r: SettingsMessage) =>
@@ -82,16 +83,16 @@ export class SKStreamFacade {
     );
   }
   // ** SKStream WebSocket messages **
-  connect$(): Observable<NotificationMessage | UpdateMessage> {
+  connect$(): Observable<UpdateMessage> {
     return this.onConnect.asObservable();
   }
-  close$(): Observable<NotificationMessage | UpdateMessage> {
+  close$(): Observable<UpdateMessage> {
     return this.onClose.asObservable();
   }
-  error$(): Observable<NotificationMessage | UpdateMessage> {
+  error$(): Observable<UpdateMessage> {
     return this.onError.asObservable();
   }
-  delta$(): Observable<NotificationMessage | UpdateMessage> {
+  delta$(): Observable<UpdateMessage> {
     return this.onMessage.asObservable();
   }
   trail$(): Observable<{
@@ -111,15 +112,15 @@ export class SKStreamFacade {
   }
 
   terminate() {
-    this.stream.terminate();
+    this.worker.terminate();
   }
 
   close() {
-    this.stream.close();
+    this.worker.close();
   }
 
   post(msg) {
-    this.stream.postMessage(msg);
+    this.worker.postMessage(msg);
   }
 
   // ** open Signal K Stream
@@ -129,7 +130,7 @@ export class SKStreamFacade {
         'stream',
         'playback'
       );
-      this.stream.postMessage({
+      this.worker.postMessage({
         cmd: 'open',
         options: {
           url: url,
@@ -140,7 +141,7 @@ export class SKStreamFacade {
         }
       });
     } else {
-      this.stream.postMessage({
+      this.worker.postMessage({
         cmd: 'open',
         options: {
           url: this.signalk.server.endpoints['v1']['signalk-ws'],
@@ -153,7 +154,7 @@ export class SKStreamFacade {
 
   // ** subscribe to signal k paths
   subscribe() {
-    this.stream.postMessage({
+    this.worker.postMessage({
       cmd: 'subscribe',
       options: {
         context: 'vessels.*',
@@ -174,49 +175,49 @@ export class SKStreamFacade {
         ]
       }
     });
-    this.stream.postMessage({
+    this.worker.postMessage({
       cmd: 'subscribe',
       options: {
         context: 'vessels.self',
         path: [{ path: 'notifications.*', period: 1000 }]
       }
     });
-    this.stream.postMessage({
+    this.worker.postMessage({
       cmd: 'subscribe',
       options: {
         context: 'atons.*',
         path: [{ path: '*', period: 60000 }]
       }
     });
-    this.stream.postMessage({
+    this.worker.postMessage({
       cmd: 'subscribe',
       options: {
         context: 'shore.basestations.*',
         path: [{ path: '*', period: 60000 }]
       }
     });
-    this.stream.postMessage({
+    this.worker.postMessage({
       cmd: 'subscribe',
       options: {
         context: 'sar.*',
         path: [{ path: '*', period: 1000 }]
       }
     });
-    this.stream.postMessage({
+    this.worker.postMessage({
       cmd: 'subscribe',
       options: {
         context: 'aircraft.*',
         path: [{ path: '*', period: 1000 }]
       }
     });
-    this.stream.postMessage({
+    this.worker.postMessage({
       cmd: 'subscribe',
       options: {
         context: 'meteo.*',
         path: [{ path: '*', period: 1000 }]
       }
     });
-    this.stream.postMessage({
+    this.worker.postMessage({
       cmd: 'subscribe',
       options: {
         context: 'meteo.*',
@@ -239,7 +240,7 @@ export class SKStreamFacade {
   }
 
   // ** parse delta message and update Vessel Data -> vesselsUpdate.next()
-  private parseUpdate(msg: NotificationMessage | UpdateMessage) {
+  private parseUpdate(msg: UpdateMessage) {
     if (msg.action === 'update') {
       // delta message
 
@@ -298,7 +299,15 @@ export class SKStreamFacade {
     }
     this.parseSelfRacing(v);
     this.processVessel(this.app.data.vessels.self);
-    this.anchorFacade.updateAnchorStatus();
+    this.anchorSignal.update(() => {
+      return {
+        position: v.anchor.position
+          ? [v.anchor.position.longitude, v.anchor.position.latitude]
+          : null,
+        maxRadius: v.anchor.maxRadius ?? -1,
+        radius: v.anchor.radius?.value ?? null
+      };
+    });
     // resource update handling is in AppComponent.OnMessage()
   }
 
@@ -577,7 +586,7 @@ export class SKStreamFacade {
   private handleSettingsEvent(value) {
     if (value.setting === 'config') {
       //console.log('streamFacade.settingsEvent');
-      this.stream.postMessage({
+      this.worker.postMessage({
         cmd: 'settings',
         options: { selections: this.app.config.selections }
       });

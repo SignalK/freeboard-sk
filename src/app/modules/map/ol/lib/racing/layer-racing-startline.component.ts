@@ -19,7 +19,8 @@ import { FBFeatureLayerComponent } from '../sk-feature.component';
 @Component({
   selector: 'ol-map > racing-start-line',
   template: '<ng-content></ng-content>',
-  changeDetection: ChangeDetectionStrategy.OnPush
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  standalone: false
 })
 export class RacingStartLineLayerComponent
   extends FBFeatureLayerComponent

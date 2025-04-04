@@ -16,6 +16,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatDividerModule } from '@angular/material/divider';
+import { MatProgressBarModule } from '@angular/material/progress-bar';
 
 // ** components **
 
@@ -36,7 +37,8 @@ import { GPXExportDialog } from './gpxsave/gpxsave-dialog';
     MatToolbarModule,
     MatFormFieldModule,
     MatInputModule,
-    MatDividerModule
+    MatDividerModule,
+    MatProgressBarModule
   ],
   declarations: [GPXImportDialog, GPXExportDialog],
   exports: [GPXImportDialog, GPXExportDialog],

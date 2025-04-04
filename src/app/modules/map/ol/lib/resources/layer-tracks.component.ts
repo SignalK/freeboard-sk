@@ -17,7 +17,8 @@ import { FBFeatureLayerComponent } from '../sk-feature.component';
 @Component({
   selector: 'ol-map > fb-tracks',
   template: '<ng-content></ng-content>',
-  changeDetection: ChangeDetectionStrategy.OnPush
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  standalone: false
 })
 export class TrackLayerComponent extends FBFeatureLayerComponent {
   @Input() tracks: Array<SKTrack>;
