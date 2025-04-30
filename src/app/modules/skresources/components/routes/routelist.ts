@@ -3,7 +3,9 @@ import {
   Input,
   Output,
   EventEmitter,
-  ChangeDetectionStrategy
+  ChangeDetectionStrategy,
+  signal,
+  effect
 } from '@angular/core';
 
 import { MatTooltipModule } from '@angular/material/tooltip';
@@ -14,14 +16,18 @@ import { MatButtonModule } from '@angular/material/button';
 import { FormsModule } from '@angular/forms';
 import { MatInputModule } from '@angular/material/input';
 import { ScrollingModule } from '@angular/cdk/scrolling';
+import { MatProgressBarModule } from '@angular/material/progress-bar';
 
 import { AppFacade } from 'src/app/app.facade';
 import { Convert } from 'src/app/lib/convert';
 import {
-  FBRoutes,
   FBRoute,
-  FBResourceSelect
+  FBResourceSelect,
+  FBRoutes
 } from 'src/app/types/resources/freeboard';
+import { ResourceListBase } from '../resource-list-baseclass';
+import { SKResourceService, SKResourceType } from '../../resources.service';
+import { SKWorkerService } from 'src/app/modules/skstream/skstream.service';
 
 @Component({
   selector: 'route-list',
@@ -36,11 +42,11 @@ import {
     MatButtonModule,
     FormsModule,
     MatInputModule,
-    ScrollingModule
+    ScrollingModule,
+    MatProgressBarModule
   ]
 })
-export class RouteListComponent {
-  @Input() routes: FBRoutes;
+export class RouteListComponent extends ResourceListBase {
   @Input() activeRoute: string;
   @Input() editingRouteId: string;
   @Output() select: EventEmitter<FBResourceSelect> = new EventEmitter();
@@ -54,13 +60,23 @@ export class RouteListComponent {
     new EventEmitter();
   @Output() closed: EventEmitter<void> = new EventEmitter();
 
-  filterList = [];
-  filterText = '';
-  someSel = false;
-  allSel = false;
+  protected fullList: FBRoutes = [];
+  protected filteredList = signal<FBRoutes>([]);
   disableRefresh = false;
 
-  constructor(public app: AppFacade) {}
+  constructor(
+    public app: AppFacade,
+    protected skres: SKResourceService,
+    private worker: SKWorkerService
+  ) {
+    super('routes', skres);
+    // resources delta handler
+    effect(() => {
+      if (this.worker.resourceUpdate().path.includes('resources.routes')) {
+        this.initItems(true);
+      }
+    });
+  }
 
   ngOnInit() {
     this.initItems();
@@ -72,105 +88,125 @@ export class RouteListComponent {
       this.editingRouteId && this.editingRouteId.indexOf('route') !== -1;
   }
 
-  close() {
+  /**
+   * @description Close route list
+   */
+  protected close() {
     this.closed.emit();
   }
 
-  initItems() {
-    this.doFilter();
-    this.sortFilter();
-    this.checkSelections();
+  /** @description Initialise the route list.
+   * @param silent Do not show progress bar when true.
+   */
+  protected async initItems(silent?: boolean) {
+    if (this.app.sIsFetching()) {
+      this.app.debug('** isFetching() ... exit.');
+      return;
+    }
+    this.app.sIsFetching.set(!(silent ?? false));
+    try {
+      this.fullList = await this.skres.listFromServer<FBRoute>(
+        this.collection as SKResourceType
+      );
+      this.app.sIsFetching.set(false);
+      this.doFilter();
+      this.skres.selectionClean(
+        this.collection,
+        this.fullList.map((i) => i[0])
+      );
+    } catch (err) {
+      this.app.sIsFetching.set(false);
+      this.app.parseHttpErrorResponse(err);
+      this.fullList = [];
+    }
   }
 
-  checkSelections() {
-    let c = false;
-    let u = false;
-    this.filterList.forEach((i: FBRoute) => {
-      c = i[2] ? true : c;
-      u = !i[2] ? true : u;
-    });
-    this.allSel = c && !u ? true : false;
-    this.someSel = c && u ? true : false;
+  /**
+   * @description Toggle selections on / off
+   * @param checked Determines if all checkboxes are checked or unchecked
+   */
+  protected toggleAll(checked: boolean) {
+    super.toggleAll(checked);
+    if (checked) {
+      this.skres.routeAddFromServer();
+    } else {
+      this.skres.routeRemove();
+    }
   }
 
-  selectAll(value: boolean) {
-    this.filterList.forEach((i) => {
-      i[2] = value;
-    });
-    this.someSel = false;
-    this.allSel = value ? true : false;
-    this.select.emit({ id: 'all', value: value });
-  }
-
-  itemSelect(e: boolean, id: string) {
-    this.filterList.forEach((i) => {
-      if (i[0] === id) {
-        i[2] = e;
+  /**
+   * @description Handle route entry check / uncheck
+   * @param checked Value indicating entry is checked / unchecked
+   * @param id Route identifier
+   */
+  protected itemSelect(checked: boolean, id: string) {
+    const idx = this.toggleItem(checked, id);
+    // update cache
+    if (idx !== -1) {
+      if (checked) {
+        this.skres.routeAdd([this.filteredList()[idx]]);
+      } else {
+        this.skres.routeRemove([this.filteredList()[idx][0]]);
       }
-    });
-    this.checkSelections();
-    this.select.emit({ id: id, value: e });
+    }
   }
 
-  itemProperties(id: string) {
-    this.properties.emit({ id: id, type: 'route' });
+  /**
+   * @description Show route properties
+   * @param id route identifier
+   */
+  protected itemProperties(id: string) {
+    this.skres.editRouteInfo(id);
   }
+
+  /**
+   * @description Display route points modal
+   * @param id route identifier
+   */
   itemViewPoints(id: string) {
     this.points.emit({ id: id });
   }
-  itemViewNotes(rte: FBRoute) {
+
+  /**
+   * @description Show delete route dialog
+   * @param id route identifier
+   */
+  protected itemDelete(id: string) {
+    this.skres.deleteRoute(id);
+  }
+
+  /**
+   * @description Activate route as destination
+   * @param id route identifier
+   */
+  protected itemSetActive(id: string) {
+    this.itemSelect(true, id); // ensure active resource is selected
+    this.activate.emit({ id: id });
+  }
+
+  /**
+   * @description Clear route as active destination
+   * @param id route identifier
+   */
+  protected itemClearActive(id: string) {
+    this.deactivate.emit({ id: id });
+  }
+
+  /**
+   * @description Show related Notes dialog
+   * @param wpt waypoint object
+   */
+  protected itemViewNotes(rte: FBRoute) {
     this.notes.emit({
       id: rte[0],
       readOnly: rte[1].feature?.properties?.readOnly ?? false
     });
   }
 
-  itemSetActive(id: string) {
-    this.itemSelect(true, id); // ensure active resource is selected
-    this.activate.emit({ id: id });
-  }
-  itemClearActive(id: string) {
-    this.deactivate.emit({ id: id });
-  }
-
-  itemDelete(id: string) {
-    this.delete.emit({ id: id });
-  }
-
-  itemRefresh() {
-    this.refresh.emit();
-  }
-
-  filterKeyUp(e: string) {
-    this.filterText = e;
-    this.doFilter();
-    this.sortFilter();
-  }
-
-  doFilter() {
-    if (this.filterText.length === 0) {
-      this.filterList = this.routes;
-    } else {
-      this.filterList = this.routes.filter((i: FBRoute) => {
-        if (
-          i[1].name.toLowerCase().indexOf(this.filterText.toLowerCase()) !== -1
-        ) {
-          return i;
-        }
-      });
-    }
-    this.checkSelections();
-  }
-
-  sortFilter() {
-    this.filterList.sort((a, b) => {
-      const x = a[1].name.toUpperCase();
-      const y = b[1].name.toUpperCase();
-      return x <= y ? -1 : 1;
-    });
-  }
-
-  km2Nm(v: number) {
-    return Convert.kmToNauticalMiles(v);
+  /** Convert km to nautical miles
+   * @param v Distsnce in km
+   */
+  protected km2Nm(value: number) {
+    return Convert.kmToNauticalMiles(value);
   }
 }

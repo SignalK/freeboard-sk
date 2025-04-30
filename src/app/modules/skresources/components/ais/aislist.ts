@@ -15,10 +15,13 @@ import { FormsModule } from '@angular/forms';
 import { MatInputModule } from '@angular/material/input';
 import { ScrollingModule } from '@angular/cdk/scrolling';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
+import { MatProgressBar } from '@angular/material/progress-bar';
 
 import { AppFacade } from 'src/app/app.facade';
-import { SKVessel } from 'src/app/modules';
-import { Position } from 'src/app/types';
+import { SKResourceService } from 'src/app/modules';
+import { FBVessel, FBVessels, Position } from 'src/app/types';
+import { ResourceListBase } from '../resource-list-baseclass';
+import { getAisIcon } from 'src/app/modules/icons';
 
 //** AIS Dialog **
 @Component({
@@ -35,13 +38,12 @@ import { Position } from 'src/app/types';
     FormsModule,
     MatInputModule,
     ScrollingModule,
-    MatSlideToggleModule
+    MatSlideToggleModule,
+    MatProgressBar
   ]
 })
-export class AISListComponent {
-  @Input() aisTargets: Map<string, SKVessel>;
+export class AISListComponent extends ResourceListBase {
   @Input() focusId: string;
-  @Output() select: EventEmitter<string[]> = new EventEmitter();
   @Output() closed: EventEmitter<void> = new EventEmitter();
   @Output() properties: EventEmitter<string> = new EventEmitter();
   @Output() focusVessel: EventEmitter<string> = new EventEmitter();
@@ -54,197 +56,201 @@ export class AISListComponent {
   filterText = '';
   someSel = false;
   allSel = false;
+
   shipTypes = [
     {
       id: 10,
       description: 'Unspecified',
       selected: false,
-      icon: './assets/img/ais_active.svg'
+      icon: getAisIcon(10).svgIcon
     },
     {
       id: 20,
       description: 'Wing in Ground',
       selected: false,
-      icon: './assets/img/ais_active.svg'
+      icon: getAisIcon(20).svgIcon
     },
     {
       id: 30,
       description: 'Pleasure',
       selected: false,
-      icon: './assets/img/ais_active.svg'
+      icon: getAisIcon(30).svgIcon
     },
     {
       id: 40,
       description: 'High Speed',
       selected: false,
-      icon: './assets/img/ais_highspeed.svg'
+      icon: getAisIcon(40).svgIcon
     },
     {
       id: 50,
       description: 'Special',
       selected: false,
-      icon: './assets/img/ais_special.svg'
+      icon: getAisIcon(50).svgIcon
     },
     {
       id: 60,
       description: 'Passenger',
       selected: false,
-      icon: './assets/img/ais_passenger.svg'
+      icon: getAisIcon(60).svgIcon
     },
     {
       id: 70,
       description: 'Cargo',
       selected: false,
-      icon: './assets/img/ais_cargo.svg'
+      icon: getAisIcon(70).svgIcon
     },
     {
       id: 80,
       description: 'Tanker',
       selected: false,
-      icon: './assets/img/ais_tanker.svg'
+      icon: getAisIcon(80).svgIcon
     },
     {
       id: 90,
       description: 'Other',
       selected: false,
-      icon: './assets/img/ais_other.svg'
+      icon: getAisIcon(90).svgIcon
     }
   ];
 
-  constructor(public app: AppFacade) {}
+  protected fullList: FBVessels = [];
+
+  /**
+   * @description Return icon for AIS vessel type id
+   * @param id AIS shipType identifier
+   * @returns mat-icon svgIcon value
+   */
+  protected getShipIcon(id: number): string {
+    return getAisIcon(id).svgIcon;
+  }
+
+  constructor(protected app: AppFacade, protected skres: SKResourceService) {
+    super('aisTargets', skres);
+  }
 
   ngOnInit() {
     this.initItems();
-    this.alignSelections();
   }
 
   close() {
     this.closed.emit();
   }
 
-  initItems() {
-    this.aisAvailable = [];
-    // ** if no selections made then select all as a default
-    const selectAll =
-      this.app.config.selections.aisTargets &&
-      Array.isArray(this.app.config.selections.aisTargets)
-        ? false
-        : true;
-
-    this.aisTargets.forEach((value: SKVessel, key: string) => {
-      let selected: boolean;
-      if (selectAll) {
-        selected = true;
-      } else {
-        selected =
-          this.app.config.selections.aisTargets.indexOf(key) !== -1
-            ? true
-            : false;
-      }
-      this.aisAvailable.push([key, value, selected]);
-    });
-    this.aisAvailable.sort((a, b) => {
-      const x = a[1].name ? a[1].name.toUpperCase() : 'zzz' + a[1].mmsi;
-      const y = b[1].name ? b[1].name.toUpperCase() : 'zzz' + b[1].mmsi;
-      return x <= y ? -1 : 1;
-    });
-    this.checkSelections();
-    this.filterList = this.aisAvailable.slice(0);
+  /**
+   * @description Initialise the vessel list.
+   * @param silent Do not show progress bar when true.
+   */
+  async initItems(silent?: boolean) {
+    if (this.app.sIsFetching()) {
+      this.app.debug('** isFetching() ... exit.');
+      return;
+    }
+    this.app.sIsFetching.set(!(silent ?? false));
+    try {
+      const list = await this.skres.listVessels();
+      // add vessels context to id
+      list.forEach((v: FBVessel) => (v[0] = `vessels.${v[0]}`));
+      // filter out 'self'
+      this.fullList = list.filter(
+        (v) => v[0] !== this.app.data.vessels.self.id
+      );
+      this.app.sIsFetching.set(false);
+      this.doFilter();
+    } catch (err) {
+      this.app.sIsFetching.set(false);
+      this.app.parseHttpErrorResponse(err);
+      this.fullList = [];
+    }
   }
 
-  alignSelections() {
+  /**
+   * @description Overrides base-class method to include shipType filters
+   */
+  protected alignSelections() {
+    super.alignSelections();
     this.shipTypes.forEach((i) => {
       i.selected = this.app.config.selections.aisTargetTypes.includes(i.id);
     });
     this.onlyIMO = this.app.config.selections.aisTargetTypes.includes(-999);
   }
 
-  toggleFilterType(e: boolean) {
-    this.app.config.selections.aisFilterByShipType = e;
-    if (e) {
-      this.alignSelections();
-    }
+  /**
+   * @description Toggle filter by shipType on / off
+   */
+  protected toggleFilterType(enabled: boolean) {
+    this.app.config.selections.aisFilterByShipType = enabled;
     this.app.saveConfig();
   }
 
-  shipTypeSelect(e: boolean, id: number) {
-    const t = [].concat(this.app.config.selections.aisTargetTypes);
-    if (e) {
-      t.push(id);
+  /**
+   * @description Handle shiptype filter selection
+   * @param checked Determines whether shipTypes of the supplied identifier are included or excluded.
+   * @param id shipType identifier
+   */
+  protected shipTypeSelect(checked: boolean, id: number) {
+    if (!Array.isArray(this.app.config.selections.aisTargetTypes)) {
+      this.app.config.selections.aisTargetTypes = [];
+    }
+    const t = this.app.config.selections.aisTargetTypes.splice(0);
+    if (checked) {
+      if (!t.includes(id)) {
+        t.push(id);
+      }
     } else {
       if (t.includes(id)) {
         t.splice(t.indexOf(id), 1);
       }
     }
     this.onlyIMO = t.includes(-999);
-    this.app.config.selections.aisTargetTypes = [].concat(t);
-    this.alignSelections();
+    this.app.config.selections.aisTargetTypes = t.splice(0);
     this.app.saveConfig();
   }
 
-  checkSelections() {
-    let c = false;
-    let u = false;
-    this.aisAvailable.forEach((i) => {
-      c = i[2] ? true : c;
-      u = !i[2] ? true : u;
-    });
-    this.allSel = c && !u ? true : false;
-    this.someSel = c && u ? true : false;
+  /**
+   * @description Toggle selections on / off
+   * @param checked Determines if all checkboxes are checked or unchecked
+   */
+  protected toggleAll(checked: boolean) {
+    super.toggleAll(checked);
   }
 
-  selectAll(value: boolean) {
-    this.aisAvailable.forEach((i) => {
-      i[2] = value;
-    });
-    this.someSel = false;
-    this.allSel = value ? true : false;
-    this.emitSelected();
+  /**
+   * @description Handle vessel entry check / uncheck
+   * @param checked Value indicating entry is checked / unchecked
+   * @param id Vessel identifier
+   */
+  protected itemSelect(checked: boolean, id: string) {
+    const idx = this.toggleItem(checked, id);
+    // update selections
+    if (checked) {
+      this.skres.selectionAdd(this.collection, id);
+    } else {
+      this.skres.selectionRemove(this.collection, id);
+    }
   }
 
-  itemSelect(e: boolean, id: string) {
-    this.aisAvailable.forEach((i) => {
-      if (i[0] === id) {
-        i[2] = e;
-      }
-    });
-    this.checkSelections();
-    this.emitSelected();
-  }
-
-  itemProperties(id: string) {
+  /**
+   * @description Show vessel properties
+   * @param id vessel identifier
+   */
+  protected itemProperties(id: string) {
     this.properties.emit(id);
   }
 
-  emitSelected() {
-    let selection = this.aisAvailable
-      .map((i) => {
-        return i[2] === true ? i[0] : null;
-      })
-      .filter((i) => {
-        return i;
-      });
-    if (this.allSel) {
-      selection = null;
-    }
-    this.select.emit(selection);
-  }
-
-  filterKeyUp(e: string) {
-    this.filterText = e;
-    this.filterList = this.aisAvailable.filter((i) => {
-      const n = i[1].name ? i[1].name.toUpperCase() : i[1].mmsi;
-      if (n && n.toLowerCase().indexOf(this.filterText.toLowerCase()) !== -1) {
-        return i;
-      }
-    });
-  }
-
-  focus(id?: string) {
+  /**
+   * @description Focus selected vessel
+   * @param id vessel identifier
+   */
+  protected focus(id?: string) {
     this.focusVessel.emit(id);
   }
 
-  emitCenter(position: Position) {
+  /**
+   * @description Center map at the supplied position
+   * @param position vessel position
+   */
+  protected emitCenter(position: Position) {
     this.pan.emit({
       center: position,
       zoomLevel: this.app.config.map.zoomLevel

@@ -6,10 +6,7 @@ import {
   Output,
   EventEmitter,
   ViewChild,
-  SimpleChanges,
-  Signal,
-  computed,
-  effect
+  SimpleChanges
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
@@ -23,6 +20,7 @@ import { MatMenuModule, MatMenuTrigger } from '@angular/material/menu';
 import {
   PopoverComponent,
   FeatureListPopoverComponent,
+  ChartListPopoverComponent,
   AtoNPopoverComponent,
   AircraftPopoverComponent,
   AlarmPopoverComponent,
@@ -53,7 +51,7 @@ import {
 import { AppFacade } from 'src/app/app.facade';
 import { SettingsMessage } from 'src/app/lib/services';
 import {
-  SKResources,
+  SKResourceService,
   SKOtherResources,
   SKChart,
   SKRoute,
@@ -67,9 +65,9 @@ import {
   SKMeteo,
   SKStreamFacade,
   AnchorFacade,
-  SKTrack,
   NotificationManager,
-  AlertData
+  AlertData,
+  CourseService
 } from 'src/app/modules';
 import {
   mapInteractions,
@@ -132,11 +130,6 @@ interface IFeatureData {
   atons: Map<string, SKAtoN>;
   sar: Map<string, SKSaR>;
   meteo: Map<string, SKMeteo>;
-  routes: FBRoutes;
-  waypoints: FBWaypoints;
-  charts: FBCharts;
-  notes: FBNotes;
-  regions: Array<SKRegion>;
   tracks: Array<Position[]>; // self track(s) from server
   trail: Array<Position>; // self trail (appended to tracks)
   self: SKVessel; //self vessel
@@ -192,6 +185,7 @@ enum INTERACTION_MODE {
     FreeboardOpenlayersModule,
     PopoverComponent,
     FeatureListPopoverComponent,
+    ChartListPopoverComponent,
     AtoNPopoverComponent,
     AircraftPopoverComponent,
     AlarmPopoverComponent,
@@ -320,11 +314,6 @@ export class FBMapComponent implements OnInit, OnDestroy {
     atons: new Map(),
     sar: new Map(),
     meteo: new Map(),
-    routes: [],
-    waypoints: [],
-    charts: [],
-    notes: [],
-    regions: [],
     tracks: [], // self track(s) from server
     trail: [], // self trail (appended to tracks)
     self: new SKVessel(), //self vessel
@@ -366,11 +355,12 @@ export class FBMapComponent implements OnInit, OnDestroy {
   constructor(
     protected app: AppFacade,
     protected s57Service: S57Service,
-    protected skres: SKResources,
+    protected skres: SKResourceService,
     protected skresOther: SKOtherResources,
     protected skstream: SKStreamFacade,
     protected anchor: AnchorFacade,
-    protected notiMgr: NotificationManager
+    protected notiMgr: NotificationManager,
+    private course: CourseService
   ) {}
 
   ngAfterViewInit() {
@@ -391,9 +381,6 @@ export class FBMapComponent implements OnInit, OnDestroy {
     );
     // ** RESOURCES update event
     this.obsList.push(
-      this.skres.update$().subscribe((value) => this.onResourceUpdate(value))
-    );
-    this.obsList.push(
       this.skresOther
         .update$()
         .subscribe((value) => this.onResourceUpdate(value))
@@ -411,8 +398,6 @@ export class FBMapComponent implements OnInit, OnDestroy {
         }
       })
     );
-    // Initialise charts
-    this.dfeat.charts = [].concat(this.app.data.charts);
   }
 
   ngOnDestroy() {
@@ -583,23 +568,13 @@ export class FBMapComponent implements OnInit, OnDestroy {
   }
 
   private onResourceUpdate(value) {
-    this.app.debug('skres.update$ -> map.onResourceUpdate()');
     this.app.debug(value);
     if (value.action === 'get' || value.action === 'selected') {
       if (value.mode === 'route') {
-        this.dfeat.routes = [].concat(this.app.data.routes);
+        /** @todo remediate n2kRoute */
         if (this.app.data.n2kRoute) {
-          this.dfeat.routes.push(this.app.data.n2kRoute);
+          //this.dfeat.routes.push(this.app.data.n2kRoute);
         }
-      }
-      if (value.mode === 'waypoint') {
-        this.dfeat.waypoints = [].concat(this.app.data.waypoints);
-      }
-      if (value.mode === 'chart') {
-        this.dfeat.charts = [].concat(this.app.data.charts);
-      }
-      if (value.mode === 'note') {
-        this.dfeat.notes = [].concat(this.app.data.notes);
       }
       if (value.mode === 'trail') {
         // vessel trail
@@ -626,20 +601,20 @@ export class FBMapComponent implements OnInit, OnDestroy {
   }
 
   // ** handle context menu choices **
-  public onContextMenuAction(action: string, e: Position) {
+  public onContextMenuAction(action: string, pos: Position) {
     switch (action) {
       case 'add_wpt':
-        this.skres.showWaypointEditor({ position: e });
+        this.skres.newWaypointAt(pos);
         break;
       case 'add_note':
-        this.skres.showNoteEditor({ position: e });
+        this.skres.showNoteEditor({ position: pos });
         break;
       case 'nav_to':
         this.app.data.activeWaypoint = null;
         this.app.data.navData.pointNames = [];
-        this.skres.setDestination({
-          latitude: e[1],
-          longitude: e[0]
+        this.course.setDestination({
+          latitude: pos[1],
+          longitude: pos[0]
         });
         break;
       case 'measure':
@@ -719,6 +694,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
       const flist = new Map();
       const fa = [];
       let maskPopover = false;
+      const chartBoundsFeatures = new Map();
       // process list of features at click location
       e.features.forEach((feature: Feature) => {
         const id = feature.getId();
@@ -738,8 +714,12 @@ export class FBMapComponent implements OnInit, OnDestroy {
             return;
           }
           if (t[0] === 'chart-bound') {
-            this.toggleFeatureSelection(t[1], 'charts');
-            return;
+            chartBoundsFeatures.set(id, {
+              id: t[1],
+              coord: e.lonlat,
+              icon: icon,
+              text: feature.get('name')
+            });
           }
           switch (t[0]) {
             case 'rset':
@@ -765,29 +745,27 @@ export class FBMapComponent implements OnInit, OnDestroy {
             case 'note':
               icon = feature.get('icon');
               addToFeatureList = true;
-              text = this.app.data.notes.filter((i) => {
-                return i[0] === t[1] ? i[1].name : null;
-              })[0][1].name;
+              const n = this.skres.fromCache('notes', t[1]);
+              text = n[1].name ?? '';
               break;
             case 'route':
               icon = 'route'; //'directions';
               addToFeatureList = true;
+              /** @todo n2kroute */
               if (t[1] === 'n2k') {
                 text = this.app.data.n2kRoute
                   ? this.app.data.n2kRoute[1].name
                   : '';
               } else {
-                text = this.app.data.routes.filter((i) => {
-                  return i[0] === t[1] ? i[1].name : null;
-                })[0][1].name;
+                const r = this.skres.fromCache('routes', t[1]);
+                text = r[1].name;
               }
               break;
             case 'waypoint':
               icon = 'location_on';
               addToFeatureList = true;
-              text = this.app.data.waypoints.filter((i) => {
-                return i[0] === t[1] ? i[1].name : null;
-              })[0][1].name;
+              const w = this.skres.fromCache('waypoints', t[1]);
+              text = w[1].name ?? '';
               break;
             case 'atons':
             case 'aton':
@@ -845,6 +823,11 @@ export class FBMapComponent implements OnInit, OnDestroy {
           }
         }
       });
+      if (chartBoundsFeatures.size > 0) {
+        //show list of features
+        this.formatPopover('chartlist.', e.lonlat, chartBoundsFeatures);
+        return;
+      }
       if (maskPopover) {
         return;
       }
@@ -896,25 +879,10 @@ export class FBMapComponent implements OnInit, OnDestroy {
     }
   }
 
-  // toggle display of resource feature
-  toggleFeatureSelection(
-    id: string,
-    resType: 'charts' | 'routes' | 'waypoints'
-  ) {
-    this.app.data[resType].forEach((r: FBChart | FBRoute | FBWaypoint) => {
-      if (r[0] === id) {
-        r[2] = !r[2];
-      }
-    });
-    switch (resType) {
-      case 'charts':
-        this.skres.chartSelected();
-        break;
-      case 'routes':
-        this.skres.routeSelected();
-        break;
-      case 'waypoints':
-        this.skres.waypointSelected();
+  /** toggle display of chart feature  */
+  toggleFeatureSelection(id: string | string[], resType: 'charts') {
+    if (resType === 'charts') {
+      this.skres.chartSelected(id);
     }
   }
 
@@ -1435,7 +1403,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
     this.overlay.content = [];
     this.overlay.id = null;
     this.overlay.type = null;
-    this.overlay.featureCount = this.draw.features.getLength();
+    this.overlay.featureCount = this.draw.features?.getLength();
     this.overlay.position = coord;
     this.overlay.isSelf = false;
     this.overlay.readOnly = false;
@@ -1447,6 +1415,12 @@ export class FBMapComponent implements OnInit, OnDestroy {
       case 'list':
         this.overlay.type = 'list';
         this.overlay.title = 'Features';
+        this.overlay.content = [];
+        list.forEach((f) => this.overlay.content.push(f));
+        this.overlay.show = true;
+        return;
+      case 'chartlist':
+        this.overlay.type = 'chartlist';
         this.overlay.content = [];
         list.forEach((f) => this.overlay.content.push(f));
         this.overlay.show = true;
@@ -1539,7 +1513,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
         this.overlay.readOnly = item[1]?.properties?.readOnly ?? false;
         if (this.overlay.readOnly) {
           this.overlay.show = false;
-          this.skres.showNoteInfo({ id: item[0] });
+          this.skres.showNoteDetails(item[0]);
         } else {
           this.overlay.id = t[1];
           this.overlay.type = 'note';
@@ -1581,7 +1555,10 @@ export class FBMapComponent implements OnInit, OnDestroy {
       case 'dest':
         this.overlay.id = id;
         this.overlay.type = 'destination';
-        this.overlay.resource = this.skres.buildWaypoint(coord);
+        this.overlay.resource = this.skres.buildWaypoint(coord) as [
+          string,
+          SKWaypoint
+        ];
         this.overlay.title =
           this.app.data.navData.destPointName ?? 'Destination';
         this.overlay.show = true;
@@ -1615,16 +1592,16 @@ export class FBMapComponent implements OnInit, OnDestroy {
   public deleteFeature(id: string, type: string) {
     switch (type) {
       case 'waypoint':
-        this.skres.showWaypointDelete({ id: id });
+        this.skres.deleteWaypoint(id);
         break;
       case 'route':
-        this.skres.showRouteDelete({ id: id });
+        this.skres.deleteRoute(id);
         break;
       case 'note':
-        this.skres.showNoteDelete({ id: id });
+        this.skres.deleteNote(id);
         break;
       case 'region':
-        this.skres.confirmRegionDelete(id);
+        this.skres.deleteRegion(id);
         break;
     }
   }
@@ -1632,7 +1609,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
   // ** activate route / waypoint
   public setActiveFeature() {
     if (this.overlay.type === 'waypoint') {
-      this.skres.navigateToWaypoint({ id: this.overlay.id });
+      this.course.navigateToWaypoint(this.overlay.id);
     } else {
       this.activate.emit(this.overlay.id);
     }
@@ -1788,7 +1765,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
   // ** called by onMapMoveEnd() to render features within map extent
   private renderMapContents(zoomChanged?: boolean) {
     if (this.shouldFetchNotes(zoomChanged)) {
-      this.skres.getNotes();
+      this.skres.refreshNotes();
       this.app.debug(`fetching Notes...`);
     }
     if (this.shouldFetchResourceSets(zoomChanged)) {
@@ -1842,7 +1819,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
     }
   }
 
-  // ** returns true if skres.getNotes() should be called
+  // ** returns true if skres.refreshNotes() should be called
   private shouldFetchNotes(zoomChanged: boolean) {
     this.display.layer.notes =
       this.app.config.notes &&

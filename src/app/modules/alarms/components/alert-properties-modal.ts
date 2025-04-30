@@ -86,6 +86,7 @@ import { NotificationManager } from '../notification-manager';
               <div class="key-label">Raised at:</div>
               <div style="flex: 1 1 auto;">{{ raisedAt }}</div>
             </div>
+            @if(hasProperties) {
             <button mat-stroked-button (click)="toggleProperties()">
               <span>Show {{ showProperties ? 'Less' : 'More' }}</span>
               <mat-icon>{{
@@ -93,7 +94,8 @@ import { NotificationManager } from '../notification-manager';
               }}</mat-icon>
             </button>
             @if(showProperties) {
-            <signalk-details-list [details]="properties"></signalk-details-list>
+              <signalk-details-list [details]="properties"></signalk-details-list>
+            }
             }
           </div>
         </mat-card-content>
@@ -115,6 +117,7 @@ import { NotificationManager } from '../notification-manager';
 })
 export class AlertPropertiesModal implements OnInit {
   protected showProperties = true;
+  protected hasProperties = false;
   protected properties: { [key: string]: any };
   protected raisedAt!: string;
 
@@ -137,6 +140,7 @@ export class AlertPropertiesModal implements OnInit {
 
   private parseAlertInfo() {
     this.properties = this.data.alert.properties ?? {};
+    this.hasProperties = Object.keys(this.properties).length !==0;
     const d = new Date(this.data.alert.createdAt);
     this.raisedAt = `${d.toLocaleDateString()} ${d.toLocaleTimeString()}`;
   }

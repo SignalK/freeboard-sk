@@ -26,14 +26,15 @@ import {
 
 import { Convert } from './lib/convert';
 import { SignalKClient } from 'signalk-client-angular';
-import { SKVessel, SKChart, SKWorkerService } from './modules';
+import { SKVessel, SKChart, SKWorkerService, SKResourceType } from './modules';
 
 import {
   PluginInfo,
   PluginSettings,
   AppUpdateMessage,
   Position,
-  ErrorList
+  ErrorList,
+  FBCharts
 } from './types';
 
 import {
@@ -46,31 +47,6 @@ import {
 import { WELCOME_MESSAGES } from './app.messages';
 import { getSvgList } from './modules/icons';
 import { HttpErrorResponse } from '@angular/common/http';
-
-// ** default OSM charts **
-export const OSM = [
-  [
-    'openstreetmap',
-    new SKChart({
-      name: 'World Map',
-      description: 'Open Street Map'
-    }),
-    true
-  ],
-  [
-    'openseamap',
-    new SKChart({
-      name: 'Sea Map',
-      description: 'Open Sea Map',
-      url: 'https://tiles.openseamap.org/seamark/{z}/{x}/{y}.png',
-      minzoom: 1,
-      maxzoom: 24,
-      bounds: [-180, -90, 180, 90],
-      type: 'tilelayer'
-    }),
-    true
-  ]
-];
 
 @Injectable({ providedIn: 'root' })
 export class AppFacade extends Info {
@@ -212,11 +188,10 @@ export class AppFacade extends Info {
       loggedInBadgeText: '!',
       hasToken: false,
       hasWakeLock: false,
-      routes: [],
-      waypoints: [],
-      charts: [].concat(OSM),
-      chartBounds: false,
-      notes: [],
+      chartBounds: {
+        show: false,
+        charts: []
+      },
       resourceSets: {}, // additional resource sets
       selfId: null,
       activeRoute: null,
@@ -259,14 +234,19 @@ export class AppFacade extends Info {
         removeList: []
       },
       navData: {
-        vmg: null,
         dtg: null,
         ttg: null,
+        eta: null,
+        route: {
+          dtg: null,
+          ttg: null,
+          eta: null
+        },
         bearing: { value: null, type: null },
         bearingTrue: null,
         bearingMagnetic: null,
         xte: null,
-        eta: null,
+        vmg: null,
         position: null,
         pointIndex: -1,
         pointTotal: 0,

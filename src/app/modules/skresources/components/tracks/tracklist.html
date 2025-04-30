@@ -37,9 +37,9 @@
         <div>
           <button
             mat-icon-button
-            (click)="itemRefresh()"
+            (click)="initItems()"
             matTooltip="Reload Tracks"
-            matTooltipPosition="left"
+            matTooltipPosition="below"
           >
             <mat-icon>refresh</mat-icon>
           </button>
@@ -47,12 +47,12 @@
         <div>
           <mat-checkbox
             #selall
-            [disabled]="trackList.length === 0"
+            [disabled]="fullList.length === 0"
             [checked]="allSel"
             [indeterminate]="someSel"
             (change)="toggleAll($event.checked)"
             [matTooltip]="(!selall.checked || someSel) ? 'Select All' : 'Deselect All'"
-            matTooltipPosition="right"
+            matTooltipPosition="below"
           >
           </mat-checkbox>
         </div>
@@ -61,9 +61,7 @@
   </mat-card>
 
   <div class="resources">
-    @if(!this.app.sIsFetching() && trackList.length === 0) {
-    <div style="text-align: center"><br /><i>No Tracks available.</i></div>
-    } @if(this.app.sIsFetching()) {
+    @if(this.app.sIsFetching()) {
     <mat-progress-bar mode="query"></mat-progress-bar>
     }
     <cdk-virtual-scroll-viewport class="vscroller" itemSize="120">

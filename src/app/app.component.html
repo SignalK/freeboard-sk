@@ -137,9 +137,7 @@
       @if(app.data.vessels.showSelf) {
       <a
         mat-menu-item
-        (click)="
-          skres.showWaypointEditor(null, app.data.vessels.active.position)
-        "
+        (click)="skres.newWaypointAt(app.data.vessels.active.position)"
       >
         <mat-icon class="icon-waypoint">add_location</mat-icon>
         <span>Add Waypoint at Vessel</span>
@@ -315,7 +313,10 @@
           } @if(app.data.autopilot.console) {
           <autopilot-console></autopilot-console>
           } @if(app.data.buildRoute.show) {
-          <route-builder (save)="skres.showRouteNew($event)"> </route-builder>
+          <route-builder
+            (save)="skres.newRouteAt($event.coordinates, $event.meta)"
+          >
+          </route-builder>
           } @if(!app.data.kioskMode && !this.app.data.map.suppressContextMenu) {
           <!-- left button bar -->
           <div class="leftTop buttonPanel">
@@ -467,14 +468,10 @@
           <div class="leftMenuPanel">
             @if(display.routeList) { @defer {
             <route-list
-              [routes]="app.data.routes"
               [activeRoute]="app.data.activeRoute"
               [editingRouteId]="app.data.editingId"
-              (select)="skres.routeSelected()"
-              (delete)="skres.showRouteDelete($event)"
               (activate)="activateRoute($event.id)"
               (deactivate)="clearDestination()"
-              (refresh)="skres.getRoutes()"
               (properties)="skres.resourceProperties($event)"
               (points)="featureProperties({ id: $event.id, type: 'route' })"
               (notes)="
@@ -485,15 +482,10 @@
             </route-list>
             } } @if(display.waypointList) { @defer {
             <waypoint-list
-              [waypoints]="app.data.waypoints"
               [activeWaypoint]="app.data.activeWaypoint"
               [editingWaypointId]="app.data.editingId"
-              (select)="skres.waypointSelected()"
-              (delete)="skres.showWaypointDelete($event)"
-              (goto)="skres.navigateToWaypoint($event)"
+              (goto)="course.navigateToWaypoint($event.id)"
               (deactivate)="clearDestination()"
-              (refresh)="skres.getWaypoints()"
-              (properties)="skres.resourceProperties($event)"
               (center)="centerResource($event)"
               (notes)="
                 skres.showRelatedNotes($event.id, 'waypoint', $event.readOnly)
@@ -503,20 +495,14 @@
             </waypoint-list>
             } } @if(display.chartList) { @defer {
             <chart-list
-              [charts]="app.data.charts"
               [selectedCharts]="app.config.selections.charts"
-              (select)="skres.chartSelected()"
-              (delete)="skres.showChartDelete($event)"
-              (orderChange)="skres.chartOrder()"
-              (refresh)="skres.getCharts()"
               (closed)="displayLeftMenu()"
             >
             </chart-list>
             } } @if(display.noteList) { @defer {
             <note-list
-              [notes]="app.data.notes"
-              (select)="skres.noteSelected($event)"
-              (refresh)="skres.getNotes()"
+              [notes]="skres.notes()"
+              (select)="skres.noteSelected($event.id, $event.isGroup)"
               (pan)="centerResource($event.center, $event.zoomLevel)"
               (closed)="displayLeftMenu()"
             >
@@ -529,9 +515,7 @@
             </track-list>
             } } @if(display.aisList) { @defer {
             <ais-list
-              [aisTargets]="app.data.vessels.aisTargets"
               [focusId]="app.data.vessels.activeId"
-              (select)="skres.aisSelected($event)"
               (properties)="featureProperties({ id: $event, type: 'ais' })"
               (closed)="displayLeftMenu()"
               (focusVessel)="switchActiveVessel($event)"
@@ -725,9 +709,7 @@
               <button
                 class="button-accent"
                 mat-mini-fab
-                (click)="
-                  skres.showWaypointEditor(null, app.data.vessels.self.position)
-                "
+                (click)="skres.newWaypointAt(app.data.vessels.self.position)"
                 matTooltip="Mark Vessel position"
                 matTooltipPosition="left"
               >
@@ -879,7 +861,7 @@
                 [silenced]="n[1].silenced"
                 [doNotPlaySound]="app.config.muteSound"
                 (nextPoint)="
-                  skres.coursePointIndex(app.data.navData.pointIndex + 1)
+                  course.coursePointIndex(app.data.navData.pointIndex + 1)
                 "
               >
               </fb-alert>
@@ -941,7 +923,7 @@
                   <button
                     mat-icon-button
                     matTooltip="Restart XTE"
-                    (click)="skres.courseRestart()"
+                    (click)="course.courseRestart()"
                   >
                     <mat-icon>replay</mat-icon>
                   </button>
@@ -951,7 +933,7 @@
                     matTooltip="Reverse route direction"
                     matTooltipPosition="above"
                     [disabled]="!app.data.activeRoute"
-                    (click)="skres.courseReverse()"
+                    (click)="course.courseReverse()"
                   >
                     <mat-icon
                       [color]="
@@ -979,15 +961,6 @@
                 "
               >
               </ap-dial-text>
-              } @if(app.data.navData.dtg) {
-              <ap-dial-text
-                [title]="'DTG'"
-                [value]="app.data.navData.dtg.toFixed(1)"
-                [units]="app.config.units.distance === 'm' ? 'km' : 'NM'"
-              >
-              </ap-dial-text>
-              } @if(app.data.navData.ttg) {
-              <ap-dial-ttg [value]="app.data.navData.ttg"> </ap-dial-ttg>
               } @if(app.data.navData.xte) {
               <ap-dial-text
                 [title]="'XTE'"
@@ -999,6 +972,33 @@
                 [units]="app.config.units.distance === 'm' ? 'km' : 'NM'"
               >
               </ap-dial-text>
+              } @if(app.data.activeRoute) { @if(app.data.navData.route.dtg) {
+              <ap-dial-text
+                [title]="'DTG'"
+                subTitle="RT"
+                [value]="app.data.navData.route.dtg.toFixed(1)"
+                [units]="app.config.units.distance === 'm' ? 'km' : 'NM'"
+              >
+              </ap-dial-text>
+              } @if(app.data.navData.route.ttg) {
+              <ap-dial-ttg subTitle="RT" [value]="app.data.navData.route.ttg">
+              </ap-dial-ttg>
+              } @if(app.data.navData.route.eta) {
+              <ap-dial-eta
+                [title]="'ETA'"
+                subTitle="RT"
+                [value]="app.data.navData.route.eta"
+              >
+              </ap-dial-eta>
+              } } @if(app.data.navData.dtg) {
+              <ap-dial-text
+                [title]="'DTG'"
+                [value]="app.data.navData.dtg.toFixed(1)"
+                [units]="app.config.units.distance === 'm' ? 'km' : 'NM'"
+              >
+              </ap-dial-text>
+              } @if(app.data.navData.ttg) {
+              <ap-dial-ttg [value]="app.data.navData.ttg"> </ap-dial-ttg>
               } @if(app.data.navData.eta) {
               <ap-dial-eta [title]="'ETA'" [value]="app.data.navData.eta">
               </ap-dial-eta>

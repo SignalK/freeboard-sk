@@ -1,6 +1,12 @@
 import { Injectable } from '@angular/core';
 import { Icon } from 'ol/style';
-import { getAtoNDefs, getPoiDefs } from 'src/app/modules/icons';
+import {
+  getAtoNDefs,
+  ATON_TYPE_IDS,
+  getPoiDefs,
+  getVesselDefs,
+  AIS_TYPE_IDS
+} from 'src/app/modules/icons';
 
 interface MapImageCollection {
   [id: string | number]: Icon;
@@ -9,6 +15,7 @@ interface MapImageCollection {
 interface MapImages {
   atons: MapImageCollection;
   poi: MapImageCollection;
+  vessels: MapImageCollection;
 }
 
 export interface MapIconDef {
@@ -17,45 +24,27 @@ export interface MapIconDef {
   anchor?: [number, number];
 }
 
-const ATON_TYPE_IDS = {
-  aton: 'aton',
-  '-1': 'weatherStation',
-  9: 'north',
-  10: 'east',
-  11: 'south',
-  12: 'west',
-  13: 'port',
-  14: 'starboard',
-  20: 'north',
-  21: 'east',
-  22: 'south',
-  23: 'west',
-  24: 'port',
-  25: 'starboard',
-  28: 'danger',
-  29: 'safe',
-  30: 'special'
-};
-
 @Injectable({
   providedIn: 'root'
 })
 export class MapImageRegistry {
   private icons: MapImages = {
     atons: {},
-    poi: {}
+    poi: {},
+    vessels: {}
   };
 
   private atonImageDefs: any = {
     virtual: {},
     real: {}
   };
-
   private poiImageDefs = {};
+  private vesselImageDefs = {};
 
   constructor() {
     this.atonImageDefs = getAtoNDefs();
     this.poiImageDefs = getPoiDefs();
+    this.vesselImageDefs = getVesselDefs();
   }
 
   /**
@@ -74,6 +63,19 @@ export class MapImageRegistry {
       );
     }
     return this.icons.atons[vid] ?? this.icons.atons['aton'];
+  }
+
+  /**
+   * @description Returns image for the supplied AIS shipType identifier
+   * @param id  AIS shipType identifier
+   * @returns Icon object
+   */
+  getVessel(id: number | string): Icon {
+    const vid = AIS_TYPE_IDS[id];
+    if (!this.icons.atons[vid]) {
+      this.buildIcon(this.icons.vessels, this.vesselImageDefs, vid);
+    }
+    return this.icons.vessels[vid] ?? this.icons.vessels['active'];
   }
 
   /**

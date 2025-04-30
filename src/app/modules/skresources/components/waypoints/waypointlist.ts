@@ -3,7 +3,9 @@ import {
   Input,
   Output,
   EventEmitter,
-  ChangeDetectionStrategy
+  ChangeDetectionStrategy,
+  signal,
+  effect
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
@@ -15,10 +17,14 @@ import { MatButtonModule } from '@angular/material/button';
 import { FormsModule } from '@angular/forms';
 import { MatInputModule } from '@angular/material/input';
 import { ScrollingModule } from '@angular/cdk/scrolling';
+import { MatProgressBarModule } from '@angular/material/progress-bar';
 
 import { AppFacade } from 'src/app/app.facade';
 import { Position } from 'src/app/types';
 import { FBWaypoints, FBWaypoint, FBResourceSelect } from 'src/app/types';
+import { SKResourceService, SKResourceType } from '../../resources.service';
+import { SKWorkerService } from 'src/app/modules/skstream/skstream.service';
+import { ResourceListBase } from '../resource-list-baseclass';
 
 @Component({
   selector: 'waypoint-list',
@@ -34,31 +40,37 @@ import { FBWaypoints, FBWaypoint, FBResourceSelect } from 'src/app/types';
     MatButtonModule,
     FormsModule,
     MatInputModule,
-    ScrollingModule
+    ScrollingModule,
+    MatProgressBarModule
   ]
 })
-export class WaypointListComponent {
-  @Input() waypoints: FBWaypoints;
+export class WaypointListComponent extends ResourceListBase {
   @Input() activeWaypoint: string;
   @Input() editingWaypointId: string;
-  @Output() select: EventEmitter<FBResourceSelect> = new EventEmitter();
-  @Output() delete: EventEmitter<FBResourceSelect> = new EventEmitter();
   @Output() goto: EventEmitter<FBResourceSelect> = new EventEmitter();
   @Output() deactivate: EventEmitter<FBResourceSelect> = new EventEmitter();
-  @Output() refresh: EventEmitter<void> = new EventEmitter();
-  @Output() properties: EventEmitter<FBResourceSelect> = new EventEmitter();
   @Output() closed: EventEmitter<void> = new EventEmitter();
   @Output() center: EventEmitter<Position> = new EventEmitter();
   @Output() notes: EventEmitter<{ id: string; readOnly: boolean }> =
     new EventEmitter();
 
-  filterList = [];
-  filterText = '';
-  someSel = false;
-  allSel = false;
-  disableRefresh = false;
+  protected fullList: FBWaypoints = [];
+  protected filteredList = signal<FBWaypoints>([]);
+  protected disableRefresh = false;
 
-  constructor(public app: AppFacade) {}
+  constructor(
+    public app: AppFacade,
+    protected skres: SKResourceService,
+    private worker: SKWorkerService
+  ) {
+    super('waypoints', skres);
+    // resources delta handler
+    effect(() => {
+      if (this.worker.resourceUpdate().path.includes('resources.waypoints')) {
+        this.initItems(true);
+      }
+    });
+  }
 
   ngOnInit() {
     this.initItems();
@@ -76,107 +88,118 @@ export class WaypointListComponent {
     }
   }
 
-  close() {
+  /**
+   * @description Close waypoint list
+   */
+  protected close() {
     this.closed.emit();
   }
 
-  initItems() {
-    this.doFilter();
-    this.sortFilter();
-    this.checkSelections();
+  /**
+   * @description Initialise the waypoint list.
+   * @param silent Do not show progress bar when true.
+   */
+  protected async initItems(silent?: boolean) {
+    if (this.app.sIsFetching()) {
+      this.app.debug('** isFetching() ... exit.');
+      return;
+    }
+    this.app.sIsFetching.set(!(silent ?? false));
+    try {
+      this.fullList = await this.skres.listFromServer<FBWaypoint>(
+        this.collection as SKResourceType
+      );
+      this.app.sIsFetching.set(false);
+      this.doFilter();
+      this.skres.selectionClean(
+        this.collection,
+        this.fullList.map((i) => i[0])
+      );
+    } catch (err) {
+      this.app.sIsFetching.set(false);
+      this.app.parseHttpErrorResponse(err);
+      this.fullList = [];
+    }
   }
 
-  checkSelections() {
-    let c = false;
-    let u = false;
-    this.filterList.forEach((i: FBWaypoint) => {
-      c = i[2] ? true : c;
-      u = !i[2] ? true : u;
-    });
-    this.allSel = c && !u ? true : false;
-    this.someSel = c && u ? true : false;
+  /**
+   * @description Toggle selections on / off
+   * @param checked Determines if all checkboxes are checked or unchecked
+   */
+  protected toggleAll(checked: boolean) {
+    super.toggleAll(checked);
+    if (checked) {
+      this.skres.waypointAddFromServer();
+    } else {
+      this.skres.waypointRemove();
+    }
   }
 
-  selectAll(value: boolean) {
-    this.filterList.forEach((i: FBWaypoint) => {
-      i[2] = value;
-    });
-    this.someSel = false;
-    this.allSel = value ? true : false;
-    this.select.emit({ id: 'all', value: value });
-  }
-
-  itemSelect(e: boolean, id: string) {
-    this.filterList.forEach((i: FBWaypoint) => {
-      if (i[0] === id) {
-        i[2] = e;
+  /**
+   * @description Handle waypoint entry check / uncheck
+   * @param checked Value indicating entry is checked / unchecked
+   * @param id Waypoint identifier
+   */
+  protected itemSelect(checked: boolean, id: string) {
+    const idx = this.toggleItem(checked, id);
+    // update cache
+    if (idx !== -1) {
+      if (checked) {
+        this.skres.waypointAdd([this.filteredList()[idx]]);
+      } else {
+        this.skres.waypointRemove([this.filteredList()[idx][0]]);
       }
-    });
-    this.checkSelections();
-    this.select.emit({ id: id, value: e });
+    }
   }
 
-  emitCenter(position: Position) {
+  /**
+   * @description Show waypoint properties
+   * @param id waypoint identifier
+   */
+  protected itemProperties(id: string) {
+    this.skres.editWaypointInfo(id);
+  }
+
+  /**
+   * @description Center the map at the supplied position
+   * @param position Position at which to center the map
+   */
+  protected emitCenter(position: Position) {
     this.center.emit(position);
   }
 
-  itemProperties(id: string) {
-    this.properties.emit({ id: id, type: 'waypoint' });
+  /**
+   * @description Show delete waypoint dialog
+   * @param id waypoint identifier
+   */
+  protected itemDelete(id: string) {
+    this.skres.deleteWaypoint(id);
   }
 
-  itemDelete(id: string) {
-    this.delete.emit({ id: id });
-  }
-
-  itemGoTo(id: string) {
+  /**
+   * @description Navigate to waypoint
+   * @param id waypoint identifier
+   */
+  protected itemGoTo(id: string) {
     this.itemSelect(true, id); // ensure active resource is selected
     this.goto.emit({ id: id });
   }
 
-  itemClearActive() {
+  /**
+   * @description Clear waypoint as destination
+   */
+  protected itemClearActive() {
     this.deactivate.emit({ id: null });
   }
 
-  itemRefresh() {
-    this.refresh.emit();
-  }
-
-  itemViewNotes(wpt: FBWaypoint) {
+  /**
+   * @description Show related Notes dialog
+   * @param wpt waypoint object
+   */
+  protected itemViewNotes(wpt: FBWaypoint) {
     this.notes.emit({
       id: wpt[0],
       readOnly: wpt[1].feature?.properties?.readOnly ?? false
-    });
-  }
-
-  filterKeyUp(e: string) {
-    this.filterText = e;
-    this.doFilter();
-    this.sortFilter();
-  }
-
-  doFilter() {
-    if (this.filterText.length === 0) {
-      this.filterList = this.waypoints;
-    } else {
-      this.filterList = this.waypoints.filter((i: FBWaypoint) => {
-        if (i[1].name) {
-          if (
-            i[1].name.toLowerCase().indexOf(this.filterText.toLowerCase()) !==
-            -1
-          ) {
-            return i;
-          }
-        }
-      });
-    }
-    this.checkSelections();
-  }
-
-  sortFilter() {
-    this.filterList.sort((a, b) => {
-      const x = a[1].name || 'zzz';
-      const y = b[1].name || 'zzz';
-      return x.toUpperCase() <= y.toUpperCase() ? -1 : 1;
     });
   }
 }

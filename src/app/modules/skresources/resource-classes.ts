@@ -154,6 +154,8 @@ export class SKChart {
 
 // ** Signal K Track
 export class SKTrack {
+  name: string;
+  description: string;
   feature: MultiLineStringFeature;
 
   constructor(trk?: TrackResource) {
@@ -166,6 +168,8 @@ export class SKTrack {
       properties: {},
       id: ''
     };
+    this.name = this.feature.properties?.name ?? '';
+    this.description = this.feature.properties?.description ?? '';
   }
 }
 
@@ -177,26 +181,51 @@ class SKTargetBase {
   position: Position = [0, 0];
   state: string;
   type: { id: number; name: string } = { id: -1, name: '' };
-  virtual?: boolean;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   properties: { [key: string]: any } = {};
   lastUpdated = new Date();
   callsignVhf: string;
   callsignHf: string;
   orientation = 0;
+  virtual?: boolean;
 }
 
 // ** Vessel Data **
 export class SKVessel extends SKTargetBase {
-  heading: number;
-  headingTrue: number = null;
-  headingMagnetic: number = null;
+  // stream sourced attributes
+  anchor = { maxRadius: null, radius: null, position: null };
+  autopilot: { [key: string]: any } = {};
+  buddy = false;
   cog: number;
   cogTrue: number = null;
   cogMagnetic: number = null;
-  sog: number;
+  courseApi = {
+    arrivalCircle: 0,
+    activeRoute: {},
+    nextPoint: {},
+    previousPoint: {}
+  };
+  courseCalcs: { [key: string]: any } = {};
+  distanceToSelf: number;
+  environment = {
+    mode: null, // day | night
+    sun: null // dawn| sunrise | day | sunset | dusk | night
+  };
+  heading: number;
+  headingTrue: number = null;
+  headingMagnetic: number = null;
+
+  performance = {
+    beatAngle: null,
+    gybeAngle: null
+  };
+  racing: { [key: string]: string };
   registrations: { [key: string]: string } = {};
-  type: { id: number; name: string } = { id: -1, name: '' };
+  resourceUpdates = []; // resource deltas
+  sog: number;
+  track: Array<Position[]> = [];
+  vectors = {
+    cog: [] // cog vector
+  };
   wind = {
     direction: null,
     mwd: null,
@@ -207,35 +236,23 @@ export class SKVessel extends SKTargetBase {
     awa: null,
     aws: null
   };
-  buddy = false;
-  distanceToSelf: number;
-  mode = 'day';
-  anchor = { maxRadius: null, radius: null, position: null };
-  resourceUpdates = [];
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  autopilot: { [key: string]: any } = {};
-  track: Array<Position[]> = [];
-  courseApi = {
-    arrivalCircle: 0,
-    activeRoute: {},
-    nextPoint: {},
-    previousPoint: {}
-  };
-  performance = {
-    beatAngle: null,
-    gybeAngle: null
-  };
-  racing: { [key: string]: string };
-  vectors = {
-    cog: [] // cog vector
-  };
-}
 
-// ** AtoN class **
-export class SKAtoN extends SKTargetBase {
-  constructor() {
-    super();
-  }
+  // http api sourced attributes
+  design = {
+    airHeight: null,
+    beam: null,
+    draft: {
+      current: null,
+      maximum: null
+    },
+    length: null
+  };
+  destination = {
+    name: null,
+    eta: null
+  };
+  flag: string;
+  port: string;
 }
 
 // ** SaR class **
@@ -249,6 +266,13 @@ export class SKSaR extends SKTargetBase {
 export class SKAircraft extends SKTargetBase {
   sog = 0;
   track: Array<Position[]> = [];
+  constructor() {
+    super();
+  }
+}
+
+// ** AtoN class **
+export class SKAtoN extends SKTargetBase {
   constructor() {
     super();
   }

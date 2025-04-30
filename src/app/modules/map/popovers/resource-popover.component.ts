@@ -49,9 +49,8 @@ id: string - resource id
                                 -webkit-line-clamp: 2;
                                 line-clamp: 2;
                                 text-overflow:ellipsis;"
-      >
-        {{ resource[1].description ?? '' }}
-      </div>
+        [innerHTML]="resource[1].description ?? ''"
+      ></div>
       @for(p of properties; track p) {
       <div style="display:flex;">
         <div style="font-weight:bold;">{{ p[0] }}:</div>

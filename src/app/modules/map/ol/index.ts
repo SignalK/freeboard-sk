@@ -16,18 +16,9 @@ import { ControlComponent } from './lib/control.component';
 
 import { InteractionDrawComponent } from './lib/interactions/interaction-draw.component';
 import { InteractionModifyComponent } from './lib/interactions/interaction-modify.component';
-import {
-  WaypointLayerComponent,
-  FreeboardWaypointLayerComponent
-} from './lib/resources/layer-waypoints.component';
-import {
-  NoteLayerComponent,
-  FreeboardNoteLayerComponent
-} from './lib/resources/layer-notes.component';
-import {
-  RouteLayerComponent,
-  FreeboardRouteLayerComponent
-} from './lib/resources/layer-routes.component';
+import { FreeboardWaypointLayerComponent } from './lib/resources/layer-waypoints.component';
+import { FreeboardNoteLayerComponent } from './lib/resources/layer-notes.component';
+import { FreeboardRouteLayerComponent } from './lib/resources/layer-routes.component';
 import { FreeboardRegionLayerComponent } from './lib/resources/layer-regions.component';
 import { FreeboardChartLayerComponent } from './lib/resources/layer-charts.component';
 import { ChartBoundsLayerComponent } from './lib/resources/layer-chart-bounds.component';
@@ -68,18 +59,9 @@ export { ControlComponent } from './lib/control.component';
 
 export { InteractionDrawComponent } from './lib/interactions/interaction-draw.component';
 export { InteractionModifyComponent } from './lib/interactions/interaction-modify.component';
-export {
-  WaypointLayerComponent,
-  FreeboardWaypointLayerComponent
-} from './lib/resources/layer-waypoints.component';
-export {
-  NoteLayerComponent,
-  FreeboardNoteLayerComponent
-} from './lib/resources/layer-notes.component';
-export {
-  RouteLayerComponent,
-  FreeboardRouteLayerComponent
-} from './lib/resources/layer-routes.component';
+export { FreeboardWaypointLayerComponent } from './lib/resources/layer-waypoints.component';
+export { FreeboardNoteLayerComponent } from './lib/resources/layer-notes.component';
+export { FreeboardRouteLayerComponent } from './lib/resources/layer-routes.component';
 export { FreeboardRegionLayerComponent } from './lib/resources/layer-regions.component';
 export { FreeboardChartLayerComponent } from './lib/resources/layer-charts.component';
 export { ChartBoundsLayerComponent } from './lib/resources/layer-chart-bounds.component';
@@ -116,11 +98,8 @@ const declarations = [
   ControlComponent,
   InteractionDrawComponent,
   InteractionModifyComponent,
-  WaypointLayerComponent,
   FreeboardWaypointLayerComponent,
-  NoteLayerComponent,
   FreeboardNoteLayerComponent,
-  RouteLayerComponent,
   FreeboardRouteLayerComponent,
   FreeboardRegionLayerComponent,
   TrackLayerComponent,

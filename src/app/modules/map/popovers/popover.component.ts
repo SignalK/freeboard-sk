@@ -36,7 +36,14 @@ measure: boolean= measure mode;
       [ngClass]="{ measure: measure }"
     >
       <div class="popover-title">
-        <div style="flex: 1 1 auto;overflow-x: auto;">
+        <div
+          style="flex: 1 1 auto;overflow: hidden;
+                                display: -webkit-box;
+                                -webkit-box-orient: vertical;
+                                -webkit-line-clamp: 1;
+                                line-clamp: 1;
+                                text-overflow:ellipsis;"
+        >
           @if(icon) {
           <mat-icon [class]="icon.class" [svgIcon]="icon.svgIcon">{{
             icon.name

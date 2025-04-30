@@ -12,6 +12,7 @@ import { MapComponent } from '../map.component';
 import { fromLonLatArray, mapifyCoords } from '../util';
 import { SKTrack } from 'src/app/modules';
 import { FBFeatureLayerComponent } from '../sk-feature.component';
+import { FBTracks } from 'src/app/types';
 
 // ** Freeboard Track resources collection format **
 @Component({
@@ -21,7 +22,7 @@ import { FBFeatureLayerComponent } from '../sk-feature.component';
   standalone: false
 })
 export class TrackLayerComponent extends FBFeatureLayerComponent {
-  @Input() tracks: Array<SKTrack>;
+  @Input() tracks: FBTracks;
   @Input() trackStyles: { [key: string]: Style };
 
   constructor(
@@ -45,17 +46,17 @@ export class TrackLayerComponent extends FBFeatureLayerComponent {
     }
   }
 
-  parseTracks(tracks: Array<SKTrack> = this.tracks) {
+  parseTracks(tracks: FBTracks = this.tracks) {
     const fa: Feature[] = [];
     for (const t of tracks) {
       const f = new Feature({
         geometry: new MultiLineString(
-          this.parseCoordinates(t.feature.geometry.coordinates)
+          this.parseCoordinates(t[1].feature.geometry.coordinates)
         ),
-        name: t.feature.properties.name
+        name: t[1].feature.properties.name
       });
-      f.setId('track.' + t.feature.id);
-      f.setStyle(this.buildStyle(t));
+      f.setId('track.' + t[1].feature.id);
+      f.setStyle(this.buildStyle(t[1]));
       fa.push(f);
     }
     this.source.addFeatures(fa);

@@ -3,7 +3,6 @@ import {
   ChangeDetectorRef,
   Component,
   Input,
-  SimpleChange,
   SimpleChanges
 } from '@angular/core';
 import { Feature } from 'ol';
@@ -12,17 +11,20 @@ import { Point } from 'ol/geom';
 import { fromLonLat } from 'ol/proj';
 import { MapComponent } from '../map.component';
 import { FBFeatureLayerComponent } from '../sk-feature.component';
-import { FBWaypoints, Waypoints } from 'src/app/types';
+import { FBWaypoints } from 'src/app/types';
+import { SKWaypoint } from 'src/app/modules/skresources';
 
+// ** Freeboard resource collection format **
 @Component({
-  selector: 'ol-map > sk-waypoints-base',
+  selector: 'ol-map > fb-waypoints',
   template: '<ng-content></ng-content>',
   changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: false
 })
-export class WaypointsBaseComponent extends FBFeatureLayerComponent {
+export class FreeboardWaypointLayerComponent extends FBFeatureLayerComponent {
   @Input() waypointStyles: { [key: string]: Style };
   @Input() activeWaypoint: string;
+  @Input() waypoints: FBWaypoints = [];
 
   constructor(
     protected mapComponent: MapComponent,
@@ -34,6 +36,7 @@ export class WaypointsBaseComponent extends FBFeatureLayerComponent {
   ngOnInit() {
     super.ngOnInit();
     this.labelPrefixes = ['waypoint'];
+    this.parseFBWaypoints(this.waypoints);
   }
 
   ngOnChanges(changes: SimpleChanges) {
@@ -41,7 +44,7 @@ export class WaypointsBaseComponent extends FBFeatureLayerComponent {
     if (this.source) {
       if ('waypoints' in changes) {
         this.source.clear();
-        this.parseWaypoints(changes['waypoints']);
+        this.parseFBWaypoints(changes['waypoints'].currentValue);
       }
       if ('activeWaypoint' in changes) {
         this.source.clear();
@@ -51,15 +54,28 @@ export class WaypointsBaseComponent extends FBFeatureLayerComponent {
   }
 
   reloadWaypoints() {
-    // overridable function
+    this.parseFBWaypoints(this.waypoints);
   }
 
-  parseWaypoints(change: SimpleChange) {
-    // overridable function
+  parseFBWaypoints(waypoints: FBWaypoints = this.waypoints) {
+    const fa: Feature[] = [];
+    for (const w of waypoints) {
+      if (w[2]) {
+        // selected
+        const f = new Feature({
+          geometry: new Point(fromLonLat(w[1].feature.geometry.coordinates)),
+          name: w[1].name
+        });
+        f.setId('waypoint.' + w[0]);
+        f.setStyle(this.buildStyle(w[0], w[1]).clone());
+        fa.push(f);
+      }
+    }
+    this.source.addFeatures(fa);
   }
 
   // build waypoint style
-  buildStyle(id: string, wpt): Style {
+  buildStyle(id: string, wpt: SKWaypoint): Style {
     if (typeof this.waypointStyles !== 'undefined') {
       if (
         id === this.activeWaypoint &&
@@ -112,100 +128,5 @@ export class WaypointsBaseComponent extends FBFeatureLayerComponent {
       }
       return this.setTextLabel(s, wpt.name);
     }
-  }
-}
-
-// ** Signal K resource collection format **
-@Component({
-  selector: 'ol-map > sk-waypoints',
-  template: '<ng-content></ng-content>',
-  changeDetection: ChangeDetectionStrategy.OnPush,
-  standalone: false
-})
-export class WaypointLayerComponent extends WaypointsBaseComponent {
-  @Input() waypoints: Waypoints;
-
-  constructor(
-    protected mapComponent: MapComponent,
-    protected changeDetectorRef: ChangeDetectorRef
-  ) {
-    super(mapComponent, changeDetectorRef);
-  }
-
-  ngOnInit() {
-    super.ngOnInit();
-    this.parseSKWaypoints(this.waypoints);
-  }
-
-  override reloadWaypoints() {
-    this.parseSKWaypoints(this.waypoints);
-  }
-
-  override parseWaypoints(change: SimpleChange) {
-    this.parseSKWaypoints(change.currentValue);
-  }
-
-  parseSKWaypoints(waypoints: Waypoints = this.waypoints) {
-    const fa: Feature[] = [];
-    for (const w in waypoints) {
-      const f = new Feature({
-        geometry: new Point(
-          fromLonLat(waypoints[w].feature.geometry.coordinates)
-        ),
-        name: waypoints[w].name
-      });
-      f.setId('waypoint.' + w);
-      f.setStyle(this.buildStyle(w, waypoints[w]).clone());
-      fa.push(f);
-    }
-    this.source.addFeatures(fa);
-  }
-}
-
-// ** Freeboard resource collection format **
-@Component({
-  selector: 'ol-map > fb-waypoints',
-  template: '<ng-content></ng-content>',
-  changeDetection: ChangeDetectionStrategy.OnPush,
-  standalone: false
-})
-export class FreeboardWaypointLayerComponent extends WaypointsBaseComponent {
-  @Input() waypoints: FBWaypoints = [];
-
-  constructor(
-    protected mapComponent: MapComponent,
-    protected changeDetectorRef: ChangeDetectorRef
-  ) {
-    super(mapComponent, changeDetectorRef);
-  }
-
-  ngOnInit() {
-    super.ngOnInit();
-    this.parseFBWaypoints(this.waypoints);
-  }
-
-  override reloadWaypoints() {
-    this.parseFBWaypoints(this.waypoints);
-  }
-
-  override parseWaypoints(change: SimpleChange) {
-    this.parseFBWaypoints(change.currentValue);
-  }
-
-  parseFBWaypoints(waypoints: FBWaypoints = this.waypoints) {
-    const fa: Feature[] = [];
-    for (const w of waypoints) {
-      if (w[2]) {
-        // selected
-        const f = new Feature({
-          geometry: new Point(fromLonLat(w[1].feature.geometry.coordinates)),
-          name: w[1].name
-        });
-        f.setId('waypoint.' + w[0]);
-        f.setStyle(this.buildStyle(w[0], w[1]).clone());
-        fa.push(f);
-      }
-    }
-    this.source.addFeatures(fa);
   }
 }

@@ -17,6 +17,12 @@ interface WorkerMessageBase {
   timestamp: string;
 }
 
+export interface ResourceDeltaSignal {
+  path: string;
+  value: any;
+  sourceRef?: string;
+}
+
 export interface ResultPayload {
   self: SKVessel;
   aisTargets: Map<string, SKVessel>;
@@ -50,6 +56,13 @@ export class UpdateMessage implements WorkerMessageBase {
 
   constructor() {
     this.action = 'update';
+  }
+}
+
+export class ResourceMessage extends UpdateMessage {
+  constructor() {
+    super();
+    this.action = 'resource';
   }
 }
 

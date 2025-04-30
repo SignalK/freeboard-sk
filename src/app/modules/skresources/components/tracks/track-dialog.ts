@@ -123,6 +123,8 @@ export class TrackDialog implements OnInit {
     if (save) {
       this.data.track.feature.properties.name = this.name;
       this.data.track.feature.properties.description = this.description;
+      this.data.track.name = this.name;
+      this.data.track.description = this.description;
     }
     this.dialogRef.close({ save: save, track: this.data.track });
   }

@@ -8,7 +8,12 @@ import { SettingsMessage } from 'src/app/lib/services';
 import { SignalKClient } from 'signalk-client-angular';
 import { SKWorkerService } from './skstream.service';
 import { Convert } from 'src/app/lib/convert';
-import { SKRoute, SKVessel } from 'src/app/modules';
+import {
+  CourseService,
+  SKResourceService,
+  SKRoute,
+  SKVessel
+} from 'src/app/modules';
 import {
   UpdateMessage,
   TrailMessage,
@@ -53,7 +58,9 @@ export class SKStreamFacade {
   constructor(
     private app: AppFacade,
     private signalk: SignalKClient,
-    private worker: SKWorkerService
+    private worker: SKWorkerService,
+    private skres: SKResourceService,
+    private course: CourseService
   ) {
     // ** SIGNAL K STREAM **
     this.worker.message$().subscribe((msg: UpdateMessage | TrailMessage) => {
@@ -72,7 +79,7 @@ export class SKStreamFacade {
       } else if (msg.action === 'trail') {
         this.parseSelfTrail(msg as TrailMessage);
       } else {
-        this.parseUpdate(msg);
+        this.parseUpdateMessage(msg);
         this.onMessage.next(msg as UpdateMessage);
       }
     });
@@ -240,7 +247,7 @@ export class SKStreamFacade {
   }
 
   // ** parse delta message and update Vessel Data -> vesselsUpdate.next()
-  private parseUpdate(msg: UpdateMessage) {
+  private parseUpdateMessage(msg: UpdateMessage) {
     if (msg.action === 'update') {
       // delta message
 
@@ -254,8 +261,6 @@ export class SKStreamFacade {
       this.app.data.vessels.active = this.app.data.vessels.activeId
         ? this.app.data.vessels.aisTargets.get(this.app.data.vessels.activeId)
         : this.app.data.vessels.self;
-
-      this.processCourse(this.app.data.vessels.active);
 
       // process AtoNs
       this.app.data.atons = msg.result.atons;
@@ -298,7 +303,11 @@ export class SKStreamFacade {
       this.app.data.vessels.self.position = [...this.app.config.fixedPosition];
     }
     this.parseSelfRacing(v);
-    this.processVessel(this.app.data.vessels.self);
+    this.processVessel(v);
+
+    this.course.parseSelf(v);
+    this.navDataUpdate.next();
+
     this.anchorSignal.update(() => {
       return {
         position: v.anchor.position
@@ -308,7 +317,6 @@ export class SKStreamFacade {
         radius: v.anchor.radius?.value ?? null
       };
     });
-    // resource update handling is in AppComponent.OnMessage()
   }
 
   private parseSelfRacing(v: SKVessel) {
@@ -350,236 +358,6 @@ export class SKStreamFacade {
     d.cog = this.app.useMagnetic ? d.cogMagnetic : d.cogTrue;
     d.heading = this.app.useMagnetic ? d.headingMagnetic : d.headingTrue;
     d.wind.direction = this.app.useMagnetic ? d.wind.mwd : d.wind.twd;
-  }
-
-  // ** process course data
-  private processCourse(v: SKVessel) {
-    // ** process courseApi data
-    if (typeof v['courseApi'] !== 'undefined') {
-      this.processCourseApi(v['courseApi']);
-    }
-
-    // ** process preferred course data **
-    if (typeof v['course.crossTrackError'] !== 'undefined') {
-      this.app.data.navData.xte =
-        this.app.config.units.distance === 'm'
-          ? v['course.crossTrackError'] / 1000
-          : Convert.kmToNauticalMiles(v['course.crossTrackError'] / 1000);
-    }
-
-    if (typeof v['course.distance'] !== 'undefined') {
-      this.app.data.navData.dtg =
-        this.app.config.units.distance === 'm'
-          ? v['course.distance'] / 1000
-          : Convert.kmToNauticalMiles(v['course.distance'] / 1000);
-    }
-    if (typeof v['course.bearingTrue'] !== 'undefined') {
-      this.app.data.navData.bearingTrue = Convert.radiansToDegrees(
-        v['course.bearingTrue']
-      );
-      if (!this.app.useMagnetic) {
-        this.app.data.navData.bearing.value = this.app.data.navData.bearingTrue;
-        this.app.data.navData.bearing.type = 'T';
-      }
-    }
-    if (typeof v['course.bearingMagnetic'] !== 'undefined') {
-      this.app.data.navData.bearingMagnetic = Convert.radiansToDegrees(
-        v['course.bearingMagnetic']
-      );
-      if (this.app.useMagnetic) {
-        this.app.data.navData.bearing.value =
-          this.app.data.navData.bearingMagnetic;
-        this.app.data.navData.bearing.type = 'M';
-      }
-    }
-    if (typeof v['course.velocityMadeGood'] !== 'undefined') {
-      this.app.data.navData.vmg = v['course.velocityMadeGood'];
-    }
-    if (typeof v['course.timeToGo'] !== 'undefined') {
-      this.app.data.navData.ttg = v['course.timeToGo'] / 60;
-    }
-
-    if (typeof v['course.estimatedTimeOfArrival'] !== 'undefined') {
-      let d: Date | null;
-      if (v['course.estimatedTimeOfArrival'] !== null) {
-        d = new Date(v['course.estimatedTimeOfArrival']);
-        this.app.data.navData.eta =
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          d instanceof Date && !isNaN(d as any) ? d : null;
-      } else {
-        this.app.data.navData.eta = null;
-      }
-    }
-    this.navDataUpdate.next();
-  }
-
-  private clearCourseData() {
-    this.app.data.navData.startPosition = null;
-    this.app.data.navData.position = null;
-    this.app.data.activeWaypoint = null;
-    this.clearRouteData();
-  }
-
-  private clearRouteData() {
-    this.app.data.activeRoute = null;
-    this.app.data.navData.pointIndex = -1;
-    this.app.data.navData.pointTotal = 0;
-    this.app.data.navData.pointNames = [];
-    this.app.data.navData.destPointName = '';
-    this.app.data.activeRouteReversed = false;
-  }
-
-  // ** process courseApi values into navData
-  private processCourseApi(value) {
-    if (!value) {
-      this.clearCourseData();
-      return;
-    }
-
-    // navData.arrivalCircle
-    if (typeof value.arrivalCircle !== 'undefined') {
-      this.app.data.navData.arrivalCircle = value.arrivalCircle;
-    }
-
-    if (!value.nextPoint || !value.previousPoint) {
-      this.clearCourseData();
-    }
-
-    if (value.nextPoint && value.previousPoint) {
-      // navData.startPosition
-      this.app.data.navData.startPosition = value?.previousPoint?.position
-        ? [
-            value.previousPoint.position.longitude,
-            value.previousPoint.position.latitude
-          ]
-        : null;
-
-      // navData.position
-      this.app.data.navData.position = value?.nextPoint?.position
-        ? [
-            value.nextPoint.position.longitude,
-            value.nextPoint.position.latitude
-          ]
-        : null;
-
-      // wpt / route hrefs
-      if (value?.nextPoint.href) {
-        const wptHref = value.nextPoint.href.split('/');
-        this.app.data.activeWaypoint = wptHref[wptHref.length - 1];
-        if (
-          !this.app.config.selections.waypoints.includes(
-            this.app.data.activeWaypoint
-          )
-        ) {
-          this.app.config.selections.waypoints.push(
-            this.app.data.activeWaypoint
-          );
-          const idx = this.app.data.waypoints.findIndex((i) => {
-            return i[0] === this.app.data.activeWaypoint;
-          });
-          if (idx !== -1) {
-            this.app.data.waypoints[idx][2] = true;
-          }
-        }
-      } else {
-        this.app.data.activeWaypoint = null;
-      }
-    }
-
-    // navData.activeRoute
-    if (!value.activeRoute) {
-      this.clearRouteData();
-    } else {
-      if (value.activeRoute.href) {
-        this.app.data.navData.destPointName = '';
-        const rteHref = value.activeRoute.href.split('/');
-        this.app.data.activeRoute = rteHref[rteHref.length - 1];
-        if (
-          !this.app.config.selections.routes.includes(this.app.data.activeRoute)
-        ) {
-          this.app.config.selections.routes.push(this.app.data.activeRoute);
-          const idx = this.app.data.routes.findIndex((i) => {
-            return i[0] === this.app.data.activeRoute;
-          });
-          if (idx !== -1) {
-            this.app.data.routes[idx][2] = true;
-          }
-        }
-        this.app.data.activeWaypoint = null;
-        this.app.data.navData.pointIndex =
-          value?.activeRoute.pointIndex === null
-            ? -1
-            : value?.activeRoute.pointIndex;
-        this.app.data.navData.pointTotal =
-          value?.activeRoute.pointTotal === null
-            ? 0
-            : value?.activeRoute.pointTotal;
-
-        const rte = this.app.data.routes.filter((i) => {
-          if (i[0] === this.app.data.activeRoute) {
-            return i;
-          }
-        });
-        if (rte.length === 1 && rte[0][1]) {
-          this.app.data.navData.activeRoutePoints =
-            rte[0][1].feature.geometry.coordinates;
-
-          if (
-            rte[0][1].feature.properties.coordinatesMeta &&
-            Array.isArray(rte[0][1].feature.properties.coordinatesMeta)
-          ) {
-            this.app.data.navData.pointNames =
-              rte[0][1].feature.properties.coordinatesMeta.map((pt) => {
-                return pt.name ?? '';
-              });
-            if (
-              this.app.data.navData.pointIndex !== -1 &&
-              this.app.data.navData.pointIndex <
-                this.app.data.navData.pointNames.length
-            ) {
-              this.app.data.navData.destPointName =
-                this.app.data.navData.pointNames[
-                  this.app.data.navData.pointIndex
-                ];
-            }
-          }
-
-          this.app.data.activeRouteReversed = !value?.activeRoute.reverse
-            ? false
-            : value?.activeRoute.reverse;
-
-          const coords = rte[0][1].feature.geometry.coordinates;
-          if (
-            coords[0][0] === coords[coords.length - 1][0] &&
-            coords[0][1] === coords[coords.length - 1][1]
-          ) {
-            this.app.data.activeRouteCircular = true;
-          } else {
-            this.app.data.activeRouteCircular = false;
-          }
-        }
-      } else {
-        this.app.data.activeRoute = null;
-        // Non-signal k source (n2k) route points.
-        if (value.activeRoute.waypoints) {
-          const n2kRoute = new SKRoute();
-          n2kRoute.name = value.activeRoute?.name ?? 'From NMEA2000';
-          n2kRoute.description = 'Route from NMEA2000 source';
-          n2kRoute.feature.geometry.coordinates =
-            value.activeRoute?.waypoints.map((pt) => {
-              return [pt.position.longitude, pt.position.latitude];
-            });
-          const c = n2kRoute.feature.geometry.coordinates;
-          n2kRoute.feature.geometry.coordinates = c;
-          n2kRoute.distance = GeoUtils.routeLength(
-            n2kRoute.feature.geometry.coordinates
-          );
-          this.app.data.n2kRoute = ['n2k', n2kRoute, true];
-        } else {
-          this.app.data.n2kRoute = null;
-        }
-      }
-    }
   }
 
   // handle settings (config.selections)

@@ -1,8 +1,13 @@
 /** Signal K Stream worker service
  * ************************************/
-import { Injectable } from '@angular/core';
+import { Injectable, signal } from '@angular/core';
+import { PathValue } from '@signalk/server-api';
 import { Subject } from 'rxjs';
-import { NotificationMessage } from 'src/app/types';
+import {
+  NotificationMessage,
+  ResourceDeltaSignal,
+  UpdateMessage
+} from 'src/app/types';
 
 interface IWorkerCommand {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -16,6 +21,12 @@ export class SKWorkerService {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private messageSource = new Subject<any>();
   private notificationSource = new Subject<NotificationMessage>();
+  private resourceUpdatesSource = new Subject<PathValue[]>();
+  private resourceDeltaSignal = signal<ResourceDeltaSignal>({
+    path: '',
+    value: null
+  });
+  public readonly resourceUpdate = this.resourceDeltaSignal.asReadonly();
 
   constructor() {
     this.worker = new Worker(new URL('./skstream.worker', import.meta.url));
@@ -26,6 +37,10 @@ export class SKWorkerService {
 
   message$() {
     return this.messageSource.asObservable();
+  }
+
+  resource$() {
+    return this.resourceUpdatesSource.asObservable();
   }
 
   notification$() {
@@ -67,10 +82,20 @@ export class SKWorkerService {
   private handleMessage(msg: any) {
     if (msg.action === 'notification') {
       this.notificationSource.next(msg as NotificationMessage);
+    } else if (msg.action === 'resource') {
+      this.resourceDeltaSignal.set(msg.result);
     } else {
+      if (
+        msg.action === 'update' &&
+        !msg.playback &&
+        Array.isArray(msg.result.self.resourceUpdates) &&
+        msg.result.self.resourceUpdates.length !== 0
+      ) {
+        // emit resource$
+        this.resourceUpdatesSource.next(msg.result.self.resourceUpdates);
+      }
+      // emit message$
       this.messageSource.next(msg);
     }
   }
-
-  // *********************************
 }

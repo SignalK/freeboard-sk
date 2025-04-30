@@ -13,7 +13,8 @@ import {
   NotificationMessage,
   UpdateMessage,
   TrailMessage,
-  ResultPayload
+  ResultPayload,
+  ResourceMessage
 } from 'src/app/types/stream';
 import { SimplifyAP } from 'simplify-ts';
 import { Convert } from 'src/app/lib/convert';
@@ -754,8 +755,42 @@ function selectVessel(id: string): SKVessel {
 function processVessel(d: SKVessel, v: any, isSelf = false) {
   d.lastUpdated = new Date();
 
-  // ** record received preferred path names for selection
   if (isSelf) {
+    if (v.path.startsWith('resources.')) {
+      // resource deltas
+      d.resourceUpdates.push(v);
+      // emit immediate resource update for single path
+      processResourceUpdate(v);
+    } else if (v.path.startsWith('navigation.racing')) {
+      d.properties[v.path] = v.value;
+    } else if (v.path === 'performance.beatAngle') {
+      d.performance.beatAngle = v.value;
+    } else if (v.path === 'performance.gybeAngle') {
+      d.performance.gybeAngle = v.value;
+    }
+    // ** course API data
+    else if (v.path.startsWith('navigation.course.')) {
+      // ** course calcValues
+      if (v.path.startsWith('navigation.course.calcValues.')) {
+        const p = v.path.split('.').slice(3).join('.');
+        d.courseCalcs[p] = v.value;
+      } else if (v.path.includes('activeRoute')) {
+        d.courseApi.activeRoute = v.value;
+      } else if (v.path.indexOf('nextPoint') !== -1) {
+        d.courseApi.nextPoint = v.value;
+      } else if (v.path.indexOf('previousPoint') !== -1) {
+        d.courseApi.previousPoint = v.value;
+      } else if (v.path === 'arrivalCircle') {
+        d.courseApi.arrivalCircle = v.value;
+      }
+    }
+    // ** environment sun / mode
+    else if (v.path === 'environment.mode') {
+      d.environment.mode = v.value;
+    } else if (v.path === 'environment.sun') {
+      d.environment.sun = v.value;
+    }
+    // ** record received preferred path names for selection
     const cp =
       v.path.indexOf('course') !== -1
         ? v.path.split('.').slice(0, 2).join('.')
@@ -763,17 +798,13 @@ function processVessel(d: SKVessel, v: any, isSelf = false) {
     if (prefSourcePaths.indexOf(cp) !== -1) {
       vessels.paths[cp] = null;
     }
-    // racing properties
-    if (v.path.includes('navigation.racing')) {
-      d.properties[v.path] = v.value;
-    }
   } else {
     // not self
-    if (v.path.includes('navigation.distanceToSelf')) {
+    if (v.path === 'navigation.distanceToSelf') {
       d.distanceToSelf = v.value;
     }
   }
-
+  // ** all vessels
   if (v.path === '') {
     if (typeof v.value.name !== 'undefined') {
       d.name = v.value.name;
@@ -795,10 +826,6 @@ function processVessel(d: SKVessel, v: any, isSelf = false) {
     d.callsignVhf = v.value;
   } else if (v.path === 'communication.callsignHf') {
     d.callsignHf = v.value;
-  } else if (v.path === 'performance.beatAngle') {
-    d.performance.beatAngle = v.value;
-  } else if (v.path === 'performance.gybeAngle') {
-    d.performance.gybeAngle = v.value;
   } else if (v.path === 'design.aisShipType') {
     d.type = v.value;
   } else if (v.path === 'navigation.position' && v.value) {
@@ -844,28 +871,6 @@ function processVessel(d: SKVessel, v: any, isSelf = false) {
     d.wind.mwd = v.value;
   }
 
-  // ** environment.mode
-  else if (v.path === 'environment.mode') {
-    d.mode = v.value;
-  }
-
-  // ** course API data
-  else if (v.path.indexOf('navigation.course.') !== -1) {
-    if (v.path.indexOf('navigation.course.calcValues') !== -1) {
-      if (v.path.indexOf('navigation.course.calcValues.previousPoint') === -1) {
-        d[`course.${v.path.split('.').slice(-1)[0]}`] = v.value;
-      }
-    } else if (v.path.indexOf('navigation.course.activeRoute') !== -1) {
-      d.courseApi.activeRoute = v.value;
-    } else if (v.path.indexOf('navigation.course.nextPoint') !== -1) {
-      d.courseApi.nextPoint = v.value;
-    } else if (v.path.indexOf('navigation.course.previousPoint') !== -1) {
-      d.courseApi.previousPoint = v.value;
-    } else if (v.path === 'navigation.course.arrivalCircle') {
-      d.courseApi.arrivalCircle = v.value;
-    }
-  }
-
   // anchor radius / position
   else if (v.path === 'navigation.anchor.position') {
     d.anchor.position = v.value;
@@ -873,11 +878,6 @@ function processVessel(d: SKVessel, v: any, isSelf = false) {
     d.anchor.maxRadius = v.value;
   } else if (v.path === 'navigation.anchor.currentRadius') {
     d.anchor.radius = v.value;
-  }
-
-  // resource deltas
-  else if (v.path.indexOf('resources.') !== -1) {
-    d.resourceUpdates.push(v);
   }
 
   // steering.autopilot
@@ -948,6 +948,18 @@ function processVessel(d: SKVessel, v: any, isSelf = false) {
       GeoUtils.destCoordinate(d.position, cog, cvlen)
     ];
   }
+}
+
+// process resources messages **
+function processResourceUpdate(v: PathValue) {
+  const msg: ResourceMessage = new ResourceMessage();
+  msg.playback = playbackMode;
+  msg.result = {
+    path: v.path,
+    value: v.value,
+    sourceRef: $source
+  };
+  postMessage(msg);
 }
 
 // process notification messages **

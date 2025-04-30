@@ -6,7 +6,7 @@ import { Subject, Observable } from 'rxjs';
 import { AppFacade } from 'src/app/app.facade';
 import { SignalKClient } from 'signalk-client-angular';
 import {
-  SKResources,
+  SKResourceService,
   SKRoute,
   SKWaypoint,
   SKRegion,
@@ -33,7 +33,7 @@ export class GeoJSONLoadFacade {
 
   constructor(
     private app: AppFacade,
-    private skres: SKResources,
+    private skres: SKResourceService,
     public signalk: SignalKClient
   ) {
     this.uploadSource = new Subject<number>();

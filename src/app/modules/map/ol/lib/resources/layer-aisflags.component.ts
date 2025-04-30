@@ -70,7 +70,7 @@ export class AISFlagsLayerComponent extends AISBaseLayerComponent {
   private buildStyle(label?: string) {
     return new Style({
       image: new Icon({
-        src: './assets/img/ais_flag.svg',
+        src: './assets/img/vessels/ais_flag.svg',
         rotateWithView: false,
         scale: 0.2,
         anchor: [27, 187],

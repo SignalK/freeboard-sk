@@ -9,6 +9,7 @@ import {
 
 import { OpenBridgeIcons } from './openbridge';
 import { PoiIcons } from './poi';
+import { VesselAisIcons, AIS_TYPE_IDS } from './vessels';
 
 export interface AppIconSet {
   path: string;
@@ -41,6 +42,7 @@ export const getSvgList = (): Array<{ id: string; path: string }> => {
   };
   addToList(OpenBridgeIcons);
   addToList(PoiIcons, 'sk-');
+  addToList(VesselAisIcons);
   return svgList;
 };
 
@@ -169,6 +171,30 @@ export const getAlertIcon = (alert: AlertData): AppIconDef => {
       class: undefined,
       svgIcon: icon,
       name: undefined
+    };
+  }
+};
+
+/**
+ * @description Return an icon definition for an AIS vessel
+ * @param id AIS shipType
+ * @returns Icon Definition object
+ */
+export const getAisIcon = (id: number | string): AppIconDef => {
+  if (typeof id === 'number') {
+    id = Math.floor(id / 10) * 10;
+  }
+  if (!id || !(id in AIS_TYPE_IDS)) {
+    return {
+      class: undefined,
+      svgIcon: AIS_TYPE_IDS['default'],
+      name: 'default'
+    };
+  } else {
+    return {
+      class: undefined,
+      svgIcon: AIS_TYPE_IDS[id],
+      name: id.toString()
     };
   }
 };

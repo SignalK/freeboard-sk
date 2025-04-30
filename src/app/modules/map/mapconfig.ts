@@ -325,7 +325,7 @@ const aisScale = 1.0;
 const aisIconAnchor = [17, 16];
 
 const aisFocus = new Icon({
-  src: './assets/img/ais_self.png',
+  src: './assets/img/vessels/ais_self.png',
   rotateWithView: true,
   rotation: 0,
   anchor: [9.5, 22.5],
@@ -335,7 +335,7 @@ const aisFocus = new Icon({
   scale: 0.75
 });
 const aisActive = new Icon({
-  src: './assets/img/ais_active.svg',
+  src: './assets/img/vessels/ais_active.svg',
   rotateWithView: true,
   rotation: 0,
   scale: aisScale,
@@ -344,7 +344,7 @@ const aisActive = new Icon({
   anchorYUnits: 'pixels'
 });
 const aisInactive = new Icon({
-  src: './assets/img/ais_inactive.svg',
+  src: './assets/img/vessels/ais_inactive.svg',
   rotateWithView: true,
   rotation: 0,
   scale: aisScale,
@@ -353,7 +353,7 @@ const aisInactive = new Icon({
   anchorYUnits: 'pixels'
 });
 const ais40 = new Icon({
-  src: './assets/img/ais_highspeed.svg',
+  src: './assets/img/vessels/ais_highspeed.svg',
   rotateWithView: true,
   rotation: 0,
   scale: aisScale,
@@ -362,7 +362,7 @@ const ais40 = new Icon({
   anchorYUnits: 'pixels'
 });
 const ais50 = new Icon({
-  src: './assets/img/ais_special.svg',
+  src: './assets/img/vessels/ais_special.svg',
   rotateWithView: true,
   rotation: 0,
   scale: aisScale,
@@ -371,7 +371,7 @@ const ais50 = new Icon({
   anchorYUnits: 'pixels'
 });
 const ais60 = new Icon({
-  src: './assets/img/ais_passenger.svg',
+  src: './assets/img/vessels/ais_passenger.svg',
   rotateWithView: true,
   rotation: 0,
   scale: aisScale,
@@ -380,7 +380,7 @@ const ais60 = new Icon({
   anchorYUnits: 'pixels'
 });
 const ais70 = new Icon({
-  src: './assets/img/ais_cargo.svg',
+  src: './assets/img/vessels/ais_cargo.svg',
   rotateWithView: true,
   rotation: 0,
   scale: aisScale,
@@ -389,7 +389,7 @@ const ais70 = new Icon({
   anchorYUnits: 'pixels'
 });
 const ais80 = new Icon({
-  src: './assets/img/ais_tanker.svg',
+  src: './assets/img/vessels/ais_tanker.svg',
   rotateWithView: true,
   rotation: 0,
   scale: aisScale,
@@ -398,7 +398,7 @@ const ais80 = new Icon({
   anchorYUnits: 'pixels'
 });
 const ais90 = new Icon({
-  src: './assets/img/ais_other.svg',
+  src: './assets/img/vessels/ais_other.svg',
   rotateWithView: true,
   rotation: 0,
   scale: aisScale,
@@ -407,7 +407,7 @@ const ais90 = new Icon({
   anchorYUnits: 'pixels'
 });
 const aisBuddy = new Icon({
-  src: './assets/img/ais_buddy.svg',
+  src: './assets/img/vessels/ais_buddy.svg',
   rotateWithView: true,
   rotation: 0,
   scale: aisScale,

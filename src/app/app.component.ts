@@ -29,7 +29,7 @@ import {
   SKSTREAM_MODE,
   StreamOptions,
   AnchorFacade,
-  SKResources,
+  SKResourceService,
   SKVessel,
   SKSaR,
   SKAircraft,
@@ -40,7 +40,8 @@ import {
   CourseSettingsModal,
   NotificationManager,
   GPXImportDialog,
-  GPXExportDialog
+  GPXExportDialog,
+  CourseService
 } from 'src/app/modules';
 
 import { SignalKClient } from 'signalk-client-angular';
@@ -136,8 +137,9 @@ export class AppComponent {
     public app: AppFacade,
     protected anchor: AnchorFacade,
     protected notiMgr: NotificationManager,
+    protected course: CourseService,
     private stream: SKStreamFacade,
-    public skres: SKResources,
+    public skres: SKResourceService,
     public skresOther: SKOtherResources,
     public signalk: SignalKClient,
     private dom: DomSanitizer,
@@ -251,14 +253,9 @@ export class AppComponent {
           this.onError(msg)
         )
     );
+    // ** TRAIL$ update event
     this.obsList.push(
-      this.stream.trail$().subscribe((msg) => this.handleResourceUpdate(msg))
-    );
-    // ** RESOURCES update event
-    this.obsList.push(
-      this.skres
-        .update$()
-        .subscribe((value) => this.handleResourceUpdate(value))
+      this.stream.trail$().subscribe((msg) => this.handleTrailUpdate(msg))
     );
     // ** SETTINGS - handle settings load / save events
     this.obsList.push(
@@ -349,7 +346,7 @@ export class AppComponent {
     if (
       (this.app.config.darkMode.source === 0 && mq.matches) ||
       (this.app.config.darkMode.source === 1 &&
-        this.app.data.vessels.self.mode === 'night') ||
+        this.app.data.vessels.self.environment.mode === 'night') ||
       this.app.config.darkMode.source === -1
     ) {
       this.overlayContainer.getContainerElement().classList.add('dark-theme');
@@ -436,7 +433,7 @@ export class AppComponent {
       .afterClosed()
       .subscribe((r) => {
         if (r.result) {
-          this.skres.showRouteNew({ coordinates: r.data });
+          this.skres.newRouteAt(r.data);
         }
         this.focusMap();
       });
@@ -544,9 +541,6 @@ export class AppComponent {
               ? 'Settings loaded from server.'
               : 'Error loading Settings from server!';
             console.log(msg);
-            if (r) {
-              this.skres.alignResourceSelections();
-            }
           });
 
           this.getFeatures();
@@ -667,7 +661,7 @@ export class AppComponent {
       // no server trail data supplied
       if (this.app.data.trail.length % 60 === 0 && this.app.data.serverTrail) {
         if (this.app.config.selections.trailFromServer) {
-          this.skres.getVesselTrail(); // request trail from server
+          this.app.fetchTrailFromServer(); // request trail from server
         }
       }
       this.app.data.trail = this.app.data.trail.slice(-5000);
@@ -686,24 +680,24 @@ export class AppComponent {
     this.app.db.saveTrail(trailId, this.app.data.trail);
   }
 
-  // ** RESOURCES event handlers **
-  private handleResourceUpdate(e) {
+  // ** Trail$ event handlers **
+  private handleTrailUpdate(e) {
     // ** handle routes get and update NavData based on activeRoute
-    if (e.action === 'get' && e.mode === 'route') {
-      //this.updateNavPanel(e);
-    }
+    /*if (e.action === 'get' && e.mode === 'route') {
+      this.updateNavPanel(e);
+    }*/
     // ** trail retrieved from server **
     if (e.action === 'get' && e.mode === 'trail') {
       this.processTrail(e.data);
     }
     // ** create note in group **
-    if (e.action === 'new' && e.mode === 'note') {
+    /*if (e.action === 'new' && e.mode === 'note') {
       if (this.app.config.resources.notes.groupRequiresPosition) {
         this.drawStart(e.mode, { group: e.group });
       } else {
         this.skres.showNoteEditor({ group: e.group });
       }
-    }
+    }*/
   }
 
   // ** SETTINGS event handler **
@@ -758,7 +752,7 @@ export class AppComponent {
       if (this.app.config.selections.vessel.trail) {
         // show trail
         if (this.app.config.selections.trailFromServer) {
-          this.skres.getVesselTrail();
+          this.app.fetchTrailFromServer();
         } else {
           this.app.data.serverTrail = false;
         }
@@ -921,8 +915,7 @@ export class AppComponent {
       .open(GPXExportDialog, {
         disableClose: true,
         data: {
-          routes: this.app.data.routes,
-          waypoints: this.app.data.waypoints,
+          routes: this.skres.routes(),
           tracks: [this.app.data.trail]
         }
       })
@@ -990,7 +983,7 @@ export class AppComponent {
         } // cancelled
         try {
           const d = JSON.parse(res.data);
-          this.skres.postResource(res.path, d);
+          this.skres.postToServer(res.path as any, d);
         } catch (err) {
           this.app.showAlert(
             'Load Resource',
@@ -1025,9 +1018,6 @@ export class AppComponent {
                   ? 'Settings loaded from server.'
                   : 'Error loading Settings from server!';
                 console.log(msg);
-                if (r) {
-                  this.skres.alignResourceSelections();
-                }
               });
               if (onConnect) {
                 this.queryAfterConnect();
@@ -1188,7 +1178,7 @@ export class AppComponent {
         this.app.data.trail = [];
       } else {
         if (this.app.config.selections.trailFromServer) {
-          this.skres.getVesselTrail(); // request trail from server
+          this.app.fetchTrailFromServer(); // request trail from server
         }
       }
     } else {
@@ -1204,7 +1194,7 @@ export class AppComponent {
                 this.app.data.trail = [];
               } else {
                 if (this.app.config.selections.trailFromServer) {
-                  this.skres.getVesselTrail(); // request trail from server
+                  this.app.fetchTrailFromServer(); // request trail from server
                 }
               }
             }
@@ -1216,14 +1206,19 @@ export class AppComponent {
   public clearCourseData() {
     const idx = this.app.data.navData.pointIndex;
     this.app.data.navData = {
-      vmg: null,
       dtg: null,
       ttg: null,
+      eta: null,
+      route: {
+        dtg: null,
+        ttg: null,
+        eta: null
+      },
       bearing: { value: null, type: null },
       bearingTrue: null,
       bearingMagnetic: null,
       xte: null,
-      eta: null,
+      vmg: null,
       position: [null, null],
       pointIndex: idx,
       pointTotal: 0,
@@ -1237,45 +1232,51 @@ export class AppComponent {
 
   // ** clear active destination **
   public clearDestination() {
-    this.skres.clearCourse(this.app.data.vessels.activeId);
+    this.course.clearCourse();
   }
 
   // ********** MAP / UI ACTIONS **********
 
   // ** set active route **
   public activateRoute(id: string) {
-    this.skres.activateRoute(id, this.app.data.vessels.activeId);
+    this.course.activateRoute(id);
   }
 
   // ** Increment / decrement next active route point **
   public routeNextPoint(pointIndex: number) {
-    this.skres.coursePointIndex(pointIndex);
+    this.course.coursePointIndex(pointIndex);
     this.focusMap();
   }
 
   // ** show feature (vessel/AtoN/Aircraft/Route points) properties **
-  public featureProperties(e: { id: string; type: string }) {
+  public async featureProperties(e: { id: string; type: string }) {
     let v: FBRoute | SKVessel | SKSaR | SKAircraft | SKAtoN;
     if (e.type === 'route') {
-      v = this.skres.fromCache('routes', e.id);
-      if (v) {
-        this.bottomSheet
-          .open(ActiveResourcePropertiesModal, {
-            disableClose: true,
-            data: {
-              title: 'Route Properties',
-              resource: v,
-              type: e.type,
-              skres: this.skres
-            }
-          })
-          .afterDismissed()
-          .subscribe((deactivate: boolean) => {
-            if (deactivate) {
-              this.clearDestination();
-            }
-            this.focusMap();
-          });
+      try {
+        this.app.sIsFetching.set(true);
+        v = await this.skres.fromServer('routes', e.id);
+        this.app.sIsFetching.set(false);
+        if (v) {
+          this.bottomSheet
+            .open(ActiveResourcePropertiesModal, {
+              disableClose: true,
+              data: {
+                title: 'Route Properties',
+                resource: [e.id, v, false],
+                type: e.type
+              }
+            })
+            .afterDismissed()
+            .subscribe((deactivate: boolean) => {
+              if (deactivate) {
+                this.clearDestination();
+              }
+              this.focusMap();
+            });
+        }
+      } catch (err) {
+        this.app.sIsFetching.set(false);
+        this.app.parseHttpErrorResponse(err);
       }
     } else if (e.type === 'aton' || e.type === 'meteo') {
       let title: string;
@@ -1343,22 +1344,32 @@ export class AppComponent {
           });
       }
     } else {
-      v =
+      // vessel
+      const id =
         e.type === 'self'
-          ? this.app.data.vessels.self
-          : this.app.data.vessels.aisTargets.get(e.id);
-      if (v) {
-        this.bottomSheet
-          .open(AISPropertiesModal, {
-            disableClose: true,
-            data: {
-              title: 'Vessel Properties',
-              target: v,
-              id: e.id
-            }
-          })
-          .afterDismissed()
-          .subscribe(() => this.focusMap());
+          ? e.type
+          : e.id.includes('vessels.')
+          ? e.id.split('.')[1]
+          : e.id;
+      try {
+        this.app.sIsFetching.set(true);
+        v = await this.skres.vesselFromServer(id);
+        this.app.sIsFetching.set(false);
+        if (v) {
+          this.bottomSheet
+            .open(AISPropertiesModal, {
+              disableClose: true,
+              data: {
+                title: 'Vessel Properties',
+                target: v
+              }
+            })
+            .afterDismissed()
+            .subscribe(() => this.focusMap());
+        }
+      } catch (err) {
+        this.app.sIsFetching.set(false);
+        this.app.parseHttpErrorResponse(err);
       }
     }
   }
@@ -1534,17 +1545,17 @@ export class AppComponent {
         this.skres.showNoteEditor(params);
         break;
       case 'waypoint':
-        this.skres.showWaypointEditor({ position: e.coordinates as Position });
+        this.skres.newWaypointAt(e.coordinates as Position);
         break;
       case 'route':
-        this.skres.showRouteNew({ coordinates: e.coordinates as LineString });
+        this.skres.newRouteAt(e.coordinates as LineString);
         break;
       case 'region':
         region = new SKRegion();
         region.feature.geometry.coordinates = [
           GeoUtils.normaliseCoords(e.coordinates as Polygon)
         ];
-        this.skres.createRegion(region);
+        this.skres.newRegion(region);
         break;
     }
     // clean up
@@ -1587,7 +1598,7 @@ export class AppComponent {
                 );
                 // if waypoint the target destination update nextPoint
                 if (r[1] === this.app.data.activeWaypoint) {
-                  this.skres.setDestination({
+                  this.course.setDestination({
                     latitude: this.draw.forSave.coords[1],
                     longitude: this.draw.forSave.coords[0]
                   });
@@ -1601,13 +1612,13 @@ export class AppComponent {
               }
             } else {
               if (r[0] === 'route') {
-                this.skres.getRoutes();
+                this.skres.refreshRoutes();
               }
               if (r[0] === 'waypoint') {
-                this.skres.getWaypoints();
+                this.skres.refreshWaypoints();
               }
               if (r[0] === 'note' || r[0] === 'region') {
-                this.skres.getNotes();
+                this.skres.refreshNotes();
               }
             }
             this.draw.forSave = null;
@@ -1630,11 +1641,11 @@ export class AppComponent {
 
   // ** fetch resource types from server **
   fetchResources(allTypes = false) {
-    this.skres.getRoutes();
-    this.skres.getWaypoints();
-    this.skres.getCharts();
-    //this.skres.fetchRegions();
-    this.skres.getNotes();
+    this.skres.refreshRoutes();
+    this.skres.refreshWaypoints();
+    this.skres.refreshCharts();
+    //this.skres.refreshRegions(); // calling refreshNotes() also refreshes Regions
+    this.skres.refreshNotes();
     if (allTypes) {
       this.fetchOtherResources(true);
     }
@@ -1642,7 +1653,7 @@ export class AppComponent {
 
   // ** fetch non-standard resources from server **
   fetchOtherResources(onlySelected = false) {
-    this.skres.trackCacheRefresh();
+    this.skres.refreshTracks();
     this.app.config.resources.paths.forEach((i) => {
       this.skresOther.getItems(i, onlySelected);
     });
@@ -1679,7 +1690,7 @@ export class AppComponent {
         });
         this.fetchResources(true); // ** fetch all resource types from server
         if (this.app.config.selections.trailFromServer) {
-          this.skres.getVesselTrail(); // request trail from server
+          this.app.fetchTrailFromServer(); // request trail from server
         }
         // ** query anchor alarm status
         this.anchor.queryAnchorStatus(
@@ -1777,12 +1788,6 @@ export class AppComponent {
       } else {
         this.display.playback.time = null;
         this.setDarkTheme();
-        if (
-          e.result.self.resourceUpdates &&
-          e.result.self.resourceUpdates.length !== 0
-        ) {
-          this.skres.processDelta(e.result.self.resourceUpdates);
-        }
       }
       this.updateNavPanel();
     }

@@ -10,15 +10,13 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatToolbarModule } from '@angular/material/toolbar';
 
 import { AppFacade } from 'src/app/app.facade';
-import { SignalKClient } from 'signalk-client-angular';
 import { SKVessel } from 'src/app/modules/skresources/resource-classes';
-import { Convert } from 'src/app/lib/convert';
+import { getAisIcon } from 'src/app/modules/icons';
 
 /********* AISPropertiesModal **********
 	data: {
         title: "<string>" title text,
-        target: "<SKVessel>" vessel,
-        id: <string> vessel id
+        target: <SKVessel> vessel
     }
 ***********************************/
 @Component({
@@ -34,7 +32,7 @@ import { Convert } from 'src/app/lib/convert';
     <div class="_ap-ais">
       <mat-toolbar style="background-color: transparent">
         <span>
-          <mat-icon> directions_boat</mat-icon>
+          <mat-icon [svgIcon]="getShipIcon(data.target.type.id)"></mat-icon>
         </span>
         <span style="flex: 1 1 auto; padding-left:20px;text-align:center;">
           {{ data.title }}
@@ -56,81 +54,107 @@ import { Convert } from 'src/app/lib/convert';
           <div style="display:flex;flex-direction: column;">
             <div style="display:flex;">
               <div class="key-label">Name:</div>
-              <div style="flex: 1 1 auto;">{{ vInfo.name }}</div>
+              <div style="flex: 1 1 auto;">{{ data.target.name }}</div>
             </div>
-            @if(vInfo.mmsi) {
+            @if(data.target.mmsi) {
             <div style="display:flex;">
               <div class="key-label">MMSI:</div>
               <div style="flex: 1 1 auto;">
-                {{ vInfo.mmsi }}
+                {{ data.target.mmsi }}
                 <a
                   target="aisinfo"
                   [href]="
                     'https://www.marinetraffic.com/en/ais/details/ships/mmsi:' +
-                    vInfo.mmsi
+                    data.target.mmsi
                   "
                 >
                   <mat-icon>info</mat-icon>
                 </a>
               </div>
             </div>
-            } @if(vInfo.shipType) {
+            } @if(data.target.type?.name) {
             <div style="display:flex;">
               <div class="key-label">Type:</div>
-              <div style="flex: 1 1 auto;">{{ vInfo.shipType }}</div>
+              <div style="flex: 1 1 auto;">
+                {{ data.target.type.name }}
+              </div>
             </div>
-            } @if(vInfo.flag) {
+            }
+            <!--@if(data.target.flag) {
             <div style="display:flex;">
               <div class="key-label">Flag:</div>
-              <div style="flex: 1 1 auto;">{{ vInfo.flag }}</div>
+              <div style="flex: 1 1 auto;">{{ data.target.flag }}</div>
             </div>
-            } @if(vInfo.port) {
+            } @if(data.target.port) {
             <div style="display:flex;">
               <div class="key-label">Port:</div>
-              <div style="flex: 1 1 auto;">{{ vInfo.port }}</div>
+              <div style="flex: 1 1 auto;">{{ data.target.port }}</div>
             </div>
-            } @if(vInfo.callsignVhf) {
+          } -->
+            @if(data.target.registrations?.imo) {
+            <div style="display:flex;">
+              <div class="key-label">IMO:</div>
+              <div style="flex: 1 1 auto;">
+                {{ data.target.registrations.imo }}
+              </div>
+            </div>
+            } @if(data.target.callsignVhf) {
             <div style="display:flex;">
               <div class="key-label">Call sign VHF:</div>
-              <div style="flex: 1 1 auto;">{{ vInfo.callsignVhf }}</div>
+              <div style="flex: 1 1 auto;">{{ data.target.callsignVhf }}</div>
             </div>
-            } @if(vInfo.callsignHf) {
+            } @if(data.target.callsignHf) {
             <div style="display:flex;">
               <div class="key-label">Call sign HF:</div>
-              <div style="flex: 1 1 auto;">{{ vInfo.callsignHf }}</div>
+              <div style="flex: 1 1 auto;">{{ data.target.callsignHf }}</div>
             </div>
-            }@if(vInfo.length) {
+            }@if(data.target.design.length?.overall && data.target.design.beam)
+            {
             <div style="display:flex;">
               <div class="key-label">Dimensions:</div>
               <div style="flex: 1 1 auto;">
-                {{ vInfo.length }} x {{ vInfo.beam }}
+                {{ data.target.design.length.overall }} x
+                {{ data.target.design.beam }}
               </div>
             </div>
-            } @if(vInfo.draft) {
+            } @if(data.target.design.draft?.current) {
             <div style="display:flex;">
               <div class="key-label">Draft:</div>
-              <div style="flex: 1 1 auto;">{{ vInfo.draft }}</div>
+              <div style="flex: 1 1 auto;">
+                {{ data.target.design.draft.current }}
+              </div>
             </div>
-            } @if(vInfo.height) {
+            } @if(data.target.design.draft?.maximum) {
+            <div style="display:flex;">
+              <div class="key-label">Draft (max):</div>
+              <div style="flex: 1 1 auto;">
+                {{ data.target.design.draft.maximum }}
+              </div>
+            </div>
+            } @if(data.target.design?.airHeight) {
             <div style="display:flex;">
               <div class="key-label">Height:</div>
-              <div style="flex: 1 1 auto;">{{ vInfo.height }}</div>
+              <div style="flex: 1 1 auto;">
+                {{ data.target.design.airHeight }}
+              </div>
             </div>
-            } @if(vInfo.state) {
+            } @if(data.target.state) {
             <div style="display:flex;">
               <div class="key-label">State:</div>
-              <div style="flex: 1 1 auto;">{{ vInfo.state }}</div>
+              <div style="flex: 1 1 auto;">{{ data.target.state }}</div>
             </div>
-            } @if(vInfo.destination) {
+            } @if(data.target.destination?.name) {
             <div style="display:flex;">
               <div class="key-label">Destination:</div>
-              <div style="flex: 1 1 auto;">{{ vInfo.destination }}</div>
+              <div style="flex: 1 1 auto;">
+                {{ data.target.destination.name }}
+              </div>
             </div>
-            } @if(vInfo.eta) {
+            } @if(data.target.destination?.eta) {
             <div style="display:flex;">
               <div class="key-label">ETA:</div>
               <div style="flex: 1 1 auto;">
-                {{ vInfo.eta.toLocaleString() }}
+                {{ data.target.destination.eta.toLocaleString() }}
               </div>
             </div>
             }
@@ -151,135 +175,23 @@ import { Convert } from 'src/app/lib/convert';
     `
   ]
 })
-export class AISPropertiesModal implements OnInit {
-  public vInfo = {
-    name: null,
-    mmsi: null,
-    callsignVhf: null,
-    callsignHf: null,
-    length: null,
-    beam: null,
-    draft: null,
-    height: null,
-    shipType: null,
-    destination: null,
-    eta: null,
-    state: null,
-    flag: null,
-    port: null
-  };
-
+export class AISPropertiesModal {
   constructor(
     public app: AppFacade,
-    private sk: SignalKClient,
     public modalRef: MatBottomSheetRef<AISPropertiesModal>,
     @Inject(MAT_BOTTOM_SHEET_DATA)
     public data: {
       title: string;
       target: SKVessel;
-      id: string;
     }
   ) {}
 
-  ngOnInit() {
-    this.getVesselInfo();
-  }
-
-  formatDegrees(val: number) {
-    return val
-      ? `${Convert.radiansToDegrees(val).toFixed(1)} ${String.fromCharCode(
-          186
-        )}`
-      : '0.0';
-  }
-
-  formatKnots(val: number) {
-    return val ? `${Convert.msecToKnots(val).toFixed(1)} kn` : '0.0';
-  }
-
-  private getVesselInfo() {
-    let path: string;
-    if (!this.data.id) {
-      path = 'vessels/self';
-    } else {
-      path = this.data.id.split('.').join('/');
-    }
-
-    this.sk.api.get(path).subscribe((v) => {
-      if (typeof v['name'] !== 'undefined') {
-        this.vInfo.name = v['name'];
-      }
-      if (typeof v['mmsi'] !== 'undefined') {
-        this.vInfo.mmsi = v['mmsi'];
-      }
-      if (typeof v['flag'] !== 'undefined') {
-        this.vInfo.flag = v['flag'];
-      }
-      if (typeof v['port'] !== 'undefined') {
-        this.vInfo.port = v['port'];
-      }
-      if (typeof v['communication'] !== 'undefined') {
-        if (typeof v['communication']['callsignVhf'] !== 'undefined') {
-          this.vInfo.callsignVhf =
-            v['communication']['callsignVhf']['value'] ??
-            v['communication']['callsignVhf'];
-        }
-        if (typeof v['communication']['callsignHf'] !== 'undefined') {
-          this.vInfo.callsignHf =
-            v['communication']['callsignHf']['value'] ??
-            v['communication']['callsignHf'];
-        }
-      }
-      if (typeof v['navigation'] !== 'undefined') {
-        if (typeof v['navigation']['destination'] !== 'undefined') {
-          if (
-            typeof v['navigation']['destination']['commonName'] !== 'undefined'
-          ) {
-            this.vInfo.destination =
-              v['navigation']['destination']['commonName']['value'];
-          }
-          if (typeof v['navigation']['destination']['eta'] !== 'undefined') {
-            this.vInfo.eta = new Date(
-              v['navigation']['destination']['eta']['value']
-            ).toUTCString();
-          }
-        }
-        if (
-          typeof v['navigation']['state'] !== 'undefined' &&
-          typeof v['navigation']['state']['value'] !== 'undefined'
-        ) {
-          this.vInfo.state = v['navigation']['state']['value'];
-        }
-      }
-      if (typeof v['design'] !== 'undefined') {
-        if (
-          typeof v['design']['length'] !== 'undefined' &&
-          v['design']['length']['value']['overall']
-        ) {
-          this.vInfo.length = v['design']['length']['value']['overall'];
-        }
-        if (typeof v['design']['beam'] !== 'undefined') {
-          this.vInfo.beam = v['design']['beam']['value'];
-        }
-        if (
-          typeof v['design']['draft'] !== 'undefined' &&
-          v['design']['draft']['value']
-        ) {
-          if (typeof v['design']['draft']['value']['maximum'] !== 'undefined') {
-            this.vInfo.draft = `${v['design']['draft']['value']['maximum']} (max)`;
-          } else if (
-            typeof v['design']['draft']['value']['current'] !== 'undefined'
-          ) {
-            this.vInfo.draft = `${v['design']['draft']['value']['current']} (current)`;
-          }
-        }
-        if (typeof v['design']['airHeight'] !== 'undefined') {
-          this.vInfo.height = v['design']['airHeight']['value'];
-        }
-        if (typeof v['design']['aisShipType'] !== 'undefined') {
-          this.vInfo.shipType = v['design']['aisShipType']['value']['name'];
-        }
-      }
-    });
+  /**
+   * @description Return icon for AIS vessel type id
+   * @param id AIS shipType identifier
+   * @returns mat-icon svgIcon value
+   */
+  protected getShipIcon(id: number): string {
+    return getAisIcon(id).svgIcon;
   }
 }

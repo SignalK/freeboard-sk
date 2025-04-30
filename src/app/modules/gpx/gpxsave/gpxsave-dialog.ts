@@ -3,6 +3,8 @@ import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 
 import { GPXSaveFacade } from './gpxsave-dialog.facade';
 import { AppFacade } from 'src/app/app.facade';
+import { SKResourceService } from '../../skresources';
+import { FBRoute, FBWaypoint } from 'src/app/types';
 
 //** GPXSave dialog **
 @Component({
@@ -12,18 +14,18 @@ import { AppFacade } from 'src/app/app.facade';
   standalone: false
 })
 export class GPXExportDialog implements OnInit {
-  public resData = {
+  protected resData = {
     routes: [],
     waypoints: [],
     tracks: []
   };
 
-  public selRoutes = [];
-  public selectedRoute = null;
-  public selWaypoints = [];
-  public selTracks = [];
+  protected selRoutes = [];
+  protected selectedRoute = null;
+  protected selWaypoints = [];
+  protected selTracks = [];
 
-  public display = {
+  protected display = {
     notValid: false,
     allRoutesChecked: false,
     allWaypointsChecked: false,
@@ -42,16 +44,16 @@ export class GPXExportDialog implements OnInit {
   private unsubscribe = [];
 
   constructor(
-    public app: AppFacade,
-    public facade: GPXSaveFacade,
-    public dialogRef: MatDialogRef<GPXExportDialog>,
+    protected app: AppFacade,
+    private skres: SKResourceService,
+    private facade: GPXSaveFacade,
+    protected dialogRef: MatDialogRef<GPXExportDialog>,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     @Inject(MAT_DIALOG_DATA) public data: any
   ) {}
 
   ngOnInit() {
-    this.parseResourceData();
-
+    this.loadResources();
     // ** close dialog returning error count **
     this.unsubscribe.push(
       this.facade.result$.subscribe((errCount) => {
@@ -63,6 +65,25 @@ export class GPXExportDialog implements OnInit {
   ngOnDestroy() {
     this.unsubscribe.forEach((i) => i.unsubscribe());
     this.facade.clear();
+  }
+
+  private async loadResources() {
+    this.data.routes.sort((a: FBRoute, b: FBRoute) =>
+      a[1].name.localeCompare(b[1].name)
+    );
+    try {
+      this.app.sIsFetching.set(true);
+      const w = await this.skres.listFromServer<FBWaypoint>('waypoints');
+      w.sort((a: FBWaypoint, b: FBWaypoint) =>
+        a[1].name.localeCompare(b[1].name)
+      );
+      this.data.waypoints = w;
+      this.app.sIsFetching.set(false);
+    } catch (err) {
+      this.app.sIsFetching.set(false);
+      this.resData.waypoints = [];
+    }
+    this.parseResourceData();
   }
 
   // ** load selected resources **

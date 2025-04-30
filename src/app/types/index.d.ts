@@ -65,11 +65,10 @@ export interface FBAppData {
   loggedInBadgeText: string;
   hasToken: boolean;
   hasWakeLock: boolean;
-  routes: FBRoutes;
-  waypoints: FBWaypoints;
-  charts: FBCharts;
-  chartBounds: boolean;
-  notes: FBNotes;
+  chartBounds: {
+    show: boolean;
+    charts: FBCharts;
+  };
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   resourceSets: { [key: string]: any }; // additional resource sets
   selfId: string;
@@ -115,14 +114,20 @@ export interface FBAppData {
     removeList: string[];
   };
   navData: {
-    vmg: number;
     dtg: number;
     ttg: number;
+    eta: Date;
+    route: {
+      dtg: number;
+      ttg: number;
+      eta: Date;
+    };
+    vmg: number;
     bearing: { value: number; type: string };
     bearingTrue: number;
     bearingMagnetic: number;
     xte: number;
-    eta: Date;
+
     position: Position;
     pointIndex: number;
     pointTotal: number;

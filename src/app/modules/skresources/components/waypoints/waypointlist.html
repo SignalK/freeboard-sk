@@ -38,9 +38,9 @@
           <button
             mat-icon-button
             [disabled]="disableRefresh"
-            (click)="itemRefresh()"
+            (click)="initItems()"
             matTooltip="Reload Waypoints"
-            matTooltipPosition="left"
+            matTooltipPosition="below"
           >
             <mat-icon>refresh</mat-icon>
           </button>
@@ -48,12 +48,12 @@
         <div>
           <mat-checkbox
             #selall
-            [disabled]="waypoints.length === 0 || disableRefresh"
+            [disabled]="fullList.length === 0 || disableRefresh"
             [checked]="allSel"
             [indeterminate]="someSel"
-            (change)="selectAll($event.checked)"
+            (change)="toggleAll($event.checked)"
             [matTooltip]="(!selall.checked || someSel) ? 'Select All' : 'Deselect All'"
-            matTooltipPosition="right"
+            matTooltipPosition="below"
           >
           </mat-checkbox>
         </div>
@@ -62,12 +62,12 @@
   </mat-card>
 
   <div class="resources">
-    @if(waypoints.length === 0) {
-    <div style="text-align: center"><br /><i>No Waypoints available.</i></div>
+    @if(this.app.sIsFetching()) {
+    <mat-progress-bar mode="query"></mat-progress-bar>
     }
     <cdk-virtual-scroll-viewport class="vscroller" itemSize="90">
       <mat-card
-        *cdkVirtualFor="let r of filterList; let i= index;"
+        *cdkVirtualFor="let r of filteredList(); let i= index;"
         style="border-bottom: silver 1px outset; border-radius: unset"
       >
         <mat-card-content>
@@ -145,7 +145,7 @@
             <div>
               <button
                 mat-icon-button
-                [disabled]="app.config.map.moveMap"
+                [disabled]="app.config.map.moveMap || !r[2]"
                 (click)="emitCenter(r[1].feature.geometry.coordinates)"
                 matTooltip="Center Waypoint"
                 matTooltipPosition="left"

@@ -1,5 +1,11 @@
 # CHANGELOG: Freeboard
 
+### v2.14.2
+
+- **Update**: Hide More / Less buttoon when Alert does not have addittional properties (#272)
+- **Fixed**: Refresh of charts list after the addition of a new chart source. (#266)
+
+
 ### v2.14.1
 
 - **Fixed**: Unhandled error when Track resource has an undefined name property. (#262)

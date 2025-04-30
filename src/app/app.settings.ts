@@ -18,6 +18,14 @@ export function cleanConfig(
   settings: IAppConfig,
   hostParams: { [key: string]: unknown }
 ) {
+  /**
+   *  Remove notes selections
+   * @todo For removal (Applied 2.14.2)
+   */
+  if ((settings as any).selections.notes) {
+    delete (settings as any).selections.notes;
+  }
+
   if (typeof settings.fixedLocationMode === 'undefined') {
     settings.fixedLocationMode = false;
   }
@@ -315,7 +323,6 @@ export const DefaultConfig: IAppConfig = {
     waypoints: [],
     tracks: null,
     charts: ['openstreetmap', 'openseamap'],
-    notes: [],
     chartOrder: [], // chart layer ordering
     headingAttribute: 'navigation.headingTrue',
     preferredPaths: {
@@ -449,7 +456,6 @@ export interface IAppConfig {
     waypoints: string[];
     tracks: string[] | null;
     charts: string[];
-    notes: string[];
     chartOrder: string[]; // chart layer ordering
     headingAttribute: 'navigation.headingTrue' | 'navigation.headingMagnetic';
     preferredPaths: {

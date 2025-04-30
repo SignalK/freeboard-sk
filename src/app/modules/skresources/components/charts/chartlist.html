@@ -33,14 +33,14 @@
               type="text"
               matInput
               [value]="filterText"
-              (keyup)="buildFilterList(ftext.value)"
+              (keyup)="filterKeyUp(ftext.value)"
             />
             @if(filterText) {
             <button
               mat-icon-button
               matSuffix
               mat-icon-button
-              (click)="buildFilterList('')"
+              (click)="filterKeyUp('')"
             >
               <mat-icon>close</mat-icon>
             </button>
@@ -50,7 +50,7 @@
         <div>
           <button
             mat-icon-button
-            (click)="itemRefresh()"
+            (click)="initItems()"
             matTooltip="Reload Charts"
             matTooltipPosition="below"
           >
@@ -60,9 +60,10 @@
         <div>
           <mat-checkbox
             #selall
+            [disabled]="fullList.length === 0"
             [checked]="allSel"
             [indeterminate]="someSel"
-            (change)="selectAll($event.checked)"
+            (change)="toggleAll($event.checked)"
             [matTooltip]="(!selall.checked || someSel) ? 'Select All' : 'Deselect All'"
             matTooltipPosition="below"
           >
@@ -70,14 +71,14 @@
         </div>
       </div>
       } @else {
-      <div style="display: flex">
-        <div>
-          <button mat-icon-button (click)="showChartLayers(false)">
-            <mat-icon>arrow_back</mat-icon>
-          </button>
-        </div>
+      <div style="display: flex; border-top: 1px solid">
         <div style="flex: 1 1 auto; text-align: center; line-height: 2.5em">
           Chart Order
+        </div>
+        <div>
+          <button mat-icon-button (click)="showChartLayers(false)">
+            <mat-icon>close</mat-icon>
+          </button>
         </div>
       </div>
       }
@@ -86,7 +87,7 @@
       @if(!displayChartLayers) {
       <mat-slide-toggle
         [hideIcon]="true"
-        [checked]="app.data.chartBounds"
+        [checked]="app.data.chartBounds.show"
         (change)="toggleChartBoundaries()"
       >
         Boundaries
@@ -109,15 +110,25 @@
       >
         <mat-icon>add</mat-icon>
       </button>
+      } @else {
+      <div style="display: flex; width: 100%; font-style: italic">
+        <div style="flex: 1 1 auto">Top Layer</div>
+        <div style="text-align: center; font-size: 10pt; font-style: italic">
+          (drag to re-order)
+        </div>
+      </div>
       }
     </mat-card-actions>
   </mat-card>
 
   @if(!displayChartLayers) {
   <div class="resources charts">
+    @if(this.app.sIsFetching()) {
+    <mat-progress-bar mode="query"></mat-progress-bar>
+    }
     <cdk-virtual-scroll-viewport class="vscroller" itemSize="80">
       <mat-card
-        *cdkVirtualFor="let r of filterList; let i= index;"
+        *cdkVirtualFor="let r of filteredList(); let i= index;"
         style="border-bottom: silver 1px outset; border-radius: unset"
       >
         <mat-card-content>
@@ -187,7 +198,7 @@
   <div class="resources">
     <ap-chartlayers
       class="vscroller"
-      (changed)="handleOrderChange($event)"
+      [charts]="fullList"
       (closed)="showChartLayers(false)"
     >
     </ap-chartlayers>

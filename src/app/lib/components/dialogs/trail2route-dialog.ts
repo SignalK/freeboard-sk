@@ -18,7 +18,7 @@ import { MatToolbarModule } from '@angular/material/toolbar';
 import { CommonDialogs } from 'src/app/lib/components/dialogs';
 import { FreeboardOpenlayersModule } from 'src/app/modules/map/ol';
 import { SimplifyAP } from 'simplify-ts';
-import { SKRoute, SKResources, SKStreamFacade } from 'src/app/modules';
+import { SKRoute, SKResourceService, SKStreamFacade } from 'src/app/modules';
 import { AppFacade } from 'src/app/app.facade';
 
 /********* Trail2RouteDialog **********
@@ -68,7 +68,7 @@ export class Trail2RouteDialog implements OnInit {
   private serverCoords: Array<any> = [];
 
   constructor(
-    private skres: SKResources,
+    private skres: SKResourceService,
     protected app: AppFacade,
     private stream: SKStreamFacade,
     public dialogRef: MatDialogRef<Trail2RouteDialog>,
@@ -125,7 +125,7 @@ export class Trail2RouteDialog implements OnInit {
         this.serverCoords.length === 0
       ) {
         this.fetching = true;
-        this.skres.getVesselTrail();
+        this.app.fetchTrailFromServer();
       } else {
         this.parseTrail(true);
       }

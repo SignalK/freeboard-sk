@@ -19,6 +19,7 @@ import { ScrollingModule } from '@angular/cdk/scrolling';
 import { AppFacade } from 'src/app/app.facade';
 import { Position } from 'src/app/types';
 import { FBNotes, FBNote, FBResourceSelect, SKPosition } from 'src/app/types';
+import { SKResourceService } from '../../resources.service';
 
 @Component({
   selector: 'note-list',
@@ -51,7 +52,7 @@ export class NoteListComponent {
   showNotes = false;
   draftOnly = false;
 
-  constructor(public app: AppFacade) {}
+  constructor(public app: AppFacade, private skres: SKResourceService) {}
 
   ngOnInit() {
     this.showNotes = this.app.config.notes;
@@ -84,7 +85,7 @@ export class NoteListComponent {
   }
 
   itemRefresh() {
-    this.refresh.emit();
+    this.skres.refreshNotes();
   }
 
   emitCenter(position: SKPosition) {

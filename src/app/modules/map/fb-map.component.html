@@ -110,7 +110,7 @@
   </ol-control>
 
   <!-- Charts -->
-  <fb-charts [zIndex]="10" [charts]="dfeat.charts"> </fb-charts>
+  <fb-charts [zIndex]="10" [charts]="skres.charts()"> </fb-charts>
 
   <!-- Tracks -->
   @if(app.config.resources.paths.includes('tracks')) {
@@ -158,7 +158,7 @@
 
   <!-- Routes -->
   <fb-routes
-    [routes]="dfeat.routes"
+    [routes]="skres.routes()"
     [routeStyles]="featureStyles.route"
     [activeRoute]="activeRoute"
     [darkMode]="app.config.map.invertColor"
@@ -182,7 +182,7 @@
   <!-- Waypoints -->
   <fb-waypoints
     [darkMode]="app.config.map.invertColor"
-    [waypoints]="dfeat.waypoints"
+    [waypoints]="skres.waypoints()"
     [waypointStyles]="featureStyles.waypoint"
     [activeWaypoint]="app.data.activeWaypoint"
     [labelMinZoom]="this.app.config.selections.labelsMinZoom"
@@ -367,7 +367,7 @@
 
   <!-- Notes -->
   @if(display.layer.notes) {
-  <fb-notes [notes]="dfeat.notes" [zIndex]="450"> </fb-notes>
+  <fb-notes [notes]="skres.notes()" [zIndex]="450"> </fb-notes>
   }
 
   <!-- Popovers -->
@@ -381,6 +381,14 @@
       (closed)="popoverClosed()"
     >
     </ap-popover>
+    } @if(this.overlay.type === 'chartlist') {
+    <chart-list-popover
+      [canClose]="app.config.popoverMulti"
+      [features]="this.overlay.content"
+      (selected)="toggleFeatureSelection($event, 'charts')"
+      (closed)="popoverClosed()"
+    >
+    </chart-list-popover>
     } @if(this.overlay.type === 'list') {
     <feature-list-popover
       [canClose]="app.config.popoverMulti"
@@ -448,7 +456,7 @@
           itemInfo(overlay.id, overlay.type, overlay.isSelf); popoverClosed()
         "
         (focused)="setActiveVessel($event ? overlay.id : null)"
-        (markPosition)="skres.showWaypointEditor(null, $event); popoverClosed()"
+        (markPosition)="skres.newWaypointAt($event); popoverClosed()"
         (closed)="popoverClosed()"
       >
       </vessel-popover>
@@ -582,8 +590,9 @@
   }
 
   <!-- chart boundaries-->
-  @if(app.data.chartBounds) {
-  <fb-chart-bounds [zIndex]="250" [charts]="dfeat.charts"> </fb-chart-bounds>
+  @if(app.data.chartBounds.show) {
+  <fb-chart-bounds [zIndex]="250" [charts]="app.data.chartBounds.charts">
+  </fb-chart-bounds>
   }
 </ol-map>
 

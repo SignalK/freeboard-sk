@@ -39,6 +39,26 @@ const AtoNsVirtual: AppIconSet = {
   anchor: [23, 49]
 };
 
+export const ATON_TYPE_IDS = {
+  aton: 'aton',
+  '-1': 'weatherStation',
+  9: 'north',
+  10: 'east',
+  11: 'south',
+  12: 'west',
+  13: 'port',
+  14: 'starboard',
+  20: 'north',
+  21: 'east',
+  22: 'south',
+  23: 'west',
+  24: 'port',
+  25: 'starboard',
+  28: 'danger',
+  29: 'safe',
+  30: 'special'
+};
+
 const WeatherStation: MapIconDef = {
   path: './assets/img/weather_station.png',
   anchor: [1, 25],

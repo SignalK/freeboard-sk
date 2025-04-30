@@ -3,7 +3,7 @@ import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 
 import { AppFacade } from 'src/app/app.facade';
 import { SignalKClient } from 'signalk-client-angular';
-import { SKResources } from 'src/app/modules';
+import { SKResourceService, SKTrack } from 'src/app/modules';
 import {
   GPX,
   GPXRoute,
@@ -56,7 +56,7 @@ export class GPXImportDialog implements OnInit {
 
   constructor(
     public app: AppFacade,
-    private skres: SKResources,
+    private skres: SKResourceService,
     private signalk: SignalKClient,
     protected dialogRef: MatDialogRef<GPXImportDialog>,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -288,7 +288,7 @@ export class GPXImportDialog implements OnInit {
         const trk = this.transformTrack(this.gpx.trk[i]);
         this.subCount++;
         try {
-          const res = await this.skres.postToServer('tracks', trk);
+          const res = await this.skres.postToServer('tracks', trk as SKTrack);
           this.subCount--;
           if (Math.floor(res['statusCode'] / 100) === 2) {
             trkIds.push(res.id);
@@ -306,7 +306,7 @@ export class GPXImportDialog implements OnInit {
       }
     }
     if (trkIds.length !== 0) {
-      this.skres.trackCacheFetchIds(trkIds);
+      this.skres.trackAddFromServer(trkIds);
     }
   }
 

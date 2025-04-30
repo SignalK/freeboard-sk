@@ -20,16 +20,17 @@ import { AppFacade } from 'src/app/app.facade';
 
 import { SKWaypoint, SKRoute } from '../resource-classes';
 import { GeoUtils } from 'src/app/lib/geoutils';
-import { SKResources } from '../resources.service';
+import { SKResourceService } from '../resources.service';
+import { CourseService } from '../../course';
 
-/********* ActiveResourcePropertiesModal **********
-	data: {
+/** 
+  @description ActiveResourcePropertiesModal 
+	@param data: {
         title: "<string>" title text,
         type: 'dest' | 'route' resource type,
         resource: "<SKWaypoint | SKRoute>" active resource info
-        skres: pointer to SKResources service
     }
-***********************************/
+*/
 @Component({
   selector: 'ap-dest-modal',
   imports: [
@@ -189,12 +190,13 @@ export class ActiveResourcePropertiesModal implements OnInit {
   constructor(
     public app: AppFacade,
     public modalRef: MatBottomSheetRef<ActiveResourcePropertiesModal>,
+    protected course: CourseService,
+    protected skres: SKResourceService,
     @Inject(MAT_BOTTOM_SHEET_DATA)
     public data: {
       title: string;
       type: string;
       resource: SKWaypoint | SKRoute;
-      skres: SKResources;
     }
   ) {}
 
@@ -246,7 +248,7 @@ export class ActiveResourcePropertiesModal implements OnInit {
         idx++;
         if (pt.href) {
           const id = pt.href.split('/').slice(-1);
-          const wpt = this.data.skres.fromCache('waypoints', id[0]);
+          const wpt = this.skres.fromCache('waypoints', id[0]);
           return wpt
             ? {
                 name: `* ${wpt[1].name}`,
@@ -279,9 +281,7 @@ export class ActiveResourcePropertiesModal implements OnInit {
       return;
     }
     this.selIndex = idx;
-    if (this.data.skres) {
-      this.data.skres.coursePointIndex(this.selIndex);
-    }
+    this.course.coursePointIndex(this.selIndex);
   }
 
   drop(e: CdkDragDrop<{ previousIndex: number; currentIndex: number }>) {
@@ -299,7 +299,7 @@ export class ActiveResourcePropertiesModal implements OnInit {
       moveItemInArray(this.pointMeta, e.previousIndex, e.currentIndex);
 
       this.updateFlag(selPosition);
-      this.data.skres.updateRouteCoords(
+      this.skres.updateRouteCoords(
         this.data.resource[0],
         this.points,
         this.data.resource[1].feature.properties.coordinatesMeta
