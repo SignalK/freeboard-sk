@@ -2151,8 +2151,8 @@ export class SKResourceService {
           vessel.navigation?.position.value.latitude
         ]
       : [0, 0];
-    v.flag = vessel.flag ?? undefined;
-    v.port = vessel.port ?? undefined;
+    v.flag = vessel.flag?.value ?? undefined;
+    v.port = vessel.port?.value ?? undefined;
     v.type = vessel.design?.aisShipType?.value ?? null;
     v.design.length = vessel.design?.length?.value ?? null;
     v.design.beam = vessel.design?.beam?.value ?? null;

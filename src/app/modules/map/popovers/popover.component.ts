@@ -14,6 +14,8 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { PipesModule } from 'src/app/lib/pipes';
+import { CountryFlagComponent } from 'src/app/lib/components';
+import { AppFacade } from 'src/app/app.facade';
 
 /*********** Popover ***************
 title: string -  title text,
@@ -28,7 +30,8 @@ measure: boolean= measure mode;
     MatButtonModule,
     MatTooltipModule,
     MatIconModule,
-    PipesModule
+    PipesModule,
+    CountryFlagComponent
   ],
   template: `
     <div
@@ -44,7 +47,11 @@ measure: boolean= measure mode;
                                 line-clamp: 1;
                                 text-overflow:ellipsis;"
         >
-          @if(icon) {
+          @if(mmsi) {
+          <mat-icon>
+            <country-flag [mmsi]="mmsi" [host]="app.host"></country-flag>
+          </mat-icon>
+          } @if(icon) {
           <mat-icon [class]="icon.class" [svgIcon]="icon.svgIcon">{{
             icon.name
           }}</mat-icon>
@@ -69,11 +76,12 @@ measure: boolean= measure mode;
 })
 export class PopoverComponent {
   @Input() title: string;
+  @Input() mmsi: string;
   @Input() icon: { class: string; name?: string; svgIcon?: string };
   @Input() canClose = true;
   @Input() measure = false;
   @Output() closed: EventEmitter<void> = new EventEmitter();
-  //constructor() {}
+  constructor(protected app: AppFacade) {}
 
   handleClose() {
     this.closed.emit();

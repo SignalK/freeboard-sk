@@ -1,4 +1,4 @@
-import { Component, OnInit, Inject } from '@angular/core';
+import { Component, Inject, signal } from '@angular/core';
 import {
   MatBottomSheetRef,
   MAT_BOTTOM_SHEET_DATA
@@ -32,7 +32,7 @@ import { getAisIcon } from 'src/app/modules/icons';
     <div class="_ap-ais">
       <mat-toolbar style="background-color: transparent">
         <span>
-          <mat-icon [svgIcon]="getShipIcon(data.target.type.id)"></mat-icon>
+          <mat-icon [svgIcon]="getShipIcon(data.target.type?.id)"></mat-icon>
         </span>
         <span style="flex: 1 1 auto; padding-left:20px;text-align:center;">
           {{ data.title }}
@@ -50,52 +50,52 @@ import { getAisIcon } from 'src/app/modules/icons';
       </mat-toolbar>
 
       <mat-card>
+        <mat-card-header>
+          <mat-card-title-group>
+            <mat-card-title>{{ data.target.name }}</mat-card-title>
+            <mat-card-subtitle>
+              {{ data.target.mmsi }}
+              <a
+                target="aisinfo"
+                [href]="
+                  'https://www.marinetraffic.com/en/ais/details/ships/mmsi:' +
+                  data.target.mmsi
+                "
+              >
+                <mat-icon>info</mat-icon>
+              </a>
+            </mat-card-subtitle>
+            @if(showFlag()) {
+            <img mat-card-sm-image [src]="flagIcon" (error)="imgError()" />
+            }
+          </mat-card-title-group>
+        </mat-card-header>
         <mat-card-content>
           <div style="display:flex;flex-direction: column;">
-            <div style="display:flex;">
-              <div class="key-label">Name:</div>
-              <div style="flex: 1 1 auto;">{{ data.target.name }}</div>
-            </div>
-            @if(data.target.mmsi) {
-            <div style="display:flex;">
-              <div class="key-label">MMSI:</div>
-              <div style="flex: 1 1 auto;">
-                {{ data.target.mmsi }}
-                <a
-                  target="aisinfo"
-                  [href]="
-                    'https://www.marinetraffic.com/en/ais/details/ships/mmsi:' +
-                    data.target.mmsi
-                  "
-                >
-                  <mat-icon>info</mat-icon>
-                </a>
-              </div>
-            </div>
-            } @if(data.target.type?.name) {
+            @if(data.target.type?.name) {
             <div style="display:flex;">
               <div class="key-label">Type:</div>
               <div style="flex: 1 1 auto;">
-                {{ data.target.type.name }}
+                {{ data.target.type?.name }}
               </div>
             </div>
-            }
-            <!--@if(data.target.flag) {
+            } @if(data.target.flag) {
             <div style="display:flex;">
               <div class="key-label">Flag:</div>
-              <div style="flex: 1 1 auto;">{{ data.target.flag }}</div>
+              <div style="flex: 1 1 auto;">
+                {{ data.target.flag }}
+              </div>
             </div>
             } @if(data.target.port) {
             <div style="display:flex;">
               <div class="key-label">Port:</div>
               <div style="flex: 1 1 auto;">{{ data.target.port }}</div>
             </div>
-          } -->
-            @if(data.target.registrations?.imo) {
+            } @if(data.target.registrations?.imo) {
             <div style="display:flex;">
               <div class="key-label">IMO:</div>
               <div style="flex: 1 1 auto;">
-                {{ data.target.registrations.imo }}
+                {{ data.target.registrations?.imo }}
               </div>
             </div>
             } @if(data.target.callsignVhf) {
@@ -108,12 +108,12 @@ import { getAisIcon } from 'src/app/modules/icons';
               <div class="key-label">Call sign HF:</div>
               <div style="flex: 1 1 auto;">{{ data.target.callsignHf }}</div>
             </div>
-            }@if(data.target.design.length?.overall && data.target.design.beam)
+            }@if(data.target.design.length?.overall && data.target.design?.beam)
             {
             <div style="display:flex;">
               <div class="key-label">Dimensions:</div>
               <div style="flex: 1 1 auto;">
-                {{ data.target.design.length.overall }} x
+                {{ data.target.design.length?.overall }} x
                 {{ data.target.design.beam }}
               </div>
             </div>
@@ -121,14 +121,14 @@ import { getAisIcon } from 'src/app/modules/icons';
             <div style="display:flex;">
               <div class="key-label">Draft:</div>
               <div style="flex: 1 1 auto;">
-                {{ data.target.design.draft.current }}
+                {{ data.target.design.draft?.current }}
               </div>
             </div>
             } @if(data.target.design.draft?.maximum) {
             <div style="display:flex;">
               <div class="key-label">Draft (max):</div>
               <div style="flex: 1 1 auto;">
-                {{ data.target.design.draft.maximum }}
+                {{ data.target.design.draft?.maximum }}
               </div>
             </div>
             } @if(data.target.design?.airHeight) {
@@ -176,6 +176,9 @@ import { getAisIcon } from 'src/app/modules/icons';
   ]
 })
 export class AISPropertiesModal {
+  protected flagIcon: string;
+  protected showFlag = signal<boolean>(true);
+
   constructor(
     public app: AppFacade,
     public modalRef: MatBottomSheetRef<AISPropertiesModal>,
@@ -184,7 +187,16 @@ export class AISPropertiesModal {
       title: string;
       target: SKVessel;
     }
-  ) {}
+  ) {
+    this.flagIcon = `${this.app.host}/signalk/v2/api/resources/flags/mmsi/${this.data.target.mmsi}`;
+  }
+
+  /**
+   * Handle flag image error
+   */
+  imgError() {
+    this.showFlag.set(false);
+  }
 
   /**
    * @description Return icon for AIS vessel type id

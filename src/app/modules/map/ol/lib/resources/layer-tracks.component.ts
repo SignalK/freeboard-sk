@@ -53,9 +53,9 @@ export class TrackLayerComponent extends FBFeatureLayerComponent {
         geometry: new MultiLineString(
           this.parseCoordinates(t[1].feature.geometry.coordinates)
         ),
-        name: t[1].feature.properties.name
+        name: t[1].name
       });
-      f.setId('track.' + t[1].feature.id);
+      f.setId('track.' + t[0]);
       f.setStyle(this.buildStyle(t[1]));
       fa.push(f);
     }

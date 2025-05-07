@@ -73,7 +73,6 @@ import {
   mapInteractions,
   mapControls,
   vesselStyles,
-  aisVesselStyles,
   basestationStyles,
   aircraftStyles,
   sarStyles,
@@ -293,7 +292,6 @@ export class FBMapComponent implements OnInit, OnDestroy {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   protected featureStyles: any = {
     vessel: vesselStyles,
-    aisVessel: aisVesselStyles,
     route: routeStyles,
     waypoint: waypointStyles,
     region: regionStyles,

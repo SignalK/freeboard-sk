@@ -1,5 +1,10 @@
 # CHANGELOG: Freeboard
 
+### v2.14.3
+
+- **Fixed**: Only displaying on track on map when multiple selected. (#273)
+- **Updated**: Vessel properties displays country flag _(requires `signalk-flags` plugin)_. (#253)
+
 ### v2.14.2
 
 - **Update**: Hide More / Less buttoon when Alert does not have addittional properties (#272)

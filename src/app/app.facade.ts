@@ -114,7 +114,7 @@ export class AppFacade extends Info {
     this.name = 'Freeboard-SK';
     this.shortName = 'Freeboard';
     this.description = `Signal K Chart Plotter.`;
-    this.version = '2.14.2';
+    this.version = '2.14.3';
     this.url = 'https://github.com/signalk/freeboard-sk';
     this.logo = './assets/img/app_logo.png';
 
@@ -519,9 +519,9 @@ export class AppFacade extends Info {
     }
   }
 
-  /**  
+  /**
    * @description Retrieve and apply user / plugin settings from server
-  */
+   */
   public loadSettingsfromServer(): Observable<boolean> {
     const sub: Subject<boolean> = new Subject();
     this.signalk.isLoggedIn().subscribe(
@@ -567,12 +567,17 @@ export class AppFacade extends Info {
    */
   public alignResourcesPaths() {
     // check resources paths
-    this.signalk.api.get(this.skApiVersion,'/resources').subscribe(
-      (res: {[key:string]: {description:string}}) => {
-        const paths = Object.keys(res).filter( i=> !['routes','waypoints','regions','notes','charts'].includes(i));
-        this.config.resources.paths = this.config.resources.paths.filter( k => paths.includes(k));
-      }
-    );
+    this.signalk.api
+      .get(this.skApiVersion, '/resources')
+      .subscribe((res: { [key: string]: { description: string } }) => {
+        const paths = Object.keys(res).filter(
+          (i) =>
+            !['routes', 'waypoints', 'regions', 'notes', 'charts'].includes(i)
+        );
+        this.config.resources.paths = this.config.resources.paths.filter((k) =>
+          paths.includes(k)
+        );
+      });
   }
 
   // ** overloaded saveConfig() **
@@ -730,7 +735,7 @@ export class AppFacade extends Info {
     }
     this.showAlert(
       `${err.status}: ${err.statusText}`,
-      msg + `${err.error.message}`
+      msg + `${err.error?.message}`
     );
   }
 

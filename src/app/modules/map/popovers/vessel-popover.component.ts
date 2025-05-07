@@ -42,7 +42,12 @@ isSelf: boolean - true if vessel 'self'
     CompassComponent
   ],
   template: `
-    <ap-popover [title]="_title" [canClose]="canClose" (closed)="handleClose()">
+    <ap-popover
+      [title]="_title"
+      [mmsi]="vessel.mmsi"
+      [canClose]="canClose"
+      (closed)="handleClose()"
+    >
       @if(vessel.callsignVhf) {
       <div style="display:flex;">
         <div style="font-weight:bold;">Callsign (VHF):</div>

@@ -94,9 +94,8 @@ import { NotificationManager } from '../notification-manager';
               }}</mat-icon>
             </button>
             @if(showProperties) {
-              <signalk-details-list [details]="properties"></signalk-details-list>
-            }
-            }
+            <signalk-details-list [details]="properties"></signalk-details-list>
+            } }
           </div>
         </mat-card-content>
       </mat-card>
@@ -140,7 +139,7 @@ export class AlertPropertiesModal implements OnInit {
 
   private parseAlertInfo() {
     this.properties = this.data.alert.properties ?? {};
-    this.hasProperties = Object.keys(this.properties).length !==0;
+    this.hasProperties = Object.keys(this.properties).length !== 0;
     const d = new Date(this.data.alert.createdAt);
     this.raisedAt = `${d.toLocaleDateString()} ${d.toLocaleTimeString()}`;
   }

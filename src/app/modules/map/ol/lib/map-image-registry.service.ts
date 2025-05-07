@@ -1,11 +1,12 @@
 import { Injectable } from '@angular/core';
-import { Icon } from 'ol/style';
+import { Circle, Fill, Icon, Stroke, Style } from 'ol/style';
 import {
   getAtoNDefs,
   ATON_TYPE_IDS,
   getPoiDefs,
   getVesselDefs,
-  AIS_TYPE_IDS
+  AIS_TYPE_IDS,
+  AIS_MOORED_STYLE_IDS
 } from 'src/app/modules/icons';
 
 interface MapImageCollection {
@@ -68,14 +69,28 @@ export class MapImageRegistry {
   /**
    * @description Returns image for the supplied AIS shipType identifier
    * @param id  AIS shipType identifier
-   * @returns Icon object
+   * @returns Icon | Circle style object
    */
-  getVessel(id: number | string): Icon {
-    const vid = AIS_TYPE_IDS[id];
-    if (!this.icons.atons[vid]) {
-      this.buildIcon(this.icons.vessels, this.vesselImageDefs, vid);
+  getVessel(id: number | string, moored?: boolean): Icon | Circle {
+    if (moored) {
+      const s = AIS_MOORED_STYLE_IDS[id] ?? AIS_MOORED_STYLE_IDS['default'];
+      return new Circle({
+        radius: 5,
+        stroke: new Stroke({
+          width: 2,
+          color: s[0]
+        }),
+        fill: new Fill({
+          color: s[1]
+        })
+      });
+    } else {
+      const vid = AIS_TYPE_IDS[id];
+      if (!this.icons.vessels[vid]) {
+        this.buildIcon(this.icons.vessels, this.vesselImageDefs, vid, true);
+      }
+      return this.icons.vessels[vid] ?? this.icons.vessels['default'];
     }
-    return this.icons.vessels[vid] ?? this.icons.vessels['active'];
   }
 
   /**
@@ -96,12 +111,14 @@ export class MapImageRegistry {
    * @param group Reference to the image group to place the icon.
    * @param iconDef Icon definitions
    * @param id Icon identifier
+   * @param rotate Rotate icon with view (default=false)
    * @returns
    */
   private buildIcon(
     group: MapImageCollection,
     iconDef: { [id: string]: any },
-    id: number | string
+    id: number | string,
+    rotate: boolean = false
   ) {
     if (!iconDef[id]) return;
     group[id] = new Icon({
@@ -110,7 +127,7 @@ export class MapImageRegistry {
       anchor: iconDef[id].anchor,
       anchorXUnits: 'pixels',
       anchorYUnits: 'pixels',
-      rotateWithView: false,
+      rotateWithView: rotate,
       rotation: 0
     });
   }

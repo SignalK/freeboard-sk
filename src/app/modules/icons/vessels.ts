@@ -2,15 +2,11 @@
 
 import { AppIconSet } from './app.icons';
 
-const VesselSelfIcons = {
+const VesselSelfIcons: AppIconSet = {
   path: './assets/img/vessels',
   scale: 0.75,
   anchor: [9.5, 22.5],
-  files: [
-    'ais_self.svg'
-    //'ship_red.png',
-    //'ship_blur.png'
-  ]
+  files: ['ais_self.svg']
 };
 
 export const VesselAisIcons: AppIconSet = {
@@ -43,8 +39,24 @@ export const AIS_TYPE_IDS = {
   90: 'ais_other',
   default: 'ais_active',
   inactive: 'ais_inactive',
-  buddy: 'ais_buddy',
-  flag: 'ais_flag.svg'
+  focused: 'ais_self',
+  buddy: 'ais_buddy'
+};
+
+export const AIS_MOORED_STYLE_IDS = {
+  // [stroke, fill]
+  10: ['white', '#FF00FF'],
+  20: ['white', '#FF00FF'],
+  30: ['white', '#FF00FF'],
+  40: ['#7F6A00', '#FFE97F'],
+  50: ['#000000', '#00FFFF'],
+  60: ['#0026FF', '#0026FF'],
+  70: ['#000000', '#009931'],
+  80: ['#7F0000', '#FF0000'],
+  90: ['#000000', '#808080'],
+  default: ['white', '#FF00FF'],
+  inactive: ['FF00DC', 'white'],
+  buddy: ['white', '#4CFF00']
 };
 
 /**
@@ -63,8 +75,8 @@ export const getVesselDefs = () => {
       };
     });
   };
-  //vesselList['default'] = DefaultNoteIcon;
   addToList(VesselAisIcons);
+  addToList(VesselSelfIcons);
 
   return vesselList;
 };
