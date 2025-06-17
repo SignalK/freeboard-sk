@@ -104,7 +104,7 @@ export class WeatherForecastModal implements OnInit {
 
   formatTempDegreesC(val: number) {
     return val
-      ? `${Convert.kelvinToCelcius(val).toFixed(1)} ${String.fromCharCode(186)}`
+      ? `${Convert.kelvinToCelsius(val).toFixed(1)} ${String.fromCharCode(186)}`
       : '0.0';
   }
 
@@ -153,7 +153,7 @@ export class WeatherForecastModal implements OnInit {
                     ) +
                     String.fromCharCode(186) +
                     'F'
-                  : Convert.kelvinToCelcius(v.outside.temperature).toFixed(1) +
+                  : Convert.kelvinToCelsius(v.outside.temperature).toFixed(1) +
                     String.fromCharCode(186) +
                     'C';
             }
@@ -165,7 +165,7 @@ export class WeatherForecastModal implements OnInit {
                     ) +
                     String.fromCharCode(186) +
                     'F'
-                  : Convert.kelvinToCelcius(v.outside.minTemperature).toFixed(
+                  : Convert.kelvinToCelsius(v.outside.minTemperature).toFixed(
                       1
                     ) +
                     String.fromCharCode(186) +
@@ -179,7 +179,7 @@ export class WeatherForecastModal implements OnInit {
                     ) +
                     String.fromCharCode(186) +
                     'F'
-                  : Convert.kelvinToCelcius(v.outside.maxTemperature).toFixed(
+                  : Convert.kelvinToCelsius(v.outside.maxTemperature).toFixed(
                       1
                     ) +
                     String.fromCharCode(186) +
@@ -193,7 +193,7 @@ export class WeatherForecastModal implements OnInit {
                     ).toFixed(1) +
                     String.fromCharCode(186) +
                     'F'
-                  : Convert.kelvinToCelcius(
+                  : Convert.kelvinToCelsius(
                       v.outside.dewPointTemperature
                     ).toFixed(1) +
                     String.fromCharCode(186) +
