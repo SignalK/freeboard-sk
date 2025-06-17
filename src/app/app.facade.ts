@@ -750,7 +750,7 @@ export class AppFacade extends Info {
   ): string {
     if (sourceUnits === 'K') {
       return this.config.units.temperature === 'c'
-        ? `${Convert.kelvinToCelcius(value).toFixed(1)}${String.fromCharCode(
+        ? `${Convert.kelvinToCelsius(value).toFixed(1)}${String.fromCharCode(
             186
           )}C`
         : `${Convert.kelvinToFarenheit(value).toFixed(1)}${String.fromCharCode(
