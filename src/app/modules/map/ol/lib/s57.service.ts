@@ -130,6 +130,17 @@ export class S57Service {
       });
   }
 
+  /**
+   * @todo Changing value and refresh is not enough.
+   * @param value ColorTable index value (0->4)
+   */
+  public setColorTable(value: number) {
+    if (value >= 0 && value <= 5 && this.selectedColorTable !== value) {
+      //this.selectedColorTable = value;
+      //this.refresh.next();
+    }
+  }
+
   public getStyle(key: string): Style {
     return this.styles[key];
   }

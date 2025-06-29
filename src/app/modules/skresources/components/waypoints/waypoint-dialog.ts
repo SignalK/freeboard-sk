@@ -250,7 +250,9 @@ export class WaypointDialog implements OnInit {
       default: getResourceIcon('waypoints', undefined),
       pseudoaton: getResourceIcon('waypoints', 'pseudoaton'),
       whale: getResourceIcon('waypoints', 'whale'),
-      pob: getResourceIcon('waypoints', 'alarm-mob')
+      pob: getResourceIcon('waypoints', 'pob'),
+      startboat: getResourceIcon('waypoints', 'start-boat'),
+      startpin: getResourceIcon('waypoints', 'start-pin')
     };
 
     this.waypointTypes = [
@@ -275,10 +277,25 @@ export class WaypointDialog implements OnInit {
         ]
       },
       {
+        group: 'Racing',
+        icons: [
+          {
+            type: 'start-boat',
+            name: 'Start Boat',
+            icon: wptIcons.startboat
+          },
+          {
+            type: 'start-pin',
+            name: 'Start Pin',
+            icon: wptIcons.startpin
+          }
+        ]
+      },
+      {
         group: 'Alarms',
         icons: [
           {
-            type: 'alarm-mob',
+            type: 'pob',
             name: 'Person Overboard',
             icon: wptIcons.pob
           }

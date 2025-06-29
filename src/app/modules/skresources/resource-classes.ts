@@ -213,7 +213,6 @@ export class SKVessel extends SKTargetBase {
   heading: number;
   headingTrue: number = null;
   headingMagnetic: number = null;
-
   performance = {
     beatAngle: null,
     gybeAngle: null

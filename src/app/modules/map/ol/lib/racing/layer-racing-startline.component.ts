@@ -9,7 +9,7 @@ import {
   SimpleChanges
 } from '@angular/core';
 import { Feature } from 'ol';
-import { Style, Stroke, Text, Fill, Circle } from 'ol/style';
+import { Style, Stroke, Text, Fill, Circle, RegularShape } from 'ol/style';
 import { LineString, Point } from 'ol/geom';
 import { fromLonLat } from 'ol/proj';
 import { MapComponent } from '../map.component';
@@ -44,7 +44,7 @@ export class RacingStartLineLayerComponent
 
   ngOnChanges(changes: SimpleChanges) {
     super.ngOnChanges(changes);
-    if (['markers', 'startLine', 'finishLine'].some((k) => k in changes)) {
+    if (['startLine'].some((k) => k in changes)) {
       this.parseCourse();
     }
   }
@@ -64,27 +64,84 @@ export class RacingStartLineLayerComponent
         name: 'start'
       });
       sl.setId('race-start-line');
-      sl.setStyle(this.racecourseStyles.startLine);
+      sl.setStyle(this.buildStyle(sl));
       fa.push(sl);
-
-      const sp = new Feature({
-        geometry: new Point(fromLonLat(this.startLine[0])),
-        name: 'pin'
-      });
-      sp.setId('race-start-pin');
-      sp.setStyle(this.racecourseStyles.startPin);
-      fa.push(sp);
-
-      const sb = new Feature({
-        geometry: new Point(fromLonLat(this.startLine[1])),
-        name: 'boat'
-      });
-      sb.setId('race-start-boat');
-      sb.setStyle(this.racecourseStyles.startBoat);
-      fa.push(sb);
-
       this.source.addFeatures(fa);
       this.updateLabels();
     }
+  }
+
+  // Style function
+  buildStyle(feature: Feature) {
+    const geometry = feature.getGeometry() as LineString;
+    const styles = [];
+    let ptFill: Fill;
+    let bgWidth: number;
+
+    if (typeof this.racecourseStyles === 'undefined') {
+      if (this.layerProperties && this.layerProperties.style) {
+        return this.layerProperties.style;
+      } else {
+        return styles;
+      }
+    }
+
+    // line style
+    const s = Array.isArray(this.racecourseStyles.startLine)
+      ? this.racecourseStyles.startLine[
+          this.racecourseStyles.startLine.length - 1
+        ]
+      : this.racecourseStyles.startLine;
+    bgWidth = s.getStroke().getWidth() + 1;
+    const bgColor = 'white';
+    ptFill = new Fill({
+      color: s?.getStroke().getColor()
+    });
+
+    // background
+    styles.push(
+      new Style({
+        stroke: new Stroke({
+          color: bgColor,
+          width: bgWidth
+        })
+      })
+    );
+    // line
+    styles.push(this.racecourseStyles.startLine);
+
+    // point styles
+    const l = geometry.getCoordinates().length;
+    geometry.forEachSegment((start, end) => {
+      styles.push(
+        new Style({
+          geometry: new Point(start),
+          image: new RegularShape({
+            radius: 4,
+            stroke: new Stroke({
+              width: 1,
+              color: bgColor
+            }),
+            fill: ptFill,
+            points: 4,
+            angle: Math.PI / 4
+          })
+        })
+      );
+      styles.push(
+        new Style({
+          geometry: new Point(end),
+          image: new Circle({
+            radius: 3,
+            stroke: new Stroke({
+              width: 1,
+              color: bgColor
+            }),
+            fill: ptFill
+          })
+        })
+      );
+    });
+    return styles;
   }
 }

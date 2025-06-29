@@ -26,6 +26,7 @@ import * as pmtiles from 'pmtiles';
 import LayerGroup from 'ol/layer/Group';
 import { apply } from 'ol-mapbox-style';
 import { FBChart, FBCharts } from 'src/app/types';
+import { S57Service } from '../s57.service';
 
 // ** Freeboard resource collection format **
 @Component({
@@ -42,6 +43,7 @@ export class FreeboardChartLayerComponent
 
   @Input() charts: FBCharts;
   @Input() zIndex = 10; // start number for zIndex of chart layers
+  @Input() colorMode: string;
 
   private wmtsCapabilitesMap = new Map();
 
@@ -49,7 +51,8 @@ export class FreeboardChartLayerComponent
     protected changeDetectorRef: ChangeDetectorRef,
     protected mapComponent: MapComponent,
     private mapService: MapService,
-    private vectorLayerStyleFactory: VectorLayerStyleFactory
+    private vectorLayerStyleFactory: VectorLayerStyleFactory,
+    private s57: S57Service
   ) {
     this.changeDetectorRef.detach();
   }
@@ -63,11 +66,30 @@ export class FreeboardChartLayerComponent
       if (key === 'charts' && !changes[key].firstChange) {
         this.parseCharts(changes[key].currentValue);
       }
+      if (key === 'colorMode') {
+        this.parseColorMode(changes[key].currentValue);
+      }
     }
   }
 
   ngOnDestroy() {
     this.clearlayers();
+  }
+
+  /**
+   * @todo Apply S57 color table based on environment.sun
+   * @param mode environment.sun value
+   */
+  parseColorMode(mode: string) {
+    const colMap = {
+      day: 0,
+      dusk: 3,
+      sunrise: 3,
+      night: 4
+    };
+    if (mode in colMap) {
+      this.s57.setColorTable(colMap[mode]);
+    }
   }
 
   clearlayers() {

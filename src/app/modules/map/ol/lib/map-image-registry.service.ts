@@ -1,10 +1,11 @@
 import { Injectable } from '@angular/core';
-import { Circle, Fill, Icon, Stroke, Style } from 'ol/style';
+import { Circle, Fill, Icon, Stroke } from 'ol/style';
 import {
   getAtoNDefs,
   ATON_TYPE_IDS,
   getPoiDefs,
   getVesselDefs,
+  getWaypointDefs,
   AIS_TYPE_IDS,
   AIS_MOORED_STYLE_IDS
 } from 'src/app/modules/icons';
@@ -17,6 +18,7 @@ interface MapImages {
   atons: MapImageCollection;
   poi: MapImageCollection;
   vessels: MapImageCollection;
+  waypoints: MapImageCollection;
 }
 
 export interface MapIconDef {
@@ -32,7 +34,8 @@ export class MapImageRegistry {
   private icons: MapImages = {
     atons: {},
     poi: {},
-    vessels: {}
+    vessels: {},
+    waypoints: {}
   };
 
   private atonImageDefs: any = {
@@ -41,11 +44,13 @@ export class MapImageRegistry {
   };
   private poiImageDefs = {};
   private vesselImageDefs = {};
+  private waypointImageDefs = {};
 
   constructor() {
     this.atonImageDefs = getAtoNDefs();
     this.poiImageDefs = getPoiDefs();
     this.vesselImageDefs = getVesselDefs();
+    this.waypointImageDefs = getWaypointDefs();
   }
 
   /**
@@ -104,6 +109,19 @@ export class MapImageRegistry {
       this.buildIcon(this.icons.poi, this.poiImageDefs, id);
     }
     return this.icons.poi[id] ?? this.icons.poi.default;
+  }
+
+  /**
+   * @description Returns image for the supplied Waypoint type
+   * @param type Waypoint type
+   * @returns Icon object
+   */
+  getWaypoint(type: string): Icon {
+    type = !type ? 'default' : type;
+    if (!this.icons.waypoints[type]) {
+      this.buildIcon(this.icons.waypoints, this.waypointImageDefs, type);
+    }
+    return this.icons.waypoints[type] ?? this.icons.waypoints.default;
   }
 
   /**

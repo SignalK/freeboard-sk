@@ -68,67 +68,14 @@ export const vesselStyles = {
 };
 
 export const raceCourseStyles = {
-  startPin: new Style({
-    image: new Icon({
-      src: './assets/img/startflag.png',
-      rotateWithView: false,
-      scale: 0.5,
-      anchor: [22.5, 45],
-      anchorXUnits: 'pixels',
-      anchorYUnits: 'pixels'
-    }),
-    text: new Text({
-      text: '',
-      offsetY: 10
-    })
-  }),
-  startBoat: new Style({
-    image: new Icon({
-      src: './assets/img/startboat.png',
-      rotateWithView: false,
-      scale: 0.15,
-      anchor: [24, 160],
-      anchorXUnits: 'pixels',
-      anchorYUnits: 'pixels'
-    }),
-    text: new Text({
-      text: '',
-      offsetY: 10
-    })
-  }),
   startLine: new Style({
     stroke: new Stroke({
       color: 'black',
-      width: 1,
+      width: 2,
       lineDash: [4, 4]
     }),
     text: new Text({
-      text: 'Start',
-      offsetY: 10
-    })
-  }),
-  finishLine: new Style({
-    stroke: new Stroke({
-      color: 'black',
-      width: 1,
-      lineDash: [4, 4]
-    }),
-    text: new Text({
-      text: 'Finish',
-      offsetY: -10
-    })
-  }),
-  finishPin: new Style({
-    image: new Icon({
-      src: './assets/img/finishflag.png',
-      rotateWithView: false,
-      scale: 0.25,
-      anchor: [1, 59],
-      anchorXUnits: 'pixels',
-      anchorYUnits: 'pixels'
-    }),
-    text: new Text({
-      text: '',
+      text: 'START',
       offsetY: 10
     })
   })
@@ -150,90 +97,6 @@ export const routeStyles = {
     stroke: new Stroke({
       color: 'blue',
       width: 4
-    })
-  })
-};
-
-// ***********
-
-const wptIcon = new Icon({
-  src: './assets/img/waypoints/marker-yellow.png',
-  rotateWithView: false,
-  size: [25, 25],
-  anchor: [10.5, 25],
-  anchorXUnits: 'pixels',
-  anchorYUnits: 'pixels'
-});
-
-const wptActiveIcon = new Icon({
-  src: './assets/img/waypoints/marker-blue.png',
-  rotateWithView: false,
-  size: [25, 25],
-  anchor: [10.5, 25],
-  anchorXUnits: 'pixels',
-  anchorYUnits: 'pixels'
-});
-
-const pseudoAtoNIcon = new Icon({
-  src: './assets/img/waypoints/marker-red.png',
-  rotateWithView: false,
-  size: [25, 25],
-  anchor: [10.5, 25],
-  anchorXUnits: 'pixels',
-  anchorYUnits: 'pixels'
-});
-
-const whaleIcon = new Icon({
-  src: './assets/img/ob/whale.svg',
-  rotateWithView: false
-});
-
-const pobIcon = new Icon({
-  src: './assets/img/ob/alarm-mob.svg',
-  rotateWithView: false
-});
-
-export const waypointStyles = {
-  default: new Style({
-    image: wptIcon,
-    text: new Text({
-      text: '',
-      offsetY: -30
-    })
-  }),
-  active: new Style({
-    image: wptActiveIcon,
-    text: new Text({
-      text: '',
-      offsetY: -30
-    })
-  }),
-  pseudoaton: new Style({
-    image: pseudoAtoNIcon,
-    text: new Text({
-      text: '',
-      offsetY: -30
-    })
-  }),
-  whale: new Style({
-    image: whaleIcon,
-    text: new Text({
-      text: '',
-      offsetY: -15
-    })
-  }),
-  'alarm-mob': new Style({
-    image: pobIcon,
-    text: new Text({
-      text: '',
-      offsetY: -15
-    })
-  }),
-  mob: new Style({
-    image: pobIcon,
-    text: new Text({
-      text: '',
-      offsetY: -15
     })
   })
 };

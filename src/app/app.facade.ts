@@ -114,7 +114,7 @@ export class AppFacade extends Info {
     this.name = 'Freeboard-SK';
     this.shortName = 'Freeboard';
     this.description = `Signal K Chart Plotter.`;
-    this.version = '2.14.3';
+    this.version = '2.15.0';
     this.url = 'https://github.com/signalk/freeboard-sk';
     this.logo = './assets/img/app_logo.png';
 
@@ -257,8 +257,7 @@ export class AppFacade extends Info {
         destPointName: ''
       },
       racing: {
-        startLine: [],
-        finishLine: []
+        startLine: []
       },
       anchor: {
         hasApi: true
@@ -750,7 +749,7 @@ export class AppFacade extends Info {
   ): string {
     if (sourceUnits === 'K') {
       return this.config.units.temperature === 'c'
-        ? `${Convert.kelvinToCelcius(value).toFixed(1)}${String.fromCharCode(
+        ? `${Convert.kelvinToCelsius(value).toFixed(1)}${String.fromCharCode(
             186
           )}C`
         : `${Convert.kelvinToFarenheit(value).toFixed(1)}${String.fromCharCode(

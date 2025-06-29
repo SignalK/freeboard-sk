@@ -18,7 +18,6 @@ export const OpenBridgeIcons: AppIconSet = {
     'sound-high-fill.svg',
     'sound-off-fill.svg',
     'sound-unavailable-fill.svg',
-    'whale.svg',
     'alert-list.svg',
     'alerts-active.svg',
     'alarm-mob.svg',

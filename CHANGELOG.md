@@ -1,5 +1,12 @@
 # CHANGELOG: Freeboard
 
+### v2.15.0
+
+- **New**: Night mode which is auto-set using the value of `environment.mode`. _Note: Enable this in settings by checking **Auto-set Night Mode**._ (#239)
+- **Updated**: Waypoint icons and types.
+- **Fixed**: Temperature unit typo. 
+
+
 ### v2.14.3
 
 - **Fixed**: Only displaying on track on map when multiple selected. (#273)

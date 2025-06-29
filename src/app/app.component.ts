@@ -138,7 +138,7 @@ export class AppComponent {
     protected anchor: AnchorFacade,
     protected notiMgr: NotificationManager,
     protected course: CourseService,
-    private stream: SKStreamFacade,
+    protected stream: SKStreamFacade,
     public skres: SKResourceService,
     public skresOther: SKOtherResources,
     public signalk: SignalKClient,
@@ -152,7 +152,8 @@ export class AppComponent {
 
     // handle signals
     effect(() => {
-      this.app.debug('** sMapNorthUp:', this.app.sMapNorthUp());
+      //this.app.debug('** sMapNorthUp:', this.app.sMapNorthUp());
+      //this.app.debug('** stream. selfNightMode:', this.stream.selfNightMode());
     });
   }
 

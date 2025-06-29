@@ -110,7 +110,12 @@
   </ol-control>
 
   <!-- Charts -->
-  <fb-charts [zIndex]="10" [charts]="skres.charts()"> </fb-charts>
+  <fb-charts
+    [zIndex]="10"
+    [charts]="skres.charts()"
+    [colorMode]="app.data.vessels.self.environment.sun"
+  >
+  </fb-charts>
 
   <!-- Tracks -->
   @if(app.config.resources.paths.includes('tracks')) {
@@ -183,7 +188,6 @@
   <fb-waypoints
     [darkMode]="app.config.map.invertColor"
     [waypoints]="skres.waypoints()"
-    [waypointStyles]="featureStyles.waypoint"
     [activeWaypoint]="app.data.activeWaypoint"
     [labelMinZoom]="this.app.config.selections.labelsMinZoom"
     [mapZoom]="fbMap.zoomLevel"

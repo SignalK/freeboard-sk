@@ -74,7 +74,6 @@
                     />
                   </mat-form-field>
                 </div>
-
                 <div class="setting-card-row-item">
                   <mat-checkbox
                     #startOnOpen
@@ -84,6 +83,16 @@
                     label="after"
                   >
                     Halt App on hide
+                  </mat-checkbox>
+                </div>
+                <div class="setting-card-row-item">
+                  <mat-checkbox
+                    #wakelock
+                    [(ngModel)]="facade.settings.selections.wakeLock"
+                    (change)="onFormChange($event, wakelock)"
+                    label="after"
+                  >
+                    Prevent Device Sleeping
                   </mat-checkbox>
                 </div>
                 <div class="setting-card-row-item">
@@ -186,12 +195,13 @@
               <div class="setting-card-row" style="padding-bottom: 10px">
                 <div class="setting-card-row-item">
                   <mat-checkbox
-                    #wakelock
-                    [(ngModel)]="facade.settings.selections.wakeLock"
-                    (change)="onFormChange($event, wakelock)"
+                    #nightmode
+                    [(ngModel)]="facade.settings.nightMode"
+                    (change)="onFormChange($event, nightmode)"
                     label="after"
+                    matTooltip="Auto-set using environment.mode value."
                   >
-                    Prevent Device Sleeping
+                    Auto-set Night Mode
                   </mat-checkbox>
                 </div>
                 <div class="setting-card-row-item">

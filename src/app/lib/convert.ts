@@ -5,10 +5,10 @@
 export class Convert {
   //constructor() {}
   // ******* Temperature **********
-  static celciusToKelvin(val = 0) {
+  static celsiusToKelvin(val = 0) {
     return val + 273.15;
   }
-  static kelvinToCelcius(val = 0) {
+  static kelvinToCelsius(val = 0) {
     return val - 273.15;
   }
   static kelvinToFarenheit(val = 0) {

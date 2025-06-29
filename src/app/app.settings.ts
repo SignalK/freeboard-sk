@@ -35,6 +35,9 @@ export function cleanConfig(
   if (typeof settings.muteSound === 'undefined') {
     settings.muteSound = false;
   }
+  if (typeof settings.nightMode === 'undefined') {
+    settings.nightMode = false;
+  }
 
   if (typeof settings.selections === 'undefined') {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -279,6 +282,7 @@ export const DefaultConfig: IAppConfig = {
   experiments: false,
   version: '',
   darkMode: { enabled: false, source: 0 }, // source: 0= browser default, 1= Signal K mode, -1=manual)
+  nightMode: false, // auto set night mode based on environment.mode
   map: {
     // ** map config
     zoomLevel: 2,
@@ -412,6 +416,7 @@ export interface IAppConfig {
   experiments: boolean;
   version: string;
   darkMode: { enabled: boolean; source: 0 | 1 | -1 }; // source: 0= browser default, 1= Signal K mode, -1=manual)
+  nightMode: boolean; // auto set night mode based on environment.mode
   map: {
     // ** map config
     zoomLevel: number;

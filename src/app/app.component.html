@@ -1,4 +1,9 @@
-<div [ngClass]="{ 'dark-theme': app.config.darkMode.enabled }">
+<div
+  [ngClass]="{
+    'dark-theme': app.config.darkMode.enabled,
+    'app-night': stream.selfNightMode()
+  }"
+>
   <div class="appframe mat-app-background">
     <!--toolbar button menus-->
     <mat-menu #layersmenu="matMenu">

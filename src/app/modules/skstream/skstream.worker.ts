@@ -784,12 +784,6 @@ function processVessel(d: SKVessel, v: any, isSelf = false) {
         d.courseApi.arrivalCircle = v.value;
       }
     }
-    // ** environment sun / mode
-    else if (v.path === 'environment.mode') {
-      d.environment.mode = v.value;
-    } else if (v.path === 'environment.sun') {
-      d.environment.sun = v.value;
-    }
     // ** record received preferred path names for selection
     const cp =
       v.path.indexOf('course') !== -1
@@ -849,7 +843,12 @@ function processVessel(d: SKVessel, v: any, isSelf = false) {
   } else if (v.path === 'navigation.speedOverGround') {
     d.sog = v.value;
   }
-
+  // ** environment sun / mode
+  else if (v.path === 'environment.mode') {
+    d.environment.mode = v.value;
+  } else if (v.path === 'environment.sun') {
+    d.environment.sun = v.value;
+  }
   // ** environment.wind **
   else if (v.path === 'environment.wind.angleApparent') {
     d.wind.awa = v.value;

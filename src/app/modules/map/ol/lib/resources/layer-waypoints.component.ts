@@ -13,6 +13,7 @@ import { MapComponent } from '../map.component';
 import { FBFeatureLayerComponent } from '../sk-feature.component';
 import { FBWaypoints } from 'src/app/types';
 import { SKWaypoint } from 'src/app/modules/skresources';
+import { MapImageRegistry } from '../map-image-registry.service';
 
 // ** Freeboard resource collection format **
 @Component({
@@ -28,7 +29,8 @@ export class FreeboardWaypointLayerComponent extends FBFeatureLayerComponent {
 
   constructor(
     protected mapComponent: MapComponent,
-    protected changeDetectorRef: ChangeDetectorRef
+    protected changeDetectorRef: ChangeDetectorRef,
+    protected mapImages: MapImageRegistry
   ) {
     super(mapComponent, changeDetectorRef);
   }
@@ -76,6 +78,19 @@ export class FreeboardWaypointLayerComponent extends FBFeatureLayerComponent {
 
   // build waypoint style
   buildStyle(id: string, wpt: SKWaypoint): Style {
+    const icon = this.mapImages.getWaypoint(wpt.type ?? 'default');
+    if (icon && typeof this.waypointStyles === 'undefined') {
+      const s = new Style({
+        image: icon,
+        text: new Text({
+          text: '',
+          offsetX: 0,
+          offsetY: -28
+        })
+      });
+      return this.setTextLabel(s, wpt.name);
+    }
+
     if (typeof this.waypointStyles !== 'undefined') {
       if (
         id === this.activeWaypoint &&

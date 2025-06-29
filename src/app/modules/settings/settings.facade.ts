@@ -46,7 +46,7 @@ export class SettingsFacade {
       ['mph', 'mph']
     ]),
     temperature: new Map([
-      ['c', 'Celcius'],
+      ['c', 'Celsius'],
       ['f', 'Fahrenheit']
     ])
   };

@@ -6,6 +6,12 @@
 * { -webkit-tap-highlight-color: transparent; }
 * { tap-highlight-color: transparent; }	
 
+.app-night {
+    filter: brightness(0.3) sepia(0.2) hue-rotate(-30deg);
+    backdrop-filter: brightness(0.3);
+    transition: filter 0.3s ease;
+} 
+
 body {
     font-family: Roboto, "Helvetica Neue", sans-serif;
     background-color: white;

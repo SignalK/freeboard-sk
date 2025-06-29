@@ -7,20 +7,13 @@ import { AppFacade } from 'src/app/app.facade';
 import { SettingsMessage } from 'src/app/lib/services';
 import { SignalKClient } from 'signalk-client-angular';
 import { SKWorkerService } from './skstream.service';
-import { Convert } from 'src/app/lib/convert';
-import {
-  CourseService,
-  SKResourceService,
-  SKRoute,
-  SKVessel
-} from 'src/app/modules';
+import { CourseService, SKVessel } from 'src/app/modules';
 import {
   UpdateMessage,
   TrailMessage,
   MultiLineString,
   Position
 } from 'src/app/types';
-import { GeoUtils } from 'src/app/lib/geoutils';
 
 export enum SKSTREAM_MODE {
   REALTIME = 0,
@@ -55,11 +48,13 @@ export class SKStreamFacade {
   }>({});
   readonly selfAnchor = this.anchorSignal.asReadonly();
 
+  private nightModeSignal = signal<boolean>(false);
+  readonly selfNightMode = this.nightModeSignal.asReadonly();
+
   constructor(
     private app: AppFacade,
     private signalk: SignalKClient,
     private worker: SKWorkerService,
-    private skres: SKResourceService,
     private course: CourseService
   ) {
     // ** SIGNAL K STREAM **
@@ -176,6 +171,7 @@ export class SKStreamFacade {
           { path: 'navigation.*', period: 1000, policy: 'fixed' },
           { path: 'environment.wind.*', period: 1000, policy: 'fixed' },
           { path: 'environment.mode', period: 1000, policy: 'fixed' },
+          { path: 'environment.sun', period: 1000, policy: 'fixed' },
           { path: 'resources.*', period: 1000, policy: 'fixed' },
           { path: 'steering.autopilot.*', period: 1000, policy: 'fixed' },
           { path: 'performance.*', period: 1000, policy: 'fixed' }
@@ -316,6 +312,12 @@ export class SKStreamFacade {
         maxRadius: v.anchor.maxRadius ?? -1,
         radius: v.anchor.radius?.value ?? null
       };
+    });
+
+    this.nightModeSignal.update(() => {
+      return (
+        v.environment.mode === 'night' && (this.app.config.nightMode ?? false)
+      );
     });
   }
 

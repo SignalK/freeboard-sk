@@ -1,15 +1,12 @@
 const WHATS_NEW = [
   {
     type: 'signalk-server-node',
-    title: 'Deprecated PyPilot Settings',
+    title: 'New in this Release',
     message: `
-        This release removes the Pypilot settings from the Plugin Config
-        and only uses the Signal K Autopilot API.
+        <li>Added setting to apply a "night mode style' to the screen display when
+        <i>environment.mode</i> = "night".</li>
         <br>&nbsp;<br>
-        <i>Note: To continue Pypilot operation in Freeboard-SK
-          install and configure the <a href="https://github.com/panaaj/pypilot-autopilot-provider" target="blank">
-          pypilot autopilot provider plugin</a>  on your Signal K server.
-        </i>
+        <li>Updated waypoint icons and types.</li>
         <br>&nbsp;<br>
         See Signal K server help for more details.
       `

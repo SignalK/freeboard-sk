@@ -76,7 +76,6 @@ import {
   basestationStyles,
   aircraftStyles,
   sarStyles,
-  waypointStyles,
   regionStyles,
   routeStyles,
   anchorStyles,
@@ -293,7 +292,6 @@ export class FBMapComponent implements OnInit, OnDestroy {
   protected featureStyles: any = {
     vessel: vesselStyles,
     route: routeStyles,
-    waypoint: waypointStyles,
     region: regionStyles,
     anchor: anchorStyles,
     alarm: alarmStyles,

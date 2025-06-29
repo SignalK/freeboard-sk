@@ -9,6 +9,7 @@ import {
 
 import { OpenBridgeIcons } from './openbridge';
 import { PoiIcons } from './poi';
+import { WaypointIcons } from './waypoints';
 import { VesselAisIcons, AIS_TYPE_IDS } from './vessels';
 
 export interface AppIconSet {
@@ -43,6 +44,7 @@ export const getSvgList = (): Array<{ id: string; path: string }> => {
   addToList(OpenBridgeIcons);
   addToList(PoiIcons, 'sk-');
   addToList(VesselAisIcons);
+  addToList(WaypointIcons);
   return svgList;
 };
 
@@ -96,17 +98,16 @@ export const getResourceIcon = (
     }
     const icon =
       typeof resource === 'string' ? resource : (resource as SKWaypoint).type;
-    if (!icon || !['pseudoaton', 'whale', 'alarm-mob'].includes(icon)) {
+    if (!icon) {
       return iconDef;
-    }
-    if (icon === 'pseudoaton') {
-      iconDef.class = 'icon-warn';
-    } else {
+    } else if (WaypointIcons.files.includes(`${icon}.svg`)) {
       iconDef = {
-        class: 'ob',
+        class: undefined,
         svgIcon: `${icon}`,
         name: undefined
       };
+    } else if (icon === 'pseudoaton') {
+      iconDef.class = 'icon-warn';
     }
     return iconDef;
   }
