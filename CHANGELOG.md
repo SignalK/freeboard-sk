@@ -1,9 +1,16 @@
 # CHANGELOG: Freeboard
 
+
+### v2.15.1
+
+- **Updated**: Waypoint icon size alignment
+- **Removed**: Unused packages.
+
+
 ### v2.15.0
 
 - **New**: Night mode which is auto-set using the value of `environment.mode`. _Note: Enable this in settings by checking **Auto-set Night Mode**._ (#239)
-- **Updated**: Waypoint icons and types.
+- **Updated**: Waypoint icons and types. (#275)
 - **Fixed**: Temperature unit typo. 
 
 

@@ -1,4 +1,4 @@
-import { Component, ViewChild, effect } from '@angular/core';
+import { Component, ViewChild, effect, signal } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
 import { MatDialog } from '@angular/material/dialog';
 import { MatBottomSheet } from '@angular/material/bottom-sheet';
@@ -91,6 +91,7 @@ export class AppComponent {
     noteList: false,
     trackList: false,
     aisList: false,
+    resourceGroups: signal<boolean>(false),
     anchorWatch: false,
     navDataPanel: {
       show: false,
@@ -620,6 +621,17 @@ export class AppComponent {
         this.app.data.anchor.hasApi = true;
       }
     );
+
+    // check for resource groups
+    this.signalk.api.get(this.app.skApiVersion, 'resources/groups').subscribe(
+      () => {
+        this.app.featureFlags.resourceGroups.set(true);
+      },
+      () => {
+        this.app.debug('*** Features API not present!');
+        this.app.featureFlags.resourceGroups.set(false);
+      }
+    );
   }
 
   // ** start trail / AIS timers
@@ -820,6 +832,9 @@ export class AppComponent {
         break;
       case 'aisList':
         this.display.aisList = show;
+        break;
+      case 'resourceGroups':
+        this.display.resourceGroups.set(show);
         break;
       default:
         this.display.leftMenuPanel = false;

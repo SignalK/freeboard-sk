@@ -18,6 +18,7 @@ import { FormsModule } from '@angular/forms';
 import { MatInputModule } from '@angular/material/input';
 import { ScrollingModule } from '@angular/cdk/scrolling';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
+import { MatDialog } from '@angular/material/dialog';
 
 import { AppFacade } from 'src/app/app.facade';
 import { Position } from 'src/app/types';
@@ -25,6 +26,8 @@ import { FBWaypoints, FBWaypoint, FBResourceSelect } from 'src/app/types';
 import { SKResourceService, SKResourceType } from '../../resources.service';
 import { SKWorkerService } from 'src/app/modules/skstream/skstream.service';
 import { ResourceListBase } from '../resource-list-baseclass';
+import { SelectGroupDialog } from '../groups/groupselect-dialog';
+import { SKResourceGroupService } from '../groups/groups.service';
 
 @Component({
   selector: 'waypoint-list',
@@ -61,7 +64,9 @@ export class WaypointListComponent extends ResourceListBase {
   constructor(
     public app: AppFacade,
     protected skres: SKResourceService,
-    private worker: SKWorkerService
+    private worker: SKWorkerService,
+    protected dialog: MatDialog,
+    protected skgroups: SKResourceGroupService
   ) {
     super('waypoints', skres);
     // resources delta handler
@@ -201,5 +206,25 @@ export class WaypointListComponent extends ResourceListBase {
       id: wpt[0],
       readOnly: wpt[1].feature?.properties?.readOnly ?? false
     });
+  }
+
+  /**
+   * @description Show related Notes dialog
+   * @param id waypoint identifier
+   */
+  protected itemAddToGroup(id: string) {
+    this.dialog
+      .open(SelectGroupDialog)
+      .afterClosed()
+      .subscribe(async (grpId) => {
+        if (grpId) {
+          try {
+            await this.skgroups.addToGroup(grpId, 'waypoint', id);
+            this.app.showMsgBox('Message', `Waypoint added to group.`);
+          } catch (err) {
+            this.app.parseHttpErrorResponse(err);
+          }
+        }
+      });
   }
 }

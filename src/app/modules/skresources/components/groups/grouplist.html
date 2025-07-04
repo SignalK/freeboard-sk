@@ -6,13 +6,13 @@
           <button
             mat-icon-button
             (click)="close()"
-            matTooltip="Close Route List"
+            matTooltip="Close Group List"
             matTooltipPosition="right"
           >
             <mat-icon>arrow_back</mat-icon>
           </button>
         </div>
-        <div style="flex: 1 1 auto; padding-top: 7px">Routes</div>
+        <div style="flex: 1 1 auto; padding-top: 7px">Resource Groups</div>
       </div>
     </mat-card-title>
     <mat-card-content>
@@ -37,25 +37,12 @@
         <div>
           <button
             mat-icon-button
-            [disabled]="disableRefresh"
             (click)="initItems()"
-            matTooltip="Reload Routes"
+            matTooltip="Reload Groups"
             matTooltipPosition="below"
           >
             <mat-icon>refresh</mat-icon>
           </button>
-        </div>
-        <div>
-          <mat-checkbox
-            #selall
-            [disabled]="fullList.length === 0 || disableRefresh"
-            [checked]="allSel"
-            [indeterminate]="someSel"
-            (change)="toggleAll($event.checked)"
-            [matTooltip]="(!selall.checked || someSel) ? 'Select All' : 'Deselect All'"
-            matTooltipPosition="below"
-          >
-          </mat-checkbox>
         </div>
       </div>
     </mat-card-content>
@@ -93,19 +80,15 @@
                 {{r[1].description}}
               </div>
               <div>
-                <i
-                  >{{ app.config.units.distance!='m' ?
-                  km2Nm(r[1].distance/1000).toFixed(2) + 'NM' :
-                  (r[1].distance/1000).toFixed(2) + 'km'}}
-                </i>
+                <i> </i>
               </div>
             </div>
             <div style="text-align: right">
               <mat-checkbox
                 [checked]="r[2]"
-                [disabled]="r[0] === activeRoute || disableRefresh"
+                [disabled]="r[2]"
                 (change)="itemSelect($event.checked, r[0])"
-                matTooltip="Show on Map"
+                matTooltip="Select Resources"
                 matTooltipPosition="left"
               >
               </mat-checkbox>
@@ -118,76 +101,22 @@
               <button
                 mat-icon-button
                 (click)="itemDelete(r[0])"
-                [disabled]="r[0] === activeRoute || disableRefresh"
-                matTooltip="Delete Route"
+                matTooltip="Delete Group"
                 matTooltipPosition="right"
               >
                 <mat-icon>delete</mat-icon>
               </button>
-              <button
-                mat-icon-button
-                [disabled]="disableRefresh"
-                (click)="itemViewPoints(r[0])"
-                matTooltip="Route points"
-                matTooltipPosition="right"
-              >
-                <mat-icon>flag</mat-icon>
-              </button>
-              <button
-                mat-icon-button
-                (click)="itemViewNotes(r)"
-                matTooltip="Route notes"
-                matTooltipPosition="right"
-              >
-                <mat-icon>local_offer</mat-icon>
-              </button>
-              @if(r[0] !== activeRoute) {
-              <button
-                mat-icon-button
-                [disabled]="disableRefresh"
-                (click)="itemSetActive(r[0])"
-                matTooltip="Set as Active Route"
-                matTooltipPosition="below"
-              >
-                <mat-icon>near_me</mat-icon>
-              </button>
-              } @else {
-              <button
-                mat-icon-button
-                [disabled]="disableRefresh"
-                (click)="itemClearActive(r[0])"
-                matTooltip="Clear Active Route"
-                matTooltipPosition="right"
-              >
-                <mat-icon>clear_all</mat-icon>
-              </button>
-              }
             </div>
             <div>
               <button
                 mat-icon-button
-                [disabled]="disableRefresh"
                 (click)="itemProperties(r[0])"
-                matTooltip="Edit Route Properties"
+                matTooltip="Edit Group Properties"
                 matTooltipPosition="right"
               >
                 <mat-icon>edit</mat-icon>
               </button>
             </div>
-            @if(app.featureFlags.resourceGroups()) {
-            &nbsp;
-            <div>
-              <button
-                mat-icon-button
-                [disabled]="disableRefresh"
-                (click)="itemAddToGroup(r[0])"
-                matTooltip="Add to Group"
-                matTooltipPosition="right"
-              >
-                <mat-icon>category</mat-icon>
-              </button>
-            </div>
-          }
           </div>
         </mat-card-actions>
       </mat-card>

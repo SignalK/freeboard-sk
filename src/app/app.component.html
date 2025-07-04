@@ -23,6 +23,12 @@
         <mat-icon>map</mat-icon>
         &nbsp;Charts
       </button>
+      @if(app.featureFlags.resourceGroups()) {
+      <button mat-menu-item (click)="displayLeftMenu('resourceGroups', true)">
+        <mat-icon>category</mat-icon>
+        &nbsp;Groups
+      </button>
+      }
 
       <mat-divider></mat-divider>
       <button mat-menu-item>
@@ -527,6 +533,8 @@
               (pan)="centerResource($event.center, $event.zoomLevel)"
             >
             </ais-list>
+            } } @if(display.resourceGroups()) { @defer {
+            <group-list (closed)="displayLeftMenu()"> </group-list>
             } } @if(display.anchorWatch) {
             <anchor-watch
               [showSelf]="app.data.vessels.showSelf"

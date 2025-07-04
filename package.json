@@ -1,6 +1,6 @@
 {
   "name": "@signalk/freeboard-sk",
-  "version": "2.15.0",
+  "version": "2.15.1",
   "description": "Openlayers chart plotter implementation for Signal K",
   "keywords": [
     "signalk-webapp",
@@ -40,7 +40,6 @@
   "license": "Apache-v2",
   "dependencies": {
     "@signalk/server-api": "^2.3.0",
-    "socket.io-client": "^4.6.0",
     "tslib": "^2.0.0",
     "uuid": "^11.1.0"
   },

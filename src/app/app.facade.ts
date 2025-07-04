@@ -99,6 +99,9 @@ export class AppFacade extends Info {
   sMapNorthUp = signal(true); // map North / Heading Up
   sIsFetching = signal(false); // show progress for fetching data from server
   sAlertListShow = signal(false); // display AlertList
+  featureFlags = {
+    resourceGroups: signal<boolean>(false) // ability to store resource groups
+  };
 
   constructor(
     public signalk: SignalKClient,
@@ -114,7 +117,7 @@ export class AppFacade extends Info {
     this.name = 'Freeboard-SK';
     this.shortName = 'Freeboard';
     this.description = `Signal K Chart Plotter.`;
-    this.version = '2.15.0';
+    this.version = '2.15.1';
     this.url = 'https://github.com/signalk/freeboard-sk';
     this.logo = './assets/img/app_logo.png';
 

@@ -162,6 +162,20 @@
                 <mat-icon>edit</mat-icon>
               </button>
             </div>
+            @if(app.featureFlags.resourceGroups()) {
+            &nbsp;
+            <div>
+              <button
+                mat-icon-button
+                [disabled]="disableRefresh"
+                (click)="itemAddToGroup(r[0])"
+                matTooltip="Add to Group"
+                matTooltipPosition="right"
+              >
+                <mat-icon>category</mat-icon>
+              </button>
+            </div>
+          }
           </div>
         </mat-card-actions>
       </mat-card>
