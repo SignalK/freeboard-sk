@@ -16,7 +16,6 @@ import {
   RelatedNotesDialog,
   TrackDialog
 } from '.';
-import { SKResourceSet } from '.';
 import { processUrlTokens } from 'src/app/app.settings';
 
 import {
@@ -261,33 +260,6 @@ export class SKResourceService {
       const item = this.app.data[collection].find((i) => i[0] === id);
       return item ?? undefined;
     }
-  }
-
-  /**
-   * @description Retrieve cached Resource Set | feature at index (app.data)
-   * @params id Map feature id.
-   * @params getFeature  true = return Feature entry, false = return whole RecordSet
-   * @returns Feature OR Resource Set.
-   * @deprecated
-   */
-  public resSetFromCache(mapFeatureId: string, getFeature?: boolean) {
-    const t = mapFeatureId.split('.');
-    if (t[0] !== 'rset') {
-      return;
-    }
-    const collection = t[1];
-    const rSetId = t[2];
-    const index = Number(t[t.length - 1]);
-    if (
-      !this.app.data.resourceSets[collection] ||
-      !Array.isArray(this.app.data.resourceSets[collection])
-    ) {
-      return;
-    }
-    const item = this.app.data.resourceSets[collection].filter(
-      (i: SKResourceSet) => i.id === rSetId
-    )[0];
-    return getFeature ? item.values.features[index] : item;
   }
 
   // ******** SK Resource operations ********************

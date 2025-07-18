@@ -19,7 +19,7 @@ import { SKResourceSet } from '../../resourceset-class';
  * Displays information about a ResourceSet feature
 	data: {
     id: string
-    skres: SKResourceSet;
+    item: SKResourceSet;
   }
 ***********************************/
 @Component({
@@ -108,7 +108,7 @@ export class ResourceSetFeatureModal implements OnInit {
     @Inject(MAT_BOTTOM_SHEET_DATA)
     public data: {
       id: string;
-      skres: SKResourceSet;
+      item: SKResourceSet;
     }
   ) {}
 
@@ -123,7 +123,7 @@ export class ResourceSetFeatureModal implements OnInit {
   parse() {
     const t = this.data.id.split('.');
     const fIndex = Number(t[t.length - 1]);
-    const features = this.data.skres.values.features;
+    const features = this.data.item.values.features;
     const feature = fIndex < features.length ? features[fIndex] : features[0];
 
     this.title = feature.properties.name ?? 'Feature';
@@ -132,8 +132,8 @@ export class ResourceSetFeatureModal implements OnInit {
       description: feature.properties.description ?? '',
       'position.latitude': feature.geometry.coordinates[1],
       'position.longitude': feature.geometry.coordinates[0],
-      'resourceset.name': this.data.skres.name,
-      'resourceset.description': this.data.skres.description,
+      'resourceset.name': this.data.item.name,
+      'resourceset.description': this.data.item.description,
       'resourceset.collection': t[1]
     };
   }

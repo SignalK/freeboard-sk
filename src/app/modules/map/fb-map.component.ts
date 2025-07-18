@@ -39,14 +39,7 @@ import { Feature as GeoJsonFeature } from 'geojson';
 
 import { Convert } from 'src/app/lib/convert';
 import { GeoUtils, Angle } from 'src/app/lib/geoutils';
-import {
-  FBChart,
-  FBRoute,
-  FBWaypoint,
-  LineString,
-  Position,
-  ResourceSet
-} from 'src/app/types';
+import { LineString, Position, ResourceSet } from 'src/app/types';
 
 import { AppFacade } from 'src/app/app.facade';
 import { SettingsMessage } from 'src/app/lib/services';
@@ -72,7 +65,6 @@ import {
 import {
   mapInteractions,
   mapControls,
-  vesselStyles,
   basestationStyles,
   aircraftStyles,
   sarStyles,
@@ -89,7 +81,6 @@ import {
 import { ModifyEvent } from 'ol/interaction/Modify';
 import { DrawEvent } from 'ol/interaction/Draw';
 import { Coordinate } from 'ol/coordinate';
-import { FBCharts, FBNotes, FBRoutes, FBWaypoints } from 'src/app/types';
 import { S57Service } from './ol/lib/s57.service';
 import { Position as SKPosition } from '@signalk/server-api';
 import { FBMapEvent, FBPointerEvent } from './ol/lib/map.component';
@@ -135,7 +126,6 @@ interface IFeatureData {
   active: SKVessel; // focussed vessel
   navData: { position: Position; startPosition: Position };
   closest: Array<LineString>;
-  resourceSets: Array<[string, ResourceSet]>;
 }
 
 interface IDrawInfo {
@@ -288,9 +278,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
   };
 
   // ** map feature styles
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  protected featureStyles: any = {
-    vessel: vesselStyles,
+  protected featureStyles = {
     route: routeStyles,
     region: regionStyles,
     anchor: anchorStyles,
@@ -316,8 +304,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
     ais: new Map(), // other vessels
     active: new SKVessel(), // focussed vessel
     navData: { position: null, startPosition: null },
-    closest: [],
-    resourceSets: []
+    closest: []
   };
 
   // ** AIS target management
@@ -372,14 +359,9 @@ export class FBMapComponent implements OnInit, OnDestroy {
     this.obsList.push(
       this.skstream.vessels$().subscribe(() => this.onVessels())
     );
+    // ** STREAM VESSEL TRAIL update event
     this.obsList.push(
       this.skstream.trail$().subscribe((value) => this.onResourceUpdate(value))
-    );
-    // ** RESOURCES update event
-    this.obsList.push(
-      this.skresOther
-        .update$()
-        .subscribe((value) => this.onResourceUpdate(value))
     );
     // ** SETTINGS **
     this.obsList.push(
@@ -387,7 +369,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
         if (r.action === 'save' && r.setting === 'config') {
           this.fbMap.movingMap = this.app.config.map.moveMap;
           this.s57Service.SetOptions(this.app.config.selections.s57Options);
-          this.renderMapContents(r.signals?.fetchNotes);
+          this.renderMapContents(r.options?.fetchNotes);
           if (!this.app.config.selections.trailFromServer) {
             this.dfeat.trail = [];
           }
@@ -577,9 +559,6 @@ export class FBMapComponent implements OnInit, OnDestroy {
         if (this.app.config.selections.trailFromServer) {
           this.dfeat.trail = value.data;
         }
-      }
-      if (value.mode === 'resource-set') {
-        this.dfeat.resourceSets = Object.entries(this.app.data.resourceSets);
       }
     }
   }
@@ -1562,7 +1541,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
       case 'rset':
         this.overlay.id = id;
         this.overlay.type = 'rset';
-        this.overlay.resource = this.skres.resSetFromCache(id, true);
+        this.overlay.resource = this.skresOther.fromCache(id, true);
         this.overlay.title =
           (this.overlay.resource as GeoJsonFeature).properties.name ??
           'Resource Set';
@@ -1766,7 +1745,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
     }
     if (this.shouldFetchResourceSets(zoomChanged)) {
       this.app.debug(`fetching ResourceSets...`);
-      this.skresOther.getItemsInBounds();
+      this.skresOther.refreshInBoundsItems();
     }
   }
 
@@ -1797,13 +1776,13 @@ export class FBMapComponent implements OnInit, OnDestroy {
     }
   }
 
-  // ** returns true if skresOther.getItemsInBounds() should be called
+  // ** returns true if skresOther.refreshInBoundsItems() should be called
   private shouldFetchResourceSets(zoomChanged: boolean) {
     if (
       this.app.config.resources.fetchRadius !== 0 &&
       this.app.config.resources.fetchFilter
     ) {
-      if (!this.skresOther.hasSelections()) {
+      if (!this.skresOther.anySelected()) {
         return false;
       }
       if (zoomChanged) {

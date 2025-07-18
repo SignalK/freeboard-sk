@@ -202,7 +202,6 @@ export class GroupListComponent {
   /**
    * @description Show / edit group properties
    * @param id group identifier
-   * @todo
    */
   protected itemProperties(id: string) {
     this.skgroups.editGroupinfo(id);
@@ -211,7 +210,6 @@ export class GroupListComponent {
   /**
    * @description Show delete group dialog
    * @param id group identifier
-   * @todo
    */
   protected itemDelete(id: string) {
     this.skgroups.deleteGroup(id);

@@ -159,7 +159,7 @@ export class AtoNPropertiesModal implements OnInit {
     Object.keys(bk).forEach((k: any) => {
       const pathRoot = `${pk}.${k}`;
       const g = bk[k];
-      if (k === 'water') {
+      if (k === 'water' || (k === 'current' && pk === 'environment.water')) {
         this.processPathObject(res, g, pathRoot);
       } else if (g.meta) {
         res[pathRoot] = this.app.formatValueForDisplay(

@@ -3,12 +3,24 @@ const WHATS_NEW = [
     type: 'signalk-server-node',
     title: 'New in this Release',
     message: `
-        <li>Added setting to apply a "night mode style' to the screen display when
-        <i>environment.mode</i> = "night".</li>
+        <b>Resource Groups</b>
         <br>&nbsp;<br>
-        <li>Updated waypoint icons and types.</li>
+        Add Routes and Waypoints to groups which can be used to easily 
+        display them on the map with a single click.
         <br>&nbsp;<br>
-        See Signal K server help for more details.
+        See <a href="assets/help/index.html#resources" target="help">HELP</a> 
+        for more details.
+      `
+  },
+  {
+    type: 'signalk-server-node',
+    title: 'New in this Release',
+    message: `
+        <b>Change the vessel Icon size</b>
+        <br>&nbsp;<br>
+        Added setting to specify the icon size of your vessel.
+        <br>&nbsp;<br>
+        Go to <i>Settings | Vessels</i> to make your selection.
       `
   }
 ];

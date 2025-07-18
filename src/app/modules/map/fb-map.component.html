@@ -144,7 +144,8 @@
   }
 
   <!-- Resource Sets -->
-  @for(resSet of dfeat.resourceSets; track resSet[0]; let idx = $index) {
+  @for(resSet of this.skresOther.resourceSets(); track resSet[0]; let idx =
+  $index) {
   <div>
     @if(resSet[0] !== 'tracks') {
     <fb-resource-sets
@@ -576,7 +577,7 @@
     [activeId]="app.data.vessels.activeId"
     [vesselLines]="vesselLines"
     [showWind]="app.config.selections.vessel.windVectors"
-    [vesselStyles]="featureStyles.vessel"
+    [iconScale]="app.config.selections.vessel.iconScale"
     [fixedLocation]="app.config.fixedLocationMode"
     [zIndex]="999"
   >

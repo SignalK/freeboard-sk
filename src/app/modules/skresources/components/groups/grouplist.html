@@ -37,6 +37,14 @@
         <div>
           <button
             mat-icon-button
+            (click)="itemProperties(undefined)"
+            matTooltip="New Group"
+            matTooltipPosition="below"
+          >
+            <mat-icon>add</mat-icon>
+          </button>
+          <button
+            mat-icon-button
             (click)="initItems()"
             matTooltip="Reload Groups"
             matTooltipPosition="below"

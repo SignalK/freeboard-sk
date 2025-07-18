@@ -1,11 +1,12 @@
-import { Position } from './types';
+import { FBAppData, IAppConfig, Position } from './types';
 import { Convert } from './lib/convert';
+import { SKVessel } from './modules';
 
 // validate supplied settings against base config
 export function validateConfig(settings: IAppConfig): boolean {
   let result = true;
   const skeys = Object.keys(settings);
-  Object.keys(DefaultConfig).forEach((i) => {
+  Object.keys(defaultConfig()).forEach((i) => {
     if (!skeys.includes(i)) {
       result = false;
     }
@@ -51,7 +52,8 @@ export function cleanConfig(
       laylines: false,
       cogLine: 10,
       aisCogLine: 10,
-      headingLineSize: -1
+      headingLineSize: -1,
+      iconScale: 0.9
     };
   }
   if (typeof settings.selections.vessel.laylines === 'undefined') {
@@ -59,6 +61,9 @@ export function cleanConfig(
   }
   if (typeof settings.selections.vessel.aisCogLine === 'undefined') {
     settings.selections.vessel.aisCogLine = 10;
+  }
+  if (typeof settings.selections.vessel.iconScale === 'undefined') {
+    settings.selections.vessel.iconScale = 0.9;
   }
 
   if (typeof settings.selections.aisShowTrack === 'undefined') {
@@ -276,275 +281,255 @@ export function cleanConfig(
   }
 }
 
-// ** Default Configuration**
-export const DefaultConfig: IAppConfig = {
-  chartApi: 1, // set by feature detection
-  experiments: false,
-  version: '',
-  darkMode: { enabled: false, source: 0 }, // source: 0= browser default, 1= Signal K mode, -1=manual)
-  nightMode: false, // auto set night mode based on environment.mode
-  map: {
-    // ** map config
-    zoomLevel: 2,
-    center: [0, 0],
-    rotation: 0,
-    moveMap: false,
-    lockMoveMap: true,
-    northUp: true,
-    animate: false,
-    limitZoom: false,
-    invertColor: false
-  },
-  fixedLocationMode: false,
-  fixedPosition: [0, 0],
-  aisTargets: true, // display ais targets
-  courseData: true, // show/hide course data
-  toolBarButtons: true, // show/hide toolbar buttons
-  notes: true, // display notes
-  popoverMulti: false, // close popovers using cose button
-  mapDoubleClick: false, // true=zoom
-  muteSound: false,
-  depthAlarm: { enabled: false, smoothing: 10000 },
-  anchorRadius: 40, // most recent anchor radius setting
-  anchorSetRadius: false,
-  anchorManualSet: false, // checks manual set setting
-  anchorRodeLength: 50, // rode length setting
-  plugins: {
-    instruments: '/@signalk/instrumentpanel',
-    startOnOpen: true,
-    parameters: null
-  },
-  units: {
-    // ** display units
-    distance: 'm',
-    depth: 'm',
-    speed: 'kn',
-    temperature: 'c'
-  },
-  selections: {
-    // ** saved selections
-    routes: [],
-    waypoints: [],
-    tracks: null,
-    charts: ['openstreetmap', 'openseamap'],
-    chartOrder: [], // chart layer ordering
-    headingAttribute: 'navigation.headingTrue',
-    preferredPaths: {
-      tws: 'environment.wind.speedTrue',
-      twd: 'environment.wind.directionTrue',
-      heading: 'navigation.courseOverGroundTrue',
-      course: 'navigation.courseGreatCircle'
+// initialise default configuration
+export function defaultConfig(): IAppConfig {
+  return {
+    chartApi: 1, // set by feature detection
+    experiments: false,
+    version: '',
+    darkMode: { enabled: false, source: 0 }, // source: 0= browser default, 1= Signal K mode, -1=manual)
+    nightMode: false, // auto set night mode based on environment.mode
+    map: {
+      // ** map config
+      zoomLevel: 2,
+      center: [0, 0],
+      rotation: 0,
+      moveMap: false,
+      lockMoveMap: true,
+      northUp: true,
+      animate: false,
+      limitZoom: false,
+      invertColor: false
     },
-    vessel: {
-      trail: false, // display trail
-      windVectors: true, // display vessel TWD, AWD vectors
-      laylines: false,
-      cogLine: 10, // self COG line time (mins)
-      aisCogLine: 10, // ais COG line time (mins)
-      headingLineSize: -1 // mode for display of heading line -1 = default
+    fixedLocationMode: false,
+    fixedPosition: [0, 0],
+    aisTargets: true, // display ais targets
+    courseData: true, // show/hide course data
+    toolBarButtons: true, // show/hide toolbar buttons
+    notes: true, // display notes
+    popoverMulti: false, // close popovers using cose button
+    mapDoubleClick: false, // true=zoom
+    muteSound: false,
+    depthAlarm: { enabled: false, smoothing: 10000 },
+    anchorRadius: 40, // most recent anchor radius setting
+    anchorSetRadius: false,
+    anchorManualSet: false, // checks manual set setting
+    anchorRodeLength: 50, // rode length setting
+    plugins: {
+      instruments: '/@signalk/instrumentpanel',
+      startOnOpen: true,
+      parameters: null
     },
-    positionFormat: 'XY',
-    aisTargets: null,
-    aisTargetTypes: [],
-    aisFilterByShipType: false,
-    aisWindApparent: false,
-    aisWindMinZoom: 15,
-    aisShowTrack: false,
-    aisMaxAge: 540000, // time since last update in ms (9 min)
-    aisStaleAge: 360000, // time since last update in ms (6 min)
-    aisProfile: 0, // ais display profile
-    aisState: [], // list of ais state values used to filter targets
-    notesMinZoom: 10,
-    labelsMinZoom: 8,
-    pluginFavourites: [],
-    trailFromServer: false,
-    trailDuration: 24, // number of hours of trail to fetch from server
-    trailResolution: {
-      // resolution of server trail at defined time horizons
-      lastHour: '5s',
-      next23: '1m',
-      beyond24: '5m'
+    units: {
+      // ** display units
+      distance: 'm',
+      depth: 'm',
+      speed: 'kn',
+      temperature: 'c'
     },
-    s57Options: {
-      graphicsStyle: 'Paper',
-      boundaries: 'Plain',
-      colors: 4,
-      shallowDepth: 2,
-      safetyDepth: 3,
-      deepDepth: 6
+    selections: {
+      // ** saved selections
+      routes: [],
+      waypoints: [],
+      tracks: null,
+      charts: ['openstreetmap', 'openseamap'],
+      chartOrder: [], // chart layer ordering
+      headingAttribute: 'navigation.headingTrue',
+      preferredPaths: {
+        tws: 'environment.wind.speedTrue',
+        twd: 'environment.wind.directionTrue',
+        heading: 'navigation.courseOverGroundTrue',
+        course: 'navigation.courseGreatCircle'
+      },
+      vessel: {
+        trail: false, // display trail
+        windVectors: true, // display vessel TWD, AWD vectors
+        laylines: false,
+        cogLine: 10, // self COG line time (mins)
+        aisCogLine: 10, // ais COG line time (mins)
+        headingLineSize: -1, // mode for display of heading line -1 = default
+        iconScale: 0.9
+      },
+      positionFormat: 'XY',
+      aisTargets: null,
+      aisTargetTypes: [],
+      aisFilterByShipType: false,
+      aisWindApparent: false,
+      aisWindMinZoom: 15,
+      aisShowTrack: false,
+      aisMaxAge: 540000, // time since last update in ms (9 min)
+      aisStaleAge: 360000, // time since last update in ms (6 min)
+      aisProfile: 0, // ais display profile
+      aisState: [], // list of ais state values used to filter targets
+      notesMinZoom: 10,
+      labelsMinZoom: 8,
+      pluginFavourites: [],
+      trailFromServer: false,
+      trailDuration: 24, // number of hours of trail to fetch from server
+      trailResolution: {
+        // resolution of server trail at defined time horizons
+        lastHour: '5s',
+        next23: '1m',
+        beyond24: '5m'
+      },
+      s57Options: {
+        graphicsStyle: 'Paper',
+        boundaries: 'Plain',
+        colors: 4,
+        shallowDepth: 2,
+        safetyDepth: 3,
+        deepDepth: 6
+      },
+      resourceSets: {}, // additional resources
+      signalk: {
+        // signal k connection options
+        vessels: true,
+        atons: true,
+        aircraft: false,
+        sar: false,
+        meteo: true,
+        maxRadius: 0, // max radius within which AIS targets are displayed
+        proxied: true // server behind a proxy server
+      },
+      wakeLock: false,
+      course: {
+        autoNextPointOnArrival: false,
+        autoNextPointDelay: 5000,
+        autoNextPointTrigger: 'perpendicularPassed'
+      }
     },
-    resourceSets: {}, // additional resources
-    signalk: {
-      // signal k connection options
-      vessels: true,
-      atons: true,
-      aircraft: false,
-      sar: false,
-      meteo: true,
-      maxRadius: 0, // max radius within which AIS targets are displayed
-      proxied: true // server behind a proxy server
-    },
-    wakeLock: false,
-    course: {
-      autoNextPointOnArrival: false,
-      autoNextPointDelay: 5000,
-      autoNextPointTrigger: 'perpendicularPassed'
+    resources: {
+      // ** resource options
+      fetchFilter:
+        '?position=[%map:longitude%,%map:latitude%]&distance=%fetch:radius%',
+      fetchRadius: 0, // radius (NM/km) within which to return resources
+      notes: {
+        rootFilter:
+          '?position=[%map:longitude%,%map:latitude%]&distance=%note:radius%', // param string to provide record filtering
+        getRadius: 20, // radius (NM/km) within which to return notes
+        groupNameEdit: false,
+        groupRequiresPosition: true
+      },
+      video: {
+        enable: false,
+        url: null
+      },
+      paths: []
     }
-  },
-  resources: {
-    // ** resource options
-    fetchFilter:
-      '?position=[%map:longitude%,%map:latitude%]&distance=%fetch:radius%',
-    fetchRadius: 0, // radius (NM/km) within which to return resources
-    notes: {
-      rootFilter:
-        '?position=[%map:longitude%,%map:latitude%]&distance=%note:radius%', // param string to provide record filtering
-      getRadius: 20, // radius (NM/km) within which to return notes
-      groupNameEdit: false,
-      groupRequiresPosition: true
-    },
-    video: {
-      enable: false,
-      url: null
-    },
-    paths: []
-  }
-};
-
-export interface IAppConfig {
-  chartApi: number; // temp: use v{1|2}/api/resources/charts
-  experiments: boolean;
-  version: string;
-  darkMode: { enabled: boolean; source: 0 | 1 | -1 }; // source: 0= browser default, 1= Signal K mode, -1=manual)
-  nightMode: boolean; // auto set night mode based on environment.mode
-  map: {
-    // ** map config
-    zoomLevel: number;
-    center: Position;
-    rotation: number;
-    moveMap: boolean;
-    lockMoveMap: boolean;
-    northUp: boolean;
-    animate: boolean;
-    limitZoom: boolean;
-    invertColor: boolean;
-  };
-  fixedLocationMode: boolean;
-  fixedPosition: Position;
-  aisTargets: boolean; // display ais targets
-  courseData: boolean; // show/hide course data
-  toolBarButtons: boolean; // show/hide toolbar buttons
-  notes: boolean; // display notes
-  popoverMulti: boolean; // close popovers using cose button
-  mapDoubleClick: boolean; // true=zoom
-  muteSound: boolean;
-  depthAlarm: { enabled: boolean; smoothing: number };
-  anchorRadius: number; // most recent anchor radius setting
-  anchorSetRadius: boolean; // checks inital anchor radius setting
-  anchorManualSet: boolean; // checks manual set setting
-  anchorRodeLength: number; // rode length setting
-  plugins: {
-    instruments: string;
-    startOnOpen: boolean;
-    parameters: string | null;
-  };
-  units: {
-    // ** display units
-    distance: 'm' | 'ft';
-    depth: 'm' | 'ft';
-    speed: 'kn' | 'msec' | 'kmh' | 'mph';
-    temperature: 'c' | 'f';
-  };
-  selections: {
-    // ** saved selections
-    routes: string[];
-    waypoints: string[];
-    tracks: string[] | null;
-    charts: string[];
-    chartOrder: string[]; // chart layer ordering
-    headingAttribute: 'navigation.headingTrue' | 'navigation.headingMagnetic';
-    preferredPaths: {
-      tws: string;
-      twd: string;
-      heading: string;
-      course: string;
-    };
-    vessel: {
-      trail: boolean; // display trail
-      windVectors: boolean; // display vessel TWD, AWD vectors
-      laylines: boolean;
-      cogLine: number; // (minutes) length = cogLine * sog
-      aisCogLine: number; // (minutes) length = cogLine * sog
-      headingLineSize: number; // mode for display of heading line -1 = default
-    };
-    positionFormat: 'XY' | 'SHDd' | 'HDd' | 'DMdH' | 'HDMS' | 'DHMS';
-    aisTargets: string[];
-    aisTargetTypes: number[];
-    aisFilterByShipType: boolean;
-    aisWindApparent: boolean;
-    aisWindMinZoom: number;
-    aisShowTrack: boolean;
-    aisMaxAge: number; // time since last update in ms (9 min)
-    aisStaleAge: number; // time since last update in ms (6 min)
-    aisProfile: number; // ais display profile
-    aisState: string[]; // list of ais state values used to filter targets
-    notesMinZoom: number;
-    labelsMinZoom: number;
-    pluginFavourites: string[];
-    trailFromServer: boolean;
-    trailDuration: number; // number of hours of trail to fetch from server
-    trailResolution: {
-      // resolution of server trail at defined time horizons
-      lastHour: string;
-      next23: string;
-      beyond24: string;
-    };
-    s57Options: {
-      graphicsStyle: 'Simplified' | 'Paper';
-      boundaries: 'Symbolized' | 'Plain';
-      colors: 2 | 4;
-      shallowDepth: number;
-      safetyDepth: number;
-      deepDepth: number;
-    };
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    resourceSets: { [key: string]: any }; // additional resources
-    signalk: {
-      // signal k connection options
-      vessels: boolean;
-      atons: boolean;
-      aircraft: boolean;
-      sar: boolean;
-      meteo: boolean;
-      maxRadius: number; // max radius within which AIS targets are displayed
-      proxied: boolean; // server behind a proxy server
-    };
-    wakeLock: boolean;
-    course: {
-      autoNextPointOnArrival: boolean;
-      autoNextPointDelay: number;
-      autoNextPointTrigger: 'perpendicularPassed' | 'arrivalCircleEntered';
-    };
-  };
-  resources: {
-    // ** resource options
-    fetchFilter: string; // param string to provide record filtering
-    fetchRadius: number; // radius (NM/km) within which to return resources
-    notes: {
-      rootFilter: string; // param string to provide record filtering
-      getRadius: number; // radius (NM/km) within which to return notes
-      groupNameEdit: boolean;
-      groupRequiresPosition: boolean;
-    };
-    video: {
-      enable: boolean;
-      url: string | null;
-    };
-    paths: string[];
   };
 }
 
-// ** process url tokens
+// initialise state data
+export function initData(): FBAppData {
+  return {
+    firstRun: false,
+    updatedRun: null,
+    kioskMode: false,
+    n2kRoute: null,
+    optAppPanel: false,
+    trueMagChoice: '',
+    loggedIn: false,
+    loginRequired: false,
+    loggedInBadgeText: '!',
+    hasToken: false,
+    hasWakeLock: false,
+    chartBounds: {
+      show: false,
+      charts: []
+    },
+    selfId: null,
+    activeRoute: null,
+    activeRouteReversed: false,
+    activeRouteCircular: false,
+    activeRouteIsEditing: false,
+    editingId: null,
+    activeWaypoint: null,
+    trail: [], // self vessel track / trail
+    serverTrail: false, // trail received from server
+    server: null,
+    lastGet: null, // map position of last resources GET
+    map: {
+      suppressContextMenu: false,
+      atClick: {
+        features: [],
+        lonlat: [0, 0]
+      }
+    },
+    vessels: {
+      // received vessel data
+      showSelf: false,
+      self: new SKVessel(),
+      aisTargets: new Map(),
+      aisTracks: new Map(), // AIS targets track (tracks plugin)
+      activeId: null,
+      active: null,
+      closest: [],
+      prefAvailablePaths: {}, // preference paths available from source,
+      flagged: [] // flagged ais targets
+    },
+    aircraft: new Map(), // received AIS aircraft data
+    atons: new Map(), // received AIS AtoN data
+    sar: new Map(), // received AIS SaR data
+    meteo: new Map(), // received AIS Meteo data
+    aisMgr: {
+      // manage aisTargets
+      updateList: [],
+      staleList: [],
+      removeList: []
+    },
+    navData: {
+      dtg: null,
+      ttg: null,
+      eta: null,
+      route: {
+        dtg: null,
+        ttg: null,
+        eta: null
+      },
+      bearing: { value: null, type: null },
+      bearingTrue: null,
+      bearingMagnetic: null,
+      xte: null,
+      vmg: null,
+      position: null,
+      pointIndex: -1,
+      pointTotal: 0,
+      arrivalCircle: null,
+      startPosition: null,
+      pointNames: [],
+      activeRoutePoints: [],
+      destPointName: ''
+    },
+    racing: {
+      startLine: []
+    },
+    anchor: {
+      hasApi: true
+    },
+    buddyList: {
+      hasApi: false
+    },
+    autopilot: {
+      console: false, // display Autopilot console
+      hasApi: false // Server implements Autopilot API
+    },
+    skIcons: {
+      hasApi: false
+    },
+    buildRoute: {
+      show: false
+    },
+    weather: {
+      hasApi: false
+    },
+    measurement: {
+      coords: [],
+      index: -1
+    }
+  };
+}
+
+// process url tokens from settings
 export const processUrlTokens = (s: string, config: IAppConfig): string => {
   if (!s) {
     return s;

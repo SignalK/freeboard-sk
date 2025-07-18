@@ -49,6 +49,11 @@ export class SKResourceGroupService {
           Object.entries(res).forEach((item) => {
             list.push([item[0], item[1], false]);
           });
+          list.sort((a, b) => {
+            const x = a[1].name?.toLowerCase();
+            const y = b[1].name?.toLowerCase();
+            return x > y ? 1 : -1;
+          });
           resolve(list);
         },
         (err: HttpErrorResponse) => reject(err)
@@ -125,37 +130,49 @@ export class SKResourceGroupService {
 
   /**
    * @description Fetch Group with supplied id and display edit dialog
-   * @param id route identifier
+   * @param id route identifier. undefined = new group
    */
-  async editGroupinfo(id: string) {
-    if (!id) {
-      return;
-    }
+  async editGroupinfo(id?: string) {
     let grp: SKResourceGroup;
-    try {
-      this.app.sIsFetching.set(true);
-      grp = await this.fromServer(id);
-      this.app.sIsFetching.set(false);
-    } catch (err) {
-      this.app.sIsFetching.set(false);
-      this.app.parseHttpErrorResponse(err as HttpErrorResponse);
-      return;
+    if (!id) {
+      // new group
+      grp = {
+        name: '',
+        description: '',
+        routes: [],
+        waypoints: [],
+        charts: []
+      };
+    } else {
+      // edit group
+      try {
+        this.app.sIsFetching.set(true);
+        grp = await this.fromServer(id);
+        this.app.sIsFetching.set(false);
+      } catch (err) {
+        this.app.sIsFetching.set(false);
+        this.app.parseHttpErrorResponse(err as HttpErrorResponse);
+        return;
+      }
     }
     this.dialog
       .open(ResourceGroupDialog, {
         disableClose: true,
         data: {
-          title: 'Group Details',
-          addMode: false,
+          addMode: !id,
           group: grp
         }
       })
       .afterClosed()
       .subscribe((r: { save: boolean; group: SKResourceGroup }) => {
         if (r.save) {
-          this.putToServer(id, r.group).catch((err) =>
-            this.app.parseHttpErrorResponse(err)
-          );
+          if (id) {
+            this.putToServer(id, r.group).catch((err) =>
+              this.app.parseHttpErrorResponse(err)
+            );
+          } else {
+            this.postToServer(r.group);
+          }
         }
       });
   }
@@ -190,27 +207,38 @@ export class SKResourceGroupService {
    * @description Add resource to a group
    * @param grpId Group identifier
    * @param resType Resource type (route, waypoint, chart)
-   * @param resId Resouorce identifier
+   * @param resId Resource identifier(s)
    */
-  async addToGroup(grpId: string, resType: string, resId: string) {
+  async addToGroup(grpId: string, resType: string, resId: string | string[]) {
+    if (!resId) {
+      return;
+    }
+    if (!Array.isArray(resId)) {
+      resId = [resId];
+    }
+
     const grp = await this.fromServer(grpId);
+
     if (resType === 'route') {
       if (!Array.isArray(grp.routes)) {
         grp.routes = [];
       }
-      grp.routes.push(resId);
+      const newids = resId.filter((i) => !grp.routes.includes(i));
+      grp.routes = grp.routes.concat(newids);
     }
     if (resType === 'waypoint') {
       if (!Array.isArray(grp.waypoints)) {
         grp.waypoints = [];
       }
-      grp.waypoints.push(resId);
+      const newids = resId.filter((i) => !grp.waypoints.includes(i));
+      grp.waypoints = grp.waypoints.concat(newids);
     }
     if (resType === 'chart') {
       if (!Array.isArray(grp.charts)) {
         grp.charts = [];
       }
-      grp.charts.push(resId);
+      const newids = resId.filter((i) => !grp.charts.includes(i));
+      grp.charts = grp.routes.concat(newids);
     }
     await this.putToServer(grpId, grp);
   }

@@ -35,7 +35,6 @@ export * from './components/waypoints/waypointlist';
 export * from './components/waypoints/waypoint-dialog';
 
 export * from './components/groups/grouplist';
-export * from './components/groups/groupselect-dialog';
 
 export * from './components/resourcesets/resourceset-list-modal';
 export * from './components/resourcesets/resourceset-feature-properties-modal';

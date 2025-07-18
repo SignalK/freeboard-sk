@@ -631,12 +631,8 @@
               to be displayed by clicking the <b>Navigate To</b> button in
               either:
               <ul>
-                <li>
-                  A waypoint card in the <b>Waypoint List</b>
-                </li>
-                <li>
-                  The pop-up displayed when a waypoint is clicked.
-                </li>
+                <li>A waypoint card in the <b>Waypoint List</b></li>
+                <li>The pop-up displayed when a waypoint is clicked.</li>
               </ul>
             </div>
           </div>
@@ -678,8 +674,77 @@
           specified resources (Routes, Waypoints, Notes, Charts) as well as
           additional available resource paths enabled in Settings.
           <br />
+          Resource groups can also be defined which enables "one-click"
+          selection of resources to display on the screen.
+          <br />
           Additionally resources can be exported to a GPX file by selecting the
           <b><i class="material-icons">save</i> Export</b> menu.
+          <hr />
+          <ul>
+            <li class="nobullet">
+              <i class="material-icons">category</i>
+              <b>Resource Groups:</b>
+              Displays a list of Resource Groups.
+            </li>
+          </ul>
+
+          <div style="display: flex; flex-wrap: wrap">
+            <div style="padding-left: 15px">
+              Groups provide a means of defining a set of resources so they can
+              be easily selected for display.
+              <br />
+              Selecting a Group will display on the map all resources within the
+              group and hide all other resources.
+              <br />
+              Resources can be added to groups directly from the specfic
+              resource list (e.g. Routes, Waypoints).
+              <br />
+              A resource can belong to more than one resource group.
+              <ul>
+                <li>
+                  <i class="material-icons">add</i> <b>New Group:</b> Create a
+                  new Group container.
+                </li>
+                <li>
+                  <i class="material-icons">edit</i>
+                  <b>Update Group:</b> Displays the Group properties. Use this
+                  to: Rename the group, view, add and remove resources from the
+                  group.
+                </li>
+                <li>
+                  <i class="material-icons">delete</i>
+                  <b>Delete Group:</b> Delete the group. Note: This does NOT
+                  delete the resources!
+                </li>
+              </ul>
+            </div>
+          </div>
+
+          <div style="display: flex; flex-wrap: wrap">
+            <div style="padding-left: 15px; background-color: orange">
+              <b>Enabling Resource Groups</b><br />
+              To use Resource Groups you will need to configure a
+              <i>groups</i> resource endpoint on the Signal K server.
+              <br />
+              To configure:
+              <ul>
+                <li>
+                  In the Signal K server Admin console select
+                  <b>Server | Plugin Config</b>
+                </li>
+                <li>Select the <b>Resources Provider</b> plugin</li>
+                <li>
+                  In the <b>Resources (Custom)</b> section, click
+                  <i class="material-icons">add</i> and type <i>groups</i> in
+                  the <b>Resource Type</b>
+                </li>
+                <li>Click <b>Submit</b></li>
+              </ul>
+              Note: Freeboard-SK will need to be re-loaded to make the Resource
+              Groups options available.
+            </div>
+          </div>
+
           <hr />
           <ul>
             <li class="nobullet">
@@ -756,6 +821,11 @@
                   <b>Edit Properties: </b> Click
                   <i class="material-icons">edit</i> to edit route Name and
                   Description.
+                </li>
+                <li>
+                  <b>Add to Group: </b> Click
+                  <i class="material-icons">category</i> Add route to a Resource
+                  Group.
                 </li>
               </ul>
               You can also click on a Route on the map to display an information
@@ -869,6 +939,11 @@
                   <b>Edit Properties</b> Click
                   <i class="material-icons">edit</i> to edit waypoint Name and
                   Description.
+                </li>
+                <li>
+                  <b>Add to Group: </b> Click
+                  <i class="material-icons">category</i> Add waypoint to a
+                  Resource Group.
                 </li>
               </ul>
             </div>
@@ -2062,6 +2137,10 @@
           This section provides choices when displaying data for the vessel.<br />
 
           <ul>
+            <li>
+              <b>Vessel Icon Size</b>: Select size of your vessel to display on
+              the map. <br />
+            </li>
             <li>
               <b>Fixed Location Mode</b>: Select when operating from a fixed
               location e.g. building, etc. <br />

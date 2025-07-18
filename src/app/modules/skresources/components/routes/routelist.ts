@@ -29,8 +29,11 @@ import {
 import { ResourceListBase } from '../resource-list-baseclass';
 import { SKResourceService, SKResourceType } from '../../resources.service';
 import { SKWorkerService } from 'src/app/modules/skstream/skstream.service';
-import { SelectGroupDialog } from '../groups/groupselect-dialog';
 import { SKResourceGroupService } from '../groups/groups.service';
+import {
+  MultiSelectListDialog,
+  SingleSelectListDialog
+} from 'src/app/lib/components';
 
 @Component({
   selector: 'route-list',
@@ -209,23 +212,37 @@ export class RouteListComponent extends ResourceListBase {
   }
 
   /**
-   * @description Show related Notes dialog
+   * @description Show select Group dialog
    * @param id route identifier
    */
-  protected itemAddToGroup(id: string) {
-    this.dialog
-      .open(SelectGroupDialog)
-      .afterClosed()
-      .subscribe(async (grpId) => {
-        if (grpId) {
-          try {
-            await this.skgroups.addToGroup(grpId, 'route', id);
-            this.app.showMsgBox('Message', `Route added to group.`);
-          } catch (err) {
-            this.app.parseHttpErrorResponse(err);
-          }
-        }
+  protected async itemAddToGroup(id: string) {
+    try {
+      const groups = await this.skgroups.listFromServer();
+      const glist = groups.map((g) => {
+        return { id: g[0], name: g[1].name };
       });
+      this.dialog
+        .open(SingleSelectListDialog, {
+          data: {
+            title: 'Select Group',
+            icon: { name: 'category' },
+            items: glist
+          }
+        })
+        .afterClosed()
+        .subscribe(async (selGrp) => {
+          if (selGrp) {
+            try {
+              await this.skgroups.addToGroup(selGrp.id, 'route', id);
+              this.app.showMessage(`Route added to group.`);
+            } catch (err) {
+              this.app.parseHttpErrorResponse(err);
+            }
+          }
+        });
+    } catch (err) {
+      this.app.parseHttpErrorResponse(err);
+    }
   }
 
   /** Convert km to nautical miles

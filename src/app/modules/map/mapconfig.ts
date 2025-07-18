@@ -31,42 +31,6 @@ export const mapControls = [
   //{name: 'attribution'},
 ];
 
-export const vesselStyles = {
-  default: new Style({
-    image: new Icon({
-      src: './assets/img/ship_red.png',
-      anchor: [9.5, 22.5],
-      anchorXUnits: 'pixels',
-      anchorYUnits: 'pixels',
-      size: [50, 50],
-      scale: 0.9, //0.75,
-      rotateWithView: true
-    })
-  }),
-  inactive: new Style({
-    image: new Icon({
-      src: './assets/img/ship_blur.png',
-      anchor: [9.5, 22.5],
-      anchorXUnits: 'pixels',
-      anchorYUnits: 'pixels',
-      size: [50, 50],
-      scale: 0.75,
-      rotateWithView: true
-    })
-  }),
-  fixed: new Style({
-    image: new Icon({
-      src: './assets/img/fixed_location.png',
-      anchor: [22.5, 50],
-      anchorXUnits: 'pixels',
-      anchorYUnits: 'pixels',
-      size: [50, 50],
-      scale: 0.5,
-      rotateWithView: false
-    })
-  })
-};
-
 export const raceCourseStyles = {
   startLine: new Style({
     stroke: new Stroke({

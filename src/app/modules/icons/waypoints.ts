@@ -11,7 +11,7 @@ const WaypointMarkerIcons: AppIconSet = {
 
 export const WaypointIcons: AppIconSet = {
   path: './assets/img/waypoints',
-  scale: 1,
+  scale: 1.15,
   anchor: [12, 24],
   files: [
     'start-pin.svg',

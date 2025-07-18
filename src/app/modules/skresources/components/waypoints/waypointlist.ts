@@ -26,8 +26,11 @@ import { FBWaypoints, FBWaypoint, FBResourceSelect } from 'src/app/types';
 import { SKResourceService, SKResourceType } from '../../resources.service';
 import { SKWorkerService } from 'src/app/modules/skstream/skstream.service';
 import { ResourceListBase } from '../resource-list-baseclass';
-import { SelectGroupDialog } from '../groups/groupselect-dialog';
 import { SKResourceGroupService } from '../groups/groups.service';
+import {
+  MultiSelectListDialog,
+  SingleSelectListDialog
+} from 'src/app/lib/components';
 
 @Component({
   selector: 'waypoint-list',
@@ -209,22 +212,36 @@ export class WaypointListComponent extends ResourceListBase {
   }
 
   /**
-   * @description Show related Notes dialog
+   * @description Show select Group dialog
    * @param id waypoint identifier
    */
-  protected itemAddToGroup(id: string) {
-    this.dialog
-      .open(SelectGroupDialog)
-      .afterClosed()
-      .subscribe(async (grpId) => {
-        if (grpId) {
-          try {
-            await this.skgroups.addToGroup(grpId, 'waypoint', id);
-            this.app.showMsgBox('Message', `Waypoint added to group.`);
-          } catch (err) {
-            this.app.parseHttpErrorResponse(err);
-          }
-        }
+  protected async itemAddToGroup(id: string) {
+    try {
+      const groups = await this.skgroups.listFromServer();
+      const glist = groups.map((g) => {
+        return { id: g[0], name: g[1].name };
       });
+      this.dialog
+        .open(SingleSelectListDialog, {
+          data: {
+            title: 'Select Group',
+            icon: { name: 'category' },
+            items: glist
+          }
+        })
+        .afterClosed()
+        .subscribe(async (selGrp) => {
+          if (selGrp) {
+            try {
+              await this.skgroups.addToGroup(selGrp.id, 'waypoint', id);
+              this.app.showMessage(`Waypoint added to group.`);
+            } catch (err) {
+              this.app.parseHttpErrorResponse(err);
+            }
+          }
+        });
+    } catch (err) {
+      this.app.parseHttpErrorResponse(err);
+    }
   }
 }

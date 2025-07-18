@@ -5,17 +5,17 @@ import { Injectable, isDevMode } from '@angular/core';
 import { Subject, Observable } from 'rxjs';
 
 import { State } from './state.service';
-import { FBAppData, AppUpdateMessage } from '../../types';
-import { IAppConfig } from '../../app.settings';
+import { IAppConfig, FBAppData, AppUpdateMessage } from '../../types';
 
-export interface SettingsSignals {
+export interface SettingsSaveOptions {
   fetchNotes?: boolean;
   suppressTrailFetch?: boolean;
 }
+
 export interface SettingsMessage {
   action: 'save' | 'load';
   setting: 'data' | 'config';
-  signals?: SettingsSignals;
+  options?: SettingsSaveOptions;
 }
 
 @Injectable()
@@ -45,9 +45,6 @@ export class Info {
   constructor() {
     this.state = new State();
     this.devMode = isDevMode();
-    //** default configuration and data **
-    //this.config = {};
-    //this.data = {};
     this.state.appId = this.id;
     // ** initialise events
     this.upgradedSource = new Subject<AppUpdateMessage>();
@@ -125,9 +122,9 @@ export class Info {
   }
 
   //** persist app config **
-  saveConfig(signals?: SettingsSignals) {
+  saveConfig(options?: SettingsSaveOptions) {
     this.state.saveConfig(this.config);
-    this.settings.next({ action: 'save', setting: 'config', signals: signals });
+    this.settings.next({ action: 'save', setting: 'config', options: options });
   }
 
   //** persist app data **

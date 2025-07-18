@@ -1,22 +1,21 @@
-import { Injectable } from '@angular/core';
+import { Injectable, signal } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
-import { Subject, Observable } from 'rxjs';
 import { SignalKClient } from 'signalk-client-angular';
 import { AppFacade } from 'src/app/app.facade';
 import { SKResourceSet } from './resourceset-class';
-import { ResourceSet, CustomResources } from 'src/app/types';
+import { ResourceSet, ResourceSets } from 'src/app/types';
 import { processUrlTokens } from 'src/app/app.settings';
+import { HttpErrorResponse } from '@angular/common/http';
+
+type FBResourceSets = Map<string, SKResourceSet[]>;
 
 // ** Signal K custom / other resource(s) operations
 @Injectable({ providedIn: 'root' })
 export class SKOtherResources {
-  private updateSource: Subject<{ action: string; mode: string }> =
-    new Subject();
-  public update$(): Observable<{ action: string; mode: string }> {
-    return this.updateSource.asObservable();
-  }
+  private resSetCacheSignal = signal<FBResourceSets>(new Map());
+  readonly resourceSets = this.resSetCacheSignal.asReadonly();
 
-  private ignore = ['tracks', 'buddies'];
+  private ignoreList = ['tracks', 'buddies', 'groups'];
 
   constructor(
     public dialog: MatDialog,
@@ -24,168 +23,179 @@ export class SKOtherResources {
     public app: AppFacade
   ) {}
 
-  // **** ITEMS ****
+  /**
+   * Test if supplied item is a ResourceSet
+   * @param v Item to test
+   * @returns true on success
+   */
+  private isResourceSet(v: ResourceSet) {
+    if (typeof v.type === 'undefined') return false;
+    if (v.type !== 'ResourceSet') return false;
+    if (typeof v.values === 'undefined') return false;
+    return true;
+  }
 
-  // returns true if one or more ResourceSets of any type are selected
-  hasSelections(): boolean {
+  /**
+   * Build resource filter query
+   * @returns query string
+   */
+  private buildFilterQuery() {
+    let q = '';
+    if (
+      this.app.config.resources.fetchRadius !== 0 &&
+      this.app.config.resources.fetchFilter
+    ) {
+      q = processUrlTokens(
+        this.app.config.resources.fetchFilter,
+        this.app.config
+      );
+      if (!q.startsWith('?')) {
+        q = '?' + q;
+      }
+    }
+    return q;
+  }
+
+  /**
+   * @description Retrieve cached Resource Set | feature at index (app.data)
+   * @params id Map feature id.
+   * @params getFeature  true = return Feature entry, false = return whole RecordSet
+   * @returns Feature OR Resource Set.
+   */
+  public fromCache(mapFeatureId: string, getFeature?: boolean) {
+    const t = mapFeatureId.split('.');
+    if (t[0] !== 'rset') {
+      return;
+    }
+    const collection = t[1];
+    const rSetId = t[2];
+    const index = Number(t[t.length - 1]);
+    if (!Array.isArray(this.resSetCacheSignal().get(collection))) {
+      return;
+    }
+    const item = this.resSetCacheSignal()
+      .get(collection)
+      .filter((i: SKResourceSet) => i.id === rSetId)[0];
+    return getFeature ? item.values.features[index] : item;
+  }
+
+  /**
+   * @description Fetch resources of supplied type from Signal K server.
+   * @param collection The resource collection to which the resource belongs e.g. routes, waypoints, etc.
+   * @param query  Filter criteria for resources to return
+   * @param onlySelected Include only selected items in the response
+   * @returns Promise<T[]> (rejects with HTTPErrorResponse)
+   */
+  public lisFromServer(
+    collection: string,
+    query?: string,
+    onlySelected?: boolean
+  ): Promise<SKResourceSet[]> {
+    if (query) {
+      query = query.startsWith('?') ? query : `?${query}`;
+    } else {
+      query = '';
+    }
+    return new Promise((resolve, reject) => {
+      const skf = this.signalk.api.get(
+        this.app.skApiVersion,
+        `/resources/${collection}${query}`
+      );
+      skf?.subscribe(
+        (res: ResourceSets) => {
+          const list = Object.entries(res);
+          if (list.length === 0) {
+            resolve([]);
+          }
+          if (!this.isResourceSet(list[0][1])) {
+            resolve([]);
+          }
+          let rset: SKResourceSet[] = list.map((i) => {
+            const r = new SKResourceSet(i[1]);
+            r.id = i[0];
+            return r;
+          });
+          if (onlySelected) {
+            if (
+              !Array.isArray(
+                this.app.config.selections.resourceSets[collection]
+              )
+            ) {
+              resolve([]);
+            }
+            rset = rset.filter((i) =>
+              this.app.config.selections.resourceSets[collection].includes(i.id)
+            );
+          }
+          resolve(rset);
+        },
+        (err: HttpErrorResponse) => reject(err)
+      );
+    });
+  }
+
+  /**
+   * @description Refresh ResourceSet cache with "in bounds" items fetched from sk server
+   * @param collection ResourceSet collection name
+   * @param query Filter criteria for ResourceSets in placed in the cache
+   */
+  private async refreshItems(collection: string, query?: string) {
+    if (this.ignoreList.includes(collection)) {
+      return;
+    }
+    query = query ?? this.buildFilterQuery();
+    this.app.debug(`** ResourceSet.refreshItems() query: ${query}`);
+    try {
+      const items = await this.lisFromServer(collection, query, true);
+      this.resSetCacheSignal.update((current: FBResourceSets) => {
+        current.set(collection, items);
+        return current;
+      });
+    } catch (err) {
+      this.app.debug('** ResourceSet.refreshItems()', err);
+      this.resSetCacheSignal.update((current: FBResourceSets) => {
+        current.set(collection, []);
+        return current;
+      });
+    }
+  }
+
+  /**
+   * Refresh ResourceSet cache with "in bounds" items for all active ResourceSet collections
+   */
+  public refreshInBoundsItems(collection?: string) {
+    const doRefresh = async (c: string) => {
+      if (!Array.isArray(this.app.config.selections.resourceSets[c])) {
+        return;
+      }
+      this.app.debug(`refreshInBoundsItems(${c})`);
+      await this.refreshItems(c, this.buildFilterQuery());
+    };
+
+    if (collection) {
+      if (!this.ignoreList.includes(collection)) {
+        doRefresh(collection);
+      }
+    } else {
+      Object.keys(this.app.config.selections.resourceSets)
+        .filter((r) => !this.ignoreList.includes(r))
+        .forEach(async (collection: string) => doRefresh(collection));
+    }
+  }
+
+  /**
+   * Returns true if there are items selected in any ResourceSet collection.
+   * Used to trigger fetch of items within a map extent.
+   * */
+  public anySelected(): boolean {
     let result = false;
     Object.entries(this.app.config.selections.resourceSets)
-      .filter((r) => !this.ignore.includes(r[0]))
+      .filter((r) => !this.ignoreList.includes(r[0]))
       .forEach((r) => {
         if (r[1].length > 0) {
           result = true;
         }
       });
     return result;
-  }
-
-  // retrieve items within url params bounds for all active resource-set-types
-  getItemsInBounds() {
-    Object.keys(this.app.config.selections.resourceSets)
-      .filter((r) => !this.ignore.includes(r))
-      .forEach((resType: string) => {
-        if (this.app.config.selections.resourceSets[resType].length !== 0) {
-          console.log(`getItemsInBounds(${resType})`);
-          this.getItems(resType, true);
-        }
-      });
-  }
-
-  /** get items(s) from sk server
-   * selected: true= only include selected items
-   * noUpdate: true= suppress updateSource event
-   */
-  getItems(resType: string, selected = false, noUpdate = false) {
-    if (this.ignore.includes(resType)) {
-      return;
-    }
-    let rf = '';
-    if (
-      this.app.config.resources.fetchRadius !== 0 &&
-      this.app.config.resources.fetchFilter
-    ) {
-      rf = processUrlTokens(
-        this.app.config.resources.fetchFilter,
-        this.app.config
-      );
-      if (rf && rf[0] !== '?') {
-        rf = '?' + rf;
-      }
-    }
-    this.app.debug(`${rf}`);
-    const path = `/resources/${resType}${rf}`;
-    this.signalk.api
-      .get(this.app.skApiVersion, path)
-      .subscribe((res: CustomResources) => {
-        this.app.data.resourceSets[resType] = [];
-        const items = this.processItems(res);
-        if (selected) {
-          if (!this.app.config.selections.resourceSets[resType]) {
-            this.app.config.selections.resourceSets[resType] = [];
-          }
-          this.app.data.resourceSets[resType] = items.filter((i) => {
-            return this.app.config.selections.resourceSets[resType].includes(
-              i.id
-            )
-              ? true
-              : false;
-          });
-        } else {
-          this.app.data.resourceSets[resType] = items;
-        }
-
-        // ** clean up selections
-        /*if (this.app.config.selections.resourceSets[resType]) {
-          const k = Object.keys(res);
-          this.app.config.selections.resourceSets[resType] =
-            this.app.config.selections.resourceSets[resType]
-              .map((i) => {
-                return k.indexOf(i) !== -1 ? i : null;
-              })
-              .filter((i) => {
-                return i;
-              });
-        }*/
-        if (!noUpdate) {
-          this.updateSource.next({ action: 'get', mode: 'resource-set' });
-        }
-      });
-  }
-
-  // ** process data and apply styles
-  private processItems(res: CustomResources) {
-    let resList = [];
-    if (!Array.isArray(res)) {
-      // convert returned object to array
-      resList = Object.entries(res);
-    }
-    // check for ResourceSet
-    if (
-      resList.length !== 0 &&
-      (resList[0].length === 2 ||
-        resList[0][1].type ||
-        resList[0][1].type === 'ResourceSet')
-    ) {
-      return this.processResourceSet(resList);
-    } else {
-      return this.processOther(resList);
-    }
-  }
-
-  private resourceSelected() {
-    this.updateSource.next({ action: 'selected', mode: 'resource-set' });
-  }
-
-  private processResourceSet(resList: Array<[string, ResourceSet]>) {
-    const items = [];
-    // process ResourceSet
-    resList.forEach((r: [string, ResourceSet]) => {
-      const t = new SKResourceSet(r[1]);
-      t.id = r[0].toString();
-      // apply default / styleRefs to features
-      if (t.values?.features) {
-        t.values.features.forEach((f) => {
-          if (f.properties.styleRef) {
-            //styleRef
-            if (t.styles && t.styles[f.properties.styleRef]) {
-              f.properties.style = t.styles[f.properties.styleRef];
-            } else if (t.styles['default']) {
-              f.properties.style = t.styles['default'];
-            }
-          } else if (!f.properties.style) {
-            // no style (use default)
-            if (t.styles && t.styles['default']) {
-              f.properties.style = t.styles['default'];
-            }
-          }
-          // fall through= use defined style
-          // enforce min style
-          if (!f.properties.style.lineDash) {
-            f.properties.style.lineDash = [1];
-          }
-          if (!f.properties.style.width) {
-            f.properties.style.width = f.geometry.type === 'Point' ? 4 : 2;
-          }
-        });
-        items.push(t);
-      }
-    });
-    return items;
-  }
-
-  // ** process Non ResourceSet responses into generic return value
-  private processOther(resList: Array<unknown>) {
-    const items = [];
-    resList.forEach((r) => {
-      const i = {};
-      if (r['id'] || r['urn']) {
-        i['id'] = r['id'] ?? r['urn'];
-        i['type'] = r['type'] ?? 'unknown';
-        i['name'] = r['name'] ?? '';
-        i['description'] = r['description'] ?? '';
-        items.push(i);
-      }
-    });
-    return items;
   }
 }

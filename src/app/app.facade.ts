@@ -12,7 +12,7 @@ import {
   Info,
   SettingsMessage,
   IndexedDB,
-  SettingsSignals
+  SettingsSaveOptions
 } from './lib/services';
 
 import {
@@ -34,14 +34,15 @@ import {
   AppUpdateMessage,
   Position,
   ErrorList,
-  FBCharts
+  FBCharts,
+  IAppConfig
 } from './types';
 
 import {
-  IAppConfig,
-  DefaultConfig,
+  defaultConfig,
   validateConfig,
-  cleanConfig
+  cleanConfig,
+  initData
 } from './app.settings';
 
 import { WELCOME_MESSAGES } from './app.messages';
@@ -117,7 +118,7 @@ export class AppFacade extends Info {
     this.name = 'Freeboard-SK';
     this.shortName = 'Freeboard';
     this.description = `Signal K Chart Plotter.`;
-    this.version = '2.15.1';
+    this.version = '2.16.0';
     this.url = 'https://github.com/signalk/freeboard-sk';
     this.logo = './assets/img/app_logo.png';
 
@@ -177,115 +178,12 @@ export class AppFacade extends Info {
     this.debug('host:', this.host);
 
     // apply base config
-    this.config = JSON.parse(JSON.stringify(DefaultConfig));
+    this.config = defaultConfig();
     // apply default data
-    this.data = {
-      firstRun: false,
-      updatedRun: null,
-      kioskMode: typeof this.hostParams.kiosk !== 'undefined' ? true : false,
-      n2kRoute: null,
-      optAppPanel: false,
-      trueMagChoice: '',
-      loggedIn: false,
-      loginRequired: false,
-      loggedInBadgeText: '!',
-      hasToken: false,
-      hasWakeLock: false,
-      chartBounds: {
-        show: false,
-        charts: []
-      },
-      resourceSets: {}, // additional resource sets
-      selfId: null,
-      activeRoute: null,
-      activeRouteReversed: false,
-      activeRouteCircular: false,
-      activeRouteIsEditing: false,
-      editingId: null,
-      activeWaypoint: null,
-      trail: [], // self vessel track / trail
-      serverTrail: false, // trail received from server
-      server: null,
-      lastGet: null, // map position of last resources GET
-      map: {
-        suppressContextMenu: false,
-        atClick: {
-          features: [],
-          lonlat: [0, 0]
-        }
-      },
-      vessels: {
-        // received vessel data
-        showSelf: false,
-        self: new SKVessel(),
-        aisTargets: new Map(),
-        aisTracks: new Map(), // AIS targets track (tracks plugin)
-        activeId: null,
-        active: null,
-        closest: [],
-        prefAvailablePaths: {}, // preference paths available from source,
-        flagged: [] // flagged ais targets
-      },
-      aircraft: new Map(), // received AIS aircraft data
-      atons: new Map(), // received AIS AtoN data
-      sar: new Map(), // received AIS SaR data
-      meteo: new Map(), // received AIS Meteo data
-      aisMgr: {
-        // manage aisTargets
-        updateList: [],
-        staleList: [],
-        removeList: []
-      },
-      navData: {
-        dtg: null,
-        ttg: null,
-        eta: null,
-        route: {
-          dtg: null,
-          ttg: null,
-          eta: null
-        },
-        bearing: { value: null, type: null },
-        bearingTrue: null,
-        bearingMagnetic: null,
-        xte: null,
-        vmg: null,
-        position: null,
-        pointIndex: -1,
-        pointTotal: 0,
-        arrivalCircle: null,
-        startPosition: null,
-        pointNames: [],
-        activeRoutePoints: [],
-        destPointName: ''
-      },
-      racing: {
-        startLine: []
-      },
-      anchor: {
-        hasApi: true
-      },
-      buddyList: {
-        hasApi: false
-      },
-      autopilot: {
-        console: false, // display Autopilot console
-        hasApi: false // Server implements Autopilot API
-      },
-      skIcons: {
-        hasApi: false
-      },
-      buildRoute: {
-        show: false
-      },
-      weather: {
-        hasApi: false
-      },
-      measurement: {
-        coords: [],
-        index: -1
-      }
-    };
+    this.data = initData();
+
+    this.data.kioskMode =
+      typeof this.hostParams.kiosk !== 'undefined' ? true : false;
     this.data.map.suppressContextMenu = this.data.kioskMode;
 
     /***************************************
@@ -583,9 +481,9 @@ export class AppFacade extends Info {
   }
 
   // ** overloaded saveConfig() **
-  saveConfig(signals?: SettingsSignals) {
-    this.suppressTrailFetch = signals?.suppressTrailFetch ?? false;
-    super.saveConfig(signals);
+  saveConfig(options?: SettingsSaveOptions) {
+    this.suppressTrailFetch = options?.suppressTrailFetch ?? false;
+    super.saveConfig(options);
     if (this.data.loggedIn) {
       this.signalk.appDataSet('/', this.config).subscribe(
         () => this.debug('saveConfig: config saved to server.'),

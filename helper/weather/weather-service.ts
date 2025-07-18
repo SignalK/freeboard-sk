@@ -145,18 +145,13 @@ let lastFetch: number; // last successful fetch
 let fetchInterval = 3600000; // 1hr
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 let timer: any;
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-let retryTimer: any;
-const retryInterval = 10000; // time to wait after a failed api request
-const retryCountMax = 3; // max number of retries on failed api connection
-let retryCount = 0; // number of retries on failed api connection
-let noPosRetryCount = 0; // number of retries on no position detected
+
+const errorCountMax = 5; // max number of consecutive errors before terminating timer
+let errorCount = 0; // number of consecutive fetch errors (no position / failed api connection, etc)
 
 let weatherData: ParsedResponse;
 let weatherService: OpenWeather;
 let weatherServiceName: string;
-
-let metaSent = false;
 
 export const WEATHER_POLL_INTERVAL = [60, 30, 15];
 
@@ -180,9 +175,14 @@ export const initWeather = (
 
   initMeteoEndpoints();
 
+  if (!timer) {
+    server.debug(`*** Weather: startTimer..`);
+    timer = setInterval(() => fetchWeatherData(), wakeInterval);
+  }
   fetchWeatherData();
 };
 
+/** Initialise API endpoints */
 const initMeteoEndpoints = () => {
   const meteoPath = '/signalk/v2/api/meteo';
   server.get(`${meteoPath}`, async (req: Request, res: Response) => {
@@ -289,14 +289,101 @@ const initMeteoEndpoints = () => {
   );
 };
 
+/** stop weather service */
 export const stopWeather = () => {
+  stopTimer();
+  lastFetch = fetchInterval - 1;
+};
+
+/** stop interval timer */
+const stopTimer = () => {
   if (timer) {
+    server.debug(`*** Weather: Stopping timer.`);
     clearInterval(timer);
   }
-  if (retryTimer) {
-    clearTimeout(retryTimer);
+};
+
+/**
+ * Handle fetch errors
+ * @param msg mesgage to log
+ */
+const handleError = (msg: string) => {
+  console.log(msg);
+  errorCount++;
+  if (errorCount >= errorCountMax) {
+    // max retries exceeded.... going to sleep
+    console.log(
+      `*** Weather: Failed to fetch data after ${errorCountMax} attempts.\nRestart ${pluginId} plugin to retry.`
+    );
+    stopTimer();
+  } else {
+    console.log(`*** Weather: Error count = ${errorCount} of ${errorCountMax}`);
+    console.log(`*** Retry in  ${wakeInterval / 1000} seconds.`);
   }
-  lastFetch = fetchInterval - 1;
+};
+
+/** Fetch weather data from provider */
+const fetchWeatherData = () => {
+  server.debug(`*** Weather: fetchWeatherData()`);
+  // runaway check
+  if (lastWake) {
+    const dt = Date.now() - lastWake;
+    const flagValue = wakeInterval - 10000;
+    if (dt < flagValue) {
+      server.debug(
+        `Watchdog -> Awake!...(${dt / 1000} secs)... stopping timer...`
+      );
+      stopTimer();
+      server.setPluginError('Weather timer stopped by watchdog!');
+      return;
+    }
+  }
+
+  lastWake = Date.now();
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const pos: any = server.getSelfPath('navigation.position');
+  if (!pos) {
+    handleError(`*** Weather: No vessel position detected!`);
+    return;
+  }
+
+  server.debug(`*** Vessel position: ${JSON.stringify(pos.value)}.`);
+  // check if fetchInterval has lapsed
+  if (lastFetch) {
+    const e = Date.now() - lastFetch;
+    if (e < fetchInterval) {
+      server.debug(
+        `*** Weather: Next poll due in ${Math.round(
+          (fetchInterval - e) / 60000
+        )} min(s)... sleeping for ${wakeInterval / 1000} seconds...`
+      );
+      return;
+    }
+  }
+
+  if (errorCount < errorCountMax) {
+    server.debug(`*** Weather: Calling service API.....`);
+    server.debug(`Position: ${JSON.stringify(pos.value)}`);
+    server.debug(`*** Weather: polling weather provider.`);
+    weatherService
+      .fetchData(pos.value)
+      .then((data) => {
+        server.debug(`*** Weather: data received....`);
+        server.debug(JSON.stringify(data));
+        errorCount = 0;
+        lastFetch = Date.now();
+        lastWake = Date.now();
+        weatherData = data;
+        emitMeteoDeltas();
+        checkForWarnings();
+      })
+      .catch((err) => {
+        handleError(`*** Weather: ERROR polling weather provider!`);
+        console.log(err.message);
+        server.setPluginError(err.message);
+      });
+  }
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -335,100 +422,6 @@ export const getWeather = async (
     return value ?? {};
   } else {
     return station;
-  }
-};
-
-const fetchWeatherData = () => {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const pos: any = server.getSelfPath('navigation.position');
-  if (!pos) {
-    // try <noPosRetryCount> of times to detect vessel position
-    server.debug(`*** Weather: No vessel position detected!`);
-    if (noPosRetryCount >= 3) {
-      server.debug(
-        `*** Weather: Maximum number of retries to detect vessel position!... sleeping.`
-      );
-      return;
-    }
-    noPosRetryCount++;
-    retryTimer = setTimeout(() => {
-      server.debug(
-        `*** Weather: RETRY = ${noPosRetryCount} after no vessel position detected!`
-      );
-      fetchWeatherData();
-    }, 5000);
-    return;
-  }
-  server.debug(`*** Vessel position: ${JSON.stringify(pos.value)}.`);
-  noPosRetryCount = 0;
-  if (retryTimer) {
-    clearTimeout(retryTimer);
-  }
-  if (lastFetch) {
-    const e = Date.now() - lastFetch;
-    if (e < fetchInterval) {
-      server.debug(
-        `*** Weather: Next poll due in ${Math.round(
-          (fetchInterval - e) / 60000
-        )} min(s)... sleep for ${wakeInterval / 1000} secs...`
-      );
-      return;
-    }
-  }
-  if (retryCount < retryCountMax) {
-    retryCount++;
-    server.debug(
-      `*** Weather: Calling service API.....(attempt: ${retryCount})`
-    );
-    server.debug(`Position: ${JSON.stringify(pos.value)}`);
-    server.debug(`*** Weather: polling weather provider.`);
-    weatherService
-      .fetchData(pos.value)
-      .then((data) => {
-        server.debug(`*** Weather: data received....`);
-        server.debug(JSON.stringify(data));
-        retryCount = 0;
-        lastFetch = Date.now();
-        lastWake = Date.now();
-        weatherData = data;
-        timer = setInterval(() => {
-          server.debug(`*** Weather: wake from sleep....poll provider.`);
-          const dt = Date.now() - lastWake;
-          // check for runaway timer
-          if (dt >= 50000) {
-            server.debug('Wake timer watchdog -> OK');
-            server.debug(`*** Weather: Polling provider.`);
-          } else {
-            server.debug(
-              'Wake timer watchdog -> NOT OK... Stopping wake timer!'
-            );
-            server.debug(`Watch interval < 50 secs. (${dt / 1000} secs)`);
-            clearInterval(timer);
-            server.setPluginError('Weather watch timer error!');
-          }
-          lastWake = Date.now();
-          fetchWeatherData();
-        }, wakeInterval);
-        emitMeteoDeltas();
-        checkForWarnings();
-      })
-      .catch((err) => {
-        server.debug(
-          `*** Weather: ERROR polling weather provider! (retry in ${
-            retryInterval / 1000
-          } sec)`
-        );
-        console.log(err.message);
-        server.setPluginError(err.message);
-        // sleep and retry
-        retryTimer = setTimeout(() => fetchWeatherData(), retryInterval);
-      });
-  } else {
-    // max retries. sleep and retry?
-    retryCount = 0;
-    console.log(
-      `*** Weather: Failed to fetch data after ${retryCountMax} attempts.\nRestart ${pluginId} plugin to retry.`
-    );
   }
 };
 
@@ -612,12 +605,6 @@ const emitMeteoDeltas = () => {
         values: deltaValues
       };
 
-      if (!metaSent) {
-        server.debug('**** SENDING METAS *****');
-        updates.meta = buildMeteoMetas();
-        metaSent = true;
-      }
-
       server.handleMessage(
         pluginId,
         {
@@ -628,236 +615,4 @@ const emitMeteoDeltas = () => {
       );
     }
   }
-};
-
-const buildMeteoMetas = () => {
-  server.debug('**** METEO - build metas *****');
-  let metas = [];
-  metas = metas.concat(buildObservationMetas('environment'));
-  return metas;
-};
-
-const buildObservationMetas = (pathRoot: string) => {
-  const metas = [];
-  server.debug('**** METEO - building observation metas *****');
-  metas.push({
-    path: `${pathRoot}.date`,
-    value: {
-      description: 'Time of measurement.'
-    }
-  });
-  metas.push({
-    path: `${pathRoot}.sun.sunrise`,
-    value: {
-      description: 'Time of sunrise at the related position.'
-    }
-  });
-  metas.push({
-    path: `${pathRoot}.sun.sunset`,
-    value: {
-      description: 'Time of sunset at the related position.'
-    }
-  });
-  metas.push({
-    path: `${pathRoot}.outside.uvIndex`,
-    value: {
-      description: 'Level of UV radiation. 1 UVI = 25mW/sqm',
-      units: 'UVI'
-    }
-  });
-  metas.push({
-    path: `${pathRoot}.outside.cloudCover`,
-    value: {
-      description: 'Cloud clover.',
-      units: 'ratio'
-    }
-  });
-  metas.push({
-    path: `${pathRoot}.outside.temperature`,
-    value: {
-      description: 'Outside air temperature.',
-      units: 'K'
-    }
-  });
-  metas.push({
-    path: `${pathRoot}.outside.dewPointTemperature`,
-    value: {
-      description: 'Dew point.',
-      units: 'K'
-    }
-  });
-  metas.push({
-    path: `${pathRoot}.outside.feelsLikeTemperature`,
-    value: {
-      description: 'Feels like temperature.',
-      units: 'K'
-    }
-  });
-  metas.push({
-    path: `${pathRoot}.outside.horizontalVisibility`,
-    value: {
-      description: 'Horizontal visibility.',
-      units: 'm'
-    }
-  });
-  metas.push({
-    path: `${pathRoot}.outside.horizontalVisibilityOverRange`,
-    value: {
-      description:
-        'Visibilty distance is greater than the range of the measuring equipment.'
-    }
-  });
-  metas.push({
-    path: `${pathRoot}.outside.pressure`,
-    value: {
-      description: 'Barometric pressure.',
-      units: 'Pa'
-    }
-  });
-  metas.push({
-    path: `${pathRoot}.outside.pressureTendency`,
-    value: {
-      description:
-        'Integer value indicating barometric pressure value tendency e.g. 0 = steady, etc.'
-    }
-  });
-
-  metas.push({
-    path: `${pathRoot}.outside.pressureTendencyType`,
-    value: {
-      description:
-        'Description for the value of pressureTendency e.g. steady, increasing, decreasing.'
-    }
-  });
-  metas.push({
-    path: `${pathRoot}.outside.relativeHumidity`,
-    value: {
-      description: 'Relative humidity.',
-      units: 'ratio'
-    }
-  });
-  metas.push({
-    path: `${pathRoot}.outside.absoluteHumidity`,
-    value: {
-      description: 'Absolute humidity.',
-      units: 'ratio'
-    }
-  });
-  metas.push({
-    path: `${pathRoot}.wind.averageSpeed`,
-    value: {
-      description: 'Average wind speed.',
-      units: 'm/s'
-    }
-  });
-  metas.push({
-    path: `${pathRoot}.wind.speedTrue`,
-    value: {
-      description: 'True wind speed.',
-      units: 'm/s'
-    }
-  });
-  metas.push({
-    path: `${pathRoot}.wind.directionTrue`,
-    value: {
-      description: 'The wind direction relative to true north.',
-      units: 'rad'
-    }
-  });
-  metas.push({
-    path: `${pathRoot}.wind.gust`,
-    value: {
-      description: 'Maximum wind gust.',
-      units: 'm/s'
-    }
-  });
-  metas.push({
-    path: `${pathRoot}.wind.gustDirectionTrue`,
-    value: {
-      description: 'Maximum wind gust direction.',
-      units: 'rad'
-    }
-  });
-
-  metas.push({
-    path: `${pathRoot}.wind.gust`,
-    value: {
-      description: 'Maximum wind gust.',
-      units: 'm/s'
-    }
-  });
-
-  metas.push({
-    path: `${pathRoot}.water.level`,
-    value: {
-      description: 'Water level.',
-      units: 'm'
-    }
-  });
-
-  metas.push({
-    path: `${pathRoot}.water.levelTendency`,
-    value: {
-      description:
-        'Integer value indicating water level tendency e.g. 0 = steady, etc.'
-    }
-  });
-
-  metas.push({
-    path: `${pathRoot}.water.levelTendencyType`,
-    value: {
-      description:
-        'Description for the value of levelTendency e.g. steady, increasing, decreasing.'
-    }
-  });
-
-  metas.push({
-    path: `${pathRoot}.water.waves.significantHeight`,
-    value: {
-      description: 'Significant wave height.',
-      units: 'm'
-    }
-  });
-
-  metas.push({
-    path: `${pathRoot}.water.waves.period`,
-    value: {
-      description: 'Wave period.',
-      units: 'ms'
-    }
-  });
-
-  metas.push({
-    path: `${pathRoot}.water.waves.direction`,
-    value: {
-      description: 'Wave direction.',
-      units: 'rad'
-    }
-  });
-
-  metas.push({
-    path: `${pathRoot}.water.swell.significantHeight`,
-    value: {
-      description: 'Significant swell height.',
-      units: 'm'
-    }
-  });
-
-  metas.push({
-    path: `${pathRoot}.water.swell.period`,
-    value: {
-      description: 'Swell period.',
-      units: 'ms'
-    }
-  });
-
-  metas.push({
-    path: `${pathRoot}.water.swell.directionTrue`,
-    value: {
-      description: 'Swell direction.',
-      units: 'rad'
-    }
-  });
-
-  return metas;
 };

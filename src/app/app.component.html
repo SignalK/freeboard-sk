@@ -322,7 +322,9 @@
             <mat-progress-bar mode="query"></mat-progress-bar>
           </div>
           } @if(app.data.autopilot.console) {
-          <autopilot-console></autopilot-console>
+          <autopilot-console
+            [apData]="app.data.vessels.self.autopilot"
+          ></autopilot-console>
           } @if(app.data.buildRoute.show) {
           <route-builder
             (save)="skres.newRouteAt($event.coordinates, $event.meta)"

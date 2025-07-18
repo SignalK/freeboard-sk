@@ -481,7 +481,7 @@ export class AppComponent {
           this.bottomSheet
             .open(ResourceSetModal, {
               disableClose: true,
-              data: { path: e.choice, skres: this.skresOther }
+              data: { path: e.choice }
             })
             .afterDismissed()
             .subscribe(() => {
@@ -873,11 +873,8 @@ export class AppComponent {
         minWidth: '90vw'
       })
       .afterClosed()
-      .subscribe((doSave) => {
+      .subscribe(() => {
         this.focusMap();
-        if (doSave) {
-          this.app.saveConfig();
-        }
       });
   }
 
@@ -1347,12 +1344,12 @@ export class AppComponent {
     } else if (e.type === 'alarm') {
       this.notiMgr.showAlertInfo(e.id);
     } else if (e.type === 'rset') {
-      v = this.skres.resSetFromCache(e.id);
+      v = this.skresOther.fromCache(e.id);
       if (v) {
         this.bottomSheet
           .open(ResourceSetFeatureModal, {
             disableClose: true,
-            data: { id: e.id, skres: v }
+            data: { id: e.id, item: v }
           })
           .afterDismissed()
           .subscribe(() => {
@@ -1660,19 +1657,16 @@ export class AppComponent {
     this.skres.refreshRoutes();
     this.skres.refreshWaypoints();
     this.skres.refreshCharts();
-    //this.skres.refreshRegions(); // calling refreshNotes() also refreshes Regions
-    this.skres.refreshNotes();
+    this.skres.refreshNotes(); // calling refreshNotes() also refreshes Regions
     if (allTypes) {
-      this.fetchOtherResources(true);
+      this.fetchOtherResources();
     }
   }
 
   // ** fetch non-standard resources from server **
-  fetchOtherResources(onlySelected = false) {
+  fetchOtherResources() {
     this.skres.refreshTracks();
-    this.app.config.resources.paths.forEach((i) => {
-      this.skresOther.getItems(i, onlySelected);
-    });
+    this.skresOther.refreshInBoundsItems();
   }
 
   // ** open WS Stream

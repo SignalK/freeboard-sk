@@ -9,7 +9,7 @@ import {
   SKVersion
 } from '@signalk/server-api';
 import { FreeboardHelperApp } from '../index';
-import * as uuid from 'uuid'
+import * as uuid from 'uuid';
 
 const STANDARD_ALARMS = [
   'mob',
@@ -81,7 +81,7 @@ const initAlarmEndpoints = () => {
             buildAlarmData()
           )
         );
-        res.status(r.statusCode).json(Object.assign(r, {id: id}));
+        res.status(r.statusCode).json(Object.assign(r, { id: id }));
       } catch (e) {
         res.status(400).json({
           state: 'FAILED',
@@ -104,12 +104,14 @@ const initAlarmEndpoints = () => {
         return;
       }
       try {
-        const al = server.getSelfPath(`notifications.${req.params.alarmType}.${req.params.id}`);
+        const al = server.getSelfPath(
+          `notifications.${req.params.alarmType}.${req.params.id}`
+        );
         if (al && al.value) {
           server.debug('Alarm value....');
           if (al.value.method && al.value.method.includes('sound')) {
             server.debug('Alarm has sound... silence!!!');
-            al.value.method = al.value.method.filter(i => i !== 'sound');
+            al.value.method = al.value.method.filter((i) => i !== 'sound');
             const r = handleAlarm(
               'vessels.self',
               `notifications.${req.params.alarmType}.${req.params.id}` as Path,
@@ -185,7 +187,7 @@ const buildAlarmData = () => {
     createdAt: new Date().toISOString()
   };
   if (pos) {
-    r.position = pos.value
+    r.position = pos.value;
   }
   return r;
 };

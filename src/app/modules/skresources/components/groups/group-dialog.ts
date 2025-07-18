@@ -13,17 +13,33 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import {
   MatDialogModule,
   MatDialogRef,
-  MAT_DIALOG_DATA
+  MAT_DIALOG_DATA,
+  MatDialog
 } from '@angular/material/dialog';
 import { SKResourceGroup } from './groups.service';
 import { SKResourceService } from '../../resources.service';
-import { FBChart, FBRoute, FBWaypoint } from 'src/app/types';
+import {
+  FBChart,
+  FBRoute,
+  FBRoutes,
+  FBWaypoint,
+  FBWaypoints
+} from 'src/app/types';
+import { MultiSelectListDialog } from 'src/app/lib/components';
+import { AppIconDef } from 'src/app/modules/icons';
 
 /********* ResourceGroupDialog **********
 	data: {
+    addMode: true= new group, false edit group
     group: SKResourceGroup
   }
 ***********************************/
+
+interface RListEntry {
+  id: string;
+  name: string;
+}
+
 @Component({
   selector: 'ap-resourcegroupdialog',
   imports: [
@@ -39,17 +55,32 @@ import { FBChart, FBRoute, FBWaypoint } from 'src/app/types';
   ],
   template: `
     <div class="_ap-group">
-      <div style="display:flex;">
+      <div style="display:flex;widht:100%;">
         <div style="padding: 15px 0 0 10px;">
           <mat-icon>category</mat-icon>
         </div>
-        <div>
-          <h1 mat-dialog-title>Group Information</h1>
+        <div style="flex: 1 1 auto;">
+          <h1 mat-dialog-title>
+            {{ this.data.addMode ? 'New Group' : 'Group Information' }}
+          </h1>
+        </div>
+        <div style="padding: 15px 0 0 0;width:90px;">
+          <button
+            mat-raised-button
+            [disabled]="selTab === 0"
+            (click)="addResources()"
+            [matTooltip]="selTab === 1 ? 'Add Routes' : 'Add Waypoints'"
+          >
+            ADD
+          </button>
         </div>
       </div>
 
       <mat-dialog-content>
-        <mat-tab-group dynamicHeight="false">
+        <mat-tab-group
+          dynamicHeight="false"
+          (selectedTabChange)="tabSelected($event.index)"
+        >
           <mat-tab label="Details">
             <div style="padding-top: 10px;">
               <div>
@@ -81,7 +112,7 @@ import { FBChart, FBRoute, FBWaypoint } from 'src/app/types';
               </div>
             </div>
           </mat-tab>
-
+          @if(!this.data.addMode) {
           <mat-tab label="Routes">
             <mat-list>
               @for(i of gItem.routes; track i.id) {
@@ -133,29 +164,30 @@ import { FBChart, FBRoute, FBWaypoint } from 'src/app/types';
           </mat-tab>
 
           <!--<mat-tab label="Charts">
-            <mat-list>
-              @for(i of gItem.charts; track i.id) {
-              <mat-list-item>
-                <div style="display:flex;">
-                  <div
-                    style="flex: 1 1 auto; overflow: hidden; text-overflow: ellipsis;whitespace: pre;"
-                  >
-                    {{ i.name }}
-                  </div>
-                  <div>
-                    <button
-                      mat-icon-button
-                      matTooltip="Remove"
-                      (click)="removeItem('chart', i.id)"
+              <mat-list>
+                @for(i of gItem.charts; track i.id) {
+                <mat-list-item>
+                  <div style="display:flex;">
+                    <div
+                      style="flex: 1 1 auto; overflow: hidden; text-overflow: ellipsis;whitespace: pre;"
                     >
-                      <mat-icon class="icon-warn">delete</mat-icon>
-                    </button>
+                      {{ i.name }}
+                    </div>
+                    <div>
+                      <button
+                        mat-icon-button
+                        matTooltip="Remove"
+                        (click)="removeItem('chart', i.id)"
+                      >
+                        <mat-icon class="icon-warn">delete</mat-icon>
+                      </button>
+                    </div>
                   </div>
-                </div>
-              </mat-list-item>
-              }
-            </mat-list>
-          </mat-tab>-->
+                </mat-list-item>
+                }
+              </mat-list>
+            </mat-tab>-->
+          }
         </mat-tab-group>
       </mat-dialog-content>
       <mat-dialog-actions>
@@ -182,12 +214,17 @@ import { FBChart, FBRoute, FBWaypoint } from 'src/app/types';
 })
 export class ResourceGroupDialog implements OnInit {
   protected gItem: any;
+  protected selTab = 0;
+  protected wpts: RListEntry[] = [];
+  protected rtes: RListEntry[] = [];
 
   constructor(
     private dialogRef: MatDialogRef<ResourceGroupDialog>,
     private skres: SKResourceService,
+    protected dialog: MatDialog,
     @Inject(MAT_DIALOG_DATA)
     protected data: {
+      addMode: boolean;
       group: SKResourceGroup;
     }
   ) {}
@@ -210,6 +247,7 @@ export class ResourceGroupDialog implements OnInit {
             this.gItem.routes.push({ id: rte[0], name: rte[1].name });
           }
         });
+        this.sortIt(this.gItem.routes);
       }
     });
     this.skres.listFromServer<FBWaypoint>('waypoints').then((w) => {
@@ -219,6 +257,7 @@ export class ResourceGroupDialog implements OnInit {
             this.gItem.waypoints.push({ id: wpt[0], name: wpt[1].name });
           }
         });
+        this.sortIt(this.gItem.waypoints);
       }
     });
     this.skres.listFromServer<FBChart>('charts').then((c) => {
@@ -228,8 +267,11 @@ export class ResourceGroupDialog implements OnInit {
             this.gItem.charts.push({ id: cht[0], name: cht[1].name });
           }
         });
+        this.sortIt(this.gItem.charts);
       }
     });
+
+    this.bgLoadResources();
   }
 
   removeItem(itemType: string, id: string) {
@@ -269,5 +311,86 @@ export class ResourceGroupDialog implements OnInit {
       }
     }
     this.dialogRef.close({ save: save, group: this.data.group });
+  }
+
+  /**
+   * Handle tab selection change
+   * @param index Selected tab index
+   */
+  tabSelected(index: number) {
+    this.selTab = index;
+  }
+
+  /**
+   * Sort the resource list
+   * @param l Resource list
+   * @returns Reference to sorted list
+   */
+  sortIt(l: RListEntry[]) {
+    return l.sort((a, b) => {
+      const x = a.name?.toLowerCase();
+      const y = b.name?.toLowerCase();
+      return x > y ? 1 : -1;
+    });
+  }
+
+  /**
+   * Display list of resources for selection to add
+   */
+  addResources() {
+    let lTitle: string;
+    let icon: AppIconDef;
+    let rList: RListEntry[];
+
+    if (this.selTab === 1) {
+      lTitle = 'Routes';
+      icon = { svgIcon: 'route', class: 'ob' };
+      const rteIds = this.gItem.routes.map((i) => i.id);
+      rList = this.rtes.filter((i) => !rteIds.includes(i.id));
+    }
+    if (this.selTab === 2) {
+      lTitle = 'Waypoints';
+      icon = { name: 'location_on' };
+      const wptIds = this.gItem.waypoints.map((i) => i.id);
+      rList = this.wpts.filter((i) => !wptIds.includes(i.id));
+    }
+
+    this.dialog
+      .open(MultiSelectListDialog, {
+        data: {
+          title: `Select ${lTitle}`,
+          icon: icon,
+          items: this.sortIt(rList)
+        }
+      })
+      .afterClosed()
+      .subscribe((items: RListEntry[]) => {
+        if (items) {
+          if (this.selTab === 1) {
+            this.gItem.routes = [].concat(this.gItem.routes, items);
+            this.sortIt(this.gItem.routes);
+          }
+          if (this.selTab === 2) {
+            this.gItem.waypoints = [].concat(this.gItem.waypoints, items);
+            this.sortIt(this.gItem.waypoints);
+          }
+        }
+      });
+  }
+
+  /**
+   * Background load route and waypoint lists
+   */
+  bgLoadResources() {
+    this.skres.listFromServer<FBRoute>('routes').then((r) => {
+      this.rtes = r.map((i) => {
+        return { id: i[0], name: i[1].name };
+      });
+    });
+    this.skres.listFromServer<FBWaypoint>('waypoints').then((w) => {
+      this.wpts = w.map((i) => {
+        return { id: i[0], name: i[1].name };
+      });
+    });
   }
 }

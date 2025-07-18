@@ -1,26 +1,26 @@
 /** Resource Dialog Components **
  ********************************/
 
-import { Component, OnInit, Inject, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, Inject, signal } from '@angular/core';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatIconModule } from '@angular/material/icon';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatCheckboxModule } from '@angular/material/checkbox';
+import { MatProgressBarModule } from '@angular/material/progress-bar';
 import {
   MatBottomSheetRef,
   MAT_BOTTOM_SHEET_DATA
 } from '@angular/material/bottom-sheet';
 import { AppFacade } from 'src/app/app.facade';
-import { SignalKClient } from 'signalk-client-angular';
 import { SKResourceSet } from '../../resourceset-class';
+import { SKOtherResources } from '../../resourceset-service';
 
 /********* ResourceSetModal **********
  * Fetches ResouorceSets from server for selection
 	data: {
         path: "<string>" resource path
-        skres: SKResource
     }
 ***********************************/
 @Component({
@@ -31,7 +31,8 @@ import { SKResourceSet } from '../../resourceset-class';
     MatCardModule,
     MatButtonModule,
     MatToolbarModule,
-    MatCheckboxModule
+    MatCheckboxModule,
+    MatProgressBarModule
   ],
   template: `
     <div class="_ap-resource-set">
@@ -40,7 +41,6 @@ import { SKResourceSet } from '../../resourceset-class';
           <button
             mat-icon-button
             [disabled]="
-              !isResourceSet ||
               app.config.selections.resourceSets[data.path].length === 0
             "
             matTooltip="Clear selections"
@@ -52,9 +52,9 @@ import { SKResourceSet } from '../../resourceset-class';
 
           <button
             mat-icon-button
-            matTooltip="Fetch resource entries"
+            matTooltip="Refresh list entries"
             matTooltipPosition="right"
-            (click)="getItems()"
+            (click)="getItems(true)"
           >
             <mat-icon>refresh</mat-icon>
           </button>
@@ -73,30 +73,31 @@ import { SKResourceSet } from '../../resourceset-class';
           </button>
         </span>
       </mat-toolbar>
-      @for(res of resList; track res; let idx = $index) {
+      @if (app.sIsFetching()) {
+      <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+      } @else{ @for(res of resList(); track res[1].id; let idx = $index) {
       <mat-card>
         <mat-card-content>
           <div style="display:flex;flex-wrap:no-wrap;">
             <div style="width:45px;">
               <mat-checkbox
-                [disabled]="!isResourceSet"
-                [checked]="selRes[idx]"
-                (change)="handleCheck($event.checked, res.id, idx)"
+                [checked]="res[0]"
+                (change)="handleCheck($event.checked, res[1].id, idx)"
               ></mat-checkbox>
             </div>
             <div style="flex:1 1 auto;">
               <div class="key-label">
-                {{ res.name }}
+                {{ res[1].name }}
               </div>
               <div class="key-desc">
-                {{ res.description }}
+                {{ res[1].description }}
               </div>
             </div>
             <div style="width:45px;"></div>
           </div>
         </mat-card-content>
       </mat-card>
-      }
+      } }
     </div>
   `,
   styles: [
@@ -115,21 +116,16 @@ import { SKResourceSet } from '../../resourceset-class';
   ]
 })
 export class ResourceSetModal implements OnInit {
-  public resList: Array<SKResourceSet>;
-  public selRes = [];
-  public title = 'Resources: ';
-  public isResourceSet = false;
+  protected resList = signal<Array<[boolean, SKResourceSet]>>([]);
+  protected title = 'Resources: ';
 
   constructor(
     public app: AppFacade,
-    private cdr: ChangeDetectorRef,
-    private sk: SignalKClient,
-    public modalRef: MatBottomSheetRef<ResourceSetModal>,
+    private skresOther: SKOtherResources,
+    protected modalRef: MatBottomSheetRef<ResourceSetModal>,
     @Inject(MAT_BOTTOM_SHEET_DATA)
     public data: {
       path: string;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      skres: any;
     }
   ) {}
 
@@ -144,78 +140,52 @@ export class ResourceSetModal implements OnInit {
     this.modalRef.dismiss();
   }
 
-  getItems() {
-    this.sk.api
-      .get(this.app.skApiVersion, `resources/${this.data.path}`)
-      .subscribe(
-        (resSet) => {
-          this.resList = this.data.skres.processItems(resSet);
-          this.selRes = [];
-          if (
-            this.resList.length !== 0 &&
-            this.resList[0].type === 'ResourceSet'
-          ) {
-            this.isResourceSet = true;
-            for (let i = 0; i < this.resList.length; i++) {
-              this.selRes.push(
-                this.app.config.selections.resourceSets[
-                  this.data.path
-                ].includes(this.resList[i].id)
-                  ? true
-                  : false
-              );
-            }
-          }
-          this.cdr.detectChanges();
-        },
-        () => {
-          this.resList = [];
-          this.selRes = [];
-          this.cdr.detectChanges();
-        }
-      );
+  async getItems(silent?: boolean) {
+    try {
+      if (!silent) {
+        this.app.sIsFetching.set(true);
+      }
+      const rs = await this.skresOther.lisFromServer(this.data.path);
+      this.app.sIsFetching.set(false);
+      const list: Array<[boolean, SKResourceSet]> = rs.map((i) => {
+        return [
+          this.app.config.selections.resourceSets[this.data.path].includes(
+            i.id
+          ),
+          i
+        ];
+      });
+      this.resList.set(list);
+    } catch (err) {
+      this.app.sIsFetching.set(false);
+      this.resList.set([]);
+    }
   }
 
   handleCheck(checked: boolean, id: string, idx: number) {
-    if (!this.isResourceSet) {
-      return;
-    }
-    this.selRes[idx] = checked;
-    if (checked) {
-      this.app.config.selections.resourceSets[this.data.path].push(id);
-    } else {
-      const i =
-        this.app.config.selections.resourceSets[this.data.path].indexOf(id);
-      if (i !== -1) {
-        this.app.config.selections.resourceSets[this.data.path].splice(i, 1);
+    this.resList.update((current) => {
+      current[idx][0] = checked;
+      if (checked) {
+        this.app.config.selections.resourceSets[this.data.path].push(id);
+      } else {
+        const i =
+          this.app.config.selections.resourceSets[this.data.path].indexOf(id);
+        if (i !== -1) {
+          this.app.config.selections.resourceSets[this.data.path].splice(i, 1);
+        }
       }
-    }
+      return [].concat(current);
+    });
     this.app.saveConfig();
-    this.updateItems();
-    this.data.skres.resourceSelected();
+    this.skresOther.refreshInBoundsItems(this.data.path);
   }
 
   clearSelections() {
-    if (!this.isResourceSet) {
-      return;
-    }
-    this.selRes = [];
-    for (let i = 0; i < this.resList.length; i++) {
-      this.selRes[i] = false;
-    }
+    this.resList.update((current) => {
+      return current.map((i) => [false, i[1]]);
+    });
     this.app.config.selections.resourceSets[this.data.path] = [];
     this.app.saveConfig();
-    this.updateItems();
-    this.data.skres.resourceSelected();
-  }
-
-  updateItems() {
-    this.app.data.resourceSets[this.data.path] = this.resList.filter((t) => {
-      return this.app.config.selections.resourceSets[this.data.path].includes(
-        t.id
-      )
-        ? true
-        : false;
-    });
+    this.skresOther.refreshInBoundsItems(this.data.path);
   }
 }

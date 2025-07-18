@@ -4,8 +4,9 @@ Autopilot Console component
 ***********************************/
 import {
   Component,
+  signal,
   ChangeDetectionStrategy,
-  ChangeDetectorRef
+  input
 } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
 import { CommonModule } from '@angular/common';
@@ -19,9 +20,6 @@ import { MatMenuModule } from '@angular/material/menu';
 import { AppFacade } from 'src/app/app.facade';
 import { SignalKClient } from 'signalk-client-angular';
 import { Convert } from 'src/app/lib/convert';
-import { Subscription } from 'rxjs';
-import { UpdateMessage } from 'src/app/types';
-import { SKStreamFacade } from 'src/app/modules';
 
 @Component({
   selector: 'autopilot-console',
@@ -39,8 +37,27 @@ import { SKStreamFacade } from 'src/app/modules';
   styleUrls: ['./autopilot.component.css'],
   template: `
     <mat-menu #modemenu="matMenu">
-      @for(i of autopilotOptions.modes; track i) {
-      <button mat-menu-item (click)="setMode(i)">{{ i }}</button>
+      @for(i of modeOptions(); track i) {
+      <button mat-menu-item (click)="setMode(i)">
+        <span>{{ i }}</span>
+        @if (i === apData().mode) {
+        <mat-icon>check</mat-icon>
+        } @else {
+        <mat-icon>ok</mat-icon>
+        }
+      </button>
+      }
+    </mat-menu>
+    <mat-menu #statemenu="matMenu">
+      @for(i of stateOptions(); track i.name) {
+      <button mat-menu-item (click)="setState(i.name)">
+        <span>{{ i.name }}</span>
+        @if (i.name === apData().state) {
+        <mat-icon>check</mat-icon>
+        } @else {
+        <mat-icon>ok</mat-icon>
+        }
+      </button>
       }
     </mat-menu>
     <mat-card cdkDragHandle>
@@ -64,12 +81,12 @@ import { SKStreamFacade } from 'src/app/modules';
           <div class="content">
             <div style="height: 45px;color:whitesmoke;">
               Autopilot<br />
-              {{ app.data.vessels.self.autopilot.default ?? '' }}
+              {{ apData().default ?? '' }}
             </div>
             <div class="lcd">
               <div style="padding: 5px 0;display: flex;">
                 <div class="dial-text-title">
-                  @if(app.data.vessels.self.autopilot.default) {
+                  @if(apData().default) {
                   <span>Target</span>
                   } @else {
                   <span>No Pilot</span>
@@ -79,11 +96,8 @@ import { SKStreamFacade } from 'src/app/modules';
 
               <div class="dial-text">
                 <div class="dial-text-value">
-                  @if(app.data.vessels.self.autopilot.default ||
-                  app.data.vessels.self.autopilot.state === 'off-line') {
-                  <span>{{
-                    formatTargetValue(app.data.vessels.self.autopilot.target)
-                  }}</span>
+                  @if(apData().default || apData().state === 'off-line') {
+                  <span>{{ formatTargetValue(apData().target) }}</span>
                   } @else {
                   <span>--</span>
                   } &deg;
@@ -92,17 +106,15 @@ import { SKStreamFacade } from 'src/app/modules';
 
               <div style="padding: 10px 0;display: flex;">
                 <div class="dial-text-title">
-                  @if(app.data.vessels.self.autopilot.default ||
-                  app.data.vessels.self.autopilot.state === 'off-line') {
-                  <span>{{ app.data.vessels.self.autopilot.state }}</span>
+                  @if(apData().default || apData().state === 'off-line') {
+                  <span>{{ apData().state }}</span>
                   } @else {
                   <span>--</span>
                   }
                 </div>
                 <div class="dial-text-title">
-                  @if(app.data.vessels.self.autopilot.default ||
-                  app.data.vessels.self.autopilot.state === 'off-line') {
-                  <span>{{ app.data.vessels.self.autopilot.mode }}</span>
+                  @if(apData().default || apData().state === 'off-line') {
+                  <span>{{ apData().mode }}</span>
                   } @else {
                   <span>--</span>
                   }
@@ -110,15 +122,14 @@ import { SKStreamFacade } from 'src/app/modules';
               </div>
             </div>
 
-            @if(app.data.vessels.self.autopilot.mode === 'dodge') {
+            @if(apData().mode === 'dodge') {
             <div class="button-bar">
               <div style="width:50%;">
                 <button
                   class="button-secondary"
                   mat-mini-fab
                   [disabled]="
-                    !app.data.vessels.self.autopilot.default ||
-                    app.data.vessels.self.autopilot.state === 'off-line'
+                    !apData().default || apData().state === 'off-line'
                   "
                   (click)="dodgeAdjust(-10)"
                 >
@@ -128,8 +139,7 @@ import { SKStreamFacade } from 'src/app/modules';
                   class="button-toolbar"
                   mat-mini-fab
                   [disabled]="
-                    !app.data.vessels.self.autopilot.default ||
-                    app.data.vessels.self.autopilot.state === 'off-line'
+                    !apData().default || apData().state === 'off-line'
                   "
                   (click)="dodgeAdjust(-1)"
                 >
@@ -142,8 +152,7 @@ import { SKStreamFacade } from 'src/app/modules';
                   class="button-toolbar"
                   mat-mini-fab
                   [disabled]="
-                    !app.data.vessels.self.autopilot.default ||
-                    app.data.vessels.self.autopilot.state === 'off-line'
+                    !apData().default || apData().state === 'off-line'
                   "
                   (click)="dodgeAdjust(1)"
                 >
@@ -153,8 +162,7 @@ import { SKStreamFacade } from 'src/app/modules';
                   class="button-secondary"
                   mat-mini-fab
                   [disabled]="
-                    !app.data.vessels.self.autopilot.default ||
-                    app.data.vessels.self.autopilot.state === 'off-line'
+                    !apData().default || apData().state === 'off-line'
                   "
                   (click)="dodgeAdjust(10)"
                 >
@@ -169,8 +177,7 @@ import { SKStreamFacade } from 'src/app/modules';
                   class="button-secondary"
                   mat-mini-fab
                   [disabled]="
-                    !app.data.vessels.self.autopilot.default ||
-                    app.data.vessels.self.autopilot.state === 'off-line'
+                    !apData().default || apData().state === 'off-line'
                   "
                   (click)="targetAdjust(-10)"
                 >
@@ -180,8 +187,7 @@ import { SKStreamFacade } from 'src/app/modules';
                   class="button-toolbar"
                   mat-mini-fab
                   [disabled]="
-                    !app.data.vessels.self.autopilot.default ||
-                    app.data.vessels.self.autopilot.state === 'off-line'
+                    !apData().default || apData().state === 'off-line'
                   "
                   (click)="targetAdjust(-1)"
                 >
@@ -194,8 +200,7 @@ import { SKStreamFacade } from 'src/app/modules';
                   class="button-toolbar"
                   mat-mini-fab
                   [disabled]="
-                    !app.data.vessels.self.autopilot.default ||
-                    app.data.vessels.self.autopilot.state === 'off-line'
+                    !apData().default || apData().state === 'off-line'
                   "
                   (click)="targetAdjust(1)"
                 >
@@ -205,8 +210,7 @@ import { SKStreamFacade } from 'src/app/modules';
                   class="button-secondary"
                   mat-mini-fab
                   [disabled]="
-                    !app.data.vessels.self.autopilot.default ||
-                    app.data.vessels.self.autopilot.state === 'off-line'
+                    !apData().default || apData().state === 'off-line'
                   "
                   (click)="targetAdjust(10)"
                 >
@@ -218,23 +222,42 @@ import { SKStreamFacade } from 'src/app/modules';
 
             <div class="button-bar-thin">
               <div style="width:50%;">
+                @if(stateOptions().length > 2) {
+                <button
+                  class="button-primary"
+                  style="max-width:100px;"
+                  mat-raised-button
+                  [matMenuTriggerFor]="statemenu"
+                  [disabled]="
+                    !app.data.autopilot.hasApi ||
+                    !apData().default ||
+                    apData().state === 'off-line' ||
+                    !apData().state
+                  "
+                  [ngClass]="{
+                    'button-warn': apData().enabled,
+                    'button-primary': !apData().enabled,
+                  }"
+                >
+                  <div
+                    style="white-space: pre;text-overflow: ellipsis;overflow: hidden;max-width:90px;"
+                    [innerText]="formatLabel(apData().state)"
+                  ></div>
+                </button>
+                } @else {
                 <button
                   class="button-primary"
                   mat-raised-button
                   (click)="toggleEngaged()"
-                  [disabled]="
-                    !app.data.autopilot.hasApi ||
-                    !app.data.vessels.self.autopilot.default ||
-                    app.data.vessels.self.autopilot.state === 'off-line' ||
-                    !app.data.vessels.self.autopilot.state
-                  "
+                  [disabled]="noPilot()"
                   [ngClass]="{
-                    'button-warn': app.data.vessels.self.autopilot.enabled,
-                    'button-primary': !app.data.vessels.self.autopilot.enabled,
+                    'button-warn': apData().enabled,
+                    'button-primary': !apData().enabled,
                   }"
                 >
                   AUTO
                 </button>
+                }
               </div>
 
               <div>
@@ -242,12 +265,7 @@ import { SKStreamFacade } from 'src/app/modules';
                   class="button-secondary"
                   mat-raised-button
                   [matMenuTriggerFor]="modemenu"
-                  [disabled]="
-                    !app.data.autopilot.hasApi ||
-                    !app.data.vessels.self.autopilot.default ||
-                    app.data.vessels.self.autopilot.state === 'off-line' ||
-                    !app.data.vessels.self.autopilot.state
-                  "
+                  [disabled]="noPilot() || modeOptions().length === 0"
                 >
                   Mode
                 </button>
@@ -258,15 +276,10 @@ import { SKStreamFacade } from 'src/app/modules';
               <div style="text-align:center;width:100%;">
                 <button
                   [ngClass]="{
-                    'button-accent': app.data.vessels.self.autopilot.mode === 'dodge',
-                    'button-toolbar': app.data.vessels.self.autopilot.mode !== 'dodge',
+                    'button-accent': apData().mode === 'dodge',
+                    'button-toolbar': apData().mode !== 'dodge',
                   }"
-                  [disabled]="
-                    !app.data.autopilot.hasApi ||
-                    !app.data.vessels.self.autopilot.default ||
-                    app.data.vessels.self.autopilot.state === 'off-line' ||
-                    !app.data.vessels.self.autopilot.state
-                  "
+                  [disabled]="noPilot()"
                   mat-raised-button
                   (click)="toggleDodge()"
                 >
@@ -281,26 +294,19 @@ import { SKStreamFacade } from 'src/app/modules';
   `
 })
 export class AutopilotComponent {
-  protected autopilotOptions = { modes: [], states: [] };
-  private deltaSub: Subscription;
+  protected modeOptions = signal<string[]>([]);
+  protected stateOptions = signal<Array<{ name: string; engaged: boolean }>>(
+    []
+  );
   private autopilotApiPath: string;
 
-  constructor(
-    protected app: AppFacade,
-    private signalk: SignalKClient,
-    private stream: SKStreamFacade,
-    private cdr: ChangeDetectorRef
-  ) {
+  apData = input<any>({});
+
+  constructor(protected app: AppFacade, private signalk: SignalKClient) {
     this.autopilotApiPath = 'vessels/self/autopilots/_default';
   }
 
-  ngOnInit() {
-    this.deltaSub = this.stream.delta$().subscribe((e: UpdateMessage) => {
-      if (e.action === 'update') {
-        this.cdr.detectChanges();
-      }
-    });
-  }
+  ngOnInit() {}
 
   ngAfterViewInit() {
     this.signalk.api
@@ -312,27 +318,34 @@ export class AutopilotComponent {
             return;
           }
           if (val.options.modes && Array.isArray(val.options.modes)) {
-            this.autopilotOptions.modes = val.options.modes;
+            this.modeOptions.set(val.options.modes);
           }
           if (val.options.states && Array.isArray(val.options.states)) {
-            this.autopilotOptions.states = val.options.states;
+            this.stateOptions.set(val.options.states);
           }
-          this.cdr.detectChanges();
         },
         () => {
-          this.autopilotOptions = { modes: [], states: [] };
+          this.modeOptions.set([]);
+          this.stateOptions.set([]);
           this.app.data.autopilot.hasApi = false;
           this.app.showMessage('No autopilot providers found!');
         }
       );
   }
 
-  ngOnDestroy() {
-    this.deltaSub.unsubscribe();
+  ngOnDestroy() {}
+
+  noPilot(): boolean {
+    return (
+      !this.app.data.autopilot.hasApi ||
+      !this.apData().default ||
+      !this.apData().state ||
+      this.apData().state === 'off-line'
+    );
   }
 
   toggleEngaged() {
-    const uri = this.app.data.vessels.self.autopilot.enabled
+    const uri = this.apData().enabled
       ? `${this.autopilotApiPath}/disengage`
       : `${this.autopilotApiPath}/engage`;
     this.signalk.api.post(this.app.skApiVersion, uri, null).subscribe(
@@ -378,7 +391,7 @@ export class AutopilotComponent {
   }
 
   toggleDodge() {
-    if (this.app.data.vessels.self.autopilot.mode !== 'dodge') {
+    if (this.apData().mode !== 'dodge') {
       this.signalk.api
         .post(this.app.skApiVersion, `${this.autopilotApiPath}/dodge`, null)
         .subscribe(
@@ -467,6 +480,30 @@ export class AutopilotComponent {
     }
   }
 
+  setState(state: string) {
+    if (state) {
+      // autopilot mode
+      this.signalk.api
+        .put(this.app.skApiVersion, `${this.autopilotApiPath}/state`, {
+          value: state
+        })
+        .subscribe(
+          () => undefined,
+          (error: HttpErrorResponse) => {
+            let msg = `Error setting Autopilot state!\n`;
+            if (error.status === 403) {
+              msg += 'Unauthorised: Please login.';
+              this.app.showAlert(`Error (${error.status}):`, msg);
+            } else {
+              this.app.showMessage(
+                error.error?.message ?? 'Device returned an error!'
+              );
+            }
+          }
+        );
+    }
+  }
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   dragEventHandler(e: any, type: string) {
     this.app.debug(
@@ -477,6 +514,10 @@ export class AutopilotComponent {
       e.event.srcElement.clientLeft,
       e.event.srcElement.clientTop
     );
+  }
+
+  formatLabel(value: string) {
+    return value ? value.toUpperCase() : '...';
   }
 
   formatTargetValue(value: number) {

@@ -34,20 +34,69 @@
       <div class="theme-panel">
         <div class="setting-group" id="sectDisplay">
           <div class="setting-group-title">DISPLAY &amp; SOUND</div>
+          <mat-card class="setting-card">
+            <mat-card-content>
+              <div class="setting-card-row" style="padding-bottom: 10px">
+                <div class="setting-card-row-item">
+                  <mat-checkbox
+                    [(ngModel)]="facade.settings.nightMode"
+                    (change)="persistModel()"
+                    label="after"
+                    matTooltip="Auto-set using environment.mode value."
+                  >
+                    Auto-set Night Mode
+                  </mat-checkbox>
+                </div>
+                <div class="setting-card-row-item">
+                  <mat-form-field style="width: 100%">
+                    <mat-label>Dark Mode setting</mat-label>
+                    <mat-select
+                      matTooltip="Dark Mode setting."
+                      [(ngModel)]="facade.settings.darkMode.source"
+                      (selectionChange)="persistModel()"
+                    >
+                      @for(i of options.darkMode; track i[0]) {
+                      <mat-option [value]="i[0]">{{i[1]}}</mat-option>
+                      }
+                    </mat-select>
+                  </mat-form-field>
+                </div>
+                <div class="setting-card-row-item">
+                  <mat-checkbox
+                    [(ngModel)]="facade.settings.map.lockMoveMap"
+                    (change)="persistModel()"
+                    matTooltip="Do not exit follow vessel when map is panned."
+                    label="after"
+                  >
+                    Lock Follow Vessel
+                  </mat-checkbox>
+                </div>
+                <div class="setting-card-row-item">
+                  <mat-checkbox
+                    [(ngModel)]="facade.settings.selections.wakeLock"
+                    (change)="persistModel()"
+                    label="after"
+                  >
+                    Prevent Device Sleeping
+                  </mat-checkbox>
+                </div>
+              </div>
+            </mat-card-content>
+          </mat-card>
+          <br />
           @if(facade.data.optAppPanel) {
           <mat-card class="setting-card">
             <mat-card-content>
-              @if(facade.list.applications.length > 1) {
+              @if(facade.applicationList.length > 1) {
               <div class="setting-card-row">
                 <div class="setting-card-row-item">
                   <mat-form-field style="width: 100%">
                     <mat-label>Select Instruments App</mat-label>
                     <mat-select
-                      #instruments
-                      [(value)]="facade.settings.plugins.instruments"
-                      (selectionChange)="onFormChange($event, instruments);facade.buildFavouritesList()"
+                      [(ngModel)]="facade.settings.plugins.instruments"
+                      (selectionChange)="onInstrumentApp()"
                     >
-                      @for(i of facade.list.applications; track i) {
+                      @for(i of facade.applicationList; track i) {
                       <mat-option
                         [value]="i.url"
                         [matTooltip]="i.description"
@@ -66,9 +115,9 @@
                       matInput
                       type="text"
                       #instparams="ngModel"
-                      [disabled]="facade.settings.plugins.instruments==null"
+                      [disabled]="facade.settings.plugins.instruments === null"
                       [(ngModel)]="facade.settings.plugins.parameters"
-                      (change)="onFormChange($event, instparams)"
+                      (change)="persistModel()"
                       placeholder="e.g. ?layout=mylayout"
                       matTooltip="Enter parameters to pass to Instrument App"
                     />
@@ -76,23 +125,12 @@
                 </div>
                 <div class="setting-card-row-item">
                   <mat-checkbox
-                    #startOnOpen
                     [(ngModel)]="facade.settings.plugins.startOnOpen"
-                    (change)="onFormChange($event, startOnOpen)"
+                    (change)="persistModel()"
                     matTooltip="Stop instrument app when hidden"
                     label="after"
                   >
                     Halt App on hide
-                  </mat-checkbox>
-                </div>
-                <div class="setting-card-row-item">
-                  <mat-checkbox
-                    #wakelock
-                    [(ngModel)]="facade.settings.selections.wakeLock"
-                    (change)="onFormChange($event, wakelock)"
-                    label="after"
-                  >
-                    Prevent Device Sleeping
                   </mat-checkbox>
                 </div>
                 <div class="setting-card-row-item">
@@ -107,7 +145,7 @@
                   </button>
                 </div>
               </div>
-              } @if(display.favourites) {
+              } @if(show.favourites()) {
               <div class="setting-card-row" style="padding-bottom: 10px">
                 <div class="setting-card-row-item">
                   <div style="font-style: italic">
@@ -118,7 +156,7 @@
                     #favs
                     (selectionChange)="onFavSelected($event, favs)"
                   >
-                    @for(fav of facade.list.favourites; track fav) {
+                    @for(fav of facade.favouritesList; track fav) {
                     <mat-list-option
                       [disabled]="fav.url==facade.settings.plugins.instruments"
                       [selected]="facade.settings.selections.pluginFavourites.includes(fav.url)"
@@ -133,27 +171,15 @@
               }
             </mat-card-content>
           </mat-card>
-          }
           <br />
+          }
           <mat-card class="setting-card">
             <mat-card-content>
               <div class="setting-card-row" style="padding-bottom: 10px">
                 <div class="setting-card-row-item">
                   <mat-checkbox
-                    #lockMoveMap
-                    [(ngModel)]="facade.settings.map.lockMoveMap"
-                    (change)="onFormChange($event, lockMoveMap)"
-                    matTooltip="Do not exit follow vessel when map is panned."
-                    label="after"
-                  >
-                    Lock Follow Vessel
-                  </mat-checkbox>
-                </div>
-                <div class="setting-card-row-item">
-                  <mat-checkbox
-                    #muteAllSound
                     [(ngModel)]="facade.settings.muteSound"
-                    (change)="onFormChange($event, muteAllSound)"
+                    (change)="persistModel()"
                     matTooltip="Do not play sounds"
                     label="after"
                   >
@@ -162,9 +188,8 @@
                 </div>
                 <div class="setting-card-row-item">
                   <mat-checkbox
-                    #depthalarm
                     [(ngModel)]="facade.settings.depthAlarm.enabled"
-                    (change)="onFormChange($event, depthalarm)"
+                    (change)="persistModel()"
                     label="after"
                   >
                     Show DEPTH Alarms
@@ -174,13 +199,12 @@
                   <mat-form-field style="width: 100%">
                     <mat-label>Alarm Smoothing Time</mat-label>
                     <mat-select
-                      #depthsmoothing
+                      [(ngModel)]="facade.settings.depthAlarm.smoothing"
                       matTooltip="Period of time out of alarm state before re-triggering."
                       [disabled]="!facade.settings.depthAlarm.enabled"
-                      [(value)]="facade.settings.depthAlarm.smoothing"
-                      (selectionChange)="onFormChange($event, depthsmoothing)"
+                      (selectionChange)="persistModel()"
                     >
-                      @for(i of facade.alarmOptions.smoothing; track i[0]) {
+                      @for(i of options.alarm.smoothing; track i[0]) {
                       <mat-option [value]="i[0]">{{i[1]}}</mat-option>
                       }
                     </mat-select>
@@ -189,40 +213,9 @@
               </div>
             </mat-card-content>
           </mat-card>
+        </div>
 
-          <mat-card class="setting-card">
-            <mat-card-content>
-              <div class="setting-card-row" style="padding-bottom: 10px">
-                <div class="setting-card-row-item">
-                  <mat-checkbox
-                    #nightmode
-                    [(ngModel)]="facade.settings.nightMode"
-                    (change)="onFormChange($event, nightmode)"
-                    label="after"
-                    matTooltip="Auto-set using environment.mode value."
-                  >
-                    Auto-set Night Mode
-                  </mat-checkbox>
-                </div>
-                <div class="setting-card-row-item">
-                  <mat-form-field style="width: 100%">
-                    <mat-label>Dark Mode setting</mat-label>
-                    <mat-select
-                      #darkmode
-                      matTooltip="Dark Mode setting."
-                      [(value)]="facade.settings.darkMode.source"
-                      (selectionChange)="onFormChange($event, darkmode)"
-                    >
-                      @for(i of facade.darkModeOptions; track i[0]) {
-                      <mat-option [value]="i[0]">{{i[1]}}</mat-option>
-                      }
-                    </mat-select>
-                  </mat-form-field>
-                </div>
-              </div>
-            </mat-card-content>
-          </mat-card>
-
+        <div class="setting-group" id="sectMap">
           <div class="setting-group-title">MAP</div>
           <mat-card>
             <mat-card-content>
@@ -231,11 +224,10 @@
                   <mat-form-field style="width: 100%">
                     <mat-label>Feature label zoom level</mat-label>
                     <mat-select
-                      #labelsminzoom
-                      [(value)]="facade.settings.selections.labelsMinZoom"
-                      (selectionChange)="onFormChange($event, labelsminzoom)"
+                      [(ngModel)]="facade.settings.selections.labelsMinZoom"
+                      (selectionChange)="persistModel()"
                     >
-                      @for(i of facade.list.minZoom; track i) {
+                      @for(i of options.zoomLevels; track i) {
                       <mat-option [value]="i">{{i}}</mat-option>
                       }
                     </mat-select>
@@ -243,9 +235,8 @@
                 </div>
                 <div class="setting-card-row-item">
                   <mat-checkbox
-                    #popoverMulti
                     [(ngModel)]="facade.settings.popoverMulti"
-                    (change)="onFormChange($event, popoverMulti)"
+                    (change)="persistModel()"
                     matTooltip="Add close button to popovers"
                     label="after"
                   >
@@ -254,32 +245,17 @@
                 </div>
                 <div class="setting-card-row-item">
                   <mat-checkbox
-                    #mapDoubleClick
                     [(ngModel)]="facade.settings.mapDoubleClick"
-                    (change)="onFormChange($event, mapDoubleClick)"
+                    (change)="persistModel()"
                     matTooltip="Double Click map to zoom"
                     label="after"
                   >
                     Double click to Zoom
                   </mat-checkbox>
                 </div>
-                <!--
-                <br>                         
-                <div class="setting-card-row-item">
-                    <mat-checkbox #mapAnimate 
-                        [(ngModel)]="facade.settings.map.animate" 
-                        (change)="onFormChange($event, mapAnimate)"
-                        matTooltip="Animate Map movement"
-                        label="after">
-                        Animate Map
-                    </mat-checkbox>                                        
-                </div>
-              --></div>
+              </div>
             </mat-card-content>
           </mat-card>
-        </div>
-
-        <div class="setting-group" id="sectS57">
           <div class="setting-group-title">VECTOR CHARTS</div>
           <mat-card>
             <mat-card-content>
@@ -288,11 +264,11 @@
                   <mat-form-field style="width: 100%">
                     <mat-label>Graphics Style</mat-label>
                     <mat-select
-                      #s57GraphicsStyle
-                      [(value)]="facade.settings.selections.s57Options.graphicsStyle"
+                      [(ngModel)]="facade.settings.selections.s57Options.graphicsStyle"
+                      (selectionChange)="persistModel()"
                       placeholder="Graphicsstyle"
                     >
-                      @for(i of facade.s57Options.graphicsStyle; track i[0]) {
+                      @for(i of options.s57.graphicsStyle; track i[0]) {
                       <mat-option [value]="i[0]">{{i[1]}}</mat-option>
                       }
                     </mat-select>
@@ -302,11 +278,11 @@
                   <mat-form-field style="width: 100%">
                     <mat-label>Boundaries</mat-label>
                     <mat-select
-                      #s57Boundaries
-                      [(value)]="facade.settings.selections.s57Options.boundaries"
+                      [(ngModel)]="facade.settings.selections.s57Options.boundaries"
+                      (selectionChange)="persistModel()"
                       placeholder="Boundaries"
                     >
-                      @for(i of facade.s57Options.boundaries; track i[0]) {
+                      @for(i of options.s57.boundaries; track i[0]) {
                       <mat-option [value]="i[0]">{{i[1]}}</mat-option>
                       }
                     </mat-select>
@@ -316,11 +292,11 @@
                   <mat-form-field style="width: 100%">
                     <mat-label>Colors</mat-label>
                     <mat-select
-                      #s57Colors
-                      [(value)]="facade.settings.selections.s57Options.colors"
+                      [(ngModel)]="facade.settings.selections.s57Options.colors"
+                      (selectionChange)="persistModel()"
                       placeholder="Colors"
                     >
-                      @for(i of facade.s57Options.colors; track i) {
+                      @for(i of options.s57.colors; track i) {
                       <mat-option [value]="i">{{i}}</mat-option>
                       }
                     </mat-select>
@@ -333,8 +309,17 @@
                     <mat-label>Shallow depth</mat-label>
                     <input
                       matInput
+                      type="number"
+                      #s57shallowDepth="ngModel"
+                      required
                       [(ngModel)]="facade.settings.selections.s57Options.shallowDepth"
+                      (change)="parseNumber(s57shallowDepth)"
+                      min="0"
                     />
+                    @if(s57shallowDepth.invalid && (s57shallowDepth.dirty ||
+                    s57shallowDepth.touched)) {
+                    <mat-error> Please enter a positive number </mat-error>
+                    }
                     <span matSuffix>m</span>
                   </mat-form-field>
                 </div>
@@ -343,8 +328,17 @@
                     <mat-label>Safety depth</mat-label>
                     <input
                       matInput
+                      type="number"
+                      #s57safetyDepth="ngModel"
+                      required
                       [(ngModel)]="facade.settings.selections.s57Options.safetyDepth"
+                      (change)="parseNumber(s57safetyDepth)"
+                      min="0"
                     />
+                    @if(s57safetyDepth.invalid && (s57safetyDepth.dirty ||
+                    s57safetyDepth.touched)) {
+                    <mat-error> Please enter a positive number </mat-error>
+                    }
                     <span matSuffix>m</span>
                   </mat-form-field>
                 </div>
@@ -353,8 +347,17 @@
                     <mat-label>Deep depth</mat-label>
                     <input
                       matInput
+                      type="number"
+                      #s57deepDepth="ngModel"
+                      required
                       [(ngModel)]="facade.settings.selections.s57Options.deepDepth"
+                      (change)="parseNumber(s57deepDepth)"
+                      min="0"
                     />
+                    @if(s57deepDepth.invalid && (s57deepDepth.dirty ||
+                    s57deepDepth.touched)) {
+                    <mat-error> Please enter a positive number </mat-error>
+                    }
                     <span matSuffix>m</span>
                   </mat-form-field>
                 </div>
@@ -372,12 +375,11 @@
                   <mat-form-field style="width: 100%">
                     <mat-label>Distance units</mat-label>
                     <mat-select
-                      id="distunits"
                       #distunits
-                      [(value)]="facade.settings.units.distance"
-                      (selectionChange)="onFormChange($event, distunits)"
+                      [(ngModel)]="facade.settings.units.distance"
+                      (selectionChange)="persistModel()"
                     >
-                      @for(i of facade.availableUnits.distance; track i[0]) {
+                      @for(i of options.availableUnits.distance; track i[0]) {
                       <mat-option [value]="i[0]">{{i[1]}}</mat-option>
                       }
                     </mat-select>
@@ -388,11 +390,10 @@
                   <mat-form-field style="width: 100%">
                     <mat-label>Depth units</mat-label>
                     <mat-select
-                      #depthunits
-                      [(value)]="facade.settings.units.depth"
-                      (selectionChange)="onFormChange($event, depthunits)"
+                      [(ngModel)]="facade.settings.units.depth"
+                      (selectionChange)="persistModel()"
                     >
-                      @for(i of facade.availableUnits.depth; track i[0]) {
+                      @for(i of options.availableUnits.depth; track i[0]) {
                       <mat-option [value]="i[0]">{{i[1]}}</mat-option>
                       }
                     </mat-select>
@@ -403,12 +404,10 @@
                   <mat-form-field style="width: 100%">
                     <mat-label>Speed units</mat-label>
                     <mat-select
-                      id="speedunits"
-                      #speedunits
-                      [(value)]="facade.settings.units.speed"
-                      (selectionChange)="onFormChange($event, speedunits)"
+                      [(ngModel)]="facade.settings.units.speed"
+                      (selectionChange)="persistModel()"
                     >
-                      @for(i of facade.availableUnits.speed; track i[0]) {
+                      @for(i of options.availableUnits.speed; track i[0]) {
                       <mat-option [value]="i[0]">{{i[1]}}</mat-option>
                       }
                     </mat-select>
@@ -419,29 +418,27 @@
                   <mat-form-field style="width: 100%">
                     <mat-label>Temperature units</mat-label>
                     <mat-select
-                      id="tempunits"
-                      #tempunits
-                      [(value)]="facade.settings.units.temperature"
-                      (selectionChange)="onFormChange($event, tempunits)"
+                      [(ngModel)]="facade.settings.units.temperature"
+                      (selectionChange)="persistModel()"
                     >
-                      @for(i of facade.availableUnits.temperature; track i[0]) {
+                      @for(i of options.availableUnits.temperature; track i[0])
+                      {
                       <mat-option [value]="i[0]">{{i[1]}}</mat-option>
                       }
                     </mat-select>
                   </mat-form-field>
                 </div>
 
-                @if(facade.preferredValues.coords.length !== 0) {
+                @if(options.preferredValues.coords.length !== 0) {
                 <div class="setting-card-row-item">
                   <mat-form-field style="width: 100%">
                     <mat-label>Position display format</mat-label>
                     <mat-select
-                      #positionformat
                       matTooltip="Display position in this format"
-                      [(value)]="facade.settings.selections.positionFormat"
-                      (selectionChange)="onFormChange($event, positionformat)"
+                      [(ngModel)]="facade.settings.selections.positionFormat"
+                      (selectionChange)="persistModel()"
                     >
-                      @for(i of facade.preferredValues.coords; track i) {
+                      @for(i of options.preferredValues.coords; track i) {
                       <mat-option [value]="i[0]">{{i[1]}}</mat-option>
                       }
                     </mat-select>
@@ -457,17 +454,16 @@
                   </signalk-preferred-paths>
                 </div>
 
-                @if(facade.preferredValues.heading.length !== 0) {
+                @if(options.preferredValues.heading.length !== 0) {
                 <div class="setting-card-row-item">
                   <mat-form-field style="width: 100%">
                     <mat-label>Prefer True / Magnetic values</mat-label>
                     <mat-select
-                      #headingattrib
                       matTooltip="Preferred value type for paths not in Preferred Paths above"
-                      [(value)]="facade.settings.selections.headingAttribute"
-                      (selectionChange)="onFormChange($event, headingattrib)"
+                      [(ngModel)]="facade.settings.selections.headingAttribute"
+                      (selectionChange)="persistModel()"
                     >
-                      @for(i of facade.preferredValues.heading; track i) {
+                      @for(i of options.preferredValues.heading; track i) {
                       <mat-option [value]="i[0]">{{i[1]}}</mat-option>
                       }
                     </mat-select>
@@ -488,7 +484,7 @@
                   <mat-checkbox
                     #courseautoadvance
                     [(ngModel)]="facade.settings.selections.course.autoNextPointOnArrival"
-                    (change)="onFormChange($event, courseautoadvance)"
+                    (change)="persistModel()"
                     label="after"
                   >
                     Auto-advance to next point on arrival
@@ -500,10 +496,10 @@
                       #courseautoadvanceon
                       matTooltip="Select the trigger for advancing to next point."
                       [disabled]="courseautoadvance.checked === false"
-                      [(value)]="facade.settings.selections.course.autoNextPointTrigger"
-                      (selectionChange)="onFormChange($event, courseautoadvanceon)"
+                      [(ngModel)]="facade.settings.selections.course.autoNextPointTrigger"
+                      (selectionChange)="persistModel()"
                     >
-                      @for(i of facade.list.nextPointTriggers; track i) {
+                      @for(i of options.course.nextPointTrigger; track i) {
                       <mat-option [value]="i">{{i}}</mat-option>
                       }
                     </mat-select>
@@ -512,13 +508,12 @@
                   <mat-form-field style="width: 100%">
                     <mat-label>Time to wait before advancing</mat-label>
                     <mat-select
-                      #courseautoadvancedelay
-                      matTooltip="Period of time out of alarm state before re-triggering."
+                      matTooltip="Period of time before destination is advanced to next waypoint."
                       [disabled]="courseautoadvanceon.value === 'perpendicularPassed' || courseautoadvance.checked === false"
-                      [(value)]="facade.settings.selections.course.autoNextPointDelay"
-                      (selectionChange)="onFormChange($event, courseautoadvancedelay)"
+                      [(ngModel)]="facade.settings.selections.course.autoNextPointDelay"
+                      (selectionChange)="persistModel()"
                     >
-                      @for(i of facade.alarmOptions.smoothing; track i[0]) {
+                      @for(i of options.course.nextPointDelay; track i[0]) {
                       <mat-option [value]="i[0]">{{i[1]}}</mat-option>
                       }
                     </mat-select>
@@ -533,13 +528,38 @@
           <div class="setting-group-title">VESSEL</div>
           <mat-card class="setting-card">
             <mat-card-content>
+              <div class="setting-card-row" style="padding-bottom: 10px">
+                <div class="setting-card-row-item">
+                  <fieldset>
+                    <legend>Vessel Icon Size</legend>
+                    <div class="setting-card-row" style="padding-bottom: 10px">
+                      <div class="setting-card-row-item">
+                        <mat-radio-group
+                          [(ngModel)]="facade.settings.selections.vessel.iconScale"
+                          (change)="persistModel()"
+                        >
+                          @for(i of options.vessel.selfIconScale; track i[0]) {
+                          <mat-radio-button [value]="i[0]">
+                            <img
+                              src="./assets/img/vessels/self.png"
+                              [style]="`transform: scale(${i[0]})`"
+                            />
+                            ({{i[1]}})
+                          </mat-radio-button>
+                          }
+                        </mat-radio-group>
+                      </div>
+                    </div>
+                  </fieldset>
+                </div>
+              </div>
               <div class="setting-card-row-item">
                 <fieldset>
                   <legend>
                     <mat-checkbox
                       #vesselfixedlocationmode
                       [(ngModel)]="facade.settings.fixedLocationMode"
-                      (change)="onFormChange($event, vesselfixedlocationmode)"
+                      (change)="persistModel()"
                       label="after"
                       matTooltip="e.g. Building, Camp, etc."
                     >
@@ -557,8 +577,8 @@
                           required
                           pattern="^-?([1-8]?[0-9])(\.\d{1,9})?$"
                           [(ngModel)]="facade.fixedPosition[1]"
-                          (change)="onFormChange($event, fixedlat)"
-                          [disabled]="false"
+                          (change)="parseNumber(fixedlat)"
+                          [disabled]="!vesselfixedlocationmode.checked"
                           min="-90"
                           max="90"
                         />
@@ -579,8 +599,8 @@
                           required
                           pattern="^-?(1[0-7]?[0-9]|[1-9]?[0-9])(\.\d{1,9})?$"
                           [(ngModel)]="facade.fixedPosition[0]"
-                          (change)="onFormChange($event, fixedlon)"
-                          [disabled]="false"
+                          (change)="parseNumber(fixedlon)"
+                          [disabled]="!vesselfixedlocationmode.checked"
                           min="-180"
                           max="180"
                         />
@@ -596,24 +616,26 @@
                   </div>
                 </fieldset>
               </div>
-              <br />
+            </mat-card-content>
+          </mat-card>
+          <br />
+          <mat-card class="setting-card">
+            <mat-card-content>
               <div class="setting-card-row-item">
                 <fieldset>
                   <legend>Vessel Lines:</legend>
 
                   <mat-checkbox
-                    #vesselwindvectors
                     [(ngModel)]="facade.settings.selections.vessel.windVectors"
-                    (change)="onFormChange($event, vesselwindvectors)"
+                    (change)="persistModel()"
                     label="after"
                   >
                     Display Wind Vectors
                   </mat-checkbox>
 
                   <mat-checkbox
-                    #vessellaylines
                     [(ngModel)]="facade.settings.selections.vessel.laylines"
-                    (change)="onFormChange($event, vessellaylines)"
+                    (change)="persistModel()"
                     label="after"
                   >
                     Display Laylines
@@ -622,12 +644,11 @@
                   <mat-form-field style="width: 100%">
                     <mat-label>Heading Line Length</mat-label>
                     <mat-select
-                      #vesselheadinglinesize
                       matTooltip="Length of heading line."
-                      [(value)]="facade.settings.selections.vessel.headingLineSize"
-                      (selectionChange)="onFormChange($event, vesselheadinglinesize)"
+                      [(ngModel)]="facade.settings.selections.vessel.headingLineSize"
+                      (selectionChange)="persistModel()"
                     >
-                      @for(i of facade.vesselOptions.headingLine; track i[0] ) {
+                      @for(i of options.vessel.headingLine; track i[0] ) {
                       <mat-option [value]="i[0]">{{i[1]}}</mat-option>
                       }
                     </mat-select>
@@ -636,112 +657,111 @@
                   <mat-form-field style="width: 100%">
                     <mat-label>COG Line Length</mat-label>
                     <mat-select
-                      #vesselcoglinesize
                       matTooltip="Length of COG line."
-                      [(value)]="facade.settings.selections.vessel.cogLine"
-                      (selectionChange)="onFormChange($event, vesselcoglinesize)"
+                      [(ngModel)]="facade.settings.selections.vessel.cogLine"
+                      (selectionChange)="persistModel()"
                     >
-                      @for(i of facade.vesselOptions.cogLine; track i[0]) {
+                      @for(i of options.vessel.cogLine; track i[0]) {
                       <mat-option [value]="i[0]">{{i[1]}}</mat-option>
                       }
                     </mat-select>
                   </mat-form-field>
                 </fieldset>
               </div>
-              <br />
-              <fieldset>
-                <legend>
-                  <mat-checkbox
-                    #vesseltrail
-                    [(ngModel)]="facade.settings.selections.vessel.trail"
-                    (change)="onFormChange($event, vesseltrail)"
-                    label="after"
-                  >
-                    Display Vessel Trail
-                  </mat-checkbox>
-                </legend>
-                <div class="setting-card-row" style="padding-bottom: 10px">
-                  <div class="setting-card-row-item">
+            </mat-card-content>
+          </mat-card>
+          <br />
+          <mat-card class="setting-card">
+            <mat-card-content>
+              <div class="setting-card-row" style="padding-bottom: 10px">
+                <fieldset>
+                  <legend>
                     <mat-checkbox
-                      #trailFromServer
-                      [disabled]="!facade.settings.selections.vessel.trail"
-                      [(ngModel)]="facade.settings.selections.trailFromServer"
-                      (change)="onFormChange($event, trailFromServer)"
-                      matTooltip="Select to source trail data from the server"
+                      [(ngModel)]="facade.settings.selections.vessel.trail"
+                      (change)="persistModel()"
                       label="after"
                     >
-                      Get Trail from server
+                      Display Vessel Track
                     </mat-checkbox>
-                    &nbsp;&nbsp;
+                  </legend>
+                  <div class="setting-card-row" style="padding-bottom: 10px">
+                    <div class="setting-card-row-item">
+                      <mat-checkbox
+                        [disabled]="!facade.settings.selections.vessel.trail"
+                        [(ngModel)]="facade.settings.selections.trailFromServer"
+                        (change)="persistModel()"
+                        matTooltip="Select to source trail data from the server"
+                        label="after"
+                      >
+                        Get Track from server
+                      </mat-checkbox>
+                      &nbsp;&nbsp;
 
-                    <mat-slider
-                      discrete
-                      #trailDuration
-                      tickInterval="1"
-                      min="1"
-                      max="96"
-                      [disabled]="!facade.settings.selections.trailFromServer || !facade.settings.selections.vessel.trail"
-                    >
-                      <input
-                        matSliderThumb
-                        [(ngModel)]="facade.settings.selections.trailDuration"
-                        (valueChange)="onFormChange($event, trailDuration, true)"
-                      />
-                    </mat-slider>
-                    Length ({{facade.settings.selections.trailDuration}} hrs)
-                  </div>
-                </div>
-                <div class="setting-card-row" style="padding-bottom: 10px">
-                  <div class="setting-card-row-item">
-                    <mat-form-field style="width: 100%">
-                      <mat-label>Resolution: Last hour</mat-label>
-                      <mat-select
-                        #trailRes1
-                        [(value)]="facade.settings.selections.trailResolution.lastHour"
+                      <mat-slider
+                        discrete
+                        tickInterval="1"
+                        min="1"
+                        max="96"
                         [disabled]="!facade.settings.selections.trailFromServer || !facade.settings.selections.vessel.trail"
-                        (selectionChange)="onFormChange($event, trailRes1)"
                       >
-                        @for(i of facade.trailOptions.highResolution; track
-                        i[0]) {
-                        <mat-option [value]="i[0]">{{i[1]}}</mat-option>
-                        }
-                      </mat-select>
-                    </mat-form-field>
+                        <input
+                          matSliderThumb
+                          [(ngModel)]="facade.settings.selections.trailDuration"
+                          (valueChange)="deferPersist()"
+                        />
+                      </mat-slider>
+                      Length ({{facade.settings.selections.trailDuration}} hrs)
+                    </div>
                   </div>
-                  <div class="setting-card-row-item">
-                    <mat-form-field style="width: 100%">
-                      <mat-label>Resolution: 1 hr -> 24 hrs</mat-label>
-                      <mat-select
-                        #trailRes23
-                        [(value)]="facade.settings.selections.trailResolution.next23"
-                        [disabled]="!facade.settings.selections.trailFromServer || !facade.settings.selections.vessel.trail"
-                        (selectionChange)="onFormChange($event, trailRes23)"
-                      >
-                        @for(i of facade.trailOptions.highResolution; track
-                        i[0]){
-                        <mat-option [value]="i[0]">{{i[1]}}</mat-option>
-                        }
-                      </mat-select>
-                    </mat-form-field>
+                  <div class="setting-card-row" style="padding-bottom: 10px">
+                    <div class="setting-card-row-item">
+                      <mat-form-field style="width: 100%">
+                        <mat-label>Resolution: Last hour</mat-label>
+                        <mat-select
+                          [(ngModel)]="facade.settings.selections.trailResolution.lastHour"
+                          [disabled]="!facade.settings.selections.trailFromServer || !facade.settings.selections.vessel.trail"
+                          (selectionChange)="persistModel()"
+                        >
+                          @for(i of options.trailIntervals.highResolution; track
+                          i[0]) {
+                          <mat-option [value]="i[0]">{{i[1]}}</mat-option>
+                          }
+                        </mat-select>
+                      </mat-form-field>
+                    </div>
+                    <div class="setting-card-row-item">
+                      <mat-form-field style="width: 100%">
+                        <mat-label>Resolution: 1 hr -> 24 hrs</mat-label>
+                        <mat-select
+                          [(ngModel)]="facade.settings.selections.trailResolution.next23"
+                          [disabled]="!facade.settings.selections.trailFromServer || !facade.settings.selections.vessel.trail"
+                          (selectionChange)="persistModel()"
+                        >
+                          @for(i of options.trailIntervals.highResolution; track
+                          i[0]){
+                          <mat-option [value]="i[0]">{{i[1]}}</mat-option>
+                          }
+                        </mat-select>
+                      </mat-form-field>
+                    </div>
+                    <div class="setting-card-row-item">
+                      <mat-form-field style="width: 100%">
+                        <mat-label>Resolution: > 24 hrs</mat-label>
+                        <mat-select
+                          [(ngModel)]="facade.settings.selections.trailResolution.beyond24"
+                          [disabled]="!facade.settings.selections.trailFromServer || !facade.settings.selections.vessel.trail"
+                          (selectionChange)="persistModel()"
+                        >
+                          @for(i of options.trailIntervals.mediumResolution;
+                          track i[0]) {
+                          <mat-option [value]="i[0]">{{i[1]}}</mat-option>
+                          }
+                        </mat-select>
+                      </mat-form-field>
+                    </div>
                   </div>
-                  <div class="setting-card-row-item">
-                    <mat-form-field style="width: 100%">
-                      <mat-label>Resolution: > 24 hrs</mat-label>
-                      <mat-select
-                        #trailRes24plus
-                        [(value)]="facade.settings.selections.trailResolution.beyond24"
-                        [disabled]="!facade.settings.selections.trailFromServer || !facade.settings.selections.vessel.trail"
-                        (selectionChange)="onFormChange($event, aisstaleage)"
-                      >
-                        @for(i of facade.trailOptions.mediumResolution; track
-                        i[0]) {
-                        <mat-option [value]="i[0]">{{i[1]}}</mat-option>
-                        }
-                      </mat-select>
-                    </mat-form-field>
-                  </div>
-                </div>
-              </fieldset>
+                </fieldset>
+              </div>
             </mat-card-content>
           </mat-card>
 
@@ -753,11 +773,10 @@
                   <mat-form-field style="width: 100%">
                     <mat-label>Mark AIS target inactive after</mat-label>
                     <mat-select
-                      #aisstaleage
-                      [(value)]="facade.settings.selections.aisStaleAge"
-                      (selectionChange)="onFormChange($event, aisstaleage)"
+                      [(ngModel)]="facade.settings.selections.aisStaleAge"
+                      (selectionChange)="persistModel()"
                     >
-                      @for(i of facade.list.aisTimeouts; track i[0]) {
+                      @for(i of options.vessel.aisTimeouts; track i[0]) {
                       <mat-option [value]="i[0]">{{i[1]}}</mat-option>
                       }
                     </mat-select>
@@ -768,11 +787,10 @@
                   <mat-form-field style="width: 100%">
                     <mat-label>Remove AIS target after</mat-label>
                     <mat-select
-                      #aismaxage
-                      [(value)]="facade.settings.selections.aisMaxAge"
-                      (selectionChange)="onFormChange($event, aismaxage)"
+                      [(ngModel)]="facade.settings.selections.aisMaxAge"
+                      (selectionChange)="persistModel()"
                     >
-                      @for(i of facade.list.aisTimeouts; track i[0]) {
+                      @for(i of options.vessel.aisTimeouts; track i[0]) {
                       <mat-option [value]="i[0]">{{i[1]}}</mat-option>
                       }
                     </mat-select>
@@ -783,11 +801,10 @@
                   <mat-form-field style="width: 100%">
                     <mat-label>Wind Vector Value</mat-label>
                     <mat-select
-                      #aiswindvector
-                      [(value)]="facade.settings.selections.aisWindApparent"
-                      (selectionChange)="onFormChange($event, aiswindvector)"
+                      [(ngModel)]="facade.settings.selections.aisWindApparent"
+                      (selectionChange)="persistModel()"
                     >
-                      @for(i of facade.preferredValues.wind; track i[0]) {
+                      @for(i of options.preferredValues.wind; track i[0]) {
                       <mat-option [value]="i[0]">{{i[1]}}</mat-option>
                       }
                     </mat-select>
@@ -796,13 +813,12 @@
 
                 <div class="setting-card-row-item">
                   <mat-form-field style="width: 100%">
-                    <mat-label>Wind / Trail Zoom Level</mat-label>
+                    <mat-label>Wind / Track Zoom Level</mat-label>
                     <mat-select
-                      #aiswindminzoom
-                      [(value)]="facade.settings.selections.aisWindMinZoom"
-                      (selectionChange)="onFormChange($event, aiswindminzoom)"
+                      [(ngModel)]="facade.settings.selections.aisWindMinZoom"
+                      (selectionChange)="persistModel()"
                     >
-                      @for(i of facade.list.minZoom; track i) {
+                      @for(i of options.zoomLevels; track i) {
                       <mat-option [value]="i">{{i}}</mat-option>
                       }
                     </mat-select>
@@ -811,16 +827,14 @@
 
                 <div class="setting-card-row-item">
                   <mat-checkbox
-                    #aisShowTrack
                     [(ngModel)]="facade.settings.selections.aisShowTrack"
-                    (change)="onFormChange($event, aisShowTrack)"
+                    (change)="persistModel()"
                     label="after"
                   >
-                    Show Trails
+                    Show Track
                   </mat-checkbox>
                   &nbsp;
                   <mat-checkbox
-                    #aisStateMoored
                     [(ngModel)]="aisStateFilter.moored"
                     (change)="onAisStateFilter()"
                     label="after"
@@ -829,7 +843,6 @@
                   </mat-checkbox>
                   &nbsp;
                   <mat-checkbox
-                    #aisStateAnchored
                     [(ngModel)]="aisStateFilter.anchored"
                     (change)="onAisStateFilter()"
                     label="after"
@@ -842,11 +855,10 @@
                   <mat-form-field style="width: 100%">
                     <mat-label>COG Line</mat-label>
                     <mat-select
-                      #aiscogline
-                      [(value)]="facade.settings.selections.vessel.aisCogLine"
-                      (selectionChange)="onFormChange($event, aiscogline)"
+                      [(ngModel)]="facade.settings.selections.vessel.aisCogLine"
+                      (selectionChange)="persistModel()"
                     >
-                      @for(i of facade.list.aisCogLine; track i[0]) {
+                      @for(i of options.vessel.aisCogLine; track i[0]) {
                       <mat-option [value]="i[0]">{{i[1]}}</mat-option>
                       }
                     </mat-select>
@@ -857,11 +869,10 @@
                   <mat-form-field style="width: 100%">
                     <mat-label>Display Profile</mat-label>
                     <mat-select
-                      #aisprofile
-                      [(value)]="facade.settings.selections.aisProfile"
-                      (selectionChange)="onFormChange($event, aisprofile)"
+                      [(ngModel)]="facade.settings.selections.aisProfile"
+                      (selectionChange)="persistModel()"
                     >
-                      @for(i of facade.list.aisProfiles; track i[0]) {
+                      @for(i of options.vessel.aisProfiles; track i[0]) {
                       <mat-option [value]="i[0]">{{i[1]}}</mat-option>
                       }
                     </mat-select>
@@ -879,9 +890,8 @@
               <div class="setting-card-row">
                 <div class="setting-card-row-item">
                   <mat-checkbox
-                    #shownotes
                     [(ngModel)]="facade.settings.notes"
-                    (change)="onFormChange($event, shownotes)"
+                    (change)="persistModel()"
                     label="after"
                   >
                     Display Notes on Map
@@ -891,13 +901,11 @@
                   <mat-form-field style="width: 100%">
                     <mat-label>Notes Zoom Level</mat-label>
                     <mat-select
-                      id="notesminzoom"
-                      #notesminzoom
                       [disabled]="!facade.settings.notes"
                       [(value)]="facade.settings.selections.notesMinZoom"
-                      (selectionChange)="onFormChange($event, notesminzoom)"
+                      (selectionChange)="persistModel({fetchNotes: true})"
                     >
-                      @for(i of facade.list.minZoom; track i) {
+                      @for(i of options.zoomLevels; track i) {
                       <mat-option [value]="i">{{i}}</mat-option>
                       }
                     </mat-select>
@@ -909,17 +917,15 @@
                   <mat-form-field style="width: 100%">
                     <mat-label
                       >{{'Fetch Notes radius: (' +
-                      facade.availableUnits.distance.get(distunits.value) +
+                      options.availableUnits.distance.get(distunits.value) +
                       ')'}}</mat-label
                     >
                     <mat-select
-                      id="notesgetradius"
-                      #notesgetradius
                       [disabled]="!facade.settings.notes"
-                      [(value)]="facade.settings.resources.notes.getRadius"
-                      (selectionChange)="onFormChange($event, notesgetradius)"
+                      [(ngModel)]="facade.settings.resources.notes.getRadius"
+                      (selectionChange)="persistModel({fetchNotes: true})"
                     >
-                      @for(i of facade.list.noteRadius;track i) {
+                      @for(i of options.resources.noteRadius;track i) {
                       <mat-option [value]="i">{{i}}</mat-option>
                       }
                     </mat-select>
@@ -931,12 +937,11 @@
                   <mat-form-field style="width: 100%" floatLabel="always">
                     <mat-label>Notes fetch filter:</mat-label>
                     <input
-                      id="notesrootfilter"
                       matInput
                       type="text"
                       #notesrootfilter
                       [(ngModel)]="facade.settings.resources.notes.rootFilter"
-                      (change)="onFormChange($event, notesrootfilter)"
+                      (change)="persistModel({fetchNotes: true})"
                       placeholder="?radius=%note:radius%"
                       matTooltip="Filter to apply when retrieving notes"
                     />
@@ -955,9 +960,8 @@
               <div class="setting-card-row">
                 <div class="setting-card-row-item">
                   <mat-checkbox
-                    #groupeditable
                     [(ngModel)]="facade.settings.resources.notes.groupNameEdit"
-                    (change)="onFormChange($event, groupeditable)"
+                    (change)="persistModel()"
                     matTooltip="Allow group name editing."
                     label="after"
                   >
@@ -966,9 +970,8 @@
                 </div>
                 <div class="setting-card-row-item">
                   <mat-checkbox
-                    #groupposition
                     [(ngModel)]="facade.settings.resources.notes.groupRequiresPosition"
-                    (change)="onFormChange($event, groupposition)"
+                    (change)="persistModel()"
                     matTooltip="Require position information when adding notes to a group."
                     label="after"
                   >
@@ -987,9 +990,8 @@
               <div class="setting-card-row">
                 <div class="setting-card-row-item">
                   <mat-checkbox
-                    #enablevideo
                     [(ngModel)]="facade.settings.resources.video.enable"
-                    (change)="onFormChange($event, enablevideo)"
+                    (change)="persistModel()"
                     label="after"
                   >
                     Enable Video
@@ -1005,7 +1007,7 @@
                       required
                       [disabled]="!facade.settings.resources.video.enable"
                       [(ngModel)]="facade.settings.resources.video.url"
-                      (change)="onFormChange($event, videourl)"
+                      (change)="persistModel()"
                       placeholder="Video stream url"
                       matTooltip="Enter URL of video stream"
                     />
@@ -1028,19 +1030,17 @@
                   <mat-form-field style="width: 100%">
                     <mat-label
                       >{{'Fetch radius: (' +
-                      facade.availableUnits.distance.get(distunits.value) +
+                      options.availableUnits.distance.get(distunits.value) +
                       ')'}}</mat-label
                     >
                     <mat-hint
                       >Note: Changing Fetch radius requires re-load.</mat-hint
                     >
                     <mat-select
-                      id="resfetchradius"
-                      #resfetchradius
-                      [(value)]="facade.settings.resources.fetchRadius"
-                      (selectionChange)="onFormChange($event, resfetchradius)"
+                      [(ngModel)]="facade.settings.resources.fetchRadius"
+                      (selectionChange)="persistModel()"
                     >
-                      @for(i of facade.list.resourceRadius;track i) {
+                      @for(i of options.resources.resSetRadius;track i) {
                       <mat-option [value]="i">{{i}}</mat-option>
                       }
                     </mat-select>
@@ -1056,7 +1056,7 @@
                       type="text"
                       #resfetchfilter
                       [(ngModel)]="facade.settings.resources.fetchFilter"
-                      (change)="onFormChange($event, resfetchfilter)"
+                      (change)="persistModel()"
                       placeholder="?radius=%fetch:radius%"
                       matTooltip="Filter to apply when retrieving resource sets"
                     />
@@ -1075,13 +1075,14 @@
               <div class="setting-card-row">
                 <div class="setting-card-row-item">
                   <div style="font-style: italic">
-                    path: ./resources/&lt;name&gt;
+                    Select resource layers (./resources/&lt;name&gt;)
                   </div>
                   <mat-selection-list
                     #respath
-                    (selectionChange)="onResPathSelected($event, respath)"
+                    matTooltip="Select resource layers to show."
+                    (selectionChange)="onResPathSelected(respath)"
                   >
-                    @for(f of facade.list.resourcePaths; track f) {
+                    @for(f of facade.resourcePathList; track f) {
                     <mat-list-option
                       [selected]="facade.settings.resources.paths.includes(f)"
                       [value]="f"
@@ -1100,19 +1101,6 @@
           <div class="setting-group-title">SIGNAL K: CONNECTION</div>
           <mat-card class="setting-card">
             <mat-card-content>
-              <!--<div class="setting-card-row-item">
-                <mat-checkbox
-                  #skproxied
-                  [(ngModel)]="facade.settings.selections.signalk.proxied"
-                  (change)="onFormChange($event, skproxied)"
-                  matToolTip="Check if Signal K server is behind a proxy"
-                  matTooltipPosition="below"
-                  label="after"
-                >
-                  Signal K server is behind a proxy.
-                </mat-checkbox>
-                <mat-error>Refresh required after change!</mat-error>
-              </div>-->
               <div class="setting-card-row">
                 <fieldset>
                   <legend>Filter Stream data:</legend>
@@ -1122,9 +1110,8 @@
                   </span>
                   <div class="setting-card-row-item">
                     <mat-checkbox
-                      #skfiltervessels
                       [(ngModel)]="facade.settings.selections.signalk.vessels"
-                      (change)="onFormChange($event, skfiltervessels)"
+                      (change)="persistModel()"
                       matToolTip="Check to receive other vessel data"
                       label="after"
                     >
@@ -1133,9 +1120,8 @@
                   </div>
                   <div class="setting-card-row-item">
                     <mat-checkbox
-                      #skfilteratons
                       [(ngModel)]="facade.settings.selections.signalk.atons"
-                      (change)="onFormChange($event, skfilteratons)"
+                      (change)="persistModel()"
                       matToolTip="Check to receive AtoN data"
                       matTooltipPosition="below"
                       label="after"
@@ -1145,9 +1131,8 @@
                   </div>
                   <div class="setting-card-row-item">
                     <mat-checkbox
-                      #skfilterairsraft
                       [(ngModel)]="facade.settings.selections.signalk.aircraft"
-                      (change)="onFormChange($event, skfilterairsraft)"
+                      (change)="persistModel()"
                       matTooltip="Check to receive aircraft data"
                       matTooltipPosition="below"
                       label="after"
@@ -1157,9 +1142,8 @@
                   </div>
                   <div class="setting-card-row-item">
                     <mat-checkbox
-                      #skfiltersar
                       [(ngModel)]="facade.settings.selections.signalk.sar"
-                      (change)="onFormChange($event, skfiltersar)"
+                      (change)="persistModel()"
                       matToolTip="Check to receive SaR data"
                       matTooltipPosition="below"
                       label="after"
@@ -1169,9 +1153,8 @@
                   </div>
                   <div class="setting-card-row-item">
                     <mat-checkbox
-                      #skfiltermeteo
                       [(ngModel)]="facade.settings.selections.signalk.meteo"
-                      (change)="onFormChange($event, skfiltermeteo)"
+                      (change)="persistModel()"
                       matToolTip="Check to receive Weather / Meteo data"
                       matTooltipPosition="below"
                       label="after"
@@ -1186,12 +1169,12 @@
                       <mat-label>Max. distance from vessel</mat-label>
                       <mat-select
                         #skmaxradius
-                        [(value)]="facade.settings.selections.signalk.maxRadius"
-                        (selectionChange)="onFormChange($event, skmaxradius)"
+                        [(ngModel)]="facade.settings.selections.signalk.maxRadius"
+                        (selectionChange)="persistModel()"
                         matToolTip="Only include AIS targets within this distance"
                         matTooltipPosition="below"
                       >
-                        @for(i of facade.list.aisMaxRadius; track i[0]) {
+                        @for(i of options.vessel.aisMaxRadius; track i[0]) {
                         <mat-option [value]="i[0]">{{i[1]}}</mat-option>
                         }
                       </mat-select>
@@ -1219,7 +1202,7 @@
             <mat-checkbox
               #experiments
               [(ngModel)]="facade.settings.experiments"
-              (change)="onFormChange($event, experiments)"
+              (change)="persistModel()"
               matTooltip="Enable Experimental Features"
               label="after"
             >

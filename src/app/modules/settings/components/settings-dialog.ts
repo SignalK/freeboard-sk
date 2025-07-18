@@ -1,15 +1,11 @@
-import { Component, OnInit, Inject, ElementRef } from '@angular/core';
+import { Component, OnInit, ElementRef, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
+import { FormsModule, NgModel } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatRadioModule } from '@angular/material/radio';
-import {
-  MatDialogModule,
-  MatDialogRef,
-  MAT_DIALOG_DATA
-} from '@angular/material/dialog';
+import { MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
@@ -23,7 +19,9 @@ import { MatToolbarModule } from '@angular/material/toolbar';
 
 import { SignalKPreferredPathsComponent } from './signalk-preferredpaths.component';
 import { SettingsFacade } from '../settings.facade';
-import { SettingsSignals } from 'src/app/lib/services';
+import { SettingsSaveOptions } from 'src/app/lib/services';
+import { defaultConfig } from 'src/app/app.settings';
+import { SettingsOptions } from '../settings.facade';
 
 interface PreferredPathsResult {
   save: boolean;
@@ -57,10 +55,13 @@ interface PreferredPathsResult {
   styleUrls: ['./settings-dialog.css']
 })
 export class SettingsDialog implements OnInit {
-  public display = { favourites: false };
-  public menuItems = [
+  protected show = {
+    favourites: signal<boolean>(false)
+  };
+
+  protected menuItems = [
     { id: 'sectDisplay', text: 'Display & Sound' },
-    { id: 'sectS57', text: 'Charts' },
+    { id: 'sectMap', text: 'Map & Charts' },
     { id: 'sectUnits', text: 'Units & Values' },
     { id: 'sectCourse', text: 'Course' },
     { id: 'sectVessels', text: 'Vessels' },
@@ -70,6 +71,8 @@ export class SettingsDialog implements OnInit {
     { id: 'sectResLayers', text: 'Signal K' }
   ];
 
+  protected options: SettingsOptions;
+
   public aisStateFilter = {
     moored: false,
     anchored: false
@@ -78,11 +81,12 @@ export class SettingsDialog implements OnInit {
   private saveOnClose = false;
 
   constructor(
-    public facade: SettingsFacade,
-    public myElement: ElementRef,
-    public dialogRef: MatDialogRef<SettingsDialog>,
-    @Inject(MAT_DIALOG_DATA) public data
-  ) {}
+    protected facade: SettingsFacade,
+    protected myElement: ElementRef,
+    protected dialogRef: MatDialogRef<SettingsDialog>
+  ) {
+    this.options = new SettingsOptions();
+  }
 
   ngOnInit() {
     this.facade.refresh();
@@ -92,8 +96,6 @@ export class SettingsDialog implements OnInit {
       }
     });
   }
-
-  //ngOnDestroy() { }
 
   jumpTo(id: string, wait = false) {
     if (wait) {
@@ -105,48 +107,129 @@ export class SettingsDialog implements OnInit {
     }
   }
 
-  // ** handle dialog close action
+  /**
+   * handle dialog close action
+   */
   handleClose() {
-    this.dialogRef.close(this.saveOnClose);
+    if (this.saveOnClose) {
+      this.persistModel();
+    }
+    this.dialogRef.close();
   }
 
+  /**
+   * toggle display of favourites
+   */
   toggleFavourites() {
-    this.display.favourites = this.display.favourites ? false : true;
+    this.show.favourites.update((current) => !current);
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  onFormChange(e: unknown, f: any, deferSave = false) {
-    if (deferSave) {
-      this.saveOnClose = true;
-    } else {
-      if (!f.invalid) {
-        const signals: SettingsSignals = {};
-        if (
-          ['notesminzoom', 'notesgetradius', 'notesrootfilter'].includes(f.id)
-        ) {
-          signals.fetchNotes = true;
-        }
-        this.facade.applySettings(signals);
-      } else {
-        console.warn('SETTINGS:', 'Form field invalid: Config NOT Saved!');
-      }
+  /**
+   * Parse entered number value and fall back to default if null.
+   */
+  parseNumber(e: NgModel) {
+    if (typeof e.model !== 'number') {
+      e.reset(this.fallbackToDefault());
+      return;
+    }
+    if (e.model < 0) {
+      e.reset(Math.abs(e.model));
+    }
+    this.persistModel();
+  }
+
+  /**
+   * Returns the fallback value for an invalid number entry.
+   * @returns default value
+   */
+  private fallbackToDefault() {
+    const dconfig = defaultConfig();
+    if (
+      typeof this.facade.settings.selections.s57Options.shallowDepth !==
+      'number'
+    ) {
+      return dconfig.selections.s57Options.shallowDepth;
+    }
+    if (
+      typeof this.facade.settings.selections.s57Options.safetyDepth !== 'number'
+    ) {
+      return dconfig.selections.s57Options.safetyDepth;
+    }
+    if (
+      typeof this.facade.settings.selections.s57Options.deepDepth !== 'number'
+    ) {
+      return dconfig.selections.s57Options.deepDepth;
+    }
+    if (
+      typeof this.facade.fixedPosition[0] !== 'number' ||
+      typeof this.facade.fixedPosition[1] !== 'number'
+    ) {
+      return 0;
     }
   }
 
+  /**
+   * Persist Settings after model change
+   */
+  persistModel(options?: SettingsSaveOptions) {
+    this.facade.applySettings(options);
+  }
+
+  /**
+   * Defer persisting Settings until dialog close
+   */
+  deferPersist() {
+    this.saveOnClose = true;
+  }
+
+  /**
+   * Handle default intrument app selection
+   */
+  onInstrumentApp() {
+    this.persistModel();
+    this.facade.buildFavouritesList();
+  }
+
+  /**
+   * Handle Preferred Paths component event
+   * @param e
+   */
   onPreferredPaths(e: PreferredPathsResult) {
     if (e.save) {
-      this.facade.settings.selections.preferredPaths = e.value;
-      this.facade.applySettings();
+      this.facade.settings.selections.preferredPaths = e.value as any;
+      this.persistModel();
     }
   }
 
+  /**
+   * Handle favourites component event
+   * @param e
+   */
   onFavSelected(e: unknown, f) {
     this.facade.settings.selections.pluginFavourites =
       f.selectedOptions.selected.map((i) => i.value);
-    this.facade.applySettings();
+    this.persistModel();
   }
 
-  onResPathSelected(e: unknown, f) {
+  /**
+   * Handle AIS state filter change
+   */
+  onAisStateFilter() {
+    const s = [];
+    for (const i in this.aisStateFilter) {
+      if (this.aisStateFilter[i]) {
+        s.push(i);
+      }
+    }
+    this.facade.settings.selections.aisState = [].concat(s);
+    this.persistModel();
+  }
+
+  /**
+   * Handle custom resource path selection changes
+   * @param f
+   */
+  onResPathSelected(f) {
     this.facade.settings.resources.paths = f.selectedOptions.selected.map(
       (i) => i.value
     );
@@ -158,25 +241,12 @@ export class SettingsDialog implements OnInit {
         this.facade.settings.selections.resourceSets[i] = [];
       } //create selection array
     });
-    this.facade.applySettings();
+    this.persistModel();
   }
 
-  onAisStateFilter() {
-    const s = [];
-    for (const i in this.aisStateFilter) {
-      if (this.aisStateFilter[i]) {
-        s.push(i);
-      }
-    }
-    this.facade.settings.selections.aisState = [].concat(s);
-    this.facade.applySettings();
-  }
-
-  noSort() {
-    return 0;
-  }
-
-  // delete auth token
+  /**
+   * delete auth token
+   */
   clearAuthToken() {
     this.facade.clearToken();
   }

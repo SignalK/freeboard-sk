@@ -232,7 +232,9 @@ export class OpenWeather implements IWeatherService {
 
         forecast.outside.pressure =
           typeof f.pressure !== 'undefined' ? f.pressure * 100 : null;
-        forecast.outside.absoluteHumidity = f.humidity ? (f.humidity / 100) : null;
+        forecast.outside.absoluteHumidity = f.humidity
+          ? f.humidity / 100
+          : null;
         forecast.wind.speedTrue = f.wind_speed ?? null;
         forecast.wind.directionTrue =
           typeof f.wind_deg !== 'undefined'

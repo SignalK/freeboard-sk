@@ -1,6 +1,15 @@
 # CHANGELOG: Freeboard
 
 
+### v2.16.0
+
+- **New**: Resource Groups: Add Routes and Waypoints to groups. Use groups to easily switch on / off resources to display on the map.
+- **New**: Added options to change the size of the vessel icon on the map. (#270)
+- **Updated**: Start-boat & start-pin waypoint icons
+- **Updated**: Always send metas for "weather service " `environment` paths at start-up (previously was just when weather service is enabled).
+- **Updated**: Weather service polling logic improved.
+
+
 ### v2.15.1
 
 - **Updated**: Waypoint icon size alignment

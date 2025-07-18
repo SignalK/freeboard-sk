@@ -13,13 +13,48 @@ import { Layer } from 'ol/layer';
 import { Feature } from 'ol';
 import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
-import { Style, RegularShape, Fill, Stroke, Circle } from 'ol/style';
+import { Style, RegularShape, Fill, Stroke, Circle, Icon } from 'ol/style';
 import { Geometry, Point, LineString } from 'ol/geom';
 import { fromLonLat } from 'ol/proj';
 import { MapComponent } from '../map.component';
 import { Extent, Coordinate } from '../models';
 import { fromLonLatArray, mapifyCoords } from '../util';
 import { AsyncSubject } from 'rxjs';
+import { Options } from 'ol/style/Icon';
+
+const vesselIconDef = {
+  src: './assets/img/vessels/self.png',
+  anchor: [9.5, 22.5],
+  anchorXUnits: 'pixels',
+  anchorYUnits: 'pixels',
+  size: [50, 50],
+  scale: 0.9, //0.75,
+  rotateWithView: true
+};
+
+const inactiveVesselStyle = new Style({
+  image: new Icon({
+    src: './assets/img/vessels/self_blur.png',
+    anchor: [9.5, 22.5],
+    anchorXUnits: 'pixels',
+    anchorYUnits: 'pixels',
+    size: [50, 50],
+    scale: 0.75,
+    rotateWithView: true
+  })
+});
+
+const fixedVesselStyle = new Style({
+  image: new Icon({
+    src: './assets/img/vessels/self_fixed.png',
+    anchor: [22.5, 50],
+    anchorXUnits: 'pixels',
+    anchorYUnits: 'pixels',
+    size: [50, 50],
+    scale: 0.5,
+    rotateWithView: false
+  })
+});
 
 // ** Freeboard Vessel component **
 @Component({
@@ -47,6 +82,7 @@ export class VesselComponent implements OnInit, OnDestroy, OnChanges {
   @Input() vesselLines: { [key: string]: Array<Coordinate> };
   @Input() showWind = false;
   @Input() fixedLocation: boolean;
+  @Input() iconScale = 1;
   @Input() opacity: number;
   @Input() visible: boolean;
   @Input() extent: Extent;
@@ -61,6 +97,7 @@ export class VesselComponent implements OnInit, OnDestroy, OnChanges {
   awaLine: Feature;
   headingLine: Feature;
   cogLine: Feature;
+  selfStyle: Style;
 
   constructor(
     protected changeDetectorRef: ChangeDetectorRef,
@@ -122,8 +159,9 @@ export class VesselComponent implements OnInit, OnDestroy, OnChanges {
           if (this.source) {
             this.renderVesselLines();
           }
-        } else if (key === 'vesselStyles') {
+        } else if (key === 'vesselStyles' || key === 'iconScale') {
           if (this.source) {
+            this.generateSelfStyle();
             this.parseVessel();
           }
         } else if (key === 'layerProperties') {
@@ -178,24 +216,26 @@ export class VesselComponent implements OnInit, OnDestroy, OnChanges {
     }
   }
 
+  // default self style with specified scale
+  generateSelfStyle() {
+    if (this.iconScale) {
+      vesselIconDef.scale = Math.abs(this.iconScale);
+    }
+    this.selfStyle = new Style({
+      image: new Icon(vesselIconDef as Options)
+    });
+  }
+
   // build target style
   buildStyle(): Style {
-    let cs = new Style({
-      // default style
-      image: new RegularShape({
-        points: 3,
-        radius: 15,
-        fill: new Fill({ color: 'red' }),
-        stroke: new Stroke({
-          color: 'black',
-          width: 3
-        }),
-        rotateWithView: true,
-        rotation: this.heading ?? 0
-      })
-    });
+    if (!this.selfStyle) {
+      this.generateSelfStyle();
+    }
+    // default style with speciifed scale
+    let cs = this.selfStyle;
 
     if (this.vesselStyles) {
+      // use supplied styles
       if (this.fixedLocation) {
         if (this.vesselStyles.fixed) {
           cs = this.vesselStyles.fixed;
@@ -213,8 +253,16 @@ export class VesselComponent implements OnInit, OnDestroy, OnChanges {
       }
     } else if (this.layerProperties && this.layerProperties.style) {
       cs = this.layerProperties.style;
+    } else {
+      // use default styles
+      if (this.fixedLocation) {
+        cs = fixedVesselStyle;
+      } else {
+        if (this.activeId && this.activeId !== this.id) {
+          cs = inactiveVesselStyle;
+        }
+      }
     }
-
     return cs;
   }
 
