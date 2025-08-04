@@ -741,6 +741,19 @@
           </div>
           }
           <!-- /right button bar -->
+
+          <!-- MOB Emergency Button -->
+          <div class="mob-emergency-button">
+            <button
+              class="button-warn mob-button"
+              mat-fab
+              (click)="raiseMOBAlarm()"
+              matTooltip="MAN OVERBOARD! Emergency Alarm"
+              matTooltipPosition="above"
+            >
+              <mat-icon class="ob" svgIcon="alarm-mob"></mat-icon>
+            </button>
+          </div>
           }
           <!--map panel-->
           <div

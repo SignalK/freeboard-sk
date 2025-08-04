@@ -333,6 +333,40 @@ export class AppComponent {
     this.focusMap();
   }
 
+  public raiseMOBAlarm() {
+    this.notiMgr.raiseServerAlarm('mob', 'Person Overboard!');
+    
+    const position = this.app.data.vessels.self.position;
+    if (position) {
+      this.createMOBWaypoint(position)
+          .then((waypointId) => {
+            if (waypointId) {
+              // Navigate to the new MOB waypoint
+              this.course.navigateToWaypoint(waypointId);
+            }
+      });
+    }
+  }
+
+  private async createMOBWaypoint(position: any): Promise<string | null> {
+    try {
+      const now = new Date();
+      const timestamp = now.toISOString().replace(/[:.]/g, '-').slice(0, -5);
+      const mobWaypointName = `MOB ${timestamp}`;
+      
+      const wpt = this.skres.buildWaypoint(position)[1];
+      wpt.name = mobWaypointName;
+      wpt.description = 'Person Overboard emergency waypoint';
+      wpt.type = 'pob';
+
+      const result = await this.skres.postToServer('waypoints', wpt);
+      return result.id;
+    } catch (error) {
+      console.error('Failed to create MOB waypoint:', error);
+      return null;
+    }
+  }
+
   protected toggleConstrainMapZoom() {
     this.app.uiConfig.update((current) => {
       return Object.assign({}, current, {
