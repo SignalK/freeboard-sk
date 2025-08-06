@@ -58,8 +58,8 @@
           <li><a href="#alerts">- Alerts</a></li>
           <li><a href="#playback">- Playback</a></li>
           <li><a href="#settings">Settings</a></li>
-          <li><a href="#parameters">- URL parameters</a></li>
           <li><a href="#experiments">- Experiments</a></li>
+          <li><a href="#parameters">- URL parameters</a></li>
           <li>
             <a href="https://github.com/SignalK/freeboard-sk/" target="_fb">
               GitHub</a
@@ -2036,40 +2036,8 @@
               </ul>
             </li>
           </ul>
-          <b>MAP:</b><br />
-          <ul>
-            <li>
-              <b>Feature label zoom level</b>: Select the zoom level at which
-              labels for features on the map appear. Labels will be hidden at
-              zoom levels below this value.
-            </li>
-            <li>
-              <b>Popover close with button</b>: Select this option in order to a
-              close a popover using a button rather than just clicking outside
-              of it.
-            </li>
-            <li>
-              <b>Double click to Zoom</b>: Select this option to enable zooming
-              the map with a double click.
-            </li>
-          </ul>
-          <b>VECTOR CHARTS:</b><br />
-          <ul>
-            <li>
-              <b>Graphics Style</b>: Select this option in order to a close a
-              popover using a button rather than just clicking outside of it.
-            </li>
-            <li>
-              <b>Boundaries</b>: Select from <b>Plain</b> or <b>Symbolized</b>.
-            </li>
-            <li><b>Colors</b>: Select from <b>2</b> or <b>4</b> colors.</li>
-            <li><b>Shallow Depth</b>: Enter the depth in meters.</li>
-            <li><b>Safety Depth</b>: Enter the depth in meters.</li>
-            <li><b>Deep Depth</b>: Enter the depth in meters.</li>
-          </ul>
-          <hr />
 
-          <b>UNITS &amp; VALUES:</b><br />
+          <b>UNITS:</b><br />
           This section provides choices about the units and values used when
           displaying data.<br />
 
@@ -2105,6 +2073,39 @@
           </i>
           <hr />
 
+          <b>MAP:</b><br />
+          <ul>
+            <li>
+              <b>Feature label zoom level</b>: Select the zoom level at which
+              labels for features on the map appear. Labels will be hidden at
+              zoom levels below this value.
+            </li>
+            <li>
+              <b>Popover close with button</b>: Select this option in order to a
+              close a popover using a button rather than just clicking outside
+              of it.
+            </li>
+            <li>
+              <b>Double click to Zoom</b>: Select this option to enable zooming
+              the map with a double click.
+            </li>
+          </ul>
+          <b>Vector Charts:</b><br />
+          <ul>
+            <li>
+              <b>Graphics Style</b>: Select this option in order to a close a
+              popover using a button rather than just clicking outside of it.
+            </li>
+            <li>
+              <b>Boundaries</b>: Select from <b>Plain</b> or <b>Symbolized</b>.
+            </li>
+            <li><b>Colors</b>: Select from <b>2</b> or <b>4</b> colors.</li>
+            <li><b>Shallow Depth</b>: Enter the depth in meters.</li>
+            <li><b>Safety Depth</b>: Enter the depth in meters.</li>
+            <li><b>Deep Depth</b>: Enter the depth in meters.</li>
+          </ul>
+          <hr />
+
           <b>COURSE:</b><br />
           This section provides settings for course navigation.<br />
 
@@ -2131,9 +2132,9 @@
           type.<br />
           Select the period of time to elapse before the destination is set to
           the next route point.<br />
-
           <hr />
-          <b>VESSEL:</b><br />
+
+          <b>VESSELS:</b><br />
           This section provides choices when displaying data for the vessel.<br />
 
           <ul>
@@ -2206,8 +2207,7 @@
               </ul>
             </li>
           </ul>
-          <hr />
-          <b>OTHER VESSELS:</b><br />
+          <b>Other Vessels:</b><br />
           This section provides choices when displaying data for other
           vessels.<br />
           <ul>
@@ -2252,7 +2252,9 @@
             </li>
           </ul>
           <hr />
-          <b>RESOURCES: NOTES</b><br />
+
+          <b>RESOURCES</b><br />
+          <b>Notes:</b><br />
           <ul>
             <li>
               <b>Display Notes on Map</b>: Un-check this box if you do not want
@@ -2308,31 +2310,8 @@
             </li>
           </ul>
 
-          <hr />
-          <b>RESOURCES: VIDEO</b><br />
-          Freeboard provides the ability to utilise the "Picture in Picture" (or
-          PiP) feature in supported browsers to display a video stream from a
-          source such as a video camera, etc.
-
-          <ul>
-            <li>
-              <b>Enable Video</b>: Check this box to enable the display of a PiP
-              video stream.
-            </li>
-            <li><b>URL</b>: Enter the url of the video stream source.</li>
-          </ul>
-
-          When enabled and a url defined a
-          <i class="material-icons">videocam</i>
-          button will be displayed on the screen.
-          <br />&nbsp;<br />
-          Click this button to open the video stream. The stream will start to
-          play and the video window can be moved, resized and playback
-          controlled using the controls provided by the browser.
-
-          <hr />
           <span id="resourcepaths"></span>
-          <b>RESOURCES: LAYERS</b><br />
+          <b>Layers:</b><br />
           Freeboard provides the ability display feature data contained in
           compliant JSON format layers on the map. The available resource paths
           are listed in this section and can be selected to enable them for use
@@ -2424,7 +2403,7 @@
 
           <hr />
 
-          <b>SIGNAL K CONNECTION:</b><br />
+          <b>SIGNAL K:</b><br />
           This section allows you to set parameters for the Signal K stream
           connection to provide control over the type and number of features
           displayed on the map.<br />
@@ -2440,11 +2419,6 @@
             style="height: 350px"
             alt=""
           /><br />
-
-          <!--<b>Signal K server is behind a proxy:</b><br />
-          Check this option when your browser is connecting to a Signal K server
-          that is behind a proxy server. This enables Freeboard-SK to correctly
-          detect and connect to the endpoints exposed by the Signal K Server.<br />&nbsp;<br />-->
 
           <b>Filter Stream Data:</b>
           Use the options in this section to select which Signal K
@@ -2483,6 +2457,45 @@
               Selecting <i>None (default)</i> will display all received targets.
             </li>
           </ul>
+
+          <hr />
+
+          <b id="experiments">EXPERIMENTS:</b><br />
+          New features being assessed / tested for inclusion in Freeboard are
+          referred to as <b>Experiments</b>.<br />
+          To try out these features you will need to check the
+          <b>Experimental Features</b> option in <i>Settings</i>.
+          <br />&nbsp;<br />
+
+          Once enabled, you can access these features via the
+          <i class="material-icons">science</i> button. <br />&nbsp;<br />
+
+          <i>Note:</i> Some experiments will require configuration settings to
+          be made in the Signal K server Admin console under
+          <b>Plugin Config -> Freeboard-SK</b>.
+
+          <b>VIDEO</b><br />
+          Freeboard provides the ability to utilise the "Picture in Picture" (or
+          PiP) feature in supported browsers to display a video stream from a
+          source such as a video camera, etc.
+
+          <ul>
+            <li>
+              <b>Enable Video</b>: Check this box to enable the display of a PiP
+              video stream.
+            </li>
+            <li><b>URL</b>: Enter the url of the video stream source.</li>
+          </ul>
+
+          When enabled and a url defined a
+          <i class="material-icons">videocam</i>
+          button will be displayed on the screen.
+          <br />&nbsp;<br />
+          Click this button to open the video stream. The stream will start to
+          play and the video window can be moved, resized and playback
+          controlled using the controls provided by the browser.
+
+          <hr />
         </div>
 
         <div class="panel" id="parameters">
@@ -2533,24 +2546,6 @@
               >http://server:3000/@signalk/freeboard-sk?host=192.168.86.32&port=3100</i
             >
           </p>
-        </div>
-
-        <div class="panel" id="experiments">
-          <h4><i class="material-icons">science</i> Experiments</h4>
-          <br />
-
-          New features being assessed / tested for inclusion in Freeboard are
-          referred to as <b>Experiments</b>.<br />
-          To try out these features you will need to check the
-          <b>Experimental Features</b> option in <i>Settings</i>.
-          <br />&nbsp;<br />
-
-          Once enabled, you can access these features via the
-          <i class="material-icons">science</i> button. <br />&nbsp;<br />
-
-          <i>Note:</i> Some experiments will require configuration settings to
-          be made in the Signal K server Admin console under
-          <b>Plugin Config -> Freeboard-SK</b>.
         </div>
       </div>
     </div>

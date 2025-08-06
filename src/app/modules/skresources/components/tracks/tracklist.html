@@ -128,7 +128,7 @@
             <div>
               <button
                 mat-icon-button
-                [disabled]="app.config.map.moveMap"
+                [disabled]="app.uiConfig().mapMove"
                 (click)="emitCenter(r[1].feature.geometry.coordinates[0][0])"
                 matTooltip="Center Track"
                 matTooltipPosition="left"

@@ -145,7 +145,7 @@
             <div>
               <button
                 mat-icon-button
-                [disabled]="app.config.map.moveMap || !r[2]"
+                [disabled]="app.uiConfig().mapMove || !r[2]"
                 (click)="emitCenter(r[1].feature.geometry.coordinates)"
                 matTooltip="Center Waypoint"
                 matTooltipPosition="left"

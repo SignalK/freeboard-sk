@@ -402,14 +402,16 @@
                 }"
                 (click)="toggleNorthUp()"
                 [matTooltip]="
-                  app.config.map.northUp ? 'Show Heading Up' : 'Show North Up'
+                  app.uiConfig().mapNorthUp
+                    ? 'Show Heading Up'
+                    : 'Show North Up'
                 "
                 matTooltipPosition="right"
               >
                 <mat-icon
                   class="ob"
                   [svgIcon]="
-                    app.config.map.northUp ? 'heading-n-up' : 'heading-h-up'
+                    app.uiConfig().mapNorthUp ? 'heading-n-up' : 'heading-h-up'
                   "
                 >
                 </mat-icon>
@@ -419,13 +421,13 @@
               <button
                 mat-mini-fab
                 [ngClass]="{
-                  'button-primary': app.config.map.moveMap,
-                  'button-toolbar': !app.config.map.moveMap
+                  'button-primary': app.uiConfig().mapMove,
+                  'button-toolbar': !app.uiConfig().mapMove
                 }"
                 (click)="toggleMoveMap()"
                 [disabled]="!app.data.vessels.showSelf"
                 [matTooltip]="
-                  app.config.map.moveMap
+                  app.uiConfig().mapMove
                     ? 'Turn off Follow Vessel'
                     : 'Follow Vessel'
                 "
@@ -434,7 +436,7 @@
                 <mat-icon class="ob" svgIcon="cent-iec"></mat-icon>
               </button>
             </div>
-            @if(!app.config.map.moveMap) {
+            @if(!app.uiConfig().mapMove) {
             <div class="buttonPanelItem">
               <button
                 class="button-toolbar"

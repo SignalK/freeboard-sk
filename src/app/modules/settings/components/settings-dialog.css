@@ -17,21 +17,6 @@
     flex: 1 1 auto;
 }
 
-.left-settings-menu {
-    display: block;
-    position: fixed;
-    min-width: 140px;
-    overflow: auto;
-    height: 58%;
-}
-
-.left-settings-menu-button {
-    display: none;
-}
-
-.right-settings-content {
-    margin-left: 140px;
-}
 
 /*ipads*/
 @media only screen
@@ -44,21 +29,9 @@ only screen	and (min-width : 800px) {
 @media only screen and (max-width: 599px) {
 	.settings .setting-group {
 		padding: 5px 5% 5px 5%;
-    }
-    .left-settings-menu {
-        display: none;
-    } 
-    .left-settings-menu-button {
-        display: initial;
-    }
-    .right-settings-content {
-        margin-left: initial;
-    }   	
+    }	
 }
 @media only screen and (max-height: 500px) {
-	.left-settings-menu {
-        height: 55%;
-    }	
 }
 /*sm*/
 @media only screen and (min-width: 600px) and (max-width: 959px),

@@ -8,7 +8,8 @@ import {
   ChangeDetectionStrategy,
   input,
   Output,
-  EventEmitter
+  EventEmitter,
+  effect
 } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
 import { CommonModule } from '@angular/common';
@@ -263,6 +264,7 @@ import { Convert } from 'src/app/lib/convert';
               </div>
 
               <div>
+                @if(modeOptions().length !== 0) {
                 <button
                   class="button-secondary"
                   mat-raised-button
@@ -271,6 +273,7 @@ import { Convert } from 'src/app/lib/convert';
                 >
                   Mode
                 </button>
+                }
               </div>
             </div>
 
@@ -303,25 +306,45 @@ export class AutopilotComponent {
     []
   );
   private autopilotApiPath: string;
+  private currentPilot: string;
 
-  apData = input<any>({});
+  apData = input<{
+    default?: string;
+    mode?: string;
+    state?: string;
+    target?: number;
+    enabled?: boolean;
+  }>({});
 
   constructor(protected app: AppFacade, private signalk: SignalKClient) {
     this.autopilotApiPath = 'vessels/self/autopilots/_default';
+    effect(() => {
+      if (this.apData().default !== this.currentPilot) {
+        this.app.debug(
+          'changed default pilot:',
+          this.currentPilot,
+          this.apData().default
+        );
+        this.currentPilot = this.apData().default;
+        this.fetchAPOptions();
+      }
+    });
   }
-
-  ngOnInit() {}
 
   handleClose() {
     this.close.emit();
   }
 
-  ngAfterViewInit() {
+  private fetchAPOptions() {
     this.signalk.api
       .get(this.app.skApiVersion, `${this.autopilotApiPath}`)
       .subscribe(
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (val: any) => {
+        (val: {
+          options: {
+            modes: string[];
+            states: Array<{ name: string; engaged: boolean }>;
+          };
+        }) => {
           if (!val.options) {
             return;
           }
@@ -343,8 +366,6 @@ export class AutopilotComponent {
         }
       );
   }
-
-  ngOnDestroy() {}
 
   noPilot(): boolean {
     return (

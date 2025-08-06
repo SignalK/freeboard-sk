@@ -169,7 +169,7 @@
             </div>
             <button
               mat-button
-              [disabled]="app.config.map.moveMap"
+              [disabled]="app.uiConfig().mapMove"
               (click)="emitCenter(r[1].position)"
               matTooltip="Center Vessel"
             >

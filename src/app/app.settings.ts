@@ -19,6 +19,37 @@ export function cleanConfig(
   settings: IAppConfig,
   hostParams: { [key: string]: unknown }
 ) {
+  /** v2 formatting */
+  if (typeof settings.ui === 'undefined') {
+    settings.ui = {
+      mapNorthUp: (settings as any).map.northUp ?? true,
+      mapMove: (settings as any).map.moveMap ?? false,
+      mapConstrainZoom: (settings as any).map.limitZoom ?? false,
+      invertColor: (settings as any).map.invertColor ?? false,
+      toolbarButtons: (settings as any).toolBarButtons ?? true
+    };
+  }
+
+  /**
+   * v2 deprecations
+   * @todo For removal (Applied 2.16.1)
+   */
+  if (typeof (settings as any).map.northUp !== 'undefined') {
+    delete (settings as any).map.northUp;
+  }
+  if (typeof (settings as any).map.moveMap !== 'undefined') {
+    delete (settings as any).map.moveMap;
+  }
+  if (typeof (settings as any).map.limitZoom !== 'undefined') {
+    delete (settings as any).map.limitZoom;
+  }
+  if (typeof (settings as any).map.invertColor !== 'undefined') {
+    delete (settings as any).map.invertColor;
+  }
+  if (typeof (settings as any).toolBarButtons !== 'undefined') {
+    delete (settings as any).toolBarButtons;
+  }
+
   /**
    *  Remove notes selections
    * @todo For removal (Applied 2.14.2)
@@ -185,14 +216,6 @@ export function cleanConfig(
     };
   }
 
-  if (typeof settings.map.limitZoom === 'undefined') {
-    settings.map.limitZoom = false;
-  }
-
-  if (typeof settings.map.invertColor === 'undefined') {
-    settings.map.invertColor = false;
-  }
-
   if (typeof settings.map.lockMoveMap === 'undefined') {
     settings.map.lockMoveMap = false;
   }
@@ -208,10 +231,6 @@ export function cleanConfig(
   }
   if (typeof settings.anchorRodeLength === 'undefined') {
     settings.anchorRodeLength = 50;
-  }
-
-  if (typeof settings.toolBarButtons === 'undefined') {
-    settings.toolBarButtons = true;
   }
 
   if (typeof settings.units.temperature === 'undefined') {
@@ -262,10 +281,10 @@ export function cleanConfig(
 
   // apply url params
   if (typeof hostParams.northup !== 'undefined') {
-    settings.map.northUp = hostParams.northup === '0' ? false : true;
+    settings.ui.mapNorthUp = hostParams.northup === '0' ? false : true;
   }
   if (typeof hostParams.movemap !== 'undefined') {
-    settings.map.moveMap = hostParams.movemap === '0' ? false : true;
+    settings.ui.mapMove = hostParams.movemap === '0' ? false : true;
   }
   if (hostParams.zoom) {
     try {
@@ -284,6 +303,13 @@ export function cleanConfig(
 // initialise default configuration
 export function defaultConfig(): IAppConfig {
   return {
+    ui: {
+      mapNorthUp: true,
+      mapMove: false,
+      mapConstrainZoom: false,
+      toolbarButtons: true,
+      invertColor: false // invert map feature label colors
+    },
     chartApi: 1, // set by feature detection
     experiments: false,
     version: '',
@@ -294,18 +320,13 @@ export function defaultConfig(): IAppConfig {
       zoomLevel: 2,
       center: [0, 0],
       rotation: 0,
-      moveMap: false,
       lockMoveMap: true,
-      northUp: true,
-      animate: false,
-      limitZoom: false,
-      invertColor: false
+      animate: false
     },
     fixedLocationMode: false,
     fixedPosition: [0, 0],
     aisTargets: true, // display ais targets
     courseData: true, // show/hide course data
-    toolBarButtons: true, // show/hide toolbar buttons
     notes: true, // display notes
     popoverMulti: false, // close popovers using cose button
     mapDoubleClick: false, // true=zoom

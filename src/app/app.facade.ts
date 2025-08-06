@@ -212,11 +212,7 @@ export class AppFacade extends InfoService {
     effect(() => {
       if (this.uiConfig) {
         this.debug(`AppFacade.effect().uiConfig`, this.uiConfig());
-        this.config.map.northUp = this.uiConfig().mapNorthUp;
-        this.config.map.moveMap = this.uiConfig().mapMove;
-        this.config.map.limitZoom = this.uiConfig().mapConstrainZoom;
-        this.config.toolBarButtons = this.uiConfig().toolbarButtons;
-        this.config.map.invertColor = this.uiConfig().invertColor;
+        this.config.ui = this.uiConfig();
         this.saveConfig();
       }
     });
@@ -225,6 +221,7 @@ export class AppFacade extends InfoService {
   /** Parse, clean loaded config */
   private parseLoadedConfig() {
     cleanConfig(this.config, this.hostDef.params);
+    this.uiConfig.update(() => this.config.ui);
     this.doPostConfigLoad();
   }
 
@@ -240,14 +237,6 @@ export class AppFacade extends InfoService {
 
     // initialise signals
     this.sTrueMagChoice.set(this.config.selections.headingAttribute);
-
-    this.uiConfig.set({
-      mapNorthUp: this.config.map.northUp,
-      mapMove: this.config.map.moveMap,
-      mapConstrainZoom: this.config.map.limitZoom,
-      toolbarButtons: this.config.toolBarButtons,
-      invertColor: this.config.map.invertColor
-    });
 
     // emit settings$.loaded
     this.debug(`doPostConfigLoad(): emit settngs$.load`);

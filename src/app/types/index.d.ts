@@ -28,6 +28,13 @@ export interface SKApiResponse {
 }
 
 export interface IAppConfig {
+  ui: {
+    mapNorthUp: boolean;
+    mapMove: boolean; // keep vessel centered
+    mapConstrainZoom: boolean; // constrain zooming to map min / max values
+    toolbarButtons: boolean; // show/hide toolbar buttons
+    invertColor: boolean; // invert map feature label colors
+  };
   chartApi: number; // temp: use v{1|2}/api/resources/charts
   experiments: boolean;
   version: string;
@@ -38,18 +45,13 @@ export interface IAppConfig {
     zoomLevel: number;
     center: Position;
     rotation: number;
-    moveMap: boolean;
     lockMoveMap: boolean;
-    northUp: boolean;
     animate: boolean;
-    limitZoom: boolean;
-    invertColor: boolean;
   };
   fixedLocationMode: boolean;
   fixedPosition: Position;
   aisTargets: boolean; // display ais targets
   courseData: boolean; // show/hide course data
-  toolBarButtons: boolean; // show/hide toolbar buttons
   notes: boolean; // display notes
   popoverMulti: boolean; // close popovers using cose button
   mapDoubleClick: boolean; // true=zoom

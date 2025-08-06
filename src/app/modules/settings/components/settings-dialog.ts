@@ -16,6 +16,7 @@ import { MatSliderModule } from '@angular/material/slider';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatToolbarModule } from '@angular/material/toolbar';
+import { MatTabsModule } from '@angular/material/tabs';
 
 import { SignalKPreferredPathsComponent } from './signalk-preferredpaths.component';
 import { SettingsFacade } from '../settings.facade';
@@ -48,6 +49,7 @@ interface PreferredPathsResult {
     MatInputModule,
     MatMenuModule,
     MatToolbarModule,
+    MatTabsModule,
     SignalKPreferredPathsComponent
   ],
   templateUrl: './settings-dialog.html',
@@ -57,18 +59,6 @@ export class SettingsDialog implements OnInit {
   protected show = {
     favourites: signal<boolean>(false)
   };
-
-  protected menuItems = [
-    { id: 'sectDisplay', text: 'Display & Sound' },
-    { id: 'sectMap', text: 'Map & Charts' },
-    { id: 'sectUnits', text: 'Units & Values' },
-    { id: 'sectCourse', text: 'Course' },
-    { id: 'sectVessels', text: 'Vessels' },
-    { id: 'sectNotes', text: 'Notes' },
-    { id: 'sectVideo', text: 'Video' },
-    { id: 'sectResLayers', text: 'Resources' },
-    { id: 'sectResLayers', text: 'Signal K' }
-  ];
 
   protected options: SettingsOptions;
 
@@ -94,16 +84,6 @@ export class SettingsDialog implements OnInit {
         this.aisStateFilter[i] = true;
       }
     });
-  }
-
-  jumpTo(id: string, wait = false) {
-    if (wait) {
-      setTimeout(() => this.jumpTo(id, false), 50);
-    } else {
-      this.myElement.nativeElement.ownerDocument
-        .getElementById(id)
-        .scrollIntoView({ behavior: 'smooth' });
-    }
   }
 
   /**

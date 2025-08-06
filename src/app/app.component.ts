@@ -302,7 +302,7 @@ export class AppComponent {
 
   // ** return the map orientation **
   getOrientation() {
-    return this.app.config.map.northUp
+    return this.app.uiConfig().mapNorthUp
       ? 'rotate(' + 0 + 'deg)'
       : 'rotate(' + (0 - this.app.data.vessels.active.orientation) + 'rad)';
   }
@@ -914,7 +914,8 @@ export class AppComponent {
         disableClose: true,
         data: {},
         maxWidth: '90vw',
-        minWidth: '90vw'
+        minWidth: '90vw',
+        minHeight: '80vw'
       })
       .afterClosed()
       .subscribe(() => {
