@@ -8,7 +8,7 @@ import {
   ViewChild,
   SimpleChanges
 } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatListModule } from '@angular/material/list';
@@ -39,18 +39,15 @@ import { Feature as GeoJsonFeature } from 'geojson';
 
 import { Convert } from 'src/app/lib/convert';
 import { GeoUtils, Angle } from 'src/app/lib/geoutils';
-import { LineString, Position, ResourceSet } from 'src/app/types';
+import { LineString, Position } from 'src/app/types';
 
 import { AppFacade } from 'src/app/app.facade';
-import { SettingsMessage } from 'src/app/lib/services';
+import { SettingsEventMessage } from 'src/app/lib/services';
 import {
   SKResourceService,
   SKOtherResources,
   SKChart,
-  SKRoute,
   SKWaypoint,
-  SKNote,
-  SKRegion,
   SKVessel,
   SKAtoN,
   SKAircraft,
@@ -59,7 +56,6 @@ import {
   SKStreamFacade,
   AnchorFacade,
   NotificationManager,
-  AlertData,
   CourseService
 } from 'src/app/modules';
 import {
@@ -86,32 +82,15 @@ import { Position as SKPosition } from '@signalk/server-api';
 import { FBMapEvent, FBPointerEvent } from './ol/lib/map.component';
 import { FeatureLike } from 'ol/Feature';
 import { HttpErrorResponse } from '@angular/common/http';
+import {
+  FBMapInteractService,
+  DrawFeatureInfo,
+  IOverlay
+} from './fbmap-interact.service';
 
 interface IResource {
   id: string;
   type: string;
-}
-
-interface IOverlay {
-  id: string;
-  type: string;
-  icon?: string;
-  position: Coordinate;
-  show: boolean;
-  title: string;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  content: any[];
-  featureCount: number;
-  resource?:
-    | [string, SKRoute | SKWaypoint | SKNote | SKRegion]
-    | GeoJsonFeature;
-  vessel?: SKVessel;
-  isSelf?: boolean;
-  aton?: SKAtoN;
-  meteo?: SKMeteo;
-  aircraft?: SKAircraft;
-  alarm?: AlertData;
-  readOnly: boolean;
 }
 
 interface IFeatureData {
@@ -128,30 +107,6 @@ interface IFeatureData {
   closest: Array<LineString>;
 }
 
-interface IDrawInfo {
-  enabled: boolean;
-  style: Style | Style[] | undefined;
-  mode: string | null;
-  type: 'Point' | 'LineString' | 'Polygon';
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  coordinates: any[];
-  modify: boolean;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  features: any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  forSave: any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  properties: { [key: string]: any };
-}
-
-interface IMeasureInfo {
-  enabled: boolean;
-  end: boolean;
-  style: Style | Style[];
-  totalDistance: number;
-  coords: Position[];
-}
-
 enum INTERACTION_MODE {
   MEASURE,
   DRAW,
@@ -161,7 +116,6 @@ enum INTERACTION_MODE {
 @Component({
   selector: 'fb-map',
   imports: [
-    CommonModule,
     MatTooltipModule,
     MatListModule,
     MatIconModule,
@@ -185,54 +139,26 @@ enum INTERACTION_MODE {
   styleUrls: ['./fb-map.component.css']
 })
 export class FBMapComponent implements OnInit, OnDestroy {
-  @Input() setFocus: boolean;
+  @Input() setFocus: string;
   @Input() mapCenter: Position = [0, 0];
   @Input() mapZoom = 1;
   @Input() movingMap = false;
   @Input() northUp = true;
-  @Input() measureMode = false;
-  @Input() drawMode: string = null;
+  @Input() measureMode: boolean;
+  @Input() drawMode: boolean;
   @Input() modifyMode = false;
   @Input() activeRoute: string;
   @Input() vesselTrail: Array<Position> = [];
   @Input() dblClickZoom = false;
-  @Output() measureStart: EventEmitter<boolean> = new EventEmitter();
-  @Output() measureEnd: EventEmitter<boolean> = new EventEmitter();
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  @Output() drawEnd: EventEmitter<any> = new EventEmitter();
-  @Output() modifyStart: EventEmitter<{ id: string; type: string }> =
-    new EventEmitter();
-  @Output() modifyEnd: EventEmitter<Array<Position>> = new EventEmitter();
+  @Output() drawEnded: EventEmitter<DrawFeatureInfo> = new EventEmitter();
   @Output() activate: EventEmitter<string> = new EventEmitter();
   @Output() deactivate: EventEmitter<string> = new EventEmitter();
   @Output() info: EventEmitter<IResource> = new EventEmitter();
-  @Output() exitedMovingMap: EventEmitter<boolean> = new EventEmitter();
+  @Output() exitMovingMap: EventEmitter<boolean> = new EventEmitter();
   @Output() focusVessel: EventEmitter<string> = new EventEmitter();
   @Output() menuItemSelected: EventEmitter<string> = new EventEmitter();
 
   @ViewChild(MatMenuTrigger, { static: true }) contextMenu: MatMenuTrigger;
-
-  // ** draw interaction data
-  protected draw: IDrawInfo = {
-    enabled: false,
-    style: drawStyles.default,
-    mode: null,
-    type: 'Point',
-    coordinates: null,
-    modify: false,
-    features: null,
-    forSave: null,
-    properties: {}
-  };
-
-  // ** measure interaction data
-  protected measure: IMeasureInfo = {
-    enabled: false,
-    end: false,
-    style: drawStyles.measure,
-    totalDistance: 0,
-    coords: []
-  };
 
   protected vesselLines = {
     twd: [],
@@ -269,12 +195,9 @@ export class FBMapComponent implements OnInit, OnDestroy {
     rotation: 0,
     center: [0, 0],
     zoomLevel: 1,
-    movingMap: false,
-    northUp: true,
     extent: null,
     interactions: mapInteractions,
-    controls: mapControls,
-    focus: false
+    controls: mapControls
   };
 
   // ** map feature styles
@@ -343,31 +266,30 @@ export class FBMapComponent implements OnInit, OnDestroy {
     protected skstream: SKStreamFacade,
     protected anchor: AnchorFacade,
     protected notiMgr: NotificationManager,
-    private course: CourseService
+    private course: CourseService,
+    protected mapInteract: FBMapInteractService
   ) {}
 
   ngAfterViewInit() {
-    // ** set map focus **
+    // ** trigger map focus **
     setTimeout(() => {
-      this.fbMap.focus = true;
-      setTimeout(() => (this.fbMap.focus = false), 500);
+      this.setFocus = 'xxx';
     }, 500);
   }
 
   ngOnInit() {
-    // ** STREAM VESSELS update event
+    // STREAM VESSELS update event
     this.obsList.push(
       this.skstream.vessels$().subscribe(() => this.onVessels())
     );
-    // ** STREAM VESSEL TRAIL update event
+    // STREAM VESSEL TRAIL update event
     this.obsList.push(
       this.skstream.trail$().subscribe((value) => this.onResourceUpdate(value))
     );
-    // ** SETTINGS **
+    // SETTINGS event (Save)
     this.obsList.push(
-      this.app.settings$.subscribe((r: SettingsMessage) => {
-        if (r.action === 'save' && r.setting === 'config') {
-          this.fbMap.movingMap = this.app.config.map.moveMap;
+      this.app.settings$.subscribe((r: SettingsEventMessage) => {
+        if (r.action === 'save') {
           this.s57Service.SetOptions(this.app.config.selections.s57Options);
           this.renderMapContents(r.options?.fetchNotes);
           if (!this.app.config.selections.trailFromServer) {
@@ -387,9 +309,6 @@ export class FBMapComponent implements OnInit, OnDestroy {
     if (changes.vesselTrail) {
       this.drawVesselLines();
     }
-    if (changes.setFocus) {
-      this.fbMap.focus = changes.setFocus.currentValue;
-    }
     if (changes && changes.mapCenter) {
       this.fbMap.center = changes.mapCenter.currentValue
         ? changes.mapCenter.currentValue
@@ -402,8 +321,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
       this.renderMapContents(true);
     }
     if (changes && changes.movingMap && !changes.movingMap.firstChange) {
-      this.fbMap.movingMap = changes.movingMap.currentValue;
-      if (this.fbMap.movingMap) {
+      if (changes.movingMap.currentValue) {
         this.startSaveTimer();
       } else {
         this.stopSaveTimer();
@@ -411,31 +329,25 @@ export class FBMapComponent implements OnInit, OnDestroy {
       this.centerVessel();
     }
     if (changes && changes.northUp) {
-      this.fbMap.northUp = changes.northUp.currentValue;
       this.rotateMap();
     }
-    if (changes && changes.measureMode && !changes.measureMode.firstChange) {
-      this.interactionMode(
+    if (changes && changes.measureMode) {
+      this.applyInteractionMode(
         INTERACTION_MODE.MEASURE,
         changes.measureMode.currentValue
       );
     }
-    if (changes && changes.drawMode && !changes.drawMode.firstChange) {
-      this.interactionMode(
+    if (changes && changes.drawMode) {
+      this.applyInteractionMode(
         INTERACTION_MODE.DRAW,
         changes.drawMode.currentValue
       );
     }
     if (changes && changes.modifyMode && !changes.modifyMode.firstChange) {
-      this.interactionMode(
+      this.applyInteractionMode(
         INTERACTION_MODE.MODIFY,
         changes.modifyMode.currentValue
       );
-    }
-    if (changes && changes.measureMode) {
-      if (changes.measureMode.currentValue) {
-        this.overlay.type = 'measure';
-      }
     }
     if (changes && changes.dblClickZoom) {
       this.toggleDblClickZoom(changes.dblClickZoom.currentValue);
@@ -443,7 +355,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
   }
 
   // format WMS parameters
-  wmsParams(chart: SKChart) {
+  protected wmsParams(chart: SKChart) {
     return {
       LAYERS: chart.layers ? chart.layers.join(',') : ''
     };
@@ -540,7 +452,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
     }
     this.drawVesselLines(true);
     this.rotateMap();
-    if (this.fbMap.movingMap) {
+    if (this.movingMap) {
       this.centerVessel();
     }
   }
@@ -565,7 +477,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
 
   // ********** MAP EVENT HANDLERS *****************
 
-  toggleDblClickZoom(set?: boolean) {
+  protected toggleDblClickZoom(set?: boolean) {
     if (set) {
       this.fbMap.interactions = [{ name: 'doubleclickzoom' }].concat(
         mapInteractions
@@ -576,7 +488,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
   }
 
   // ** handle context menu choices **
-  public onContextMenuAction(action: string, pos: Position) {
+  protected onContextMenuAction(action: string, pos: Position) {
     switch (action) {
       case 'add_wpt':
         this.skres.newWaypointAt(pos);
@@ -593,7 +505,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
         });
         break;
       case 'measure':
-        this.measureStart.emit(true);
+        this.mapInteract.startMeasuring();
         break;
       default:
         this.menuItemSelected.emit(action);
@@ -602,14 +514,14 @@ export class FBMapComponent implements OnInit, OnDestroy {
   }
 
   // handle map move / zoom
-  public onMapMoveEnd(e: FBMapEvent) {
+  protected onMapMoveEnd(e: FBMapEvent) {
     this.app.config.map.zoomLevel = e.zoom;
 
     this.fbMap.extent = e.extent;
     this.app.config.map.center = e.lonlat as Position;
 
     this.drawVesselLines();
-    if (!this.fbMap.movingMap) {
+    if (!this.movingMap) {
       this.app.saveConfig({ suppressTrailFetch: true });
       this.isDirty = false;
     } else {
@@ -621,16 +533,19 @@ export class FBMapComponent implements OnInit, OnDestroy {
   }
 
   // pointer events
-  public onMapPointerMove(e: FBPointerEvent) {
+  protected onMapPointerMove(e: FBPointerEvent) {
     this.mouse.pixel = e.pixel;
     this.mouse.xy = e.coordinate;
     this.mouse.coords = GeoUtils.normaliseCoords(e.lonlat as Position);
-    if (this.measure.enabled && this.measure.coords.length !== 0) {
+    if (
+      this.mapInteract.isMeasuring() &&
+      this.mapInteract.measurement().coords.length !== 0
+    ) {
       const c = e.lonlat;
       this.overlay.position = c;
-      const lm = this.measureDistanceToAdd(c as Position);
+      const lm = this.mapInteract.distanceFromLastPoint(c as Position);
       const b = getGreatCircleBearing(
-        this.measure.coords.slice(-1)[0],
+        this.mapInteract.measurement().coords.slice(-1)[0],
         c as Position
       );
       this.overlay.title =
@@ -640,29 +555,37 @@ export class FBMapComponent implements OnInit, OnDestroy {
     }
   }
 
-  public onMapPointerDrag() {
-    if (!this.app.config.map.lockMoveMap) {
-      this.fbMap.movingMap = false;
-      this.exitedMovingMap.emit(true);
+  protected onMapPointerDrag() {
+    if (!this.app.config.map.lockMoveMap && this.app.uiConfig().mapMove) {
+      this.exitMovingMap.emit(true);
     }
   }
 
-  public onMapPointerDown(e: FBPointerEvent) {
+  protected onMapPointerDown(e: FBPointerEvent) {
     this.mouse.coords = GeoUtils.normaliseCoords(e.lonlat as Position);
     this.contextMenuPosition.x = (e as any).clientX + 'px';
     this.contextMenuPosition.y = (e as any).clientY + 'px';
   }
 
-  public onMapSingleClick(e) {
+  protected onMapSingleClick(e) {
     this.app.data.map.atClick = {
       features: e.features,
       lonlat: e.lonlat
     };
-    if (this.measure.enabled && this.measure.coords.length !== 0) {
+    if (
+      this.mapInteract.isMeasuring() &&
+      this.mapInteract.measurement().coords.length !== 0
+    ) {
       this.onMeasureClick(e.lonlat);
-    } else if (this.draw.enabled && this.draw.mode === 'route') {
+    } else if (
+      this.mapInteract.isDrawing() &&
+      this.mapInteract.draw.resourceType === 'route'
+    ) {
       this.onDrawClick(e.features);
-    } else if (!this.draw.enabled && !this.draw.modify) {
+    } else if (
+      !this.mapInteract.isDrawing() &&
+      !this.mapInteract.isModifying()
+    ) {
       if (!this.app.config.popoverMulti) {
         this.overlay.show = false;
       }
@@ -806,7 +729,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
       if (maskPopover) {
         return;
       }
-      this.draw.features = new Collection(fa); // features collection for modify interaction
+      this.mapInteract.draw.features = new Collection(fa); // features collection for modify interaction
       if (flist.size === 1) {
         // only 1 feature
         const v = flist.values().next().value;
@@ -818,27 +741,38 @@ export class FBMapComponent implements OnInit, OnDestroy {
     }
   }
 
-  // ** handle right click / touch hold**
-  public onMapRightClick(e: { features: FeatureLike[]; lonlat: Position }) {
+  /** handle right click / touch hold */
+  protected onMapRightClick(e: { features: FeatureLike[]; lonlat: Position }) {
     this.app.data.map.atClick = e;
-    this.app.debug(this.app.data.map.atClick);
+    this.app.debug(`onRightClick()`, this.app.data.map.atClick);
+    if (
+      this.mapInteract.isMeasuring() &&
+      this.mapInteract.measurement().coords.length !== 0
+    ) {
+      this.onMeasureClick(e.lonlat);
+    }
   }
 
-  // ** handle Map context menu event **
-  public onMapContextMenu(e: PointerEvent) {
+  /** handle Map context menu event */
+  protected onMapContextMenu(e: PointerEvent) {
+    this.app.debug(`onMapContextMenu()`, this.app.data.map.atClick);
     this.onContextMenu(e);
   }
 
-  // ** handle ol-map container context menu event **
-  public onContextMenu(e: PointerEvent) {
-    if (this.app.data.map.suppressContextMenu) {
+  /** handle ol-map container context menu event */
+  protected onContextMenu(e: PointerEvent) {
+    this.app.debug(`onContextMenu()`, this.app.data.map.atClick);
+    if (this.app.uiCtrl().suppressContextMenu) {
       return;
     }
     e.preventDefault();
     this.contextMenuPosition.x = e.clientX + 'px';
     this.contextMenuPosition.y = e.clientY + 'px';
     this.contextMenu.menuData = { item: this.mouse.coords };
-    if (this.measureMode && this.measure.coords.length !== 0) {
+    if (
+      this.mapInteract.isMeasuring() &&
+      this.mapInteract.measurement().coords.length !== 0
+    ) {
       this.onMeasureClick(this.mouse.xy.lonlat);
     } else if (!this.modifyMode) {
       if (!this.mouse.xy) {
@@ -855,141 +789,137 @@ export class FBMapComponent implements OnInit, OnDestroy {
   }
 
   /** toggle display of chart feature  */
-  toggleFeatureSelection(id: string | string[], resType: 'charts') {
+  protected toggleFeatureSelection(id: string | string[], resType: 'charts') {
     if (resType === 'charts') {
       this.skres.chartSelected(id);
     }
   }
 
-  // ** Map Interaction events **
-  public onDrawClick(fa: Feature[]) {
-    if (!Array.isArray(fa)) {
-      return;
-    }
-    if (this.draw.mode === 'route') {
-      let rPoints: Position[];
-      fa.forEach((f: Feature) => {
-        if (f.getGeometry().getType() === 'LineString') {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          rPoints = (f.getGeometry() as any)
-            .getCoordinates()
-            .map((c: Position) => toLonLat(c));
-          rPoints = rPoints.slice(0, rPoints.length - 1);
-        }
-      });
-      this.app.data.measurement.coords = rPoints;
-    }
-  }
-
-  public onMeasureStart(e: DrawEvent) {
+  /** handle OL interaction start event */
+  protected onMeasureStart(e: DrawEvent) {
+    this.app.debug(`onMeasureStart()...`);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let c = (e.feature.getGeometry() as any)
       .getCoordinates()
       .map((c: Position) => toLonLat(c));
     c = c.slice(0, c.length - 1);
-    this.measure.coords = c;
+    this.mapInteract.measurementCoords = c;
     this.formatPopover(null, null);
     this.overlay.position = c;
     this.overlay.title = '0';
     this.overlay.show = true;
+    this.overlay.type = 'measure';
   }
 
-  public onMeasureClick(pt: Position) {
+  /** process mouse click in MEASURE mode */
+  protected onMeasureClick(pt: Position) {
+    this.app.debug(`onMeasureClick()...`);
     if (!Array.isArray(pt)) {
       return;
     }
-    const lastPt = this.measure.coords[this.measure.coords.length - 1];
+    const lastPt =
+      this.mapInteract.measurement().coords[
+        this.mapInteract.measurement().coords.length - 1
+      ];
     if (pt[0] === lastPt[0] && pt[1] === lastPt[1]) {
       return;
     }
-    this.measure.coords.push(pt);
+    const lm = this.mapInteract.addMeasurementCoord(pt);
     this.overlay.position = pt;
-
-    const lm = this.measureDistanceToAdd();
-    this.measure.totalDistance += lm;
-    let b = 0;
-    // ** update measurement data
-    const c = this.measure.coords.slice(-2);
-    b = getGreatCircleBearing(c[0], c[1]);
-    this.app.data.measurement.coords = this.measure.coords.slice();
-
+    // ** update popover measurement values
+    const c = this.mapInteract.measurement().coords.slice(-2);
+    const b = getGreatCircleBearing(c[0], c[1]) ?? 0;
     this.overlay.title =
       this.app.formatValueForDisplay(lm, 'm') +
       ' ' +
       this.app.formatValueForDisplay(b, 'deg');
   }
 
-  public onMeasureEnd() {
+  /** handle OL interaction start event */
+  protected onMeasureEnd() {
+    this.app.debug(`onMeasureEnd()...`);
     this.overlay.show = false;
-    this.measure.enabled = false;
-    this.measureEnd.emit(true);
+    this.mapInteract.stopMeasuring();
   }
 
-  public onDrawEnd(e) {
-    this.draw.enabled = false;
-    let c;
-    let p;
-    let rc;
-    switch (this.draw.type) {
-      case 'Point':
-        this.draw.coordinates = toLonLat(
-          e.feature.getGeometry().getCoordinates()
-        );
-        break;
-      case 'LineString':
-        rc = e.feature.getGeometry().getCoordinates();
-        c = rc.map((i) => {
-          return toLonLat(i);
-        });
-        this.draw.coordinates = c;
-        break;
-      case 'Polygon': // region
-        p = e.feature.getGeometry().getCoordinates();
-        if (p.length === 0) {
-          this.draw.coordinates = [];
-        }
-        c = p[0].map((i) => {
-          return toLonLat(i);
-        });
-        this.draw.coordinates = c;
-        break;
+  /**
+   * process mouse click in DRAW mode
+   * @param fa Array of Features
+   */
+  protected onDrawClick(fa: Feature[]) {
+    if (!Array.isArray(fa)) {
+      return;
     }
-    this.drawEnd.emit(this.draw);
+    if (this.mapInteract.draw.resourceType === 'route') {
+      let rteCoords: Position[];
+      fa.forEach((f: Feature) => {
+        if (f.getGeometry().getType() === 'LineString') {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          rteCoords = (f.getGeometry() as any)
+            .getCoordinates()
+            .map((c: Position) => toLonLat(c));
+          rteCoords = rteCoords.slice(0, rteCoords.length - 1);
+        }
+      });
+      this.mapInteract.measurementCoords = rteCoords;
+    }
   }
 
-  public onModifyStart(e: ModifyEvent) {
+  /** handle OL interaction end event */
+  protected onDrawEnd(e: { feature: Feature }) {
+    this.mapInteract.stopDrawing(e.feature);
+    this.drawEnded.emit(this.mapInteract.draw);
+  }
+
+  /** Enter modify mode */
+  protected modifyFeature(featureType?: string) {
+    if (this.mapInteract.draw.features.getLength() === 0) {
+      return;
+    }
+    this.mapInteract.startModifying(this.overlay);
+    if (this.overlay.type === 'route') {
+      this.mapInteract.measurementCoords = this.skres.fromCache(
+        'routes',
+        this.overlay.id
+      )[1].feature.geometry.coordinates;
+    }
+    if (featureType === 'anchor') {
+      this.overlay.type = featureType;
+    }
+  }
+
+  protected onModifyStart(e: ModifyEvent) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const f: any = e.features.getArray()[0];
-    this.draw.coordinates = f.getGeometry().getCoordinates();
-    if (!this.draw.forSave) {
+    this.mapInteract.draw.coordinates = f.getGeometry().getCoordinates();
+    if (!this.mapInteract.draw.forSave.id) {
       // initialise save info
-      this.draw.forSave = { id: null, coords: null };
-      this.draw.forSave.id = f.getId();
-      if (f.getGeometry().getType() === 'LineString') {
-        const meta = f.get('pointMetadata');
-        if (meta) {
-          this.draw.forSave.coordsMetadata = meta;
-        }
+      this.mapInteract.draw.forSave.id = f.getId();
+    }
+    if (f.getGeometry().getType() === 'LineString') {
+      const meta = f.get('pointMetadata');
+      if (meta) {
+        this.mapInteract.draw.forSave.coordsMetadata = meta;
       }
     }
   }
 
-  public onModifyEnd(e: ModifyEvent) {
+  protected onModifyEnd(e: ModifyEvent) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const f: any = e.features.getArray()[0];
     const fid = f.getId();
     const c = f.getGeometry().getCoordinates();
     if (f.getGeometry().getType() === 'LineString') {
       this.updateCoordsMeta(
-        this.draw.coordinates,
+        this.mapInteract.draw.coordinates,
         c,
-        this.draw.forSave.coordsMetadata
+        this.mapInteract.draw.forSave.coordsMetadata
       );
     }
     let pc;
     if (fid.split('.')[0] === 'route') {
       pc = this.transformCoordsArray(c);
-      this.app.data.measurement.coords = pc;
+      this.mapInteract.measurementCoords = pc;
     } else if (fid.split('.')[0] === 'region') {
       for (let e = 0; e < c.length; e++) {
         if (this.isCoordsArray(c[e])) {
@@ -1015,8 +945,18 @@ export class FBMapComponent implements OnInit, OnDestroy {
         });
       }
     }
-    this.draw.forSave['coords'] = pc;
-    this.modifyEnd.emit(this.draw.forSave);
+    this.mapInteract.draw.forSave['coords'] = pc;
+    if (
+      this.app.data.activeRoute &&
+      this.mapInteract.draw.forSave.id.indexOf(this.app.data.activeRoute) !== -1
+    ) {
+      this.app.data.activeRouteIsEditing = true;
+    } else {
+      this.app.data.activeRouteIsEditing = false;
+    }
+    this.app.data.editingId = this.mapInteract.draw.forSave.id;
+    //this.mapInteract.draw.forSave = e;
+    this.app.debug(this.mapInteract.draw.forSave);
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -1065,23 +1005,21 @@ export class FBMapComponent implements OnInit, OnDestroy {
   // ****** MAP control functions *******
 
   // handle map zoom controls
-  public zoomMap(zoomIn: boolean) {
+  protected zoomMap(zoomIn: boolean) {
     if (zoomIn) {
       if (this.app.config.map.zoomLevel < this.app.MAP_ZOOM_EXTENT.max) {
         ++this.app.config.map.zoomLevel;
-        //this.renderMapContents(true);
       }
     } else {
       if (this.app.config.map.zoomLevel > this.app.MAP_ZOOM_EXTENT.min) {
         --this.app.config.map.zoomLevel;
-        //this.renderMapContents(true);
       }
     }
   }
 
   // orient map heading up / north up
-  public rotateMap() {
-    if (this.fbMap.northUp) {
+  protected rotateMap() {
+    if (this.northUp) {
       this.fbMap.rotation = 0;
     } else {
       this.fbMap.rotation = 0 - this.dfeat.active.orientation;
@@ -1089,13 +1027,13 @@ export class FBMapComponent implements OnInit, OnDestroy {
   }
 
   // center map to active vessel position
-  public centerVessel() {
+  protected centerVessel() {
     const t = this.dfeat.active.position;
     t[0] += 0.0000000000001;
     this.fbMap.center = t;
   }
 
-  public drawVesselLines(vesselUpdate = false) {
+  protected drawVesselLines(vesselUpdate = false) {
     const z = this.fbMap.zoomLevel;
     const offset = z < 29 ? this.zoomOffsetLevel[Math.floor(z)] : 60;
     const wMax = 10; // max line length
@@ -1364,12 +1302,16 @@ export class FBMapComponent implements OnInit, OnDestroy {
 
   // ******** OVERLAY ACTIONS ************
 
-  public popoverClosed() {
+  protected popoverClosed() {
     this.overlay.show = false;
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  public formatPopover(id: string, coord: Position, list?: Map<string, any>) {
+  protected formatPopover(
+    id: string,
+    coord: Position,
+    list?: Map<string, any>
+  ) {
     if (!id) {
       this.overlay.show = false;
       return;
@@ -1378,7 +1320,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
     this.overlay.content = [];
     this.overlay.id = null;
     this.overlay.type = null;
-    this.overlay.featureCount = this.draw.features?.getLength();
+    this.overlay.featureCount = this.mapInteract.draw.features?.getLength();
     this.overlay.position = coord;
     this.overlay.isSelf = false;
     this.overlay.readOnly = false;
@@ -1411,7 +1353,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
         this.overlay.show = true;
         return;
       case 'anchor':
-        this.startModify('anchor');
+        this.modifyFeature('anchor');
         return;
       case 'vessels':
         this.overlay.type = 'ais';
@@ -1551,20 +1493,20 @@ export class FBMapComponent implements OnInit, OnDestroy {
   }
 
   // ** handle selection from the FeatureList popover */
-  public featureListSelection(feature) {
+  protected featureListSelection(feature) {
     // trim the draw.features collection to the selected feature.id
     const sf = new Collection();
-    this.draw.features.forEach((e) => {
+    this.mapInteract.draw.features.forEach((e) => {
       if (e.getId() === feature.id) {
         sf.push(e);
       }
     });
-    this.draw.features = sf;
+    this.mapInteract.draw.features = sf;
     this.formatPopover(feature.id, feature.coord);
   }
 
   // ** delete selected feature **
-  public deleteFeature(id: string, type: string) {
+  protected deleteFeature(id: string, type: string) {
     switch (type) {
       case 'waypoint':
         this.skres.deleteWaypoint(id);
@@ -1582,7 +1524,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
   }
 
   // ** activate route / waypoint
-  public setActiveFeature() {
+  protected setActiveFeature() {
     if (this.overlay.type === 'waypoint') {
       this.course.navigateToWaypoint(this.overlay.id);
     } else {
@@ -1591,12 +1533,12 @@ export class FBMapComponent implements OnInit, OnDestroy {
   }
 
   // ** deactivate route / waypoint
-  public clearActiveFeature() {
+  protected clearActiveFeature() {
     this.deactivate.emit(this.overlay.id);
   }
 
   // ** emit info event **
-  public itemInfo(id: string, type: string, isSelf = false) {
+  protected itemInfo(id: string, type: string, isSelf = false) {
     if (type === 'ais' && isSelf) {
       this.info.emit({ id: id, type: 'self' });
     } else {
@@ -1604,111 +1546,31 @@ export class FBMapComponent implements OnInit, OnDestroy {
     }
   }
 
-  public setActiveVessel(id: string = null) {
+  protected setActiveVessel(id: string = null) {
     this.focusVessel.emit(id);
   }
 
-  // ******** DRAW / EDIT / MEASURE ************
+  // ******** Interactions: DRAW / EDIT / MEASURE ************
 
-  // ** Change Interaction mode **
-  private interactionMode(mode: INTERACTION_MODE, value) {
+  /** Apply the selected Interaction mode */
+  private applyInteractionMode(mode: INTERACTION_MODE, value: boolean) {
+    this.overlay.show = false;
     if (mode === INTERACTION_MODE.MEASURE) {
-      if (value === this.measure.enabled) {
-        return;
-      } else {
-        this.measure.coords = [];
-        this.measure.totalDistance = 0;
-        this.measure.enabled = value;
-        this.overlay.show = false;
-      }
-    } else if (mode === INTERACTION_MODE.DRAW) {
-      this.overlay.show = false;
-      if (!value) {
-        // end draw mode
-        if (this.draw.enabled) {
-          this.drawEnd.emit({ mode: 'ended' });
-        }
-        this.draw.enabled = false;
-        this.draw.features = null;
-        this.draw.style = drawStyles.default;
-      } else if (value && this.draw.enabled) {
-        return;
-      } else {
-        // enter draw mode
-        this.draw.mode = value;
-        this.draw.enabled = true;
-        this.draw.features = null;
-        this.draw.coordinates = null;
-        switch (value) {
-          case 'waypoint':
-          case 'note':
-            this.draw.type = 'Point';
-            break;
-          case 'route':
-            this.draw.type = 'LineString';
-            this.draw.style = drawStyles.route;
-            break;
-          case 'region':
-            this.draw.type = 'Polygon';
-            this.draw.style = drawStyles.region;
-            break;
-          default:
-            this.draw.type = 'Point';
-        }
-        this.draw.forSave = null;
-        this.draw.properties = {};
-        this.draw.modify = false;
-      }
-    } else if (mode === INTERACTION_MODE.MODIFY) {
-      if (!value) {
-        // end modify mode
-        this.draw.modify = false;
-        this.draw.features = null;
-      } else if (value && this.draw.modify) {
-        return;
-      } else {
-        // enter modify mode
-        this.startModify();
-      }
+      this.mapInteract.draw.style = value
+        ? drawStyles.measure
+        : drawStyles.default;
     }
-  }
-
-  // ** Enter modify mode **
-  public startModify(type?: string) {
-    if (this.draw.features.getLength() === 0) {
-      return;
+    if (mode === INTERACTION_MODE.DRAW) {
+      this.mapInteract.draw.style =
+        this.mapInteract.draw.resourceType === 'route'
+          ? drawStyles.route
+          : this.mapInteract.draw.resourceType === 'region'
+          ? drawStyles.region
+          : drawStyles.default;
     }
-    this.draw.type = null;
-    this.draw.mode = null;
-    this.draw.forSave = null;
-    this.draw.coordinates = null;
-    this.draw.properties = {};
-    this.draw.enabled = false;
-    this.draw.modify = true;
-    this.modifyStart.emit({ id: this.overlay.id, type: type });
   }
 
   // ********************************************************
-
-  // Returns distance from last point
-  private measureDistanceToAdd(pt?: Position) {
-    if (pt && this.measure.coords.length > 0) {
-      // return distance between last point in array and pt
-      return GeoUtils.distanceTo(
-        this.measure.coords[this.measure.coords.length - 1],
-        pt
-      );
-    }
-    if (this.measure.coords.length > 1) {
-      // return distance between last two points in array
-      return GeoUtils.distanceTo(
-        this.measure.coords[this.measure.coords.length - 2],
-        this.measure.coords[this.measure.coords.length - 1]
-      );
-    } else {
-      return 0;
-    }
-  }
 
   private isCoordsArray(ca: Array<Position>) {
     if (Array.isArray(ca)) {

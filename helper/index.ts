@@ -1,4 +1,10 @@
-import { Plugin, ServerAPI, SKVersion } from '@signalk/server-api';
+import {
+  Brand,
+  Context,
+  Plugin,
+  ServerAPI,
+  SKVersion
+} from '@signalk/server-api';
 import { IRouter, Application, Request, Response } from 'express';
 import { initAlarms } from './alarms/alarms';
 
@@ -82,43 +88,16 @@ interface SETTINGS {
   weather: WEATHER_CONFIG;
 }
 
-interface OpenApiPlugin extends Plugin {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  getOpenApi: () => any;
-}
-
-export interface FreeboardHelperApp
-  extends Application,
-    Omit<ServerAPI, 'registerPutHandler'> {
+export interface FreeboardHelperApp extends Application, ServerAPI {
   config: {
     ssl: boolean;
     configPath: string;
     version: string;
     getExternalPort: () => number;
   };
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  //handleMessage: (id: string | null, msg: any, version?: string) => void;
-  streambundle: {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    getSelfBus: (path: string | void) => any;
-  };
-  registerPutHandler: (
-    context: string,
-    path: string,
-    callback: (
-      context: string,
-      path: string,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      value: any,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      actionResultCallback: (actionResult: any) => void
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    ) => any
-  ) => void;
 }
 
-module.exports = (server: FreeboardHelperApp): OpenApiPlugin => {
+module.exports = (server: FreeboardHelperApp): Plugin => {
   // ** default configuration settings
   let settings: SETTINGS = {
     alarms: {
@@ -133,7 +112,7 @@ module.exports = (server: FreeboardHelperApp): OpenApiPlugin => {
   };
 
   // ******** REQUIRED PLUGIN DEFINITION *******
-  const plugin: OpenApiPlugin = {
+  const plugin: Plugin = {
     id: 'freeboard-sk',
     name: 'Freeboard-SK',
     schema: () => CONFIG_SCHEMA,
@@ -476,7 +455,7 @@ module.exports = (server: FreeboardHelperApp): OpenApiPlugin => {
     server.handleMessage(
       plugin.id,
       {
-        context: `meteo`,
+        context: `meteo` as Context,
         updates: [
           {
             meta: metas

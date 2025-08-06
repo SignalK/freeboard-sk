@@ -504,7 +504,7 @@ export class SKResourceService {
 
   // **** CHARTS ****
 
-  private chartCacheSignal = signal(this.appendOSM([]));
+  private chartCacheSignal = signal([]);
   readonly charts = this.chartCacheSignal.asReadonly();
 
   /**
@@ -595,7 +595,7 @@ export class SKResourceService {
     if (chart.type) {
       // ** ensure host is in url
       if (chart.url.startsWith('/') || !chart.url.startsWith('http')) {
-        chart.url = this.app.host + chart.url;
+        chart.url = this.app.hostDef.url + chart.url;
       }
     }
     return new SKChart(chart);
@@ -611,7 +611,7 @@ export class SKResourceService {
       max: 28
     };
 
-    if (useDefault || !this.app.config.map.limitZoom) {
+    if (useDefault || !this.app.uiConfig().mapConstrainZoom) {
       this.app.MAP_ZOOM_EXTENT = defaultExtent;
     } else {
       const derivedExtent = {

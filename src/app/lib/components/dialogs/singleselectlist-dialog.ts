@@ -2,7 +2,7 @@
  ********************************/
 
 import { Component, OnInit, ViewChild, Inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { FormsModule } from '@angular/forms';
 import { MatInputModule } from '@angular/material/input';
 import { MatIconModule } from '@angular/material/icon';
@@ -26,7 +26,6 @@ import { AppIconDef } from 'src/app/modules/icons';
 @Component({
   selector: 'ap-singleselectlistdialog',
   imports: [
-    CommonModule,
     FormsModule,
     MatInputModule,
     MatIconModule,

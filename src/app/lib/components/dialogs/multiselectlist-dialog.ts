@@ -2,7 +2,7 @@
  ********************************/
 
 import { Component, OnInit, ViewChild, Inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatListModule, MatListOption } from '@angular/material/list';
@@ -23,13 +23,7 @@ import { AppIconDef } from 'src/app/modules/icons';
  */
 @Component({
   selector: 'ap-multiselectlistdialog',
-  imports: [
-    CommonModule,
-    MatIconModule,
-    MatButtonModule,
-    MatDialogModule,
-    MatListModule
-  ],
+  imports: [MatIconModule, MatButtonModule, MatDialogModule, MatListModule],
   template: `
     <div class="_ap-multisellist">
       <div style="display:flex;">

@@ -10,14 +10,13 @@ import {
   Output,
   signal
 } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { FormsModule } from '@angular/forms';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
 import { AppFacade } from 'src/app/app.facade';
-import { SignalKClient } from 'signalk-client-angular';
 import {
   CdkDragDrop,
   moveItemInArray,
@@ -26,13 +25,12 @@ import {
   CdkDropList
 } from '@angular/cdk/drag-drop';
 import { SKResourceService } from '../../resources.service';
-import { FBWaypoint } from 'src/app/types';
+import { FBWaypoint, LineString } from 'src/app/types';
 
 @Component({
   selector: 'route-builder',
   imports: [
     MatTooltipModule,
-    CommonModule,
     CdkDrag,
     CdkDropList,
     MatButtonModule,
@@ -147,8 +145,11 @@ export class BuildRouteComponent {
   wpts = signal([]);
   rtepts = [];
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  @Output() save: EventEmitter<any> = new EventEmitter();
+  @Output() save: EventEmitter<{
+    coordinates: LineString;
+    meta?: Array<{ href?: string; name?: string }>;
+  }> = new EventEmitter();
+  @Output() close: EventEmitter<void> = new EventEmitter();
 
   constructor(
     protected app: AppFacade,
@@ -212,11 +213,11 @@ export class BuildRouteComponent {
           if (res) {
             this.doSave();
           } else {
-            this.app.data.buildRoute.show = false;
+            this.close.emit();
           }
         });
     } else {
-      this.app.data.buildRoute.show = false;
+      this.close.emit();
     }
   }
 
@@ -236,5 +237,6 @@ export class BuildRouteComponent {
     });
 
     this.save.emit(rte);
+    this.close.emit();
   }
 }

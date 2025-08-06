@@ -9,7 +9,6 @@ import {
   EventEmitter,
   ChangeDetectionStrategy
 } from '@angular/core';
-import { CommonModule } from '@angular/common';
 
 import { MatRadioModule } from '@angular/material/radio';
 
@@ -17,7 +16,7 @@ import { AppFacade } from 'src/app/app.facade';
 
 @Component({
   selector: 'signalk-preferred-paths',
-  imports: [CommonModule, MatRadioModule],
+  imports: [MatRadioModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   styleUrls: ['./signalk-preferredpaths.component.css'],
   template: `

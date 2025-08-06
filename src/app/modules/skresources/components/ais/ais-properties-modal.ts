@@ -113,29 +113,29 @@ import { getAisIcon } from 'src/app/modules/icons';
             <div style="display:flex;">
               <div class="key-label">Dimensions:</div>
               <div style="flex: 1 1 auto;">
-                {{ data.target.design.length?.overall }} x
-                {{ data.target.design.beam }}
+                {{ display.length }} x
+                {{ display.beam }}
               </div>
             </div>
             } @if(data.target.design.draft?.current) {
             <div style="display:flex;">
               <div class="key-label">Draft:</div>
               <div style="flex: 1 1 auto;">
-                {{ data.target.design.draft?.current }}
+                {{ display.draftCurrent }}
               </div>
             </div>
             } @if(data.target.design.draft?.maximum) {
             <div style="display:flex;">
               <div class="key-label">Draft (max):</div>
               <div style="flex: 1 1 auto;">
-                {{ data.target.design.draft?.maximum }}
+                {{ display.draftMax }}
               </div>
             </div>
             } @if(data.target.design?.airHeight) {
             <div style="display:flex;">
               <div class="key-label">Height:</div>
               <div style="flex: 1 1 auto;">
-                {{ data.target.design.airHeight }}
+                {{ display.airHeight }}
               </div>
             </div>
             } @if(data.target.state) {
@@ -178,6 +178,13 @@ import { getAisIcon } from 'src/app/modules/icons';
 export class AISPropertiesModal {
   protected flagIcon: string;
   protected showFlag = signal<boolean>(true);
+  protected display: any = {
+    length: null,
+    beam: null,
+    airHeight: null,
+    draftMax: null,
+    draftCurrent: null
+  };
 
   constructor(
     public app: AppFacade,
@@ -188,7 +195,30 @@ export class AISPropertiesModal {
       target: SKVessel;
     }
   ) {
-    this.flagIcon = `${this.app.host}/signalk/v2/api/resources/flags/mmsi/${this.data.target.mmsi}`;
+    this.flagIcon = `${this.app.hostDef.url}/signalk/v2/api/resources/flags/mmsi/${this.data.target.mmsi}`;
+    this.display = {
+      length: app.formatValueForDisplay(
+        this.data.target.design.length?.overall,
+        'm',
+        true
+      ),
+      beam: app.formatValueForDisplay(this.data.target.design.beam, 'm', true),
+      draftMax: app.formatValueForDisplay(
+        this.data.target.design.draft?.maximum,
+        'm',
+        true
+      ),
+      draftCurrent: app.formatValueForDisplay(
+        this.data.target.design.draft?.current,
+        'm',
+        true
+      ),
+      airHeight: app.formatValueForDisplay(
+        this.data.target.design.airHeight,
+        'm',
+        true
+      )
+    };
   }
 
   /**

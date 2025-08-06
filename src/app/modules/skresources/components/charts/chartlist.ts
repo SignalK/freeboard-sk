@@ -7,7 +7,7 @@ import {
   signal,
   input
 } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { MatDialog, MatDialogRef } from '@angular/material/dialog';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatIconModule } from '@angular/material/icon';
@@ -41,7 +41,6 @@ import { ResourceListBase } from '../resource-list-baseclass';
   templateUrl: './chartlist.html',
   styleUrls: ['../resourcelist.css'],
   imports: [
-    CommonModule,
     MatTooltipModule,
     MatIconModule,
     MatCardModule,
@@ -134,7 +133,9 @@ export class ChartListComponent extends ResourceListBase {
    * @param url Chart url
    */
   protected isLocal(url: string): string {
-    return url && url.indexOf(this.app.hostName) !== -1 ? 'map' : 'language';
+    return url && url.indexOf(this.app.hostDef.name) !== -1
+      ? 'map'
+      : 'language';
   }
 
   /** Handle selection change triggered externally */

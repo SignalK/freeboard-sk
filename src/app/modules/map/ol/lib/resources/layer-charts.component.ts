@@ -24,7 +24,7 @@ import WebGLTileLayer from 'ol/layer/WebGLTile';
 import VectorTileLayer from 'ol/layer/VectorTile';
 import * as pmtiles from 'pmtiles';
 import LayerGroup from 'ol/layer/Group';
-import { apply } from 'ol-mapbox-style';
+import { apply, applyStyle } from 'ol-mapbox-style';
 import { FBChart, FBCharts } from 'src/app/types';
 import { S57Service } from '../s57.service';
 
@@ -224,6 +224,7 @@ export class FreeboardChartLayerComponent
             lg.set('id', charts[i][0]);
             apply(lg, `${charts[i][1].url}`);
             map.addLayer(lg);
+            this.layers.set(charts[i][0], lg);
           } else if (
             charts[i][1].format === 'pbf' ||
             charts[i][1].format === 'mvt'
@@ -235,6 +236,9 @@ export class FreeboardChartLayerComponent
             layer = styleFactory.CreateLayer();
             styleFactory.ApplyStyle(layer as VectorTileLayer<never>);
             layer.setZIndex(this.zIndex + parseInt(i));
+            if (charts[i][1].style) {
+              applyStyle(layer as any, charts[i][1].style);
+            }
           } else {
             // raster tile
             let source; // select source type

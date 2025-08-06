@@ -1,6 +1,15 @@
 # CHANGELOG: Freeboard
 
 
+### v2.16.1
+
+- **Fix**: Display units for vessel dimension values in the properties dialog. (#279)
+- **Fix**: Issue where vector charts were not using the supplied map style url. (#282)
+- **Fix**: Issue where charts with type `mapboxstyle` would remain visible after being de-selected.
+- **Fix**: Loading of OSM charts prior to loaded configuration being applied.
+- **Update**: Angular v20.
+
+
 ### v2.16.0
 
 - **New**: Resource Groups: Add Routes and Waypoints to groups. Use groups to easily switch on / off resources to display on the map.

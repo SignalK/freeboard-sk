@@ -1,18 +1,18 @@
 /** Application Information Service **
  * perform version checking etc. here
  * ************************************/
-import { Injectable, signal } from '@angular/core';
+import { effect, Injectable, signal } from '@angular/core';
 import { DomSanitizer } from '@angular/platform-browser';
 import { MatIconRegistry } from '@angular/material/icon';
 import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { Subject, Observable } from 'rxjs';
+import { Subject } from 'rxjs';
 
 import {
-  Info,
-  SettingsMessage,
+  InfoService,
   IndexedDB,
-  SettingsSaveOptions
+  SettingsSaveOptions,
+  AppInfoDef
 } from './lib/services';
 
 import {
@@ -26,17 +26,9 @@ import {
 
 import { Convert } from './lib/convert';
 import { SignalKClient } from 'signalk-client-angular';
-import { SKVessel, SKChart, SKWorkerService, SKResourceType } from './modules';
+import { SKWorkerService } from './modules';
 
-import {
-  PluginInfo,
-  PluginSettings,
-  AppUpdateMessage,
-  Position,
-  ErrorList,
-  FBCharts,
-  IAppConfig
-} from './types';
+import { Position, ErrorList, IAppConfig } from './types';
 
 import {
   defaultConfig,
@@ -49,12 +41,38 @@ import { WELCOME_MESSAGES } from './app.messages';
 import { getSvgList } from './modules/icons';
 import { HttpErrorResponse } from '@angular/common/http';
 
+// App details
+const FSK: AppInfoDef = {
+  id: 'freeboard',
+  name: 'Freeboard-SK',
+  description: `Signal K Chart Plotter.`,
+  version: '2.16.0-ng20',
+  url: 'https://github.com/signalk/freeboard-sk',
+  logo: './assets/img/app_logo.png'
+};
+
+const SERVER_APPDATA_VERSION = '1.0.0';
+
+// Development SK server host details
+const DEV_SERVER = {
+  host: 'localhost', //'192.168.86.32', // host name || ip address
+  port: 3000, // port number
+  ssl: false
+};
+
 @Injectable({ providedIn: 'root' })
-export class AppFacade extends Info {
-  private DEV_SERVER = {
-    host: 'localhost', //'192.168.86.32', // host name || ip address
-    port: 3000, // port number
-    ssl: false
+export class AppFacade extends InfoService {
+  // Signal K API version to use
+  public skApiVersion = 2;
+
+  /**Host server details */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  public hostDef: any = {
+    name: undefined,
+    port: undefined,
+    ssl: false,
+    url: undefined,
+    params: {}
   };
 
   // controls map zoom limits
@@ -62,13 +80,6 @@ export class AppFacade extends Info {
     min: 2,
     max: 28
   };
-
-  public hostName: string;
-  public hostPort: number;
-  public hostSSL: boolean;
-  public host = '';
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  public hostParams: { [key: string]: any } = {};
 
   private fbAudioContext =
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -79,30 +90,60 @@ export class AppFacade extends Info {
 
   private suppressTrailFetch = false;
 
-  public skApiVersion = 2;
-  public plugin: PluginSettings = {
-    version: '',
-    settings: {}
-  };
-
-  get useMagnetic(): boolean {
-    return this.config.selections.headingAttribute ===
-      'navigation.headingMagnetic'
-      ? true
-      : false;
-  }
-
-  private skLoginSource: Subject<string>;
-  public skLogin$: Observable<string>;
-  private watchingSKLogin: number;
+  private watchingSKLogin: number; // watch interval timer
 
   // signals
-  sMapNorthUp = signal(true); // map North / Heading Up
-  sIsFetching = signal(false); // show progress for fetching data from server
-  sAlertListShow = signal(false); // display AlertList
-  featureFlags = {
-    resourceGroups: signal<boolean>(false) // ability to store resource groups
-  };
+  kioskMode = signal<boolean>(false); // kiosk mode flag
+  hasAuthToken = signal<boolean>(false); // auth token has been presented
+  isLoggedIn = signal<boolean>(false); // logged in to SK Server
+  instrumentPanelAvailable = signal<boolean>(true); // show instrument panel button
+  skAuthChange = signal<string | undefined>(undefined); // Signal K cookie change event
+
+  sIsFetching = signal<boolean>(false); // show progress for fetching data from server
+  sTrueMagChoice = signal<string>(''); // preferred path True / Magnetic
+
+  // non-persisted UI state attributes
+  uiCtrl = signal<{
+    alertList: boolean; // display AlertList
+    autopilotConsole: boolean; // display AutopilotConsole
+    routeBuilder: boolean; // display BuildRoute
+    suppressContextMenu: boolean; // prevent display of context menu
+  }>({
+    alertList: false,
+    autopilotConsole: false,
+    routeBuilder: false,
+    suppressContextMenu: false
+  });
+
+  // persisted UI configuration items
+  uiConfig = signal<{
+    mapNorthUp: boolean; // map North / Heading Up
+    mapMove: boolean; // move map mode
+    mapConstrainZoom: boolean; // constrain zoom to chart min/max
+    toolbarButtons: boolean; // show toolbar buttons (both left & right)
+    invertColor: boolean; // invert feature label text color (for dark backgrounds)
+  }>({
+    mapNorthUp: true,
+    mapMove: false,
+    mapConstrainZoom: false,
+    toolbarButtons: false,
+    invertColor: false
+  });
+
+  // Signal K server feature flags
+  featureFlags = signal<{
+    anchorApi: boolean;
+    autopilotApi: boolean;
+    weatherApi: boolean;
+    resourceGroups: boolean;
+    buddyList: boolean;
+  }>({
+    anchorApi: true, // default true until API is available
+    autopilotApi: false,
+    weatherApi: false,
+    resourceGroups: false, // ability to store resource groups
+    buddyList: false
+  });
 
   constructor(
     public signalk: SignalKClient,
@@ -112,92 +153,19 @@ export class AppFacade extends Info {
     private iconReg: MatIconRegistry,
     private dom: DomSanitizer
   ) {
-    super();
+    /** Initialise and apply defaults */
+    super(FSK);
+    this.config = defaultConfig();
+    this.data = initData();
+    this.suppressPersist = true; //suppress persisting of config until doPostConfigLoad() is complete
 
-    this.id = 'freeboard';
-    this.name = 'Freeboard-SK';
-    this.shortName = 'Freeboard';
-    this.description = `Signal K Chart Plotter.`;
-    this.version = '2.16.0';
-    this.url = 'https://github.com/signalk/freeboard-sk';
-    this.logo = './assets/img/app_logo.png';
-
-    this.signalk.setAppId(this.id); // server stored data appId
-    this.signalk.setAppVersion('1.0.0'); // server stored data version
-
-    this.db = new AppDB();
-
-    // events / observables
-    this.skLoginSource = new Subject<string>();
-    this.skLogin$ = this.skLoginSource.asObservable();
-
-    // Initialiase IconRegistry
-    this.initAppIcons();
-
-    // process searchParams
-    if (window.location.search) {
-      const p = window.location.search.slice(1).split('&');
-      p.forEach((i: string) => {
-        const a = i.split('=');
-        this.hostParams[a[0]] = a.length > 1 ? a[1] : null;
-      });
+    /** default chart selections on first run */
+    if (this.launchStatus.result === 'first_run') {
+      this.config.selections.charts = ['openstreetmap', 'openseamap'];
     }
 
-    // host
-    this.hostName =
-      typeof this.hostParams.host !== 'undefined'
-        ? this.hostParams.host
-        : this.devMode && this.DEV_SERVER.host
-        ? this.DEV_SERVER.host
-        : window.location.hostname;
-
-    this.hostSSL =
-      window.location.protocol === 'https:' ||
-      (this.devMode && this.DEV_SERVER.ssl)
-        ? true
-        : false;
-
-    this.hostPort =
-      typeof this.hostParams.port !== 'undefined'
-        ? parseInt(this.hostParams.port)
-        : this.devMode && this.DEV_SERVER.port
-        ? this.DEV_SERVER.port
-        : parseInt(window.location.port);
-
-    // if no port specified then set to 80 | 443
-    this.hostPort = isNaN(this.hostPort)
-      ? this.hostSSL
-        ? 443
-        : 80
-      : this.hostPort;
-
-    this.host = `${this.hostSSL ? 'https:' : 'http:'}//${this.hostName}:${
-      this.hostPort
-    }`;
-
-    this.debug('host:', this.host);
-
-    // apply base config
-    this.config = defaultConfig();
-    // apply default data
-    this.data = initData();
-
-    this.data.kioskMode =
-      typeof this.hostParams.kiosk !== 'undefined' ? true : false;
-    this.data.map.suppressContextMenu = this.data.kioskMode;
-
-    /***************************************
-     * Subscribe to App events as required
-     ***************************************/
-    // ** version update **
-    this.upgraded$.subscribe((version: AppUpdateMessage) => {
-      this.handleUpgradeEvent(version);
-    });
-    // ** settings load / save events
-    this.settings$.subscribe((value: SettingsMessage) => {
-      this.handleSettingsEvent(value);
-    });
-    // ** database events
+    /** initialise IndexedDB and subscribe to events */
+    this.db = new AppDB();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     this.db.dbUpdate$.subscribe((res: { action: string; value: any }) => {
       if (res.action) {
@@ -220,54 +188,115 @@ export class AppFacade extends Info {
       }
     });
 
-    this.init();
+    /** Signal K server App config attributes */
+    this.signalk.setAppId(FSK.id); // server stored config appId
+    this.signalk.setAppVersion(SERVER_APPDATA_VERSION); // server stored app data version
 
-    // token from url params
-    if (typeof this.hostParams.token !== 'undefined') {
-      this.persistToken(this.hostParams.token);
-    }
+    /** Initialise IconRegistry */
+    this.initAppIcons();
 
-    // ** detect if launched in iframe **
-    try {
-      this.data.optAppPanel = window.self === window.top;
-    } catch (e) {
-      this.data.optAppPanel = false;
-    }
+    /** sets hostDef, kiosk flag and persists token */
+    this.parseLaunchUrl();
 
-    /***************************************
-     * trigger app version check
-     * uses: handleUpgradeEvent() subscription
-     ***************************************/
-    const v = this.checkVersion();
-    if (!v.result) {
-      //** current version
-      this.loadConfig();
-      this.loadData();
-    }
+    /** test for launch within iframe */
+    this.instrumentPanelAvailable.update(() => this.isTopWindow());
 
-    // ** check for internet connection **
-    window
-      .fetch('https://tile.openstreetmap.org') //'https://tiles.openseamap.org/seamark/')
-      .then(() => {
-        console.info('Internet connection detected.');
-      })
-      .catch(() => {
-        console.warn('No Internet connection detected!');
-        const mapsel = this.config.selections.charts;
-        if (mapsel.includes('openstreetmap') || mapsel.includes('openseamap')) {
-          if (!this.data.kioskMode) {
-            this.showAlert(
-              'Internet Map Service Unavailable: ',
-              `Unable to display Open Street / Sea Maps!\n
-                      Please check your Internet connection or select maps from the local network.\n
-                      `
-            );
-          }
-        }
-      });
+    /** check for internet connection */
+    this.testForInternet();
+
+    /** Load persisted configuration */
+    this.loadConfig();
+    this.parseLoadedConfig();
+
+    // respond to signals
+    effect(() => {
+      if (this.uiConfig) {
+        this.debug(`AppFacade.effect().uiConfig`, this.uiConfig());
+        this.config.map.northUp = this.uiConfig().mapNorthUp;
+        this.config.map.moveMap = this.uiConfig().mapMove;
+        this.config.map.limitZoom = this.uiConfig().mapConstrainZoom;
+        this.config.toolBarButtons = this.uiConfig().toolbarButtons;
+        this.config.map.invertColor = this.uiConfig().invertColor;
+        this.saveConfig();
+      }
+    });
   }
 
-  // Initialise IconRegistry with custom icons
+  /** Parse, clean loaded config */
+  private parseLoadedConfig() {
+    cleanConfig(this.config, this.hostDef.params);
+    this.doPostConfigLoad();
+  }
+
+  /** @todo Initialise and raise "settings$.load" event */
+  private doPostConfigLoad() {
+    if (this.config.fixedLocationMode) {
+      this.data.vessels.self.position = [
+        ...this.config.fixedPosition
+      ] as Position;
+      this.data.vessels.showSelf = true;
+      this.config.map.center = [...this.config.fixedPosition];
+    }
+
+    // initialise signals
+    this.sTrueMagChoice.set(this.config.selections.headingAttribute);
+
+    this.uiConfig.set({
+      mapNorthUp: this.config.map.northUp,
+      mapMove: this.config.map.moveMap,
+      mapConstrainZoom: this.config.map.limitZoom,
+      toolbarButtons: this.config.toolBarButtons,
+      invertColor: this.config.map.invertColor
+    });
+
+    // emit settings$.loaded
+    this.debug(`doPostConfigLoad(): emit settngs$.load`);
+    this.settingsEvent.next({ action: 'load' });
+    this.suppressPersist = false; // allow persisting of config.
+  }
+
+  /** Retrieve and apply saved config from server */
+  public loadSettingsfromServer() {
+    this.signalk.isLoggedIn().subscribe(
+      (r: boolean) => {
+        this.isLoggedIn.set(r);
+        if (r) {
+          this.debug(
+            'loadSettingsfromServer(): Is authenticated. Fetching config from SK Server...'
+          );
+          this.signalk.appDataGet('/').subscribe(
+            (serverSettings: IAppConfig) => {
+              if (Object.keys(serverSettings).length === 0) {
+                return;
+              }
+              cleanConfig(serverSettings, this.hostDef.params);
+              if (validateConfig(serverSettings)) {
+                this.config = serverSettings;
+                this.doPostConfigLoad();
+                this.alignCustomResourcesPaths();
+                this.saveConfig();
+              }
+            },
+            () => {
+              console.info(
+                'applicationData: Unable to retrieve settings from server!'
+              );
+            }
+          );
+        } else {
+          this.debug(
+            'loadSettingsfromServer(): Not authenticated to SK Server!'
+          );
+        }
+      },
+      () => {
+        this.isLoggedIn.set(false);
+        this.debug('loadSettingsfromServer(): Error fetching loginStatus!');
+      }
+    );
+  }
+
+  /** Initialises Material IconRegistry with custom icons */
   private initAppIcons() {
     getSvgList().forEach((s: { id: string; path: string }) => {
       this.iconReg.addSvgIcon(
@@ -277,24 +306,95 @@ export class AppFacade extends Info {
     });
   }
 
-  // get plugin information
-  fetchPluginSettings() {
-    this.signalk
-      .get(`/plugins/freeboard-sk/settings`)
-      .subscribe((r: PluginSettings) => {
-        this.plugin.settings = r.settings;
+  /** Parse window.location  and set hostDef & kiosk flag*/
+  private parseLaunchUrl() {
+    // process url params
+    if (window.location.search) {
+      const p = window.location.search.slice(1).split('&');
+      p.forEach((i: string) => {
+        const a = i.split('=');
+        this.hostDef.params[a[0]] = a.length > 1 ? a[1] : null;
       });
-    this.signalk.get(`/plugins/freeboard-sk`).subscribe(
-      (r: PluginInfo) => {
-        this.plugin.version = r.version;
-      },
-      () => {
-        this.plugin.version = this.version;
-      }
-    );
+    }
+
+    // host name
+    this.hostDef.name =
+      typeof this.hostDef.params?.host !== 'undefined'
+        ? this.hostDef.params.host
+        : this.devMode && DEV_SERVER.host
+        ? DEV_SERVER.host
+        : window.location.hostname;
+
+    this.hostDef.ssl =
+      window.location.protocol === 'https:' || (this.devMode && DEV_SERVER.ssl)
+        ? true
+        : false;
+
+    this.hostDef.port =
+      typeof this.hostDef.params.port !== 'undefined'
+        ? parseInt(this.hostDef.params.port)
+        : this.devMode && DEV_SERVER.port
+        ? DEV_SERVER.port
+        : parseInt(window.location.port);
+
+    // if no port specified then set to 80 | 443
+    this.hostDef.port = isNaN(this.hostDef.port)
+      ? this.hostDef.ssl
+        ? 443
+        : 80
+      : this.hostDef.port;
+
+    this.hostDef.url = `${this.hostDef.ssl ? 'https:' : 'http:'}//${
+      this.hostDef.name
+    }:${this.hostDef.port}`;
+
+    // update kiosk flag
+    this.kioskMode.update(() => {
+      const k = typeof this.hostDef.params.kiosk !== 'undefined' ? true : false;
+      return k;
+    });
+
+    //** persist token from url params
+    if (typeof this.hostDef.params.token !== 'undefined') {
+      this.persistToken(this.hostDef.params.token);
+    }
+
+    this.debug('host:', this.hostDef);
   }
 
-  // persist auth token for session
+  /** Test for / Warn if no Internet connection */
+  private testForInternet() {
+    window
+      .fetch('https://tile.openstreetmap.org')
+      .then(() => {
+        console.info('Internet connection detected.');
+      })
+      .catch(() => {
+        console.warn('No Internet connection detected!');
+        const mapsel = this.config.selections.charts;
+        if (mapsel.includes('openstreetmap') || mapsel.includes('openseamap')) {
+          if (!this.kioskMode()) {
+            this.showAlert(
+              'Internet Map Service Unavailable: ',
+              `Unable to display Open Street / Sea Maps!\n
+              Please check your Internet connection or select maps from the local network.\n
+              `
+            );
+          }
+        }
+      });
+  }
+
+  /** returns true if not embedded (is top window)*/
+  private isTopWindow(): boolean {
+    try {
+      return window.self === window.top;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  /** persist auth token for session */
   persistToken(value: string) {
     if (value) {
       this.signalk.authToken = value;
@@ -305,11 +405,11 @@ export class AppFacade extends Info {
         }
       });
       document.cookie = `sktoken=${value}; SameSite=Strict`;
-      this.data.hasToken = true; // hide login menu item
+      this.hasAuthToken.set(true); // hide login menu item
     } else {
-      this.data.hasToken = false; // show login menu item
+      this.hasAuthToken.set(false); // show login menu item
       this.signalk.authToken = null;
-      this.data.loggedIn = false;
+      this.isLoggedIn.set(false);
       document.cookie = `sktoken=${null}; SameSite=Strict; max-age=0;`;
       this.worker.postMessage({
         cmd: 'auth',
@@ -320,7 +420,7 @@ export class AppFacade extends Info {
     }
   }
 
-  // Start watching for change in skLoginInfo cookie
+  /** Start watching for change in skLoginInfo cookie */
   watchSKLogin() {
     if (this.watchingSKLogin) return;
     this.watchingSKLogin = window.setInterval(
@@ -328,29 +428,26 @@ export class AppFacade extends Info {
         let lastCookie = this.getCookie(document.cookie, 'skLoginInfo');
         return () => {
           const currentCookie = this.getCookie(document.cookie, 'skLoginInfo');
-          if (currentCookie !== lastCookie) {
-            lastCookie = currentCookie;
-            this.skLoginSource.next(currentCookie);
-          }
+          this.skAuthChange.set(currentCookie);
         };
       })(),
       2000
     );
   }
 
-  // return FB auth token for session
+  /** return FB auth token for session */
   getFBToken(): string {
     return this.getCookie(document.cookie, 'sktoken');
   }
 
-  // return the requested cookie
-  private getCookie(c: string, sel: 'sktoken' | 'skLoginInfo') {
-    if (!c) {
+  /** return the requested cookie */
+  private getCookie(cookies: string, sel: 'sktoken' | 'skLoginInfo') {
+    if (!cookies) {
       return undefined;
     }
     const tk = new Map();
-    c.split(';').map((i) => {
-      const c = i.split('=');
+    cookies.split(';').forEach((i) => {
+      const c = i.trim().split('=');
       tk.set(c[0], c[1]);
     });
     if (tk.has(sel)) {
@@ -358,6 +455,14 @@ export class AppFacade extends Info {
     } else {
       return undefined;
     }
+  }
+
+  /** return True / Magenetic preference */
+  get useMagnetic(): boolean {
+    return this.config.selections.headingAttribute ===
+      'navigation.headingMagnetic'
+      ? true
+      : false;
   }
 
   // fetch of trail from server (triggers SKStreamFacade.trail$)
@@ -375,98 +480,10 @@ export class AppFacade extends Info {
     });
   }
 
-  // ** handle App version upgrade **
-  handleUpgradeEvent(version: AppUpdateMessage) {
-    this.debug('App Upgrade Handler...Start...', 'info');
-    this.debug(version);
-    // *******************
-
-    if (version.result && version.result === 'update') {
-      this.debug('Upgrade result....new version detected');
-      this.loadConfig();
-      this.loadData();
-
-      const pv = version.previous.split('.');
-      const cv = version.new.split('.');
-      if (pv[0] !== cv[0] || pv[1] !== cv[1]) {
-        this.data['updatedRun'] = version;
-      }
-    } else if (version.result && version.result === 'new') {
-      this.debug('Upgrade result....new installation');
-      this.loadConfig();
-      this.loadData();
-      this.data['firstRun'] = true;
-    }
-
-    // *******************
-    this.saveInfo();
-    this.debug('App Upgrade Handler...End...', 'info');
-  }
-
-  // ** handle Settings load / save **
-  handleSettingsEvent(value: SettingsMessage) {
-    this.debug(value);
-    if (value.action === 'load' && value.setting === 'config') {
-      cleanConfig(this.config, this.hostParams);
-      if (this.config.fixedLocationMode) {
-        this.data.vessels.self.position = [
-          ...this.config.fixedPosition
-        ] as Position;
-        this.data.vessels.showSelf = true;
-        this.config.map.center = [...this.config.fixedPosition];
-      }
-      this.sMapNorthUp.set(this.config.map.northUp);
-    }
-  }
-
-  /**
-   * @description Retrieve and apply user / plugin settings from server
-   */
-  public loadSettingsfromServer(): Observable<boolean> {
-    const sub: Subject<boolean> = new Subject();
-    this.signalk.isLoggedIn().subscribe(
-      (r) => {
-        // fetch plugin settings
-        this.fetchPluginSettings();
-        this.data.loggedIn = r;
-        if (r) {
-          // ** get server stored config for logged in user **
-          this.signalk.appDataGet('/').subscribe(
-            (settings: IAppConfig) => {
-              if (Object.keys(settings).length === 0) {
-                return;
-              }
-              cleanConfig(settings, this.hostParams);
-              if (validateConfig(settings)) {
-                this.config = settings;
-                this.saveConfig();
-                sub.next(true);
-              }
-              this.alignResourcesPaths();
-            },
-            () => {
-              console.info(
-                'applicationData: Unable to retrieve settings from server!'
-              );
-              sub.next(false);
-            }
-          );
-        }
-      },
-      () => {
-        this.data.loggedIn = false;
-        console.info('Unable to get loginStatus!');
-        sub.next(false);
-      }
-    );
-    return sub.asObservable();
-  }
-
   /**
    * @description Align selected custom resource paths with those enabled on the server.
    */
-  public alignResourcesPaths() {
-    // check resources paths
+  public alignCustomResourcesPaths() {
     this.signalk.api
       .get(this.skApiVersion, '/resources')
       .subscribe((res: { [key: string]: { description: string } }) => {
@@ -480,11 +497,11 @@ export class AppFacade extends Info {
       });
   }
 
-  // ** overloaded saveConfig() **
+  /** overloaded saveConfig() */
   saveConfig(options?: SettingsSaveOptions) {
     this.suppressTrailFetch = options?.suppressTrailFetch ?? false;
     super.saveConfig(options);
-    if (this.data.loggedIn) {
+    if (this.isLoggedIn()) {
       this.signalk.appDataSet('/', this.config).subscribe(
         () => this.debug('saveConfig: config saved to server.'),
         () => this.debug('saveConfig: Cannot save config to server!')
@@ -492,20 +509,23 @@ export class AppFacade extends Info {
     }
   }
 
-  // ** show Help at specified anchor
+  /** show Help at specified anchor */
   showHelp(anchor?: string) {
     const url = `./assets/help/index.html${anchor ? '#' + anchor : ''}`;
     window.open(url, 'help');
   }
 
-  // ** display Welcome dialog
+  /** display Welcome dialog */
   showWelcome() {
     let btnText = 'Get Started';
     const messages = [];
     let showPrefs = false;
 
-    if (!this.data.kioskMode && (this.data.firstRun || this.data.updatedRun)) {
-      if (this.data.firstRun) {
+    if (
+      !this.kioskMode() &&
+      ['first_run', 'major', 'minor'].includes(this.launchStatus.result)
+    ) {
+      if (this.launchStatus.result === 'first_run') {
         messages.push(WELCOME_MESSAGES['welcome']);
         if (this.data.server && this.data.server.id) {
           messages.push(WELCOME_MESSAGES[this.data.server.id]);
@@ -561,7 +581,7 @@ export class AppFacade extends Info {
       .afterClosed();
   }
 
-  // ** display alert dialog
+  /** display alert dialog */
   showAlert(title: string, message: string, btn?: string) {
     return this.dialog
       .open(AlertDialog, {
@@ -575,7 +595,7 @@ export class AppFacade extends Info {
       .afterClosed();
   }
 
-  // ** display error list dialog
+  /** display error list dialog */
   showErrorList(errList: ErrorList, btn?: string) {
     return this.dialog
       .open(ErrorListDialog, {
@@ -588,7 +608,7 @@ export class AppFacade extends Info {
       .afterClosed();
   }
 
-  // ** display message bar
+  /** display message bar */
   showMessage(message: string, sound = false, duration = 5000) {
     this.snackbar.openFromComponent(MessageBarComponent, {
       duration: duration,
@@ -596,7 +616,7 @@ export class AppFacade extends Info {
     });
   }
 
-  // ** display confirm dialog **
+  /** display confirm dialog */
   showConfirm(
     message: string,
     title: string,
@@ -617,8 +637,6 @@ export class AppFacade extends Info {
       })
       .afterClosed();
   }
-
-  // ******** Http Error Message handling *****************
 
   /**
    * @description Parse and display error message
@@ -648,51 +666,53 @@ export class AppFacade extends Info {
     sourceUnits: 'K' | 'm/s' | 'rad' | 'm' | 'ratio' | 'deg',
     depthValue?: boolean
   ): string {
-    if (sourceUnits === 'K') {
-      return this.config.units.temperature === 'c'
-        ? `${Convert.kelvinToCelsius(value).toFixed(1)}${String.fromCharCode(
-            186
-          )}C`
-        : `${Convert.kelvinToFarenheit(value).toFixed(1)}${String.fromCharCode(
-            186
-          )}F`;
-    } else if (sourceUnits === 'ratio') {
-      return Math.abs(value) <= 1
-        ? `${(value * 100).toFixed(1)}%`
-        : value.toFixed(4);
-    } else if (sourceUnits === 'rad') {
-      return `${Convert.radiansToDegrees(value).toFixed(
-        1
-      )}${String.fromCharCode(186)}`;
-    } else if (sourceUnits === 'deg') {
-      return `${value.toFixed(1)}${String.fromCharCode(186)}`;
-    } else if (sourceUnits === 'm') {
-      if (depthValue) {
-        return this.config.units.depth === 'm'
-          ? `${value.toFixed(1)} m`
-          : `${Convert.metersToFeet(value).toFixed(1)} ft`;
-      } else {
-        if (this.config.units.distance !== 'ft') {
-          return value < 1000
-            ? `${value.toFixed(0)} m`
-            : `${(value / 1000).toFixed(1)} km`;
+    if (typeof value === 'number') {
+      if (sourceUnits === 'K') {
+        return this.config.units.temperature === 'c'
+          ? `${Convert.kelvinToCelsius(value).toFixed(1)}${String.fromCharCode(
+              186
+            )}C`
+          : `${Convert.kelvinToFarenheit(value).toFixed(
+              1
+            )}${String.fromCharCode(186)}F`;
+      } else if (sourceUnits === 'ratio') {
+        return Math.abs(value) <= 1
+          ? `${(value * 100).toFixed(1)}%`
+          : value.toFixed(4);
+      } else if (sourceUnits === 'rad') {
+        return `${Convert.radiansToDegrees(value).toFixed(
+          1
+        )}${String.fromCharCode(186)}`;
+      } else if (sourceUnits === 'deg') {
+        return `${value.toFixed(1)}${String.fromCharCode(186)}`;
+      } else if (sourceUnits === 'm') {
+        if (depthValue) {
+          return this.config.units.depth === 'm'
+            ? `${value.toFixed(1)} m`
+            : `${Convert.metersToFeet(value).toFixed(1)} ft`;
         } else {
-          const nm = Convert.kmToNauticalMiles(value / 1000);
-          return nm < 0.5
-            ? this.formatValueForDisplay(value, 'm', true)
-            : `${nm.toFixed(1)} NM`;
+          if (this.config.units.distance !== 'ft') {
+            return value < 1000
+              ? `${value.toFixed(0)} m`
+              : `${(value / 1000).toFixed(1)} km`;
+          } else {
+            const nm = Convert.kmToNauticalMiles(value / 1000);
+            return nm < 0.5
+              ? this.formatValueForDisplay(value, 'm', true)
+              : `${nm.toFixed(1)} NM`;
+          }
         }
-      }
-    } else if (sourceUnits === 'm/s') {
-      switch (this.config.units.speed) {
-        case 'kmh':
-          return `${Convert.msecToKmh(value).toFixed(1)} km/h`;
-        case 'kn':
-          return `${Convert.msecToKnots(value).toFixed(1)} knots`;
-        case 'mph':
-          return `${Convert.msecToMph(value).toFixed(1)} mph`;
-        default:
-          return `${value} ${sourceUnits}`;
+      } else if (sourceUnits === 'm/s') {
+        switch (this.config.units.speed) {
+          case 'kmh':
+            return `${Convert.msecToKmh(value).toFixed(1)} km/h`;
+          case 'kn':
+            return `${Convert.msecToKnots(value).toFixed(1)} knots`;
+          case 'mph':
+            return `${Convert.msecToMph(value).toFixed(1)} mph`;
+          default:
+            return `${value} ${sourceUnits}`;
+        }
       }
     } else {
       // timestamp

@@ -2,7 +2,7 @@
  ********************************/
 
 import { Component, OnInit, Inject, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import {
   FormsModule,
   FormControl,
@@ -38,7 +38,6 @@ import { getResourceIcon } from 'src/app/modules/icons';
 @Component({
   selector: 'ap-waypointdialog',
   imports: [
-    CommonModule,
     FormsModule,
     MatInputModule,
     MatSelectModule,

@@ -162,7 +162,7 @@ isSelf: boolean - true if vessel 'self'
             {{ isFlagged ? 'UN-FLAG' : 'FLAG' }}
           </button>
 
-          @if(!isSelf && app.data.buddyList.hasApi) {
+          @if(!isSelf && app.featureFlags().buddyList) {
           <button mat-button (click)="toggleBuddy()" matTooltip="Is Buddy">
             <mat-icon>{{
               vessel.buddy ? 'group_remove' : 'group_add'

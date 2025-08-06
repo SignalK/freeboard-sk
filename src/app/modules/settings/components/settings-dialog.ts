@@ -1,5 +1,5 @@
 import { Component, OnInit, ElementRef, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { FormsModule, NgModel } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
@@ -32,7 +32,6 @@ interface PreferredPathsResult {
 @Component({
   selector: 'settings-dialog',
   imports: [
-    CommonModule,
     FormsModule,
     MatDialogModule,
     MatCheckboxModule,

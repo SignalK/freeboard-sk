@@ -3,7 +3,8 @@ import {
   Position,
   SKVersion,
   ALARM_METHOD,
-  ALARM_STATE
+  ALARM_STATE,
+  Context
 } from '@signalk/server-api';
 import { FreeboardHelperApp } from '..';
 import { OpenWeather } from './openweather';
@@ -478,7 +479,7 @@ const emitWarningNotification = (warning?: SKMeteoWarning) => {
   server.handleMessage(
     pluginId,
     {
-      context: `meteo.${defaultStationId}`,
+      context: `meteo.${defaultStationId}` as Context,
       updates: [{ values: [delta] }]
     },
     SKVersion.v2
@@ -608,7 +609,7 @@ const emitMeteoDeltas = () => {
       server.handleMessage(
         pluginId,
         {
-          context: `meteo.${defaultStationId}`,
+          context: `meteo.${defaultStationId}` as Context,
           updates: [updates]
         },
         SKVersion.v1

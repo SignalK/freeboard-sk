@@ -67,6 +67,7 @@ export interface ChartResource {
   url?: string;
   layers?: string[];
   $source?: string;
+  style?: string;
   //v1
   tilemapUrl?: string; // replaced by url
   chartLayers?: string[]; // replaced by layers

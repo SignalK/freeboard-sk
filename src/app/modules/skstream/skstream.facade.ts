@@ -4,7 +4,7 @@ import { Injectable, signal } from '@angular/core';
 import { Observable, Subject } from 'rxjs';
 
 import { AppFacade } from 'src/app/app.facade';
-import { SettingsMessage } from 'src/app/lib/services';
+import { SettingsEventMessage } from 'src/app/lib/services';
 import { SignalKClient } from 'signalk-client-angular';
 import { SKWorkerService } from './skstream.service';
 import { CourseService, SKVessel } from 'src/app/modules';
@@ -79,8 +79,8 @@ export class SKStreamFacade {
       }
     });
 
-    // ** SETTINGS - handle settings load / save events
-    this.app.settings$.subscribe((r: SettingsMessage) =>
+    // ** SETTINGS - handle settings events
+    this.app.settings$.subscribe((r: SettingsEventMessage) =>
       this.handleSettingsEvent(r)
     );
   }
@@ -355,21 +355,18 @@ export class SKStreamFacade {
     });
   }
 
-  // ** process vessel data and true / magnetic preference **
+  // process vessel data and true / magnetic preference
   private processVessel(d: SKVessel) {
     d.cog = this.app.useMagnetic ? d.cogMagnetic : d.cogTrue;
     d.heading = this.app.useMagnetic ? d.headingMagnetic : d.headingTrue;
     d.wind.direction = this.app.useMagnetic ? d.wind.mwd : d.wind.twd;
   }
 
-  // handle settings (config.selections)
-  private handleSettingsEvent(value) {
-    if (value.setting === 'config') {
-      //console.log('streamFacade.settingsEvent');
-      this.worker.postMessage({
-        cmd: 'settings',
-        options: { selections: this.app.config.selections }
-      });
-    }
+  // SETTINGS event handler (Load & Save) (config.selections)
+  private handleSettingsEvent(e) {
+    this.worker.postMessage({
+      cmd: 'settings',
+      options: { selections: this.app.config.selections }
+    });
   }
 }

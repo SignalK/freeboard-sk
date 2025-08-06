@@ -3,14 +3,14 @@ Signal K Details list component
     <signalk-details-list>
 ***********************************/
 import { Component, Input, ChangeDetectionStrategy } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { AppFacade } from 'src/app/app.facade';
 import { PipesModule } from '../../../lib/pipes';
 
 @Component({
   selector: 'signalk-details-list',
-  imports: [MatTooltipModule, CommonModule, PipesModule],
+  imports: [MatTooltipModule, PipesModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   styleUrls: ['./signalk-details.component.css'],
   template: `

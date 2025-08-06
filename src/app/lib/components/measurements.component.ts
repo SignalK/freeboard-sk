@@ -6,7 +6,7 @@ import {
   Output,
   EventEmitter
 } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { MatTooltip } from '@angular/material/tooltip';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -21,13 +21,7 @@ import { MatToolbarModule } from '@angular/material/toolbar';
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'fb-measurements',
-  imports: [
-    CommonModule,
-    MatIconModule,
-    MatButtonModule,
-    MatTooltip,
-    MatToolbarModule
-  ],
+  imports: [MatIconModule, MatButtonModule, MatTooltip, MatToolbarModule],
   template: `
     <div class="_ap_measurements">
       <mat-toolbar class="bg-primary">

@@ -42,7 +42,8 @@ export const initAlarms = (app: FreeboardHelperApp, id: string) => {
       server.registerPutHandler(
         'vessels.self',
         `notifications.${i}`,
-        handleV1PutRequest
+        handleV1PutRequest as any,
+        pluginId
       );
     });
   }

@@ -27,26 +27,6 @@ export interface SKApiResponse {
   token?: string;
 }
 
-export interface PluginInfo {
-  enabled: boolean;
-  enabledByDefault: boolean;
-  id: string;
-  name: string;
-  version: string;
-}
-
-export interface PluginSettings {
-  version: string;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  settings: { [key: string]: any };
-}
-
-export interface AppUpdateMessage {
-  result: 'update' | 'new';
-  previous: string;
-  new: string;
-}
-
 export interface IAppConfig {
   chartApi: number; // temp: use v{1|2}/api/resources/charts
   experiments: boolean;
@@ -182,16 +162,8 @@ export interface IAppConfig {
 }
 
 export interface FBAppData {
-  firstRun: boolean;
-  updatedRun: AppUpdateMessage;
-  kioskMode: boolean;
   n2kRoute: FBRoute;
-  optAppPanel: boolean;
-  trueMagChoice: string;
-  loggedIn: boolean;
   loginRequired: boolean;
-  loggedInBadgeText: string;
-  hasToken: boolean;
   hasWakeLock: boolean;
   chartBounds: {
     show: boolean;
@@ -210,7 +182,6 @@ export interface FBAppData {
   server: { [key: string]: any }; // SK server info
   lastGet: Position; // map position of last resources GET
   map: {
-    suppressContextMenu: boolean;
     atClick: {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       features: any[];
@@ -253,7 +224,6 @@ export interface FBAppData {
     bearingTrue: number;
     bearingMagnetic: number;
     xte: number;
-
     position: Position;
     pointIndex: number;
     pointTotal: number;
@@ -265,28 +235,5 @@ export interface FBAppData {
   };
   racing: {
     startLine: LineString;
-  };
-  anchor: {
-    hasApi: boolean;
-  };
-  autopilot: {
-    console: boolean; // display Autopilot console
-    hasApi: boolean; // Server implements Autopilot API
-  };
-  buddyList: {
-    hasApi: boolean; // Server has buddy list plugin
-  };
-  skIcons: {
-    hasApi: boolean; // Server implements SignalK Icon resources endpoint
-  };
-  buildRoute: {
-    show: boolean;
-  };
-  weather: {
-    hasApi: boolean;
-  };
-  measurement: {
-    coords: Array<Position>;
-    index: number;
   };
 }

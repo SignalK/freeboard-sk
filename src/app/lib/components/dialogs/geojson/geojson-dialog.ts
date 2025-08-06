@@ -4,7 +4,7 @@ import {
   MatDialogRef,
   MAT_DIALOG_DATA
 } from '@angular/material/dialog';
-import { CommonModule } from '@angular/common';
+
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
@@ -23,7 +23,6 @@ import { AppFacade } from 'src/app/app.facade';
 @Component({
   selector: 'geojson-dialog',
   imports: [
-    CommonModule,
     FormsModule,
     MatDialogModule,
     MatIconModule,

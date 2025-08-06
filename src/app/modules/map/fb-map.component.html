@@ -1,9 +1,15 @@
 <ol-map
-  [style.cursor]="draw.enabled || measure.enabled ? 'crosshair' : 'initial'"
+  [style.cursor]="
+    mapInteract.isDrawing() ||
+    mapInteract.isModifying() ||
+    mapInteract.isMeasuring()
+      ? 'crosshair'
+      : 'initial'
+  "
   [logo]="false"
   [olInteractions]="fbMap.interactions"
   [olControls]="fbMap.controls"
-  [setFocus]="fbMap.focus"
+  [setFocus]="setFocus"
   (mapMoveEnd)="onMapMoveEnd($event)"
   (mapSingleClick)="onMapSingleClick($event)"
   (mapRightClick)="onMapRightClick($event)"
@@ -21,26 +27,26 @@
   [enableAnimation]="false"
 >
   <!-- Draw / modify -->
-  @if(measure.enabled) {
+  @if(mapInteract.isMeasuring()) {
   <ol-draw
     [type]="'LineString'"
     (drawStart)="onMeasureStart($event)"
     (drawEnd)="onMeasureEnd()"
-    [style]="measure.style"
+    [style]="mapInteract.draw.style"
     [stopClick]="false"
   >
   </ol-draw>
-  } @if(draw.enabled) {
+  } @if(mapInteract.isDrawing()) {
   <ol-draw
-    [type]="draw.type"
-    [stopClick]="draw.mode === 'route' ? false : true"
-    [style]="draw.style"
+    [type]="mapInteract.draw.featureType"
+    [stopClick]="mapInteract.draw.resourceType === 'route' ? false : true"
+    [style]="mapInteract.draw.style"
     (drawEnd)="onDrawEnd($event)"
   >
   </ol-draw>
-  } @if(draw.modify && draw.features) {
+  } @if(mapInteract.isModifying() && mapInteract.draw.features) {
   <ol-modify
-    [features]="draw.features"
+    [features]="mapInteract.draw.features"
     (modifyStart)="onModifyStart($event)"
     (modifyEnd)="onModifyEnd($event)"
   >
@@ -120,7 +126,7 @@
   <!-- Tracks -->
   @if(app.config.resources.paths.includes('tracks')) {
   <fb-tracks
-    [darkMode]="app.config.map.invertColor"
+    [darkMode]="app.uiConfig().invertColor"
     [tracks]="skres.tracks()"
     [labelMinZoom]="0"
     [mapZoom]="fbMap.zoomLevel"
@@ -149,7 +155,7 @@
   <div>
     @if(resSet[0] !== 'tracks') {
     <fb-resource-sets
-      [darkMode]="app.config.map.invertColor"
+      [darkMode]="app.uiConfig().invertColor"
       [collection]="resSet[0]"
       [resourceSets]="resSet[1]"
       [selected]="app.config.selections.resourceSets[resSet[0]]"
@@ -167,7 +173,7 @@
     [routes]="skres.routes()"
     [routeStyles]="featureStyles.route"
     [activeRoute]="activeRoute"
-    [darkMode]="app.config.map.invertColor"
+    [darkMode]="app.uiConfig().invertColor"
     [labelMinZoom]="this.app.config.selections.labelsMinZoom"
     [mapZoom]="fbMap.zoomLevel"
     [zIndex]="500"
@@ -187,7 +193,7 @@
 
   <!-- Waypoints -->
   <fb-waypoints
-    [darkMode]="app.config.map.invertColor"
+    [darkMode]="app.uiConfig().invertColor"
     [waypoints]="skres.waypoints()"
     [activeWaypoint]="app.data.activeWaypoint"
     [labelMinZoom]="this.app.config.selections.labelsMinZoom"
@@ -199,7 +205,7 @@
   <!-- Signal K targets -->
   <!-- AtoN targets -->
   <sk-ais-targets
-    [darkMode]="app.config.map.invertColor"
+    [darkMode]="app.uiConfig().invertColor"
     [targets]="dfeat.atons"
     targetContext="atons"
     [labelMinZoom]="this.app.config.selections.labelsMinZoom"
@@ -214,7 +220,7 @@
 
   <!-- shore.basestations targets -->
   <sk-ais-targets
-    [darkMode]="app.config.map.invertColor"
+    [darkMode]="app.uiConfig().invertColor"
     [targets]="dfeat.atons"
     [targetStyles]="featureStyles.basestation"
     targetContext="shore.basestations"
@@ -231,7 +237,7 @@
   <!-- Meteo targets -->
   @if(app.config.aisTargets) {
   <sk-ais-targets
-    [darkMode]="app.config.map.invertColor"
+    [darkMode]="app.uiConfig().invertColor"
     [targets]="dfeat.meteo"
     targetContext="meteo"
     [labelMinZoom]="this.app.config.selections.labelsMinZoom"
@@ -265,7 +271,7 @@
       [removeIds]="aisMgr.removeList"
       [inactiveTime]="app.config.selections.aisStaleAge"
       [zIndex]="900"
-      [darkMode]="app.config.map.invertColor"
+      [darkMode]="app.uiConfig().invertColor"
     >
     </sk-ais-wind>
     }
@@ -284,11 +290,11 @@
       [removeIds]="aisMgr.removeList"
       [inactiveTime]="app.config.selections.aisStaleAge"
       [zIndex]="985"
-      [darkMode]="app.config.map.invertColor"
+      [darkMode]="app.uiConfig().invertColor"
     >
     </sk-ais-flags>
     <sk-ais-vessels
-      [darkMode]="app.config.map.invertColor"
+      [darkMode]="app.uiConfig().invertColor"
       [targets]="dfeat.ais"
       targetContext="vessels"
       [labelMinZoom]="this.app.config.selections.labelsMinZoom"
@@ -312,7 +318,7 @@
   <!-- Aircraft targets -->
   @if(app.config.aisTargets) {
   <sk-ais-targets
-    [darkMode]="app.config.map.invertColor"
+    [darkMode]="app.uiConfig().invertColor"
     [targets]="dfeat.aircraft"
     [targetStyles]="featureStyles.aircraft"
     targetContext="aircraft"
@@ -330,7 +336,7 @@
   <!-- SAR targets -->
   @if(app.config.aisTargets) {
   <sk-ais-targets
-    [darkMode]="app.config.map.invertColor"
+    [darkMode]="app.uiConfig().invertColor"
     [targets]="dfeat.sar"
     [targetStyles]="featureStyles.sar"
     targetContext="sar"
@@ -350,7 +356,7 @@
   <racing-start-line
     [startLine]="app.data.racing.startLine"
     [racecourseStyles]="featureStyles.raceCourse"
-    [darkMode]="app.config.map.invertColor"
+    [darkMode]="app.uiConfig().invertColor"
     [labelMinZoom]="this.app.config.selections.labelsMinZoom"
     [mapZoom]="fbMap.zoomLevel"
     [zIndex]="540"
@@ -362,7 +368,7 @@
   <fb-regions
     [regions]="skres.regions()"
     [regionStyles]="featureStyles.region"
-    [darkMode]="app.config.map.invertColor"
+    [darkMode]="app.uiConfig().invertColor"
     [labelMinZoom]="this.app.config.selections.labelsMinZoom"
     [mapZoom]="fbMap.zoomLevel"
     [zIndex]="400"
@@ -375,9 +381,9 @@
   }
 
   <!-- Popovers -->
-  @if(overlay.show && !draw.modify) {
+  @if(overlay.show && !mapInteract.isModifying()) {
   <ol-overlay [position]="overlay.position" [positioning]="'top-center'">
-    @if(measure.enabled) {
+    @if(mapInteract.isMeasuring()) {
     <ap-popover
       [title]="overlay.title"
       [canClose]="false"
@@ -415,7 +421,7 @@
       "
       [featureCount]="overlay.featureCount"
       [units]="this.app.config.units.distance"
-      (modify)="startModify(overlay.type); popoverClosed()"
+      (modify)="modifyFeature(); popoverClosed()"
       (delete)="deleteFeature(overlay.id, overlay.type); popoverClosed()"
       (addNote)="
         skres.showNoteEditor({
@@ -441,7 +447,7 @@
       [canClose]="app.config.popoverMulti"
       [title]="overlay.title"
       [resource]="overlay.resource"
-      (modify)="startModify(overlay.type); popoverClosed()"
+      (modify)="modifyFeature(); popoverClosed()"
       (delete)="deleteFeature(overlay.id, overlay.type); popoverClosed()"
       (info)="itemInfo(overlay.id, overlay.type); popoverClosed()"
       (closed)="popoverClosed()"

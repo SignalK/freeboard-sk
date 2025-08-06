@@ -6,7 +6,9 @@ import {
   Component,
   signal,
   ChangeDetectionStrategy,
-  input
+  input,
+  Output,
+  EventEmitter
 } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
 import { CommonModule } from '@angular/common';
@@ -72,7 +74,7 @@ import { Convert } from 'src/app/lib/convert';
               class="icon-warn"
               style="cursor: pointer;"
               matTooltip="Close"
-              (click)="app.data.autopilot.console = false"
+              (click)="handleClose()"
               >close</mat-icon
             >
           </div>
@@ -229,7 +231,7 @@ import { Convert } from 'src/app/lib/convert';
                   mat-raised-button
                   [matMenuTriggerFor]="statemenu"
                   [disabled]="
-                    !app.data.autopilot.hasApi ||
+                    !app.featureFlags().autopilotApi ||
                     !apData().default ||
                     apData().state === 'off-line' ||
                     !apData().state
@@ -294,6 +296,8 @@ import { Convert } from 'src/app/lib/convert';
   `
 })
 export class AutopilotComponent {
+  @Output() close: EventEmitter<void> = new EventEmitter();
+
   protected modeOptions = signal<string[]>([]);
   protected stateOptions = signal<Array<{ name: string; engaged: boolean }>>(
     []
@@ -307,6 +311,10 @@ export class AutopilotComponent {
   }
 
   ngOnInit() {}
+
+  handleClose() {
+    this.close.emit();
+  }
 
   ngAfterViewInit() {
     this.signalk.api
@@ -327,7 +335,10 @@ export class AutopilotComponent {
         () => {
           this.modeOptions.set([]);
           this.stateOptions.set([]);
-          this.app.data.autopilot.hasApi = false;
+          this.app.featureFlags.update((current) => {
+            current.autopilotApi = false;
+            return current;
+          });
           this.app.showMessage('No autopilot providers found!');
         }
       );
@@ -337,7 +348,7 @@ export class AutopilotComponent {
 
   noPilot(): boolean {
     return (
-      !this.app.data.autopilot.hasApi ||
+      !this.app.featureFlags().autopilotApi ||
       !this.apData().default ||
       !this.apData().state ||
       this.apData().state === 'off-line'

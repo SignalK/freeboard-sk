@@ -49,7 +49,7 @@ measure: boolean= measure mode;
         >
           @if(mmsi) {
           <mat-icon>
-            <country-flag [mmsi]="mmsi" [host]="app.host"></country-flag>
+            <country-flag [mmsi]="mmsi" [host]="app.hostDef.url"></country-flag>
           </mat-icon>
           } @if(icon) {
           <mat-icon [class]="icon.class" [svgIcon]="icon.svgIcon">{{

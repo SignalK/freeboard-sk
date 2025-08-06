@@ -1,10 +1,9 @@
 /** Settings Service
  * ************************************/
 import { Injectable } from '@angular/core';
-import { Subject } from 'rxjs';
 
 import { AppFacade } from 'src/app/app.facade';
-import { SettingsMessage, SettingsSaveOptions } from 'src/app/lib/services';
+import { SettingsSaveOptions } from 'src/app/lib/services';
 import { SignalKClient } from 'signalk-client-angular';
 import { FBAppData, IAppConfig, Position } from 'src/app/types';
 
@@ -199,38 +198,12 @@ export class SettingsFacade {
   settings!: IAppConfig;
   data!: FBAppData;
 
-  update$() {
-    return this.app.settings$;
-  }
-  saved$() {
-    return this.configSavedSource.asObservable();
-  }
-  loaded$() {
-    return this.configLoadedSource.asObservable();
-  }
-
-  // ******************************************************
-  private configSavedSource = new Subject<SettingsMessage>();
-  private configLoadedSource = new Subject<SettingsMessage>();
-  // *******************************************************
-
   constructor(private app: AppFacade, public signalk: SignalKClient) {
     this.data = this.app.data;
     this.settings = this.app.config;
 
     this.fixedPosition = this.settings.fixedPosition.slice() as Position;
     this.app.config.chartApi = this.app.config.chartApi ?? 1;
-
-    this.app.settings$.subscribe((r: SettingsMessage) => {
-      if (r.setting === 'config') {
-        if (r.action === 'load') {
-          this.configLoadedSource.next(r);
-        }
-        if (r.action === 'save') {
-          this.configSavedSource.next(r);
-        }
-      }
-    });
   }
 
   // delete auth token

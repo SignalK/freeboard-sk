@@ -30,12 +30,12 @@ export interface FBMapEvent extends MapEvent {
   projCode: string;
 }
 
-export interface FBClickEvent extends MapBrowserEvent<UIEvent> {
+export interface FBClickEvent extends MapBrowserEvent<PointerEvent> {
   features: Array<FeatureLike>;
   lonlat: Coordinate;
 }
 
-export interface FBPointerEvent extends MapBrowserEvent<UIEvent> {
+export interface FBPointerEvent extends MapBrowserEvent<PointerEvent> {
   lonlat: Coordinate;
 }
 
@@ -103,7 +103,7 @@ export class MapComponent implements OnInit, OnDestroy {
   @Input() logo: string | boolean;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   @Input() properties: { [index: string]: any };
-  @Input() setFocus = false;
+  @Input() setFocus = '';
   @Input() hitTolerance = 5;
 
   constructor(
@@ -232,7 +232,7 @@ export class MapComponent implements OnInit, OnDestroy {
     this.emitRightClickEvent(event);
   };
 
-  private emitClickEvent = (event: MapBrowserEvent<UIEvent>) => {
+  private emitClickEvent = (event: MapBrowserEvent<PointerEvent>) => {
     this.mapClick.emit(this.augmentClickEvent(event));
   };
 
@@ -249,15 +249,15 @@ export class MapComponent implements OnInit, OnDestroy {
       lonlat: toLonLat(c)
     });
   };
-  private emitSingleClickEvent = (event: MapBrowserEvent<UIEvent>) => {
+  private emitSingleClickEvent = (event: MapBrowserEvent<PointerEvent>) => {
     this.mapSingleClick.emit(this.augmentClickEvent(event));
   };
-  private emitDblClickEvent = (event: MapBrowserEvent<UIEvent>) => {
+  private emitDblClickEvent = (event: MapBrowserEvent<PointerEvent>) => {
     this.mapDblClick.emit(this.augmentClickEvent(event));
   };
 
   // ** add {lonlat, features}fields to event
-  private augmentClickEvent(event: MapBrowserEvent<UIEvent>) {
+  private augmentClickEvent(event: MapBrowserEvent<PointerEvent>) {
     return Object.assign(event, {
       features: this.map.getFeaturesAtPixel(event.pixel, {
         hitTolerance: this.hitTolerance
@@ -287,17 +287,17 @@ export class MapComponent implements OnInit, OnDestroy {
     });
   }
 
-  private emitPointerDragEvent = (event: MapBrowserEvent<UIEvent>) => {
+  private emitPointerDragEvent = (event: MapBrowserEvent<PointerEvent>) => {
     this.clearTouchTimer();
     this.mapPointerDrag.emit(this.augmentPointerEvent(event));
   };
-  private emitPointerMoveEvent = (event: MapBrowserEvent<UIEvent>) => {
+  private emitPointerMoveEvent = (event: MapBrowserEvent<PointerEvent>) => {
     this.clearTouchTimer();
     this.mapPointerMove.emit(this.augmentPointerEvent(event));
   };
 
   // ** add {lonlat} field to event
-  private augmentPointerEvent(event: MapBrowserEvent<UIEvent>) {
+  private augmentPointerEvent(event: MapBrowserEvent<PointerEvent>) {
     return Object.assign(event, { lonlat: toLonLat(event.coordinate) });
   }
 

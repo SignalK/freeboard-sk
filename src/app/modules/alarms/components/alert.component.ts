@@ -53,7 +53,7 @@ const SoundFiles = {
     TimerButtonComponent
   ],
   template: `
-    @if(app.sAlertListShow() || hidden()) {
+    @if(app.uiCtrl().alertList || hidden()) {
     <span></span>
     } @else { @if(alert().visual && !alert().acknowledged) {
     <div>

@@ -124,7 +124,10 @@ export class WeatherForecastModal implements OnInit {
 
   private getForecast() {
     let path = '/meteo/freeboard-sk/forecasts';
-    if (this.app.data.weather.hasApi && this.app.data.vessels.self.position) {
+    if (
+      this.app.featureFlags().weatherApi &&
+      this.app.data.vessels.self.position
+    ) {
       const pos = this.app.data.vessels.self.position;
       path = `/weather/forecasts?lat=${pos[1]}&lon=${pos[0]}`;
     }

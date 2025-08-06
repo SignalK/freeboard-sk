@@ -130,6 +130,7 @@ export class SKChart {
   type: string;
   url: string;
   source: string;
+  style: string;
 
   constructor(chart?: ChartResource) {
     this.identifier = chart?.identifier ? chart.identifier : undefined;
@@ -148,6 +149,7 @@ export class SKChart {
       typeof chart?.scale !== 'undefined' && !isNaN(chart?.scale)
         ? chart.scale
         : this.scale;
+    this.style = chart?.style ?? undefined;
     this.source = chart?.$source ?? undefined;
   }
 }

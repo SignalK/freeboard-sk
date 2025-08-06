@@ -1,5 +1,5 @@
 import { Component, OnInit, Inject, ChangeDetectorRef } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { HttpErrorResponse } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
 import { MatInputModule } from '@angular/material/input';
@@ -33,7 +33,6 @@ import { Subscription } from 'rxjs';
 @Component({
   selector: 'ap-course-modal',
   imports: [
-    CommonModule,
     FormsModule,
     MatInputModule,
     MatSelectModule,

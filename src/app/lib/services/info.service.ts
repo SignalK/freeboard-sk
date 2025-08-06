@@ -1,64 +1,77 @@
 //*************************************
 //** Application Information Service **
 //*************************************
-import { Injectable, isDevMode } from '@angular/core';
+import { isDevMode } from '@angular/core';
 import { Subject, Observable } from 'rxjs';
 
 import { State } from './state.service';
-import { IAppConfig, FBAppData, AppUpdateMessage } from '../../types';
+import { IAppConfig, FBAppData } from '../../types';
 
 export interface SettingsSaveOptions {
   fetchNotes?: boolean;
   suppressTrailFetch?: boolean;
 }
 
-export interface SettingsMessage {
+export interface SettingsEventMessage {
   action: 'save' | 'load';
-  setting: 'data' | 'config';
   options?: SettingsSaveOptions;
 }
 
-@Injectable()
-export class Info {
-  public id = '';
+export interface AppInfoDef {
+  id: string;
+  name: string;
+  description: string;
+  version: string;
+  url?: string;
+  logo?: string;
+}
+
+export class InfoService {
+  public config!: IAppConfig;
+  public data!: FBAppData;
+
   public name = '';
-  public shortName = '';
   public description = ``;
   public version = '';
   public url = '';
   public logo = './assets/img/app_logo.png';
 
-  protected devMode: boolean;
+  public launchStatus!: {
+    result: 'current' | 'major' | 'minor' | 'patch' | 'first_run';
+    previousVersion: string;
+  };
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  public config!: IAppConfig; //** holds app configuration settings **
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  public data: FBAppData; //** holds app data **
-  public state: State;
+  protected devMode: boolean;
+  protected suppressPersist = false;
+
+  private id = '';
+  private state: State;
 
   // Observables
-  private upgradedSource: Subject<AppUpdateMessage>;
-  public upgraded$: Observable<AppUpdateMessage>;
-  private settings: Subject<SettingsMessage>;
-  public settings$: Observable<SettingsMessage>;
+  protected settingsEvent: Subject<SettingsEventMessage>;
+  public settings$: Observable<SettingsEventMessage>;
 
-  constructor() {
+  constructor(infoDef: AppInfoDef) {
     this.state = new State();
     this.devMode = isDevMode();
+
+    this.id = infoDef.id ?? '_';
+    this.name = infoDef.name ?? '';
+    this.description = infoDef.description ?? '';
+    this.version = infoDef.version ?? '0.0.0';
+    this.url = infoDef.url ?? '';
+    this.logo = infoDef.logo ?? '';
+
     this.state.appId = this.id;
+
     // ** initialise events
-    this.upgradedSource = new Subject<AppUpdateMessage>();
-    this.upgraded$ = this.upgradedSource.asObservable();
-    this.settings = new Subject<SettingsMessage>();
-    this.settings$ = this.settings.asObservable();
+    this.settingsEvent = new Subject<SettingsEventMessage>();
+    this.settings$ = this.settingsEvent.asObservable();
+
+    this.checkVersion();
   }
 
-  // ** initialise.. set state.appId **
-  init(appId = this.id) {
-    this.state.appId = appId;
-  }
-
-  //** write debug information to console in devMode only **
+  /** write debug information to console in devMode only */
   debug(...e: Array<unknown>) {
     e.unshift('debug:');
     if (this.devMode) {
@@ -66,70 +79,83 @@ export class Info {
     }
   }
 
-  /** Check versions to detect application update
-   * emits:  observable event app.upgraded$
-   * returns: {result: [null || new || update], previous: [null || prev version], new: info.version} **/
-  checkVersion() {
-    const cv = this.loadInfo();
-    const value: AppUpdateMessage = {
-      result: null,
-      previous: cv.version || null,
-      new: this.version
-    };
-    if (cv.version) {
-      // ** check for newer version **
-      if (this.version.indexOf(cv.version) === -1) {
-        value.result = 'update';
-        this.debug(
-          `AppFacade: Version update detected.. (${cv.version} -> ${this.version})`,
-          'info'
-        );
-        this.upgradedSource.next(value);
-      }
+  /** Check version set launchStatus */
+  private checkVersion() {
+    const pv = this.loadInfo().version;
+    if (!pv) {
+      //no previous version
+      this.launchStatus = {
+        result: 'first_run',
+        previousVersion: ''
+      };
+    } else if (pv === this.version) {
+      //current version
+      this.launchStatus = {
+        result: 'current',
+        previousVersion: pv
+      };
     } else {
-      // **  new install **
-      value.result = 'new';
-      this.saveInfo();
-      this.debug(`AppFacade: New Install detected.. (${this.version})`, 'info');
-      this.upgradedSource.next(value);
+      //changed version
+      const pva = pv.split('.');
+      const cva = this.version.split('.');
+      if (pva[0] !== cva[0]) {
+        this.launchStatus = {
+          result: 'major',
+          previousVersion: pv
+        };
+      } else if (pva[1] !== cva[1]) {
+        this.launchStatus = {
+          result: 'minor',
+          previousVersion: pv
+        };
+      } else {
+        this.launchStatus = {
+          result: 'patch',
+          previousVersion: pv
+        };
+      }
     }
-    return value;
+
+    this.saveInfo();
+    this.debug(`Version Check:`, this.launchStatus);
   }
 
-  //** load app version Info **
-  loadInfo() {
+  /** load app version Info */
+  loadInfo(): AppInfoDef {
     return this.state.loadInfo();
   }
 
-  //** persist version info **
+  /** persist version info */
   saveInfo() {
     this.state.saveInfo({
-      name: this.shortName,
+      name: this.name,
       version: this.version
     });
   }
 
-  //** load app config **
+  /** load app config */
   loadConfig() {
     this.config = this.state.loadConfig(this.config);
-    this.settings.next({ action: 'load', setting: 'config' });
   }
 
-  //** load app data **
+  /** persist app config */
+  saveConfig(options?: SettingsSaveOptions) {
+    if (this.suppressPersist) {
+      this.debug(`InfoService: suppressPersist = true`);
+      return;
+    }
+    this.debug(`InfoService.saveConfig`);
+    this.state.saveConfig(this.config);
+    this.settingsEvent.next({ action: 'save' });
+  }
+
+  /** load app data */
   loadData() {
     this.data = this.state.loadData(this.data);
-    this.settings.next({ action: 'load', setting: 'data' });
   }
 
-  //** persist app config **
-  saveConfig(options?: SettingsSaveOptions) {
-    this.state.saveConfig(this.config);
-    this.settings.next({ action: 'save', setting: 'config', options: options });
-  }
-
-  //** persist app data **
+  /** persist app data */
   saveData() {
     this.state.saveData(this.data);
-    this.settings.next({ action: 'save', setting: 'data' });
   }
 }

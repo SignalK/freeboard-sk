@@ -7,7 +7,6 @@ import {
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatListModule } from '@angular/material/list';
-import { CommonModule } from '@angular/common';
 
 /********* ErrorListDialog ************
 	data: {
@@ -17,13 +16,7 @@ import { CommonModule } from '@angular/common';
 ***********************************/
 @Component({
   selector: 'ap-errorlistdialog',
-  imports: [
-    CommonModule,
-    MatDialogModule,
-    MatIconModule,
-    MatButtonModule,
-    MatListModule
-  ],
+  imports: [MatDialogModule, MatIconModule, MatButtonModule, MatListModule],
   template: `
     <div class="_ap-errlist">
       <div>

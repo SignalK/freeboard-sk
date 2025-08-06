@@ -332,7 +332,7 @@ export function defaultConfig(): IAppConfig {
       routes: [],
       waypoints: [],
       tracks: null,
-      charts: ['openstreetmap', 'openseamap'],
+      charts: [],
       chartOrder: [], // chart layer ordering
       headingAttribute: 'navigation.headingTrue',
       preferredPaths: {
@@ -422,16 +422,8 @@ export function defaultConfig(): IAppConfig {
 // initialise state data
 export function initData(): FBAppData {
   return {
-    firstRun: false,
-    updatedRun: null,
-    kioskMode: false,
     n2kRoute: null,
-    optAppPanel: false,
-    trueMagChoice: '',
-    loggedIn: false,
     loginRequired: false,
-    loggedInBadgeText: '!',
-    hasToken: false,
     hasWakeLock: false,
     chartBounds: {
       show: false,
@@ -449,7 +441,6 @@ export function initData(): FBAppData {
     server: null,
     lastGet: null, // map position of last resources GET
     map: {
-      suppressContextMenu: false,
       atClick: {
         features: [],
         lonlat: [0, 0]
@@ -502,29 +493,6 @@ export function initData(): FBAppData {
     },
     racing: {
       startLine: []
-    },
-    anchor: {
-      hasApi: true
-    },
-    buddyList: {
-      hasApi: false
-    },
-    autopilot: {
-      console: false, // display Autopilot console
-      hasApi: false // Server implements Autopilot API
-    },
-    skIcons: {
-      hasApi: false
-    },
-    buildRoute: {
-      show: false
-    },
-    weather: {
-      hasApi: false
-    },
-    measurement: {
-      coords: [],
-      index: -1
     }
   };
 }
