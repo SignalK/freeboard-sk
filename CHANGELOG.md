@@ -7,6 +7,7 @@
 - **Fix**: Issue where vector charts were not using the supplied map style url. (#282)
 - **Fix**: Issue where charts with type `mapboxstyle` would remain visible after being de-selected.
 - **Fix**: Loading of OSM charts prior to loaded configuration being applied.
+- **Fix**: Issue where vessel information screen crashes when vessel has `navigation.destination.eta` path.
 - **Update**: Settings screen has been changed to a tabbed layout.
 - **Update**: Angular v20.
 

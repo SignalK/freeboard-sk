@@ -2134,9 +2134,11 @@ export class SKResourceService {
     v.callsignHf = vessel.communication?.callsignHf ?? null;
     v.destination.name =
       vessel.navigation?.destination?.commonName?.value ?? null;
-    v.destination.eta = vessel.navigation?.destination?.eta?.value
-      ? vessel.navigation?.destination?.eta?.value.toUTCString()
-      : null;
+    v.destination.eta = null;
+    if (vessel.navigation?.destination?.eta?.value) {
+      const d = new Date(vessel.navigation?.destination?.eta?.value);
+      v.destination.eta = d.toUTCString();
+    }
     v.state = vessel.navigation?.state?.value ?? '';
     v.registrations = vessel.registrations ?? null;
 
