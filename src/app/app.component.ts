@@ -915,7 +915,7 @@ export class AppComponent {
         data: {},
         maxWidth: '90vw',
         minWidth: '90vw',
-        minHeight: '80vw'
+        minHeight: '80vh'
       })
       .afterClosed()
       .subscribe(() => {
