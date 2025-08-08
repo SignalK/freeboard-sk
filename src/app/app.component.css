@@ -17,7 +17,7 @@ mat-nav-list {
     height: 100vh;
     background-color: black;
     color: white;  
-    overflow: hidden;  
+    overflow: hidden;
 }
 
 .view {
@@ -180,6 +180,60 @@ mat-nav-list {
 .instrumentPanelToggle {
     display: block;
 } 
+
+/** MOB Emergency Button Styling **/
+.mob-emergency-button {
+    position: absolute;
+    bottom: 20px;
+    right: 20px;
+    z-index: 5000;
+}
+
+.mob-button {
+    font-weight: bold !important;
+    border: 3px solid #fff !important;
+    box-shadow: 0 0 15px rgba(230, 0, 0, 0.7) !important; 
+    animation: mob-pulse 2s infinite !important;
+}
+
+.mob-button:hover {
+    box-shadow: 0 0 25px rgba(230, 0, 0, 1) !important;
+    transform: scale(1.1) !important;
+    transition: all 0.2s ease !important;
+    animation: none !important;
+}
+
+@keyframes mob-pulse {
+    0% {
+        box-shadow: 0 0 15px rgba(230, 0, 0, 0.7);
+    }
+    50% {
+        box-shadow: 0 0 25px rgba(230, 0, 0, 0.9);
+    }
+    100% {
+        box-shadow: 0 0 15px rgba(230, 0, 0, 0.7);
+    }
+}
+
+/* Responsive positioning for smaller screens */
+@media only screen and (max-width: 650px) { 
+    .mob-emergency-button {
+        bottom: 15px;
+        right: 15px;
+    }
+}
+
+@media only screen and (max-width: 400px) { 
+    .mob-emergency-button {
+        bottom: 10px;
+        right: 10px;
+    }
+    
+    .mob-button {
+        width: 48px !important;
+        height: 48px !important;
+    }
+}
 
 @media only screen and (max-width: 650px) {  
     .bottomSheet {
