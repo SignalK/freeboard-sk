@@ -743,6 +743,7 @@
           <!-- /right button bar -->
 
           <!-- MOB Emergency Button -->
+          @if(!isInteracting) {
           <div class="mob-emergency-button">
             <button
               class="button-warn mob-button"
@@ -754,6 +755,7 @@
               <mat-icon class="ob" svgIcon="alarm-mob"></mat-icon>
             </button>
           </div>
+          }
           }
           <!--map panel-->
           <div
