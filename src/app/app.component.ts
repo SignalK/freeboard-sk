@@ -335,16 +335,6 @@ export class AppComponent {
 
   public raiseMOBAlarm() {
     this.notiMgr.raiseServerAlarm('mob', 'Person Overboard!');
-    
-    const position = this.app.data.vessels.self.position;
-    if (position) {
-      this.course.setDestination({
-        latitude: position[1],
-        longitude: position[0]
-      });
-    } else {
-      this.app.showMessage('MOB Alarm Raised! (No vessel position available for navigation)', false, 5000);
-    }
   }
 
   protected toggleConstrainMapZoom() {
