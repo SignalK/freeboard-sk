@@ -46,7 +46,7 @@ const FSK: AppInfoDef = {
   id: 'freeboard',
   name: 'Freeboard-SK',
   description: `Signal K Chart Plotter.`,
-  version: '2.16.1',
+  version: '2.16.2',
   url: 'https://github.com/signalk/freeboard-sk',
   logo: './assets/img/app_logo.png'
 };
@@ -221,12 +221,14 @@ export class AppFacade extends InfoService {
   /** Parse, clean loaded config */
   private parseLoadedConfig() {
     cleanConfig(this.config, this.hostDef.params);
-    this.uiConfig.update(() => this.config.ui);
     this.doPostConfigLoad();
   }
 
-  /** @todo Initialise and raise "settings$.load" event */
+  /** Initialise and raise "settings$.load" event */
   private doPostConfigLoad() {
+    // initialise signals
+    this.uiConfig.update(() => this.config.ui);
+
     if (this.config.fixedLocationMode) {
       this.data.vessels.self.position = [
         ...this.config.fixedPosition
@@ -235,7 +237,6 @@ export class AppFacade extends InfoService {
       this.config.map.center = [...this.config.fixedPosition];
     }
 
-    // initialise signals
     this.sTrueMagChoice.set(this.config.selections.headingAttribute);
 
     // emit settings$.loaded

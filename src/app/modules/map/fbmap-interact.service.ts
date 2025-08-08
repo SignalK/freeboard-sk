@@ -50,7 +50,6 @@ export interface MeasurementDef {
 
 export type DrawFeatureType = 'waypoint' | 'route' | 'region' | 'note'; // feature type to draw
 
-/** @todo */
 export interface DrawFeatureInfo {
   resourceType: DrawFeatureType;
   featureType: 'Point' | 'LineString' | 'Polygon';
@@ -73,7 +72,7 @@ export class FBMapInteractService {
     index: -1
   });
 
-  /** @todo draw interaction data */
+  /** draw interaction data */
   public draw: DrawFeatureInfo = {
     resourceType: null,
     featureType: 'Point',

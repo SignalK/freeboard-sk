@@ -1,5 +1,9 @@
 # CHANGELOG: Freeboard
 
+### v2.16.2
+
+- **Fix**: Settings dialog height incorrectly aligned with viewport width.
+
 
 ### v2.16.1
 

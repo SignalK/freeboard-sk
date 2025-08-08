@@ -159,7 +159,7 @@ export class AppComponent {
       this.app.debug('** kioskMode Event:', this.app.kioskMode());
       this.toggleSuppressContextMenu(this.app.kioskMode());
     });
-    /** @todo handle interaction signals */
+    /** handle interaction signals */
     effect(() => {
       this.app.debug(
         '** interaction state Event:',
@@ -914,8 +914,7 @@ export class AppComponent {
         disableClose: true,
         data: {},
         maxWidth: '90vw',
-        minWidth: '90vw',
-        minHeight: '80vw'
+        minHeight: '80vh'
       })
       .afterClosed()
       .subscribe(() => {
