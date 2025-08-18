@@ -1,5 +1,14 @@
 # CHANGELOG: Freeboard
 
+### v2.17.0
+
+- **New**: Display range circles around the vessel. (#280)
+- **New**: Apply configurable offset when in "moving map" mode or centering the vessel to display 
+more map in front of the vessel. (#285)
+- **New**: Configurable action button that is persisted on bottom right of screen (waypoint at vessel, Person Overboard).
+- **Fix**: Issue where `navigation.course.arrivalCircle` path was not being processed.
+- **Fix**: Issue where trail not being displayed in Trail-to-Route screen.
+
 ### v2.16.2
 
 - **Fix**: Settings dialog height incorrectly aligned with viewport width.
@@ -9,7 +18,7 @@
 
 - **Fix**: Display units for vessel dimension values in the properties dialog. (#279)
 - **Fix**: Issue where vector charts were not using the supplied map style url. (#282)
-- **Fix**: Issue where charts with type `mapboxstyle` would remain visible after being de-selected.
+- **Fix**: Issue where charts with type `mapstyleJSON` would remain visible after being de-selected.
 - **Fix**: Loading of OSM charts prior to loaded configuration being applied.
 - **Fix**: Issue where vessel information screen crashes when vessel has `navigation.destination.eta` path.
 - **Update**: Settings screen has been changed to a tabbed layout.
@@ -127,7 +136,7 @@
 
 ### v2.12.0
 
-- **Added**: Define chart sources from within the Charts List including: WMTS, Mapbox Style and TileJSON.
+- **Added**: Define chart sources from within the Charts List including: WMTS, MapStyleJSON and TileJSON.
 - **Updated**: Measure distances < 1km are displayed in meters and < 0.5NM uses depth units (#194). 
 - **Updated**: Ensure weather forecast times use 24 hr format. (#193)
 - **Updated**: OpenSea Map min / max zoom levels.
