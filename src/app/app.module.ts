@@ -42,7 +42,10 @@ import {
   FileInputComponent,
   PiPVideoComponent,
   WakeLockComponent,
-  Measurements
+  Measurements,
+  FABContainerComponent,
+  POBButtonComponent,
+  WptButtonComponent
 } from './lib/components';
 
 @NgModule({
@@ -70,6 +73,7 @@ import {
     AutopilotComponent,
     BuildRouteComponent,
     Measurements,
+    FABContainerComponent,
     RouteListComponent,
     WaypointListComponent,
     ChartListComponent,
@@ -82,7 +86,10 @@ import {
     AnchorWatchComponent,
     AlertComponent,
     AlertListComponent,
-    RouteNextPointComponent
+    RouteNextPointComponent,
+    FABContainerComponent,
+    POBButtonComponent,
+    WptButtonComponent
   ],
   providers: [provideHttpClient(withInterceptorsFromDi())]
 })

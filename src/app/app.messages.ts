@@ -3,24 +3,11 @@ const WHATS_NEW = [
     type: 'signalk-server-node',
     title: 'New in this Release',
     message: `
-        <b>Resource Groups</b>
+        <b>Display Range Circles</b>
         <br>&nbsp;<br>
-        Add Routes and Waypoints to groups which can be used to easily 
-        display them on the map with a single click.
+        Added setting to display range circles around the vessel.
         <br>&nbsp;<br>
-        See <a href="assets/help/index.html#resources" target="help">HELP</a> 
-        for more details.
-      `
-  },
-  {
-    type: 'signalk-server-node',
-    title: 'New in this Release',
-    message: `
-        <b>Change the vessel Icon size</b>
-        <br>&nbsp;<br>
-        Added setting to specify the icon size of your vessel.
-        <br>&nbsp;<br>
-        Go to <i>Settings | Vessels</i> to make your selection.
+        Go to <i>Settings | Vessels</i> to enable this feature.
       `
   }
 ];
