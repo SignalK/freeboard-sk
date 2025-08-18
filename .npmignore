@@ -17,5 +17,6 @@ tsconfig.app.json
 tsconfig-helper.json
 tsconfig.spec.json
 tsconfig.worker.json
+webpack.config.js
 .angular
 .github
