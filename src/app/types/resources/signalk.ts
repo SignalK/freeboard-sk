@@ -79,7 +79,7 @@ export interface ChartProvider {
   name: string;
   title?: string;
   description: string;
-  type: 'tilejson' | 'WMS' | 'WMTS' | 'mapboxstyle';
+  type: 'tileJSON' | 'WMS' | 'WMTS' | 'mapstyleJSON';
   url: string;
   layers?: string[];
   bounds?: number[];

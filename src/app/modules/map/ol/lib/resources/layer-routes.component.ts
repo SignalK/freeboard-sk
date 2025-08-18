@@ -90,6 +90,14 @@ export class FreeboardRouteLayerComponent extends FBFeatureLayerComponent {
       if (this.layerProperties && this.layerProperties.style) {
         return this.layerProperties.style;
       } else {
+        styles.push(
+          new Style({
+            stroke: new Stroke({
+              color: 'green',
+              width: 2
+            })
+          })
+        );
         return styles;
       }
     }

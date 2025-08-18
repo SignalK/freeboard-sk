@@ -8,7 +8,9 @@ import {
   OnInit,
   Output,
   SimpleChanges,
-  SimpleChange
+  SimpleChange,
+  input,
+  effect
 } from '@angular/core';
 import { Layer } from 'ol/layer';
 import { Feature } from 'ol';
@@ -41,12 +43,13 @@ export class BearingLineComponent implements OnInit, OnDestroy, OnChanges {
    */
   @Output() layerReady: AsyncSubject<Layer> = new AsyncSubject(); // AsyncSubject will only store the last value, and only publish it when the sequence is completed
 
-  @Input() marker: Coordinate;
-  @Input() markerName: string;
-  @Input() lineCoords: Array<Coordinate>;
-  @Input() showMarker = false;
+  protected vesselPosition = input<Coordinate>();
+  protected markerPosition = input<Coordinate>();
+  protected showMarker = input<boolean>();
+  protected labelMinZoom = input<number>(10);
+  protected markerName = input<string>('');
+
   @Input() mapZoom = 10;
-  @Input() labelMinZoom = 10;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   @Input() bearingStyles: { [key: string]: any };
   @Input() opacity: number;
@@ -66,6 +69,23 @@ export class BearingLineComponent implements OnInit, OnDestroy, OnChanges {
     protected mapComponent: MapComponent
   ) {
     this.changeDetectorRef.detach();
+    effect(() => {
+      this.markerPosition();
+      this.vesselPosition();
+      this.showMarker();
+      this.parseValues();
+      if (this.source) {
+        this.source.clear();
+        this.source.addFeatures(this.features);
+      }
+    });
+    effect(() => {
+      this.labelMinZoom();
+      this.markerName();
+      if (typeof this.mapZoom !== 'undefined') {
+        this.updateLabel();
+      }
+    });
   }
 
   ngOnInit() {
@@ -90,17 +110,7 @@ export class BearingLineComponent implements OnInit, OnDestroy, OnChanges {
       const properties: { [index: string]: any } = {};
 
       for (const key in changes) {
-        if (key === 'marker' || key === 'showMarker' || key === 'lineCoords') {
-          this.parseValues();
-          if (this.source) {
-            this.source.clear();
-            this.source.addFeatures(this.features);
-          }
-        } else if (
-          key === 'markerName' ||
-          key === 'labelMinZoom' ||
-          key === 'mapZoom'
-        ) {
+        if (key === 'mapZoom') {
           this.handleLabelZoomChange(key, changes[key]);
         } else if (key === 'layerProperties') {
           this.layer.setProperties(properties, false);
@@ -122,29 +132,36 @@ export class BearingLineComponent implements OnInit, OnDestroy, OnChanges {
   }
 
   parseValues() {
-    this.mapifiedLine = mapifyCoords(this.lineCoords);
     const fa: Feature[] = [];
-    const fl = new Feature({
-      geometry: new LineString(fromLonLatArray(this.mapifiedLine))
-    });
-    fl.setStyle(this.buildStyle('line'));
-    fa.push(fl);
-    let fp = new Feature({
-      geometry: new Point(fromLonLat(this.marker))
-    });
-    fp.setId('d.base');
-    fp.setStyle(this.buildStyle('line'));
-    this.updateLabel(fp);
-    fa.push(fp);
-    if (this.showMarker) {
-      fp = new Feature({
-        geometry: new Point(fromLonLat(this.marker))
+    if (
+      Array.isArray(this.vesselPosition()) &&
+      Array.isArray(this.markerPosition())
+    ) {
+      this.mapifiedLine = mapifyCoords([
+        this.vesselPosition(),
+        this.markerPosition()
+      ]);
+      const fl = new Feature({
+        geometry: new LineString(fromLonLatArray(this.mapifiedLine))
       });
-      fp.setId('dest.point');
-      fp.setStyle(this.buildStyle('marker'));
+      fl.setStyle(this.buildStyle('line'));
+      fa.push(fl);
+      let fp = new Feature({
+        geometry: new Point(fromLonLat(this.markerPosition()))
+      });
+      fp.setId('d.base');
+      fp.setStyle(this.buildStyle('line'));
+      this.updateLabel(fp);
       fa.push(fp);
+      if (this.showMarker) {
+        fp = new Feature({
+          geometry: new Point(fromLonLat(this.markerPosition()))
+        });
+        fp.setId('dest.point');
+        fp.setStyle(this.buildStyle('marker'));
+        fa.push(fp);
+      }
     }
-
     this.features = fa;
   }
 
@@ -192,11 +209,7 @@ export class BearingLineComponent implements OnInit, OnDestroy, OnChanges {
 
   // ** assess attribute change **
   handleLabelZoomChange(key: string, change: SimpleChange) {
-    if (key === 'labelMinZoom') {
-      if (typeof this.mapZoom !== 'undefined') {
-        this.updateLabel();
-      }
-    } else if (key === 'mapZoom') {
+    if (key === 'mapZoom') {
       if (typeof this.labelMinZoom !== 'undefined') {
         if (
           (change.currentValue >= this.labelMinZoom &&
@@ -226,7 +239,9 @@ export class BearingLineComponent implements OnInit, OnDestroy, OnChanges {
       return;
     }
     ts.setText(
-      Math.abs(this.mapZoom) >= this.labelMinZoom ? this.markerName ?? '' : ''
+      Math.abs(this.mapZoom) >= this.labelMinZoom()
+        ? this.markerName() ?? ''
+        : ''
     );
     (s as Style).setText(ts);
     f.setStyle(s);

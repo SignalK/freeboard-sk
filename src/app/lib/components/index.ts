@@ -5,3 +5,6 @@ export * from './pip.component';
 export * from './wakelock.component';
 export * from './measurements.component';
 export * from './country-flags.component';
+export * from './fab-container.component';
+export * from './pob-button.component';
+export * from './wpt-button.component';

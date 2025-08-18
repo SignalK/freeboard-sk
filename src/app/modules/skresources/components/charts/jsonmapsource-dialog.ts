@@ -219,14 +219,14 @@ export class JsonMapSourceDialog {
       return {
         name: json.name ?? '',
         description: json.description ?? '',
-        type: 'tilejson',
+        type: 'tileJSON',
         url: uri
       };
     } else if ('version' in json && 'sources' in json && 'layers' in json) {
       return {
         name: json.name ?? '',
         description: '',
-        type: 'mapboxstyle',
+        type: 'mapstyleJSON',
         url: uri
       };
     } else {

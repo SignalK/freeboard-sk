@@ -2,8 +2,6 @@ import {
   ChangeDetectionStrategy,
   ChangeDetectorRef,
   Component,
-  effect,
-  input,
   Input,
   OnChanges,
   OnDestroy,
@@ -15,21 +13,23 @@ import { Layer } from 'ol/layer';
 import { Feature } from 'ol';
 import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
-import { Style, Stroke, Fill } from 'ol/style';
-import { LineString } from 'ol/geom';
+import { Style, Stroke, Fill, Text } from 'ol/style';
+import { Circle } from 'ol/geom';
+import { fromLonLat } from 'ol/proj';
 import { MapComponent } from '../map.component';
 import { Extent, Coordinate } from '../models';
-import { fromLonLatArray, mapifyCoords } from '../util';
+import { mapifyRadius } from '../util';
 import { AsyncSubject } from 'rxjs';
+import { Convert } from '../../../../../lib/convert';
 
-// ** Freeboard XTE path component **
+// ** Freeboard Range Circles component **
 @Component({
-  selector: 'ol-map > fb-xte-path',
+  selector: 'ol-map > fb-range-circles',
   template: '<ng-content></ng-content>',
   changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: false
 })
-export class XTEPathComponent implements OnInit, OnDestroy, OnChanges {
+export class RangeCirclesComponent implements OnInit, OnDestroy, OnChanges {
   protected layer: Layer;
   public source: VectorSource;
   protected features: Array<Feature>;
@@ -40,10 +40,10 @@ export class XTEPathComponent implements OnInit, OnDestroy, OnChanges {
    */
   @Output() layerReady: AsyncSubject<Layer> = new AsyncSubject(); // AsyncSubject will only store the last value, and only publish it when the sequence is completed
 
-  protected startPosition = input<Coordinate>();
-  protected destPosition = input<Coordinate>();
-  protected color = input<string>();
-
+  @Input() position: Coordinate;
+  @Input() minZoom: number;
+  @Input() zoomLevel: number;
+  @Input() units = 'm';
   @Input() opacity: number;
   @Input() visible: boolean;
   @Input() extent: Extent;
@@ -60,16 +60,6 @@ export class XTEPathComponent implements OnInit, OnDestroy, OnChanges {
     protected mapComponent: MapComponent
   ) {
     this.changeDetectorRef.detach();
-    effect(() => {
-      this.startPosition();
-      this.destPosition();
-      this.color();
-      this.parseValues();
-      if (this.source) {
-        this.source.clear();
-        this.source.addFeatures(this.features);
-      }
-    });
   }
 
   ngOnInit() {
@@ -94,7 +84,13 @@ export class XTEPathComponent implements OnInit, OnDestroy, OnChanges {
       const properties: { [index: string]: any } = {};
 
       for (const key in changes) {
-        if (key === 'layerProperties') {
+        if (['position', 'zoomLevel', 'minZoom', 'units'].includes(key)) {
+          this.parseValues();
+          if (this.source) {
+            this.source.clear();
+            this.source.addFeatures(this.features);
+          }
+        } else if (key === 'layerProperties') {
           this.layer.setProperties(properties, false);
         } else {
           properties[key] = changes[key].currentValue;
@@ -114,44 +110,70 @@ export class XTEPathComponent implements OnInit, OnDestroy, OnChanges {
   }
 
   parseValues() {
+    const map = this.mapComponent.getMap();
+    const zoomResolution = map.getView().getResolutionForZoom(this.zoomLevel);
     const fa: Feature[] = [];
-    if (
-      Array.isArray(this.startPosition()) &&
-      Array.isArray(this.destPosition())
-    ) {
-      this.mapifiedLine = mapifyCoords([
-        this.startPosition(),
-        this.destPosition()
-      ]);
-
-      const f = new Feature({
-        geometry: new LineString(fromLonLatArray(this.mapifiedLine))
-      });
-      f.setStyle(this.buildStyle());
-      fa.push(f);
+    if (this.zoomLevel >= this.minZoom) {
+      const range =
+        zoomResolution > 400
+          ? 10000
+          : zoomResolution > 130
+          ? 5000
+          : zoomResolution > 60
+          ? 2000
+          : zoomResolution > 25
+          ? 1000
+          : zoomResolution > 10
+          ? 500
+          : 250;
+      const st0 = this.buildStyle(range);
+      const st = this.buildStyle();
+      const qty = 4;
+      for (let i = 1; i <= qty; ++i) {
+        const f = new Feature({
+          geometry: new Circle(
+            fromLonLat(this.position),
+            mapifyRadius(range * i, this.position)
+          )
+        });
+        f.setStyle(i === 1 ? st0 : st);
+        fa.push(f);
+      }
     }
     this.features = fa;
   }
 
   // build target style
-  buildStyle(): Style {
+  buildStyle(value?: number): Style {
     let cs: Style;
     if (this.layerProperties && this.layerProperties.style) {
       cs = this.layerProperties.style;
     } else {
       // default style
-      const color = this.color() ?? 'gray';
       cs = new Style({
+        fill: new Fill({ color: 'rgba(255, 255, 255, 0)' }),
         stroke: new Stroke({
-          width: 1,
-          color: color,
-          lineDash: [5, 5]
+          color: 'rgba(152, 153, 10, 1)',
+          width: 1.5,
+          lineDash: [2, 3]
         }),
-        fill: new Fill({
-          color: 'rgba(255,0,0,.2)'
+        text: new Text({
+          text: value ? this.formatLabel(value) : '',
+          offsetX: 45,
+          offsetY: 0,
+          stroke: new Stroke({ color: 'rgba(242, 197, 33, 1)' })
         })
       });
     }
     return cs;
+  }
+
+  formatLabel(value: number): string {
+    if (this.units === 'm') {
+      return value >= 1000 ? `${Math.floor(value / 1000)} km` : `${value} m`;
+    } else {
+      const nm = Convert.kmToNauticalMiles(value / 1000);
+      return `${nm.toFixed(1)} NM`;
+    }
   }
 }

@@ -185,7 +185,9 @@ export class FBFeatureLayerComponent implements OnInit, OnDestroy, OnChanges {
     if (!style || typeof style === 'function') {
       return style;
     } else if (Array.isArray(style)) {
-      ts = style[0].getText();
+      if (style.length !== 0) {
+        ts = style[0].getText();
+      }
     } else {
       ts = style.getText();
     }

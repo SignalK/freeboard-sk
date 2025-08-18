@@ -34,6 +34,11 @@ export interface IAppConfig {
     mapConstrainZoom: boolean; // constrain zooming to map min / max values
     toolbarButtons: boolean; // show/hide toolbar buttons
     invertColor: boolean; // invert map feature label colors
+    wakeLock: boolean; // prevent device sleeping
+  };
+  display: {
+    fab: 'wpt' | 'pob'; // FAB button selection
+    mapCenterOffset: number; // vessel offset south of center (%)
   };
   chartApi: number; // temp: use v{1|2}/api/resources/charts
   experiments: boolean;
@@ -95,6 +100,7 @@ export interface IAppConfig {
       aisCogLine: number; // (minutes) length = cogLine * sog
       headingLineSize: number; // mode for display of heading line -1 = default
       iconScale: number; // scale to apply to self Vessel icon
+      rangeCircles: boolean; //display range circles
     };
     positionFormat: 'XY' | 'SHDd' | 'HDd' | 'DMdH' | 'HDMS' | 'DHMS';
     aisTargets: string[];
@@ -138,7 +144,6 @@ export interface IAppConfig {
       maxRadius: number; // max radius within which AIS targets are displayed
       proxied: boolean; // server behind a proxy server
     };
-    wakeLock: boolean;
     course: {
       autoNextPointOnArrival: boolean;
       autoNextPointDelay: number;
@@ -178,7 +183,6 @@ export interface FBAppData {
   activeRouteIsEditing: boolean;
   editingId: string;
   activeWaypoint: string;
-  trail: LineString; // self vessel track / trail
   serverTrail: boolean; // trail received from server
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   server: { [key: string]: any }; // SK server info

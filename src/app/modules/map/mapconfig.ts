@@ -2,18 +2,7 @@
 
 import { Style, Icon, Text, Stroke, Fill, Circle } from 'ol/style';
 
-export const mapInteractions = [
-  { name: 'dragpan' },
-  { name: 'dragzoom' },
-  { name: 'keyboardpan' },
-  { name: 'keyboardzoom' },
-  { name: 'mousewheelzoom' },
-  { name: 'pinchzoom' }
-];
-
 export const mapControls = [
-  //{name: 'fullscreen'},
-  //{name: 'rotate'},
   {
     name: 'scaleline',
     options: {
@@ -25,6 +14,8 @@ export const mapControls = [
       units: 'nautical'
     }
   }
+  //{name: 'fullscreen'},
+  //{name: 'rotate'},
   //{name: 'zoom'},
   //{name: 'zoomslider'},
   //{name: 'zoomtoextent'},

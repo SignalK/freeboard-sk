@@ -40,6 +40,7 @@ measure: boolean= measure mode;
     >
       <div class="popover-title">
         <div
+          [ngClass]="{ measure: measure }"
           style="flex: 1 1 auto;overflow: hidden;
                                 display: -webkit-box;
                                 -webkit-box-orient: vertical;

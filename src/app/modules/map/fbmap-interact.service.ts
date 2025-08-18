@@ -21,7 +21,7 @@ import {
 import { GeoJSONFeature } from 'ol/format/GeoJSON';
 import { AlertData } from '../alarms';
 
-export interface IOverlay {
+export interface IPopover {
   id: string;
   type: string;
   icon?: string;
@@ -192,7 +192,7 @@ export class FBMapInteractService {
   }
 
   /** Start modifying mode */
-  startModifying(overlay: IOverlay) {
+  startModifying(overlay: IPopover) {
     this.app.debug(`startModifying()...`);
     if (this.draw.features.getLength() === 0) {
       return;

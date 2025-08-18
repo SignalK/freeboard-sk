@@ -39,6 +39,13 @@ export interface FBPointerEvent extends MapBrowserEvent<PointerEvent> {
   lonlat: Coordinate;
 }
 
+// used for wind vector scaling
+export const zoomOffsetLevel = [
+  1, 1000000, 550000, 290000, 140000, 70000, 38000, 17000, 7600, 3900, 1900,
+  950, 470, 250, 120, 60, 30, 15.5, 8.1, 4, 2, 1, 0.5, 0.25, 0.12, 0.06, 0.03,
+  0.015, 0.008, 1
+];
+
 @Component({
   selector: 'ol-map',
   styleUrls: ['./map.component.scss'],

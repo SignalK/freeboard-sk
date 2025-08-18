@@ -217,7 +217,7 @@ export class FreeboardChartLayerComponent
               : charts[i][1].minZoom;
           const maxZ = charts[i][1].maxZoom;
 
-          if (charts[i][1].type.toLowerCase() === 'mapboxstyle') {
+          if (charts[i][1].type.toLowerCase() === 'mapstylejson') {
             const lg = new LayerGroup({
               zIndex: this.zIndex + parseInt(i)
             });

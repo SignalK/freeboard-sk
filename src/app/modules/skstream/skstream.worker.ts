@@ -137,7 +137,7 @@ function initVessels() {
     meteo: new Map()
   };
   // flag to indicate at least one position data message received
-  vessels.self['positionReceived'] = false;
+  vessels.self.positionReceived = false;
 
   initAisTargetStatus();
 }
@@ -655,7 +655,7 @@ function filterContext(
     // filter on max radius
     if (obj && targetFilter.signalk.maxRadius) {
       if (
-        obj['positionReceived'] &&
+        obj.positionReceived &&
         GeoUtils.inBounds(obj.position, targetExtent)
       ) {
         targetStatus.updated[context] = true;
@@ -694,7 +694,7 @@ function postUpdate(immediate = false) {
     // cleanup and extent calc
     if (extRecalcCounter === 0) {
       processAISStatus();
-      if (vessels.self['positionReceived'] && targetFilter?.signalk.maxRadius) {
+      if (vessels.self.positionReceived && targetFilter?.signalk.maxRadius) {
         targetExtent = GeoUtils.calcMapifiedExtent(
           vessels.self.position,
           targetFilter.signalk.maxRadius
@@ -776,11 +776,11 @@ function processVessel(d: SKVessel, v: any, isSelf = false) {
         d.courseCalcs[p] = v.value;
       } else if (v.path.includes('activeRoute')) {
         d.courseApi.activeRoute = v.value;
-      } else if (v.path.indexOf('nextPoint') !== -1) {
+      } else if (v.path.includes('nextPoint')) {
         d.courseApi.nextPoint = v.value;
-      } else if (v.path.indexOf('previousPoint') !== -1) {
+      } else if (v.path.includes('previousPoint')) {
         d.courseApi.previousPoint = v.value;
-      } else if (v.path === 'arrivalCircle') {
+      } else if (v.path.includes('arrivalCircle')) {
         d.courseApi.arrivalCircle = v.value;
       }
     }
@@ -834,7 +834,7 @@ function processVessel(d: SKVessel, v: any, isSelf = false) {
       v.value.longitude,
       v.value.latitude
     ]);
-    d['positionReceived'] = true;
+    d.positionReceived = true;
     if (!isSelf) {
       appendTrack(d);
     }
@@ -1043,7 +1043,7 @@ function processAtoN(id: string, v): string {
     d.virtual = v.value;
   } else if (v.path === 'navigation.position') {
     d.position = [v.value.longitude, v.value.latitude];
-    d['positionReceived'] = true;
+    d.positionReceived = true;
   }
   // properties
   else {
@@ -1084,7 +1084,7 @@ function processSaR(id: string, v) {
       v.value.longitude,
       v.value.latitude
     ]);
-    d['positionReceived'] = true;
+    d.positionReceived = true;
   }
 }
 
@@ -1126,7 +1126,7 @@ function processMeteo(id: string, v) {
       v.value.longitude,
       v.value.latitude
     ]);
-    d['positionReceived'] = true;
+    d.positionReceived = true;
   }
 }
 
@@ -1158,7 +1158,7 @@ function processAircraft(id: string, v) {
       v.value.longitude,
       v.value.latitude
     ]);
-    d['positionReceived'] = true;
+    d.positionReceived = true;
     appendTrack(d);
   } else if (v.path === 'navigation.courseOverGroundTrue') {
     d.orientation = v.value;

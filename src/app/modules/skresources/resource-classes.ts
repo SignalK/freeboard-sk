@@ -181,6 +181,7 @@ class SKTargetBase {
   name: string;
   mmsi: string;
   position: Position = [0, 0];
+  positionReceived = false;
   state: string;
   type: { id: number; name: string } = { id: -1, name: '' };
   properties: { [key: string]: any } = {};

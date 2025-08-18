@@ -31,6 +31,7 @@ import { ArrivalCircleComponent } from './lib/navigation/layer-arrival-circle.co
 import { XTEPathComponent } from './lib/navigation/layer-xte-path.component';
 import { BearingLineComponent } from './lib/navigation/layer-bearing-line.component';
 import { LaylineComponent } from './lib/navigation/layer-layline.component';
+import { TargetAngleComponent } from './lib/navigation/layer-target-angle.component';
 import { DirectionOfTravelComponent } from './lib/navigation/layer-dot.component';
 import { VesselComponent } from './lib/vessel/layer-vessel.component';
 import { VesselTrailComponent } from './lib/vessel/layer-vessel-trail.component';
@@ -41,6 +42,7 @@ import { AISWindLayerComponent } from './lib/resources/layer-aiswind.component';
 import { AISTargetsLayerComponent } from './lib/resources/layer-aistargets.component';
 import { AISVesselsLayerComponent } from './lib/resources/layer-aisvessels.component';
 import { AISTargetsTrackLayerComponent } from './lib/resources/layer-aistargets-track.component';
+import { RangeCirclesComponent } from './lib/navigation/layer-range-circles.component';
 
 export * from './lib/util';
 export { MapService } from './lib/map.service';
@@ -75,7 +77,6 @@ export { XTEPathComponent } from './lib/navigation/layer-xte-path.component';
 export { BearingLineComponent } from './lib/navigation/layer-bearing-line.component';
 export { LaylineComponent } from './lib/navigation/layer-layline.component';
 export { TargetAngleComponent } from './lib/navigation/layer-target-angle.component';
-import { TargetAngleComponent } from './lib/navigation/layer-target-angle.component';
 export { DirectionOfTravelComponent } from './lib/navigation/layer-dot.component';
 export { VesselComponent } from './lib/vessel/layer-vessel.component';
 export { VesselTrailComponent } from './lib/vessel/layer-vessel-trail.component';
@@ -86,6 +87,7 @@ export { AISWindLayerComponent } from './lib/resources/layer-aiswind.component';
 export { AISTargetsLayerComponent } from './lib/resources/layer-aistargets.component';
 export { AISVesselsLayerComponent } from './lib/resources/layer-aisvessels.component';
 export { AISTargetsTrackLayerComponent } from './lib/resources/layer-aistargets-track.component';
+export { RangeCirclesComponent } from './lib/navigation/layer-range-circles.component';
 
 const declarations = [
   ContentComponent,
@@ -123,7 +125,8 @@ const declarations = [
   AISWindLayerComponent,
   AISTargetsLayerComponent,
   AISVesselsLayerComponent,
-  AISTargetsTrackLayerComponent
+  AISTargetsTrackLayerComponent,
+  RangeCirclesComponent
 ];
 
 @NgModule({
