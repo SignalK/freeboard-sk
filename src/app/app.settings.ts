@@ -26,7 +26,18 @@ export function cleanConfig(
       mapMove: (settings as any).map.moveMap ?? false,
       mapConstrainZoom: (settings as any).map.limitZoom ?? false,
       invertColor: (settings as any).map.invertColor ?? false,
-      toolbarButtons: (settings as any).toolBarButtons ?? true
+      toolbarButtons: (settings as any).toolBarButtons ?? true,
+      wakeLock: (settings as any).selections.wakeLock ?? false
+    };
+  }
+  if (typeof settings.ui.wakeLock === 'undefined') {
+    settings.ui.wakeLock = (settings as any).selections.wakeLock ?? false;
+  }
+
+  if (typeof settings.display === 'undefined') {
+    settings.display = {
+      fab: 'wpt',
+      mapCenterOffset: 0
     };
   }
 
@@ -48,6 +59,9 @@ export function cleanConfig(
   }
   if (typeof (settings as any).toolBarButtons !== 'undefined') {
     delete (settings as any).toolBarButtons;
+  }
+  if (typeof (settings as any).selections.wakeLock !== 'undefined') {
+    delete (settings as any).selections.wakeLock;
   }
 
   /**
@@ -84,7 +98,8 @@ export function cleanConfig(
       cogLine: 10,
       aisCogLine: 10,
       headingLineSize: -1,
-      iconScale: 0.9
+      iconScale: 0.9,
+      rangeCircles: false
     };
   }
   if (typeof settings.selections.vessel.laylines === 'undefined') {
@@ -95,6 +110,9 @@ export function cleanConfig(
   }
   if (typeof settings.selections.vessel.iconScale === 'undefined') {
     settings.selections.vessel.iconScale = 0.9;
+  }
+  if (typeof settings.selections.vessel.rangeCircles === 'undefined') {
+    settings.selections.vessel.rangeCircles = false;
   }
 
   if (typeof settings.selections.aisShowTrack === 'undefined') {
@@ -186,9 +204,6 @@ export function cleanConfig(
 
   if (typeof settings.selections.signalk.meteo === 'undefined') {
     settings.selections.signalk.meteo = true;
-  }
-  if (typeof settings.selections.wakeLock === 'undefined') {
-    settings.selections.wakeLock = false;
   }
 
   if (typeof settings.selections.course === 'undefined') {
@@ -308,7 +323,12 @@ export function defaultConfig(): IAppConfig {
       mapMove: false,
       mapConstrainZoom: false,
       toolbarButtons: true,
-      invertColor: false // invert map feature label colors
+      invertColor: false, // invert map feature label colors
+      wakeLock: false
+    },
+    display: {
+      fab: 'wpt', // default FAB button
+      mapCenterOffset: 0
     },
     chartApi: 1, // set by feature detection
     experiments: false,
@@ -369,7 +389,8 @@ export function defaultConfig(): IAppConfig {
         cogLine: 10, // self COG line time (mins)
         aisCogLine: 10, // ais COG line time (mins)
         headingLineSize: -1, // mode for display of heading line -1 = default
-        iconScale: 0.9
+        iconScale: 0.9,
+        rangeCircles: false
       },
       positionFormat: 'XY',
       aisTargets: null,
@@ -412,7 +433,6 @@ export function defaultConfig(): IAppConfig {
         maxRadius: 0, // max radius within which AIS targets are displayed
         proxied: true // server behind a proxy server
       },
-      wakeLock: false,
       course: {
         autoNextPointOnArrival: false,
         autoNextPointDelay: 5000,
@@ -457,7 +477,6 @@ export function initData(): FBAppData {
     activeRouteIsEditing: false,
     editingId: null,
     activeWaypoint: null,
-    trail: [], // self vessel track / trail
     serverTrail: false, // trail received from server
     server: null,
     lastGet: null, // map position of last resources GET

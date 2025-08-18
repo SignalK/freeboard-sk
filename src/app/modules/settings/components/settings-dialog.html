@@ -25,16 +25,6 @@
               <mat-card-content>
                 <div class="setting-card-row" style="padding-bottom: 10px">
                   <div class="setting-card-row-item">
-                    <mat-checkbox
-                      [(ngModel)]="facade.settings.nightMode"
-                      (change)="persistModel()"
-                      label="after"
-                      matTooltip="Auto-set using environment.mode value."
-                    >
-                      Auto-set Night Mode
-                    </mat-checkbox>
-                  </div>
-                  <div class="setting-card-row-item">
                     <mat-form-field style="width: 100%">
                       <mat-label>Dark Mode setting</mat-label>
                       <mat-select
@@ -50,6 +40,16 @@
                   </div>
                   <div class="setting-card-row-item">
                     <mat-checkbox
+                      [(ngModel)]="facade.settings.nightMode"
+                      (change)="persistModel()"
+                      label="after"
+                      matTooltip="Auto-set using environment.mode value."
+                    >
+                      Auto-set Night Mode
+                    </mat-checkbox>
+                  </div>
+                  <div class="setting-card-row-item">
+                    <mat-checkbox
                       [(ngModel)]="facade.settings.map.lockMoveMap"
                       (change)="persistModel()"
                       matTooltip="Do not exit follow vessel when map is panned."
@@ -59,8 +59,22 @@
                     </mat-checkbox>
                   </div>
                   <div class="setting-card-row-item">
+                    <mat-form-field style="width: 100%">
+                      <mat-label>Action Button</mat-label>
+                      <mat-select
+                        [(ngModel)]="facade.settings.display.fab"
+                        matTooltip="Action button selection."
+                        (selectionChange)="persistModel()"
+                      >
+                        @for(i of options.buttons.fab; track i[0]) {
+                        <mat-option [value]="i[0]">{{i[1]}}</mat-option>
+                        }
+                      </mat-select>
+                    </mat-form-field>
+                  </div>
+                  <div class="setting-card-row-item">
                     <mat-checkbox
-                      [(ngModel)]="facade.settings.selections.wakeLock"
+                      [(ngModel)]="facade.settings.ui.wakeLock"
                       (change)="persistModel()"
                       label="after"
                     >
@@ -342,6 +356,19 @@
                     </mat-form-field>
                   </div>
                   <div class="setting-card-row-item">
+                    <mat-form-field style="width: 100%">
+                      <mat-label>Offset Vessel Center</mat-label>
+                      <mat-select
+                        [(ngModel)]="facade.settings.display.mapCenterOffset"
+                        (selectionChange)="persistModel()"
+                      >
+                        @for(i of options.map.centerOffset; track i[0]) {
+                        <mat-option [value]="i[0]">{{i[1]}}</mat-option>
+                        }
+                      </mat-select>
+                    </mat-form-field>
+                  </div>
+                  <div class="setting-card-row-item">
                     <mat-checkbox
                       [(ngModel)]="facade.settings.popoverMulti"
                       (change)="persistModel()"
@@ -376,7 +403,7 @@
                         (selectionChange)="persistModel()"
                         placeholder="Graphicsstyle"
                       >
-                        @for(i of options.s57.graphicsStyle; track i[0]) {
+                        @for(i of options.map.s57.graphicsStyle; track i[0]) {
                         <mat-option [value]="i[0]">{{i[1]}}</mat-option>
                         }
                       </mat-select>
@@ -390,7 +417,7 @@
                         (selectionChange)="persistModel()"
                         placeholder="Boundaries"
                       >
-                        @for(i of options.s57.boundaries; track i[0]) {
+                        @for(i of options.map.s57.boundaries; track i[0]) {
                         <mat-option [value]="i[0]">{{i[1]}}</mat-option>
                         }
                       </mat-select>
@@ -404,7 +431,7 @@
                         (selectionChange)="persistModel()"
                         placeholder="Colors"
                       >
-                        @for(i of options.s57.colors; track i) {
+                        @for(i of options.map.s57.colors; track i) {
                         <mat-option [value]="i">{{i}}</mat-option>
                         }
                       </mat-select>
@@ -654,6 +681,14 @@
                       label="after"
                     >
                       Display Laylines
+                    </mat-checkbox>
+
+                    <mat-checkbox
+                      [(ngModel)]="facade.settings.selections.vessel.rangeCircles"
+                      (change)="persistModel()"
+                      label="after"
+                    >
+                      Display Range Circles
                     </mat-checkbox>
 
                     <mat-form-field style="width: 100%">

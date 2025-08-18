@@ -68,19 +68,35 @@ export class SettingsOptions {
     ]
   };
 
-  s57 = {
-    graphicsStyle: new Map([
-      ['Simplified', 'Simplified'],
-      ['Paper', 'Paper chart']
+  buttons = {
+    fab: new Map([
+      ['wpt', 'Waypoint at vessel'],
+      ['pob', 'Person Overboard']
+    ])
+  };
+
+  map = {
+    centerOffset: new Map([
+      [0, '0%'],
+      [0.2, '20%'],
+      [0.3, '30%'],
+      [0.5, '50%'],
+      [0.7, '70%']
     ]),
-    boundaries: new Map([
-      ['Symbolized', 'Symbolized'],
-      ['Plain', 'Plain']
-    ]),
-    colors: [2, 4],
-    shallowDepth: 2,
-    safetyDepth: 3,
-    deepDepth: 6
+    s57: {
+      graphicsStyle: new Map([
+        ['Simplified', 'Simplified'],
+        ['Paper', 'Paper chart']
+      ]),
+      boundaries: new Map([
+        ['Symbolized', 'Symbolized'],
+        ['Plain', 'Plain']
+      ]),
+      colors: [2, 4],
+      shallowDepth: 2,
+      safetyDepth: 3,
+      deepDepth: 6
+    }
   };
 
   trailIntervals = {

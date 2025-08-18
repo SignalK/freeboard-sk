@@ -28,7 +28,7 @@ import { Convert } from './lib/convert';
 import { SignalKClient } from 'signalk-client-angular';
 import { SKWorkerService } from './modules';
 
-import { Position, ErrorList, IAppConfig } from './types';
+import { Position, ErrorList, IAppConfig, LineString } from './types';
 
 import {
   defaultConfig,
@@ -40,13 +40,15 @@ import {
 import { WELCOME_MESSAGES } from './app.messages';
 import { getSvgList } from './modules/icons';
 import { HttpErrorResponse } from '@angular/common/http';
+import { Extent } from 'ol/extent';
+import { GeoUtils } from './lib/geoutils';
 
 // App details
 const FSK: AppInfoDef = {
   id: 'freeboard',
   name: 'Freeboard-SK',
   description: `Signal K Chart Plotter.`,
-  version: '2.16.2',
+  version: '2.17.0',
   url: 'https://github.com/signalk/freeboard-sk',
   logo: './assets/img/app_logo.png'
 };
@@ -102,7 +104,7 @@ export class AppFacade extends InfoService {
   sIsFetching = signal<boolean>(false); // show progress for fetching data from server
   sTrueMagChoice = signal<string>(''); // preferred path True / Magnetic
 
-  // non-persisted UI state attributes
+  // non-persisted UIstate attributes
   uiCtrl = signal<{
     alertList: boolean; // display AlertList
     autopilotConsole: boolean; // display AutopilotConsole
@@ -122,12 +124,14 @@ export class AppFacade extends InfoService {
     mapConstrainZoom: boolean; // constrain zoom to chart min/max
     toolbarButtons: boolean; // show toolbar buttons (both left & right)
     invertColor: boolean; // invert feature label text color (for dark backgrounds)
+    wakeLock: boolean; // prevent device from sleeping
   }>({
     mapNorthUp: true,
     mapMove: false,
     mapConstrainZoom: false,
     toolbarButtons: false,
-    invertColor: false
+    invertColor: false,
+    wakeLock: false
   });
 
   // Signal K server feature flags
@@ -144,6 +148,9 @@ export class AppFacade extends InfoService {
     resourceGroups: false, // ability to store resource groups
     buddyList: false
   });
+
+  selfTrail = signal<LineString>([]); // local vessel trail
+  mapExtent = signal<Extent>([]); // map viewport extent
 
   constructor(
     public signalk: SignalKClient,
@@ -174,7 +181,7 @@ export class AppFacade extends InfoService {
             if (res.value) {
               if (this.config.selections.vessel.trail) {
                 this.db.getTrail().then((t) => {
-                  this.data.trail = t && t.value ? t.value : [];
+                  this.selfTrail.update(() => (t && t.value ? t.value : []));
                 });
               }
             }
@@ -470,10 +477,52 @@ export class AppFacade extends InfoService {
     });
   }
 
+  /** add point to self vessel track */
+  addToSelfTrail(pt: Position) {
+    this.selfTrail.update((current) => {
+      if (current.length === 0) {
+        return current;
+      }
+      const lastPoint = current.slice(-1)[0];
+      if (pt[0] === lastPoint[0] && pt[1] === lastPoint[1]) {
+        return current;
+      }
+      const st = [].concat(current);
+      st.push(pt);
+      return st;
+    });
+  }
+
+  /** Calculate the position to center the map.
+   * Tales into account the amount of offset to apply
+   */
+  calcMapCenter(ref: Position): Position {
+    const ctrOfExtent: Position = GeoUtils.centreOfPolygon([
+      this.mapExtent().slice(0, 2) as Position,
+      [this.mapExtent()[0], this.mapExtent()[3]],
+      this.mapExtent().slice(-2) as Position,
+      [this.mapExtent()[2], this.mapExtent()[1]],
+      this.mapExtent().slice(0, 2) as Position
+    ]);
+    const offsetDistance =
+      GeoUtils.distanceTo(this.mapExtent().slice(0, 2) as Position, [
+        this.mapExtent()[0],
+        ctrOfExtent[1]
+      ]) * (this.config.display.mapCenterOffset ?? 0.5);
+    const pos: Position = true //this.app.config.display.mapCenterOffset ?
+      ? GeoUtils.destCoordinate(
+          this.data.vessels.active.position,
+          0,
+          offsetDistance
+        )
+      : ref;
+    return pos;
+  }
+
   /**
    * @description Align selected custom resource paths with those enabled on the server.
    */
-  public alignCustomResourcesPaths() {
+  alignCustomResourcesPaths() {
     this.signalk.api
       .get(this.skApiVersion, '/resources')
       .subscribe((res: { [key: string]: { description: string } }) => {

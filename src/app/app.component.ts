@@ -7,14 +7,7 @@ import { OverlayContainer } from '@angular/cdk/overlay';
 import { Observable, Subject } from 'rxjs';
 
 import { AppFacade } from './app.facade';
-import { SettingsEventMessage } from './lib/services';
-import {
-  AboutDialog,
-  LoginDialog,
-  PlaybackDialog,
-  GeoJSONImportDialog,
-  Trail2RouteDialog
-} from 'src/app/lib/components/dialogs';
+import { SignalKClient } from 'signalk-client-angular';
 
 import {
   AISPropertiesModal,
@@ -44,9 +37,18 @@ import {
   CourseService
 } from 'src/app/modules';
 
-import { SignalKClient } from 'signalk-client-angular';
+import { SettingsEventMessage } from 'src/app/lib/services';
+import {
+  AboutDialog,
+  LoginDialog,
+  PlaybackDialog,
+  GeoJSONImportDialog,
+  Trail2RouteDialog
+} from 'src/app/lib/components/dialogs';
+import { FABContainerComponent } from 'src/app/lib/components';
 import { Convert } from 'src/app/lib/convert';
 import { GeoUtils } from 'src/app/lib/geoutils';
+
 import * as semver from 'semver';
 
 import {
@@ -104,9 +106,7 @@ export class AppComponent {
       apModeColor: '',
       apModeText: ''
     },
-    playback: { time: null },
-    map: { center: [0, 0] },
-    audio: { state: '' }
+    playback: { time: null }
   };
 
   // APP features / mode
@@ -128,6 +128,8 @@ export class AppComponent {
   private streamOptions = { options: null, toMode: null };
 
   protected mapSetFocus = signal<string>('');
+  protected mapCenter = signal<Position>([0, 0]);
+  protected audioStatus = signal<string>('');
 
   protected isInteracting = false; // map interaction flag
 
@@ -188,32 +190,32 @@ export class AppComponent {
     }, 500);
   }
 
-  enableAudio() {
+  protected enableAudio() {
     if (this.app.audio.context) {
       this.app.audio.context.resume();
     }
   }
 
-  handleHasWakeLock(value: boolean) {
+  protected handleHasWakeLock(value: boolean) {
     setTimeout(() => (this.app.data.hasWakeLock = value), 500);
   }
 
-  handleWakelockChange(value: boolean) {
-    this.app.config.selections.wakeLock = value;
+  protected handleWakelockChange(value: boolean) {
+    this.app.config.ui.wakeLock = value;
     this.app.saveConfig();
   }
 
   ngOnInit() {
     // ** audio context handing **
-    this.display.audio.state = this.app.audio.context.state;
-    this.app.debug('audio state:', this.display.audio.state);
+    this.audioStatus.update(() => this.app.audio.context.state);
+    this.app.debug('audio state:', this.audioStatus());
     this.app.audio.context.onstatechange = () => {
       this.app.debug('audio statechange:', this.app.audio.context.state);
-      this.display.audio.state = this.app.audio.context.state;
+      this.audioStatus.update(() => this.app.audio.context.state);
     };
 
     // ** apply loaded app config
-    this.display.map.center = this.app.config.map.center;
+    this.mapCenter.update(() => this.app.config.map.center);
     if (this.app.config.plugins.startOnOpen) {
       this.display.instrumentAppActive = false;
     }
@@ -301,7 +303,7 @@ export class AppComponent {
   // ********* DISPLAY / APPEARANCE ****************
 
   // ** return the map orientation **
-  getOrientation() {
+  protected getOrientation() {
     return this.app.uiConfig().mapNorthUp
       ? 'rotate(' + 0 + 'deg)'
       : 'rotate(' + (0 - this.app.data.vessels.active.orientation) + 'rad)';
@@ -424,7 +426,7 @@ export class AppComponent {
   }
 
   // ** select prev/next favourite plugin **
-  public selectPlugin(next = false) {
+  protected selectPlugin(next = false) {
     if (next) {
       if (this.selFavourite === -1) {
         this.selFavourite = 0;
@@ -457,7 +459,7 @@ export class AppComponent {
   }
 
   // ** handle map context menu selections **
-  public handleContextMenuSelection(action: string) {
+  protected handleContextMenuSelection(action: string) {
     switch (action) {
       case 'cleartrail':
         this.clearTrail(this.app.data.serverTrail);
@@ -477,11 +479,11 @@ export class AppComponent {
     }
   }
   // ** create route from vessel trail **
-  public trailToRoute() {
+  protected trailToRoute() {
     this.dialog
       .open(Trail2RouteDialog, {
         disableClose: true,
-        data: { trail: this.app.data.trail }
+        data: { trail: this.app.selfTrail() }
       })
       .afterClosed()
       .subscribe((r) => {
@@ -492,7 +494,7 @@ export class AppComponent {
       });
   }
 
-  public showWeather(mode: string) {
+  protected showWeather(mode: string) {
     if (mode === 'forecast') {
       this.bottomSheet
         .open(WeatherForecastModal, {
@@ -508,7 +510,7 @@ export class AppComponent {
 
   // display selected experiment UI
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  public openExperiment(e: { choice: string; value?: any }) {
+  protected openExperiment(e: { choice: string; value?: any }) {
     switch (e.choice) {
       case 'debugCapture':
         if (window.isSecureContext) {
@@ -543,7 +545,7 @@ export class AppComponent {
   }
 
   // ** display course settings screen **
-  public openCourseSettings() {
+  protected openCourseSettings() {
     this.bottomSheet
       .open(CourseSettingsModal, {
         disableClose: true,
@@ -557,7 +559,7 @@ export class AppComponent {
 
   // ************************************************
   /** Handle SignalK Auth token value change */
-  handleSKAuthChange() {
+  protected handleSKAuthChange() {
     this.signalk.getLoginStatus().subscribe((r) => {
       this.app.data.loginRequired = r.authenticationRequired ?? false;
       this.app.isLoggedIn.update(() =>
@@ -717,27 +719,36 @@ export class AppComponent {
       return;
     }
     // ** update vessel trail **
-    const t = this.app.data.trail.slice(-1);
+    const t = this.app.selfTrail().slice(-1);
     if (this.app.data.vessels.showSelf) {
       if (t.length === 0) {
-        this.app.data.trail.push(this.app.data.vessels.self.position);
+        this.app.selfTrail.update((current) => {
+          const st = [].concat(current);
+          st.push(this.app.data.vessels.self.position);
+          return st;
+        });
         return;
       }
       if (
         this.app.data.vessels.self.position[0] !== t[0][0] ||
         this.app.data.vessels.self.position[1] !== t[0][1]
       ) {
-        this.app.data.trail.push(this.app.data.vessels.self.position);
+        this.app.selfTrail.update((current) => {
+          const st = [].concat(current);
+          st.push(this.app.data.vessels.self.position);
+          return st;
+        });
       }
     }
+
     if (!trailData || trailData.length === 0) {
       // no server trail data supplied
-      if (this.app.data.trail.length % 60 === 0 && this.app.data.serverTrail) {
+      if (this.app.selfTrail().length % 60 === 0 && this.app.data.serverTrail) {
         if (this.app.config.selections.trailFromServer) {
           this.app.fetchTrailFromServer(); // request trail from server
         }
       }
-      this.app.data.trail = this.app.data.trail.slice(-5000);
+      this.app.selfTrail.update((current) => current.slice(-5000));
     } else {
       // use server trail data, keep minimal local trail data
       const lastseg = trailData.slice(-1);
@@ -747,10 +758,10 @@ export class AppComponent {
           : trailData.length > 1
           ? trailData[trailData.length - 2].slice(-1)
           : [];
-      this.app.data.trail = lastpt;
+      this.app.selfTrail.update(() => lastpt);
     }
     const trailId = this.mode === SKSTREAM_MODE.PLAYBACK ? 'history' : 'self';
-    this.app.db.saveTrail(trailId, this.app.data.trail);
+    this.app.db.saveTrail(trailId, this.app.selfTrail());
   }
 
   // ** Trail$ event handlers **
@@ -830,13 +841,13 @@ export class AppComponent {
   }
 
   // ** trigger focus of the map so keyboard controls work
-  public focusMap() {
+  protected focusMap() {
     this.mapSetFocus.update(() => Date().valueOf());
   }
 
   // ********* SIDENAV ACTIONS *************
 
-  public rightSideNavAction(e: boolean) {
+  protected rightSideNavAction(e: boolean) {
     this.display.instrumentPanelOpen = e;
     if (this.app.config.plugins.startOnOpen) {
       this.display.instrumentAppActive = e;
@@ -846,7 +857,7 @@ export class AppComponent {
     } // set when closed
   }
 
-  public displayLeftMenu(menulist = '', show = false) {
+  protected displayLeftMenu(menulist = '', show = false) {
     this.display.leftMenuPanel = show;
     this.display.routeList = false;
     this.display.waypointList = false;
@@ -891,7 +902,7 @@ export class AppComponent {
   // ********* MAIN MENU ACTIONS *************
 
   // ** open about dialog **
-  public openAbout() {
+  protected openAbout() {
     this.dialog
       .open(AboutDialog, {
         disableClose: false,
@@ -908,7 +919,7 @@ export class AppComponent {
   }
 
   // ** open settings dialog **
-  public openSettings() {
+  protected openSettings() {
     this.dialog
       .open(SettingsDialog, {
         disableClose: true,
@@ -923,7 +934,7 @@ export class AppComponent {
   }
 
   /** GPX / GeoJSON imports */
-  public importFile(f: { data: string | ArrayBuffer; name: string }) {
+  protected importFile(f: { data: string | ArrayBuffer; name: string }) {
     if ((f.data as string).indexOf('<gpx ') !== -1) {
       this.processGPX(f);
     } else if (
@@ -937,7 +948,7 @@ export class AppComponent {
   }
 
   /** process GPX file */
-  public processGPX(f: { data: string | ArrayBuffer; name: string }) {
+  protected processGPX(f: { data: string | ArrayBuffer; name: string }) {
     this.dialog
       .open(GPXImportDialog, {
         disableClose: true,
@@ -967,13 +978,13 @@ export class AppComponent {
   }
 
   /** Export resources to GPX file */
-  public exportToGPX() {
+  protected exportToGPX() {
     this.dialog
       .open(GPXExportDialog, {
         disableClose: true,
         data: {
           routes: this.skres.routes(),
-          tracks: [this.app.data.trail]
+          tracks: [this.app.selfTrail()]
         }
       })
       .afterClosed()
@@ -996,7 +1007,7 @@ export class AppComponent {
   }
 
   /** process GeoJSON file */
-  processGeoJSON(f: { data: string | ArrayBuffer; name: string }) {
+  protected processGeoJSON(f: { data: string | ArrayBuffer; name: string }) {
     this.dialog
       .open(GeoJSONImportDialog, {
         disableClose: true,
@@ -1027,7 +1038,7 @@ export class AppComponent {
   }
 
   /** Import ResourceSet */
-  importResourceSet() {
+  protected importResourceSet() {
     this.dialog
       .open(ResourceImportDialog, {
         disableClose: true,
@@ -1052,7 +1063,7 @@ export class AppComponent {
   }
 
   // ** show login dialog **
-  public showLogin(
+  protected showLogin(
     message?: string,
     cancelWarning = true,
     onConnect?: boolean
@@ -1131,7 +1142,7 @@ export class AppComponent {
     return lis.asObservable();
   }
 
-  public showPlaybackSettings() {
+  protected showPlaybackSettings() {
     this.dialog
       .open(PlaybackDialog, {
         disableClose: false
@@ -1151,21 +1162,27 @@ export class AppComponent {
 
   // ***** OPTIONS MENU ACTONS *******
 
-  public centerResource(position: [number, number], zoomTo?: number) {
-    position[0] += 0.0000000000001;
-    this.display.map.center = position;
+  /**
+   * Center and zoom the map
+   * @param position Location to center the map
+   * @param zoomTo Zoom level to apply
+   */
+  protected centerAndZoom(position: Position, zoomTo?: number) {
+    this.mapCenter.update(() => position);
     if (typeof zoomTo === 'number') {
       this.app.config.map.zoomLevel = zoomTo;
     }
   }
 
-  public centerVessel() {
-    const t = this.app.data.vessels.active.position;
-    t[0] += 0.0000000000001;
-    this.display.map.center = t;
+  /**
+   * Center the map relative to the vessel position
+   */
+  protected centerVessel() {
+    const pos = this.app.calcMapCenter(this.app.data.vessels.active.position);
+    this.centerAndZoom(pos);
   }
 
-  public toggleAisTargets() {
+  protected toggleAisTargets() {
     this.app.config.aisTargets = !this.app.config.aisTargets;
     if (this.app.config.aisTargets) {
       this.processAIS(true);
@@ -1173,21 +1190,21 @@ export class AppComponent {
     this.app.saveConfig();
   }
 
-  public toggleCourseData() {
+  protected toggleCourseData() {
     this.app.config.courseData = !this.app.config.courseData;
     this.app.saveConfig();
   }
 
-  public toggleNotes() {
+  protected toggleNotes() {
     this.app.config.notes = !this.app.config.notes;
     this.app.saveConfig();
   }
 
   // ** delete vessel trail **
-  public clearTrail(noprompt = false) {
+  protected clearTrail(noprompt = false) {
     if (noprompt) {
       if (!this.app.data.serverTrail) {
-        this.app.data.trail = [];
+        this.app.selfTrail.set([]);
       } else {
         if (this.app.config.selections.trailFromServer) {
           this.app.fetchTrailFromServer(); // request trail from server
@@ -1203,7 +1220,7 @@ export class AppComponent {
           .subscribe((res) => {
             if (res) {
               if (!this.app.data.serverTrail) {
-                this.app.data.trail = [];
+                this.app.selfTrail.set([]);
               } else {
                 if (this.app.config.selections.trailFromServer) {
                   this.app.fetchTrailFromServer(); // request trail from server
@@ -1215,7 +1232,7 @@ export class AppComponent {
   }
 
   // ** clear course / navigation data **
-  public clearCourseData() {
+  protected clearCourseData() {
     const idx = this.app.data.navData.pointIndex;
     this.app.data.navData = {
       dtg: null,
@@ -1243,25 +1260,25 @@ export class AppComponent {
   }
 
   // ** clear active destination **
-  public clearDestination() {
+  protected clearDestination() {
     this.course.clearCourse();
   }
 
   // ********** MAP / UI ACTIONS **********
 
   // ** set active route **
-  public activateRoute(id: string) {
+  protected activateRoute(id: string) {
     this.course.activateRoute(id);
   }
 
   // ** Increment / decrement next active route point **
-  public routeNextPoint(pointIndex: number) {
+  protected routeNextPoint(pointIndex: number) {
     this.course.coursePointIndex(pointIndex);
     this.focusMap();
   }
 
   // ** show feature (vessel/AtoN/Aircraft/Route points) properties **
-  public async featureProperties(e: { id: string; type: string }) {
+  protected async featureProperties(e: { id: string; type: string }) {
     let v: FBRoute | SKVessel | SKSaR | SKAircraft | SKAtoN;
     if (e.type === 'route') {
       try {
@@ -1387,11 +1404,11 @@ export class AppComponent {
   }
 
   // ** handle drag and drop of files onto map container**
-  public mapDragOver(e: DragEvent) {
+  protected mapDragOver(e: DragEvent) {
     e.preventDefault();
   }
 
-  public mapDrop(e: DragEvent) {
+  protected mapDrop(e: DragEvent) {
     e.preventDefault();
     if (e.dataTransfer.files) {
       if (e.dataTransfer.files.length > 1) {
@@ -1420,7 +1437,7 @@ export class AppComponent {
   }
 
   // ** process / cleanup AIS targets
-  private processAIS(toggled?: boolean) {
+  protected processAIS(toggled?: boolean) {
     if (!this.app.config.aisTargets && !toggled) {
       return;
     }
@@ -1435,7 +1452,7 @@ export class AppComponent {
   // ********* MODE ACTIONS *************
 
   // ** set the active vessel to the supplied UUID **
-  public switchActiveVessel(uuid: string = null) {
+  protected switchActiveVessel(uuid: string = null) {
     this.app.data.vessels.activeId = uuid;
     if (!uuid) {
       this.app.data.vessels.active = this.app.data.vessels.self;
@@ -1457,16 +1474,16 @@ export class AppComponent {
   }
 
   // ** switch between realtime and history playback modes
-  public switchMode(toMode: SKSTREAM_MODE, options?: StreamOptions) {
+  protected switchMode(toMode: SKSTREAM_MODE, options?: StreamOptions) {
     this.app.debug(`switchMode from: ${this.mode} to ${toMode}`);
     if (toMode === SKSTREAM_MODE.PLAYBACK) {
       // ** history playback
-      this.app.db.saveTrail('self', this.app.data.trail);
-      this.app.data.trail = [];
+      this.app.db.saveTrail('self', this.app.selfTrail());
+      this.app.selfTrail.set([]);
     } else {
       // ** realtime data
       this.app.db.getTrail('self').then((t) => {
-        this.app.data.trail = t && t.value ? t.value : [];
+        this.app.selfTrail.update(() => (t && t.value ? t.value : []));
       });
     }
     this.switchActiveVessel();
@@ -1474,7 +1491,7 @@ export class AppComponent {
   }
 
   // ** show select mode dialog
-  public showSelectMode() {
+  protected showSelectMode() {
     if (this.mode === SKSTREAM_MODE.REALTIME) {
       // request history playback
       this.app
@@ -1625,7 +1642,7 @@ export class AppComponent {
   // ******** SIGNAL K STREAM *************
 
   /** fetch resource types from server */
-  fetchResources(allTypes = false) {
+  private fetchResources(allTypes = false) {
     this.skres.refreshRoutes();
     this.skres.refreshWaypoints();
     this.skres.refreshCharts();
@@ -1636,7 +1653,7 @@ export class AppComponent {
   }
 
   /** fetch non-standard resources from server */
-  fetchOtherResources() {
+  private fetchOtherResources() {
     this.skres.refreshTracks();
     this.skresOther.refreshInBoundsItems();
   }

@@ -75,12 +75,13 @@
     </mat-menu>
 
     <mat-menu #settingsmenu="matMenu">
-      @if(app.config.selections.vessel.trail && app.data.trail.length !== 0) {
+      @if(app.config.selections.vessel.trail && app.selfTrail().length !== 0) {
       <a mat-menu-item (click)="clearTrail(app.data.serverTrail)">
         <mat-icon>clear_all</mat-icon>
         <span>{{ app.data.serverTrail ? 'Refresh' : 'Clear' }} Trail</span>
       </a>
-      } @if(app.config.selections.vessel.trail && app.data.trail.length !== 0) {
+      } @if(app.config.selections.vessel.trail && app.selfTrail().length !== 0)
+      {
       <a mat-menu-item (click)="trailToRoute()">
         <mat-icon>insights</mat-icon>
         <span>Trail to Route</span>
@@ -503,7 +504,7 @@
               [editingWaypointId]="app.data.editingId"
               (goto)="course.navigateToWaypoint($event.id)"
               (deactivate)="clearDestination()"
-              (center)="centerResource($event)"
+              (center)="centerAndZoom($event)"
               (notes)="
                 skres.showRelatedNotes($event.id, 'waypoint', $event.readOnly)
               "
@@ -520,13 +521,13 @@
             <note-list
               [notes]="skres.notes()"
               (select)="skres.noteSelected($event.id, $event.isGroup)"
-              (pan)="centerResource($event.center, $event.zoomLevel)"
+              (pan)="centerAndZoom($event.center, $event.zoomLevel)"
               (closed)="displayLeftMenu()"
             >
             </note-list>
             } } @if(display.trackList) { @defer {
             <track-list
-              (center)="centerResource($event)"
+              (center)="centerAndZoom($event)"
               (closed)="displayLeftMenu()"
             >
             </track-list>
@@ -536,7 +537,7 @@
               (properties)="featureProperties({ id: $event, type: 'ais' })"
               (closed)="displayLeftMenu()"
               (focusVessel)="switchActiveVessel($event)"
-              (pan)="centerResource($event.center, $event.zoomLevel)"
+              (pan)="centerAndZoom($event.center, $event.zoomLevel)"
             >
             </ais-list>
             } } @if(display.resourceGroups()) { @defer {
@@ -595,7 +596,7 @@
             </div>
 
             <!-- Web audio enable -->
-            @if(display.audio.state !== 'running') {
+            @if(audioStatus() !== 'running') {
             <div class="buttonPanelItem">
               <button
                 class="button-toolbar"
@@ -638,36 +639,6 @@
               <br />&nbsp;<br />
             </div>
             }
-            <!-- WakeLock enable -->
-            <div class="buttonPanelItem">
-              <wakelock
-                [setOn]="app.config.selections.wakeLock"
-                (has)="handleHasWakeLock($event)"
-                (change)="handleWakelockChange($event)"
-              ></wakelock>
-              @if(app.data.hasWakeLock) {
-              <span><br />&nbsp;<br /></span>
-              }
-            </div>
-
-            <!-- Experiments -->
-            @if(app.config.experiments) {
-            <div class="buttonPanelItem">
-              <fb-experiments
-                (selected)="openExperiment($event)"
-              ></fb-experiments>
-              <br />&nbsp;<br />
-            </div>
-            }
-            <!-- PiP enable -->
-            @if(app.config.resources.video.enable &&
-            app.config.resources.video.url) {
-            <div class="buttonPanelItem">
-              <pip-video [src]="vidUrl" [muted]="true" (click)="focusMap()">
-              </pip-video>
-              <br />&nbsp;<br />
-            </div>
-            }
 
             <!-- constrain zoom to selected map(s) extent -->
             <div class="buttonPanelItem">
@@ -705,6 +676,37 @@
               <br />&nbsp;<br />
             </div>
 
+            <!-- WakeLock enable -->
+            <div class="buttonPanelItem">
+              <wakelock
+                [setOn]="app.config.ui.wakeLock"
+                (has)="handleHasWakeLock($event)"
+                (change)="handleWakelockChange($event)"
+              ></wakelock>
+              @if(app.data.hasWakeLock) {
+              <span><br />&nbsp;<br /></span>
+              }
+            </div>
+
+            <!-- Experiments -->
+            @if(app.config.experiments) {
+            <div class="buttonPanelItem">
+              <fb-experiments
+                (selected)="openExperiment($event)"
+              ></fb-experiments>
+              <br />&nbsp;<br />
+            </div>
+            }
+            <!-- PiP enable -->
+            @if(app.config.resources.video.enable &&
+            app.config.resources.video.url) {
+            <div class="buttonPanelItem">
+              <pip-video [src]="vidUrl" [muted]="true" (click)="focusMap()">
+              </pip-video>
+              <br />&nbsp;<br />
+            </div>
+            }
+
             <!-- Autopilot console-->
             @if(app.featureFlags().autopilotApi &&
             app.data.vessels.self.autopilot.default) {
@@ -724,20 +726,6 @@
               <br />&nbsp;<br />
             </div>
             }
-
-            <!-- Drop Waypoint button -->
-            <div class="buttonPanelItem">
-              <button
-                class="button-accent"
-                mat-mini-fab
-                (click)="skres.newWaypointAt(app.data.vessels.self.position)"
-                matTooltip="Mark Vessel position"
-                matTooltipPosition="left"
-              >
-                <mat-icon>add_location</mat-icon>
-              </button>
-              <br />&nbsp;<br />
-            </div>
           </div>
           }
           <!-- /right button bar -->
@@ -750,12 +738,13 @@
           >
             <!-- MAP -->
             <fb-map
+              [scaleUnits]="app.config.units.distance"
               [setFocus]="mapSetFocus()"
-              [mapCenter]="display.map.center"
+              [mapCenter]="mapCenter()"
               [mapZoom]="app.config.map.zoomLevel"
               [northUp]="app.uiConfig().mapNorthUp"
               [movingMap]="app.uiConfig().mapMove"
-              [vesselTrail]="app.data.trail"
+              [vesselTrail]="app.selfTrail()"
               [activeRoute]="app.data.activeRoute"
               [dblClickZoom]="app.config.mapDoubleClick"
               [measureMode]="mapInteract.isMeasuring()"
@@ -874,7 +863,7 @@
             @for(n of notiMgr.alerts(); track n[0]) {
             <span style="margin-bottom: 5px">
               <fb-alert
-                [audioStatus]="display.audio.state"
+                [audioStatus]="audioStatus()"
                 [alert]="n[1]"
                 [acknowledged]="n[1].acknowledged"
                 [silenced]="n[1].silenced"
@@ -1026,6 +1015,17 @@
             </div>
             }
           </div>
+          } @if(!isInteracting && !app.kioskMode()) {
+          <fab-container>
+            @if(app.config.display.fab === 'wpt') {
+            <wpt-button
+              [position]="app.data.vessels.self.position"
+              [active]="app.data.vessels.showSelf"
+            ></wpt-button>
+            } @if(app.config.display.fab === 'pob') {
+            <pob-button></pob-button>
+            }
+          </fab-container>
           }
         </mat-sidenav-content>
       </mat-sidenav-container>
