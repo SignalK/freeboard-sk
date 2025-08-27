@@ -6,8 +6,11 @@
 - **New**: Apply configurable offset when in "moving map" mode or centering the vessel to display 
 more map in front of the vessel. (#285)
 - **New**: Configurable action button that is persisted on bottom right of screen (waypoint at vessel, Person Overboard).
+- **New**: Added settings to define the Arrival Circle Radius value that is sent when setting a destination or activating a route.
 - **Fix**: Issue where `navigation.course.arrivalCircle` path was not being processed.
 - **Fix**: Issue where trail not being displayed in Trail-to-Route screen.
+- **Removed**: Support for v1 chart resources (api path and metadata) has been removed.
+
 
 ### v2.16.2
 

@@ -4,7 +4,7 @@ import { SignalKClient } from 'signalk-client-angular';
 import { AppFacade } from 'src/app/app.facade';
 import { SKResourceSet } from './resourceset-class';
 import { ResourceSet, ResourceSets } from 'src/app/types';
-import { processUrlTokens } from 'src/app/app.settings';
+import { processUrlTokens } from 'src/app/app.config';
 import { HttpErrorResponse } from '@angular/common/http';
 
 type FBResourceSets = Map<string, SKResourceSet[]>;

@@ -1,4 +1,4 @@
-import { Component, ViewChild, effect, signal } from '@angular/core';
+import { Component, ViewChild, computed, effect, signal } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
 import { MatDialog } from '@angular/material/dialog';
 import { MatBottomSheet } from '@angular/material/bottom-sheet';
@@ -8,6 +8,7 @@ import { Observable, Subject } from 'rxjs';
 
 import { AppFacade } from './app.facade';
 import { SignalKClient } from 'signalk-client-angular';
+import { WakeLockService } from 'src/app/lib/services';
 
 import {
   AISPropertiesModal,
@@ -34,10 +35,10 @@ import {
   NotificationManager,
   GPXImportDialog,
   GPXExportDialog,
-  CourseService
+  CourseService,
+  SettingsFacade
 } from 'src/app/modules';
 
-import { SettingsEventMessage } from 'src/app/lib/services';
 import {
   AboutDialog,
   LoginDialog,
@@ -45,7 +46,6 @@ import {
   GeoJSONImportDialog,
   Trail2RouteDialog
 } from 'src/app/lib/components/dialogs';
-import { FABContainerComponent } from 'src/app/lib/components';
 import { Convert } from 'src/app/lib/convert';
 import { GeoUtils } from 'src/app/lib/geoutils';
 
@@ -87,27 +87,57 @@ interface DrawEndEvent {
 export class AppComponent {
   @ViewChild('sideright', { static: false }) sideright;
 
-  public display = {
-    fullscreen: { active: false, enabled: document.fullscreenEnabled },
+  protected navDataPanel = signal<{
+    show: boolean;
+    nextPointCtrl: boolean;
+    apModeColor: string;
+    apModeText: string;
+  }>({
+    show: false,
+    nextPointCtrl: false,
+    apModeColor: '',
+    apModeText: ''
+  });
+
+  protected playbackTime = signal<string | null>(null);
+
+  protected instrumentPanel = signal<{
+    open: boolean;
+    activate: boolean;
+  }>({
+    open: false,
+    activate: false
+  });
+
+  protected leftMenuCtrl = signal<{
+    leftMenuPanel: boolean;
+    routeList: boolean;
+    waypointList: boolean;
+    chartList: boolean;
+    noteList: boolean;
+    trackList: boolean;
+    aisList: boolean;
+    resourceGroups: boolean;
+    anchorWatch: boolean;
+  }>({
     leftMenuPanel: false,
-    instrumentPanelOpen: true,
-    instrumentAppActive: true,
     routeList: false,
     waypointList: false,
     chartList: false,
     noteList: false,
     trackList: false,
     aisList: false,
-    resourceGroups: signal<boolean>(false),
-    anchorWatch: false,
-    navDataPanel: {
-      show: false,
-      nextPointCtrl: false,
-      apModeColor: '',
-      apModeText: ''
-    },
-    playback: { time: null }
-  };
+    resourceGroups: false,
+    anchorWatch: false
+  });
+
+  protected displayFullscreen = signal<{
+    active: boolean;
+    enabled: boolean;
+  }>({
+    active: false,
+    enabled: document.fullscreenEnabled
+  });
 
   // APP features / mode
   public features = { playbackAPI: true };
@@ -116,12 +146,9 @@ export class AppComponent {
   private timers = [];
 
   // external resources
-  private lastInstUrl: string;
-  private lastInstParams: string;
-  public instUrl: SafeResourceUrl;
-  private lastVideoUrl: string;
+  protected instUrl = signal<SafeResourceUrl | null>(null);
   private selFavourite = -1;
-  public vidUrl: SafeResourceUrl;
+  protected vidUrl = signal<SafeResourceUrl | null>(null);
 
   public convert = Convert;
   private obsList = []; // observables array
@@ -146,7 +173,9 @@ export class AppComponent {
     private dom: DomSanitizer,
     private overlayContainer: OverlayContainer,
     private bottomSheet: MatBottomSheet,
-    private dialog: MatDialog
+    private dialog: MatDialog,
+    protected wakeLock: WakeLockService,
+    private settings: SettingsFacade
   ) {
     // set self to active vessel
     this.app.data.vessels.active = this.app.data.vessels.self;
@@ -181,6 +210,9 @@ export class AppComponent {
 
   ngAfterViewInit() {
     setTimeout(() => {
+      if (!this.app.config.display.disableWakelock) {
+        this.wakeLock.enable();
+      }
       const wr = this.app.showWelcome();
       if (wr) {
         wr.afterClosed().subscribe((r) => {
@@ -196,15 +228,6 @@ export class AppComponent {
     }
   }
 
-  protected handleHasWakeLock(value: boolean) {
-    setTimeout(() => (this.app.data.hasWakeLock = value), 500);
-  }
-
-  protected handleWakelockChange(value: boolean) {
-    this.app.config.ui.wakeLock = value;
-    this.app.saveConfig();
-  }
-
   ngOnInit() {
     // ** audio context handing **
     this.audioStatus.update(() => this.app.audio.context.state);
@@ -216,21 +239,22 @@ export class AppComponent {
 
     // ** apply loaded app config
     this.mapCenter.update(() => this.app.config.map.center);
-    if (this.app.config.plugins.startOnOpen) {
-      this.display.instrumentAppActive = false;
-    }
+    this.instrumentPanel.update((current) => {
+      return Object.assign({}, current, {
+        activate: !this.app.config.display.plugins.startOnOpen
+      });
+    });
 
     // overlay dark-theme
     this.setDarkTheme();
 
-    this.lastInstUrl = this.app.config.plugins.instruments;
-    this.lastInstParams = this.app.config.plugins.parameters;
-    this.instUrl = this.dom.bypassSecurityTrustResourceUrl(
-      this.formatInstrumentsUrl()
+    this.instUrl.update(() =>
+      this.dom.bypassSecurityTrustResourceUrl(this.formatInstrumentsUrl())
     );
-    this.lastVideoUrl = this.app.config.resources.video.url;
-    this.vidUrl = this.dom.bypassSecurityTrustResourceUrl(
-      `${this.app.config.resources.video.url}`
+    this.vidUrl.update(() =>
+      this.dom.bypassSecurityTrustResourceUrl(
+        `${this.app.config.resources.video.url}`
+      )
     );
 
     // ** connect to signalk server and intialise
@@ -270,25 +294,26 @@ export class AppComponent {
     this.obsList.push(
       this.stream.trail$().subscribe((msg) => this.handleTrailUpdate(msg))
     );
-    // ** SETTINGS$ - handle settings events
+
+    // ** SETTINGS.CHANGE$ - handle settings.change$ event
     this.obsList.push(
-      this.app.settings$.subscribe((value: SettingsEventMessage) =>
-        this.handleSettingsEvent(value)
+      this.settings.change$.subscribe((value: string[]) =>
+        this.handleSettingChangeEvent(value)
       )
     );
 
     // fullscreen event handlers
     document.addEventListener('fullscreenchange', () => {
-      //console.log(document.fullscreenElement)
-      if (document.fullscreenElement) {
-        this.display.fullscreen.active = true;
-      } else {
-        this.display.fullscreen.active = false;
-      }
+      this.displayFullscreen.update((current) =>
+        Object.assign({}, current, {
+          active: document.fullscreenElement ? true : false
+        })
+      );
     });
     document.addEventListener('fullscreenerror', (e) => {
-      console.warn(e);
-      this.display.fullscreen.active = false;
+      this.displayFullscreen.update((current) =>
+        Object.assign({}, current, { active: false })
+      );
     });
   }
 
@@ -376,6 +401,7 @@ export class AppComponent {
     });
   }
 
+  /** fullscreen mode */
   protected toggleFullscreen() {
     const docel = document.documentElement;
     const fscreen =
@@ -399,28 +425,28 @@ export class AppComponent {
     const mq = window.matchMedia('(prefers-color-scheme: dark)');
 
     if (
-      (this.app.config.darkMode.source === 0 && mq.matches) ||
-      (this.app.config.darkMode.source === 1 &&
+      (this.app.config.display.darkMode.source === 0 && mq.matches) ||
+      (this.app.config.display.darkMode.source === 1 &&
         this.app.data.vessels.self.environment.mode === 'night') ||
-      this.app.config.darkMode.source === -1
+      this.app.config.display.darkMode.source === -1
     ) {
       this.overlayContainer.getContainerElement().classList.add('dark-theme');
-      this.app.config.darkMode.enabled = true;
+      this.app.config.display.darkMode.enabled = true;
     } else {
       this.overlayContainer
         .getContainerElement()
         .classList.remove('dark-theme');
-      this.app.config.darkMode.enabled = false;
+      this.app.config.display.darkMode.enabled = false;
     }
   }
 
   private formatInstrumentsUrl() {
-    const url = `${this.app.hostDef.url}${this.app.config.plugins.instruments}`;
-    const params = this.app.config.plugins.parameters
-      ? this.app.config.plugins.parameters.length > 0 &&
-        this.app.config.plugins.parameters[0] !== '?'
-        ? `?${this.app.config.plugins.parameters}`
-        : this.app.config.plugins.parameters
+    const url = `${this.app.hostDef.url}${this.app.config.display.plugins.instruments}`;
+    const params = this.app.config.display.plugins.parameters
+      ? this.app.config.display.plugins.parameters.length > 0 &&
+        this.app.config.display.plugins.parameters[0] !== '?'
+        ? `?${this.app.config.display.plugins.parameters}`
+        : this.app.config.display.plugins.parameters
       : '';
     return params ? `${url}/${params}` : url;
   }
@@ -432,7 +458,7 @@ export class AppComponent {
         this.selFavourite = 0;
       } else if (
         this.selFavourite ===
-        this.app.config.selections.pluginFavourites.length - 1
+        this.app.config.display.plugins.favourites.length - 1
       ) {
         this.selFavourite = -1;
       } else {
@@ -441,7 +467,7 @@ export class AppComponent {
     } else {
       if (this.selFavourite === -1) {
         this.selFavourite =
-          this.app.config.selections.pluginFavourites.length - 1;
+          this.app.config.display.plugins.favourites.length - 1;
       } else if (this.selFavourite === 0) {
         this.selFavourite = -1;
       } else {
@@ -452,10 +478,10 @@ export class AppComponent {
       this.selFavourite === -1
         ? this.formatInstrumentsUrl()
         : `${this.app.hostDef.url}${
-            this.app.config.selections.pluginFavourites[this.selFavourite]
+            this.app.config.display.plugins.favourites[this.selFavourite]
           }`;
 
-    this.instUrl = this.dom.bypassSecurityTrustResourceUrl(url);
+    this.instUrl.update(() => this.dom.bypassSecurityTrustResourceUrl(url));
   }
 
   // ** handle map context menu selections **
@@ -585,7 +611,7 @@ export class AppComponent {
   private connectSignalKServer() {
     this.app.data.selfId = null;
     this.app.data.server = null;
-    this.signalk.proxied = this.app.config.selections.signalk.proxied;
+    this.signalk.proxied = this.app.config.signalk.proxied;
     this.signalk
       .connect(
         this.app.hostDef.name,
@@ -647,27 +673,12 @@ export class AppComponent {
             this.app.debug('*** found buddylist plugin');
             ff.buddyList = semver.satisfies(p.version, '>1.2.0') ? true : false;
           }
-          // charts v2 api support
-          if (p.id === 'charts') {
-            this.app.debug('*** found charts plugin');
-            hasPlugin.charts = true;
-            if (
-              semver.satisfies(p.version, '>=3.0.0') &&
-              this.app.config.chartApi === 1
-            ) {
-              this.app.config.chartApi = 2;
-            }
-          }
           // PMTiles support
           if (p.id === 'signalk-pmtiles-plugin') {
             this.app.debug('*** found PMTiles plugin');
             hasPlugin.pmTiles = true;
           }
         });
-        // finalise
-        if (hasPlugin.pmTiles && !hasPlugin.charts) {
-          this.app.config.chartApi = 2;
-        }
         this.app.featureFlags.update((current) => {
           const n = Object.assign(current, ff);
           return n;
@@ -715,7 +726,7 @@ export class AppComponent {
 
   // ** process local vessel trail **
   private processTrail(trailData?) {
-    if (!this.app.config.selections.vessel.trail) {
+    if (!this.app.config.vessels.trail) {
       return;
     }
     // ** update vessel trail **
@@ -744,7 +755,7 @@ export class AppComponent {
     if (!trailData || trailData.length === 0) {
       // no server trail data supplied
       if (this.app.selfTrail().length % 60 === 0 && this.app.data.serverTrail) {
-        if (this.app.config.selections.trailFromServer) {
+        if (this.app.config.vessels.trailFromServer) {
           this.app.fetchTrailFromServer(); // request trail from server
         }
       }
@@ -772,71 +783,72 @@ export class AppComponent {
     }
   }
 
-  /** SETTINGS event handler (Save)
-   * @todo load action review
+  /** Handle setting change events
+   * @param e setting change identifier
    */
-  private handleSettingsEvent(e: SettingsEventMessage) {
-    this.app.debug(`AppComponent: settings.update$`);
-    if (e.action === 'save') {
-      this.setDarkTheme(); // **  set theme **
-      if (
-        this.app.sTrueMagChoice() !==
-        this.app.config.selections.headingAttribute
-      ) {
-        this.app.debug('True / Magnetic selection changed..');
-        this.app.data.vessels.self.heading = this.app.useMagnetic
-          ? this.app.data.vessels.self.headingMagnetic
-          : this.app.data.vessels.self.headingTrue;
-        this.app.data.vessels.self.cog = this.app.useMagnetic
-          ? this.app.data.vessels.self.cogMagnetic
-          : this.app.data.vessels.self.cogTrue;
-        this.app.data.vessels.self.wind.direction = this.app.useMagnetic
-          ? this.app.data.vessels.self.wind.mwd
-          : this.app.data.vessels.self.wind.twd;
+  private handleSettingChangeEvent(e: string[]) {
+    if (e.includes('darkTheme')) {
+      this.setDarkTheme();
+    }
 
-        this.app.data.vessels.aisTargets.forEach((v) => {
-          v.heading = this.app.useMagnetic ? v.headingMagnetic : v.headingTrue;
-          v.cog = this.app.useMagnetic ? v.cogMagnetic : v.cogTrue;
-          v.wind.direction = this.app.useMagnetic ? v.wind.mwd : v.wind.twd;
+    if (e.includes('headingAttribute')) {
+      this.app.debug('True / Magnetic selection changed..');
+      this.app.data.vessels.self.heading = this.app.useMagnetic
+        ? this.app.data.vessels.self.headingMagnetic
+        : this.app.data.vessels.self.headingTrue;
+      this.app.data.vessels.self.cog = this.app.useMagnetic
+        ? this.app.data.vessels.self.cogMagnetic
+        : this.app.data.vessels.self.cogTrue;
+      this.app.data.vessels.self.wind.direction = this.app.useMagnetic
+        ? this.app.data.vessels.self.wind.mwd
+        : this.app.data.vessels.self.wind.twd;
+
+      this.app.data.vessels.aisTargets.forEach((v) => {
+        v.heading = this.app.useMagnetic ? v.headingMagnetic : v.headingTrue;
+        v.cog = this.app.useMagnetic ? v.cogMagnetic : v.cogTrue;
+        v.wind.direction = this.app.useMagnetic ? v.wind.mwd : v.wind.twd;
+      });
+      this.app.sTrueMagChoice.set(this.app.config.units.headingAttribute);
+    }
+
+    if (
+      e.includes('pluginParameters') ||
+      e.includes('pluginInstruments') ||
+      e.includes('pluginStartOnOpen')
+    ) {
+      this.instUrl.update(() =>
+        this.dom.bypassSecurityTrustResourceUrl(this.formatInstrumentsUrl())
+      );
+      // update instrument app state
+      this.instrumentPanel.update((current) => {
+        return Object.assign({}, current, {
+          activate: this.app.config.display.plugins.startOnOpen
+            ? current.open
+              ? true
+              : false
+            : true
         });
-        this.app.sTrueMagChoice.set(
-          this.app.config.selections.headingAttribute
-        );
-      }
+      });
+    }
 
-      if (
-        this.lastInstUrl !== this.app.config.plugins.instruments ||
-        this.lastInstParams !== this.app.config.plugins.parameters
-      ) {
-        this.lastInstUrl = this.app.config.plugins.instruments;
-        this.lastInstParams = this.app.config.plugins.parameters;
-        this.instUrl = this.dom.bypassSecurityTrustResourceUrl(
-          this.formatInstrumentsUrl()
-        );
-      }
-      if (this.lastVideoUrl !== this.app.config.resources.video.url) {
-        this.lastVideoUrl = this.app.config.resources.video.url;
-        this.vidUrl = this.dom.bypassSecurityTrustResourceUrl(
+    if (e.includes('videoUrl')) {
+      this.vidUrl.update(() =>
+        this.dom.bypassSecurityTrustResourceUrl(
           `${this.app.config.resources.video.url}`
-        );
-      }
-      // ** trail **
-      if (this.app.config.selections.vessel.trail) {
+        )
+      );
+    }
+
+    // ** trail **
+    if (e.includes('vesselTrail') || e.includes('trailFromServer')) {
+      if (this.app.config.vessels.trail) {
         // show trail
-        if (this.app.config.selections.trailFromServer) {
+        if (this.app.config.vessels.trailFromServer) {
           this.app.fetchTrailFromServer();
         } else {
           this.app.data.serverTrail = false;
         }
       }
-    }
-    // update instrument app state
-    if (this.app.config.plugins.startOnOpen) {
-      if (!this.display.instrumentPanelOpen) {
-        this.display.instrumentAppActive = false;
-      }
-    } else {
-      this.display.instrumentAppActive = true;
     }
   }
 
@@ -848,52 +860,61 @@ export class AppComponent {
   // ********* SIDENAV ACTIONS *************
 
   protected rightSideNavAction(e: boolean) {
-    this.display.instrumentPanelOpen = e;
-    if (this.app.config.plugins.startOnOpen) {
-      this.display.instrumentAppActive = e;
-    }
+    this.instrumentPanel.update((current) => {
+      return Object.assign({}, current, {
+        open: e,
+        activate: this.app.config.display.plugins.startOnOpen
+          ? e
+          : current.activate
+      });
+    });
     if (!e) {
       this.focusMap();
     } // set when closed
   }
 
+  /** control left menu display  */
   protected displayLeftMenu(menulist = '', show = false) {
-    this.display.leftMenuPanel = show;
-    this.display.routeList = false;
-    this.display.waypointList = false;
-    this.display.chartList = false;
-    this.display.noteList = false;
-    this.display.trackList = false;
-    this.display.aisList = false;
-    this.display.anchorWatch = false;
+    const lm = {
+      leftMenuPanel: show,
+      routeList: false,
+      waypointList: false,
+      chartList: false,
+      noteList: false,
+      trackList: false,
+      aisList: false,
+      resourceGroups: false,
+      anchorWatch: false
+    };
     switch (menulist) {
       case 'routeList':
-        this.display.routeList = show;
+        lm.routeList = show;
         break;
       case 'waypointList':
-        this.display.waypointList = show;
+        lm.waypointList = show;
         break;
       case 'chartList':
-        this.display.chartList = show;
+        lm.chartList = show;
         break;
       case 'noteList':
-        this.display.noteList = show;
+        lm.noteList = show;
         break;
       case 'trackList':
-        this.display.trackList = show;
+        lm.trackList = show;
         break;
       case 'anchorWatch':
-        this.display.anchorWatch = show;
+        lm.anchorWatch = show;
         break;
       case 'aisList':
-        this.display.aisList = show;
+        lm.aisList = show;
         break;
       case 'resourceGroups':
-        this.display.resourceGroups.set(show);
+        lm.resourceGroups = show;
         break;
       default:
-        this.display.leftMenuPanel = false;
+        lm.leftMenuPanel = false;
     }
+    this.leftMenuCtrl.update(() => lm);
     if (!show) {
       this.focusMap();
     }
@@ -1191,12 +1212,13 @@ export class AppComponent {
   }
 
   protected toggleCourseData() {
-    this.app.config.courseData = !this.app.config.courseData;
+    this.app.config.ui.courseData = !this.app.config.ui.courseData;
     this.app.saveConfig();
   }
 
   protected toggleNotes() {
-    this.app.config.notes = !this.app.config.notes;
+    this.app.config.resources.notes.show =
+      !this.app.config.resources.notes.show;
     this.app.saveConfig();
   }
 
@@ -1206,7 +1228,7 @@ export class AppComponent {
       if (!this.app.data.serverTrail) {
         this.app.selfTrail.set([]);
       } else {
-        if (this.app.config.selections.trailFromServer) {
+        if (this.app.config.vessels.trailFromServer) {
           this.app.fetchTrailFromServer(); // request trail from server
         }
       }
@@ -1222,7 +1244,7 @@ export class AppComponent {
               if (!this.app.data.serverTrail) {
                 this.app.selfTrail.set([]);
               } else {
-                if (this.app.config.selections.trailFromServer) {
+                if (this.app.config.vessels.trailFromServer) {
                   this.app.fetchTrailFromServer(); // request trail from server
                 }
               }
@@ -1233,30 +1255,7 @@ export class AppComponent {
 
   // ** clear course / navigation data **
   protected clearCourseData() {
-    const idx = this.app.data.navData.pointIndex;
-    this.app.data.navData = {
-      dtg: null,
-      ttg: null,
-      eta: null,
-      route: {
-        dtg: null,
-        ttg: null,
-        eta: null
-      },
-      bearing: { value: null, type: null },
-      bearingTrue: null,
-      bearingMagnetic: null,
-      xte: null,
-      vmg: null,
-      position: [null, null],
-      pointIndex: idx,
-      pointTotal: 0,
-      arrivalCircle: null,
-      startPosition: [null, null],
-      pointNames: [],
-      activeRoutePoints: null,
-      destPointName: ''
-    };
+    this.course.initCourseData();
   }
 
   // ** clear active destination **
@@ -1669,6 +1668,7 @@ export class AppComponent {
       this.stream.close();
       return;
     }
+    this.stream.sendConfig(this.app.config);
     this.stream.open(options);
   }
 
@@ -1688,7 +1688,7 @@ export class AppComponent {
           options: { context: 'self', name: r['name'] }
         });
         this.fetchResources(true); // ** fetch all resource types from server
-        if (this.app.config.selections.trailFromServer) {
+        if (this.app.config.vessels.trailFromServer) {
           this.app.fetchTrailFromServer(); // request trail from server
         }
         // ** query anchor alarm status
@@ -1780,11 +1780,11 @@ export class AppComponent {
       // delta message
       if (this.mode === SKSTREAM_MODE.PLAYBACK) {
         const d = new Date(e.timestamp);
-        this.display.playback.time = `${d.toDateString().slice(4)} ${d
-          .toTimeString()
-          .slice(0, 8)}`;
+        this.playbackTime.update(
+          () => `${d.toDateString().slice(4)} ${d.toTimeString().slice(0, 8)}`
+        );
       } else {
-        this.display.playback.time = null;
+        this.playbackTime.set(null);
         this.setDarkTheme();
       }
       this.updateNavPanel();
@@ -1793,27 +1793,26 @@ export class AppComponent {
 
   // ** Update NavData Panel display **
   private updateNavPanel() {
-    this.display.navDataPanel.show =
-      this.app.data.activeRoute ||
-      this.app.data.activeWaypoint ||
-      this.app.data.navData.position
-        ? true
-        : false;
+    this.navDataPanel.update((current) => {
+      return {
+        show:
+          this.app.data.activeRoute ||
+          this.app.data.activeWaypoint ||
+          this.course.courseData().position
+            ? true
+            : false,
 
-    this.display.navDataPanel.nextPointCtrl = this.app.data.activeRoute
-      ? true
-      : false;
+        nextPointCtrl: this.app.data.activeRoute ? true : false,
 
-    //autopilot
-    if (this.app.data.vessels.self.autopilot.enabled) {
-      this.display.navDataPanel.apModeColor = 'primary';
-    } else {
-      this.display.navDataPanel.apModeColor = '';
-    }
+        //autopilot
+        apModeColor: this.app.data.vessels.self.autopilot.enabled
+          ? 'primary'
+          : '',
 
-    this.display.navDataPanel.apModeText = this.app.data.vessels.self.autopilot
-      .default
-      ? 'Autopilot: ' + this.app.data.vessels.self.autopilot.default
-      : '';
+        apModeText: this.app.data.vessels.self.autopilot.default
+          ? `Autopilot: ${this.app.data.vessels.self.autopilot.default}`
+          : ''
+      };
+    });
   }
 }

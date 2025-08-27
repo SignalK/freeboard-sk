@@ -4,15 +4,15 @@ import { Injectable, signal } from '@angular/core';
 import { Observable, Subject } from 'rxjs';
 
 import { AppFacade } from 'src/app/app.facade';
-import { SettingsEventMessage } from 'src/app/lib/services';
 import { SignalKClient } from 'signalk-client-angular';
 import { SKWorkerService } from './skstream.service';
-import { CourseService, SKVessel } from 'src/app/modules';
+import { CourseService, SettingsFacade, SKVessel } from 'src/app/modules';
 import {
   UpdateMessage,
   TrailMessage,
   MultiLineString,
-  Position
+  Position,
+  IAppConfig
 } from 'src/app/types';
 
 export enum SKSTREAM_MODE {
@@ -39,7 +39,6 @@ export class SKStreamFacade {
     data: MultiLineString;
   }> = new Subject();
   private vesselsUpdate: Subject<void> = new Subject();
-  private navDataUpdate: Subject<void> = new Subject();
   // **************** SIGNALS ***********************************
   private anchorSignal = signal<{
     maxRadius?: number;
@@ -55,7 +54,8 @@ export class SKStreamFacade {
     private app: AppFacade,
     private signalk: SignalKClient,
     private worker: SKWorkerService,
-    private course: CourseService
+    private course: CourseService,
+    private settings: SettingsFacade
   ) {
     // ** SIGNAL K STREAM **
     this.worker.message$().subscribe((msg: UpdateMessage | TrailMessage) => {
@@ -79,10 +79,13 @@ export class SKStreamFacade {
       }
     });
 
-    // ** SETTINGS - handle settings events
-    this.app.settings$.subscribe((r: SettingsEventMessage) =>
-      this.handleSettingsEvent(r)
-    );
+    // ** Handle app.config$ / settings.change$ events
+    this.settings.change$.subscribe(() => this.sendConfig());
+    this.app.config$.subscribe((value: string) => {
+      if (value === 'ready') {
+        this.sendConfig();
+      }
+    });
   }
   // ** SKStream WebSocket messages **
   connect$(): Observable<UpdateMessage> {
@@ -108,9 +111,6 @@ export class SKStreamFacade {
   // ** Data centric messages
   vessels$(): Observable<void> {
     return this.vesselsUpdate.asObservable();
-  }
-  navdata$(): Observable<void> {
-    return this.navDataUpdate.asObservable();
   }
 
   terminate() {
@@ -154,7 +154,7 @@ export class SKStreamFacade {
     }
   }
 
-  // ** subscribe to signal k paths
+  /** subscribe to signal k paths */
   subscribe() {
     this.worker.postMessage({
       cmd: 'subscribe',
@@ -229,6 +229,16 @@ export class SKStreamFacade {
     });
   }
 
+  /** Send config to stream worker
+   * @param config App config. If not supplied uses AppFacade.config
+   */
+  sendConfig(config?: IAppConfig) {
+    this.worker.postMessage({
+      cmd: 'settings',
+      options: { config: config ?? this.app.config }
+    });
+  }
+
   // ** process selfTrail message from worker and emit trail$ **
   private parseSelfTrail(msg: TrailMessage) {
     if (msg.result) {
@@ -295,14 +305,15 @@ export class SKStreamFacade {
 
   private parseVesselSelf(v: SKVessel) {
     this.app.data.vessels.self = v;
-    if (this.app.config.fixedLocationMode) {
-      this.app.data.vessels.self.position = [...this.app.config.fixedPosition];
+    if (this.app.config.vessels.fixedLocationMode) {
+      this.app.data.vessels.self.position = [
+        ...this.app.config.vessels.fixedPosition
+      ];
     }
     this.parseSelfRacing(v);
     this.processVessel(v);
 
     this.course.parseSelf(v);
-    this.navDataUpdate.next();
 
     this.anchorSignal.update(() => {
       return {
@@ -316,7 +327,8 @@ export class SKStreamFacade {
 
     this.nightModeSignal.update(() => {
       return (
-        v.environment.mode === 'night' && (this.app.config.nightMode ?? false)
+        v.environment.mode === 'night' &&
+        (this.app.config.display.nightMode ?? false)
       );
     });
   }
@@ -360,13 +372,5 @@ export class SKStreamFacade {
     d.cog = this.app.useMagnetic ? d.cogMagnetic : d.cogTrue;
     d.heading = this.app.useMagnetic ? d.headingMagnetic : d.headingTrue;
     d.wind.direction = this.app.useMagnetic ? d.wind.mwd : d.wind.twd;
-  }
-
-  // SETTINGS event handler (Load & Save) (config.selections)
-  private handleSettingsEvent(e) {
-    this.worker.postMessage({
-      cmd: 'settings',
-      options: { selections: this.app.config.selections }
-    });
   }
 }

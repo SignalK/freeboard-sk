@@ -7,15 +7,7 @@ import { Subject, Observable } from 'rxjs';
 import { State } from './state.service';
 import { IAppConfig, FBAppData } from '../../types';
 
-export interface SettingsSaveOptions {
-  fetchNotes?: boolean;
-  suppressTrailFetch?: boolean;
-}
-
-export interface SettingsEventMessage {
-  action: 'save' | 'load';
-  options?: SettingsSaveOptions;
-}
+export type ConfigEvent = 'saved' | 'ready';
 
 export interface AppInfoDef {
   id: string;
@@ -48,8 +40,8 @@ export class InfoService {
   private state: State;
 
   // Observables
-  protected settingsEvent: Subject<SettingsEventMessage>;
-  public settings$: Observable<SettingsEventMessage>;
+  private configEvent: Subject<ConfigEvent> = new Subject<ConfigEvent>();
+  public config$: Observable<ConfigEvent> = this.configEvent.asObservable();
 
   constructor(infoDef: AppInfoDef) {
     this.state = new State();
@@ -61,13 +53,7 @@ export class InfoService {
     this.version = infoDef.version ?? '0.0.0';
     this.url = infoDef.url ?? '';
     this.logo = infoDef.logo ?? '';
-
     this.state.appId = this.id;
-
-    // ** initialise events
-    this.settingsEvent = new Subject<SettingsEventMessage>();
-    this.settings$ = this.settingsEvent.asObservable();
-
     this.checkVersion();
   }
 
@@ -120,6 +106,11 @@ export class InfoService {
     this.debug(`Version Check:`, this.launchStatus);
   }
 
+  /** emit config$ event */
+  emitConfigEvent(value: ConfigEvent) {
+    this.configEvent.next(value);
+  }
+
   /** load app version Info */
   loadInfo(): AppInfoDef {
     return this.state.loadInfo();
@@ -139,14 +130,14 @@ export class InfoService {
   }
 
   /** persist app config */
-  saveConfig(options?: SettingsSaveOptions) {
+  saveConfig() {
     if (this.suppressPersist) {
       this.debug(`InfoService: suppressPersist = true`);
       return;
     }
     this.debug(`InfoService.saveConfig`);
     this.state.saveConfig(this.config);
-    this.settingsEvent.next({ action: 'save' });
+    this.emitConfigEvent('saved');
   }
 
   /** load app data */

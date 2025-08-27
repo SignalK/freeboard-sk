@@ -21,7 +21,7 @@ import { CommonDialogs } from 'src/app/lib/components/dialogs';
 import { AppFacade } from 'src/app/app.facade';
 import { SignalKClient } from 'signalk-client-angular';
 import { Convert } from 'src/app/lib/convert';
-import { SKStreamFacade } from 'src/app/modules';
+import { CourseService, SKStreamFacade } from 'src/app/modules';
 import { UpdateMessage } from 'src/app/types';
 import { Subscription } from 'rxjs';
 
@@ -72,13 +72,7 @@ import { Subscription } from 'rxjs';
         <legend>Arrival</legend>
 
         <mat-form-field floatLabel="always">
-          <mat-label
-            >Arrival Circle radius ({{
-              app.config.units.distance === 'm'
-                ? app.config.units.distance
-                : 'NM'
-            }}):
-          </mat-label>
+          <mat-label>Arrival Circle Radius </mat-label>
           <input
             id="arrivalCircle"
             matInput
@@ -86,9 +80,12 @@ import { Subscription } from 'rxjs';
             min="0"
             [value]="frmArrivalCircle"
             (change)="onFormChange($event)"
-            placeholder="500"
+            placeholder="100"
             matTooltip="Enter Arrival circle radius"
           />
+          <span matSuffix>{{
+            app.config.units.distance === 'm' ? app.config.units.distance : 'NM'
+          }}</span>
         </mat-form-field>
 
         <div style="padding-right: 10px;">
@@ -211,6 +208,7 @@ export class CourseSettingsModal implements OnInit {
     private stream: SKStreamFacade,
     private cdr: ChangeDetectorRef,
     private signalk: SignalKClient,
+    protected course: CourseService,
     public modalRef: MatBottomSheetRef<CourseSettingsModal>,
     @Inject(MAT_BOTTOM_SHEET_DATA) public data
   ) {}
@@ -220,9 +218,9 @@ export class CourseSettingsModal implements OnInit {
       this.data['title'] = 'Course Settings';
     }
     this.frmArrivalCircle =
-      this.app.data.navData.arrivalCircle === null
+      this.course.courseData().arrivalCircle === null
         ? 0
-        : this.app.data.navData.arrivalCircle;
+        : this.course.courseData().arrivalCircle;
     this.frmArrivalCircle =
       this.app.config.units.distance === 'm'
         ? this.frmArrivalCircle
@@ -289,6 +287,7 @@ export class CourseSettingsModal implements OnInit {
             ? Number(e.target.value)
             : Convert.nauticalMilesToKm(Number(e.target.value)) * 1000;
         d = d <= 0 ? null : d;
+        this.app.config.course.arrivalCircle = Number(e.target.value);
 
         this.signalk.api
           .putWithContext(

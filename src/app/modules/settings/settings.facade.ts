@@ -3,9 +3,9 @@
 import { Injectable } from '@angular/core';
 
 import { AppFacade } from 'src/app/app.facade';
-import { SettingsSaveOptions } from 'src/app/lib/services';
 import { SignalKClient } from 'signalk-client-angular';
 import { FBAppData, IAppConfig, Position } from 'src/app/types';
+import { Observable, Subject } from 'rxjs';
 
 interface SKAppsList {
   author: string;
@@ -71,7 +71,8 @@ export class SettingsOptions {
   buttons = {
     fab: new Map([
       ['wpt', 'Waypoint at vessel'],
-      ['pob', 'Person Overboard']
+      ['pob', 'Person Overboard'],
+      ['autopilot', 'Autopilot Console']
     ])
   };
 
@@ -95,7 +96,14 @@ export class SettingsOptions {
       colors: [2, 4],
       shallowDepth: 2,
       safetyDepth: 3,
-      deepDepth: 6
+      deepDepth: 6,
+      colorTables: new Map([
+        [0, 'Day Bright'],
+        [1, 'Day Black Background'],
+        [2, 'Day White Background'],
+        [3, 'Dusk'],
+        [4, 'Night']
+      ])
     }
   };
 
@@ -187,8 +195,7 @@ export class SettingsOptions {
       [10, '10 min'],
       [30, '30 min'],
       [60, '60 min']
-    ]),
-    aisProfiles: new Map([[0, 'Default']]) //,[1,'Navigation'] ])
+    ])
   };
 
   course = {
@@ -214,28 +221,43 @@ export class SettingsFacade {
   settings!: IAppConfig;
   data!: FBAppData;
 
+  // Observables
+  protected changeEvent: Subject<string[]>;
+  public change$: Observable<string[]>;
+
   constructor(private app: AppFacade, public signalk: SignalKClient) {
+    // ** initialise events
+    this.changeEvent = new Subject<string[]>();
+    this.change$ = this.changeEvent.asObservable();
+
     this.data = this.app.data;
     this.settings = this.app.config;
 
-    this.fixedPosition = this.settings.fixedPosition.slice() as Position;
-    this.app.config.chartApi = this.app.config.chartApi ?? 1;
+    this.fixedPosition =
+      this.settings.vessels.fixedPosition.slice() as Position;
   }
 
-  // delete auth token
+  /** Notify of setting attribute change */
+  emitChangeEvent(value: string) {
+    const v = value ? [value] : [];
+    this.changeEvent.next(v);
+  }
+
+  /** Delete auth token */
   clearToken() {
     this.app.persistToken(null);
   }
 
-  // refresh dynamic data from sources
+  /** Refresh dynamic data from sources */
   refresh() {
     this.settings = this.app.config;
-    this.fixedPosition = this.settings.fixedPosition.slice() as Position;
+    this.fixedPosition =
+      this.settings.vessels.fixedPosition.slice() as Position;
     this.getApps();
     this.getResourcePaths();
   }
 
-  // ** populate list of available non-standard resource paths
+  /** Populate list of available non-standard resource paths */
   private getResourcePaths() {
     this.signalk.api.get(this.app.skApiVersion, 'resources').subscribe(
       (r: ResourceTypeList) => {
@@ -255,11 +277,11 @@ export class SettingsFacade {
     );
   }
 
-  // ** populate applications list **
+  /** Populate applications list */
   private getApps() {
     // apps list - default an entry to stored config value
-    if (this.app.config.plugins.instruments) {
-      this.applicationList.push(this.app.config.plugins.instruments);
+    if (this.app.config.display.plugins.instruments) {
+      this.applicationList.push(this.app.config.display.plugins.instruments);
     }
 
     this.signalk.apps.list().subscribe(
@@ -311,29 +333,31 @@ export class SettingsFacade {
     );
   }
 
-  // ** favourites **
+  /** Favourited plugins / apps */
   buildFavouritesList() {
     this.favouritesList = this.applicationList.slice(1);
-    const i = this.app.config.selections.pluginFavourites.indexOf(
-      this.app.config.plugins.instruments
+    const i = this.app.config.display.plugins.favourites.indexOf(
+      this.app.config.display.plugins.instruments
     );
   }
 
-  applySettings(options?: SettingsSaveOptions) {
+  /** Apply / persist settings */
+  applySettings() {
     this.app.debug('Saving Settings..');
-    if (!this.app.config.selections.vessel.trail) {
-      this.app.config.selections.trailFromServer = false;
+    if (!this.app.config.vessels.trail) {
+      this.app.config.vessels.trailFromServer = false;
     }
     if (
       typeof this.fixedPosition[0] === 'number' &&
       typeof this.fixedPosition[1] === 'number'
     ) {
-      this.settings.fixedPosition = this.fixedPosition.slice() as Position;
-      if (this.settings.fixedLocationMode) {
+      this.settings.vessels.fixedPosition =
+        this.fixedPosition.slice() as Position;
+      if (this.settings.vessels.fixedLocationMode) {
         this.app.data.vessels.self.position =
           this.fixedPosition.slice() as Position;
       }
     }
-    this.app.saveConfig(options ?? {});
+    this.app.saveConfig();
   }
 }

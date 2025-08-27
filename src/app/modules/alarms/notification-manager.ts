@@ -103,7 +103,7 @@ export class NotificationManager {
     }
 
     // check enabled in config
-    if (alertType === 'depth' && !this.app.config.depthAlarm.enabled) {
+    if (alertType === 'depth' && !this.app.config.display.depthAlarm.enabled) {
       return;
     }
 
@@ -156,7 +156,7 @@ export class NotificationManager {
       // show toast message
       this.app.showMessage(
         alert.message,
-        !this.app.config.muteSound && alert.sound
+        !this.app.config.display.muteSound && alert.sound
       );
       return;
     } else {

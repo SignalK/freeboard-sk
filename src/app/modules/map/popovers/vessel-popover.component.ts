@@ -70,7 +70,7 @@ isSelf: boolean - true if vessel 'self'
         <div
           style="flex: 1 1 auto;text-align:right;"
           [innerText]="
-            position[1] | coords : app.config.selections.positionFormat : true
+            position[1] | coords : app.config.units.positionFormat : true
           "
         ></div>
       </div>
@@ -78,9 +78,7 @@ isSelf: boolean - true if vessel 'self'
         <div style="font-weight:bold;">Longitude:</div>
         <div
           style="flex: 1 1 auto;text-align:right;"
-          [innerText]="
-            position[0] | coords : app.config.selections.positionFormat
-          "
+          [innerText]="position[0] | coords : app.config.units.positionFormat"
         ></div>
       </div>
       @if(!isSelf) { @if(vessel.distanceToSelf) {

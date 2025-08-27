@@ -60,7 +60,7 @@ import { AlertData } from '../../alarms';
           style="flex: 1 1 auto;text-align:right;"
           [innerText]="
             alarm.properties.position.latitude
-              | coords : app.config.selections.positionFormat : true
+              | coords : app.config.units.positionFormat : true
           "
         ></div>
       </div>
@@ -70,7 +70,7 @@ import { AlertData } from '../../alarms';
           style="flex: 1 1 auto;text-align:right;"
           [innerText]="
             alarm.properties.position.longitude
-              | coords : app.config.selections.positionFormat : false
+              | coords : app.config.units.positionFormat : false
           "
         ></div>
       </div>

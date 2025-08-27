@@ -128,13 +128,13 @@
           >
             <span style="font-weight: bold">Lat:</span>&nbsp;
             {{data.note?.position?.latitude | coords :
-            app.config.selections.positionFormat : true}}
+            app.config.units.positionFormat : true}}
 
             <br />
             <span>
               <span style="font-weight: bold">Lon:</span>&nbsp;
               {{data.note?.position?.longitude | coords :
-              app.config.selections.positionFormat : false}}
+              app.config.units.positionFormat : false}}
             </span>
           </div>
           }

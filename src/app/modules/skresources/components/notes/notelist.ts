@@ -55,7 +55,7 @@ export class NoteListComponent {
   constructor(public app: AppFacade, private skres: SKResourceService) {}
 
   ngOnInit() {
-    this.showNotes = this.app.config.notes;
+    this.showNotes = this.app.config.resources.notes.show;
     this.initItems();
   }
 
@@ -76,7 +76,7 @@ export class NoteListComponent {
   }
 
   toggleMapDisplay(value: boolean) {
-    this.app.config.notes = value;
+    this.app.config.resources.notes.show = value;
     this.app.saveConfig();
   }
 
@@ -90,8 +90,8 @@ export class NoteListComponent {
 
   emitCenter(position: SKPosition) {
     const zoomTo =
-      this.app.config.map.zoomLevel < this.app.config.selections.notesMinZoom
-        ? this.app.config.selections.notesMinZoom
+      this.app.config.map.zoomLevel < this.app.config.resources.notes.minZoom
+        ? this.app.config.resources.notes.minZoom
         : null;
     this.pan.emit({
       center: [position.longitude, position.latitude],

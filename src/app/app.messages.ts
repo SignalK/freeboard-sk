@@ -9,6 +9,31 @@ const WHATS_NEW = [
         <br>&nbsp;<br>
         Go to <i>Settings | Vessels</i> to enable this feature.
       `
+  },
+  {
+    type: 'signalk-server-node',
+    title: 'New in this Release',
+    message: `
+        <b>Action Button</b>
+        <br>&nbsp;<br>
+        Added a configurable action button to lower right of screen.
+        <br>&nbsp;<br>
+        Select between Waypoint at Vessel, Person Overboard & Autopilot console.
+        <br>&nbsp;<br>
+        Go to <i>Settings | Display</i> to configure this feature.
+      `
+  },
+  {
+    type: 'signalk-server-node',
+    title: 'New in this Release',
+    message: `
+        <b>Offset Vessel Center</b>
+        <br>&nbsp;<br>
+        Added setting to allow the vessel to be offset below the map center when in 
+        Moving Map mode. This maximises the area of map displayed ahead of the vessel.
+        <br>&nbsp;<br>
+        Go to <i>Settings | Map</i> to enable this feature.
+      `
   }
 ];
 

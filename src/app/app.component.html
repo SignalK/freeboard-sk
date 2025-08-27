@@ -1,6 +1,6 @@
 <div
   [ngClass]="{
-    'dark-theme': app.config.darkMode.enabled,
+    'dark-theme': app.config.display.darkMode.enabled,
     'app-night': stream.selfNightMode()
   }"
 >
@@ -75,18 +75,17 @@
     </mat-menu>
 
     <mat-menu #settingsmenu="matMenu">
-      @if(app.config.selections.vessel.trail && app.selfTrail().length !== 0) {
+      @if(app.config.vessels.trail && app.selfTrail().length !== 0) {
       <a mat-menu-item (click)="clearTrail(app.data.serverTrail)">
         <mat-icon>clear_all</mat-icon>
         <span>{{ app.data.serverTrail ? 'Refresh' : 'Clear' }} Trail</span>
       </a>
-      } @if(app.config.selections.vessel.trail && app.selfTrail().length !== 0)
-      {
+      } @if(app.config.vessels.trail && app.selfTrail().length !== 0) {
       <a mat-menu-item (click)="trailToRoute()">
         <mat-icon>insights</mat-icon>
         <span>Trail to Route</span>
       </a>
-      } @if(app.data.navData.position){
+      } @if(course.courseData().position){
       <a mat-menu-item (click)="clearDestination()">
         <mat-icon>clear_all</mat-icon>
         @if(app.data.activeRoute) {
@@ -103,9 +102,11 @@
       <mat-divider></mat-divider>
       <a mat-menu-item (click)="toggleCourseData()">
         <mat-icon>{{
-          app.config.courseData ? 'visibility_off' : 'compare_arrows'
+          app.config.ui.courseData ? 'visibility_off' : 'compare_arrows'
         }}</mat-icon>
-        <span>{{ app.config.courseData ? 'Hide' : 'Show' }} Course Data</span>
+        <span
+          >{{ app.config.ui.courseData ? 'Hide' : 'Show' }} Course Data</span
+        >
       </a>
       <a mat-menu-item (click)="toggleAisTargets()">
         <mat-icon>{{
@@ -115,9 +116,11 @@
       </a>
       <a mat-menu-item (click)="toggleNotes()">
         <mat-icon>{{
-          app.config.notes ? 'visibility_off' : 'local_offer'
+          app.config.resources.notes.show ? 'visibility_off' : 'local_offer'
         }}</mat-icon>
-        <span>{{ app.config.notes ? 'Hide' : 'Show' }} Notes</span>
+        <span
+          >{{ app.config.resources.notes.show ? 'Hide' : 'Show' }} Notes</span
+        >
       </a>
       <mat-divider></mat-divider>
       <a mat-menu-item (click)="showWeather('forecast')">
@@ -161,7 +164,7 @@
       </a>
       <mat-divider></mat-divider>
       @if(this.app.config.map.zoomLevel >=
-      this.app.config.selections.notesMinZoom) {
+      this.app.config.resources.notes.minZoom) {
       <a mat-menu-item (click)="drawFeature('note')">
         <mat-icon>local_offer</mat-icon>
         <span>Add Note</span>
@@ -251,10 +254,11 @@
                 <a mat-icon-button (click)="sideright.toggle()">
                   <mat-icon>arrow_forward</mat-icon>
                 </a>
-                &nbsp;&nbsp;&nbsp;&nbsp; @if(app.config.plugins.instruments) {
+                &nbsp;&nbsp;&nbsp;&nbsp;
+                @if(app.config.display.plugins.instruments) {
                 <a
                   mat-icon-button
-                  [href]="instUrl"
+                  [href]="instUrl()"
                   (click)="sideright.toggle()"
                   target="_blank"
                   matTooltip="Open Instruments in window."
@@ -267,7 +271,7 @@
                   mat-icon-button
                   (click)="selectPlugin()"
                   [disabled]="
-                    app.config.selections.pluginFavourites.length === 0
+                    app.config.display.plugins.favourites.length === 0
                   "
                   matTooltip="Previous plugin"
                   matTooltipPosition="below"
@@ -278,7 +282,7 @@
                   mat-icon-button
                   (click)="selectPlugin(true)"
                   [disabled]="
-                    app.config.selections.pluginFavourites.length === 0
+                    app.config.display.plugins.favourites.length === 0
                   "
                   matTooltip="Next plugin"
                   matTooltipPosition="below"
@@ -297,9 +301,9 @@
                 -webkit-overfow-scrolling: touch;
               "
             >
-              @if(display.instrumentAppActive) {
+              @if(instrumentPanel().activate) {
               <iframe
-                [src]="instUrl"
+                [src]="instUrl()"
                 style="width: 345px; height: 100%"
                 sandbox="allow-scripts allow-same-origin"
               >
@@ -482,9 +486,9 @@
           <!-- /left button bar-->
 
           <!--left menu panel-->
-          @if(display.leftMenuPanel) {
+          @if(leftMenuCtrl().leftMenuPanel) {
           <div class="leftMenuPanel">
-            @if(display.routeList) { @defer {
+            @if(leftMenuCtrl().routeList) { @defer {
             <route-list
               [activeRoute]="app.data.activeRoute"
               [editingRouteId]="app.data.editingId"
@@ -498,7 +502,7 @@
               (closed)="displayLeftMenu()"
             >
             </route-list>
-            } } @if(display.waypointList) { @defer {
+            } } @if(leftMenuCtrl().waypointList) { @defer {
             <waypoint-list
               [activeWaypoint]="app.data.activeWaypoint"
               [editingWaypointId]="app.data.editingId"
@@ -511,13 +515,13 @@
               (closed)="displayLeftMenu()"
             >
             </waypoint-list>
-            } } @if(display.chartList) { @defer {
+            } } @if(leftMenuCtrl().chartList) { @defer {
             <chart-list
               [selectedCharts]="app.config.selections.charts"
               (closed)="displayLeftMenu()"
             >
             </chart-list>
-            } } @if(display.noteList) { @defer {
+            } } @if(leftMenuCtrl().noteList) { @defer {
             <note-list
               [notes]="skres.notes()"
               (select)="skres.noteSelected($event.id, $event.isGroup)"
@@ -525,13 +529,13 @@
               (closed)="displayLeftMenu()"
             >
             </note-list>
-            } } @if(display.trackList) { @defer {
+            } } @if(leftMenuCtrl().trackList) { @defer {
             <track-list
               (center)="centerAndZoom($event)"
               (closed)="displayLeftMenu()"
             >
             </track-list>
-            } } @if(display.aisList) { @defer {
+            } } @if(leftMenuCtrl().aisList) { @defer {
             <ais-list
               [focusId]="app.data.vessels.activeId"
               (properties)="featureProperties({ id: $event, type: 'ais' })"
@@ -540,9 +544,9 @@
               (pan)="centerAndZoom($event.center, $event.zoomLevel)"
             >
             </ais-list>
-            } } @if(display.resourceGroups()) { @defer {
+            } } @if(leftMenuCtrl().resourceGroups) { @defer {
             <group-list (closed)="displayLeftMenu()"> </group-list>
-            } } @if(display.anchorWatch) {
+            } } @if(leftMenuCtrl().anchorWatch) {
             <anchor-watch
               [showSelf]="app.data.vessels.showSelf"
               [radius]="this.anchor.radius()"
@@ -554,6 +558,27 @@
             }
           </div>
           }
+
+          <!-- Status Bar -->
+          <div class="statusBar">
+            @if(!wakeLock.enabled() && wakeLock.isAvailable){
+            <div class="statusBarItem">
+              <mat-icon
+                matTooltip="WakeLock is turned off"
+                matTooltipPosition="below"
+                >visibility_off
+              </mat-icon>
+            </div>
+            } @if(!app.uiConfig().courseData){
+            <div class="statusBarItem">
+              <mat-icon
+                matTooltip="Course data hidden"
+                matTooltipPosition="below"
+                >compare_arrows
+              </mat-icon>
+            </div>
+            }
+          </div>
 
           <!-- right button bar -->
           <!-- show/hide  -->
@@ -612,17 +637,17 @@
             }
 
             <!-- fullscreen enable -->
-            @if(display.fullscreen.enabled) {
+            @if(displayFullscreen().enabled) {
             <div class="buttonPanelItem">
               <button
                 mat-mini-fab
                 [ngClass]="{
-                  'icon-warn': display.fullscreen.active,
-                  'button-toolbar': !display.fullscreen.active
+                  'button-primary': displayFullscreen().active,
+                  'button-toolbar': !displayFullscreen().active
                 }"
                 (click)="toggleFullscreen()"
                 [matTooltip]="
-                  display.fullscreen.active
+                  displayFullscreen().active
                     ? 'Exit Fullscreen '
                     : 'Go Fullscreen'
                 "
@@ -630,7 +655,7 @@
               >
                 <mat-icon>
                   {{
-                    display.fullscreen.active
+                    displayFullscreen().active
                       ? 'fullscreen_exit '
                       : 'fullscreen'
                   }}
@@ -676,18 +701,6 @@
               <br />&nbsp;<br />
             </div>
 
-            <!-- WakeLock enable -->
-            <div class="buttonPanelItem">
-              <wakelock
-                [setOn]="app.config.ui.wakeLock"
-                (has)="handleHasWakeLock($event)"
-                (change)="handleWakelockChange($event)"
-              ></wakelock>
-              @if(app.data.hasWakeLock) {
-              <span><br />&nbsp;<br /></span>
-              }
-            </div>
-
             <!-- Experiments -->
             @if(app.config.experiments) {
             <div class="buttonPanelItem">
@@ -701,7 +714,7 @@
             @if(app.config.resources.video.enable &&
             app.config.resources.video.url) {
             <div class="buttonPanelItem">
-              <pip-video [src]="vidUrl" [muted]="true" (click)="focusMap()">
+              <pip-video [src]="vidUrl()" [muted]="true" (click)="focusMap()">
               </pip-video>
               <br />&nbsp;<br />
             </div>
@@ -709,7 +722,8 @@
 
             <!-- Autopilot console-->
             @if(app.featureFlags().autopilotApi &&
-            app.data.vessels.self.autopilot.default) {
+            app.data.vessels.self.autopilot.default && app.config.display.fab
+            !== 'autopilot') {
             <div class="buttonPanelItem">
               <button
                 mat-mini-fab
@@ -746,7 +760,7 @@
               [movingMap]="app.uiConfig().mapMove"
               [vesselTrail]="app.selfTrail()"
               [activeRoute]="app.data.activeRoute"
-              [dblClickZoom]="app.config.mapDoubleClick"
+              [dblClickZoom]="app.config.map.doubleClickZoom"
               [measureMode]="mapInteract.isMeasuring()"
               [drawMode]="mapInteract.isDrawing()"
               (drawEnded)="handleDrawEnded($event)"
@@ -848,7 +862,7 @@
             <div style="border-radius: 5px">
               <mat-icon>access_time</mat-icon> <b>Playback:</b>
             </div>
-            <div style="text-align: center">{{ display.playback.time }}</div>
+            <div style="text-align: center">{{ playbackTime() }}</div>
           </div>
           }
 
@@ -867,9 +881,9 @@
                 [alert]="n[1]"
                 [acknowledged]="n[1].acknowledged"
                 [silenced]="n[1].silenced"
-                [doNotPlaySound]="app.config.muteSound"
+                [doNotPlaySound]="app.config.display.muteSound"
                 (nextPoint)="
-                  course.coursePointIndex(app.data.navData.pointIndex + 1)
+                  course.coursePointIndex(course.courseData().pointIndex + 1)
                 "
               >
               </fb-alert>
@@ -895,15 +909,15 @@
           <!-- *** Nav data panel ***-->
           @if(!isInteracting) {
           <div class="navdataPanel">
-            @if(display.navDataPanel.nextPointCtrl) {
+            @if(navDataPanel().nextPointCtrl) {
             <route-nextpoint
-              [index]="app.data.navData.pointIndex"
-              [total]="app.data.navData.pointTotal"
+              [index]="course.courseData().pointIndex"
+              [total]="course.courseData().pointTotal"
               [circular]="app.data.activeRouteCircular"
               (selected)="routeNextPoint($event)"
             >
             </route-nextpoint>
-            } @if(app.config.courseData && display.navDataPanel.show) {
+            } @if(app.config.ui.courseData && navDataPanel().show) {
             <div style="display: flex; flex-wrap: nowrap">
               <div class="mat-app-background" style="display: flex">
                 <div style="width: 40px">
@@ -920,10 +934,10 @@
                     matTooltip="Autopilot Console"
                     matTooltipPosition="above"
                     [disabled]="!app.featureFlags().autopilotApi"
-                    [matTooltip]="display.navDataPanel.apModeText"
+                    [matTooltip]="navDataPanel().apModeText"
                     (click)="toggleAutopilotConsole(true)"
                   >
-                    <mat-icon [color]="display.navDataPanel.apModeColor">
+                    <mat-icon [color]="navDataPanel().apModeColor">
                       alt_route
                     </mat-icon>
                   </button>
@@ -954,78 +968,74 @@
                   </button>
                 </div>
               </div>
-              @if(app.data.navData.vmg) {
+              @if(course.courseData().vmg) {
               <ap-dial-text
                 [title]="'VMG'"
-                [value]="app.formatSpeed(app.data.navData.vmg, true)"
+                [value]="app.formatSpeed(course.courseData().vmg, true)"
                 [units]="app.formattedSpeedUnits"
               >
               </ap-dial-text>
-              } @if(app.data.navData.bearing.value) {
+              } @if(course.courseData().bearing.value) {
               <ap-dial-text
                 [title]="'BRG'"
-                [value]="app.data.navData.bearing.value.toFixed(1)"
+                [value]="course.courseData().bearing.value.toFixed(1)"
                 [units]="
-                  app.data.navData.bearing.type === 'M' ? 'deg (M)' : 'deg (T)'
+                  course.courseData().bearing.type === 'M'
+                    ? 'deg (M)'
+                    : 'deg (T)'
                 "
               >
               </ap-dial-text>
-              } @if(app.data.navData.xte) {
+              } @if(course.courseData().xte) {
               <ap-dial-text
                 [title]="'XTE'"
                 [value]="
-                  app.data.navData.xte > 10
-                    ? app.data.navData.xte.toFixed(1)
-                    : app.data.navData.xte.toFixed(3)
+                  course.courseData().xte > 10
+                    ? course.courseData().xte.toFixed(1)
+                    : course.courseData().xte.toFixed(3)
                 "
                 [units]="app.config.units.distance === 'm' ? 'km' : 'NM'"
               >
               </ap-dial-text>
-              } @if(app.data.activeRoute) { @if(app.data.navData.route.dtg) {
+              } @if(app.data.activeRoute) { @if(course.courseData().route.dtg) {
               <ap-dial-text
                 [title]="'DTG'"
                 subTitle="RT"
-                [value]="app.data.navData.route.dtg.toFixed(1)"
+                [value]="course.courseData().route.dtg.toFixed(1)"
                 [units]="app.config.units.distance === 'm' ? 'km' : 'NM'"
               >
               </ap-dial-text>
-              } @if(app.data.navData.route.ttg) {
-              <ap-dial-ttg subTitle="RT" [value]="app.data.navData.route.ttg">
+              } @if(course.courseData().route.ttg) {
+              <ap-dial-ttg
+                subTitle="RT"
+                [value]="course.courseData().route.ttg"
+              >
               </ap-dial-ttg>
-              } @if(app.data.navData.route.eta) {
+              } @if(course.courseData().route.eta) {
               <ap-dial-eta
                 [title]="'ETA'"
                 subTitle="RT"
-                [value]="app.data.navData.route.eta"
+                [value]="course.courseData().route.eta"
               >
               </ap-dial-eta>
-              } } @if(app.data.navData.dtg) {
+              } } @if(course.courseData().dtg) {
               <ap-dial-text
                 [title]="'DTG'"
-                [value]="app.data.navData.dtg.toFixed(1)"
+                [value]="course.courseData().dtg.toFixed(1)"
                 [units]="app.config.units.distance === 'm' ? 'km' : 'NM'"
               >
               </ap-dial-text>
-              } @if(app.data.navData.ttg) {
-              <ap-dial-ttg [value]="app.data.navData.ttg"> </ap-dial-ttg>
-              } @if(app.data.navData.eta) {
-              <ap-dial-eta [title]="'ETA'" [value]="app.data.navData.eta">
+              } @if(course.courseData().ttg) {
+              <ap-dial-ttg [value]="course.courseData().ttg"> </ap-dial-ttg>
+              } @if(course.courseData().eta) {
+              <ap-dial-eta [title]="'ETA'" [value]="course.courseData().eta">
               </ap-dial-eta>
               }
             </div>
             }
           </div>
           } @if(!isInteracting && !app.kioskMode()) {
-          <fab-container>
-            @if(app.config.display.fab === 'wpt') {
-            <wpt-button
-              [position]="app.data.vessels.self.position"
-              [active]="app.data.vessels.showSelf"
-            ></wpt-button>
-            } @if(app.config.display.fab === 'pob') {
-            <pob-button></pob-button>
-            }
-          </fab-container>
+          <mfb-container [action]="app.config.display.fab"> </mfb-container>
           }
         </mat-sidenav-content>
       </mat-sidenav-container>

@@ -40,8 +40,7 @@ import { Convert } from 'src/app/lib/convert';
         <div
           style="flex: 1 1 auto;text-align:right;"
           [innerText]="
-            aton.position[1]
-              | coords : app.config.selections.positionFormat : true
+            aton.position[1] | coords : app.config.units.positionFormat : true
           "
         ></div>
       </div>
@@ -50,7 +49,7 @@ import { Convert } from 'src/app/lib/convert';
         <div
           style="flex: 1 1 auto;text-align:right;"
           [innerText]="
-            aton.position[0] | coords : app.config.selections.positionFormat
+            aton.position[0] | coords : app.config.units.positionFormat
           "
         ></div>
       </div>

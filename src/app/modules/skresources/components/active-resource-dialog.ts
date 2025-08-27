@@ -216,7 +216,7 @@ export class ActiveResourcePropertiesModal implements OnInit {
           : 'Route Points';
 
         if (this.data.resource[0] === this.app.data.activeRoute) {
-          this.selIndex = this.app.data.navData.pointIndex;
+          this.selIndex = this.course.courseData().pointIndex;
           this.showClearButton = true;
         }
         this.readOnly =

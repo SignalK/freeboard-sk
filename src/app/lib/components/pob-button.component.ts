@@ -13,7 +13,7 @@ import { NotificationManager } from 'src/app/modules';
       mat-fab
       (click)="raiseAlarm()"
       matTooltip="Raise POB Alarm"
-      matTooltipPosition="top"
+      matTooltipPosition="above"
     >
       <mat-icon class="ob" svgIcon="alarm-mob"></mat-icon>
     </button>

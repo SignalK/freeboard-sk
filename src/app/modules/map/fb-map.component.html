@@ -91,22 +91,21 @@
             padding: 0 5px 0 5px;
           "
         >
-          @if(app.config.selections.positionFormat === 'XY') {
+          @if(app.config.units.positionFormat === 'XY') {
           <span>Lat:&nbsp;</span>
           }
           <span
             [innerText]="
-              mouse.coords[1]
-                | coords : app.config.selections.positionFormat : true
+              mouse.coords[1] | coords : app.config.units.positionFormat : true
             "
           ></span>
-          &nbsp; @if(app.config.selections.positionFormat === 'XY') {
+          &nbsp; @if(app.config.units.positionFormat === 'XY') {
           <span>Lon:&nbsp;</span>
           }
 
           <span
             [innerText]="
-              mouse.coords[0] | coords : app.config.selections.positionFormat
+              mouse.coords[0] | coords : app.config.units.positionFormat
             "
           ></span>
           &nbsp;
@@ -137,7 +136,7 @@
   }
 
   <!-- AIS target tracks -->
-  @if(app.config.aisTargets && app.config.selections.aisShowTrack) {
+  @if(app.config.aisTargets && app.config.vessels.aisShowTrack) {
   <ais-targets-track
     [tracks]="app.data.vessels.aisTracks"
     [tracksMinZoom]="10"
@@ -160,7 +159,7 @@
       [collection]="resSet[0]"
       [resourceSets]="resSet[1]"
       [selected]="app.config.selections.resourceSets[resSet[0]]"
-      [labelMinZoom]="app.config.selections.labelsMinZoom"
+      [labelMinZoom]="app.config.map.labelsMinZoom"
       [mapZoom]="mapZoomLevel()"
       [zIndex]="120 + idx"
     >
@@ -175,7 +174,7 @@
     [routeStyles]="featureStyles.route"
     [activeRoute]="activeRoute"
     [darkMode]="app.uiConfig().invertColor"
-    [labelMinZoom]="this.app.config.selections.labelsMinZoom"
+    [labelMinZoom]="this.app.config.map.labelsMinZoom"
     [mapZoom]="mapZoomLevel()"
     [zIndex]="500"
   >
@@ -184,8 +183,8 @@
   <!-- Routes -->
   @if(activeRoute && !app.data.activeRouteIsEditing) {
   <fb-route-direction
-    [points]="app.data.navData.activeRoutePoints"
-    [pointIndex]="app.data.navData.pointIndex"
+    [points]="course.courseData().activeRoutePoints"
+    [pointIndex]="course.courseData().pointIndex"
     [reverse]="app.data.activeRouteReversed"
     [zIndex]="550"
   >
@@ -197,7 +196,7 @@
     [darkMode]="app.uiConfig().invertColor"
     [waypoints]="skres.waypoints()"
     [activeWaypoint]="app.data.activeWaypoint"
-    [labelMinZoom]="this.app.config.selections.labelsMinZoom"
+    [labelMinZoom]="this.app.config.map.labelsMinZoom"
     [mapZoom]="mapZoomLevel()"
     [zIndex]="600"
   >
@@ -209,12 +208,12 @@
     [darkMode]="app.uiConfig().invertColor"
     [targets]="dfeat.atons"
     targetContext="atons"
-    [labelMinZoom]="this.app.config.selections.labelsMinZoom"
+    [labelMinZoom]="this.app.config.map.labelsMinZoom"
     [mapZoom]="mapZoomLevel()"
     [updateIds]="aisMgr.updateList"
     [staleIds]="aisMgr.staleList"
     [removeIds]="aisMgr.removeList"
-    [inactiveTime]="app.config.selections.aisStaleAge"
+    [inactiveTime]="app.config.vessels.aisStaleAge"
     [zIndex]="200"
   >
   </sk-ais-targets>
@@ -225,12 +224,12 @@
     [targets]="dfeat.atons"
     [targetStyles]="featureStyles.basestation"
     targetContext="shore.basestations"
-    [labelMinZoom]="this.app.config.selections.labelsMinZoom"
+    [labelMinZoom]="this.app.config.map.labelsMinZoom"
     [mapZoom]="mapZoomLevel()"
     [updateIds]="aisMgr.updateList"
     [staleIds]="aisMgr.staleList"
     [removeIds]="aisMgr.removeList"
-    [inactiveTime]="app.config.selections.aisStaleAge"
+    [inactiveTime]="app.config.vessels.aisStaleAge"
     [zIndex]="210"
   >
   </sk-ais-targets>
@@ -241,12 +240,12 @@
     [darkMode]="app.uiConfig().invertColor"
     [targets]="dfeat.meteo"
     targetContext="meteo"
-    [labelMinZoom]="this.app.config.selections.labelsMinZoom"
+    [labelMinZoom]="this.app.config.map.labelsMinZoom"
     [mapZoom]="mapZoomLevel()"
     [updateIds]="aisMgr.updateList"
     [staleIds]="aisMgr.staleList"
     [removeIds]="aisMgr.removeList"
-    [inactiveTime]="app.config.selections.aisStaleAge"
+    [inactiveTime]="app.config.vessels.aisStaleAge"
     [zIndex]="220"
   >
   </sk-ais-targets>
@@ -255,14 +254,13 @@
   <!-- AIS Vessel targets -->
   @if(app.config.aisTargets) {
   <div>
-    @if(app.config.selections.aisProfile === 0) { @if( mapZoomLevel() >=
-    app.config.selections.aisWindMinZoom) {
+    @if( mapZoomLevel() >= app.config.vessels.aisWindMinZoom) {
     <sk-ais-wind
       [targetContext]="'vessels'"
       [targets]="dfeat.ais"
-      [vectorApparent]="app.config.selections.aisWindApparent"
+      [vectorApparent]="app.config.vessels.aisWindApparent"
       [mapZoom]="mapZoomLevel()"
-      [labelMinZoom]="this.app.config.selections.labelsMinZoom"
+      [labelMinZoom]="this.app.config.map.labelsMinZoom"
       [focusId]="app.data.vessels.activeId"
       [filterIds]="app.config.selections.aisTargets"
       [filterByShipType]="app.config.selections.aisFilterByShipType"
@@ -270,7 +268,7 @@
       [updateIds]="aisMgr.updateList"
       [staleIds]="aisMgr.staleList"
       [removeIds]="aisMgr.removeList"
-      [inactiveTime]="app.config.selections.aisStaleAge"
+      [inactiveTime]="app.config.vessels.aisStaleAge"
       [zIndex]="900"
       [darkMode]="app.uiConfig().invertColor"
     >
@@ -281,7 +279,7 @@
       [targetContext]="'vessels'"
       [targets]="dfeat.ais"
       [mapZoom]="mapZoomLevel()"
-      [labelMinZoom]="this.app.config.selections.labelsMinZoom"
+      [labelMinZoom]="this.app.config.map.labelsMinZoom"
       [focusId]="app.data.vessels.activeId"
       [filterIds]="app.config.selections.aisTargets"
       [filterByShipType]="app.config.selections.aisFilterByShipType"
@@ -289,7 +287,7 @@
       [updateIds]="aisMgr.updateList"
       [staleIds]="aisMgr.staleList"
       [removeIds]="aisMgr.removeList"
-      [inactiveTime]="app.config.selections.aisStaleAge"
+      [inactiveTime]="app.config.vessels.aisStaleAge"
       [zIndex]="985"
       [darkMode]="app.uiConfig().invertColor"
     >
@@ -298,21 +296,20 @@
       [darkMode]="app.uiConfig().invertColor"
       [targets]="dfeat.ais"
       targetContext="vessels"
-      [labelMinZoom]="this.app.config.selections.labelsMinZoom"
+      [labelMinZoom]="this.app.config.map.labelsMinZoom"
       [mapZoom]="mapZoomLevel()"
       [updateIds]="aisMgr.updateList"
       [staleIds]="aisMgr.staleList"
       [removeIds]="aisMgr.removeList"
-      [inactiveTime]="app.config.selections.aisStaleAge"
+      [inactiveTime]="app.config.vessels.aisStaleAge"
       [zIndex]="980"
       [focusId]="app.data.vessels.activeId"
       [filterIds]="app.config.selections.aisTargets"
       [filterByShipType]="app.config.selections.aisFilterByShipType"
       [filterShipTypes]="app.config.selections.aisTargetTypes"
-      [cogLineLength]="app.config.selections.vessel.aisCogLine"
+      [cogLineLength]="app.config.vessels.aisCogLine"
     >
     </sk-ais-vessels>
-    }
   </div>
   }
 
@@ -323,12 +320,12 @@
     [targets]="dfeat.aircraft"
     [targetStyles]="featureStyles.aircraft"
     targetContext="aircraft"
-    [labelMinZoom]="this.app.config.selections.labelsMinZoom"
+    [labelMinZoom]="this.app.config.map.labelsMinZoom"
     [mapZoom]="mapZoomLevel()"
     [updateIds]="aisMgr.updateList"
     [staleIds]="aisMgr.staleList"
     [removeIds]="aisMgr.removeList"
-    [inactiveTime]="app.config.selections.aisStaleAge"
+    [inactiveTime]="app.config.vessels.aisStaleAge"
     [zIndex]="910"
   >
   </sk-ais-targets>
@@ -341,12 +338,12 @@
     [targets]="dfeat.sar"
     [targetStyles]="featureStyles.sar"
     targetContext="sar"
-    [labelMinZoom]="this.app.config.selections.labelsMinZoom"
+    [labelMinZoom]="this.app.config.map.labelsMinZoom"
     [mapZoom]="mapZoomLevel()"
     [updateIds]="aisMgr.updateList"
     [staleIds]="aisMgr.staleList"
     [removeIds]="aisMgr.removeList"
-    [inactiveTime]="app.config.selections.aisStaleAge"
+    [inactiveTime]="app.config.vessels.aisStaleAge"
     [zIndex]="920"
   >
   </sk-ais-targets>
@@ -358,7 +355,7 @@
     [startLine]="app.data.racing.startLine"
     [racecourseStyles]="featureStyles.raceCourse"
     [darkMode]="app.uiConfig().invertColor"
-    [labelMinZoom]="this.app.config.selections.labelsMinZoom"
+    [labelMinZoom]="this.app.config.map.labelsMinZoom"
     [mapZoom]="mapZoomLevel()"
     [zIndex]="540"
   >
@@ -370,7 +367,7 @@
     [regions]="skres.regions()"
     [regionStyles]="featureStyles.region"
     [darkMode]="app.uiConfig().invertColor"
-    [labelMinZoom]="this.app.config.selections.labelsMinZoom"
+    [labelMinZoom]="this.app.config.map.labelsMinZoom"
     [mapZoom]="mapZoomLevel()"
     [zIndex]="400"
   >
@@ -394,7 +391,7 @@
     </ap-popover>
     } @if(this.overlay().type === 'chartlist') {
     <chart-list-popover
-      [canClose]="app.config.popoverMulti"
+      [canClose]="app.config.map.popoverMulti"
       [features]="this.overlay().content"
       (selected)="toggleFeatureSelection($event, 'charts')"
       (closed)="popoverClosed()"
@@ -402,7 +399,7 @@
     </chart-list-popover>
     } @if(this.overlay().type === 'list') {
     <feature-list-popover
-      [canClose]="app.config.popoverMulti"
+      [canClose]="app.config.map.popoverMulti"
       [title]="overlay().title"
       [features]="this.overlay().content"
       (selected)="featureListSelection($event)"
@@ -413,7 +410,7 @@
     overlay().type === 'route' || overlay().type === 'note' || overlay().type
     === 'region') {
     <resource-popover
-      [canClose]="app.config.popoverMulti"
+      [canClose]="app.config.map.popoverMulti"
       [title]="overlay().title"
       [type]="overlay().type"
       [resource]="overlay().resource"
@@ -449,7 +446,7 @@
     </resource-popover>
     } @if(overlay().type === 'rset') {
     <resourceset-popover
-      [canClose]="app.config.popoverMulti"
+      [canClose]="app.config.map.popoverMulti"
       [title]="overlay().title"
       [resource]="overlay().resource"
       (modify)="modifyFeature(); popoverClosed()"
@@ -460,9 +457,8 @@
     </resourceset-popover>
     } @if(overlay().type === 'ais') {
     <div>
-      @if(app.config.selections.aisProfile === 0) {
       <vessel-popover
-        [canClose]="app.config.popoverMulti"
+        [canClose]="app.config.map.popoverMulti"
         [vessel]="overlay().vessel"
         [useMagnetic]="app.useMagnetic"
         [isActive]="app.data.vessels.activeId === overlay().id"
@@ -476,11 +472,10 @@
         (closed)="popoverClosed()"
       >
       </vessel-popover>
-      }
     </div>
     } @if(overlay().type === 'aton' || overlay().type === 'meteo') {
     <aton-popover
-      [canClose]="app.config.popoverMulti"
+      [canClose]="app.config.map.popoverMulti"
       [aton]="overlay().aton"
       (info)="itemInfo(overlay().id, overlay().type); popoverClosed()"
       (closed)="popoverClosed()"
@@ -488,7 +483,7 @@
     </aton-popover>
     } @if(overlay().type === 'aircraft') {
     <aircraft-popover
-      [canClose]="app.config.popoverMulti"
+      [canClose]="app.config.map.popoverMulti"
       [aircraft]="overlay().aircraft"
       (info)="itemInfo(overlay().id, overlay().type); popoverClosed()"
       (closed)="popoverClosed()"
@@ -496,7 +491,7 @@
     </aircraft-popover>
     } @if(overlay().type === 'alarm') {
     <alarm-popover
-      [canClose]="app.config.popoverMulti"
+      [canClose]="app.config.map.popoverMulti"
       [alarm]="overlay().alarm"
       [id]="overlay().id"
       (info)="itemInfo(overlay().id, overlay().type); popoverClosed()"
@@ -542,8 +537,7 @@
     [layerProperties]=""
   >
   </fb-xte-path>
-  } @if(app.config.selections.vessel.laylines && perfTargetAngle().length !==0)
-  {
+  } @if(app.config.vessels.laylines && perfTargetAngle().length !==0) {
   <fb-target-angle
     [line]="perfTargetAngle()"
     [lineStyle]="featureStyles.targetAngle"
@@ -567,25 +561,25 @@
     [markerPosition]="dfeat.navData.position"
     [vesselPosition]="dfeat.active.position"
     [showMarker]="!app.data.activeWaypoint"
-    [markerName]="app.data.navData.destPointName"
+    [markerName]="course.courseData().destPointName"
     [bearingStyles]="featureStyles.destination"
-    [labelMinZoom]="this.app.config.selections.labelsMinZoom"
+    [labelMinZoom]="this.app.config.map.labelsMinZoom"
     [mapZoom]="mapZoomLevel()"
     [zIndex]="335"
   >
   </fb-bearing-line>
-  } @if(app.data.navData.arrivalCircle) {
+  } @if(course.courseData().arrivalCircle) {
   <fb-arrival-circle
-    [radius]="app.data.navData.arrivalCircle"
+    [radius]="course.courseData().arrivalCircle"
     [position]="dfeat.navData.position"
     [zIndex]="335"
   >
   </fb-arrival-circle>
-  } } @if(app.config.selections.vessel.rangeCircles) {
+  } } @if(app.config.vessels.rangeCircles) {
   <fb-range-circles
     [position]="dfeat.self.position"
     [zoomLevel]="mapZoomLevel()"
-    [minZoom]="this.app.config.selections.labelsMinZoom"
+    [minZoom]="this.app.config.map.labelsMinZoom"
     [units]="scaleUnits()"
     [zIndex]="340"
   >
@@ -598,14 +592,14 @@
     [id]="'' + app.data.selfId"
     [activeId]="app.data.vessels.activeId"
     [vesselLines]="vesselLines()"
-    [showWind]="app.config.selections.vessel.windVectors"
-    [iconScale]="app.config.selections.vessel.iconScale"
-    [fixedLocation]="app.config.fixedLocationMode"
+    [showWind]="app.config.vessels.windVectors"
+    [iconScale]="app.config.vessels.iconScale"
+    [fixedLocation]="app.config.vessels.fixedLocationMode"
     [zIndex]="999"
   >
   </fb-vessel>
 
-  @if(app.config.selections.vessel.trail && app.data.vessels.showSelf) {
+  @if(app.config.vessels.trail && app.data.vessels.showSelf) {
   <fb-vessel-trail
     [localTrail]="app.selfTrail()"
     [serverTrail]="dfeat.trail"
@@ -639,7 +633,7 @@
       <mat-icon>near_me</mat-icon>
       Navigate to here
     </button>
-    @if(app.data.navData.position){
+    @if(course.courseData().position){
     <button
       mat-menu-item
       (click)="onContextMenuAction('cleardestination', item)"
@@ -662,7 +656,7 @@
       Add Waypoint here
     </button>
 
-    @if(mapZoomLevel() >= app.config.selections.notesMinZoom) {
+    @if(mapZoomLevel() >= app.config.resources.notes.minZoom) {
     <button
       mat-menu-item
       (click)="onContextMenuAction('add_note', item)"
@@ -684,7 +678,7 @@
     </button>
     <mat-divider></mat-divider>
 
-    @if(app.config.selections.vessel.trail && app.selfTrail().length !== 0) {
+    @if(app.config.vessels.trail && app.selfTrail().length !== 0) {
     <button mat-menu-item (click)="onContextMenuAction('cleartrail', item)">
       <mat-icon>clear_all</mat-icon>
       <span>{{ app.data.serverTrail ? 'Refresh' : 'Clear' }} Trail</span>

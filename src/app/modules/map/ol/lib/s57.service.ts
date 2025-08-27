@@ -37,6 +37,7 @@ export interface Options {
   graphicsStyle: string;
   boundaries: string;
   colors: number;
+  colorTable: number;
 }
 
 export const DefaultOptions: Options = {
@@ -45,7 +46,8 @@ export const DefaultOptions: Options = {
   deepDepth: 6,
   graphicsStyle: 'Paper', //Simplified or Paper
   boundaries: 'Plain', // Plain or Symbolized
-  colors: 4 // 2 or 4
+  colors: 4, // 2 or 4
+  colorTable: 0 //color scheme
 };
 
 interface ColorTable {

@@ -104,12 +104,10 @@ export class SignalKPreferredPathsComponent {
     this.availPaths = new Map(
       Object.entries(this.app.data.vessels.prefAvailablePaths)
     );
-    this.pathChoices.tws.current =
-      this.app.config.selections.preferredPaths.tws;
-    this.pathChoices.twd.current =
-      this.app.config.selections.preferredPaths.twd;
+    this.pathChoices.tws.current = this.app.config.units.preferredPaths.tws;
+    this.pathChoices.twd.current = this.app.config.units.preferredPaths.twd;
     this.pathChoices.heading.current =
-      this.app.config.selections.preferredPaths.heading;
+      this.app.config.units.preferredPaths.heading;
 
     const u = Object.entries(this.pathChoices);
     u.forEach((x) => {

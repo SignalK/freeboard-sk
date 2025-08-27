@@ -19,6 +19,7 @@ import { AppFacade } from 'src/app/app.facade';
 import { NotificationManager } from '../notification-manager';
 import { AppIconDef } from '../../icons';
 import { ALARM_STATE } from '@signalk/server-api';
+import { CourseService } from '../../course';
 
 export interface AlertData {
   path: string;
@@ -126,16 +127,16 @@ const SoundFiles = {
             } @if(app.data.activeRoute && alert().type ===
             'arrivalCircleEntered') {
             <div>
-              @if(app.config.selections.course.autoNextPointOnArrival) {
+              @if(app.config.course.autoNextPointOnArrival) {
               <div>
-                @if(app.data.navData.pointIndex !== app.data.navData.pointTotal
-                - 1) {
+                @if(course.courseData().pointIndex !==
+                course.courseData().pointTotal - 1) {
                 <timer-button
                   [disabled]="nextPointClicked"
                   [icon]="'skip_next'"
                   [label]="'Next point in'"
                   [cancelledLabel]="'Next Point'"
-                  [period]="app.config.selections.course.autoNextPointDelay"
+                  [period]="app.config.course.autoNextPointDelay"
                   (nextPoint)="gotoNextPoint()"
                 >
                 </timer-button>
@@ -146,8 +147,8 @@ const SoundFiles = {
                 mat-button
                 [disabled]="
                   nextPointClicked ||
-                  app.data.navData.pointIndex ===
-                    app.data.navData.pointTotal - 1
+                  course.courseData().pointIndex ===
+                    course.courseData().pointTotal - 1
                 "
                 (click)="gotoNextPoint()"
               >
@@ -184,7 +185,11 @@ export class AlertComponent {
   private soundFile = SoundFiles.warn;
   private timerRef!: any;
 
-  constructor(protected app: AppFacade, private notiMgr: NotificationManager) {
+  constructor(
+    protected app: AppFacade,
+    private notiMgr: NotificationManager,
+    protected course: CourseService
+  ) {
     effect(() => {
       const ack = this.acknowledged();
       const mute = this.silenced();

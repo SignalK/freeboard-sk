@@ -118,20 +118,78 @@ html {
     .button-primary {
         background-color: mat.get-theme-color($light-theme, primary) !important;
         color: white !important;
+        stroke: currentColor !important;
+        fill: currentColor !important;
     }
+    .button-primary:disabled {
+        background-color: rgba(54, 122, 190, 0.5) !important;
+        color: silver !important;
+        stroke: currentColor !important;
+        fill: currentColor !important;
+    }
+    
     .button-secondary {
         background-color: mat.get-theme-color($light-theme, secondary) !important;
         color: white !important;
+        stroke: currentColor !important;
+        fill: currentColor !important;
     }
     .button-tertiary {
         background-color: mat.get-theme-color($light-theme, tertiary) !important;
         color: white !important;
+        stroke: currentColor !important;
+        fill: currentColor !important;
     }
+    .button-secondary:disabled ,
+    .button-tertiary:disabled {
+        background-color: rgba(112, 114, 117, 0.5) !important;
+        color: silver !important;
+        stroke: currentColor !important;
+        fill: currentColor !important;
+    }
+
     .button-error,
     .button-warn {
-        background-color: rgb(230,0,0) !important;
+        background-color: rgb(230, 0 ,0) !important;
         color: white !important;
+        stroke: currentColor !important;
+        fill: currentColor !important;
     }
+    .button-error:disabled,
+    .button-warn:disabled {
+        background-color: rgb(230, 0, 0, .5) !important;
+        color: silver !important;
+        stroke: currentColor !important;
+        fill: currentColor !important;
+    }
+
+    .button-accent {
+        background-color: orange!important;
+        color: black !important;
+        stroke: currentColor !important;
+        fill: currentColor !important;
+    }
+    .button-accent:disabled {
+        background-color: rgb(255, 165, 0, .5)!important;
+        color: silver !important;
+        stroke: currentColor !important;
+        fill: currentColor !important;
+    }
+
+    .button-toolbar {
+        background-color: #e0e0ff !important;
+        color: black !important;
+        stroke: currentColor !important;
+        fill: currentColor !important;
+
+    }
+    .button-toolbar:disabled {
+        background-color: rgba(112, 114, 117, 0.5) !important;
+        color: silver !important;
+        stroke: currentColor !important;
+        fill: currentColor !important;
+    }
+
     .button-primary .ob path,
     .button-secondary .ob path,
     .button-tertiary .ob path,
@@ -139,20 +197,13 @@ html {
     .button-warn .ob path {
         stroke: white !important;
         fill: white !important;
-    }
-    .button-accent {
-        background-color: orange!important;
-        color: black !important;
-    }
-    .button-toolbar {
-        background-color: #e0e0ff !important;
-        color: black !important;
-
+        stroke: currentColor !important;
+        fill: currentColor !important;
     }
     .button-accent .ob path,
     .button-toolbar .ob path {
-        stroke: black !important;
-        fill: black !important;
+        stroke: currentColor !important;
+        fill: currentColor !important;
     }
 
     .about-row .item a,
@@ -233,14 +284,11 @@ html {
     .button-secondary .ob path,
     .button-tertiary .ob path,
     .button-error .ob path,
-    .button-warn .ob path {
-        stroke: white !important;
-        fill: white !important;
-    }
+    .button-warn .ob path,
     .button-accent .ob path,
     .button-toolbar .ob path  {
-        stroke: black !important;
-        fill: black !important;
+        stroke: currentColor !important;
+        fill: currentColor !important;
     }
   }
 }

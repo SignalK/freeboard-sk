@@ -87,7 +87,9 @@ import { NotificationManager } from '../notification-manager';
             <button
               mat-icon-button
               [matTooltip]="
-                this.app.config.muteSound ? 'Sound is Off' : 'Sound is On'
+                this.app.config.display.muteSound
+                  ? 'Sound is Off'
+                  : 'Sound is On'
               "
               matTooltipPosition="left"
               (click)="togglePlaySound()"
@@ -95,7 +97,7 @@ import { NotificationManager } from '../notification-manager';
               <mat-icon
                 class="ob"
                 [svgIcon]="
-                  this.app.config.muteSound
+                  this.app.config.display.muteSound
                     ? 'sound-off-fill'
                     : 'sound-high-fill'
                 "
@@ -201,7 +203,7 @@ export class AlertListComponent {
   }
 
   protected togglePlaySound() {
-    this.app.config.muteSound = !this.app.config.muteSound;
+    this.app.config.display.muteSound = !this.app.config.display.muteSound;
     this.app.saveConfig();
   }
 

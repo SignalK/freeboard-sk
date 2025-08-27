@@ -5,3 +5,5 @@ export * from './state.service';
 // ** app storage services **
 export * from './localstorage.service';
 export * from './indexeddb';
+
+export * from './wakelock.service';

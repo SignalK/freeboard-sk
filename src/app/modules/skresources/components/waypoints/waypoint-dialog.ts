@@ -123,7 +123,7 @@ import { getResourceIcon } from 'src/app/modules/icons';
                 <div
                   style="flex: 1 1 auto;"
                   [innerText]="
-                    lat | coords : app.config.selections.positionFormat : true
+                    lat | coords : app.config.units.positionFormat : true
                   "
                 ></div>
                 } @else {
@@ -151,9 +151,7 @@ import { getResourceIcon } from 'src/app/modules/icons';
                 <div style="width:45px;font-weight:bold;">Lon:</div>
                 <div
                   style="flex: 1 1 auto;"
-                  [innerText]="
-                    lon | coords : app.config.selections.positionFormat
-                  "
+                  [innerText]="lon | coords : app.config.units.positionFormat"
                 ></div>
                 } @else {
                 <div style="flex: 1 1 auto;">

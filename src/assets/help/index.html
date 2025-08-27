@@ -119,7 +119,7 @@
           >
         </div>
 
-        <div
+        <!--<div
           class="panel"
           id="deprecations"
           style="background-color: rgba(255, 0, 0, 0.4)"
@@ -128,22 +128,10 @@
           <i>Please note the following feature has been deprecated:</i><br />
           <ul>
             <li>
-              <b>Built-in PyPilot support -</b> Freeboard-SK now uses the Signal
-              K Autopilot API exclusively and PyPilot settings have been removed
-              from PLugin Config. The Signal K Autopilot API aenables operation
-              with a wider range of autopilot devices.<br />
-              <b
-                >To continue using autopilot functionality, install the
-                <a
-                  href="https://www.npmjs.com/package/pypilot-autopilot-provider"
-                  target="npmjs"
-                  >pypilot-autopilot-provider</a
-                >
-                plugin on the Signal K server.<br />
-              </b>
+              
             </li>
           </ul>
-        </div>
+        </div>-->
 
         <div class="panel" id="server">
           <h3>Signal K Server</h3>
@@ -410,15 +398,6 @@
               <i class="material-icons">fullscreen</i>
               <b>Fullscreen mode:</b>
               Displays application in fullscreen mode.<br />
-              <i>Available only on supported devices.</i>
-            </li>
-
-            <li class="nobullet">
-              <i class="material-icons">visibility_off</i>
-              <b>Prevent Device Sleep:</b>
-              Sets 'Wake Lock' mode for the current session to prevent the
-              device from entering sleep mode when no user input has been
-              received. See <a href="#settings">Settings</a> for more.<br />
               <i>Available only on supported devices.</i>
             </li>
 
@@ -1978,10 +1957,6 @@
               dimmed when <i>environment.mode</i> value is 'night'.
             </li>
             <li>
-              <b>Lock Follow Vessel</b>: Check this box to remain in "Follow
-              Vessel" mode when map is panned / moved.
-            </li>
-            <li>
               <b>Action Button</b>: The action button is permanently displayed
               at the lower right of the screen. Use this setting to select the
               button function.<br />
@@ -1997,17 +1972,17 @@
               </ul>
             </li>
             <li>
-              <b>Prevent Device Sleeping</b>: Check this option to set the
-              devices <i>WakeLock</i> upon start-up which prevents your device
-              from entering sleep mode.<br />
+              <b>Allow Device to Sleep</b>: Check this option to disable the
+              devices <i>WakeLock</i> function which will allow your device to
+              enter sleep mode.<br />
               <i
                 >Note: this setting is only available on devices / browsers
-                which support the API.</i
+                which support WakeLock functionality.</i
               >
               <br />
-              This can be set for the current session by clicking the
-              <b><i class="material-icons">visibility_off</i></b> button on the
-              right of screen.
+              When this option is selected a
+              <b><i class="material-icons">visibility_off</i></b> icon appears
+              at the top right of screen.
             </li>
           </ul>
           <ul>
@@ -2067,10 +2042,21 @@
           <b>Distance Units</b>: <i>Kilometres</i> / <i>Nautical Miles</i>
           <br />
           <b>Depth Units</b>: <i>Metres</i> / <i>Feet</i>
-          <br id="settings-paths" />
-          <b>Preferred Paths</b>: Click this button to display show a list of
-          available source paths for specific values i.e. Heading, Wind Speed,
-          etc.<br />
+          <br />
+          <b>Prefer True / Magnetic values</b>: <i>True</i> / <i>Magnetic</i
+          ><br />
+          Instructs Freeboard to use either the True or Magnetic value path for
+          paths that are not listed in <i>Preferred Paths</i>.
+          <i>(Defaults to True)</i><br />
+          <i
+            >Note: If the selected path type is not within the received data
+            stream NO value will be displayed. Freeboard will NOT fallback to
+            other available path values!
+          </i>
+          <br />
+          <b id="settings-paths">Preferred Paths</b>: Click this button to
+          display show a list of available source paths for specific values i.e.
+          Heading, Wind Speed, etc.<br />
           <img
             src="./img/settings_paths.png"
             style="height: 200px"
@@ -2082,17 +2068,6 @@
           <i
             >Note: The paths available will depend on the data stream received
             from the Signal K server.
-          </i>
-          <br />&nbsp;<br />
-          <b>Prefer True / Magnetic values</b>: <i>True</i> / <i>Magnetic</i
-          ><br />
-          Instructs Freeboard to use either the True or Magnetic value path for
-          paths that are not listed in <i>Preferred Paths</i>.
-          <i>(Defaults to True)</i><br />
-          <i
-            >Note: If the selected path type is not within the received data
-            stream NO value will be displayed. Freeboard will NOT fallback to
-            other available path values!
           </i>
           <hr />
 
@@ -2118,6 +2093,10 @@
             <li>
               <b>Double click to Zoom</b>: Select this option to enable zooming
               the map with a double click.
+            </li>
+            <li>
+              <b>Lock Follow Vessel</b>: Check this box to remain in "Follow
+              Vessel" mode when map is panned / moved.
             </li>
           </ul>
           <b>Vector Charts:</b><br />
@@ -2157,6 +2136,9 @@
               receieved.)
             </li>
           </ul>
+          <b>Arrival Circle Radius</b> Distance in meters from the destination
+          at which to trigger arrival notification.
+          <br />
           <b>Time to Wait</b>: Note: This option is only available when
           <i>arrivalCircleEntered</i> has been selected as the notification
           type.<br />

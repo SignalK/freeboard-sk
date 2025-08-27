@@ -64,14 +64,12 @@ id: string - resource id
         } @if(p[0] === 'Latitude') {
         <div
           style="flex: 1 1 auto;text-align:right;"
-          [innerText]="
-            p[1] | coords : app.config.selections.positionFormat : true
-          "
+          [innerText]="p[1] | coords : app.config.units.positionFormat : true"
         ></div>
         } @if(p[0] === 'Longitude') {
         <div
           style="flex: 1 1 auto;text-align:right;"
-          [innerText]="p[1] | coords : app.config.selections.positionFormat"
+          [innerText]="p[1] | coords : app.config.units.positionFormat"
         ></div>
         }
       </div>

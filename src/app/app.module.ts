@@ -41,11 +41,8 @@ import {
   ETADialComponent,
   FileInputComponent,
   PiPVideoComponent,
-  WakeLockComponent,
   Measurements,
-  FABContainerComponent,
-  POBButtonComponent,
-  WptButtonComponent
+  MFBContainerComponent
 } from './lib/components';
 
 @NgModule({
@@ -69,11 +66,9 @@ import {
     ETADialComponent,
     FileInputComponent,
     PiPVideoComponent,
-    WakeLockComponent,
     AutopilotComponent,
     BuildRouteComponent,
     Measurements,
-    FABContainerComponent,
     RouteListComponent,
     WaypointListComponent,
     ChartListComponent,
@@ -87,9 +82,7 @@ import {
     AlertComponent,
     AlertListComponent,
     RouteNextPointComponent,
-    FABContainerComponent,
-    POBButtonComponent,
-    WptButtonComponent
+    MFBContainerComponent
   ],
   providers: [provideHttpClient(withInterceptorsFromDi())]
 })

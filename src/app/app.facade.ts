@@ -8,12 +8,7 @@ import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { Subject } from 'rxjs';
 
-import {
-  InfoService,
-  IndexedDB,
-  SettingsSaveOptions,
-  AppInfoDef
-} from './lib/services';
+import { InfoService, IndexedDB, AppInfoDef } from './lib/services';
 
 import {
   AlertDialog,
@@ -35,7 +30,7 @@ import {
   validateConfig,
   cleanConfig,
   initData
-} from './app.settings';
+} from './app.config';
 
 import { WELCOME_MESSAGES } from './app.messages';
 import { getSvgList } from './modules/icons';
@@ -90,8 +85,6 @@ export class AppFacade extends InfoService {
 
   public db: AppDB;
 
-  private suppressTrailFetch = false;
-
   private watchingSKLogin: number; // watch interval timer
 
   // signals
@@ -124,14 +117,14 @@ export class AppFacade extends InfoService {
     mapConstrainZoom: boolean; // constrain zoom to chart min/max
     toolbarButtons: boolean; // show toolbar buttons (both left & right)
     invertColor: boolean; // invert feature label text color (for dark backgrounds)
-    wakeLock: boolean; // prevent device from sleeping
+    courseData: boolean; // show/hide course data
   }>({
     mapNorthUp: true,
     mapMove: false,
     mapConstrainZoom: false,
     toolbarButtons: false,
     invertColor: false,
-    wakeLock: false
+    courseData: true
   });
 
   // Signal K server feature flags
@@ -179,7 +172,7 @@ export class AppFacade extends InfoService {
         switch (res.action) {
           case 'db_init':
             if (res.value) {
-              if (this.config.selections.vessel.trail) {
+              if (this.config.vessels.trail) {
                 this.db.getTrail().then((t) => {
                   this.selfTrail.update(() => (t && t.value ? t.value : []));
                 });
@@ -217,11 +210,10 @@ export class AppFacade extends InfoService {
 
     // respond to signals
     effect(() => {
-      if (this.uiConfig) {
-        this.debug(`AppFacade.effect().uiConfig`, this.uiConfig());
-        this.config.ui = this.uiConfig();
-        this.saveConfig();
-      }
+      this.uiConfig();
+      this.debug(`AppFacade.effect().uiConfig`, this.uiConfig());
+      this.config.ui = this.uiConfig();
+      this.saveConfig();
     });
   }
 
@@ -235,20 +227,19 @@ export class AppFacade extends InfoService {
   private doPostConfigLoad() {
     // initialise signals
     this.uiConfig.update(() => this.config.ui);
-
-    if (this.config.fixedLocationMode) {
+    if (this.config.vessels.fixedLocationMode) {
       this.data.vessels.self.position = [
-        ...this.config.fixedPosition
+        ...this.config.vessels.fixedPosition
       ] as Position;
       this.data.vessels.showSelf = true;
-      this.config.map.center = [...this.config.fixedPosition];
+      this.config.map.center = [...this.config.vessels.fixedPosition];
     }
 
-    this.sTrueMagChoice.set(this.config.selections.headingAttribute);
+    this.sTrueMagChoice.set(this.config.units.headingAttribute);
 
-    // emit settings$.loaded
-    this.debug(`doPostConfigLoad(): emit settngs$.load`);
-    this.settingsEvent.next({ action: 'load' });
+    // emit settings$.ready
+    this.debug(`doPostConfigLoad(): emit config$.ready`);
+    this.emitConfigEvent('ready');
     this.suppressPersist = false; // allow persisting of config.
   }
 
@@ -456,23 +447,18 @@ export class AppFacade extends InfoService {
 
   /** return True / Magenetic preference */
   get useMagnetic(): boolean {
-    return this.config.selections.headingAttribute ===
-      'navigation.headingMagnetic'
+    return this.config.units.headingAttribute === 'navigation.headingMagnetic'
       ? true
       : false;
   }
 
   // fetch of trail from server (triggers SKStreamFacade.trail$)
   fetchTrailFromServer() {
-    if (this.suppressTrailFetch) {
-      this.suppressTrailFetch = false;
-      return;
-    }
     this.worker.postMessage({
       cmd: 'trail',
       options: {
-        trailDuration: this.config.selections.trailDuration,
-        trailResolution: this.config.selections.trailResolution
+        trailDuration: this.config.vessels.trailDuration,
+        trailResolution: this.config.vessels.trailResolution
       }
     });
   }
@@ -508,7 +494,7 @@ export class AppFacade extends InfoService {
       GeoUtils.distanceTo(this.mapExtent().slice(0, 2) as Position, [
         this.mapExtent()[0],
         ctrOfExtent[1]
-      ]) * (this.config.display.mapCenterOffset ?? 0.5);
+      ]) * (this.config.map.centerOffset ?? 0.5);
     const pos: Position = true //this.app.config.display.mapCenterOffset ?
       ? GeoUtils.destCoordinate(
           this.data.vessels.active.position,
@@ -537,9 +523,8 @@ export class AppFacade extends InfoService {
   }
 
   /** overloaded saveConfig() */
-  saveConfig(options?: SettingsSaveOptions) {
-    this.suppressTrailFetch = options?.suppressTrailFetch ?? false;
-    super.saveConfig(options);
+  saveConfig() {
+    super.saveConfig();
     if (this.isLoggedIn()) {
       this.signalk.appDataSet('/', this.config).subscribe(
         () => this.debug('saveConfig: config saved to server.'),

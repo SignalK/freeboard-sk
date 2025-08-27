@@ -20,9 +20,10 @@ import { MatTabsModule } from '@angular/material/tabs';
 
 import { SignalKPreferredPathsComponent } from './signalk-preferredpaths.component';
 import { SettingsFacade } from '../settings.facade';
-import { SettingsSaveOptions } from 'src/app/lib/services';
-import { defaultConfig } from 'src/app/app.settings';
+import { WakeLockService } from 'src/app/lib/services';
+import { defaultConfig } from 'src/app/app.config';
 import { SettingsOptions } from '../settings.facade';
+import { S57Service } from '../../map/ol';
 
 interface PreferredPathsResult {
   save: boolean;
@@ -72,7 +73,9 @@ export class SettingsDialog implements OnInit {
   constructor(
     protected facade: SettingsFacade,
     protected myElement: ElementRef,
-    protected dialogRef: MatDialogRef<SettingsDialog>
+    protected dialogRef: MatDialogRef<SettingsDialog>,
+    protected wakeLock: WakeLockService,
+    private s57: S57Service
   ) {
     this.options = new SettingsOptions();
   }
@@ -94,6 +97,26 @@ export class SettingsDialog implements OnInit {
       this.persistModel();
     }
     this.dialogRef.close();
+  }
+
+  /** apply wakelock state */
+  doWakelock(checked: boolean) {
+    this.persistModel();
+    if (checked) {
+      this.wakeLock.disable();
+    } else {
+      this.wakeLock.enable();
+    }
+  }
+
+  /** apply S57 Options  */
+  doS57(numericAttrib?: any) {
+    if (numericAttrib) {
+      this.parseNumber(numericAttrib);
+    } else {
+      this.persistModel();
+    }
+    this.s57.SetOptions(this.facade.settings.map.s57Options);
   }
 
   /**
@@ -123,21 +146,14 @@ export class SettingsDialog implements OnInit {
    */
   private fallbackToDefault() {
     const dconfig = defaultConfig();
-    if (
-      typeof this.facade.settings.selections.s57Options.shallowDepth !==
-      'number'
-    ) {
-      return dconfig.selections.s57Options.shallowDepth;
+    if (typeof this.facade.settings.map.s57Options.shallowDepth !== 'number') {
+      return dconfig.map.s57Options.shallowDepth;
     }
-    if (
-      typeof this.facade.settings.selections.s57Options.safetyDepth !== 'number'
-    ) {
-      return dconfig.selections.s57Options.safetyDepth;
+    if (typeof this.facade.settings.map.s57Options.safetyDepth !== 'number') {
+      return dconfig.map.s57Options.safetyDepth;
     }
-    if (
-      typeof this.facade.settings.selections.s57Options.deepDepth !== 'number'
-    ) {
-      return dconfig.selections.s57Options.deepDepth;
+    if (typeof this.facade.settings.map.s57Options.deepDepth !== 'number') {
+      return dconfig.map.s57Options.deepDepth;
     }
     if (
       typeof this.facade.fixedPosition[0] !== 'number' ||
@@ -145,27 +161,32 @@ export class SettingsDialog implements OnInit {
     ) {
       return 0;
     }
+    if (typeof this.facade.settings.course.arrivalCircle !== 'number') {
+      return dconfig.course.arrivalCircle;
+    }
   }
 
   /**
    * Persist Settings after model change
    */
-  persistModel(options?: SettingsSaveOptions) {
-    this.facade.applySettings(options);
+  persistModel(value?: string) {
+    this.facade.applySettings();
+    this.facade.emitChangeEvent(value);
   }
 
   /**
    * Defer persisting Settings until dialog close
    */
-  deferPersist() {
+  deferPersist(value?: string) {
     this.saveOnClose = true;
+    this.facade.emitChangeEvent(value);
   }
 
   /**
    * Handle default intrument app selection
    */
   onInstrumentApp() {
-    this.persistModel();
+    this.persistModel('pluginInstruments');
     this.facade.buildFavouritesList();
   }
 
@@ -175,7 +196,7 @@ export class SettingsDialog implements OnInit {
    */
   onPreferredPaths(e: PreferredPathsResult) {
     if (e.save) {
-      this.facade.settings.selections.preferredPaths = e.value as any;
+      this.facade.settings.units.preferredPaths = e.value as any;
       this.persistModel();
     }
   }
@@ -185,7 +206,7 @@ export class SettingsDialog implements OnInit {
    * @param e
    */
   onFavSelected(e: unknown, f) {
-    this.facade.settings.selections.pluginFavourites =
+    this.facade.settings.display.plugins.favourites =
       f.selectedOptions.selected.map((i) => i.value);
     this.persistModel();
   }

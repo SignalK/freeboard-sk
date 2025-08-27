@@ -28,15 +28,11 @@ import { PipesModule } from '../../../lib/pipes';
             <div class="path" [matTooltip]="item[1]">{{ item[1] }}</div>
             @if(item[1] === 'latitude') {
             <div class="value" [matTooltip]="item[2]">
-              {{
-                item[2] | coords : app.config.selections.positionFormat : true
-              }}
+              {{ item[2] | coords : app.config.units.positionFormat : true }}
             </div>
             } @else if (item[1] === 'longitude') {
             <div class="value" [matTooltip]="item[2]">
-              {{
-                item[2] | coords : app.config.selections.positionFormat : false
-              }}
+              {{ item[2] | coords : app.config.units.positionFormat : false }}
             </div>
             } @else {
             <div class="value" [matTooltip]="item[2]">{{ item[2] }}</div>

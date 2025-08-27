@@ -16,7 +16,7 @@ import {
   RelatedNotesDialog,
   TrackDialog
 } from '.';
-import { processUrlTokens } from 'src/app/app.settings';
+import { processUrlTokens } from 'src/app/app.config';
 
 import {
   SKChart,

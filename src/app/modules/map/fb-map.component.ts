@@ -37,7 +37,7 @@ import { PipesModule } from 'src/app/lib/pipes';
 import { computeDestinationPoint, getGreatCircleBearing } from 'geolib';
 import { toLonLat } from 'ol/proj';
 import { Style, Stroke, Fill } from 'ol/style';
-import { Collection, Feature, MapBrowserEvent } from 'ol';
+import { Collection, Feature } from 'ol';
 import { Feature as GeoJsonFeature } from 'geojson';
 
 import { Convert } from 'src/app/lib/convert';
@@ -45,7 +45,7 @@ import { GeoUtils, Angle } from 'src/app/lib/geoutils';
 import { LineString, MultiLineString, Position } from 'src/app/types';
 
 import { AppFacade } from 'src/app/app.facade';
-import { SettingsEventMessage } from 'src/app/lib/services';
+
 import {
   SKResourceService,
   SKOtherResources,
@@ -59,7 +59,8 @@ import {
   SKStreamFacade,
   AnchorFacade,
   NotificationManager,
-  CourseService
+  CourseService,
+  SettingsFacade
 } from 'src/app/modules';
 import {
   mapControls,
@@ -79,7 +80,6 @@ import {
 import { ModifyEvent } from 'ol/interaction/Modify';
 import { DrawEvent } from 'ol/interaction/Draw';
 import { Coordinate } from 'ol/coordinate';
-import { S57Service } from './ol/lib/s57.service';
 import { Position as SKPosition } from '@signalk/server-api';
 import {
   FBMapEvent,
@@ -261,14 +261,14 @@ export class FBMapComponent implements OnInit, OnDestroy {
 
   constructor(
     protected app: AppFacade,
-    protected s57Service: S57Service,
     protected skres: SKResourceService,
     protected skresOther: SKOtherResources,
     protected skstream: SKStreamFacade,
     protected anchor: AnchorFacade,
     protected notiMgr: NotificationManager,
-    private course: CourseService,
-    protected mapInteract: FBMapInteractService
+    protected course: CourseService,
+    protected mapInteract: FBMapInteractService,
+    private settings: SettingsFacade
   ) {
     effect(() => {
       if (this.scaleUnits()) {
@@ -295,13 +295,12 @@ export class FBMapComponent implements OnInit, OnDestroy {
     this.obsList.push(
       this.skstream.trail$().subscribe((value) => this.onResourceUpdate(value))
     );
-    // SETTINGS event (Save)
+    // SETTINGS settings.change$ event
     this.obsList.push(
-      this.app.settings$.subscribe((r: SettingsEventMessage) => {
-        if (r.action === 'save') {
-          this.s57Service.SetOptions(this.app.config.selections.s57Options);
-          this.renderMapContents(r.options?.fetchNotes);
-          if (!this.app.config.selections.trailFromServer) {
+      this.settings.change$.subscribe((r: string[]) => {
+        this.renderMapContents(r.includes('fetchNotes'));
+        if (r.includes(`trailFromServer`)) {
+          if (!this.app.config.vessels.trailFromServer) {
             this.dfeat.trail = [];
           }
         }
@@ -386,7 +385,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
     if (!this.saveTimer) {
       this.saveTimer = setInterval(() => {
         if (this.isDirty) {
-          this.app.saveConfig({ suppressTrailFetch: true });
+          this.app.saveConfig();
           this.isDirty = false;
         }
       }, 30000);
@@ -415,8 +414,8 @@ export class FBMapComponent implements OnInit, OnDestroy {
     this.dfeat.meteo = this.app.data.meteo;
     this.dfeat.atons = this.app.data.atons;
     this.dfeat.active = this.app.data.vessels.active;
-    this.dfeat.navData.position = this.app.data.navData.position;
-    this.dfeat.navData.startPosition = this.app.data.navData.startPosition;
+    this.dfeat.navData.position = this.course.courseData().position;
+    this.dfeat.navData.startPosition = this.course.courseData().startPosition;
     // calculate CPA lines
     const parseClosest = () => {
       const v = [];
@@ -504,7 +503,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
       }
       if (value.mode === 'trail') {
         // vessel trail
-        if (this.app.config.selections.trailFromServer) {
+        if (this.app.config.vessels.trailFromServer) {
           this.dfeat.trail = value.data;
         }
       }
@@ -542,7 +541,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
         break;
       case 'nav_to':
         this.app.data.activeWaypoint = null;
-        this.app.data.navData.pointNames = [];
+        this.course.courseData().pointNames = [];
         this.course.setDestination({
           latitude: pos[1],
           longitude: pos[0]
@@ -566,7 +565,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
 
     this.drawVesselLines();
     if (!this.movingMap) {
-      this.app.saveConfig({ suppressTrailFetch: true });
+      this.app.saveConfig();
       this.isDirty = false;
     } else {
       this.isDirty = true;
@@ -637,7 +636,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
       !this.mapInteract.isDrawing() &&
       !this.mapInteract.isModifying()
     ) {
-      if (!this.app.config.popoverMulti) {
+      if (!this.app.config.map.popoverMulti) {
         this.overlay.update((current) => {
           return Object.assign({}, current, {
             show: false
@@ -1241,7 +1240,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
           string,
           SKWaypoint
         ];
-        poData.title = this.app.data.navData.destPointName ?? 'Destination';
+        poData.title = this.course.courseData().destPointName ?? 'Destination';
         poData.show = true;
         break;
       case 'rset':
@@ -1373,13 +1372,12 @@ export class FBMapComponent implements OnInit, OnDestroy {
 
       const sog = this.dfeat.active.sog || 0;
       let hl = 0;
-      if (this.app.config.selections.vessel.headingLineSize === -1) {
+      if (this.app.config.vessels.headingLineSize === -1) {
         hl = (sog > wMax ? wMax : sog) * offset;
       } else {
         hl =
-          Convert.nauticalMilesToKm(
-            this.app.config.selections.vessel.headingLineSize
-          ) * 1000;
+          Convert.nauticalMilesToKm(this.app.config.vessels.headingLineSize) *
+          1000;
       }
       const heading = [
         this.dfeat.active.position,
@@ -1428,7 +1426,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
   /** calculate vessel & dest laylines & update signals */
   private buildLaylines() {
     if (
-      this.app.config.selections.vessel.laylines &&
+      this.app.config.vessels.laylines &&
       Array.isArray(this.dfeat.navData.position) &&
       typeof this.dfeat.navData.position[0] === 'number' &&
       typeof this.app.data.vessels.active.heading === 'number'
@@ -1441,7 +1439,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
 
       const destUpwind =
         Math.abs(
-          Angle.difference(this.app.data.navData.bearing.value, twd_deg)
+          Angle.difference(this.course.courseData().bearing.value, twd_deg)
         ) < 90;
 
       // beat angle
@@ -1463,16 +1461,16 @@ export class FBMapComponent implements OnInit, OnDestroy {
 
       const destInTarget = destUpwind
         ? Math.abs(
-            Angle.difference(this.app.data.navData.bearing.value, twd_deg)
+            Angle.difference(this.course.courseData().bearing.value, twd_deg)
           ) < ba_deg
         : Math.abs(
-            Angle.difference(this.app.data.navData.bearing.value, twd_inv)
+            Angle.difference(this.course.courseData().bearing.value, twd_inv)
           ) < (ga_diff ?? 0);
 
       const dtg =
         this.app.config.units.distance === 'm'
-          ? this.app.data.navData.dtg * 1000
-          : Convert.nauticalMilesToKm(this.app.data.navData.dtg * 1000);
+          ? this.course.courseData().dtg * 1000
+          : Convert.nauticalMilesToKm(this.course.courseData().dtg * 1000);
 
       // mark laylines
       let markLines = [];
@@ -1518,7 +1516,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
       if (destInTarget) {
         const hbd_deg = Angle.difference(
           twd_deg,
-          this.app.data.navData.bearing.value
+          this.course.courseData().bearing.value
         );
         // Vector lengths
         let b: number;
@@ -1749,15 +1747,15 @@ export class FBMapComponent implements OnInit, OnDestroy {
   private shouldFetchNotes(zoomChanged: boolean) {
     this.showNoteslayer.update(
       () =>
-        this.app.config.notes &&
-        this.app.config.map.zoomLevel >= this.app.config.selections.notesMinZoom
+        this.app.config.resources.notes.show &&
+        this.app.config.map.zoomLevel >= this.app.config.resources.notes.minZoom
     );
 
     this.app.debug(`lastGet: ${this.app.data.lastGet}`);
     this.app.debug(`getRadius: ${this.app.config.resources.notes.getRadius}`);
 
     if (zoomChanged) {
-      if (this.mapZoomLevel() < this.app.config.selections.notesMinZoom) {
+      if (this.mapZoomLevel() < this.app.config.resources.notes.minZoom) {
         return false;
       } else {
         return true;

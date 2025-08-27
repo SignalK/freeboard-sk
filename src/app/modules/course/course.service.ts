@@ -1,16 +1,40 @@
-import { effect, Injectable } from '@angular/core';
+import { effect, Injectable, signal } from '@angular/core';
 
 import { SignalKClient } from 'signalk-client-angular';
 import { AppFacade } from 'src/app/app.facade';
-import { SKWorkerService } from '../skstream/skstream.service';
 import { SKResourceService, SKVessel } from '../skresources';
-import { FBRoute, SKPosition, UpdateMessage } from 'src/app/types';
+import { CourseData, FBRoute, SKPosition } from 'src/app/types';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Convert } from 'src/app/lib/convert';
 
 // ** Signal K course operations
 @Injectable({ providedIn: 'root' })
 export class CourseService {
+  private _courseData = signal<CourseData>({
+    dtg: null,
+    ttg: null,
+    eta: null,
+    route: {
+      dtg: null,
+      ttg: null,
+      eta: null
+    },
+    bearing: { value: null, type: null },
+    bearingTrue: null,
+    bearingMagnetic: null,
+    xte: null,
+    vmg: null,
+    position: null,
+    pointIndex: -1,
+    pointTotal: 0,
+    arrivalCircle: null,
+    startPosition: null,
+    pointNames: [],
+    activeRoutePoints: [],
+    destPointName: ''
+  });
+  readonly courseData = this._courseData.asReadonly();
+
   constructor(
     private signalk: SignalKClient,
     private app: AppFacade,
@@ -39,7 +63,8 @@ export class CourseService {
         {
           href: `/resources/routes/${id}`,
           reverse: reverse,
-          pointIndex: startPoint
+          pointIndex: startPoint,
+          arrivalCircle: this.app.config.course.arrivalCircle
         }
       )
       .subscribe(
@@ -90,7 +115,9 @@ export class CourseService {
         this.app.skApiVersion,
         'self',
         'navigation/course/destination',
-        v
+        Object.assign(v, {
+          arrivalCircle: this.app.config.course.arrivalCircle
+        })
       )
       .subscribe(
         () => undefined,
@@ -185,51 +212,82 @@ export class CourseService {
    */
   public parseSelf(self: SKVessel) {
     if (typeof self.courseApi !== 'undefined') {
-      this.processCourseApi(self.courseApi);
+      this.processCourseData(self.courseApi);
     }
     this.processCourseCalcs(self);
-
-    /** @todo Replace this.navDataUpdate.next() with Course signal(s) */
   }
 
-  /**
-   * @description Process courseApi values into navData
-   * @value Vessel courseApi data
-   */
-  private processCourseApi(value: any) {
-    const clearCourseData = () => {
-      this.app.data.navData.startPosition = null;
-      this.app.data.navData.position = null;
+  /** Initialise courseData Signal */
+  public initCourseData() {
+    this._courseData.update((current) => {
+      return {
+        dtg: null,
+        ttg: null,
+        eta: null,
+        route: {
+          dtg: null,
+          ttg: null,
+          eta: null
+        },
+        bearing: { value: null, type: null },
+        bearingTrue: null,
+        bearingMagnetic: null,
+        xte: null,
+        vmg: null,
+        position: [null, null],
+        pointIndex: current.pointIndex,
+        pointTotal: 0,
+        arrivalCircle: null,
+        startPosition: [null, null],
+        pointNames: [],
+        activeRoutePoints: null,
+        destPointName: ''
+      };
+    });
+  }
+
+  /** Update CourseData Signal */
+  private processCourseData(value: any) {
+    const clearCourse = (value: CourseData) => {
+      value.position = null;
+      value.startPosition = null;
       this.app.data.activeWaypoint = null;
-      clearRouteData();
+      return clearRoute(value);
     };
 
-    const clearRouteData = () => {
+    const clearRoute = (value: CourseData) => {
+      value.pointIndex = -1;
+      value.pointTotal = 0;
+      value.pointNames = [];
+      value.destPointName = '';
       this.app.data.activeRoute = null;
-      this.app.data.navData.pointIndex = -1;
-      this.app.data.navData.pointTotal = 0;
-      this.app.data.navData.pointNames = [];
-      this.app.data.navData.destPointName = '';
       this.app.data.activeRouteReversed = false;
+      return value;
     };
 
     if (!value) {
-      clearCourseData();
+      // clear course data signal
+      this._courseData.update((current: CourseData) => {
+        return Object.assign({}, clearCourse(current));
+      });
       return;
     }
 
+    let c = Object.assign({}, this._courseData());
+
     // navData.arrivalCircle
     if (typeof value.arrivalCircle !== 'undefined') {
-      this.app.data.navData.arrivalCircle = value.arrivalCircle;
+      c.arrivalCircle = value.arrivalCircle;
     }
 
     if (!value.nextPoint || !value.previousPoint) {
-      clearCourseData();
+      // no destination or source location
+      c = clearCourse(c);
     }
 
     if (value.nextPoint && value.previousPoint) {
       // navData.startPosition
-      this.app.data.navData.startPosition = value?.previousPoint?.position
+      c.startPosition = value?.previousPoint?.position
         ? [
             value.previousPoint.position.longitude,
             value.previousPoint.position.latitude
@@ -237,7 +295,7 @@ export class CourseService {
         : null;
 
       // navData.position
-      this.app.data.navData.position = value?.nextPoint?.position
+      c.position = value?.nextPoint?.position
         ? [
             value.nextPoint.position.longitude,
             value.nextPoint.position.latitude
@@ -262,19 +320,19 @@ export class CourseService {
 
     // navData.activeRoute
     if (!value.activeRoute) {
-      clearRouteData();
+      c = clearRoute(c);
     } else {
       if (value?.activeRoute.href) {
-        this.app.data.navData.destPointName = '';
+        c.destPointName = '';
         const rteHref = value.activeRoute.href.split('/');
         this.app.data.activeRoute = rteHref[rteHref.length - 1];
 
         this.app.data.activeWaypoint = null;
-        this.app.data.navData.pointIndex =
+        c.pointIndex =
           value?.activeRoute.pointIndex === null
             ? -1
             : value?.activeRoute.pointIndex;
-        this.app.data.navData.pointTotal =
+        c.pointTotal =
           value?.activeRoute.pointTotal === null
             ? 0
             : value?.activeRoute.pointTotal;
@@ -288,7 +346,7 @@ export class CourseService {
           this.skres.routeAddFromServer([this.app.data.activeRoute]);
           // handleRouteSignal() updates activeRoute point details from cache
         } else {
-          this.updateActiveRoutePointDetails(rte);
+          this.updateActiveRoutePointDetails(c, rte);
         }
       } else {
         this.app.data.activeRoute = null;
@@ -312,6 +370,7 @@ export class CourseService {
         }*/
       }
     }
+    this._courseData.update(() => c);
   }
 
   /**
@@ -319,68 +378,66 @@ export class CourseService {
    * @param v self vessel
    */
   private processCourseCalcs(v: SKVessel) {
+    let c = Object.assign({}, this._courseData());
+
     // ** process preferred course data **
     if (typeof v.courseCalcs.crossTrackError !== 'undefined') {
-      this.app.data.navData.xte =
+      c.xte =
         this.app.config.units.distance === 'm'
           ? v.courseCalcs.crossTrackError / 1000
           : Convert.kmToNauticalMiles(v.courseCalcs.crossTrackError / 1000);
     }
 
     if (typeof v.courseCalcs.bearingTrue !== 'undefined') {
-      this.app.data.navData.bearingTrue = Convert.radiansToDegrees(
-        v.courseCalcs.bearingTrue
-      );
+      c.bearingTrue = Convert.radiansToDegrees(v.courseCalcs.bearingTrue);
       if (!this.app.useMagnetic) {
-        this.app.data.navData.bearing.value = this.app.data.navData.bearingTrue;
-        this.app.data.navData.bearing.type = 'T';
+        c.bearing.value = c.bearingTrue;
+        c.bearing.type = 'T';
       }
     }
 
     if (typeof v.courseCalcs.bearingMagnetic !== 'undefined') {
-      this.app.data.navData.bearingMagnetic = Convert.radiansToDegrees(
+      c.bearingMagnetic = Convert.radiansToDegrees(
         v.courseCalcs.bearingMagnetic
       );
       if (this.app.useMagnetic) {
-        this.app.data.navData.bearing.value =
-          this.app.data.navData.bearingMagnetic;
-        this.app.data.navData.bearing.type = 'M';
+        c.bearing.value = c.bearingMagnetic;
+        c.bearing.type = 'M';
       }
     }
 
     if (typeof v.courseCalcs.velocityMadeGood !== 'undefined') {
-      this.app.data.navData.vmg = v.courseCalcs.velocityMadeGood;
+      c.vmg = v.courseCalcs.velocityMadeGood;
     }
 
     if (typeof v.courseCalcs.distance !== 'undefined') {
-      this.app.data.navData.dtg =
+      c.dtg =
         this.app.config.units.distance === 'm'
           ? v.courseCalcs.distance / 1000
           : Convert.kmToNauticalMiles(v.courseCalcs.distance / 1000);
     }
 
     if (typeof v.courseCalcs['route.distance'] !== 'undefined') {
-      this.app.data.navData.route.dtg =
+      c.route.dtg =
         this.app.config.units.distance === 'm'
           ? v.courseCalcs.distance / 1000
           : Convert.kmToNauticalMiles(v.courseCalcs['route.distance'] / 1000);
     }
 
     if (typeof v.courseCalcs.timeToGo !== 'undefined') {
-      this.app.data.navData.ttg = v.courseCalcs.timeToGo / 60;
+      c.ttg = v.courseCalcs.timeToGo / 60;
     }
 
     if (typeof v.courseCalcs['route.timeToGo'] !== 'undefined') {
-      this.app.data.navData.route.ttg = v.courseCalcs['route.timeToGo'] / 60;
+      c.route.ttg = v.courseCalcs['route.timeToGo'] / 60;
     }
 
     if (typeof v.courseCalcs.estimatedTimeOfArrival !== 'undefined') {
       if (v.courseCalcs.estimatedTimeOfArrival !== null) {
         let d: Date | null = new Date(v.courseCalcs.estimatedTimeOfArrival);
-        this.app.data.navData.eta =
-          d instanceof Date && !isNaN(d as any) ? d : null;
+        c.eta = d instanceof Date && !isNaN(d as any) ? d : null;
       } else {
-        this.app.data.navData.eta = null;
+        c.eta = null;
       }
     }
 
@@ -389,34 +446,28 @@ export class CourseService {
         let d: Date | null = new Date(
           v.courseCalcs['route.estimatedTimeOfArrival']
         );
-        this.app.data.navData.route.eta =
-          d instanceof Date && !isNaN(d as any) ? d : null;
+        c.route.eta = d instanceof Date && !isNaN(d as any) ? d : null;
       } else {
-        this.app.data.navData.route.eta = null;
+        c.route.eta = null;
       }
     }
+
+    this._courseData.update(() => c);
   }
 
   /**
    * @description Update NavData with active route point details
    * @param rte Active Route
    */
-  private updateActiveRoutePointDetails(rte: FBRoute) {
-    this.app.data.navData.activeRoutePoints =
-      rte[1].feature.geometry.coordinates;
+  private updateActiveRoutePointDetails(c: CourseData, rte: FBRoute) {
+    c.activeRoutePoints = rte[1].feature.geometry.coordinates;
 
     if (Array.isArray(rte[1].feature.properties.coordinatesMeta)) {
-      this.app.data.navData.pointNames =
-        rte[1].feature.properties.coordinatesMeta.map((pt) => {
-          return pt.name ?? '';
-        });
-      if (
-        this.app.data.navData.pointIndex !== -1 &&
-        this.app.data.navData.pointIndex <
-          this.app.data.navData.pointNames.length
-      ) {
-        this.app.data.navData.destPointName =
-          this.app.data.navData.pointNames[this.app.data.navData.pointIndex];
+      c.pointNames = rte[1].feature.properties.coordinatesMeta.map((pt) => {
+        return pt.name ?? '';
+      });
+      if (c.pointIndex !== -1 && c.pointIndex < c.pointNames.length) {
+        c.destPointName = c.pointNames[c.pointIndex];
       }
     }
     // is route circular?
@@ -440,7 +491,9 @@ export class CourseService {
       this.app.data.activeRoute
     );
     if (rte) {
-      this.updateActiveRoutePointDetails(rte);
+      const c = this._courseData();
+      this.updateActiveRoutePointDetails(c, rte);
+      this._courseData.update(() => c);
     }
   }
 }

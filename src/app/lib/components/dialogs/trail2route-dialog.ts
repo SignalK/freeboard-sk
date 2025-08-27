@@ -81,7 +81,7 @@ export class Trail2RouteDialog implements OnInit {
     this.obsList.push(
       this.stream.trail$().subscribe((value) => this.onServerResource(value))
     );
-    this.getServerTrail(this.app.config.selections.trailFromServer);
+    this.getServerTrail(this.app.config.vessels.trailFromServer);
   }
 
   ngOnDestroy() {
@@ -120,7 +120,7 @@ export class Trail2RouteDialog implements OnInit {
   getServerTrail(checked: boolean) {
     if (checked) {
       if (
-        !this.app.config.selections.trailFromServer ||
+        !this.app.config.vessels.trailFromServer ||
         this.serverCoords.length === 0
       ) {
         this.fetching = true;

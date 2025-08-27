@@ -9,18 +9,16 @@ import { Position } from 'src/app/types';
   selector: 'wpt-button',
   imports: [MatIconModule, MatButtonModule, MatTooltipModule],
   template: `
-    @if(active()) {
     <button
-      class="button-accent"
+      class="button-toolbar"
       mat-fab
       [disabled]="!active()"
       (click)="dropWaypoint()"
       matTooltip="Mark Vessel Position"
-      matTooltipPosition="top"
+      matTooltipPosition="above"
     >
       <mat-icon>add_location</mat-icon>
     </button>
-    }
   `,
   styles: []
 })

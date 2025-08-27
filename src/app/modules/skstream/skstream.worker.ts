@@ -208,7 +208,7 @@ function handleCommand(data: MsgFromApp) {
     // { cmd: 'open', options: { url: string, subscribe: string, token: string} }
     case 'open':
       //console.log('Worker control: opening stream...');
-      applySettings(data.options);
+      applySettings(data.options as { config: { [key: string]: any } });
       openStream(data.options);
       break;
     //** { cmd: 'close', options: {terminate: boolean} }
@@ -224,7 +224,7 @@ function handleCommand(data: MsgFromApp) {
     //** { cmd: 'settings' , options: {..}
     case 'settings':
       //console.log('Worker control: settings...');
-      applySettings(data.options);
+      applySettings(data.options as { config: { [key: string]: any } });
       break;
     //** { cmd: 'alarm', options: {raise: boolean, type: string, msg: string, state: string} }
     case 'alarm':
@@ -282,7 +282,13 @@ function handleCommand(data: MsgFromApp) {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function applySettings(opt: { [key: string]: any } = {}) {
+function applySettings(
+  opt: {
+    config: { [key: string]: any };
+    interval?: number;
+    playback?: boolean;
+  } = { config: {} }
+) {
   if (opt.interval && typeof opt.interval === 'number') {
     msgInterval = opt.interval;
     clearTimers();
@@ -290,34 +296,34 @@ function applySettings(opt: { [key: string]: any } = {}) {
     extRecalcInterval = (1 / (msgInterval / 1000)) * 60;
   }
   playbackMode = opt.playback ? true : false;
-  if (opt.selections) {
+  if (opt.config) {
     // Preferred path selection
-    if (typeof opt.selections.preferredPaths !== 'undefined') {
-      preferredPaths = opt.selections.preferredPaths;
+    if (typeof opt.config.units.preferredPaths !== 'undefined') {
+      preferredPaths = opt.config.units.preferredPaths;
     }
     if (
-      opt.selections.aisMaxAge &&
-      typeof opt.selections.aisMaxAge === 'number'
+      opt.config.vessels.aisMaxAge &&
+      typeof opt.config.vessels.aisMaxAge === 'number'
     ) {
-      aisMgr.maxAge = opt.selections.aisMaxAge;
+      aisMgr.maxAge = opt.config.vessels.aisMaxAge;
     }
     if (
-      opt.selections.aisStaleAge &&
-      typeof opt.selections.aisStaleAge === 'number'
+      opt.config.vessels.aisStaleAge &&
+      typeof opt.config.vessels.aisStaleAge === 'number'
     ) {
-      aisMgr.staleAge = opt.selections.aisStaleAge;
+      aisMgr.staleAge = opt.config.vessels.aisStaleAge;
     }
-    if (typeof opt.selections.signalk.maxRadius === 'number') {
-      targetFilter.signalk = opt.selections.signalk;
+    if (typeof opt.config.signalk.maxRadius === 'number') {
+      targetFilter.signalk = opt.config.signalk;
     }
     if (
-      typeof opt.selections.aisState !== 'undefined' &&
-      Array.isArray(opt.selections.aisState)
+      typeof opt.config.selections.aisState !== 'undefined' &&
+      Array.isArray(opt.config.selections.aisState)
     ) {
-      targetFilter.aisState = opt.selections.aisState;
+      targetFilter.aisState = opt.config.selections.aisState;
     }
 
-    vesselPrefs = opt.selections.vessel;
+    vesselPrefs = opt.config.vessels;
 
     //console.log('Worker: AIS Filter...', targetFilter);
   }
