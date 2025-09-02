@@ -43,7 +43,7 @@ const FSK: AppInfoDef = {
   id: 'freeboard',
   name: 'Freeboard-SK',
   description: `Signal K Chart Plotter.`,
-  version: '2.17.0',
+  version: '2.17.0-beta.2',
   url: 'https://github.com/signalk/freeboard-sk',
   logo: './assets/img/app_logo.png'
 };
@@ -117,14 +117,18 @@ export class AppFacade extends InfoService {
     mapConstrainZoom: boolean; // constrain zoom to chart min/max
     toolbarButtons: boolean; // show toolbar buttons (both left & right)
     invertColor: boolean; // invert feature label text color (for dark backgrounds)
-    courseData: boolean; // show/hide course data
+    showCourseData: boolean; // show/hide course data
+    showAisTargets: boolean; // show/hide AIS targets
+    showNotes: boolean; // show/hide Notes
   }>({
     mapNorthUp: true,
     mapMove: false,
     mapConstrainZoom: false,
     toolbarButtons: false,
     invertColor: false,
-    courseData: true
+    showCourseData: true,
+    showAisTargets: true,
+    showNotes: true
   });
 
   // Signal K server feature flags
@@ -142,7 +146,8 @@ export class AppFacade extends InfoService {
     buddyList: false
   });
 
-  selfTrail = signal<LineString>([]); // local vessel trail
+  selfTrail = signal<LineString>([]); // vessel trail from indexedDB
+  selfTrailFromServer = signal<LineString>([]); // vessel trail from server
   mapExtent = signal<Extent>([]); // map viewport extent
 
   constructor(
@@ -158,11 +163,6 @@ export class AppFacade extends InfoService {
     this.config = defaultConfig();
     this.data = initData();
     this.suppressPersist = true; //suppress persisting of config until doPostConfigLoad() is complete
-
-    /** default chart selections on first run */
-    if (this.launchStatus.result === 'first_run') {
-      this.config.selections.charts = ['openstreetmap', 'openseamap'];
-    }
 
     /** initialise IndexedDB and subscribe to events */
     this.db = new AppDB();
@@ -450,17 +450,6 @@ export class AppFacade extends InfoService {
     return this.config.units.headingAttribute === 'navigation.headingMagnetic'
       ? true
       : false;
-  }
-
-  // fetch of trail from server (triggers SKStreamFacade.trail$)
-  fetchTrailFromServer() {
-    this.worker.postMessage({
-      cmd: 'trail',
-      options: {
-        trailDuration: this.config.vessels.trailDuration,
-        trailResolution: this.config.vessels.trailResolution
-      }
-    });
   }
 
   /** add point to self vessel track */

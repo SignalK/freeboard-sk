@@ -124,7 +124,7 @@ export class Trail2RouteDialog implements OnInit {
         this.serverCoords.length === 0
       ) {
         this.fetching = true;
-        this.app.fetchTrailFromServer();
+        this.stream.requestTrailFromServer();
       } else {
         this.parseTrail(true);
       }

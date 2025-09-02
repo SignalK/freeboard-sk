@@ -27,11 +27,19 @@ export function cleanConfig(
       mapConstrainZoom: (settings as any).map.limitZoom ?? false,
       invertColor: (settings as any).map.invertColor ?? false,
       toolbarButtons: (settings as any).toolBarButtons ?? true,
-      courseData: (settings as any).courseData ?? true
+      showCourseData: (settings as any).courseData ?? true,
+      showAisTargets: (settings as any).aisTargets ?? true,
+      showNotes: true
     };
   } else {
-    if (typeof settings.ui.courseData === 'undefined') {
-      settings.ui.courseData = (settings as any).courseData ?? true;
+    if (typeof settings.ui.showCourseData === 'undefined') {
+      settings.ui.showCourseData = (settings as any).courseData ?? true;
+    }
+    if (typeof settings.ui.showAisTargets === 'undefined') {
+      settings.ui.showAisTargets = (settings as any).aisTargets ?? true;
+    }
+    if (typeof settings.ui.showNotes === 'undefined') {
+      settings.ui.showNotes = true;
     }
   }
 
@@ -150,7 +158,6 @@ export function cleanConfig(
         '?position=[%map:longitude%,%map:latitude%]&distance=%fetch:radius%',
       fetchRadius: 0,
       notes: {
-        show: true,
         rootFilter:
           '?position=[%map:longitude%,%map:latitude%]&distance=%note:radius%',
         getRadius: 20,
@@ -165,9 +172,6 @@ export function cleanConfig(
       paths: []
     };
   } else {
-    if (typeof settings.resources.notes.show === 'undefined') {
-      settings.resources.notes.show = (settings as any).notes ?? true;
-    }
     if (typeof settings.resources.notes.minZoom === 'undefined') {
       settings.resources.notes.minZoom =
         (settings as any).selections.notesMinZoom ?? 10;
@@ -202,10 +206,23 @@ export function cleanConfig(
     settings.signalk.proxied = true;
   }
 
+  if (typeof settings.anchor === 'undefined') {
+    settings.anchor = {
+      radius: (settings as any).anchorRadius ?? 40,
+      setRadius: (settings as any).anchorSetRadius ?? false,
+      manualSet: (settings as any).anchorManualSet ?? false,
+      rodeLength: (settings as any).anchorRodeLength ?? 50
+    };
+  }
+
   /**
    * v2 deprecations
    * @todo For removal (Applied 2.17.0)
    */
+  delete (settings as any).anchorRadius;
+  delete (settings as any).anchorSetRadius;
+  delete (settings as any).anchorManualSet;
+  delete (settings as any).anchorRodeLength;
   delete (settings as any).courseData;
   delete (settings as any).selections.s57Options;
   delete (settings as any).popoverMulti;
@@ -215,17 +232,18 @@ export function cleanConfig(
   delete (settings as any).muteSound;
   delete (settings as any).depthAlarm;
   delete (settings as any).plugins;
+  delete (settings as any).notes;
+  delete (settings as any).aisTargets;
+  delete (settings as any).selections.notesMinZoom;
+  delete (settings as any).selections.signalk;
+  delete (settings as any).fixedLocationMode;
+  delete (settings as any).fixedPosition;
   delete (settings as any).selections.labelsMinZoom;
   delete (settings as any).selections.positionFormat;
   delete (settings as any).selections.headingAttribute;
   delete (settings as any).selections.preferredPaths;
   delete (settings as any).selections.pluginFavourites;
   delete (settings as any).selections.course;
-  delete (settings as any).notes;
-  delete (settings as any).selections.notesMinZoom;
-  delete (settings as any).selections.signalk;
-  delete (settings as any).fixedLocationMode;
-  delete (settings as any).fixedPosition;
   delete (settings as any).selections.aisStaleAge;
   delete (settings as any).selections.aisMaxAge;
   delete (settings as any).selections.aisWindApparent;
@@ -282,19 +300,6 @@ export function cleanConfig(
     settings.selections.aisState = [];
   }
 
-  if (typeof settings.anchorRadius === 'undefined') {
-    settings.anchorRadius = 40;
-  }
-  if (typeof settings.anchorSetRadius === 'undefined') {
-    settings.anchorSetRadius = false;
-  }
-  if (typeof settings.anchorManualSet === 'undefined') {
-    settings.anchorManualSet = false;
-  }
-  if (typeof settings.anchorRodeLength === 'undefined') {
-    settings.anchorRodeLength = 50;
-  }
-
   if (typeof settings.units.temperature === 'undefined') {
     settings.units.temperature = 'c';
   }
@@ -329,7 +334,9 @@ export function defaultConfig(): IAppConfig {
       mapConstrainZoom: false,
       toolbarButtons: true,
       invertColor: false, // invert map feature label colors
-      courseData: true // show/hide course data
+      showCourseData: true, // show/hide course data
+      showAisTargets: true, // show/hide ais targets
+      showNotes: true // show/hide notes
     },
     display: {
       fab: 'wpt', // default FAB button
@@ -417,7 +424,6 @@ export function defaultConfig(): IAppConfig {
         '?position=[%map:longitude%,%map:latitude%]&distance=%fetch:radius%',
       fetchRadius: 0, // radius (NM/km) within which to return resources
       notes: {
-        show: true, // display notes
         rootFilter:
           '?position=[%map:longitude%,%map:latitude%]&distance=%note:radius%', // param string to provide record filtering
         getRadius: 20, // radius (NM/km) within which to return notes
@@ -441,19 +447,19 @@ export function defaultConfig(): IAppConfig {
       maxRadius: 0, // max radius within which AIS targets are displayed
       proxied: true // server behind a proxy server
     },
+    anchor: {
+      radius: 40, // most recent anchor radius setting
+      setRadius: false,
+      manualSet: false, // checks manual set setting
+      rodeLength: 50 // rode length setting
+    },
     experiments: false,
-    aisTargets: true, // display ais targets
-    anchorRadius: 40, // most recent anchor radius setting
-    anchorSetRadius: false,
-    anchorManualSet: false, // checks manual set setting
-    anchorRodeLength: 50, // rode length setting
     selections: {
-      // ** saved selections
       routes: [],
       waypoints: [],
       tracks: null,
-      charts: [],
-      chartOrder: [], // chart layer ordering
+      charts: ['openstreetmap', 'openseamap'],
+      chartOrder: ['openstreetmap', 'openseamap'], // chart layer ordering
       aisTargets: null,
       aisTargetTypes: [],
       aisFilterByShipType: false,

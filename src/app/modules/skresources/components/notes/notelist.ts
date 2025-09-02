@@ -55,7 +55,7 @@ export class NoteListComponent {
   constructor(public app: AppFacade, private skres: SKResourceService) {}
 
   ngOnInit() {
-    this.showNotes = this.app.config.resources.notes.show;
+    this.showNotes = this.app.config.ui.showNotes;
     this.initItems();
   }
 
@@ -76,7 +76,7 @@ export class NoteListComponent {
   }
 
   toggleMapDisplay(value: boolean) {
-    this.app.config.resources.notes.show = value;
+    this.app.config.ui.showNotes = value;
     this.app.saveConfig();
   }
 

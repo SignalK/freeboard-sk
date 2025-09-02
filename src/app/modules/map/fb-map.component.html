@@ -136,7 +136,7 @@
   }
 
   <!-- AIS target tracks -->
-  @if(app.config.aisTargets && app.config.vessels.aisShowTrack) {
+  @if(app.config.ui.showAisTargets && app.config.vessels.aisShowTrack) {
   <ais-targets-track
     [tracks]="app.data.vessels.aisTracks"
     [tracksMinZoom]="10"
@@ -235,7 +235,7 @@
   </sk-ais-targets>
 
   <!-- Meteo targets -->
-  @if(app.config.aisTargets) {
+  @if(app.config.ui.showAisTargets) {
   <sk-ais-targets
     [darkMode]="app.uiConfig().invertColor"
     [targets]="dfeat.meteo"
@@ -252,7 +252,7 @@
   }
 
   <!-- AIS Vessel targets -->
-  @if(app.config.aisTargets) {
+  @if(app.config.ui.showAisTargets) {
   <div>
     @if( mapZoomLevel() >= app.config.vessels.aisWindMinZoom) {
     <sk-ais-wind
@@ -314,7 +314,7 @@
   }
 
   <!-- Aircraft targets -->
-  @if(app.config.aisTargets) {
+  @if(app.config.ui.showAisTargets) {
   <sk-ais-targets
     [darkMode]="app.uiConfig().invertColor"
     [targets]="dfeat.aircraft"
@@ -332,7 +332,7 @@
   }
 
   <!-- SAR targets -->
-  @if(app.config.aisTargets) {
+  @if(app.config.ui.showAisTargets) {
   <sk-ais-targets
     [darkMode]="app.uiConfig().invertColor"
     [targets]="dfeat.sar"
@@ -602,7 +602,7 @@
   @if(app.config.vessels.trail && app.data.vessels.showSelf) {
   <fb-vessel-trail
     [localTrail]="app.selfTrail()"
-    [serverTrail]="dfeat.trail"
+    [serverTrail]="app.selfTrailFromServer()"
     [trailStyles]=""
     [zIndex]="990"
   >

@@ -102,25 +102,26 @@
       <mat-divider></mat-divider>
       <a mat-menu-item (click)="toggleCourseData()">
         <mat-icon>{{
-          app.config.ui.courseData ? 'visibility_off' : 'compare_arrows'
+          app.config.ui.showCourseData ? 'visibility_off' : 'compare_arrows'
         }}</mat-icon>
         <span
-          >{{ app.config.ui.courseData ? 'Hide' : 'Show' }} Course Data</span
+          >{{ app.config.ui.showCourseData ? 'Hide' : 'Show' }} Course
+          Data</span
         >
       </a>
       <a mat-menu-item (click)="toggleAisTargets()">
         <mat-icon>{{
-          app.config.aisTargets ? 'visibility_off' : 'directions_boat'
+          app.config.ui.showAisTargets ? 'visibility_off' : 'directions_boat'
         }}</mat-icon>
-        <span>{{ app.config.aisTargets ? 'Hide' : 'Show' }} Vessels</span>
+        <span
+          >{{ app.config.ui.showAisTargets ? 'Hide' : 'Show' }} Vessels</span
+        >
       </a>
       <a mat-menu-item (click)="toggleNotes()">
         <mat-icon>{{
-          app.config.resources.notes.show ? 'visibility_off' : 'local_offer'
+          app.config.ui.showNotes ? 'visibility_off' : 'local_offer'
         }}</mat-icon>
-        <span
-          >{{ app.config.resources.notes.show ? 'Hide' : 'Show' }} Notes</span
-        >
+        <span>{{ app.config.ui.showNotes ? 'Hide' : 'Show' }} Notes</span>
       </a>
       <mat-divider></mat-divider>
       <a mat-menu-item (click)="showWeather('forecast')">
@@ -193,7 +194,7 @@
       </a>
       }
       <mat-divider></mat-divider>
-      @if(!isInteracting && app.featureFlags().anchorApi) {
+      @if(!isInteracting() && app.featureFlags().anchorApi) {
       <a mat-menu-item (click)="displayLeftMenu('anchorWatch', true)">
         <mat-icon>anchor</mat-icon>
         <span>Anchor Watch</span>
@@ -344,7 +345,7 @@
               <button
                 class="button-secondary"
                 mat-mini-fab
-                [disabled]="isInteracting"
+                [disabled]="isInteracting()"
                 matBadge="!"
                 matBadgeOverlap="true"
                 [matBadgeHidden]="app.isLoggedIn()"
@@ -378,7 +379,7 @@
               <button
                 class="button-accent"
                 mat-mini-fab
-                [disabled]="isInteracting"
+                [disabled]="isInteracting()"
                 matTooltip="Routes, Waypoints, Notes, etc."
                 matTooltipPosition="right"
                 [matMenuTriggerFor]="layersmenu"
@@ -390,7 +391,7 @@
               <button
                 class="button-toolbar"
                 mat-mini-fab
-                [disabled]="isInteracting"
+                [disabled]="isInteracting()"
                 matTooltip="Draw / Measure"
                 matTooltipPosition="right"
                 [matMenuTriggerFor]="editmenu"
@@ -459,7 +460,7 @@
               <button
                 class="button-toolbar"
                 mat-mini-fab
-                [disabled]="isInteracting"
+                [disabled]="isInteracting()"
                 matTooltip="More actions"
                 matTooltipPosition="right"
                 [matMenuTriggerFor]="settingsmenu"
@@ -569,12 +570,26 @@
                 >visibility_off
               </mat-icon>
             </div>
-            } @if(!app.uiConfig().courseData){
+            } @if(!app.uiConfig().showCourseData){
             <div class="statusBarItem">
               <mat-icon
-                matTooltip="Course data hidden"
+                matTooltip="Course data is hidden"
                 matTooltipPosition="below"
                 >compare_arrows
+              </mat-icon>
+            </div>
+            } @if(!app.uiConfig().showAisTargets){
+            <div class="statusBarItem">
+              <mat-icon
+                matTooltip="Vessels are hidden"
+                matTooltipPosition="below"
+                >directions_boat
+              </mat-icon>
+            </div>
+            } @if(!app.uiConfig().showNotes){
+            <div class="statusBarItem">
+              <mat-icon matTooltip="Notes are hidden" matTooltipPosition="below"
+                >local_offer
               </mat-icon>
             </div>
             }
@@ -593,7 +608,7 @@
                     ? 'Hide Toobars'
                     : 'Show Toobars'
                 "
-                matTooltipPosition="below"
+                matTooltipPosition="before"
               >
                 <mat-icon>{{
                   app.uiConfig().toolbarButtons ? 'apps' : 'apps_outage'
@@ -605,14 +620,14 @@
           <div class="buttonPanel right">
             <!-- instrument sidebar open button -->
             <div class="instrumentPanelToggle buttonPanelItem">
-              @if(app.instrumentPanelAvailable() && !isInteracting &&
+              @if(app.instrumentPanelAvailable() && !isInteracting() &&
               !app.data.vessels.activeId) {
               <button
                 class="button-toolbar"
                 mat-mini-fab
                 (click)="sideright.toggle()"
                 matTooltip="Instruments"
-                matTooltipPosition="below"
+                matTooltipPosition="before"
               >
                 <mat-icon>av_timer</mat-icon>
               </button>
@@ -627,7 +642,7 @@
                 class="button-toolbar"
                 mat-mini-fab
                 matTooltip="Web Audio off! Click to enable."
-                matTooltipPosition="left"
+                matTooltipPosition="before"
                 (click)="enableAudio()"
               >
                 <mat-icon class="icon-warn">volume_off</mat-icon>
@@ -651,7 +666,7 @@
                     ? 'Exit Fullscreen '
                     : 'Go Fullscreen'
                 "
-                matTooltipPosition="left"
+                matTooltipPosition="before"
               >
                 <mat-icon>
                   {{
@@ -675,7 +690,7 @@
                 }"
                 (click)="toggleConstrainMapZoom()"
                 matTooltip="Constrain map zoom."
-                matTooltipPosition="left"
+                matTooltipPosition="before"
               >
                 <mat-icon>zoom_in_map</mat-icon>
               </button>
@@ -692,7 +707,7 @@
                 }"
                 (click)="invertFeatureLabelColor()"
                 matTooltip="Invert feature text color."
-                matTooltipPosition="left"
+                matTooltipPosition="before"
               >
                 <mat-icon>{{
                   true ? 'invert_colors' : 'invert_colors_off'
@@ -732,10 +747,10 @@
                   'button-toolbar': !app.data.vessels.self.autopilot.enabled
                 }"
                 matTooltip="Autopilot"
-                matTooltipPosition="left"
+                matTooltipPosition="before"
                 (click)="toggleAutopilotConsole(true)"
               >
-                <mat-icon> alt_route </mat-icon>
+                <mat-icon class="ob" svgIcon="command-autopilot"></mat-icon>
               </button>
               <br />&nbsp;<br />
             </div>
@@ -907,7 +922,7 @@
           }
 
           <!-- *** Nav data panel ***-->
-          @if(!isInteracting) {
+          @if(!isInteracting()) {
           <div class="navdataPanel">
             @if(navDataPanel().nextPointCtrl) {
             <route-nextpoint
@@ -917,7 +932,7 @@
               (selected)="routeNextPoint($event)"
             >
             </route-nextpoint>
-            } @if(app.config.ui.courseData && navDataPanel().show) {
+            } @if(app.config.ui.showCourseData && navDataPanel().show) {
             <div style="display: flex; flex-wrap: nowrap">
               <div class="mat-app-background" style="display: flex">
                 <div style="width: 40px">
@@ -933,12 +948,18 @@
                     mat-icon-button
                     matTooltip="Autopilot Console"
                     matTooltipPosition="above"
-                    [disabled]="!app.featureFlags().autopilotApi"
-                    [matTooltip]="navDataPanel().apModeText"
-                    (click)="toggleAutopilotConsole(true)"
+                    [disabled]="
+                      !app.featureFlags().autopilotApi ||
+                      !app.data.vessels.self.autopilot.default
+                    "
+                    matTooltip="Engage Autopilot"
+                    (click)="autopilot.engage()"
                   >
-                    <mat-icon [color]="navDataPanel().apModeColor">
-                      alt_route
+                    <mat-icon
+                      class="ob"
+                      svgIcon="command-autopilot"
+                      [color]="navDataPanel().apModeColor"
+                    >
                     </mat-icon>
                   </button>
                 </div>
@@ -1034,7 +1055,7 @@
             </div>
             }
           </div>
-          } @if(!isInteracting && !app.kioskMode()) {
+          } @if(!isInteracting() && !app.kioskMode()) {
           <mfb-container [action]="app.config.display.fab"> </mfb-container>
           }
         </mat-sidenav-content>

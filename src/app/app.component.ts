@@ -36,7 +36,8 @@ import {
   GPXImportDialog,
   GPXExportDialog,
   CourseService,
-  SettingsFacade
+  SettingsFacade,
+  AutopilotService
 } from 'src/app/modules';
 
 import {
@@ -157,8 +158,13 @@ export class AppComponent {
   protected mapSetFocus = signal<string>('');
   protected mapCenter = signal<Position>([0, 0]);
   protected audioStatus = signal<string>('');
-
-  protected isInteracting = false; // map interaction flag
+  protected isInteracting = computed(() => {
+    return (
+      this.mapInteract.isMeasuring() ||
+      this.mapInteract.isDrawing() ||
+      this.mapInteract.isModifying()
+    );
+  });
 
   constructor(
     protected app: AppFacade,
@@ -175,10 +181,21 @@ export class AppComponent {
     private bottomSheet: MatBottomSheet,
     private dialog: MatDialog,
     protected wakeLock: WakeLockService,
-    private settings: SettingsFacade
+    private settings: SettingsFacade,
+    protected autopilot: AutopilotService
   ) {
     // set self to active vessel
     this.app.data.vessels.active = this.app.data.vessels.self;
+
+    // CONFIG$ - handle app.config$ event
+    this.obsList.push(
+      this.app.config$.subscribe((value: string) => {
+        // config has been loaded and cleaned (ready)
+        if (value === 'ready') {
+          this.fetchResources(true);
+        }
+      })
+    );
 
     // handle skAuthChange signal
     effect(() => {
@@ -189,20 +206,6 @@ export class AppComponent {
     effect(() => {
       this.app.debug('** kioskMode Event:', this.app.kioskMode());
       this.toggleSuppressContextMenu(this.app.kioskMode());
-    });
-    /** handle interaction signals */
-    effect(() => {
-      this.app.debug(
-        '** interaction state Event:',
-        this.mapInteract.isMeasuring(),
-        this.mapInteract.isDrawing(),
-        this.mapInteract.isModifying()
-      );
-      this.isInteracting =
-        this.mapInteract.isMeasuring() ||
-        this.mapInteract.isDrawing() ||
-        this.mapInteract.isModifying();
-      this.app.debug('** isInteracting:', this.isInteracting);
     });
   }
 
@@ -680,8 +683,7 @@ export class AppComponent {
           }
         });
         this.app.featureFlags.update((current) => {
-          const n = Object.assign(current, ff);
-          return n;
+          return Object.assign({}, current, ff);
         });
       },
       () => {
@@ -693,15 +695,13 @@ export class AppComponent {
     this.signalk.api.get(this.app.skApiVersion, 'resources/groups').subscribe(
       () => {
         this.app.featureFlags.update((current) => {
-          current.resourceGroups = true;
-          return current;
+          return Object.assign({}, current, { resourceGroups: true });
         });
       },
       () => {
         this.app.debug('*** Features API not present!');
         this.app.featureFlags.update((current) => {
-          current.resourceGroups = false;
-          return current;
+          return Object.assign({}, current, { resourceGroups: false });
         });
       }
     );
@@ -724,8 +724,10 @@ export class AppComponent {
     this.timers = [];
   }
 
-  // ** process local vessel trail **
-  private processTrail(trailData?) {
+  /** process local vessel trail
+   * @param trailData Vessel trail data from server (stream.trail$)
+   */
+  private processTrail(trailData?: LineString) {
     if (!this.app.config.vessels.trail) {
       return;
     }
@@ -756,14 +758,14 @@ export class AppComponent {
       // no server trail data supplied
       if (this.app.selfTrail().length % 60 === 0 && this.app.data.serverTrail) {
         if (this.app.config.vessels.trailFromServer) {
-          this.app.fetchTrailFromServer(); // request trail from server
+          this.stream.requestTrailFromServer(); // request trail from server
         }
       }
       this.app.selfTrail.update((current) => current.slice(-5000));
     } else {
       // use server trail data, keep minimal local trail data
       const lastseg = trailData.slice(-1);
-      const lastpt =
+      const lastpt: any =
         lastseg.length !== 0
           ? lastseg[0].slice(-1)
           : trailData.length > 1
@@ -775,10 +777,14 @@ export class AppComponent {
     this.app.db.saveTrail(trailId, this.app.selfTrail());
   }
 
-  // ** Trail$ event handlers **
-  private handleTrailUpdate(e) {
-    // ** trail retrieved from server **
+  // ** stream.trail$ event handler (vessel trail from server) **
+  private handleTrailUpdate(e: { action: string; mode: string; data: any[] }) {
     if (e.action === 'get' && e.mode === 'trail') {
+      if (this.app.config.vessels.trailFromServer) {
+        this.app.selfTrailFromServer.update(() => {
+          return e.data;
+        });
+      }
       this.processTrail(e.data);
     }
   }
@@ -844,7 +850,7 @@ export class AppComponent {
       if (this.app.config.vessels.trail) {
         // show trail
         if (this.app.config.vessels.trailFromServer) {
-          this.app.fetchTrailFromServer();
+          this.stream.requestTrailFromServer();
         } else {
           this.app.data.serverTrail = false;
         }
@@ -1204,36 +1210,38 @@ export class AppComponent {
   }
 
   protected toggleAisTargets() {
-    this.app.config.aisTargets = !this.app.config.aisTargets;
-    if (this.app.config.aisTargets) {
+    this.app.config.ui.showAisTargets = !this.app.config.ui.showAisTargets;
+    if (this.app.config.ui.showAisTargets) {
       this.processAIS(true);
     }
     this.app.saveConfig();
   }
 
   protected toggleCourseData() {
-    this.app.config.ui.courseData = !this.app.config.ui.courseData;
+    this.app.config.ui.showCourseData = !this.app.config.ui.showCourseData;
     this.app.saveConfig();
   }
 
   protected toggleNotes() {
-    this.app.config.resources.notes.show =
-      !this.app.config.resources.notes.show;
+    this.app.config.ui.showNotes = !this.app.config.ui.showNotes;
     this.app.saveConfig();
   }
 
   // ** delete vessel trail **
   protected clearTrail(noprompt = false) {
-    if (noprompt) {
+    const doClear = () => {
       if (!this.app.data.serverTrail) {
         this.app.selfTrail.set([]);
       } else {
         if (this.app.config.vessels.trailFromServer) {
-          this.app.fetchTrailFromServer(); // request trail from server
+          this.stream.requestTrailFromServer(); // request trail from server
         }
       }
+    };
+    if (noprompt) {
+      doClear();
     } else {
-      if (!this.app.data.serverTrail)
+      if (!this.app.data.serverTrail) {
         this.app
           .showConfirm(
             'Clear Vessel Trail',
@@ -1241,15 +1249,10 @@ export class AppComponent {
           )
           .subscribe((res) => {
             if (res) {
-              if (!this.app.data.serverTrail) {
-                this.app.selfTrail.set([]);
-              } else {
-                if (this.app.config.vessels.trailFromServer) {
-                  this.app.fetchTrailFromServer(); // request trail from server
-                }
-              }
+              doClear();
             }
           });
+      }
     }
   }
 
@@ -1437,7 +1440,7 @@ export class AppComponent {
 
   // ** process / cleanup AIS targets
   protected processAIS(toggled?: boolean) {
-    if (!this.app.config.aisTargets && !toggled) {
+    if (!this.app.config.ui.showAisTargets && !toggled) {
       return;
     }
     if (toggled) {
@@ -1689,7 +1692,7 @@ export class AppComponent {
         });
         this.fetchResources(true); // ** fetch all resource types from server
         if (this.app.config.vessels.trailFromServer) {
-          this.app.fetchTrailFromServer(); // request trail from server
+          this.stream.requestTrailFromServer(); // request trail from server
         }
         // ** query anchor alarm status
         this.anchor.queryAnchorStatus(

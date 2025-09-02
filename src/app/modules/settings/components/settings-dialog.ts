@@ -128,13 +128,14 @@ export class SettingsDialog implements OnInit {
 
   /**
    * Parse entered number value and fall back to default if null.
+   * Resultant number value is always positive unless allowNegative = true.
    */
-  parseNumber(e: NgModel) {
+  parseNumber(e: NgModel, allowNegative?: boolean) {
     if (typeof e.model !== 'number') {
       e.reset(this.fallbackToDefault());
       return;
     }
-    if (e.model < 0) {
+    if (!allowNegative && e.model < 0) {
       e.reset(Math.abs(e.model));
     }
     this.persistModel();

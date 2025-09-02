@@ -23,7 +23,7 @@ import { AppFacade } from 'src/app/app.facade';
       matTooltip="Autopilot Console"
       matTooltipPosition="above"
     >
-      <mat-icon>alt_route</mat-icon>
+      <mat-icon class="ob" svgIcon="command-autopilot"></mat-icon>
     </button>
   `,
   styles: []

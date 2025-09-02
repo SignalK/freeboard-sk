@@ -1,6 +1,6 @@
 # CHANGELOG: Freeboard
 
-### v2.17.0
+### v2.17.0-beta.2
 
 - **New**: Display range circles around the vessel. (#280)
 - **New**: Apply configurable offset when in "moving map" mode or centering the vessel to display 
@@ -9,6 +9,7 @@ more map in front of the vessel. (#285)
 - **New**: Added settings to define the Arrival Circle Radius value that is sent when setting a destination or activating a route.
 - **Fix**: Issue where `navigation.course.arrivalCircle` path was not being processed.
 - **Fix**: Issue where trail not being displayed in Trail-to-Route screen.
+- **Fix**: Issue fixed vessel position would not accept negative values. (#289)
 - **Removed**: Support for v1 chart resources (api path and metadata) has been removed.
 
 

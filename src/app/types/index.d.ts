@@ -60,7 +60,9 @@ export interface IAppConfig {
     mapConstrainZoom: boolean; // constrain zooming to map min / max values
     toolbarButtons: boolean; // show/hide toolbar buttons
     invertColor: boolean; // invert map feature label colors
-    courseData: boolean; // show/hide course data
+    showCourseData: boolean; // show/hide course data
+    showAisTargets: boolean; // show/hide AIS targets
+    showNotes: boolean; // show/hide notes
   };
   display: {
     fab: MFBAction; // FAB button selection
@@ -147,7 +149,6 @@ export interface IAppConfig {
     fetchFilter: string; // param string to provide record filtering
     fetchRadius: number; // radius (NM/km) within which to return resources
     notes: {
-      show: boolean; // display notes
       rootFilter: string; // param string to provide record filtering
       getRadius: number; // radius (NM/km) within which to return notes
       groupNameEdit: boolean;
@@ -171,12 +172,12 @@ export interface IAppConfig {
     proxied: boolean; // server behind a proxy server
   };
   experiments: boolean;
-
-  aisTargets: boolean; // display ais targets
-  anchorRadius: number; // most recent anchor radius setting
-  anchorSetRadius: boolean; // checks inital anchor radius setting
-  anchorManualSet: boolean; // checks manual set setting
-  anchorRodeLength: number; // rode length setting
+  anchor: {
+    radius: number; // most recent anchor radius setting
+    setRadius: boolean; // checks inital anchor radius setting
+    manualSet: boolean; // checks manual set setting
+    rodeLength: number; // rode length setting
+  };
   selections: {
     // ** saved selections
     routes: string[];
@@ -194,7 +195,7 @@ export interface IAppConfig {
 }
 
 export interface FBAppData {
-  n2kRoute: FBRoute;
+  n2kRoute: FBRoute /** @deprecated @todo */;
   loginRequired: boolean;
   chartBounds: {
     show: boolean;

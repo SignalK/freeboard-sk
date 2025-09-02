@@ -239,6 +239,19 @@ export class SKStreamFacade {
     });
   }
 
+  /**
+   * Send command message to fetch vessel trail from server
+   * Trail message handler => this.parseSelfTrail() */
+  requestTrailFromServer() {
+    this.worker.postMessage({
+      cmd: 'trail',
+      options: {
+        trailDuration: this.app.config.vessels.trailDuration,
+        trailResolution: this.app.config.vessels.trailResolution
+      }
+    });
+  }
+
   // ** process selfTrail message from worker and emit trail$ **
   private parseSelfTrail(msg: TrailMessage) {
     if (msg.result) {

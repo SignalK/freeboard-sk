@@ -9,9 +9,9 @@ import {
   input,
   Output,
   EventEmitter,
-  effect
+  effect,
+  computed
 } from '@angular/core';
-import { HttpErrorResponse } from '@angular/common/http';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatTooltipModule } from '@angular/material/tooltip';
@@ -20,9 +20,11 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
+import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { AppFacade } from 'src/app/app.facade';
 import { SignalKClient } from 'signalk-client-angular';
 import { Convert } from 'src/app/lib/convert';
+import { AutopilotService } from './autopilot.service';
 
 @Component({
   selector: 'autopilot-console',
@@ -34,6 +36,7 @@ import { Convert } from 'src/app/lib/convert';
     MatCardModule,
     MatIconModule,
     MatMenuModule,
+    MatSlideToggleModule,
     FormsModule
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -248,18 +251,12 @@ import { Convert } from 'src/app/lib/convert';
                   ></div>
                 </button>
                 } @else {
-                <button
-                  class="button-primary"
-                  mat-raised-button
-                  (click)="toggleEngaged()"
+                <mat-slide-toggle
+                  [checked]="apData().enabled"
                   [disabled]="noPilot()"
-                  [ngClass]="{
-                    'button-warn': apData().enabled,
-                    'button-primary': !apData().enabled,
-                  }"
-                >
-                  AUTO
-                </button>
+                  (toggleChange)="toggleEngaged()"
+                  [matTooltip]="apData().enabled ? 'Disengage' : 'Engage'"
+                ></mat-slide-toggle>
                 }
               </div>
 
@@ -316,7 +313,20 @@ export class AutopilotComponent {
     enabled?: boolean;
   }>({});
 
-  constructor(protected app: AppFacade, private signalk: SignalKClient) {
+  protected noPilot = computed(() => {
+    return (
+      !this.app.featureFlags().autopilotApi ||
+      !this.apData().default ||
+      !this.apData().state ||
+      this.apData().state === 'off-line'
+    );
+  });
+
+  constructor(
+    protected app: AppFacade,
+    private signalk: SignalKClient,
+    protected autopilot: AutopilotService
+  ) {
     this.autopilotApiPath = 'vessels/self/autopilots/_default';
     effect(() => {
       if (this.apData().default !== this.currentPilot) {
@@ -335,204 +345,143 @@ export class AutopilotComponent {
     this.close.emit();
   }
 
-  private fetchAPOptions() {
-    this.signalk.api
-      .get(this.app.skApiVersion, `${this.autopilotApiPath}`)
-      .subscribe(
-        (val: {
-          options: {
-            modes: string[];
-            states: Array<{ name: string; engaged: boolean }>;
-          };
-        }) => {
-          if (!val.options) {
-            return;
-          }
-          if (val.options.modes && Array.isArray(val.options.modes)) {
-            this.modeOptions.set(val.options.modes);
-          }
-          if (val.options.states && Array.isArray(val.options.states)) {
-            this.stateOptions.set(val.options.states);
-          }
-        },
-        () => {
-          this.modeOptions.set([]);
-          this.stateOptions.set([]);
-          this.app.featureFlags.update((current) => {
-            current.autopilotApi = false;
-            return current;
-          });
-          this.app.showMessage('No autopilot providers found!');
-        }
-      );
+  /** fetch AP options from server */
+  private async fetchAPOptions() {
+    try {
+      const options = await this.autopilot.fetchOptions();
+      if (options.modes && Array.isArray(options.modes)) {
+        this.modeOptions.set(options.modes);
+      }
+      if (options.states && Array.isArray(options.states)) {
+        this.stateOptions.set(options.states);
+      }
+    } catch (err) {
+      this.modeOptions.set([]);
+      this.stateOptions.set([]);
+      this.app.showMessage('No autopilot providers found!');
+    }
   }
 
-  noPilot(): boolean {
+  /*noPilot(): boolean {
     return (
       !this.app.featureFlags().autopilotApi ||
       !this.apData().default ||
       !this.apData().state ||
       this.apData().state === 'off-line'
     );
-  }
+  }*/
 
-  toggleEngaged() {
+  /** engage / disengage the pilot */
+  protected async toggleEngaged() {
     const uri = this.apData().enabled
       ? `${this.autopilotApiPath}/disengage`
       : `${this.autopilotApiPath}/engage`;
-    this.signalk.api.post(this.app.skApiVersion, uri, null).subscribe(
-      () => undefined,
-      (error: HttpErrorResponse) => {
-        let msg = `Error setting Autopilot state!\n`;
-        if (error.status === 403) {
-          msg += 'Unauthorised: Please login.';
-          this.app.showAlert(`Error (${error.status}):`, msg);
-        } else {
-          this.app.showMessage(
-            error.error?.message ?? 'Device returned an error!'
-          );
-        }
+
+    try {
+      if (this.apData().enabled) {
+        await this.autopilot.disengage();
+      } else {
+        await this.autopilot.engage();
       }
-    );
-  }
-
-  targetAdjust(value: number) {
-    if (typeof value !== 'number') {
-      return;
-    }
-    this.signalk.api
-      .put(this.app.skApiVersion, `${this.autopilotApiPath}/target/adjust`, {
-        value: value,
-        units: 'deg'
-      })
-      .subscribe(
-        () => {
-          this.app.debug(`Target adjusted: ${value} deg.`);
-        },
-        (error: HttpErrorResponse) => {
-          if (error.status === 403) {
-            const msg = 'Unauthorised: Please login.';
-            this.app.showAlert(`Error (${error.status}):`, msg);
-          } else {
-            this.app.showMessage(
-              error.error?.message ?? 'Device returned an error!'
-            );
-          }
-        }
-      );
-  }
-
-  toggleDodge() {
-    if (this.apData().mode !== 'dodge') {
-      this.signalk.api
-        .post(this.app.skApiVersion, `${this.autopilotApiPath}/dodge`, null)
-        .subscribe(
-          () => {
-            this.app.debug(`Set dodge mode.`);
-          },
-          (error: HttpErrorResponse) => {
-            if (error.status === 403) {
-              const msg = 'Unauthorised: Please login.';
-              this.app.showAlert(`Error (${error.status}):`, msg);
-            } else {
-              this.app.showMessage(
-                error.error?.message ?? 'Device returned an error!'
-              );
-            }
-          }
+    } catch (error) {
+      let msg = `Error setting Autopilot state!\n`;
+      if (error.status === 403) {
+        msg += 'Unauthorised: Please login.';
+        this.app.showAlert(`Error (${error.status}):`, msg);
+      } else {
+        this.app.showMessage(
+          error.error?.message ?? 'Device returned an error!'
         );
-    } else {
-      this.signalk.api
-        .delete(this.app.skApiVersion, `${this.autopilotApiPath}/dodge`)
-        .subscribe(
-          () => {
-            this.app.debug(`Clear dodge mode.`);
-          },
-          (error: HttpErrorResponse) => {
-            if (error.status === 403) {
-              const msg = 'Unauthorised: Please login.';
-              this.app.showAlert(`Error (${error.status}):`, msg);
-            } else {
-              this.app.showMessage(
-                error.error?.message ?? 'Device returned an error!'
-              );
-            }
-          }
-        );
+      }
     }
   }
 
-  dodgeAdjust(value: number) {
-    if (typeof value !== 'number') {
-      return;
-    }
-    this.signalk.api
-      .put(this.app.skApiVersion, `${this.autopilotApiPath}/dodge`, {
-        value: value,
-        units: 'deg'
-      })
-      .subscribe(
-        () => {
-          this.app.debug(`Dodge port / starboard: ${value} deg.`);
-        },
-        (error: HttpErrorResponse) => {
-          if (error.status === 403) {
-            const msg = 'Unauthorised: Please login.';
-            this.app.showAlert(`Error (${error.status}):`, msg);
-          } else {
-            this.app.showMessage(
-              error.error?.message ?? 'Device returned an error!'
-            );
-          }
-        }
-      );
-  }
-
-  setMode(mode: string) {
-    if (mode) {
-      // autopilot mode
-      this.signalk.api
-        .put(this.app.skApiVersion, `${this.autopilotApiPath}/mode`, {
-          value: mode
-        })
-        .subscribe(
-          () => undefined,
-          (error: HttpErrorResponse) => {
-            let msg = `Error setting Autopilot mode!\n`;
-            if (error.status === 403) {
-              msg += 'Unauthorised: Please login.';
-              this.app.showAlert(`Error (${error.status}):`, msg);
-            } else {
-              this.app.showMessage(
-                error.error?.message ?? 'Device returned an error!'
-              );
-            }
-          }
+  /** adjust device target
+   * @param value Number (in degrees)
+   */
+  protected async targetAdjust(value: number) {
+    try {
+      await this.autopilot.adjustTarget(value);
+    } catch (error) {
+      if (error.status === 403) {
+        const msg = 'Unauthorised: Please login.';
+        this.app.showAlert(`Error (${error.status}):`, msg);
+      } else {
+        this.app.showMessage(
+          error.error?.message ?? 'Device returned an error!'
         );
+      }
     }
   }
 
-  setState(state: string) {
-    if (state) {
-      // autopilot mode
-      this.signalk.api
-        .put(this.app.skApiVersion, `${this.autopilotApiPath}/state`, {
-          value: state
-        })
-        .subscribe(
-          () => undefined,
-          (error: HttpErrorResponse) => {
-            let msg = `Error setting Autopilot state!\n`;
-            if (error.status === 403) {
-              msg += 'Unauthorised: Please login.';
-              this.app.showAlert(`Error (${error.status}):`, msg);
-            } else {
-              this.app.showMessage(
-                error.error?.message ?? 'Device returned an error!'
-              );
-            }
-          }
+  /** toggle dodge mode on/off */
+  protected async toggleDodge() {
+    try {
+      await this.autopilot.dodge(this.apData().mode !== 'dodge');
+      this.app.debug(`Set dodge mode.`);
+    } catch (error) {
+      if (error.status === 403) {
+        const msg = 'Unauthorised: Please login.';
+        this.app.showAlert(`Error (${error.status}):`, msg);
+      } else {
+        this.app.showMessage(
+          error.error?.message ?? 'Device returned an error!'
         );
+      }
+    }
+  }
+
+  /** send dodge direction value */
+  protected async dodgeAdjust(value: number) {
+    try {
+      await this.autopilot.adjustDodge(value);
+    } catch (error) {
+      if (error.status === 403) {
+        const msg = 'Unauthorised: Please login.';
+        this.app.showAlert(`Error (${error.status}):`, msg);
+      } else {
+        this.app.showMessage(
+          error.error?.message ?? 'Device returned an error!'
+        );
+      }
+    }
+  }
+
+  /** send mode command
+   * @param mode Mode to set on the device
+   */
+  protected async setMode(mode: string) {
+    try {
+      await this.autopilot.mode(mode);
+    } catch (error) {
+      let msg = `Error setting Autopilot mode!\n`;
+      if (error.status === 403) {
+        msg += 'Unauthorised: Please login.';
+        this.app.showAlert(`Error (${error.status}):`, msg);
+      } else {
+        this.app.showMessage(
+          error.error?.message ?? 'Device returned an error!'
+        );
+      }
+    }
+  }
+
+  /** send mode command
+   * @param state Mode to set on the device
+   */
+  protected async setState(state: string) {
+    try {
+      await this.autopilot.state(state);
+    } catch (error) {
+      let msg = `Error setting Autopilot state!\n`;
+      if (error.status === 403) {
+        msg += 'Unauthorised: Please login.';
+        this.app.showAlert(`Error (${error.status}):`, msg);
+      } else {
+        this.app.showMessage(
+          error.error?.message ?? 'Device returned an error!'
+        );
+      }
     }
   }
 

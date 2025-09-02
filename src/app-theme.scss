@@ -111,10 +111,10 @@ html {
     }
 
     .ob path {
-        stroke: mat.get-theme-color($light-theme, on-surface) !important;
-        fill: mat.get-theme-color($light-theme, on-surface) !important;
+        stroke: currentColor !important;
+        fill: currentColor !important;
     }
-    
+   
     .button-primary {
         background-color: mat.get-theme-color($light-theme, primary) !important;
         color: white !important;
@@ -206,6 +206,12 @@ html {
         fill: currentColor !important;
     }
 
+    button:disabled .ob path {
+        color: silver !important;
+        stroke: currentColor !important;
+        fill: currentColor !important;
+    }
+
     .about-row .item a,
     .welcome a {
         color: mat.get-theme-color($light-theme, tertiary);
@@ -280,6 +286,7 @@ html {
         stroke: mat.get-theme-color($dark-theme, on-surface) !important;
         fill: mat.get-theme-color($dark-theme, on-surface) !important;
     }
+    button.ob path,
     .button-primary .ob path,
     .button-secondary .ob path,
     .button-tertiary .ob path,

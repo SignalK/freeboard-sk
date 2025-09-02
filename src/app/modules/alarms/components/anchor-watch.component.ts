@@ -87,10 +87,10 @@ export class AnchorWatchComponent {
 
   ngOnInit() {
     this.displayRadius = this.sliderValue;
-    this.defaultAlarmRadius = this.app.config.anchorRadius;
-    this.useDefaultRadius = this.app.config.anchorSetRadius;
-    this.useSetManual = this.app.config.anchorManualSet;
-    this.defaultRodeLength = this.app.config.anchorRodeLength;
+    this.defaultAlarmRadius = this.app.config.anchor.radius;
+    this.useDefaultRadius = this.app.config.anchor.setRadius;
+    this.useSetManual = this.app.config.anchor.manualSet;
+    this.defaultRodeLength = this.app.config.anchor.rodeLength;
   }
 
   ngOnChanges(changes: SimpleChanges) {
@@ -119,18 +119,18 @@ export class AnchorWatchComponent {
 
   onDefaultRadiusChecked(e: MatCheckboxChange) {
     this.useDefaultRadius = e.checked;
-    this.app.config.anchorSetRadius = e.checked;
+    this.app.config.anchor.setRadius = e.checked;
     if (!e.checked) {
-      this.defaultAlarmRadius = this.app.config.anchorRadius;
+      this.defaultAlarmRadius = this.app.config.anchor.radius;
     }
     this.app.saveConfig();
   }
 
   onSetManualCheck(e: MatCheckboxChange) {
     this.useSetManual = e.checked;
-    this.app.config.anchorManualSet = e.checked;
+    this.app.config.anchor.manualSet = e.checked;
     if (!e.checked) {
-      this.defaultRodeLength = this.app.config.anchorRodeLength;
+      this.defaultRodeLength = this.app.config.anchor.rodeLength;
     }
     this.disableRaiseDrop = this.raised && this.useSetManual;
     this.app.saveConfig();
@@ -160,7 +160,7 @@ export class AnchorWatchComponent {
         )
         .subscribe(
           () => {
-            this.app.config.anchorRadius = value;
+            this.app.config.anchor.radius = value;
             this.app.saveConfig();
           },
           (err: HttpErrorResponse) => {
@@ -178,10 +178,10 @@ export class AnchorWatchComponent {
       this.app.showAlert('Error', 'Rode length value is not a number!');
       return;
     }
-    this.app.config.anchorRodeLength = this.defaultRodeLength;
+    this.app.config.anchor.rodeLength = this.defaultRodeLength;
     this.signalk
       .post('/plugins/anchoralarm/setManualAnchor', {
-        rodeLength: this.app.config.anchorRodeLength
+        rodeLength: this.app.config.anchor.rodeLength
       })
       .subscribe(
         () => {
@@ -212,7 +212,7 @@ export class AnchorWatchComponent {
    * @param radius Alarm radius to set
    */
   dropAnchor(radius?: number) {
-    this.app.config.anchorRadius = radius;
+    this.app.config.anchor.radius = radius;
     this.anchor.setRaisedSignal(false);
     this.signalk
       .post(

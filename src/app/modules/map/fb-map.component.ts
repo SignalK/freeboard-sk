@@ -107,8 +107,6 @@ interface IFeatureData {
   atons: Map<string, SKAtoN>;
   sar: Map<string, SKSaR>;
   meteo: Map<string, SKMeteo>;
-  tracks: Array<Position[]>; // self track(s) from server
-  trail: Array<Position>; // self trail (appended to tracks)
   self: SKVessel; //self vessel
   ais: Map<string, SKVessel>; // other vessels
   active: SKVessel; // focussed vessel
@@ -231,8 +229,6 @@ export class FBMapComponent implements OnInit, OnDestroy {
     atons: new Map(),
     sar: new Map(),
     meteo: new Map(),
-    tracks: [], // self track(s) from server
-    trail: [], // self trail (appended to tracks)
     self: new SKVessel(), //self vessel
     ais: new Map(), // other vessels
     active: new SKVessel(), // focussed vessel
@@ -291,17 +287,15 @@ export class FBMapComponent implements OnInit, OnDestroy {
     this.obsList.push(
       this.skstream.vessels$().subscribe(() => this.onVessels())
     );
-    // STREAM VESSEL TRAIL update event
-    this.obsList.push(
-      this.skstream.trail$().subscribe((value) => this.onResourceUpdate(value))
-    );
     // SETTINGS settings.change$ event
     this.obsList.push(
       this.settings.change$.subscribe((r: string[]) => {
         this.renderMapContents(r.includes('fetchNotes'));
         if (r.includes(`trailFromServer`)) {
           if (!this.app.config.vessels.trailFromServer) {
-            this.dfeat.trail = [];
+            this.app.selfTrailFromServer.update(() => {
+              return [];
+            });
           }
         }
       })
@@ -489,24 +483,6 @@ export class FBMapComponent implements OnInit, OnDestroy {
     this.rotateMap();
     if (this.movingMap) {
       this.centerVessel();
-    }
-  }
-
-  private onResourceUpdate(value) {
-    this.app.debug(value);
-    if (value.action === 'get' || value.action === 'selected') {
-      if (value.mode === 'route') {
-        /** @todo remediate n2kRoute */
-        if (this.app.data.n2kRoute) {
-          //this.dfeat.routes.push(this.app.data.n2kRoute);
-        }
-      }
-      if (value.mode === 'trail') {
-        // vessel trail
-        if (this.app.config.vessels.trailFromServer) {
-          this.dfeat.trail = value.data;
-        }
-      }
     }
   }
 
@@ -1248,8 +1224,9 @@ export class FBMapComponent implements OnInit, OnDestroy {
         poData.type = t[0];
         poData.resource = this.skresOther.fromCache(id, true);
         poData.title =
-          (poData.resource as GeoJsonFeature).properties.name ?? 'Resource Set';
-        poData.show = true;
+          (poData.resource as GeoJsonFeature)?.properties?.name ??
+          'Resource Set';
+        poData.show = poData.resource ? true : false;
         break;
       default:
         return;
@@ -1747,7 +1724,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
   private shouldFetchNotes(zoomChanged: boolean) {
     this.showNoteslayer.update(
       () =>
-        this.app.config.resources.notes.show &&
+        this.app.config.ui.showNotes &&
         this.app.config.map.zoomLevel >= this.app.config.resources.notes.minZoom
     );
 

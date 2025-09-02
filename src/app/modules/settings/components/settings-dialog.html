@@ -661,7 +661,7 @@
                             required
                             pattern="^-?([1-8]?[0-9])(\.\d{1,9})?$"
                             [(ngModel)]="facade.fixedPosition[1]"
-                            (change)="parseNumber(fixedlat)"
+                            (change)="parseNumber(fixedlat, true)"
                             [disabled]="!vesselfixedlocationmode.checked"
                             min="-90"
                             max="90"
@@ -683,7 +683,7 @@
                             required
                             pattern="^-?(1[0-7]?[0-9]|[1-9]?[0-9])(\.\d{1,9})?$"
                             [(ngModel)]="facade.fixedPosition[0]"
-                            (change)="parseNumber(fixedlon)"
+                            (change)="parseNumber(fixedlon, true)"
                             [disabled]="!vesselfixedlocationmode.checked"
                             min="-180"
                             max="180"
@@ -974,7 +974,7 @@
                 <div class="setting-card-row">
                   <div class="setting-card-row-item">
                     <mat-checkbox
-                      [(ngModel)]="facade.settings.resources.notes.show"
+                      [(ngModel)]="facade.settings.ui.showNotes"
                       (change)="persistModel()"
                       label="after"
                     >
@@ -985,7 +985,7 @@
                     <mat-form-field style="width: 100%">
                       <mat-label>Notes Zoom Level</mat-label>
                       <mat-select
-                        [disabled]="!facade.settings.resources.notes.show"
+                        [disabled]="!facade.settings.ui.showNotes"
                         [(value)]="facade.settings.resources.notes.minZoom"
                         (selectionChange)="persistModel(`fetchNotes`)"
                       >
@@ -1005,7 +1005,7 @@
                         ')'}}</mat-label
                       >
                       <mat-select
-                        [disabled]="!facade.settings.resources.notes.show"
+                        [disabled]="!facade.settings.ui.showNotes"
                         [(ngModel)]="facade.settings.resources.notes.getRadius"
                         (selectionChange)="persistModel(`fetchNotes`)"
                       >

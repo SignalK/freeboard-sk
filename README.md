@@ -9,7 +9,8 @@ Use it to display:
 
 and more from any web enabled device.
 
-![screen](https://user-images.githubusercontent.com/38519157/128667564-0f5e1ed6-eaae-40c7-ad62-5e7011c1f082.png)
+![screen](https://github.com/user-attachments/assets/9b557a33-8a02-4a16-9f37-fd0cc82ab0f1)
+
 
 See the [FAQs](https://github.com/SignalK/freeboard-sk/wiki) for more information.
 
