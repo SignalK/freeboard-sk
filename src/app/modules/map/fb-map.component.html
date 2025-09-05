@@ -577,14 +577,37 @@
   </fb-arrival-circle>
   } } @if(app.config.vessels.rangeCircles) {
   <fb-range-circles
-    [position]="dfeat.self.position"
-    [zoomLevel]="mapZoomLevel()"
+    [position]="dfeat.active.position"
+    [mapZoom]="mapZoomLevel()"
+    [darkMode]="app.uiConfig().invertColor"
     [minZoom]="this.app.config.map.labelsMinZoom"
     [units]="scaleUnits()"
     [zIndex]="340"
   >
   </fb-range-circles>
+  } @if(app.config.vessels.cogLine !==0) {
+  <fb-cog-line
+    [coords]="vesselLines().cog"
+    [cogTime]="app.config.vessels.cogLine"
+    [units]="app.config.units.distance"
+    [darkMode]="app.uiConfig().invertColor"
+    [labelMinZoom]="this.app.config.map.labelsMinZoom"
+    [mapZoom]="mapZoomLevel()"
+    [zIndex]="345"
+  >
+  </fb-cog-line>
+  } @if(app.config.vessels.windVectors) {
+  <fb-wind-lines
+    [twd]="this.dfeat.active.wind.direction"
+    [tws]="this.dfeat.active.wind.tws"
+    [awa]="this.dfeat.active.wind.awa + this.dfeat.active.orientation"
+    [aws]="this.dfeat.active.wind.aws"
+    [position]="dfeat.self.position"
+    [zIndex]="350"
+  >
+  </fb-wind-lines>
   }
+
   <!-- Vessel (self) -->
   <fb-vessel
     [position]="dfeat.self.position"
@@ -592,7 +615,6 @@
     [id]="'' + app.data.selfId"
     [activeId]="app.data.vessels.activeId"
     [vesselLines]="vesselLines()"
-    [showWind]="app.config.vessels.windVectors"
     [iconScale]="app.config.vessels.iconScale"
     [fixedLocation]="app.config.vessels.fixedLocationMode"
     [zIndex]="999"

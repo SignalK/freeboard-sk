@@ -2,6 +2,8 @@ import {
   ChangeDetectionStrategy,
   ChangeDetectorRef,
   Component,
+  effect,
+  input,
   Input,
   OnChanges,
   OnDestroy,
@@ -14,13 +16,21 @@ import { Feature } from 'ol';
 import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
 import { Style, Stroke, Fill, Text } from 'ol/style';
-import { Circle } from 'ol/geom';
+import { Circle, Point } from 'ol/geom';
 import { fromLonLat } from 'ol/proj';
 import { MapComponent } from '../map.component';
 import { Extent, Coordinate } from '../models';
 import { mapifyRadius } from '../util';
 import { AsyncSubject } from 'rxjs';
 import { Convert } from '../../../../../lib/convert';
+import { computeDestinationPoint } from 'geolib';
+import { DarkTheme } from '../themes';
+
+const LightTheme = {
+  labelText: {
+    color: 'rgba(95, 95, 4, 1)'
+  }
+};
 
 // ** Freeboard Range Circles component **
 @Component({
@@ -33,6 +43,11 @@ export class RangeCirclesComponent implements OnInit, OnDestroy, OnChanges {
   protected layer: Layer;
   public source: VectorSource;
   protected features: Array<Feature>;
+  private theme = LightTheme;
+
+  protected darkMode = input<boolean>(false);
+  protected coords = input<Coordinate[]>();
+  protected cogTime = input<number>();
 
   /**
    * This event is triggered after the layer is initialized
@@ -42,8 +57,9 @@ export class RangeCirclesComponent implements OnInit, OnDestroy, OnChanges {
 
   @Input() position: Coordinate;
   @Input() minZoom: number;
-  @Input() zoomLevel: number;
+  @Input() mapZoom: number;
   @Input() units = 'm';
+
   @Input() opacity: number;
   @Input() visible: boolean;
   @Input() extent: Extent;
@@ -53,13 +69,15 @@ export class RangeCirclesComponent implements OnInit, OnDestroy, OnChanges {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   @Input() layerProperties: { [index: string]: any };
 
-  public mapifiedLine: Array<Coordinate> = [];
-
   constructor(
     protected changeDetectorRef: ChangeDetectorRef,
     protected mapComponent: MapComponent
   ) {
     this.changeDetectorRef.detach();
+    effect(() => {
+      this.theme = this.darkMode() ? DarkTheme : LightTheme;
+      this.parseValues();
+    });
   }
 
   ngOnInit() {
@@ -84,7 +102,7 @@ export class RangeCirclesComponent implements OnInit, OnDestroy, OnChanges {
       const properties: { [index: string]: any } = {};
 
       for (const key in changes) {
-        if (['position', 'zoomLevel', 'minZoom', 'units'].includes(key)) {
+        if (['position', 'mapZoom', 'minZoom', 'units'].includes(key)) {
           this.parseValues();
           if (this.source) {
             this.source.clear();
@@ -111,9 +129,9 @@ export class RangeCirclesComponent implements OnInit, OnDestroy, OnChanges {
 
   parseValues() {
     const map = this.mapComponent.getMap();
-    const zoomResolution = map.getView().getResolutionForZoom(this.zoomLevel);
+    const zoomResolution = map.getView().getResolutionForZoom(this.mapZoom);
     const fa: Feature[] = [];
-    if (this.zoomLevel >= this.minZoom) {
+    if (this.mapZoom >= this.minZoom) {
       const range =
         zoomResolution > 400
           ? 10000
@@ -126,51 +144,65 @@ export class RangeCirclesComponent implements OnInit, OnDestroy, OnChanges {
           : zoomResolution > 10
           ? 500
           : 250;
-      const st0 = this.buildStyle(range);
-      const st = this.buildStyle();
+      const st = this.buildCircleStyle();
       const qty = 4;
       for (let i = 1; i <= qty; ++i) {
+        const d = range * i;
         const f = new Feature({
           geometry: new Circle(
             fromLonLat(this.position),
-            mapifyRadius(range * i, this.position)
+            mapifyRadius(d, this.position)
           )
         });
-        f.setStyle(i === 1 ? st0 : st);
+        f.setStyle(st);
         fa.push(f);
+        // point for text display
+        const tp = computeDestinationPoint(this.position, d, 180);
+        const p = new Feature({
+          geometry: new Point(fromLonLat([tp.longitude, tp.latitude]))
+        });
+        p.setStyle(this.buildTextStyle(d));
+        fa.push(p);
       }
     }
     this.features = fa;
   }
 
   // build target style
-  buildStyle(value?: number): Style {
+  buildCircleStyle(): Style {
     let cs: Style;
     if (this.layerProperties && this.layerProperties.style) {
       cs = this.layerProperties.style;
     } else {
       // default style
       cs = new Style({
-        fill: new Fill({ color: 'rgba(255, 255, 255, 0)' }),
+        fill: new Fill({ color: 'transparent' }),
         stroke: new Stroke({
           color: 'rgba(152, 153, 10, 1)',
           width: 1.5,
           lineDash: [2, 3]
-        }),
-        text: new Text({
-          text: value ? this.formatLabel(value) : '',
-          offsetX: 45,
-          offsetY: 0,
-          stroke: new Stroke({ color: 'rgba(242, 197, 33, 1)' })
         })
       });
     }
     return cs;
   }
 
+  buildTextStyle(value: number) {
+    return new Style({
+      fill: new Fill({ color: 'rgba(255, 255, 255, 0)' }),
+      stroke: new Stroke({ color: 'rgba(255, 255, 255, 0)' }),
+      text: new Text({
+        text: value ? this.formatLabel(value) : '',
+        offsetX: 0,
+        offsetY: 0,
+        fill: new Fill({ color: this.theme.labelText.color })
+      })
+    });
+  }
+
   formatLabel(value: number): string {
     if (this.units === 'm') {
-      return value >= 1000 ? `${Math.floor(value / 1000)} km` : `${value} m`;
+      return value >= 1000 ? `${(value / 1000).toFixed(1)} km` : `${value} m`;
     } else {
       const nm = Convert.kmToNauticalMiles(value / 1000);
       return `${nm.toFixed(1)} NM`;

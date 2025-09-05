@@ -10,7 +10,8 @@ import {
   SimpleChanges,
   SimpleChange,
   input,
-  effect
+  effect,
+  signal
 } from '@angular/core';
 import { Layer } from 'ol/layer';
 import { Feature } from 'ol';
@@ -19,23 +20,32 @@ import VectorSource from 'ol/source/Vector';
 import { Style, Stroke, Fill, Circle, Text } from 'ol/style';
 import { StyleLike } from 'ol/style/Style';
 import { LineString, Point } from 'ol/geom';
-import { fromLonLat } from 'ol/proj';
 import { MapComponent } from '../map.component';
 import { Extent, Coordinate } from '../models';
 import { fromLonLatArray, mapifyCoords } from '../util';
 import { AsyncSubject } from 'rxjs';
+import { getDistance } from 'geolib';
+import { Convert } from 'src/app/lib/convert';
+import { DarkTheme } from '../themes';
 
-// ** Freeboard Bearing line component **
+const LightTheme = {
+  labelText: {
+    color: 'rgba(204, 12, 225, 0.7)'
+  }
+};
+
+// ** Freeboard COG line component **
 @Component({
-  selector: 'ol-map > fb-bearing-line',
+  selector: 'ol-map > fb-cog-line',
   template: '<ng-content></ng-content>',
   changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: false
 })
-export class BearingLineComponent implements OnInit, OnDestroy, OnChanges {
+export class CogLineComponent implements OnInit, OnDestroy, OnChanges {
   protected layer: Layer;
   public source: VectorSource;
   protected features: Array<Feature> = [];
+  private theme = LightTheme;
 
   /**
    * This event is triggered after the layer is initialized
@@ -43,15 +53,13 @@ export class BearingLineComponent implements OnInit, OnDestroy, OnChanges {
    */
   @Output() layerReady: AsyncSubject<Layer> = new AsyncSubject(); // AsyncSubject will only store the last value, and only publish it when the sequence is completed
 
-  protected vesselPosition = input<Coordinate>();
-  protected markerPosition = input<Coordinate>();
-  protected showMarker = input<boolean>();
+  protected coords = input<Coordinate[]>();
+  protected cogTime = input<number>();
+  protected units = input<'m' | 'ft'>('m');
   protected labelMinZoom = input<number>(10);
-  protected markerName = input<string>('');
+  protected darkMode = input<boolean>(false);
 
   @Input() mapZoom = 10;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  @Input() bearingStyles: { [key: string]: any };
   @Input() opacity: number;
   @Input() visible: boolean;
   @Input() extent: Extent;
@@ -61,8 +69,8 @@ export class BearingLineComponent implements OnInit, OnDestroy, OnChanges {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   @Input() layerProperties: { [index: string]: any };
 
-  public mapifiedRadius = 0;
-  public mapifiedLine: Array<Coordinate> = [];
+  private labelText = signal<string>('');
+  protected mapifiedLine: Array<Coordinate> = [];
 
   constructor(
     protected changeDetectorRef: ChangeDetectorRef,
@@ -70,10 +78,9 @@ export class BearingLineComponent implements OnInit, OnDestroy, OnChanges {
   ) {
     this.changeDetectorRef.detach();
     effect(() => {
-      this.markerPosition();
-      this.vesselPosition();
-      this.showMarker();
-      this.parseValues();
+      this.coords();
+      this.cogTime();
+      this.parseInput();
       if (this.source) {
         this.source.clear();
         this.source.addFeatures(this.features);
@@ -81,15 +88,18 @@ export class BearingLineComponent implements OnInit, OnDestroy, OnChanges {
     });
     effect(() => {
       this.labelMinZoom();
-      this.markerName();
       if (typeof this.mapZoom !== 'undefined') {
         this.updateLabel();
       }
     });
+    effect(() => {
+      this.theme = this.darkMode() ? DarkTheme : LightTheme;
+      this.updateLabel();
+    });
   }
 
   ngOnInit() {
-    this.parseValues();
+    this.parseInput();
     this.source = new VectorSource({ features: this.features });
     this.layer = new VectorLayer(
       Object.assign(this, { ...this.layerProperties })
@@ -131,79 +141,63 @@ export class BearingLineComponent implements OnInit, OnDestroy, OnChanges {
     }
   }
 
-  parseValues() {
+  parseInput() {
     const fa: Feature[] = [];
-    if (
-      Array.isArray(this.vesselPosition()) &&
-      Array.isArray(this.markerPosition())
-    ) {
-      this.mapifiedLine = mapifyCoords([
-        this.vesselPosition(),
-        this.markerPosition()
-      ]);
-      const fl = new Feature({
+    if (Array.isArray(this.coords()) && this.coords().length !== 0) {
+      this.mapifiedLine = mapifyCoords(this.coords());
+
+      this.labelText.update(() => {
+        return `${this.formatNumber(
+          getDistance(this.coords()[0], this.coords()[1])
+        )}  ${
+          this.cogTime() >= 60
+            ? this.cogTime() / 60 + 'hr'
+            : this.cogTime() + 'min'
+        }`;
+      });
+
+      const cog = new Feature({
         geometry: new LineString(fromLonLatArray(this.mapifiedLine))
       });
-      fl.setStyle(this.buildStyle('line'));
-      fa.push(fl);
-      let fp = new Feature({
-        geometry: new Point(fromLonLat(this.markerPosition()))
-      });
-      fp.setId('d.base');
-      fp.setStyle(this.buildStyle('line'));
-      this.updateLabel(fp);
-      fa.push(fp);
-      if (this.showMarker) {
-        fp = new Feature({
-          geometry: new Point(fromLonLat(this.markerPosition()))
+      cog.setId('cogSelf');
+      cog.setStyle((feature: Feature) => {
+        const color = 'rgba(204, 12, 225, 0.7)';
+        const geometry = feature.getGeometry() as LineString;
+        const styles = [];
+        styles.push(
+          new Style({
+            stroke: new Stroke({ color: color, width: 1 })
+          })
+        );
+        geometry.forEachSegment((start: Coordinate, end: Coordinate) => {
+          styles.push(
+            new Style({
+              geometry: new Point(end),
+              image: new Circle({
+                radius: 2,
+                stroke: new Stroke({
+                  color: color,
+                  width: 1
+                }),
+                fill: new Fill({ color: 'transparent' })
+              }),
+              text: this.buildLabelStyle()
+            })
+          );
         });
-        fp.setId('dest.point');
-        fp.setStyle(this.buildStyle('marker'));
-        fa.push(fp);
-      }
+        return styles;
+      });
+      fa.push(cog);
     }
     this.features = fa;
   }
 
-  // build target style
-  buildStyle(key: string): Style | Style[] {
-    if (this.bearingStyles && this.bearingStyles[key]) {
-      return this.bearingStyles[key];
+  formatNumber(value: number): string {
+    if (this.units() === 'm') {
+      return value >= 1000 ? `${(value / 1000).toFixed(1)} km` : `${value} m`;
     } else {
-      if (this.layerProperties && this.layerProperties.style) {
-        return this.layerProperties.style;
-      } else {
-        // default style
-        return [
-          new Style({
-            stroke: new Stroke({
-              color: 'white',
-              width: 6
-            })
-          }),
-          new Style({
-            image: new Circle({
-              radius: 5,
-              stroke: new Stroke({
-                width: 2,
-                color: 'white'
-              }),
-              fill: new Fill({
-                color: 'rgba(221, 149, 0, 1)'
-              })
-            }),
-            stroke: new Stroke({
-              color: 'rgba(221, 149, 0, 1)',
-              width: 2
-            }),
-            text: new Text({
-              text: '',
-              offsetX: 0,
-              offsetY: -29
-            })
-          })
-        ];
-      }
+      const nm = Convert.kmToNauticalMiles(value / 1000);
+      return `${nm.toFixed(1)} NM`;
     }
   }
 
@@ -226,24 +220,26 @@ export class BearingLineComponent implements OnInit, OnDestroy, OnChanges {
   // update feature labels
   updateLabel(f?: Feature) {
     if (!f && this.source) {
-      f = this.source.getFeatureById('d.base') as Feature;
+      f = this.source.getFeatureById('cogSelf') as Feature;
     }
     let s: StyleLike = f.getStyle();
     if (!s) {
       return;
     }
     s = Array.isArray(s) ? s[1] : s;
-
-    const ts = (s as Style).getText();
-    if (!ts) {
-      return;
-    }
-    ts.setText(
-      Math.abs(this.mapZoom) >= this.labelMinZoom()
-        ? this.markerName() ?? ''
-        : ''
-    );
-    (s as Style).setText(ts);
+    (s as Style).setText(this.buildLabelStyle());
     f.setStyle(s);
+  }
+
+  buildLabelStyle() {
+    return new Text({
+      text:
+        Math.abs(this.mapZoom) >= this.labelMinZoom()
+          ? this.labelText() ?? ''
+          : '',
+      offsetX: 0,
+      offsetY: -10,
+      fill: new Fill({ color: this.theme.labelText.color })
+    });
   }
 }

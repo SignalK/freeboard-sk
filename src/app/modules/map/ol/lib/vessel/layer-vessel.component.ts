@@ -13,7 +13,7 @@ import { Layer } from 'ol/layer';
 import { Feature } from 'ol';
 import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
-import { Style, RegularShape, Fill, Stroke, Circle, Icon } from 'ol/style';
+import { Style, Stroke, Icon } from 'ol/style';
 import { Geometry, Point, LineString } from 'ol/geom';
 import { fromLonLat } from 'ol/proj';
 import { MapComponent } from '../map.component';
@@ -80,7 +80,6 @@ export class VesselComponent implements OnInit, OnDestroy, OnChanges {
   @Input() heading = 0;
   @Input() vesselStyles: { [key: string]: Style };
   @Input() vesselLines: { [key: string]: Array<Coordinate> };
-  @Input() showWind = false;
   @Input() fixedLocation: boolean;
   @Input() iconScale = 1;
   @Input() opacity: number;
@@ -93,10 +92,7 @@ export class VesselComponent implements OnInit, OnDestroy, OnChanges {
   @Input() layerProperties: { [index: string]: any };
 
   vessel: Feature;
-  twdLine: Feature;
-  awaLine: Feature;
   headingLine: Feature;
-  cogLine: Feature;
   selfStyle: Style;
 
   constructor(
@@ -115,15 +111,6 @@ export class VesselComponent implements OnInit, OnDestroy, OnChanges {
     this.renderVesselLines();
     if (this.headingLine) {
       fa.push(this.headingLine);
-    }
-    if (this.twdLine) {
-      fa.push(this.twdLine);
-    }
-    if (this.awaLine) {
-      fa.push(this.awaLine);
-    }
-    if (this.cogLine) {
-      fa.push(this.cogLine);
     }
 
     this.source = new VectorSource({ features: fa });
@@ -155,7 +142,7 @@ export class VesselComponent implements OnInit, OnDestroy, OnChanges {
           if (this.source) {
             this.parseVessel();
           }
-        } else if (key === 'vesselLines' || key === 'showWind') {
+        } else if (key === 'vesselLines') {
           if (this.source) {
             this.renderVesselLines();
           }
@@ -289,63 +276,6 @@ export class VesselComponent implements OnInit, OnDestroy, OnChanges {
       );
     } else {
       this.removeFeature(this.headingLine);
-    }
-    if ('twd' in this.vesselLines) {
-      this.twdLine = this.updateLine(this.twdLine, this.vesselLines.twd);
-      this.twdLine.setStyle(
-        new Style({
-          stroke: new Stroke({
-            color: `rgb(128, 128, 0, ${this.showWind ? 1 : 0})`,
-            width: 2
-          })
-        })
-      );
-    } else {
-      this.removeFeature(this.twdLine);
-    }
-    if ('awa' in this.vesselLines) {
-      this.awaLine = this.updateLine(this.awaLine, this.vesselLines.awa);
-      this.awaLine.setStyle(
-        new Style({
-          stroke: new Stroke({
-            color: `rgb(16, 75, 16, ${this.showWind ? 1 : 0})`,
-            width: 1
-          })
-        })
-      );
-    } else {
-      this.removeFeature(this.awaLine);
-    }
-    if ('cog' in this.vesselLines) {
-      this.cogLine = this.updateLine(this.cogLine, this.vesselLines.cog);
-      this.cogLine.setStyle((feature: Feature) => {
-        const color = 'rgba(204, 12, 225, 0.7)';
-        const geometry = feature.getGeometry() as LineString;
-        const styles = [];
-        styles.push(
-          new Style({
-            stroke: new Stroke({ color: color, width: 1 })
-          })
-        );
-        geometry.forEachSegment((start: Coordinate, end: Coordinate) => {
-          styles.push(
-            new Style({
-              geometry: new Point(end),
-              image: new Circle({
-                radius: 2,
-                stroke: new Stroke({
-                  color: color,
-                  width: 1
-                }),
-                fill: new Fill({ color: 'transparent' })
-              })
-            })
-          );
-        });
-        return styles;
-      });
-    } else {
-      this.removeFeature(this.cogLine);
     }
   }
 

@@ -128,8 +128,51 @@ import { AutopilotService } from './autopilot.service';
               </div>
             </div>
 
-            @if(apData().mode === 'dodge') {
             <div class="button-bar">
+              <div style="width:50%;">
+                @if(stateOptions().length > 2) {
+                <button
+                  class="button-primary"
+                  style="max-width:100px;"
+                  mat-raised-button
+                  [matMenuTriggerFor]="statemenu"
+                  [disabled]="noPilot()"
+                  [ngClass]="{
+                    'button-warn': apData().enabled,
+                    'button-primary': !apData().enabled,
+                  }"
+                >
+                  <div
+                    style="white-space: pre;text-overflow: ellipsis;overflow: hidden;max-width:90px;"
+                    [innerText]="formatLabel(apData().state)"
+                  ></div>
+                </button>
+                } @else {
+                <mat-slide-toggle
+                  [checked]="apData().enabled"
+                  [disabled]="noPilot()"
+                  (toggleChange)="toggleEngaged()"
+                  [matTooltip]="apData().enabled ? 'Disengage' : 'Engage'"
+                ></mat-slide-toggle>
+                }
+              </div>
+
+              <div>
+                @if(modeOptions().length !== 0) {
+                <button
+                  class="button-secondary"
+                  mat-raised-button
+                  [matMenuTriggerFor]="modemenu"
+                  [disabled]="noPilot() || modeOptions().length === 0"
+                >
+                  Mode
+                </button>
+                }
+              </div>
+            </div>
+
+            @if(apData().mode === 'dodge') {
+            <div class="button-bar-thin">
               <div style="width:50%;">
                 <button
                   class="button-secondary"
@@ -177,7 +220,7 @@ import { AutopilotService } from './autopilot.service';
               </div>
             </div>
             } @else {
-            <div class="button-bar">
+            <div class="button-bar-thin">
               <div style="width:50%;">
                 <button
                   class="button-secondary"
@@ -227,55 +270,8 @@ import { AutopilotService } from './autopilot.service';
             }
 
             <div class="button-bar-thin">
-              <div style="width:50%;">
-                @if(stateOptions().length > 2) {
-                <button
-                  class="button-primary"
-                  style="max-width:100px;"
-                  mat-raised-button
-                  [matMenuTriggerFor]="statemenu"
-                  [disabled]="
-                    !app.featureFlags().autopilotApi ||
-                    !apData().default ||
-                    apData().state === 'off-line' ||
-                    !apData().state
-                  "
-                  [ngClass]="{
-                    'button-warn': apData().enabled,
-                    'button-primary': !apData().enabled,
-                  }"
-                >
-                  <div
-                    style="white-space: pre;text-overflow: ellipsis;overflow: hidden;max-width:90px;"
-                    [innerText]="formatLabel(apData().state)"
-                  ></div>
-                </button>
-                } @else {
-                <mat-slide-toggle
-                  [checked]="apData().enabled"
-                  [disabled]="noPilot()"
-                  (toggleChange)="toggleEngaged()"
-                  [matTooltip]="apData().enabled ? 'Disengage' : 'Engage'"
-                ></mat-slide-toggle>
-                }
-              </div>
-
-              <div>
-                @if(modeOptions().length !== 0) {
-                <button
-                  class="button-secondary"
-                  mat-raised-button
-                  [matMenuTriggerFor]="modemenu"
-                  [disabled]="noPilot() || modeOptions().length === 0"
-                >
-                  Mode
-                </button>
-                }
-              </div>
-            </div>
-
-            <div class="button-bar-thin">
               <div style="text-align:center;width:100%;">
+                @if(dodgeAction()) {
                 <button
                   [ngClass]="{
                     'button-accent': apData().mode === 'dodge',
@@ -287,6 +283,7 @@ import { AutopilotService } from './autopilot.service';
                 >
                   Dodge
                 </button>
+                }
               </div>
             </div>
           </div>
@@ -311,6 +308,7 @@ export class AutopilotComponent {
     state?: string;
     target?: number;
     enabled?: boolean;
+    availableActions?: string[];
   }>({});
 
   protected noPilot = computed(() => {
@@ -322,11 +320,11 @@ export class AutopilotComponent {
     );
   });
 
-  constructor(
-    protected app: AppFacade,
-    private signalk: SignalKClient,
-    protected autopilot: AutopilotService
-  ) {
+  protected dodgeAction = computed(() => {
+    return this.apData().availableActions?.includes('dodge');
+  });
+
+  constructor(protected app: AppFacade, protected autopilot: AutopilotService) {
     this.autopilotApiPath = 'vessels/self/autopilots/_default';
     effect(() => {
       if (this.apData().default !== this.currentPilot) {
@@ -361,15 +359,6 @@ export class AutopilotComponent {
       this.app.showMessage('No autopilot providers found!');
     }
   }
-
-  /*noPilot(): boolean {
-    return (
-      !this.app.featureFlags().autopilotApi ||
-      !this.apData().default ||
-      !this.apData().state ||
-      this.apData().state === 'off-line'
-    );
-  }*/
 
   /** engage / disengage the pilot */
   protected async toggleEngaged() {

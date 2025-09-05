@@ -151,7 +151,7 @@ export class AISVesselsLayerComponent extends AISBaseLayerComponent {
 
     const icon =
       target.id === this.focusId
-        ? this.mapImages.getVessel('focus')
+        ? this.mapImages.getVessel('focused')
         : setStale
         ? this.mapImages.getVessel('inactive', isMoored)
         : target.buddy

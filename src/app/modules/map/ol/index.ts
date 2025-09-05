@@ -43,6 +43,8 @@ import { AISTargetsLayerComponent } from './lib/resources/layer-aistargets.compo
 import { AISVesselsLayerComponent } from './lib/resources/layer-aisvessels.component';
 import { AISTargetsTrackLayerComponent } from './lib/resources/layer-aistargets-track.component';
 import { RangeCirclesComponent } from './lib/navigation/layer-range-circles.component';
+import { CogLineComponent } from './lib/navigation/layer-cog-line.component';
+import { WindLinesComponent } from './lib/navigation/layer-wind-lines.component';
 
 export * from './lib/util';
 export { MapService } from './lib/map.service';
@@ -88,6 +90,8 @@ export { AISTargetsLayerComponent } from './lib/resources/layer-aistargets.compo
 export { AISVesselsLayerComponent } from './lib/resources/layer-aisvessels.component';
 export { AISTargetsTrackLayerComponent } from './lib/resources/layer-aistargets-track.component';
 export { RangeCirclesComponent } from './lib/navigation/layer-range-circles.component';
+export { CogLineComponent } from './lib/navigation/layer-cog-line.component';
+export { WindLinesComponent } from './lib/navigation/layer-wind-lines.component';
 
 const declarations = [
   ContentComponent,
@@ -126,7 +130,9 @@ const declarations = [
   AISTargetsLayerComponent,
   AISVesselsLayerComponent,
   AISTargetsTrackLayerComponent,
-  RangeCirclesComponent
+  RangeCirclesComponent,
+  CogLineComponent,
+  WindLinesComponent
 ];
 
 @NgModule({

@@ -1,15 +1,19 @@
 # CHANGELOG: Freeboard
 
-### v2.17.0-beta.2
+### v2.17.0
 
-- **New**: Display range circles around the vessel. (#280)
+- **New**: Display range circles around the focused vessel. (#280)
 - **New**: Apply configurable offset when in "moving map" mode or centering the vessel to display 
 more map in front of the vessel. (#285)
 - **New**: Configurable action button that is persisted on bottom right of screen (waypoint at vessel, Person Overboard).
 - **New**: Added settings to define the Arrival Circle Radius value that is sent when setting a destination or activating a route.
+- **Updated**: COG line to display distance and time (#290)
+- **Updated**: Support for Autopilot API `availableActions`.
 - **Fix**: Issue where `navigation.course.arrivalCircle` path was not being processed.
 - **Fix**: Issue where trail not being displayed in Trail-to-Route screen.
+- **Fix**: Issue where correct icon for focused vessel was not being displayed.
 - **Fix**: Issue fixed vessel position would not accept negative values. (#289)
+- **Fix**: Ship name was not displayed in "pop-over". (#292)
 - **Removed**: Support for v1 chart resources (api path and metadata) has been removed.
 
 

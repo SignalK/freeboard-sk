@@ -241,10 +241,10 @@ export class VesselPopoverComponent {
       }
       this.isFlagged = this.app.data.vessels.flagged.includes(this.vessel.id);
       this._title =
-        this.title ||
-        this.vessel.name ||
-        this.vessel.mmsi ||
-        this.vessel.callsignVhf ||
+        this.title ??
+        this.vessel.name ??
+        this.vessel.mmsi ??
+        this.vessel.callsignVhf ??
         this.vessel.callsignHf;
       ('Vessel:');
       this.position = [

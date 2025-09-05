@@ -23,7 +23,8 @@ export const VesselAisIcons: AppIconSet = {
     'ais_other.svg',
     'ais_passenger.svg',
     'ais_special.svg',
-    'ais_tanker.svg'
+    'ais_tanker.svg',
+    'ais_self.svg'
   ]
 };
 

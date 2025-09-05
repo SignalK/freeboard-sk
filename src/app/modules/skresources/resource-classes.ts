@@ -196,7 +196,14 @@ class SKTargetBase {
 export class SKVessel extends SKTargetBase {
   // stream sourced attributes
   anchor = { maxRadius: null, radius: null, position: null };
-  autopilot: { [key: string]: any } = {};
+  autopilot = {
+    state: null,
+    mode: null,
+    target: null,
+    enabled: false,
+    default: null,
+    availableActions: []
+  };
   buddy = false;
   cog: number;
   cogTrue: number = null;

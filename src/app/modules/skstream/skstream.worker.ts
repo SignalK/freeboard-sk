@@ -900,6 +900,11 @@ function processVessel(d: SKVessel, v: any, isSelf = false) {
   } else if (v.path === 'steering.autopilot.defaultPilot') {
     d.autopilot.default = v.value;
     apDeviceId = v.value;
+  } else if (
+    v.path === 'steering.autopilot.availableActions' &&
+    $source === apDeviceId
+  ) {
+    d.autopilot.availableActions = v.value ?? [];
   }
 
   // ** cog **

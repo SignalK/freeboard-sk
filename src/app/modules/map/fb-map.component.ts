@@ -176,13 +176,9 @@ export class FBMapComponent implements OnInit, OnDestroy {
   }>({ port: [], starboard: [] });
   protected perfTargetAngle = signal<LineString>([]);
   protected vesselLines = signal<{
-    twd: LineString;
-    awa: LineString;
     cog: LineString;
     heading: LineString;
   }>({
-    twd: [],
-    awa: [],
     cog: [],
     heading: []
   });
@@ -1052,7 +1048,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
       content: [],
       id: null,
       type: null,
-      title: '',
+      title: null,
       featureCount: this.mapInteract.draw.features?.getLength(),
       position: coord,
       readOnly: false,
@@ -1365,37 +1361,9 @@ export class FBMapComponent implements OnInit, OnDestroy {
         )
       ];
 
-      let aws = this.dfeat.active.wind.aws || 0;
-      if (aws > wMax) {
-        aws = wMax;
-      }
-      const awa = [
-        this.dfeat.active.position,
-        GeoUtils.destCoordinate(
-          this.dfeat.active.position,
-          this.dfeat.active.wind.awa + this.dfeat.active.orientation,
-          typeof this.dfeat.active.orientation === 'number' ? aws * offset : 0
-        )
-      ];
-
-      let tws = this.dfeat.active.wind.tws || 0;
-      if (tws > wMax) {
-        tws = wMax;
-      }
-      const twd = [
-        this.dfeat.active.position,
-        GeoUtils.destCoordinate(
-          this.dfeat.active.position,
-          this.dfeat.active.wind.direction || 0,
-          typeof this.dfeat.active.orientation === 'number' ? tws * offset : 0
-        )
-      ];
-
       return {
         cog: cog,
-        heading: heading,
-        awa: awa,
-        twd: twd
+        heading: heading
       };
     });
   }
