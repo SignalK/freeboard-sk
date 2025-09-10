@@ -195,7 +195,6 @@ export interface IAppConfig {
 }
 
 export interface FBAppData {
-  n2kRoute: FBRoute /** @deprecated @todo */;
   loginRequired: boolean;
   chartBounds: {
     show: boolean;
@@ -235,12 +234,6 @@ export interface FBAppData {
   atons: Map<string, SKAtoN>; // received AIS AtoN data
   sar: Map<string, SKSaR>; // received AIS SaR data
   meteo: Map<string, SKMeteo>; // received AIS Meteo data
-  aisMgr: {
-    // manage aisTargets
-    updateList: string[];
-    staleList: string[];
-    removeList: string[];
-  };
   racing: {
     startLine: LineString;
   };

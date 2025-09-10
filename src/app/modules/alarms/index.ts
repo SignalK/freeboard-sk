@@ -4,4 +4,4 @@ export * from './components/alert.component';
 export * from './components/alert-properties-modal';
 
 export * from './components/anchor-watch.component';
-export * from './anchor.facade';
+export * from './anchor.service';

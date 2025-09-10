@@ -350,24 +350,6 @@ export class CourseService {
         }
       } else {
         this.app.data.activeRoute = null;
-        /** @todo Remediate Non-signal k source (n2k) route points. */
-        /*if (value.activeRoute.waypoints) {
-          const n2kRoute = new SKRoute();
-          n2kRoute.name = value.activeRoute?.name ?? 'From NMEA2000';
-          n2kRoute.description = 'Route from NMEA2000 source';
-          n2kRoute.feature.geometry.coordinates =
-            value.activeRoute?.waypoints.map((pt) => {
-              return [pt.position.longitude, pt.position.latitude];
-            });
-          const c = n2kRoute.feature.geometry.coordinates;
-          n2kRoute.feature.geometry.coordinates = c;
-          n2kRoute.distance = GeoUtils.routeLength(
-            n2kRoute.feature.geometry.coordinates
-          );
-          this.app.data.n2kRoute = ['n2k', n2kRoute, true];
-        } else {
-          this.app.data.n2kRoute = null;
-        }*/
       }
     }
     this._courseData.update(() => c);

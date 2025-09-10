@@ -473,7 +473,6 @@ export function defaultConfig(): IAppConfig {
 // initialise state data
 export function initData(): FBAppData {
   return {
-    n2kRoute: null,
     loginRequired: false,
     chartBounds: {
       show: false,
@@ -511,12 +510,6 @@ export function initData(): FBAppData {
     atons: new Map(), // received AIS AtoN data
     sar: new Map(), // received AIS SaR data
     meteo: new Map(), // received AIS Meteo data
-    aisMgr: {
-      // manage aisTargets
-      updateList: [],
-      staleList: [],
-      removeList: []
-    },
     racing: {
       startLine: []
     }

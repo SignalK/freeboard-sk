@@ -9,7 +9,7 @@ import { Position } from 'src/app/types';
 import { SKStreamFacade } from '../skstream/skstream.facade';
 
 @Injectable({ providedIn: 'root' })
-export class AnchorFacade {
+export class AnchorService {
   // **************** ATTRIBUTES ***************************
   private raisedSignal = signal<boolean>(true);
   readonly raised = this.raisedSignal.asReadonly();

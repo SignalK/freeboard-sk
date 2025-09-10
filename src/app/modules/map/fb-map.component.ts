@@ -57,7 +57,7 @@ import {
   SKSaR,
   SKMeteo,
   SKStreamFacade,
-  AnchorFacade,
+  AnchorService,
   NotificationManager,
   CourseService,
   SettingsFacade
@@ -232,13 +232,6 @@ export class FBMapComponent implements OnInit, OnDestroy {
     closest: []
   };
 
-  // ** AIS target management
-  protected aisMgr = {
-    updateList: [],
-    staleList: [],
-    removeList: []
-  };
-
   private saveTimer;
   private isDirty = false;
 
@@ -256,7 +249,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
     protected skres: SKResourceService,
     protected skresOther: SKOtherResources,
     protected skstream: SKStreamFacade,
-    protected anchor: AnchorFacade,
+    protected anchor: AnchorService,
     protected notiMgr: NotificationManager,
     protected course: CourseService,
     protected mapInteract: FBMapInteractService,
@@ -421,7 +414,6 @@ export class FBMapComponent implements OnInit, OnDestroy {
     };
 
     this.dfeat.closest = parseClosest();
-    this.aisMgr = this.app.data.aisMgr;
 
     // ** update vessel on map **
     if (this.dfeat.self.positionReceived) {
@@ -930,15 +922,8 @@ export class FBMapComponent implements OnInit, OnDestroy {
           case 'route':
             icon = 'route'; //'directions';
             addToFeatureList = true;
-            /** @todo n2kroute */
-            if (t[1] === 'n2k') {
-              text = this.app.data.n2kRoute
-                ? this.app.data.n2kRoute[1].name
-                : '';
-            } else {
-              const r = this.skres.fromCache('routes', t[1]);
-              text = r[1].name;
-            }
+            const r = this.skres.fromCache('routes', t[1]);
+            text = r[1].name;
             break;
           case 'waypoint':
             icon = 'location_on';
@@ -1177,12 +1162,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
         }
         break;
       case 'route':
-        /** @todo n2k route */
-        if (t[1] === 'n2k') {
-          item = [this.app.data.n2kRoute];
-        } else {
-          item = [this.skres.fromCache('routes', t[1])];
-        }
+        item = [this.skres.fromCache('routes', t[1])];
         if (!item) {
           return false;
         }

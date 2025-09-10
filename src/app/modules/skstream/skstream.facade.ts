@@ -50,6 +50,17 @@ export class SKStreamFacade {
   private nightModeSignal = signal<boolean>(false);
   readonly selfNightMode = this.nightModeSignal.asReadonly();
 
+  private aisLifecycle = signal<{
+    updated: string[];
+    stale: string[];
+    expired: string[];
+  }>({
+    updated: [],
+    stale: [],
+    expired: []
+  });
+  readonly aisStatus = this.aisLifecycle.asReadonly();
+
   constructor(
     private app: AppFacade,
     private signalk: SignalKClient,
@@ -252,6 +263,19 @@ export class SKStreamFacade {
     });
   }
 
+  /**
+   * Refresh the aisLifecycle().updated list.
+   */
+  aisTargetUpdated() {
+    const av = [];
+    this.app.data.vessels.aisTargets.forEach((v, k) => {
+      av.push(k);
+    });
+    this.aisLifecycle.update((current) => {
+      return Object.assign({}, current, { updated: av });
+    });
+  }
+
   // ** process selfTrail message from worker and emit trail$ **
   private parseSelfTrail(msg: TrailMessage) {
     if (msg.result) {
@@ -293,13 +317,17 @@ export class SKStreamFacade {
       // process Aircraft
       this.app.data.aircraft = msg.result.aircraft;
 
-      // processAIS
-      this.app.data.aisMgr.updateList = msg.result.aisStatus.updated;
-      this.app.data.aisMgr.staleList = msg.result.aisStatus.stale;
-      this.app.data.aisMgr.removeList = msg.result.aisStatus.expired;
+      // update AIS Lifecycle signal
+      this.aisLifecycle.update(() => {
+        return {
+          updated: msg.result.aisStatus.updated,
+          stale: msg.result.aisStatus.stale,
+          expired: msg.result.aisStatus.expired
+        };
+      });
 
       // process AIS tracks
-      this.app.data.aisMgr.updateList.forEach((id) => {
+      this.aisLifecycle().updated.forEach((id) => {
         const v =
           id.indexOf('aircraft') !== -1
             ? this.app.data.aircraft.get(id)
@@ -308,7 +336,7 @@ export class SKStreamFacade {
           this.app.data.vessels.aisTracks.set(id, v.track);
         }
       });
-      this.app.data.aisMgr.removeList.forEach((id) => {
+      this.aisLifecycle().expired.forEach((id) => {
         this.app.data.vessels.aisTracks.delete(id);
       });
 

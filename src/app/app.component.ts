@@ -22,7 +22,7 @@ import {
   SKStreamFacade,
   SKSTREAM_MODE,
   StreamOptions,
-  AnchorFacade,
+  AnchorService,
   SKResourceService,
   SKVessel,
   SKSaR,
@@ -169,7 +169,7 @@ export class AppComponent {
   constructor(
     protected app: AppFacade,
     protected mapInteract: FBMapInteractService,
-    protected anchor: AnchorFacade,
+    protected anchor: AnchorService,
     protected notiMgr: NotificationManager,
     protected course: CourseService,
     protected stream: SKStreamFacade,
@@ -1212,7 +1212,7 @@ export class AppComponent {
   protected toggleAisTargets() {
     this.app.config.ui.showAisTargets = !this.app.config.ui.showAisTargets;
     if (this.app.config.ui.showAisTargets) {
-      this.processAIS(true);
+      this.stream.aisTargetUpdated();
     }
     this.app.saveConfig();
   }
@@ -1435,19 +1435,6 @@ export class AppComponent {
         };
         reader.readAsText(e.dataTransfer.files[0]);
       }
-    }
-  }
-
-  // ** process / cleanup AIS targets
-  protected processAIS(toggled?: boolean) {
-    if (!this.app.config.ui.showAisTargets && !toggled) {
-      return;
-    }
-    if (toggled) {
-      // ** re-populate list after hide
-      this.app.data.vessels.aisTargets.forEach((v, k) => {
-        this.app.data.aisMgr.updateList.push(k);
-      });
     }
   }
 

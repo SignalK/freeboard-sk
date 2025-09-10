@@ -31,7 +31,7 @@ import { NSEWButtonsComponent } from './nsew-buttons.component';
 
 import { computeDestinationPoint } from 'geolib';
 
-import { AnchorFacade } from '../anchor.facade';
+import { AnchorService } from '../anchor.service';
 import { AppFacade } from 'src/app/app.facade';
 import { SignalKClient } from 'signalk-client-angular';
 import { HttpErrorResponse } from '@angular/common/http';
@@ -80,7 +80,7 @@ export class AnchorWatchComponent {
   protected disableRaiseDrop: boolean;
 
   constructor(
-    private anchor: AnchorFacade,
+    private anchor: AnchorService,
     private app: AppFacade,
     private signalk: SignalKClient
   ) {}
