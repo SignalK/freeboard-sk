@@ -8,6 +8,7 @@ import {
 import { IRouter, Application, Request, Response } from 'express';
 import { initAlarms } from './alarms/alarms';
 
+/** @deprecated */
 import {
   WEATHER_POLL_INTERVAL,
   WEATHER_CONFIG,
@@ -21,6 +22,7 @@ const defaultPollInterval = 60;
 
 const CONFIG_SCHEMA = {
   properties: {
+    /** @deprecated */
     weather: {
       type: 'object',
       title: 'Weather API.',
@@ -60,6 +62,7 @@ const CONFIG_SCHEMA = {
 };
 
 const CONFIG_UISCHEMA = {
+  /** @deprecated */
   weather: {
     enable: {
       'ui:widget': 'checkbox',
@@ -85,6 +88,7 @@ const CONFIG_UISCHEMA = {
 interface SETTINGS {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   alarms: { [key: string]: any };
+  /** @deprecated */
   weather: WEATHER_CONFIG;
 }
 
@@ -103,6 +107,7 @@ module.exports = (server: FreeboardHelperApp): Plugin => {
     alarms: {
       enable: true
     },
+    /** @deprecated */
     weather: {
       enable: false,
       apiVersion: 3,

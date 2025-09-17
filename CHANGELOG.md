@@ -1,5 +1,10 @@
 # CHANGELOG: Freeboard
 
+### v2.18.0
+- **Fix**: Exception thrown when rendering COG line label when zoom level threshold crossed. (#293)
+- **Updated**: AIS marker icons. (#286)
+- **Deprecation**: Built-in weather service is now flagged as deprecated and will be removed in an upcoming release.
+
 ### v2.17.0
 
 - **New**: Display range circles around the focused vessel. (#280)

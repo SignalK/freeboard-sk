@@ -46,8 +46,6 @@ export class RangeCirclesComponent implements OnInit, OnDestroy, OnChanges {
   private theme = LightTheme;
 
   protected darkMode = input<boolean>(false);
-  protected coords = input<Coordinate[]>();
-  protected cogTime = input<number>();
 
   /**
    * This event is triggered after the layer is initialized
@@ -131,22 +129,22 @@ export class RangeCirclesComponent implements OnInit, OnDestroy, OnChanges {
     const map = this.mapComponent.getMap();
     const zoomResolution = map.getView().getResolutionForZoom(this.mapZoom);
     const fa: Feature[] = [];
+    const maxCircles = 10;
     if (this.mapZoom >= this.minZoom) {
       const range =
-        zoomResolution > 400
+        zoomResolution > 300
           ? 10000
-          : zoomResolution > 130
+          : zoomResolution > 100
           ? 5000
-          : zoomResolution > 60
+          : zoomResolution > 40
           ? 2000
-          : zoomResolution > 25
+          : zoomResolution > 20
           ? 1000
           : zoomResolution > 10
           ? 500
           : 250;
       const st = this.buildCircleStyle();
-      const qty = 4;
-      for (let i = 1; i <= qty; ++i) {
+      for (let i = 1; i <= maxCircles; ++i) {
         const d = range * i;
         const f = new Feature({
           geometry: new Circle(

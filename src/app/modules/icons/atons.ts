@@ -3,10 +3,9 @@
 import { AppIconSet } from './app.icons';
 import { MapIconDef } from '../map/ol/lib/map-image-registry.service';
 
-const AtoNsReal: AppIconSet = {
+const AtoNsType1: AppIconSet = {
   path: './assets/img/atons',
   files: [
-    'real-aton.svg',
     'real-north.svg',
     'real-south.svg',
     'real-east.svg',
@@ -14,17 +13,7 @@ const AtoNsReal: AppIconSet = {
     'real-port.svg',
     'real-starboard.svg',
     'real-danger.svg',
-    'real-safe.svg',
-    'real-special.svg'
-  ],
-  scale: 0.4,
-  anchor: [23, 49]
-};
-
-const AtoNsVirtual: AppIconSet = {
-  path: './assets/img/atons',
-  files: [
-    'virtual-aton.svg',
+    'real-special.svg',
     'virtual-north.svg',
     'virtual-south.svg',
     'virtual-east.svg',
@@ -32,8 +21,19 @@ const AtoNsVirtual: AppIconSet = {
     'virtual-port.svg',
     'virtual-starboard.svg',
     'virtual-danger.svg',
-    'virtual-safe.svg',
     'virtual-special.svg'
+  ],
+  scale: 0.4,
+  anchor: [23, 72]
+};
+
+const AtoNsType2: AppIconSet = {
+  path: './assets/img/atons',
+  files: [
+    'real-aton.svg',
+    'real-safe.svg',
+    'virtual-aton.svg',
+    'virtual-safe.svg'
   ],
   scale: 0.4,
   anchor: [23, 49]
@@ -85,8 +85,8 @@ export const getAtoNDefs = () => {
       };
     });
   };
-  addToList(AtoNsReal);
-  addToList(AtoNsVirtual);
+  addToList(AtoNsType1);
+  addToList(AtoNsType2);
   atonList['real']['weatherStation'] = WeatherStation;
   atonList['virtual']['weatherStation'] = WeatherStation;
   return atonList;

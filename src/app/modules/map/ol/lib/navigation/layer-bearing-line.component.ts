@@ -228,22 +228,26 @@ export class BearingLineComponent implements OnInit, OnDestroy, OnChanges {
     if (!f && this.source) {
       f = this.source.getFeatureById('d.base') as Feature;
     }
-    let s: StyleLike = f.getStyle();
-    if (!s) {
+    if (!f) {
       return;
     }
-    s = Array.isArray(s) ? s[1] : s;
-
-    const ts = (s as Style).getText();
-    if (!ts) {
-      return;
-    }
-    ts.setText(
-      Math.abs(this.mapZoom) >= this.labelMinZoom()
-        ? this.markerName() ?? ''
-        : ''
-    );
-    (s as Style).setText(ts);
-    f.setStyle(s);
+    try {
+      let s: StyleLike = f.getStyle();
+      if (!s) {
+        return;
+      }
+      s = Array.isArray(s) ? s[1] : s;
+      const ts = (s as Style).getText();
+      if (!ts) {
+        return;
+      }
+      ts?.setText(
+        Math.abs(this.mapZoom) >= this.labelMinZoom()
+          ? this.markerName() ?? ''
+          : ''
+      );
+      (s as Style).setText(ts);
+      f.setStyle(s);
+    } catch (err) {}
   }
 }

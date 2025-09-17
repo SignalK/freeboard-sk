@@ -18,5 +18,6 @@ tsconfig-helper.json
 tsconfig.spec.json
 tsconfig.worker.json
 webpack.config.js
+CHANGELOG.md
 .angular
 .github

@@ -1,38 +1,16 @@
 const WHATS_NEW = [
   {
     type: 'signalk-server-node',
-    title: 'New in this Release',
+    title: 'Deprecation Notice',
     message: `
-        <b>Display Range Circles</b>
+        <b>Weather Service</b>
         <br>&nbsp;<br>
-        Added setting to display range circles around the vessel.
+        With the recent release of the Weather API in Signal K server v2.16.0
+        the built-in weather service is now deprecated and will be removed in an
+        upcoming release.
         <br>&nbsp;<br>
-        Go to <i>Settings | Vessels</i> to enable this feature.
-      `
-  },
-  {
-    type: 'signalk-server-node',
-    title: 'New in this Release',
-    message: `
-        <b>Action Button</b>
-        <br>&nbsp;<br>
-        Added a configurable action button to lower right of screen.
-        <br>&nbsp;<br>
-        Select between Waypoint at Vessel, Person Overboard & Autopilot console.
-        <br>&nbsp;<br>
-        Go to <i>Settings | Display</i> to configure this feature.
-      `
-  },
-  {
-    type: 'signalk-server-node',
-    title: 'New in this Release',
-    message: `
-        <b>Offset Vessel Center</b>
-        <br>&nbsp;<br>
-        Added setting to allow the vessel to be offset below the map center when in 
-        Moving Map mode. This maximises the area of map displayed ahead of the vessel.
-        <br>&nbsp;<br>
-        Go to <i>Settings | Map</i> to enable this feature.
+        See <a href="assets/help/index.html" target="help">HELP</a> 
+        for more details.
       `
   }
 ];

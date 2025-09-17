@@ -1,7 +1,7 @@
 {
   "openapi": "3.0.0",
   "info": {
-    "version": "2.5.0",
+    "version": "2.18.0",
     "title": "Freeboard-SK API",
     "description": "API endpoints exposed by Freeboard-SK to support application functionality and experimental features.",
     "termsOfService": "http://signalk.org/terms/",
@@ -21,8 +21,8 @@
   ],
   "tags": [
     {
-      "name": "OpenWeather",
-      "description": "Weather data from OpenWeather service."
+      "name": "Alarms",
+      "description": "Action alarms."
     }
   ],
   "components": {
@@ -46,318 +46,6 @@
         "description": "Date / Time when data values were recorded",
         "pattern": "^(\\d{4})-(\\d{2})-(\\d{2})T(\\d{2}):(\\d{2}):(\\d{2}(?:\\.\\d*)?)((-(\\d{2}):(\\d{2})|Z)?)$",
         "example": "2022-04-22T05:02:56.484Z"
-      },
-      "WeatherStationInfoModel": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "example": "12345678"
-          },
-          "name": {
-            "type": "string",
-            "example": "Weather data relative to supplied position."
-          },
-          "position":{
-            "$ref": "#/components/schemas/Position"
-          }
-        }
-      },
-      "MeteoStationResponseModel": {
-        "type": "object",
-        "required": ["timestamp"],
-        "properties": {
-          "date": {
-            "$ref": "#/components/schemas/IsoTime"
-          },
-          "description": {
-            "type": "string",
-            "example": "broken clouds"
-          },
-          "sun": {
-            "type": "object",
-            "required": ["times"],
-            "properties": {
-              "sunrise": {
-                "$ref": "#/components/schemas/IsoTime"
-              },
-              "sunset": {
-                "$ref": "#/components/schemas/IsoTime"
-              }
-            }
-          },
-          "outside": {
-            "type": "object",
-            "properties": {
-              "uvIndex": {
-                "type": "number",
-                "example": 7.5,
-                "description": "UV Index (1 UVI = 25mW/sqm)"
-              },
-              "cloudCover": {
-                "type": "number",
-                "example": 85,
-                "description": "Amount of cloud cover (%)"
-              },
-              "horizontalVisibility": {
-                "type": "number",
-                "example": 5000,
-                "description": "Visibilty (m)"
-              },
-              "horizontalVisibilityOverRange": {
-                "type": "boolean",
-                "example": "true",
-                "description": "Visibilty distance is greater than the range of the measuring equipment."
-              },
-              "temperature": {
-                "type": "number",
-                "example": 290,
-                "description": "Air temperature (K)"
-              },
-              "feelsLikeTemperature": {
-                "type": "number",
-                "example": 277,
-                "description": "Feels-like temperature (K)"
-              },
-              "dewPointTemperature": {
-                "type": "number",
-                "example": 260,
-                "description": "Dew point temperature (K)"
-              },
-              "pressure": {
-                "type": "number",
-                "example": 10100,
-                "description": "Air pressure (Pa)"
-              },
-              "pressureTendency": {
-                "type": "string",
-                "enum": ["steady","decreasing","increasing"],
-                "example": "steady",
-                "description": "Air pressure tendency"
-              },
-              "absoluteHumidity": {
-                "type": "number",
-                "example": 56,
-                "description": "Absolute humidity (%)"
-              },
-              "relativeHumidity": {
-                "type": "number",
-                "example": 56,
-                "description": "Relative humidity (%)"
-              },
-              "precipitationType": {
-                "type": "string",
-                "enum": ["rain","thunderstorm","snow","freezing rain", "mixed/ice"],
-                "example": "rain",
-                "description": "Type of preceipitation"
-              },
-              "precipitationVolume": {
-                "type": "number",
-                "example": 56,
-                "description": "Amount of precipitation (mm)"
-              }
-            }
-          },
-          "wind": {
-            "type": "object",
-            "properties": {
-              "averageSpeed": {
-                "type": "number",
-                "example": 9.3,
-                "description": "Average wind speed (m/s)"
-              },
-              "speedTrue": {
-                "type": "number",
-                "example": 15.3,
-                "description": "Wind speed (m/s)"
-              },
-              "directionTrue": {
-                "type": "number",
-                "example": 2.145,
-                "description": "Wind direction relative to true north (rad)"
-              },
-              "gust": {
-                "type": "number",
-                "example": 21.6,
-                "description": "Wind gust (m/s)"
-              },
-              "gustDirectionTrue": {
-                "type": "number",
-                "example": 2.6,
-                "description": "Wind gust direction relative to true north (rad)"
-              }
-            }
-          },
-          "water": {
-            "type": "object",
-            "properties": {
-              "temperature": {
-                "type": "number",
-                "example": 21.6,
-                "description": "Wind gust (m/s)"
-              },
-              "level": {
-                "type": "number",
-                "example": 11.9,
-                "description": "Water level (m)"
-              },
-              "levelTendency": {
-                "type": "number",
-                "enum": ["steady","decreasing","increasing"],
-                "example": "steady",
-                "description": "Water level trend"
-              },
-              "waves": {
-                "type": "object",
-                "properties": {
-                  "significantHeight": {
-                    "type": "number",
-                    "example": 2.6,
-                    "description": "Wave height (m)"
-                  },
-                  "directionTrue": {
-                    "type": "number",
-                    "example": 2.3876,
-                    "description": "Wave direction relative to true north (rad)"
-                  },
-                  "period": {
-                    "type": "number",
-                    "example": 2.3876,
-                    "description": "Wave period (m/s)"
-                  }
-                }
-              },
-              "swell": {
-                "type": "object",
-                "properties": {
-                  "height": {
-                    "type": "number",
-                    "example": 2.6,
-                    "description": "Swell height (m)"
-                  },
-                  "directionTrue": {
-                    "type": "number",
-                    "example": 2.3876,
-                    "description": "Swell direction relative to true north (rad)"
-                  },
-                  "period": {
-                    "type": "number",
-                    "example": 2.3876,
-                    "description": "Swell period (m/s)"
-                  }
-                }
-              },
-              "seaState": {
-                "type": "number",
-                "example": 2,
-                "description": "Sea state (Beaufort)"
-              },
-              "salinity": {
-                "type": "number",
-                "example": 12,
-                "description": "Water salinity (%)"
-              },
-              "ice": {
-                "type": "boolean",
-                "example": true,
-                "description": "Ice present."
-              }
-            }
-          },
-          "current": {
-            "type": "object",
-            "properties": {
-              "drift": {
-                "type": "number",
-                "example": 3.4,
-                "description": "Surface current speed (m/s)"
-              },
-              "set": {
-                "type": "number",
-                "example": 1.74,
-                "description": "Surface current direction (rad)"
-              }
-            }
-          }
-        }
-      },
-      "WarningDataModel": {
-        "type": "object",
-        "required": ["startTime","endTime"],
-        "properties": {
-          "startTime": {
-            "$ref": "#/components/schemas/IsoTime"
-          },
-          "endTime": {
-            "$ref": "#/components/schemas/IsoTime"
-          },
-          "source": {
-            "type": "string",
-            "description": "Name of source."
-          },
-          "type": {
-            "type": "string",
-            "description": "Type of warning.",
-            "example": "Heat Advisory"
-          },
-          "details": {
-            "type": "string",
-            "description": "Text describing the details of the warning.",
-            "example": "HEAT ADVISORY REMAINS IN EFFECT FROM 1 PM THIS AFTERNOON...."
-          }
-        }
-      },
-      "ObservationsAttrib": {
-        "type": "object",
-        "required": ["observations"],
-        "properties": {
-          "observations": {
-            "type": "array",
-            "items": {
-                "$ref": "#/components/schemas/MeteoStationResponseModel"            
-            }
-          }
-        }
-      },
-      "ForecastsAttrib": {
-        "type": "object",
-        "required": ["forecasts"],
-        "properties": {
-          "forecasts": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/MeteoStationResponseModel"
-            }
-          }
-        }
-      },
-      "WarningsAttrib": {
-        "type": "object",
-        "required": ["warnings"],
-        "properties": {
-          "warnings": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/WarningDataModel"
-            }
-          }
-        }
-      },
-      "WeatherStationResponseModel": {
-        "allOf": [
-          {
-            "$ref": "#/components/schemas/WeatherStationInfoModel"
-          },
-          {
-            "$ref": "#/components/schemas/WarningsAttrib"
-          },
-          {
-            "$ref": "#/components/schemas/ObservationsAttrib"
-          },
-          {
-            "$ref": "#/components/schemas/ForecastsAttrib"
-          }
-        ]
       }
     },
     "responses": {
@@ -410,21 +98,11 @@
       }
     },
     "parameters": {
-      "StationIdParam": {
+      "AlarmIdParam": {
         "in": "path",
         "required": true,
         "name": "id",
-        "description": "Weather station identifier.",
-        "schema": {
-          "type": "string",
-          "enum": ["freeboard-sk"]
-        }
-      },
-      "EntryIdParam": {
-        "in": "path",
-        "required": true,
-        "name": "entryId",
-        "description": "Forecast entry identifier.",
+        "description": "Alarm identifier.",
         "schema": {
           "type": "number"
         }
@@ -433,7 +111,7 @@
         "in": "path",
         "required": true,
         "name": "alarmType",
-        "description": "Alarm identifier.",
+        "description": "Alarm type.",
         "schema": {
           "type": "string",
           "enum": [
@@ -446,7 +124,8 @@
             "listing",
             "adrift",
             "piracy",
-            "abandon"
+            "abandon",
+            "aground"
           ]
         }
       }
@@ -466,181 +145,83 @@
   },
   "security": [{ "cookieAuth": [] }, { "bearerAuth": [] }],
   "paths": {
-    "/signalk/v2/api/meteo/{id}": {
+    "/signalk/v2/api/alarms/{alarmType}": {
       "parameters": [
         {
-          "$ref": "#/components/parameters/StationIdParam"
+          "$ref": "#/components/parameters/AlarmTypeParam"
         }
       ],
-      "get": {
-        "tags": ["OpenWeather"],
-        "summary": "Nearest weather station data.",
-        "responses": {
-          "default": {
-            "description": "Data from weather station that weather proivder deems closest to the vessel position.",
-            "content": {
-              "application/json": {
-                "schema": {
-                   "$ref": "#/components/schemas/WeatherStationResponseModel"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/signalk/v2/api/meteo/{id}/observations": {
-      "parameters": [
-        {
-          "$ref": "#/components/parameters/StationIdParam"
-        }
-      ],
-      "get": {
-        "tags": ["OpenWeather"],
-        "summary": "Nearest weather station observation data.",
-        "responses": {
-          "default": {
-            "description": "Observation data from weather station that weather proivder deems closest to the vessel position.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/MeteoStationResponseModel"
+      "post": {
+        "tags": ["Alarms"],
+        "summary": "Raise Alarm.",
+        "requestBody": {
+          "description": "Alarm message text.",
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "message": {
+                    "type": "string",
+                    "description": "Alarm message text.",
+                    "example": "Person overboard!"
                   }
                 }
               }
             }
           }
+        },
+        "responses": {
+          "200ActionResponse": {
+            "$ref": "#/components/responses/200OKResponse"
+          },
+          "default": {
+            "$ref": "#/components/responses/ErrorResponse"
+          }
         }
       }
     },
-    "/signalk/v2/api/meteo/{id}/observations/{entryId}": {
+    "/signalk/v2/api/alarms/{alarmType}/{id}": {
       "parameters": [
         {
-          "$ref": "#/components/parameters/StationIdParam"
+          "$ref": "#/components/parameters/AlarmTypeParam"
         },
         {
-          "$ref": "#/components/parameters/EntryIdParam"
+          "$ref": "#/components/parameters/AlarmIdParam"
         }
       ],
-      "get": {
-        "tags": ["OpenWeather"],
-        "summary": "Return data for the supplied observation entry.",
+      "delete": {
+        "tags": ["Alarms"],
+        "summary": "Clear / cancel Alarm.",
         "responses": {
+          "200ActionResponse": {
+            "$ref": "#/components/responses/200OKResponse"
+          },
           "default": {
-            "description": "Data form observation entry at the supplied position in the list of observations.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/MeteoStationResponseModel"
-                }
-              }
-            }
+            "$ref": "#/components/responses/ErrorResponse"
           }
         }
       }
     },
-    "/signalk/v2/api/meteo/{id}/forecasts": {
+    "/signalk/v2/api/alarms/{alarmType}/{id}/silence": {
       "parameters": [
         {
-          "$ref": "#/components/parameters/StationIdParam"
-        }
-      ],
-      "get": {
-        "tags": ["OpenWeather"],
-        "summary": "Nearest weather  station forecast data.",
-        "responses": {
-          "default": {
-            "description": "Forecast data from weather station that weather proivder deems closest to the vessel position.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/MeteoStationResponseModel"
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/signalk/v2/api/meteo/{id}/forecasts/{entryId}": {
-      "parameters": [
-        {
-          "$ref": "#/components/parameters/StationIdParam"
+          "$ref": "#/components/parameters/AlarmTypeParam"
         },
         {
-          "$ref": "#/components/parameters/EntryIdParam"
+          "$ref": "#/components/parameters/AlarmIdParam"
         }
       ],
-      "get": {
-        "tags": ["OpenWeather"],
-        "summary": "Return data for the supplied forecast entry.",
+      "post": {
+        "tags": ["Alarms"],
+        "summary": "Silence Alarm.",
         "responses": {
+          "200ActionResponse": {
+            "$ref": "#/components/responses/200OKResponse"
+          },
           "default": {
-            "description": "Data form forecast entry at the supplied position in the list of forecasts.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/MeteoStationResponseModel"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/signalk/v2/api/meteo/{id}/warnings": {
-      "parameters": [
-        {
-          "$ref": "#/components/parameters/StationIdParam"
-        }
-      ],
-      "get": {
-        "tags": ["OpenWeather"],
-        "summary": "Nearest weather station warning data.",
-        "responses": {
-          "default": {
-            "description": "Warnings from weather station that weather proivder deems closest to the vessel position.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/WarningDataModel"
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    },    
-    "/signalk/v2/api/meteo/{id}/warnings/{entryId}": {
-      "parameters": [
-        {
-          "$ref": "#/components/parameters/StationIdParam"
-        },
-        {
-          "$ref": "#/components/parameters/EntryIdParam"
-        }
-      ],
-      "get": {
-        "tags": ["OpenWeather"],
-        "summary": "Return data for the supplied warning entry.",
-        "responses": {
-          "default": {
-            "description": "Data form warning entry at the supplied position in the list of warnings.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/MeteoStationResponseModel"
-                }
-              }
-            }
+            "$ref": "#/components/responses/ErrorResponse"
           }
         }
       }

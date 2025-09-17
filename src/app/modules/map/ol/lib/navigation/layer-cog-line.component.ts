@@ -222,13 +222,18 @@ export class CogLineComponent implements OnInit, OnDestroy, OnChanges {
     if (!f && this.source) {
       f = this.source.getFeatureById('cogSelf') as Feature;
     }
-    let s: StyleLike = f.getStyle();
-    if (!s) {
+    if (!f) {
       return;
     }
-    s = Array.isArray(s) ? s[1] : s;
-    (s as Style).setText(this.buildLabelStyle());
-    f.setStyle(s);
+    try {
+      let s: StyleLike = f.getStyle();
+      if (!s) {
+        return;
+      }
+      s = Array.isArray(s) ? s[1] : s;
+      (s as Style).setText(this.buildLabelStyle());
+      f.setStyle(s);
+    } catch (err) {}
   }
 
   buildLabelStyle() {
