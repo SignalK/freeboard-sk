@@ -363,6 +363,10 @@ export class AppComponent {
     this.focusMap();
   }
 
+  public raiseMOBAlarm() {
+    this.notiMgr.raiseServerAlarm('mob', 'Person Overboard!');
+  }
+
   protected toggleConstrainMapZoom() {
     this.app.uiConfig.update((current) => {
       return Object.assign({}, current, {

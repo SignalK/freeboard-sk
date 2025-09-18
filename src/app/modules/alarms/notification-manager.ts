@@ -14,6 +14,7 @@ import { AlertData } from './components/alert.component';
 import { getAlertIcon } from '../icons';
 import { SignalKClient } from 'signalk-client-angular';
 import { AlertPropertiesModal } from './components/alert-properties-modal';
+import { CourseService } from '../course/course.service';
 
 type AlertItems = Array<[string, AlertData]>;
 
@@ -32,7 +33,8 @@ export class NotificationManager {
     private app: AppFacade,
     private worker: SKWorkerService,
     private signalk: SignalKClient,
-    private bottomSheet: MatBottomSheet
+    private bottomSheet: MatBottomSheet,
+    private course: CourseService
   ) {
     this.alertMap = new Map();
 
@@ -166,6 +168,12 @@ export class NotificationManager {
       }
       this.alertMap.set(alert.path, alert);
       this.emitSignals();
+    }
+
+    if (alert.type == 'mob') {
+      if (alert.properties.position) {
+        this.course.setDestination(alert.properties.position);
+      }
     }
   }
 
