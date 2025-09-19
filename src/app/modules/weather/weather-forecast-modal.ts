@@ -129,7 +129,7 @@ export class WeatherForecastModal implements OnInit {
       this.app.data.vessels.self.position
     ) {
       const pos = this.app.data.vessels.self.position;
-      path = `/weather/forecasts?lat=${pos[1]}&lon=${pos[0]}`;
+      path = `/weather/forecasts/point?lat=${pos[1]}&lon=${pos[0]}`;
     }
     this.isFetching = true;
     this.sk.api.get(2, path).subscribe(

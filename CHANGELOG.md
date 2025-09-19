@@ -1,5 +1,8 @@
 # CHANGELOG: Freeboard
 
+### v2.18.1
+- **Fix**: Incorrect url in weather forecasts request (#295)
+
 ### v2.18.0
 - **Fix**: Exception thrown when rendering COG line label when zoom level threshold crossed. (#293)
 - **Updated**: AIS marker icons. (#286)
