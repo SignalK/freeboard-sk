@@ -106,6 +106,7 @@ export class FreeboardChartLayerComponent
     url: string,
     minZoom: number,
     maxZoom: number,
+    opacity: number,
     zIndex: number
   ): WebGLTileLayer {
     const tiles = new pmtiles.PMTiles(url);
@@ -137,6 +138,7 @@ export class FreeboardChartLayerComponent
         minZoom: minZoom
       }),
       style: {},
+      opacity: opacity,
       zIndex: zIndex
     });
   }
@@ -146,6 +148,7 @@ export class FreeboardChartLayerComponent
     url: string,
     minZoom: number,
     maxZoom: number,
+    opacity: number,
     zIndex: number
   ): TileLayer<XYZ> {
     const tiles = new pmtiles.PMTiles(url);
@@ -181,6 +184,7 @@ export class FreeboardChartLayerComponent
         maxZoom: maxZoom,
         minZoom: minZoom
       }),
+      opacity: opacity,
       zIndex: zIndex
     });
   }
@@ -216,6 +220,7 @@ export class FreeboardChartLayerComponent
               ? charts[i][1].minZoom - 0.1
               : charts[i][1].minZoom;
           const maxZ = charts[i][1].maxZoom;
+	  const opacity = charts[i][1].opacity;
 
           if (charts[i][1].type.toLowerCase() === 'mapstylejson') {
             const lg = new LayerGroup({
@@ -306,6 +311,7 @@ export class FreeboardChartLayerComponent
                   charts[i][1].url,
                   charts[i][1].minZoom,
                   charts[i][1].maxZoom,
+		  charts[i][1].opacity,
                   this.zIndex + parseInt(i)
                 );
               } else {
@@ -322,7 +328,8 @@ export class FreeboardChartLayerComponent
                 preload: 0,
                 zIndex: this.zIndex + parseInt(i),
                 minZoom: minZ,
-                maxZoom: maxZ
+                maxZoom: maxZ,
+		opacity: opacity
               });
             }
           }

@@ -62,6 +62,7 @@ export interface ChartResource {
   format?: string;
   minzoom?: number;
   maxzoom?: number;
+  opacity?: number;
   type?: string;
   scale?: number;
   url?: string;

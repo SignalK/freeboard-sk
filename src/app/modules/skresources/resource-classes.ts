@@ -127,6 +127,7 @@ export class SKChart {
   format: string;
   minZoom = 0;
   maxZoom = 24;
+  opacity = 1.0;
   type: string;
   url: string;
   source: string;
@@ -143,6 +144,10 @@ export class SKChart {
       typeof chart?.minzoom !== 'undefined' ? chart.minzoom : this.minZoom;
     this.maxZoom =
       typeof chart?.maxzoom !== 'undefined' ? chart.maxzoom : this.maxZoom;
+    this.opacity =
+      typeof chart?.opacity !== 'undefined' && !isNaN(chart?.opacity)
+        ? chart.opacity / 100 
+	: this.opacity;
     this.type = chart?.type ? chart.type : undefined;
     this.url = chart?.url ? chart.url : undefined;
     this.scale =
