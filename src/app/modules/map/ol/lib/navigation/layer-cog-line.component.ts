@@ -30,7 +30,7 @@ import { DarkTheme } from '../themes';
 
 const LightTheme = {
   labelText: {
-    color: 'rgba(204, 12, 225, 0.7)'
+    color: 'rgba(26, 26, 1, 1)'
   }
 };
 

@@ -1,5 +1,9 @@
 # CHANGELOG: Freeboard
 
+### v2.18.2
+- **Added**: Settings for range circle count and the zoom level at which they appear.
+- **Fix**: Issue where auto-advance to next point setting was not being honoured. (#297)
+
 ### v2.18.1
 - **Fix**: Incorrect url in weather forecasts request (#295)
 

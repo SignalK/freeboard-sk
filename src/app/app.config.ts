@@ -137,6 +137,8 @@ export function cleanConfig(
         (settings as any).selections.vessel.headingLineSize ?? -1,
       iconScale: (settings as any).selections.vessel.iconScale ?? 0.9,
       rangeCircles: false,
+      rangeCircleCount: 4,
+      rangeCircleMinZoom: 8,
       aisStaleAge: (settings as any).selections.aisStaleAge ?? 360000,
       aisMaxAge: (settings as any).selections.aisMaxAge ?? 540000,
       aisWindApparent: (settings as any).selections.aisWindApparent ?? false,
@@ -150,6 +152,13 @@ export function cleanConfig(
         beyond24: '5m'
       }
     };
+  } else {
+    if (typeof settings.vessels.rangeCircleCount === 'undefined') {
+      settings.vessels.rangeCircleCount = 4;
+    }
+    if (typeof settings.vessels.rangeCircleMinZoom === 'undefined') {
+      settings.vessels.rangeCircleMinZoom = 8;
+    }
   }
 
   if (typeof settings.resources === 'undefined') {
@@ -404,6 +413,8 @@ export function defaultConfig(): IAppConfig {
       headingLineSize: -1, // mode for display of heading line -1 = default
       iconScale: 0.9,
       rangeCircles: false,
+      rangeCircleCount: 4,
+      rangeCircleMinZoom: 8,
       aisStaleAge: 360000, // time since last update in ms (6 min)
       aisMaxAge: 540000, // time since last update in ms (9 min)
       aisWindApparent: false,

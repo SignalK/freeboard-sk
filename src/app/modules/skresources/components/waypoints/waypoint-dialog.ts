@@ -1,7 +1,7 @@
 /** Waypoint Details Dialog Component **
  ********************************/
 
-import { Component, OnInit, Inject, signal } from '@angular/core';
+import { Component, Inject, signal } from '@angular/core';
 
 import {
   FormsModule,
@@ -202,7 +202,7 @@ import { getResourceIcon } from 'src/app/modules/icons';
     `
   ]
 })
-export class WaypointDialog implements OnInit {
+export class WaypointDialog {
   protected icon: string;
   protected waypointTypes: Array<any>;
 
@@ -227,9 +227,7 @@ export class WaypointDialog implements OnInit {
       addMode: boolean;
       waypoint: SKWaypoint;
     }
-  ) {}
-
-  ngOnInit() {
+  ) {
     this.description = this.data.waypoint.description ?? '';
     this.wptType = this.data.waypoint.type ?? '';
     const coords = this.data.waypoint.feature.geometry.coordinates ?? [0, 0];

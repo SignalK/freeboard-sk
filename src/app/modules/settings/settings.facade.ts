@@ -198,6 +198,10 @@ export class SettingsOptions {
     ])
   };
 
+  rangeCircles = {
+    count: [4, 5, 6, 7, 8, 9, 10, 15, 20]
+  };
+
   course = {
     nextPointTrigger: ['perpendicularPassed', 'arrivalCircleEntered'],
     nextPointDelay: this.alarm.smoothing

@@ -529,6 +529,29 @@
               <mat-card-content>
                 <div class="setting-card-row" style="padding-bottom: 10px">
                   <div class="setting-card-row-item">
+                    <mat-form-field style="width: 100%">
+                      <mat-label>Arrival Circle</mat-label>
+                      <input
+                        matInput
+                        type="number"
+                        #coursearrivalcircle="ngModel"
+                        required
+                        [(ngModel)]="facade.settings.course.arrivalCircle"
+                        (change)="parseNumber(coursearrivalcircle)"
+                        min="0"
+                      />
+                      @if(coursearrivalcircle.invalid &&
+                      (coursearrivalcircle.dirty ||
+                      coursearrivalcircle.touched)) {
+                      <mat-error> Please enter a number > 0 </mat-error>
+                      }
+                      <span matSuffix>m</span>
+                    </mat-form-field>
+                  </div>
+                </div>
+
+                <div class="setting-card-row" style="padding-bottom: 10px">
+                  <div class="setting-card-row-item">
                     <mat-checkbox
                       #courseautoadvance
                       [(ngModel)]="facade.settings.course.autoNextPointOnArrival"
@@ -539,6 +562,7 @@
                     </mat-checkbox>
                   </div>
                 </div>
+
                 <div class="setting-card-row" style="padding-bottom: 10px">
                   <div class="setting-card-row-item">
                     <mat-form-field style="width: 100%">
@@ -559,31 +583,10 @@
 
                   <div class="setting-card-row-item">
                     <mat-form-field style="width: 100%">
-                      <mat-label>Arrival Circle</mat-label>
-                      <input
-                        matInput
-                        type="number"
-                        #coursearrivalcircle="ngModel"
-                        required
-                        [(ngModel)]="facade.settings.course.arrivalCircle"
-                        (change)="parseNumber(coursearrivalcircle)"
-                        min="0"
-                      />
-                      @if(coursearrivalcircle.invalid &&
-                      (coursearrivalcircle.dirty ||
-                      coursearrivalcircle.touched)) {
-                      <mat-error> Please enter a number > 0 </mat-error>
-                      }
-                      <span matSuffix>m</span>
-                    </mat-form-field>
-                  </div>
-
-                  <div class="setting-card-row-item">
-                    <mat-form-field style="width: 100%">
                       <mat-label>Time to wait before advancing</mat-label>
                       <mat-select
                         matTooltip="Period of time before destination is advanced to next waypoint."
-                        [disabled]="courseautoadvanceon.value === 'perpendicularPassed' || courseautoadvance.checked === false"
+                        [disabled]="courseautoadvance.checked === false"
                         [(ngModel)]="facade.settings.course.autoNextPointDelay"
                         (selectionChange)="persistModel()"
                       >
@@ -708,56 +711,92 @@
                 <div class="setting-card-row-item">
                   <fieldset>
                     <legend>Vessel Lines:</legend>
-
-                    <mat-checkbox
-                      [(ngModel)]="facade.settings.vessels.windVectors"
-                      (change)="persistModel()"
-                      label="after"
-                    >
-                      Display Wind Vectors
-                    </mat-checkbox>
-
-                    <mat-checkbox
-                      [(ngModel)]="facade.settings.vessels.laylines"
-                      (change)="persistModel()"
-                      label="after"
-                    >
-                      Display Laylines
-                    </mat-checkbox>
-
-                    <mat-checkbox
-                      [(ngModel)]="facade.settings.vessels.rangeCircles"
-                      (change)="persistModel()"
-                      label="after"
-                    >
-                      Display Range Circles
-                    </mat-checkbox>
-
-                    <mat-form-field style="width: 100%">
-                      <mat-label>Heading Line Length</mat-label>
-                      <mat-select
-                        matTooltip="Length of heading line."
-                        [(ngModel)]="facade.settings.vessels.headingLineSize"
-                        (selectionChange)="persistModel()"
+                    <div class="setting-card-row" style="padding-bottom: 10px">
+                      <mat-checkbox
+                        [(ngModel)]="facade.settings.vessels.windVectors"
+                        (change)="persistModel()"
+                        label="after"
                       >
-                        @for(i of options.vessel.headingLine; track i[0] ) {
-                        <mat-option [value]="i[0]">{{i[1]}}</mat-option>
-                        }
-                      </mat-select>
-                    </mat-form-field>
+                        Display Wind Vectors
+                      </mat-checkbox>
 
-                    <mat-form-field style="width: 100%">
-                      <mat-label>COG Line Length</mat-label>
-                      <mat-select
-                        matTooltip="Length of COG line."
-                        [(ngModel)]="facade.settings.vessels.cogLine"
-                        (selectionChange)="persistModel()"
+                      <mat-checkbox
+                        [(ngModel)]="facade.settings.vessels.laylines"
+                        (change)="persistModel()"
+                        label="after"
                       >
-                        @for(i of options.vessel.cogLine; track i[0]) {
-                        <mat-option [value]="i[0]">{{i[1]}}</mat-option>
-                        }
-                      </mat-select>
-                    </mat-form-field>
+                        Display Laylines
+                      </mat-checkbox>
+                    </div>
+                    <div class="setting-card-row" style="padding-bottom: 10px">
+                      <div class="setting-card-row-item">
+                        <mat-form-field style="width: 100%">
+                          <mat-label>Heading Line Length</mat-label>
+                          <mat-select
+                            matTooltip="Length of heading line."
+                            [(ngModel)]="facade.settings.vessels.headingLineSize"
+                            (selectionChange)="persistModel()"
+                          >
+                            @for(i of options.vessel.headingLine; track i[0] ) {
+                            <mat-option [value]="i[0]">{{i[1]}}</mat-option>
+                            }
+                          </mat-select>
+                        </mat-form-field>
+                      </div>
+                      <div class="setting-card-row-item">
+                        <mat-form-field style="width: 100%">
+                          <mat-label>COG Line Length</mat-label>
+                          <mat-select
+                            matTooltip="Length of COG line."
+                            [(ngModel)]="facade.settings.vessels.cogLine"
+                            (selectionChange)="persistModel()"
+                          >
+                            @for(i of options.vessel.cogLine; track i[0]) {
+                            <mat-option [value]="i[0]">{{i[1]}}</mat-option>
+                            }
+                          </mat-select>
+                        </mat-form-field>
+                      </div>
+                    </div>
+                    <div class="setting-card-row" style="padding-bottom: 10px">
+                      <mat-checkbox
+                        [(ngModel)]="facade.settings.vessels.rangeCircles"
+                        (change)="persistModel()"
+                        label="after"
+                      >
+                        Display Range Circles
+                      </mat-checkbox>
+                    </div>
+                    <div class="setting-card-row" style="padding-bottom: 10px">
+                      <div class="setting-card-row-item">
+                        <mat-form-field style="width: 100%">
+                          <mat-label>Number of Range Circles</mat-label>
+                          <mat-select
+                            [(ngModel)]="facade.settings.vessels.rangeCircleCount"
+                            [disabled]="!facade.settings.vessels.rangeCircles"
+                            (selectionChange)="persistModel()"
+                          >
+                            @for(i of options.rangeCircles.count; track i) {
+                            <mat-option [value]="i">{{i}}</mat-option>
+                            }
+                          </mat-select>
+                        </mat-form-field>
+                      </div>
+                      <div class="setting-card-row-item">
+                        <mat-form-field style="width: 100%">
+                          <mat-label>Minimum Zoom Level</mat-label>
+                          <mat-select
+                            [(ngModel)]="facade.settings.vessels.rangeCircleMinZoom"
+                            [disabled]="!facade.settings.vessels.rangeCircles"
+                            (selectionChange)="persistModel()"
+                          >
+                            @for(i of options.zoomLevels; track i) {
+                            <mat-option [value]="i">{{i}}</mat-option>
+                            }
+                          </mat-select>
+                        </mat-form-field>
+                      </div>
+                    </div>
                   </fieldset>
                 </div>
               </mat-card-content>
@@ -862,6 +901,33 @@
               <mat-card-content>
                 <div class="setting-card-row" style="padding-bottom: 10px">
                   <div class="setting-card-row-item">
+                    <mat-checkbox
+                      [(ngModel)]="facade.settings.vessels.aisShowTrack"
+                      (change)="persistModel()"
+                      label="after"
+                    >
+                      Show Track
+                    </mat-checkbox>
+                    &nbsp;
+                    <mat-checkbox
+                      [(ngModel)]="aisStateFilter.moored"
+                      (change)="onAisStateFilter()"
+                      label="after"
+                    >
+                      Hide Moored
+                    </mat-checkbox>
+                    &nbsp;
+                    <mat-checkbox
+                      [(ngModel)]="aisStateFilter.anchored"
+                      (change)="onAisStateFilter()"
+                      label="after"
+                    >
+                      Hide Anchored
+                    </mat-checkbox>
+                  </div>
+                </div>
+                <div class="setting-card-row" style="padding-bottom: 10px">
+                  <div class="setting-card-row-item">
                     <mat-form-field style="width: 100%">
                       <mat-label>Mark AIS target inactive after</mat-label>
                       <mat-select
@@ -915,32 +981,6 @@
                         }
                       </mat-select>
                     </mat-form-field>
-                  </div>
-
-                  <div class="setting-card-row-item">
-                    <mat-checkbox
-                      [(ngModel)]="facade.settings.vessels.aisShowTrack"
-                      (change)="persistModel()"
-                      label="after"
-                    >
-                      Show Track
-                    </mat-checkbox>
-                    &nbsp;
-                    <mat-checkbox
-                      [(ngModel)]="aisStateFilter.moored"
-                      (change)="onAisStateFilter()"
-                      label="after"
-                    >
-                      Hide Moored
-                    </mat-checkbox>
-                    &nbsp;
-                    <mat-checkbox
-                      [(ngModel)]="aisStateFilter.anchored"
-                      (change)="onAisStateFilter()"
-                      label="after"
-                    >
-                      Hide Anchored
-                    </mat-checkbox>
                   </div>
 
                   <div class="setting-card-row-item">

@@ -28,7 +28,7 @@ import { DarkTheme } from '../themes';
 
 const LightTheme = {
   labelText: {
-    color: 'rgba(95, 95, 4, 1)'
+    color: 'rgba(26, 26, 1, 1)'
   }
 };
 
@@ -54,6 +54,7 @@ export class RangeCirclesComponent implements OnInit, OnDestroy, OnChanges {
   @Output() layerReady: AsyncSubject<Layer> = new AsyncSubject(); // AsyncSubject will only store the last value, and only publish it when the sequence is completed
 
   @Input() position: Coordinate;
+  @Input() maxCircles = 4;
   @Input() minZoom: number;
   @Input() mapZoom: number;
   @Input() units = 'm';
@@ -100,7 +101,11 @@ export class RangeCirclesComponent implements OnInit, OnDestroy, OnChanges {
       const properties: { [index: string]: any } = {};
 
       for (const key in changes) {
-        if (['position', 'mapZoom', 'minZoom', 'units'].includes(key)) {
+        if (
+          ['position', 'mapZoom', 'minZoom', 'units', 'maxCircles'].includes(
+            key
+          )
+        ) {
           this.parseValues();
           if (this.source) {
             this.source.clear();
@@ -129,7 +134,6 @@ export class RangeCirclesComponent implements OnInit, OnDestroy, OnChanges {
     const map = this.mapComponent.getMap();
     const zoomResolution = map.getView().getResolutionForZoom(this.mapZoom);
     const fa: Feature[] = [];
-    const maxCircles = 10;
     if (this.mapZoom >= this.minZoom) {
       const range =
         zoomResolution > 300
@@ -144,7 +148,7 @@ export class RangeCirclesComponent implements OnInit, OnDestroy, OnChanges {
           ? 500
           : 250;
       const st = this.buildCircleStyle();
-      for (let i = 1; i <= maxCircles; ++i) {
+      for (let i = 1; i <= this.maxCircles; ++i) {
         const d = range * i;
         const f = new Feature({
           geometry: new Circle(

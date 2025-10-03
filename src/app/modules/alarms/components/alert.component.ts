@@ -124,10 +124,11 @@ const SoundFiles = {
               <mat-icon>clear_all</mat-icon>
               Dismiss
             </button>
-            } @if(app.data.activeRoute && alert().type ===
-            'arrivalCircleEntered') {
+            } @if(app.data.activeRoute && course.courseData().pointIndex !==
+            course.courseData().pointTotal - 1) {
             <div>
-              @if(app.config.course.autoNextPointOnArrival) {
+              @if(app.config.course.autoNextPointOnArrival &&
+              app.config.course.autoNextPointTrigger === alert().type) {
               <div>
                 @if(course.courseData().pointIndex !==
                 course.courseData().pointTotal - 1) {
@@ -152,7 +153,7 @@ const SoundFiles = {
                 "
                 (click)="gotoNextPoint()"
               >
-                <mat-icon style="color:green;">skip_next</mat-icon>
+                <mat-icon>skip_next</mat-icon>
                 NEXT POINT
               </button>
               }
@@ -178,7 +179,7 @@ export class AlertComponent {
 
   @Output() nextPoint: EventEmitter<void> = new EventEmitter();
 
-  protected showNextPoint = false;
+  protected showAutoNextPoint = false;
   protected nextPointClicked = false;
   private audio: HTMLAudioElement;
   private source: MediaElementAudioSourceNode;
@@ -194,16 +195,19 @@ export class AlertComponent {
       const ack = this.acknowledged();
       const mute = this.silenced();
       const al = this.alert();
-      this.showNextPoint = al.type === 'arrivalCircleEntered';
+      this.showAutoNextPoint = [
+        'perpendicularPassed',
+        'arrivalCircleEntered'
+      ].includes(al.type);
       if (typeof this.doNotPlaySound() !== 'undefined') {
       }
       this.processAudio();
       if (
         !this.timerRef &&
         !['emergency', 'alarm'].includes(this.alert().priority) &&
-        !this.showNextPoint
+        !this.showAutoNextPoint
       ) {
-        //  hide after set time secs
+        // hide after set time secs
         this.timerRef = setInterval(() => {
           if (this.progressValue() > 0) {
             this.progressValue.update((value) => value - 4);

@@ -578,9 +578,10 @@
   } } @if(app.config.vessels.rangeCircles) {
   <fb-range-circles
     [position]="dfeat.active.position"
+    [maxCircles]="this.app.config.vessels.rangeCircleCount"
     [mapZoom]="mapZoomLevel()"
     [darkMode]="app.uiConfig().invertColor"
-    [minZoom]="this.app.config.map.labelsMinZoom"
+    [minZoom]="this.app.config.vessels.rangeCircleMinZoom"
     [units]="scaleUnits()"
     [zIndex]="340"
   >

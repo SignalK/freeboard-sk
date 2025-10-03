@@ -1,6 +1,7 @@
 // Waypoint Icons
 
 import { AppIconSet } from './app.icons';
+import { AtoNsType1 } from './atons';
 
 const WaypointMarkerIcons: AppIconSet = {
   path: './assets/img/waypoints',
@@ -40,6 +41,7 @@ export const getWaypointDefs = () => {
   };
   addToList(WaypointMarkerIcons);
   addToList(WaypointIcons);
+  addToList(AtoNsType1);
   waypointList['default'] = waypointList['waypoint'];
   return waypointList;
 };

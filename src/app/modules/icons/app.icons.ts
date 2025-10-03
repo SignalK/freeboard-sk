@@ -9,7 +9,8 @@ import {
 
 import { OpenBridgeIcons } from './openbridge';
 import { PoiIcons } from './poi';
-import { WaypointIcons } from './waypoints';
+import { AtoNsType1 } from './atons';
+import { WaypointIcons, getWaypointDefs } from './waypoints';
 import { VesselAisIcons, AIS_TYPE_IDS } from './vessels';
 
 export interface AppIconSet {
@@ -45,6 +46,7 @@ export const getSvgList = (): Array<{ id: string; path: string }> => {
   addToList(PoiIcons, 'sk-');
   addToList(VesselAisIcons);
   addToList(WaypointIcons);
+  addToList(AtoNsType1);
   return svgList;
 };
 
@@ -88,28 +90,30 @@ export const getResourceIcon = (
     }
   }
   if (resourceType === 'waypoints') {
-    let iconDef = {
-      class: 'icon-waypoint',
-      svgIcon: undefined,
-      name: 'location_on'
-    };
-    if (!resource) {
-      return iconDef;
-    }
-    const icon =
-      typeof resource === 'string' ? resource : (resource as SKWaypoint).type;
-    if (!icon) {
-      return iconDef;
-    } else if (WaypointIcons.files.includes(`${icon}.svg`)) {
-      iconDef = {
+    const wptDefs = getWaypointDefs();
+    const skIcon =
+      typeof resource === 'string' || typeof resource === 'undefined'
+        ? undefined
+        : (resource as SKWaypoint).feature.properties?.skIcon ?? undefined;
+    const wptType =
+      typeof resource === 'string' || typeof resource === 'undefined'
+        ? resource
+        : (resource as SKWaypoint).type;
+    const wid = skIcon ?? wptType ?? 'default';
+
+    if (!resource || wid === 'default' || !wptDefs[wid]) {
+      return {
+        class: 'icon-waypoint',
+        svgIcon: undefined,
+        name: 'location_on'
+      };
+    } else {
+      return {
         class: undefined,
-        svgIcon: `${icon}`,
+        svgIcon: wid,
         name: undefined
       };
-    } else if (icon === 'pseudoaton') {
-      iconDef.class = 'icon-warn';
     }
-    return iconDef;
   }
 };
 
@@ -127,11 +131,11 @@ export const getAlertIcon = (alert: AlertData): AppIconDef => {
       svgIcon: `alarm-${alert.type}`,
       name: undefined
     };
-  } else if (alert.type === 'arrival') {
+  } else if (alert.type === 'arrivalCircleEntered') {
     return {
       class: undefined,
-      svgIcon: `alarm-${alert.type}`,
-      name: 'anchor'
+      svgIcon: `alarm-arrival`,
+      name: 'arrival'
     };
   } else if (alert.type === 'anchor') {
     return {

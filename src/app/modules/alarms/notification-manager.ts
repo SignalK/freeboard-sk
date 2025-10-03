@@ -138,9 +138,9 @@ export class NotificationManager {
     alert.sound = (msg.value as Notification).method.includes(
       ALARM_METHOD.sound
     );
-    alert.visual = (msg.value as Notification).method.includes(
-      ALARM_METHOD.visual
-    );
+    alert.visual =
+      (msg.value as Notification).method.includes(ALARM_METHOD.visual) ||
+      ['perpendicularPassed', 'arrivalCircleEntered'].includes(alertType);
     alert.canAcknowledge = ['emergency', 'alarm', 'warn'].includes(
       alert.priority
     );
@@ -189,13 +189,10 @@ export class NotificationManager {
     ) {
       return seg[2];
     } else if (
-      path.includes('notifications.navigation.course.perpendicularPassed')
-    ) {
-      return seg[3];
-    } else if (
+      path.includes('notifications.navigation.course.perpendicularPassed') ||
       path.includes('notifications.navigation.course.arrivalCircleEntered')
     ) {
-      return 'arrival';
+      return seg[3];
     } else {
       return 'notification';
     }

@@ -116,12 +116,17 @@ export class MapImageRegistry {
    * @param type Waypoint type
    * @returns Icon object
    */
-  getWaypoint(type: string): Icon {
+  getWaypoint(type: string, skIcon?: string): Icon {
     type = !type ? 'default' : type;
-    if (!this.icons.waypoints[type]) {
-      this.buildIcon(this.icons.waypoints, this.waypointImageDefs, type);
+    const wid = skIcon ?? type;
+    if (!this.icons.waypoints[wid]) {
+      this.buildIcon(this.icons.waypoints, this.waypointImageDefs, wid);
     }
-    return this.icons.waypoints[type] ?? this.icons.waypoints.default;
+    return (
+      this.icons.waypoints[wid] ??
+      this.icons.waypoints[type] ??
+      this.icons.waypoints.default
+    );
   }
 
   /**

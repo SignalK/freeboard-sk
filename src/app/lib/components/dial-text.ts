@@ -21,7 +21,7 @@ units: "<string>" dsisplay units,
     <div class="dial-text mat-app-background">
       <div class="dial-text-title">
         {{ title }}&nbsp;@if(subTitle) {
-        <span class="dial-text-subtitle"> ({{ subTitle }}) </span>
+        <span class="dial-text-subtitle">({{ subTitle }})</span>
         }
       </div>
       <div class="dial-text-value">{{ value }}</div>

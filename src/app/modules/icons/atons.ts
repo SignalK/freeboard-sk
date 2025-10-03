@@ -3,7 +3,7 @@
 import { AppIconSet } from './app.icons';
 import { MapIconDef } from '../map/ol/lib/map-image-registry.service';
 
-const AtoNsType1: AppIconSet = {
+export const AtoNsType1: AppIconSet = {
   path: './assets/img/atons',
   files: [
     'real-north.svg',
