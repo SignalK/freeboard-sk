@@ -13,7 +13,7 @@ import {
   MAT_BOTTOM_SHEET_DATA
 } from '@angular/material/bottom-sheet';
 import { AppFacade } from 'src/app/app.facade';
-import { SKResourceSet } from '../../resourceset-class';
+import { SKResourceSet } from '../../custom-resource-classes';
 
 /********* ResourceSetFeatureModal **********
  * Displays information about a ResourceSet feature

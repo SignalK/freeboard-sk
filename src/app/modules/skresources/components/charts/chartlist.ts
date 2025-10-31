@@ -211,19 +211,19 @@ export class ChartListComponent extends ResourceListBase {
     if (type === 'wmts') {
       dref = this.dialog.open(WMTSDialog, {
         disableClose: true,
-        data: {}
+        data: { format: 'chartprovider' }
       });
     }
     if (type === 'wms') {
       dref = this.dialog.open(WMSDialog, {
         disableClose: true,
-        data: {}
+        data: { format: 'chartprovider' }
       });
     }
     if (type === 'json') {
       dref = this.dialog.open(JsonMapSourceDialog, {
         disableClose: true,
-        data: {}
+        data: { format: 'chartprovider' }
       });
     }
     if (!dref) {

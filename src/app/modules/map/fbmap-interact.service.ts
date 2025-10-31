@@ -66,11 +66,14 @@ export class FBMapInteractService {
   readonly isMeasuring = signal<boolean>(false);
   readonly isDrawing = signal<boolean>(false);
   readonly isModifying = signal<boolean>(false);
+  readonly isBoxSelecting = signal<boolean>(false);
 
   readonly measurement = signal<MeasurementDef>({
     coords: [],
     index: -1
   });
+
+  readonly boxCoords: Position[] = [];
 
   /** draw interaction data */
   public draw: DrawFeatureInfo = {
@@ -83,6 +86,12 @@ export class FBMapInteractService {
   };
 
   constructor(private app: AppFacade) {}
+
+  /** add start coordinate to box select */
+  initBoxCoord(coord: Position) {
+    this.boxCoords.splice(0);
+    this.boxCoords.push(coord);
+  }
 
   /** set coordinates array in measurment data */
   set measurementCoords(value: LineString) {
@@ -211,6 +220,24 @@ export class FBMapInteractService {
     this.app.debug(`stopModifying()...`);
     this.isModifying.set(false);
     this.draw.features = null;
+    this.interactionEnded();
+  }
+
+  /**
+   * Start box selection mode
+   */
+  startBoxSelection() {
+    this.app.debug(`startBoxSelection()...`);
+    this.isBoxSelecting.set(true);
+    this.boxCoords.splice(0);
+    this.interactionStarted();
+  }
+
+  /** Exit measuring mode */
+  stopBoxSelection(coords?: Position) {
+    this.app.debug(`stopBoxSelection()...`);
+    if (coords) this.boxCoords.push(coords);
+    this.isBoxSelecting.set(false);
     this.interactionEnded();
   }
 

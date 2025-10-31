@@ -1,118 +1,29 @@
-import {
-  Brand,
-  Context,
-  Plugin,
-  ServerAPI,
-  SKVersion
-} from '@signalk/server-api';
+import { Context, Plugin, ServerAPI, SKVersion } from '@signalk/server-api';
 import { IRouter, Application, Request, Response } from 'express';
-import { initAlarms } from './alarms/alarms';
-
-/** @deprecated */
-import {
-  WEATHER_POLL_INTERVAL,
-  WEATHER_CONFIG,
-  initWeather,
-  stopWeather
-} from './weather/weather-service';
+import { initAlarms, shutdownAlarms } from './alarms/alarms';
 
 import * as openapi from './openApi.json';
 
 const defaultPollInterval = 60;
 
 const CONFIG_SCHEMA = {
-  properties: {
-    /** @deprecated */
-    weather: {
-      type: 'object',
-      title: 'Weather API.',
-      description: 'OpenWeather service settings.',
-      properties: {
-        enable: {
-          type: 'boolean',
-          default: false,
-          title: 'Enable Weather',
-          description: ' '
-        },
-        apiVersion: {
-          type: 'number',
-          title: 'API Version',
-          default: 3,
-          enum: [3, 2],
-          description: 'Note: v2 API not supported after April 2024!'
-        },
-        apiKey: {
-          type: 'string',
-          title: 'API Key',
-          default: '',
-          description:
-            'Get your API key at https://openweathermap.org/home/sign_up'
-        },
-        pollInterval: {
-          type: 'number',
-          title: 'Polling Interval',
-          default: 60,
-          enum: WEATHER_POLL_INTERVAL,
-          description:
-            'Select the interval at which the weather service is polled.'
-        }
-      }
-    }
-  }
+  properties: {}
 };
 
-const CONFIG_UISCHEMA = {
-  /** @deprecated */
-  weather: {
-    enable: {
-      'ui:widget': 'checkbox',
-      'ui:title': ' ',
-      'ui:help': ' '
-    },
-    apiVersion: {
-      'ui:widget': 'select',
-      'ui-help': ' '
-    },
-    apiKey: {
-      'ui:disabled': false,
-      'ui-help': ''
-    },
-    pollInterval: {
-      'ui:widget': 'select',
-      'ui:title': 'Polling Interval (mins)',
-      'ui:help': ' '
-    }
-  }
-};
+const CONFIG_UISCHEMA = {};
 
 interface SETTINGS {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   alarms: { [key: string]: any };
-  /** @deprecated */
-  weather: WEATHER_CONFIG;
 }
 
-export interface FreeboardHelperApp extends Application, ServerAPI {
-  config: {
-    ssl: boolean;
-    configPath: string;
-    version: string;
-    getExternalPort: () => number;
-  };
-}
+export interface FreeboardHelperApp extends Application, ServerAPI {}
 
 module.exports = (server: FreeboardHelperApp): Plugin => {
   // ** default configuration settings
   let settings: SETTINGS = {
     alarms: {
       enable: true
-    },
-    /** @deprecated */
-    weather: {
-      enable: false,
-      apiVersion: 3,
-      apiKey: '',
-      pollInterval: defaultPollInterval
     }
   };
 
@@ -150,18 +61,6 @@ module.exports = (server: FreeboardHelperApp): Plugin => {
        */
       emitMeteoMetas();
 
-      settings.weather = options.weather ?? {
-        enable: false,
-        apiVersion: 3,
-        apiKey: '',
-        pollInterval: defaultPollInterval
-      };
-      settings.weather.enable = options.weather.enable ?? false;
-      settings.weather.apiVersion = options.weather.apiVersion ?? 3;
-      settings.weather.apiKey = options.weather.apiKey ?? '';
-      settings.weather.pollInterval =
-        options.weather.pollInterval ?? defaultPollInterval;
-
       settings.alarms = options.alarms ?? {
         enable: true
       };
@@ -172,14 +71,7 @@ module.exports = (server: FreeboardHelperApp): Plugin => {
       if (settings.alarms.enable) {
         initAlarms(server, plugin.id);
       }
-
-      let msg = '';
-      if (settings.weather.enable) {
-        msg = `Started - Providing: weather`;
-        initWeather(server, plugin.id, settings.weather);
-      }
-
-      server.setPluginStatus(msg);
+      server.setPluginStatus('Started');
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       const msg = 'Started with errors!';
@@ -192,8 +84,8 @@ module.exports = (server: FreeboardHelperApp): Plugin => {
 
   const doShutdown = () => {
     server.debug('** shutting down **');
-    stopWeather();
     server.debug('** Un-subscribing from events **');
+    shutdownAlarms();
     const msg = 'Stopped';
     server.setPluginStatus(msg);
   };
@@ -208,7 +100,10 @@ module.exports = (server: FreeboardHelperApp): Plugin => {
     });
   };
 
-  // ensure meteo path metas are emitted
+  /**
+   * Ensure meta delta are emitted for environment paths
+   * @todo remove after merge of https://github.com/SignalK/specification/pull/662
+   */
   const emitMeteoMetas = () => {
     const pathRoot = 'environment';
     const metas = [];
@@ -317,6 +212,13 @@ module.exports = (server: FreeboardHelperApp): Plugin => {
       }
     });
     metas.push({
+      path: `${pathRoot}.outside.precipitationVolume`,
+      value: {
+        description: 'Precipitation Volume.',
+        units: 'm'
+      }
+    });
+    metas.push({
       path: `${pathRoot}.wind.averageSpeed`,
       value: {
         description: 'Average wind speed.',
@@ -373,6 +275,14 @@ module.exports = (server: FreeboardHelperApp): Plugin => {
       value: {
         description: 'Water temperature.',
         units: 'K'
+      }
+    });
+
+    metas.push({
+      path: `${pathRoot}.water.salinity`,
+      value: {
+        description: 'Water salinity.',
+        units: 'ratio'
       }
     });
 

@@ -27,8 +27,15 @@
   [maxZoom]="app.MAP_ZOOM_EXTENT.max"
   [enableAnimation]="false"
 >
-  <!-- Draw / modify -->
-  @if(mapInteract.isMeasuring()) {
+  <!-- Draw / modify / select-->
+  @if(mapInteract.isBoxSelecting()) {
+  <ol-dragbox
+    (boxStart)="onDragBoxStart($event)"
+    (boxEnd)="onDragBoxEnd($event)"
+    (boxCancel)="onDragBoxCancel($event)"
+  >
+  </ol-dragbox>
+  } @if(mapInteract.isMeasuring()) {
   <ol-draw
     [type]="'LineString'"
     (drawStart)="onMeasureStart($event)"
@@ -123,8 +130,12 @@
   >
   </fb-charts>
 
+  <!-- Charts -->
+  <fb-livelayer [layerDefs]="skresOther.infoLayers()" [zIndex]="50">
+  </fb-livelayer>
+
   <!-- Tracks -->
-  @if(app.config.resources.paths.includes('tracks')) {
+  @if(app.featureFlags().resourceTracks) {
   <fb-tracks
     [darkMode]="app.uiConfig().invertColor"
     [tracks]="skres.tracks()"
@@ -153,18 +164,15 @@
   @for(resSet of this.skresOther.resourceSets(); track resSet[0]; let idx =
   $index) {
   <div>
-    @if(resSet[0] !== 'tracks') {
     <fb-resource-sets
       [darkMode]="app.uiConfig().invertColor"
       [collection]="resSet[0]"
       [resourceSets]="resSet[1]"
-      [selected]="app.config.selections.resourceSets[resSet[0]]"
       [labelMinZoom]="app.config.map.labelsMinZoom"
       [mapZoom]="mapZoomLevel()"
       [zIndex]="120 + idx"
     >
     </fb-resource-sets>
-    }
   </div>
   }
 
@@ -726,6 +734,7 @@
       <mat-icon>anchor</mat-icon>
       Anchor Watch
     </button>
+    @if(app.featureFlags().weatherApi) {
     <button
       mat-menu-item
       (click)="onContextMenuAction('weather_forecast', item)"
@@ -733,5 +742,6 @@
       <mat-icon>air</mat-icon>
       <span>Weather Forecast</span>
     </button>
+    }
   </ng-template>
 </mat-menu>

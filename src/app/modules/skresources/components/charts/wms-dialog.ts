@@ -4,10 +4,8 @@ import {
   MatDialogRef,
   MAT_DIALOG_DATA
 } from '@angular/material/dialog';
-import { MatTreeModule, MatTreeNestedDataSource } from '@angular/material/tree';
-import { NestedTreeControl } from '@angular/cdk/tree';
+import { MatTreeModule } from '@angular/material/tree';
 import { MatCheckboxModule } from '@angular/material/checkbox';
-import { BehaviorSubject, of as observableOf } from 'rxjs';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatIconModule } from '@angular/material/icon';
 import { MatCardModule } from '@angular/material/card';
@@ -21,6 +19,7 @@ import { PipesModule } from 'src/app/lib/pipes';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { parseString } from 'xml2js';
 import { ChartProvider } from 'src/app/types';
+import { SKInfoLayer } from '../../custom-resource-classes';
 
 interface LayerNode {
   name: string;
@@ -88,10 +87,11 @@ interface LayerNode {
         <div>
           <mat-tree
             class="wms-tree"
-            [dataSource]="nestedDataSource"
-            [treeControl]="nestedTreeControl"
+            #tree
+            [dataSource]="dataSource"
+            [childrenAccessor]="childrenAccessor"
           >
-            <mat-tree-node *matTreeNodeDef="let node">
+            <mat-nested-tree-node *matTreeNodeDef="let node">
               <mat-checkbox
                 [matTooltip]="node.description"
                 [checked]="node.selected"
@@ -99,15 +99,13 @@ interface LayerNode {
               >
                 {{ node.name }}
               </mat-checkbox>
-            </mat-tree-node>
-            <mat-nested-tree-node
-              *matTreeNodeDef="let node; when: hasNestedChild"
-            >
+            </mat-nested-tree-node>
+            <mat-nested-tree-node *matTreeNodeDef="let node; when: hasChild">
               <div class="mat-tree-node">
                 <button mat-icon-button matTreeNodeToggle>
                   <mat-icon class="mat-icon-rtl-mirror">
                     {{
-                      nestedTreeControl.isExpanded(node)
+                      tree.isExpanded(node)
                         ? 'expand_circle_down'
                         : 'chevron_right'
                     }}
@@ -118,13 +116,10 @@ interface LayerNode {
                   [checked]="node.selected"
                   (change)="toggleSelection($event.checked, node)"
                 >
-                  {{ node.name }}
+                  {{ node.title ?? node.name }}
                 </mat-checkbox>
               </div>
-              <div
-                role="group"
-                [class.tree-invisible]="!nestedTreeControl.isExpanded(node)"
-              >
+              <div role="group" [class.tree-invisible]="!tree.isExpanded(node)">
                 <ng-container matTreeNodeOutlet></ng-container>
               </div>
             </mat-nested-tree-node>
@@ -169,39 +164,22 @@ export class WMSDialog {
   protected errorMsg = '';
   protected selections: Array<string> = [];
   protected wmsBase: ChartProvider;
-  protected wmsSources: { [key: string]: ChartProvider } = {};
+  protected wmsSources: { [key: string]: ChartProvider | SKInfoLayer } = {};
   protected hostUrl = '';
 
-  protected layerNodes: LayerNode[] = [];
-  nestedTreeControl: NestedTreeControl<LayerNode>;
-  nestedDataSource: MatTreeNestedDataSource<LayerNode>;
-  dataChange: BehaviorSubject<LayerNode[]> = new BehaviorSubject<LayerNode[]>(
-    []
-  );
-  private _getChildren = (node: LayerNode) => {
-    return observableOf(node.children);
-  };
-  hasNestedChild = (_: number, nodeData: LayerNode) => {
-    return nodeData.children && nodeData.children.length !== 0;
-  };
+  protected dataSource: LayerNode[] = [];
+  protected childrenAccessor = (node: LayerNode) => node.children ?? [];
+  protected hasChild = (_: number, node: LayerNode) =>
+    !!node.children && node.children.length > 0;
 
   constructor(
     public app: AppFacade,
     public dialogRef: MatDialogRef<WMSDialog>,
     private http: HttpClient,
     @Inject(MAT_DIALOG_DATA) public data: SKChart
-  ) {
-    this.nestedTreeControl = new NestedTreeControl<LayerNode>(
-      this._getChildren
-    );
-    this.nestedDataSource = new MatTreeNestedDataSource();
+  ) {}
 
-    this.dataChange.subscribe((data) => (this.nestedDataSource.data = data));
-
-    this.dataChange.next([]);
-  }
-
-  toggleSelection(checked: boolean, node: LayerNode) {
+  protected toggleSelection(checked: boolean, node: LayerNode) {
     this.handleSelection(checked, node);
     this.parseSelections();
   }
@@ -213,31 +191,32 @@ export class WMSDialog {
         this.handleSelection(checked, child);
       });
     }
-    this.checkAllParents(node);
-  }
-
-  private checkAllParents(node: LayerNode) {
-    if (node.parent) {
-      const descendants = this.nestedTreeControl.getDescendants(node.parent);
-      node.parent.selected = descendants.every((child) => child.selected);
-      this.checkAllParents(node.parent);
-    }
   }
 
   private parseSelections() {
     this.selections = [];
     this.wmsSources = {};
-    this.layerNodes.forEach((l: LayerNode) => {
+    this.dataSource.forEach((l: LayerNode) => {
       this.getSelections(l);
     });
   }
 
-  private buildSource(l: LayerNode): ChartProvider {
-    const s = Object.assign({}, this.wmsBase);
-    s.name = l.name;
-    s.description = l.description;
-    s.layers = [l.name];
-    return s;
+  private buildSource(l: LayerNode): ChartProvider | SKInfoLayer {
+    if (this.data.format === 'infolayer') {
+      const s = new SKInfoLayer();
+      s.name = l.name;
+      s.description = l.description;
+      s.values.layers = [l.name];
+      s.values.url = this.wmsBase.url;
+      s.values.sourceType = 'WMS';
+      return s;
+    } else {
+      const s = Object.assign({}, this.wmsBase);
+      s.name = l.name;
+      s.description = l.description;
+      s.layers = [l.name];
+      return s;
+    }
   }
 
   private getSelections(node: LayerNode) {
@@ -255,19 +234,19 @@ export class WMSDialog {
         }
       }
     };
-    selNode(node);
-    const descendants = this.nestedTreeControl.getDescendants(node);
-    descendants
-      .filter((l) => l.selected && !this.selections.includes(l.name))
-      .forEach((l) => selNode(l));
+    if (Array.isArray(node.children)) {
+      node.children.forEach((c) => this.getSelections(c));
+    } else {
+      selNode(node);
+    }
   }
 
-  handleSave() {
+  protected handleSave() {
     this.dialogRef.close(Object.values(this.wmsSources));
   }
 
   /** Make requests to WMS server */
-  wmsGetCapabilities(wmsHost: string) {
+  protected wmsGetCapabilities(wmsHost: string) {
     this.selections = [];
     this.errorMsg = '';
 
@@ -276,7 +255,7 @@ export class WMSDialog {
     this.http.get(url, { responseType: 'text' }).subscribe(
       (res: string) => {
         this.isFetching = false;
-        this.layerNodes = [];
+        this.dataSource = [];
         if (res.indexOf('<Capability') !== -1) {
           this.parseCapabilities(res, wmsHost);
         } else {
@@ -292,7 +271,7 @@ export class WMSDialog {
   }
 
   /** Parse WMSCapabilities.xml */
-  parseCapabilities(xml: string, urlBase: string) {
+  private parseCapabilities(xml: string, urlBase: string) {
     this.wmsBase = {
       name: '',
       description: '',
@@ -318,7 +297,7 @@ export class WMSDialog {
   }
 
   /** Retrieve the available layers from WMS Capabilities metadata */
-  getWMSLayers(
+  private getWMSLayers(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     json: { [key: string]: any }
   ): ChartProvider[] {
@@ -335,14 +314,14 @@ export class WMSDialog {
     }
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     rootNode.Capability[0].Layer.forEach((layer: any) => {
-      this.parselayer(layer, this.layerNodes);
+      this.parselayer(layer, this.dataSource);
     });
-    this.layerNodes.sort((a, b) => (a.name < b.name ? -1 : 1));
-    this.dataChange.next(this.layerNodes);
+    this.dataSource.sort((a, b) => (a.name < b.name ? -1 : 1));
+    //this.dataChange.next(this.dataSource);
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  parselayer(layer: any, cList: LayerNode[], parent: LayerNode = null) {
+  private parselayer(layer: any, cList: LayerNode[], parent: LayerNode = null) {
     const node: LayerNode = {
       name: layer['Name'] ? layer['Name'][0] : '',
       description: layer['Abstract'] ? layer['Abstract'][0] : '',

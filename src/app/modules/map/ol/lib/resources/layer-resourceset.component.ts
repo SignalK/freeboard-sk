@@ -18,8 +18,9 @@ import {
 import { fromLonLat } from 'ol/proj';
 import { MapComponent } from '../map.component';
 import { fromLonLatArray } from '../util';
-import { SKResourceSet } from 'src/app/modules';
 import { FBFeatureLayerComponent } from '../sk-feature.component';
+import { FBResourceSets } from 'src/app/types';
+import { SKResourceSet } from 'src/app/modules/skresources';
 
 // ** Signal K resource collection format **
 @Component({
@@ -32,8 +33,7 @@ export class ResourceSetLayerComponent extends FBFeatureLayerComponent {
   protected features: Array<Feature>;
 
   @Input() collection: string;
-  @Input() resourceSets: Array<SKResourceSet> = [];
-  @Input() selected: Array<string> = [];
+  @Input() resourceSets: FBResourceSets = [];
 
   constructor(
     protected mapComponent: MapComponent,
@@ -57,11 +57,11 @@ export class ResourceSetLayerComponent extends FBFeatureLayerComponent {
   }
 
   // process resource sets
-  parseResourceSets(resourceSets: Array<SKResourceSet>) {
+  parseResourceSets(resourceSets: FBResourceSets) {
     this.features = [];
     for (const r of resourceSets) {
-      if (this.selected.includes(r.id)) {
-        this.parseResources(r);
+      if (r[2]) {
+        this.parseResources(r[1]);
       }
     }
     this.source.addFeatures(this.features);
@@ -69,7 +69,7 @@ export class ResourceSetLayerComponent extends FBFeatureLayerComponent {
 
   // process a resource set
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  parseResources(rSet: { [key: string]: any }) {
+  parseResources(rSet: SKResourceSet) {
     const fa: Feature[] = [];
     let count = 0;
     for (const w of rSet.values.features) {

@@ -139,6 +139,12 @@ export interface WeatherData {
                     <div class="key-label">Humidity:</div>
                     <div style="flex: 1 1 auto;">{{ item.humidity }}</div>
                   </div>
+                  } @if(item.rain) {
+                  <div style="display:flex;">
+                    <div class="key-icon"></div>
+                    <div class="key-label">Precipitation:</div>
+                    <div style="flex: 1 1 auto;">{{ item.rain }}</div>
+                  </div>
                   } @if(item.pressure) {
                   <div style="display:flex;">
                     <div class="key-icon"></div>

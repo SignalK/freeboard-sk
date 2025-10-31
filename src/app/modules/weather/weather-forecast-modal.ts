@@ -21,6 +21,8 @@ import { AppFacade } from 'src/app/app.facade';
 import { SignalKClient } from 'signalk-client-angular';
 import { Convert } from 'src/app/lib/convert';
 import { WeatherData, WeatherDataComponent } from './weather-data.component';
+import { Position } from 'src/app/types';
+import { PipesModule } from 'src/app/lib/pipes';
 
 /********* WeatherForecastModal **********
 	data: {
@@ -41,7 +43,8 @@ import { WeatherData, WeatherDataComponent } from './weather-data.component';
     MatToolbarModule,
     MatStepperModule,
     MatProgressBar,
-    WeatherDataComponent
+    WeatherDataComponent,
+    PipesModule
   ],
   template: `
     <div class="_weather-forecast">
@@ -68,6 +71,38 @@ import { WeatherData, WeatherDataComponent } from './weather-data.component';
       } @else { @if(!forecasts || forecasts.length === 0) {
       <div style="text-align:center">{{ errorText }}</div>
       } @else {
+      <div style="display:flex;flex-wrap: nowrap;">
+        <div style="flex: 1;"></div>
+        <div style="width: 350px;text-align:center;">
+          <span style="font-size: small;">{{ data.subTitle }}</span>
+          <div
+            style="font-size: small;text-align:left;display:flex;flex-wrap: wrap;"
+          >
+            <div style="flex: 1;">
+              <span style="font-weight:bold;">Lat:</span>&nbsp;
+              <span
+                [innerText]="
+                  this.data.position[1]
+                    | coords : app.config.units.positionFormat : true
+                "
+              >
+              </span>
+              &nbsp;
+            </div>
+            <div style="flex: 1;">
+              <span style="font-weight:bold;">Lon:</span>&nbsp;
+              <span
+                [innerText]="
+                  this.data.position[0]
+                    | coords : app.config.units.positionFormat : false
+                "
+              >
+              </span>
+            </div>
+          </div>
+        </div>
+        <div style="flex: 1;"></div>
+      </div>
       <weather-data [data]="forecasts.slice(0, 18)"></weather-data>
       } }
     </div>
@@ -99,7 +134,7 @@ export class WeatherForecastModal implements OnInit {
   ) {}
 
   ngOnInit() {
-    this.getForecast();
+    this.getForecast(this.data.position);
   }
 
   formatTempDegreesC(val: number) {
@@ -122,15 +157,18 @@ export class WeatherForecastModal implements OnInit {
 
   private dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
-  private getForecast() {
-    let path = '/meteo/freeboard-sk/forecasts';
-    if (
-      this.app.featureFlags().weatherApi &&
-      this.app.data.vessels.self.position
-    ) {
-      const pos = this.app.data.vessels.self.position;
-      path = `/weather/forecasts/point?lat=${pos[1]}&lon=${pos[0]}`;
+  private getForecast(pos: Position) {
+    if (!this.app.featureFlags().weatherApi) {
+      this.errorText =
+        'Cannot retrieve forecasts as Weather API is not available!';
+      return;
     }
+    if (!this.data.position) {
+      this.errorText =
+        'Cannot retrieve forecasts as location has not been supplied!';
+      return;
+    }
+    const path = `/weather/forecasts/point?lat=${pos[1]}&lon=${pos[0]}`;
     this.isFetching = true;
     this.sk.api.get(2, path).subscribe(
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -222,6 +260,11 @@ export class WeatherForecastModal implements OnInit {
             }
             if (typeof v.outside?.visibility !== 'undefined') {
               forecastData.visibility = v.outside?.visibility;
+            }
+            if (typeof v.outside?.precipitationVolume !== 'undefined') {
+              forecastData.rain = `${(
+                v.outside?.precipitationVolume * 1000
+              ).toFixed(2)} mm`;
             }
 
             if (typeof v.wind !== 'undefined') {

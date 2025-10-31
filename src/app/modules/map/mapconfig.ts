@@ -103,6 +103,28 @@ export const regionStyles = {
       text: '',
       offsetY: 0
     })
+  }),
+  hazard: new Style({
+    stroke: new Stroke({
+      color: 'rgba(241, 60, 60, 1)',
+      lineDash: [5, 5, 2],
+      width: 2
+    }),
+    fill: new Fill({
+      color: 'rgba(241, 60, 60, 0.5)'
+    }),
+    text: new Text({
+      text: '',
+      offsetY: 0,
+      stroke: new Stroke({ color: 'silver' }),
+      padding: [2, 2, 2, 2],
+      backgroundFill: new Fill({
+        color: 'white'
+      }),
+      backgroundStroke: new Stroke({
+        color: 'rgba(241, 60, 60, 1)'
+      })
+    })
   })
 };
 

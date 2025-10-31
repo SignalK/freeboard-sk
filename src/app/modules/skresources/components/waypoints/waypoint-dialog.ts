@@ -26,7 +26,8 @@ import { PipesModule } from 'src/app/lib/pipes';
 import { SKWaypoint } from '../../resource-classes';
 import { merge } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { getResourceIcon } from 'src/app/modules/icons';
+import { AppIconDef, getResourceIcon, getSvgList } from 'src/app/modules/icons';
+import { MatTooltip } from '@angular/material/tooltip';
 
 /********* WaypointDialog **********
 	data: {
@@ -48,7 +49,8 @@ import { getResourceIcon } from 'src/app/modules/icons';
     MatCheckboxModule,
     MatDialogModule,
     PipesModule,
-    ReactiveFormsModule
+    ReactiveFormsModule,
+    MatTooltip
   ],
   template: `
     <div class="_ap-waypoint">
@@ -97,7 +99,11 @@ import { getResourceIcon } from 'src/app/modules/icons';
             <div>
               <mat-form-field style="width:100%;" floatLabel="always">
                 <mat-label>Type</mat-label>
-                <mat-select [disabled]="readOnly" [(value)]="wptType">
+                <mat-select
+                  [disabled]="readOnly"
+                  [(value)]="wptType"
+                  (selectionChange)="handleWptTypeChange($event)"
+                >
                   @for(wt of waypointTypes; track wt) {
                   <mat-optgroup [label]="wt.group">
                     @for(i of wt.icons; track i) {
@@ -115,6 +121,32 @@ import { getResourceIcon } from 'src/app/modules/icons';
                 </mat-select>
               </mat-form-field>
             </div>
+
+            <!-- select icon -->
+            @if(selectableIcons.includes(wptType)) {
+            <div style="padding-bottom: 15px;">
+              <button mat-stroked-button (click)="handleChangeIcon()">
+                <mat-icon [class]="wptIcon.class" [svgIcon]="wptIcon.svgIcon">{{
+                  wptIcon.name
+                }}</mat-icon>
+                Change icon
+              </button>
+            </div>
+            } @if(iconsForSelection().length!== 0) {
+            <div style="display:flex;flex-wrap:wrap;">
+              @for(i of iconsForSelection(); track i) {
+              <div
+                style="background-color:silver;padding:2px;border:1px solid black;"
+                (click)="handleIconSelected(i.svgIcon)"
+              >
+                <mat-icon
+                  [svgIcon]="i.svgIcon"
+                  [matTooltip]="i.svgIcon"
+                ></mat-icon>
+              </div>
+              }
+            </div>
+            }
 
             <div style="font-size: 10pt;">
               <div style="display:flex;">
@@ -208,6 +240,8 @@ export class WaypointDialog {
 
   protected description: string;
   protected wptType: string;
+  protected wptIcon: AppIconDef;
+  protected skIcon: string;
   protected lat: number;
   protected lon: number;
   protected readOnly = false;
@@ -216,7 +250,10 @@ export class WaypointDialog {
   protected inpLon: FormControl;
   protected inpName: FormControl;
 
+  protected selectableIcons = ['pseudoaton'];
+
   errorMessage = signal('');
+  iconsForSelection = signal<AppIconDef[]>([]);
 
   constructor(
     protected app: AppFacade,
@@ -230,6 +267,7 @@ export class WaypointDialog {
   ) {
     this.description = this.data.waypoint.description ?? '';
     this.wptType = this.data.waypoint.type ?? '';
+    this.wptIcon = this.getIconDef(this.data.waypoint);
     const coords = this.data.waypoint.feature.geometry.coordinates ?? [0, 0];
     this.lat = coords[1];
     this.lon = coords[0];
@@ -333,7 +371,41 @@ export class WaypointDialog {
         this.inpLon.value,
         this.inpLat.value
       ];
+      if (this.skIcon) {
+        this.data.waypoint.feature.properties.skIcon = this.skIcon;
+      } else {
+        delete this.data.waypoint.feature.properties.skIcon;
+      }
     }
     this.dialogRef.close({ save: save, waypoint: this.data.waypoint });
+  }
+
+  /** return the waypoint icon definition */
+  private getIconDef(wpt?: SKWaypoint): AppIconDef {
+    return getResourceIcon('waypoints', wpt ?? this.data.waypoint);
+  }
+
+  protected handleWptTypeChange(e) {
+    const w = Object.assign({}, this.data.waypoint);
+    w.type = this.wptType;
+    this.wptIcon = this.getIconDef(w);
+    this.iconsForSelection.set([]);
+    this.skIcon = undefined;
+  }
+
+  protected handleChangeIcon() {
+    const d = getSvgList()
+      .filter((i) => i.id.includes('virtual-'))
+      .map((i) => {
+        return { svgIcon: i.id };
+      });
+    this.iconsForSelection.update(() => d);
+  }
+
+  protected handleIconSelected(skIcon: string) {
+    this.skIcon = skIcon;
+    const w = Object.assign({}, this.data.waypoint);
+    w.feature.properties.skIcon = skIcon;
+    this.wptIcon = this.getIconDef(w);
   }
 }

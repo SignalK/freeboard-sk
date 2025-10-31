@@ -14,8 +14,8 @@ import {
   MAT_BOTTOM_SHEET_DATA
 } from '@angular/material/bottom-sheet';
 import { AppFacade } from 'src/app/app.facade';
-import { SKResourceSet } from '../../resourceset-class';
-import { SKOtherResources } from '../../resourceset-service';
+import { FBCustomResourceService } from '../../custom-resources-service';
+import { FBResourceSet, FBResourceSets } from 'src/app/types';
 
 /********* ResourceSetModal **********
  * Fetches ResouorceSets from server for selection
@@ -75,14 +75,14 @@ import { SKOtherResources } from '../../resourceset-service';
       </mat-toolbar>
       @if (app.sIsFetching()) {
       <mat-progress-bar mode="indeterminate"></mat-progress-bar>
-      } @else{ @for(res of resList(); track res[1].id; let idx = $index) {
+      } @else{ @for(res of resList(); track res[0]; let idx = $index) {
       <mat-card>
         <mat-card-content>
           <div style="display:flex;flex-wrap:no-wrap;">
             <div style="width:45px;">
               <mat-checkbox
-                [checked]="res[0]"
-                (change)="handleCheck($event.checked, res[1].id, idx)"
+                [checked]="res[2]"
+                (change)="handleCheck($event.checked, res[0], idx)"
               ></mat-checkbox>
             </div>
             <div style="flex:1 1 auto;">
@@ -116,12 +116,12 @@ import { SKOtherResources } from '../../resourceset-service';
   ]
 })
 export class ResourceSetModal implements OnInit {
-  protected resList = signal<Array<[boolean, SKResourceSet]>>([]);
+  protected resList = signal<FBResourceSets>([]);
   protected title = 'Resources: ';
 
   constructor(
     public app: AppFacade,
-    private skresOther: SKOtherResources,
+    private skresOther: FBCustomResourceService,
     protected modalRef: MatBottomSheetRef<ResourceSetModal>,
     @Inject(MAT_BOTTOM_SHEET_DATA)
     public data: {
@@ -136,25 +136,20 @@ export class ResourceSetModal implements OnInit {
     this.getItems();
   }
 
-  closeModal() {
+  protected closeModal() {
     this.modalRef.dismiss();
   }
 
-  async getItems(silent?: boolean) {
+  protected async getItems(silent?: boolean) {
     try {
       if (!silent) {
         this.app.sIsFetching.set(true);
       }
-      const rs = await this.skresOther.lisFromServer(this.data.path);
+      const list = await this.skresOther.customListFromServer<FBResourceSet>(
+        this.data.path,
+        'ResourceSet'
+      );
       this.app.sIsFetching.set(false);
-      const list: Array<[boolean, SKResourceSet]> = rs.map((i) => {
-        return [
-          this.app.config.selections.resourceSets[this.data.path].includes(
-            i.id
-          ),
-          i
-        ];
-      });
       this.resList.set(list);
     } catch (err) {
       this.app.sIsFetching.set(false);
@@ -162,9 +157,9 @@ export class ResourceSetModal implements OnInit {
     }
   }
 
-  handleCheck(checked: boolean, id: string, idx: number) {
+  protected handleCheck(checked: boolean, id: string, idx: number) {
     this.resList.update((current) => {
-      current[idx][0] = checked;
+      current[idx][2] = checked;
       if (checked) {
         this.app.config.selections.resourceSets[this.data.path].push(id);
       } else {
@@ -177,15 +172,16 @@ export class ResourceSetModal implements OnInit {
       return [].concat(current);
     });
     this.app.saveConfig();
-    this.skresOther.refreshInBoundsItems(this.data.path);
+    this.skresOther.refreshResourceSetsInBounds(this.data.path);
   }
 
-  clearSelections() {
+  protected clearSelections() {
     this.resList.update((current) => {
-      return current.map((i) => [false, i[1]]);
+      current.forEach((i) => (i[2] = false));
+      return current;
     });
     this.app.config.selections.resourceSets[this.data.path] = [];
     this.app.saveConfig();
-    this.skresOther.refreshInBoundsItems(this.data.path);
+    this.skresOther.refreshResourceSetsInBounds(this.data.path);
   }
 }

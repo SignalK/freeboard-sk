@@ -32,6 +32,13 @@
     height: 45px;
 }
 
+::ng-deep .ol-dragbox {
+  background-color: rgba(255,255,255,0.4) !important;
+  border-color: rgba(100,150,0,1) !important;
+  border-style: solid;
+  border-width: 1px;
+}
+
 .nosmall {
     display: block;
 } 

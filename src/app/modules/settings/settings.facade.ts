@@ -267,13 +267,7 @@ export class SettingsFacade {
       (r: ResourceTypeList) => {
         this.resourcePathList = Object.keys(r)
           .filter((i: string) => {
-            return ![
-              'routes',
-              'waypoints',
-              'notes',
-              'regions',
-              'charts'
-            ].includes(i);
+            return !this.app.IGNORE_RESOURCES.includes(i);
           })
           .sort();
       },

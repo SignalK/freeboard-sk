@@ -1,7 +1,7 @@
 export * from './resources.service';
 export * from './resource-classes';
-export * from './resourceset-class';
-export * from './resourceset-service';
+export * from './custom-resource-classes';
+export * from './custom-resources-service';
 
 export * from './components/active-resource-dialog';
 export * from './components/signalk-details.component';
@@ -39,3 +39,6 @@ export * from './components/groups/grouplist';
 export * from './components/resourcesets/resourceset-list-modal';
 export * from './components/resourcesets/resourceset-feature-properties-modal';
 export * from './components/resourcesets/resource-upload-dialog';
+
+export * from './components/infolayers/infolayerlist';
+export * from './components/infolayers/infolayer-properties-dialog';

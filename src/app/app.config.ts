@@ -290,13 +290,15 @@ export function cleanConfig(
   if (typeof settings.selections.aisTargetTypes === 'undefined') {
     settings.selections.aisTargetTypes = [];
   }
-
   if (typeof settings.selections.aisFilterByShipType === 'undefined') {
     settings.selections.aisFilterByShipType = false;
   }
+  if (typeof settings.selections.aisState === 'undefined') {
+    settings.selections.aisState = [];
+  }
 
   if (typeof settings.selections.chartOrder === 'undefined') {
-    settings.selections['chartOrder'] = [];
+    settings.selections.chartOrder = [];
   }
   if (typeof settings.selections.tracks === 'undefined') {
     settings.selections.tracks = [];
@@ -304,9 +306,8 @@ export function cleanConfig(
   if (typeof settings.selections.resourceSets === 'undefined') {
     settings.selections.resourceSets = {};
   }
-
-  if (typeof settings.selections.aisState === 'undefined') {
-    settings.selections.aisState = [];
+  if (typeof settings.selections.infolayers === 'undefined') {
+    settings.selections.infolayers = [];
   }
 
   if (typeof settings.units.temperature === 'undefined') {
@@ -474,9 +475,9 @@ export function defaultConfig(): IAppConfig {
       aisTargets: null,
       aisTargetTypes: [],
       aisFilterByShipType: false,
-
       aisState: [], // list of ais state values used to filter targets
-      resourceSets: {} // additional resources
+      resourceSets: {}, // additional resources
+      infolayers: null
     }
   };
 }

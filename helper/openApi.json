@@ -22,7 +22,11 @@
   "tags": [
     {
       "name": "Alarms",
-      "description": "Action alarms."
+      "description": "Standard alarms."
+    },
+    {
+      "name": "Areas",
+      "description": "Area alarms."
     }
   ],
   "components": {
@@ -46,6 +50,38 @@
         "description": "Date / Time when data values were recorded",
         "pattern": "^(\\d{4})-(\\d{2})-(\\d{2})T(\\d{2}):(\\d{2}):(\\d{2}(?:\\.\\d*)?)((-(\\d{2}):(\\d{2})|Z)?)$",
         "example": "2022-04-22T05:02:56.484Z"
+      },
+      "AreaAlarmDef": {
+        "type": "object",
+        "required": ["trigger", "geometry"],
+        "properties": {
+          "geometry": {
+            "type": "string",
+            "enum": ["polygon","circle","region"]
+          },
+          "trigger": {
+            "type": "string",
+            "enum": ["entry","exit"]
+          },
+          "coords": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Position"
+            },
+            "description": "Coordinates of the alarm area. `(required when geometry = 'polygon')`"
+          },
+          "center": {
+            "$ref": "#/components/schemas/Position",
+            "description": "Center of circlular area. `(required when geometry = 'circle')`"
+          },
+          "radius": {
+            "type": "number",
+            "description": "Circle radius in meters. `(required when geometry = 'circle')`"
+          },
+          "name": {
+            "type": "string"
+          }
+        }
       }
     },
     "responses": {
@@ -145,6 +181,92 @@
   },
   "security": [{ "cookieAuth": [] }, { "bearerAuth": [] }],
   "paths": {
+    "/signalk/v2/api/alarms/area": {
+      "post": {
+        "tags": ["Areas"],
+        "summary": "Set Alarm area.",
+        "requestBody": {
+          "description": "Sets the defined area to monitor for vessel entry /exit.",
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AreaAlarmDef"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200ActionResponse": {
+            "$ref": "#/components/responses/200OKResponse"
+          },
+          "default": {
+            "$ref": "#/components/responses/ErrorResponse"
+          }
+        }
+      }
+    },
+    "/signalk/v2/api/alarms/area/{id}": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/AlarmIdParam"
+        }
+      ],
+      "put": {
+        "tags": ["Areas"],
+        "summary": "Update Alarm area OR Set the `Region` resource with the supplied identifier as the alarm area.",
+        "requestBody": {
+          "description": "Updates the area details for the supplied area identfier.",
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AreaAlarmDef"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200ActionResponse": {
+            "$ref": "#/components/responses/200OKResponse"
+          },
+          "default": {
+            "$ref": "#/components/responses/ErrorResponse"
+          }
+        }
+      },
+      "delete": {
+        "tags": ["Areas"],
+        "summary": "Clear / cancel Area Alarm.",
+        "responses": {
+          "200ActionResponse": {
+            "$ref": "#/components/responses/200OKResponse"
+          },
+          "default": {
+            "$ref": "#/components/responses/ErrorResponse"
+          }
+        }
+      }
+    },
+    "/signalk/v2/api/alarms/area/{id}/silence": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/AlarmIdParam"
+        }
+      ],
+      "post": {
+        "tags": ["Areas"],
+        "summary": "Silence Area Alarm.",
+        "responses": {
+          "200ActionResponse": {
+            "$ref": "#/components/responses/200OKResponse"
+          },
+          "default": {
+            "$ref": "#/components/responses/ErrorResponse"
+          }
+        }
+      }
+    },
     "/signalk/v2/api/alarms/{alarmType}": {
       "parameters": [
         {

@@ -14,7 +14,8 @@ import {
   RouteDialog,
   WaypointDialog,
   RelatedNotesDialog,
-  TrackDialog
+  TrackDialog,
+  SKInfoLayer
 } from '.';
 import { processUrlTokens } from 'src/app/app.config';
 
@@ -68,7 +69,7 @@ export type SKResourceType =
   | 'charts'
   | 'tracks';
 
-export type SKSelection = SKResourceType | 'aisTargets';
+export type SKSelection = SKResourceType | 'aisTargets' | 'infolayers';
 
 // ** Signal K resource operations
 @Injectable({ providedIn: 'root' })
@@ -117,7 +118,7 @@ export class SKResourceService {
    * @id Resource identifier or array of identifiers to add to selection list
    */
   public selectionAdd(collection: SKSelection, id: string | string[]) {
-    if (this.app.config.selections[collection] === 'undefined') {
+    if (typeof this.app.config.selections[collection] === 'undefined') {
       return;
     }
     if (this.selectionIsFiltered(collection)) {
@@ -137,7 +138,7 @@ export class SKResourceService {
    * @id Resource identifier or array of identifiers to remove from selection list
    */
   public selectionRemove(collection: SKSelection, id: string | string[]) {
-    if (this.app.config.selections[collection] === 'undefined') {
+    if (typeof this.app.config.selections[collection] === 'undefined') {
       return;
     }
     if (this.selectionIsFiltered(collection)) {
@@ -154,9 +155,6 @@ export class SKResourceService {
    * @param collection
    */
   public selectionUnfilter(collection: SKSelection) {
-    if (this.app.config.selections[collection] === 'undefined') {
-      return;
-    }
     this.app.config.selections[collection] = null;
     this.app.saveConfig();
   }
@@ -166,9 +164,6 @@ export class SKResourceService {
    * @param collection
    */
   public selectionClear(collection: SKSelection) {
-    if (this.app.config.selections[collection] === 'undefined') {
-      return;
-    }
     this.app.config.selections[collection] = [];
     this.app.saveConfig();
   }
@@ -369,7 +364,7 @@ export class SKResourceService {
    * @returns Promise<void> (rejects with HTTPErrorResponse)
    */
   public deleteFromServer(
-    collection: SKResourceType | 'tracks',
+    collection: SKResourceType | 'tracks' | 'infolayers',
     id: string,
     provider?: string
   ): Promise<void> {
@@ -392,9 +387,16 @@ export class SKResourceService {
    * @returns Promise<ActionResult> (rejects with HTTPErrorResponse)
    */
   public putToServer(
-    collection: SKResourceType | 'tracks',
+    collection: SKResourceType | 'tracks' | 'infolayers',
     id: string,
-    data: SKRoute | SKWaypoint | SKRegion | SKNote | SKChart | SKTrack
+    data:
+      | SKRoute
+      | SKWaypoint
+      | SKRegion
+      | SKNote
+      | SKChart
+      | SKTrack
+      | SKInfoLayer
   ): Promise<any> {
     return new Promise((resolve, reject) => {
       this.signalk.api
@@ -413,8 +415,15 @@ export class SKResourceService {
    * @returns Promise<ActionResult> (rejects with HTTPErrorResponse)
    */
   public postToServer(
-    collection: SKResourceType | 'tracks',
-    data: SKRoute | SKWaypoint | SKRegion | SKNote | SKChart | SKTrack
+    collection: SKResourceType | 'tracks' | 'infolayers',
+    data:
+      | SKRoute
+      | SKWaypoint
+      | SKRegion
+      | SKNote
+      | SKChart
+      | SKTrack
+      | SKInfoLayer
   ): Promise<any> {
     return new Promise((resolve, reject) => {
       this.signalk.api
@@ -685,7 +694,7 @@ export class SKResourceService {
     // ensure chartList ids are included in chartOrder
     chartList.forEach((c: FBChart) => {
       if (!chartOrder.includes(c[0])) {
-        chartOrder.unshift(c[0]);
+        chartOrder.push(c[0]);
       }
     });
 

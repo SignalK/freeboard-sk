@@ -176,7 +176,8 @@ export class AtoNPropertiesModal implements OnInit {
             i[1].value,
             i[1].meta && i[1].meta.units ? i[1].meta.units : '',
             i[0].toLowerCase().includes('level') ||
-              i[0].toLowerCase().includes('height') // depth values
+              i[0].toLowerCase().includes('height'), // depth values
+            key === 'environment.outside.precipitationVolume' ? 5 : 1
           );
         });
       }

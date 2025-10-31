@@ -193,6 +193,7 @@ export interface IAppConfig {
     aisState: string[]; // list of ais state values used to filter targets
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     resourceSets: { [key: string]: any }; // additional resources
+    infolayers: string[];
   };
 }
 

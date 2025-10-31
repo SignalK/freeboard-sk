@@ -28,6 +28,11 @@
         <mat-icon>category</mat-icon>
         &nbsp;Groups
       </button>
+      } @if(app.featureFlags().infoLayers) {
+      <button mat-menu-item (click)="displayLeftMenu('infoLayerList', true)">
+        <mat-icon>layers</mat-icon>
+        &nbsp;Overlays
+      </button>
       }
 
       <mat-divider></mat-divider>
@@ -46,17 +51,16 @@
         &nbsp;Export
       </button>
 
-      @if(app.config.resources.paths.length !== 0) {
+      <mat-divider></mat-divider>
+      @if(app.featureFlags().resourceTracks) {
+      <button mat-menu-item (click)="displayLeftMenu('trackList', true)">
+        <mat-icon class="icon-warn">show_chart</mat-icon>
+        &nbsp;Tracks
+      </button>
+      } @if(app.config.resources.paths.length !== 0) {
       <div>
-        <mat-divider></mat-divider>
         @for(p of app.config.resources.paths.sort(); track p) {
         <div>
-          @switch(p) { @case('tracks') {
-          <button mat-menu-item (click)="displayLeftMenu('trackList', true)">
-            <mat-icon class="icon-warn">show_chart</mat-icon>
-            &nbsp;Tracks
-          </button>
-          } @default {
           <button
             mat-menu-item
             (click)="openExperiment({ choice: p, value: null })"
@@ -67,7 +71,6 @@
             ></mat-icon>
             &nbsp;{{ p }}
           </button>
-          } }
         </div>
         }
       </div>
@@ -123,11 +126,13 @@
         }}</mat-icon>
         <span>{{ app.config.ui.showNotes ? 'Hide' : 'Show' }} Notes</span>
       </a>
+      @if(app.featureFlags().weatherApi && app.data.vessels.showSelf) {
       <mat-divider></mat-divider>
       <a mat-menu-item (click)="showWeather('forecast')">
         <mat-icon>air</mat-icon>
         <span>Weather Forecast</span>
       </a>
+      }
       <mat-divider></mat-divider>
       <a mat-menu-item (click)="openSettings()">
         <mat-icon>settings</mat-icon>
@@ -140,9 +145,13 @@
         <mat-icon>straighten</mat-icon>
         <span>Measure</span>
       </a>
+      <!--<a mat-menu-item (click)="mapInteract.startBoxSelection()">
+        <mat-icon>highlight_alt</mat-icon>
+        <span>Select</span>
+      </a>-->
       <mat-divider></mat-divider>
       <a mat-menu-item (click)="drawFeature('route')">
-        <mat-icon class="icon-route" svgIcon="route-planning"></mat-icon>
+        <mat-icon class="icon-route">draw</mat-icon>
         <span>Draw Route</span>
       </a>
       <a mat-menu-item (click)="toggleRouteBuilderConsole(true)">
@@ -160,7 +169,7 @@
       </a>
       }
       <a mat-menu-item (click)="drawFeature('waypoint')">
-        <mat-icon class="icon-waypoint">edit_location</mat-icon>
+        <mat-icon class="icon-waypoint">add_location_alt</mat-icon>
         <span>Drop Waypoint</span>
       </a>
       <mat-divider></mat-divider>
@@ -392,7 +401,7 @@
                 class="button-toolbar"
                 mat-mini-fab
                 [disabled]="isInteracting()"
-                matTooltip="Draw / Measure"
+                matTooltip="Draw / Measure / Select"
                 matTooltipPosition="right"
                 [matMenuTriggerFor]="editmenu"
               >
@@ -547,6 +556,8 @@
             </ais-list>
             } } @if(leftMenuCtrl().resourceGroups) { @defer {
             <group-list (closed)="displayLeftMenu()"> </group-list>
+            } } @if(leftMenuCtrl().infoLayerList) { @defer {
+            <infolayer-list (closed)="displayLeftMenu()"></infolayer-list>
             } } @if(leftMenuCtrl().anchorWatch) {
             <anchor-watch
               [showSelf]="app.data.vessels.showSelf"
@@ -801,9 +812,10 @@
             />
           </div>
 
-          <!-- Draw Help -->
+          <!-- Draw Interaction Help Panel -->
           @if((mapInteract.isDrawing() && mapInteract.draw.resourceType !==
-          'route') || mapInteract.isModifying()) {
+          'route') || mapInteract.isModifying() || mapInteract.isBoxSelecting())
+          {
           <div class="mat-app-background measurePanel">
             @if(mapInteract.isDrawing()) {
             <div>
@@ -852,6 +864,23 @@
                 </ol>
               </div>
             </div>
+            } @if(mapInteract.isBoxSelecting()) {
+            <div>
+              <span style="font-weight: bold; padding: 5px">
+                <mat-icon>highlight_alt</mat-icon> Select:
+              </span>
+              <div style="padding: 5px">
+                <ul
+                  style="
+                    margin-block-start: 0.2em;
+                    margin-block-end: 0.2em;
+                    padding-inline-start: 15px;
+                  "
+                >
+                  <li>Click and drag to select area.</li>
+                </ul>
+              </div>
+            </div>
             }
             <div style="text-align: center">
               <!-- cancel Draw button -->
@@ -860,7 +889,9 @@
                 mat-raised-button
                 (click)="closeInteraction()"
                 [matTooltip]="
-                  mapInteract.isModifying() ? 'Finish Editing' : 'Cancel Draw'
+                  mapInteract.isModifying()
+                    ? 'Finish Editing'
+                    : 'Cancel Operation'
                 "
                 matTooltipPosition="left"
               >
@@ -907,7 +938,7 @@
           </div>
           }
 
-          <!-- Measurement panel -->
+          <!-- Measurement Interaction Help Panel -->
           @if(mapInteract.isMeasuring() || mapInteract.draw.resourceType ===
           'route' && mapInteract.isDrawing() || (mapInteract.isModifying() &&
           mapInteract.draw.resourceType === 'route')) {

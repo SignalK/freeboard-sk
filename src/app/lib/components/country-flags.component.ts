@@ -13,12 +13,12 @@ export class CountryFlagComponent {
   protected flagIcon: string;
   protected showFlag = signal<boolean>(true);
 
-  public mmsi = input<number>();
+  public mmsi = input<string>();
   public host = input<string>('');
 
   constructor() {
     effect(() => {
-      this.flagIcon = `${this.host()}/signalk/v2/api/resources/flags/mmsi/${this.mmsi().toString()}`;
+      this.flagIcon = `${this.host()}/signalk/v2/api/resources/flags/mmsi/${this.mmsi()}`;
     });
   }
 

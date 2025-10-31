@@ -18,6 +18,7 @@ import { MatListModule } from '@angular/material/list';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatMenuModule, MatMenuTrigger } from '@angular/material/menu';
+import { MatBottomSheet } from '@angular/material/bottom-sheet';
 
 // ** OL & popvers **
 import {
@@ -48,7 +49,7 @@ import { AppFacade } from 'src/app/app.facade';
 
 import {
   SKResourceService,
-  SKOtherResources,
+  FBCustomResourceService,
   SKChart,
   SKWaypoint,
   SKVessel,
@@ -60,7 +61,8 @@ import {
   AnchorService,
   NotificationManager,
   CourseService,
-  SettingsFacade
+  SettingsFacade,
+  WeatherForecastModal
 } from 'src/app/modules';
 import {
   mapControls,
@@ -96,6 +98,7 @@ import {
 } from './fbmap-interact.service';
 import { ScaleLine } from 'ol/control';
 import { Units } from 'ol/control/ScaleLine';
+import { DragBoxEvent } from 'ol/interaction/DragBox';
 
 interface IResource {
   id: string;
@@ -247,13 +250,14 @@ export class FBMapComponent implements OnInit, OnDestroy {
   constructor(
     protected app: AppFacade,
     protected skres: SKResourceService,
-    protected skresOther: SKOtherResources,
+    protected skresOther: FBCustomResourceService,
     protected skstream: SKStreamFacade,
     protected anchor: AnchorService,
     protected notiMgr: NotificationManager,
     protected course: CourseService,
     protected mapInteract: FBMapInteractService,
-    private settings: SettingsFacade
+    private settings: SettingsFacade,
+    private bottomSheet: MatBottomSheet
   ) {
     effect(() => {
       if (this.scaleUnits()) {
@@ -483,7 +487,8 @@ export class FBMapComponent implements OnInit, OnDestroy {
       { name: 'keyboardpan' },
       { name: 'keyboardzoom' },
       { name: 'mousewheelzoom' },
-      { name: 'pinchzoom' }
+      { name: 'pinchzoom' },
+      { name: 'dragbox' }
     ];
 
     this.olMapInteractions.update(() => {
@@ -509,6 +514,16 @@ export class FBMapComponent implements OnInit, OnDestroy {
         this.course.setDestination({
           latitude: pos[1],
           longitude: pos[0]
+        });
+        break;
+      case 'weather_forecast':
+        this.bottomSheet.open(WeatherForecastModal, {
+          disableClose: true,
+          data: {
+            title: 'Forecast',
+            position: pos,
+            subTitle: 'Location: Cursor Position'
+          }
         });
         break;
       case 'measure':
@@ -663,6 +678,26 @@ export class FBMapComponent implements OnInit, OnDestroy {
     if (resType === 'charts') {
       this.skres.chartSelected(id);
     }
+  }
+
+  /** Handle OL interaction start event */
+  protected onDragBoxStart(e: DragBoxEvent) {
+    let c = toLonLat(e.coordinate);
+    this.mapInteract.initBoxCoord(c as Position);
+    this.app.debug(`onDragBoxStart()...`, this.mapInteract.boxCoords);
+  }
+
+  /** Handle OL interaction end event */
+  protected onDragBoxEnd(e: DragBoxEvent) {
+    let c = toLonLat(e.coordinate);
+    this.mapInteract.stopBoxSelection(c as Position);
+    this.app.debug(`onDragBoxEnd()...`, this.mapInteract.boxCoords);
+  }
+
+  /** Handle OL interaction end event */
+  protected onDragBoxCancel(e: DragBoxEvent) {
+    this.app.debug(`onDragBoxCancel()...`);
+    this.mapInteract.stopBoxSelection();
   }
 
   /** Handle OL interaction start event */
@@ -1198,7 +1233,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
       case 'rset':
         poData.id = id;
         poData.type = t[0];
-        poData.resource = this.skresOther.fromCache(id, true);
+        poData.resource = this.skresOther.fromResourceSetCache(id, true);
         poData.title =
           (poData.resource as GeoJsonFeature)?.properties?.name ??
           'Resource Set';
@@ -1619,7 +1654,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
     }
     if (this.shouldFetchResourceSets(zoomChanged)) {
       this.app.debug(`fetching ResourceSets...`);
-      this.skresOther.refreshInBoundsItems();
+      this.skresOther.refreshResourceSetsInBounds();
     }
   }
 
@@ -1650,13 +1685,13 @@ export class FBMapComponent implements OnInit, OnDestroy {
     }
   }
 
-  // ** returns true if skresOther.refreshInBoundsItems() should be called
+  // ** returns true if skresOther.refreshResourceSetsInBounds() should be called
   private shouldFetchResourceSets(zoomChanged: boolean) {
     if (
       this.app.config.resources.fetchRadius !== 0 &&
       this.app.config.resources.fetchFilter
     ) {
-      if (!this.skresOther.anySelected()) {
+      if (!this.skresOther.anyResourceSetSelection()) {
         return false;
       }
       if (zoomChanged) {

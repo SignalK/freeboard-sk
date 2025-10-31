@@ -177,6 +177,7 @@ export class NotificationManager {
     const seg = path.split('.');
     if (
       this.isStandardAlarm(seg[1]) ||
+      path.includes('notifications.area') ||
       path.includes('notifications.buddy') ||
       path.includes('notifications.meteo.warning')
     ) {

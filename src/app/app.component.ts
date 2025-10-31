@@ -28,7 +28,7 @@ import {
   SKSaR,
   SKAircraft,
   SKAtoN,
-  SKOtherResources,
+  FBCustomResourceService,
   SKRegion,
   WeatherForecastModal,
   CourseSettingsModal,
@@ -119,6 +119,7 @@ export class AppComponent {
     trackList: boolean;
     aisList: boolean;
     resourceGroups: boolean;
+    infoLayerList: boolean;
     anchorWatch: boolean;
   }>({
     leftMenuPanel: false,
@@ -129,6 +130,7 @@ export class AppComponent {
     trackList: false,
     aisList: false,
     resourceGroups: false,
+    infoLayerList: false,
     anchorWatch: false
   });
 
@@ -174,7 +176,7 @@ export class AppComponent {
     protected course: CourseService,
     protected stream: SKStreamFacade,
     protected skres: SKResourceService,
-    protected skresOther: SKOtherResources,
+    protected skresOther: FBCustomResourceService,
     protected signalk: SignalKClient,
     private dom: DomSanitizer,
     private overlayContainer: OverlayContainer,
@@ -528,7 +530,11 @@ export class AppComponent {
       this.bottomSheet
         .open(WeatherForecastModal, {
           disableClose: true,
-          data: { title: 'Forecast' }
+          data: {
+            title: 'Forecast',
+            position: this.app.data.vessels.self.position,
+            subTitle: 'Location: Vessel Position'
+          }
         })
         .afterDismissed()
         .subscribe(() => {
@@ -642,7 +648,7 @@ export class AppComponent {
   }
 
   // ** discover server features **
-  private getFeatures() {
+  private async getFeatures() {
     // check server features
     const ff = {
       anchorApi: false,
@@ -691,20 +697,11 @@ export class AppComponent {
       }
     );
 
-    // check for resource groups
-    this.signalk.api.get(this.app.skApiVersion, 'resources/groups').subscribe(
-      () => {
-        this.app.featureFlags.update((current) => {
-          return Object.assign({}, current, { resourceGroups: true });
-        });
-      },
-      () => {
-        this.app.debug('*** Features API not present!');
-        this.app.featureFlags.update((current) => {
-          return Object.assign({}, current, { resourceGroups: false });
-        });
-      }
-    );
+    // Check for custom resource collections
+    const rcs = await this.skresOther.initCustomCollections();
+    this.app.featureFlags.update((current) => {
+      return Object.assign({}, current, rcs);
+    });
   }
 
   // ** start trail / AIS timers
@@ -890,6 +887,7 @@ export class AppComponent {
       trackList: false,
       aisList: false,
       resourceGroups: false,
+      infoLayerList: false,
       anchorWatch: false
     };
     switch (menulist) {
@@ -916,6 +914,9 @@ export class AppComponent {
         break;
       case 'resourceGroups':
         lm.resourceGroups = show;
+        break;
+      case 'infoLayerList':
+        lm.infoLayerList = show;
         break;
       default:
         lm.leftMenuPanel = false;
@@ -1362,7 +1363,7 @@ export class AppComponent {
     } else if (e.type === 'alarm') {
       this.notiMgr.showAlertInfo(e.id);
     } else if (e.type === 'rset') {
-      v = this.skresOther.fromCache(e.id);
+      v = this.skresOther.fromResourceSetCache(e.id);
       if (v) {
         this.bottomSheet
           .open(ResourceSetFeatureModal, {
@@ -1514,6 +1515,14 @@ export class AppComponent {
    * Start feature drawing mode
    * @param f type of feature to draw
    */
+  protected dragBox(f: 'select') {
+    //this.mapInteract.startDrawing(f);
+  }
+
+  /**
+   * Start feature drawing mode
+   * @param f type of feature to draw
+   */
   protected drawFeature(f: DrawFeatureType) {
     this.mapInteract.startDrawing(f);
   }
@@ -1547,6 +1556,9 @@ export class AppComponent {
 
   /** End interaction mode */
   protected closeInteraction() {
+    if (this.mapInteract.isBoxSelecting()) {
+      this.mapInteract.stopBoxSelection();
+    }
     if (this.mapInteract.isMeasuring()) {
       this.mapInteract.stopMeasuring();
     }
@@ -1644,7 +1656,8 @@ export class AppComponent {
   /** fetch non-standard resources from server */
   private fetchOtherResources() {
     this.skres.refreshTracks();
-    this.skresOther.refreshInBoundsItems();
+    this.skresOther.refreshResourceSetsInBounds();
+    this.skresOther.refreshInfoLayers();
   }
 
   /** open WS Stream */

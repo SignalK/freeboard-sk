@@ -1,5 +1,19 @@
 # CHANGELOG: Freeboard
 
+### v2.19.0
+
+> #### Deprecated: Built-in OpenWeather Service.
+> Use `signalk-openweather-provider` plugin for equivalent functionality.
+
+---
+- **New**: Overlay map data from WMS & WMTS sources over charts. Overlays can be set to refresh
+at regular intervals.
+- **New**: Allow choice of icon image for `PseudoAtoN` waypoint types. (#286)
+- **Updated**: Can attribute a Region as a hazardous area and it will create an entry alarm that will sound when the vessel enters its bounds.
+- **Updated**: Custom resource paths required by Freeboard do not need to be manually created on the server if you are authenticated to the server.
+- **Fix**: New charts are now added to the top of the layer list so they are visible when enabled (rather than hidden below existing layers).
+
+
 ### v2.18.2
 - **Added**: Settings for range circle count and the zoom level at which they appear.
 - **Fix**: Issue where auto-advance to next point setting was not being honoured. (#297)

@@ -43,7 +43,7 @@ const FSK: AppInfoDef = {
   id: 'freeboard',
   name: 'Freeboard-SK',
   description: `Signal K Chart Plotter.`,
-  version: '2.18.2',
+  version: '2.19.0',
   url: 'https://github.com/signalk/freeboard-sk',
   logo: './assets/img/app_logo.png'
 };
@@ -71,6 +71,37 @@ export class AppFacade extends InfoService {
     url: undefined,
     params: {}
   };
+
+  public readonly STANDARD_RESOURCES = [
+    'routes',
+    'waypoints',
+    'regions',
+    'notes',
+    'charts'
+  ];
+  public readonly CUSTOM_RESOURCES = [
+    {
+      name: 'tracks',
+      description: 'Freeboard GPX track imports.',
+      featureKey: 'resourceTracks'
+    },
+    {
+      name: 'infolayers',
+      description: 'Freeboard map overlays.',
+      featureKey: 'infoLayers'
+    },
+    {
+      name: 'groups',
+      description: 'Freeboard resource groups.',
+      featureKey: 'resourceGroups'
+    }
+  ];
+  public get IGNORE_RESOURCES() {
+    return this.STANDARD_RESOURCES.concat(
+      this.CUSTOM_RESOURCES.map((i) => i.name),
+      ['buddies']
+    );
+  }
 
   // controls map zoom limits
   public MAP_ZOOM_EXTENT = {
@@ -137,12 +168,16 @@ export class AppFacade extends InfoService {
     autopilotApi: boolean;
     weatherApi: boolean;
     resourceGroups: boolean;
+    resourceTracks: boolean;
+    infoLayers: boolean;
     buddyList: boolean;
   }>({
     anchorApi: true, // default true until API is available
     autopilotApi: false,
     weatherApi: false,
     resourceGroups: false, // ability to store resource groups
+    resourceTracks: false, // ability to store track resources
+    infoLayers: false, // ability to store map information overlays
     buddyList: false
   });
 
@@ -502,8 +537,7 @@ export class AppFacade extends InfoService {
       .get(this.skApiVersion, '/resources')
       .subscribe((res: { [key: string]: { description: string } }) => {
         const paths = Object.keys(res).filter(
-          (i) =>
-            !['routes', 'waypoints', 'regions', 'notes', 'charts'].includes(i)
+          (i) => !this.IGNORE_RESOURCES.includes(i)
         );
         this.config.resources.paths = this.config.resources.paths.filter((k) =>
           paths.includes(k)
@@ -672,57 +706,58 @@ export class AppFacade extends InfoService {
 
   /** returns a formatted string containing the value (converted to the preferred units)
    * and units. (e.g. 12.5 knots, 8.8 m/s)
-   * Numbers are fixed to 1 decimal point
+   * Numbers are fixed to 1 decimal point unless precision is specified
    */
   formatValueForDisplay(
     value: number,
     sourceUnits: 'K' | 'm/s' | 'rad' | 'm' | 'ratio' | 'deg',
-    depthValue?: boolean
+    depthValue?: boolean,
+    precision: number = 1
   ): string {
     if (typeof value === 'number') {
       if (sourceUnits === 'K') {
         return this.config.units.temperature === 'c'
-          ? `${Convert.kelvinToCelsius(value).toFixed(1)}${String.fromCharCode(
-              186
-            )}C`
+          ? `${Convert.kelvinToCelsius(value).toFixed(
+              precision
+            )}${String.fromCharCode(186)}C`
           : `${Convert.kelvinToFarenheit(value).toFixed(
               1
             )}${String.fromCharCode(186)}F`;
       } else if (sourceUnits === 'ratio') {
         return Math.abs(value) <= 1
-          ? `${(value * 100).toFixed(1)}%`
+          ? `${(value * 100).toFixed(precision)}%`
           : value.toFixed(4);
       } else if (sourceUnits === 'rad') {
         return `${Convert.radiansToDegrees(value).toFixed(
           1
         )}${String.fromCharCode(186)}`;
       } else if (sourceUnits === 'deg') {
-        return `${value.toFixed(1)}${String.fromCharCode(186)}`;
+        return `${value.toFixed(precision)}${String.fromCharCode(186)}`;
       } else if (sourceUnits === 'm') {
         if (depthValue) {
           return this.config.units.depth === 'm'
-            ? `${value.toFixed(1)} m`
-            : `${Convert.metersToFeet(value).toFixed(1)} ft`;
+            ? `${value.toFixed(precision)} m`
+            : `${Convert.metersToFeet(value).toFixed(precision)} ft`;
         } else {
           if (this.config.units.distance !== 'ft') {
             return value < 1000
-              ? `${value.toFixed(0)} m`
-              : `${(value / 1000).toFixed(1)} km`;
+              ? `${value.toFixed(Math.floor(value) === 0 ? precision : 0)} m`
+              : `${(value / 1000).toFixed(precision)} km`;
           } else {
             const nm = Convert.kmToNauticalMiles(value / 1000);
             return nm < 0.5
               ? this.formatValueForDisplay(value, 'm', true)
-              : `${nm.toFixed(1)} NM`;
+              : `${nm.toFixed(precision)} NM`;
           }
         }
       } else if (sourceUnits === 'm/s') {
         switch (this.config.units.speed) {
           case 'kmh':
-            return `${Convert.msecToKmh(value).toFixed(1)} km/h`;
+            return `${Convert.msecToKmh(value).toFixed(precision)} km/h`;
           case 'kn':
-            return `${Convert.msecToKnots(value).toFixed(1)} knots`;
+            return `${Convert.msecToKnots(value).toFixed(precision)} knots`;
           case 'mph':
-            return `${Convert.msecToMph(value).toFixed(1)} mph`;
+            return `${Convert.msecToMph(value).toFixed(precision)} mph`;
           default:
             return `${value} ${sourceUnits}`;
         }

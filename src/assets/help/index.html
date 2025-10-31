@@ -97,6 +97,7 @@
                 <li>Anchor Watch</li>
                 <li>Depth</li>
                 <li>Crossing Vessel / Closest Approach</li>
+                <li>Hazardous Region entry</li>
               </ul>
             </li>
             <li>
@@ -662,20 +663,17 @@
         <div class="panel" id="resources">
           <h4><i class="material-icons">layers</i> Resources / Layers</h4>
 
-          Freeboard provides functionality for in-built Signal K resource types:
-          routes, waypoints, charts, notes and regions.
+          Freeboard provides Create / Update / Delete (CrUD) functionality for
+          all in-built Signal K resource types:
+          <i>routes, waypoints, charts, notes and regions</i>.
           <br />
-          Each resource type is displayed in a separate map layer which can be
-          controlled from the
-          <i class="material-icons" style="color: green">layers</i> toolbar
-          button.
+          Each resource type is managed in a separate map layer which can be
+          controlled from the <i class="material-icons">layers</i> toolbar
+          button, which when clicked will contain options for the various
+          resource types.
           <br />
-          The menu displayed when clicked will contain options for the Signal K
-          specified resources (Routes, Waypoints, Notes, Charts) as well as
-          additional available resource paths enabled in Settings.
-          <br />
-          Resource groups can also be defined which enables "one-click"
-          selection of resources to display on the screen.
+          Resources can be <i>grouped</i> which enables them to be displayed or
+          hidden with a single click.
           <br />
           Additionally resources can be exported to a GPX file by selecting the
           <b><i class="material-icons">save</i> Export</b> menu.
@@ -683,32 +681,39 @@
           <ul>
             <li class="nobullet">
               <i class="material-icons">category</i>
-              <b>Resource Groups:</b>
-              Displays a list of Resource Groups.
+              <b>Resource Groups</b>
             </li>
           </ul>
 
           <div style="display: flex; flex-wrap: wrap">
             <div style="padding-left: 15px">
               Groups provide a means of defining a set of resources so they can
-              be easily selected for display.
+              be easily displayed or hidden.
               <br />
-              Selecting a Group will display on the map all resources within the
-              group and hide all other resources.
+              Selecting a Group will display all of the resources within the
+              group on the map and hide all other resources.
               <br />
               Resources can be added to groups directly from the specfic
-              resource list (e.g. Routes, Waypoints).
+              resource list <i>(e.g. Routes, Waypoints)</i> or when editing a
+              Group's properties.
               <br />
-              A resource can belong to more than one resource group.
+              <i
+                >Note: A resource can belong to more than one resource group.</i
+              >
               <ul>
                 <li>
                   <i class="material-icons">add</i> <b>New Group:</b> Create a
-                  new Group container.
+                  new resource Group.
                 </li>
                 <li>
                   <i class="material-icons">edit</i>
-                  <b>Update Group:</b> Displays the Group properties. Use this
-                  to: Rename the group, view, add and remove resources from the
+                  <b>Update Group:</b> Display / update a Group's properties.
+                  Use this to:
+                  <ul>
+                    <li>Rename the group</li>
+                    <li>Display the resourcces within the group</li>
+                    <li>Add and Remove resources from the group</li>
+                  </ul>
                   group.
                 </li>
                 <li>
@@ -723,10 +728,23 @@
           <div style="display: flex; flex-wrap: wrap">
             <div style="padding-left: 15px; background-color: orange">
               <b>Enabling Resource Groups</b><br />
-              To use Resource Groups you will need to configure a
+              Freeboard will try to create a resource collection on the Signal K
+              server to store resource groups. <br />
+              <i
+                >Note: this requires that:
+                <ol>
+                  <li>You are logged in to the Signal K server</li>
+                  <li>
+                    <b>resources-provider</b> plugin version 1.4.1 or greater is
+                    installed on the server
+                  </li>
+                </ol>
+              </i>
+
+              If Freeboard cannot create the store then you can configure a
               <i>groups</i> resource endpoint on the Signal K server.
               <br />
-              To configure:
+              To do this:
               <ul>
                 <li>
                   In the Signal K server Admin console select
@@ -740,8 +758,82 @@
                 </li>
                 <li>Click <b>Submit</b></li>
               </ul>
-              Note: Freeboard-SK will need to be re-loaded to make the Resource
-              Groups options available.
+              <i
+                >Note: Freeboard-SK will need to be re-loaded to make the
+                Resource Groups menu item available.</i
+              >
+            </div>
+          </div>
+
+          <hr />
+          <ul>
+            <li class="nobullet">
+              <i class="material-icons">layers</i>
+              <b>Overlays</b>
+            </li>
+          </ul>
+
+          <div style="display: flex; flex-wrap: wrap">
+            <div style="padding-left: 15px">
+              Overlays allow information to be "overlaid" on charts as map
+              layers.
+              <br />
+              They can be configured to be refreshed at regular intervals to
+              update the displayed data from the source.
+              <br />
+              The opacity of the overlay can be configured to control the
+              visibility of the underlying chart layers.
+              <br />
+              <ul>
+                <li>
+                  <i class="material-icons">add</i> <b>New Overlay:</b> Create a
+                  new overlay from a WMS or WMTS source.
+                </li>
+                <li>
+                  <i class="material-icons">delete</i>
+                  <b>Delete Overlay:</b> Delete the overlay definition from the
+                  server.
+                </li>
+              </ul>
+            </div>
+          </div>
+          <div style="display: flex; flex-wrap: wrap">
+            <div style="padding-left: 15px; background-color: orange">
+              <b>Enabling Overlays</b><br />
+              Freeboard will try to create a resource collection on the Signal K
+              server to store Overlays. <br />
+              <i
+                >Note: this requires that:
+                <ol>
+                  <li>You are logged in to the Signal K server</li>
+                  <li>
+                    <b>resources-provider</b> plugin version 1.4.1 or greater is
+                    installed on the server
+                  </li>
+                </ol>
+              </i>
+
+              If Freeboard cannot create the store then you can configure a
+              <i>infolayers</i> resource endpoint on the Signal K server.
+              <br />
+              To do this:
+              <ul>
+                <li>
+                  In the Signal K server Admin console select
+                  <b>Server | Plugin Config</b>
+                </li>
+                <li>Select the <b>Resources Provider</b> plugin</li>
+                <li>
+                  In the <b>Resources (Custom)</b> section, click
+                  <i class="material-icons">add</i> and type
+                  <i>infolayers</i> in the <b>Resource Type</b>
+                </li>
+                <li>Click <b>Submit</b></li>
+              </ul>
+              <i
+                >Note: Freeboard-SK will need to be re-loaded to make the
+                Overlays menu item available.</i
+              >
             </div>
           </div>
 
@@ -1142,6 +1234,31 @@
               <br />&nbsp;<br />
               Charts are displayed in descending order of scale to ensure more
               detailed charts are on top.
+            </div>
+          </div>
+          <hr />
+          <ul>
+            <li class="nobullet">
+              <i class="material-icons">tab_unselected</i>
+              <b>Regions:</b>
+            </li>
+          </ul>
+          <div style="display: flex; flex-wrap: wrap">
+            <div style="padding-left: 15px">
+              Regions are map features that represent a bounded area on the
+              map.<br />
+              They can be attributed as hazardous areas which will create an
+              alarm which will sound when the vessel position is inside the
+              region's bounds. <br />
+              To mark a regions as hazardous:
+              <ul>
+                <li>Click on the Region</li>
+                <li>
+                  Select <i class="material-icons">info_outline</i><b>Info</b>
+                </li>
+                <li>Check <b>Hazardous Area</b></li>
+                <li>Click <b>OK</b> to save.</li>
+              </ul>
             </div>
           </div>
         </div>

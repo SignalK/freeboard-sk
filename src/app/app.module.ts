@@ -32,6 +32,7 @@ import {
   TrackListComponent,
   AISListComponent,
   GroupListComponent,
+  InfoLayerListComponent,
   BuildRouteComponent
 } from './modules';
 
@@ -76,6 +77,7 @@ import {
     TrackListComponent,
     AISListComponent,
     GroupListComponent,
+    InfoLayerListComponent,
     BuildRouteComponent,
     ExperimentsComponent,
     AnchorWatchComponent,

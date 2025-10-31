@@ -16,8 +16,9 @@ import { AppFacade } from 'src/app/app.facade';
 import { SKChart } from 'src/app/modules/skresources/resource-classes';
 import { PipesModule } from 'src/app/lib/pipes';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
-import { parseString } from 'xml2js';
 import { ChartProvider } from 'src/app/types';
+import { SKInfoLayer } from '../../custom-resource-classes';
+import { WMTSCapabilities } from 'ol/format';
 
 /********* WMTSDialog **********
 	data: <WMTSCapabilities.xml>
@@ -124,7 +125,7 @@ export class WMTSDialog {
   protected isFetching = false;
   protected fetchError = false;
   protected errorMsg = '';
-  protected wmtsLayers: Array<ChartProvider> = [];
+  protected wmtsLayers: Array<ChartProvider | SKInfoLayer> = [];
   protected selections: Array<number> = [];
   protected selectionInfo: Array<{ name: string; description: string }> = [];
   protected hostUrl = '';
@@ -141,7 +142,7 @@ export class WMTSDialog {
   }
 
   handleSave() {
-    const sources: Array<ChartProvider> = this.selections.map(
+    const sources: Array<ChartProvider | SKInfoLayer> = this.selections.map(
       (layerIdx) => this.wmtsLayers[layerIdx]
     );
     this.dialogRef.close(sources);
@@ -160,7 +161,14 @@ export class WMTSDialog {
       (res: string) => {
         this.isFetching = false;
         if (res.indexOf('<Capabilities') !== -1) {
-          this.parseCapabilities(res, wmtsHost);
+          const parser = new WMTSCapabilities();
+          const r = parser.read(res);
+          if (r.Contents?.Layer) {
+            this.wmtsLayers = this.getWMTSLayers(
+              r.Contents?.Layer,
+              wmtsHost
+            ).sort((a, b) => (a.name < b.name ? -1 : 1));
+          }
         } else {
           this.errorMsg = 'Invalid response received!';
         }
@@ -173,33 +181,18 @@ export class WMTSDialog {
     );
   }
 
-  /** Parse WMTSCapabilities.xml */
-  parseCapabilities(xml: string, urlBase: string) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    parseString(xml, (err: Error, result: any) => {
-      if (err) {
-        this.errorMsg = 'ERROR parsing XML!';
-        console.log('ERROR parsing XML!', err);
-      } else {
-        this.wmtsLayers = this.getWMTSLayers(result, urlBase).sort((a, b) =>
-          a.name < b.name ? -1 : 1
-        );
-      }
-    });
-  }
-
   /** Retrieve the available layers from WMTS Capabilities metadata */
   getWMTSLayers(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    json: { [key: string]: any },
+    layers: { [key: string]: any },
     urlBase: string
-  ): ChartProvider[] {
-    const maps: ChartProvider[] = [];
-    if (!json.Capabilities.Contents[0].Layer) {
+  ): Array<ChartProvider | SKInfoLayer> {
+    const maps: Array<ChartProvider | SKInfoLayer> = [];
+    if (!layers) {
       return maps;
     }
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    json.Capabilities.Contents[0].Layer.forEach((layer: any) => {
+    layers.forEach((layer: any) => {
       const ch = this.parseLayerEntry(layer, urlBase);
       if (ch) {
         maps.push(ch);
@@ -210,45 +203,41 @@ export class WMTSDialog {
 
   /** Parse WMTS layer entry */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  parseLayerEntry(layer: any, urlBase: string): ChartProvider | null {
-    if (
-      layer['ows:Identifier'] &&
-      Array.isArray(layer['ows:Identifier']) &&
-      layer['ows:Identifier'].length > 0
-    ) {
-      const l: ChartProvider = {
-        name: layer['ows:Title'] ? layer['ows:Title'][0] : '',
-        description: layer['ows:Abstract'] ? layer['ows:Abstract'][0] : '',
-        type: 'WMTS',
-        url: `${urlBase}`,
-        layers: [layer['ows:Identifier'][0]]
-      };
-      if (
-        layer['ows:WGS84BoundingBox'] &&
-        layer['ows:WGS84BoundingBox'].length > 0
-      ) {
-        l.bounds = [
-          Number(
-            layer['ows:WGS84BoundingBox'][0]['ows:LowerCorner'][0].split(' ')[0]
-          ),
-          Number(
-            layer['ows:WGS84BoundingBox'][0]['ows:LowerCorner'][0].split(' ')[1]
-          ),
-          Number(
-            layer['ows:WGS84BoundingBox'][0]['ows:UpperCorner'][0].split(' ')[0]
-          ),
-          Number(
-            layer['ows:WGS84BoundingBox'][0]['ows:UpperCorner'][0].split(' ')[1]
-          )
-        ];
-      }
-      if (layer['Format'] && layer['Format'].length > 0) {
-        const f = layer['Format'][0];
-        l.format = f.indexOf('jpg') !== -1 ? 'jpg' : 'png';
+  parseLayerEntry(
+    layer: any,
+    urlBase: string
+  ): ChartProvider | SKInfoLayer | null {
+    if (layer.Identifier) {
+      if (this.data.format === 'infolayer') {
+        const l = new SKInfoLayer();
+        l.name = layer.Title ?? 'Untitled layer';
+        l.description = layer.Abstract ?? '';
+        l.values.layers = [layer.Identifier];
+        l.values.url = urlBase;
+        l.values.sourceType = 'WMTS';
+        return l;
       } else {
-        l.format = 'png';
+        const l: ChartProvider = {
+          name: layer.Title ?? 'Untitled layer',
+          description: layer.Abstract ?? '',
+          type: 'WMTS',
+          url: urlBase,
+          layers: [layer.Identifier]
+        };
+        if (
+          Array.isArray(layer.WGS84BoundingBox) &&
+          layer.WGS84BoundingBox.length > 0
+        ) {
+          l.bounds = layer.WGS84BoundingBox;
+        }
+        if (Array.isArray(layer.Format) && layer.Format.length > 0) {
+          const f = layer.Format[0];
+          l.format = f.includes('jpg') ? 'jpg' : 'png';
+        } else {
+          l.format = 'png';
+        }
+        return l;
       }
-      return l;
     } else {
       return null;
     }
