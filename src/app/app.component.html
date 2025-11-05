@@ -83,11 +83,11 @@
         <mat-icon>clear_all</mat-icon>
         <span>{{ app.data.serverTrail ? 'Refresh' : 'Clear' }} Trail</span>
       </a>
-      } @if(app.config.vessels.trail && app.selfTrail().length !== 0) {
       <a mat-menu-item (click)="trailToRoute()">
         <mat-icon>insights</mat-icon>
         <span>Trail to Route</span>
       </a>
+      <mat-divider></mat-divider>
       } @if(course.courseData().position){
       <a mat-menu-item (click)="clearDestination()">
         <mat-icon>clear_all</mat-icon>
@@ -101,8 +101,9 @@
         <mat-icon>clear_all</mat-icon>
         <span>Clear Course Data</span>
       </a>
-      }
       <mat-divider></mat-divider>
+      }
+
       <a mat-menu-item (click)="toggleCourseData()">
         <mat-icon>{{
           app.config.ui.showCourseData ? 'visibility_off' : 'compare_arrows'
@@ -141,9 +142,13 @@
     </mat-menu>
 
     <mat-menu #editmenu="matMenu">
-      <a mat-menu-item (click)="mapInteract.startMeasuring()">
+      <a mat-menu-item (click)="mapInteract.startMeasuring('LineString')">
         <mat-icon>straighten</mat-icon>
         <span>Measure</span>
+      </a>
+      <a mat-menu-item (click)="mapInteract.startMeasuring('Circle')">
+        <mat-icon>swap_vertical_circle</mat-icon>
+        <span>Measure Radius</span>
       </a>
       <!--<a mat-menu-item (click)="mapInteract.startBoxSelection()">
         <mat-icon>highlight_alt</mat-icon>
@@ -201,9 +206,8 @@
         </mat-icon>
         <span>{{ app.isLoggedIn() ? 'Change User' : 'Login' }}</span>
       </a>
-      }
       <mat-divider></mat-divider>
-      @if(!isInteracting() && app.featureFlags().anchorApi) {
+      } @if(!isInteracting() && app.featureFlags().anchorApi) {
       <a mat-menu-item (click)="displayLeftMenu('anchorWatch', true)">
         <mat-icon>anchor</mat-icon>
         <span>Anchor Watch</span>
@@ -812,96 +816,6 @@
             />
           </div>
 
-          <!-- Draw Interaction Help Panel -->
-          @if((mapInteract.isDrawing() && mapInteract.draw.resourceType !==
-          'route') || mapInteract.isModifying() || mapInteract.isBoxSelecting())
-          {
-          <div class="mat-app-background measurePanel">
-            @if(mapInteract.isDrawing()) {
-            <div>
-              <span style="font-weight: bold; padding: 5px">
-                <mat-icon>edit</mat-icon> Drawing Help:
-              </span>
-              @if(mapInteract.draw.resourceType === 'waypoint' ||
-              mapInteract.draw.resourceType === 'note') {
-              <div style="padding: 5px">
-                Click on the Map where to drop the feature.
-              </div>
-              } @if(mapInteract.draw.resourceType === 'region') {
-              <div style="padding: 5px">
-                <ol
-                  style="
-                    margin-block-start: 0.2em;
-                    margin-block-end: 0.2em;
-                    padding-inline-start: 15px;
-                  "
-                >
-                  <li>Click on the Map to place a vertex of the Region.</li>
-                  <li>Click on the last point to end drawing.</li>
-                </ol>
-              </div>
-              }
-            </div>
-            } @if(mapInteract.isModifying()) {
-            <div>
-              <span style="font-weight: bold; padding: 5px">
-                <mat-icon>edit</mat-icon> Modify:
-              </span>
-              <div style="padding: 5px">
-                <ol
-                  style="
-                    margin-block-start: 0.2em;
-                    margin-block-end: 0.2em;
-                    padding-inline-start: 15px;
-                  "
-                >
-                  @if(mapInteract.draw.forSave.id === 'anchor') {
-                  <li>Click and drag to move anchor.</li>
-                  } @if(mapInteract.draw.forSave.id !== 'anchor') {
-                  <li>Click and drag to move point.</li>
-                  <li>Ctrl-Click or Tap-hold to remove point from a line.</li>
-                  }
-                </ol>
-              </div>
-            </div>
-            } @if(mapInteract.isBoxSelecting()) {
-            <div>
-              <span style="font-weight: bold; padding: 5px">
-                <mat-icon>highlight_alt</mat-icon> Select:
-              </span>
-              <div style="padding: 5px">
-                <ul
-                  style="
-                    margin-block-start: 0.2em;
-                    margin-block-end: 0.2em;
-                    padding-inline-start: 15px;
-                  "
-                >
-                  <li>Click and drag to select area.</li>
-                </ul>
-              </div>
-            </div>
-            }
-            <div style="text-align: center">
-              <!-- cancel Draw button -->
-              <a
-                class="icon-warn"
-                mat-raised-button
-                (click)="closeInteraction()"
-                [matTooltip]="
-                  mapInteract.isModifying()
-                    ? 'Finish Editing'
-                    : 'Cancel Operation'
-                "
-                matTooltipPosition="left"
-              >
-                <mat-icon class="icon-warn">close</mat-icon>
-                {{ mapInteract.isModifying() ? 'FINISH' : 'CANCEL' }}
-              </a>
-            </div>
-          </div>
-          }
-
           <!-- *** Playback panel ***-->
           @if(mode === 1){
           <div class="playbackPanel mat-app-background">
@@ -938,18 +852,9 @@
           </div>
           }
 
-          <!-- Measurement Interaction Help Panel -->
-          @if(mapInteract.isMeasuring() || mapInteract.draw.resourceType ===
-          'route' && mapInteract.isDrawing() || (mapInteract.isModifying() &&
-          mapInteract.draw.resourceType === 'route')) {
-          <fb-measurements
-            matTooltip="Click on the Map to start. Click cancel or the last point to end."
-            [coords]="mapInteract.measurement().coords"
-            [index]="mapInteract.measurement().index"
-            [totalOnly]="mapInteract.draw.resourceType === 'route'"
-            (cancel)="closeInteraction()"
-          >
-          </fb-measurements>
+          <!-- Interaction Help Container Panel -->
+          @if(isInteracting()) {
+          <fb-interact-help (cancel)="closeInteraction()"> </fb-interact-help>
           }
 
           <!-- *** Nav data panel ***-->

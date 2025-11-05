@@ -340,5 +340,29 @@ export const drawStyles = {
         })
       })
     })
+  ],
+  radius: [
+    new Style({
+      image: new Circle({
+        radius: 6,
+        stroke: new Stroke({
+          width: 2,
+          color: 'white'
+        }),
+        fill: new Fill({
+          color: 'rgba(25, 183, 211, 0.4)'
+        })
+      })
+    }),
+    new Style({
+      fill: new Fill({
+        color: 'rgba(25, 183, 211, 0.4)'
+      }),
+      stroke: new Stroke({
+        color: 'white',
+        width: 3,
+        lineDash: [5, 5]
+      })
+    })
   ]
 };

@@ -2,6 +2,7 @@
  ********************************/
 
 import { Component, Inject, signal } from '@angular/core';
+import { CommonModule } from '@angular/common';
 
 import {
   FormsModule,
@@ -39,6 +40,7 @@ import { MatTooltip } from '@angular/material/tooltip';
 @Component({
   selector: 'ap-waypointdialog',
   imports: [
+    CommonModule,
     FormsModule,
     MatInputModule,
     MatSelectModule,
@@ -136,7 +138,11 @@ import { MatTooltip } from '@angular/material/tooltip';
             <div style="display:flex;flex-wrap:wrap;">
               @for(i of iconsForSelection(); track i) {
               <div
-                style="background-color:silver;padding:2px;border:1px solid black;"
+                style="background-color:silver;padding:2px;"
+                [ngClass]="{
+                  'selected-icon': i.svgIcon === this.wptIcon.svgIcon,
+                  'unselected-icon': i.svgIcon !== this.wptIcon.svgIcon,
+                }"
                 (click)="handleIconSelected(i.svgIcon)"
               >
                 <mat-icon
@@ -230,6 +236,14 @@ import { MatTooltip } from '@angular/material/tooltip';
     `
       ._ap-waypoint {
         min-width: 300px;
+      }
+
+      ._ap-waypoint .selected-icon {
+        border: red 2px solid;
+      }
+
+      ._ap-waypoint .unselected-icon {
+        border: black 1px solid;
       }
     `
   ]
@@ -394,12 +408,16 @@ export class WaypointDialog {
   }
 
   protected handleChangeIcon() {
-    const d = getSvgList()
-      .filter((i) => i.id.includes('virtual-'))
-      .map((i) => {
-        return { svgIcon: i.id };
-      });
-    this.iconsForSelection.update(() => d);
+    if (this.wptType === 'pseudoaton') {
+      const { svgIcon } = getResourceIcon('waypoints', 'pseudoaton');
+      const d = getSvgList()
+        .filter((i) => i.id.includes('virtual-'))
+        .map((i) => {
+          return { svgIcon: i.id };
+        });
+      d.unshift({ svgIcon: svgIcon });
+      this.iconsForSelection.update(() => d);
+    }
   }
 
   protected handleIconSelected(skIcon: string) {

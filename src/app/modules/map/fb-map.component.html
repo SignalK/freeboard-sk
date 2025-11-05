@@ -37,7 +37,7 @@
   </ol-dragbox>
   } @if(mapInteract.isMeasuring()) {
   <ol-draw
-    [type]="'LineString'"
+    [type]="mapInteract.measureGeometryType"
     (drawStart)="onMeasureStart($event)"
     (drawEnd)="onMeasureEnd()"
     [style]="mapInteract.draw.style"

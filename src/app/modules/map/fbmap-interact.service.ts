@@ -44,8 +44,10 @@ export interface IPopover {
 }
 
 export interface MeasurementDef {
-  coords: Array<Position>;
-  index: number;
+  coords?: Array<Position>;
+  index?: number;
+  center?: Position;
+  radius?: number;
 }
 
 export type DrawFeatureType = 'waypoint' | 'route' | 'region' | 'note'; // feature type to draw
@@ -70,10 +72,13 @@ export class FBMapInteractService {
 
   readonly measurement = signal<MeasurementDef>({
     coords: [],
-    index: -1
+    index: -1,
+    center: null,
+    radius: 0
   });
 
   readonly boxCoords: Position[] = [];
+  public measureGeometryType: 'LineString' | 'Circle' = 'LineString';
 
   /** draw interaction data */
   public draw: DrawFeatureInfo = {
@@ -100,6 +105,20 @@ export class FBMapInteractService {
     });
   }
 
+  /** set center position in measurment data */
+  set measurementCenter(value: Position) {
+    this.measurement.update((current) => {
+      return Object.assign({}, current, { center: value });
+    });
+  }
+
+  /** set radius in measurment data */
+  set measurementRadius(value: number) {
+    this.measurement.update((current) => {
+      return Object.assign({}, current, { radius: value });
+    });
+  }
+
   /**
    * add coordinate to measurment data
    * @param pt location to add
@@ -119,7 +138,7 @@ export class FBMapInteractService {
   }
 
   /**
-   * Returns distance to last point in measurment array
+   * Returns distance to last point in measurment coords array
    * @param pt measure cursor location
    * @returns distance in meters
    */
@@ -139,10 +158,23 @@ export class FBMapInteractService {
   }
 
   /**
+   * Returns distance to measurment.center
+   * @param pt measure cursor location
+   * @returns distance in meters
+   */
+  distanceFromCenter(pt: Position): number {
+    if (!pt || !this.measurement().center) {
+      return 0;
+    }
+    return GeoUtils.distanceTo(this.measurement().center, pt);
+  }
+
+  /**
    * Start measuring mode
    * @param fromVessel true = distance is measured from vessel to cursor, false = line measure
    */
-  startMeasuring(fromVessel?: boolean) {
+  startMeasuring(geometryType?: 'LineString' | 'Circle', fromVessel?: boolean) {
+    this.measureGeometryType = geometryType ?? 'LineString';
     this.app.debug(`startMeasuring()...`);
     this.isMeasuring.set(true);
     this.interactionStarted();
@@ -246,7 +278,9 @@ export class FBMapInteractService {
     this.app.debug(`interactionStarted()...`);
     this.measurement.set({
       coords: [],
-      index: -1
+      index: -1,
+      center: null,
+      radius: 0
     });
     this.app.uiCtrl.update((current) => {
       return Object.assign({}, current, { suppressContextMenu: true });
@@ -261,7 +295,9 @@ export class FBMapInteractService {
     });
     this.measurement.set({
       coords: [],
-      index: -1
+      index: -1,
+      center: null,
+      radius: 0
     });
   }
 }

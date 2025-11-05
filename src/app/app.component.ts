@@ -164,7 +164,8 @@ export class AppComponent {
     return (
       this.mapInteract.isMeasuring() ||
       this.mapInteract.isDrawing() ||
-      this.mapInteract.isModifying()
+      this.mapInteract.isModifying() ||
+      this.mapInteract.isBoxSelecting()
     );
   });
 
