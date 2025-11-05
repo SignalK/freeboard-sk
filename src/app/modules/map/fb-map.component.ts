@@ -559,25 +559,43 @@ export class FBMapComponent implements OnInit, OnDestroy {
     this.mouse.pixel = e.pixel;
     this.mouse.xy = e.coordinate;
     this.mouse.coords = GeoUtils.normaliseCoords(e.lonlat as Position);
-    if (
-      this.mapInteract.isMeasuring() &&
-      this.mapInteract.measurement().coords.length !== 0
-    ) {
-      const c = e.lonlat;
-      const lm = this.mapInteract.distanceFromLastPoint(c as Position);
-      const b = getGreatCircleBearing(
-        this.mapInteract.measurement().coords.slice(-1)[0],
-        c as Position
-      );
-      this.overlay.update((current) => {
-        return Object.assign({}, current, {
-          position: c,
-          title: `${this.app.formatValueForDisplay(
-            lm,
-            'm'
-          )} ${this.app.formatValueForDisplay(b, 'deg')}`
+    if (this.mapInteract.isMeasuring()) {
+      if (
+        this.mapInteract.measureGeometryType === 'LineString' &&
+        this.mapInteract.measurement().coords.length !== 0
+      ) {
+        const c = e.lonlat;
+        const lm = this.mapInteract.distanceFromLastPoint(c as Position);
+        const b = getGreatCircleBearing(
+          this.mapInteract.measurement().coords.slice(-1)[0],
+          c as Position
+        );
+        this.overlay.update((current) => {
+          return Object.assign({}, current, {
+            position: c,
+            title: `${this.app.formatValueForDisplay(
+              lm,
+              'm'
+            )} ${this.app.formatValueForDisplay(b, 'deg')}`
+          });
         });
-      });
+      } else if (this.mapInteract.measureGeometryType === 'Circle') {
+        const c = e.lonlat;
+        const lm = this.mapInteract.distanceFromCenter(c as Position);
+        const b = getGreatCircleBearing(
+          this.mapInteract.measurement().center ?? (c as Position),
+          c as Position
+        );
+        this.overlay.update((current) => {
+          return Object.assign({}, current, {
+            position: c,
+            title: `${this.app.formatValueForDisplay(
+              lm,
+              'm'
+            )} ${this.app.formatValueForDisplay(b, 'deg')}`
+          });
+        });
+      }
     }
   }
 
@@ -598,12 +616,9 @@ export class FBMapComponent implements OnInit, OnDestroy {
       features: e.features,
       lonlat: e.lonlat
     };
-    if (
+    if (this.mapInteract.isMeasuring()) {
       // measuring
-      this.mapInteract.isMeasuring() &&
-      this.mapInteract.measurement().coords.length !== 0
-    ) {
-      this.onMeasureClick(e.lonlat);
+      this.parseClickInMeasureMode(e.lonlat);
     } else if (
       // drawing
       this.mapInteract.isDrawing() &&
@@ -630,11 +645,8 @@ export class FBMapComponent implements OnInit, OnDestroy {
   protected onMapRightClick(e: { features: FeatureLike[]; lonlat: Position }) {
     this.app.data.map.atClick = e;
     this.app.debug(`onRightClick()`, this.app.data.map.atClick);
-    if (
-      this.mapInteract.isMeasuring() &&
-      this.mapInteract.measurement().coords.length !== 0
-    ) {
-      this.onMeasureClick(e.lonlat);
+    if (this.mapInteract.isMeasuring()) {
+      this.parseClickInMeasureMode(e.lonlat);
     }
   }
 
@@ -654,11 +666,8 @@ export class FBMapComponent implements OnInit, OnDestroy {
     this.contextMenuPosition.x = e.clientX + 'px';
     this.contextMenuPosition.y = e.clientY + 'px';
     this.contextMenu.menuData = { item: this.mouse.coords };
-    if (
-      this.mapInteract.isMeasuring() &&
-      this.mapInteract.measurement().coords.length !== 0
-    ) {
-      this.onMeasureClick(this.mouse.xy.lonlat);
+    if (this.mapInteract.isMeasuring()) {
+      this.parseClickInMeasureMode(this.mouse.xy.lonlat);
     } else if (!this.modifyMode) {
       if (!this.mouse.xy) {
         return;
@@ -670,6 +679,16 @@ export class FBMapComponent implements OnInit, OnDestroy {
           offEvent.preventDefault(); // prevent default context menu for overlay
           this.contextMenu.closeMenu();
         });
+    }
+  }
+
+  /** process pointer click event when in measure mode */
+  private parseClickInMeasureMode(pos: Position) {
+    if (
+      this.mapInteract.measureGeometryType === 'LineString' &&
+      this.mapInteract.measurement().coords.length !== 0
+    ) {
+      this.onMeasureClick(pos);
     }
   }
 
@@ -702,17 +721,29 @@ export class FBMapComponent implements OnInit, OnDestroy {
 
   /** Handle OL interaction start event */
   protected onMeasureStart(e: DrawEvent) {
-    this.app.debug(`onMeasureStart()...`);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let c = (e.feature.getGeometry() as any)
-      .getCoordinates()
-      .map((c: Position) => toLonLat(c));
-    c = c.slice(0, c.length - 1);
-    this.mapInteract.measurementCoords = c;
+    this.app.debug(`onMeasureStart()...`, this.mapInteract.measureGeometryType);
+    let ovPosition: any;
+    if (this.mapInteract.measureGeometryType === 'LineString') {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      let c = (e.feature.getGeometry() as any)
+        .getCoordinates()
+        .map((c: Position) => toLonLat(c));
+      c = c.slice(0, c.length - 1);
+      this.mapInteract.measurementCoords = c;
+      ovPosition = c;
+    } else {
+      const g = e.feature.getGeometry() as any;
+      const center = toLonLat(g.getCenter());
+      const radius = g.getRadius();
+      this.mapInteract.measurementCenter = center as Position;
+      this.mapInteract.measurementRadius = radius;
+      ovPosition = this.mapInteract.measurementCenter;
+      this.app.debug(this.mapInteract.measurement);
+    }
     this.formatPopover(null, null);
     this.overlay.update((current) => {
       return Object.assign({}, current, {
-        position: c,
+        position: ovPosition,
         title: '0',
         show: true,
         type: 'measure'
@@ -802,6 +833,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
     }
     if (featureType === 'anchor') {
       this.overlay().type = featureType;
+      this.mapInteract.draw.forSave.id = featureType;
     }
   }
 
@@ -874,7 +906,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
       this.app.data.activeRouteIsEditing = false;
     }
     this.app.data.editingId = this.mapInteract.draw.forSave.id;
-    //this.mapInteract.draw.forSave = e;
+
     this.app.debug(this.mapInteract.draw.forSave);
   }
 
@@ -1604,7 +1636,9 @@ export class FBMapComponent implements OnInit, OnDestroy {
     });
     if (mode === INTERACTION_MODE.MEASURE) {
       this.mapInteract.draw.style = value
-        ? drawStyles.measure
+        ? this.mapInteract.measureGeometryType === 'Circle'
+          ? drawStyles.radius
+          : drawStyles.measure
         : drawStyles.default;
     }
     if (mode === INTERACTION_MODE.DRAW) {

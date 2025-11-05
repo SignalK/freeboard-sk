@@ -45,7 +45,9 @@ export class OverlayComponent implements OnInit, OnChanges, OnDestroy {
       this.element = this.elementRef.nativeElement;
       this.overlay = new Overlay(this as Options);
       this.mapComponent.getMap().addOverlay(this.overlay);
-      this.overlay.setPosition(fromLonLat(this.position));
+      if (this.position) {
+        this.overlay.setPosition(fromLonLat(this.position));
+      }
     }
   }
 

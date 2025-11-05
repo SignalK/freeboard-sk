@@ -43,7 +43,8 @@ import {
   FileInputComponent,
   PiPVideoComponent,
   Measurements,
-  MFBContainerComponent
+  MFBContainerComponent,
+  InteractionHelpComponent
 } from './lib/components';
 
 @NgModule({
@@ -84,7 +85,8 @@ import {
     AlertComponent,
     AlertListComponent,
     RouteNextPointComponent,
-    MFBContainerComponent
+    MFBContainerComponent,
+    InteractionHelpComponent
   ],
   providers: [provideHttpClient(withInterceptorsFromDi())]
 })

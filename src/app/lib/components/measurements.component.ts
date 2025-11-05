@@ -24,7 +24,7 @@ import { MatToolbarModule } from '@angular/material/toolbar';
   imports: [MatIconModule, MatButtonModule, MatTooltip, MatToolbarModule],
   template: `
     <div class="_ap_measurements">
-      <mat-toolbar class="bg-primary">
+      <mat-toolbar>
         <div class="_ap_row">
           <div class="_ap_row">
             <div class="icon-label">
@@ -69,7 +69,7 @@ import { MatToolbarModule } from '@angular/material/toolbar';
   styles: [
     `
       ._ap_measurements {
-        position: fixed;
+        position: relative;
         top: 0;
         min-width: 200px;
       }

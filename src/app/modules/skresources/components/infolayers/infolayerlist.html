@@ -90,15 +90,20 @@
       >
         <mat-card-content>
           <div style="display: flex">
-            <div style="flex: 1 1 auto; padding-left: 7px">
-              <a
-                style="cursor: pointer"
-                (click)="itemProperties(r[0])"
-                matTooltip="Layer Properties"
-                matTooltipPosition="right"
-              >
-                <b>{{(r[1].name)}}</b>
-              </a>
+            <div
+              style="
+                flex: 1 1 auto;
+                text-align: left;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                display: -webkit-box;
+                -webkit-box-orient: vertical;
+                -webkit-line-clamp: 2;
+                line-clamp: 2;
+                width: 245px;
+              "
+            >
+              <b>{{(r[1].name)}}</b>
             </div>
             <div style="text-align: right">
               <mat-checkbox
@@ -152,7 +157,7 @@
                   <mat-icon class="icon-warn">delete</mat-icon>
                 </button>
               </div>
-              <div style="flex: 2; text-align: right">
+              <div style="flex: 2; text-align: right; padding-right: 10px">
                 <button
                   mat-icon-button
                   (click)="itemProperties(r[0])"
