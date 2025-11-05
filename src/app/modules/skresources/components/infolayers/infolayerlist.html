@@ -142,6 +142,46 @@
                 </mat-form-field>
               </div>
             </div>
+            @if(r[1].values.time?.values && r[1].values.time.values.length > 0) {
+            <div style="display: flex; flex-direction: column; padding: 6px 0; gap: 6px">
+              <div style="display: flex; align-items: center; gap: 8px">
+                <mat-icon style="font-size: 20px; width: 20px; height: 20px">schedule</mat-icon>
+                <div style="flex: 1; display: flex; flex-direction: column; font-size: 13px">
+                  <span>{{ formatTimeValue(getCurrentTimeValue(r[1].values.time)) }}</span>
+                  <span style="font-size: 11px; color: #999">
+                    @if(getTimeOffset(r[1].values.time) === 0) {
+                      Current
+                    } @else {
+                      {{ getTimeOffset(r[1].values.time) }}h
+                    }
+                  </span>
+                </div>
+                <mat-checkbox
+                  [checked]="isCurrentTime(r[1].values.time)"
+                  (change)="onCurrentTimeToggle(r[0], r[1].values.time, $event.checked)"
+                  matTooltip="Use most recent time"
+                >
+                  <span style="font-size: 12px">Current</span>
+                </mat-checkbox>
+              </div>
+              <div style="display: flex; align-items: center; gap: 8px">
+                <span style="font-size: 11px; min-width: 30px">-{{ getTimeSpanHours(r[1].values.time) }}h</span>
+                <mat-slider
+                  style="flex: 1"
+                  [min]="-getTimeSpanHours(r[1].values.time)"
+                  [max]="0"
+                  [step]="1"
+                  discrete
+                  [displayWith]="formatOffsetSliderValue.bind(this)"
+                >
+                  <input matSliderThumb 
+                         [value]="getTimeOffset(r[1].values.time)"
+                         (valueChange)="onTimeOffsetSliderChange(r[0], $event, r[1].values.time)">
+                </mat-slider>
+                <span style="font-size: 11px; min-width: 30px">0h</span>
+              </div>
+            </div>
+            }
             <div style="display: flex">
               <div style="flex: 2">
                 <button

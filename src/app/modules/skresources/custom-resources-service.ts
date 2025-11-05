@@ -329,4 +329,12 @@ export class FBCustomResourceService {
       this.app.debug('** refreshInfoLayers:', err);
     }
   }
+
+  /**
+   * @description Update InfoLayer cache with provided data (without fetching from server)
+   * @param layers Array of InfoLayer data to set in the cache
+   */
+  public updateInfoLayerCache(layers: FBInfoLayers) {
+    this.infoLayerCacheSignal.set(layers);
+  }
 }

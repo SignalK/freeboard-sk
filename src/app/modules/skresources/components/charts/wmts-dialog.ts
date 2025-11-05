@@ -215,6 +215,25 @@ export class WMTSDialog {
         l.values.layers = [layer.Identifier];
         l.values.url = urlBase;
         l.values.sourceType = 'WMTS';
+        
+        // Capture time dimension information
+        if (layer.Dimension && Array.isArray(layer.Dimension)) {
+          const timeDim = layer.Dimension.find((dim: any) => 
+            dim.Identifier?.toLowerCase() === 'time'
+          );
+          
+          if (timeDim) {
+            const values = Array.isArray(timeDim.Value) ? timeDim.Value : 
+                           (timeDim.Value ? timeDim.Value.split(',') : []);
+            if (values.length > 0) {
+              l.values.time = {
+                values: values,
+                timeOffset: 0 // Default to most recent (0 hours back)
+              };
+            }
+          }
+        }
+        
         return l;
       } else {
         const l: ChartProvider = {

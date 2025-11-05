@@ -36,7 +36,8 @@ export class SKInfoLayer {
     opacity: 1,
     minZoom: 1,
     maxZoom: 24,
-    refreshInterval: 0
+    refreshInterval: 0,
+    time: null
   };
   type = 'InfoLayer';
 

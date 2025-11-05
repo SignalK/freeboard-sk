@@ -28,6 +28,7 @@ interface LayerNode {
   children?: LayerNode[];
   selected: boolean;
   parent: LayerNode;
+  time?: any;
 }
 
 /********* WMSDialog **********
@@ -209,6 +210,12 @@ export class WMSDialog {
       s.values.layers = [l.name];
       s.values.url = this.wmsBase.url;
       s.values.sourceType = 'WMS';
+      
+      // Capture time dimension information
+      if (l.time) {
+        s.values.time = l.time;
+      }
+      
       return s;
     } else {
       const s = Object.assign({}, this.wmsBase);
@@ -331,6 +338,24 @@ export class WMSDialog {
     if (layer['Title']) {
       node.title = layer['Title'][0];
     }
+    
+    // Parse time dimension information
+    if (layer['Dimension']) {
+      const timeDim = layer['Dimension'].find((dim: any) => {
+        return dim['$']?.name?.toLowerCase() === 'time';
+      });
+      
+      if (timeDim) {
+        const values = timeDim['_'] ? timeDim['_'].split(',') : [];
+        if (values.length > 0) {
+          node.time = {
+            values: values,
+            timeOffset: 0 // Default to most recent (0 hours back)
+          };
+        }
+      }
+    }
+    
     if (layer.Layer) {
       node.children = [];
       layer.Layer.forEach((l) => this.parselayer(l, node.children));

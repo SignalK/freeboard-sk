@@ -554,6 +554,15 @@ export class FBMapComponent implements OnInit, OnDestroy {
     this.renderMapContents(e.zoomChanged);
   }
 
+  // handle time dimension update from overlay refresh
+  protected onTimeDimensionUpdated(layerId: string) {
+    // Force signal update by getting current layers and setting them again
+    // This creates a new array reference which triggers change detection
+    const currentLayers = this.skresOther.infoLayers();
+    const updatedLayers = [...currentLayers];
+    this.skresOther.updateInfoLayerCache(updatedLayers);
+  }
+
   // pointer events
   protected onMapPointerMove(e: FBPointerEvent) {
     this.mouse.pixel = e.pixel;

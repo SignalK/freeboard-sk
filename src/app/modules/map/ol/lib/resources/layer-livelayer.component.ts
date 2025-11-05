@@ -2,10 +2,12 @@ import {
   ChangeDetectionStrategy,
   ChangeDetectorRef,
   Component,
+  EventEmitter,
   Input,
   OnChanges,
   OnDestroy,
   OnInit,
+  Output,
   SimpleChanges
 } from '@angular/core';
 
@@ -17,7 +19,7 @@ import WMTSCapabilities from 'ol/format/WMTSCapabilities';
 import { MapComponent } from '../map.component';
 import { MapService } from '../map.service';
 import { FBInfoLayer, FBInfoLayers } from 'src/app/types';
-import { SKInfoLayer } from 'src/app/modules/skresources';
+import { SKInfoLayer, SKResourceService } from 'src/app/modules/skresources';
 
 import LayerGroup from 'ol/layer/Group';
 import BaseLayer from 'ol/layer/Base';
@@ -79,6 +81,7 @@ export class FreeboardLiveLayerComponent
 {
   @Input() layerDefs: FBInfoLayers;
   @Input() zIndex = 100; // start number for layer zIndex
+  @Output() timeDimensionUpdated = new EventEmitter<string>();
 
   protected layerGroup: LayerGroup;
   private wmtsCapabilitesMap = new Map();
@@ -88,7 +91,8 @@ export class FreeboardLiveLayerComponent
   constructor(
     protected changeDetectorRef: ChangeDetectorRef,
     protected mapComponent: MapComponent,
-    private mapService: MapService
+    private mapService: MapService,
+    private skres: SKResourceService
   ) {
     this.changeDetectorRef.detach();
     this.refreshTimer = setInterval(() => this.onTimerTick(), 60000);
@@ -111,22 +115,158 @@ export class FreeboardLiveLayerComponent
     this.clearlayers();
   }
 
+  /** Refresh time dimension bounds from WMS/WMTS capabilities */
+  private async refreshTimeDimension(layerId: string, liveLayer: LiveLayer) {
+    const infoLayer = liveLayer.infoLayer;
+    const sourceType = infoLayer.values?.sourceType?.toLowerCase();
+    
+    const oldValues = infoLayer.values.time?.values || [];
+    const oldMostRecent = oldValues.length > 0 ? oldValues[oldValues.length - 1] : null;
+    
+    try {
+      if (sourceType === 'wmts') {
+        // Fetch fresh WMTS capabilities
+        const response = await fetch(
+          `${infoLayer.values.url}?request=GetCapabilities&service=wmts`
+        );
+        const capabilitiesXml = await response.text();
+        if (!capabilitiesXml) {
+          return;
+        }
+        
+        const parser = new WMTSCapabilities();
+        const result = parser.read(capabilitiesXml);
+        
+        // Find the layer and extract time dimension
+        const layers = result?.Contents?.Layer;
+        if (layers) {
+          const layer = layers.find((l: any) => 
+            infoLayer.values.layers.includes(l.Identifier)
+          );
+          if (layer?.Dimension) {
+            const timeDim = layer.Dimension.find((dim: any) => 
+              dim.Identifier?.toLowerCase() === 'time'
+            );
+            if (timeDim) {
+              const values = Array.isArray(timeDim.Value) ? timeDim.Value : 
+                             (timeDim.Value ? timeDim.Value.split(',') : []);
+              if (values.length > 0) {
+                infoLayer.values.time.values = values;
+              }
+            }
+          }
+        }
+      } else if (sourceType === 'wms') {
+        // Fetch fresh WMS capabilities
+        const response = await fetch(
+          `${infoLayer.values.url}?request=GetCapabilities&service=wms`
+        );
+        const capabilitiesXml = await response.text();
+        if (!capabilitiesXml) {
+          return;
+        }
+        
+        // Parse WMS capabilities XML to extract time dimension
+        const parser = new DOMParser();
+        const xmlDoc = parser.parseFromString(capabilitiesXml, 'text/xml');
+        
+        // Find the layer with matching name
+        const layers = xmlDoc.getElementsByTagName('Layer');
+        let targetLayer = null;
+        
+        for (let i = 0; i < layers.length; i++) {
+          const layerNameEl = layers[i].getElementsByTagName('Name')[0];
+          if (layerNameEl && infoLayer.values.layers.includes(layerNameEl.textContent)) {
+            targetLayer = layers[i];
+            break;
+          }
+        }
+        
+        if (targetLayer) {
+          // Look for Dimension element with name="time"
+          const dimensions = targetLayer.getElementsByTagName('Dimension');
+          for (let i = 0; i < dimensions.length; i++) {
+            const dimName = dimensions[i].getAttribute('name');
+            if (dimName && dimName.toLowerCase() === 'time') {
+              const timeValues = dimensions[i].textContent?.trim() || '';
+              if (timeValues) {
+                // Time values are comma-separated
+                const values = timeValues.split(',').map(v => v.trim()).filter(v => v);
+                if (values.length > 0) {
+                  infoLayer.values.time.values = values;
+                  const newMostRecent = values[values.length - 1];
+                  console.log(`[${layerId}] Updated WMS time dimension:`, {
+                    count: values.length,
+                    oldMostRecent: oldMostRecent,
+                    newMostRecent: newMostRecent,
+                    changed: oldMostRecent !== newMostRecent,
+                    allValues: values
+                  });
+                }
+              }
+              break;
+            }
+          }
+        } else {
+          console.log(`[${layerId}] Layer not found in WMS capabilities`);
+        }
+      }
+    } catch (err) {
+      console.error(`[${layerId}] Error refreshing time dimension:`, err);
+    }
+  }
+
   /** Process Refresh Timer tick */
-  private onTimerTick() {
+  private async onTimerTick() {
     const n = Date.now();
-    //console.log('InfoLayer timer tick...', n);
-    this.layerMap.forEach((v, k) => {
-      //console.log(k, v.infoLayer.values.refreshInterval, v.lastRefresh, n - v.lastRefresh)
-      if (
-        v.infoLayer.values?.refreshInterval > 0 &&
-        n - v.lastRefresh >= v.infoLayer.values?.refreshInterval
-      ) {
-        // refresh layer source
-        const src = v.layer.getSource();
-        src?.refresh();
+    for (const [k, v] of this.layerMap.entries()) {
+      const timeSinceLastRefresh = n - v.lastRefresh;
+      const refreshInterval = v.infoLayer.values?.refreshInterval || 0;
+      
+      if (refreshInterval > 0 && timeSinceLastRefresh >= refreshInterval) {
+        let needsSourceRebuild = false;
+        
+        // Refresh time dimension bounds if layer has time dimension
+        if (v.infoLayer.values?.time?.values) {
+          const oldValuesLength = v.infoLayer.values.time.values.length;
+          const oldMostRecent = v.infoLayer.values.time.values[v.infoLayer.values.time.values.length - 1];
+          
+          await this.refreshTimeDimension(k, v);
+          
+          const newValuesLength = v.infoLayer.values.time.values.length;
+          const newMostRecent = v.infoLayer.values.time.values[v.infoLayer.values.time.values.length - 1];
+          
+          // If time values changed or most recent changed, we need to rebuild the source
+          if (newValuesLength !== oldValuesLength || oldMostRecent !== newMostRecent) {
+            needsSourceRebuild = true;
+            // Save updated time dimension to server
+            await this.saveLayerToServer(k, v.infoLayer);
+            // Emit event to notify parent component
+            this.timeDimensionUpdated.emit(k);
+          }
+        }
+        
+        // Rebuild source if time dimension changed
+        if (needsSourceRebuild) {
+          const ldef = [k, v.infoLayer, true];
+          let source: TileWMS | WMTS;
+          if (v.infoLayer.values?.sourceType?.toLowerCase() === 'wms') {
+            source = this.setWMSSource(ldef);
+          } else if (v.infoLayer.values?.sourceType?.toLowerCase() === 'wmts') {
+            source = await this.setWMTSSource(ldef);
+          }
+          if (source) {
+            v.layer.setSource(source);
+          }
+        } else {
+          // Just refresh the existing source
+          const src = v.layer.getSource();
+          src?.refresh();
+        }
+        
         v.lastRefresh = n;
       }
-    });
+    }
   }
 
   private clearlayers() {
@@ -134,6 +274,47 @@ export class FreeboardLiveLayerComponent
     if (this.layerGroup && map) {
       map.removeLayer(this.layerGroup);
     }
+  }
+
+  /** Save updated layer to server */
+  private async saveLayerToServer(layerId: string, layer: SKInfoLayer): Promise<void> {
+    try {
+      await this.skres.putToServer('infolayers', layerId, layer);
+    } catch (err) {
+      console.error(`Error saving layer to server:`, err);
+    }
+  }
+
+  /** Calculate actual time value from offset */
+  private getTimeValueFromOffset(timeDim: any): string | null {
+    if (!timeDim || !timeDim.values || timeDim.values.length === 0) {
+      return null;
+    }
+    
+    const offset = timeDim.timeOffset ?? 0;
+    if (offset === 0) {
+      // Most recent
+      return timeDim.values[timeDim.values.length - 1];
+    }
+    
+    // Calculate target time based on offset
+    const mostRecentTime = new Date(timeDim.values[timeDim.values.length - 1]).getTime();
+    const targetTime = mostRecentTime + (offset * 60 * 60 * 1000); // offset is negative
+    
+    // Find closest time value to target
+    let closestIndex = timeDim.values.length - 1;
+    let closestDiff = Infinity;
+    
+    for (let i = 0; i < timeDim.values.length; i++) {
+      const timeVal = new Date(timeDim.values[i]).getTime();
+      const diff = Math.abs(timeVal - targetTime);
+      if (diff < closestDiff) {
+        closestDiff = diff;
+        closestIndex = i;
+      }
+    }
+    
+    return timeDim.values[closestIndex];
   }
 
   /** Process changes in layerDefs array */
@@ -167,6 +348,22 @@ export class FreeboardLiveLayerComponent
       } else {
         // update layer
         const layer = this.layerMap.get(l[0]).layer;
+
+        // Check if time dimension exists - if so, always rebuild source
+        const hasTimeDimension = l[1].values?.time?.values !== undefined;
+        
+        if (hasTimeDimension) {
+          // Rebuild the source with new dimensions
+          let source: TileWMS | WMTS;
+          if (l[1].values?.sourceType?.toLowerCase() === 'wms') {
+            source = this.setWMSSource(l);
+          } else if (l[1].values?.sourceType?.toLowerCase() === 'wmts') {
+            source = await this.setWMTSSource(l);
+          }
+          if (source) {
+            layer.setSource(source);
+          }
+        }
 
         if (layer.getOpacity() !== (l[1].values?.opacity ?? 1)) {
           layer.setOpacity(l[1].values?.opacity ?? 1);
@@ -230,11 +427,21 @@ export class FreeboardLiveLayerComponent
 
   /** @returns WMS tile source */
   private setWMSSource(ldef: any): TileWMS {
+    const params: any = {
+      LAYERS: ldef[1].values?.layers ? ldef[1].values?.layers.join(',') : ''
+    };
+    
+    // Add time dimension if present
+    if (ldef[1].values?.time) {
+      const timeValue = this.getTimeValueFromOffset(ldef[1].values.time);
+      if (timeValue) {
+        params.TIME = timeValue;
+      }
+    }
+    
     return new TileWMS({
       url: ldef[1].values?.url,
-      params: {
-        LAYERS: ldef[1].values?.layers ? ldef[1].values?.layers.join(',') : ''
-      }
+      params: params
     });
   }
 
@@ -249,14 +456,12 @@ export class FreeboardLiveLayerComponent
         );
         const capabilitiesXml = await response.text();
         if (!capabilitiesXml) {
-          console.log('Error: GetCapabilities response is empty!');
           return;
         }
         const parser = new WMTSCapabilities();
         result = parser.read(capabilitiesXml);
         this.wmtsCapabilitesMap.set(ldef[1].values?.url, result);
       } catch (err) {
-        console.log(err);
         return;
       }
     } else {
@@ -267,6 +472,17 @@ export class FreeboardLiveLayerComponent
       layer: ldef[1].values?.layers[0],
       matrixSet: 'EPSG:3857'
     });
+    
+    // Add time dimension if present
+    if (ldef[1].values?.time) {
+      const timeValue = this.getTimeValueFromOffset(ldef[1].values.time);
+      if (timeValue) {
+        options.dimensions = {
+          Time: timeValue
+        };
+      }
+    }
+    
     return new WMTS(options);
   }
 }

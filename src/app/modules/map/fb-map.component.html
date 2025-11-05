@@ -131,7 +131,10 @@
   </fb-charts>
 
   <!-- Charts -->
-  <fb-livelayer [layerDefs]="skresOther.infoLayers()" [zIndex]="50">
+  <fb-livelayer 
+    [layerDefs]="skresOther.infoLayers()" 
+    [zIndex]="50"
+    (timeDimensionUpdated)="onTimeDimensionUpdated($event)">
   </fb-livelayer>
 
   <!-- Tracks -->

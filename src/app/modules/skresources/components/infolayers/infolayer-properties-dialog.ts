@@ -13,6 +13,7 @@ import { AppFacade } from 'src/app/app.facade';
 import { SKChart } from 'src/app/modules/skresources/resource-classes';
 import { PipesModule } from 'src/app/lib/pipes';
 import { SKInfoLayer } from '../../custom-resource-classes';
+import { formatDimensionValue } from '../../dimension-utils';
 
 /********* InfoLayerPropertiesDialog **********
 	data: <SKInfoLayer>
@@ -78,6 +79,19 @@ import { SKInfoLayer } from '../../custom-resource-classes';
               {{ data.values.url }}
             </div>
           </div>
+          @if(data.values.time) {
+          <div style="display:flex; margin-top: 8px;">
+            <div class="key-label">Time Dimension:</div>
+            <div style="flex: 1 1 auto;">
+              <small>Values: {{ data.values.time.values?.length || 0 }}</small><br/>
+              <small>Span: {{ getTimeSpanHours() }} hours</small><br/>
+              <small>Current: {{ formatDimensionValue(getCurrentTime()) }}</small><br/>
+              @if(getTimeOffset() !== undefined) {
+              <small>Offset: {{ getTimeOffset() }}h</small>
+              }
+            </div>
+          </div>
+          }
         </div>
       </mat-dialog-content>
     </div>
@@ -118,4 +132,56 @@ export class InfoLayerPropertiesDialog {
     public dialogRef: MatDialogRef<InfoLayerPropertiesDialog>,
     @Inject(MAT_DIALOG_DATA) public data: SKInfoLayer
   ) {}
+
+  getCurrentTime(): string {
+    const time = this.data.values.time;
+    if (!time || !time.values || time.values.length === 0) {
+      return '';
+    }
+    
+    // Calculate from offset
+    const offset = time.timeOffset ?? 0;
+    if (offset === 0) {
+      return time.values[time.values.length - 1];
+    }
+    
+    // Calculate target time based on offset
+    const mostRecentTime = new Date(time.values[time.values.length - 1]).getTime();
+    const targetTime = mostRecentTime + (offset * 60 * 60 * 1000);
+    
+    // Find closest time value
+    let closestIndex = time.values.length - 1;
+    let closestDiff = Infinity;
+    
+    for (let i = 0; i < time.values.length; i++) {
+      const timeVal = new Date(time.values[i]).getTime();
+      const diff = Math.abs(timeVal - targetTime);
+      if (diff < closestDiff) {
+        closestDiff = diff;
+        closestIndex = i;
+      }
+    }
+    
+    return time.values[closestIndex];
+  }
+
+  getTimeSpanHours(): number {
+    const time = this.data.values.time;
+    if (!time || !time.values || time.values.length < 2) {
+      return 0;
+    }
+    const oldest = new Date(time.values[0]).getTime();
+    const newest = new Date(time.values[time.values.length - 1]).getTime();
+    return Math.round((newest - oldest) / (1000 * 60 * 60));
+  }
+
+  getTimeOffset(): number | undefined {
+    const time = this.data.values.time;
+    if (!time) return undefined;
+    return (time as any).timeOffset;
+  }
+
+  formatDimensionValue(value: string): string {
+    return formatDimensionValue(value);
+  }
 }

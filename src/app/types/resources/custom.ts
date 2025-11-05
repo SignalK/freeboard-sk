@@ -45,6 +45,10 @@ export interface InfoLayerResource extends CustomResource {
     minZoom: number;
     maxZoom: number;
     refreshInterval?: number;
+    time?: {
+      values: string[];
+      timeOffset?: number; // Hours back from most recent (0 = current, -6 = 6 hours ago)
+    };
   };
 }
 

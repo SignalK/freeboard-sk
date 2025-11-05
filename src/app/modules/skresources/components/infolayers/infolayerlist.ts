@@ -3,7 +3,8 @@ import {
   Input,
   Output,
   EventEmitter,
-  ChangeDetectionStrategy
+  ChangeDetectionStrategy,
+  effect
 } from '@angular/core';
 
 import { MatTooltipModule } from '@angular/material/tooltip';
@@ -17,6 +18,7 @@ import { ScrollingModule } from '@angular/cdk/scrolling';
 import { MatSelectModule } from '@angular/material/select';
 import { MatProgressBar } from '@angular/material/progress-bar';
 import { MatMenuModule } from '@angular/material/menu';
+import { MatSliderModule } from '@angular/material/slider';
 
 import { AppFacade } from 'src/app/app.facade';
 import {
@@ -33,6 +35,7 @@ import { MatDialog, MatDialogRef } from '@angular/material/dialog';
 import { forkJoin, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import { SignalKClient } from 'signalk-client-angular';
+import { formatDimensionValue } from '../../dimension-utils';
 
 //** InfoLayer Resource List **
 @Component({
@@ -51,7 +54,8 @@ import { SignalKClient } from 'signalk-client-angular';
     ScrollingModule,
     MatSelectModule,
     MatProgressBar,
-    MatMenuModule
+    MatMenuModule,
+    MatSliderModule
   ]
 })
 export class InfoLayerListComponent extends ResourceListBase {
@@ -74,6 +78,24 @@ export class InfoLayerListComponent extends ResourceListBase {
     private signalk: SignalKClient
   ) {
     super('infolayers', skres);
+    
+    // Watch for changes in the infoLayers signal and sync with fullList
+    effect(() => {
+      const signalLayers = this.skresOther.infoLayers();
+      // Sync fullList with signal data to ensure time dimension updates are reflected
+      if (signalLayers.length > 0) {
+        signalLayers.forEach((signalLayer: FBInfoLayer) => {
+          const fullListLayer = this.fullList.find((l: FBInfoLayer) => l[0] === signalLayer[0]);
+          if (fullListLayer && signalLayer[1].values.time) {
+            // Update time dimension values if they differ
+            if (fullListLayer[1].values.time) {
+              fullListLayer[1].values.time.values = signalLayer[1].values.time.values;
+              fullListLayer[1].values.time.timeOffset = signalLayer[1].values.time.timeOffset;
+            }
+          }
+        });
+      }
+    });
   }
 
   ngOnInit() {
@@ -228,6 +250,168 @@ export class InfoLayerListComponent extends ResourceListBase {
     [0.2, '20%'],
     [0.1, '10%']
   ]);
+
+  /** Calculate the time span in hours between oldest and newest time values */
+  protected getTimeSpanHours(timeDim: any): number {
+    if (!timeDim || !timeDim.values || timeDim.values.length < 2) {
+      return 0;
+    }
+    const oldest = new Date(timeDim.values[0]).getTime();
+    const newest = new Date(timeDim.values[timeDim.values.length - 1]).getTime();
+    return Math.round((newest - oldest) / (1000 * 60 * 60)); // Convert ms to hours
+  }
+
+  /** Get the current time offset in hours (0 = most recent, negative = hours back) */
+  protected getTimeOffset(timeDim: any): number {
+    if (!timeDim || !timeDim.values || timeDim.values.length === 0) {
+      return 0;
+    }
+    
+    // Return stored offset or default to 0 (most recent)
+    return timeDim.timeOffset ?? 0;
+  }
+
+  /** Get current time value based on offset */
+  protected getCurrentTimeValue(time: any): string {
+    if (!time || !time.values || time.values.length === 0) {
+      return '';
+    }
+    
+    const offset = this.getTimeOffset(time);
+    if (offset === 0) {
+      return time.values[time.values.length - 1]; // Most recent
+    }
+    
+    // Find the time value closest to the offset
+    const targetTime = new Date(time.values[time.values.length - 1]).getTime() + (offset * 60 * 60 * 1000);
+    let closestIndex = time.values.length - 1;
+    let closestDiff = Infinity;
+    
+    for (let i = 0; i < time.values.length; i++) {
+      const timeVal = new Date(time.values[i]).getTime();
+      const diff = Math.abs(timeVal - targetTime);
+      if (diff < closestDiff) {
+        closestDiff = diff;
+        closestIndex = i;
+      }
+    }
+    
+    return time.values[closestIndex];
+  }
+
+  /** Check if currently showing the most recent time */
+  protected isCurrentTime(time: any): boolean {
+    return this.getTimeOffset(time) === 0;
+  }
+
+  /** Toggle to most recent time */
+  protected onCurrentTimeToggle(id: string, timeDim: any, checked: boolean) {
+    if (!timeDim || !timeDim.values || timeDim.values.length === 0) {
+      return;
+    }
+    
+    // Get fresh data from signal instead of stale fullList
+    const currentLayers = this.skresOther.infoLayers();
+    const ov = currentLayers.find((l: FBInfoLayer) => l[0] === id);
+    
+    if (!ov) {
+      // Fallback to fullList if not in signal
+      const ovFull = this.fullList.find((l: FBInfoLayer) => l[0] === id);
+      if (!ovFull) {
+        return;
+      }
+      
+      if (checked) {
+        // Set to current time (offset = 0)
+        console.log('Toggling to current time (offset = 0) from fullList');
+        ovFull[1].values.time.timeOffset = 0;
+        this.saveLayerToServer(id, ovFull[1]);
+        this.skresOther.updateInfoLayerCache(this.fullList.filter((l: FBInfoLayer) => l[2]));
+      }
+      return;
+    }
+    
+    if (checked) {
+      // Set to current time (offset = 0)
+      const newMostRecent = ov[1].values.time.values[ov[1].values.time.values.length - 1];
+      console.log('Toggling to current time (offset = 0), new most recent:', newMostRecent);
+      ov[1].values.time.timeOffset = 0;
+      
+      // Also update fullList to keep it in sync
+      const ovFull = this.fullList.find((l: FBInfoLayer) => l[0] === id);
+      if (ovFull) {
+        ovFull[1].values.time.timeOffset = 0;
+        ovFull[1].values.time.values = ov[1].values.time.values;
+      }
+    } else {
+      // Unchecking doesn't do anything - user must use slider
+      return;
+    }
+    
+    // Save to server and trigger update
+    this.saveLayerToServer(id, ov[1]);
+    this.skresOther.updateInfoLayerCache(currentLayers);
+  }
+
+  /** Format time value for display */
+  protected formatTimeValue(timeStr: string): string {
+    return formatDimensionValue(timeStr);
+  }
+
+  /** Format slider value for display (hours back) */
+  protected formatOffsetSliderValue(hours: number): string {
+    if (hours === 0) {
+      return 'Current';
+    }
+    return `${hours}h`;
+  }
+
+  /** Handle time offset slider change */
+  protected onTimeOffsetSliderChange(id: string, offsetHours: number, timeDim: any) {
+    console.log('Time offset slider change:', { id, offsetHours, timeDim });
+    
+    if (!timeDim || !timeDim.values || timeDim.values.length === 0) {
+      console.log('Invalid time dimension');
+      return;
+    }
+    
+    // Get fresh data from signal instead of stale fullList
+    const currentLayers = this.skresOther.infoLayers();
+    const ov = currentLayers.find((l: FBInfoLayer) => l[0] === id);
+    
+    if (!ov) {
+      // Fallback to fullList
+      const ovFull = this.fullList.find((l: FBInfoLayer) => l[0] === id);
+      if (!ovFull) {
+        console.log('Layer not found:', id);
+        return;
+      }
+      ovFull[1].values.time.timeOffset = offsetHours;
+      console.log('Updating time offset to', offsetHours, 'from fullList');
+      this.saveLayerToServer(id, ovFull[1]);
+      this.skresOther.updateInfoLayerCache(this.fullList.filter((l: FBInfoLayer) => l[2]));
+      return;
+    }
+    
+    // Store the offset
+    ov[1].values.time.timeOffset = offsetHours;
+    
+    // Also update fullList to keep it in sync
+    const ovFull = this.fullList.find((l: FBInfoLayer) => l[0] === id);
+    if (ovFull) {
+      ovFull[1].values.time.timeOffset = offsetHours;
+      ovFull[1].values.time.values = ov[1].values.time.values;
+    }
+    
+    console.log('Updating time offset to', offsetHours);
+    
+    // Save to server
+    this.saveLayerToServer(id, ov[1]);
+    
+    // Trigger update by updating the signal with current selected layers
+    console.log('Triggering layer refresh');
+    this.skresOther.updateInfoLayerCache(currentLayers);
+  }
 
   /** Add new layer */
   protected addLayer(type: 'wms' | 'wmts') {
