@@ -68,7 +68,6 @@
     "@types/xml2js": "^0.4.14",
     "@typescript-eslint/eslint-plugin": "^8.27.0",
     "@typescript-eslint/parser": "^8.27.0",
-    "codelyzer": "^6.0.0",
     "eslint": "^9.17.0",
     "geolib": "^3.3.3",
     "jasmine-core": "~5.5.0",
