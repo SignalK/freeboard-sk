@@ -6,6 +6,22 @@ import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { OverlayContainer } from '@angular/cdk/overlay';
 import { Observable, Subject } from 'rxjs';
 
+// standalone
+import { CommonModule } from '@angular/common';
+//import { BrowserModule } from '@angular/platform-browser';
+//import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
+import { MatBadgeModule } from '@angular/material/badge';
+import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
+import { MatListModule } from '@angular/material/list';
+import { MatMenuModule } from '@angular/material/menu';
+import { MatSidenavModule } from '@angular/material/sidenav';
+import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatProgressBarModule } from '@angular/material/progress-bar';
+import { ETADialComponent, FileInputComponent, InteractionHelpComponent, MFBContainerComponent, PiPVideoComponent, TextDialComponent, TTGDialComponent } from './lib/components';
+
+// ****
+
 import { AppFacade } from './app.facade';
 import { SignalKClient } from 'signalk-client-angular';
 import { WakeLockService } from 'src/app/lib/services';
@@ -37,7 +53,23 @@ import {
   GPXExportDialog,
   CourseService,
   SettingsFacade,
-  AutopilotService
+  AutopilotService,
+  FBMapComponent,
+  ExperimentsComponent,
+  AnchorWatchComponent,
+  AlertComponent,
+  AlertListComponent,
+  AutopilotComponent,
+  RouteNextPointComponent,
+  RouteListComponent,
+  WaypointListComponent,
+  ChartListComponent,
+  NoteListComponent,
+  TrackListComponent,
+  AISListComponent,
+  GroupListComponent,
+  InfoLayerListComponent,
+  BuildRouteComponent
 } from 'src/app/modules';
 
 import {
@@ -83,7 +115,42 @@ interface DrawEndEvent {
   selector: 'app-root',
   templateUrl: './app.component.html',
   styleUrls: ['./app.component.css'],
-  standalone: false
+  //standalone: false
+  imports: [
+    MatMenuModule,
+    MatSidenavModule,
+    MatBadgeModule,
+    MatButtonModule,
+    MatListModule,
+    MatIconModule,
+    MatTooltipModule,
+    MatProgressBarModule,
+    CommonModule,
+    //BrowserAnimationsModule,
+    TextDialComponent,
+    TTGDialComponent,
+    ETADialComponent,
+    FileInputComponent,
+    PiPVideoComponent,
+    MFBContainerComponent,
+    InteractionHelpComponent,
+    FBMapComponent,
+    ExperimentsComponent,
+    AnchorWatchComponent,
+    AlertComponent,
+    AlertListComponent,
+    AutopilotComponent,
+    RouteNextPointComponent,
+    RouteListComponent,
+    WaypointListComponent,
+    ChartListComponent,
+    NoteListComponent,
+    TrackListComponent,
+    AISListComponent,
+    GroupListComponent,
+    InfoLayerListComponent,
+    BuildRouteComponent
+  ]
 })
 export class AppComponent {
   @ViewChild('sideright', { static: false }) sideright;

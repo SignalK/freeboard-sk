@@ -6,11 +6,11 @@ import { Component, Input, ChangeDetectionStrategy } from '@angular/core';
 
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { AppFacade } from 'src/app/app.facade';
-import { PipesModule } from '../../../lib/pipes';
+import { CoordsPipe } from '../../../lib/pipes';
 
 @Component({
   selector: 'signalk-details-list',
-  imports: [MatTooltipModule, PipesModule],
+  imports: [MatTooltipModule, CoordsPipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   styleUrls: ['./signalk-details.component.css'],
   template: `

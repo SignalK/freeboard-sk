@@ -7,7 +7,7 @@ import {
   GPXWaypoint,
   GPXTrack,
   GPXTrackSegment
-} from '../gpxlib';
+} from './gpxlib';
 
 export class SK2GPX {
   public gpx: GPX;

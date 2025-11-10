@@ -1,9 +1,18 @@
 /** Dialog Components **
  ************************/
 
+import { CommonModule } from '@angular/common';
 import { Component, OnInit, Inject, ViewChild } from '@angular/core';
-import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
+import { FormsModule } from '@angular/forms';
+import { MatButtonModule } from '@angular/material/button';
+import { MatCardModule } from '@angular/material/card';
+import { MatCheckboxModule } from '@angular/material/checkbox';
+import { MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatIconModule } from '@angular/material/icon';
+import { MatInputModule } from '@angular/material/input';
 import { MAT_SNACK_BAR_DATA } from '@angular/material/snack-bar';
+import { MatStepperModule } from '@angular/material/stepper';
 
 /*********** MsgBox ***************
 	data: {
@@ -14,6 +23,10 @@ import { MAT_SNACK_BAR_DATA } from '@angular/material/snack-bar';
 ***********************************/
 @Component({
   selector: 'ap-msgbox',
+  imports: [
+    MatDialogModule,
+    MatButtonModule
+  ],
   template: `
     <div class="_ap-msgbox">
       <div>
@@ -40,8 +53,7 @@ import { MAT_SNACK_BAR_DATA } from '@angular/material/snack-bar';
         min-width: 150px;
       }
     `
-  ],
-  standalone: false
+  ]
 })
 export class MsgBox implements OnInit {
   public msglines = [];
@@ -67,6 +79,11 @@ export class MsgBox implements OnInit {
 ***********************************/
 @Component({
   selector: 'ap-alertdialog',
+  imports: [
+    MatDialogModule,
+    MatIconModule,
+    MatButtonModule
+  ],
   template: `
     <div class="_ap-alert">
       <div>
@@ -99,8 +116,7 @@ export class MsgBox implements OnInit {
         min-width: 150px;
       }
     `
-  ],
-  standalone: false
+  ]
 })
 export class AlertDialog implements OnInit {
   public msglines = [];
@@ -129,6 +145,12 @@ export class AlertDialog implements OnInit {
 ***********************************/
 @Component({
   selector: 'ap-confirmdialog',
+  imports: [
+    MatDialogModule,
+    MatIconModule,
+    MatCheckboxModule,
+    MatButtonModule
+  ],
   template: `
     <div class="_ap-confirm">
       <div>
@@ -179,8 +201,7 @@ export class AlertDialog implements OnInit {
         min-width: 150px;
       }
     `
-  ],
-  standalone: false
+  ]
 })
 export class ConfirmDialog implements OnInit {
   public msglines = [];
@@ -210,6 +231,11 @@ export class ConfirmDialog implements OnInit {
 ***************************************/
 @Component({
   selector: 'ap-about-dialog',
+  imports: [
+    MatDialogModule,
+    MatIconModule,
+    MatButtonModule
+  ],
   template: `
     <div>
       <h1 mat-dialog-title><mat-icon>info</mat-icon>&nbsp;About</h1>
@@ -260,8 +286,7 @@ export class ConfirmDialog implements OnInit {
         font-size: 12pt;
       }
     `
-  ],
-  standalone: false
+  ]
 })
 export class AboutDialog {
   constructor(
@@ -279,6 +304,15 @@ export class AboutDialog {
 ***************************************/
 @Component({
   selector: 'ap-login-dialog',
+  imports: [
+    MatDialogModule,
+    MatIconModule,
+    MatButtonModule,
+    MatCardModule,
+    MatFormFieldModule,
+    MatInputModule,
+    FormsModule
+  ],
   styles: [],
   template: `
     <mat-dialog-content>
@@ -289,7 +323,8 @@ export class AboutDialog {
           <mat-card-subtitle>{{ data.message }}</mat-card-subtitle>
         </mat-card-title-group>
         <mat-card-content>
-          <mat-form-field hintLabel="User name:">
+          <mat-form-field>
+            <mat-label>User name</mat-label>
             <input
               matInput
               type="text"
@@ -300,7 +335,8 @@ export class AboutDialog {
               (focus)="handleFocus($event)"
             /> </mat-form-field
           ><br />
-          <mat-form-field hintLabel="Password:">
+          <mat-form-field>
+            <mat-label>Password</mat-label>
             <input
               matInput
               type="password"
@@ -328,8 +364,7 @@ export class AboutDialog {
         </mat-card-actions>
       </mat-card>
     </mat-dialog-content>
-  `,
-  standalone: false
+  `
 })
 export class LoginDialog implements OnInit {
   @ViewChild('username', { static: false }) username;
@@ -389,6 +424,9 @@ export class LoginDialog implements OnInit {
 ***************************************/
 @Component({
   selector: 'message-bar',
+  imports: [
+    MatIconModule
+  ],
   template: `
     <div class="message-bar">
       <mat-icon>message</mat-icon>&nbsp;&nbsp;
@@ -404,8 +442,7 @@ export class LoginDialog implements OnInit {
         font-family: roboto;
       }
     `
-  ],
-  standalone: false
+  ]
 })
 export class MessageBarComponent {
   constructor(@Inject(MAT_SNACK_BAR_DATA) public data) {}
@@ -419,6 +456,13 @@ export class MessageBarComponent {
 ***************************************/
 @Component({
   selector: 'ap-welcome-dialog',
+  imports: [
+    MatDialogModule,
+    MatStepperModule,
+    MatIconModule,
+    MatButtonModule,
+    CommonModule
+  ],
   template: `
     <mat-dialog-content>
       <div class="welcome">
@@ -512,8 +556,7 @@ export class MessageBarComponent {
         font-size: 12pt;
       }
     `
-  ],
-  standalone: false
+  ]
 })
 export class WelcomeDialog {
   public currentPage = 1;

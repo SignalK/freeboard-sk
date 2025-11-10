@@ -39,19 +39,19 @@ export class AISBaseLayerComponent
   @Input() removeIds: Array<string> = [];
 
   constructor(
-    protected mapComponent: MapComponent,
-    protected changeDetectorRef: ChangeDetectorRef
+    protected override mapComponent: MapComponent,
+    protected override changeDetectorRef: ChangeDetectorRef
   ) {
     super(mapComponent, changeDetectorRef);
     this.labelPrefixes = [];
   }
 
-  ngOnInit() {
+  override ngOnInit() {
     super.ngOnInit();
     this.reloadTargets();
   }
 
-  ngOnChanges(changes: SimpleChanges) {
+  override ngOnChanges(changes: SimpleChanges) {
     super.ngOnChanges(changes);
     if (this.layer) {
       const keys = Object.keys(changes);

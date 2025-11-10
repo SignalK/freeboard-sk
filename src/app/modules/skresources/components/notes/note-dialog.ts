@@ -3,7 +3,7 @@
 
 import { Component, OnInit, Inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { PipesModule } from 'src/app/lib/pipes';
+import { CoordsPipe } from 'src/app/lib/pipes';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import {
@@ -46,7 +46,7 @@ import { AppIconDef, getResourceIcon } from 'src/app/modules/icons';
     MatInputModule,
     MatToolbarModule,
     AngularEditorModule,
-    PipesModule,
+    CoordsPipe,
     AddTargetPipe
   ],
   templateUrl: `note-dialog.html`,

@@ -1,5 +1,19 @@
 import { Component, OnInit, Inject } from '@angular/core';
 import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
+import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { MatButtonModule } from '@angular/material/button';
+import { MatCardModule } from '@angular/material/card';
+import { MatCheckboxModule } from '@angular/material/checkbox';
+import { MatDialogModule } from '@angular/material/dialog';
+import { MatExpansionModule } from '@angular/material/expansion';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatIconModule } from '@angular/material/icon';
+import { MatInputModule } from '@angular/material/input';
+import { MatToolbarModule } from '@angular/material/toolbar';
+import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatDividerModule } from '@angular/material/divider';
+import { MatProgressBarModule } from '@angular/material/progress-bar';
 
 import { AppFacade } from 'src/app/app.facade';
 import { SignalKClient } from 'signalk-client-angular';
@@ -10,16 +24,31 @@ import {
   GPXWaypoint,
   GPXTrack,
   GPXTrackSegment
-} from '../gpxlib';
+} from './gpxlib';
 import { HttpErrorResponse } from '@angular/common/http';
 import { ErrorList } from 'src/app/types';
 
 //** GPXLoad dialog **
 @Component({
   selector: 'gpxload-dialog',
+  imports: [
+    MatToolbarModule,
+    MatProgressBarModule,
+    MatDialogModule,
+    MatIconModule,
+    MatButtonModule,
+    MatCardModule,
+    MatFormFieldModule,
+    MatInputModule,
+    MatDividerModule,
+    MatExpansionModule,
+    MatCheckboxModule,
+    MatTooltipModule,
+    FormsModule,
+    CommonModule
+  ],
   templateUrl: './gpxload-dialog.html',
-  styleUrls: ['./gpxload-dialog.css'],
-  standalone: false
+  styleUrls: ['./gpxload-dialog.css']
 })
 export class GPXImportDialog implements OnInit {
   public gpxData = {

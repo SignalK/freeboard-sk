@@ -10,7 +10,6 @@ import { MatListModule } from '@angular/material/list';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { PipesModule } from 'src/app/lib/pipes';
 import { PopoverComponent } from './popover.component';
 
 /*********** feature List Popover ***************
@@ -26,7 +25,6 @@ import { PopoverComponent } from './popover.component';
     MatButtonModule,
     MatTooltipModule,
     MatIconModule,
-    PipesModule,
     PopoverComponent
   ],
   template: `

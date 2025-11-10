@@ -15,9 +15,8 @@ import {
   MAT_DIALOG_DATA
 } from '@angular/material/dialog';
 
-import { PipesModule } from 'src/app/lib/pipes';
 import { SignalKClient } from 'signalk-client-angular';
-import { FileInputComponent } from 'src/app/lib/components';
+import { FileInputComponent } from 'src/app/lib/components/file-input.component';
 import { AppFacade } from 'src/app/app.facade';
 
 //** Resources upload dialog **
@@ -36,7 +35,6 @@ import { AppFacade } from 'src/app/app.facade';
     MatToolbarModule,
     MatCheckboxModule,
     MatDialogModule,
-    PipesModule,
     FileInputComponent
   ]
 })

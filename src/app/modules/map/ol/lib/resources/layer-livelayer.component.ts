@@ -10,7 +10,7 @@ import {
 } from '@angular/core';
 
 import TileLayer from 'ol/layer/Tile';
-import { TileWMS, WMTS } from 'ol/source';
+import { TileWMS, WMTS, XYZ } from 'ol/source';
 import { optionsFromCapabilities } from 'ol/source/WMTS';
 import WMTSCapabilities from 'ol/format/WMTSCapabilities';
 
@@ -23,51 +23,13 @@ import LayerGroup from 'ol/layer/Group';
 import BaseLayer from 'ol/layer/Base';
 import { Collection } from 'ol';
 
-/*const infoLayers = [
-  [
-    'info_1_wms',
-    {
-      name: 'nowChart watches warnings & advisories',
-      description: 'WMS info layer.',
-      type: 'InfoLayer',
-      values: {
-        url: 'https://nowcoast.noaa.gov/geoserver/hazards/alerts/ows',
-        sourceType: 'WMS',
-        layers: ['watches_warnings_advisories'],
-        opacity: 0.6,
-        minZoom: 1,
-        maxZoom: 24
-      }
-    },
-    true
-  ],
-  [
-    'info_2_wmts',
-    {
-      name: '112 Festnetz',
-      description: 'WMTS info layer.',
-      type: 'InfoLayer',
-      values: {
-        url: 'https://wmts.geo.admin.ch/EPSG/3857/1.0.0/WMTSCapabilities.xml',
-        sourceType: 'WMTS',
-        layers: ['ch.bakom.notruf-112_festnetz'],
-        opacity: 0.6,
-        minZoom: 1,
-        maxZoom: 24,
-        refreshInterval: 60000
-      }
-    },
-    true
-  ]
-];*/
-
 interface LiveLayer {
   layer: TileLayer;
   lastRefresh: number;
   infoLayer: SKInfoLayer;
 }
 
-// ** Freeboard InfoLayer Group **
+// ** Freeboard InfoLayer (live layer) **
 @Component({
   selector: 'ol-map > fb-livelayer',
   template: '<ng-content></ng-content>',
@@ -198,12 +160,16 @@ export class FreeboardLiveLayerComponent
 
   /** @returns TileLayer */
   private async buildLayer(ldef: FBInfoLayer, index: string) {
-    let source: TileWMS | WMTS;
+    let source: TileWMS | WMTS | XYZ;
     if (ldef[1].type === 'InfoLayer') {
       if (ldef[1].values?.sourceType?.toLowerCase() === 'wms') {
         source = this.setWMSSource(ldef);
       } else if (ldef[1].values?.sourceType?.toLowerCase() === 'wmts') {
         source = await this.setWMTSSource(ldef);
+      } else if (ldef[1].values?.sourceType?.toLowerCase() === 'xyz') {
+        source = new XYZ({
+          url: ldef[1].values?.url
+        });
       }
       const layer = new TileLayer({
         source: source,

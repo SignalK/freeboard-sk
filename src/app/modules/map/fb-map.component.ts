@@ -33,7 +33,7 @@ import {
   VesselPopoverComponent
 } from './popovers';
 import { FreeboardOpenlayersModule } from 'src/app/modules/map/ol';
-import { PipesModule } from 'src/app/lib/pipes';
+import { CoordsPipe } from 'src/app/lib/pipes';
 
 import { computeDestinationPoint, getGreatCircleBearing } from 'geolib';
 import { toLonLat } from 'ol/proj';
@@ -131,7 +131,7 @@ enum INTERACTION_MODE {
     MatIconModule,
     MatButtonModule,
     MatTooltipModule,
-    PipesModule,
+    CoordsPipe,
     MatCardModule,
     MatMenuModule,
     FreeboardOpenlayersModule,
@@ -487,8 +487,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
       { name: 'keyboardpan' },
       { name: 'keyboardzoom' },
       { name: 'mousewheelzoom' },
-      { name: 'pinchzoom' },
-      { name: 'dragbox' }
+      { name: 'pinchzoom' }
     ];
 
     this.olMapInteractions.update(() => {

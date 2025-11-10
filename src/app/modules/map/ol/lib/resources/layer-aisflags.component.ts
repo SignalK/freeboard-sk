@@ -23,13 +23,13 @@ export class AISFlagsLayerComponent extends AISBaseLayerComponent {
   @Input() flagged: Array<string>;
 
   constructor(
-    protected mapComponent: MapComponent,
-    protected changeDetectorRef: ChangeDetectorRef
+    protected override mapComponent: MapComponent,
+    protected override changeDetectorRef: ChangeDetectorRef
   ) {
     super(mapComponent, changeDetectorRef);
   }
 
-  ngOnChanges(changes: SimpleChanges): void {
+  override ngOnChanges(changes: SimpleChanges): void {
     super.ngOnChanges(changes);
     if ('flagged' in changes) {
       this.updateFlags();

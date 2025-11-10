@@ -15,7 +15,6 @@ import { MatSliderModule } from '@angular/material/slider';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatToolbarModule } from '@angular/material/toolbar';
 
-import { CommonDialogs } from 'src/app/lib/components/dialogs';
 import { FreeboardOpenlayersModule } from 'src/app/modules/map/ol';
 import { SimplifyAP } from 'simplify-ts';
 import { SKRoute, SKResourceService, SKStreamFacade } from 'src/app/modules';
@@ -35,7 +34,6 @@ import { AppFacade } from 'src/app/app.facade';
     MatSliderModule,
     MatCheckboxModule,
     MatToolbarModule,
-    CommonDialogs,
     FreeboardOpenlayersModule
   ],
   templateUrl: `./trail2route-dialog.html`,

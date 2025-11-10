@@ -112,11 +112,11 @@ class PMLayerStyler extends DefaultLayerStyler {
     super(chart);
   }
 
-  public CreateLayer(): VectorTileLayer<never> {
+  public override CreateLayer(): VectorTileLayer<never> {
     return new VectorTileLayer({ declutter: true });
   }
 
-  public ApplyStyle(vectorLayer: VectorTileLayer<never>) {
+  public override ApplyStyle(vectorLayer: VectorTileLayer<never>) {
     vectorLayer.set('declutter', true);
     const tiles = new pmtiles.PMTiles(this.chart.url);
 

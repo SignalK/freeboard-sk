@@ -2,7 +2,7 @@ export * from './alarms';
 export * from './autopilot';
 export * from './buddies/buddy.service';
 export * from './course';
-export * from './gpx/gpx.module';
+export * from './gpx';
 export * from './map';
 export * from './settings';
 export * from './skresources';

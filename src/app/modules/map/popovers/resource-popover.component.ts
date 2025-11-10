@@ -9,7 +9,7 @@ import {
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { PipesModule } from 'src/app/lib/pipes';
+import { CoordsPipe } from 'src/app/lib/pipes';
 import { PopoverComponent } from './popover.component';
 
 import { AppFacade } from 'src/app/app.facade';
@@ -30,8 +30,9 @@ id: string - resource id
     MatButtonModule,
     MatTooltipModule,
     MatIconModule,
-    PipesModule,
-    PopoverComponent
+    CoordsPipe,
+    PopoverComponent,
+    CoordsPipe
   ],
   template: `
     <ap-popover
@@ -440,7 +441,6 @@ id: string - resource id
     MatButtonModule,
     MatTooltipModule,
     MatIconModule,
-    PipesModule,
     PopoverComponent
   ],
   template: `

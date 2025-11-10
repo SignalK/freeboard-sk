@@ -15,7 +15,6 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatInputModule } from '@angular/material/input';
 import { AppFacade } from 'src/app/app.facade';
 import { SKChart } from 'src/app/modules/skresources/resource-classes';
-import { PipesModule } from 'src/app/lib/pipes';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { parseString } from 'xml2js';
 import { ChartProvider } from 'src/app/types';
@@ -45,8 +44,7 @@ interface LayerNode {
     MatToolbarModule,
     MatDialogModule,
     MatProgressBarModule,
-    MatInputModule,
-    PipesModule
+    MatInputModule
   ],
   template: `
     <div class="_ap-wms">

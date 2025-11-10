@@ -36,19 +36,19 @@ export class ResourceSetLayerComponent extends FBFeatureLayerComponent {
   @Input() resourceSets: FBResourceSets = [];
 
   constructor(
-    protected mapComponent: MapComponent,
-    protected changeDetectorRef: ChangeDetectorRef
+    protected override mapComponent: MapComponent,
+    protected override changeDetectorRef: ChangeDetectorRef
   ) {
     super(mapComponent, changeDetectorRef);
   }
 
-  ngOnInit() {
+  override ngOnInit() {
     super.ngOnInit();
     this.labelPrefixes = ['rset'];
     this.parseResourceSets(this.resourceSets);
   }
 
-  ngOnChanges(changes: SimpleChanges) {
+  override ngOnChanges(changes: SimpleChanges) {
     super.ngOnChanges(changes);
     if (this.source && 'resourceSets' in changes) {
       this.source.clear();

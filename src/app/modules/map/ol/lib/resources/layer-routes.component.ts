@@ -29,19 +29,19 @@ export class FreeboardRouteLayerComponent extends FBFeatureLayerComponent {
   @Input() routes: FBRoutes = [];
 
   constructor(
-    protected mapComponent: MapComponent,
-    protected changeDetectorRef: ChangeDetectorRef
+    protected override mapComponent: MapComponent,
+    protected override changeDetectorRef: ChangeDetectorRef
   ) {
     super(mapComponent, changeDetectorRef);
   }
 
-  ngOnInit() {
+  override ngOnInit() {
     super.ngOnInit();
     this.labelPrefixes = ['route'];
     this.parseFBRoutes(this.routes);
   }
 
-  ngOnChanges(changes: SimpleChanges) {
+  override ngOnChanges(changes: SimpleChanges) {
     super.ngOnChanges(changes);
     if (this.source && ('routes' in changes || 'activeRoute' in changes)) {
       this.source.clear();

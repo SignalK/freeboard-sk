@@ -25,13 +25,13 @@ export class AISWindLayerComponent extends AISBaseLayerComponent {
   @Input() vectorApparent = false;
 
   constructor(
-    protected mapComponent: MapComponent,
-    protected changeDetectorRef: ChangeDetectorRef
+    protected override mapComponent: MapComponent,
+    protected override changeDetectorRef: ChangeDetectorRef
   ) {
     super(mapComponent, changeDetectorRef);
   }
 
-  ngOnChanges(changes: SimpleChanges): void {
+  override ngOnChanges(changes: SimpleChanges): void {
     super.ngOnChanges(changes);
     if ('vectorApparent' in changes) {
       this.onUpdateTargets(this.extractKeys(this.targets));

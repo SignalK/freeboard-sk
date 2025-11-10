@@ -23,22 +23,22 @@ export class AISTargetsTrackLayerComponent extends AISBaseLayerComponent {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   @Input() tracks: Map<string, any> = new Map();
   @Input() tracksMinZoom = 10;
-  @Input() mapZoom = 10;
+  @Input() override mapZoom = 10;
   @Input() showTracks = true;
 
   constructor(
-    protected mapComponent: MapComponent,
-    protected changeDetectorRef: ChangeDetectorRef
+    protected override mapComponent: MapComponent,
+    protected override changeDetectorRef: ChangeDetectorRef
   ) {
     super(mapComponent, changeDetectorRef);
   }
 
-  ngOnInit() {
+  override ngOnInit() {
     super.ngOnInit();
     this.reloadTracks();
   }
 
-  ngOnChanges(changes: SimpleChanges) {
+  override ngOnChanges(changes: SimpleChanges) {
     super.ngOnChanges(changes);
     if (this.layer) {
       const keys = Object.keys(changes);

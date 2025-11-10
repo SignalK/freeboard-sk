@@ -43,7 +43,7 @@ const FSK: AppInfoDef = {
   id: 'freeboard',
   name: 'Freeboard-SK',
   description: `Signal K Chart Plotter.`,
-  version: '2.19.1',
+  version: '2.19.2-beta.1',
   url: 'https://github.com/signalk/freeboard-sk',
   logo: './assets/img/app_logo.png'
 };
@@ -235,6 +235,12 @@ export class AppFacade extends InfoService {
 
     /** test for launch within iframe */
     this.instrumentPanelAvailable.update(() => this.isTopWindow());
+    if (!this.isTopWindow()) {
+      // listen for messages from parent
+      window.addEventListener('message', (event) => {
+        this.parseMessageFromParent(event);
+      });
+    }
 
     /** check for internet connection */
     this.testForInternet();
@@ -250,6 +256,30 @@ export class AppFacade extends InfoService {
       this.config.ui = this.uiConfig();
       this.saveConfig();
     });
+  }
+
+  /**
+   * Process message from parent window to respond to configuration
+   * requests
+   * @param data MessageEvent data from parent
+   */
+  parseMessageFromParent(event: MessageEvent<any>) {
+    // Do we trust the sender of this message?
+    if (!event.origin !== this.hostDef.url) {
+      // .includes('localhost')) {
+      this.debug('parseMessageFromParent() - untrusted origin!', event.origin);
+      return;
+    }
+    this.debug('parseMessageFromParent()', event.origin, event.data);
+    if (!('settings' in event.data)) {
+      this.debug('parseMessageFromParent() - invalid data!');
+      return;
+    }
+    const { autoNightMode } = event.data.settings;
+
+    if (typeof autoNightMode === 'boolean') {
+      this.config.display.nightMode = autoNightMode;
+    }
   }
 
   /** Parse, clean loaded config */
@@ -546,7 +576,7 @@ export class AppFacade extends InfoService {
   }
 
   /** overloaded saveConfig() */
-  saveConfig() {
+  override saveConfig() {
     super.saveConfig();
     if (this.isLoggedIn()) {
       this.signalk.appDataSet('/', this.config).subscribe(

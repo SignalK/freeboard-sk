@@ -27,6 +27,7 @@ import LayerGroup from 'ol/layer/Group';
 import { apply, applyStyle } from 'ol-mapbox-style';
 import { FBChart, FBCharts } from 'src/app/types';
 import { S57Service } from '../s57.service';
+import { SKChart } from 'src/app/modules/skresources';
 
 // ** Freeboard resource collection format **
 @Component({
@@ -142,13 +143,8 @@ export class FreeboardChartLayerComponent
   }
 
   // create a PMTile XYZ source TileLayer
-  initPMTilesXYZLayer(
-    url: string,
-    minZoom: number,
-    maxZoom: number,
-    zIndex: number
-  ): TileLayer<XYZ> {
-    const tiles = new pmtiles.PMTiles(url);
+  initPMTilesXYZLayer(chart: SKChart, zIndex: number): TileLayer<XYZ> {
+    const tiles = new pmtiles.PMTiles(chart.url);
 
     function loader(tile, url) {
       tile.setState(1); // LOADING
@@ -176,12 +172,13 @@ export class FreeboardChartLayerComponent
       source: new XYZ({
         tileLoadFunction: loader,
         tileSize: [512, 512],
-        url: 'pmtiles://' + url + '/{z}/{x}/{y}',
+        url: 'pmtiles://' + chart.url + '/{z}/{x}/{y}',
         wrapX: true,
-        maxZoom: maxZoom,
-        minZoom: minZoom
+        maxZoom: chart.maxZoom,
+        minZoom: chart.minZoom
       }),
-      zIndex: zIndex
+      zIndex: zIndex,
+      opacity: chart.defaultOpacity ?? 1
     });
   }
 
@@ -209,6 +206,7 @@ export class FreeboardChartLayerComponent
           layer.setZIndex(this.zIndex + parseInt(i));
           layer.setMinZoom(charts[i][1].minZoom);
           layer.setMaxZoom(charts[i][1].maxZoom);
+          layer.setOpacity(charts[i][1].defaultOpacity ?? 1);
         } else {
           // signal k charts
           const minZ =
@@ -222,6 +220,7 @@ export class FreeboardChartLayerComponent
               zIndex: this.zIndex + parseInt(i)
             });
             lg.set('id', charts[i][0]);
+            lg.setOpacity(charts[i][1].defaultOpacity ?? 1);
             apply(lg, `${charts[i][1].url}`);
             map.addLayer(lg);
             this.layers.set(charts[i][0], lg);
@@ -236,6 +235,7 @@ export class FreeboardChartLayerComponent
             layer = styleFactory.CreateLayer();
             styleFactory.ApplyStyle(layer as VectorTileLayer<never>);
             layer.setZIndex(this.zIndex + parseInt(i));
+            layer.setOpacity(charts[i][1].defaultOpacity ?? 1);
             if (charts[i][1].style) {
               applyStyle(layer as any, charts[i][1].style);
             }
@@ -303,9 +303,7 @@ export class FreeboardChartLayerComponent
               if (charts[i][1].url.indexOf('.pmtiles') !== -1) {
                 // pmtiles source
                 layer = this.initPMTilesXYZLayer(
-                  charts[i][1].url,
-                  charts[i][1].minZoom,
-                  charts[i][1].maxZoom,
+                  charts[i][1],
                   this.zIndex + parseInt(i)
                 );
               } else {
@@ -322,7 +320,8 @@ export class FreeboardChartLayerComponent
                 preload: 0,
                 zIndex: this.zIndex + parseInt(i),
                 minZoom: minZ,
-                maxZoom: maxZ
+                maxZoom: maxZ,
+                opacity: charts[i][1].defaultOpacity ?? 1
               });
             }
           }
@@ -336,6 +335,7 @@ export class FreeboardChartLayerComponent
       } else {
         // existing layer, set zIndex
         layer.setZIndex(this.zIndex + parseInt(i));
+        layer.setOpacity(charts[i][1].defaultOpacity ?? 1);
       }
     }
     if (map) {

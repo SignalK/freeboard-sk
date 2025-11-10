@@ -24,19 +24,19 @@ export class FreeboardRegionLayerComponent extends FBFeatureLayerComponent {
   @Input() regionStyles: { [key: string]: Style };
 
   constructor(
-    protected mapComponent: MapComponent,
-    protected changeDetectorRef: ChangeDetectorRef
+    protected override mapComponent: MapComponent,
+    protected override changeDetectorRef: ChangeDetectorRef
   ) {
     super(mapComponent, changeDetectorRef);
   }
 
-  ngOnInit() {
+  override ngOnInit() {
     super.ngOnInit();
     this.labelPrefixes = ['region'];
     this.parseRegions(this.regions);
   }
 
-  ngOnChanges(changes: SimpleChanges) {
+  override ngOnChanges(changes: SimpleChanges) {
     super.ngOnChanges(changes);
     if (this.source && 'regions' in changes) {
       this.source.clear();

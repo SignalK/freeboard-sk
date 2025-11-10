@@ -1,4 +1,4 @@
-export * from './common/dialogs.module';
+export * from './common-dialogs';
 export * from './errorlist-dialog';
 export * from './playback-dialog';
 export * from './geojson/geojson-dialog';

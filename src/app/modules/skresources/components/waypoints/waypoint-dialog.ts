@@ -23,7 +23,7 @@ import {
   MAT_DIALOG_DATA
 } from '@angular/material/dialog';
 import { AppFacade } from 'src/app/app.facade';
-import { PipesModule } from 'src/app/lib/pipes';
+import { CoordsPipe } from 'src/app/lib/pipes';
 import { SKWaypoint } from '../../resource-classes';
 import { merge } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -50,7 +50,7 @@ import { MatTooltip } from '@angular/material/tooltip';
     MatToolbarModule,
     MatCheckboxModule,
     MatDialogModule,
-    PipesModule,
+    CoordsPipe,
     ReactiveFormsModule,
     MatTooltip
   ],

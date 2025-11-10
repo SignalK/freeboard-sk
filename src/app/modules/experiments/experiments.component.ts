@@ -7,7 +7,6 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatMenuModule } from '@angular/material/menu';
-import { CommonDialogs } from 'src/app/lib/components/dialogs';
 
 /********* ExperimentsComponent ********/
 @Component({
@@ -16,8 +15,7 @@ import { CommonDialogs } from 'src/app/lib/components/dialogs';
     MatMenuModule,
     MatIconModule,
     MatButtonModule,
-    MatTooltipModule,
-    CommonDialogs
+    MatTooltipModule
   ],
   template: `
     <mat-menu #experimentsmenu="matMenu">

@@ -1,17 +1,46 @@
 import { Component, OnInit, Inject } from '@angular/core';
 import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
+import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { MatButtonModule } from '@angular/material/button';
+import { MatCardModule } from '@angular/material/card';
+import { MatCheckboxModule } from '@angular/material/checkbox';
+import { MatDialogModule } from '@angular/material/dialog';
+import { MatExpansionModule } from '@angular/material/expansion';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatIconModule } from '@angular/material/icon';
+import { MatInputModule } from '@angular/material/input';
+import { MatToolbarModule } from '@angular/material/toolbar';
+import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatDividerModule } from '@angular/material/divider';
+import { MatProgressBarModule } from '@angular/material/progress-bar';
 
 import { GPXSaveFacade } from './gpxsave-dialog.facade';
 import { AppFacade } from 'src/app/app.facade';
-import { SKResourceService } from '../../skresources';
+import { SKResourceService } from '../skresources';
 import { FBRoute, FBWaypoint } from 'src/app/types';
 
 //** GPXSave dialog **
 @Component({
   selector: 'gpxsave-dialog',
+  imports: [
+    MatToolbarModule,
+    MatProgressBarModule,
+    MatDialogModule,
+    MatIconModule,
+    MatButtonModule,
+    MatCardModule,
+    MatFormFieldModule,
+    MatInputModule,
+    MatDividerModule,
+    MatExpansionModule,
+    MatCheckboxModule,
+    MatTooltipModule,
+    FormsModule,
+    CommonModule
+  ],
   templateUrl: './gpxsave-dialog.html',
-  styleUrls: ['./gpxsave-dialog.css'],
-  standalone: false
+  styleUrls: ['./gpxsave-dialog.css']
 })
 export class GPXExportDialog implements OnInit {
   protected resData = {

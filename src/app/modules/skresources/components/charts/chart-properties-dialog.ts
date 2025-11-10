@@ -11,7 +11,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { AppFacade } from 'src/app/app.facade';
 import { SKChart } from 'src/app/modules/skresources/resource-classes';
-import { PipesModule } from 'src/app/lib/pipes';
+import { CoordsPipe } from 'src/app/lib/pipes';
 
 /********* ChartPropertiesDialog **********
 	data: <SKChart>
@@ -25,7 +25,7 @@ import { PipesModule } from 'src/app/lib/pipes';
     MatButtonModule,
     MatToolbarModule,
     MatDialogModule,
-    PipesModule
+    CoordsPipe
   ],
   template: `
     <div class="_ap-chartinfo">
@@ -44,28 +44,34 @@ import { PipesModule } from 'src/app/lib/pipes';
         <div style="display:flex;flex-direction: column;">
           <div style="display:flex;">
             <div class="key-label">Name:</div>
-            <div style="flex: 1 1 auto;">{{ data['name'] }}</div>
+            <div style="flex: 1 1 auto;">{{ data.name }}</div>
           </div>
           <div style="display:flex;">
             <div class="key-label">Description:</div>
-            <div style="flex: 1 1 auto;">{{ data['description'] }}</div>
+            <div style="flex: 1 1 auto;">{{ data.description }}</div>
           </div>
           <div style="display:flex;">
             <div class="key-label">Scale:</div>
-            <div style="flex: 1 1 auto;">{{ data['scale'] }}</div>
+            <div style="flex: 1 1 auto;">{{ data.scale }}</div>
           </div>
+          @if(data.defaultOpacity) {
+          <div style="display:flex;">
+            <div class="key-label">Opacity:</div>
+            <div style="flex: 1 1 auto;">{{ data.defaultOpacity }}</div>
+          </div>
+          }
           <div style="display:flex;">
             <div class="key-label">Zoom:</div>
             <div style="flex: 1 1 auto;">
               <div style="flex: 1 1 auto;">
                 <u><i>Min: </i></u>
-                {{ data['minZoom'] }},
+                {{ data.minZoom }},
                 <u><i>Max: </i></u>
-                {{ data['maxZoom'] }}
+                {{ data.maxZoom }}
               </div>
             </div>
           </div>
-          @if(data['bounds']) {
+          @if(data.bounds) {
           <div style="display:flex;">
             <div class="key-label">Bounds:</div>
             <div
@@ -75,26 +81,26 @@ import { PipesModule } from 'src/app/lib/pipes';
               <div style="text-align:right;">
                 <span
                   style="flex: 1 1 auto;"
-                  [innerText]="data['bounds'][3] | coords : 'HDd' : true"
+                  [innerText]="data.bounds[3] | coords : 'HDd' : true"
                 >
                 </span
                 ><br />
                 <span
                   style="flex: 1 1 auto;"
-                  [innerText]="data['bounds'][2] | coords : 'HDd'"
+                  [innerText]="data.bounds[2] | coords : 'HDd'"
                 >
                 </span>
               </div>
               <div>
                 <span
                   style="flex: 1 1 auto;"
-                  [innerText]="data['bounds'][1] | coords : 'HDd' : true"
+                  [innerText]="data.bounds[1] | coords : 'HDd' : true"
                 >
                 </span
                 ><br />
                 <span
                   style="flex: 1 1 auto;"
-                  [innerText]="data['bounds'][0] | coords : 'HDd'"
+                  [innerText]="data.bounds[0] | coords : 'HDd'"
                 >
                 </span>
               </div>
@@ -103,24 +109,34 @@ import { PipesModule } from 'src/app/lib/pipes';
           }
           <div style="display:flex;">
             <div class="key-label">Format:</div>
-            <div style="flex: 1 1 auto;">{{ data['format'] }}</div>
+            <div style="flex: 1 1 auto;">{{ data.format }}</div>
           </div>
           <div style="display:flex;">
             <div class="key-label">Type:</div>
             <div style="flex: 1 1 auto;">
-              {{ data['type'] }}
+              {{ data.type }}
             </div>
           </div>
+          @if(data.layers.length !== 0) {
           <div style="display:flex;">
             <div class="key-label">Layers:</div>
-            <div style="flex: 1 1 auto;">{{ data['layers'] }}</div>
+            <div style="flex: 1 1 auto;">{{ data.layers }}</div>
           </div>
+          }
           <div style="display:flex;">
             <div class="key-label">URL:</div>
             <div style="flex: 1 1 auto;overflow-x: auto;">
-              {{ data['url'] }}
+              {{ data.url }}
             </div>
           </div>
+          @if(data.style) {
+          <div style="display:flex;">
+            <div class="key-label">Style:</div>
+            <div style="flex: 1 1 auto;overflow-x: auto;">
+              {{ data.style }}
+            </div>
+          </div>
+          }
         </div>
       </mat-dialog-content>
     </div>

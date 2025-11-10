@@ -60,13 +60,13 @@ export class WaypointListComponent extends ResourceListBase {
   @Output() notes: EventEmitter<{ id: string; readOnly: boolean }> =
     new EventEmitter();
 
-  protected fullList: FBWaypoints = [];
-  protected filteredList = signal<FBWaypoints>([]);
+  protected override fullList: FBWaypoints = [];
+  protected override filteredList = signal<FBWaypoints>([]);
   protected disableRefresh = false;
 
   constructor(
     public app: AppFacade,
-    protected skres: SKResourceService,
+    protected override skres: SKResourceService,
     private worker: SKWorkerService,
     protected dialog: MatDialog,
     protected skgroups: SKResourceGroupService
@@ -134,7 +134,7 @@ export class WaypointListComponent extends ResourceListBase {
    * @description Toggle selections on / off
    * @param checked Determines if all checkboxes are checked or unchecked
    */
-  protected toggleAll(checked: boolean) {
+  protected override toggleAll(checked: boolean) {
     super.toggleAll(checked);
     if (checked) {
       this.skres.waypointAddFromServer();

@@ -60,8 +60,8 @@ export class ChartListComponent extends ResourceListBase {
 
   selectedCharts = input<string[]>();
 
-  protected fullList: FBCharts = [];
-  protected filteredList = signal<FBCharts>([]);
+  protected override fullList: FBCharts = [];
+  protected override filteredList = signal<FBCharts>([]);
 
   displayChartLayers = false;
 
@@ -69,7 +69,7 @@ export class ChartListComponent extends ResourceListBase {
     protected app: AppFacade,
     private dialog: MatDialog,
     private signalk: SignalKClient,
-    protected skres: SKResourceService,
+    protected override skres: SKResourceService,
     private worker: SKWorkerService
   ) {
     super('charts', skres);
@@ -150,7 +150,7 @@ export class ChartListComponent extends ResourceListBase {
    * @description Toggle selections on / off
    * @param checked Determines if all checkboxes are checked or unchecked
    */
-  protected toggleAll(checked: boolean) {
+  protected override toggleAll(checked: boolean) {
     super.toggleAll(checked);
     if (checked) {
       this.skres.chartAddFromServer();

@@ -53,9 +53,9 @@ export class AISListComponent extends ResourceListBase {
   aisAvailable = [];
   onlyIMO = false;
   filterList = [];
-  filterText = '';
-  someSel = false;
-  allSel = false;
+  override filterText = '';
+  override someSel = false;
+  override allSel = false;
 
   shipTypes = [
     {
@@ -114,7 +114,7 @@ export class AISListComponent extends ResourceListBase {
     }
   ];
 
-  protected fullList: FBVessels = [];
+  protected override fullList: FBVessels = [];
 
   /**
    * @description Return icon for AIS vessel type id
@@ -125,7 +125,7 @@ export class AISListComponent extends ResourceListBase {
     return getAisIcon(id).svgIcon;
   }
 
-  constructor(protected app: AppFacade, protected skres: SKResourceService) {
+  constructor(protected app: AppFacade, protected override skres: SKResourceService) {
     super('aisTargets', skres);
   }
 
@@ -167,7 +167,7 @@ export class AISListComponent extends ResourceListBase {
   /**
    * @description Overrides base-class method to include shipType filters
    */
-  protected alignSelections() {
+  protected override alignSelections() {
     super.alignSelections();
     this.shipTypes.forEach((i) => {
       i.selected = this.app.config.selections.aisTargetTypes.includes(i.id);
@@ -211,7 +211,7 @@ export class AISListComponent extends ResourceListBase {
    * @description Toggle selections on / off
    * @param checked Determines if all checkboxes are checked or unchecked
    */
-  protected toggleAll(checked: boolean) {
+  protected override toggleAll(checked: boolean) {
     super.toggleAll(checked);
   }
 

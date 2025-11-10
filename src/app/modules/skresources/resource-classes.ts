@@ -131,6 +131,7 @@ export class SKChart {
   url: string;
   source: string;
   style: string;
+  defaultOpacity: number;
 
   constructor(chart?: ChartResource) {
     this.identifier = chart?.identifier ? chart.identifier : undefined;
@@ -151,6 +152,7 @@ export class SKChart {
         : this.scale;
     this.style = chart?.style ?? undefined;
     this.source = chart?.$source ?? undefined;
+    this.defaultOpacity = chart?.defaultOpacity ?? 1;
   }
 }
 

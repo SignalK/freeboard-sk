@@ -12,7 +12,7 @@ import {
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { PipesModule } from 'src/app/lib/pipes';
+import { CoordsPipe } from 'src/app/lib/pipes';
 import { PopoverComponent } from './popover.component';
 import { CompassComponent } from './compass.component';
 
@@ -37,7 +37,7 @@ isSelf: boolean - true if vessel 'self'
     MatButtonModule,
     MatTooltipModule,
     MatIconModule,
-    PipesModule,
+    CoordsPipe,
     PopoverComponent,
     CompassComponent
   ],

@@ -8,7 +8,7 @@ import {
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { PipesModule } from 'src/app/lib/pipes';
+import { CoordsPipe } from 'src/app/lib/pipes';
 import { PopoverComponent } from './popover.component';
 import { NorthUpCompassComponent } from './compass.component';
 import { SKMeteo } from 'src/app/modules';
@@ -25,7 +25,7 @@ import { Convert } from 'src/app/lib/convert';
     MatButtonModule,
     MatTooltipModule,
     MatIconModule,
-    PipesModule,
+    CoordsPipe,
     PopoverComponent,
     NorthUpCompassComponent
   ],

@@ -66,13 +66,13 @@ export class RouteListComponent extends ResourceListBase {
     new EventEmitter();
   @Output() closed: EventEmitter<void> = new EventEmitter();
 
-  protected fullList: FBRoutes = [];
-  protected filteredList = signal<FBRoutes>([]);
+  protected override fullList: FBRoutes = [];
+  protected override filteredList = signal<FBRoutes>([]);
   disableRefresh = false;
 
   constructor(
     public app: AppFacade,
-    protected skres: SKResourceService,
+    protected override skres: SKResourceService,
     private worker: SKWorkerService,
     protected dialog: MatDialog,
     protected skgroups: SKResourceGroupService
@@ -133,7 +133,7 @@ export class RouteListComponent extends ResourceListBase {
    * @description Toggle selections on / off
    * @param checked Determines if all checkboxes are checked or unchecked
    */
-  protected toggleAll(checked: boolean) {
+  protected override toggleAll(checked: boolean) {
     super.toggleAll(checked);
     if (checked) {
       this.skres.routeAddFromServer();

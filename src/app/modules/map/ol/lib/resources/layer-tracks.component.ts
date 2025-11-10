@@ -26,19 +26,19 @@ export class TrackLayerComponent extends FBFeatureLayerComponent {
   @Input() trackStyles: { [key: string]: Style };
 
   constructor(
-    protected mapComponent: MapComponent,
-    protected changeDetectorRef: ChangeDetectorRef
+    protected override mapComponent: MapComponent,
+    protected override changeDetectorRef: ChangeDetectorRef
   ) {
     super(mapComponent, changeDetectorRef);
   }
 
-  ngOnInit() {
+  override ngOnInit() {
     super.ngOnInit();
     this.labelPrefixes = ['track'];
     this.parseTracks(this.tracks);
   }
 
-  ngOnChanges(changes: SimpleChanges) {
+  override ngOnChanges(changes: SimpleChanges) {
     super.ngOnChanges(changes);
     if (this.source && 'tracks' in changes) {
       this.source.clear();

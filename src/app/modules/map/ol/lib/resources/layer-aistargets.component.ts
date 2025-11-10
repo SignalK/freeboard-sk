@@ -20,14 +20,14 @@ import { MapImageRegistry } from '../map-image-registry.service';
 })
 export class AISTargetsLayerComponent extends AISBaseLayerComponent {
   constructor(
-    protected mapComponent: MapComponent,
-    protected changeDetectorRef: ChangeDetectorRef,
+    protected override mapComponent: MapComponent,
+    protected override changeDetectorRef: ChangeDetectorRef,
     protected mapImages: MapImageRegistry
   ) {
     super(mapComponent, changeDetectorRef);
   }
 
-  ngOnInit() {
+  override ngOnInit() {
     super.ngOnInit();
     this.labelPrefixes = [this.targetContext];
   }

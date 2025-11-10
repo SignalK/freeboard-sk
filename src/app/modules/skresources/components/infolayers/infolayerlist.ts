@@ -60,15 +60,15 @@ export class InfoLayerListComponent extends ResourceListBase {
   @Output() properties: EventEmitter<string> = new EventEmitter();
 
   filterList = [];
-  filterText = '';
-  someSel = false;
-  allSel = false;
+  override filterText = '';
+  override someSel = false;
+  override allSel = false;
 
-  protected fullList: FBInfoLayers = [];
+  protected override fullList: FBInfoLayers = [];
 
   constructor(
     protected app: AppFacade,
-    protected skres: SKResourceService,
+    protected override skres: SKResourceService,
     protected skresOther: FBCustomResourceService,
     private dialog: MatDialog,
     private signalk: SignalKClient
@@ -112,7 +112,7 @@ export class InfoLayerListComponent extends ResourceListBase {
    * @description Toggle selections on / off
    * @param checked Determines if all checkboxes are checked or unchecked
    */
-  protected toggleAll(checked: boolean) {
+  protected override toggleAll(checked: boolean) {
     super.toggleAll(checked);
     this.skresOther.refreshInfoLayers();
   }

@@ -26,20 +26,20 @@ export class FreeboardNoteLayerComponent extends FBFeatureLayerComponent {
   @Input() notes: FBNotes = [];
 
   constructor(
-    protected mapComponent: MapComponent,
-    protected changeDetectorRef: ChangeDetectorRef,
+    protected override mapComponent: MapComponent,
+    protected override changeDetectorRef: ChangeDetectorRef,
     protected mapImages: MapImageRegistry
   ) {
     super(mapComponent, changeDetectorRef);
   }
 
-  ngOnInit() {
+  override ngOnInit() {
     super.ngOnInit();
     this.labelPrefixes = ['note'];
     this.parseFBNotes(this.notes);
   }
 
-  ngOnChanges(changes: SimpleChanges) {
+  override ngOnChanges(changes: SimpleChanges) {
     super.ngOnChanges(changes);
     if (this.source && 'notes' in changes) {
       this.source.clear();

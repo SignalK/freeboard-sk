@@ -66,6 +66,7 @@ export interface ChartResource {
   scale?: number;
   url?: string;
   layers?: string[];
+  defaultOpacity?: number;
   $source?: string;
   style?: string;
   //v1
@@ -86,4 +87,5 @@ export interface ChartProvider {
   minzoom?: number;
   maxzoom?: number;
   format?: string;
+  defaultOpacity?: number;
 }

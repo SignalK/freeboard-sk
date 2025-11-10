@@ -10,8 +10,6 @@ import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { AppFacade } from 'src/app/app.facade';
-import { SKChart } from 'src/app/modules/skresources/resource-classes';
-import { PipesModule } from 'src/app/lib/pipes';
 import { SKInfoLayer } from '../../custom-resource-classes';
 
 /********* InfoLayerPropertiesDialog **********
@@ -25,8 +23,7 @@ import { SKInfoLayer } from '../../custom-resource-classes';
     MatCardModule,
     MatButtonModule,
     MatToolbarModule,
-    MatDialogModule,
-    PipesModule
+    MatDialogModule
   ],
   template: `
     <div class="_ap-infolayer">

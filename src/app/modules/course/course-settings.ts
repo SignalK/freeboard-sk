@@ -17,7 +17,6 @@ import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatCardModule } from '@angular/material/card';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatDatepickerModule } from '@angular/material/datepicker';
-import { CommonDialogs } from 'src/app/lib/components/dialogs';
 import { AppFacade } from 'src/app/app.facade';
 import { SignalKClient } from 'signalk-client-angular';
 import { Convert } from 'src/app/lib/convert';
@@ -44,8 +43,7 @@ import { Subscription } from 'rxjs';
     MatCheckboxModule,
     MatTooltipModule,
     MatSlideToggleModule,
-    MatDatepickerModule,
-    CommonDialogs
+    MatDatepickerModule
   ],
   template: `
     <div class="_ap-course">

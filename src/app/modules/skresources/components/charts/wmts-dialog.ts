@@ -14,7 +14,6 @@ import { MatInputModule } from '@angular/material/input';
 import { MatListModule, MatSelectionListChange } from '@angular/material/list';
 import { AppFacade } from 'src/app/app.facade';
 import { SKChart } from 'src/app/modules/skresources/resource-classes';
-import { PipesModule } from 'src/app/lib/pipes';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { ChartProvider } from 'src/app/types';
 import { SKInfoLayer } from '../../custom-resource-classes';
@@ -34,8 +33,7 @@ import { WMTSCapabilities } from 'ol/format';
     MatDialogModule,
     MatProgressBarModule,
     MatInputModule,
-    MatListModule,
-    PipesModule
+    MatListModule
   ],
   template: `
     <div class="_ap-wmts">

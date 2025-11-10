@@ -30,19 +30,19 @@ export class RacingStartLineLayerComponent
   @Input() racecourseStyles: { [key: string]: Style };
 
   constructor(
-    protected changeDetectorRef: ChangeDetectorRef,
-    protected mapComponent: MapComponent
+    protected override changeDetectorRef: ChangeDetectorRef,
+    protected override mapComponent: MapComponent
   ) {
     super(mapComponent, changeDetectorRef);
     this.labelPrefixes = ['race-startline'];
   }
 
-  ngOnInit() {
+  override ngOnInit() {
     super.ngOnInit();
     this.parseCourse();
   }
 
-  ngOnChanges(changes: SimpleChanges) {
+  override ngOnChanges(changes: SimpleChanges) {
     super.ngOnChanges(changes);
     if (['startLine'].some((k) => k in changes)) {
       this.parseCourse();

@@ -22,7 +22,7 @@ import { SignalKClient } from 'signalk-client-angular';
 import { Convert } from 'src/app/lib/convert';
 import { WeatherData, WeatherDataComponent } from './weather-data.component';
 import { Position } from 'src/app/types';
-import { PipesModule } from 'src/app/lib/pipes';
+import { CoordsPipe } from 'src/app/lib/pipes';
 
 /********* WeatherForecastModal **********
 	data: {
@@ -44,7 +44,7 @@ import { PipesModule } from 'src/app/lib/pipes';
     MatStepperModule,
     MatProgressBar,
     WeatherDataComponent,
-    PipesModule
+    CoordsPipe
   ],
   template: `
     <div class="_weather-forecast">

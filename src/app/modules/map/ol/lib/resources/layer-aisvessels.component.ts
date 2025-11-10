@@ -27,19 +27,19 @@ export class AISVesselsLayerComponent extends AISBaseLayerComponent {
   @Input() cogLineLength = 0;
 
   constructor(
-    protected mapComponent: MapComponent,
-    protected changeDetectorRef: ChangeDetectorRef,
+    protected override mapComponent: MapComponent,
+    protected override changeDetectorRef: ChangeDetectorRef,
     protected mapImages: MapImageRegistry
   ) {
     super(mapComponent, changeDetectorRef);
   }
 
-  ngOnInit() {
+  override ngOnInit() {
     super.ngOnInit();
     this.labelPrefixes = ['ais-'];
   }
 
-  ngOnChanges(changes: SimpleChanges) {
+  override ngOnChanges(changes: SimpleChanges) {
     super.ngOnChanges(changes);
     if ('cogLineLength' in changes) {
       this.cogLineLength = changes['cogLineLength'].currentValue ?? 0;

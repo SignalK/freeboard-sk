@@ -45,13 +45,12 @@ export class TrackListComponent extends ResourceListBase {
   @Output() closed: EventEmitter<void> = new EventEmitter();
   @Output() center: EventEmitter<Position> = new EventEmitter();
 
-  protected fullList: FBTracks = [];
-  protected filteredList = signal<FBTracks>([]);
+  protected override fullList: FBTracks = [];
+  protected override filteredList = signal<FBTracks>([]);
 
   constructor(
     protected app: AppFacade,
-    private signalk: SignalKClient,
-    protected skres: SKResourceService,
+    protected override skres: SKResourceService,
     private worker: SKWorkerService
   ) {
     super('tracks', skres);
@@ -104,7 +103,7 @@ export class TrackListComponent extends ResourceListBase {
    * @description Toggle selections on / off
    * @param checked Determines if all checkboxes are checked or unchecked
    */
-  protected toggleAll(checked: boolean) {
+  protected override toggleAll(checked: boolean) {
     super.toggleAll(checked);
     if (checked) {
       this.skres.trackAddFromServer();

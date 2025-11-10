@@ -14,7 +14,6 @@ import { MatInputModule } from '@angular/material/input';
 import { AppFacade } from 'src/app/app.facade';
 import { SKChart } from 'src/app/modules/skresources/resource-classes';
 import { ChartProvider } from 'src/app/types';
-import { PipesModule } from 'src/app/lib/pipes';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 
 interface MapboxStyle {
@@ -56,8 +55,7 @@ interface TileJson {
     MatToolbarModule,
     MatDialogModule,
     MatProgressBarModule,
-    MatInputModule,
-    PipesModule
+    MatInputModule
   ],
   template: `
     <div class="_ap-mapbox">
