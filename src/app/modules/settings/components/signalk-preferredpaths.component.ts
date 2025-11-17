@@ -23,27 +23,27 @@ import { AppFacade } from 'src/app/app.facade';
     <fieldset>
       <legend style="font-size: 10pt;">{{ title }}</legend>
       <div>
-        @for(item of pathChoicesArray; track item[0]) {
-        <div class="sk-details">
-          <div class="title">
-            <div>{{ item[1].name }}</div>
-          </div>
-          <div>
-            @for(path of item[1].available; track path) {
-            <div style="margin: 5px 0 5px 0;">
-              <mat-radio-button
-                #pathopt
-                [name]="item[0]"
-                [value]="path"
-                [checked]="path === item[1].current"
-                (change)="item[1].current = pathopt.value; save(true)"
-              >
-                {{ path.split('.').slice(-1) }}
-              </mat-radio-button>
+        @for (item of pathChoicesArray; track item[0]) {
+          <div class="sk-details">
+            <div class="title">
+              <div>{{ item[1].name }}</div>
             </div>
-            }
+            <div>
+              @for (path of item[1].available; track path) {
+                <div style="margin: 5px 0 5px 0;">
+                  <mat-radio-button
+                    #pathopt
+                    [name]="item[0]"
+                    [value]="path"
+                    [checked]="path === item[1].current"
+                    (change)="item[1].current = pathopt.value; save(true)"
+                  >
+                    {{ path.split('.').slice(-1) }}
+                  </mat-radio-button>
+                </div>
+              }
+            </div>
           </div>
-        </div>
         }
       </div>
     </fieldset>

@@ -12,7 +12,10 @@ const BUDDIES_URI = '/resources/buddies';
 // ** Signal K Buddies operations
 @Injectable({ providedIn: 'root' })
 export class Buddies {
-  constructor(public signalk: SignalKClient, public app: AppFacade) {}
+  constructor(
+    public signalk: SignalKClient,
+    public app: AppFacade
+  ) {}
 
   list() {
     return this.signalk.api.get(this.app.skApiVersion, `${BUDDIES_URI}`);

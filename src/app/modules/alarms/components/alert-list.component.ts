@@ -113,72 +113,79 @@ import { NotificationManager } from '../notification-manager';
         <div class="content">
           <div class="alert-list-container">
             <div class="alert-list">
-              @for(item of alerts(); track item[0]) {
-              <div class="alert-box">
-                <div
-                  style="width:40px;"
-                  (click)="notiMgr.showAlertInfo(item[1].path)"
-                >
-                  <mat-icon
-                    [class]="item[1].icon.class"
-                    [svgIcon]="item[1].icon.svgIcon"
-                    >{{ item[1].icon.name }}</mat-icon
-                  >
-                </div>
-                <div
-                  class="alert-text"
-                  (click)="notiMgr.showAlertInfo(item[1].path)"
-                  [ngClass]="{
-                    'blink-text':
-                      item[1].canAcknowledge && !item[1].acknowledged,
-                    'red-text': ['emergency', 'alarm'].includes(
-                      item[1].priority
-                    ),
-                    'amber-text': item[1].priority === 'alert'
-                  }"
-                >
-                  {{ item[1].message }}
-                </div>
-                <div style="width:90px;">
-                  @if(item[1].sound) {
-                  <button
-                    mat-icon-button
-                    [matTooltip]="item[1].silenced ? 'Silenced' : 'Silence'"
-                    matTooltipPosition="below"
-                    [disabled]="item[1].acknowledged || item[1].silenced"
-                    (click)="muteAlert(item[1].path)"
+              @for (item of alerts(); track item[0]) {
+                <div class="alert-box">
+                  <div
+                    style="width:40px;"
+                    (click)="notiMgr.showAlertInfo(item[1].path)"
                   >
                     <mat-icon
-                      [class]="item[1].acknowledged ? '' : 'ob'"
-                      [svgIcon]="
-                        item[1].silenced ? 'sound-off-fill' : 'sound-high-fill'
-                      "
-                    ></mat-icon>
-                  </button>
-                  &nbsp; } @if(item[1].canAcknowledge) {
-                  @if(!item[1].acknowledged) {
-                  <button
-                    mat-icon-button
-                    matTooltip="Acknowledge"
-                    matTooltipPosition="below"
-                    [disabled]="item[1].acknowledged"
-                    (click)="ackAlert(item[1].path)"
+                      [class]="item[1].icon.class"
+                      [svgIcon]="item[1].icon.svgIcon"
+                      >{{ item[1].icon.name }}</mat-icon
+                    >
+                  </div>
+                  <div
+                    class="alert-text"
+                    (click)="notiMgr.showAlertInfo(item[1].path)"
+                    [ngClass]="{
+                      'blink-text':
+                        item[1].canAcknowledge && !item[1].acknowledged,
+                      'red-text': ['emergency', 'alarm'].includes(
+                        item[1].priority
+                      ),
+                      'amber-text': item[1].priority === 'alert'
+                    }"
                   >
-                    <mat-icon>check</mat-icon>
-                  </button>
-                  } @else { @if(item[1].canCancel) {
-                  <button
-                    mat-icon-button
-                    matTooltip="Clear / Cancel"
-                    matTooltipPosition="below"
-                    [disabled]="!item[1].acknowledged"
-                    (click)="clearAlert(item[1].path)"
-                  >
-                    <mat-icon>close</mat-icon>
-                  </button>
-                  } } }
+                    {{ item[1].message }}
+                  </div>
+                  <div style="width:90px;">
+                    @if (item[1].sound) {
+                      <button
+                        mat-icon-button
+                        [matTooltip]="item[1].silenced ? 'Silenced' : 'Silence'"
+                        matTooltipPosition="below"
+                        [disabled]="item[1].acknowledged || item[1].silenced"
+                        (click)="muteAlert(item[1].path)"
+                      >
+                        <mat-icon
+                          [class]="item[1].acknowledged ? '' : 'ob'"
+                          [svgIcon]="
+                            item[1].silenced
+                              ? 'sound-off-fill'
+                              : 'sound-high-fill'
+                          "
+                        ></mat-icon>
+                      </button>
+                      &nbsp;
+                    }
+                    @if (item[1].canAcknowledge) {
+                      @if (!item[1].acknowledged) {
+                        <button
+                          mat-icon-button
+                          matTooltip="Acknowledge"
+                          matTooltipPosition="below"
+                          [disabled]="item[1].acknowledged"
+                          (click)="ackAlert(item[1].path)"
+                        >
+                          <mat-icon>check</mat-icon>
+                        </button>
+                      } @else {
+                        @if (item[1].canCancel) {
+                          <button
+                            mat-icon-button
+                            matTooltip="Clear / Cancel"
+                            matTooltipPosition="below"
+                            [disabled]="!item[1].acknowledged"
+                            (click)="clearAlert(item[1].path)"
+                          >
+                            <mat-icon>close</mat-icon>
+                          </button>
+                        }
+                      }
+                    }
+                  </div>
                 </div>
-              </div>
               }
             </div>
           </div>

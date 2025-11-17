@@ -12,20 +12,22 @@ import { AutopilotButtonComponent } from './autopilot-button.component';
   imports: [POBButtonComponent, WptButtonComponent, AutopilotButtonComponent],
   template: `
     <div class="mfb-container">
-      @if(action() === 'wpt') {
-      <wpt-button
-        [position]="app.data.vessels.self.position"
-        [active]="app.data.vessels.showSelf"
-      ></wpt-button>
-      } @if(action() === 'pob') {
-      <pob-button></pob-button>
-      } @if(action() === 'autopilot') {
-      <autopilot-button
-        [active]="
-          app.featureFlags().autopilotApi &&
-          app.data.vessels.self.autopilot.default
-        "
-      ></autopilot-button>
+      @if (action() === 'wpt') {
+        <wpt-button
+          [position]="app.data.vessels.self.position"
+          [active]="app.data.vessels.showSelf"
+        ></wpt-button>
+      }
+      @if (action() === 'pob') {
+        <pob-button></pob-button>
+      }
+      @if (action() === 'autopilot') {
+        <autopilot-button
+          [active]="
+            app.featureFlags().autopilotApi &&
+            app.data.vessels.self.autopilot.default
+          "
+        ></autopilot-button>
       }
     </div>
   `,

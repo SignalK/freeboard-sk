@@ -600,7 +600,7 @@ function parseStreamMessage(data) {
             break;
           case 'meteo': // weather station
             if (targetFilter?.signalk.meteo) {
-              processMeteo(data.context, v), processNotifications(v);
+              (processMeteo(data.context, v), processNotifications(v));
             }
             filterContext(
               data.context,
@@ -615,7 +615,7 @@ function parseStreamMessage(data) {
               if (!vessels.self.id) {
                 vessels.self.id = data.context;
               }
-              processVessel(vessels.self, v, true), processNotifications(v);
+              (processVessel(vessels.self, v, true), processNotifications(v));
             } else {
               // other vessels
               if (targetFilter?.signalk.vessels) {

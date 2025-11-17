@@ -55,8 +55,8 @@ import { MatCheckbox } from '@angular/material/checkbox';
                   [readonly]="readOnly"
                   [(ngModel)]="name"
                 />
-                @if(inpname.invalid && (inpname.dirty || inpname.touched)) {
-                <mat-error> Please enter a name.</mat-error>
+                @if (inpname.invalid && (inpname.dirty || inpname.touched)) {
+                  <mat-error> Please enter a name.</mat-error>
                 }
               </mat-form-field>
             </div>
@@ -85,14 +85,14 @@ import { MatCheckbox } from '@angular/material/checkbox';
       </mat-dialog-content>
       <mat-dialog-actions>
         <div style="text-align:center;width:100%;">
-          @if(!readOnly) {
-          <button
-            mat-raised-button
-            [disabled]="inpname.invalid || readOnly"
-            (click)="handleClose(true)"
-          >
-            SAVE
-          </button>
+          @if (!readOnly) {
+            <button
+              mat-raised-button
+              [disabled]="inpname.invalid || readOnly"
+              (click)="handleClose(true)"
+            >
+              SAVE
+            </button>
           }
           <button mat-raised-button (click)="handleClose(false)">CANCEL</button>
         </div>

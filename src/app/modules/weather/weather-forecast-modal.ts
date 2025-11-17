@@ -66,45 +66,47 @@ import { CoordsPipe } from 'src/app/lib/pipes';
           </button>
         </span>
       </mat-toolbar>
-      @if(isFetching) {
-      <mat-progress-bar mode="query"></mat-progress-bar>
-      } @else { @if(!forecasts || forecasts.length === 0) {
-      <div style="text-align:center">{{ errorText }}</div>
+      @if (isFetching) {
+        <mat-progress-bar mode="query"></mat-progress-bar>
       } @else {
-      <div style="display:flex;flex-wrap: nowrap;">
-        <div style="flex: 1;"></div>
-        <div style="width: 350px;text-align:center;">
-          <span style="font-size: small;">{{ data.subTitle }}</span>
-          <div
-            style="font-size: small;text-align:left;display:flex;flex-wrap: wrap;"
-          >
-            <div style="flex: 1;">
-              <span style="font-weight:bold;">Lat:</span>&nbsp;
-              <span
-                [innerText]="
-                  this.data.position[1]
-                    | coords : app.config.units.positionFormat : true
-                "
+        @if (!forecasts || forecasts.length === 0) {
+          <div style="text-align:center">{{ errorText }}</div>
+        } @else {
+          <div style="display:flex;flex-wrap: nowrap;">
+            <div style="flex: 1;"></div>
+            <div style="width: 350px;text-align:center;">
+              <span style="font-size: small;">{{ data.subTitle }}</span>
+              <div
+                style="font-size: small;text-align:left;display:flex;flex-wrap: wrap;"
               >
-              </span>
-              &nbsp;
+                <div style="flex: 1;">
+                  <span style="font-weight:bold;">Lat:</span>&nbsp;
+                  <span
+                    [innerText]="
+                      this.data.position[1]
+                        | coords: app.config.units.positionFormat : true
+                    "
+                  >
+                  </span>
+                  &nbsp;
+                </div>
+                <div style="flex: 1;">
+                  <span style="font-weight:bold;">Lon:</span>&nbsp;
+                  <span
+                    [innerText]="
+                      this.data.position[0]
+                        | coords: app.config.units.positionFormat : false
+                    "
+                  >
+                  </span>
+                </div>
+              </div>
             </div>
-            <div style="flex: 1;">
-              <span style="font-weight:bold;">Lon:</span>&nbsp;
-              <span
-                [innerText]="
-                  this.data.position[0]
-                    | coords : app.config.units.positionFormat : false
-                "
-              >
-              </span>
-            </div>
+            <div style="flex: 1;"></div>
           </div>
-        </div>
-        <div style="flex: 1;"></div>
-      </div>
-      <weather-data [data]="forecasts.slice(0, 18)"></weather-data>
-      } }
+          <weather-data [data]="forecasts.slice(0, 18)"></weather-data>
+        }
+      }
     </div>
   `,
   styles: [

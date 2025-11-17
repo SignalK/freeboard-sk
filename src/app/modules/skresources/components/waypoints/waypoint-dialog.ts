@@ -79,8 +79,8 @@ import { MatTooltip } from '@angular/material/tooltip';
                   [formControl]="inpName"
                   (blur)="updateErrorMessage()"
                 />
-                @if(inpName.invalid && (inpName.dirty || inpName.touched)) {
-                <mat-error>{{ errorMessage() }}</mat-error>
+                @if (inpName.invalid && (inpName.dirty || inpName.touched)) {
+                  <mat-error>{{ errorMessage() }}</mat-error>
                 }
               </mat-form-field>
             </div>
@@ -106,108 +106,111 @@ import { MatTooltip } from '@angular/material/tooltip';
                   [(value)]="wptType"
                   (selectionChange)="handleWptTypeChange($event)"
                 >
-                  @for(wt of waypointTypes; track wt) {
-                  <mat-optgroup [label]="wt.group">
-                    @for(i of wt.icons; track i) {
-                    <mat-option [value]="i.type">
-                      <mat-icon
-                        [class]="i.icon.class"
-                        [svgIcon]="i.icon.svgIcon"
-                        >{{ i.icon.name }}</mat-icon
-                      >
-                      {{ i.name }}
-                    </mat-option>
-                    }
-                  </mat-optgroup>
+                  @for (wt of waypointTypes; track wt) {
+                    <mat-optgroup [label]="wt.group">
+                      @for (i of wt.icons; track i) {
+                        <mat-option [value]="i.type">
+                          <mat-icon
+                            [class]="i.icon.class"
+                            [svgIcon]="i.icon.svgIcon"
+                            >{{ i.icon.name }}</mat-icon
+                          >
+                          {{ i.name }}
+                        </mat-option>
+                      }
+                    </mat-optgroup>
                   }
                 </mat-select>
               </mat-form-field>
             </div>
 
             <!-- select icon -->
-            @if(selectableIcons.includes(wptType)) {
-            <div style="padding-bottom: 15px;">
-              <button mat-stroked-button (click)="handleChangeIcon()">
-                <mat-icon [class]="wptIcon.class" [svgIcon]="wptIcon.svgIcon">{{
-                  wptIcon.name
-                }}</mat-icon>
-                Change icon
-              </button>
-            </div>
-            } @if(iconsForSelection().length!== 0) {
-            <div style="display:flex;flex-wrap:wrap;">
-              @for(i of iconsForSelection(); track i) {
-              <div
-                style="background-color:silver;padding:2px;"
-                [ngClass]="{
-                  'selected-icon': i.svgIcon === this.wptIcon.svgIcon,
-                  'unselected-icon': i.svgIcon !== this.wptIcon.svgIcon,
-                }"
-                (click)="handleIconSelected(i.svgIcon)"
-              >
-                <mat-icon
-                  [svgIcon]="i.svgIcon"
-                  [matTooltip]="i.svgIcon"
-                ></mat-icon>
+            @if (selectableIcons.includes(wptType)) {
+              <div style="padding-bottom: 15px;">
+                <button mat-stroked-button (click)="handleChangeIcon()">
+                  <mat-icon
+                    [class]="wptIcon.class"
+                    [svgIcon]="wptIcon.svgIcon"
+                    >{{ wptIcon.name }}</mat-icon
+                  >
+                  Change icon
+                </button>
               </div>
-              }
-            </div>
+            }
+            @if (iconsForSelection().length !== 0) {
+              <div style="display:flex;flex-wrap:wrap;">
+                @for (i of iconsForSelection(); track i) {
+                  <div
+                    style="background-color:silver;padding:2px;"
+                    [ngClass]="{
+                      'selected-icon': i.svgIcon === this.wptIcon.svgIcon,
+                      'unselected-icon': i.svgIcon !== this.wptIcon.svgIcon
+                    }"
+                    (click)="handleIconSelected(i.svgIcon)"
+                  >
+                    <mat-icon
+                      [svgIcon]="i.svgIcon"
+                      [matTooltip]="i.svgIcon"
+                    ></mat-icon>
+                  </div>
+                }
+              </div>
             }
 
             <div style="font-size: 10pt;">
               <div style="display:flex;">
-                @if(readOnly) {
-                <div style="width:45px;font-weight:bold;">Lat:</div>
-                <div
-                  style="flex: 1 1 auto;"
-                  [innerText]="
-                    lat | coords : app.config.units.positionFormat : true
-                  "
-                ></div>
+                @if (readOnly) {
+                  <div style="width:45px;font-weight:bold;">Lat:</div>
+                  <div
+                    style="flex: 1 1 auto;"
+                    [innerText]="
+                      lat | coords: app.config.units.positionFormat : true
+                    "
+                  ></div>
                 } @else {
-                <div style="flex: 1 1 auto;">
-                  <mat-form-field floatLabel="always">
-                    <mat-label>Latitude</mat-label>
-                    <input
-                      matInput
-                      type="number"
-                      min="-90"
-                      max="90"
-                      required
-                      [formControl]="inpLat"
-                      (blur)="updateErrorMessage()"
-                    />
-                    @if(inpLat.invalid && (inpLat.dirty || inpLat.touched)) {
-                    <mat-error>{{ errorMessage() }}</mat-error>
-                    }
-                  </mat-form-field>
-                </div>
+                  <div style="flex: 1 1 auto;">
+                    <mat-form-field floatLabel="always">
+                      <mat-label>Latitude</mat-label>
+                      <input
+                        matInput
+                        type="number"
+                        min="-90"
+                        max="90"
+                        required
+                        [formControl]="inpLat"
+                        (blur)="updateErrorMessage()"
+                      />
+                      @if (inpLat.invalid && (inpLat.dirty || inpLat.touched)) {
+                        <mat-error>{{ errorMessage() }}</mat-error>
+                      }
+                    </mat-form-field>
+                  </div>
                 }
               </div>
               <div style="display:flex;">
-                @if(readOnly) {
-                <div style="width:45px;font-weight:bold;">Lon:</div>
-                <div
-                  style="flex: 1 1 auto;"
-                  [innerText]="lon | coords : app.config.units.positionFormat"
-                ></div>
+                @if (readOnly) {
+                  <div style="width:45px;font-weight:bold;">Lon:</div>
+                  <div
+                    style="flex: 1 1 auto;"
+                    [innerText]="lon | coords: app.config.units.positionFormat"
+                  ></div>
                 } @else {
-                <div style="flex: 1 1 auto;">
-                  <mat-form-field floatLabel="always">
-                    <mat-label>Longitude</mat-label>
-                    <input
-                      matInput
-                      type="number"
-                      min="-180"
-                      max="180"
-                      [formControl]="inpLon"
-                      (blur)="updateErrorMessage()"
-                    />
-                    @if(inpLon.invalid && (inpLon.dirty || inpLon.touched)) {
-                    <mat-error>{{ errorMessage() }}</mat-error>
-                    }
-                  </mat-form-field>
-                </div>
+                  <div style="flex: 1 1 auto;">
+                    <mat-form-field floatLabel="always">
+                      <mat-label>Longitude</mat-label>
+                      <input
+                        matInput
+                        type="number"
+                        min="-180"
+                        max="180"
+                        [formControl]="inpLon"
+                        (blur)="updateErrorMessage()"
+                      />
+                      @if (inpLon.invalid && (inpLon.dirty || inpLon.touched)) {
+                        <mat-error>{{ errorMessage() }}</mat-error>
+                      }
+                    </mat-form-field>
+                  </div>
                 }
               </div>
             </div>
@@ -216,16 +219,16 @@ import { MatTooltip } from '@angular/material/tooltip';
       </mat-dialog-content>
       <mat-dialog-actions>
         <div style="text-align:center;width:100%;">
-          @if(!readOnly) {
-          <button
-            mat-raised-button
-            [disabled]="
-              inpLat.invalid || inpLon.invalid || inpName.invalid || readOnly
-            "
-            (click)="handleClose(true)"
-          >
-            SAVE
-          </button>
+          @if (!readOnly) {
+            <button
+              mat-raised-button
+              [disabled]="
+                inpLat.invalid || inpLon.invalid || inpName.invalid || readOnly
+              "
+              (click)="handleClose(true)"
+            >
+              SAVE
+            </button>
           }
           <button mat-raised-button (click)="handleClose(false)">CANCEL</button>
         </div>

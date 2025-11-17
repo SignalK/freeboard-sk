@@ -28,37 +28,40 @@
   [enableAnimation]="false"
 >
   <!-- Draw / modify / select-->
-  @if(mapInteract.isBoxSelecting()) {
-  <ol-dragbox
-    (boxStart)="onDragBoxStart($event)"
-    (boxEnd)="onDragBoxEnd($event)"
-    (boxCancel)="onDragBoxCancel($event)"
-  >
-  </ol-dragbox>
-  } @if(mapInteract.isMeasuring()) {
-  <ol-draw
-    [type]="mapInteract.measureGeometryType"
-    (drawStart)="onMeasureStart($event)"
-    (drawEnd)="onMeasureEnd()"
-    [style]="mapInteract.draw.style"
-    [stopClick]="false"
-  >
-  </ol-draw>
-  } @if(mapInteract.isDrawing()) {
-  <ol-draw
-    [type]="mapInteract.draw.featureType"
-    [stopClick]="mapInteract.draw.resourceType === 'route' ? false : true"
-    [style]="mapInteract.draw.style"
-    (drawEnd)="onDrawEnd($event)"
-  >
-  </ol-draw>
-  } @if(mapInteract.isModifying() && mapInteract.draw.features) {
-  <ol-modify
-    [features]="mapInteract.draw.features"
-    (modifyStart)="onModifyStart($event)"
-    (modifyEnd)="onModifyEnd($event)"
-  >
-  </ol-modify>
+  @if (mapInteract.isBoxSelecting()) {
+    <ol-dragbox
+      (boxStart)="onDragBoxStart($event)"
+      (boxEnd)="onDragBoxEnd($event)"
+      (boxCancel)="onDragBoxCancel($event)"
+    >
+    </ol-dragbox>
+  }
+  @if (mapInteract.isMeasuring()) {
+    <ol-draw
+      [type]="mapInteract.measureGeometryType"
+      (drawStart)="onMeasureStart($event)"
+      (drawEnd)="onMeasureEnd()"
+      [style]="mapInteract.draw.style"
+      [stopClick]="false"
+    >
+    </ol-draw>
+  }
+  @if (mapInteract.isDrawing()) {
+    <ol-draw
+      [type]="mapInteract.draw.featureType"
+      [stopClick]="mapInteract.draw.resourceType === 'route' ? false : true"
+      [style]="mapInteract.draw.style"
+      (drawEnd)="onDrawEnd($event)"
+    >
+    </ol-draw>
+  }
+  @if (mapInteract.isModifying() && mapInteract.draw.features) {
+    <ol-modify
+      [features]="mapInteract.draw.features"
+      (modifyStart)="onModifyStart($event)"
+      (modifyEnd)="onModifyEnd($event)"
+    >
+    </ol-modify>
   }
 
   <!-- Zoom control -->
@@ -98,21 +101,22 @@
             padding: 0 5px 0 5px;
           "
         >
-          @if(app.config.units.positionFormat === 'XY') {
-          <span>Lat:&nbsp;</span>
+          @if (app.config.units.positionFormat === 'XY') {
+            <span>Lat:&nbsp;</span>
           }
           <span
             [innerText]="
-              mouse.coords[1] | coords : app.config.units.positionFormat : true
+              mouse.coords[1] | coords: app.config.units.positionFormat : true
             "
           ></span>
-          &nbsp; @if(app.config.units.positionFormat === 'XY') {
-          <span>Lon:&nbsp;</span>
+          &nbsp;
+          @if (app.config.units.positionFormat === 'XY') {
+            <span>Lon:&nbsp;</span>
           }
 
           <span
             [innerText]="
-              mouse.coords[0] | coords : app.config.units.positionFormat
+              mouse.coords[0] | coords: app.config.units.positionFormat
             "
           ></span>
           &nbsp;
@@ -131,49 +135,56 @@
   </fb-charts>
 
   <!-- Charts -->
-  <fb-livelayer [layerDefs]="skresOther.infoLayers()" [zIndex]="50">
+  <fb-livelayer
+    [params]="skresOther.infoLayerParams()"
+    [layerDefs]="skresOther.infoLayers()"
+    [zIndex]="50"
+  >
   </fb-livelayer>
 
   <!-- Tracks -->
-  @if(app.featureFlags().resourceTracks) {
-  <fb-tracks
-    [darkMode]="app.uiConfig().invertColor"
-    [tracks]="skres.tracks()"
-    [labelMinZoom]="0"
-    [mapZoom]="mapZoomLevel()"
-    [zIndex]="100"
-  >
-  </fb-tracks>
+  @if (app.featureFlags().resourceTracks) {
+    <fb-tracks
+      [darkMode]="app.uiConfig().invertColor"
+      [tracks]="skres.tracks()"
+      [labelMinZoom]="0"
+      [mapZoom]="mapZoomLevel()"
+      [zIndex]="100"
+    >
+    </fb-tracks>
   }
 
   <!-- AIS target tracks -->
-  @if(app.config.ui.showAisTargets && app.config.vessels.aisShowTrack) {
-  <ais-targets-track
-    [tracks]="app.data.vessels.aisTracks"
-    [tracksMinZoom]="10"
-    targetContext="vessels"
-    [updateIds]="skstream.aisStatus().updated"
-    [removeIds]="skstream.aisStatus().expired"
-    [mapZoom]="mapZoomLevel()"
-    zIndex="110"
-  >
-  </ais-targets-track>
+  @if (app.config.ui.showAisTargets && app.config.vessels.aisShowTrack) {
+    <ais-targets-track
+      [tracks]="app.data.vessels.aisTracks"
+      [tracksMinZoom]="10"
+      targetContext="vessels"
+      [updateIds]="skstream.aisStatus().updated"
+      [removeIds]="skstream.aisStatus().expired"
+      [mapZoom]="mapZoomLevel()"
+      zIndex="110"
+    >
+    </ais-targets-track>
   }
 
   <!-- Resource Sets -->
-  @for(resSet of this.skresOther.resourceSets(); track resSet[0]; let idx =
-  $index) {
-  <div>
-    <fb-resource-sets
-      [darkMode]="app.uiConfig().invertColor"
-      [collection]="resSet[0]"
-      [resourceSets]="resSet[1]"
-      [labelMinZoom]="app.config.map.labelsMinZoom"
-      [mapZoom]="mapZoomLevel()"
-      [zIndex]="120 + idx"
-    >
-    </fb-resource-sets>
-  </div>
+  @for (
+    resSet of this.skresOther.resourceSets();
+    track resSet[0];
+    let idx = $index
+  ) {
+    <div>
+      <fb-resource-sets
+        [darkMode]="app.uiConfig().invertColor"
+        [collection]="resSet[0]"
+        [resourceSets]="resSet[1]"
+        [labelMinZoom]="app.config.map.labelsMinZoom"
+        [mapZoom]="mapZoomLevel()"
+        [zIndex]="120 + idx"
+      >
+      </fb-resource-sets>
+    </div>
   }
 
   <!-- Routes -->
@@ -189,14 +200,14 @@
   </fb-routes>
 
   <!-- Routes -->
-  @if(activeRoute && !app.data.activeRouteIsEditing) {
-  <fb-route-direction
-    [points]="course.courseData().activeRoutePoints"
-    [pointIndex]="course.courseData().pointIndex"
-    [reverse]="app.data.activeRouteReversed"
-    [zIndex]="550"
-  >
-  </fb-route-direction>
+  @if (activeRoute && !app.data.activeRouteIsEditing) {
+    <fb-route-direction
+      [points]="course.courseData().activeRoutePoints"
+      [pointIndex]="course.courseData().pointIndex"
+      [reverse]="app.data.activeRouteReversed"
+      [zIndex]="550"
+    >
+    </fb-route-direction>
   }
 
   <!-- Waypoints -->
@@ -243,118 +254,118 @@
   </sk-ais-targets>
 
   <!-- Meteo targets -->
-  @if(app.config.ui.showAisTargets) {
-  <sk-ais-targets
-    [darkMode]="app.uiConfig().invertColor"
-    [targets]="dfeat.meteo"
-    targetContext="meteo"
-    [labelMinZoom]="this.app.config.map.labelsMinZoom"
-    [mapZoom]="mapZoomLevel()"
-    [updateIds]="skstream.aisStatus().updated"
-    [staleIds]="skstream.aisStatus().stale"
-    [removeIds]="skstream.aisStatus().expired"
-    [inactiveTime]="app.config.vessels.aisStaleAge"
-    [zIndex]="220"
-  >
-  </sk-ais-targets>
+  @if (app.config.ui.showAisTargets) {
+    <sk-ais-targets
+      [darkMode]="app.uiConfig().invertColor"
+      [targets]="dfeat.meteo"
+      targetContext="meteo"
+      [labelMinZoom]="this.app.config.map.labelsMinZoom"
+      [mapZoom]="mapZoomLevel()"
+      [updateIds]="skstream.aisStatus().updated"
+      [staleIds]="skstream.aisStatus().stale"
+      [removeIds]="skstream.aisStatus().expired"
+      [inactiveTime]="app.config.vessels.aisStaleAge"
+      [zIndex]="220"
+    >
+    </sk-ais-targets>
   }
 
   <!-- AIS Vessel targets -->
-  @if(app.config.ui.showAisTargets) {
-  <div>
-    @if( mapZoomLevel() >= app.config.vessels.aisWindMinZoom) {
-    <sk-ais-wind
-      [targetContext]="'vessels'"
-      [targets]="dfeat.ais"
-      [vectorApparent]="app.config.vessels.aisWindApparent"
-      [mapZoom]="mapZoomLevel()"
-      [labelMinZoom]="this.app.config.map.labelsMinZoom"
-      [focusId]="app.data.vessels.activeId"
-      [filterIds]="app.config.selections.aisTargets"
-      [filterByShipType]="app.config.selections.aisFilterByShipType"
-      [filterShipTypes]="app.config.selections.aisTargetTypes"
-      [updateIds]="skstream.aisStatus().updated"
-      [staleIds]="skstream.aisStatus().stale"
-      [removeIds]="skstream.aisStatus().expired"
-      [inactiveTime]="app.config.vessels.aisStaleAge"
-      [zIndex]="900"
-      [darkMode]="app.uiConfig().invertColor"
-    >
-    </sk-ais-wind>
-    }
-    <sk-ais-flags
-      [flagged]="app.data.vessels.flagged"
-      [targetContext]="'vessels'"
-      [targets]="dfeat.ais"
-      [mapZoom]="mapZoomLevel()"
-      [labelMinZoom]="this.app.config.map.labelsMinZoom"
-      [focusId]="app.data.vessels.activeId"
-      [filterIds]="app.config.selections.aisTargets"
-      [filterByShipType]="app.config.selections.aisFilterByShipType"
-      [filterShipTypes]="app.config.selections.aisTargetTypes"
-      [updateIds]="skstream.aisStatus().updated"
-      [staleIds]="skstream.aisStatus().stale"
-      [removeIds]="skstream.aisStatus().expired"
-      [inactiveTime]="app.config.vessels.aisStaleAge"
-      [zIndex]="985"
-      [darkMode]="app.uiConfig().invertColor"
-    >
-    </sk-ais-flags>
-    <sk-ais-vessels
-      [darkMode]="app.uiConfig().invertColor"
-      [targets]="dfeat.ais"
-      targetContext="vessels"
-      [labelMinZoom]="this.app.config.map.labelsMinZoom"
-      [mapZoom]="mapZoomLevel()"
-      [updateIds]="skstream.aisStatus().updated"
-      [staleIds]="skstream.aisStatus().stale"
-      [removeIds]="skstream.aisStatus().expired"
-      [inactiveTime]="app.config.vessels.aisStaleAge"
-      [zIndex]="980"
-      [focusId]="app.data.vessels.activeId"
-      [filterIds]="app.config.selections.aisTargets"
-      [filterByShipType]="app.config.selections.aisFilterByShipType"
-      [filterShipTypes]="app.config.selections.aisTargetTypes"
-      [cogLineLength]="app.config.vessels.aisCogLine"
-    >
-    </sk-ais-vessels>
-  </div>
+  @if (app.config.ui.showAisTargets) {
+    <div>
+      @if (mapZoomLevel() >= app.config.vessels.aisWindMinZoom) {
+        <sk-ais-wind
+          [targetContext]="'vessels'"
+          [targets]="dfeat.ais"
+          [vectorApparent]="app.config.vessels.aisWindApparent"
+          [mapZoom]="mapZoomLevel()"
+          [labelMinZoom]="this.app.config.map.labelsMinZoom"
+          [focusId]="app.data.vessels.activeId"
+          [filterIds]="app.config.selections.aisTargets"
+          [filterByShipType]="app.config.selections.aisFilterByShipType"
+          [filterShipTypes]="app.config.selections.aisTargetTypes"
+          [updateIds]="skstream.aisStatus().updated"
+          [staleIds]="skstream.aisStatus().stale"
+          [removeIds]="skstream.aisStatus().expired"
+          [inactiveTime]="app.config.vessels.aisStaleAge"
+          [zIndex]="900"
+          [darkMode]="app.uiConfig().invertColor"
+        >
+        </sk-ais-wind>
+      }
+      <sk-ais-flags
+        [flagged]="app.data.vessels.flagged"
+        [targetContext]="'vessels'"
+        [targets]="dfeat.ais"
+        [mapZoom]="mapZoomLevel()"
+        [labelMinZoom]="this.app.config.map.labelsMinZoom"
+        [focusId]="app.data.vessels.activeId"
+        [filterIds]="app.config.selections.aisTargets"
+        [filterByShipType]="app.config.selections.aisFilterByShipType"
+        [filterShipTypes]="app.config.selections.aisTargetTypes"
+        [updateIds]="skstream.aisStatus().updated"
+        [staleIds]="skstream.aisStatus().stale"
+        [removeIds]="skstream.aisStatus().expired"
+        [inactiveTime]="app.config.vessels.aisStaleAge"
+        [zIndex]="985"
+        [darkMode]="app.uiConfig().invertColor"
+      >
+      </sk-ais-flags>
+      <sk-ais-vessels
+        [darkMode]="app.uiConfig().invertColor"
+        [targets]="dfeat.ais"
+        targetContext="vessels"
+        [labelMinZoom]="this.app.config.map.labelsMinZoom"
+        [mapZoom]="mapZoomLevel()"
+        [updateIds]="skstream.aisStatus().updated"
+        [staleIds]="skstream.aisStatus().stale"
+        [removeIds]="skstream.aisStatus().expired"
+        [inactiveTime]="app.config.vessels.aisStaleAge"
+        [zIndex]="980"
+        [focusId]="app.data.vessels.activeId"
+        [filterIds]="app.config.selections.aisTargets"
+        [filterByShipType]="app.config.selections.aisFilterByShipType"
+        [filterShipTypes]="app.config.selections.aisTargetTypes"
+        [cogLineLength]="app.config.vessels.aisCogLine"
+      >
+      </sk-ais-vessels>
+    </div>
   }
 
   <!-- Aircraft targets -->
-  @if(app.config.ui.showAisTargets) {
-  <sk-ais-targets
-    [darkMode]="app.uiConfig().invertColor"
-    [targets]="dfeat.aircraft"
-    [targetStyles]="featureStyles.aircraft"
-    targetContext="aircraft"
-    [labelMinZoom]="this.app.config.map.labelsMinZoom"
-    [mapZoom]="mapZoomLevel()"
-    [updateIds]="skstream.aisStatus().updated"
-    [staleIds]="skstream.aisStatus().stale"
-    [removeIds]="skstream.aisStatus().expired"
-    [inactiveTime]="app.config.vessels.aisStaleAge"
-    [zIndex]="910"
-  >
-  </sk-ais-targets>
+  @if (app.config.ui.showAisTargets) {
+    <sk-ais-targets
+      [darkMode]="app.uiConfig().invertColor"
+      [targets]="dfeat.aircraft"
+      [targetStyles]="featureStyles.aircraft"
+      targetContext="aircraft"
+      [labelMinZoom]="this.app.config.map.labelsMinZoom"
+      [mapZoom]="mapZoomLevel()"
+      [updateIds]="skstream.aisStatus().updated"
+      [staleIds]="skstream.aisStatus().stale"
+      [removeIds]="skstream.aisStatus().expired"
+      [inactiveTime]="app.config.vessels.aisStaleAge"
+      [zIndex]="910"
+    >
+    </sk-ais-targets>
   }
 
   <!-- SAR targets -->
-  @if(app.config.ui.showAisTargets) {
-  <sk-ais-targets
-    [darkMode]="app.uiConfig().invertColor"
-    [targets]="dfeat.sar"
-    [targetStyles]="featureStyles.sar"
-    targetContext="sar"
-    [labelMinZoom]="this.app.config.map.labelsMinZoom"
-    [mapZoom]="mapZoomLevel()"
-    [updateIds]="skstream.aisStatus().updated"
-    [staleIds]="skstream.aisStatus().stale"
-    [removeIds]="skstream.aisStatus().expired"
-    [inactiveTime]="app.config.vessels.aisStaleAge"
-    [zIndex]="920"
-  >
-  </sk-ais-targets>
+  @if (app.config.ui.showAisTargets) {
+    <sk-ais-targets
+      [darkMode]="app.uiConfig().invertColor"
+      [targets]="dfeat.sar"
+      [targetStyles]="featureStyles.sar"
+      targetContext="sar"
+      [labelMinZoom]="this.app.config.map.labelsMinZoom"
+      [mapZoom]="mapZoomLevel()"
+      [updateIds]="skstream.aisStatus().updated"
+      [staleIds]="skstream.aisStatus().stale"
+      [removeIds]="skstream.aisStatus().expired"
+      [inactiveTime]="app.config.vessels.aisStaleAge"
+      [zIndex]="920"
+    >
+    </sk-ais-targets>
   }
   <!-- /Signal K targets -->
 
@@ -382,147 +393,166 @@
   </fb-regions>
 
   <!-- Notes -->
-  @if(showNoteslayer()) {
-  <fb-notes [notes]="skres.notes()" [zIndex]="450"> </fb-notes>
+  @if (showNoteslayer()) {
+    <fb-notes [notes]="skres.notes()" [zIndex]="450"> </fb-notes>
   }
 
   <!-- Popovers -->
-  @if(overlay().show && !mapInteract.isModifying()) {
-  <ol-overlay [position]="overlay().position" [positioning]="'top-center'">
-    @if(mapInteract.isMeasuring()) {
-    <ap-popover
-      [title]="overlay().title"
-      [canClose]="false"
-      [measure]="true"
-      (closed)="popoverClosed()"
-    >
-    </ap-popover>
-    } @if(this.overlay().type === 'chartlist') {
-    <chart-list-popover
-      [canClose]="app.config.map.popoverMulti"
-      [features]="this.overlay().content"
-      (selected)="toggleFeatureSelection($event, 'charts')"
-      (closed)="popoverClosed()"
-    >
-    </chart-list-popover>
-    } @if(this.overlay().type === 'list') {
-    <feature-list-popover
-      [canClose]="app.config.map.popoverMulti"
-      [title]="overlay().title"
-      [features]="this.overlay().content"
-      (selected)="featureListSelection($event)"
-      (closed)="popoverClosed()"
-    >
-    </feature-list-popover>
-    } @if(overlay().type === 'destination' || overlay().type === 'waypoint' ||
-    overlay().type === 'route' || overlay().type === 'note' || overlay().type
-    === 'region') {
-    <resource-popover
-      [canClose]="app.config.map.popoverMulti"
-      [title]="overlay().title"
-      [type]="overlay().type"
-      [resource]="overlay().resource"
-      [active]="
-        app.data.activeWaypoint ? app.data.activeWaypoint : app.data.activeRoute
-      "
-      [featureCount]="overlay().featureCount"
-      [units]="scaleUnits()"
-      (modify)="modifyFeature(); popoverClosed()"
-      (delete)="deleteFeature(overlay().id, overlay().type); popoverClosed()"
-      (addNote)="
-        skres.showNoteEditor({
-          type: overlay().type,
-          href: { id: overlay().id, exists: true }
-        });
-        popoverClosed()
-      "
-      (activated)="setActiveFeature(); popoverClosed()"
-      (deactivated)="clearActiveFeature(); popoverClosed()"
-      (related)="skres.showRelatedNotes($event, 'group'); popoverClosed()"
-      (notes)="
-        skres.showRelatedNotes(
-          overlay().id,
-          overlay().type,
-          overlay().readOnly
-        );
-        popoverClosed()
-      "
-      (info)="skres.resourceProperties(overlay()); popoverClosed()"
-      (points)="itemInfo(overlay().id, overlay().type); popoverClosed()"
-      (closed)="popoverClosed()"
-    >
-    </resource-popover>
-    } @if(overlay().type === 'rset') {
-    <resourceset-popover
-      [canClose]="app.config.map.popoverMulti"
-      [title]="overlay().title"
-      [resource]="overlay().resource"
-      (modify)="modifyFeature(); popoverClosed()"
-      (delete)="deleteFeature(overlay().id, overlay().type); popoverClosed()"
-      (info)="itemInfo(overlay().id, overlay().type); popoverClosed()"
-      (closed)="popoverClosed()"
-    >
-    </resourceset-popover>
-    } @if(overlay().type === 'ais') {
-    <div>
-      <vessel-popover
-        [canClose]="app.config.map.popoverMulti"
-        [vessel]="overlay().vessel"
-        [useMagnetic]="app.useMagnetic"
-        [isActive]="app.data.vessels.activeId === overlay().id"
-        [isSelf]="overlay().isSelf"
-        (info)="
-          itemInfo(overlay().id, overlay().type, overlay().isSelf);
-          popoverClosed()
-        "
-        (focused)="setActiveVessel($event ? overlay().id : null)"
-        (markPosition)="skres.newWaypointAt($event); popoverClosed()"
-        (closed)="popoverClosed()"
-      >
-      </vessel-popover>
-    </div>
-    } @if(overlay().type === 'aton' || overlay().type === 'meteo') {
-    <aton-popover
-      [canClose]="app.config.map.popoverMulti"
-      [aton]="overlay().aton"
-      (info)="itemInfo(overlay().id, overlay().type); popoverClosed()"
-      (closed)="popoverClosed()"
-    >
-    </aton-popover>
-    } @if(overlay().type === 'aircraft') {
-    <aircraft-popover
-      [canClose]="app.config.map.popoverMulti"
-      [aircraft]="overlay().aircraft"
-      (info)="itemInfo(overlay().id, overlay().type); popoverClosed()"
-      (closed)="popoverClosed()"
-    >
-    </aircraft-popover>
-    } @if(overlay().type === 'alarm') {
-    <alarm-popover
-      [canClose]="app.config.map.popoverMulti"
-      [alarm]="overlay().alarm"
-      [id]="overlay().id"
-      (info)="itemInfo(overlay().id, overlay().type); popoverClosed()"
-      (goto)="onContextMenuAction('nav_to', $event); popoverClosed()"
-      (closed)="popoverClosed()"
-    >
-    </alarm-popover>
-    }
-  </ol-overlay>
+  @if (overlay().show && !mapInteract.isModifying()) {
+    <ol-overlay [position]="overlay().position" [positioning]="'top-center'">
+      @if (mapInteract.isMeasuring()) {
+        <ap-popover
+          [title]="overlay().title"
+          [canClose]="false"
+          [measure]="true"
+          (closed)="popoverClosed()"
+        >
+        </ap-popover>
+      }
+      @if (this.overlay().type === 'chartlist') {
+        <chart-list-popover
+          [canClose]="app.config.map.popoverMulti"
+          [features]="this.overlay().content"
+          (selected)="toggleFeatureSelection($event, 'charts')"
+          (closed)="popoverClosed()"
+        >
+        </chart-list-popover>
+      }
+      @if (this.overlay().type === 'list') {
+        <feature-list-popover
+          [canClose]="app.config.map.popoverMulti"
+          [title]="overlay().title"
+          [features]="this.overlay().content"
+          (selected)="featureListSelection($event)"
+          (closed)="popoverClosed()"
+        >
+        </feature-list-popover>
+      }
+      @if (
+        overlay().type === 'destination' ||
+        overlay().type === 'waypoint' ||
+        overlay().type === 'route' ||
+        overlay().type === 'note' ||
+        overlay().type === 'region'
+      ) {
+        <resource-popover
+          [canClose]="app.config.map.popoverMulti"
+          [title]="overlay().title"
+          [type]="overlay().type"
+          [resource]="overlay().resource"
+          [active]="
+            app.data.activeWaypoint
+              ? app.data.activeWaypoint
+              : app.data.activeRoute
+          "
+          [featureCount]="overlay().featureCount"
+          [units]="scaleUnits()"
+          (modify)="modifyFeature(); popoverClosed()"
+          (delete)="
+            deleteFeature(overlay().id, overlay().type); popoverClosed()
+          "
+          (addNote)="
+            skres.showNoteEditor({
+              type: overlay().type,
+              href: { id: overlay().id, exists: true }
+            });
+            popoverClosed()
+          "
+          (activated)="setActiveFeature(); popoverClosed()"
+          (deactivated)="clearActiveFeature(); popoverClosed()"
+          (related)="skres.showRelatedNotes($event, 'group'); popoverClosed()"
+          (notes)="
+            skres.showRelatedNotes(
+              overlay().id,
+              overlay().type,
+              overlay().readOnly
+            );
+            popoverClosed()
+          "
+          (info)="skres.resourceProperties(overlay()); popoverClosed()"
+          (points)="itemInfo(overlay().id, overlay().type); popoverClosed()"
+          (closed)="popoverClosed()"
+        >
+        </resource-popover>
+      }
+      @if (overlay().type === 'rset') {
+        <resourceset-popover
+          [canClose]="app.config.map.popoverMulti"
+          [title]="overlay().title"
+          [resource]="overlay().resource"
+          (modify)="modifyFeature(); popoverClosed()"
+          (delete)="
+            deleteFeature(overlay().id, overlay().type); popoverClosed()
+          "
+          (info)="itemInfo(overlay().id, overlay().type); popoverClosed()"
+          (closed)="popoverClosed()"
+        >
+        </resourceset-popover>
+      }
+      @if (overlay().type === 'ais') {
+        <div>
+          <vessel-popover
+            [canClose]="app.config.map.popoverMulti"
+            [vessel]="overlay().vessel"
+            [useMagnetic]="app.useMagnetic"
+            [isActive]="app.data.vessels.activeId === overlay().id"
+            [isSelf]="overlay().isSelf"
+            (info)="
+              itemInfo(overlay().id, overlay().type, overlay().isSelf);
+              popoverClosed()
+            "
+            (focused)="setActiveVessel($event ? overlay().id : null)"
+            (markPosition)="skres.newWaypointAt($event); popoverClosed()"
+            (closed)="popoverClosed()"
+          >
+          </vessel-popover>
+        </div>
+      }
+      @if (overlay().type === 'aton' || overlay().type === 'meteo') {
+        <aton-popover
+          [canClose]="app.config.map.popoverMulti"
+          [aton]="overlay().aton"
+          (info)="itemInfo(overlay().id, overlay().type); popoverClosed()"
+          (closed)="popoverClosed()"
+        >
+        </aton-popover>
+      }
+      @if (overlay().type === 'aircraft') {
+        <aircraft-popover
+          [canClose]="app.config.map.popoverMulti"
+          [aircraft]="overlay().aircraft"
+          (info)="itemInfo(overlay().id, overlay().type); popoverClosed()"
+          (closed)="popoverClosed()"
+        >
+        </aircraft-popover>
+      }
+      @if (overlay().type === 'alarm') {
+        <alarm-popover
+          [canClose]="app.config.map.popoverMulti"
+          [alarm]="overlay().alarm"
+          [id]="overlay().id"
+          (info)="itemInfo(overlay().id, overlay().type); popoverClosed()"
+          (goto)="onContextMenuAction('nav_to', $event); popoverClosed()"
+          (closed)="popoverClosed()"
+        >
+        </alarm-popover>
+      }
+    </ol-overlay>
   }
 
   <!-- Alarms -->
-  @if(!anchor.raised()) {
-  <fb-anchor-alarm
-    [radius]="anchor.radius()"
-    [anchorPosition]="anchor.position()"
-    [vesselPosition]="dfeat.self.position"
-    [anchorStyles]="featureStyles.anchor"
-    [zIndex]="300"
-  >
-  </fb-anchor-alarm>
-  } @if(dfeat.closest.length !==0) {
-  <fb-cpa-alarms [cpaLines]="dfeat.closest" [zIndex]="350"> </fb-cpa-alarms>
+  @if (!anchor.raised()) {
+    <fb-anchor-alarm
+      [radius]="anchor.radius()"
+      [anchorPosition]="anchor.position()"
+      [vesselPosition]="dfeat.self.position"
+      [anchorStyles]="featureStyles.anchor"
+      [zIndex]="300"
+    >
+    </fb-anchor-alarm>
+  }
+  @if (dfeat.closest.length !== 0) {
+    <fb-cpa-alarms [cpaLines]="dfeat.closest" [zIndex]="350"> </fb-cpa-alarms>
   }
 
   <!-- MOB alarms -->
@@ -535,86 +565,93 @@
 
   <!-- Vessel / destination -->
   @if (anchor.raised() && dfeat.navData.position) {
-  @if(dfeat.navData.startPosition) {
-  <fb-xte-path
-    [color]=""
-    [startPosition]="dfeat.navData.startPosition"
-    [destPosition]="dfeat.navData.position"
-    [zIndex]="340"
-    [visible]="true"
-    [layerProperties]=""
-  >
-  </fb-xte-path>
-  } @if(app.config.vessels.laylines && perfTargetAngle().length !==0) {
-  <fb-target-angle
-    [line]="perfTargetAngle()"
-    [lineStyle]="featureStyles.targetAngle"
-    [position]="app.data.vessels.active.position"
-    [twd]="app.data.vessels.self.wind.direction"
-    [mapZoom]="mapZoomLevel()"
-    [zIndex]="345"
-  >
-  </fb-target-angle>
-  <fb-layline
-    [lines]="perfLaylines()"
-    [laylineStyles]="featureStyles.layline"
-    [position]="app.data.vessels.active.position"
-    [twd]="app.data.vessels.self.wind.direction"
-    [mapZoom]="mapZoomLevel()"
-    [zIndex]="330"
-  >
-  </fb-layline>
-  } @if(dfeat.navData.position) {
-  <fb-bearing-line
-    [markerPosition]="dfeat.navData.position"
-    [vesselPosition]="dfeat.active.position"
-    [showMarker]="!app.data.activeWaypoint"
-    [markerName]="course.courseData().destPointName"
-    [bearingStyles]="featureStyles.destination"
-    [labelMinZoom]="this.app.config.map.labelsMinZoom"
-    [mapZoom]="mapZoomLevel()"
-    [zIndex]="335"
-  >
-  </fb-bearing-line>
-  } @if(course.courseData().arrivalCircle) {
-  <fb-arrival-circle
-    [radius]="course.courseData().arrivalCircle"
-    [position]="dfeat.navData.position"
-    [zIndex]="335"
-  >
-  </fb-arrival-circle>
-  } } @if(app.config.vessels.rangeCircles) {
-  <fb-range-circles
-    [position]="dfeat.active.position"
-    [maxCircles]="this.app.config.vessels.rangeCircleCount"
-    [mapZoom]="mapZoomLevel()"
-    [darkMode]="app.uiConfig().invertColor"
-    [minZoom]="this.app.config.vessels.rangeCircleMinZoom"
-    [units]="scaleUnits()"
-    [zIndex]="340"
-  >
-  </fb-range-circles>
-  } @if(app.config.vessels.cogLine !==0) {
-  <fb-cog-line
-    [coords]="vesselLines().cog"
-    [cogTime]="app.config.vessels.cogLine"
-    [units]="app.config.units.distance"
-    [darkMode]="app.uiConfig().invertColor"
-    [labelMinZoom]="this.app.config.map.labelsMinZoom"
-    [mapZoom]="mapZoomLevel()"
-    [zIndex]="345"
-  >
-  </fb-cog-line>
-  } @if(app.config.vessels.windVectors) {
-  <fb-wind-lines
-    [twd]="this.dfeat.active.wind.direction"
-    [tws]="this.dfeat.active.wind.tws"
-    [awa]="this.dfeat.active.wind.awa + this.dfeat.active.orientation"
-    [aws]="this.dfeat.active.wind.aws"
-    [position]="dfeat.self.position"
-    [zIndex]="350"
-  >
-  </fb-wind-lines>
+    @if (dfeat.navData.startPosition) {
+      <fb-xte-path
+        [color]=""
+        [startPosition]="dfeat.navData.startPosition"
+        [destPosition]="dfeat.navData.position"
+        [zIndex]="340"
+        [visible]="true"
+        [layerProperties]=""
+      >
+      </fb-xte-path>
+    }
+    @if (app.config.vessels.laylines && perfTargetAngle().length !== 0) {
+      <fb-target-angle
+        [line]="perfTargetAngle()"
+        [lineStyle]="featureStyles.targetAngle"
+        [position]="app.data.vessels.active.position"
+        [twd]="app.data.vessels.self.wind.direction"
+        [mapZoom]="mapZoomLevel()"
+        [zIndex]="345"
+      >
+      </fb-target-angle>
+      <fb-layline
+        [lines]="perfLaylines()"
+        [laylineStyles]="featureStyles.layline"
+        [position]="app.data.vessels.active.position"
+        [twd]="app.data.vessels.self.wind.direction"
+        [mapZoom]="mapZoomLevel()"
+        [zIndex]="330"
+      >
+      </fb-layline>
+    }
+    @if (dfeat.navData.position) {
+      <fb-bearing-line
+        [markerPosition]="dfeat.navData.position"
+        [vesselPosition]="dfeat.active.position"
+        [showMarker]="!app.data.activeWaypoint"
+        [markerName]="course.courseData().destPointName"
+        [bearingStyles]="featureStyles.destination"
+        [labelMinZoom]="this.app.config.map.labelsMinZoom"
+        [mapZoom]="mapZoomLevel()"
+        [zIndex]="335"
+      >
+      </fb-bearing-line>
+    }
+    @if (course.courseData().arrivalCircle) {
+      <fb-arrival-circle
+        [radius]="course.courseData().arrivalCircle"
+        [position]="dfeat.navData.position"
+        [zIndex]="335"
+      >
+      </fb-arrival-circle>
+    }
+  }
+  @if (app.config.vessels.rangeCircles) {
+    <fb-range-circles
+      [position]="dfeat.active.position"
+      [maxCircles]="this.app.config.vessels.rangeCircleCount"
+      [mapZoom]="mapZoomLevel()"
+      [darkMode]="app.uiConfig().invertColor"
+      [minZoom]="this.app.config.vessels.rangeCircleMinZoom"
+      [units]="scaleUnits()"
+      [zIndex]="340"
+    >
+    </fb-range-circles>
+  }
+  @if (app.config.vessels.cogLine !== 0) {
+    <fb-cog-line
+      [coords]="vesselLines().cog"
+      [cogTime]="app.config.vessels.cogLine"
+      [units]="app.config.units.distance"
+      [darkMode]="app.uiConfig().invertColor"
+      [labelMinZoom]="this.app.config.map.labelsMinZoom"
+      [mapZoom]="mapZoomLevel()"
+      [zIndex]="345"
+    >
+    </fb-cog-line>
+  }
+  @if (app.config.vessels.windVectors) {
+    <fb-wind-lines
+      [twd]="this.dfeat.active.wind.direction"
+      [tws]="this.dfeat.active.wind.tws"
+      [awa]="this.dfeat.active.wind.awa + this.dfeat.active.orientation"
+      [aws]="this.dfeat.active.wind.aws"
+      [position]="dfeat.self.position"
+      [zIndex]="350"
+    >
+    </fb-wind-lines>
   }
 
   <!-- Vessel (self) -->
@@ -630,20 +667,20 @@
   >
   </fb-vessel>
 
-  @if(app.config.vessels.trail && app.data.vessels.showSelf) {
-  <fb-vessel-trail
-    [localTrail]="app.selfTrail()"
-    [serverTrail]="app.selfTrailFromServer()"
-    [trailStyles]=""
-    [zIndex]="990"
-  >
-  </fb-vessel-trail>
+  @if (app.config.vessels.trail && app.data.vessels.showSelf) {
+    <fb-vessel-trail
+      [localTrail]="app.selfTrail()"
+      [serverTrail]="app.selfTrailFromServer()"
+      [trailStyles]=""
+      [zIndex]="990"
+    >
+    </fb-vessel-trail>
   }
 
   <!-- chart boundaries-->
-  @if(app.data.chartBounds.show) {
-  <fb-chart-bounds [zIndex]="250" [charts]="app.data.chartBounds.charts">
-  </fb-chart-bounds>
+  @if (app.data.chartBounds.show) {
+    <fb-chart-bounds [zIndex]="250" [charts]="app.data.chartBounds.charts">
+    </fb-chart-bounds>
   }
 </ol-map>
 
@@ -664,18 +701,18 @@
       <mat-icon>near_me</mat-icon>
       Navigate to here
     </button>
-    @if(course.courseData().position){
-    <button
-      mat-menu-item
-      (click)="onContextMenuAction('cleardestination', item)"
-    >
-      <mat-icon>clear_all</mat-icon>
-      @if(app.data.activeRoute) {
-      <span>Clear Active Route</span>
-      } @else {
-      <span>Clear Destination</span>
-      }
-    </button>
+    @if (course.courseData().position) {
+      <button
+        mat-menu-item
+        (click)="onContextMenuAction('cleardestination', item)"
+      >
+        <mat-icon>clear_all</mat-icon>
+        @if (app.data.activeRoute) {
+          <span>Clear Active Route</span>
+        } @else {
+          <span>Clear Destination</span>
+        }
+      </button>
     }
     <mat-divider></mat-divider>
     <button
@@ -687,15 +724,15 @@
       Add Waypoint here
     </button>
 
-    @if(mapZoomLevel() >= app.config.resources.notes.minZoom) {
-    <button
-      mat-menu-item
-      (click)="onContextMenuAction('add_note', item)"
-      (contextmenu)="$event.preventDefault()"
-    >
-      <mat-icon>local_offer</mat-icon>
-      Add Note here
-    </button>
+    @if (mapZoomLevel() >= app.config.resources.notes.minZoom) {
+      <button
+        mat-menu-item
+        (click)="onContextMenuAction('add_note', item)"
+        (contextmenu)="$event.preventDefault()"
+      >
+        <mat-icon>local_offer</mat-icon>
+        Add Note here
+      </button>
     }
 
     <mat-divider></mat-divider>
@@ -709,11 +746,11 @@
     </button>
     <mat-divider></mat-divider>
 
-    @if(app.config.vessels.trail && app.selfTrail().length !== 0) {
-    <button mat-menu-item (click)="onContextMenuAction('cleartrail', item)">
-      <mat-icon>clear_all</mat-icon>
-      <span>{{ app.data.serverTrail ? 'Refresh' : 'Clear' }} Trail</span>
-    </button>
+    @if (app.config.vessels.trail && app.selfTrail().length !== 0) {
+      <button mat-menu-item (click)="onContextMenuAction('cleartrail', item)">
+        <mat-icon>clear_all</mat-icon>
+        <span>{{ app.data.serverTrail ? 'Refresh' : 'Clear' }} Trail</span>
+      </button>
     }
 
     <button
@@ -734,14 +771,14 @@
       <mat-icon>anchor</mat-icon>
       Anchor Watch
     </button>
-    @if(app.featureFlags().weatherApi) {
-    <button
-      mat-menu-item
-      (click)="onContextMenuAction('weather_forecast', item)"
-    >
-      <mat-icon>air</mat-icon>
-      <span>Weather Forecast</span>
-    </button>
+    @if (app.featureFlags().weatherApi) {
+      <button
+        mat-menu-item
+        (click)="onContextMenuAction('weather_forecast', item)"
+      >
+        <mat-icon>air</mat-icon>
+        <span>Weather Forecast</span>
+      </button>
     }
   </ng-template>
 </mat-menu>

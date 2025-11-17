@@ -4,8 +4,8 @@ import { Component, effect, input, signal } from '@angular/core';
   selector: 'country-flag',
   imports: [],
   template: `
-    @if(showFlag()) {
-    <img [src]="flagIcon" (error)="imgError()" />
+    @if (showFlag()) {
+      <img [src]="flagIcon" (error)="imgError()" />
     }
   `
 })

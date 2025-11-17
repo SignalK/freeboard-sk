@@ -20,8 +20,9 @@ units: "<string>" dsisplay units,
   template: `
     <div class="dial-text mat-app-background">
       <div class="dial-text-title">
-        {{ title }}&nbsp;@if(subTitle) {
-        <span class="dial-text-subtitle">({{ subTitle }})</span>
+        {{ title }}&nbsp;
+        @if (subTitle) {
+          <span class="dial-text-subtitle">({{ subTitle }})</span>
         }
       </div>
       <div class="dial-text-value">{{ value }}</div>
@@ -47,8 +48,9 @@ value: "<number>" TTG value in minutes
   template: `
     <div class="dial-text mat-app-background">
       <div class="dial-text-title">
-        TTG&nbsp;@if(subTitle) {
-        <span class="dial-text-subtitle"> ({{ subTitle }}) </span>
+        TTG&nbsp;
+        @if (subTitle) {
+          <span class="dial-text-subtitle"> ({{ subTitle }}) </span>
         }
       </div>
       <div class="dial-text-value">{{ ttg }}</div>
@@ -101,8 +103,9 @@ value: "<Date>" ETA date
   template: `
     <div class="dial-text mat-app-background">
       <div class="dial-text-title">
-        ETA&nbsp;@if(subTitle) {
-        <span class="dial-text-subtitle"> ({{ subTitle }}) </span>
+        ETA&nbsp;
+        @if (subTitle) {
+          <span class="dial-text-subtitle"> ({{ subTitle }}) </span>
         }
       </div>
       <div class="dial-text-value">{{ etaTime }}</div>

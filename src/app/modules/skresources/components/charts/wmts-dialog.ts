@@ -14,10 +14,10 @@ import { MatInputModule } from '@angular/material/input';
 import { MatListModule, MatSelectionListChange } from '@angular/material/list';
 import { AppFacade } from 'src/app/app.facade';
 import { SKChart } from 'src/app/modules/skresources/resource-classes';
-import { HttpClient, HttpErrorResponse } from '@angular/common/http';
+import { HttpClient } from '@angular/common/http';
 import { ChartProvider } from 'src/app/types';
 import { SKInfoLayer } from '../../custom-resource-classes';
-import { WMTSCapabilities } from 'ol/format';
+import { getWMTSLayers, WMTSGetCapabilities } from './wmslib';
 
 /********* WMTSDialog **********
 	data: <WMTSCapabilities.xml>
@@ -48,54 +48,57 @@ import { WMTSCapabilities } from 'ol/format';
       </mat-toolbar>
       <mat-dialog-content>
         @if (true) {
-        <mat-form-field floatLabel="always" style="width:100%">
-          <mat-label> WMTS host. </mat-label>
-          <input matInput #txturl type="url" required [(value)]="hostUrl" />
-          @if (txturl) {
-          <button
-            matSuffix
-            mat-icon-button
-            [disabled]="txturl.value.length === 0"
-            (click)="wmtsGetCapabilities(txturl.value)"
-          >
-            <mat-icon>arrow_forward</mat-icon>
-          </button>
-          }
-          <mat-hint> Enter url of the WMTS host. </mat-hint>
-          @if (txturl.invalid) {
-          <mat-error>WMTS host is required!</mat-error>
-          }
-        </mat-form-field>
-        } @if (isFetching) {
-        <mat-progress-bar mode="query"></mat-progress-bar>
-        } @else { @if (errorMsg) {
-        <mat-error>Error retrieving capabilities from server!</mat-error>
+          <mat-form-field floatLabel="always" style="width:100%">
+            <mat-label> WMTS host. </mat-label>
+            <input matInput #txturl type="url" required [(value)]="hostUrl" />
+            @if (txturl) {
+              <button
+                matSuffix
+                mat-icon-button
+                [disabled]="txturl.value.length === 0"
+                (click)="getCapabilities(txturl.value)"
+              >
+                <mat-icon>arrow_forward</mat-icon>
+              </button>
+            }
+            <mat-hint> Enter url of the WMTS host. </mat-hint>
+            @if (txturl.invalid) {
+              <mat-error>WMTS host is required!</mat-error>
+            }
+          </mat-form-field>
+        }
+        @if (isFetching) {
+          <mat-progress-bar mode="query"></mat-progress-bar>
         } @else {
-        <div>
-          @if (wmtsLayers.length > 0) {
-          <div style="height: 200px;overflow-x: hidden;overflow-y: auto;">
-            <mat-selection-list
-              #wlayers
-              (selectionChange)="handleSelection($event)"
-            >
-              @for(layer of wmtsLayers; track layer; let idx = $index) {
-              <mat-list-option [value]="idx">
-                <span matListItemTitle>{{ layer.name }}</span>
-                <span
-                  style="flex: 1 1 auto;white-space: pre; overflow:hidden;text-overflow:elipsis;"
-                  >{{ layer.description }}</span
-                >
-              </mat-list-option>
+          @if (errorMsg) {
+            <mat-error>Error retrieving capabilities from server!</mat-error>
+          } @else {
+            <div>
+              @if (wmtsLayers.length > 0) {
+                <div style="height: 200px;overflow-x: hidden;overflow-y: auto;">
+                  <mat-selection-list
+                    #wlayers
+                    (selectionChange)="handleSelection($event)"
+                  >
+                    @for (layer of wmtsLayers; track layer; let idx = $index) {
+                      <mat-list-option [value]="idx">
+                        <span matListItemTitle>{{ layer.name }}</span>
+                        <span
+                          style="flex: 1 1 auto;white-space: pre; overflow:hidden;text-overflow:elipsis;"
+                          >{{ layer.description }}</span
+                        >
+                      </mat-list-option>
+                    }
+                  </mat-selection-list>
+                </div>
+                <p>
+                  Selected: {{ wlayers.selectedOptions.selected.length }} of
+                  {{ wmtsLayers.length }}
+                </p>
               }
-            </mat-selection-list>
-          </div>
-          <p>
-            Selected: {{ wlayers.selectedOptions.selected.length }} of
-            {{ wmtsLayers.length }}
-          </p>
+            </div>
           }
-        </div>
-        } }
+        }
       </mat-dialog-content>
       <mat-dialog-actions>
         <button
@@ -146,8 +149,11 @@ export class WMTSDialog {
     this.dialogRef.close(sources);
   }
 
-  /** Make requests to WMTS server */
-  wmtsGetCapabilities(wmtsHost: string) {
+  /**
+   * Retrieve and process capabilities from WMS server
+   * @param wmtsHost WMTS server host url (without parameters)
+   */
+  async getCapabilities(wmtsHost: string) {
     this.selections = [];
     this.selectionInfo = [];
     this.wmtsLayers = [];
@@ -155,89 +161,23 @@ export class WMTSDialog {
 
     const url = wmtsHost + `?request=GetCapabilities&service=wmts`;
     this.isFetching = true;
-    this.http.get(url, { responseType: 'text' }).subscribe(
-      (res: string) => {
-        this.isFetching = false;
-        if (res.indexOf('<Capabilities') !== -1) {
-          const parser = new WMTSCapabilities();
-          const r = parser.read(res);
-          if (r.Contents?.Layer) {
-            this.wmtsLayers = this.getWMTSLayers(
-              r.Contents?.Layer,
-              wmtsHost
-            ).sort((a, b) => (a.name < b.name ? -1 : 1));
-          }
-        } else {
-          this.errorMsg = 'Invalid response received!';
-        }
-      },
-      (err: HttpErrorResponse) => {
-        this.isFetching = false;
-        this.fetchError = true;
-        this.errorMsg = err.message;
-      }
-    );
-  }
-
-  /** Retrieve the available layers from WMTS Capabilities metadata */
-  getWMTSLayers(
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    layers: { [key: string]: any },
-    urlBase: string
-  ): Array<ChartProvider | SKInfoLayer> {
-    const maps: Array<ChartProvider | SKInfoLayer> = [];
-    if (!layers) {
-      return maps;
-    }
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    layers.forEach((layer: any) => {
-      const ch = this.parseLayerEntry(layer, urlBase);
-      if (ch) {
-        maps.push(ch);
-      }
-    });
-    return maps;
-  }
-
-  /** Parse WMTS layer entry */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  parseLayerEntry(
-    layer: any,
-    urlBase: string
-  ): ChartProvider | SKInfoLayer | null {
-    if (layer.Identifier) {
-      if (this.data.format === 'infolayer') {
-        const l = new SKInfoLayer();
-        l.name = layer.Title ?? 'Untitled layer';
-        l.description = layer.Abstract ?? '';
-        l.values.layers = [layer.Identifier];
-        l.values.url = urlBase;
-        l.values.sourceType = 'WMTS';
-        return l;
+    try {
+      this.isFetching = true;
+      const capabilities = await WMTSGetCapabilities(wmtsHost);
+      this.isFetching = false;
+      if (capabilities && capabilities.Contents?.Layer) {
+        this.wmtsLayers = getWMTSLayers(
+          capabilities,
+          wmtsHost,
+          this.data.format
+        ).sort((a, b) => (a.name < b.name ? -1 : 1));
       } else {
-        const l: ChartProvider = {
-          name: layer.Title ?? 'Untitled layer',
-          description: layer.Abstract ?? '',
-          type: 'WMTS',
-          url: urlBase,
-          layers: [layer.Identifier]
-        };
-        if (
-          Array.isArray(layer.WGS84BoundingBox) &&
-          layer.WGS84BoundingBox.length > 0
-        ) {
-          l.bounds = layer.WGS84BoundingBox;
-        }
-        if (Array.isArray(layer.Format) && layer.Format.length > 0) {
-          const f = layer.Format[0];
-          l.format = f.includes('jpg') ? 'jpg' : 'png';
-        } else {
-          l.format = 'png';
-        }
-        return l;
+        this.errorMsg = 'Invalid response received!';
       }
-    } else {
-      return null;
+    } catch (err) {
+      this.isFetching = false;
+      this.fetchError = true;
+      this.errorMsg = err.message;
     }
   }
 }

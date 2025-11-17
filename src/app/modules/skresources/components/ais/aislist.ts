@@ -125,7 +125,10 @@ export class AISListComponent extends ResourceListBase {
     return getAisIcon(id).svgIcon;
   }
 
-  constructor(protected app: AppFacade, protected override skres: SKResourceService) {
+  constructor(
+    protected app: AppFacade,
+    protected override skres: SKResourceService
+  ) {
     super('aisTargets', skres);
   }
 

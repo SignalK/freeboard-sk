@@ -28,11 +28,11 @@ import { PopoverComponent } from './popover.component';
   template: `
     <ap-popover [title]="title" [canClose]="canClose" (closed)="handleClose()">
       <mat-nav-list>
-        @for(c of features; track c) {
-        <mat-list-item (click)="handleSelect(c.id)">
-          <mat-icon>map</mat-icon>
-          {{ c.text }}
-        </mat-list-item>
+        @for (c of features; track c) {
+          <mat-list-item (click)="handleSelect(c.id)">
+            <mat-icon>map</mat-icon>
+            {{ c.text }}
+          </mat-list-item>
         }
       </mat-nav-list>
     </ap-popover>

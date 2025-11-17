@@ -74,30 +74,32 @@ import { FBResourceSet, FBResourceSets } from 'src/app/types';
         </span>
       </mat-toolbar>
       @if (app.sIsFetching()) {
-      <mat-progress-bar mode="indeterminate"></mat-progress-bar>
-      } @else{ @for(res of resList(); track res[0]; let idx = $index) {
-      <mat-card>
-        <mat-card-content>
-          <div style="display:flex;flex-wrap:no-wrap;">
-            <div style="width:45px;">
-              <mat-checkbox
-                [checked]="res[2]"
-                (change)="handleCheck($event.checked, res[0], idx)"
-              ></mat-checkbox>
-            </div>
-            <div style="flex:1 1 auto;">
-              <div class="key-label">
-                {{ res[1].name }}
+        <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+      } @else {
+        @for (res of resList(); track res[0]; let idx = $index) {
+          <mat-card>
+            <mat-card-content>
+              <div style="display:flex;flex-wrap:no-wrap;">
+                <div style="width:45px;">
+                  <mat-checkbox
+                    [checked]="res[2]"
+                    (change)="handleCheck($event.checked, res[0], idx)"
+                  ></mat-checkbox>
+                </div>
+                <div style="flex:1 1 auto;">
+                  <div class="key-label">
+                    {{ res[1].name }}
+                  </div>
+                  <div class="key-desc">
+                    {{ res[1].description }}
+                  </div>
+                </div>
+                <div style="width:45px;"></div>
               </div>
-              <div class="key-desc">
-                {{ res[1].description }}
-              </div>
-            </div>
-            <div style="width:45px;"></div>
-          </div>
-        </mat-card-content>
-      </mat-card>
-      } }
+            </mat-card-content>
+          </mat-card>
+        }
+      }
     </div>
   `,
   styles: [

@@ -73,8 +73,10 @@ import { SignalKDetailsComponent } from '../../components/signalk-details.compon
                 showProperties ? 'keyboard_arrow_down' : 'keyboard_arrow_right'
               }}</mat-icon>
             </button>
-            @if(showProperties) {
-            <signalk-details-list [details]="properties"></signalk-details-list>
+            @if (showProperties) {
+              <signalk-details-list
+                [details]="properties"
+              ></signalk-details-list>
             }
           </div>
         </mat-card-content>

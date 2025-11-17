@@ -65,98 +65,111 @@ import { getAisIcon } from 'src/app/modules/icons';
                 <mat-icon>info</mat-icon>
               </a>
             </mat-card-subtitle>
-            @if(showFlag()) {
-            <img mat-card-sm-image [src]="flagIcon" (error)="imgError()" />
+            @if (showFlag()) {
+              <img mat-card-sm-image [src]="flagIcon" (error)="imgError()" />
             }
           </mat-card-title-group>
         </mat-card-header>
         <mat-card-content>
           <div style="display:flex;flex-direction: column;">
-            @if(data.target.type?.name) {
-            <div style="display:flex;">
-              <div class="key-label">Type:</div>
-              <div style="flex: 1 1 auto;">
-                {{ data.target.type?.name }}
+            @if (data.target.type?.name) {
+              <div style="display:flex;">
+                <div class="key-label">Type:</div>
+                <div style="flex: 1 1 auto;">
+                  {{ data.target.type?.name }}
+                </div>
               </div>
-            </div>
-            } @if(data.target.flag) {
-            <div style="display:flex;">
-              <div class="key-label">Flag:</div>
-              <div style="flex: 1 1 auto;">
-                {{ data.target.flag }}
+            }
+            @if (data.target.flag) {
+              <div style="display:flex;">
+                <div class="key-label">Flag:</div>
+                <div style="flex: 1 1 auto;">
+                  {{ data.target.flag }}
+                </div>
               </div>
-            </div>
-            } @if(data.target.port) {
-            <div style="display:flex;">
-              <div class="key-label">Port:</div>
-              <div style="flex: 1 1 auto;">{{ data.target.port }}</div>
-            </div>
-            } @if(data.target.registrations?.imo) {
-            <div style="display:flex;">
-              <div class="key-label">IMO:</div>
-              <div style="flex: 1 1 auto;">
-                {{ data.target.registrations?.imo }}
+            }
+            @if (data.target.port) {
+              <div style="display:flex;">
+                <div class="key-label">Port:</div>
+                <div style="flex: 1 1 auto;">{{ data.target.port }}</div>
               </div>
-            </div>
-            } @if(data.target.callsignVhf) {
-            <div style="display:flex;">
-              <div class="key-label">Call sign VHF:</div>
-              <div style="flex: 1 1 auto;">{{ data.target.callsignVhf }}</div>
-            </div>
-            } @if(data.target.callsignHf) {
-            <div style="display:flex;">
-              <div class="key-label">Call sign HF:</div>
-              <div style="flex: 1 1 auto;">{{ data.target.callsignHf }}</div>
-            </div>
-            }@if(data.target.design.length?.overall && data.target.design?.beam)
-            {
-            <div style="display:flex;">
-              <div class="key-label">Dimensions:</div>
-              <div style="flex: 1 1 auto;">
-                {{ display.length }} x
-                {{ display.beam }}
+            }
+            @if (data.target.registrations?.imo) {
+              <div style="display:flex;">
+                <div class="key-label">IMO:</div>
+                <div style="flex: 1 1 auto;">
+                  {{ data.target.registrations?.imo }}
+                </div>
               </div>
-            </div>
-            } @if(data.target.design.draft?.current) {
-            <div style="display:flex;">
-              <div class="key-label">Draft:</div>
-              <div style="flex: 1 1 auto;">
-                {{ display.draftCurrent }}
+            }
+            @if (data.target.callsignVhf) {
+              <div style="display:flex;">
+                <div class="key-label">Call sign VHF:</div>
+                <div style="flex: 1 1 auto;">{{ data.target.callsignVhf }}</div>
               </div>
-            </div>
-            } @if(data.target.design.draft?.maximum) {
-            <div style="display:flex;">
-              <div class="key-label">Draft (max):</div>
-              <div style="flex: 1 1 auto;">
-                {{ display.draftMax }}
+            }
+            @if (data.target.callsignHf) {
+              <div style="display:flex;">
+                <div class="key-label">Call sign HF:</div>
+                <div style="flex: 1 1 auto;">{{ data.target.callsignHf }}</div>
               </div>
-            </div>
-            } @if(data.target.design?.airHeight) {
-            <div style="display:flex;">
-              <div class="key-label">Height:</div>
-              <div style="flex: 1 1 auto;">
-                {{ display.airHeight }}
+            }
+            @if (
+              data.target.design.length?.overall && data.target.design?.beam
+            ) {
+              <div style="display:flex;">
+                <div class="key-label">Dimensions:</div>
+                <div style="flex: 1 1 auto;">
+                  {{ display.length }} x
+                  {{ display.beam }}
+                </div>
               </div>
-            </div>
-            } @if(data.target.state) {
-            <div style="display:flex;">
-              <div class="key-label">State:</div>
-              <div style="flex: 1 1 auto;">{{ data.target.state }}</div>
-            </div>
-            } @if(data.target.destination?.name) {
-            <div style="display:flex;">
-              <div class="key-label">Destination:</div>
-              <div style="flex: 1 1 auto;">
-                {{ data.target.destination.name }}
+            }
+            @if (data.target.design.draft?.current) {
+              <div style="display:flex;">
+                <div class="key-label">Draft:</div>
+                <div style="flex: 1 1 auto;">
+                  {{ display.draftCurrent }}
+                </div>
               </div>
-            </div>
-            } @if(data.target.destination?.eta) {
-            <div style="display:flex;">
-              <div class="key-label">ETA:</div>
-              <div style="flex: 1 1 auto;">
-                {{ data.target.destination.eta.toLocaleString() }}
+            }
+            @if (data.target.design.draft?.maximum) {
+              <div style="display:flex;">
+                <div class="key-label">Draft (max):</div>
+                <div style="flex: 1 1 auto;">
+                  {{ display.draftMax }}
+                </div>
               </div>
-            </div>
+            }
+            @if (data.target.design?.airHeight) {
+              <div style="display:flex;">
+                <div class="key-label">Height:</div>
+                <div style="flex: 1 1 auto;">
+                  {{ display.airHeight }}
+                </div>
+              </div>
+            }
+            @if (data.target.state) {
+              <div style="display:flex;">
+                <div class="key-label">State:</div>
+                <div style="flex: 1 1 auto;">{{ data.target.state }}</div>
+              </div>
+            }
+            @if (data.target.destination?.name) {
+              <div style="display:flex;">
+                <div class="key-label">Destination:</div>
+                <div style="flex: 1 1 auto;">
+                  {{ data.target.destination.name }}
+                </div>
+              </div>
+            }
+            @if (data.target.destination?.eta) {
+              <div style="display:flex;">
+                <div class="key-label">ETA:</div>
+                <div style="flex: 1 1 auto;">
+                  {{ data.target.destination.eta.toLocaleString() }}
+                </div>
+              </div>
             }
           </div>
         </mat-card-content>

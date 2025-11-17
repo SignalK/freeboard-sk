@@ -50,147 +50,158 @@ id: string - resource id
                                 text-overflow:ellipsis;"
         [innerHTML]="resource[1].description ?? ''"
       ></div>
-      @for(p of properties; track p) {
-      <div style="display:flex;">
-        <div style="font-weight:bold;">{{ p[0] }}:</div>
-        @if(p[0] !== 'Latitude' && p[0] !== 'Longitude') {
-        <div
-          style="flex: 1 1 auto;text-align:right;
+      @for (p of properties; track p) {
+        <div style="display:flex;">
+          <div style="font-weight:bold;">{{ p[0] }}:</div>
+          @if (p[0] !== 'Latitude' && p[0] !== 'Longitude') {
+            <div
+              style="flex: 1 1 auto;text-align:right;
                                   white-space:nowrap;
                                   overflow-x:hidden;
                                   text-overflow:ellipsis;"
-        >
-          {{ p[1] }}
+            >
+              {{ p[1] }}
+            </div>
+          }
+          @if (p[0] === 'Latitude') {
+            <div
+              style="flex: 1 1 auto;text-align:right;"
+              [innerText]="
+                p[1] | coords: app.config.units.positionFormat : true
+              "
+            ></div>
+          }
+          @if (p[0] === 'Longitude') {
+            <div
+              style="flex: 1 1 auto;text-align:right;"
+              [innerText]="p[1] | coords: app.config.units.positionFormat"
+            ></div>
+          }
         </div>
-        } @if(p[0] === 'Latitude') {
-        <div
-          style="flex: 1 1 auto;text-align:right;"
-          [innerText]="p[1] | coords : app.config.units.positionFormat : true"
-        ></div>
-        } @if(p[0] === 'Longitude') {
-        <div
-          style="flex: 1 1 auto;text-align:right;"
-          [innerText]="p[1] | coords : app.config.units.positionFormat"
-        ></div>
-        }
-      </div>
       }
 
       <div style="display:flex;flex-wrap: wrap;">
-        @if(ctrl.showModifyButton) {
-        <div class="popover-action-button">
-          <button
-            mat-button
-            (click)="emitModify()"
-            matTooltip="Modify / Move"
-            matTooltipPosition="after"
-            [disabled]="this.ctrl.isReadOnly"
-          >
-            <mat-icon>touch_app</mat-icon>
-            MOVE
-          </button>
-        </div>
-        } @if(ctrl.showAddNoteButton) {
-        <div class="popover-action-button">
-          <button
-            mat-button
-            (click)="emitAddNote()"
-            matTooltip="Add Note"
-            matTooltipPosition="after"
-          >
-            <mat-icon>local_offer</mat-icon>
-            ADD
-          </button>
-        </div>
-        } @if(ctrl.showDeleteButton) {
-        <div class="popover-action-button">
-          <button
-            mat-button
-            (click)="emitDelete()"
-            matTooltip="Delete"
-            matTooltipPosition="after"
-            [disabled]="this.ctrl.isReadOnly"
-          >
-            <mat-icon>delete</mat-icon>
-            DELETE
-          </button>
-        </div>
-        } @if(ctrl.canActivate && !ctrl.isActive) {
-        <div class="popover-action-button">
-          <button
-            mat-button
-            (click)="emitActive(true)"
-            [matTooltip]="
-              type === 'waypoint'
-                ? 'Navigate to Waypoint'
-                : 'Make this the Active Route'
-            "
-            matTooltipPosition="after"
-          >
-            <mat-icon>near_me</mat-icon>
-            {{ ctrl.activeText }}
-          </button>
-        </div>
+        @if (ctrl.showModifyButton) {
+          <div class="popover-action-button">
+            <button
+              mat-button
+              (click)="emitModify()"
+              matTooltip="Modify / Move"
+              matTooltipPosition="after"
+              [disabled]="this.ctrl.isReadOnly"
+            >
+              <mat-icon>touch_app</mat-icon>
+              MOVE
+            </button>
+          </div>
+        }
+        @if (ctrl.showAddNoteButton) {
+          <div class="popover-action-button">
+            <button
+              mat-button
+              (click)="emitAddNote()"
+              matTooltip="Add Note"
+              matTooltipPosition="after"
+            >
+              <mat-icon>local_offer</mat-icon>
+              ADD
+            </button>
+          </div>
+        }
+        @if (ctrl.showDeleteButton) {
+          <div class="popover-action-button">
+            <button
+              mat-button
+              (click)="emitDelete()"
+              matTooltip="Delete"
+              matTooltipPosition="after"
+              [disabled]="this.ctrl.isReadOnly"
+            >
+              <mat-icon>delete</mat-icon>
+              DELETE
+            </button>
+          </div>
+        }
+        @if (ctrl.canActivate && !ctrl.isActive) {
+          <div class="popover-action-button">
+            <button
+              mat-button
+              (click)="emitActive(true)"
+              [matTooltip]="
+                type === 'waypoint'
+                  ? 'Navigate to Waypoint'
+                  : 'Make this the Active Route'
+              "
+              matTooltipPosition="after"
+            >
+              <mat-icon>near_me</mat-icon>
+              {{ ctrl.activeText }}
+            </button>
+          </div>
         } @else if (ctrl.canActivate && ctrl.isActive) {
-        <div class="popover-action-button">
-          <button
-            mat-button
-            (click)="emitActive(false)"
-            matTooltip="Clear Destination"
-            matTooltipPosition="after"
-          >
-            <mat-icon>clear_all</mat-icon>
-            CLEAR
-          </button>
-        </div>
-        } @if(ctrl.showRelatedButton) {
-        <div class="popover-action-button">
-          <button
-            mat-button
-            (click)="emitRelated()"
-            matTooltip="Notes in Group"
-            matTooltipPosition="after"
-          >
-            <mat-icon>style</mat-icon>
-            GROUP
-          </button>
-        </div>
-        } @if(ctrl.showNotesButton) {
-        <div class="popover-action-button">
-          <button
-            mat-button
-            (click)="emitNotes()"
-            matTooltipPosition="after"
-            matTooltip="Show Notes"
-          >
-            <mat-icon>local_offer</mat-icon>
-            NOTES
-          </button>
-        </div>
-        } @if(ctrl.showInfoButton) {
-        <div class="popover-action-button">
-          <button
-            mat-button
-            (click)="emitInfo()"
-            matTooltip="Show Details"
-            matTooltipPosition="after"
-          >
-            <mat-icon>info_outline</mat-icon>
-            INFO
-          </button>
-        </div>
-        } @if(ctrl.showPointsButton) {
-        <div class="popover-action-button">
-          <button
-            mat-button
-            (click)="emitPoints()"
-            matTooltip="Route Waypoints"
-            matTooltipPosition="after"
-          >
-            <mat-icon>flag</mat-icon>
-            POINTS
-          </button>
-        </div>
+          <div class="popover-action-button">
+            <button
+              mat-button
+              (click)="emitActive(false)"
+              matTooltip="Clear Destination"
+              matTooltipPosition="after"
+            >
+              <mat-icon>clear_all</mat-icon>
+              CLEAR
+            </button>
+          </div>
+        }
+        @if (ctrl.showRelatedButton) {
+          <div class="popover-action-button">
+            <button
+              mat-button
+              (click)="emitRelated()"
+              matTooltip="Notes in Group"
+              matTooltipPosition="after"
+            >
+              <mat-icon>style</mat-icon>
+              GROUP
+            </button>
+          </div>
+        }
+        @if (ctrl.showNotesButton) {
+          <div class="popover-action-button">
+            <button
+              mat-button
+              (click)="emitNotes()"
+              matTooltipPosition="after"
+              matTooltip="Show Notes"
+            >
+              <mat-icon>local_offer</mat-icon>
+              NOTES
+            </button>
+          </div>
+        }
+        @if (ctrl.showInfoButton) {
+          <div class="popover-action-button">
+            <button
+              mat-button
+              (click)="emitInfo()"
+              matTooltip="Show Details"
+              matTooltipPosition="after"
+            >
+              <mat-icon>info_outline</mat-icon>
+              INFO
+            </button>
+          </div>
+        }
+        @if (ctrl.showPointsButton) {
+          <div class="popover-action-button">
+            <button
+              mat-button
+              (click)="emitPoints()"
+              matTooltip="Route Waypoints"
+              matTooltipPosition="after"
+            >
+              <mat-icon>flag</mat-icon>
+              POINTS
+            </button>
+          </div>
         }
       </div>
     </ap-popover>
@@ -437,30 +448,27 @@ id: string - resource id
 @Component({
   selector: 'resourceset-popover',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [
-    MatButtonModule,
-    MatTooltipModule,
-    MatIconModule,
-    PopoverComponent
-  ],
+  imports: [MatButtonModule, MatTooltipModule, MatIconModule, PopoverComponent],
   template: `
     <ap-popover [title]="title" [canClose]="canClose" (closed)="handleClose()">
-      @for(p of properties; track p) { @if(p[0] === 'Description') {
-      <div style="font-weight:bold;">{{ p[0] }}:</div>
-      <div style="flex: 1 1 auto;overflow-x:auto;height:60px;">
-        {{ p[1] }}
-      </div>
-      } @else {
-      <div style="display:flex;">
-        <div style="font-weight:bold;">{{ p[0] }}:</div>
-        <div
-          style="flex: 1 1 auto;text-align:right;white-space:nowrap;
+      @for (p of properties; track p) {
+        @if (p[0] === 'Description') {
+          <div style="font-weight:bold;">{{ p[0] }}:</div>
+          <div style="flex: 1 1 auto;overflow-x:auto;height:60px;">
+            {{ p[1] }}
+          </div>
+        } @else {
+          <div style="display:flex;">
+            <div style="font-weight:bold;">{{ p[0] }}:</div>
+            <div
+              style="flex: 1 1 auto;text-align:right;white-space:nowrap;
             overflow-x:auto;text-overflow:ellipsis;"
-        >
-          {{ p[1] }}
-        </div>
-      </div>
-      } }
+            >
+              {{ p[1] }}
+            </div>
+          </div>
+        }
+      }
       <div style="display:flex;flex-wrap: wrap;">
         <div class="popover-action-button">
           <button

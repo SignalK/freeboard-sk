@@ -375,8 +375,8 @@ export class AppFacade extends InfoService {
       typeof this.hostDef.params?.host !== 'undefined'
         ? this.hostDef.params.host
         : this.devMode && DEV_SERVER.host
-        ? DEV_SERVER.host
-        : window.location.hostname;
+          ? DEV_SERVER.host
+          : window.location.hostname;
 
     this.hostDef.ssl =
       window.location.protocol === 'https:' || (this.devMode && DEV_SERVER.ssl)
@@ -387,8 +387,8 @@ export class AppFacade extends InfoService {
       typeof this.hostDef.params.port !== 'undefined'
         ? parseInt(this.hostDef.params.port)
         : this.devMode && DEV_SERVER.port
-        ? DEV_SERVER.port
-        : parseInt(window.location.port);
+          ? DEV_SERVER.port
+          : parseInt(window.location.port);
 
     // if no port specified then set to 80 | 443
     this.hostDef.port = isNaN(this.hostDef.port)

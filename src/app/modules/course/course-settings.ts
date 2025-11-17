@@ -131,8 +131,8 @@ import { Subscription } from 'rxjs';
                 [disabled]="!targetArrivalEnabled"
                 (selectionChange)="onFormChange($event)"
               >
-                @for(i of hrValues(); track i) {
-                <mat-option [value]="i">{{ i }}</mat-option>
+                @for (i of hrValues(); track i) {
+                  <mat-option [value]="i">{{ i }}</mat-option>
                 }
               </mat-select>
             </mat-form-field>
@@ -145,8 +145,8 @@ import { Subscription } from 'rxjs';
                 [disabled]="!targetArrivalEnabled"
                 (selectionChange)="onFormChange($event)"
               >
-                @for(i of minValues(); track i) {
-                <mat-option [value]="i">{{ i }}</mat-option>
+                @for (i of minValues(); track i) {
+                  <mat-option [value]="i">{{ i }}</mat-option>
                 }
               </mat-select>
             </mat-form-field>
@@ -159,8 +159,8 @@ import { Subscription } from 'rxjs';
                 [disabled]="!targetArrivalEnabled"
                 (selectionChange)="onFormChange($event)"
               >
-                @for(i of minValues(); track i) {
-                <mat-option [value]="i">{{ i }}</mat-option>
+                @for (i of minValues(); track i) {
+                  <mat-option [value]="i">{{ i }}</mat-option>
                 }
               </mat-select>
             </mat-form-field>

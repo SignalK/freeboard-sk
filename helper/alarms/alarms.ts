@@ -164,8 +164,8 @@ class AreaAlarmManager {
               }has been entered.`
             : ''
           : alarm.active
-          ? `Vessel has left the monitored area ${area.name ?? ''}`
-          : '';
+            ? `Vessel has left the monitored area ${area.name ?? ''}`
+            : '';
 
       const state = alarm.active ? ALARM_STATE.alarm : ALARM_STATE.normal;
 

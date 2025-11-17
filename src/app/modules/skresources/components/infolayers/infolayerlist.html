@@ -28,7 +28,6 @@
               #ftext
               type="text"
               matInput
-              [disabled]="app.config.selections.aisFilterByShipType"
               [value]="filterText"
               (keyup)="filterKeyUp(ftext.value)"
             />
@@ -45,7 +44,6 @@
             (click)="initItems()"
             matTooltip="Reload Layers"
             matTooltipPosition="below"
-            [disabled]="app.config.selections.aisFilterByShipType"
           >
             <mat-icon>refresh</mat-icon>
           </button>
@@ -53,7 +51,6 @@
         <div>
           <mat-checkbox
             #selall
-            [disabled]="app.config.selections.aisFilterByShipType"
             [checked]="allSel"
             [indeterminate]="someSel"
             (change)="toggleAll($event.checked)"
@@ -147,6 +144,24 @@
                 </mat-form-field>
               </div>
             </div>
+            @if(r[1].values.time?.values && r[1].values.time?.values.length > 1
+            && r[2]) {
+            <div style="display: flex">
+              <mat-slider
+                style="flex: 2"
+                [disabled]="!r[2]"
+                min="0"
+                [max]="r[1].values.time?.values.length-1"
+              >
+                <input
+                  #timeValue
+                  matSliderThumb
+                  (valueChange)="handleSliderChange(r,$event); timeLabel.innerText = formatDateTime(r[1].values.time?.values[$event])"
+                />
+              </mat-slider>
+            </div>
+            <div style="display: flex" #timeLabel></div>
+            }
             <div style="display: flex">
               <div style="flex: 2">
                 <button

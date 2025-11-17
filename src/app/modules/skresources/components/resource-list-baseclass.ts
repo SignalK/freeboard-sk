@@ -13,7 +13,10 @@ export class ResourceListBase {
   protected fullList: Array<any> = [];
   protected filteredList = signal<any>([]);
 
-  constructor(collection: SKSelection, protected skres: SKResourceService) {
+  constructor(
+    collection: SKSelection,
+    protected skres: SKResourceService
+  ) {
     this.collection = collection;
   }
 

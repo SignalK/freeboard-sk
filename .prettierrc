@@ -1,5 +1,4 @@
 {
-  "attributeGroups": ["^class$", "^(id|name)$", "$DEFAULT", "^aria-"],
   "semi": true,
   "singleQuote": true,
   "trailingComma": "none"

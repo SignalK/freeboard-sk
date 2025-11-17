@@ -15,19 +15,9 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatInputModule } from '@angular/material/input';
 import { AppFacade } from 'src/app/app.facade';
 import { SKChart } from 'src/app/modules/skresources/resource-classes';
-import { HttpClient, HttpErrorResponse } from '@angular/common/http';
-import { parseString } from 'xml2js';
 import { ChartProvider } from 'src/app/types';
 import { SKInfoLayer } from '../../custom-resource-classes';
-
-interface LayerNode {
-  name: string;
-  title?: string;
-  description: string;
-  children?: LayerNode[];
-  selected: boolean;
-  parent: LayerNode;
-}
+import { WMSGetCapabilities, LayerNode, parseWMSCapabilities } from './wmslib';
 
 /********* WMSDialog **********
 	data: <WMSCapabilities.xml>
@@ -59,71 +49,79 @@ interface LayerNode {
       </mat-toolbar>
       <mat-dialog-content>
         @if (true) {
-        <mat-form-field floatLabel="always" style="width:100%">
-          <mat-label> WMS host. </mat-label>
-          <input matInput #txturl type="url" required [(value)]="hostUrl" />
-          @if (txturl) {
-          <button
-            matSuffix
-            mat-icon-button
-            [disabled]="txturl.value.length === 0"
-            (click)="wmsGetCapabilities(txturl.value)"
-          >
-            <mat-icon>arrow_forward</mat-icon>
-          </button>
-          }
-          <mat-hint> Enter url of the WMS host. </mat-hint>
-          @if (txturl.invalid) {
-          <mat-error>WMS host is required!</mat-error>
-          }
-        </mat-form-field>
-        } @if (isFetching) {
-        <mat-progress-bar mode="query"></mat-progress-bar>
-        } @else { @if (errorMsg) {
-        <mat-error>Error retrieving capabilities from server!</mat-error>
-        } @else {
-        <div>
-          <mat-tree
-            class="wms-tree"
-            #tree
-            [dataSource]="dataSource"
-            [childrenAccessor]="childrenAccessor"
-          >
-            <mat-nested-tree-node *matTreeNodeDef="let node">
-              <mat-checkbox
-                [matTooltip]="node.description"
-                [checked]="node.selected"
-                (change)="toggleSelection($event.checked, node)"
+          <mat-form-field floatLabel="always" style="width:100%">
+            <mat-label> WMS host. </mat-label>
+            <input matInput #txturl type="url" required [(value)]="hostUrl" />
+            @if (txturl) {
+              <button
+                matSuffix
+                mat-icon-button
+                [disabled]="txturl.value.length === 0"
+                (click)="getCapabilities(txturl.value)"
               >
-                {{ node.name }}
-              </mat-checkbox>
-            </mat-nested-tree-node>
-            <mat-nested-tree-node *matTreeNodeDef="let node; when: hasChild">
-              <div class="mat-tree-node">
-                <button mat-icon-button matTreeNodeToggle>
-                  <mat-icon class="mat-icon-rtl-mirror">
-                    {{
-                      tree.isExpanded(node)
-                        ? 'expand_circle_down'
-                        : 'chevron_right'
-                    }}
-                  </mat-icon>
-                </button>
-                <mat-checkbox
-                  [matTooltip]="node.description"
-                  [checked]="node.selected"
-                  (change)="toggleSelection($event.checked, node)"
+                <mat-icon>arrow_forward</mat-icon>
+              </button>
+            }
+            <mat-hint> Enter url of the WMS host. </mat-hint>
+            @if (txturl.invalid) {
+              <mat-error>WMS host is required!</mat-error>
+            }
+          </mat-form-field>
+        }
+        @if (isFetching) {
+          <mat-progress-bar mode="query"></mat-progress-bar>
+        } @else {
+          @if (errorMsg) {
+            <mat-error>Error retrieving capabilities from server!</mat-error>
+          } @else {
+            <div>
+              <mat-tree
+                class="wms-tree"
+                #tree
+                [dataSource]="dataSource"
+                [childrenAccessor]="childrenAccessor"
+              >
+                <mat-nested-tree-node *matTreeNodeDef="let node">
+                  <mat-checkbox
+                    [matTooltip]="node.description"
+                    [checked]="node.selected"
+                    (change)="toggleSelection($event.checked, node)"
+                  >
+                    {{ node.title ?? node.name }}
+                  </mat-checkbox>
+                </mat-nested-tree-node>
+                <mat-nested-tree-node
+                  *matTreeNodeDef="let node; when: hasChild"
                 >
-                  {{ node.title ?? node.name }}
-                </mat-checkbox>
-              </div>
-              <div role="group" [class.tree-invisible]="!tree.isExpanded(node)">
-                <ng-container matTreeNodeOutlet></ng-container>
-              </div>
-            </mat-nested-tree-node>
-          </mat-tree>
-        </div>
-        } }
+                  <div class="mat-tree-node">
+                    <button mat-icon-button matTreeNodeToggle>
+                      <mat-icon class="mat-icon-rtl-mirror">
+                        {{
+                          tree.isExpanded(node)
+                            ? 'expand_circle_down'
+                            : 'chevron_right'
+                        }}
+                      </mat-icon>
+                    </button>
+                    <mat-checkbox
+                      [matTooltip]="node.description"
+                      [checked]="node.selected"
+                      (change)="toggleSelection($event.checked, node)"
+                    >
+                      {{ node.title ?? node.name }}
+                    </mat-checkbox>
+                  </div>
+                  <div
+                    role="group"
+                    [class.tree-invisible]="!tree.isExpanded(node)"
+                  >
+                    <ng-container matTreeNodeOutlet></ng-container>
+                  </div>
+                </mat-nested-tree-node>
+              </mat-tree>
+            </div>
+          }
+        }
       </mat-dialog-content>
       <mat-dialog-actions>
         <button
@@ -173,7 +171,6 @@ export class WMSDialog {
   constructor(
     public app: AppFacade,
     public dialogRef: MatDialogRef<WMSDialog>,
-    private http: HttpClient,
     @Inject(MAT_DIALOG_DATA) public data: SKChart
   ) {}
 
@@ -205,6 +202,7 @@ export class WMSDialog {
       s.name = l.name;
       s.description = l.description;
       s.values.layers = [l.name];
+      s.values.time = l.time;
       s.values.url = this.wmsBase.url;
       s.values.sourceType = 'WMS';
       return s;
@@ -243,96 +241,34 @@ export class WMSDialog {
     this.dialogRef.close(Object.values(this.wmsSources));
   }
 
-  /** Make requests to WMS server */
-  protected wmsGetCapabilities(wmsHost: string) {
+  /**
+   * Retrieve and process capabilities from WMS server
+   * @param wmsHost WMS server host url (without parameters)
+   */
+  protected async getCapabilities(wmsHost: string) {
     this.selections = [];
     this.errorMsg = '';
-
-    const url = wmsHost + `?request=getcapabilities&service=wms`;
-    this.isFetching = true;
-    this.http.get(url, { responseType: 'text' }).subscribe(
-      (res: string) => {
-        this.isFetching = false;
-        this.dataSource = [];
-        if (res.indexOf('<Capability') !== -1) {
-          this.parseCapabilities(res, wmsHost);
-        } else {
-          this.errorMsg = 'Invalid response received!';
-        }
-      },
-      (err: HttpErrorResponse) => {
-        this.isFetching = false;
-        this.fetchError = true;
-        this.errorMsg = err.message;
-      }
-    );
-  }
-
-  /** Parse WMSCapabilities.xml */
-  private parseCapabilities(xml: string, urlBase: string) {
-    this.wmsBase = {
-      name: '',
-      description: '',
-      type: 'WMS',
-      url: urlBase,
-      layers: []
-    };
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    parseString(xml, (err: Error, result: any) => {
-      if (err) {
-        this.errorMsg = 'ERROR parsing XML!';
-        console.log('EROR parsing XML!', err);
+    try {
+      this.isFetching = true;
+      const capabilities = await WMSGetCapabilities(wmsHost);
+      this.isFetching = false;
+      this.dataSource = [];
+      if (capabilities && capabilities.Capability) {
+        this.wmsBase = {
+          name: '',
+          description: '',
+          type: 'WMS',
+          url: wmsHost,
+          layers: []
+        };
+        parseWMSCapabilities(capabilities, this.dataSource);
       } else {
-        if (!result.WMS_Capabilities && !result.WMT_MS_Capabilities) {
-          this.errorMsg = 'ERROR Unable to get Capabilities!';
-          console.log('ERROR Unable to get Capabilities!', err);
-        } else {
-          this.getWMSLayers(result);
-        }
+        this.errorMsg = 'Invalid response received!';
       }
-    });
-  }
-
-  /** Retrieve the available layers from WMS Capabilities metadata */
-  private getWMSLayers(
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    json: { [key: string]: any }
-  ): ChartProvider[] {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let rootNode: any;
-    if (json.WMS_Capabilities) {
-      rootNode = json.WMS_Capabilities;
-    } else if (json.WMT_MS_Capabilities) {
-      rootNode = json.WMT_MS_Capabilities;
+    } catch (err) {
+      this.isFetching = false;
+      this.fetchError = true;
+      this.errorMsg = err.message;
     }
-
-    if (!rootNode.Capability[0].Layer) {
-      return;
-    }
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    rootNode.Capability[0].Layer.forEach((layer: any) => {
-      this.parselayer(layer, this.dataSource);
-    });
-    this.dataSource.sort((a, b) => (a.name < b.name ? -1 : 1));
-    //this.dataChange.next(this.dataSource);
-  }
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private parselayer(layer: any, cList: LayerNode[], parent: LayerNode = null) {
-    const node: LayerNode = {
-      name: layer['Name'] ? layer['Name'][0] : '',
-      description: layer['Abstract'] ? layer['Abstract'][0] : '',
-      selected: false,
-      parent: parent
-    };
-    if (layer['Title']) {
-      node.title = layer['Title'][0];
-    }
-    if (layer.Layer) {
-      node.children = [];
-      layer.Layer.forEach((l) => this.parselayer(l, node.children));
-    }
-    cList.push(node);
   }
 }

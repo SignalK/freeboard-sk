@@ -26,30 +26,30 @@ import { SKResourceService } from '../../resources.service';
             cdkDropList
             (cdkDropListDropped)="drop($event)"
           >
-            @for(ch of chartList; track ch; let i = $index) {
-            <mat-card cdkDrag style="border-radius: unset;">
-              <mat-card-content>
-                <div class="point-drop-placeholder" *cdkDragPlaceholder></div>
+            @for (ch of chartList; track ch; let i = $index) {
+              <mat-card cdkDrag style="border-radius: unset;">
+                <mat-card-content>
+                  <div class="point-drop-placeholder" *cdkDragPlaceholder></div>
 
-                <div
-                  style="display:flex;"
-                  [style.cursor]="i > 0 ? 'pointer' : 'initial'"
-                >
-                  <div style="width:35px;">
-                    <mat-icon color="">{{ isLocal(ch[1].url) }}</mat-icon>
-                  </div>
                   <div
-                    style="flex: 1 1 auto;text-overflow: ellipsis;
-                        white-space: pre;overflow-x: hidden;"
+                    style="display:flex;"
+                    [style.cursor]="i > 0 ? 'pointer' : 'initial'"
                   >
-                    {{ ch[1].name }}
+                    <div style="width:35px;">
+                      <mat-icon color="">{{ isLocal(ch[1].url) }}</mat-icon>
+                    </div>
+                    <div
+                      style="flex: 1 1 auto;text-overflow: ellipsis;
+                        white-space: pre;overflow-x: hidden;"
+                    >
+                      {{ ch[1].name }}
+                    </div>
+                    <div cdkDragHandle matTooltip="Drag to re-order charts">
+                      <mat-icon>drag_indicator</mat-icon>
+                    </div>
                   </div>
-                  <div cdkDragHandle matTooltip="Drag to re-order charts">
-                    <mat-icon>drag_indicator</mat-icon>
-                  </div>
-                </div>
-              </mat-card-content>
-            </mat-card>
+                </mat-card-content>
+              </mat-card>
             }
           </div>
         </div>
@@ -98,8 +98,10 @@ import { SKResourceService } from '../../resources.service';
         background-color: whitesmoke;
         box-sizing: border-box;
         border-radius: 4px;
-        box-shadow: 0 5px 5px -3px rgba(0, 0, 0, 0.2),
-          0 8px 10px 1px rgba(0, 0, 0, 0.14), 0 3px 14px 2px rgba(0, 0, 0, 0.12);
+        box-shadow:
+          0 5px 5px -3px rgba(0, 0, 0, 0.2),
+          0 8px 10px 1px rgba(0, 0, 0, 0.14),
+          0 3px 14px 2px rgba(0, 0, 0, 0.12);
       }
     `
   ]
@@ -109,7 +111,10 @@ export class ChartLayers implements OnInit {
 
   protected chartList = [];
 
-  constructor(public app: AppFacade, private skres: SKResourceService) {}
+  constructor(
+    public app: AppFacade,
+    private skres: SKResourceService
+  ) {}
 
   //** lifecycle: events **
   ngOnInit() {

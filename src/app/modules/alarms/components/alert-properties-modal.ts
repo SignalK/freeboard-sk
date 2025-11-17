@@ -57,18 +57,18 @@ import { NotificationManager } from '../notification-manager';
       <mat-card>
         <mat-card-content>
           <div style="display:flex;flex-direction: column;">
-            @if(data.alert.canAcknowledge && !data.alert.acknowledged) {
-            <div style="display:flex;">
-              <div style="flex: 1 1 auto;">
-                <button
-                  class="button-warn"
-                  mat-raised-button
-                  (click)="notiMgr.acknowledge(data.alert.path)"
-                >
-                  <mat-icon>check</mat-icon> Acknowledge
-                </button>
+            @if (data.alert.canAcknowledge && !data.alert.acknowledged) {
+              <div style="display:flex;">
+                <div style="flex: 1 1 auto;">
+                  <button
+                    class="button-warn"
+                    mat-raised-button
+                    (click)="notiMgr.acknowledge(data.alert.path)"
+                  >
+                    <mat-icon>check</mat-icon> Acknowledge
+                  </button>
+                </div>
               </div>
-            </div>
             }
             <div style="display:flex;">
               <div class="key-label">Message:</div>
@@ -86,16 +86,21 @@ import { NotificationManager } from '../notification-manager';
               <div class="key-label">Raised at:</div>
               <div style="flex: 1 1 auto;">{{ raisedAt }}</div>
             </div>
-            @if(hasProperties) {
-            <button mat-stroked-button (click)="toggleProperties()">
-              <span>Show {{ showProperties ? 'Less' : 'More' }}</span>
-              <mat-icon>{{
-                showProperties ? 'keyboard_arrow_down' : 'keyboard_arrow_right'
-              }}</mat-icon>
-            </button>
-            @if(showProperties) {
-            <signalk-details-list [details]="properties"></signalk-details-list>
-            } }
+            @if (hasProperties) {
+              <button mat-stroked-button (click)="toggleProperties()">
+                <span>Show {{ showProperties ? 'Less' : 'More' }}</span>
+                <mat-icon>{{
+                  showProperties
+                    ? 'keyboard_arrow_down'
+                    : 'keyboard_arrow_right'
+                }}</mat-icon>
+              </button>
+              @if (showProperties) {
+                <signalk-details-list
+                  [details]="properties"
+                ></signalk-details-list>
+              }
+            }
           </div>
         </mat-card-content>
       </mat-card>

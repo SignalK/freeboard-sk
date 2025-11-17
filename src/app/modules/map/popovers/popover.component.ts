@@ -46,22 +46,27 @@ measure: boolean= measure mode;
                                 line-clamp: 1;
                                 text-overflow:ellipsis;"
         >
-          @if(mmsi) {
-          <mat-icon>
-            <country-flag [mmsi]="mmsi" [host]="app.hostDef.url"></country-flag>
-          </mat-icon>
-          } @if(icon) {
-          <mat-icon [class]="icon.class" [svgIcon]="icon.svgIcon">{{
-            icon.name
-          }}</mat-icon>
-          } &nbsp;{{ title }}
+          @if (mmsi) {
+            <mat-icon>
+              <country-flag
+                [mmsi]="mmsi"
+                [host]="app.hostDef.url"
+              ></country-flag>
+            </mat-icon>
+          }
+          @if (icon) {
+            <mat-icon [class]="icon.class" [svgIcon]="icon.svgIcon">{{
+              icon.name
+            }}</mat-icon>
+          }
+          &nbsp;{{ title }}
         </div>
-        @if(canClose) {
-        <div style="">
-          <button mat-icon-button (click)="handleClose()">
-            <mat-icon>close</mat-icon>
-          </button>
-        </div>
+        @if (canClose) {
+          <div style="">
+            <button mat-icon-button (click)="handleClose()">
+              <mat-icon>close</mat-icon>
+            </button>
+          </div>
         }
       </div>
       <div class="popover-content">

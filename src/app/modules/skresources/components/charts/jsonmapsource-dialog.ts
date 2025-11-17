@@ -75,53 +75,55 @@ interface TileJson {
           <mat-label> Map Server host. </mat-label>
           <input matInput #txturl type="url" required [(value)]="hostUrl" />
           @if (txturl) {
-          <button
-            matSuffix
-            mat-icon-button
-            [disabled]="txturl.value.length === 0"
-            (click)="getJsonFile(txturl.value)"
-          >
-            <mat-icon>arrow_forward</mat-icon>
-          </button>
+            <button
+              matSuffix
+              mat-icon-button
+              [disabled]="txturl.value.length === 0"
+              (click)="getJsonFile(txturl.value)"
+            >
+              <mat-icon>arrow_forward</mat-icon>
+            </button>
           }
           <mat-hint> Enter url of the Map Server. </mat-hint>
           @if (txturl.invalid) {
-          <mat-error>Map server host url is required!</mat-error>
+            <mat-error>Map server host url is required!</mat-error>
           }
         </mat-form-field>
         @if (isFetching) {
-        <mat-progress-bar mode="query"></mat-progress-bar>
-        } @else { @if (errorMsg) {
-        <mat-error>Error retrieving data from server!</mat-error>
+          <mat-progress-bar mode="query"></mat-progress-bar>
         } @else {
-        <div>
-          @if (provider) {
-          <br />
-          <div style="height: 200px;overflow-x: hidden;overflow-y: auto;">
-            <div class="row">
-              <div class="label">Source:</div>
-              <div class="value">{{ details.type }}</div>
+          @if (errorMsg) {
+            <mat-error>Error retrieving data from server!</mat-error>
+          } @else {
+            <div>
+              @if (provider) {
+                <br />
+                <div style="height: 200px;overflow-x: hidden;overflow-y: auto;">
+                  <div class="row">
+                    <div class="label">Source:</div>
+                    <div class="value">{{ details.type }}</div>
+                  </div>
+                  <div class="row">
+                    <div class="label">Name:</div>
+                    <div class="value">{{ details.name }}</div>
+                  </div>
+                  <div class="row">
+                    <div class="label">Version:</div>
+                    <div class="value">{{ details.version }}</div>
+                  </div>
+                  <div class="row">
+                    <div class="label">Layers:</div>
+                    <div class="value">
+                      @for (l of details.layers; track l) {
+                        <div>{{ l }}</div>
+                      }
+                    </div>
+                  </div>
+                </div>
+              }
             </div>
-            <div class="row">
-              <div class="label">Name:</div>
-              <div class="value">{{ details.name }}</div>
-            </div>
-            <div class="row">
-              <div class="label">Version:</div>
-              <div class="value">{{ details.version }}</div>
-            </div>
-            <div class="row">
-              <div class="label">Layers:</div>
-              <div class="value">
-                @for (l of details.layers; track l) {
-                <div>{{ l }}</div>
-                }
-              </div>
-            </div>
-          </div>
           }
-        </div>
-        } }
+        }
       </mat-dialog-content>
       <mat-dialog-actions>
         <button mat-raised-button [disabled]="!provider" (click)="handleSave()">
@@ -195,8 +197,8 @@ export class JsonMapSourceDialog {
               layers: (res as MapboxStyle).layers
                 ? (res as MapboxStyle).layers.map((l) => l.id)
                 : (res as TileJson).vector_layers
-                ? (res as TileJson).vector_layers.map((l) => l.id)
-                : []
+                  ? (res as TileJson).vector_layers.map((l) => l.id)
+                  : []
             };
           } else {
             this.fetchError = true;

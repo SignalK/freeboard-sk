@@ -7,7 +7,11 @@ import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatCheckboxModule } from '@angular/material/checkbox';
-import { MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
+import {
+  MatDialogModule,
+  MatDialogRef,
+  MAT_DIALOG_DATA
+} from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
@@ -23,20 +27,17 @@ import { MatStepperModule } from '@angular/material/stepper';
 ***********************************/
 @Component({
   selector: 'ap-msgbox',
-  imports: [
-    MatDialogModule,
-    MatButtonModule
-  ],
+  imports: [MatDialogModule, MatButtonModule],
   template: `
     <div class="_ap-msgbox">
       <div>
         <h1 mat-dialog-title>{{ data.title }}</h1>
       </div>
       <mat-dialog-content>
-        @for(line of msglines; track line) {
-        <div>
-          <div>{{ line }}&nbsp;</div>
-        </div>
+        @for (line of msglines; track line) {
+          <div>
+            <div>{{ line }}&nbsp;</div>
+          </div>
         }
       </mat-dialog-content>
       <mat-dialog-actions align="center">
@@ -79,11 +80,7 @@ export class MsgBox implements OnInit {
 ***********************************/
 @Component({
   selector: 'ap-alertdialog',
-  imports: [
-    MatDialogModule,
-    MatIconModule,
-    MatButtonModule
-  ],
+  imports: [MatDialogModule, MatIconModule, MatButtonModule],
   template: `
     <div class="_ap-alert">
       <div>
@@ -95,10 +92,10 @@ export class MsgBox implements OnInit {
       <mat-dialog-content>
         <div style="display:flex;">
           <div style="padding-left: 10px;">
-            @for(line of msglines; track line) {
-            <div>
-              <div>{{ line }}&nbsp;</div>
-            </div>
+            @for (line of msglines; track line) {
+              <div>
+                <div>{{ line }}&nbsp;</div>
+              </div>
             }
           </div>
         </div>
@@ -145,12 +142,7 @@ export class AlertDialog implements OnInit {
 ***********************************/
 @Component({
   selector: 'ap-confirmdialog',
-  imports: [
-    MatDialogModule,
-    MatIconModule,
-    MatCheckboxModule,
-    MatButtonModule
-  ],
+  imports: [MatDialogModule, MatIconModule, MatCheckboxModule, MatButtonModule],
   template: `
     <div class="_ap-confirm">
       <div>
@@ -162,22 +154,22 @@ export class AlertDialog implements OnInit {
       <mat-dialog-content style="overflow:unset">
         <div style="display:flex;">
           <div style="padding-left: 10px;">
-            @for(line of msglines; track line) {
-            <div>
-              <div>{{ line }}&nbsp;</div>
-            </div>
+            @for (line of msglines; track line) {
+              <div>
+                <div>{{ line }}&nbsp;</div>
+              </div>
             }
           </div>
         </div>
         <div style="display:flex;">
-          @if(data.checkText) {
-          <div style="padding-left: 10px;">
-            <div style="font-weight: 500;">
-              <mat-checkbox (change)="checked = $event.checked">
-                {{ data.checkText }}&nbsp;
-              </mat-checkbox>
+          @if (data.checkText) {
+            <div style="padding-left: 10px;">
+              <div style="font-weight: 500;">
+                <mat-checkbox (change)="checked = $event.checked">
+                  {{ data.checkText }}&nbsp;
+                </mat-checkbox>
+              </div>
             </div>
-          </div>
           }
         </div>
       </mat-dialog-content>
@@ -231,11 +223,7 @@ export class ConfirmDialog implements OnInit {
 ***************************************/
 @Component({
   selector: 'ap-about-dialog',
-  imports: [
-    MatDialogModule,
-    MatIconModule,
-    MatButtonModule
-  ],
+  imports: [MatDialogModule, MatIconModule, MatButtonModule],
   template: `
     <div>
       <h1 mat-dialog-title><mat-icon>info</mat-icon>&nbsp;About</h1>
@@ -255,11 +243,12 @@ export class ConfirmDialog implements OnInit {
         </div>
       </mat-dialog-content>
       <mat-dialog-actions align="center">
-        @if(data.url) {
-        <a mat-button [href]="data.url" target="_web" rel="noopener"
-          >Visit Website</a
-        >
-        &nbsp; }
+        @if (data.url) {
+          <a mat-button [href]="data.url" target="_web" rel="noopener"
+            >Visit Website</a
+          >
+          &nbsp;
+        }
         <button mat-raised-button (click)="dialogRef.close(false)">
           Close
         </button>
@@ -424,16 +413,14 @@ export class LoginDialog implements OnInit {
 ***************************************/
 @Component({
   selector: 'message-bar',
-  imports: [
-    MatIconModule
-  ],
+  imports: [MatIconModule],
   template: `
     <div class="message-bar">
       <mat-icon>message</mat-icon>&nbsp;&nbsp;
       {{ data.message }}
     </div>
-    @if(data.sound) {
-    <audio src="./assets/sound/ding.mp3" [autoplay]="true"></audio>
+    @if (data.sound) {
+      <audio src="./assets/sound/ding.mp3" [autoplay]="true"></audio>
     }
   `,
   styles: [
@@ -467,50 +454,50 @@ export class MessageBarComponent {
     <mat-dialog-content>
       <div class="welcome">
         <mat-horizontal-stepper [linear]="false" #stepper>
-          @for(c of data.content; track c; let i = $index) {
-          <mat-step>
-            <div style="text-align:center;">
-              <h3>{{ c.title }}</h3>
-            </div>
-            <div style="display:flex;">
-              <div style="min-width:50px;text-align:left;padding-top: 15%;">
-                @if(i !== 0 && data.content.length > 1) {
-                <button
-                  mat-icon-button
-                  (click)="currentPage = currentPage - 1"
-                  matStepperPrevious
-                >
-                  <mat-icon>keyboard_arrow_left</mat-icon>
-                </button>
-                }
+          @for (c of data.content; track c; let i = $index) {
+            <mat-step>
+              <div style="text-align:center;">
+                <h3>{{ c.title }}</h3>
               </div>
-              <div style="flex: 1 1 auto;" [innerHTML]="c.message"></div>
-              <div style="min-width:50px;text-align:right;padding-top: 15%;">
-                @if(i !== data.content.length - 1) {
-                <button
-                  mat-icon-button
-                  (click)="currentPage = currentPage + 1"
-                  matStepperNext
-                >
-                  <mat-icon>keyboard_arrow_right</mat-icon>
-                </button>
-                }
+              <div style="display:flex;">
+                <div style="min-width:50px;text-align:left;padding-top: 15%;">
+                  @if (i !== 0 && data.content.length > 1) {
+                    <button
+                      mat-icon-button
+                      (click)="currentPage = currentPage - 1"
+                      matStepperPrevious
+                    >
+                      <mat-icon>keyboard_arrow_left</mat-icon>
+                    </button>
+                  }
+                </div>
+                <div style="flex: 1 1 auto;" [innerHTML]="c.message"></div>
+                <div style="min-width:50px;text-align:right;padding-top: 15%;">
+                  @if (i !== data.content.length - 1) {
+                    <button
+                      mat-icon-button
+                      (click)="currentPage = currentPage + 1"
+                      matStepperNext
+                    >
+                      <mat-icon>keyboard_arrow_right</mat-icon>
+                    </button>
+                  }
+                </div>
               </div>
-            </div>
-          </mat-step>
+            </mat-step>
           }
         </mat-horizontal-stepper>
         <div style="text-align:center;font-size:10pt;font-family:roboto;">
-          @for(c of data.content; track c; let i = $index) {
-          <mat-icon
-            [ngClass]="{
-              'step-current': currentPage - 1 === i,
-              'step-other': currentPage - 1 !== i
-            }"
-            style="font-size:8pt;width:12px;"
-          >
-            fiber_manual_record
-          </mat-icon>
+          @for (c of data.content; track c; let i = $index) {
+            <mat-icon
+              [ngClass]="{
+                'step-current': currentPage - 1 === i,
+                'step-other': currentPage - 1 !== i
+              }"
+              style="font-size:8pt;width:12px;"
+            >
+              fiber_manual_record
+            </mat-icon>
           }
         </div>
         <div style="text-align:center;">

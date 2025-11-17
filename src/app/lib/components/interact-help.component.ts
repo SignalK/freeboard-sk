@@ -29,60 +29,64 @@ import { Measurements } from './measurements.component';
   ],
   template: `
     <div class="mat-app-background _ap_interact_help">
-      @if(showHelpPanel()) {
-      <div class="mat-app-background measurePanel">
-        <div>
-          <span style="font-weight: bold; padding: 5px">
-            <mat-icon>{{ mode.iconName }}</mat-icon> {{ mode.iconText }}
-          </span>
-          @if(mode.description.length !== 0) {
-          <div style="padding: 5px">
-            {{ mode.description }}
-          </div>
-          } @if(mode.steps.length !== 0) {
-          <div style="padding: 5px">
-            <ol
-              style="
+      @if (showHelpPanel()) {
+        <div class="mat-app-background measurePanel">
+          <div>
+            <span style="font-weight: bold; padding: 5px">
+              <mat-icon>{{ mode.iconName }}</mat-icon> {{ mode.iconText }}
+            </span>
+            @if (mode.description.length !== 0) {
+              <div style="padding: 5px">
+                {{ mode.description }}
+              </div>
+            }
+            @if (mode.steps.length !== 0) {
+              <div style="padding: 5px">
+                <ol
+                  style="
                 margin-block-start: 0.2em;
                 margin-block-end: 0.2em;
                 padding-inline-start: 15px;
               "
-            >
-              @for(step of mode.steps; track step) {
-              <li>{{ step }}</li>
-              }
-            </ol>
+                >
+                  @for (step of mode.steps; track step) {
+                    <li>{{ step }}</li>
+                  }
+                </ol>
+              </div>
+            }
           </div>
-          }
-        </div>
 
-        <div style="text-align: center">
-          <!-- cancel Draw button -->
-          <a
-            class="icon-warn"
-            mat-raised-button
-            (click)="close()"
-            [matTooltip]="
-              mapInteract.isModifying() ? 'Finish Editing' : 'Cancel Operation'
-            "
-            matTooltipPosition="left"
-          >
-            <mat-icon class="icon-warn">close</mat-icon>
-            {{ mapInteract.isModifying() ? 'FINISH' : 'CANCEL' }}
-          </a>
+          <div style="text-align: center">
+            <!-- cancel Draw button -->
+            <a
+              class="icon-warn"
+              mat-raised-button
+              (click)="close()"
+              [matTooltip]="
+                mapInteract.isModifying()
+                  ? 'Finish Editing'
+                  : 'Cancel Operation'
+              "
+              matTooltipPosition="left"
+            >
+              <mat-icon class="icon-warn">close</mat-icon>
+              {{ mapInteract.isModifying() ? 'FINISH' : 'CANCEL' }}
+            </a>
+          </div>
         </div>
-      </div>
-      } @if(showMeasurePanel()) {
-      <fb-measurements
-        matTooltip="Click on the Map to start. Click cancel or the last point to end."
-        [coords]="mapInteract.measurement().coords"
-        [index]="mapInteract.measurement().index"
-        [totalOnly]="
-          mapInteract.isDrawing() && mapInteract.draw.resourceType === 'route'
-        "
-        (cancel)="close()"
-      >
-      </fb-measurements>
+      }
+      @if (showMeasurePanel()) {
+        <fb-measurements
+          matTooltip="Click on the Map to start. Click cancel or the last point to end."
+          [coords]="mapInteract.measurement().coords"
+          [index]="mapInteract.measurement().index"
+          [totalOnly]="
+            mapInteract.isDrawing() && mapInteract.draw.resourceType === 'route'
+          "
+          (cancel)="close()"
+        >
+        </fb-measurements>
       }
     </div>
   `,

@@ -153,12 +153,12 @@ export class AISVesselsLayerComponent extends AISBaseLayerComponent {
       target.id === this.focusId
         ? this.mapImages.getVessel('focused')
         : setStale
-        ? this.mapImages.getVessel('inactive', isMoored)
-        : target.buddy
-        ? this.mapImages.getVessel('buddy', isMoored)
-        : shipClass === -1
-        ? this.mapImages.getVessel('default', isMoored)
-        : this.mapImages.getVessel(shipClass, isMoored);
+          ? this.mapImages.getVessel('inactive', isMoored)
+          : target.buddy
+            ? this.mapImages.getVessel('buddy', isMoored)
+            : shipClass === -1
+              ? this.mapImages.getVessel('default', isMoored)
+              : this.mapImages.getVessel(shipClass, isMoored);
 
     if (icon && typeof this.targetStyles === 'undefined') {
       if (icon) {

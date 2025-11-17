@@ -54,116 +54,127 @@ const SoundFiles = {
     TimerButtonComponent
   ],
   template: `
-    @if(app.uiCtrl().alertList || hidden()) {
-    <span></span>
-    } @else { @if(alert().visual && !alert().acknowledged) {
-    <div>
-      @if(!alert().canAcknowledge) {
-      <mat-progress-bar
-        mode="determinate"
-        [value]="progressValue()"
-      ></mat-progress-bar>
-      }
-      <mat-card style="padding:5px;border-radius:0;">
-        <mat-card-content>
-          <div style="display:flex; width:100%;">
-            <div style="width:35px;">
-              <mat-icon
-                [class]="this.alert().icon.class"
-                [svgIcon]="this.alert().icon.svgIcon"
-                >{{ this.alert().icon.name }}</mat-icon
-              >
-            </div>
-            <div
-              style="overflow: hidden;
+    @if (app.uiCtrl().alertList || hidden()) {
+      <span></span>
+    } @else {
+      @if (alert().visual && !alert().acknowledged) {
+        <div>
+          @if (!alert().canAcknowledge) {
+            <mat-progress-bar
+              mode="determinate"
+              [value]="progressValue()"
+            ></mat-progress-bar>
+          }
+          <mat-card style="padding:5px;border-radius:0;">
+            <mat-card-content>
+              <div style="display:flex; width:100%;">
+                <div style="width:35px;">
+                  <mat-icon
+                    [class]="this.alert().icon.class"
+                    [svgIcon]="this.alert().icon.svgIcon"
+                    >{{ this.alert().icon.name }}</mat-icon
+                  >
+                </div>
+                <div
+                  style="overflow: hidden;
                   display: -webkit-box;
                   -webkit-box-orient: vertical;
                   -webkit-line-clamp: 2;
                   line-clamp: 2;
                   text-overflow:ellipsis;"
-            >
-              {{ alert().message }}
-            </div>
-          </div>
-        </mat-card-content>
-
-        <mat-card-actions>
-          <div style="display:flex;flex-wrap: wrap;">
-            @if(alert().sound) {
-            <div style="text-align: left;">
-              <button
-                mat-raised-button
-                (click)="muteAlarm()"
-                [disabled]="alert().silenced"
-              >
-                <mat-icon
-                  class="ob"
-                  [svgIcon]="
-                    alert().silenced
-                      ? 'sound-off-fill'
-                      : 'sound-unavailable-fill'
-                  "
-                ></mat-icon>
-                {{ alert().silenced ? 'MUTED' : 'MUTE' }}
-              </button>
-            </div>
-            } @if(alert().canAcknowledge) {
-            <div>
-              <button mat-raised-button (click)="ackAlarm()">
-                <mat-icon>check</mat-icon>
-                ACK
-              </button>
-            </div>
-            } @else {
-            <button
-              mat-raised-button
-              matTooltip="Dismiss"
-              matTooltipPosition="left"
-              (click)="hide()"
-            >
-              <mat-icon>clear_all</mat-icon>
-              Dismiss
-            </button>
-            } @if(app.data.activeRoute && course.courseData().pointIndex !==
-            course.courseData().pointTotal - 1) {
-            <div>
-              @if(app.config.course.autoNextPointOnArrival &&
-              app.config.course.autoNextPointTrigger === alert().type) {
-              <div>
-                @if(course.courseData().pointIndex !==
-                course.courseData().pointTotal - 1) {
-                <timer-button
-                  [disabled]="nextPointClicked"
-                  [icon]="'skip_next'"
-                  [label]="'Next point in'"
-                  [cancelledLabel]="'Next Point'"
-                  [period]="app.config.course.autoNextPointDelay"
-                  (nextPoint)="gotoNextPoint()"
                 >
-                </timer-button>
+                  {{ alert().message }}
+                </div>
+              </div>
+            </mat-card-content>
+
+            <mat-card-actions>
+              <div style="display:flex;flex-wrap: wrap;">
+                @if (alert().sound) {
+                  <div style="text-align: left;">
+                    <button
+                      mat-raised-button
+                      (click)="muteAlarm()"
+                      [disabled]="alert().silenced"
+                    >
+                      <mat-icon
+                        class="ob"
+                        [svgIcon]="
+                          alert().silenced
+                            ? 'sound-off-fill'
+                            : 'sound-unavailable-fill'
+                        "
+                      ></mat-icon>
+                      {{ alert().silenced ? 'MUTED' : 'MUTE' }}
+                    </button>
+                  </div>
+                }
+                @if (alert().canAcknowledge) {
+                  <div>
+                    <button mat-raised-button (click)="ackAlarm()">
+                      <mat-icon>check</mat-icon>
+                      ACK
+                    </button>
+                  </div>
+                } @else {
+                  <button
+                    mat-raised-button
+                    matTooltip="Dismiss"
+                    matTooltipPosition="left"
+                    (click)="hide()"
+                  >
+                    <mat-icon>clear_all</mat-icon>
+                    Dismiss
+                  </button>
+                }
+                @if (
+                  app.data.activeRoute &&
+                  course.courseData().pointIndex !==
+                    course.courseData().pointTotal - 1
+                ) {
+                  <div>
+                    @if (
+                      app.config.course.autoNextPointOnArrival &&
+                      app.config.course.autoNextPointTrigger === alert().type
+                    ) {
+                      <div>
+                        @if (
+                          course.courseData().pointIndex !==
+                          course.courseData().pointTotal - 1
+                        ) {
+                          <timer-button
+                            [disabled]="nextPointClicked"
+                            [icon]="'skip_next'"
+                            [label]="'Next point in'"
+                            [cancelledLabel]="'Next Point'"
+                            [period]="app.config.course.autoNextPointDelay"
+                            (nextPoint)="gotoNextPoint()"
+                          >
+                          </timer-button>
+                        }
+                      </div>
+                    } @else {
+                      <button
+                        mat-button
+                        [disabled]="
+                          nextPointClicked ||
+                          course.courseData().pointIndex ===
+                            course.courseData().pointTotal - 1
+                        "
+                        (click)="gotoNextPoint()"
+                      >
+                        <mat-icon>skip_next</mat-icon>
+                        NEXT POINT
+                      </button>
+                    }
+                  </div>
                 }
               </div>
-              } @else {
-              <button
-                mat-button
-                [disabled]="
-                  nextPointClicked ||
-                  course.courseData().pointIndex ===
-                    course.courseData().pointTotal - 1
-                "
-                (click)="gotoNextPoint()"
-              >
-                <mat-icon>skip_next</mat-icon>
-                NEXT POINT
-              </button>
-              }
-            </div>
-            }
-          </div>
-        </mat-card-actions>
-      </mat-card>
-    </div>
-    }}
+            </mat-card-actions>
+          </mat-card>
+        </div>
+      }
+    }
   `,
   styles: []
 })

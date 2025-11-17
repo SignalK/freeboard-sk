@@ -33,6 +33,12 @@ export class SKInfoLayer {
     url: null,
     sourceType: null,
     layers: [],
+    time: {
+      current: null,
+      min: null,
+      max: null,
+      values: []
+    },
     opacity: 1,
     minZoom: 1,
     maxZoom: 24,

@@ -533,8 +533,8 @@ export class SKResourceService {
         !this.app
           ? true
           : !this.selectionIsFiltered('charts')
-          ? true
-          : this.app.config.selections.charts.includes('openstreetmap')
+            ? true
+            : this.app.config.selections.charts.includes('openstreetmap')
       ],
       [
         'openseamap',
@@ -550,8 +550,8 @@ export class SKResourceService {
         !this.app
           ? true
           : !this.selectionIsFiltered('charts')
-          ? true
-          : this.app.config.selections.charts.includes('openseamap')
+            ? true
+            : this.app.config.selections.charts.includes('openseamap')
       ]
     ];
     chtList.push(OSM[1]);
@@ -1826,8 +1826,8 @@ export class SKResourceService {
       data.createRegion = e.href.exists
         ? false
         : e.type === 'region'
-        ? true
-        : false;
+          ? true
+          : false;
       this.openNoteForEdit(data);
     } else {
       // edit selected note details

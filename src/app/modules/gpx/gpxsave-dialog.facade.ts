@@ -88,9 +88,8 @@ export class GPXSaveFacade {
         const uuid = this.signalk.uuid;
         sktracks[uuid] = new SKTrack();
         sktracks[uuid].feature.id = uuid;
-        sktracks[
-          uuid
-        ].feature.properties.name = `Vessel trail: ${Date().toString()}`;
+        sktracks[uuid].feature.properties.name =
+          `Vessel trail: ${Date().toString()}`;
         sktracks[uuid].feature.geometry.coordinates.push(res.tracks[i]);
       }
     }

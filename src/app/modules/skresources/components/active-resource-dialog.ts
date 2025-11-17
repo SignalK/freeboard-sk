@@ -48,15 +48,15 @@ import { CourseService } from '../../course';
       <div>
         <mat-toolbar style="background-color: transparent">
           <span>
-            @if(showClearButton) {
-            <button
-              mat-button
-              (click)="deactivate()"
-              [matTooltip]="clearButtonText"
-            >
-              <mat-icon>clear_all</mat-icon>
-              Clear
-            </button>
+            @if (showClearButton) {
+              <button
+                mat-button
+                (click)="deactivate()"
+                [matTooltip]="clearButtonText"
+              >
+                <mat-icon>clear_all</mat-icon>
+                Clear
+              </button>
             }
           </span>
           <span
@@ -86,65 +86,65 @@ import { CourseService } from '../../course';
           cdkDropList
           (cdkDropListDropped)="drop($event)"
         >
-          @for(pt of points; track pt; let i = $index) {
-          <mat-card cdkDrag [cdkDragDisabled]="readOnly">
-            <mat-card-content style="padding:3px;">
-              <div class="point-drop-placeholder" *cdkDragPlaceholder></div>
+          @for (pt of points; track pt; let i = $index) {
+            <mat-card cdkDrag [cdkDragDisabled]="readOnly">
+              <mat-card-content style="padding:3px;">
+                <div class="point-drop-placeholder" *cdkDragPlaceholder></div>
 
-              <div
-                style="display:flex;"
-                (click)="selectPoint(i)"
-                [style.cursor]="
-                  points.length > 1 && selIndex !== -1 ? 'pointer' : 'initial'
-                "
-              >
-                <div style="width:35px;">
-                  @if(selIndex === i) {
-                  <mat-icon class="icon-warn"> flag </mat-icon>
+                <div
+                  style="display:flex;"
+                  (click)="selectPoint(i)"
+                  [style.cursor]="
+                    points.length > 1 && selIndex !== -1 ? 'pointer' : 'initial'
+                  "
+                >
+                  <div style="width:35px;">
+                    @if (selIndex === i) {
+                      <mat-icon class="icon-warn"> flag </mat-icon>
+                    }
+                  </div>
+                  <div style="flex: 1 1 auto;">
+                    <div style="display:flex;">
+                      <div class="key-label">
+                        <mat-icon> text_fields </mat-icon>
+                      </div>
+                      <div
+                        style="flex: 1 1 auto;"
+                        [innerText]="pointMeta[i].name"
+                      ></div>
+                    </div>
+
+                    @if (pointMeta[i].description) {
+                      <div style="display:flex;">
+                        <div class="key-label">Desc:</div>
+                        <div
+                          style="flex: 1 1 auto;"
+                          [innerText]="pointMeta[i].description"
+                        ></div>
+                      </div>
+                    }
+
+                    <div style="display:flex;">
+                      <div class="key-label">
+                        <mat-icon [ngClass]="{ 'icon-primary': i === 0 }"
+                          >square_foot</mat-icon
+                        >
+                      </div>
+                      <div style="flex: 1 1 auto;">
+                        <span [innerText]="legs[i].bearing"></span>
+                        &nbsp;
+                        <span [innerText]="legs[i].distance"></span>
+                      </div>
+                    </div>
+                  </div>
+                  @if (!readOnly && data.type === 'route') {
+                    <div cdkDragHandle matTooltip="Drag to re-order points">
+                      <mat-icon>drag_indicator</mat-icon>
+                    </div>
                   }
                 </div>
-                <div style="flex: 1 1 auto;">
-                  <div style="display:flex;">
-                    <div class="key-label">
-                      <mat-icon> text_fields </mat-icon>
-                    </div>
-                    <div
-                      style="flex: 1 1 auto;"
-                      [innerText]="pointMeta[i].name"
-                    ></div>
-                  </div>
-
-                  @if(pointMeta[i].description) {
-                  <div style="display:flex;">
-                    <div class="key-label">Desc:</div>
-                    <div
-                      style="flex: 1 1 auto;"
-                      [innerText]="pointMeta[i].description"
-                    ></div>
-                  </div>
-                  }
-
-                  <div style="display:flex;">
-                    <div class="key-label">
-                      <mat-icon [ngClass]="{ 'icon-primary': i === 0 }"
-                        >square_foot</mat-icon
-                      >
-                    </div>
-                    <div style="flex: 1 1 auto;">
-                      <span [innerText]="legs[i].bearing"></span>
-                      &nbsp;
-                      <span [innerText]="legs[i].distance"></span>
-                    </div>
-                  </div>
-                </div>
-                @if(!readOnly && data.type === 'route') {
-                <div cdkDragHandle matTooltip="Drag to re-order points">
-                  <mat-icon>drag_indicator</mat-icon>
-                </div>
-                }
-              </div>
-            </mat-card-content>
-          </mat-card>
+              </mat-card-content>
+            </mat-card>
           }
         </div>
       </div>
@@ -172,8 +172,10 @@ import { CourseService } from '../../course';
       .cdk-drag-preview {
         box-sizing: border-box;
         border-radius: 4px;
-        box-shadow: 0 5px 5px -3px rgba(0, 0, 0, 0.2),
-          0 8px 10px 1px rgba(0, 0, 0, 0.14), 0 3px 14px 2px rgba(0, 0, 0, 0.12);
+        box-shadow:
+          0 5px 5px -3px rgba(0, 0, 0, 0.2),
+          0 8px 10px 1px rgba(0, 0, 0, 0.14),
+          0 3px 14px 2px rgba(0, 0, 0, 0.12);
       }
     `
   ]

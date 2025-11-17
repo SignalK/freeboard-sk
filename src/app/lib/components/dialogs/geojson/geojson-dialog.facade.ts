@@ -203,11 +203,11 @@ export class GeoJSONLoadFacade {
     }
     f.properties.name =
       typeof f.properties.name !== 'undefined'
-        ? f.properties.name ?? ''
+        ? (f.properties.name ?? '')
         : `trk-${new Date().getTime()}`;
     f.properties.description =
       typeof f.properties.description !== 'undefined'
-        ? f.properties.description ?? ''
+        ? (f.properties.description ?? '')
         : 'GeoJSON import';
 
     const r = new SKTrack({ feature: f });

@@ -50,7 +50,7 @@ import { SKAircraft } from 'src/app/modules';
           style="flex: 1 1 auto;text-align:right;"
           [innerText]="
             aircraft.position[1]
-              | coords : app.config.units.positionFormat : true
+              | coords: app.config.units.positionFormat : true
           "
         ></div>
       </div>
@@ -59,7 +59,7 @@ import { SKAircraft } from 'src/app/modules';
         <div
           style="flex: 1 1 auto;text-align:right;"
           [innerText]="
-            aircraft.position[0] | coords : app.config.units.positionFormat
+            aircraft.position[0] | coords: app.config.units.positionFormat
           "
         ></div>
       </div>

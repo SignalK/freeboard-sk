@@ -40,7 +40,7 @@ import { Convert } from 'src/app/lib/convert';
         <div
           style="flex: 1 1 auto;text-align:right;"
           [innerText]="
-            aton.position[1] | coords : app.config.units.positionFormat : true
+            aton.position[1] | coords: app.config.units.positionFormat : true
           "
         ></div>
       </div>
@@ -49,7 +49,7 @@ import { Convert } from 'src/app/lib/convert';
         <div
           style="flex: 1 1 auto;text-align:right;"
           [innerText]="
-            aton.position[0] | coords : app.config.units.positionFormat
+            aton.position[0] | coords: app.config.units.positionFormat
           "
         ></div>
       </div>
@@ -59,26 +59,27 @@ import { Convert } from 'src/app/lib/convert';
           {{ timeLastUpdate }} {{ timeAgo }}
         </div>
       </div>
-      @if(isMeteo && aton.temperature !== undefined) {
-      <div style="display:flex;">
-        <div style="font-weight:bold;">Temperature:</div>
-        <div style="flex: 1 1 auto;text-align:right;">
-          {{ this.app.formatValueForDisplay(aton.temperature, 'K') }}
+      @if (isMeteo && aton.temperature !== undefined) {
+        <div style="display:flex;">
+          <div style="font-weight:bold;">Temperature:</div>
+          <div style="flex: 1 1 auto;text-align:right;">
+            {{ this.app.formatValueForDisplay(aton.temperature, 'K') }}
+          </div>
         </div>
-      </div>
-      } @if(isMeteo && aton.tws !== undefined && aton.twd !== undefined) {
-      <div style="display:flex;flex-wrap:no-wrap;">
-        <div style="font-weight:bold;">Wind:</div>
-        <div style="width:150px;">
-          <ap-compass-northup
-            [heading]="convert.radiansToDegrees(aton.twd)"
-            [speed]="app.formatSpeed(aton.tws)"
-            [label]="app.formattedSpeedUnits"
-            [windtrue]="true"
-          >
-          </ap-compass-northup>
+      }
+      @if (isMeteo && aton.tws !== undefined && aton.twd !== undefined) {
+        <div style="display:flex;flex-wrap:no-wrap;">
+          <div style="font-weight:bold;">Wind:</div>
+          <div style="width:150px;">
+            <ap-compass-northup
+              [heading]="convert.radiansToDegrees(aton.twd)"
+              [speed]="app.formatSpeed(aton.tws)"
+              [label]="app.formattedSpeedUnits"
+              [windtrue]="true"
+            >
+            </ap-compass-northup>
+          </div>
         </div>
-      </div>
       }
       <div style="display:flex;">
         <div style="flex:1 1 auto;">&nbsp;</div>

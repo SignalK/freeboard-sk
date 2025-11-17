@@ -38,10 +38,10 @@ export const fetch = (href: string): Promise<any> => {
 export const post = (href: string, data: string) => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const opt: any = url.parse(href);
-  (opt.method = 'POST'),
+  ((opt.method = 'POST'),
     (opt.headers = {
       'Content-Type': 'application/json'
-    });
+    }));
 
   const req = href.indexOf('https') !== -1 ? https : http;
 

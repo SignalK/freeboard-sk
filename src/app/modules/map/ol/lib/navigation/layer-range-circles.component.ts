@@ -139,14 +139,14 @@ export class RangeCirclesComponent implements OnInit, OnDestroy, OnChanges {
         zoomResolution > 300
           ? 10000
           : zoomResolution > 100
-          ? 5000
-          : zoomResolution > 40
-          ? 2000
-          : zoomResolution > 20
-          ? 1000
-          : zoomResolution > 10
-          ? 500
-          : 250;
+            ? 5000
+            : zoomResolution > 40
+              ? 2000
+              : zoomResolution > 20
+                ? 1000
+                : zoomResolution > 10
+                  ? 500
+                  : 250;
       const st = this.buildCircleStyle();
       for (let i = 1; i <= this.maxCircles; ++i) {
         const d = range * i;

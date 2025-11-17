@@ -21,17 +21,18 @@ import { MatIconModule } from '@angular/material/icon';
   styles: [``],
   template: `
     <div>
-      @if(cancelled) { &nbsp;
-      <button mat-raised-button (click)="action()">
-        @if(icon) {
-        <mat-icon>{{ icon }}</mat-icon>
-        }
-        {{ cancelledLabel }}
-      </button>
+      @if (cancelled) {
+        &nbsp;
+        <button mat-raised-button (click)="action()">
+          @if (icon) {
+            <mat-icon>{{ icon }}</mat-icon>
+          }
+          {{ cancelledLabel }}
+        </button>
       } @else {
-      <button mat-button [disabled]="disabled" (click)="cancel()">
-        {{ label }} {{ timeLeft }} secs
-      </button>
+        <button mat-button [disabled]="disabled" (click)="cancel()">
+          {{ label }} {{ timeLeft }} secs
+        </button>
       }
     </div>
   `

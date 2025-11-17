@@ -18,7 +18,15 @@ import { MatMenuModule } from '@angular/material/menu';
 import { MatSidenavModule } from '@angular/material/sidenav';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
-import { ETADialComponent, FileInputComponent, InteractionHelpComponent, MFBContainerComponent, PiPVideoComponent, TextDialComponent, TTGDialComponent } from './lib/components';
+import {
+  ETADialComponent,
+  FileInputComponent,
+  InteractionHelpComponent,
+  MFBContainerComponent,
+  PiPVideoComponent,
+  TextDialComponent,
+  TTGDialComponent
+} from './lib/components';
 
 // ****
 
@@ -557,6 +565,14 @@ export class AppComponent {
     this.instUrl.update(() => this.dom.bypassSecurityTrustResourceUrl(url));
   }
 
+  /** handle infolayer parameter change **/
+  protected onInfoLayerParamChange(param: {
+    id: string;
+    param: { [key: string]: any };
+  }) {
+    this.skresOther.infoLayerParams.update(() => [param]);
+  }
+
   // ** handle map context menu selections **
   protected handleContextMenuSelection(action: string) {
     switch (action) {
@@ -834,8 +850,8 @@ export class AppComponent {
         lastseg.length !== 0
           ? lastseg[0].slice(-1)
           : trailData.length > 1
-          ? trailData[trailData.length - 2].slice(-1)
-          : [];
+            ? trailData[trailData.length - 2].slice(-1)
+            : [];
       this.app.selfTrail.update(() => lastpt);
     }
     const trailId = this.mode === SKSTREAM_MODE.PLAYBACK ? 'history' : 'self';
@@ -1449,8 +1465,8 @@ export class AppComponent {
         e.type === 'self'
           ? e.type
           : e.id.includes('vessels.')
-          ? e.id.split('.')[1]
-          : e.id;
+            ? e.id.split('.')[1]
+            : e.id;
       try {
         this.app.sIsFetching.set(true);
         v = await this.skres.vesselFromServer(id);

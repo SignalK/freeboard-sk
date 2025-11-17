@@ -33,6 +33,13 @@ import { MatDialog, MatDialogRef } from '@angular/material/dialog';
 import { forkJoin, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import { SignalKClient } from 'signalk-client-angular';
+import { MatSliderModule } from '@angular/material/slider';
+import {
+  WMSGetCapabilities,
+  WMTSGetCapabilities,
+  getWMSLayerNodeByName,
+  getWMTSInfoLayerByName
+} from '../charts/wmslib';
 
 //** InfoLayer Resource List **
 @Component({
@@ -51,13 +58,17 @@ import { SignalKClient } from 'signalk-client-angular';
     ScrollingModule,
     MatSelectModule,
     MatProgressBar,
-    MatMenuModule
+    MatMenuModule,
+    MatSliderModule
   ]
 })
 export class InfoLayerListComponent extends ResourceListBase {
   @Input() focusId: string;
   @Output() closed: EventEmitter<void> = new EventEmitter();
-  @Output() properties: EventEmitter<string> = new EventEmitter();
+  @Output() paramChanged: EventEmitter<{
+    id: string;
+    param: { [key: string]: any };
+  }> = new EventEmitter();
 
   filterList = [];
   override filterText = '';
@@ -101,11 +112,34 @@ export class InfoLayerListComponent extends ResourceListBase {
       );
       this.app.sIsFetching.set(false);
       this.doFilter();
+      this.updateTimeDimensions();
     } catch (err) {
       this.app.sIsFetching.set(false);
       this.app.parseHttpErrorResponse(err);
       this.fullList = [];
     }
+  }
+
+  /**
+   * Get time dimension data for WMS & WMTS sources
+   */
+  private async updateTimeDimensions() {
+    this.fullList.forEach(async (l) => {
+      if (l[1].values.sourceType.toLowerCase() === 'wms') {
+        const capabilities = await WMSGetCapabilities(l[1].values.url);
+        const il = getWMSLayerNodeByName(l[1].values.layers[0], capabilities);
+        if (il.time) {
+          l[1].values.time = il.time;
+        }
+      }
+      if (l[1].values.sourceType.toLowerCase() === 'wmts') {
+        const capabilities = await WMTSGetCapabilities(l[1].values.url);
+        const il = getWMTSInfoLayerByName(l[1].values.layers[0], capabilities);
+        if (il.values.time) {
+          l[1].values.time = il.values.time;
+        }
+      }
+    });
   }
 
   /**
@@ -183,6 +217,19 @@ export class InfoLayerListComponent extends ResourceListBase {
       ov[1].values.refreshInterval = value;
       this.saveLayerToServer(id, ov[1]);
     }
+  }
+
+  protected formatDateTime(value: string): string {
+    const d = new Date(value);
+    return `${d.toLocaleDateString()} ${d.toLocaleTimeString()}`;
+  }
+
+  protected handleSliderChange(layer: FBInfoLayer, index: string) {
+    console.log(layer, index);
+    this.paramChanged.emit({
+      id: layer[0],
+      param: { TIME: layer[1].values.time?.values[index] }
+    });
   }
 
   /**

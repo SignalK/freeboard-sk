@@ -32,25 +32,25 @@ import { MatToolbarModule } from '@angular/material/toolbar';
             </div>
             <div class="value">{{ totalDistance }}<br /></div>
           </div>
-          @if(!totalOnly) {
-          <div class="_ap_row">
+          @if (!totalOnly) {
             <div class="_ap_row">
-              <div style="font-size: 12pt;">
-                <mat-icon>square_foot</mat-icon><br />
-                {{
-                  this.coords.length < 2
-                    ? '-'
-                    : this.index === -1
-                    ? this.coords.length - 1
-                    : this.index + 1
-                }}
-              </div>
-              <div class="value">
-                {{ legDistance }}<br />
-                {{ legBearing }}
+              <div class="_ap_row">
+                <div style="font-size: 12pt;">
+                  <mat-icon>square_foot</mat-icon><br />
+                  {{
+                    this.coords.length < 2
+                      ? '-'
+                      : this.index === -1
+                        ? this.coords.length - 1
+                        : this.index + 1
+                  }}
+                </div>
+                <div class="value">
+                  {{ legDistance }}<br />
+                  {{ legBearing }}
+                </div>
               </div>
             </div>
-          </div>
           }
           <div>
             <button

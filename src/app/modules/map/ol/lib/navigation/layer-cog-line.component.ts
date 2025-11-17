@@ -240,7 +240,7 @@ export class CogLineComponent implements OnInit, OnDestroy, OnChanges {
     return new Text({
       text:
         Math.abs(this.mapZoom) >= this.labelMinZoom()
-          ? this.labelText() ?? ''
+          ? (this.labelText() ?? '')
           : '',
       offsetX: 0,
       offsetY: -10,

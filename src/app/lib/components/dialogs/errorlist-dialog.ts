@@ -27,11 +27,11 @@ import { MatListModule } from '@angular/material/list';
       </div>
       <mat-dialog-content>
         <mat-list role="list">
-          @for(err of data.errorList; track err) {
-          <mat-list-item>
-            <span matListItemTitle>{{ err.message }}</span>
-            <span matListItemLine>Status: {{ err.status }}</span>
-          </mat-list-item>
+          @for (err of data.errorList; track err) {
+            <mat-list-item>
+              <span matListItemTitle>{{ err.message }}</span>
+              <span matListItemLine>Status: {{ err.status }}</span>
+            </mat-list-item>
           }
         </mat-list>
       </mat-dialog-content>

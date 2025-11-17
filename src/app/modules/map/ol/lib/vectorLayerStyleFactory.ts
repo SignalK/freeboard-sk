@@ -29,7 +29,10 @@ export abstract class VectorLayerStyler {
 }
 
 class S57LayerStyler extends VectorLayerStyler {
-  constructor(chart: SKChart, private s57service: S57Service) {
+  constructor(
+    chart: SKChart,
+    private s57service: S57Service
+  ) {
     super(chart);
   }
 

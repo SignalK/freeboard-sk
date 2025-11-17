@@ -52,7 +52,10 @@ export class NoteListComponent {
   showNotes = false;
   draftOnly = false;
 
-  constructor(public app: AppFacade, private skres: SKResourceService) {}
+  constructor(
+    public app: AppFacade,
+    private skres: SKResourceService
+  ) {}
 
   ngOnInit() {
     this.showNotes = this.app.config.ui.showNotes;

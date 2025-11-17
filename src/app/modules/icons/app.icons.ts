@@ -94,7 +94,7 @@ export const getResourceIcon = (
     const skIcon =
       typeof resource === 'string' || typeof resource === 'undefined'
         ? undefined
-        : (resource as SKWaypoint).feature.properties?.skIcon ?? undefined;
+        : ((resource as SKWaypoint).feature.properties?.skIcon ?? undefined);
     const wptType =
       typeof resource === 'string' || typeof resource === 'undefined'
         ? resource
@@ -159,8 +159,8 @@ export const getAlertIcon = (alert: AlertData): AppIconDef => {
     const icon = alert.acknowledged
       ? 'alarm-acknowledged-iec'
       : alert.silenced
-      ? 'alarm-silenced-iec'
-      : 'alarm-acknowledged-iec';
+        ? 'alarm-silenced-iec'
+        : 'alarm-acknowledged-iec';
     return {
       class: undefined,
       svgIcon: icon,
@@ -170,8 +170,8 @@ export const getAlertIcon = (alert: AlertData): AppIconDef => {
     const icon = alert.acknowledged
       ? 'warning-acknowledged-iec'
       : alert.silenced
-      ? 'warning-silenced-iec'
-      : 'warning-unack-iec';
+        ? 'warning-silenced-iec'
+        : 'warning-unack-iec';
     return {
       class: undefined,
       svgIcon: icon,

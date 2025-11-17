@@ -13,7 +13,10 @@ export interface AutopilotOptions {
 // ** Signal K autopilot service
 @Injectable({ providedIn: 'root' })
 export class AutopilotService {
-  constructor(private signalk: SignalKClient, private app: AppFacade) {}
+  constructor(
+    private signalk: SignalKClient,
+    private app: AppFacade
+  ) {}
 
   /** return API path for pilot device
    * @param id autopilot device id

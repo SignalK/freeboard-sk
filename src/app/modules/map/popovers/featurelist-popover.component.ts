@@ -30,21 +30,23 @@ import { PopoverComponent } from './popover.component';
   template: `
     <ap-popover [title]="title" [canClose]="canClose" (closed)="handleClose()">
       <mat-nav-list>
-        @for(f of features; track f) {
-        <mat-list-item (click)="handleSelect(f)">
-          @if(f.icon === 'route') {
-          <mat-icon class="ob" [svgIcon]="f.icon"></mat-icon>
-          } @else if(f.icon.indexOf('sk-') === 0) {
-          <mat-icon [svgIcon]="f.icon"></mat-icon>
-          } @else {
-          <mat-icon
-            [ngClass]="{ 'icon-warn': f.text && f.text.indexOf('self') !== -1 }"
-          >
-            {{ f.icon }}
-          </mat-icon>
-          }
-          {{ f.text }}
-        </mat-list-item>
+        @for (f of features; track f) {
+          <mat-list-item (click)="handleSelect(f)">
+            @if (f.icon === 'route') {
+              <mat-icon class="ob" [svgIcon]="f.icon"></mat-icon>
+            } @else if (f.icon.indexOf('sk-') === 0) {
+              <mat-icon [svgIcon]="f.icon"></mat-icon>
+            } @else {
+              <mat-icon
+                [ngClass]="{
+                  'icon-warn': f.text && f.text.indexOf('self') !== -1
+                }"
+              >
+                {{ f.icon }}
+              </mat-icon>
+            }
+            {{ f.text }}
+          </mat-list-item>
         }
       </mat-nav-list>
     </ap-popover>

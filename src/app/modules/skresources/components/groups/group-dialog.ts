@@ -92,8 +92,8 @@ interface RListEntry {
                     required
                     [(ngModel)]="gItem.name"
                   />
-                  @if(inpname.invalid && (inpname.dirty || inpname.touched)) {
-                  <mat-error> Please enter a name.</mat-error>
+                  @if (inpname.invalid && (inpname.dirty || inpname.touched)) {
+                    <mat-error> Please enter a name.</mat-error>
                   }
                 </mat-form-field>
               </div>
@@ -111,58 +111,58 @@ interface RListEntry {
               </div>
             </div>
           </mat-tab>
-          @if(!this.data.addMode) {
-          <mat-tab label="Routes">
-            <mat-list>
-              @for(i of gItem.routes; track i.id) {
-              <mat-list-item>
-                <div style="display:flex;">
-                  <div
-                    style="flex: 1 1 auto; overflow: hidden; text-overflow: ellipsis;whitespace: pre;"
-                  >
-                    {{ i.name }}
-                  </div>
-                  <div>
-                    <button
-                      mat-icon-button
-                      matTooltip="Remove"
-                      (click)="removeItem('route', i.id)"
-                    >
-                      <mat-icon class="icon-warn">delete</mat-icon>
-                    </button>
-                  </div>
-                </div>
-              </mat-list-item>
-              }
-            </mat-list>
-          </mat-tab>
+          @if (!this.data.addMode) {
+            <mat-tab label="Routes">
+              <mat-list>
+                @for (i of gItem.routes; track i.id) {
+                  <mat-list-item>
+                    <div style="display:flex;">
+                      <div
+                        style="flex: 1 1 auto; overflow: hidden; text-overflow: ellipsis;whitespace: pre;"
+                      >
+                        {{ i.name }}
+                      </div>
+                      <div>
+                        <button
+                          mat-icon-button
+                          matTooltip="Remove"
+                          (click)="removeItem('route', i.id)"
+                        >
+                          <mat-icon class="icon-warn">delete</mat-icon>
+                        </button>
+                      </div>
+                    </div>
+                  </mat-list-item>
+                }
+              </mat-list>
+            </mat-tab>
 
-          <mat-tab label="Waypoints">
-            <mat-list>
-              @for(i of gItem.waypoints; track i.id) {
-              <mat-list-item>
-                <div style="display:flex;">
-                  <div
-                    style="flex: 1 1 auto; overflow: hidden; text-overflow: ellipsis;whitespace: pre;"
-                  >
-                    {{ i.name }}
-                  </div>
-                  <div>
-                    <button
-                      mat-icon-button
-                      matTooltip="Remove"
-                      (click)="removeItem('waypoint', i.id)"
-                    >
-                      <mat-icon class="icon-warn">delete</mat-icon>
-                    </button>
-                  </div>
-                </div>
-              </mat-list-item>
-              }
-            </mat-list>
-          </mat-tab>
+            <mat-tab label="Waypoints">
+              <mat-list>
+                @for (i of gItem.waypoints; track i.id) {
+                  <mat-list-item>
+                    <div style="display:flex;">
+                      <div
+                        style="flex: 1 1 auto; overflow: hidden; text-overflow: ellipsis;whitespace: pre;"
+                      >
+                        {{ i.name }}
+                      </div>
+                      <div>
+                        <button
+                          mat-icon-button
+                          matTooltip="Remove"
+                          (click)="removeItem('waypoint', i.id)"
+                        >
+                          <mat-icon class="icon-warn">delete</mat-icon>
+                        </button>
+                      </div>
+                    </div>
+                  </mat-list-item>
+                }
+              </mat-list>
+            </mat-tab>
 
-          <!--<mat-tab label="Charts">
+            <!--<mat-tab label="Charts">
               <mat-list>
                 @for(i of gItem.charts; track i.id) {
                 <mat-list-item>
@@ -278,10 +278,10 @@ export class ResourceGroupDialog implements OnInit {
       itemType === 'route'
         ? this.gItem.routes
         : itemType === 'waypoint'
-        ? this.gItem.waypoints
-        : itemType === 'chart'
-        ? this.gItem.charts
-        : [];
+          ? this.gItem.waypoints
+          : itemType === 'chart'
+            ? this.gItem.charts
+            : [];
 
     const idx = items.findIndex((i) => i.id === id);
     if (idx !== -1) {

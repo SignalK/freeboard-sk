@@ -196,8 +196,8 @@ export class FBMapInteractService {
       resType === 'route'
         ? 'LineString'
         : resType === 'region'
-        ? 'Polygon'
-        : 'Point';
+          ? 'Polygon'
+          : 'Point';
     this.interactionStarted();
   }
 

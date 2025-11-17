@@ -28,12 +28,12 @@ import { AppIconDef } from 'src/app/modules/icons';
     <div class="_ap-multisellist">
       <div style="display:flex;">
         <div style="padding: 15px 0 0 10px;">
-          @if(this.data.icon) {
-          <mat-icon
-            [svgIcon]="this.data.icon.svgIcon"
-            [class]="this.data.icon.class"
-            >{{ this.data.icon.name }}</mat-icon
-          >
+          @if (this.data.icon) {
+            <mat-icon
+              [svgIcon]="this.data.icon.svgIcon"
+              [class]="this.data.icon.class"
+              >{{ this.data.icon.name }}</mat-icon
+            >
           }
         </div>
         <div style="flex: 1 1 auto;">
@@ -49,7 +49,7 @@ import { AppIconDef } from 'src/app/modules/icons';
       <mat-dialog-content style="padding-top: 5px;">
         <mat-selection-list #lItems>
           @for (i of this.data.items; track i.id) {
-          <mat-list-option [value]="i">{{ i.name }}</mat-list-option>
+            <mat-list-option [value]="i">{{ i.name }}</mat-list-option>
           }
         </mat-selection-list>
       </mat-dialog-content>

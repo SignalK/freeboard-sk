@@ -11,12 +11,7 @@ import { MatMenuModule } from '@angular/material/menu';
 /********* ExperimentsComponent ********/
 @Component({
   selector: 'fb-experiments',
-  imports: [
-    MatMenuModule,
-    MatIconModule,
-    MatButtonModule,
-    MatTooltipModule
-  ],
+  imports: [MatMenuModule, MatIconModule, MatButtonModule, MatTooltipModule],
   template: `
     <mat-menu #experimentsmenu="matMenu">
       <!--

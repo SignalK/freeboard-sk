@@ -229,7 +229,10 @@ export class SettingsFacade {
   protected changeEvent: Subject<string[]>;
   public change$: Observable<string[]>;
 
-  constructor(private app: AppFacade, public signalk: SignalKClient) {
+  constructor(
+    private app: AppFacade,
+    public signalk: SignalKClient
+  ) {
     // ** initialise events
     this.changeEvent = new Subject<string[]>();
     this.change$ = this.changeEvent.asObservable();

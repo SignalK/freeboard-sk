@@ -1307,8 +1307,8 @@ export class FBMapComponent implements OnInit, OnDestroy {
       endCoords.length > startCoords.length
         ? 'ADD'
         : endCoords.length < startCoords.length
-        ? 'DELETE'
-        : 'MOVE';
+          ? 'DELETE'
+          : 'MOVE';
 
     function stringifyCoords(coords: Coordinate[]): string[] {
       return coords.map((c: Coordinate) => {
@@ -1645,8 +1645,8 @@ export class FBMapComponent implements OnInit, OnDestroy {
         this.mapInteract.draw.resourceType === 'route'
           ? drawStyles.route
           : this.mapInteract.draw.resourceType === 'region'
-          ? drawStyles.region
-          : drawStyles.default;
+            ? drawStyles.region
+            : drawStyles.default;
     }
   }
 

@@ -81,9 +81,11 @@
                 min="1"
                 step="1"
               />
-              @if(ctlAlarmRadius.invalid && (ctlAlarmRadius.dirty ||
-              ctlAlarmRadius.touched)) {
-              <mat-error>Value must be greater than 0.</mat-error>
+              @if (
+                ctlAlarmRadius.invalid &&
+                (ctlAlarmRadius.dirty || ctlAlarmRadius.touched)
+              ) {
+                <mat-error>Value must be greater than 0.</mat-error>
               }
             </mat-form-field>
           </div>
@@ -128,9 +130,11 @@
                 min="1"
                 step="1"
               />
-              @if(ctlRodeLength.invalid && (ctlRodeLength.dirty ||
-              ctlRodeLength.touched)) {
-              <mat-error>Value must be greater than 0.</mat-error>
+              @if (
+                ctlRodeLength.invalid &&
+                (ctlRodeLength.dirty || ctlRodeLength.touched)
+              ) {
+                <mat-error>Value must be greater than 0.</mat-error>
               }
             </mat-form-field>
           </div>
@@ -138,70 +142,70 @@
       </div>
     </mat-card-actions>
   </mat-card>
-  @if(!raised) {
-  <div>
-    <mat-stepper
-      orientation="vertical"
-      [linear]="true"
-      [selectedIndex]="rodeOut ? 1 : 0"
-      #stepper
-    >
-      <mat-step
-        [label]="rodeOut ? 'Anchor Set' : 'Let out rode'"
-        editable="false"
+  @if (!raised) {
+    <div>
+      <mat-stepper
+        orientation="vertical"
+        [linear]="true"
+        [selectedIndex]="rodeOut ? 1 : 0"
+        #stepper
       >
-        <i>When rode is out click <b>Set</b>.</i>
-        <div>
-          <button mat-mini-fab matStepperNext (click)="stepSetRode()">
-            Set
-          </button>
-        </div>
-      </mat-step>
-      <mat-step label="Adjust" editable="false">
-        <div>
+        <mat-step
+          [label]="rodeOut ? 'Anchor Set' : 'Let out rode'"
+          editable="false"
+        >
+          <i>When rode is out click <b>Set</b>.</i>
           <div>
-            <br />
-            <b>Adjust Radius:</b>
+            <button mat-mini-fab matStepperNext (click)="stepSetRode()">
+              Set
+            </button>
           </div>
-          <div style="display: flex">
+        </mat-step>
+        <mat-step label="Adjust" editable="false">
+          <div>
             <div>
-              <mat-slider
-                discrete
-                [disabled]="disableRaiseDrop"
-                [min]="this.feet ? mToFt(min) : min"
-                [max]="this.feet ? mToFt(max) : max"
-                step="1"
-                tickInterval="1"
+              <br />
+              <b>Adjust Radius:</b>
+            </div>
+            <div style="display: flex">
+              <div>
+                <mat-slider
+                  discrete
+                  [disabled]="disableRaiseDrop"
+                  [min]="this.feet ? mToFt(min) : min"
+                  [max]="this.feet ? mToFt(max) : max"
+                  step="1"
+                  tickInterval="1"
+                >
+                  <input
+                    matSliderThumb
+                    [value]="this.feet ? mToFt(sliderValue) : sliderValue"
+                    (valueChange)="setRadius($event)"
+                  />
+                </mat-slider>
+              </div>
+              <div
+                style="
+                  flex: 1;
+                  font-size: 10pt;
+                  line-height: 3em;
+                  text-align: right;
+                "
               >
-                <input
-                  matSliderThumb
-                  [value]="this.feet ? mToFt(sliderValue) : sliderValue"
-                  (valueChange)="setRadius($event)"
-                />
-              </mat-slider>
-            </div>
-            <div
-              style="
-                flex: 1;
-                font-size: 10pt;
-                line-height: 3em;
-                text-align: right;
-              "
-            >
-              {{ feet ? mToFt(displayRadius) : displayRadius }}
-              {{ feet ? 'ft' : 'm' }}
+                {{ feet ? mToFt(displayRadius) : displayRadius }}
+                {{ feet ? 'ft' : 'm' }}
+              </div>
             </div>
           </div>
-        </div>
-        <div>
           <div>
-            <br />
-            <b>Shift Anchor:</b>
+            <div>
+              <br />
+              <b>Shift Anchor:</b>
+            </div>
+            <nsew-buttons (direction)="shiftAnchor($event)"></nsew-buttons>
           </div>
-          <nsew-buttons (direction)="shiftAnchor($event)"></nsew-buttons>
-        </div>
-      </mat-step>
-    </mat-stepper>
-  </div>
+        </mat-step>
+      </mat-stepper>
+    </div>
   }
 </div>

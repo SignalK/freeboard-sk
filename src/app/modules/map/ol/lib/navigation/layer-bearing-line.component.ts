@@ -243,7 +243,7 @@ export class BearingLineComponent implements OnInit, OnDestroy, OnChanges {
       }
       ts?.setText(
         Math.abs(this.mapZoom) >= this.labelMinZoom()
-          ? this.markerName() ?? ''
+          ? (this.markerName() ?? '')
           : ''
       );
       (s as Style).setText(ts);

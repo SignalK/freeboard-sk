@@ -54,11 +54,11 @@ import { CoordsPipe } from 'src/app/lib/pipes';
             <div class="key-label">Scale:</div>
             <div style="flex: 1 1 auto;">{{ data.scale }}</div>
           </div>
-          @if(data.defaultOpacity) {
-          <div style="display:flex;">
-            <div class="key-label">Opacity:</div>
-            <div style="flex: 1 1 auto;">{{ data.defaultOpacity }}</div>
-          </div>
+          @if (data.defaultOpacity) {
+            <div style="display:flex;">
+              <div class="key-label">Opacity:</div>
+              <div style="flex: 1 1 auto;">{{ data.defaultOpacity }}</div>
+            </div>
           }
           <div style="display:flex;">
             <div class="key-label">Zoom:</div>
@@ -71,41 +71,41 @@ import { CoordsPipe } from 'src/app/lib/pipes';
               </div>
             </div>
           </div>
-          @if(data.bounds) {
-          <div style="display:flex;">
-            <div class="key-label">Bounds:</div>
-            <div
-              style="flex: 1 1 auto; border: gray 1px solid;
+          @if (data.bounds) {
+            <div style="display:flex;">
+              <div class="key-label">Bounds:</div>
+              <div
+                style="flex: 1 1 auto; border: gray 1px solid;
                                   max-width: 220px;font-size: 10pt;"
-            >
-              <div style="text-align:right;">
-                <span
-                  style="flex: 1 1 auto;"
-                  [innerText]="data.bounds[3] | coords : 'HDd' : true"
-                >
-                </span
-                ><br />
-                <span
-                  style="flex: 1 1 auto;"
-                  [innerText]="data.bounds[2] | coords : 'HDd'"
-                >
-                </span>
-              </div>
-              <div>
-                <span
-                  style="flex: 1 1 auto;"
-                  [innerText]="data.bounds[1] | coords : 'HDd' : true"
-                >
-                </span
-                ><br />
-                <span
-                  style="flex: 1 1 auto;"
-                  [innerText]="data.bounds[0] | coords : 'HDd'"
-                >
-                </span>
+              >
+                <div style="text-align:right;">
+                  <span
+                    style="flex: 1 1 auto;"
+                    [innerText]="data.bounds[3] | coords: 'HDd' : true"
+                  >
+                  </span
+                  ><br />
+                  <span
+                    style="flex: 1 1 auto;"
+                    [innerText]="data.bounds[2] | coords: 'HDd'"
+                  >
+                  </span>
+                </div>
+                <div>
+                  <span
+                    style="flex: 1 1 auto;"
+                    [innerText]="data.bounds[1] | coords: 'HDd' : true"
+                  >
+                  </span
+                  ><br />
+                  <span
+                    style="flex: 1 1 auto;"
+                    [innerText]="data.bounds[0] | coords: 'HDd'"
+                  >
+                  </span>
+                </div>
               </div>
             </div>
-          </div>
           }
           <div style="display:flex;">
             <div class="key-label">Format:</div>
@@ -117,11 +117,11 @@ import { CoordsPipe } from 'src/app/lib/pipes';
               {{ data.type }}
             </div>
           </div>
-          @if(data.layers.length !== 0) {
-          <div style="display:flex;">
-            <div class="key-label">Layers:</div>
-            <div style="flex: 1 1 auto;">{{ data.layers }}</div>
-          </div>
+          @if (data.layers.length !== 0) {
+            <div style="display:flex;">
+              <div class="key-label">Layers:</div>
+              <div style="flex: 1 1 auto;">{{ data.layers }}</div>
+            </div>
           }
           <div style="display:flex;">
             <div class="key-label">URL:</div>
@@ -129,13 +129,13 @@ import { CoordsPipe } from 'src/app/lib/pipes';
               {{ data.url }}
             </div>
           </div>
-          @if(data.style) {
-          <div style="display:flex;">
-            <div class="key-label">Style:</div>
-            <div style="flex: 1 1 auto;overflow-x: auto;">
-              {{ data.style }}
+          @if (data.style) {
+            <div style="display:flex;">
+              <div class="key-label">Style:</div>
+              <div style="flex: 1 1 auto;overflow-x: auto;">
+                {{ data.style }}
+              </div>
             </div>
-          </div>
           }
         </div>
       </mat-dialog-content>

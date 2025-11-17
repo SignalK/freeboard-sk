@@ -2,6 +2,8 @@ import {
   ChangeDetectionStrategy,
   ChangeDetectorRef,
   Component,
+  effect,
+  input,
   Input,
   OnChanges,
   OnDestroy,
@@ -15,7 +17,6 @@ import { optionsFromCapabilities } from 'ol/source/WMTS';
 import WMTSCapabilities from 'ol/format/WMTSCapabilities';
 
 import { MapComponent } from '../map.component';
-import { MapService } from '../map.service';
 import { FBInfoLayer, FBInfoLayers } from 'src/app/types';
 import { SKInfoLayer } from 'src/app/modules/skresources';
 
@@ -42,18 +43,33 @@ export class FreeboardLiveLayerComponent
   @Input() layerDefs: FBInfoLayers;
   @Input() zIndex = 100; // start number for layer zIndex
 
+  public params = input<Array<{ id: string; param: { [key: string]: any } }>>();
+
   protected layerGroup: LayerGroup;
   private wmtsCapabilitesMap = new Map();
   private layerMap: Map<string, LiveLayer> = new Map();
-  private refreshTimer;
+  private refreshTimer: any;
 
   constructor(
     protected changeDetectorRef: ChangeDetectorRef,
-    protected mapComponent: MapComponent,
-    private mapService: MapService
+    protected mapComponent: MapComponent
   ) {
     this.changeDetectorRef.detach();
     this.refreshTimer = setInterval(() => this.onTimerTick(), 60000);
+
+    effect(() => {
+      if (!this.layerMap || !Array.isArray(this.params())) return;
+      this.params().forEach((p) => {
+        const v = this.layerMap.get(p.id);
+        // update source params
+        const src = v.layer.getSource();
+        if (v.infoLayer.values.sourceType.toLowerCase() === 'wms') {
+          (src as TileWMS)?.updateParams(p.param);
+        } else if (v.infoLayer.values.sourceType.toLowerCase() === 'wmts') {
+          (src as WMTS)?.updateDimensions(p.param);
+        }
+      });
+    });
   }
 
   ngOnInit() {

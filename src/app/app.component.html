@@ -23,16 +23,17 @@
         <mat-icon>map</mat-icon>
         &nbsp;Charts
       </button>
-      @if(app.featureFlags().resourceGroups) {
-      <button mat-menu-item (click)="displayLeftMenu('resourceGroups', true)">
-        <mat-icon>category</mat-icon>
-        &nbsp;Groups
-      </button>
-      } @if(app.featureFlags().infoLayers) {
-      <button mat-menu-item (click)="displayLeftMenu('infoLayerList', true)">
-        <mat-icon>layers</mat-icon>
-        &nbsp;Overlays
-      </button>
+      @if (app.featureFlags().resourceGroups) {
+        <button mat-menu-item (click)="displayLeftMenu('resourceGroups', true)">
+          <mat-icon>category</mat-icon>
+          &nbsp;Groups
+        </button>
+      }
+      @if (app.featureFlags().infoLayers) {
+        <button mat-menu-item (click)="displayLeftMenu('infoLayerList', true)">
+          <mat-icon>layers</mat-icon>
+          &nbsp;Overlays
+        </button>
       }
 
       <mat-divider></mat-divider>
@@ -52,56 +53,58 @@
       </button>
 
       <mat-divider></mat-divider>
-      @if(app.featureFlags().resourceTracks) {
-      <button mat-menu-item (click)="displayLeftMenu('trackList', true)">
-        <mat-icon class="icon-warn">show_chart</mat-icon>
-        &nbsp;Tracks
-      </button>
-      } @if(app.config.resources.paths.length !== 0) {
-      <div>
-        @for(p of app.config.resources.paths.sort(); track p) {
+      @if (app.featureFlags().resourceTracks) {
+        <button mat-menu-item (click)="displayLeftMenu('trackList', true)">
+          <mat-icon class="icon-warn">show_chart</mat-icon>
+          &nbsp;Tracks
+        </button>
+      }
+      @if (app.config.resources.paths.length !== 0) {
         <div>
-          <button
-            mat-menu-item
-            (click)="openExperiment({ choice: p, value: null })"
-          >
-            <mat-icon
-              class="ob"
-              svgIcon="chart-display-settings-iec"
-            ></mat-icon>
-            &nbsp;{{ p }}
-          </button>
+          @for (p of app.config.resources.paths.sort(); track p) {
+            <div>
+              <button
+                mat-menu-item
+                (click)="openExperiment({ choice: p, value: null })"
+              >
+                <mat-icon
+                  class="ob"
+                  svgIcon="chart-display-settings-iec"
+                ></mat-icon>
+                &nbsp;{{ p }}
+              </button>
+            </div>
+          }
         </div>
-        }
-      </div>
       }
     </mat-menu>
 
     <mat-menu #settingsmenu="matMenu">
-      @if(app.config.vessels.trail && app.selfTrail().length !== 0) {
-      <a mat-menu-item (click)="clearTrail(app.data.serverTrail)">
-        <mat-icon>clear_all</mat-icon>
-        <span>{{ app.data.serverTrail ? 'Refresh' : 'Clear' }} Trail</span>
-      </a>
-      <a mat-menu-item (click)="trailToRoute()">
-        <mat-icon>insights</mat-icon>
-        <span>Trail to Route</span>
-      </a>
-      <mat-divider></mat-divider>
-      } @if(course.courseData().position){
-      <a mat-menu-item (click)="clearDestination()">
-        <mat-icon>clear_all</mat-icon>
-        @if(app.data.activeRoute) {
-        <span>Clear Active Route</span>
-        } @else {
-        <span>Clear Destination</span>
-        }
-      </a>
-      <a mat-menu-item (click)="clearCourseData()">
-        <mat-icon>clear_all</mat-icon>
-        <span>Clear Course Data</span>
-      </a>
-      <mat-divider></mat-divider>
+      @if (app.config.vessels.trail && app.selfTrail().length !== 0) {
+        <a mat-menu-item (click)="clearTrail(app.data.serverTrail)">
+          <mat-icon>clear_all</mat-icon>
+          <span>{{ app.data.serverTrail ? 'Refresh' : 'Clear' }} Trail</span>
+        </a>
+        <a mat-menu-item (click)="trailToRoute()">
+          <mat-icon>insights</mat-icon>
+          <span>Trail to Route</span>
+        </a>
+        <mat-divider></mat-divider>
+      }
+      @if (course.courseData().position) {
+        <a mat-menu-item (click)="clearDestination()">
+          <mat-icon>clear_all</mat-icon>
+          @if (app.data.activeRoute) {
+            <span>Clear Active Route</span>
+          } @else {
+            <span>Clear Destination</span>
+          }
+        </a>
+        <a mat-menu-item (click)="clearCourseData()">
+          <mat-icon>clear_all</mat-icon>
+          <span>Clear Course Data</span>
+        </a>
+        <mat-divider></mat-divider>
       }
 
       <a mat-menu-item (click)="toggleCourseData()">
@@ -127,12 +130,12 @@
         }}</mat-icon>
         <span>{{ app.config.ui.showNotes ? 'Hide' : 'Show' }} Notes</span>
       </a>
-      @if(app.featureFlags().weatherApi && app.data.vessels.showSelf) {
-      <mat-divider></mat-divider>
-      <a mat-menu-item (click)="showWeather('forecast')">
-        <mat-icon>air</mat-icon>
-        <span>Weather Forecast</span>
-      </a>
+      @if (app.featureFlags().weatherApi && app.data.vessels.showSelf) {
+        <mat-divider></mat-divider>
+        <a mat-menu-item (click)="showWeather('forecast')">
+          <mat-icon>air</mat-icon>
+          <span>Weather Forecast</span>
+        </a>
       }
       <mat-divider></mat-divider>
       <a mat-menu-item (click)="openSettings()">
@@ -164,26 +167,27 @@
         <span>Build Route</span>
       </a>
       <mat-divider></mat-divider>
-      @if(app.data.vessels.showSelf) {
-      <a
-        mat-menu-item
-        (click)="skres.newWaypointAt(app.data.vessels.active.position)"
-      >
-        <mat-icon class="icon-waypoint">add_location</mat-icon>
-        <span>Add Waypoint at Vessel</span>
-      </a>
+      @if (app.data.vessels.showSelf) {
+        <a
+          mat-menu-item
+          (click)="skres.newWaypointAt(app.data.vessels.active.position)"
+        >
+          <mat-icon class="icon-waypoint">add_location</mat-icon>
+          <span>Add Waypoint at Vessel</span>
+        </a>
       }
       <a mat-menu-item (click)="drawFeature('waypoint')">
         <mat-icon class="icon-waypoint">add_location_alt</mat-icon>
         <span>Drop Waypoint</span>
       </a>
       <mat-divider></mat-divider>
-      @if(this.app.config.map.zoomLevel >=
-      this.app.config.resources.notes.minZoom) {
-      <a mat-menu-item (click)="drawFeature('note')">
-        <mat-icon>local_offer</mat-icon>
-        <span>Add Note</span>
-      </a>
+      @if (
+        this.app.config.map.zoomLevel >= this.app.config.resources.notes.minZoom
+      ) {
+        <a mat-menu-item (click)="drawFeature('note')">
+          <mat-icon>local_offer</mat-icon>
+          <span>Add Note</span>
+        </a>
       }
       <a mat-menu-item (click)="drawFeature('region')">
         <mat-icon>tab_unselected</mat-icon>
@@ -192,26 +196,27 @@
     </mat-menu>
 
     <mat-menu #mainmenu="matMenu">
-      @if(!app.hostDef.params.token && app.data.loginRequired){
-      <a mat-menu-item (click)="showLogin(null, false)">
-        <mat-icon
-          matBadge="!"
-          matBadgeOverlap="true"
-          matBadgeSize="medium"
-          matBadgePosition="below after"
-          [matBadgeHidden]="app.isLoggedIn()"
-          aria-hidden="false"
-        >
-          account_circle
-        </mat-icon>
-        <span>{{ app.isLoggedIn() ? 'Change User' : 'Login' }}</span>
-      </a>
-      <mat-divider></mat-divider>
-      } @if(!isInteracting() && app.featureFlags().anchorApi) {
-      <a mat-menu-item (click)="displayLeftMenu('anchorWatch', true)">
-        <mat-icon>anchor</mat-icon>
-        <span>Anchor Watch</span>
-      </a>
+      @if (!app.hostDef.params.token && app.data.loginRequired) {
+        <a mat-menu-item (click)="showLogin(null, false)">
+          <mat-icon
+            matBadge="!"
+            matBadgeOverlap="true"
+            matBadgeSize="medium"
+            matBadgePosition="below after"
+            [matBadgeHidden]="app.isLoggedIn()"
+            aria-hidden="false"
+          >
+            account_circle
+          </mat-icon>
+          <span>{{ app.isLoggedIn() ? 'Change User' : 'Login' }}</span>
+        </a>
+        <mat-divider></mat-divider>
+      }
+      @if (!isInteracting() && app.featureFlags().anchorApi) {
+        <a mat-menu-item (click)="displayLeftMenu('anchorWatch', true)">
+          <mat-icon>anchor</mat-icon>
+          <span>Anchor Watch</span>
+        </a>
       }
       <a mat-menu-item (click)="displayLeftMenu('aisList', true)">
         <mat-icon>directions_boat</mat-icon>
@@ -223,11 +228,11 @@
         <span>Resource Sets</span>
       </a>
 
-      @if(features.playbackAPI) {
-      <a mat-menu-item (click)="showPlaybackSettings()">
-        <mat-icon>history</mat-icon>
-        <span>Playback History</span>
-      </a>
+      @if (features.playbackAPI) {
+        <a mat-menu-item (click)="showPlaybackSettings()">
+          <mat-icon>history</mat-icon>
+          <span>Playback History</span>
+        </a>
       }
 
       <mat-divider></mat-divider>
@@ -252,527 +257,593 @@
     <div class="view" theme-main>
       <mat-sidenav-container hasBackdrop="false">
         <!--instruments-->
-        @if(app.instrumentPanelAvailable()) {
-        <mat-sidenav
-          #sideright
-          mode="side"
-          position="end"
-          (openedChange)="rightSideNavAction($event)"
-          style="width: 350px"
-        >
-          <div
-            style="display: flex; flex-direction: column; position: relative"
+        @if (app.instrumentPanelAvailable()) {
+          <mat-sidenav
+            #sideright
+            mode="side"
+            position="end"
+            (openedChange)="rightSideNavAction($event)"
+            style="width: 350px"
           >
-            <mat-nav-list>
-              <a mat-list-item>
-                <a mat-icon-button (click)="sideright.toggle()">
-                  <mat-icon>arrow_forward</mat-icon>
-                </a>
-                &nbsp;&nbsp;&nbsp;&nbsp;
-                @if(app.config.display.plugins.instruments) {
-                <a
-                  mat-icon-button
-                  [href]="instUrl()"
-                  (click)="sideright.toggle()"
-                  target="_blank"
-                  matTooltip="Open Instruments in window."
-                  matTooltipPosition="right"
-                >
-                  <mat-icon>open_in_new</mat-icon>
-                </a>
-                } &nbsp;&nbsp;
-                <a
-                  mat-icon-button
-                  (click)="selectPlugin()"
-                  [disabled]="
-                    app.config.display.plugins.favourites.length === 0
-                  "
-                  matTooltip="Previous plugin"
-                  matTooltipPosition="below"
-                >
-                  <mat-icon>arrow_back_ios</mat-icon>
-                </a>
-                <a
-                  mat-icon-button
-                  (click)="selectPlugin(true)"
-                  [disabled]="
-                    app.config.display.plugins.favourites.length === 0
-                  "
-                  matTooltip="Next plugin"
-                  matTooltipPosition="below"
-                >
-                  <mat-icon>arrow_forward_ios</mat-icon>
-                </a>
-              </a>
-              <mat-divider></mat-divider>
-            </mat-nav-list>
             <div
-              style="
-                position: fixed;
-                bottom: 0;
-                top: 48px;
-                overflow: auto;
-                -webkit-overfow-scrolling: touch;
-              "
+              style="display: flex; flex-direction: column; position: relative"
             >
-              @if(instrumentPanel().activate) {
-              <iframe
-                [src]="instUrl()"
-                style="width: 345px; height: 100%"
-                sandbox="allow-scripts allow-same-origin"
+              <mat-nav-list>
+                <a mat-list-item>
+                  <a mat-icon-button (click)="sideright.toggle()">
+                    <mat-icon>arrow_forward</mat-icon>
+                  </a>
+                  &nbsp;&nbsp;&nbsp;&nbsp;
+                  @if (app.config.display.plugins.instruments) {
+                    <a
+                      mat-icon-button
+                      [href]="instUrl()"
+                      (click)="sideright.toggle()"
+                      target="_blank"
+                      matTooltip="Open Instruments in window."
+                      matTooltipPosition="right"
+                    >
+                      <mat-icon>open_in_new</mat-icon>
+                    </a>
+                  }
+                  &nbsp;&nbsp;
+                  <a
+                    mat-icon-button
+                    (click)="selectPlugin()"
+                    [disabled]="
+                      app.config.display.plugins.favourites.length === 0
+                    "
+                    matTooltip="Previous plugin"
+                    matTooltipPosition="below"
+                  >
+                    <mat-icon>arrow_back_ios</mat-icon>
+                  </a>
+                  <a
+                    mat-icon-button
+                    (click)="selectPlugin(true)"
+                    [disabled]="
+                      app.config.display.plugins.favourites.length === 0
+                    "
+                    matTooltip="Next plugin"
+                    matTooltipPosition="below"
+                  >
+                    <mat-icon>arrow_forward_ios</mat-icon>
+                  </a>
+                </a>
+                <mat-divider></mat-divider>
+              </mat-nav-list>
+              <div
+                style="
+                  position: fixed;
+                  bottom: 0;
+                  top: 48px;
+                  overflow: auto;
+                  -webkit-overfow-scrolling: touch;
+                "
               >
-              </iframe>
-              }
+                @if (instrumentPanel().activate) {
+                  <iframe
+                    [src]="instUrl()"
+                    style="width: 345px; height: 100%"
+                    sandbox="allow-scripts allow-same-origin"
+                  >
+                  </iframe>
+                }
+              </div>
             </div>
-          </div>
-        </mat-sidenav>
+          </mat-sidenav>
         }
         <mat-sidenav-content style="overflow: hidden">
-          @if(app.sIsFetching()) {
-          <div
-            style="
-              z-index: 4700;
-              position: fixed;
-              top: 0px;
-              left: 0px;
-              width: 100%;
-            "
-          >
-            <mat-progress-bar mode="query"></mat-progress-bar>
-          </div>
-          } @if(app.uiCtrl().autopilotConsole) {
-          <autopilot-console
-            [apData]="app.data.vessels.self.autopilot"
-            (close)="toggleAutopilotConsole(false)"
-          ></autopilot-console>
-          } @if(app.uiCtrl().routeBuilder) {
-          <route-builder
-            (save)="skres.newRouteAt($event.coordinates, $event.meta)"
-            (close)="toggleRouteBuilderConsole(false)"
-          >
-          </route-builder>
-          } @if(!app.kioskMode() && !this.app.uiCtrl().suppressContextMenu) {
-          <!-- left button bar -->
-          <div class="leftTop buttonPanel">
-            <div class="buttonPanelItem">
-              <button
-                class="button-secondary"
-                mat-mini-fab
-                [disabled]="isInteracting()"
-                matBadge="!"
-                matBadgeOverlap="true"
-                [matBadgeHidden]="app.isLoggedIn()"
-                matTooltip="Menu"
-                matTooltipPosition="right"
-                [matMenuTriggerFor]="mainmenu"
-                aria-hidden="false"
-              >
-                <mat-icon>menu</mat-icon>
-              </button>
+          @if (app.sIsFetching()) {
+            <div
+              style="
+                z-index: 4700;
+                position: fixed;
+                top: 0px;
+                left: 0px;
+                width: 100%;
+              "
+            >
+              <mat-progress-bar mode="query"></mat-progress-bar>
             </div>
-          </div>
-          @if(app.uiConfig().toolbarButtons) {
-          <div class="buttonPanel left">
-            <div class="buttonPanelItem">
-              <button
-                class="button-warn"
-                mat-mini-fab
-                matTooltip="Alarms"
-                matTooltipPosition="left"
-                [matBadge]="notiMgr.alerts().length"
-                matBadgeOverlap="true"
-                [matBadgeHidden]="notiMgr.alerts().length === 0"
-                (click)="toggleAlertList(true)"
-                aria-hidden="false"
-              >
-                <mat-icon class="ob" svgIcon="alert-list"></mat-icon>
-              </button>
-            </div>
-            <div class="buttonPanelItem">
-              <button
-                class="button-accent"
-                mat-mini-fab
-                [disabled]="isInteracting()"
-                matTooltip="Routes, Waypoints, Notes, etc."
-                matTooltipPosition="right"
-                [matMenuTriggerFor]="layersmenu"
-              >
-                <mat-icon>layers</mat-icon>
-              </button>
-            </div>
-            <div class="buttonPanelItem">
-              <button
-                class="button-toolbar"
-                mat-mini-fab
-                [disabled]="isInteracting()"
-                matTooltip="Draw / Measure / Select"
-                matTooltipPosition="right"
-                [matMenuTriggerFor]="editmenu"
-              >
-                <mat-icon>edit</mat-icon>
-              </button>
-            </div>
-            <div class="buttonPanelItem">
-              <button
-                mat-mini-fab
-                [ngClass]="{
-                  'button-primary': !app.uiConfig().mapNorthUp,
-                  'button-toolbar': app.uiConfig().mapNorthUp
-                }"
-                (click)="toggleNorthUp()"
-                [matTooltip]="
-                  app.uiConfig().mapNorthUp
-                    ? 'Show Heading Up'
-                    : 'Show North Up'
-                "
-                matTooltipPosition="right"
-              >
-                <mat-icon
-                  class="ob"
-                  [svgIcon]="
-                    app.uiConfig().mapNorthUp ? 'heading-n-up' : 'heading-h-up'
-                  "
+          }
+          @if (app.uiCtrl().autopilotConsole) {
+            <autopilot-console
+              [apData]="app.data.vessels.self.autopilot"
+              (close)="toggleAutopilotConsole(false)"
+            ></autopilot-console>
+          }
+          @if (app.uiCtrl().routeBuilder) {
+            <route-builder
+              (save)="skres.newRouteAt($event.coordinates, $event.meta)"
+              (close)="toggleRouteBuilderConsole(false)"
+            >
+            </route-builder>
+          }
+          @if (!app.kioskMode() && !this.app.uiCtrl().suppressContextMenu) {
+            <!-- left button bar -->
+            <div class="leftTop buttonPanel">
+              <div class="buttonPanelItem">
+                <button
+                  class="button-secondary"
+                  mat-mini-fab
+                  [disabled]="isInteracting()"
+                  matBadge="!"
+                  matBadgeOverlap="true"
+                  [matBadgeHidden]="app.isLoggedIn()"
+                  matTooltip="Menu"
+                  matTooltipPosition="right"
+                  [matMenuTriggerFor]="mainmenu"
+                  aria-hidden="false"
                 >
-                </mat-icon>
-              </button>
+                  <mat-icon>menu</mat-icon>
+                </button>
+              </div>
             </div>
-            <div class="buttonPanelItem">
-              <button
-                mat-mini-fab
-                [ngClass]="{
-                  'button-primary': app.uiConfig().mapMove,
-                  'button-toolbar': !app.uiConfig().mapMove
-                }"
-                (click)="toggleMoveMap()"
-                [disabled]="!app.data.vessels.showSelf"
-                [matTooltip]="
-                  app.uiConfig().mapMove
-                    ? 'Turn off Follow Vessel'
-                    : 'Follow Vessel'
-                "
-                matTooltipPosition="right"
-              >
-                <mat-icon class="ob" svgIcon="cent-iec"></mat-icon>
-              </button>
-            </div>
-            @if(!app.uiConfig().mapMove) {
-            <div class="buttonPanelItem">
-              <button
-                class="button-toolbar"
-                mat-mini-fab
-                (click)="centerVessel()"
-                [disabled]="!app.data.vessels.showSelf"
-                matTooltip="Center Vessel"
-                matTooltipPosition="right"
-              >
-                <mat-icon> center_focus_strong </mat-icon>
-              </button>
-            </div>
+            @if (app.uiConfig().toolbarButtons) {
+              <div class="buttonPanel left">
+                <div class="buttonPanelItem">
+                  <button
+                    class="button-warn"
+                    mat-mini-fab
+                    matTooltip="Alarms"
+                    matTooltipPosition="left"
+                    [matBadge]="notiMgr.alerts().length"
+                    matBadgeOverlap="true"
+                    [matBadgeHidden]="notiMgr.alerts().length === 0"
+                    (click)="toggleAlertList(true)"
+                    aria-hidden="false"
+                  >
+                    <mat-icon class="ob" svgIcon="alert-list"></mat-icon>
+                  </button>
+                </div>
+                <div class="buttonPanelItem">
+                  <button
+                    class="button-accent"
+                    mat-mini-fab
+                    [disabled]="isInteracting()"
+                    matTooltip="Routes, Waypoints, Notes, etc."
+                    matTooltipPosition="right"
+                    [matMenuTriggerFor]="layersmenu"
+                  >
+                    <mat-icon>layers</mat-icon>
+                  </button>
+                </div>
+                <div class="buttonPanelItem">
+                  <button
+                    class="button-toolbar"
+                    mat-mini-fab
+                    [disabled]="isInteracting()"
+                    matTooltip="Draw / Measure / Select"
+                    matTooltipPosition="right"
+                    [matMenuTriggerFor]="editmenu"
+                  >
+                    <mat-icon>edit</mat-icon>
+                  </button>
+                </div>
+                <div class="buttonPanelItem">
+                  <button
+                    mat-mini-fab
+                    [ngClass]="{
+                      'button-primary': !app.uiConfig().mapNorthUp,
+                      'button-toolbar': app.uiConfig().mapNorthUp
+                    }"
+                    (click)="toggleNorthUp()"
+                    [matTooltip]="
+                      app.uiConfig().mapNorthUp
+                        ? 'Show Heading Up'
+                        : 'Show North Up'
+                    "
+                    matTooltipPosition="right"
+                  >
+                    <mat-icon
+                      class="ob"
+                      [svgIcon]="
+                        app.uiConfig().mapNorthUp
+                          ? 'heading-n-up'
+                          : 'heading-h-up'
+                      "
+                    >
+                    </mat-icon>
+                  </button>
+                </div>
+                <div class="buttonPanelItem">
+                  <button
+                    mat-mini-fab
+                    [ngClass]="{
+                      'button-primary': app.uiConfig().mapMove,
+                      'button-toolbar': !app.uiConfig().mapMove
+                    }"
+                    (click)="toggleMoveMap()"
+                    [disabled]="!app.data.vessels.showSelf"
+                    [matTooltip]="
+                      app.uiConfig().mapMove
+                        ? 'Turn off Follow Vessel'
+                        : 'Follow Vessel'
+                    "
+                    matTooltipPosition="right"
+                  >
+                    <mat-icon class="ob" svgIcon="cent-iec"></mat-icon>
+                  </button>
+                </div>
+                @if (!app.uiConfig().mapMove) {
+                  <div class="buttonPanelItem">
+                    <button
+                      class="button-toolbar"
+                      mat-mini-fab
+                      (click)="centerVessel()"
+                      [disabled]="!app.data.vessels.showSelf"
+                      matTooltip="Center Vessel"
+                      matTooltipPosition="right"
+                    >
+                      <mat-icon> center_focus_strong </mat-icon>
+                    </button>
+                  </div>
+                }
+                <div class="buttonPanelItem">
+                  <button
+                    class="button-toolbar"
+                    mat-mini-fab
+                    [disabled]="isInteracting()"
+                    matTooltip="More actions"
+                    matTooltipPosition="right"
+                    [matMenuTriggerFor]="settingsmenu"
+                  >
+                    <mat-icon>more_horiz</mat-icon>
+                  </button>
+                </div>
+                @if (mode === 1) {
+                  <div class="buttonPanelItem">
+                    <!-- Playback mode -->
+                    <button
+                      class="button-warn"
+                      mat-mini-fab
+                      matTooltip="Exit playback mode"
+                      matTooltipPosition="right"
+                      (click)="showSelectMode()"
+                    >
+                      <mat-icon>cancel</mat-icon>
+                    </button>
+                  </div>
+                }
+              </div>
             }
-            <div class="buttonPanelItem">
-              <button
-                class="button-toolbar"
-                mat-mini-fab
-                [disabled]="isInteracting()"
-                matTooltip="More actions"
-                matTooltipPosition="right"
-                [matMenuTriggerFor]="settingsmenu"
-              >
-                <mat-icon>more_horiz</mat-icon>
-              </button>
-            </div>
-            @if(mode === 1) {
-            <div class="buttonPanelItem">
-              <!-- Playback mode -->
-              <button
-                class="button-warn"
-                mat-mini-fab
-                matTooltip="Exit playback mode"
-                matTooltipPosition="right"
-                (click)="showSelectMode()"
-              >
-                <mat-icon>cancel</mat-icon>
-              </button>
-            </div>
-            }
-          </div>
-          }
-          <!-- /left button bar-->
+            <!-- /left button bar-->
 
-          <!--left menu panel-->
-          @if(leftMenuCtrl().leftMenuPanel) {
-          <div class="leftMenuPanel">
-            @if(leftMenuCtrl().routeList) { @defer {
-            <route-list
-              [activeRoute]="app.data.activeRoute"
-              [editingRouteId]="app.data.editingId"
-              (activate)="activateRoute($event.id)"
-              (deactivate)="clearDestination()"
-              (properties)="skres.resourceProperties($event)"
-              (points)="featureProperties({ id: $event.id, type: 'route' })"
-              (notes)="
-                skres.showRelatedNotes($event.id, 'route', $event.readOnly)
-              "
-              (closed)="displayLeftMenu()"
-            >
-            </route-list>
-            } } @if(leftMenuCtrl().waypointList) { @defer {
-            <waypoint-list
-              [activeWaypoint]="app.data.activeWaypoint"
-              [editingWaypointId]="app.data.editingId"
-              (goto)="course.navigateToWaypoint($event.id)"
-              (deactivate)="clearDestination()"
-              (center)="centerAndZoom($event)"
-              (notes)="
-                skres.showRelatedNotes($event.id, 'waypoint', $event.readOnly)
-              "
-              (closed)="displayLeftMenu()"
-            >
-            </waypoint-list>
-            } } @if(leftMenuCtrl().chartList) { @defer {
-            <chart-list
-              [selectedCharts]="app.config.selections.charts"
-              (closed)="displayLeftMenu()"
-            >
-            </chart-list>
-            } } @if(leftMenuCtrl().noteList) { @defer {
-            <note-list
-              [notes]="skres.notes()"
-              (select)="skres.noteSelected($event.id, $event.isGroup)"
-              (pan)="centerAndZoom($event.center, $event.zoomLevel)"
-              (closed)="displayLeftMenu()"
-            >
-            </note-list>
-            } } @if(leftMenuCtrl().trackList) { @defer {
-            <track-list
-              (center)="centerAndZoom($event)"
-              (closed)="displayLeftMenu()"
-            >
-            </track-list>
-            } } @if(leftMenuCtrl().aisList) { @defer {
-            <ais-list
-              [focusId]="app.data.vessels.activeId"
-              (properties)="featureProperties({ id: $event, type: 'ais' })"
-              (closed)="displayLeftMenu()"
-              (focusVessel)="switchActiveVessel($event)"
-              (pan)="centerAndZoom($event.center, $event.zoomLevel)"
-            >
-            </ais-list>
-            } } @if(leftMenuCtrl().resourceGroups) { @defer {
-            <group-list (closed)="displayLeftMenu()"> </group-list>
-            } } @if(leftMenuCtrl().infoLayerList) { @defer {
-            <infolayer-list (closed)="displayLeftMenu()"></infolayer-list>
-            } } @if(leftMenuCtrl().anchorWatch) {
-            <anchor-watch
-              [showSelf]="app.data.vessels.showSelf"
-              [radius]="this.anchor.radius()"
-              [feet]="app.config.units.depth !== 'm' ? true : false"
-              [raised]="anchor.raised()"
-              (closed)="displayLeftMenu()"
-            >
-            </anchor-watch>
+            <!--left menu panel-->
+            @if (leftMenuCtrl().leftMenuPanel) {
+              <div class="leftMenuPanel">
+                @if (leftMenuCtrl().routeList) {
+                  @defer {
+                    <route-list
+                      [activeRoute]="app.data.activeRoute"
+                      [editingRouteId]="app.data.editingId"
+                      (activate)="activateRoute($event.id)"
+                      (deactivate)="clearDestination()"
+                      (properties)="skres.resourceProperties($event)"
+                      (points)="
+                        featureProperties({ id: $event.id, type: 'route' })
+                      "
+                      (notes)="
+                        skres.showRelatedNotes(
+                          $event.id,
+                          'route',
+                          $event.readOnly
+                        )
+                      "
+                      (closed)="displayLeftMenu()"
+                    >
+                    </route-list>
+                  }
+                }
+                @if (leftMenuCtrl().waypointList) {
+                  @defer {
+                    <waypoint-list
+                      [activeWaypoint]="app.data.activeWaypoint"
+                      [editingWaypointId]="app.data.editingId"
+                      (goto)="course.navigateToWaypoint($event.id)"
+                      (deactivate)="clearDestination()"
+                      (center)="centerAndZoom($event)"
+                      (notes)="
+                        skres.showRelatedNotes(
+                          $event.id,
+                          'waypoint',
+                          $event.readOnly
+                        )
+                      "
+                      (closed)="displayLeftMenu()"
+                    >
+                    </waypoint-list>
+                  }
+                }
+                @if (leftMenuCtrl().chartList) {
+                  @defer {
+                    <chart-list
+                      [selectedCharts]="app.config.selections.charts"
+                      (closed)="displayLeftMenu()"
+                    >
+                    </chart-list>
+                  }
+                }
+                @if (leftMenuCtrl().noteList) {
+                  @defer {
+                    <note-list
+                      [notes]="skres.notes()"
+                      (select)="skres.noteSelected($event.id, $event.isGroup)"
+                      (pan)="centerAndZoom($event.center, $event.zoomLevel)"
+                      (closed)="displayLeftMenu()"
+                    >
+                    </note-list>
+                  }
+                }
+                @if (leftMenuCtrl().trackList) {
+                  @defer {
+                    <track-list
+                      (center)="centerAndZoom($event)"
+                      (closed)="displayLeftMenu()"
+                    >
+                    </track-list>
+                  }
+                }
+                @if (leftMenuCtrl().aisList) {
+                  @defer {
+                    <ais-list
+                      [focusId]="app.data.vessels.activeId"
+                      (properties)="
+                        featureProperties({ id: $event, type: 'ais' })
+                      "
+                      (closed)="displayLeftMenu()"
+                      (focusVessel)="switchActiveVessel($event)"
+                      (pan)="centerAndZoom($event.center, $event.zoomLevel)"
+                    >
+                    </ais-list>
+                  }
+                }
+                @if (leftMenuCtrl().resourceGroups) {
+                  @defer {
+                    <group-list (closed)="displayLeftMenu()"> </group-list>
+                  }
+                }
+                @if (leftMenuCtrl().infoLayerList) {
+                  @defer {
+                    <infolayer-list
+                      (closed)="displayLeftMenu()"
+                      (paramChanged)="onInfoLayerParamChange($event)"
+                    ></infolayer-list>
+                  }
+                }
+                @if (leftMenuCtrl().anchorWatch) {
+                  <anchor-watch
+                    [showSelf]="app.data.vessels.showSelf"
+                    [radius]="this.anchor.radius()"
+                    [feet]="app.config.units.depth !== 'm' ? true : false"
+                    [raised]="anchor.raised()"
+                    (closed)="displayLeftMenu()"
+                  >
+                  </anchor-watch>
+                }
+              </div>
             }
-          </div>
-          }
 
-          <!-- Status Bar -->
-          <div class="statusBar">
-            @if(!wakeLock.enabled() && wakeLock.isAvailable){
-            <div class="statusBarItem">
-              <mat-icon
-                matTooltip="WakeLock is turned off"
-                matTooltipPosition="below"
-                >visibility_off
-              </mat-icon>
-            </div>
-            } @if(!app.uiConfig().showCourseData){
-            <div class="statusBarItem">
-              <mat-icon
-                matTooltip="Course data is hidden"
-                matTooltipPosition="below"
-                >compare_arrows
-              </mat-icon>
-            </div>
-            } @if(!app.uiConfig().showAisTargets){
-            <div class="statusBarItem">
-              <mat-icon
-                matTooltip="Vessels are hidden"
-                matTooltipPosition="below"
-                >directions_boat
-              </mat-icon>
-            </div>
-            } @if(!app.uiConfig().showNotes){
-            <div class="statusBarItem">
-              <mat-icon matTooltip="Notes are hidden" matTooltipPosition="below"
-                >local_offer
-              </mat-icon>
-            </div>
-            }
-          </div>
-
-          <!-- right button bar -->
-          <!-- show/hide  -->
-          <div class="rightTop buttonPanel">
-            <div class="buttonPanelItem">
-              <button
-                class="button-secondary"
-                mat-mini-fab
-                (click)="toggleToolbarButtons()"
-                [matTooltip]="
-                  app.uiConfig().toolbarButtons
-                    ? 'Hide Toobars'
-                    : 'Show Toobars'
-                "
-                matTooltipPosition="before"
-              >
-                <mat-icon>{{
-                  app.uiConfig().toolbarButtons ? 'apps' : 'apps_outage'
-                }}</mat-icon>
-              </button>
-            </div>
-          </div>
-          @if(app.uiConfig().toolbarButtons) {
-          <div class="buttonPanel right">
-            <!-- instrument sidebar open button -->
-            <div class="instrumentPanelToggle buttonPanelItem">
-              @if(app.instrumentPanelAvailable() && !isInteracting() &&
-              !app.data.vessels.activeId) {
-              <button
-                class="button-toolbar"
-                mat-mini-fab
-                (click)="sideright.toggle()"
-                matTooltip="Instruments"
-                matTooltipPosition="before"
-              >
-                <mat-icon>av_timer</mat-icon>
-              </button>
+            <!-- Status Bar -->
+            <div class="statusBar">
+              @if (!wakeLock.enabled() && wakeLock.isAvailable) {
+                <div class="statusBarItem">
+                  <mat-icon
+                    matTooltip="WakeLock is turned off"
+                    matTooltipPosition="below"
+                    >visibility_off
+                  </mat-icon>
+                </div>
               }
-              <br />&nbsp;<br />&nbsp;
+              @if (!app.uiConfig().showCourseData) {
+                <div class="statusBarItem">
+                  <mat-icon
+                    matTooltip="Course data is hidden"
+                    matTooltipPosition="below"
+                    >compare_arrows
+                  </mat-icon>
+                </div>
+              }
+              @if (!app.uiConfig().showAisTargets) {
+                <div class="statusBarItem">
+                  <mat-icon
+                    matTooltip="Vessels are hidden"
+                    matTooltipPosition="below"
+                    >directions_boat
+                  </mat-icon>
+                </div>
+              }
+              @if (!app.uiConfig().showNotes) {
+                <div class="statusBarItem">
+                  <mat-icon
+                    matTooltip="Notes are hidden"
+                    matTooltipPosition="below"
+                    >local_offer
+                  </mat-icon>
+                </div>
+              }
             </div>
 
-            <!-- Web audio enable -->
-            @if(audioStatus() !== 'running') {
-            <div class="buttonPanelItem">
-              <button
-                class="button-toolbar"
-                mat-mini-fab
-                matTooltip="Web Audio off! Click to enable."
-                matTooltipPosition="before"
-                (click)="enableAudio()"
-              >
-                <mat-icon class="icon-warn">volume_off</mat-icon>
-              </button>
-              <br />&nbsp;<br />
+            <!-- right button bar -->
+            <!-- show/hide  -->
+            <div class="rightTop buttonPanel">
+              <div class="buttonPanelItem">
+                <button
+                  class="button-secondary"
+                  mat-mini-fab
+                  (click)="toggleToolbarButtons()"
+                  [matTooltip]="
+                    app.uiConfig().toolbarButtons
+                      ? 'Hide Toobars'
+                      : 'Show Toobars'
+                  "
+                  matTooltipPosition="before"
+                >
+                  <mat-icon>{{
+                    app.uiConfig().toolbarButtons ? 'apps' : 'apps_outage'
+                  }}</mat-icon>
+                </button>
+              </div>
             </div>
+            @if (app.uiConfig().toolbarButtons) {
+              <div class="buttonPanel right">
+                <!-- instrument sidebar open button -->
+                <div class="instrumentPanelToggle buttonPanelItem">
+                  @if (
+                    app.instrumentPanelAvailable() &&
+                    !isInteracting() &&
+                    !app.data.vessels.activeId
+                  ) {
+                    <button
+                      class="button-toolbar"
+                      mat-mini-fab
+                      (click)="sideright.toggle()"
+                      matTooltip="Instruments"
+                      matTooltipPosition="before"
+                    >
+                      <mat-icon>av_timer</mat-icon>
+                    </button>
+                  }
+                  <br />&nbsp;<br />&nbsp;
+                </div>
+
+                <!-- Web audio enable -->
+                @if (audioStatus() !== 'running') {
+                  <div class="buttonPanelItem">
+                    <button
+                      class="button-toolbar"
+                      mat-mini-fab
+                      matTooltip="Web Audio off! Click to enable."
+                      matTooltipPosition="before"
+                      (click)="enableAudio()"
+                    >
+                      <mat-icon class="icon-warn">volume_off</mat-icon>
+                    </button>
+                    <br />&nbsp;<br />
+                  </div>
+                }
+
+                <!-- fullscreen enable -->
+                @if (displayFullscreen().enabled) {
+                  <div class="buttonPanelItem">
+                    <button
+                      mat-mini-fab
+                      [ngClass]="{
+                        'button-primary': displayFullscreen().active,
+                        'button-toolbar': !displayFullscreen().active
+                      }"
+                      (click)="toggleFullscreen()"
+                      [matTooltip]="
+                        displayFullscreen().active
+                          ? 'Exit Fullscreen '
+                          : 'Go Fullscreen'
+                      "
+                      matTooltipPosition="before"
+                    >
+                      <mat-icon>
+                        {{
+                          displayFullscreen().active
+                            ? 'fullscreen_exit '
+                            : 'fullscreen'
+                        }}
+                      </mat-icon>
+                    </button>
+                    <br />&nbsp;<br />
+                  </div>
+                }
+
+                <!-- constrain zoom to selected map(s) extent -->
+                <div class="buttonPanelItem">
+                  <button
+                    mat-mini-fab
+                    [ngClass]="{
+                      'button-primary': app.uiConfig().mapConstrainZoom,
+                      'button-toolbar': !app.uiConfig().mapConstrainZoom
+                    }"
+                    (click)="toggleConstrainMapZoom()"
+                    matTooltip="Constrain map zoom."
+                    matTooltipPosition="before"
+                  >
+                    <mat-icon>zoom_in_map</mat-icon>
+                  </button>
+                  <br />&nbsp;<br />
+                </div>
+
+                <!-- Invert colors -->
+                <div class="buttonPanelItem">
+                  <button
+                    mat-mini-fab
+                    [ngClass]="{
+                      'button-primary': app.uiConfig().invertColor,
+                      'button-toolbar': !app.uiConfig().invertColor
+                    }"
+                    (click)="invertFeatureLabelColor()"
+                    matTooltip="Invert feature text color."
+                    matTooltipPosition="before"
+                  >
+                    <mat-icon>{{
+                      true ? 'invert_colors' : 'invert_colors_off'
+                    }}</mat-icon>
+                  </button>
+                  <br />&nbsp;<br />
+                </div>
+
+                <!-- Experiments -->
+                @if (app.config.experiments) {
+                  <div class="buttonPanelItem">
+                    <fb-experiments
+                      (selected)="openExperiment($event)"
+                    ></fb-experiments>
+                    <br />&nbsp;<br />
+                  </div>
+                }
+                <!-- PiP enable -->
+                @if (
+                  app.config.resources.video.enable &&
+                  app.config.resources.video.url
+                ) {
+                  <div class="buttonPanelItem">
+                    <pip-video
+                      [src]="vidUrl()"
+                      [muted]="true"
+                      (click)="focusMap()"
+                    >
+                    </pip-video>
+                    <br />&nbsp;<br />
+                  </div>
+                }
+
+                <!-- Autopilot console-->
+                @if (
+                  app.featureFlags().autopilotApi &&
+                  app.data.vessels.self.autopilot.default &&
+                  app.config.display.fab !== 'autopilot'
+                ) {
+                  <div class="buttonPanelItem">
+                    <button
+                      mat-mini-fab
+                      [ngClass]="{
+                        'button-primary':
+                          app.data.vessels.self.autopilot.enabled,
+                        'button-toolbar':
+                          !app.data.vessels.self.autopilot.enabled
+                      }"
+                      matTooltip="Autopilot"
+                      matTooltipPosition="before"
+                      (click)="toggleAutopilotConsole(true)"
+                    >
+                      <mat-icon
+                        class="ob"
+                        svgIcon="command-autopilot"
+                      ></mat-icon>
+                    </button>
+                    <br />&nbsp;<br />
+                  </div>
+                }
+              </div>
             }
-
-            <!-- fullscreen enable -->
-            @if(displayFullscreen().enabled) {
-            <div class="buttonPanelItem">
-              <button
-                mat-mini-fab
-                [ngClass]="{
-                  'button-primary': displayFullscreen().active,
-                  'button-toolbar': !displayFullscreen().active
-                }"
-                (click)="toggleFullscreen()"
-                [matTooltip]="
-                  displayFullscreen().active
-                    ? 'Exit Fullscreen '
-                    : 'Go Fullscreen'
-                "
-                matTooltipPosition="before"
-              >
-                <mat-icon>
-                  {{
-                    displayFullscreen().active
-                      ? 'fullscreen_exit '
-                      : 'fullscreen'
-                  }}
-                </mat-icon>
-              </button>
-              <br />&nbsp;<br />
-            </div>
-            }
-
-            <!-- constrain zoom to selected map(s) extent -->
-            <div class="buttonPanelItem">
-              <button
-                mat-mini-fab
-                [ngClass]="{
-                  'button-primary': app.uiConfig().mapConstrainZoom,
-                  'button-toolbar': !app.uiConfig().mapConstrainZoom
-                }"
-                (click)="toggleConstrainMapZoom()"
-                matTooltip="Constrain map zoom."
-                matTooltipPosition="before"
-              >
-                <mat-icon>zoom_in_map</mat-icon>
-              </button>
-              <br />&nbsp;<br />
-            </div>
-
-            <!-- Invert colors -->
-            <div class="buttonPanelItem">
-              <button
-                mat-mini-fab
-                [ngClass]="{
-                  'button-primary': app.uiConfig().invertColor,
-                  'button-toolbar': !app.uiConfig().invertColor
-                }"
-                (click)="invertFeatureLabelColor()"
-                matTooltip="Invert feature text color."
-                matTooltipPosition="before"
-              >
-                <mat-icon>{{
-                  true ? 'invert_colors' : 'invert_colors_off'
-                }}</mat-icon>
-              </button>
-              <br />&nbsp;<br />
-            </div>
-
-            <!-- Experiments -->
-            @if(app.config.experiments) {
-            <div class="buttonPanelItem">
-              <fb-experiments
-                (selected)="openExperiment($event)"
-              ></fb-experiments>
-              <br />&nbsp;<br />
-            </div>
-            }
-            <!-- PiP enable -->
-            @if(app.config.resources.video.enable &&
-            app.config.resources.video.url) {
-            <div class="buttonPanelItem">
-              <pip-video [src]="vidUrl()" [muted]="true" (click)="focusMap()">
-              </pip-video>
-              <br />&nbsp;<br />
-            </div>
-            }
-
-            <!-- Autopilot console-->
-            @if(app.featureFlags().autopilotApi &&
-            app.data.vessels.self.autopilot.default && app.config.display.fab
-            !== 'autopilot') {
-            <div class="buttonPanelItem">
-              <button
-                mat-mini-fab
-                [ngClass]="{
-                  'button-primary': app.data.vessels.self.autopilot.enabled,
-                  'button-toolbar': !app.data.vessels.self.autopilot.enabled
-                }"
-                matTooltip="Autopilot"
-                matTooltipPosition="before"
-                (click)="toggleAutopilotConsole(true)"
-              >
-                <mat-icon class="ob" svgIcon="command-autopilot"></mat-icon>
-              </button>
-              <br />&nbsp;<br />
-            </div>
-            }
-          </div>
-          }
-          <!-- /right button bar -->
+            <!-- /right button bar -->
           }
           <!--map panel-->
           <div
@@ -817,182 +888,206 @@
           </div>
 
           <!-- *** Playback panel ***-->
-          @if(mode === 1){
-          <div class="playbackPanel mat-app-background">
-            <div style="border-radius: 5px">
-              <mat-icon>access_time</mat-icon> <b>Playback:</b>
+          @if (mode === 1) {
+            <div class="playbackPanel mat-app-background">
+              <div style="border-radius: 5px">
+                <mat-icon>access_time</mat-icon> <b>Playback:</b>
+              </div>
+              <div style="text-align: center">{{ playbackTime() }}</div>
             </div>
-            <div style="text-align: center">{{ playbackTime() }}</div>
-          </div>
           }
 
           <!-- *** Alarm / Mode panel ***-->
-          @if(!app.kioskMode()) { @if( app.uiCtrl().alertList) {
-          <alert-list
-            [alerts]="notiMgr.alerts()"
-            (closed)="toggleAlertList(false)"
-          ></alert-list>
-          }
-          <div class="alarmPanel">
-            @for(n of notiMgr.alerts(); track n[0]) {
-            <span style="margin-bottom: 5px">
-              <fb-alert
-                [audioStatus]="audioStatus()"
-                [alert]="n[1]"
-                [acknowledged]="n[1].acknowledged"
-                [silenced]="n[1].silenced"
-                [doNotPlaySound]="app.config.display.muteSound"
-                (nextPoint)="
-                  course.coursePointIndex(course.courseData().pointIndex + 1)
-                "
-              >
-              </fb-alert>
-            </span>
+          @if (!app.kioskMode()) {
+            @if (app.uiCtrl().alertList) {
+              <alert-list
+                [alerts]="notiMgr.alerts()"
+                (closed)="toggleAlertList(false)"
+              ></alert-list>
             }
-          </div>
+            <div class="alarmPanel">
+              @for (n of notiMgr.alerts(); track n[0]) {
+                <span style="margin-bottom: 5px">
+                  <fb-alert
+                    [audioStatus]="audioStatus()"
+                    [alert]="n[1]"
+                    [acknowledged]="n[1].acknowledged"
+                    [silenced]="n[1].silenced"
+                    [doNotPlaySound]="app.config.display.muteSound"
+                    (nextPoint)="
+                      course.coursePointIndex(
+                        course.courseData().pointIndex + 1
+                      )
+                    "
+                  >
+                  </fb-alert>
+                </span>
+              }
+            </div>
           }
 
           <!-- Interaction Help Container Panel -->
-          @if(isInteracting()) {
-          <fb-interact-help (cancel)="closeInteraction()"> </fb-interact-help>
+          @if (isInteracting()) {
+            <fb-interact-help (cancel)="closeInteraction()"> </fb-interact-help>
           }
 
           <!-- *** Nav data panel ***-->
-          @if(!isInteracting()) {
-          <div class="navdataPanel">
-            @if(navDataPanel().nextPointCtrl) {
-            <route-nextpoint
-              [index]="course.courseData().pointIndex"
-              [total]="course.courseData().pointTotal"
-              [circular]="app.data.activeRouteCircular"
-              (selected)="routeNextPoint($event)"
-            >
-            </route-nextpoint>
-            } @if(app.config.ui.showCourseData && navDataPanel().show) {
-            <div style="display: flex; flex-wrap: nowrap">
-              <div class="mat-app-background" style="display: flex">
-                <div style="width: 40px">
-                  <button
-                    mat-icon-button
-                    matTooltip="Course Settings"
-                    (click)="openCourseSettings()"
-                  >
-                    <mat-icon class="ob" svgIcon="navigation-route"></mat-icon>
-                  </button>
-                  <br />
-                  <button
-                    mat-icon-button
-                    matTooltip="Autopilot Console"
-                    matTooltipPosition="above"
-                    [disabled]="
-                      !app.featureFlags().autopilotApi ||
-                      !app.data.vessels.self.autopilot.default
-                    "
-                    matTooltip="Engage Autopilot"
-                    (click)="autopilot.engage()"
-                  >
-                    <mat-icon
-                      class="ob"
-                      svgIcon="command-autopilot"
-                      [color]="navDataPanel().apModeColor"
+          @if (!isInteracting()) {
+            <div class="navdataPanel">
+              @if (navDataPanel().nextPointCtrl) {
+                <route-nextpoint
+                  [index]="course.courseData().pointIndex"
+                  [total]="course.courseData().pointTotal"
+                  [circular]="app.data.activeRouteCircular"
+                  (selected)="routeNextPoint($event)"
+                >
+                </route-nextpoint>
+              }
+              @if (app.config.ui.showCourseData && navDataPanel().show) {
+                <div style="display: flex; flex-wrap: nowrap">
+                  <div class="mat-app-background" style="display: flex">
+                    <div style="width: 40px">
+                      <button
+                        mat-icon-button
+                        matTooltip="Course Settings"
+                        (click)="openCourseSettings()"
+                      >
+                        <mat-icon
+                          class="ob"
+                          svgIcon="navigation-route"
+                        ></mat-icon>
+                      </button>
+                      <br />
+                      <button
+                        mat-icon-button
+                        matTooltip="Autopilot Console"
+                        matTooltipPosition="above"
+                        [disabled]="
+                          !app.featureFlags().autopilotApi ||
+                          !app.data.vessels.self.autopilot.default
+                        "
+                        matTooltip="Engage Autopilot"
+                        (click)="autopilot.engage()"
+                      >
+                        <mat-icon
+                          class="ob"
+                          svgIcon="command-autopilot"
+                          [color]="navDataPanel().apModeColor"
+                        >
+                        </mat-icon>
+                      </button>
+                    </div>
+                    <div>
+                      <button
+                        mat-icon-button
+                        matTooltip="Restart XTE"
+                        (click)="course.courseRestart()"
+                      >
+                        <mat-icon>replay</mat-icon>
+                      </button>
+                      <br />
+                      <button
+                        mat-icon-button
+                        matTooltip="Reverse route direction"
+                        matTooltipPosition="above"
+                        [disabled]="!app.data.activeRoute"
+                        (click)="course.courseReverse()"
+                      >
+                        <mat-icon
+                          [color]="
+                            app.data.activeRouteReversed ? 'primary' : 'none'
+                          "
+                        >
+                          multiple_stop
+                        </mat-icon>
+                      </button>
+                    </div>
+                  </div>
+                  @if (course.courseData().vmg) {
+                    <ap-dial-text
+                      [title]="'VMG'"
+                      [value]="app.formatSpeed(course.courseData().vmg, true)"
+                      [units]="app.formattedSpeedUnits"
                     >
-                    </mat-icon>
-                  </button>
-                </div>
-                <div>
-                  <button
-                    mat-icon-button
-                    matTooltip="Restart XTE"
-                    (click)="course.courseRestart()"
-                  >
-                    <mat-icon>replay</mat-icon>
-                  </button>
-                  <br />
-                  <button
-                    mat-icon-button
-                    matTooltip="Reverse route direction"
-                    matTooltipPosition="above"
-                    [disabled]="!app.data.activeRoute"
-                    (click)="course.courseReverse()"
-                  >
-                    <mat-icon
-                      [color]="
-                        app.data.activeRouteReversed ? 'primary' : 'none'
+                    </ap-dial-text>
+                  }
+                  @if (course.courseData().bearing.value) {
+                    <ap-dial-text
+                      [title]="'BRG'"
+                      [value]="course.courseData().bearing.value.toFixed(1)"
+                      [units]="
+                        course.courseData().bearing.type === 'M'
+                          ? 'deg (M)'
+                          : 'deg (T)'
                       "
                     >
-                      multiple_stop
-                    </mat-icon>
-                  </button>
+                    </ap-dial-text>
+                  }
+                  @if (course.courseData().xte) {
+                    <ap-dial-text
+                      [title]="'XTE'"
+                      [value]="
+                        course.courseData().xte > 10
+                          ? course.courseData().xte.toFixed(1)
+                          : course.courseData().xte.toFixed(3)
+                      "
+                      [units]="app.config.units.distance === 'm' ? 'km' : 'NM'"
+                    >
+                    </ap-dial-text>
+                  }
+                  @if (app.data.activeRoute) {
+                    @if (course.courseData().route.dtg) {
+                      <ap-dial-text
+                        [title]="'DTG'"
+                        subTitle="RT"
+                        [value]="course.courseData().route.dtg.toFixed(1)"
+                        [units]="
+                          app.config.units.distance === 'm' ? 'km' : 'NM'
+                        "
+                      >
+                      </ap-dial-text>
+                    }
+                    @if (course.courseData().route.ttg) {
+                      <ap-dial-ttg
+                        subTitle="RT"
+                        [value]="course.courseData().route.ttg"
+                      >
+                      </ap-dial-ttg>
+                    }
+                    @if (course.courseData().route.eta) {
+                      <ap-dial-eta
+                        [title]="'ETA'"
+                        subTitle="RT"
+                        [value]="course.courseData().route.eta"
+                      >
+                      </ap-dial-eta>
+                    }
+                  }
+                  @if (course.courseData().dtg) {
+                    <ap-dial-text
+                      [title]="'DTG'"
+                      [value]="course.courseData().dtg.toFixed(1)"
+                      [units]="app.config.units.distance === 'm' ? 'km' : 'NM'"
+                    >
+                    </ap-dial-text>
+                  }
+                  @if (course.courseData().ttg) {
+                    <ap-dial-ttg [value]="course.courseData().ttg">
+                    </ap-dial-ttg>
+                  }
+                  @if (course.courseData().eta) {
+                    <ap-dial-eta
+                      [title]="'ETA'"
+                      [value]="course.courseData().eta"
+                    >
+                    </ap-dial-eta>
+                  }
                 </div>
-              </div>
-              @if(course.courseData().vmg) {
-              <ap-dial-text
-                [title]="'VMG'"
-                [value]="app.formatSpeed(course.courseData().vmg, true)"
-                [units]="app.formattedSpeedUnits"
-              >
-              </ap-dial-text>
-              } @if(course.courseData().bearing.value) {
-              <ap-dial-text
-                [title]="'BRG'"
-                [value]="course.courseData().bearing.value.toFixed(1)"
-                [units]="
-                  course.courseData().bearing.type === 'M'
-                    ? 'deg (M)'
-                    : 'deg (T)'
-                "
-              >
-              </ap-dial-text>
-              } @if(course.courseData().xte) {
-              <ap-dial-text
-                [title]="'XTE'"
-                [value]="
-                  course.courseData().xte > 10
-                    ? course.courseData().xte.toFixed(1)
-                    : course.courseData().xte.toFixed(3)
-                "
-                [units]="app.config.units.distance === 'm' ? 'km' : 'NM'"
-              >
-              </ap-dial-text>
-              } @if(app.data.activeRoute) { @if(course.courseData().route.dtg) {
-              <ap-dial-text
-                [title]="'DTG'"
-                subTitle="RT"
-                [value]="course.courseData().route.dtg.toFixed(1)"
-                [units]="app.config.units.distance === 'm' ? 'km' : 'NM'"
-              >
-              </ap-dial-text>
-              } @if(course.courseData().route.ttg) {
-              <ap-dial-ttg
-                subTitle="RT"
-                [value]="course.courseData().route.ttg"
-              >
-              </ap-dial-ttg>
-              } @if(course.courseData().route.eta) {
-              <ap-dial-eta
-                [title]="'ETA'"
-                subTitle="RT"
-                [value]="course.courseData().route.eta"
-              >
-              </ap-dial-eta>
-              } } @if(course.courseData().dtg) {
-              <ap-dial-text
-                [title]="'DTG'"
-                [value]="course.courseData().dtg.toFixed(1)"
-                [units]="app.config.units.distance === 'm' ? 'km' : 'NM'"
-              >
-              </ap-dial-text>
-              } @if(course.courseData().ttg) {
-              <ap-dial-ttg [value]="course.courseData().ttg"> </ap-dial-ttg>
-              } @if(course.courseData().eta) {
-              <ap-dial-eta [title]="'ETA'" [value]="course.courseData().eta">
-              </ap-dial-eta>
               }
             </div>
-            }
-          </div>
-          } @if(!isInteracting() && !app.kioskMode()) {
-          <mfb-container [action]="app.config.display.fab"> </mfb-container>
+          }
+          @if (!isInteracting() && !app.kioskMode()) {
+            <mfb-container [action]="app.config.display.fab"> </mfb-container>
           }
         </mat-sidenav-content>
       </mat-sidenav-container>

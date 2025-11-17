@@ -48,29 +48,29 @@ isSelf: boolean - true if vessel 'self'
       [canClose]="canClose"
       (closed)="handleClose()"
     >
-      @if(vessel.callsignVhf) {
-      <div style="display:flex;">
-        <div style="font-weight:bold;">Callsign (VHF):</div>
-        <div
-          style="flex: 1 1 auto;text-align:right;"
-          [innerText]="vessel.callsignVhf"
-        ></div>
-      </div>
-      } @else if(vessel.callsignHf) {
-      <div style="display:flex;">
-        <div style="font-weight:bold;">Callsign (HF):</div>
-        <div
-          style="flex: 1 1 auto;text-align:right;"
-          [innerText]="vessel.callsignHf"
-        ></div>
-      </div>
+      @if (vessel.callsignVhf) {
+        <div style="display:flex;">
+          <div style="font-weight:bold;">Callsign (VHF):</div>
+          <div
+            style="flex: 1 1 auto;text-align:right;"
+            [innerText]="vessel.callsignVhf"
+          ></div>
+        </div>
+      } @else if (vessel.callsignHf) {
+        <div style="display:flex;">
+          <div style="font-weight:bold;">Callsign (HF):</div>
+          <div
+            style="flex: 1 1 auto;text-align:right;"
+            [innerText]="vessel.callsignHf"
+          ></div>
+        </div>
       }
       <div style="display:flex;">
         <div style="font-weight:bold;">Latitude:</div>
         <div
           style="flex: 1 1 auto;text-align:right;"
           [innerText]="
-            position[1] | coords : app.config.units.positionFormat : true
+            position[1] | coords: app.config.units.positionFormat : true
           "
         ></div>
       </div>
@@ -78,17 +78,19 @@ isSelf: boolean - true if vessel 'self'
         <div style="font-weight:bold;">Longitude:</div>
         <div
           style="flex: 1 1 auto;text-align:right;"
-          [innerText]="position[0] | coords : app.config.units.positionFormat"
+          [innerText]="position[0] | coords: app.config.units.positionFormat"
         ></div>
       </div>
-      @if(!isSelf) { @if(vessel.distanceToSelf) {
-      <div style="display:flex;">
-        <div style="font-weight:bold;">Distance:</div>
-        <div style="flex: 1 1 auto;text-align:right;">
-          {{ distToSelf }}
-        </div>
-      </div>
-      } }
+      @if (!isSelf) {
+        @if (vessel.distanceToSelf) {
+          <div style="display:flex;">
+            <div style="font-weight:bold;">Distance:</div>
+            <div style="flex: 1 1 auto;text-align:right;">
+              {{ distToSelf }}
+            </div>
+          </div>
+        }
+      }
       <div style="display:flex;">
         <div style="font-weight:bold;">Last Update:</div>
         <div style="flex: 1 1 auto;text-align:right;">
@@ -145,47 +147,48 @@ isSelf: boolean - true if vessel 'self'
       <div style="display:flex;">
         <div style="flex:1 1 auto;"></div>
         <div style="text-align:right;">
-          @if(isActive) {
-          <button
-            mat-button
-            (click)="handleMarkPosition()"
-            matTooltip="Add Waypoint at vessel location"
-          >
-            <mat-icon>add_location</mat-icon>
-            DROP WPT
-          </button>
+          @if (isActive) {
+            <button
+              mat-button
+              (click)="handleMarkPosition()"
+              matTooltip="Add Waypoint at vessel location"
+            >
+              <mat-icon>add_location</mat-icon>
+              DROP WPT
+            </button>
           } @else {
-          <button mat-button (click)="toggleFlag()" matTooltip="Flag vessel">
-            <mat-icon>{{ isFlagged ? 'clear_all' : 'flag' }}</mat-icon>
-            {{ isFlagged ? 'UN-FLAG' : 'FLAG' }}
-          </button>
+            <button mat-button (click)="toggleFlag()" matTooltip="Flag vessel">
+              <mat-icon>{{ isFlagged ? 'clear_all' : 'flag' }}</mat-icon>
+              {{ isFlagged ? 'UN-FLAG' : 'FLAG' }}
+            </button>
 
-          @if(!isSelf && app.featureFlags().buddyList) {
-          <button mat-button (click)="toggleBuddy()" matTooltip="Is Buddy">
-            <mat-icon>{{
-              vessel.buddy ? 'group_remove' : 'group_add'
-            }}</mat-icon>
-            {{ vessel.buddy ? 'UN-BUDDY' : 'BUDDY' }}
-          </button>
+            @if (!isSelf && app.featureFlags().buddyList) {
+              <button mat-button (click)="toggleBuddy()" matTooltip="Is Buddy">
+                <mat-icon>{{
+                  vessel.buddy ? 'group_remove' : 'group_add'
+                }}</mat-icon>
+                {{ vessel.buddy ? 'UN-BUDDY' : 'BUDDY' }}
+              </button>
+            }
+
+            <button
+              mat-button
+              (click)="focusVessel(true)"
+              matTooltip="Focus vessel"
+            >
+              <mat-icon>center_focus_weak</mat-icon>
+              FOCUS
+            </button>
           }
-
-          <button
-            mat-button
-            (click)="focusVessel(true)"
-            matTooltip="Focus vessel"
-          >
-            <mat-icon>center_focus_weak</mat-icon>
-            FOCUS
-          </button>
-          } @if(isActive && !isSelf) {
-          <button
-            mat-button
-            (click)="focusVessel(false)"
-            matTooltip="Clear vessel focus"
-          >
-            <mat-icon>clear_all</mat-icon>
-            UNFOCUS
-          </button>
+          @if (isActive && !isSelf) {
+            <button
+              mat-button
+              (click)="focusVessel(false)"
+              matTooltip="Clear vessel focus"
+            >
+              <mat-icon>clear_all</mat-icon>
+              UNFOCUS
+            </button>
           }
           <button
             mat-button
@@ -223,7 +226,10 @@ export class VesselPopoverComponent {
   position: Position = [0, 0];
   isFlagged = false;
 
-  constructor(protected app: AppFacade, private buddies: Buddies) {}
+  constructor(
+    protected app: AppFacade,
+    private buddies: Buddies
+  ) {}
 
   ngOnInit() {
     if (!this.vessel) {

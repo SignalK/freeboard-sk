@@ -2,11 +2,11 @@
   <div id="ctrl" [ngClass]="{ disabled: disabled }">
     <label mat-menu-item>
       <ng-content></ng-content>
-      @if(icon) {
-      <span>
-        <i class="material-icons">upload</i>
-        &nbsp;<span style="font-size: 10pt">{{ label }}</span>
-      </span>
+      @if (icon) {
+        <span>
+          <i class="material-icons">upload</i>
+          &nbsp;<span style="font-size: 10pt">{{ label }}</span>
+        </span>
       }
       <input
         #input
@@ -20,12 +20,12 @@
       />
     </label>
   </div>
-  @if(preview && avatar) {
-  <div id="avatar" style="display: inline-flex">
-    <img [attr.src]="avatar" alt="" />
-    @if(avatar) {
-    <button (click)="clear()">Clear</button>
-    }
-  </div>
+  @if (preview && avatar) {
+    <div id="avatar" style="display: inline-flex">
+      <img [attr.src]="avatar" alt="" />
+      @if (avatar) {
+        <button (click)="clear()">Clear</button>
+      }
+    </div>
   }
 </div>

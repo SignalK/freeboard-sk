@@ -27,6 +27,10 @@ export class FBCustomResourceService {
   private infoLayerCacheSignal = signal<FBInfoLayers>([]);
   readonly infoLayers = this.infoLayerCacheSignal.asReadonly();
 
+  public infoLayerParams = signal<
+    Array<{ id: string; param: { [key: string]: any } }>
+  >([]);
+
   constructor(
     public dialog: MatDialog,
     public signalk: SignalKClient,

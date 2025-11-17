@@ -19,27 +19,32 @@ import { CoordsPipe } from '../../../lib/pipes';
         <div>{{ title }}</div>
       </div>
       <div class="content">
-        @for(item of items; track item) {
-        <div class="item">
-          @if(item[0] === 0 && item[2] === null) {
-          <span class="sectionname">{{ item[1] }}</span>
-          } @if(item[2] !== null) {
-          <div class="pathvalue">
-            <div class="path" [matTooltip]="item[1]">{{ item[1] }}</div>
-            @if(item[1] === 'latitude') {
-            <div class="value" [matTooltip]="item[2]">
-              {{ item[2] | coords : app.config.units.positionFormat : true }}
-            </div>
-            } @else if (item[1] === 'longitude') {
-            <div class="value" [matTooltip]="item[2]">
-              {{ item[2] | coords : app.config.units.positionFormat : false }}
-            </div>
-            } @else {
-            <div class="value" [matTooltip]="item[2]">{{ item[2] }}</div>
+        @for (item of items; track item) {
+          <div class="item">
+            @if (item[0] === 0 && item[2] === null) {
+              <span class="sectionname">{{ item[1] }}</span>
+            }
+            @if (item[2] !== null) {
+              <div class="pathvalue">
+                <div class="path" [matTooltip]="item[1]">{{ item[1] }}</div>
+                @if (item[1] === 'latitude') {
+                  <div class="value" [matTooltip]="item[2]">
+                    {{
+                      item[2] | coords: app.config.units.positionFormat : true
+                    }}
+                  </div>
+                } @else if (item[1] === 'longitude') {
+                  <div class="value" [matTooltip]="item[2]">
+                    {{
+                      item[2] | coords: app.config.units.positionFormat : false
+                    }}
+                  </div>
+                } @else {
+                  <div class="value" [matTooltip]="item[2]">{{ item[2] }}</div>
+                }
+              </div>
             }
           </div>
-          }
-        </div>
         }
       </div>
     </div>
