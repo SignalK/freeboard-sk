@@ -759,9 +759,8 @@ function selectVessel(id: string): SKVessel {
 
 // ** process common vessel data and true / magnetic preference **
 function processVessel(d: SKVessel, v: any, isSelf = false) {
-  d.lastUpdated = new Date();
-
   if (isSelf) {
+    d.lastUpdated = new Date();
     if (v.path.startsWith('resources.')) {
       // resource deltas
       d.resourceUpdates.push(v);
@@ -811,6 +810,7 @@ function processVessel(d: SKVessel, v: any, isSelf = false) {
     }
     if (typeof v.value.mmsi !== 'undefined') {
       d.mmsi = v.value.mmsi;
+      d.lastUpdated = new Date();
     }
     if (typeof v.value.registrations !== 'undefined') {
       d.registrations = v.value.registrations;
