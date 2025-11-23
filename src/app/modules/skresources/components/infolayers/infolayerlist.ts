@@ -35,6 +35,7 @@ import { catchError } from 'rxjs/operators';
 import { SignalKClient } from 'signalk-client-angular';
 import { MatSliderModule } from '@angular/material/slider';
 import {
+  TimeDimension,
   WMSGetCapabilities,
   WMTSGetCapabilities,
   getWMSLayerNodeByName,
@@ -219,17 +220,39 @@ export class InfoLayerListComponent extends ResourceListBase {
     }
   }
 
-  protected formatDateTime(value: string): string {
-    const d = new Date(value);
-    return `${d.toLocaleDateString()} ${d.toLocaleTimeString()}`;
+  protected formatDateTime(t: TimeDimension, e: number): string {
+    let d: Date;
+    if (t.interval) {
+      const p = new Date(t.from).valueOf() + e * t.interval;
+      d = new Date(p);
+    } else if (t.values.length) {
+      d = new Date(t.values[e]);
+    }
+    return d ? `${d.toLocaleDateString()} ${d.toLocaleTimeString()}` : '';
   }
 
-  protected handleSliderChange(layer: FBInfoLayer, index: string) {
-    console.log(layer, index);
-    this.paramChanged.emit({
-      id: layer[0],
-      param: { TIME: layer[1].values.time?.values[index] }
-    });
+  protected maxIndexFrominterval(t: TimeDimension) {
+    const mi =
+      (new Date(t.to).valueOf() - new Date(t.from).valueOf()) / t.interval;
+    return mi;
+  }
+
+  protected handleSliderChange(layer: FBInfoLayer, index: number) {
+    if (layer[1].values.time?.interval) {
+      const p =
+        new Date(layer[1].values.time?.from).valueOf() +
+        index * layer[1].values.time?.interval;
+      const pd = new Date(p).toISOString();
+      this.paramChanged.emit({
+        id: layer[0],
+        param: { TIME: new Date(p).toISOString() }
+      });
+    } else {
+      this.paramChanged.emit({
+        id: layer[0],
+        param: { TIME: layer[1].values.time?.values[index] }
+      });
+    }
   }
 
   /**

@@ -156,7 +156,23 @@
                 <input
                   #timeValue
                   matSliderThumb
-                  (valueChange)="handleSliderChange(r,$event); timeLabel.innerText = formatDateTime(r[1].values.time?.values[$event])"
+                  (valueChange)="handleSliderChange(r,$event); timeLabel.innerText = formatDateTime(r[1].values.time, $event)"
+                />
+              </mat-slider>
+            </div>
+            <div style="display: flex" #timeLabel></div>
+            } @if(r[1].values.time?.interval && r[2]) {
+            <div style="display: flex">
+              <mat-slider
+                style="flex: 2"
+                [disabled]="!r[2]"
+                min="0"
+                [max]="maxIndexFrominterval(r[1].values?.time)"
+              >
+                <input
+                  #timeValue
+                  matSliderThumb
+                  (valueChange)="handleSliderChange(r,$event); timeLabel.innerText = formatDateTime(r[1].values.time, $event)"
                 />
               </mat-slider>
             </div>

@@ -59,6 +59,9 @@ const parseIso8601Duration = (value: string): DurationDef => {
 const parseInterval = (value: string): number => {
   const d = parseIso8601Duration(value);
   return (
+    d.years * (3600 * 1000 * 24 * 365) +
+    d.months * (3600 * 1000 * 24 * 30) +
+    d.weeks * (3600 * 1000 * 24 * 7) +
     d.days * (3600 * 1000 * 24) +
     d.hours * (3600 * 1000) +
     d.minutes * (60 * 1000) +
@@ -70,13 +73,13 @@ const parseInterval = (value: string): number => {
  *
  * @param srcDate Source date ISO string
  * @param duration ISO8601 duration object
- * @param post Indicates reference of duration to the srcDate (true= post srcDate, false= prior to srcDate)
+ * @param isPost Indicates reference of duration to the srcDate (true= post srcDate, false= prior to srcDate)
  * @returns Date ISO string
  */
 const calcDate = (
   srcDate: string,
   duration: DurationDef,
-  post?: boolean
+  isPost?: boolean
 ): string => {
   const src = {
     y: new Date(srcDate).getFullYear(),
@@ -84,13 +87,13 @@ const calcDate = (
     d: new Date(srcDate).getDate()
   };
   const dest = {
-    y: post ? src.y + duration.years : src.y - duration.years,
-    m: post ? src.m + duration.months : src.m - duration.months,
-    d: post ? src.d + duration.days : src.d - duration.days
+    y: isPost ? src.y + duration.years : src.y - duration.years,
+    m: isPost ? src.m + duration.months : src.m - duration.months,
+    d: isPost ? src.d + duration.days : src.d - duration.days
   };
   if (duration.weeks) {
     const d = duration.weeks * 7;
-    dest.d = post ? dest.d + d : dest.d - d;
+    dest.d = isPost ? dest.d + d : dest.d - d;
   }
   const d = new Date(srcDate);
   d.setFullYear(dest.y, dest.m, dest.d);
@@ -99,7 +102,7 @@ const calcDate = (
     duration.hours * (1000 * 3600) +
     duration.minutes * (1000 * 60) +
     duration.seconds * 1000;
-  tOffset = !post ? 0 - tOffset : tOffset;
+  tOffset = !isPost ? 0 - tOffset : tOffset;
   d.setTime(d.getTime() + tOffset);
   return d.toISOString();
 };
@@ -144,9 +147,13 @@ export const parseIsoTimeValue = (value: string): string => {
 /**
  * Parse WMS /WMTS ISO 8601 time dimension string
  * @param value ISO8601 time value
+ * @param defaultValue Time dimension default value
  * @returns TimeDimension object
  */
-export const parseTimeDimension = (value: string): TimeDimension => {
+export const parseTimeDimension = (
+  value: string,
+  defaultValue: string
+): TimeDimension => {
   const parseRangeEnd = (value: string): string => {
     if (isYearOnly(value)) {
       return `${value}-12-31T23:59:59.999Z`;
@@ -199,11 +206,29 @@ export const parseTimeDimension = (value: string): TimeDimension => {
 
   try {
     if (Array.isArray(value)) {
-      const f = value.filter((i) => !isRange(i));
-      if (f.length === 0) {
-        throw new Error('Unhandled array values!');
+      // check if values are ranges
+      const ranges = [];
+      value.forEach((r) => {
+        if (isRange(r)) {
+          const range = parseRange(r.split('/'));
+          if (range) ranges.push(range);
+        }
+      });
+      if (ranges.length) {
+        // ranges provided... return a range
+        const dv = new Date(defaultValue).valueOf();
+        for (let i = 0; i < ranges.length; i++) {
+          if (
+            dv >= new Date(ranges[i].from).valueOf() &&
+            dv <= new Date(ranges[i].to).valueOf()
+          ) {
+            return ranges[i];
+          }
+        }
+        return ranges[ranges.length - 1];
       }
-      const mv = f.map((v) => parseIsoTimeValue(v));
+      // array of time values
+      const mv = value.map((v) => parseIsoTimeValue(v));
       if (mv.length > 1) {
         return {
           from: mv[0] ?? null,
@@ -310,7 +335,7 @@ export const parseWMSCapabilities = (capabilities: any, data: LayerNode[]) => {
         if (d.name.toLowerCase() === 'time' && d.units === 'ISO8601') {
           node.time = Object.assign(
             { current: d.default ?? null },
-            parseTimeDimension(d.values)
+            parseTimeDimension(d.values, d.default)
           );
           break;
         }
@@ -420,7 +445,7 @@ const parseWMTSLayer = (
           if (d.Identifier.toLowerCase() === 'time') {
             l.values.time = Object.assign(
               { current: parseIsoTimeValue(d.Default) ?? null },
-              parseTimeDimension(d.Value)
+              parseTimeDimension(d.Value, d.Default)
             );
           }
         });

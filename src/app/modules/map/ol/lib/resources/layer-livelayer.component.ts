@@ -63,9 +63,9 @@ export class FreeboardLiveLayerComponent
         const v = this.layerMap.get(p.id);
         // update source params
         const src = v.layer.getSource();
-        if (v.infoLayer.values.sourceType.toLowerCase() === 'wms') {
+        if (src && v.infoLayer.values.sourceType.toLowerCase() === 'wms') {
           (src as TileWMS)?.updateParams(p.param);
-        } else if (v.infoLayer.values.sourceType.toLowerCase() === 'wmts') {
+        } else if (src && v.infoLayer.values.sourceType.toLowerCase() === 'wmts') {
           (src as WMTS)?.updateDimensions(p.param);
         }
       });
