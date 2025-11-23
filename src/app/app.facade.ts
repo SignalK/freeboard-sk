@@ -1,7 +1,7 @@
 /** Application Information Service **
  * perform version checking etc. here
  * ************************************/
-import { effect, Injectable, signal } from '@angular/core';
+import { effect, Injectable, isDevMode, signal } from '@angular/core';
 import { DomSanitizer } from '@angular/platform-browser';
 import { MatIconRegistry } from '@angular/material/icon';
 import { MatDialog } from '@angular/material/dialog';
@@ -43,7 +43,7 @@ const FSK: AppInfoDef = {
   id: 'freeboard',
   name: 'Freeboard-SK',
   description: `Signal K Chart Plotter.`,
-  version: '2.19.2-beta.1',
+  version: '2.19.2',
   url: 'https://github.com/signalk/freeboard-sk',
   logo: './assets/img/app_logo.png'
 };
@@ -265,20 +265,19 @@ export class AppFacade extends InfoService {
    */
   parseMessageFromParent(event: MessageEvent<any>) {
     // Do we trust the sender of this message?
-    if (!event.origin !== this.hostDef.url) {
-      // .includes('localhost')) {
+    if (isDevMode() || event.origin === this.hostDef.url) {
+      this.debug('parseMessageFromParent()', event.origin, event.data);
+      const { settings } = event.data;
+      if (!settings) {
+        this.debug('parseMessageFromParent() - invalid data!');
+        return;
+      }
+      if (typeof settings.autoNightMode === 'boolean') {
+        this.config.display.nightMode = settings.autoNightMode;
+      }
+    } else {
       this.debug('parseMessageFromParent() - untrusted origin!', event.origin);
       return;
-    }
-    this.debug('parseMessageFromParent()', event.origin, event.data);
-    if (!('settings' in event.data)) {
-      this.debug('parseMessageFromParent() - invalid data!');
-      return;
-    }
-    const { autoNightMode } = event.data.settings;
-
-    if (typeof autoNightMode === 'boolean') {
-      this.config.display.nightMode = autoNightMode;
     }
   }
 
