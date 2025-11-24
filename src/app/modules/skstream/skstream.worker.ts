@@ -18,7 +18,7 @@ import {
 } from 'src/app/types/stream';
 import { SimplifyAP } from 'simplify-ts';
 import { Convert } from 'src/app/lib/convert';
-import { PathValue } from '@signalk/server-api';
+import { PathValue } from 'src/app/types';
 
 interface AisStatus {
   updated: { [key: string]: boolean };

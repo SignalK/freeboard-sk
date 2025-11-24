@@ -57,7 +57,7 @@ import {
   FBTrack,
   FBVessels
 } from 'src/app/types';
-import { ActionResult, PathValue } from '@signalk/server-api';
+import { ActionResult, PathValue } from 'src/app/types';
 import { groupBy } from 'rxjs/operators';
 import { SKWorkerService } from '../skstream/skstream.service';
 

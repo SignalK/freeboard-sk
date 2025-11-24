@@ -59,8 +59,8 @@ const parseIso8601Duration = (value: string): DurationDef => {
 const parseInterval = (value: string): number => {
   const d = parseIso8601Duration(value);
   return (
-    d.years * (3600 * 1000 * 24 * 365) +
-    d.months * (3600 * 1000 * 24 * 30) +
+    //d.years * (3600 * 1000 * 24 * 365) +
+    //d.months * (3600 * 1000 * 24 * 30) +
     d.weeks * (3600 * 1000 * 24 * 7) +
     d.days * (3600 * 1000 * 24) +
     d.hours * (3600 * 1000) +
@@ -199,7 +199,8 @@ export const parseTimeDimension = (
     }
     // interval
     if (range.length === 3) {
-      result.interval = parseInterval(range[2]);
+      const interval = parseInterval(range[2]);
+      if (interval) result.interval = interval;
     }
     return result;
   };

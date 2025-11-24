@@ -1,9 +1,12 @@
 /** Signal K Stream worker service
  * ************************************/
 import { Injectable, signal } from '@angular/core';
-import { PathValue } from '@signalk/server-api';
 import { Subject } from 'rxjs';
-import { NotificationMessage, ResourceDeltaSignal } from 'src/app/types';
+import {
+  NotificationMessage,
+  ResourceDeltaSignal,
+  PathValue
+} from 'src/app/types';
 
 interface IWorkerCommand {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

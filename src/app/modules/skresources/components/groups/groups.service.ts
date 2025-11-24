@@ -7,7 +7,7 @@ import { AppFacade } from 'src/app/app.facade';
 
 import { ResourceGroupDialog } from './group-dialog';
 
-import { ActionResult } from '@signalk/server-api';
+import { ActionResult } from 'src/app/types';
 
 export interface SKResourceGroup {
   name: string;

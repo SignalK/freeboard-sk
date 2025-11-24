@@ -1,4 +1,47 @@
-import { PathValue } from '@signalk/server-api';
+/** Signal K Types */
+
+// Notification types
+export enum ALARM_STATE {
+  nominal = 'nominal',
+  normal = 'normal',
+  alert = 'alert',
+  warn = 'warn',
+  alarm = 'alarm',
+  emergency = 'emergency'
+}
+
+export enum ALARM_METHOD {
+  visual = 'visual',
+  sound = 'sound'
+}
+
+export interface SKNotification {
+  state: ALARM_STATE;
+  method: ALARM_METHOD[];
+  message: string;
+}
+
+// Update Deltas
+export interface PathValue {
+  path: string;
+  value: object | number | string | null | Notification | boolean;
+}
+
+export interface ActionResult {
+  state: 'COMPLETED' | 'PENDING' | 'FAILED';
+  statusCode?: number;
+  message?: string;
+  timestamp?: string;
+}
+
+export interface SKPosition {
+  latitude: number;
+  longitude: number;
+  altitude?: number;
+}
+
+/***************** */
+
 import {
   SKVessel,
   SKAtoN,

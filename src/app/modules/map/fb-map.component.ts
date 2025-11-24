@@ -82,7 +82,7 @@ import {
 import { ModifyEvent } from 'ol/interaction/Modify';
 import { DrawEvent } from 'ol/interaction/Draw';
 import { Coordinate } from 'ol/coordinate';
-import { Position as SKPosition } from '@signalk/server-api';
+import { SKPosition } from 'src/app/types';
 import {
   FBMapEvent,
   FBPointerEvent,

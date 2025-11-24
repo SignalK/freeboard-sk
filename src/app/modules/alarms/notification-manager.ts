@@ -2,12 +2,12 @@ import { Injectable, signal } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
 import { MatBottomSheet } from '@angular/material/bottom-sheet';
 import {
-  PathValue,
-  Notification,
   ALARM_METHOD,
-  ALARM_STATE
-} from '@signalk/server-api';
-import { NotificationMessage } from 'src/app/types';
+  ALARM_STATE,
+  NotificationMessage,
+  PathValue,
+  SKNotification
+} from '../../types/stream';
 import { AppFacade } from 'src/app/app.facade';
 import { SKWorkerService } from '../skstream/skstream.service';
 import { AlertData } from './components/alert.component';
@@ -108,7 +108,7 @@ export class NotificationManager {
     }
 
     // test for return to normal state
-    if (!msg.value || (msg.value as Notification)?.state === 'normal') {
+    if (!msg.value || (msg.value as SKNotification)?.state === 'normal') {
       if (this.alertMap.has(msg.path)) {
         this.alertMap.delete(msg.path);
         this.emitSignals();
@@ -133,13 +133,13 @@ export class NotificationManager {
           createdAt: Date.now()
         };
 
-    alert.priority = (msg.value as Notification).state;
-    alert.message = (msg.value as Notification).message;
-    alert.sound = (msg.value as Notification).method.includes(
+    alert.priority = (msg.value as SKNotification).state;
+    alert.message = (msg.value as SKNotification).message;
+    alert.sound = (msg.value as SKNotification).method.includes(
       ALARM_METHOD.sound
     );
     alert.visual =
-      (msg.value as Notification).method.includes(ALARM_METHOD.visual) ||
+      (msg.value as SKNotification).method.includes(ALARM_METHOD.visual) ||
       ['perpendicularPassed', 'arrivalCircleEntered'].includes(alertType);
     alert.canAcknowledge = ['emergency', 'alarm', 'warn'].includes(
       alert.priority
