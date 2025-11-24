@@ -58,7 +58,7 @@ import { getAisIcon } from 'src/app/modules/icons';
               <a
                 target="aisinfo"
                 [href]="
-                  'https://www.marinetraffic.com/en/ais/details/ships/mmsi:' +
+                  'https://www.vesselfinder.com/vessels/details/' +
                   data.target.mmsi
                 "
               >
