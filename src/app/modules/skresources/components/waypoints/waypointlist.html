@@ -1,18 +1,18 @@
 <div class="resourcelist">
-  <mat-card>
+  <mat-card style="border-radius: unset">
     <mat-card-title>
       <div class="title-block">
-        <div style="flex: 1 1 auto; padding-top: 7px">Waypoints:</div>
         <div style="width: 50px">
           <button
             mat-icon-button
             (click)="close()"
             matTooltip="Close Waypoint List"
-            matTooltipPosition="left"
+            matTooltipPosition="right"
           >
-            <mat-icon>close</mat-icon>
+            <mat-icon>arrow_back</mat-icon>
           </button>
         </div>
+        <div style="flex: 1 1 auto; padding-top: 7px">Waypoints</div>
       </div>
     </mat-card-title>
     <mat-card-content>
@@ -38,9 +38,9 @@
           <button
             mat-icon-button
             [disabled]="disableRefresh"
-            (click)="itemRefresh()"
+            (click)="initItems()"
             matTooltip="Reload Waypoints"
-            matTooltipPosition="left"
+            matTooltipPosition="below"
           >
             <mat-icon>refresh</mat-icon>
           </button>
@@ -48,12 +48,12 @@
         <div>
           <mat-checkbox
             #selall
-            [disabled]="waypoints.length === 0 || disableRefresh"
+            [disabled]="fullList.length === 0 || disableRefresh"
             [checked]="allSel"
             [indeterminate]="someSel"
-            (change)="selectAll($event.checked)"
+            (change)="toggleAll($event.checked)"
             [matTooltip]="(!selall.checked || someSel) ? 'Select All' : 'Deselect All'"
-            matTooltipPosition="right"
+            matTooltipPosition="below"
           >
           </mat-checkbox>
         </div>
@@ -62,12 +62,12 @@
   </mat-card>
 
   <div class="resources">
-    @if(waypoints.length === 0) {
-    <div style="text-align: center"><br /><i>No Waypoints available.</i></div>
+    @if(this.app.sIsFetching()) {
+    <mat-progress-bar mode="query"></mat-progress-bar>
     }
     <cdk-virtual-scroll-viewport class="vscroller" itemSize="90">
       <mat-card
-        *cdkVirtualFor="let r of filterList; let i= index;"
+        *cdkVirtualFor="let r of filteredList(); let i= index;"
         style="border-bottom: silver 1px outset; border-radius: unset"
       >
         <mat-card-content>
@@ -80,9 +80,7 @@
                   white-space: pre;
                 "
               >
-                <mat-icon
-                  [ngClass]="{'icon-warn': r[1].feature.properties.skType=='pseudoAtoN'}"
-                >
+                <mat-icon [ngClass]="{'icon-warn': r[1].type=='pseudoAtoN'}">
                   room
                 </mat-icon>
                 <b>{{(r[1].name) ? r[1].name : 'Wpt-' + r[0].slice(-6)}}</b>
@@ -107,7 +105,7 @@
                 mat-icon-button
                 [disabled]="r[0] === activeWaypoint || disableRefresh"
                 (click)="itemDelete(r[0])"
-                [matTooltip]="r[1].feature.properties.skType ? 'Delete ' + r[1].feature.properties.skType : 'Delete Waypoint'"
+                matTooltip="Delete Waypoint"
                 matTooltipPosition="right"
               >
                 <mat-icon>delete</mat-icon>
@@ -115,7 +113,7 @@
             </div>
             <button
               mat-icon-button
-              (click)="itemViewNotes(r[0])"
+              (click)="itemViewNotes(r)"
               matTooltip="Waypoint notes"
               matTooltipPosition="right"
             >
@@ -147,7 +145,7 @@
             <div>
               <button
                 mat-icon-button
-                [disabled]="app.config.map.moveMap"
+                [disabled]="app.uiConfig().mapMove || !r[2]"
                 (click)="emitCenter(r[1].feature.geometry.coordinates)"
                 matTooltip="Center Waypoint"
                 matTooltipPosition="left"
@@ -164,6 +162,19 @@
                 <mat-icon>edit</mat-icon>
               </button>
             </div>
+            @if(app.featureFlags().resourceGroups) { &nbsp;
+            <div>
+              <button
+                mat-icon-button
+                [disabled]="disableRefresh"
+                (click)="itemAddToGroup(r[0])"
+                matTooltip="Add to Group"
+                matTooltipPosition="right"
+              >
+                <mat-icon>category</mat-icon>
+              </button>
+            </div>
+            }
           </div>
         </mat-card-actions>
       </mat-card>

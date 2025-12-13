@@ -11,8 +11,18 @@ import {
 
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
+import {
+  MatCheckboxChange,
+  MatCheckboxModule
+} from '@angular/material/checkbox';
+import { MatInputModule } from '@angular/material/input';
 import { MatIconModule } from '@angular/material/icon';
-import { MatSlideToggleModule } from '@angular/material/slide-toggle';
+import { FormsModule } from '@angular/forms';
+import {
+  MatSlideToggle,
+  MatSlideToggleChange,
+  MatSlideToggleModule
+} from '@angular/material/slide-toggle';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatSliderModule } from '@angular/material/slider';
 import { MatStepperModule } from '@angular/material/stepper';
@@ -21,21 +31,20 @@ import { NSEWButtonsComponent } from './nsew-buttons.component';
 
 import { computeDestinationPoint } from 'geolib';
 
-import { AlarmsFacade } from '../alarms.facade';
-import { AppInfo } from 'src/app/app.info';
-
-interface OutputMessage {
-  radius: number | null;
-  action: 'drop' | 'raise' | 'setRadius' | 'position' | undefined;
-}
+import { AnchorService } from '../anchor.service';
+import { AppFacade } from 'src/app/app.facade';
+import { SignalKClient } from 'signalk-client-angular';
+import { HttpErrorResponse } from '@angular/common/http';
 
 @Component({
   selector: 'anchor-watch',
-  standalone: true,
   imports: [
     MatIconModule,
     MatButtonModule,
     MatCardModule,
+    MatCheckboxModule,
+    FormsModule,
+    MatInputModule,
     MatSlideToggleModule,
     MatSliderModule,
     MatTooltipModule,
@@ -52,29 +61,43 @@ export class AnchorWatchComponent {
   @Input() max = 100;
   @Input() feet = false;
   @Input() raised = true;
-  @Input() disable = false;
-  @Output() change: EventEmitter<OutputMessage> = new EventEmitter();
-  @Output() closed: EventEmitter<OutputMessage> = new EventEmitter();
+  @Input() showSelf = false;
+  @Output() closed: EventEmitter<void> = new EventEmitter();
 
-  @ViewChild('slideCtl', { static: true }) slideCtl: ElementRef;
+  @ViewChild('slideCtl', { static: true }) slideCtl: ElementRef<MatSlideToggle>;
 
-  bgImage: string;
-  msg: OutputMessage = { radius: null, action: undefined };
+  protected bgImage: string;
+  protected displayRadius: number | null;
 
-  sliderValue: number;
-  rodeOut = false;
+  protected sliderValue: number;
+  protected rodeOut = false;
 
-  constructor(private facade: AlarmsFacade, private app: AppInfo) {}
+  // set controls
+  protected useDefaultRadius: boolean;
+  protected defaultAlarmRadius: number;
+  protected useSetManual: boolean;
+  protected defaultRodeLength: number;
+  protected disableRaiseDrop: boolean;
+
+  constructor(
+    private anchor: AnchorService,
+    private app: AppFacade,
+    private signalk: SignalKClient
+  ) {}
 
   ngOnInit() {
-    this.msg.radius = this.sliderValue;
+    this.displayRadius = this.sliderValue;
+    this.defaultAlarmRadius = this.app.config.anchor.radius;
+    this.useDefaultRadius = this.app.config.anchor.setRadius;
+    this.useSetManual = this.app.config.anchor.manualSet;
+    this.defaultRodeLength = this.app.config.anchor.rodeLength;
   }
 
   ngOnChanges(changes: SimpleChanges) {
     if (changes.radius) {
       if (changes.radius.previousValue === -1) {
         this.sliderValue = Math.round(changes.radius.currentValue);
-        this.msg.radius = this.sliderValue;
+        this.displayRadius = this.sliderValue;
         this.max = this.sliderValue + 100;
       } else if (
         changes.radius.firstChange &&
@@ -90,48 +113,150 @@ export class AnchorWatchComponent {
         : './assets/img/anchor-radius.png'
     }')`;
     this.rodeOut = !this.raised && this.radius !== -1;
+    this.disableRaiseDrop =
+      !this.showSelf || (this.raised && this.useSetManual);
   }
 
+  onDefaultRadiusChecked(e: MatCheckboxChange) {
+    this.useDefaultRadius = e.checked;
+    this.app.config.anchor.setRadius = e.checked;
+    if (!e.checked) {
+      this.defaultAlarmRadius = this.app.config.anchor.radius;
+    }
+    this.app.saveConfig();
+  }
+
+  onSetManualCheck(e: MatCheckboxChange) {
+    this.useSetManual = e.checked;
+    this.app.config.anchor.manualSet = e.checked;
+    if (!e.checked) {
+      this.defaultRodeLength = this.app.config.anchor.rodeLength;
+    }
+    this.disableRaiseDrop = this.raised && this.useSetManual;
+    this.app.saveConfig();
+  }
+
+  stepSetRode() {
+    this.setRadius();
+  }
+
+  /**
+   * @description Set the anchor alarm max radius.
+   * @param value Alarm radius in meters
+   */
   setRadius(value?: number) {
     this.rodeOut = true;
-    this.msg.radius =
+    this.displayRadius =
       typeof value === 'number'
         ? this.feet
           ? this.ftToM(value)
           : value
         : value;
     if (!this.raised) {
-      this.msg.action = 'setRadius';
-      this.facade.anchorEvent({
-        radius: this.msg.radius,
-        action: this.msg.action
-      });
+      this.signalk
+        .post(
+          '/plugins/anchoralarm/setRadius',
+          typeof value === 'number' ? { radius: value } : {}
+        )
+        .subscribe(
+          () => {
+            this.app.config.anchor.radius = value;
+            this.app.saveConfig();
+          },
+          (err: HttpErrorResponse) => {
+            this.app.parseHttpErrorResponse(err);
+          }
+        );
     }
   }
 
-  setAnchor(e: { checked: boolean }) {
-    this.msg.action = e.checked ? 'drop' : 'raise';
-    this.facade
-      .anchorEvent({ radius: this.msg.radius, action: this.msg.action })
-      .catch(() => {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (this.slideCtl as any).checked = !(this.slideCtl as any).checked;
-      });
+  /**
+   * @description Set anchor position using the rode length
+   */
+  setManualAnchor() {
+    if (typeof this.defaultRodeLength !== 'number') {
+      this.app.showAlert('Error', 'Rode length value is not a number!');
+      return;
+    }
+    this.app.config.anchor.rodeLength = this.defaultRodeLength;
+    this.signalk
+      .post('/plugins/anchoralarm/setManualAnchor', {
+        rodeLength: this.app.config.anchor.rodeLength
+      })
+      .subscribe(
+        () => {
+          this.app.saveConfig();
+        },
+        (err: HttpErrorResponse) => {
+          this.app.parseHttpErrorResponse(err);
+        }
+      );
   }
 
+  /**
+   * @description Handle raise / drop slide toggle change
+   * @param e Slide change event
+   */
+  dropRaiseAnchor(e: MatSlideToggleChange) {
+    if (e.checked) {
+      this.dropAnchor(
+        this.useDefaultRadius ? this.defaultAlarmRadius : undefined
+      );
+    } else {
+      this.raiseAnchor();
+    }
+  }
+
+  /**
+   * @description Drop the Anchor
+   * @param radius Alarm radius to set
+   */
+  dropAnchor(radius?: number) {
+    this.app.config.anchor.radius = radius;
+    this.anchor.setRaisedSignal(false);
+    this.signalk
+      .post(
+        '/plugins/anchoralarm/dropAnchor',
+        typeof radius === 'number' ? { radius: radius } : {}
+      )
+      .subscribe(
+        () => {
+          this.app.saveConfig();
+        },
+        (err: HttpErrorResponse) => {
+          this.anchor.setRaisedSignal(true);
+          this.app.parseHttpErrorResponse(err);
+        }
+      );
+  }
+
+  /**
+   * @description Raise the Anchor
+   */
+  raiseAnchor() {
+    this.signalk.post('/plugins/anchoralarm/raiseAnchor', {}).subscribe(
+      () => undefined,
+      (err: HttpErrorResponse) => {
+        this.app.parseHttpErrorResponse(err);
+      }
+    );
+  }
+
+  /**
+   * @description Shift anchor position n,s,e,w
+   * @param direction (degrees) 0 | 90 | 180 | 270
+   */
   shiftAnchor(direction: number) {
     const inc = 1;
     const position = computeDestinationPoint(
-      this.app.data.anchor.position,
+      this.anchor.position(),
       inc,
       direction
     );
-
-    this.msg.action = 'position';
-    this.facade
-      .anchorEvent(this.msg, undefined, [position.longitude, position.latitude])
-      .catch(() => {
-        console.log('Error shifting anchor!');
+    this.anchor
+      .setAnchorPosition([position.longitude, position.latitude])
+      .catch((err: HttpErrorResponse) => {
+        this.app.parseHttpErrorResponse(err);
       });
   }
 

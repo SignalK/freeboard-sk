@@ -5,17 +5,17 @@ import {
   EventEmitter,
   ChangeDetectionStrategy
 } from '@angular/core';
-import { CommonModule } from '@angular/common';
 
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { PipesModule } from 'src/app/lib/pipes';
+import { CoordsPipe } from 'src/app/lib/pipes';
 import { PopoverComponent } from './popover.component';
 
-import { AppInfo } from 'src/app/app.info';
+import { AppFacade } from 'src/app/app.facade';
 import { Convert } from 'src/app/lib/convert';
 import { SKRoute, SKWaypoint, SKNote, SKRegion } from 'src/app/modules';
+import { AppIconDef, getResourceIcon } from 'src/app/modules/icons';
 
 /*********** Resource Popover ***************
 title: string -  title text,
@@ -26,163 +26,182 @@ id: string - resource id
 @Component({
   selector: 'resource-popover',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  standalone: true,
   imports: [
-    CommonModule,
     MatButtonModule,
     MatTooltipModule,
     MatIconModule,
-    PipesModule,
-    PopoverComponent
+    CoordsPipe,
+    PopoverComponent,
+    CoordsPipe
   ],
   template: `
-    <ap-popover [title]="title" [canClose]="canClose" (closed)="handleClose()">
-      @for(p of properties; track p) {
-      <div style="display:flex;">
-        <div style="font-weight:bold;">{{ p[0] }}:</div>
-        @if(p[0] !== 'Latitude' && p[0] !== 'Longitude') {
-        <div
-          style="flex: 1 1 auto;text-align:right;
-                                white-space:nowrap;
-                                overflow-x:hidden;
+    <ap-popover
+      [title]="title"
+      [icon]="icon"
+      [canClose]="canClose"
+      (closed)="handleClose()"
+    >
+      <div
+        style="flex: 1 1 auto;text-align:left;font-style: italic; overflow: hidden;
+                                display: -webkit-box;
+                                -webkit-box-orient: vertical;
+                                -webkit-line-clamp: 2;
+                                line-clamp: 2;
                                 text-overflow:ellipsis;"
-        >
-          {{ p[1] }}
+        [innerHTML]="resource[1].description ?? ''"
+      ></div>
+      @for (p of properties; track p) {
+        <div style="display:flex;">
+          <div style="font-weight:bold;">{{ p[0] }}:</div>
+          @if (p[0] !== 'Latitude' && p[0] !== 'Longitude') {
+            <div
+              style="flex: 1 1 auto;text-align:right;
+                                  white-space:nowrap;
+                                  overflow-x:hidden;
+                                  text-overflow:ellipsis;"
+            >
+              {{ p[1] }}
+            </div>
+          }
+          @if (p[0] === 'Latitude') {
+            <div
+              style="flex: 1 1 auto;text-align:right;"
+              [innerText]="
+                p[1] | coords: app.config.units.positionFormat : true
+              "
+            ></div>
+          }
+          @if (p[0] === 'Longitude') {
+            <div
+              style="flex: 1 1 auto;text-align:right;"
+              [innerText]="p[1] | coords: app.config.units.positionFormat"
+            ></div>
+          }
         </div>
-        } @if(p[0] === 'Latitude') {
-        <div
-          style="flex: 1 1 auto;text-align:right;"
-          [innerText]="
-            p[1] | coords : app.config.selections.positionFormat : true
-          "
-        ></div>
-        } @if(p[0] === 'Longitude') {
-        <div
-          style="flex: 1 1 auto;text-align:right;"
-          [innerText]="p[1] | coords : app.config.selections.positionFormat"
-        ></div>
-        }
-      </div>
       }
 
       <div style="display:flex;flex-wrap: wrap;">
-        @if(ctrl.showModifyButton) {
-        <div class="popover-action-button">
-          <button
-            mat-button
-            (click)="emitModify()"
-            matTooltip="Modify / Move"
-            matTooltipPosition="after"
-          >
-            <mat-icon>touch_app</mat-icon>
-            MOVE
-          </button>
-        </div>
-        } @if(ctrl.showAddNoteButton) {
-        <div class="popover-action-button">
-          <button
-            mat-button
-            (click)="emitAddNote()"
-            matTooltip="Add Note"
-            matTooltipPosition="after"
-          >
-            <mat-icon>local_offer</mat-icon>
-            ADD
-          </button>
-        </div>
-        } @if(ctrl.showDeleteButton) {
-        <div class="popover-action-button">
-          <button
-            mat-button
-            (click)="emitDelete()"
-            matTooltip="Delete"
-            matTooltipPosition="after"
-          >
-            <mat-icon>delete</mat-icon>
-            DELETE
-          </button>
-        </div>
-        } @if(ctrl.canActivate && !ctrl.isActive) {
-        <div class="popover-action-button">
-          <button
-            mat-button
-            (click)="emitActive(true)"
-            [matTooltip]="
-              type === 'waypoint'
-                ? 'Navigate to Waypoint'
-                : 'Make this the Active Route'
-            "
-            matTooltipPosition="after"
-          >
-            <mat-icon>near_me</mat-icon>
-            {{ ctrl.activeText }}
-          </button>
-        </div>
+        @if (ctrl.showModifyButton) {
+          <div class="popover-action-button">
+            <button
+              mat-button
+              (click)="emitModify()"
+              matTooltip="Modify / Move"
+              matTooltipPosition="after"
+              [disabled]="this.ctrl.isReadOnly"
+            >
+              <mat-icon>touch_app</mat-icon>
+              MOVE
+            </button>
+          </div>
+        }
+        @if (ctrl.showAddNoteButton) {
+          <div class="popover-action-button">
+            <button
+              mat-button
+              (click)="emitAddNote()"
+              matTooltip="Add Note"
+              matTooltipPosition="after"
+            >
+              <mat-icon>local_offer</mat-icon>
+              ADD
+            </button>
+          </div>
+        }
+        @if (ctrl.showDeleteButton) {
+          <div class="popover-action-button">
+            <button
+              mat-button
+              (click)="emitDelete()"
+              matTooltip="Delete"
+              matTooltipPosition="after"
+              [disabled]="this.ctrl.isReadOnly"
+            >
+              <mat-icon>delete</mat-icon>
+              DELETE
+            </button>
+          </div>
+        }
+        @if (ctrl.canActivate && !ctrl.isActive) {
+          <div class="popover-action-button">
+            <button
+              mat-button
+              (click)="emitActive(true)"
+              [matTooltip]="
+                type === 'waypoint'
+                  ? 'Navigate to Waypoint'
+                  : 'Make this the Active Route'
+              "
+              matTooltipPosition="after"
+            >
+              <mat-icon>near_me</mat-icon>
+              {{ ctrl.activeText }}
+            </button>
+          </div>
         } @else if (ctrl.canActivate && ctrl.isActive) {
-        <div class="popover-action-button">
-          <button
-            mat-button
-            (click)="emitActive(false)"
-            matTooltip="Clear Destination"
-            matTooltipPosition="after"
-          >
-            <mat-icon>clear_all</mat-icon>
-            CLEAR
-          </button>
-        </div>
-        } @if(ctrl.showRelatedButton) {
-        <div class="popover-action-button">
-          <button
-            mat-button
-            (click)="emitRelated()"
-            matTooltip="Notes in Group"
-            matTooltipPosition="after"
-          >
-            <mat-icon>style</mat-icon>
-            GROUP
-          </button>
-        </div>
-        } @if(ctrl.showNotesButton) {
-        <div class="popover-action-button">
-          <button
-            mat-button
-            (click)="emitNotes()"
-            matTooltipPosition="after"
-            matTooltip="Show Notes"
-          >
-            <mat-icon>local_offer</mat-icon>
-            NOTES
-          </button>
-        </div>
-        } @if(ctrl.showInfoButton) {
-        <div class="popover-action-button">
-          <button
-            mat-button
-            [ngClass]="{
-              'icon-primary': type === 'route' || type === 'waypoint'
-            }"
-            (click)="emitInfo()"
-            matTooltip="Show Properties"
-            matTooltipPosition="after"
-          >
-            <mat-icon>{{
-              type === 'route' || type === 'waypoint' ? 'edit' : 'info_outline'
-            }}</mat-icon>
-            {{ type === 'route' || type === 'waypoint' ? 'EDIT' : 'INFO' }}
-          </button>
-        </div>
-        } @if(ctrl.showPointsButton) {
-        <div class="popover-action-button">
-          <button
-            mat-button
-            (click)="emitPoints()"
-            matTooltip="Route Waypoints"
-            matTooltipPosition="after"
-          >
-            <mat-icon>flag</mat-icon>
-            POINTS
-          </button>
-        </div>
+          <div class="popover-action-button">
+            <button
+              mat-button
+              (click)="emitActive(false)"
+              matTooltip="Clear Destination"
+              matTooltipPosition="after"
+            >
+              <mat-icon>clear_all</mat-icon>
+              CLEAR
+            </button>
+          </div>
+        }
+        @if (ctrl.showRelatedButton) {
+          <div class="popover-action-button">
+            <button
+              mat-button
+              (click)="emitRelated()"
+              matTooltip="Notes in Group"
+              matTooltipPosition="after"
+            >
+              <mat-icon>style</mat-icon>
+              GROUP
+            </button>
+          </div>
+        }
+        @if (ctrl.showNotesButton) {
+          <div class="popover-action-button">
+            <button
+              mat-button
+              (click)="emitNotes()"
+              matTooltipPosition="after"
+              matTooltip="Show Notes"
+            >
+              <mat-icon>local_offer</mat-icon>
+              NOTES
+            </button>
+          </div>
+        }
+        @if (ctrl.showInfoButton) {
+          <div class="popover-action-button">
+            <button
+              mat-button
+              (click)="emitInfo()"
+              matTooltip="Show Details"
+              matTooltipPosition="after"
+            >
+              <mat-icon>info_outline</mat-icon>
+              INFO
+            </button>
+          </div>
+        }
+        @if (ctrl.showPointsButton) {
+          <div class="popover-action-button">
+            <button
+              mat-button
+              (click)="emitPoints()"
+              matTooltip="Route Waypoints"
+              matTooltipPosition="after"
+            >
+              <mat-icon>flag</mat-icon>
+              POINTS
+            </button>
+          </div>
         }
       </div>
     </ap-popover>
@@ -220,19 +239,18 @@ export class ResourcePopoverComponent {
     showNotesButton: false,
     canActivate: false,
     isActive: false,
-    activeText: 'ACTIVE'
+    activeText: 'ACTIVE',
+    isReadOnly: false
   };
 
-  constructor(public app: AppInfo) {}
+  protected icon: AppIconDef;
+
+  constructor(public app: AppFacade) {}
 
   ngOnChanges() {
     this.parse();
     this.ctrl.showModifyButton =
-      this.type !== 'destination' &&
-      this.resource[0] !== 'n2k' &&
-      this.featureCount > 0
-        ? true
-        : false;
+      this.type !== 'destination' && this.featureCount > 0 ? true : false;
   }
 
   parse() {
@@ -254,6 +272,7 @@ export class ResourcePopoverComponent {
   }
 
   parseDestination() {
+    this.icon = undefined;
     this.ctrl.isActive = this.app.data.activeRoute ? false : true;
     this.ctrl.activeText = 'GO TO';
     this.ctrl.canActivate = this.app.data.activeRoute ? false : true;
@@ -293,13 +312,12 @@ export class ResourcePopoverComponent {
     this.ctrl.showAddNoteButton = false;
     this.ctrl.showPointsButton = false;
     this.ctrl.showRelatedButton = false;
+    this.ctrl.isReadOnly = this.resource[1].feature.properties?.readOnly;
     this.properties = [];
-    if (this.resource[1].name) {
-      this.properties.push(['Name', this.resource[1].name]);
-    }
-    if (this.resource[1].description) {
-      this.properties.push(['Desc.', this.resource[1].description]);
-    }
+
+    this.icon = getResourceIcon('waypoints', this.resource[1]);
+    this.title = this.resource[1].name ?? '';
+
     this.properties.push([
       'Latitude',
       this.resource[1].feature.geometry.coordinates[1]
@@ -311,32 +329,22 @@ export class ResourcePopoverComponent {
   }
 
   parseRoute() {
-    if (this.resource[0] === 'n2k') {
-      this.ctrl.isActive = false;
-      this.ctrl.activeText = '';
-      this.ctrl.canActivate = false;
-      this.ctrl.showInfoButton = false;
-      this.ctrl.showModifyButton = false;
-      this.ctrl.showPointsButton = false;
-      this.ctrl.showNotesButton = false;
-      this.ctrl.showAddNoteButton = false;
-      this.ctrl.showRelatedButton = false;
-      this.ctrl.showDeleteButton = false;
-    } else {
-      this.ctrl.isActive =
-        this.active && this.active === this.resource[0] ? true : false;
-      this.ctrl.activeText = 'ACTIVATE';
-      this.ctrl.canActivate = true;
-      this.ctrl.showInfoButton = true;
-      this.ctrl.showModifyButton = true;
-      this.ctrl.showPointsButton = true;
-      this.ctrl.showNotesButton = true;
-      this.ctrl.showAddNoteButton = false;
-      this.ctrl.showRelatedButton = false;
-      this.ctrl.showDeleteButton = this.ctrl.isActive ? false : true;
-    }
+    this.ctrl.isActive =
+      this.active && this.active === this.resource[0] ? true : false;
+    this.ctrl.activeText = 'ACTIVATE';
+    this.ctrl.canActivate = true;
+    this.ctrl.showInfoButton = true;
+    this.ctrl.showModifyButton = true;
+    this.ctrl.showPointsButton = true;
+    this.ctrl.showNotesButton = true;
+    this.ctrl.showAddNoteButton = false;
+    this.ctrl.showRelatedButton = false;
+    this.ctrl.showDeleteButton = this.ctrl.isActive ? false : true;
+    this.ctrl.isReadOnly = this.resource[1].feature.properties?.readOnly;
+
+    this.icon = getResourceIcon('routes', this.resource[1]);
+    this.title = this.resource[1].name ?? '';
     this.properties = [];
-    this.properties.push(['Name', this.resource[1].name]);
     const d =
       this.units === 'm'
         ? [(this.resource[1].distance / 1000).toFixed(1), 'km']
@@ -347,7 +355,6 @@ export class ResourcePopoverComponent {
             'NM'
           ];
     this.properties.push(['Distance', `${d[0]} ${d[1]}`]);
-    this.properties.push(['Desc.', this.resource[1].description]);
   }
 
   parseNote() {
@@ -364,8 +371,11 @@ export class ResourcePopoverComponent {
       this.resource[1].group && this.app.config.resources.notes.groupNameEdit
         ? true
         : false;
+
+    this.icon = getResourceIcon('notes', this.resource[1]);
+    this.title = this.resource[1].name ?? '';
     this.properties = [];
-    this.properties.push(['Name', this.resource[1].name]);
+    this.ctrl.isReadOnly = this.resource[1].properties?.readOnly;
   }
 
   parseRegion() {
@@ -380,9 +390,10 @@ export class ResourcePopoverComponent {
     this.ctrl.showNotesButton = true;
     this.ctrl.showPointsButton = false;
     this.ctrl.showRelatedButton = false;
+    this.ctrl.isReadOnly = this.resource[1].feature.properties?.readOnly;
     this.properties = [];
-    this.properties.push(['Name', this.resource[1].name]);
-    this.properties.push(['Description', this.resource[1].description]);
+    this.icon = getResourceIcon('regions', this.resource[1]);
+    this.title = this.resource[1].name ?? '';
   }
 
   // *** BUTTON actions *******
@@ -437,42 +448,26 @@ id: string - resource id
 @Component({
   selector: 'resourceset-popover',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  standalone: true,
-  imports: [
-    MatButtonModule,
-    MatTooltipModule,
-    MatIconModule,
-    PipesModule,
-    PopoverComponent
-  ],
+  imports: [MatButtonModule, MatTooltipModule, MatIconModule, PopoverComponent],
   template: `
     <ap-popover [title]="title" [canClose]="canClose" (closed)="handleClose()">
-      @for(p of properties; track p) {
-      <div style="display:flex;">
-        <div style="font-weight:bold;">{{ p[0] }}:</div>
-        @if(p[0] !== 'Latitude' && p[0] !== 'Longitude') {
-        <div
-          style="flex: 1 1 auto;text-align:right;
-                                white-space:nowrap;
-                                overflow-x:hidden;
-                                text-overflow:ellipsis;"
-        >
-          {{ p[1] }}
-        </div>
-        } @if(p[0] === 'Latitude') {
-        <div
-          style="flex: 1 1 auto;text-align:right;"
-          [innerText]="
-            p[1] | coords : app.config.selections.positionFormat : true
-          "
-        ></div>
-        } @if(p[0] === 'Longitude') {
-        <div
-          style="flex: 1 1 auto;text-align:right;"
-          [innerText]="p[1] | coords : app.config.selections.positionFormat"
-        ></div>
+      @for (p of properties; track p) {
+        @if (p[0] === 'Description') {
+          <div style="font-weight:bold;">{{ p[0] }}:</div>
+          <div style="flex: 1 1 auto;overflow-x:auto;height:60px;">
+            {{ p[1] }}
+          </div>
+        } @else {
+          <div style="display:flex;">
+            <div style="font-weight:bold;">{{ p[0] }}:</div>
+            <div
+              style="flex: 1 1 auto;text-align:right;white-space:nowrap;
+            overflow-x:auto;text-overflow:ellipsis;"
+            >
+              {{ p[1] }}
+            </div>
+          </div>
         }
-      </div>
       }
       <div style="display:flex;flex-wrap: wrap;">
         <div class="popover-action-button">
@@ -501,7 +496,7 @@ export class ResourceSetPopoverComponent {
 
   properties: Array<unknown>; // ** resource properties
 
-  constructor(public app: AppInfo) {}
+  constructor(public app: AppFacade) {}
 
   ngOnChanges() {
     this.parse();
@@ -509,14 +504,11 @@ export class ResourceSetPopoverComponent {
 
   parse() {
     this.properties = [];
-    if (this.resource.properties.name) {
-      this.properties.push(['Name', this.resource.properties.name]);
-    }
-    if (this.resource.properties.description) {
-      this.properties.push(['Desc.', this.resource.properties.description]);
-    }
-    this.properties.push(['Latitude', this.resource.geometry.coordinates[1]]);
-    this.properties.push(['Longitude', this.resource.geometry.coordinates[0]]);
+    this.properties.push(['Name', this.resource.properties.name ?? '']);
+    this.properties.push([
+      'Description',
+      this.resource.properties.description ?? ''
+    ]);
   }
 
   // *** BUTTON actions *******

@@ -17,10 +17,12 @@ import {
   MatBottomSheetRef,
   MAT_BOTTOM_SHEET_DATA
 } from '@angular/material/bottom-sheet';
-import { AppInfo } from 'src/app/app.info';
+import { AppFacade } from 'src/app/app.facade';
 import { SignalKClient } from 'signalk-client-angular';
 import { Convert } from 'src/app/lib/convert';
 import { WeatherData, WeatherDataComponent } from './weather-data.component';
+import { Position } from 'src/app/types';
+import { CoordsPipe } from 'src/app/lib/pipes';
 
 /********* WeatherForecastModal **********
 	data: {
@@ -29,7 +31,6 @@ import { WeatherData, WeatherDataComponent } from './weather-data.component';
 ***********************************/
 @Component({
   selector: 'weather-forecast-modal',
-  standalone: true,
   imports: [
     MatCardModule,
     MatListModule,
@@ -42,7 +43,8 @@ import { WeatherData, WeatherDataComponent } from './weather-data.component';
     MatToolbarModule,
     MatStepperModule,
     MatProgressBar,
-    WeatherDataComponent
+    WeatherDataComponent,
+    CoordsPipe
   ],
   template: `
     <div class="_weather-forecast">
@@ -64,13 +66,47 @@ import { WeatherData, WeatherDataComponent } from './weather-data.component';
           </button>
         </span>
       </mat-toolbar>
-      @if(isFetching) {
-      <mat-progress-bar mode="indeterminate"></mat-progress-bar>
-      } @else { @if(!forecasts || forecasts.length === 0) {
-      <div style="text-align:center">{{ errorText }}</div>
+      @if (isFetching) {
+        <mat-progress-bar mode="query"></mat-progress-bar>
       } @else {
-      <weather-data [data]="forecasts"></weather-data>
-      } }
+        @if (!forecasts || forecasts.length === 0) {
+          <div style="text-align:center">{{ errorText }}</div>
+        } @else {
+          <div style="display:flex;flex-wrap: nowrap;">
+            <div style="flex: 1;"></div>
+            <div style="width: 350px;text-align:center;">
+              <span style="font-size: small;">{{ data.subTitle }}</span>
+              <div
+                style="font-size: small;text-align:left;display:flex;flex-wrap: wrap;"
+              >
+                <div style="flex: 1;">
+                  <span style="font-weight:bold;">Lat:</span>&nbsp;
+                  <span
+                    [innerText]="
+                      this.data.position[1]
+                        | coords: app.config.units.positionFormat : true
+                    "
+                  >
+                  </span>
+                  &nbsp;
+                </div>
+                <div style="flex: 1;">
+                  <span style="font-weight:bold;">Lon:</span>&nbsp;
+                  <span
+                    [innerText]="
+                      this.data.position[0]
+                        | coords: app.config.units.positionFormat : false
+                    "
+                  >
+                  </span>
+                </div>
+              </div>
+            </div>
+            <div style="flex: 1;"></div>
+          </div>
+          <weather-data [data]="forecasts.slice(0, 18)"></weather-data>
+        }
+      }
     </div>
   `,
   styles: [
@@ -92,7 +128,7 @@ export class WeatherForecastModal implements OnInit {
   protected errorText = 'No weather data found!';
 
   constructor(
-    public app: AppInfo,
+    public app: AppFacade,
     private sk: SignalKClient,
     public modalRef: MatBottomSheetRef<WeatherForecastModal>,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -100,12 +136,12 @@ export class WeatherForecastModal implements OnInit {
   ) {}
 
   ngOnInit() {
-    this.getForecast();
+    this.getForecast(this.data.position);
   }
 
   formatTempDegreesC(val: number) {
     return val
-      ? `${Convert.kelvinToCelcius(val).toFixed(1)} ${String.fromCharCode(186)}`
+      ? `${Convert.kelvinToCelsius(val).toFixed(1)} ${String.fromCharCode(186)}`
       : '0.0';
   }
 
@@ -121,12 +157,20 @@ export class WeatherForecastModal implements OnInit {
     return val ? `${Convert.msecToKnots(val).toFixed(1)} kn` : '0.0';
   }
 
-  private getForecast() {
-    let path = '/meteo/freeboard-sk/forecasts';
-    if (this.app.data.weather.hasApi && this.app.data.vessels.self.position) {
-      const pos = this.app.data.vessels.self.position;
-      path = `/weather/forecasts?lat=${pos[1]}&lon=${pos[0]}`;
+  private dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+  private getForecast(pos: Position) {
+    if (!this.app.featureFlags().weatherApi) {
+      this.errorText =
+        'Cannot retrieve forecasts as Weather API is not available!';
+      return;
     }
+    if (!this.data.position) {
+      this.errorText =
+        'Cannot retrieve forecasts as location has not been supplied!';
+      return;
+    }
+    const path = `/weather/forecasts/point?lat=${pos[1]}&lon=${pos[0]}`;
     this.isFetching = true;
     this.sk.api.get(2, path).subscribe(
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -137,7 +181,12 @@ export class WeatherForecastModal implements OnInit {
           .forEach((v: any) => {
             const forecastData: WeatherData = { wind: {} };
             forecastData.description = v['description'] ?? '';
-            forecastData.time = new Date(v['date']).toLocaleTimeString() ?? '';
+            const d = new Date(v['date']);
+            forecastData.time = d
+              ? `${this.dayNames[d.getDay()]} ${d.getHours()}:${(
+                  '00' + d.getMinutes()
+                ).slice(-2)}`
+              : '';
 
             if (typeof v.outside?.temperature !== 'undefined') {
               forecastData.temperature =
@@ -147,7 +196,7 @@ export class WeatherForecastModal implements OnInit {
                     ) +
                     String.fromCharCode(186) +
                     'F'
-                  : Convert.kelvinToCelcius(v.outside.temperature).toFixed(1) +
+                  : Convert.kelvinToCelsius(v.outside.temperature).toFixed(1) +
                     String.fromCharCode(186) +
                     'C';
             }
@@ -159,7 +208,7 @@ export class WeatherForecastModal implements OnInit {
                     ) +
                     String.fromCharCode(186) +
                     'F'
-                  : Convert.kelvinToCelcius(v.outside.minTemperature).toFixed(
+                  : Convert.kelvinToCelsius(v.outside.minTemperature).toFixed(
                       1
                     ) +
                     String.fromCharCode(186) +
@@ -173,7 +222,7 @@ export class WeatherForecastModal implements OnInit {
                     ) +
                     String.fromCharCode(186) +
                     'F'
-                  : Convert.kelvinToCelcius(v.outside.maxTemperature).toFixed(
+                  : Convert.kelvinToCelsius(v.outside.maxTemperature).toFixed(
                       1
                     ) +
                     String.fromCharCode(186) +
@@ -187,7 +236,7 @@ export class WeatherForecastModal implements OnInit {
                     ).toFixed(1) +
                     String.fromCharCode(186) +
                     'F'
-                  : Convert.kelvinToCelcius(
+                  : Convert.kelvinToCelsius(
                       v.outside.dewPointTemperature
                     ).toFixed(1) +
                     String.fromCharCode(186) +
@@ -213,6 +262,11 @@ export class WeatherForecastModal implements OnInit {
             }
             if (typeof v.outside?.visibility !== 'undefined') {
               forecastData.visibility = v.outside?.visibility;
+            }
+            if (typeof v.outside?.precipitationVolume !== 'undefined') {
+              forecastData.rain = `${(
+                v.outside?.precipitationVolume * 1000
+              ).toFixed(2)} mm`;
             }
 
             if (typeof v.wind !== 'undefined') {

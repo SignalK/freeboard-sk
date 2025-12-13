@@ -1,13 +1,11 @@
-/** Settings abstraction Facade
+/** Settings Service
  * ************************************/
 import { Injectable } from '@angular/core';
-import { Subject } from 'rxjs';
 
-import { AppInfo } from 'src/app/app.info';
-import { SettingsMessage } from 'src/app/lib/services';
+import { AppFacade } from 'src/app/app.facade';
 import { SignalKClient } from 'signalk-client-angular';
-import { SKStreamFacade } from 'src/app/modules/skstream/skstream.facade';
-import { Position } from 'src/app/types';
+import { FBAppData, IAppConfig, Position } from 'src/app/types';
+import { Observable, Subject } from 'rxjs';
 
 interface SKAppsList {
   author: string;
@@ -26,10 +24,10 @@ interface ResourceTypeList {
   };
 }
 
-@Injectable({ providedIn: 'root' })
-export class SettingsFacade {
-  // **************** Settings Dialog Support ***************************
+/** Settings Option Choices */
+export class SettingsOptions {
   private symDegree = String.fromCharCode(186);
+
   availableUnits = {
     distance: new Map([
       ['m', 'Kilometres'],
@@ -46,7 +44,7 @@ export class SettingsFacade {
       ['mph', 'mph']
     ]),
     temperature: new Map([
-      ['c', 'Celcius'],
+      ['c', 'Celsius'],
       ['f', 'Fahrenheit']
     ])
   };
@@ -70,13 +68,107 @@ export class SettingsFacade {
     ]
   };
 
-  list = {
-    nextPointTriggers: ['perpendicularPassed', 'arrivalCircleEntered'],
-    minZoom: [8, 9, 10, 11, 12, 13, 14, 15, 16, 17],
-    resourceRadius: [5, 10, 20, 50, 100, 150, 200, 500],
-    applications: [],
-    favourites: [],
-    resourcePaths: [],
+  buttons = {
+    fab: new Map([
+      ['wpt', 'Waypoint at vessel'],
+      ['pob', 'Person Overboard'],
+      ['autopilot', 'Autopilot Console']
+    ])
+  };
+
+  map = {
+    centerOffset: new Map([
+      [0, '0%'],
+      [0.2, '20%'],
+      [0.3, '30%'],
+      [0.5, '50%'],
+      [0.7, '70%']
+    ]),
+    s57: {
+      graphicsStyle: new Map([
+        ['Simplified', 'Simplified'],
+        ['Paper', 'Paper chart']
+      ]),
+      boundaries: new Map([
+        ['Symbolized', 'Symbolized'],
+        ['Plain', 'Plain']
+      ]),
+      colors: [2, 4],
+      shallowDepth: 2,
+      safetyDepth: 3,
+      deepDepth: 6,
+      colorTables: new Map([
+        [0, 'Day Bright'],
+        [1, 'Day Black Background'],
+        [2, 'Day White Background'],
+        [3, 'Dusk'],
+        [4, 'Night']
+      ])
+    }
+  };
+
+  trailIntervals = {
+    highResolution: new Map([
+      ['1s', '1 sec'],
+      ['5s', '5 secs'],
+      ['10s', '10 secs'],
+      ['30s', '30 secs'],
+      ['1m', '1 min']
+    ]),
+    mediumResolution: new Map([
+      ['10s', '10 secs'],
+      ['30s', '30 secs'],
+      ['1m', '1 min'],
+      ['2m', '2 mins'],
+      ['5m', '5 mins'],
+      ['10m', '10 mins'],
+      ['15m', '15 mins'],
+      ['30m', '30 mins']
+    ])
+  };
+
+  alarm = {
+    smoothing: new Map([
+      [5000, '5 secs'],
+      [10000, '10 secs'],
+      [20000, '20 secs'],
+      [30000, '30 secs']
+    ])
+  };
+
+  darkMode = new Map([
+    [0, 'Use OS setting'],
+    [1, 'Use Signal K Mode'],
+    [-1, 'On']
+  ]);
+
+  vessel = {
+    selfIconScale: new Map([
+      [0.75, 'S'],
+      [0.9, 'M'],
+      [1.15, 'L'],
+      [1.4, 'XL']
+    ]),
+    headingLine: new Map([
+      [-1, 'Default'],
+      [1, '1 NM (2km)'],
+      [2, '2 NM (4km)'],
+      [5, '5 NM (10km)'],
+      [10, '10 NM (20km)'],
+      [15, '15 NM (30km)'],
+      [20, '20 NM (40km)'],
+      [50, '50 NM (90km)'],
+      [100, '100 NM (180km)']
+    ]),
+    cogLine: new Map([
+      [0, 'None'],
+      [5, '5 min'],
+      [10, '10 min'],
+      [30, '30 min'],
+      [60, '60 min'],
+      [2 * 60, '2 hrs'],
+      [24 * 60, '24 hrs']
+    ]),
     aisTimeouts: new Map([
       [60000, '1 min'],
       [120000, '2 min'],
@@ -100,174 +192,102 @@ export class SettingsFacade {
     ]),
     aisCogLine: new Map([
       [0, 'Off'],
-      [10, 'On']
-    ]),
-    aisProfiles: new Map([[0, 'Default']]) //,[1,'Navigation'] ])
-  };
-
-  vesselOptions = {
-    headingLine: new Map([
-      [-1, 'Default'],
-      [1, '1 NM (2km)'],
-      [2, '2 NM (4km)'],
-      [5, '5 NM (10km)'],
-      [10, '10 NM (20km)'],
-      [15, '15 NM (30km)'],
-      [20, '20 NM (40km)'],
-      [50, '50 NM (90km)'],
-      [100, '100 NM (180km)']
-    ]),
-    cogLine: new Map([
-      [0, 'None'],
-      [5, '5 min'],
       [10, '10 min'],
       [30, '30 min'],
-      [60, '60 min'],
-      [2 * 60, '2 hrs'],
-      [24 * 60, '24 hrs']
+      [60, '60 min']
     ])
   };
 
-  alarmOptions = {
-    smoothing: new Map([
-      [5000, '5 secs'],
-      [10000, '10 secs'],
-      [20000, '20 secs'],
-      [30000, '30 secs']
-    ])
+  rangeCircles = {
+    count: [4, 5, 6, 7, 8, 9, 10, 15, 20]
   };
 
-  darkModeOptions = new Map([
-    [0, 'Use OS setting'],
-    [1, 'Use Signal K Mode'],
-    [-1, 'On']
-  ]);
-
-  trailOptions = {
-    highResolution: new Map([
-      ['1s', '1 sec'],
-      ['5s', '5 secs'],
-      ['10s', '10 secs'],
-      ['30s', '30 secs'],
-      ['1m', '1 min']
-    ]),
-    mediumResolution: new Map([
-      ['10s', '10 secs'],
-      ['30s', '30 secs'],
-      ['1m', '1 min'],
-      ['2m', '2 mins'],
-      ['5m', '5 mins'],
-      ['10m', '10 mins'],
-      ['15m', '15 mins'],
-      ['30m', '30 mins']
-    ])
+  course = {
+    nextPointTrigger: ['perpendicularPassed', 'arrivalCircleEntered'],
+    nextPointDelay: this.alarm.smoothing
   };
 
-  fixedPosition = [0, 0];
-
-  s57Options = {
-    graphicsStyle: new Map([
-      ['Simplified', 'Simplified'],
-      ['Paper', 'Paper chart']
-    ]),
-    boundaries: new Map([
-      ['Symbolized', 'Symbolized'],
-      ['Plain', 'Plain']
-    ]),
-    colors: [2, 4],
-    shallowDepth: 2,
-    safetyDepth: 3,
-    deepDepth: 6
+  resources = {
+    noteRadius: [5, 10, 20, 50, 100, 150, 200, 500],
+    resSetRadius: [0, 5, 10, 20, 50, 100, 150, 200, 500]
   };
 
-  // *****************************************************
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  public settings!: any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  public data!: any;
+  zoomLevels = [8, 9, 10, 11, 12, 13, 14, 15, 16, 17];
+}
 
-  update$() {
-    return this.app.settings$;
-  }
-  saved$() {
-    return this.configSavedSource.asObservable();
-  }
-  loaded$() {
-    return this.configLoadedSource.asObservable();
-  }
+@Injectable({ providedIn: 'root' })
+export class SettingsFacade {
+  applicationList = []; // installed webapp list
+  favouritesList = []; // favourite webapp selections
+  resourcePathList = []; // resource layer list
+  fixedPosition: Position = [0, 0];
 
-  // ******************************************************
-  private configSavedSource = new Subject<SettingsMessage>();
-  private configLoadedSource = new Subject<SettingsMessage>();
-  // *******************************************************
+  settings!: IAppConfig;
+  data!: FBAppData;
+
+  // Observables
+  protected changeEvent: Subject<string[]>;
+  public change$: Observable<string[]>;
 
   constructor(
-    private app: AppInfo,
-    public signalk: SignalKClient,
-    private stream: SKStreamFacade
+    private app: AppFacade,
+    public signalk: SignalKClient
   ) {
+    // ** initialise events
+    this.changeEvent = new Subject<string[]>();
+    this.change$ = this.changeEvent.asObservable();
+
     this.data = this.app.data;
     this.settings = this.app.config;
-    this.fixedPosition = this.settings.fixedPosition.slice();
 
-    if (!this.app.config.chartApi) {
-      this.app.config.chartApi = 1;
-    }
-    this.app.settings$.subscribe((r: SettingsMessage) => {
-      if (r.setting === 'config') {
-        if (r.action === 'load') {
-          this.configLoadedSource.next(r);
-        }
-        if (r.action === 'save') {
-          this.configSavedSource.next(r);
-        }
-      }
-    });
+    this.fixedPosition =
+      this.settings.vessels.fixedPosition.slice() as Position;
   }
 
-  // delete auth token
+  /** Notify of setting attribute change */
+  emitChangeEvent(value: string) {
+    const v = value ? [value] : [];
+    this.changeEvent.next(v);
+  }
+
+  /** Delete auth token */
   clearToken() {
     this.app.persistToken(null);
   }
 
-  // refresh dynamic data from sources
+  /** Refresh dynamic data from sources */
   refresh() {
     this.settings = this.app.config;
-    this.fixedPosition = this.settings.fixedPosition.slice();
+    this.fixedPosition =
+      this.settings.vessels.fixedPosition.slice() as Position;
     this.getApps();
     this.getResourcePaths();
   }
 
-  // ** populate list of available non-standard resource paths
+  /** Populate list of available non-standard resource paths */
   private getResourcePaths() {
     this.signalk.api.get(this.app.skApiVersion, 'resources').subscribe(
       (r: ResourceTypeList) => {
-        this.list.resourcePaths = Object.keys(r)
+        this.resourcePathList = Object.keys(r)
           .filter((i: string) => {
-            return ![
-              'routes',
-              'waypoints',
-              'notes',
-              'regions',
-              'charts'
-            ].includes(i);
+            return !this.app.IGNORE_RESOURCES.includes(i);
           })
           .sort();
       },
-      () => (this.list.resourcePaths = [])
+      () => (this.resourcePathList = [])
     );
   }
 
-  // ** populate applications list **
+  /** Populate applications list */
   private getApps() {
     // apps list - default an entry to stored config value
-    if (this.app.config.plugins.instruments) {
-      this.list.applications.push(this.app.config.plugins.instruments);
+    if (this.app.config.display.plugins.instruments) {
+      this.applicationList.push(this.app.config.display.plugins.instruments);
     }
 
     this.signalk.apps.list().subscribe(
       (a: Array<SKAppsList>) => {
-        this.list.applications = a
+        this.applicationList = a
           .map((i) => {
             if (i.name === '@signalk/freeboard-sk') {
               return null;
@@ -300,7 +320,7 @@ export class SettingsFacade {
             return e;
           });
 
-        this.list.applications.unshift({
+        this.applicationList.unshift({
           name: 'None',
           description: '',
           url: null
@@ -314,33 +334,31 @@ export class SettingsFacade {
     );
   }
 
-  // ** favourites **
+  /** Favourited plugins / apps */
   buildFavouritesList() {
-    this.list.favourites = this.list.applications.slice(1);
-    const i = this.app.config.selections.pluginFavourites.indexOf(
-      this.app.config.plugins.instruments
+    this.favouritesList = this.applicationList.slice(1);
+    const i = this.app.config.display.plugins.favourites.indexOf(
+      this.app.config.display.plugins.instruments
     );
-    if (i !== -1) {
-      this.app.config.selections.pluginFavourites.splice(i, 1);
-    }
   }
 
+  /** Apply / persist settings */
   applySettings() {
     this.app.debug('Saving Settings..');
-    if (!this.app.config.selections.vessel.trail) {
-      this.app.config.selections.trailFromServer = false;
+    if (!this.app.config.vessels.trail) {
+      this.app.config.vessels.trailFromServer = false;
     }
     if (
       typeof this.fixedPosition[0] === 'number' &&
       typeof this.fixedPosition[1] === 'number'
     ) {
-      this.settings.fixedPosition = this.fixedPosition.slice();
-      if (this.settings.fixedLocationMode) {
+      this.settings.vessels.fixedPosition =
+        this.fixedPosition.slice() as Position;
+      if (this.settings.vessels.fixedLocationMode) {
         this.app.data.vessels.self.position =
           this.fixedPosition.slice() as Position;
       }
     }
-    this.stream.emitVesselsUpdate();
     this.app.saveConfig();
   }
 }

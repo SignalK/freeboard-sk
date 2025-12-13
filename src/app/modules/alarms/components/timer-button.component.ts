@@ -10,29 +10,29 @@ import {
   ChangeDetectorRef,
   EventEmitter
 } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 
 @Component({
-  standalone: true,
   selector: 'timer-button',
-  imports: [CommonModule, MatButtonModule, MatIconModule],
+  imports: [MatButtonModule, MatIconModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   styles: [``],
   template: `
     <div>
-      @if(cancelled) { &nbsp;
-      <button mat-raised-button (click)="action()">
-        @if(icon) {
-        <mat-icon>{{ icon }}</mat-icon>
-        }
-        {{ cancelledLabel }}
-      </button>
+      @if (cancelled) {
+        &nbsp;
+        <button mat-raised-button (click)="action()">
+          @if (icon) {
+            <mat-icon>{{ icon }}</mat-icon>
+          }
+          {{ cancelledLabel }}
+        </button>
       } @else {
-      <button mat-button [disabled]="disabled" (click)="cancel()">
-        {{ label }} {{ timeLeft }} secs
-      </button>
+        <button mat-button [disabled]="disabled" (click)="cancel()">
+          {{ label }} {{ timeLeft }} secs
+        </button>
       }
     </div>
   `

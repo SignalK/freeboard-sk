@@ -1,3 +1,47 @@
+/** Signal K Types */
+
+// Notification types
+export enum ALARM_STATE {
+  nominal = 'nominal',
+  normal = 'normal',
+  alert = 'alert',
+  warn = 'warn',
+  alarm = 'alarm',
+  emergency = 'emergency'
+}
+
+export enum ALARM_METHOD {
+  visual = 'visual',
+  sound = 'sound'
+}
+
+export interface SKNotification {
+  state: ALARM_STATE;
+  method: ALARM_METHOD[];
+  message: string;
+}
+
+// Update Deltas
+export interface PathValue {
+  path: string;
+  value: object | number | string | null | Notification | boolean;
+}
+
+export interface ActionResult {
+  state: 'COMPLETED' | 'PENDING' | 'FAILED';
+  statusCode?: number;
+  message?: string;
+  timestamp?: string;
+}
+
+export interface SKPosition {
+  latitude: number;
+  longitude: number;
+  altitude?: number;
+}
+
+/***************** */
+
 import {
   SKVessel,
   SKAtoN,
@@ -11,9 +55,15 @@ type AisIds = Array<string>;
 interface WorkerMessageBase {
   action: string;
   playback: boolean;
-  result: ResultPayload;
+  result: ResultPayload | PathValue;
   self: string;
   timestamp: string;
+}
+
+export interface ResourceDeltaSignal {
+  path: string;
+  value: any;
+  sourceRef?: string;
 }
 
 export interface ResultPayload {
@@ -32,17 +82,12 @@ export interface ResultPayload {
 }
 
 export class NotificationMessage implements WorkerMessageBase {
-  action: string;
+  action = 'notification';
   playback = false;
   result = null;
-  type: string;
   self = null;
-  timestamp: string;
-
-  constructor(type: string) {
-    this.action = 'notification';
-    this.type = type;
-  }
+  timestamp = new Date().toISOString();
+  sourceRef!: string;
 }
 
 export class UpdateMessage implements WorkerMessageBase {
@@ -54,6 +99,13 @@ export class UpdateMessage implements WorkerMessageBase {
 
   constructor() {
     this.action = 'update';
+  }
+}
+
+export class ResourceMessage extends UpdateMessage {
+  constructor() {
+    super();
+    this.action = 'resource';
   }
 }
 

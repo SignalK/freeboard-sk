@@ -6,7 +6,7 @@ import {
   SimpleChanges
 } from '@angular/core';
 import { Feature } from 'ol';
-import { Style, RegularShape, Fill, Stroke, Circle } from 'ol/style';
+import { Style, RegularShape, Fill, Stroke, Circle, Text } from 'ol/style';
 import { fromLonLat } from 'ol/proj';
 import { Point, LineString } from 'ol/geom';
 import { Coordinate } from 'ol/coordinate';
@@ -14,29 +14,32 @@ import { MapComponent } from '../map.component';
 import { AISBaseLayerComponent } from './ais-base.component';
 import { SKVessel } from 'src/app/modules/skresources';
 import { fromLonLatArray } from '../util';
+import { MapImageRegistry } from '../map-image-registry.service';
 
 // ** Signal K AIS Vessel targets **
 @Component({
   selector: 'ol-map > sk-ais-vessels',
   template: '<ng-content></ng-content>',
-  changeDetection: ChangeDetectionStrategy.OnPush
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  standalone: false
 })
 export class AISVesselsLayerComponent extends AISBaseLayerComponent {
   @Input() cogLineLength = 0;
 
   constructor(
-    protected mapComponent: MapComponent,
-    protected changeDetectorRef: ChangeDetectorRef
+    protected override mapComponent: MapComponent,
+    protected override changeDetectorRef: ChangeDetectorRef,
+    protected mapImages: MapImageRegistry
   ) {
     super(mapComponent, changeDetectorRef);
   }
 
-  ngOnInit() {
+  override ngOnInit() {
     super.ngOnInit();
     this.labelPrefixes = ['ais-'];
   }
 
-  ngOnChanges(changes: SimpleChanges) {
+  override ngOnChanges(changes: SimpleChanges) {
     super.ngOnChanges(changes);
     if ('cogLineLength' in changes) {
       this.cogLineLength = changes['cogLineLength'].currentValue ?? 0;
@@ -140,9 +143,36 @@ export class AISVesselsLayerComponent extends AISBaseLayerComponent {
   // build target style
   buildVesselStyle(target: SKVessel, label?: string, setStale = false): Style {
     let s: Style;
+    const isMoored = target.state === 'moored';
+
     const shipClass = target.type.id
-      ? Math.floor(target.type.id / 10) * 10
+      ? Math.abs(Math.floor(target.type.id / 10) * 10)
       : -1;
+
+    const icon =
+      target.id === this.focusId
+        ? this.mapImages.getVessel('focused')
+        : setStale
+          ? this.mapImages.getVessel('inactive', isMoored)
+          : target.buddy
+            ? this.mapImages.getVessel('buddy', isMoored)
+            : shipClass === -1
+              ? this.mapImages.getVessel('default', isMoored)
+              : this.mapImages.getVessel(shipClass, isMoored);
+
+    if (icon && typeof this.targetStyles === 'undefined') {
+      if (icon) {
+        return new Style({
+          image: icon,
+          text: new Text({
+            text: '',
+            offsetX: 0,
+            offsetY: isMoored ? 12 : 22
+          })
+        });
+      }
+      return;
+    }
 
     if (typeof this.targetStyles !== 'undefined') {
       if (target.id === this.focusId && this.targetStyles.focus) {

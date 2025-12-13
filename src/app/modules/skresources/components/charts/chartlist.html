@@ -1,18 +1,25 @@
 <div class="resourcelist" style="width: 320px">
-  <mat-card>
+  <mat-menu #addchartmenu="matMenu">
+    <button mat-menu-item (click)="addChartSource('wmts')">WMTS</button>
+    <button mat-menu-item (click)="addChartSource('wms')">WMS</button>
+    <button mat-menu-item (click)="addChartSource('json')">
+      JSON Map Source
+    </button>
+  </mat-menu>
+  <mat-card style="border-radius: unset">
     <mat-card-title>
       <div class="title-block">
-        <div style="flex: 1 1 auto; padding-top: 7px">Charts:</div>
         <div style="width: 50px">
           <button
             mat-icon-button
             (click)="close()"
             matTooltip="Close Chart List"
-            matTooltipPosition="left"
+            matTooltipPosition="right"
           >
-            <mat-icon>close</mat-icon>
+            <mat-icon>arrow_back</mat-icon>
           </button>
         </div>
+        <div style="flex: 1 1 auto; padding-top: 7px">Charts</div>
       </div>
     </mat-card-title>
     <mat-card-content>
@@ -26,14 +33,14 @@
               type="text"
               matInput
               [value]="filterText"
-              (keyup)="buildFilterList(ftext.value)"
+              (keyup)="filterKeyUp(ftext.value)"
             />
             @if(filterText) {
             <button
-              mat-button
+              mat-icon-button
               matSuffix
               mat-icon-button
-              (click)="buildFilterList('')"
+              (click)="filterKeyUp('')"
             >
               <mat-icon>close</mat-icon>
             </button>
@@ -43,7 +50,7 @@
         <div>
           <button
             mat-icon-button
-            (click)="itemRefresh()"
+            (click)="initItems()"
             matTooltip="Reload Charts"
             matTooltipPosition="below"
           >
@@ -53,9 +60,10 @@
         <div>
           <mat-checkbox
             #selall
+            [disabled]="fullList.length === 0"
             [checked]="allSel"
             [indeterminate]="someSel"
-            (change)="selectAll($event.checked)"
+            (change)="toggleAll($event.checked)"
             [matTooltip]="(!selall.checked || someSel) ? 'Select All' : 'Deselect All'"
             matTooltipPosition="below"
           >
@@ -63,14 +71,14 @@
         </div>
       </div>
       } @else {
-      <div style="display: flex">
-        <div>
-          <button mat-icon-button (click)="showChartLayers(false)">
-            <mat-icon>arrow_back</mat-icon>
-          </button>
-        </div>
+      <div style="display: flex; border-top: 1px solid">
         <div style="flex: 1 1 auto; text-align: center; line-height: 2.5em">
           Chart Order
+        </div>
+        <div>
+          <button mat-icon-button (click)="showChartLayers(false)">
+            <mat-icon>close</mat-icon>
+          </button>
         </div>
       </div>
       }
@@ -79,7 +87,7 @@
       @if(!displayChartLayers) {
       <mat-slide-toggle
         [hideIcon]="true"
-        [checked]="app.data.chartBounds"
+        [checked]="app.data.chartBounds.show"
         (change)="toggleChartBoundaries()"
       >
         Boundaries
@@ -93,15 +101,34 @@
         <mat-icon>import_export</mat-icon>
         Re-order
       </button>
+
+      <button
+        mat-button
+        matTooltip="Add Chart"
+        matTooltipPosition="above"
+        [matMenuTriggerFor]="addchartmenu"
+      >
+        <mat-icon>add</mat-icon>
+      </button>
+      } @else {
+      <div style="display: flex; width: 100%; font-style: italic">
+        <div style="flex: 1 1 auto">Top Layer</div>
+        <div style="text-align: center; font-size: 10pt; font-style: italic">
+          (drag to re-order)
+        </div>
+      </div>
       }
     </mat-card-actions>
   </mat-card>
 
   @if(!displayChartLayers) {
   <div class="resources charts">
+    @if(this.app.sIsFetching()) {
+    <mat-progress-bar mode="query"></mat-progress-bar>
+    }
     <cdk-virtual-scroll-viewport class="vscroller" itemSize="80">
       <mat-card
-        *cdkVirtualFor="let r of filterList; let i= index;"
+        *cdkVirtualFor="let r of filteredList(); let i= index;"
         style="border-bottom: silver 1px outset; border-radius: unset"
       >
         <mat-card-content>
@@ -140,6 +167,18 @@
         </mat-card-content>
         <mat-card-actions>
           <div style="display: flex">
+            @if(r[1].source && r[1].source === 'resources-provider') {
+            <div style="width: 100%; text-align: right">
+              <button
+                mat-icon-button
+                (click)="itemDelete(r[0])"
+                matTooltip="Remove Chart"
+                matTooltipPosition="right"
+              >
+                <mat-icon>delete</mat-icon>
+              </button>
+            </div>
+            }
             <div style="width: 100%; text-align: right">
               <button
                 mat-icon-button
@@ -150,6 +189,29 @@
                 <mat-icon>info_outline</mat-icon>
               </button>
             </div>
+            @if(r[1].proxy) {
+            <div style="width: 100%; text-align: right">
+              <button
+                mat-icon-button
+                (click)="selectCacheArea(r[0])"
+                matTooltip="Cache Tiles"
+                matTooltipPosition="right"
+              >
+                <mat-icon>download</mat-icon>
+              </button>
+            </div>
+            } @if(app.featureFlags().resourceGroups) { &nbsp;
+            <div style="width: 100%; text-align: right">
+              <button
+                mat-icon-button
+                (click)="itemAddToGroup(r[0])"
+                matTooltip="Add to Group"
+                matTooltipPosition="right"
+              >
+                <mat-icon>category</mat-icon>
+              </button>
+            </div>
+            }
           </div>
         </mat-card-actions>
       </mat-card>
@@ -159,7 +221,7 @@
   <div class="resources">
     <ap-chartlayers
       class="vscroller"
-      (changed)="handleOrderChange($event)"
+      [charts]="fullList"
       (closed)="showChartLayers(false)"
     >
     </ap-chartlayers>

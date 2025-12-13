@@ -3,6 +3,7 @@
 
 import { Component, OnInit, Inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { CoordsPipe } from 'src/app/lib/pipes';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import {
@@ -23,7 +24,8 @@ import {
 } from '@kolkov/angular-editor';
 import { AddTargetPipe } from './safe.pipe';
 
-import { AppInfo } from 'src/app/app.info';
+import { AppFacade } from 'src/app/app.facade';
+import { AppIconDef, getResourceIcon } from 'src/app/modules/icons';
 
 /********* NoteDialog **********
 	data: {
@@ -31,7 +33,6 @@ import { AppInfo } from 'src/app/app.info';
     }
 ***********************************/
 @Component({
-  standalone: true,
   selector: 'ap-notedialog',
   imports: [
     FormsModule,
@@ -45,6 +46,7 @@ import { AppInfo } from 'src/app/app.info';
     MatInputModule,
     MatToolbarModule,
     AngularEditorModule,
+    CoordsPipe,
     AddTargetPipe
   ],
   templateUrl: `note-dialog.html`,
@@ -91,7 +93,7 @@ export class NoteDialog implements OnInit {
     editable: true,
     spellcheck: false,
     height: 'auto',
-    minHeight: '0',
+    minHeight: '150',
     maxHeight: 'auto',
     width: 'auto',
     minWidth: '0',
@@ -109,9 +111,11 @@ export class NoteDialog implements OnInit {
     toolbarHiddenButtons: this.editorHiddenButtons
   };
 
+  protected icon: AppIconDef;
+
   constructor(
-    public app: AppInfo,
-    public dialogRef: MatDialogRef<NoteDialog>,
+    protected app: AppFacade,
+    protected dialogRef: MatDialogRef<NoteDialog>,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     @Inject(MAT_DIALOG_DATA) public data: any
   ) {}
@@ -126,6 +130,7 @@ export class NoteDialog implements OnInit {
     if (this.data.note.properties.readOnly) {
       this.data.editable = false;
     }
+    this.icon = getResourceIcon('notes', this.data.note);
   }
 
   openNoteUrl() {

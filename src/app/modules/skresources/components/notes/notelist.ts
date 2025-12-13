@@ -16,13 +16,13 @@ import { FormsModule } from '@angular/forms';
 import { MatInputModule } from '@angular/material/input';
 import { ScrollingModule } from '@angular/cdk/scrolling';
 
-import { AppInfo } from 'src/app/app.info';
+import { AppFacade } from 'src/app/app.facade';
 import { Position } from 'src/app/types';
 import { FBNotes, FBNote, FBResourceSelect, SKPosition } from 'src/app/types';
+import { SKResourceService } from '../../resources.service';
 
 @Component({
   selector: 'note-list',
-  standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './notelist.html',
   styleUrls: ['../resourcelist.css'],
@@ -52,10 +52,13 @@ export class NoteListComponent {
   showNotes = false;
   draftOnly = false;
 
-  constructor(public app: AppInfo) {}
+  constructor(
+    public app: AppFacade,
+    private skres: SKResourceService
+  ) {}
 
   ngOnInit() {
-    this.showNotes = this.app.config.notes;
+    this.showNotes = this.app.config.ui.showNotes;
     this.initItems();
   }
 
@@ -76,7 +79,7 @@ export class NoteListComponent {
   }
 
   toggleMapDisplay(value: boolean) {
-    this.app.config.notes = value;
+    this.app.config.ui.showNotes = value;
     this.app.saveConfig();
   }
 
@@ -85,13 +88,13 @@ export class NoteListComponent {
   }
 
   itemRefresh() {
-    this.refresh.emit();
+    this.skres.refreshNotes();
   }
 
   emitCenter(position: SKPosition) {
     const zoomTo =
-      this.app.config.map.zoomLevel < this.app.config.selections.notesMinZoom
-        ? this.app.config.selections.notesMinZoom
+      this.app.config.map.zoomLevel < this.app.config.resources.notes.minZoom
+        ? this.app.config.resources.notes.minZoom
         : null;
     this.pan.emit({
       center: [position.longitude, position.latitude],

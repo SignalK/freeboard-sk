@@ -1,0 +1,90 @@
+.gpxload-dialog {
+    font-family: roboto;
+    position: relative;  
+}
+
+.mat-expansion-panel-body {
+    padding: 0 12px 6px;
+}
+
+.card-group-title {
+    font-weight: bold;
+    font-size: 10pt;
+    font-family: Arial, Helvetica, sans-serif;
+    padding: 10px 0 10px 0;
+}
+
+.item-row  {
+    display: flex;
+    width: 100%;
+    padding: 2px 0;
+}
+
+.item-row .name {
+    flex: 1 1 auto;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 1;
+    text-overflow:ellipsis;
+    line-height: 2.5em;
+}
+
+.item-row .check {
+    text-align: right;
+    padding-right: 15px;
+}
+
+
+.pnlSelectedItems {
+    display: none;
+    line-height: 2.9em;
+}
+
+.pnlSelect {
+    flex: 1 1 auto; 
+    padding-left:3px;
+    padding-right:3px;
+    text-align:right;       
+}
+
+.txtSelect {
+    display: none;
+} 
+
+button {
+    min-width: unset;
+    padding: unset;    
+}
+
+/* phone */
+@media only screen and (min-width : 400px) {
+    .pnlSelectedItems {
+        display: inline;
+    }  
+}
+
+/* tablet */
+@media only screen and (min-width : 475px) {
+    .pnlSelectedItems {
+        display: inline;
+        line-height: 2.9em;
+    }  
+    .txtSelect {
+        display: inline;
+    }      
+    .pnlSelect {
+        flex: 1 1 auto; 
+        padding-left:20px;
+        padding-right:15px;
+        text-align:right;       
+    }
+    button {
+        min-width: inherit;
+        padding: inherit;    
+    }    
+}
+
+/* large */
+@media only screen and (min-width : 800px) {
+} 

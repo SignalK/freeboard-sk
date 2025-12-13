@@ -1,0 +1,208 @@
+<div class="resourcelist">
+  <mat-menu #addlayermenu="matMenu">
+    <button mat-menu-item (click)="addLayer('wmts')">WMTS</button>
+    <button mat-menu-item (click)="addLayer('wms')">WMS</button>
+  </mat-menu>
+  <mat-card style="border-radius: unset">
+    <mat-card-title>
+      <div class="title-block">
+        <div style="width: 50px">
+          <button
+            mat-icon-button
+            (click)="close()"
+            matTooltip="Close InfoLayer List"
+            matTooltipPosition="right"
+          >
+            <mat-icon>arrow_back</mat-icon>
+          </button>
+        </div>
+        <div style="flex: 1 1 auto; padding-top: 7px">Overlays</div>
+      </div>
+    </mat-card-title>
+    <mat-card-content>
+      <div style="display: flex">
+        <div style="flex: 1 1 auto; padding-left: 3px">
+          <mat-form-field floatLabel="always" style="width: 180px">
+            <mat-label>Type to filter list</mat-label>
+            <input
+              #ftext
+              type="text"
+              matInput
+              [value]="filterText"
+              (keyup)="filterKeyUp(ftext.value)"
+            />
+            @if(filterText) {
+            <button matSuffix mat-icon-button (click)="filterKeyUp('')">
+              <mat-icon>close</mat-icon>
+            </button>
+            }
+          </mat-form-field>
+        </div>
+        <div>
+          <button
+            mat-icon-button
+            (click)="initItems()"
+            matTooltip="Reload Layers"
+            matTooltipPosition="below"
+          >
+            <mat-icon>refresh</mat-icon>
+          </button>
+        </div>
+        <div>
+          <mat-checkbox
+            #selall
+            [checked]="allSel"
+            [indeterminate]="someSel"
+            (change)="toggleAll($event.checked)"
+            [matTooltip]="(!selall.checked || someSel) ? 'Select All' : 'Deselect All'"
+            matTooltipPosition="below"
+          >
+          </mat-checkbox>
+        </div>
+      </div>
+    </mat-card-content>
+    <mat-card-actions>
+      <button
+        mat-icon-button
+        matTooltip="Add Layer"
+        matTooltipPosition="above"
+        [matMenuTriggerFor]="addlayermenu"
+      >
+        <mat-icon>add</mat-icon>
+      </button>
+      <small
+        >Map layers containing dynamic information to overlay on charts.</small
+      >
+    </mat-card-actions>
+  </mat-card>
+
+  <div class="resources infolayers">
+    @if(this.app.sIsFetching()) {
+    <mat-progress-bar mode="query"></mat-progress-bar>
+    } @else {
+    <cdk-virtual-scroll-viewport class="vscroller" itemSize="48">
+      <mat-card
+        *cdkVirtualFor="let r of filteredList(); let i= index;"
+        style="border-bottom: silver 1px outset; border-radius: unset"
+      >
+        <mat-card-content>
+          <div style="display: flex">
+            <div
+              style="
+                flex: 1 1 auto;
+                text-align: left;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                display: -webkit-box;
+                -webkit-box-orient: vertical;
+                -webkit-line-clamp: 2;
+                line-clamp: 2;
+                width: 245px;
+              "
+            >
+              <b>{{(r[1].name)}}</b>
+            </div>
+            <div style="text-align: right">
+              <mat-checkbox
+                [checked]="r[2]"
+                (change)="itemSelect($event.checked, r[0])"
+                matTooltip="Show layer"
+                matTooltipPosition="left"
+              >
+              </mat-checkbox>
+            </div>
+          </div>
+        </mat-card-content>
+        <mat-card-actions>
+          <div style="flex: auto">
+            <div style="display: flex">
+              <div style="flex: 1 1 auto">
+                <mat-form-field style="width: 120px">
+                  <mat-hint>Auto Refresh</mat-hint>
+                  <mat-select
+                    [(ngModel)]="r[1].values.refreshInterval"
+                    (selectionChange)="setRefresh(r[0], $event.value)"
+                    matTooltip="Set layer transparency"
+                  >
+                    @for(t of refreshOptions; track t[0]) {
+                    <mat-option [value]="t[0]">{{t[1]}}</mat-option>
+                    }
+                  </mat-select>
+                </mat-form-field>
+                &nbsp;
+                <mat-form-field style="width: 105px">
+                  <mat-hint>Opacity</mat-hint>
+                  <mat-select
+                    [(ngModel)]="r[1].values.opacity"
+                    (selectionChange)="setOpacity(r[0], $event.value)"
+                    matTooltip="Set layer opacity"
+                  >
+                    @for(t of opacityOptions; track t[0]) {
+                    <mat-option [value]="t[0]">{{t[1]}}</mat-option>
+                    }
+                  </mat-select>
+                </mat-form-field>
+              </div>
+            </div>
+            @if(r[1].values.time?.values && r[1].values.time?.values.length > 1
+            && r[2]) {
+            <div style="display: flex">
+              <mat-slider
+                style="flex: 2"
+                [disabled]="!r[2]"
+                min="0"
+                [max]="r[1].values.time?.values.length-1"
+              >
+                <input
+                  #timeValue
+                  matSliderThumb
+                  (valueChange)="handleSliderChange(r,$event); timeLabel.innerText = formatDateTime(r[1].values.time, $event)"
+                />
+              </mat-slider>
+            </div>
+            <div style="display: flex" #timeLabel></div>
+            }
+            <!--@if(r[1].values.time?.interval && r[2]) {
+            <div style="display: flex">
+              <mat-slider
+                style="flex: 2"
+                [disabled]="!r[2]"
+                min="0"
+                [max]="maxIndexFrominterval(r[1].values?.time)"
+              >
+                <input
+                  #timeValue
+                  matSliderThumb
+                  (valueChange)="handleSliderChange(r,$event); timeLabel.innerText = formatDateTime(r[1].values.time, $event)"
+                />
+              </mat-slider>
+            </div>
+            <div style="display: flex" #timeLabel></div>
+          }-->
+            <div style="display: flex">
+              <div style="flex: 2">
+                <button
+                  mat-icon-button
+                  (click)="itemDelete(r[0])"
+                  matTooltip="Delete Layer"
+                >
+                  <mat-icon class="icon-warn">delete</mat-icon>
+                </button>
+              </div>
+              <div style="flex: 2; text-align: right; padding-right: 10px">
+                <button
+                  mat-icon-button
+                  (click)="itemProperties(r[0])"
+                  matTooltip="Layer Properties"
+                >
+                  <mat-icon>info_outline</mat-icon>
+                </button>
+              </div>
+            </div>
+          </div>
+        </mat-card-actions>
+      </mat-card>
+    </cdk-virtual-scroll-viewport>
+    }
+  </div>
+</div>

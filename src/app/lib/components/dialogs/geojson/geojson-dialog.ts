@@ -4,7 +4,7 @@ import {
   MatDialogRef,
   MAT_DIALOG_DATA
 } from '@angular/material/dialog';
-import { CommonModule } from '@angular/common';
+
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
@@ -17,14 +17,12 @@ import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 
 import { GeoJSONLoadFacade } from './geojson-dialog.facade';
-import { AppInfo } from 'src/app/app.info';
+import { AppFacade } from 'src/app/app.facade';
 
 //** GeoJSON import dialog **
 @Component({
-  standalone: true,
   selector: 'geojson-dialog',
   imports: [
-    CommonModule,
     FormsModule,
     MatDialogModule,
     MatIconModule,
@@ -57,7 +55,7 @@ export class GeoJSONImportDialog implements OnInit {
   private unsubscribe = [];
 
   constructor(
-    public app: AppInfo,
+    public app: AppFacade,
     public facade: GeoJSONLoadFacade,
     public dialogRef: MatDialogRef<GeoJSONImportDialog>,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

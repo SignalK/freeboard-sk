@@ -23,16 +23,18 @@ import DataTile from 'ol/source/DataTile';
 import WebGLTileLayer from 'ol/layer/WebGLTile';
 import VectorTileLayer from 'ol/layer/VectorTile';
 import * as pmtiles from 'pmtiles';
-import { SKChart } from 'src/app/modules';
 import LayerGroup from 'ol/layer/Group';
-import { apply } from 'ol-mapbox-style';
-import { FeatureLike } from 'ol/Feature';
+import { apply, applyStyle } from 'ol-mapbox-style';
+import { FBChart, FBCharts } from 'src/app/types';
+import { S57Service } from '../s57.service';
+import { SKChart } from 'src/app/modules/skresources';
 
 // ** Freeboard resource collection format **
 @Component({
   selector: 'ol-map > fb-charts',
   template: '<ng-content></ng-content>',
-  changeDetection: ChangeDetectionStrategy.OnPush
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  standalone: false
 })
 export class FreeboardChartLayerComponent
   implements OnInit, OnDestroy, OnChanges
@@ -40,8 +42,9 @@ export class FreeboardChartLayerComponent
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   protected layers: Map<string, any> = new Map();
 
-  @Input() charts: Array<[string, SKChart, boolean]>;
+  @Input() charts: FBCharts;
   @Input() zIndex = 10; // start number for zIndex of chart layers
+  @Input() colorMode: string;
 
   private wmtsCapabilitesMap = new Map();
 
@@ -49,7 +52,8 @@ export class FreeboardChartLayerComponent
     protected changeDetectorRef: ChangeDetectorRef,
     protected mapComponent: MapComponent,
     private mapService: MapService,
-    private vectorLayerStyleFactory: VectorLayerStyleFactory
+    private vectorLayerStyleFactory: VectorLayerStyleFactory,
+    private s57: S57Service
   ) {
     this.changeDetectorRef.detach();
   }
@@ -63,11 +67,30 @@ export class FreeboardChartLayerComponent
       if (key === 'charts' && !changes[key].firstChange) {
         this.parseCharts(changes[key].currentValue);
       }
+      if (key === 'colorMode') {
+        this.parseColorMode(changes[key].currentValue);
+      }
     }
   }
 
   ngOnDestroy() {
     this.clearlayers();
+  }
+
+  /**
+   * @todo Apply S57 color table based on environment.sun
+   * @param mode environment.sun value
+   */
+  parseColorMode(mode: string) {
+    const colMap = {
+      day: 0,
+      dusk: 3,
+      sunrise: 3,
+      night: 4
+    };
+    if (mode in colMap) {
+      this.s57.setColorTable(colMap[mode]);
+    }
   }
 
   clearlayers() {
@@ -120,13 +143,8 @@ export class FreeboardChartLayerComponent
   }
 
   // create a PMTile XYZ source TileLayer
-  initPMTilesXYZLayer(
-    url: string,
-    minZoom: number,
-    maxZoom: number,
-    zIndex: number
-  ): TileLayer<XYZ> {
-    const tiles = new pmtiles.PMTiles(url);
+  initPMTilesXYZLayer(chart: SKChart, zIndex: number): TileLayer<XYZ> {
+    const tiles = new pmtiles.PMTiles(chart.url);
 
     function loader(tile, url) {
       tile.setState(1); // LOADING
@@ -154,158 +172,170 @@ export class FreeboardChartLayerComponent
       source: new XYZ({
         tileLoadFunction: loader,
         tileSize: [512, 512],
-        url: 'pmtiles://' + url + '/{z}/{x}/{y}',
+        url: 'pmtiles://' + chart.url + '/{z}/{x}/{y}',
         wrapX: true,
-        maxZoom: maxZoom,
-        minZoom: minZoom
+        maxZoom: chart.maxZoom,
+        minZoom: chart.minZoom
       }),
-      zIndex: zIndex
+      zIndex: zIndex,
+      opacity: chart.defaultOpacity ?? 1
     });
   }
 
-  async parseCharts(charts: Array<[string, SKChart, boolean]> = this.charts) {
+  async parseCharts(charts: FBCharts = this.charts) {
     const map = this.mapComponent.getMap();
 
-    for (const i in charts) {
-      // check for existing layer
-      let layer = this.mapService.getLayerByKey('id', charts[i][0]);
-      if (!charts[i][2]) {
-        // not selected
-        if (layer) {
-          map.removeLayer(layer);
-          this.layers.delete(charts[i][0]);
-        }
-      } else {
-        // selected
-        if (!layer) {
-          if (charts[i][0] === 'openstreetmap') {
-            // open street map
-            layer = osmLayer();
-            layer.setZIndex(this.zIndex + parseInt(i));
-            layer.setMinZoom(charts[i][1].minZoom);
-            layer.setMaxZoom(charts[i][1].maxZoom);
-          } else {
-            // signal k charts
-            const minZ =
-              charts[i][1].minZoom && charts[i][1].minZoom >= 0.1
-                ? charts[i][1].minZoom - 0.1
-                : charts[i][1].minZoom;
-            const maxZ = charts[i][1].maxZoom;
+    // remove non-selected chart layers
+    const ids = charts.map((c: FBChart) => c[0]);
+    const rm = [];
+    this.layers.forEach((v, k) => {
+      if (!ids.includes(k)) {
+        map.removeLayer(v);
+        rm.push(k);
+      }
+    });
+    rm.forEach((k) => this.layers.delete(k));
 
-            if (charts[i][1].type === 'mapstyleJSON') {
-              const lg = new LayerGroup({
-                zIndex: this.zIndex + parseInt(i)
-              });
-              lg.set('id', charts[i][0]);
-              apply(lg, `${charts[i][1].url}`);
-              map.addLayer(lg);
-            } else if (
-              charts[i][1].format === 'pbf' ||
-              charts[i][1].format === 'mvt'
+    for (const i in charts) {
+      let layer = this.mapService.getLayerByKey('id', charts[i][0]);
+      if (!layer) {
+        // new layer
+        if (charts[i][0] === 'openstreetmap') {
+          // open street map
+          layer = osmLayer();
+          layer.setZIndex(this.zIndex + parseInt(i));
+          layer.setMinZoom(charts[i][1].minZoom);
+          layer.setMaxZoom(charts[i][1].maxZoom);
+          layer.setOpacity(charts[i][1].defaultOpacity ?? 1);
+        } else {
+          // signal k charts
+          const minZ =
+            charts[i][1].minZoom && charts[i][1].minZoom >= 0.1
+              ? charts[i][1].minZoom - 0.1
+              : charts[i][1].minZoom;
+          const maxZ = charts[i][1].maxZoom;
+
+          if (charts[i][1].type.toLowerCase() === 'mapstylejson') {
+            const lg = new LayerGroup({
+              zIndex: this.zIndex + parseInt(i)
+            });
+            lg.set('id', charts[i][0]);
+            lg.setOpacity(charts[i][1].defaultOpacity ?? 1);
+            apply(lg, `${charts[i][1].url}`);
+            map.addLayer(lg);
+            this.layers.set(charts[i][0], lg);
+          } else if (
+            charts[i][1].format === 'pbf' ||
+            charts[i][1].format === 'mvt'
+          ) {
+            const styleFactory =
+              this.vectorLayerStyleFactory.CreateVectorLayerStyler(
+                charts[i][1]
+              );
+            layer = styleFactory.CreateLayer();
+            styleFactory.ApplyStyle(layer as VectorTileLayer<never>);
+            layer.setZIndex(this.zIndex + parseInt(i));
+            layer.setOpacity(charts[i][1].defaultOpacity ?? 1);
+            if (charts[i][1].style) {
+              applyStyle(layer as any, charts[i][1].style);
+            }
+          } else {
+            // raster tile
+            let source; // select source type
+            if (
+              charts[i][1].type &&
+              charts[i][1].type.toLowerCase() === 'wms'
             ) {
-              const styleFactory =
-                this.vectorLayerStyleFactory.CreateVectorLayerStyler(
-                  charts[i][1]
-                );
-              layer = styleFactory.CreateLayer();
-              styleFactory.ApplyStyle(layer as VectorTileLayer<FeatureLike>);
-              layer.setZIndex(this.zIndex + parseInt(i));
-            } else {
-              // raster tile
-              let source; // select source type
-              if (
-                charts[i][1].type &&
-                charts[i][1].type.toLowerCase() === 'wms'
-              ) {
-                // WMS source
-                source = new TileWMS({
-                  url: charts[i][1].url,
-                  params: {
-                    LAYERS: charts[i][1].layers
-                      ? charts[i][1].layers.join(',')
-                      : ''
-                  }
-                });
-              } else if (
-                charts[i][1].type &&
-                charts[i][1].type.toLowerCase() === 'wmts'
-              ) {
-                // WMTS - fetch GetCapabilities.xml
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                let result: any;
-                if (!this.wmtsCapabilitesMap.has(charts[i][1].url)) {
-                  try {
-                    const response = await fetch(
-                      `${charts[i][1].url}?request=GetCapabilities&service=wmts`
-                    );
-                    const capabilitiesXml = await response.text();
-                    if (!capabilitiesXml) {
-                      console.log('Error: GetCapabilities response is empty!');
-                      return;
-                    }
-                    const parser = new WMTSCapabilities();
-                    result = parser.read(capabilitiesXml);
-                    this.wmtsCapabilitesMap.set(charts[i][1].url, result);
-                  } catch (err) {
-                    console.log(err);
+              // WMS source
+              source = new TileWMS({
+                url: charts[i][1].url,
+                params: {
+                  LAYERS: charts[i][1].layers
+                    ? charts[i][1].layers.join(',')
+                    : ''
+                }
+              });
+            } else if (
+              charts[i][1].type &&
+              charts[i][1].type.toLowerCase() === 'wmts'
+            ) {
+              // WMTS - fetch GetCapabilities.xml
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              let result: any;
+              if (!this.wmtsCapabilitesMap.has(charts[i][1].url)) {
+                try {
+                  const response = await fetch(
+                    `${charts[i][1].url}?request=GetCapabilities&service=wmts`
+                  );
+                  const capabilitiesXml = await response.text();
+                  if (!capabilitiesXml) {
+                    console.log('Error: GetCapabilities response is empty!');
                     return;
                   }
-                } else {
-                  // get pre-fetched capabilities
-                  result = this.wmtsCapabilitesMap.get(charts[i][1].url);
+                  const parser = new WMTSCapabilities();
+                  result = parser.read(capabilitiesXml);
+                  this.wmtsCapabilitesMap.set(charts[i][1].url, result);
+                } catch (err) {
+                  console.log(err);
+                  return;
                 }
-
-                const options = optionsFromCapabilities(result, {
-                  layer: charts[i][1].layers[0],
-                  matrixSet: 'EPSG:3857'
-                });
-                source = new WMTS(options);
-              } else if (
-                charts[i][1].type &&
-                charts[i][1].type.toLowerCase() === 'tilejson'
-              ) {
-                // tileJSON
-                source = new TileJSON({
-                  url: charts[i][1].url
-                });
               } else {
-                // XYZ tilelayer
-                if (charts[i][1].url.indexOf('.pmtiles') !== -1) {
-                  // pmtiles source
-                  layer = this.initPMTilesXYZLayer(
-                    charts[i][1].url,
-                    charts[i][1].minZoom,
-                    charts[i][1].maxZoom,
-                    this.zIndex + parseInt(i)
-                  );
-                } else {
-                  // default XYZ source
-                  source = new XYZ({
-                    url: charts[i][1].url
-                  });
-                }
+                // get pre-fetched capabilities
+                result = this.wmtsCapabilitesMap.get(charts[i][1].url);
               }
 
-              if (source) {
-                layer = new TileLayer({
-                  source: source,
-                  preload: 0,
-                  zIndex: this.zIndex + parseInt(i),
-                  minZoom: minZ,
-                  maxZoom: maxZ
+              const options = optionsFromCapabilities(result, {
+                layer: charts[i][1].layers[0],
+                matrixSet: 'EPSG:3857'
+              });
+              source = new WMTS(options);
+            } else if (
+              charts[i][1].type &&
+              charts[i][1].type.toLowerCase() === 'tilejson'
+            ) {
+              // tileJSON
+              source = new TileJSON({
+                url: charts[i][1].url,
+                crossOrigin: 'anonymous'
+              });
+            } else {
+              // XYZ tilelayer
+              if (charts[i][1].url.indexOf('.pmtiles') !== -1) {
+                // pmtiles source
+                layer = this.initPMTilesXYZLayer(
+                  charts[i][1],
+                  this.zIndex + parseInt(i)
+                );
+              } else {
+                // default XYZ source
+                source = new XYZ({
+                  url: charts[i][1].url
                 });
               }
             }
+
+            if (source) {
+              layer = new TileLayer({
+                source: source,
+                preload: 0,
+                zIndex: this.zIndex + parseInt(i),
+                minZoom: minZ,
+                maxZoom: maxZ,
+                opacity: charts[i][1].defaultOpacity ?? 1
+              });
+            }
           }
-          if (layer) {
-            layer.set('id', charts[i][0]);
-            this.layers.set(charts[i][0], layer);
-            map.addLayer(layer);
-          }
-        } else {
-          // set zIndex
-          layer.setZIndex(this.zIndex + parseInt(i));
         }
+        if (layer) {
+          layer.set('id', charts[i][0]);
+          layer.set('chartId', charts[i][0]);
+          this.layers.set(charts[i][0], layer);
+          map.addLayer(layer);
+        }
+      } else {
+        // existing layer, set zIndex
+        layer.setZIndex(this.zIndex + parseInt(i));
+        layer.setOpacity(charts[i][1].defaultOpacity ?? 1);
       }
     }
     if (map) {

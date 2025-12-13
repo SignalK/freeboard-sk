@@ -12,28 +12,25 @@ import {
   MatBottomSheetRef,
   MAT_BOTTOM_SHEET_DATA
 } from '@angular/material/bottom-sheet';
-import { AppInfo } from 'src/app/app.info';
-import { SKResourceSet } from '../../resourceset-class';
-import { SignalKDetailsComponent } from '../../components/signalk-details.component';
+import { AppFacade } from 'src/app/app.facade';
+import { SKResourceSet } from '../../custom-resource-classes';
 
 /********* ResourceSetFeatureModal **********
  * Displays information about a ResourceSet feature
 	data: {
     id: string
-    skres: SKResourceSet;
+    item: SKResourceSet;
   }
 ***********************************/
 @Component({
   selector: 'ap-resourceset-feature-modal',
-  standalone: true,
   imports: [
     MatTooltipModule,
     MatIconModule,
     MatCardModule,
     MatButtonModule,
     MatToolbarModule,
-    MatCheckboxModule,
-    SignalKDetailsComponent
+    MatCheckboxModule
   ],
   template: `
     <div class="_ap-resource-set-feature">
@@ -56,7 +53,30 @@ import { SignalKDetailsComponent } from '../../components/signalk-details.compon
 
       <mat-card>
         <mat-card-content>
-          <signalk-details-list [details]="properties"></signalk-details-list>
+          <div style="padding-bottom: 5px; display: flex">
+            <div style="font-weight: bold; vertical-align: top">Name:</div>
+            <div style="padding-left: 10px">{{ properties.name }}</div>
+          </div>
+          <div style="font-weight: bold; vertical-align: top">Description:</div>
+          <div style="overflow-y: auto; height: 60px" target="notelink">
+            {{ properties.description }}
+          </div>
+          <div style="padding-bottom: 5px; display: flex">
+            <div style="font-weight: bold; vertical-align: top">
+              Resource Set:
+            </div>
+            <div style="padding-left: 10px">
+              {{ properties['resourceset.name'] }}
+            </div>
+          </div>
+          <div style="padding-bottom: 5px; display: flex">
+            <div style="font-weight: bold; vertical-align: top">
+              Collection:
+            </div>
+            <div style="padding-left: 10px">
+              {{ properties['resourceset.collection'] }}
+            </div>
+          </div>
         </mat-card-content>
       </mat-card>
     </div>
@@ -77,17 +97,18 @@ import { SignalKDetailsComponent } from '../../components/signalk-details.compon
   ]
 })
 export class ResourceSetFeatureModal implements OnInit {
-  protected properties = {};
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  protected properties: any = {};
   protected title = 'ResourceSet Feature: ';
 
   constructor(
-    public app: AppInfo,
+    public app: AppFacade,
     private cdr: ChangeDetectorRef,
     public modalRef: MatBottomSheetRef<ResourceSetFeatureModal>,
     @Inject(MAT_BOTTOM_SHEET_DATA)
     public data: {
       id: string;
-      skres: SKResourceSet;
+      item: SKResourceSet;
     }
   ) {}
 
@@ -102,7 +123,7 @@ export class ResourceSetFeatureModal implements OnInit {
   parse() {
     const t = this.data.id.split('.');
     const fIndex = Number(t[t.length - 1]);
-    const features = this.data.skres.values.features;
+    const features = this.data.item.values.features;
     const feature = fIndex < features.length ? features[fIndex] : features[0];
 
     this.title = feature.properties.name ?? 'Feature';
@@ -111,8 +132,8 @@ export class ResourceSetFeatureModal implements OnInit {
       description: feature.properties.description ?? '',
       'position.latitude': feature.geometry.coordinates[1],
       'position.longitude': feature.geometry.coordinates[0],
-      'resourceset.name': this.data.skres.name,
-      'resourceset.description': this.data.skres.description,
+      'resourceset.name': this.data.item.name,
+      'resourceset.description': this.data.item.description,
       'resourceset.collection': t[1]
     };
   }

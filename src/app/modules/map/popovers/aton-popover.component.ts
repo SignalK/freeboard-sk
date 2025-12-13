@@ -8,11 +8,11 @@ import {
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { PipesModule } from 'src/app/lib/pipes';
+import { CoordsPipe } from 'src/app/lib/pipes';
 import { PopoverComponent } from './popover.component';
 import { NorthUpCompassComponent } from './compass.component';
 import { SKMeteo } from 'src/app/modules';
-import { AppInfo } from 'src/app/app.info';
+import { AppFacade } from 'src/app/app.facade';
 import { Convert } from 'src/app/lib/convert';
 /*********** AtoN Popover ***************
   title: string -  title text,
@@ -21,12 +21,11 @@ import { Convert } from 'src/app/lib/convert';
 @Component({
   selector: 'aton-popover',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  standalone: true,
   imports: [
     MatButtonModule,
     MatTooltipModule,
     MatIconModule,
-    PipesModule,
+    CoordsPipe,
     PopoverComponent,
     NorthUpCompassComponent
   ],
@@ -41,8 +40,7 @@ import { Convert } from 'src/app/lib/convert';
         <div
           style="flex: 1 1 auto;text-align:right;"
           [innerText]="
-            aton.position[1]
-              | coords : app.config.selections.positionFormat : true
+            aton.position[1] | coords: app.config.units.positionFormat : true
           "
         ></div>
       </div>
@@ -51,7 +49,7 @@ import { Convert } from 'src/app/lib/convert';
         <div
           style="flex: 1 1 auto;text-align:right;"
           [innerText]="
-            aton.position[0] | coords : app.config.selections.positionFormat
+            aton.position[0] | coords: app.config.units.positionFormat
           "
         ></div>
       </div>
@@ -61,26 +59,27 @@ import { Convert } from 'src/app/lib/convert';
           {{ timeLastUpdate }} {{ timeAgo }}
         </div>
       </div>
-      @if(isMeteo && aton.temperature !== undefined) {
-      <div style="display:flex;">
-        <div style="font-weight:bold;">Temperature:</div>
-        <div style="flex: 1 1 auto;text-align:right;">
-          {{ this.app.formatValueForDisplay(aton.temperature, 'K') }}
+      @if (isMeteo && aton.temperature !== undefined) {
+        <div style="display:flex;">
+          <div style="font-weight:bold;">Temperature:</div>
+          <div style="flex: 1 1 auto;text-align:right;">
+            {{ this.app.formatValueForDisplay(aton.temperature, 'K') }}
+          </div>
         </div>
-      </div>
-      } @if(isMeteo && aton.tws !== undefined && aton.twd !== undefined) {
-      <div style="display:flex;flex-wrap:no-wrap;">
-        <div style="font-weight:bold;">Wind:</div>
-        <div style="width:150px;">
-          <ap-compass-northup
-            [heading]="convert.radiansToDegrees(aton.twd)"
-            [speed]="app.formatSpeed(aton.tws)"
-            [label]="app.formattedSpeedUnits"
-            [windtrue]="true"
-          >
-          </ap-compass-northup>
+      }
+      @if (isMeteo && aton.tws !== undefined && aton.twd !== undefined) {
+        <div style="display:flex;flex-wrap:no-wrap;">
+          <div style="font-weight:bold;">Wind:</div>
+          <div style="width:150px;">
+            <ap-compass-northup
+              [heading]="convert.radiansToDegrees(aton.twd)"
+              [speed]="app.formatSpeed(aton.tws)"
+              [label]="app.formattedSpeedUnits"
+              [windtrue]="true"
+            >
+            </ap-compass-northup>
+          </div>
         </div>
-      </div>
       }
       <div style="display:flex;">
         <div style="flex:1 1 auto;">&nbsp;</div>
@@ -110,7 +109,7 @@ export class AtoNPopoverComponent {
   timeAgo: string; // last update in minutes ago
   protected convert = Convert;
   isMeteo: boolean;
-  constructor(public app: AppInfo) {}
+  constructor(public app: AppFacade) {}
   ngOnInit() {
     if (!this.aton) {
       this.handleClose();

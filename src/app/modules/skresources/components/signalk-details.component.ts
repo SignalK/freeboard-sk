@@ -3,15 +3,14 @@ Signal K Details list component
     <signalk-details-list>
 ***********************************/
 import { Component, Input, ChangeDetectionStrategy } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { AppInfo } from 'src/app/app.info';
-import { PipesModule } from '../../../lib/pipes';
+import { AppFacade } from 'src/app/app.facade';
+import { CoordsPipe } from '../../../lib/pipes';
 
 @Component({
-  standalone: true,
   selector: 'signalk-details-list',
-  imports: [MatTooltipModule, CommonModule, PipesModule],
+  imports: [MatTooltipModule, CoordsPipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   styleUrls: ['./signalk-details.component.css'],
   template: `
@@ -20,31 +19,32 @@ import { PipesModule } from '../../../lib/pipes';
         <div>{{ title }}</div>
       </div>
       <div class="content">
-        @for(item of items; track item) {
-        <div class="item">
-          @if(item[0] === 0 && item[2] === null) {
-          <span class="sectionname">{{ item[1] }}</span>
-          } @if(item[2] !== null) {
-          <div class="pathvalue">
-            <div class="path" [matTooltip]="item[1]">{{ item[1] }}</div>
-            @if(item[1] === 'latitude') {
-            <div class="value" [matTooltip]="item[2]">
-              {{
-                item[2] | coords : app.config.selections.positionFormat : true
-              }}
-            </div>
-            } @else if (item[1] === 'longitude') {
-            <div class="value" [matTooltip]="item[2]">
-              {{
-                item[2] | coords : app.config.selections.positionFormat : false
-              }}
-            </div>
-            } @else {
-            <div class="value" [matTooltip]="item[2]">{{ item[2] }}</div>
+        @for (item of items; track item) {
+          <div class="item">
+            @if (item[0] === 0 && item[2] === null) {
+              <span class="sectionname">{{ item[1] }}</span>
+            }
+            @if (item[2] !== null) {
+              <div class="pathvalue">
+                <div class="path" [matTooltip]="item[1]">{{ item[1] }}</div>
+                @if (item[1] === 'latitude') {
+                  <div class="value" [matTooltip]="item[2]">
+                    {{
+                      item[2] | coords: app.config.units.positionFormat : true
+                    }}
+                  </div>
+                } @else if (item[1] === 'longitude') {
+                  <div class="value" [matTooltip]="item[2]">
+                    {{
+                      item[2] | coords: app.config.units.positionFormat : false
+                    }}
+                  </div>
+                } @else {
+                  <div class="value" [matTooltip]="item[2]">{{ item[2] }}</div>
+                }
+              </div>
             }
           </div>
-          }
-        </div>
         }
       </div>
     </div>
@@ -57,7 +57,7 @@ export class SignalKDetailsComponent {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   public items: any;
 
-  constructor(protected app: AppInfo) {}
+  constructor(protected app: AppFacade) {}
 
   ngOnChanges() {
     if (this.details) {

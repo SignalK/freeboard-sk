@@ -1,21 +1,41 @@
 const WHATS_NEW = [
   {
     type: 'signalk-server-node',
-    title: 'AIS Vessels',
+    title: 'Deprecation Notice',
     message: `
-        The following new features have been added:
+        The built-in <b>Weather Service</b> has been removed!
         <br>&nbsp;<br>
-        <li>Ability to Flag vessels.</li>
-        <li>COG line is now displayed for AIS vessels.</li>
+        Weather forecast functionality remains available when using 
+        Signal K server v2.16 (or later) and a weather provider plugin from the AppStore.
+        <br>&nbsp;<br>
+        See <a href="assets/help/index.html" target="help">HELP</a> 
+        for more details.
       `
   },
   {
     type: 'signalk-server-node',
-    title: 'Racing Support',
+    title: 'New Feature',
     message: `
-        This release contains initial support for <i>navigation.racing</i> paths.
+        <b>Map Overlays</b>
         <br>&nbsp;<br>
-        <li>Display start line.</li>
+        Overlays allow map data from WMS & WMTS sources to be overlayed onto charts and can be 
+        configured to refresh at regular intervals.
+        <br>&nbsp;<br>
+        See <a href="assets/help/index.html" target="help">HELP</a> 
+        for more details.
+      `
+  },
+  {
+    type: 'signalk-server-node',
+    title: 'New Feature',
+    message: `
+        <b>Hazardous Area Alarm</b>
+        <br>&nbsp;<br>
+        Attribute a region as hazardous which will sound an alarm when the vessel enters
+        its bounds.
+        <br>&nbsp;<br>
+        See <a href="assets/help/index.html" target="help">HELP</a> 
+        for more details.
       `
   }
 ];

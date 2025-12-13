@@ -9,7 +9,8 @@ Use it to display:
 
 and more from any web enabled device.
 
-![screen](https://user-images.githubusercontent.com/38519157/128667564-0f5e1ed6-eaae-40c7-ad62-5e7011c1f082.png)
+![screen](https://github.com/user-attachments/assets/9b557a33-8a02-4a16-9f37-fd0cc82ab0f1)
+
 
 See the [FAQs](https://github.com/SignalK/freeboard-sk/wiki) for more information.
 
@@ -77,6 +78,19 @@ Whilst not specifically defined in the Signal K specification, Freeboard-SK supp
 
 ---
 
+### Autopilot Console:  
+
+Freeboard-SK supports the Signal K Autopilot API which enables common operations to be performed
+including:
+- Engage / Disengage the autopilot
+- Setting the operation mode e.g. compass, route, gps, etc.
+- Setting and adjusting the target heading
+- Dodging obstacles
+
+![image](https://github.com/user-attachments/assets/e771fa83-92cd-4e65-ad78-a349646049c8)
+
+---
+
 ### Alarms and Notifications:
 
 Freeboard-SK can display alarms _(visual and audio)_ & messages contained in *Notification* messages transmitted by the Signal K server.
@@ -100,7 +114,7 @@ _See OpenAPI documentation in Signal K Server Admin UI for details._
 
 ### History Playback
 
-Freeboard-SK supports the Siganl K `playback` api and can replay recorded time-series data captured on a Signal K server equipped with the `signalk-to-infludb` plugin.
+Freeboard-SK supports the Signal K `playback` api and can replay recorded time-series data captured on a Signal K server equipped with the `signalk-to-infludb` plugin.
 
 ---
 
@@ -120,7 +134,7 @@ _Note: The `Signal K Instrument Panel` app will be displayed if no user selectio
 
 ### S57 Charts
 
-Freeboard-SK is able to display S57 ENC charts that have been converted to vector tiles with [s57-tiler](https://github.com/wdantuma/s57-tiler). _(See the [README](https://github.com/wdantuma/s57-tiler) for instructions how to create the vectortiles from downloaded S57 ENC's.)_
+Freeboard-SK is able to display S57 ENC charts that have been converted to vector tiles with [s57-tiler](https://github.com/wdantuma/s57-tiler). _(See the [README](https://github.com/wdantuma/s57-tiler) for instructions how to create the vector tiles from downloaded S57 ENC's.)_
 
 See [Open CPN chart sources](https://opencpn.org/OpenCPN/info/chartsource.html) for a list of locations to source charts.
 
@@ -131,11 +145,11 @@ _Note: Only unencrypted ENC's are supported (no S63 support)._
 
 ![S57 chart](https://github.com/SignalK/freeboard-sk/assets/38519157/a93b3889-d1c8-4df7-9f6f-97a1666fbf77)
 
-Rendering of the Shallow, safety and deep depths and   can be configured in the settings dialog
+Rendering of the Shallow, safety and deep depths and can be configured in the settings dialog
 
 ![S57 Settings](https://github.com/SignalK/freeboard-sk/assets/38519157/0409492b-1ee7-4905-b5b0-e5fc8e68bc9a)
 
-_Note:  This functionality is not a replacement for official navigational charts_
+_Note: This functionality is not a replacement for official navigational charts_
 
 ---
 
@@ -171,13 +185,13 @@ The following features require that the Signal K server have plugins / providers
 
 ### Recommended Plugins:
 
-The following plugins are recommended for the *Signal K node server* to enable full functionality:
+The following plugins are recommended for installation on the Signal K Server to enable full functionality:
 
-- @signalk/charts-plugin *(Charts provider)*
+- @signalk/course-provider _(Course calculations e.g. XTE, DTG, etc.)_
+- @signalk/charts-plugin *(Mapbox tiles chart provider)*
 - signalk-pmtiles-plugin *(ProtoMaps chart provider)*
-- signalk-anchoralarm-plugin _(anchor alarm settings & notifications)_
-- signalk-simple-notifications _(depth alarm notifications)_
-- @signalk/course-provider _(course calculations e.g. XTE, DTG, etc.)_
+- signalk-anchoralarm-plugin _(Anchor alarm settings & notifications)_
+- signalk-simple-notifications _(Depth alarm notifications)_
 
 ---
 
@@ -189,7 +203,7 @@ It is recommended that the Angular CLI be installed globally `npm i -g @angular/
 
 1. Clone this repository.
 
-2. Run `npm i` to install project dependencies. *Note: this will also build the project placing the deployable application files in the `public` folder.*
+2. Run `npm i` to install project dependencies.
 
 3. Run `npm start` or `ng serve` to start a development web server and then navigate to `http://localhost:4200/` to load the application. The application will automatically reload once you save changes to any of the source files.
 
@@ -197,7 +211,7 @@ It is recommended that the Angular CLI be installed globally `npm i -g @angular/
 
 The Freeboard-SK application will look to connect to a Signal K server at the *ip address:port* contained in the url of your browser. 
 
-In development mode you are able to specify the Signal K server host address and port you wish to connect to by editing the `DEV_SERVER` object in the `src/app.info.ts` file.
+In development mode you are able to specify the Signal K server host address and port you wish to connect to by editing the `DEV_SERVER` object in the `src/app/app.facade.ts` file.
 ```
 DEV_SERVER { 
     host: '192.168.99.100', 

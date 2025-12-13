@@ -16,23 +16,13 @@ import { ControlComponent } from './lib/control.component';
 
 import { InteractionDrawComponent } from './lib/interactions/interaction-draw.component';
 import { InteractionModifyComponent } from './lib/interactions/interaction-modify.component';
-import {
-  WaypointLayerComponent,
-  FreeboardWaypointLayerComponent
-} from './lib/resources/layer-waypoints.component';
-import {
-  NoteLayerComponent,
-  FreeboardNoteLayerComponent
-} from './lib/resources/layer-notes.component';
-import {
-  RouteLayerComponent,
-  FreeboardRouteLayerComponent
-} from './lib/resources/layer-routes.component';
-import {
-  RegionLayerComponent,
-  FreeboardRegionLayerComponent
-} from './lib/resources/layer-regions.component';
+import { InteractionDragBoxComponent } from './lib/interactions/interaction-dragbox.component';
+import { FreeboardWaypointLayerComponent } from './lib/resources/layer-waypoints.component';
+import { FreeboardNoteLayerComponent } from './lib/resources/layer-notes.component';
+import { FreeboardRouteLayerComponent } from './lib/resources/layer-routes.component';
+import { FreeboardRegionLayerComponent } from './lib/resources/layer-regions.component';
 import { FreeboardChartLayerComponent } from './lib/resources/layer-charts.component';
+import { FreeboardLiveLayerComponent } from './lib/resources/layer-livelayer.component';
 import { ChartBoundsLayerComponent } from './lib/resources/layer-chart-bounds.component';
 import { TrackLayerComponent } from './lib/resources/layer-tracks.component';
 import { ResourceSetLayerComponent } from './lib/resources/layer-resourceset.component';
@@ -43,6 +33,7 @@ import { ArrivalCircleComponent } from './lib/navigation/layer-arrival-circle.co
 import { XTEPathComponent } from './lib/navigation/layer-xte-path.component';
 import { BearingLineComponent } from './lib/navigation/layer-bearing-line.component';
 import { LaylineComponent } from './lib/navigation/layer-layline.component';
+import { TargetAngleComponent } from './lib/navigation/layer-target-angle.component';
 import { DirectionOfTravelComponent } from './lib/navigation/layer-dot.component';
 import { VesselComponent } from './lib/vessel/layer-vessel.component';
 import { VesselTrailComponent } from './lib/vessel/layer-vessel-trail.component';
@@ -53,6 +44,9 @@ import { AISWindLayerComponent } from './lib/resources/layer-aiswind.component';
 import { AISTargetsLayerComponent } from './lib/resources/layer-aistargets.component';
 import { AISVesselsLayerComponent } from './lib/resources/layer-aisvessels.component';
 import { AISTargetsTrackLayerComponent } from './lib/resources/layer-aistargets-track.component';
+import { RangeCirclesComponent } from './lib/navigation/layer-range-circles.component';
+import { CogLineComponent } from './lib/navigation/layer-cog-line.component';
+import { WindLinesComponent } from './lib/navigation/layer-wind-lines.component';
 
 export * from './lib/util';
 export { MapService } from './lib/map.service';
@@ -71,23 +65,13 @@ export { ControlComponent } from './lib/control.component';
 
 export { InteractionDrawComponent } from './lib/interactions/interaction-draw.component';
 export { InteractionModifyComponent } from './lib/interactions/interaction-modify.component';
-export {
-  WaypointLayerComponent,
-  FreeboardWaypointLayerComponent
-} from './lib/resources/layer-waypoints.component';
-export {
-  NoteLayerComponent,
-  FreeboardNoteLayerComponent
-} from './lib/resources/layer-notes.component';
-export {
-  RouteLayerComponent,
-  FreeboardRouteLayerComponent
-} from './lib/resources/layer-routes.component';
-export {
-  RegionLayerComponent,
-  FreeboardRegionLayerComponent
-} from './lib/resources/layer-regions.component';
+export { InteractionDragBoxComponent } from './lib/interactions/interaction-dragbox.component';
+export { FreeboardWaypointLayerComponent } from './lib/resources/layer-waypoints.component';
+export { FreeboardNoteLayerComponent } from './lib/resources/layer-notes.component';
+export { FreeboardRouteLayerComponent } from './lib/resources/layer-routes.component';
+export { FreeboardRegionLayerComponent } from './lib/resources/layer-regions.component';
 export { FreeboardChartLayerComponent } from './lib/resources/layer-charts.component';
+export { FreeboardLiveLayerComponent } from './lib/resources/layer-livelayer.component';
 export { ChartBoundsLayerComponent } from './lib/resources/layer-chart-bounds.component';
 export { TrackLayerComponent } from './lib/resources/layer-tracks.component';
 export { ResourceSetLayerComponent } from './lib/resources/layer-resourceset.component';
@@ -99,7 +83,6 @@ export { XTEPathComponent } from './lib/navigation/layer-xte-path.component';
 export { BearingLineComponent } from './lib/navigation/layer-bearing-line.component';
 export { LaylineComponent } from './lib/navigation/layer-layline.component';
 export { TargetAngleComponent } from './lib/navigation/layer-target-angle.component';
-import { TargetAngleComponent } from './lib/navigation/layer-target-angle.component';
 export { DirectionOfTravelComponent } from './lib/navigation/layer-dot.component';
 export { VesselComponent } from './lib/vessel/layer-vessel.component';
 export { VesselTrailComponent } from './lib/vessel/layer-vessel-trail.component';
@@ -110,6 +93,9 @@ export { AISWindLayerComponent } from './lib/resources/layer-aiswind.component';
 export { AISTargetsLayerComponent } from './lib/resources/layer-aistargets.component';
 export { AISVesselsLayerComponent } from './lib/resources/layer-aisvessels.component';
 export { AISTargetsTrackLayerComponent } from './lib/resources/layer-aistargets-track.component';
+export { RangeCirclesComponent } from './lib/navigation/layer-range-circles.component';
+export { CogLineComponent } from './lib/navigation/layer-cog-line.component';
+export { WindLinesComponent } from './lib/navigation/layer-wind-lines.component';
 
 const declarations = [
   ContentComponent,
@@ -122,16 +108,14 @@ const declarations = [
   ControlComponent,
   InteractionDrawComponent,
   InteractionModifyComponent,
-  WaypointLayerComponent,
+  InteractionDragBoxComponent,
   FreeboardWaypointLayerComponent,
-  NoteLayerComponent,
   FreeboardNoteLayerComponent,
-  RouteLayerComponent,
   FreeboardRouteLayerComponent,
-  RegionLayerComponent,
   FreeboardRegionLayerComponent,
   TrackLayerComponent,
   FreeboardChartLayerComponent,
+  FreeboardLiveLayerComponent,
   ChartBoundsLayerComponent,
   ResourceSetLayerComponent,
   AnchorAlarmComponent,
@@ -151,7 +135,10 @@ const declarations = [
   AISWindLayerComponent,
   AISTargetsLayerComponent,
   AISVesselsLayerComponent,
-  AISTargetsTrackLayerComponent
+  AISTargetsTrackLayerComponent,
+  RangeCirclesComponent,
+  CogLineComponent,
+  WindLinesComponent
 ];
 
 @NgModule({

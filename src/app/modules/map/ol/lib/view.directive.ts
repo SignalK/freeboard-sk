@@ -19,7 +19,8 @@ import { ProjectionLike } from 'ol/proj';
 const animateDuration = 500;
 
 @Directive({
-  selector: 'ol-map > [olView]'
+  selector: 'ol-map > [olView]',
+  standalone: false
 })
 export class ViewDirective
   implements OnInit, AfterViewInit, OnChanges, OnDestroy

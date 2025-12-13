@@ -1,6 +1,6 @@
 .rte-builder {
     position: fixed;
-    z-index: 5000;
+    z-index: 6001;
     --hA: 100vh;
     --lA: 100vw;
     top: calc((var(--hA)* .1));

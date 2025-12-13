@@ -18,7 +18,8 @@ import { FBCharts } from 'src/app/types';
 @Component({
   selector: 'ol-map > fb-chart-bounds',
   template: '<ng-content></ng-content>',
-  changeDetection: ChangeDetectionStrategy.OnPush
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  standalone: false
 })
 export class ChartBoundsLayerComponent extends FBFeatureLayerComponent {
   @Input() charts: FBCharts = [];
@@ -26,18 +27,18 @@ export class ChartBoundsLayerComponent extends FBFeatureLayerComponent {
   private boundStyles = ['red', 'magenta', 'blue', 'purple', 'green'];
 
   constructor(
-    protected mapComponent: MapComponent,
-    protected changeDetectorRef: ChangeDetectorRef
+    protected override mapComponent: MapComponent,
+    protected override changeDetectorRef: ChangeDetectorRef
   ) {
     super(mapComponent, changeDetectorRef);
   }
 
-  ngOnInit() {
+  override ngOnInit() {
     super.ngOnInit();
     this.parseChartBounds(this.charts);
   }
 
-  ngOnChanges(changes: SimpleChanges) {
+  override ngOnChanges(changes: SimpleChanges) {
     super.ngOnChanges(changes);
     if (this.source && 'charts' in changes) {
       this.source.clear();

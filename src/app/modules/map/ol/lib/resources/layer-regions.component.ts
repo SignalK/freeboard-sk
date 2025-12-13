@@ -3,7 +3,6 @@ import {
   ChangeDetectorRef,
   Component,
   Input,
-  SimpleChange,
   SimpleChanges
 } from '@angular/core';
 import { Feature } from 'ol';
@@ -12,72 +11,99 @@ import { Polygon, MultiPolygon } from 'ol/geom';
 import { MapComponent } from '../map.component';
 import { fromLonLatArray, mapifyCoords } from '../util';
 import { FBFeatureLayerComponent } from '../sk-feature.component';
-import { FBRegions, Regions } from 'src/app/types';
+import { FBRegions } from 'src/app/types';
 
 @Component({
-  selector: 'ol-map > sk-regions-base',
+  selector: 'ol-map > fb-regions',
   template: '<ng-content></ng-content>',
-  changeDetection: ChangeDetectionStrategy.OnPush
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  standalone: false
 })
-export class RegionsBaseComponent extends FBFeatureLayerComponent {
+export class FreeboardRegionLayerComponent extends FBFeatureLayerComponent {
+  @Input() regions: FBRegions = [];
   @Input() regionStyles: { [key: string]: Style };
 
   constructor(
-    protected mapComponent: MapComponent,
-    protected changeDetectorRef: ChangeDetectorRef
+    protected override mapComponent: MapComponent,
+    protected override changeDetectorRef: ChangeDetectorRef
   ) {
     super(mapComponent, changeDetectorRef);
   }
 
-  ngOnInit() {
+  override ngOnInit() {
     super.ngOnInit();
     this.labelPrefixes = ['region'];
+    this.parseRegions(this.regions);
   }
 
-  ngOnChanges(changes: SimpleChanges) {
+  override ngOnChanges(changes: SimpleChanges) {
     super.ngOnChanges(changes);
     if (this.source && 'regions' in changes) {
       this.source.clear();
-      this.parseRegions(changes['regions']);
+      this.parseRegions(changes['regions'].currentValue);
     }
   }
 
-  parseRegions(change: SimpleChange) {
-    // overridable function
+  parseRegions(regions: FBRegions = this.regions) {
+    const fa: Feature[] = [];
+    for (const r of regions) {
+      const c = this.parseCoordinates(
+        r[1].feature.geometry.coordinates,
+        r[1].feature.geometry.type
+      );
+      const f = new Feature({
+        geometry:
+          r[1].feature.geometry.type === 'MultiPolygon'
+            ? new MultiPolygon(c)
+            : new Polygon(c),
+        name: r[1].name
+      });
+      f.setId('region.' + r[0]);
+      f.set('name', r[1].name);
+      f.set('icon', 'region');
+      f.setStyle(this.buildStyle(r[0], r[1]));
+      fa.push(f);
+    }
+    this.source.addFeatures(fa);
   }
 
   // build region feature style
-  buildStyle(id: string, reg): Style {
-    if (typeof this.regionStyles !== 'undefined') {
-      if (reg.feature.properties.skType) {
-        return this.setTextLabel(
-          this.regionStyles[reg.feature.properties.skType],
+  buildStyle(id: string, reg: any): Style {
+    // default style
+    let theStyle = this.setTextLabel(
+      new Style({
+        fill: new Fill({
+          color: 'rgba(255,0,255,0.1)'
+        }),
+        stroke: new Stroke({
+          color: 'purple',
+          width: 1
+        }),
+        text: new Text({
+          text: '',
+          offsetY: 0
+        })
+      }),
+      reg.name
+    );
+
+    if (this.regionStyles) {
+      if (
+        reg.feature.properties?.skIcon &&
+        this.regionStyles[reg.feature.properties.skIcon]
+      ) {
+        theStyle = this.setTextLabel(
+          this.regionStyles[reg.feature.properties.skIcon],
           reg.name
         );
-      } else {
-        return this.setTextLabel(this.regionStyles.default, reg.name);
+      } else if (this.regionStyles.default) {
+        theStyle = this.setTextLabel(this.regionStyles.default, reg.name);
       }
     } else if (this.layerProperties && this.layerProperties.style) {
-      return this.setTextLabel(this.layerProperties.style, reg.name);
-    } else {
-      // default styles
-      return this.setTextLabel(
-        new Style({
-          fill: new Fill({
-            color: 'rgba(255,0,255,0.1)'
-          }),
-          stroke: new Stroke({
-            color: 'purple',
-            width: 1
-          }),
-          text: new Text({
-            text: '',
-            offsetY: 0
-          })
-        }),
-        reg.name
-      );
+      theStyle = this.setTextLabel(this.layerProperties.style, reg.name);
     }
+
+    return theStyle;
   }
 
   // mapify and transform MultiLineString coordinates
@@ -98,99 +124,5 @@ export class RegionsBaseComponent extends FBFeatureLayerComponent {
       coords.forEach((line) => lines.push(mapifyCoords(line)));
       return fromLonLatArray(lines);
     }
-  }
-}
-
-// ** Signal K resource collection format **
-@Component({
-  selector: 'ol-map > sk-regions',
-  template: '<ng-content></ng-content>',
-  changeDetection: ChangeDetectionStrategy.OnPush
-})
-export class RegionLayerComponent extends RegionsBaseComponent {
-  @Input() regions: Regions;
-
-  constructor(
-    protected mapComponent: MapComponent,
-    protected changeDetectorRef: ChangeDetectorRef
-  ) {
-    super(mapComponent, changeDetectorRef);
-  }
-
-  ngOnInit() {
-    super.ngOnInit();
-    this.parseSKRegions(this.regions);
-  }
-
-  override parseRegions(change: SimpleChange) {
-    this.parseSKRegions(change.currentValue);
-  }
-
-  parseSKRegions(regions: Regions = this.regions) {
-    const fa: Feature[] = [];
-    for (const r in regions) {
-      const c = this.parseCoordinates(
-        regions[r].feature.geometry.coordinates,
-        regions[r].feature.geometry.type
-      );
-      const f = new Feature({
-        geometry:
-          regions[r].feature.geometry.type === 'MultiPolygon'
-            ? new MultiPolygon(c)
-            : new Polygon(c),
-        name: regions[r].name
-      });
-      f.setId('region.' + r);
-      f.setStyle(this.buildStyle(r, regions[r]));
-      fa.push(f);
-    }
-    this.source.addFeatures(fa);
-  }
-}
-
-// Freeboard resource collection format
-@Component({
-  selector: 'ol-map > fb-regions',
-  template: '<ng-content></ng-content>',
-  changeDetection: ChangeDetectionStrategy.OnPush
-})
-export class FreeboardRegionLayerComponent extends RegionsBaseComponent {
-  @Input() regions: FBRegions = [];
-
-  constructor(
-    protected mapComponent: MapComponent,
-    protected changeDetectorRef: ChangeDetectorRef
-  ) {
-    super(mapComponent, changeDetectorRef);
-  }
-
-  ngOnInit() {
-    super.ngOnInit();
-    this.parseFBRegions(this.regions);
-  }
-
-  override parseRegions(regions: SimpleChange) {
-    this.parseFBRegions(regions.currentValue);
-  }
-
-  parseFBRegions(regions: FBRegions = this.regions) {
-    const fa: Feature[] = [];
-    for (const r of regions) {
-      const c = this.parseCoordinates(
-        r[1].feature.geometry.coordinates,
-        r[1].feature.geometry.type
-      );
-      const f = new Feature({
-        geometry:
-          r[1].feature.geometry.type === 'MultiPolygon'
-            ? new MultiPolygon(c)
-            : new Polygon(c),
-        name: r[1].name
-      });
-      f.setId('region.' + r[0]);
-      f.setStyle(this.buildStyle(r[0], r[1]));
-      fa.push(f);
-    }
-    this.source.addFeatures(fa);
   }
 }

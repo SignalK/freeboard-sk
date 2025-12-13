@@ -13,13 +13,14 @@ import { MapComponent } from '../map.component';
 import { SKAircraft, SKAtoN, SKSaR, SKVessel, SKMeteo } from 'src/app/modules';
 import { FBFeatureLayerComponent } from '../sk-feature.component';
 
-type SKTarget = SKVessel | SKAircraft | SKAtoN | SKSaR | SKMeteo;
+export type SKTarget = SKVessel | SKAircraft | SKAtoN | SKSaR | SKMeteo;
 
 // ** Signal K AIS Target Base Compnent  **
 @Component({
   selector: 'ol-map > sk-ais-target-base',
   template: '<ng-content></ng-content>',
-  changeDetection: ChangeDetectionStrategy.OnPush
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  standalone: false
 })
 export class AISBaseLayerComponent
   extends FBFeatureLayerComponent
@@ -38,19 +39,19 @@ export class AISBaseLayerComponent
   @Input() removeIds: Array<string> = [];
 
   constructor(
-    protected mapComponent: MapComponent,
-    protected changeDetectorRef: ChangeDetectorRef
+    protected override mapComponent: MapComponent,
+    protected override changeDetectorRef: ChangeDetectorRef
   ) {
     super(mapComponent, changeDetectorRef);
     this.labelPrefixes = [];
   }
 
-  ngOnInit() {
+  override ngOnInit() {
     super.ngOnInit();
     this.reloadTargets();
   }
 
-  ngOnChanges(changes: SimpleChanges) {
+  override ngOnChanges(changes: SimpleChanges) {
     super.ngOnChanges(changes);
     if (this.layer) {
       const keys = Object.keys(changes);

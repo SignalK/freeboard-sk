@@ -3,10 +3,10 @@
 import { Injectable } from '@angular/core';
 import { Subject, Observable } from 'rxjs';
 
-import { AppInfo } from 'src/app/app.info';
+import { AppFacade } from 'src/app/app.facade';
 import { SignalKClient } from 'signalk-client-angular';
 import {
-  SKResources,
+  SKResourceService,
   SKRoute,
   SKWaypoint,
   SKRegion,
@@ -32,8 +32,8 @@ export class GeoJSONLoadFacade {
   // *******************************************************
 
   constructor(
-    private app: AppInfo,
-    private skres: SKResources,
+    private app: AppFacade,
+    private skres: SKResourceService,
     public signalk: SignalKClient
   ) {
     this.uploadSource = new Subject<number>();
@@ -203,11 +203,11 @@ export class GeoJSONLoadFacade {
     }
     f.properties.name =
       typeof f.properties.name !== 'undefined'
-        ? f.properties.name ?? ''
+        ? (f.properties.name ?? '')
         : `trk-${new Date().getTime()}`;
     f.properties.description =
       typeof f.properties.description !== 'undefined'
-        ? f.properties.description ?? ''
+        ? (f.properties.description ?? '')
         : 'GeoJSON import';
 
     const r = new SKTrack({ feature: f });

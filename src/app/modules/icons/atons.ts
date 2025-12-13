@@ -1,0 +1,93 @@
+// AtoN Icons
+
+import { AppIconSet } from './app.icons';
+import { MapIconDef } from '../map/ol/lib/map-image-registry.service';
+
+export const AtoNsType1: AppIconSet = {
+  path: './assets/img/atons',
+  files: [
+    'real-north.svg',
+    'real-south.svg',
+    'real-east.svg',
+    'real-west.svg',
+    'real-port.svg',
+    'real-starboard.svg',
+    'real-danger.svg',
+    'real-special.svg',
+    'virtual-north.svg',
+    'virtual-south.svg',
+    'virtual-east.svg',
+    'virtual-west.svg',
+    'virtual-port.svg',
+    'virtual-starboard.svg',
+    'virtual-danger.svg',
+    'virtual-special.svg'
+  ],
+  scale: 0.4,
+  anchor: [23, 72]
+};
+
+const AtoNsType2: AppIconSet = {
+  path: './assets/img/atons',
+  files: [
+    'real-aton.svg',
+    'real-safe.svg',
+    'virtual-aton.svg',
+    'virtual-safe.svg'
+  ],
+  scale: 0.4,
+  anchor: [23, 49]
+};
+
+export const ATON_TYPE_IDS = {
+  aton: 'aton',
+  '-1': 'weatherStation',
+  9: 'north',
+  10: 'east',
+  11: 'south',
+  12: 'west',
+  13: 'port',
+  14: 'starboard',
+  20: 'north',
+  21: 'east',
+  22: 'south',
+  23: 'west',
+  24: 'port',
+  25: 'starboard',
+  28: 'danger',
+  29: 'safe',
+  30: 'special'
+};
+
+const WeatherStation: MapIconDef = {
+  path: './assets/img/weather_station.png',
+  anchor: [1, 25],
+  scale: 0.75
+};
+
+/**
+ * @description Build MapIcon definitions for use by MapImageRegistry
+ */
+export const getAtoNDefs = () => {
+  const atonList = {};
+
+  const addToList = (list: AppIconSet) => {
+    list.files.forEach((file: string) => {
+      const gid = file.slice(0, file.lastIndexOf('-'));
+      const id = file.slice(file.lastIndexOf('-') + 1, file.indexOf('.'));
+      if (!atonList[gid]) {
+        atonList[gid] = {};
+      }
+      atonList[gid][id] = {
+        path: `${list.path}/${file}`,
+        scale: list.scale,
+        anchor: list.anchor
+      };
+    });
+  };
+  addToList(AtoNsType1);
+  addToList(AtoNsType2);
+  atonList['real']['weatherStation'] = WeatherStation;
+  atonList['virtual']['weatherStation'] = WeatherStation;
+  return atonList;
+};

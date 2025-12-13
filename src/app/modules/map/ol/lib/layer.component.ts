@@ -35,7 +35,8 @@ import { AsyncSubject } from 'rxjs';
 @Component({
   selector: 'ol-map > ol-layer',
   template: '<ng-content></ng-content>',
-  changeDetection: ChangeDetectionStrategy.OnPush
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  standalone: false
 })
 export class LayerComponent implements OnInit, OnDestroy, OnChanges {
   protected layer: Layer;

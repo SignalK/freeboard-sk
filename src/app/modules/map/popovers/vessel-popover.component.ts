@@ -12,15 +12,16 @@ import {
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { PipesModule } from 'src/app/lib/pipes';
+import { CoordsPipe } from 'src/app/lib/pipes';
 import { PopoverComponent } from './popover.component';
 import { CompassComponent } from './compass.component';
 
-import { AppInfo } from 'src/app/app.info';
-import { SKVessel } from 'src/app/modules';
+import { AppFacade } from 'src/app/app.facade';
+import { Buddies, SKVessel } from 'src/app/modules';
 import { Convert } from 'src/app/lib/convert';
 import { GeoUtils } from 'src/app/lib/geoutils';
 import { Position } from 'src/app/types';
+import { HttpErrorResponse } from '@angular/common/http';
 
 /*********** Vessel Popover ***************
 title: string -  title text,
@@ -32,23 +33,44 @@ isSelf: boolean - true if vessel 'self'
 @Component({
   selector: 'vessel-popover',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  standalone: true,
   imports: [
     MatButtonModule,
     MatTooltipModule,
     MatIconModule,
-    PipesModule,
+    CoordsPipe,
     PopoverComponent,
     CompassComponent
   ],
   template: `
-    <ap-popover [title]="_title" [canClose]="canClose" (closed)="handleClose()">
+    <ap-popover
+      [title]="_title"
+      [mmsi]="vessel.mmsi"
+      [canClose]="canClose"
+      (closed)="handleClose()"
+    >
+      @if (vessel.callsignVhf) {
+        <div style="display:flex;">
+          <div style="font-weight:bold;">Callsign (VHF):</div>
+          <div
+            style="flex: 1 1 auto;text-align:right;"
+            [innerText]="vessel.callsignVhf"
+          ></div>
+        </div>
+      } @else if (vessel.callsignHf) {
+        <div style="display:flex;">
+          <div style="font-weight:bold;">Callsign (HF):</div>
+          <div
+            style="flex: 1 1 auto;text-align:right;"
+            [innerText]="vessel.callsignHf"
+          ></div>
+        </div>
+      }
       <div style="display:flex;">
         <div style="font-weight:bold;">Latitude:</div>
         <div
           style="flex: 1 1 auto;text-align:right;"
           [innerText]="
-            position[1] | coords : app.config.selections.positionFormat : true
+            position[1] | coords: app.config.units.positionFormat : true
           "
         ></div>
       </div>
@@ -56,11 +78,19 @@ isSelf: boolean - true if vessel 'self'
         <div style="font-weight:bold;">Longitude:</div>
         <div
           style="flex: 1 1 auto;text-align:right;"
-          [innerText]="
-            position[0] | coords : app.config.selections.positionFormat
-          "
+          [innerText]="position[0] | coords: app.config.units.positionFormat"
         ></div>
       </div>
+      @if (!isSelf) {
+        @if (vessel.distanceToSelf) {
+          <div style="display:flex;">
+            <div style="font-weight:bold;">Distance:</div>
+            <div style="flex: 1 1 auto;text-align:right;">
+              {{ distToSelf }}
+            </div>
+          </div>
+        }
+      }
       <div style="display:flex;">
         <div style="font-weight:bold;">Last Update:</div>
         <div style="flex: 1 1 auto;text-align:right;">
@@ -117,38 +147,48 @@ isSelf: boolean - true if vessel 'self'
       <div style="display:flex;">
         <div style="flex:1 1 auto;"></div>
         <div style="text-align:right;">
-          @if(isActive) {
-          <button
-            mat-button
-            (click)="handleMarkPosition()"
-            matTooltip="Add Waypoint at vessel location"
-          >
-            <mat-icon>add_location</mat-icon>
-            DROP WPT
-          </button>
+          @if (isActive) {
+            <button
+              mat-button
+              (click)="handleMarkPosition()"
+              matTooltip="Add Waypoint at vessel location"
+            >
+              <mat-icon>add_location</mat-icon>
+              DROP WPT
+            </button>
           } @else {
-          <button mat-button (click)="toggleFlag()" matTooltip="Flag vessel">
-            <mat-icon>{{ isFlagged ? 'clear_all' : 'flag' }}</mat-icon>
-            {{ isFlagged ? 'UN-FLAG' : 'FLAG' }}
-          </button>
+            <button mat-button (click)="toggleFlag()" matTooltip="Flag vessel">
+              <mat-icon>{{ isFlagged ? 'clear_all' : 'flag' }}</mat-icon>
+              {{ isFlagged ? 'UN-FLAG' : 'FLAG' }}
+            </button>
 
-          <button
-            mat-button
-            (click)="focusVessel(true)"
-            matTooltip="Focus vessel"
-          >
-            <mat-icon>center_focus_weak</mat-icon>
-            FOCUS
-          </button>
-          } @if(isActive && !isSelf) {
-          <button
-            mat-button
-            (click)="focusVessel(false)"
-            matTooltip="Clear vessel focus"
-          >
-            <mat-icon>clear_all</mat-icon>
-            UNFOCUS
-          </button>
+            @if (!isSelf && app.featureFlags().buddyList) {
+              <button mat-button (click)="toggleBuddy()" matTooltip="Is Buddy">
+                <mat-icon>{{
+                  vessel.buddy ? 'group_remove' : 'group_add'
+                }}</mat-icon>
+                {{ vessel.buddy ? 'UN-BUDDY' : 'BUDDY' }}
+              </button>
+            }
+
+            <button
+              mat-button
+              (click)="focusVessel(true)"
+              matTooltip="Focus vessel"
+            >
+              <mat-icon>center_focus_weak</mat-icon>
+              FOCUS
+            </button>
+          }
+          @if (isActive && !isSelf) {
+            <button
+              mat-button
+              (click)="focusVessel(false)"
+              matTooltip="Clear vessel focus"
+            >
+              <mat-icon>clear_all</mat-icon>
+              UNFOCUS
+            </button>
           }
           <button
             mat-button
@@ -181,11 +221,15 @@ export class VesselPopoverComponent {
   timeLastUpdate: string;
   timeAgo: string; // last update in minutes ago
   speedUnits: string;
+  protected distToSelf: string;
 
   position: Position = [0, 0];
   isFlagged = false;
 
-  constructor(public app: AppInfo) {}
+  constructor(
+    protected app: AppFacade,
+    private buddies: Buddies
+  ) {}
 
   ngOnInit() {
     if (!this.vessel) {
@@ -203,10 +247,10 @@ export class VesselPopoverComponent {
       }
       this.isFlagged = this.app.data.vessels.flagged.includes(this.vessel.id);
       this._title =
-        this.title ||
-        this.vessel.name ||
-        this.vessel.mmsi ||
-        this.vessel.callsignVhf ||
+        this.title ??
+        this.vessel.name ??
+        this.vessel.mmsi ??
+        this.vessel.callsignVhf ??
         this.vessel.callsignHf;
       ('Vessel:');
       this.position = [
@@ -221,6 +265,10 @@ export class VesselPopoverComponent {
     const td =
       (new Date().valueOf() - this.vessel.lastUpdated.valueOf()) / 1000;
     this.timeAgo = td < 60 ? '' : `(${Math.floor(td / 60)} min ago)`;
+    this.distToSelf = this.app.formatValueForDisplay(
+      this.vessel.distanceToSelf,
+      'm'
+    );
   }
 
   handleMarkPosition() {
@@ -234,6 +282,35 @@ export class VesselPopoverComponent {
   focusVessel(setFocus: boolean) {
     this.removeFlag();
     this.focused.emit(setFocus);
+  }
+
+  toggleBuddy() {
+    const urn = this.vessel.id.split('.').slice(1).join('.');
+    if (this.vessel.buddy) {
+      this.buddies.remove(urn).subscribe(
+        () => {
+          //console.log('buddy revedmo:', urn);
+          this.app.showMessage(`Buddy successfully removed.`, false, 3000);
+        },
+        (err: HttpErrorResponse) => {
+          this.app.showMessage(`Error removing buddy!`, false, 3000);
+        }
+      );
+    } else {
+      const name =
+        this.vessel.name ??
+        this.vessel.mmsi ??
+        this.vessel.callsignVhf ??
+        urn.slice(-5);
+      this.buddies.add(urn, name).subscribe(
+        () => {
+          this.app.showMessage(`Buddy added (${name})`, false, 3000);
+        },
+        (err: HttpErrorResponse) => {
+          this.app.showMessage(`Error adding buddy!(${name})`, false, 5000);
+        }
+      );
+    }
   }
 
   toggleFlag() {

@@ -19,12 +19,14 @@ import { fromLonLat } from 'ol/proj';
 import { MapComponent } from '../map.component';
 import { Extent, Coordinate } from '../models';
 import { AsyncSubject } from 'rxjs';
+import { AlertData } from 'src/app/modules/alarms';
 
 // ** Freeboard Notification Alarm component **
 @Component({
-  selector: 'ol-map > fb-alarm',
+  selector: 'ol-map > fb-alarms',
   template: '<ng-content></ng-content>',
-  changeDetection: ChangeDetectionStrategy.OnPush
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  standalone: false
 })
 export class AlarmComponent implements OnInit, OnDestroy, OnChanges {
   protected layer: Layer;
@@ -36,9 +38,7 @@ export class AlarmComponent implements OnInit, OnDestroy, OnChanges {
    * Use this to have access to the layer and some helper functions
    */
   @Output() layerReady: AsyncSubject<Layer> = new AsyncSubject(); // AsyncSubject will only store the last value, and only publish it when the sequence is completed
-
-  @Input() position: Coordinate;
-  @Input() alarmType: string;
+  @Input() alarms: Array<[string, AlertData]>;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   @Input() alarmStyles: { [key: string]: any };
   @Input() opacity: number;
@@ -77,9 +77,8 @@ export class AlarmComponent implements OnInit, OnDestroy, OnChanges {
     if (this.layer) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const properties: { [index: string]: any } = {};
-
       for (const key in changes) {
-        if (key === 'position' || key === 'alarmType') {
+        if (key === 'alarms') {
           this.parseValues();
           if (this.source) {
             this.source.clear();
@@ -106,13 +105,21 @@ export class AlarmComponent implements OnInit, OnDestroy, OnChanges {
 
   parseValues() {
     const fa: Feature[] = [];
-    if (!this.position) return;
-    const fp = new Feature({
-      geometry: new Point(fromLonLat(this.position))
+    this.alarms.forEach((alarm: [string, AlertData]) => {
+      if (!alarm || !alarm[1].properties.position) return;
+      const fp = new Feature({
+        geometry: new Point(
+          fromLonLat([
+            alarm[1].properties.position.longitude,
+            alarm[1].properties.position.latitude
+          ])
+        )
+      });
+      fp.setStyle(this.buildStyle(alarm[1].type));
+      fp.setId(`alarm.${alarm[1].path}`);
+      fp.set('type', alarm[1].type);
+      fa.push(fp);
     });
-    fp.setStyle(this.buildStyle(this.alarmType));
-    fp.setId(`alarm.${this.alarmType}`);
-    fa.push(fp);
     this.features = fa;
   }
 

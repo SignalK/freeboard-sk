@@ -8,9 +8,9 @@ import {
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { PipesModule } from 'src/app/lib/pipes';
+import { CoordsPipe } from 'src/app/lib/pipes';
 import { PopoverComponent } from './popover.component';
-import { AppInfo } from 'src/app/app.info';
+import { AppFacade } from 'src/app/app.facade';
 import { SKAircraft } from 'src/app/modules';
 /*********** Aircraft Popover ***************
   title: string -  title text,
@@ -19,12 +19,11 @@ import { SKAircraft } from 'src/app/modules';
 @Component({
   selector: 'aircraft-popover',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  standalone: true,
   imports: [
     MatButtonModule,
     MatTooltipModule,
     MatIconModule,
-    PipesModule,
+    CoordsPipe,
     PopoverComponent
   ],
   template: `
@@ -51,7 +50,7 @@ import { SKAircraft } from 'src/app/modules';
           style="flex: 1 1 auto;text-align:right;"
           [innerText]="
             aircraft.position[1]
-              | coords : app.config.selections.positionFormat : true
+              | coords: app.config.units.positionFormat : true
           "
         ></div>
       </div>
@@ -60,7 +59,7 @@ import { SKAircraft } from 'src/app/modules';
         <div
           style="flex: 1 1 auto;text-align:right;"
           [innerText]="
-            aircraft.position[0] | coords : app.config.selections.positionFormat
+            aircraft.position[0] | coords: app.config.units.positionFormat
           "
         ></div>
       </div>
@@ -96,7 +95,7 @@ export class AircraftPopoverComponent {
   _title: string;
   timeLastUpdate: string;
   timeAgo: string; // last update in minutes ago
-  constructor(public app: AppInfo) {}
+  constructor(public app: AppFacade) {}
   ngOnInit() {
     if (!this.aircraft) {
       this.handleClose();

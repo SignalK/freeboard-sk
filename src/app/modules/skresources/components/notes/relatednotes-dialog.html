@@ -37,25 +37,35 @@
   <mat-dialog-content>
     @for(n of data.notes; track n) {
     <div style="padding-bottom: 5px; overflow-y: auto">
-      <mat-card style="border: whitesmoke 1px solid">
+      <mat-card appearance="outlined">
         <mat-card-header>
-          <mat-card-title> {{n[1].name}} </mat-card-title>
+          <mat-card-title-group>
+            <mat-card-title>{{n[1].name}}</mat-card-title>
+            @if(n[1].properties?.skIcon) {
+            <mat-icon [svgIcon]="'sk-' + n[1].properties?.skIcon"></mat-icon>
+            } @else {
+            <mat-icon class="icon-accent">local_offer</mat-icon>
+            }
+          </mat-card-title-group>
         </mat-card-header>
         <mat-card-content style="margin-bottom: 0">
           @if(n[1].properties.draft) {
           <p class="draft-watermark">Draft</p>
           }
           <div style="display: flex; flex-direction: column">
+            @if(n[1].group) {
             <div style="padding-bottom: 5px; display: flex">
               <div style="font-weight: bold; vertical-align: top">Date:</div>
               <div style="padding-left: 10px">
                 <i>{{n[1].timestamp?.slice(0,10)}}</i>
               </div>
             </div>
+            } @if(n[1].group) {
             <div style="padding-bottom: 5px; display: flex">
               <div style="font-weight: bold; vertical-align: top">Group:</div>
               <div style="padding-left: 10px">{{n[1].group}}</div>
             </div>
+            }
             <div style="padding-bottom: 5px">
               <div style="font-weight: bold; vertical-align: top">
                 Description:
@@ -91,6 +101,7 @@
             <div style="text-align: right">
               <button
                 mat-icon-button
+                [disabled]="data.readOnly"
                 (click)="editNote(n[0])"
                 matTooltip="Edit Note"
               >
@@ -99,6 +110,7 @@
               &nbsp;
               <button
                 mat-icon-button
+                [disabled]="data.readOnly"
                 (click)="deleteNote(n[0])"
                 matTooltip="Delete Note"
               >
@@ -114,7 +126,7 @@
   </mat-dialog-content>
   <mat-dialog-actions>
     <div style="text-align: center; width: 100%">
-      <button mat-raised-button (click)="addNote()">
+      <button mat-raised-button [disabled]="data.readOnly" (click)="addNote()">
         <mat-icon>local_offer</mat-icon>
         ADD
       </button>

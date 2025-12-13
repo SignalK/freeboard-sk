@@ -2,6 +2,8 @@ import {
   ChangeDetectionStrategy,
   ChangeDetectorRef,
   Component,
+  effect,
+  input,
   Input,
   OnChanges,
   OnDestroy,
@@ -24,7 +26,8 @@ import { AsyncSubject } from 'rxjs';
 @Component({
   selector: 'ol-map > fb-xte-path',
   template: '<ng-content></ng-content>',
-  changeDetection: ChangeDetectionStrategy.OnPush
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  standalone: false
 })
 export class XTEPathComponent implements OnInit, OnDestroy, OnChanges {
   protected layer: Layer;
@@ -37,8 +40,10 @@ export class XTEPathComponent implements OnInit, OnDestroy, OnChanges {
    */
   @Output() layerReady: AsyncSubject<Layer> = new AsyncSubject(); // AsyncSubject will only store the last value, and only publish it when the sequence is completed
 
-  @Input() color: string;
-  @Input() lineCoords: Array<Coordinate>;
+  protected startPosition = input<Coordinate>();
+  protected destPosition = input<Coordinate>();
+  protected color = input<string>();
+
   @Input() opacity: number;
   @Input() visible: boolean;
   @Input() extent: Extent;
@@ -55,6 +60,16 @@ export class XTEPathComponent implements OnInit, OnDestroy, OnChanges {
     protected mapComponent: MapComponent
   ) {
     this.changeDetectorRef.detach();
+    effect(() => {
+      this.startPosition();
+      this.destPosition();
+      this.color();
+      this.parseValues();
+      if (this.source) {
+        this.source.clear();
+        this.source.addFeatures(this.features);
+      }
+    });
   }
 
   ngOnInit() {
@@ -79,13 +94,7 @@ export class XTEPathComponent implements OnInit, OnDestroy, OnChanges {
       const properties: { [index: string]: any } = {};
 
       for (const key in changes) {
-        if (key === 'color' || key === 'lineCoords') {
-          this.parseValues();
-          if (this.source) {
-            this.source.clear();
-            this.source.addFeatures(this.features);
-          }
-        } else if (key === 'layerProperties') {
+        if (key === 'layerProperties') {
           this.layer.setProperties(properties, false);
         } else {
           properties[key] = changes[key].currentValue;
@@ -105,13 +114,22 @@ export class XTEPathComponent implements OnInit, OnDestroy, OnChanges {
   }
 
   parseValues() {
-    this.mapifiedLine = mapifyCoords(this.lineCoords);
     const fa: Feature[] = [];
-    const f = new Feature({
-      geometry: new LineString(fromLonLatArray(this.mapifiedLine))
-    });
-    f.setStyle(this.buildStyle());
-    fa.push(f);
+    if (
+      Array.isArray(this.startPosition()) &&
+      Array.isArray(this.destPosition())
+    ) {
+      this.mapifiedLine = mapifyCoords([
+        this.startPosition(),
+        this.destPosition()
+      ]);
+
+      const f = new Feature({
+        geometry: new LineString(fromLonLatArray(this.mapifiedLine))
+      });
+      f.setStyle(this.buildStyle());
+      fa.push(f);
+    }
     this.features = fa;
   }
 
@@ -122,7 +140,7 @@ export class XTEPathComponent implements OnInit, OnDestroy, OnChanges {
       cs = this.layerProperties.style;
     } else {
       // default style
-      const color = this.color ?? 'gray';
+      const color = this.color() ?? 'gray';
       cs = new Style({
         stroke: new Stroke({
           width: 1,

@@ -1,12 +1,13 @@
 import {
   Component,
-  Input,
   Output,
-  OnInit,
   EventEmitter,
-  ChangeDetectionStrategy
+  ChangeDetectionStrategy,
+  effect,
+  signal,
+  input
 } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { MatDialog, MatDialogRef } from '@angular/material/dialog';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatIconModule } from '@angular/material/icon';
 import { MatCardModule } from '@angular/material/card';
@@ -15,165 +16,33 @@ import { MatButtonModule } from '@angular/material/button';
 import { FormsModule } from '@angular/forms';
 import { MatInputModule } from '@angular/material/input';
 import { ScrollingModule } from '@angular/cdk/scrolling';
-
-import { MatDialog } from '@angular/material/dialog';
-import {
-  DragDropModule,
-  CdkDragDrop,
-  moveItemInArray
-} from '@angular/cdk/drag-drop';
-
-import { AppInfo } from 'src/app/app.info';
-import { ChartPropertiesDialog } from './chart-properties-dialog';
-import { FBCharts, FBChart, FBResourceSelect } from 'src/app/types';
 import { MatSlideToggle } from '@angular/material/slide-toggle';
+import { MatMenuModule } from '@angular/material/menu';
+import { MatProgressBarModule } from '@angular/material/progress-bar';
 
-/********* ChartLayersList***********/
-@Component({
-  selector: 'ap-chartlayers',
-  standalone: true,
-  imports: [MatTooltipModule, MatIconModule, MatCardModule, DragDropModule],
-  template: `
-    <div class="_ap-chartlayers">
-      <mat-card style="border-radius: unset;">
-        <mat-card-content>
-          <div
-            style="display:flex; font-style:italic; border-bottom:gray 1px solid;"
-          >
-            <div style="flex: 1 1 auto; ">Top Layer</div>
-            <div
-              style="text-align:center;
-              font-size: 10pt;font-style:italic;"
-            >
-              (drag to re-order)
-            </div>
-          </div>
-        </mat-card-content>
-      </mat-card>
-
-      <div style="flex: 1 1 auto;position:relative;">
-        <div style="overflow:hidden;height:100%;">
-          <div
-            style="overflow:auto;"
-            cdkDropList
-            (cdkDropListDropped)="drop($event)"
-          >
-            @for(ch of chartList; track ch; let i = $index) {
-            <mat-card cdkDrag style="border-radius: unset;">
-              <mat-card-content>
-                <div class="point-drop-placeholder" *cdkDragPlaceholder></div>
-
-                <div
-                  style="display:flex;"
-                  [style.cursor]="i > 0 ? 'pointer' : 'initial'"
-                >
-                  <div style="width:35px;">
-                    <mat-icon color="">{{ isLocal(ch[1].url) }}</mat-icon>
-                  </div>
-                  <div
-                    style="flex: 1 1 auto;text-overflow: ellipsis;
-                      white-space: pre;overflow-x: hidden;"
-                  >
-                    {{ ch[1].name }}
-                  </div>
-                  <div cdkDragHandle matTooltip="Drag to re-order charts">
-                    <mat-icon>drag_indicator</mat-icon>
-                  </div>
-                </div>
-              </mat-card-content>
-            </mat-card>
-            }
-          </div>
-        </div>
-      </div>
-
-      <mat-card style="border-radius: unset;">
-        <mat-card-content>
-          <div
-            style="display:flex; font-style:italic; border-top:gray 1px solid;"
-          >
-            <div style="flex: 1 1 auto; ">Base Layer</div>
-            <div
-              style="text-align:center;
-              font-size: 10pt;font-style:italic;"
-            >
-              (e.g. World Map)
-            </div>
-          </div>
-        </mat-card-content>
-      </mat-card>
-    </div>
-  `,
-  styles: [
-    `
-      ._ap-chartlayers {
-        font-family: roboto;
-        border: red 0px solid;
-        display: flex;
-        flex-direction: column;
-      }
-      .ap-confirm-icon {
-        min-width: 35px;
-        max-width: 35px;
-        color: darkorange;
-        text-align: left;
-      }
-      .ap-confirm-icon .mat-icon {
-        font-size: 25pt;
-      }
-      .point-drop-placeholder {
-        background: #ccc;
-        border: dotted 3px #999;
-        min-height: 80px;
-        transition: transform 250ms cubic-bezier(0, 0, 0.2, 1);
-      }
-      .cdk-drag-preview {
-        background-color: whitesmoke;
-        box-sizing: border-box;
-        border-radius: 4px;
-        box-shadow: 0 5px 5px -3px rgba(0, 0, 0, 0.2),
-          0 8px 10px 1px rgba(0, 0, 0, 0.14), 0 3px 14px 2px rgba(0, 0, 0, 0.12);
-      }
-    `
-  ]
-})
-export class ChartLayers implements OnInit {
-  @Output() changed: EventEmitter<string[]> = new EventEmitter();
-
-  constructor(public app: AppInfo) {}
-
-  chartList = [];
-
-  //** lifecycle: events **
-  ngOnInit() {
-    this.chartList = this.app.data.charts.slice().reverse();
-  }
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  drop(e: CdkDragDrop<any>) {
-    moveItemInArray(this.chartList, e.previousIndex, e.currentIndex);
-    // update and save config
-    this.app.data.charts = this.chartList.slice().reverse();
-    this.app.config.selections.chartOrder = this.app.data.charts.map((i) => {
-      return i[0];
-    });
-    this.app.saveConfig();
-    this.changed.emit(this.app.config.selections.chartOrder);
-  }
-
-  isLocal(url: string) {
-    return url && url.indexOf('signalk') !== -1 ? 'map' : 'language';
-  }
-}
+import { AppFacade } from 'src/app/app.facade';
+import { SKResourceService, SKResourceType } from '../../resources.service';
+import { ChartLayers } from './chart-layers.component';
+import { ChartPropertiesDialog } from './chart-properties-dialog';
+import { FBCharts, FBChart } from 'src/app/types';
+import { forkJoin, of } from 'rxjs';
+import { catchError } from 'rxjs/operators';
+import { WMTSDialog } from './wmts-dialog';
+import { WMSDialog } from './wms-dialog';
+import { JsonMapSourceDialog } from './jsonmapsource-dialog';
+import { SignalKClient } from 'signalk-client-angular';
+import { SKWorkerService } from 'src/app/modules/skstream/skstream.service';
+import { ResourceListBase } from '../resource-list-baseclass';
+import { FBMapInteractService } from 'src/app/modules/map/fbmap-interact.service';
+import { SingleSelectListDialog } from 'src/app/lib/components';
+import { SKResourceGroupService } from '../groups/groups.service';
 
 @Component({
   selector: 'chart-list',
-  standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './chartlist.html',
   styleUrls: ['../resourcelist.css'],
   imports: [
-    CommonModule,
     MatTooltipModule,
     MatIconModule,
     MatCardModule,
@@ -183,123 +52,279 @@ export class ChartLayers implements OnInit {
     MatInputModule,
     ScrollingModule,
     MatSlideToggle,
+    MatMenuModule,
+    MatProgressBarModule,
     ChartLayers
   ]
 })
-export class ChartListComponent {
-  @Input() charts: FBCharts;
-  @Input() selectedCharts: Array<string>;
-  @Output() select: EventEmitter<FBResourceSelect> = new EventEmitter();
-  @Output() refresh: EventEmitter<void> = new EventEmitter();
+export class ChartListComponent extends ResourceListBase {
   @Output() closed: EventEmitter<void> = new EventEmitter();
-  @Output() orderChange: EventEmitter<string[]> = new EventEmitter();
 
-  filterList = [];
-  filterText = '';
-  someSel = false;
-  allSel = false;
+  selectedCharts = input<string[]>();
+
+  protected override fullList: FBCharts = [];
+  protected override filteredList = signal<FBCharts>([]);
 
   displayChartLayers = false;
 
-  constructor(protected app: AppInfo, private dialog: MatDialog) {}
+  constructor(
+    protected app: AppFacade,
+    private dialog: MatDialog,
+    private signalk: SignalKClient,
+    protected override skres: SKResourceService,
+    private worker: SKWorkerService,
+    private mapInteract: FBMapInteractService,
+    protected skgroups: SKResourceGroupService
+  ) {
+    super('charts', skres);
+    // selection.charts changed
+    effect(() => {
+      if (this.selectedCharts()) {
+        this.externalSelection();
+      }
+    });
+    // resources delta handler
+    effect(() => {
+      if (this.worker.resourceUpdate().path.includes('resources.charts')) {
+        this.initItems(true);
+      }
+    });
+  }
 
   ngOnInit() {
+    this.app.data.chartBounds.show = false;
+    this.app.data.chartBounds.charts = [];
     this.initItems();
   }
 
-  ngOnChanges() {
-    this.initItems();
-  }
-
-  close() {
-    this.app.data.chartBounds = false;
+  /**
+   * @description Close chart list
+   */
+  protected close() {
+    this.app.data.chartBounds.show = false;
+    this.app.data.chartBounds.charts = [];
     this.closed.emit();
   }
 
-  initItems() {
-    this.checkSelections();
-    this.buildFilterList();
-  }
-
-  buildFilterList(e?: string) {
-    if (typeof e !== 'undefined' || this.filterText) {
-      if (typeof e !== 'undefined') {
-        this.filterText = e;
-      }
-      this.filterList = this.charts.filter((i: FBChart) => {
-        if (
-          i[1].name.toLowerCase().indexOf(this.filterText.toLowerCase()) !== -1
-        ) {
-          return i;
-        }
-      });
-    } else {
-      this.filterList = this.charts.slice(0);
+  /**
+   * @description Initialise the chart list.
+   * @param silent Do not show progress bar when true.
+   */
+  protected async initItems(silent?: boolean) {
+    if (this.app.sIsFetching()) {
+      this.app.debug('** isFetching() ... exit.');
+      return;
     }
-
-    this.checkSelections();
-
-    this.filterList.sort((a, b) => {
-      const x = a[1].name.toUpperCase();
-      const y = b[1].name.toUpperCase();
-      return x <= y ? -1 : 1;
-    });
+    this.app.sIsFetching.set(!(silent ?? false));
+    try {
+      this.fullList = await this.skres.listFromServer<FBChart>(
+        this.collection as SKResourceType
+      );
+      this.fullList = this.skres.appendOSM(this.fullList);
+      this.app.sIsFetching.set(false);
+      this.doFilter();
+      this.skres.selectionClean(
+        this.collection,
+        this.fullList.map((i) => i[0])
+      );
+    } catch (err) {
+      this.app.sIsFetching.set(false);
+      this.app.parseHttpErrorResponse(err);
+      this.fullList = [];
+    }
   }
 
-  isLocal(url: string) {
-    return url && url.indexOf('signalk') !== -1 ? 'map' : 'language';
+  /**
+   * @description Returns icon to display to indicate chart is served from local server.
+   * @param url Chart url
+   */
+  protected isLocal(url: string): string {
+    return url && url.indexOf(this.app.hostDef.name) !== -1
+      ? 'map'
+      : 'language';
   }
 
+  /** Handle selection change triggered externally */
+  protected externalSelection() {
+    this.fullList.forEach(
+      (cht: FBChart) => (cht[2] = this.selectedCharts().includes(cht[0]))
+    );
+    this.doFilter();
+  }
+
+  /**
+   * @description Toggle selections on / off
+   * @param checked Determines if all checkboxes are checked or unchecked
+   */
+  protected override toggleAll(checked: boolean) {
+    super.toggleAll(checked);
+    if (checked) {
+      this.skres.chartAddFromServer();
+    } else {
+      this.skres.chartRemove();
+    }
+  }
+
+  /**
+   * @description Handle chart entry check / uncheck
+   * @param checked Value indicating entry is checked / unchecked
+   * @param id Chart identifier
+   */
+  protected itemSelect(checked: boolean, id: string) {
+    const idx = this.toggleItem(checked, id);
+    // update cache
+    if (idx !== -1) {
+      if (checked) {
+        this.skres.chartAdd([this.filteredList()[idx]]);
+      } else {
+        this.skres.chartRemove([this.filteredList()[idx][0]]);
+      }
+    }
+  }
+
+  /**
+   * @description Show chart properties
+   * @param id Chart identifier
+   */
+  protected itemProperties(id: string) {
+    const chart = this.fullList.find((cht: FBChart) => cht[0] === id);
+    if (chart) {
+      this.dialog.open(ChartPropertiesDialog, { data: chart[1] });
+    }
+  }
+
+  /**
+   * @description Show delete chart dialog
+   * @param id Chart identifier
+   */
+  protected itemDelete(id: string) {
+    this.skres.deleteChart(id);
+  }
+
+  /**
+   * @description Show chart boundaries on map.
+   */
   toggleChartBoundaries() {
-    this.app.data.chartBounds = !this.app.data.chartBounds;
+    this.app.data.chartBounds.show = !this.app.data.chartBounds.show;
+    if (this.app.data.chartBounds.show) {
+      this.app.data.chartBounds.charts = this.fullList;
+    }
   }
 
-  checkSelections() {
-    let c = false;
-    let u = false;
-    this.filterList.forEach((i: FBChart) => {
-      c = i[2] ? true : c;
-      u = !i[2] ? true : u;
-    });
-    this.allSel = c && !u ? true : false;
-    this.someSel = c && u ? true : false;
-  }
+  /**
+   * @description Add new chart source to resources
+   * */
+  addChartSource(type: 'wms' | 'wmts' | 'json') {
+    let dref: MatDialogRef<WMTSDialog | WMSDialog | JsonMapSourceDialog>;
 
-  selectAll(value: boolean) {
-    this.filterList.forEach((i: FBChart) => {
-      i[2] = value;
-    });
-    this.buildFilterList();
-    this.someSel = false;
-    this.allSel = value ? true : false;
-    this.select.emit({ id: 'all', value: value });
-  }
+    if (type === 'wmts') {
+      dref = this.dialog.open(WMTSDialog, {
+        disableClose: true,
+        data: { format: 'chartprovider' }
+      });
+    }
+    if (type === 'wms') {
+      dref = this.dialog.open(WMSDialog, {
+        disableClose: true,
+        data: { format: 'chartprovider' }
+      });
+    }
+    if (type === 'json') {
+      dref = this.dialog.open(JsonMapSourceDialog, {
+        disableClose: true,
+        data: { format: 'chartprovider' }
+      });
+    }
+    if (!dref) {
+      this.app.showAlert(
+        'Message',
+        `Invalid Chart source type (${type}) provided! `
+      );
+      return;
+    }
+    dref.afterClosed().subscribe((sources) => {
+      if (sources && sources.length !== 0) {
+        const req = [];
+        sources.forEach((cs) => {
+          req.push(
+            this.signalk.api.post(
+              this.app.skApiVersion,
+              `/resources/charts?provider=resources-provider`,
+              cs
+            )
+          );
+        });
 
-  itemSelect(e: boolean, id: string) {
-    this.filterList.forEach((i: FBChart) => {
-      if (i[0] === id) {
-        i[2] = e;
+        const r = forkJoin(req).pipe(catchError((error) => of(error)));
+        r.subscribe((r) => {
+          if (r.error) {
+            this.app.showAlert(
+              'Add Chart Sources',
+              `Error saving chart source!\n(${r.error.statusCode}: ${r.error.message})`
+            );
+          } else {
+            this.app.showAlert(
+              'Add Chart Sources',
+              'Chart sources added successfully.'
+            );
+            this.initItems();
+          }
+        });
       }
     });
-    this.checkSelections();
-    this.buildFilterList();
-    this.select.emit({ id: id, value: e });
   }
 
-  itemRefresh() {
-    this.refresh.emit();
-  }
-
-  itemProperties(id: string) {
-    const ch = this.charts.filter((c: FBChart) => c[0] === id)[0][1];
-    this.dialog.open(ChartPropertiesDialog, { data: ch });
-  }
-
+  /**
+   * @description Control the display of the re-order chart screen
+   * @param show Display Chart Order component when true
+   */
   showChartLayers(show = false) {
     this.displayChartLayers = show;
   }
 
-  handleOrderChange(e: string[]) {
-    this.orderChange.emit(e);
+  /**
+   * @description Trigger select area interaction
+   * @param id Chart identifier
+   *
+   */
+  selectCacheArea(id: string) {
+    const cht = this.fullList.find((cht: FBChart) => cht[0] === id);
+    this.app.data.chartBounds.charts = [cht];
+    this.app.data.chartBounds.show = true;
+    this.mapInteract.startBoxSelection('seedChart', cht);
+  }
+
+  /**
+   * @description Show select Group dialog
+   * @param id region identifier
+   */
+  protected async itemAddToGroup(id: string) {
+    try {
+      const groups = await this.skgroups.listFromServer();
+      const glist = groups.map((g) => {
+        return { id: g[0], name: g[1].name };
+      });
+      this.dialog
+        .open(SingleSelectListDialog, {
+          data: {
+            title: 'Select Group',
+            icon: { name: 'category' },
+            items: glist
+          }
+        })
+        .afterClosed()
+        .subscribe(async (selGrp) => {
+          if (selGrp) {
+            try {
+              await this.skgroups.addToGroup(selGrp.id, 'chart', id);
+              this.app.showMessage(`Chart added to group.`);
+            } catch (err) {
+              this.app.parseHttpErrorResponse(err);
+            }
+          }
+        });
+    } catch (err) {
+      this.app.parseHttpErrorResponse(err);
+    }
   }
 }

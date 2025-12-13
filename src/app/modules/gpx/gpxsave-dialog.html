@@ -1,0 +1,175 @@
+<div class="gpxsave-dialog">
+  <mat-toolbar style="background-color: transparent">
+    <div style="display: flex; width: 100%">
+      <div>
+        <button
+          style="width: 85px"
+          mat-raised-button
+          matTooltip="Save selected resources"
+          matTooltipPosition="right"
+          [disabled]="!display.saveRoutesOK && !display.saveWaypointsOK && !display.saveTracksOK"
+          (click)="save()"
+        >
+          <mat-icon>save</mat-icon>&nbsp;Save&nbsp;
+        </button>
+      </div>
+      <div style="flex: 1 1 auto; text-align: center">Export to GPX</div>
+      <div style="text-align: right">
+        <button mat-icon-button (click)="this.dialogRef.close(-1);">
+          <mat-icon>close</mat-icon>
+        </button>
+      </div>
+    </div>
+  </mat-toolbar>
+
+  <div mat-dialog-content style="padding: 2px">
+    <!-- Waypoints -->
+    @if(resData.waypoints.length !== 0) {
+    <div class="card-group">
+      <mat-expansion-panel
+        [expanded]="display.expand.waypoints"
+        (opened)="display.expand.waypoints=true"
+        (closed)="display.expand.waypoints=false"
+      >
+        <mat-expansion-panel-header class="panel-header">
+          <mat-panel-title>
+            <mat-icon class="icon-waypoint">place</mat-icon>
+            &nbsp;<b>Waypoints:</b>
+          </mat-panel-title>
+          <mat-panel-description>
+            <div class="panel-description">
+              <mat-checkbox
+                [indeterminate]="display.someWptChecked"
+                [checked]="display.allWaypointsChecked"
+                [disabled]="resData.waypoints.length===0"
+                (change)="checkWpt($event.checked, -1)"
+                (click)="$event.cancelBubble=true"
+                matTooltip="Select all Waypoints"
+                matTooltipPosition="before"
+              ></mat-checkbox>
+            </div>
+          </mat-panel-description>
+        </mat-expansion-panel-header>
+
+        <div class="list-container-scrollable">
+          @for(w of resData.waypoints;track w;let i=$index) {
+          <div class="item-row">
+            <div class="name">{{w.name}}</div>
+            <div class="check">
+              <mat-checkbox
+                [checked]="selWaypoints[i]"
+                #wval
+                (change)="checkWpt(wval.checked, i)"
+                matTooltip="Select Waypoint"
+                matTooltipPosition="below"
+              >
+              </mat-checkbox>
+            </div>
+          </div>
+          }
+        </div>
+      </mat-expansion-panel>
+    </div>
+    }
+
+    <!-- Routes -->
+    @if(resData.routes.length !== 0) {
+    <div class="card-group">
+      <mat-expansion-panel
+        [expanded]="display.expand.routes"
+        (opened)="display.expand.routes=true"
+        (closed)="display.expand.routes=false"
+      >
+        <mat-expansion-panel-header class="panel-header">
+          <mat-panel-title>
+            <mat-icon class="icon-route">directions</mat-icon>
+            &nbsp;<b>Routes:</b>
+          </mat-panel-title>
+          <mat-panel-description>
+            <div class="panel-description">
+              <mat-checkbox
+                [indeterminate]="display.someRteChecked"
+                [checked]="display.allRoutesChecked"
+                [disabled]="resData.routes.length==0"
+                (change)="checkRte($event.checked, -1)"
+                (click)="$event.cancelBubble=true"
+                matTooltip="Select all Routes"
+                matTooltipPosition="before"
+              ></mat-checkbox>
+            </div>
+          </mat-panel-description>
+        </mat-expansion-panel-header>
+
+        <div class="list-container-scrollable">
+          @for(r of resData.routes; track r; let i=$index) {
+          <div class="item-row">
+            <div class="name">
+              <mat-icon class="icon-route">directions</mat-icon>
+              {{r.name}}
+            </div>
+            <div class="check">
+              <mat-checkbox
+                matTooltip="Select this Route"
+                matTooltipPosition="below"
+                [checked]="selRoutes[i]"
+                #rval
+                (change)="checkRte(rval.checked, i)"
+              >
+              </mat-checkbox>
+            </div>
+          </div>
+          }
+        </div>
+      </mat-expansion-panel>
+    </div>
+    }
+
+    <!-- Tracks -->
+    @if(!app.data.serverTrail && resData.tracks.length !== 0) {
+    <div class="card-group">
+      <mat-expansion-panel [expanded]="false">
+        <mat-expansion-panel-header class="panel-header">
+          <mat-panel-title>
+            <mat-icon class="icon-track">show_chart</mat-icon>
+            &nbsp;<b>Tracks:</b>
+          </mat-panel-title>
+          <mat-panel-description>
+            <div class="panel-description">
+              <mat-checkbox
+                [indeterminate]="false"
+                [checked]="display.allTracksChecked"
+                [disabled]="resData.tracks.length==0"
+                (change)="checkTrk($event.checked, -1)"
+                (click)="$event.cancelBubble=true"
+                matTooltip="Vessel Trail to Track"
+                matTooltipPosition="before"
+              >
+              </mat-checkbox>
+            </div>
+          </mat-panel-description>
+        </mat-expansion-panel-header>
+        <div class="list-container-scrollable">
+          @for(r of resData.tracks; track r; let i=$index) {
+          <div class="item-row">
+            <div class="name">
+              <mat-icon class="icon-track">directions_boat</mat-icon>
+              Vessel Trail
+            </div>
+            <div class="check">
+              <mat-checkbox
+                matTooltip="Select this Track"
+                matTooltipPosition="below"
+                [checked]="selTracks[i]"
+                #tval
+                (change)="checkTrk(tval.checked, i)"
+              >
+              </mat-checkbox>
+            </div>
+          </div>
+          }
+        </div>
+      </mat-expansion-panel>
+    </div>
+    }
+  </div>
+</div>

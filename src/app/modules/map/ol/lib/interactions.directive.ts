@@ -12,7 +12,8 @@ import {
 import { MapComponent } from './map.component';
 
 @Directive({
-  selector: 'ol-map > [olInteractions]'
+  selector: 'ol-map > [olInteractions]',
+  standalone: false
 })
 export class InteractionsDirective implements OnInit {
   private interactions = [];

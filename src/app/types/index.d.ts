@@ -1,21 +1,13 @@
 // ** Resource Types **
 
 import { Position, LineString, MultiLineString } from './resources/geojson';
-import {
-  FBCharts,
-  FBNotes,
-  FBRegions,
-  FBRoute,
-  FBRoutes,
-  FBWaypoints
-} from './resources/freeboard';
+import { FBCharts, FBRoute } from './resources/freeboard';
 import {
   SKMeteo,
   SKSaR,
   SKAtoN,
   SKAircraft,
-  SKVessel,
-  SKTrack
+  SKVessel
 } from '../modules/skresources/resource-classes';
 
 export * from './resources/signalk';
@@ -23,6 +15,10 @@ export * from './resources/custom';
 export * from './resources/geojson';
 export * from './resources/freeboard';
 export * from './stream';
+
+export type ErrorList = Array<{ status: number; message: string }>;
+
+export type MFBAction = 'wpt' | 'pob' | 'autopilot';
 
 export interface SKApiResponse {
   state: 'FAILED' | 'COMPLETED' | 'PENDING';
@@ -33,58 +29,182 @@ export interface SKApiResponse {
   token?: string;
 }
 
-export interface SKNotification {
-  method: Array<string>;
-  visual: boolean;
-  state: string;
-  message: string;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  data: { [key: string]: any };
+export interface CourseData {
+  dtg: number;
+  ttg: number;
+  eta: Date;
+  route: {
+    dtg: number;
+    ttg: number;
+    eta: Date;
+  };
+  vmg: number;
+  bearing: { value: number; type: string };
+  bearingTrue: number;
+  bearingMagnetic: number;
+  xte: number;
+  position: Position;
+  pointIndex: number;
+  pointTotal: number;
+  arrivalCircle: number;
+  startPosition: Position;
+  pointNames: string[];
+  activeRoutePoints: LineString;
+  destPointName: string;
 }
 
-export interface PluginInfo {
-  enabled: boolean;
-  enabledByDefault: boolean;
-  id: string;
-  name: string;
-  version: string;
-}
-
-export interface PluginSettings {
-  version: string;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  settings: { [key: string]: any };
-}
-
-export interface AppUpdateMessage {
-  result: 'update' | 'new';
-  previous: string;
-  new: string;
+export interface IAppConfig {
+  ui: {
+    mapNorthUp: boolean;
+    mapMove: boolean; // keep vessel centered
+    mapConstrainZoom: boolean; // constrain zooming to map min / max values
+    toolbarButtons: boolean; // show/hide toolbar buttons
+    invertColor: boolean; // invert map feature label colors
+    showCourseData: boolean; // show/hide course data
+    showAisTargets: boolean; // show/hide AIS targets
+    showNotes: boolean; // show/hide notes
+  };
+  display: {
+    fab: MFBAction; // FAB button selection
+    disableWakelock: boolean;
+    darkMode: { enabled: boolean; source: 0 | 1 | -1 }; // source: 0= browser default, 1= Signal K mode, -1=manual)
+    nightMode: boolean; // auto set night mode based on environment.mode
+    muteSound: boolean;
+    depthAlarm: { enabled: boolean; smoothing: number };
+    plugins: {
+      instruments: string;
+      startOnOpen: boolean;
+      parameters: string | null;
+      favourites: string[];
+    };
+  };
+  units: {
+    distance: 'm' | 'ft';
+    depth: 'm' | 'ft';
+    speed: 'kn' | 'msec' | 'kmh' | 'mph';
+    temperature: 'c' | 'f';
+    positionFormat: 'XY' | 'SHDd' | 'HDd' | 'DMdH' | 'HDMS' | 'DHMS';
+    headingAttribute: 'navigation.headingTrue' | 'navigation.headingMagnetic';
+    preferredPaths: {
+      tws: string;
+      twd: string;
+      heading: string;
+      course: string;
+    };
+  };
+  map: {
+    // ** map config
+    zoomLevel: number;
+    center: Position;
+    rotation: number;
+    lockMoveMap: boolean;
+    animate: boolean;
+    labelsMinZoom: number;
+    doubleClickZoom: boolean; // true=zoom
+    centerOffset: number; // vessel offset south of center (%)
+    s57Options: {
+      graphicsStyle: 'Simplified' | 'Paper';
+      boundaries: 'Symbolized' | 'Plain';
+      colors: 2 | 4;
+      shallowDepth: number;
+      safetyDepth: number;
+      deepDepth: number;
+      colorTable: number;
+    };
+    popoverMulti: boolean; // close popovers using cose button
+  };
+  course: {
+    autoNextPointOnArrival: boolean;
+    autoNextPointDelay: number;
+    autoNextPointTrigger: 'perpendicularPassed' | 'arrivalCircleEntered';
+    arrivalCircle: number;
+  };
+  vessels: {
+    fixedLocationMode: boolean;
+    fixedPosition: Position;
+    trail: boolean; // display trail
+    windVectors: boolean; // display vessel TWD, AWD vectors
+    laylines: boolean;
+    cogLine: number; // (minutes) length = cogLine * sog
+    aisCogLine: number; // (minutes) length = cogLine * sog
+    headingLineSize: number; // mode for display of heading line -1 = default
+    iconScale: number; // scale to apply to self Vessel icon
+    rangeCircles: boolean; //display range circles
+    rangeCircleCount: number; // number of circles to display
+    rangeCircleMinZoom: number; // min zoom level where they are displayed
+    aisStaleAge: number; // time since last update in ms (6 min)
+    aisMaxAge: number; // time since last update in ms (9 min)
+    aisWindApparent: boolean;
+    aisWindMinZoom: number;
+    aisShowTrack: boolean;
+    trailFromServer: boolean;
+    trailDuration: number; // number of hours of trail to fetch from server
+    trailResolution: {
+      // resolution of server trail at defined time horizons
+      lastHour: string;
+      next23: string;
+      beyond24: string;
+    };
+  };
+  resources: {
+    // ** resource options
+    fetchFilter: string; // param string to provide record filtering
+    fetchRadius: number; // radius (NM/km) within which to return resources
+    notes: {
+      rootFilter: string; // param string to provide record filtering
+      getRadius: number; // radius (NM/km) within which to return notes
+      groupNameEdit: boolean;
+      groupRequiresPosition: boolean;
+      minZoom: number;
+    };
+    video: {
+      enable: boolean;
+      url: string | null;
+    };
+    paths: string[];
+  };
+  signalk: {
+    // signal k connection options
+    vessels: boolean;
+    atons: boolean;
+    aircraft: boolean;
+    sar: boolean;
+    meteo: boolean;
+    maxRadius: number; // max radius within which AIS targets are displayed
+    proxied: boolean; // server behind a proxy server
+  };
+  radar: IRadarConfig;
+  experiments: boolean;
+  anchor: {
+    radius: number; // most recent anchor radius setting
+    setRadius: boolean; // checks inital anchor radius setting
+    manualSet: boolean; // checks manual set setting
+    rodeLength: number; // rode length setting
+  };
+  selections: {
+    // ** saved selections
+    routes: string[];
+    waypoints: string[];
+    regions: string[];
+    tracks: string[] | null;
+    charts: string[];
+    chartOrder: string[]; // chart layer ordering
+    aisTargets: string[];
+    aisTargetTypes: number[];
+    aisFilterByShipType: boolean;
+    aisState: string[]; // list of ais state values used to filter targets
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    resourceSets: { [key: string]: any }; // additional resources
+    infolayers: string[];
+  };
 }
 
 export interface FBAppData {
-  firstRun: boolean;
-  updatedRun: AppUpdateMessage;
-  kioskMode: boolean;
-  n2kRoute: FBRoute;
-  optAppPanel: boolean;
-  trueMagChoice: string;
-  loggedIn: boolean;
   loginRequired: boolean;
-  loggedInBadgeText: string;
-  hasToken: boolean;
-  hasWakeLock: boolean;
-  routes: FBRoutes;
-  waypoints: FBWaypoints;
-  charts: FBCharts;
-  chartBounds: boolean;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  alarms: Map<string, SKNotification>;
-  notes: FBNotes;
-  regions: FBRegions;
-  tracks: SKTrack[];
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  resourceSets: { [key: string]: any }; // additional resource sets
+  chartBounds: {
+    show: boolean;
+    charts: FBCharts;
+  };
   selfId: string;
   activeRoute: string;
   activeRouteReversed: boolean;
@@ -92,13 +212,11 @@ export interface FBAppData {
   activeRouteIsEditing: boolean;
   editingId: string;
   activeWaypoint: string;
-  trail: LineString; // self vessel track / trail
   serverTrail: boolean; // trail received from server
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   server: { [key: string]: any }; // SK server info
   lastGet: Position; // map position of last resources GET
   map: {
-    suppressContextMenu: boolean;
     atClick: {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       features: any[];
@@ -113,12 +231,7 @@ export interface FBAppData {
     aisTracks: Map<string, MultiLineString>; // AIS targets track (tracks plugin)
     activeId: string;
     active: SKVessel;
-    closest: {
-      id: string;
-      distance: number;
-      timeTo: number;
-      position: Position;
-    };
+    closest: string[];
     prefAvailablePaths: { [key: string]: string }; // preference paths available from source
     flagged: string[];
   };
@@ -126,53 +239,7 @@ export interface FBAppData {
   atons: Map<string, SKAtoN>; // received AIS AtoN data
   sar: Map<string, SKSaR>; // received AIS SaR data
   meteo: Map<string, SKMeteo>; // received AIS Meteo data
-  aisMgr: {
-    // manage aisTargets
-    updateList: string[];
-    staleList: string[];
-    removeList: string[];
-  };
-  navData: {
-    vmg: number;
-    dtg: number;
-    ttg: number;
-    bearing: { value: number; type: string };
-    bearingTrue: number;
-    bearingMagnetic: number;
-    xte: number;
-    eta: Date;
-    position: Position;
-    pointIndex: number;
-    pointTotal: number;
-    arrivalCircle: number;
-    startPosition: Position;
-    pointNames: string[];
-    activeRoutePoints: LineString;
-    destPointName: string;
-  };
   racing: {
     startLine: LineString;
-    finishLine: LineString;
-  };
-  anchor: {
-    // ** anchor watch
-    raised: boolean;
-    radius: number;
-    position: Position;
-    hasApi: boolean;
-  };
-  autopilot: {
-    console: boolean; // display Autopilot console
-    hasApi: boolean; // Server implements Autopilot API
-  };
-  buildRoute: {
-    show: boolean;
-  };
-  weather: {
-    hasApi: boolean;
-  };
-  measurement: {
-    coords: Array<Position>;
-    index: number;
   };
 }

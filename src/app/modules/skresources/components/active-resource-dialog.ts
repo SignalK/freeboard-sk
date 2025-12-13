@@ -9,25 +9,30 @@ import {
   MatBottomSheetRef,
   MAT_BOTTOM_SHEET_DATA
 } from '@angular/material/bottom-sheet';
-import { CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop';
+import {
+  CdkDragDrop,
+  moveItemInArray,
+  CdkDrag,
+  CdkDropList
+} from '@angular/cdk/drag-drop';
 import { Position } from 'src/app/types';
-import { AppInfo } from 'src/app/app.info';
-import { SignalKDetailsComponent } from '../components/signalk-details.component';
+import { AppFacade } from 'src/app/app.facade';
 
 import { SKWaypoint, SKRoute } from '../resource-classes';
 import { GeoUtils } from 'src/app/lib/geoutils';
+import { SKResourceService } from '../resources.service';
+import { CourseService } from '../../course';
 
-/********* ActiveResourcePropertiesModal **********
-	data: {
+/** 
+  @description ActiveResourcePropertiesModal 
+	@param data: {
         title: "<string>" title text,
         type: 'dest' | 'route' resource type,
         resource: "<SKWaypoint | SKRoute>" active resource info
-        skres: pointer to SKResources service
     }
-***********************************/
+*/
 @Component({
   selector: 'ap-dest-modal',
-  standalone: true,
   imports: [
     CommonModule,
     MatTooltipModule,
@@ -35,22 +40,23 @@ import { GeoUtils } from 'src/app/lib/geoutils';
     MatCardModule,
     MatButtonModule,
     MatToolbarModule,
-    SignalKDetailsComponent
+    CdkDrag,
+    CdkDropList
   ],
   template: `
     <div class="_ap-dest" style="display:flex;flex-direction:column;">
       <div>
         <mat-toolbar style="background-color: transparent">
           <span>
-            @if(showClearButton) {
-            <button
-              mat-button
-              (click)="deactivate()"
-              [matTooltip]="clearButtonText"
-            >
-              <mat-icon>clear_all</mat-icon>
-              Clear
-            </button>
+            @if (showClearButton) {
+              <button
+                mat-button
+                (click)="deactivate()"
+                [matTooltip]="clearButtonText"
+              >
+                <mat-icon>clear_all</mat-icon>
+                Clear
+              </button>
             }
           </span>
           <span
@@ -80,85 +86,65 @@ import { GeoUtils } from 'src/app/lib/geoutils';
           cdkDropList
           (cdkDropListDropped)="drop($event)"
         >
-          @for(pt of points; track pt; let i = $index) {
-          <mat-card cdkDrag>
-            <mat-card-content style="padding:3px;">
-              <div class="point-drop-placeholder" *cdkDragPlaceholder></div>
+          @for (pt of points; track pt; let i = $index) {
+            <mat-card cdkDrag [cdkDragDisabled]="readOnly">
+              <mat-card-content style="padding:3px;">
+                <div class="point-drop-placeholder" *cdkDragPlaceholder></div>
 
-              <div
-                style="display:flex;"
-                (click)="selectPoint(i)"
-                [style.cursor]="
-                  points.length > 1 && selIndex !== -1 ? 'pointer' : 'initial'
-                "
-              >
-                <div style="width:35px;">
-                  @if(selIndex === i) {
-                  <mat-icon class="icon-warn"> flag </mat-icon>
+                <div
+                  style="display:flex;"
+                  (click)="selectPoint(i)"
+                  [style.cursor]="
+                    points.length > 1 && selIndex !== -1 ? 'pointer' : 'initial'
+                  "
+                >
+                  <div style="width:35px;">
+                    @if (selIndex === i) {
+                      <mat-icon class="icon-warn"> flag </mat-icon>
+                    }
+                  </div>
+                  <div style="flex: 1 1 auto;">
+                    <div style="display:flex;">
+                      <div class="key-label">
+                        <mat-icon> text_fields </mat-icon>
+                      </div>
+                      <div
+                        style="flex: 1 1 auto;"
+                        [innerText]="pointMeta[i].name"
+                      ></div>
+                    </div>
+
+                    @if (pointMeta[i].description) {
+                      <div style="display:flex;">
+                        <div class="key-label">Desc:</div>
+                        <div
+                          style="flex: 1 1 auto;"
+                          [innerText]="pointMeta[i].description"
+                        ></div>
+                      </div>
+                    }
+
+                    <div style="display:flex;">
+                      <div class="key-label">
+                        <mat-icon [ngClass]="{ 'icon-primary': i === 0 }"
+                          >square_foot</mat-icon
+                        >
+                      </div>
+                      <div style="flex: 1 1 auto;">
+                        <span [innerText]="legs[i].bearing"></span>
+                        &nbsp;
+                        <span [innerText]="legs[i].distance"></span>
+                      </div>
+                    </div>
+                  </div>
+                  @if (!readOnly && data.type === 'route') {
+                    <div cdkDragHandle matTooltip="Drag to re-order points">
+                      <mat-icon>drag_indicator</mat-icon>
+                    </div>
                   }
                 </div>
-                <div style="flex: 1 1 auto;">
-                  <div style="display:flex;">
-                    <div class="key-label">
-                      <mat-icon> text_fields </mat-icon>
-                    </div>
-                    <div
-                      style="flex: 1 1 auto;"
-                      [innerText]="pointMeta[i].name"
-                    ></div>
-                  </div>
-
-                  @if(pointMeta[i].description) {
-                  <div style="display:flex;">
-                    <div class="key-label">Desc:</div>
-                    <div
-                      style="flex: 1 1 auto;"
-                      [innerText]="pointMeta[i].description"
-                    ></div>
-                  </div>
-                  }
-
-                  <div style="display:flex;">
-                    <div class="key-label">
-                      <mat-icon [ngClass]="{ 'icon-primary': i === 0 }"
-                        >square_foot</mat-icon
-                      >
-                    </div>
-                    <div style="flex: 1 1 auto;">
-                      <span [innerText]="legs[i].bearing"></span>
-                      &nbsp;
-                      <span [innerText]="legs[i].distance"></span>
-                    </div>
-                  </div>
-                  <!--
-                  <div style="display:flex;">
-                    <div class="key-label"></div>
-                    <div
-                      style="flex: 1 1 auto;">
-                      <span
-                        [innerText]="
-                          pt[1]
-                            | coords : app.config.selections.positionFormat : true
-                        "
-                      ></span>
-                      &nbsp;
-                      <span
-                        [innerText]="
-                          pt[0] | coords : app.config.selections.positionFormat
-                        "
-                      ></span>
-                    </div>
-                  </div>
-                  -->
-                </div>
-                <div cdkDragHandle matTooltip="Drag to re-order points">
-                  @if(data.type === 'route') {
-                  <mat-icon>drag_indicator</mat-icon>
-                  }
-                </div>
-              </div>
-            </mat-card-content>
-          </mat-card>
+              </mat-card-content>
+            </mat-card>
           }
         </div>
       </div>
@@ -186,8 +172,10 @@ import { GeoUtils } from 'src/app/lib/geoutils';
       .cdk-drag-preview {
         box-sizing: border-box;
         border-radius: 4px;
-        box-shadow: 0 5px 5px -3px rgba(0, 0, 0, 0.2),
-          0 8px 10px 1px rgba(0, 0, 0, 0.14), 0 3px 14px 2px rgba(0, 0, 0, 0.12);
+        box-shadow:
+          0 5px 5px -3px rgba(0, 0, 0, 0.2),
+          0 8px 10px 1px rgba(0, 0, 0, 0.14),
+          0 3px 14px 2px rgba(0, 0, 0, 0.12);
       }
     `
   ]
@@ -199,17 +187,18 @@ export class ActiveResourcePropertiesModal implements OnInit {
   protected selIndex = -1;
   protected clearButtonText = 'Clear';
   protected showClearButton = false;
+  protected readOnly: boolean;
 
   constructor(
-    public app: AppInfo,
+    public app: AppFacade,
     public modalRef: MatBottomSheetRef<ActiveResourcePropertiesModal>,
+    protected course: CourseService,
+    protected skres: SKResourceService,
     @Inject(MAT_BOTTOM_SHEET_DATA)
     public data: {
       title: string;
       type: string;
       resource: SKWaypoint | SKRoute;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      skres: any;
     }
   ) {}
 
@@ -229,10 +218,12 @@ export class ActiveResourcePropertiesModal implements OnInit {
           : 'Route Points';
 
         if (this.data.resource[0] === this.app.data.activeRoute) {
-          this.selIndex = this.app.data.navData.pointIndex;
+          this.selIndex = this.course.courseData().pointIndex;
           this.showClearButton = true;
         }
-        this.pointMeta = this.getPointMeta();
+        this.readOnly =
+          this.data.resource[1].feature.properties?.readOnly ?? false;
+        this.pointMeta = this.getPointsMeta();
       }
     }
   }
@@ -247,7 +238,7 @@ export class ActiveResourcePropertiesModal implements OnInit {
     });
   }
 
-  getPointMeta() {
+  getPointsMeta() {
     if (
       this.data.resource[1].feature.properties.coordinatesMeta &&
       Array.isArray(this.data.resource[1].feature.properties.coordinatesMeta)
@@ -259,7 +250,7 @@ export class ActiveResourcePropertiesModal implements OnInit {
         idx++;
         if (pt.href) {
           const id = pt.href.split('/').slice(-1);
-          const wpt = this.data.skres.fromCache('waypoints', id[0]);
+          const wpt = this.skres.fromCache('waypoints', id[0]);
           return wpt
             ? {
                 name: `* ${wpt[1].name}`,
@@ -292,9 +283,7 @@ export class ActiveResourcePropertiesModal implements OnInit {
       return;
     }
     this.selIndex = idx;
-    if (this.data.skres) {
-      this.data.skres.coursePointIndex(this.selIndex);
-    }
+    this.course.coursePointIndex(this.selIndex);
   }
 
   drop(e: CdkDragDrop<{ previousIndex: number; currentIndex: number }>) {
@@ -309,10 +298,10 @@ export class ActiveResourcePropertiesModal implements OnInit {
           e.currentIndex
         );
       }
-      this.pointMeta = this.getPointMeta();
+      moveItemInArray(this.pointMeta, e.previousIndex, e.currentIndex);
 
       this.updateFlag(selPosition);
-      this.data.skres.updateRouteCoords(
+      this.skres.updateRouteCoords(
         this.data.resource[0],
         this.points,
         this.data.resource[1].feature.properties.coordinatesMeta

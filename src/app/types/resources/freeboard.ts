@@ -3,8 +3,15 @@ import {
   SKWaypoint,
   SKNote,
   SKChart,
-  SKRegion
+  SKRegion,
+  SKTrack,
+  SKVessel
 } from 'src/app/modules/skresources/resource-classes';
+
+import {
+  SKInfoLayer,
+  SKResourceSet
+} from 'src/app/modules/skresources/custom-resource-classes';
 
 export type FBRoutes = Array<FBRoute>;
 export type FBRoute = [string, SKRoute, boolean?];
@@ -20,6 +27,26 @@ export type FBRegion = [string, SKRegion, boolean?];
 
 export type FBCharts = Array<FBChart>;
 export type FBChart = [string, SKChart, boolean?];
+
+export type FBTracks = Array<FBTrack>;
+export type FBTrack = [string, SKTrack, boolean?];
+
+export type FBVessels = Array<FBVessel>;
+export type FBVessel = [string, SKVessel, boolean?];
+
+export type FBResourceSets = Array<FBResourceSet>;
+export type FBResourceSet = [string, SKResourceSet, boolean?];
+
+export type FBInfoLayers = Array<FBInfoLayer>;
+export type FBInfoLayer = [string, SKInfoLayer, boolean?];
+
+export type FBResource =
+  | FBRoute
+  | FBWaypoint
+  | FBNote
+  | FBRegion
+  | FBChart
+  | FBTrack;
 
 export type FBResourceSelect = {
   id: string;

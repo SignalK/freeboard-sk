@@ -15,17 +15,15 @@ import {
   MAT_DIALOG_DATA
 } from '@angular/material/dialog';
 
-import { PipesModule } from 'src/app/lib/pipes';
 import { SignalKClient } from 'signalk-client-angular';
-import { FileInputComponent } from 'src/app/lib/components';
-import { AppInfo } from 'src/app/app.info';
+import { FileInputComponent } from 'src/app/lib/components/file-input.component';
+import { AppFacade } from 'src/app/app.facade';
 
 //** Resources upload dialog **
 @Component({
   selector: 'resource-upload-dialog',
   templateUrl: './resource-upload-dialog.html',
   styleUrls: ['./resource-upload-dialog.css'],
-  standalone: true,
   imports: [
     FormsModule,
     MatInputModule,
@@ -37,7 +35,6 @@ import { AppInfo } from 'src/app/app.info';
     MatToolbarModule,
     MatCheckboxModule,
     MatDialogModule,
-    PipesModule,
     FileInputComponent
   ]
 })
@@ -53,7 +50,7 @@ export class ResourceImportDialog implements OnInit {
   private unsubscribe = [];
 
   constructor(
-    public app: AppInfo,
+    public app: AppFacade,
     public skclient: SignalKClient,
     public dialogRef: MatDialogRef<ResourceImportDialog>,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

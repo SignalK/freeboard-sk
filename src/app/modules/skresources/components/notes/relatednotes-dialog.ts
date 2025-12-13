@@ -2,7 +2,7 @@
  ********************************/
 
 import { Component, OnInit, Inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
@@ -19,7 +19,7 @@ import { MatToolbarModule } from '@angular/material/toolbar';
 
 import { AddTargetPipe } from './safe.pipe';
 
-import { AppInfo } from 'src/app/app.info';
+import { AppFacade } from 'src/app/app.facade';
 
 /********* RelatedNotesDialog **********
 	data: {
@@ -27,10 +27,8 @@ import { AppInfo } from 'src/app/app.info';
     }
 ***********************************/
 @Component({
-  standalone: true,
   selector: 'ap-relatednotesdialog',
   imports: [
-    CommonModule,
     FormsModule,
     MatDialogModule,
     MatCardModule,
@@ -49,7 +47,7 @@ export class RelatedNotesDialog implements OnInit {
   relatedBy: string;
 
   constructor(
-    public app: AppInfo,
+    public app: AppFacade,
     public dialogRef: MatDialogRef<RelatedNotesDialog>,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     @Inject(MAT_DIALOG_DATA) public data: any

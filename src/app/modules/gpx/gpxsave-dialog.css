@@ -1,0 +1,87 @@
+.gpxsave-dialog {
+    font-family: roboto;
+    position: relative;
+}
+
+.dialog-content {
+    position: relative;
+    min-height: 300px;
+    max-height: 400px;
+    width: 100%;
+    min-width: 240px;
+    overflow-y: auto;    
+}
+
+.dialog-icon {
+    display: none;
+}
+
+.card-group {
+    padding: 5px 5% 5px 5%;
+}
+
+.card-group .panel-header {
+    padding: 0 5px;
+}
+
+.card-group .panel-description {
+    text-align: right; 
+    width: 100%;
+    padding-right: 10px;
+}
+
+.card-group-title {
+    font-weight: bold;
+    font-size: 10pt;
+    font-family: Arial, Helvetica, sans-serif;
+    padding: 10px 0 10px 0;
+}
+
+button {
+    min-width: unset;
+    padding: unset;    
+}
+
+.item-row  {
+    display: flex;
+    width: 100%;
+    padding: 2px 0;
+}
+
+.item-row .name {
+    flex: 1 1 auto;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 1;
+    text-overflow:ellipsis;
+    line-height: 2.5em;
+}
+
+.item-row .check {
+    text-align: right;
+    padding-right: 15px;
+}
+
+
+/* tablet */
+@media only screen and (min-width : 475px) { 
+    button {
+        min-width: inherit;
+        padding: inherit;    
+    }    
+    .dialog-content {
+        min-width: 400px;
+    }   
+    .dialog-icon {
+        display: inline;
+    } 
+}
+
+/* large */
+@media only screen and (min-width : 800px) {
+    .card-group {
+        padding: 5px 5% 5px 5%;
+    }
+} 
+

@@ -6,10 +6,10 @@ import {
   SimpleChanges
 } from '@angular/core';
 import { Feature } from 'ol';
-import { Style, Icon, Stroke } from 'ol/style';
-import { LineString, Point } from 'ol/geom';
+import { Style, Stroke } from 'ol/style';
+import { LineString } from 'ol/geom';
 import { fromLonLat } from 'ol/proj';
-import { MapComponent } from '../map.component';
+import { MapComponent, zoomOffsetLevel } from '../map.component';
 import { AISBaseLayerComponent } from './ais-base.component';
 import { GeoUtils } from 'src/app/lib/geoutils';
 import { SKVessel } from 'src/app/modules/skresources';
@@ -18,25 +18,20 @@ import { SKVessel } from 'src/app/modules/skresources';
 @Component({
   selector: 'ol-map > sk-ais-wind',
   template: '<ng-content></ng-content>',
-  changeDetection: ChangeDetectionStrategy.OnPush
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  standalone: false
 })
 export class AISWindLayerComponent extends AISBaseLayerComponent {
   @Input() vectorApparent = false;
 
-  protected zoomOffsetLevel = [
-    1, 1000000, 550000, 290000, 140000, 70000, 38000, 17000, 7600, 3900, 1900,
-    950, 470, 250, 120, 60, 30, 15.5, 8.1, 4, 2, 1, 0.5, 0.25, 0.12, 0.06, 0.03,
-    0.015, 0.008, 1
-  ];
-
   constructor(
-    protected mapComponent: MapComponent,
-    protected changeDetectorRef: ChangeDetectorRef
+    protected override mapComponent: MapComponent,
+    protected override changeDetectorRef: ChangeDetectorRef
   ) {
     super(mapComponent, changeDetectorRef);
   }
 
-  ngOnChanges(changes: SimpleChanges): void {
+  override ngOnChanges(changes: SimpleChanges): void {
     super.ngOnChanges(changes);
     if ('vectorApparent' in changes) {
       this.onUpdateTargets(this.extractKeys(this.targets));
@@ -57,7 +52,7 @@ export class AISWindLayerComponent extends AISBaseLayerComponent {
     const windc = GeoUtils.destCoordinate(
       target.position,
       windDirection,
-      this.zoomOffsetLevel[Math.floor(this.mapZoom)]
+      zoomOffsetLevel[Math.floor(this.mapZoom)]
     );
     return [fromLonLat(target.position), fromLonLat(windc)];
   }
@@ -75,10 +70,8 @@ export class AISWindLayerComponent extends AISBaseLayerComponent {
       }
       const f = new Feature(new LineString(v));
       f.setId('wind-' + id);
-      //const s = this.buildStyle('').clone();
-      //f.setStyle(this.setRotation(s, target.orientation));
       f.setStyle(this.buildVectorStyle());
-      this.source.addFeature(f);
+      this.source?.addFeature(f);
     }
   }
 
@@ -93,19 +86,6 @@ export class AISWindLayerComponent extends AISBaseLayerComponent {
     });
   }
 
-  /*private buildStyle(label?: string) {
-    return new Style({
-      image: new Icon({
-        src: './assets/img/ais_flag.svg',
-        rotateWithView: true,
-        scale: 0.2,
-        anchor: [27, 187],
-        anchorXUnits: 'pixels',
-        anchorYUnits: 'pixels'
-      })
-    });
-  }*/
-
   // reload all Features from this.targets
   override onReloadTargets() {
     this.extractKeys(this.targets).forEach((id) => {
@@ -117,7 +97,7 @@ export class AISWindLayerComponent extends AISBaseLayerComponent {
   override onUpdateTargets(ids: Array<string>) {
     ids.forEach((id: string) => {
       if (id.includes(this.targetContext)) {
-        const f = this.source.getFeatureById('wind-' + id) as Feature;
+        const f = this.source?.getFeatureById('wind-' + id) as Feature;
         if (this.okToRenderTarget(id)) {
           if (this.targets.has(id)) {
             if (f) {

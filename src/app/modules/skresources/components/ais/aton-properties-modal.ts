@@ -9,7 +9,7 @@ import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatToolbarModule } from '@angular/material/toolbar';
 
-import { AppInfo } from 'src/app/app.info';
+import { AppFacade } from 'src/app/app.facade';
 import { SignalKClient } from 'signalk-client-angular';
 import { SKAtoN } from 'src/app/modules/skresources/resource-classes';
 import { SignalKDetailsComponent } from '../../components/signalk-details.component';
@@ -23,7 +23,6 @@ import { SignalKDetailsComponent } from '../../components/signalk-details.compon
 ***********************************/
 @Component({
   selector: 'ap-aton-modal',
-  standalone: true,
   imports: [
     MatTooltipModule,
     MatIconModule,
@@ -71,11 +70,13 @@ import { SignalKDetailsComponent } from '../../components/signalk-details.compon
             <button mat-stroked-button (click)="toggleProperties()">
               <span>Show {{ showProperties ? 'Less' : 'More' }}</span>
               <mat-icon>{{
-                showProperties ? 'expand_less' : 'expand_more'
+                showProperties ? 'keyboard_arrow_down' : 'keyboard_arrow_right'
               }}</mat-icon>
             </button>
-            @if(showProperties) {
-            <signalk-details-list [details]="properties"></signalk-details-list>
+            @if (showProperties) {
+              <signalk-details-list
+                [details]="properties"
+              ></signalk-details-list>
             }
           </div>
         </mat-card-content>
@@ -101,7 +102,7 @@ export class AtoNPropertiesModal implements OnInit {
 
   constructor(
     private sk: SignalKClient,
-    private app: AppInfo,
+    private app: AppFacade,
     public modalRef: MatBottomSheetRef<AtoNPropertiesModal>,
     @Inject(MAT_BOTTOM_SHEET_DATA)
     public data: {
@@ -160,7 +161,7 @@ export class AtoNPropertiesModal implements OnInit {
     Object.keys(bk).forEach((k: any) => {
       const pathRoot = `${pk}.${k}`;
       const g = bk[k];
-      if (k === 'water') {
+      if (k === 'water' || (k === 'current' && pk === 'environment.water')) {
         this.processPathObject(res, g, pathRoot);
       } else if (g.meta) {
         res[pathRoot] = this.app.formatValueForDisplay(
@@ -177,7 +178,8 @@ export class AtoNPropertiesModal implements OnInit {
             i[1].value,
             i[1].meta && i[1].meta.units ? i[1].meta.units : '',
             i[0].toLowerCase().includes('level') ||
-              i[0].toLowerCase().includes('height') // depth values
+              i[0].toLowerCase().includes('height'), // depth values
+            key === 'environment.outside.precipitationVolume' ? 5 : 1
           );
         });
       }

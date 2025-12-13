@@ -1,16 +1,24 @@
 {
   "compileOnSave": false,
   "compilerOptions": {
-    "baseUrl": "./",
     "outDir": "./dist/out-tsc",
+    "strict": false,
+    "noImplicitOverride": true,
+    "noPropertyAccessFromIndexSignature": false,
+    "noImplicitReturns": false,
+    "noFallthroughCasesInSwitch": true,
+    "skipLibCheck": true,
+    "isolatedModules": true,
+    "esModuleInterop": true,
+    "experimentalDecorators": true,
+    "moduleResolution": "bundler",
+    "importHelpers": true,
+    "target": "ES2022",
+    "module": "ES2022",
+    "baseUrl": "./",
     "sourceMap": true,
     "declaration": false,
     "downlevelIteration": true,
-    "experimentalDecorators": true,
-    "module": "es2022",
-    "moduleResolution": "node",
-    "importHelpers": true,
-    "target": "es2022",
     "typeRoots": [
       "node_modules/@types"
     ],
@@ -20,10 +28,7 @@
       "es2022",
       "dom"
     ],
-    "paths": {
-      "ol": ["node_modules/@types/ol"],
-      "ol/*": ["node_modules/@types/ol/*"]
-    }
+    "paths": {}
   },
   "angularCompilerOptions": {
     "fullTemplateTypeCheck": true,

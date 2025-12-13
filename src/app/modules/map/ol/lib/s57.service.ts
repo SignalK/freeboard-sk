@@ -37,6 +37,7 @@ export interface Options {
   graphicsStyle: string;
   boundaries: string;
   colors: number;
+  colorTable: number;
 }
 
 export const DefaultOptions: Options = {
@@ -45,7 +46,8 @@ export const DefaultOptions: Options = {
   deepDepth: 6,
   graphicsStyle: 'Paper', //Simplified or Paper
   boundaries: 'Plain', // Plain or Symbolized
-  colors: 4 // 2 or 4
+  colors: 4, // 2 or 4
+  colorTable: 0 //color scheme
 };
 
 interface ColorTable {
@@ -128,6 +130,17 @@ export class S57Service {
         image.src =
           'assets/s57/' + this.colorTables[this.selectedColorTable].symbolfile;
       });
+  }
+
+  /**
+   * @todo Changing value and refresh is not enough.
+   * @param value ColorTable index value (0->4)
+   */
+  public setColorTable(value: number) {
+    if (value >= 0 && value <= 5 && this.selectedColorTable !== value) {
+      //this.selectedColorTable = value;
+      //this.refresh.next();
+    }
   }
 
   public getStyle(key: string): Style {
@@ -344,9 +357,14 @@ export class S57Service {
   }
 
   public selectLookup(feature: Feature): number {
-    const properties = feature.getProperties();
+    const props = feature.getProperties();
+    const properties = {};
+    Object.keys(props).forEach((k) => {
+      properties[k.toUpperCase()] = props[k];
+    });
+
     const geometry = feature.getGeometry();
-    const name = properties['layer'];
+    const name = properties['LAYER'];
     const geomType = geometry.getType();
 
     let lookupTable = LookupTable.PAPER_CHART;

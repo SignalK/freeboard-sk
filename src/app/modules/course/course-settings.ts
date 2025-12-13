@@ -1,5 +1,5 @@
 import { Component, OnInit, Inject, ChangeDetectorRef } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { HttpErrorResponse } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
 import { MatInputModule } from '@angular/material/input';
@@ -17,11 +17,10 @@ import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatCardModule } from '@angular/material/card';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatDatepickerModule } from '@angular/material/datepicker';
-import { CommonDialogs } from 'src/app/lib/components/dialogs';
-import { AppInfo } from 'src/app/app.info';
+import { AppFacade } from 'src/app/app.facade';
 import { SignalKClient } from 'signalk-client-angular';
 import { Convert } from 'src/app/lib/convert';
-import { SKStreamFacade } from 'src/app/modules';
+import { CourseService, SKStreamFacade } from 'src/app/modules';
 import { UpdateMessage } from 'src/app/types';
 import { Subscription } from 'rxjs';
 
@@ -31,10 +30,8 @@ import { Subscription } from 'rxjs';
     }
 ***********************************/
 @Component({
-  standalone: true,
   selector: 'ap-course-modal',
   imports: [
-    CommonModule,
     FormsModule,
     MatInputModule,
     MatSelectModule,
@@ -46,14 +43,13 @@ import { Subscription } from 'rxjs';
     MatCheckboxModule,
     MatTooltipModule,
     MatSlideToggleModule,
-    MatDatepickerModule,
-    CommonDialogs
+    MatDatepickerModule
   ],
   template: `
     <div class="_ap-course">
       <mat-toolbar style="background-color: transparent">
         <span>
-          <mat-icon>settings</mat-icon>
+          <mat-icon class="ob" svgIcon="navigation-route"></mat-icon>
         </span>
         <span style="flex: 1 1 auto; padding-left:20px;text-align:center;">
           {{ data.title }}
@@ -74,13 +70,7 @@ import { Subscription } from 'rxjs';
         <legend>Arrival</legend>
 
         <mat-form-field floatLabel="always">
-          <mat-label
-            >Arrival Circle radius ({{
-              app.config.units.distance === 'm'
-                ? app.config.units.distance
-                : 'NM'
-            }}):
-          </mat-label>
+          <mat-label>Arrival Circle Radius </mat-label>
           <input
             id="arrivalCircle"
             matInput
@@ -88,9 +78,12 @@ import { Subscription } from 'rxjs';
             min="0"
             [value]="frmArrivalCircle"
             (change)="onFormChange($event)"
-            placeholder="500"
+            placeholder="100"
             matTooltip="Enter Arrival circle radius"
           />
+          <span matSuffix>{{
+            app.config.units.distance === 'm' ? app.config.units.distance : 'NM'
+          }}</span>
         </mat-form-field>
 
         <div style="padding-right: 10px;">
@@ -138,8 +131,8 @@ import { Subscription } from 'rxjs';
                 [disabled]="!targetArrivalEnabled"
                 (selectionChange)="onFormChange($event)"
               >
-                @for(i of hrValues(); track i) {
-                <mat-option [value]="i">{{ i }}</mat-option>
+                @for (i of hrValues(); track i) {
+                  <mat-option [value]="i">{{ i }}</mat-option>
                 }
               </mat-select>
             </mat-form-field>
@@ -152,8 +145,8 @@ import { Subscription } from 'rxjs';
                 [disabled]="!targetArrivalEnabled"
                 (selectionChange)="onFormChange($event)"
               >
-                @for(i of minValues(); track i) {
-                <mat-option [value]="i">{{ i }}</mat-option>
+                @for (i of minValues(); track i) {
+                  <mat-option [value]="i">{{ i }}</mat-option>
                 }
               </mat-select>
             </mat-form-field>
@@ -166,8 +159,8 @@ import { Subscription } from 'rxjs';
                 [disabled]="!targetArrivalEnabled"
                 (selectionChange)="onFormChange($event)"
               >
-                @for(i of minValues(); track i) {
-                <mat-option [value]="i">{{ i }}</mat-option>
+                @for (i of minValues(); track i) {
+                  <mat-option [value]="i">{{ i }}</mat-option>
                 }
               </mat-select>
             </mat-form-field>
@@ -209,10 +202,11 @@ export class CourseSettingsModal implements OnInit {
   : 'self';*/
 
   constructor(
-    public app: AppInfo,
+    public app: AppFacade,
     private stream: SKStreamFacade,
     private cdr: ChangeDetectorRef,
     private signalk: SignalKClient,
+    protected course: CourseService,
     public modalRef: MatBottomSheetRef<CourseSettingsModal>,
     @Inject(MAT_BOTTOM_SHEET_DATA) public data
   ) {}
@@ -222,9 +216,9 @@ export class CourseSettingsModal implements OnInit {
       this.data['title'] = 'Course Settings';
     }
     this.frmArrivalCircle =
-      this.app.data.navData.arrivalCircle === null
+      this.course.courseData().arrivalCircle === null
         ? 0
-        : this.app.data.navData.arrivalCircle;
+        : this.course.courseData().arrivalCircle;
     this.frmArrivalCircle =
       this.app.config.units.distance === 'm'
         ? this.frmArrivalCircle
@@ -291,6 +285,7 @@ export class CourseSettingsModal implements OnInit {
             ? Number(e.target.value)
             : Convert.nauticalMilesToKm(Number(e.target.value)) * 1000;
         d = d <= 0 ? null : d;
+        this.app.config.course.arrivalCircle = Number(e.target.value);
 
         this.signalk.api
           .putWithContext(

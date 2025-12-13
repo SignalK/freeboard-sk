@@ -1,4 +1,4 @@
-import { Component, ViewChild } from '@angular/core';
+import { Component, ViewChild, computed, effect, signal } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
 import { MatDialog } from '@angular/material/dialog';
 import { MatBottomSheet } from '@angular/material/bottom-sheet';
@@ -6,24 +6,37 @@ import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { OverlayContainer } from '@angular/cdk/overlay';
 import { Observable, Subject } from 'rxjs';
 
-import { AppInfo } from './app.info';
-import { SettingsMessage } from './lib/services';
+// standalone
+import { CommonModule } from '@angular/common';
+import { MatBadgeModule } from '@angular/material/badge';
+import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
+import { MatListModule } from '@angular/material/list';
+import { MatMenuModule } from '@angular/material/menu';
+import { MatSidenavModule } from '@angular/material/sidenav';
+import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatProgressBarModule } from '@angular/material/progress-bar';
 import {
-  AboutDialog,
-  LoginDialog,
-  PlaybackDialog,
-  GeoJSONImportDialog,
-  Trail2RouteDialog,
-  GPXImportDialog,
-  GPXExportDialog
-} from 'src/app/lib/components/dialogs';
+  ETADialComponent,
+  FileInputComponent,
+  InteractionHelpComponent,
+  MFBContainerComponent,
+  PiPVideoComponent,
+  TextDialComponent,
+  TTGDialComponent
+} from './lib/components';
+
+// ****
+
+import { AppFacade } from './app.facade';
+import { SignalKClient } from 'signalk-client-angular';
+import { WakeLockService } from 'src/app/lib/services';
 
 import {
   AISPropertiesModal,
   AtoNPropertiesModal,
   AircraftPropertiesModal,
   ActiveResourcePropertiesModal,
-  TracksModal,
   ResourceImportDialog,
   ResourceSetModal,
   ResourceSetFeatureModal,
@@ -31,22 +44,51 @@ import {
   SKStreamFacade,
   SKSTREAM_MODE,
   StreamOptions,
-  AlarmsFacade,
-  AlarmsDialog,
-  SKResources,
+  AnchorService,
+  SKResourceService,
   SKVessel,
   SKSaR,
   SKAircraft,
   SKAtoN,
-  SKOtherResources,
+  FBCustomResourceService,
   SKRegion,
   WeatherForecastModal,
-  CourseSettingsModal
+  CourseSettingsModal,
+  NotificationManager,
+  GPXImportDialog,
+  GPXExportDialog,
+  CourseService,
+  SettingsFacade,
+  AutopilotService,
+  FBMapComponent,
+  ExperimentsComponent,
+  AnchorWatchComponent,
+  AlertComponent,
+  AlertListComponent,
+  AutopilotComponent,
+  RouteNextPointComponent,
+  RouteListComponent,
+  WaypointListComponent,
+  ChartListComponent,
+  NoteListComponent,
+  RegionListComponent,
+  TrackListComponent,
+  AISListComponent,
+  GroupListComponent,
+  InfoLayerListComponent,
+  BuildRouteComponent
 } from 'src/app/modules';
 
-import { SignalKClient } from 'signalk-client-angular';
+import {
+  AboutDialog,
+  LoginDialog,
+  PlaybackDialog,
+  GeoJSONImportDialog,
+  Trail2RouteDialog
+} from 'src/app/lib/components/dialogs';
 import { Convert } from 'src/app/lib/convert';
 import { GeoUtils } from 'src/app/lib/geoutils';
+
 import * as semver from 'semver';
 
 import {
@@ -55,9 +97,16 @@ import {
   LineString,
   Polygon,
   FBRoute,
-  Position
+  Position,
+  ErrorList
 } from './types';
 import { Feature } from 'ol';
+import {
+  DrawFeatureType,
+  FBMapInteractService,
+  DrawFeatureInfo,
+  SelectionResultDef
+} from './modules/map/fbmap-interact.service';
 
 interface DrawEndEvent {
   coordinates: LineString | Position | Polygon;
@@ -73,83 +122,183 @@ interface DrawEndEvent {
 @Component({
   selector: 'app-root',
   templateUrl: './app.component.html',
-  styleUrls: ['./app.component.css']
+  styleUrls: ['./app.component.css'],
+  imports: [
+    MatMenuModule,
+    MatSidenavModule,
+    MatBadgeModule,
+    MatButtonModule,
+    MatListModule,
+    MatIconModule,
+    MatTooltipModule,
+    MatProgressBarModule,
+    CommonModule,
+    TextDialComponent,
+    TTGDialComponent,
+    ETADialComponent,
+    FileInputComponent,
+    PiPVideoComponent,
+    MFBContainerComponent,
+    InteractionHelpComponent,
+    FBMapComponent,
+    ExperimentsComponent,
+    AnchorWatchComponent,
+    AlertComponent,
+    AlertListComponent,
+    AutopilotComponent,
+    RouteNextPointComponent,
+    RouteListComponent,
+    WaypointListComponent,
+    ChartListComponent,
+    NoteListComponent,
+    RegionListComponent,
+    TrackListComponent,
+    AISListComponent,
+    GroupListComponent,
+    InfoLayerListComponent,
+    BuildRouteComponent
+  ]
 })
 export class AppComponent {
   @ViewChild('sideright', { static: false }) sideright;
 
-  public display = {
-    fullscreen: { active: false, enabled: document.fullscreenEnabled },
+  protected navDataPanel = signal<{
+    show: boolean;
+    nextPointCtrl: boolean;
+    apModeColor: string;
+    apModeText: string;
+  }>({
+    show: false,
+    nextPointCtrl: false,
+    apModeColor: '',
+    apModeText: ''
+  });
+
+  protected playbackTime = signal<string | null>(null);
+
+  protected instrumentPanel = signal<{
+    open: boolean;
+    activate: boolean;
+  }>({
+    open: false,
+    activate: false
+  });
+
+  protected leftMenuCtrl = signal<{
+    leftMenuPanel: boolean;
+    routeList: boolean;
+    waypointList: boolean;
+    chartList: boolean;
+    noteList: boolean;
+    regionList: boolean;
+    trackList: boolean;
+    aisList: boolean;
+    resourceGroups: boolean;
+    infoLayerList: boolean;
+    anchorWatch: boolean;
+  }>({
     leftMenuPanel: false,
-    instrumentPanelOpen: true,
-    instrumentAppActive: true,
     routeList: false,
     waypointList: false,
     chartList: false,
     noteList: false,
+    regionList: false,
+    trackList: false,
     aisList: false,
-    anchorWatch: false,
-    navDataPanel: {
-      show: false,
-      nextPointCtrl: false,
-      apModeColor: '',
-      apModeText: ''
-    },
-    playback: { time: null },
-    map: { center: [0, 0], setFocus: false },
-    audio: { state: '' }
-  };
+    resourceGroups: false,
+    infoLayerList: false,
+    anchorWatch: false
+  });
 
-  public draw = {
-    enabled: false,
-    mode: null,
-    type: null,
-    modify: false,
-    modifyMode: null,
-    forSave: null,
-    properties: {}
-  };
+  protected displayFullscreen = signal<{
+    active: boolean;
+    enabled: boolean;
+  }>({
+    active: false,
+    enabled: document.fullscreenEnabled
+  });
 
-  public measure = { enabled: false };
-
-  // ** APP features / mode **
+  // APP features / mode
   public features = { playbackAPI: true };
   public mode: SKSTREAM_MODE = SKSTREAM_MODE.REALTIME; // current mode
 
   private timers = [];
 
-  // ** external resources **
-  private lastInstUrl: string;
-  private lastInstParams: string;
-  public instUrl: SafeResourceUrl;
-  private lastVideoUrl: string;
+  // external resources
+  protected instUrl = signal<SafeResourceUrl | null>(null);
   private selFavourite = -1;
-  public vidUrl: SafeResourceUrl;
+  protected vidUrl = signal<SafeResourceUrl | null>(null);
 
   public convert = Convert;
   private obsList = []; // observables array
   private streamOptions = { options: null, toMode: null };
 
+  protected mapSetFocus = signal<string>('');
+  protected mapCenter = signal<Position>([0, 0]);
+  protected audioStatus = signal<string>('');
+  protected isInteracting = computed(() => {
+    return (
+      this.mapInteract.isMeasuring() ||
+      this.mapInteract.isDrawing() ||
+      this.mapInteract.isModifying() ||
+      this.mapInteract.isBoxSelecting()
+    );
+  });
+
   constructor(
-    public app: AppInfo,
-    public alarmsFacade: AlarmsFacade,
-    private stream: SKStreamFacade,
-    public skres: SKResources,
-    public skresOther: SKOtherResources,
-    public signalk: SignalKClient,
+    protected app: AppFacade,
+    protected mapInteract: FBMapInteractService,
+    protected anchor: AnchorService,
+    protected notiMgr: NotificationManager,
+    protected course: CourseService,
+    protected stream: SKStreamFacade,
+    protected skres: SKResourceService,
+    protected skresOther: FBCustomResourceService,
+    protected signalk: SignalKClient,
     private dom: DomSanitizer,
     private overlayContainer: OverlayContainer,
     private bottomSheet: MatBottomSheet,
-    private dialog: MatDialog
+    private dialog: MatDialog,
+    protected wakeLock: WakeLockService,
+    private settings: SettingsFacade,
+    protected autopilot: AutopilotService
   ) {
     // set self to active vessel
     this.app.data.vessels.active = this.app.data.vessels.self;
+
+    // CONFIG$ - handle app.config$ event
+    this.obsList.push(
+      this.app.config$.subscribe((value: string) => {
+        // config has been loaded and cleaned (ready)
+        if (value === 'ready') {
+          this.fetchResources(true);
+        }
+      })
+    );
+
+    // handle skAuthChange signal
+    effect(() => {
+      this.app.debug('** skAuthChange Event:', this.app.skAuthChange());
+      this.handleSKAuthChange();
+    });
+    // handle kioskMode signal
+    effect(() => {
+      this.app.debug('** kioskMode Event:', this.app.kioskMode());
+      this.toggleSuppressContextMenu(this.app.kioskMode());
+    });
+    // handle map interaction selection signal
+    effect(() => {
+      this.handleSelectionEnded(this.mapInteract.selection());
+    });
   }
 
   // ********* LIFECYCLE ****************
 
   ngAfterViewInit() {
     setTimeout(() => {
+      if (!this.app.config.display.disableWakelock) {
+        this.wakeLock.enable();
+      }
       const wr = this.app.showWelcome();
       if (wr) {
         wr.afterClosed().subscribe((r) => {
@@ -159,47 +308,39 @@ export class AppComponent {
     }, 500);
   }
 
-  enableAudio() {
+  protected enableAudio() {
     if (this.app.audio.context) {
       this.app.audio.context.resume();
     }
   }
 
-  handleHasWakeLock(value: boolean) {
-    setTimeout(() => (this.app.data.hasWakeLock = value), 500);
-  }
-
-  handleWakelockChange(value: boolean) {
-    this.app.config.selections.wakeLock = value;
-    this.app.saveConfig();
-  }
-
   ngOnInit() {
     // ** audio context handing **
-    this.display.audio.state = this.app.audio.context.state;
-    this.app.debug('audio state:', this.display.audio.state);
+    this.audioStatus.update(() => this.app.audio.context.state);
+    this.app.debug('audio state:', this.audioStatus());
     this.app.audio.context.onstatechange = () => {
       this.app.debug('audio statechange:', this.app.audio.context.state);
-      this.display.audio.state = this.app.audio.context.state;
+      this.audioStatus.update(() => this.app.audio.context.state);
     };
 
     // ** apply loaded app config
-    this.display.map.center = this.app.config.map.center;
-    if (this.app.config.plugins.startOnOpen) {
-      this.display.instrumentAppActive = false;
-    }
+    this.mapCenter.update(() => this.app.config.map.center);
+    this.instrumentPanel.update((current) => {
+      return Object.assign({}, current, {
+        activate: !this.app.config.display.plugins.startOnOpen
+      });
+    });
 
     // overlay dark-theme
     this.setDarkTheme();
 
-    this.lastInstUrl = this.app.config.plugins.instruments;
-    this.lastInstParams = this.app.config.plugins.parameters;
-    this.instUrl = this.dom.bypassSecurityTrustResourceUrl(
-      this.formatInstrumentsUrl()
+    this.instUrl.update(() =>
+      this.dom.bypassSecurityTrustResourceUrl(this.formatInstrumentsUrl())
     );
-    this.lastVideoUrl = this.app.config.resources.video.url;
-    this.vidUrl = this.dom.bypassSecurityTrustResourceUrl(
-      `${this.app.config.resources.video.url}`
+    this.vidUrl.update(() =>
+      this.dom.bypassSecurityTrustResourceUrl(
+        `${this.app.config.resources.video.url}`
+      )
     );
 
     // ** connect to signalk server and intialise
@@ -235,48 +376,30 @@ export class AppComponent {
           this.onError(msg)
         )
     );
+    // ** TRAIL$ update event
     this.obsList.push(
-      this.stream.trail$().subscribe((msg) => this.handleResourceUpdate(msg))
-    );
-    // ** RESOURCES update event
-    this.obsList.push(
-      this.skres
-        .update$()
-        .subscribe((value) => this.handleResourceUpdate(value))
-    );
-    // ** SETTINGS - handle settings load / save events
-    this.obsList.push(
-      this.app.settings$.subscribe((value: SettingsMessage) =>
-        this.handleSettingsEvent(value)
-      )
+      this.stream.trail$().subscribe((msg) => this.handleTrailUpdate(msg))
     );
 
-    // ** NOTIFICATIONS - Anchor Status **
+    // ** SETTINGS.CHANGE$ - handle settings.change$ event
     this.obsList.push(
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      this.alarmsFacade.anchorStatus$().subscribe((r: any) => {
-        if (r.error) {
-          if (r.result.status === 401) {
-            this.showLogin();
-          } else {
-            this.app.showAlert('Anchor Watch:', r.result.message);
-          }
-        }
-      })
+      this.settings.change$.subscribe((value: string[]) =>
+        this.handleSettingChangeEvent(value)
+      )
     );
 
     // fullscreen event handlers
     document.addEventListener('fullscreenchange', () => {
-      //console.log(document.fullscreenElement)
-      if (document.fullscreenElement) {
-        this.display.fullscreen.active = true;
-      } else {
-        this.display.fullscreen.active = false;
-      }
+      this.displayFullscreen.update((current) =>
+        Object.assign({}, current, {
+          active: document.fullscreenElement ? true : false
+        })
+      );
     });
     document.addEventListener('fullscreenerror', (e) => {
-      console.warn(e);
-      this.display.fullscreen.active = false;
+      this.displayFullscreen.update((current) =>
+        Object.assign({}, current, { active: false })
+      );
     });
   }
 
@@ -291,36 +414,81 @@ export class AppComponent {
   // ********* DISPLAY / APPEARANCE ****************
 
   // ** return the map orientation **
-  getOrientation() {
-    return this.app.config.map.northUp
+  protected getOrientation() {
+    return this.app.uiConfig().mapNorthUp
       ? 'rotate(' + 0 + 'deg)'
       : 'rotate(' + (0 - this.app.data.vessels.active.orientation) + 'rad)';
   }
 
-  public toggleToolbarButtons() {
-    this.app.config.toolBarButtons = !this.app.config.toolBarButtons;
-    this.app.saveConfig();
+  /** TOOLBAR ACTIONS */
+
+  protected toggleMoveMap(exit = false) {
+    this.app.uiConfig.update((current) => {
+      const mm = exit ? false : !current.mapMove;
+      return Object.assign({}, current, { mapMove: mm });
+    });
     this.focusMap();
   }
 
-  public toggleLimitMapZoom() {
-    this.app.config.map.limitZoom = this.app.config.map.limitZoom
-      ? false
-      : true;
+  protected toggleNorthUp() {
+    this.app.uiConfig.update((current) => {
+      return Object.assign({}, current, { mapNorthUp: !current.mapNorthUp });
+    });
+    this.focusMap();
+  }
+
+  protected toggleToolbarButtons() {
+    this.app.uiConfig.update((current) => {
+      return Object.assign({}, current, {
+        toolbarButtons: !current.toolbarButtons
+      });
+    });
+    this.focusMap();
+  }
+
+  protected toggleConstrainMapZoom() {
+    this.app.uiConfig.update((current) => {
+      return Object.assign({}, current, {
+        mapConstrainZoom: !current.mapConstrainZoom
+      });
+    });
     this.skres.setMapZoomRange();
-    this.app.saveConfig();
     this.focusMap();
   }
 
-  public invertAISTextColor() {
-    this.app.config.map.invertColor = this.app.config.map.invertColor
-      ? false
-      : true;
-    this.app.saveConfig();
+  protected invertFeatureLabelColor() {
+    this.app.uiConfig.update((current) => {
+      return Object.assign({}, current, { invertColor: !current.invertColor });
+    });
     this.focusMap();
   }
 
-  public toggleFullscreen() {
+  protected toggleAlertList(show: boolean) {
+    this.app.uiCtrl.update((current) => {
+      return Object.assign({}, current, { alertList: show });
+    });
+  }
+
+  protected toggleAutopilotConsole(show: boolean) {
+    this.app.uiCtrl.update((current) => {
+      return Object.assign({}, current, { autopilotConsole: show });
+    });
+  }
+
+  protected toggleRouteBuilderConsole(show: boolean) {
+    this.app.uiCtrl.update((current) => {
+      return Object.assign({}, current, { routeBuilder: show });
+    });
+  }
+
+  protected toggleSuppressContextMenu(value: boolean) {
+    this.app.uiCtrl.update((current) => {
+      return Object.assign({}, current, { suppressContextMenu: value });
+    });
+  }
+
+  /** fullscreen mode */
+  protected toggleFullscreen() {
     const docel = document.documentElement;
     const fscreen =
       docel.requestFullscreen ||
@@ -337,44 +505,46 @@ export class AppComponent {
     }
   }
 
+  /** ************* */
+
   private setDarkTheme() {
     const mq = window.matchMedia('(prefers-color-scheme: dark)');
 
     if (
-      (this.app.config.darkMode.source === 0 && mq.matches) ||
-      (this.app.config.darkMode.source === 1 &&
-        this.app.data.vessels.self.mode === 'night') ||
-      this.app.config.darkMode.source === -1
+      (this.app.config.display.darkMode.source === 0 && mq.matches) ||
+      (this.app.config.display.darkMode.source === 1 &&
+        this.app.data.vessels.self.environment.mode === 'night') ||
+      this.app.config.display.darkMode.source === -1
     ) {
       this.overlayContainer.getContainerElement().classList.add('dark-theme');
-      this.app.config.darkMode.enabled = true;
+      this.app.config.display.darkMode.enabled = true;
     } else {
       this.overlayContainer
         .getContainerElement()
         .classList.remove('dark-theme');
-      this.app.config.darkMode.enabled = false;
+      this.app.config.display.darkMode.enabled = false;
     }
   }
 
   private formatInstrumentsUrl() {
-    const url = `${this.app.host}${this.app.config.plugins.instruments}`;
-    const params = this.app.config.plugins.parameters
-      ? this.app.config.plugins.parameters.length > 0 &&
-        this.app.config.plugins.parameters[0] !== '?'
-        ? `?${this.app.config.plugins.parameters}`
-        : this.app.config.plugins.parameters
+    const url = `${this.app.hostDef.url}${this.app.config.display.plugins.instruments}`;
+    const params = this.app.config.display.plugins.parameters
+      ? this.app.config.display.plugins.parameters.length > 0 &&
+        this.app.config.display.plugins.parameters[0] !== '?'
+        ? `?${this.app.config.display.plugins.parameters}`
+        : this.app.config.display.plugins.parameters
       : '';
     return params ? `${url}/${params}` : url;
   }
 
   // ** select prev/next favourite plugin **
-  public selectPlugin(next = false) {
+  protected selectPlugin(next = false) {
     if (next) {
       if (this.selFavourite === -1) {
         this.selFavourite = 0;
       } else if (
         this.selFavourite ===
-        this.app.config.selections.pluginFavourites.length - 1
+        this.app.config.display.plugins.favourites.length - 1
       ) {
         this.selFavourite = -1;
       } else {
@@ -383,7 +553,7 @@ export class AppComponent {
     } else {
       if (this.selFavourite === -1) {
         this.selFavourite =
-          this.app.config.selections.pluginFavourites.length - 1;
+          this.app.config.display.plugins.favourites.length - 1;
       } else if (this.selFavourite === 0) {
         this.selFavourite = -1;
       } else {
@@ -393,21 +563,32 @@ export class AppComponent {
     const url =
       this.selFavourite === -1
         ? this.formatInstrumentsUrl()
-        : `${this.app.host}${
-            this.app.config.selections.pluginFavourites[this.selFavourite]
+        : `${this.app.hostDef.url}${
+            this.app.config.display.plugins.favourites[this.selFavourite]
           }`;
 
-    this.instUrl = this.dom.bypassSecurityTrustResourceUrl(url);
+    this.instUrl.update(() => this.dom.bypassSecurityTrustResourceUrl(url));
+  }
+
+  /** handle infolayer parameter change **/
+  protected onInfoLayerParamChange(param: {
+    id: string;
+    param: { [key: string]: any };
+  }) {
+    this.skresOther.infoLayerParams.update(() => [param]);
   }
 
   // ** handle map context menu selections **
-  public handleContextMenuSelection(action: string) {
+  protected handleContextMenuSelection(action: string) {
     switch (action) {
       case 'cleartrail':
         this.clearTrail(this.app.data.serverTrail);
         break;
       case 'trail2route':
         this.trailToRoute();
+        break;
+      case 'cleardestination':
+        this.clearDestination();
         break;
       case 'anchor':
         this.displayLeftMenu('anchorWatch', true);
@@ -418,27 +599,31 @@ export class AppComponent {
     }
   }
   // ** create route from vessel trail **
-  public trailToRoute() {
+  protected trailToRoute() {
     this.dialog
       .open(Trail2RouteDialog, {
         disableClose: true,
-        data: { trail: this.app.data.trail }
+        data: { trail: this.app.selfTrail() }
       })
       .afterClosed()
       .subscribe((r) => {
         if (r.result) {
-          this.skres.showRouteNew({ coordinates: r.data });
+          this.skres.newRouteAt(r.data);
         }
         this.focusMap();
       });
   }
 
-  public showWeather(mode: string) {
+  protected showWeather(mode: string) {
     if (mode === 'forecast') {
       this.bottomSheet
         .open(WeatherForecastModal, {
           disableClose: true,
-          data: { title: 'Forecast' }
+          data: {
+            title: 'Forecast',
+            position: this.app.data.vessels.self.position,
+            subTitle: 'Location: Vessel Position'
+          }
         })
         .afterDismissed()
         .subscribe(() => {
@@ -447,19 +632,25 @@ export class AppComponent {
     }
   }
 
-  // ** display selected experiment UI **
-  public openExperiment(e) {
+  // display selected experiment UI
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  protected openExperiment(e: { choice: string; value?: any }) {
     switch (e.choice) {
-      case 'tracks': // tracks
-        this.bottomSheet
-          .open(TracksModal, {
-            disableClose: true,
-            data: { title: 'Tracks', skres: this.skres }
-          })
-          .afterDismissed()
-          .subscribe(() => {
-            this.focusMap();
-          });
+      case 'debugCapture':
+        if (window.isSecureContext) {
+          navigator.clipboard.writeText(
+            JSON.stringify({
+              data: this.app.data,
+              config: this.app.config
+            })
+          );
+          this.app.showMessage('Debug data catpured to clipboard.');
+        } else {
+          this.app.showAlert(
+            'Feature Unavailable',
+            'This feature is only available in a secure context!\n e.g. https, http://localhost, http://127.0.0.1'
+          );
+        }
         break;
       default:
         // resource set
@@ -467,7 +658,7 @@ export class AppComponent {
           this.bottomSheet
             .open(ResourceSetModal, {
               disableClose: true,
-              data: { path: e.choice, skres: this.skresOther }
+              data: { path: e.choice }
             })
             .afterDismissed()
             .subscribe(() => {
@@ -478,7 +669,7 @@ export class AppComponent {
   }
 
   // ** display course settings screen **
-  public openCourseSettings() {
+  protected openCourseSettings() {
     this.bottomSheet
       .open(CourseSettingsModal, {
         disableClose: true,
@@ -491,96 +682,96 @@ export class AppComponent {
   }
 
   // ************************************************
+  /** Handle SignalK Auth token value change */
+  protected handleSKAuthChange() {
+    this.signalk.getLoginStatus().subscribe((r) => {
+      this.app.data.loginRequired = r.authenticationRequired ?? false;
+      this.app.isLoggedIn.update(() =>
+        r.status === 'loggedIn' ? true : false
+      );
+      // ** Request using cached auth token and display badge
+      this.signalk.get('/plugins/freeboard-sk').subscribe(
+        () => {
+          this.app.debug('User Authenticated');
+          this.app.isLoggedIn.set(true);
+        },
+        (err: HttpErrorResponse) => {
+          if (err.status === 401) {
+            this.app.debug('User NOT Authenticated');
+            this.app.isLoggedIn.set(false);
+          }
+        }
+      );
+    });
+  }
 
-  // ** establish connection to server
+  /** establish connection to server */
   private connectSignalKServer() {
     this.app.data.selfId = null;
     this.app.data.server = null;
-    this.signalk.proxied = this.app.config.selections.signalk.proxied;
+    this.signalk.proxied = this.app.config.signalk.proxied;
     this.signalk
-      .connect(this.app.hostName, this.app.hostPort, this.app.hostSSL)
+      .connect(
+        this.app.hostDef.name,
+        this.app.hostDef.port,
+        this.app.hostDef.ssl
+      )
       .subscribe(
         () => {
-          this.signalk.authToken = this.app.getToken();
-
-          this.signalk.getLoginStatus().subscribe((r) => {
-            this.app.data.loginRequired = r.authenticationRequired ?? false;
-            this.app.data.loggedIn = r.status === 'loggedIn' ? true : false;
-            // ** Request using cached auth token and display badge
-            this.signalk.get('/plugins/freeboard-sk').subscribe(
-              () => {
-                this.app.debug('User Authenticated');
-                this.app.data.loggedIn = true;
-              },
-              (err: HttpErrorResponse) => {
-                if (err.status === 401) {
-                  this.app.data.loggedIn = false;
-                }
-              }
-            );
-          });
-
-          this.app.loadSettingsfromServer().subscribe((r) => {
-            const msg = r
-              ? 'Settings loaded from server.'
-              : 'Error loading Settings from server!';
-            console.log(msg);
-            if (r) {
-              this.skres.alignResourceSelections();
-            }
-          });
-
+          this.signalk.authToken = this.app.getFBToken();
+          this.app.watchSKLogin();
+          this.app.loadSettingsfromServer();
           this.getFeatures();
           this.app.data.server = this.signalk.server.info;
           this.openSKStream();
         },
         () => {
-          this.app
-            .showAlert(
-              'Connection Error:',
-              'Unable to contact Signal K server!',
-              'Try Again'
-            )
-            .subscribe(() => {
-              this.connectSignalKServer();
-            });
+          this.app.showMessage(
+            'Unable to contact Signal K server! (Retrying in 5 secs)',
+            false,
+            5000
+          );
+          setTimeout(() => this.connectSignalKServer(), 5000);
         }
       );
   }
 
   // ** discover server features **
-  private getFeatures() {
+  private async getFeatures() {
     // check server features
+    const ff = {
+      anchorApi: false,
+      autopilotApi: false,
+      weatherApi: false,
+      buddyList: false,
+      radarApi: false
+    };
     this.signalk.get('/signalk/v2/features?enabled=1').subscribe(
       (res: {
         apis: string[];
         plugins: Array<{ id: string; version: string }>;
       }) => {
         // detect apis
-        this.app.data.weather.hasApi = res.apis.includes('weather');
+        ff.weatherApi = res.apis.includes('weather');
+        ff.autopilotApi = res.apis.includes('autopilot');
+        ff.radarApi = res.apis.includes('radar');
 
         // detect plugins
         const hasPlugin = {
           charts: false,
           pmTiles: false
         };
-        this.app.data.anchor.hasApi = false;
+
         res.plugins.forEach((p: { id: string; version: string }) => {
           // anchor alarm
           if (p.id === 'anchoralarm') {
             this.app.debug('*** found anchoralarm plugin');
-            this.app.data.anchor.hasApi = true;
+            ff.anchorApi = true;
           }
-          // charts v2 api support
-          if (p.id === 'charts') {
-            this.app.debug('*** found charts plugin');
-            hasPlugin.charts = true;
-            if (
-              semver.satisfies(p.version, '>=3.0.0') &&
-              this.app.config.chartApi === 1
-            ) {
-              this.app.config.chartApi = 2;
-            }
+          // buddy list
+          if (p.id === 'signalk-buddylist-plugin') {
+            this.app.debug('*** found buddylist plugin');
+            ff.buddyList = semver.satisfies(p.version, '>1.2.0') ? true : false;
           }
           // PMTiles support
           if (p.id === 'signalk-pmtiles-plugin') {
@@ -588,28 +779,20 @@ export class AppComponent {
             hasPlugin.pmTiles = true;
           }
         });
-        // finalise
-        if (hasPlugin.pmTiles && !hasPlugin.charts) {
-          this.app.config.chartApi = 2;
-        }
+        this.app.featureFlags.update((current) => {
+          return Object.assign({}, current, ff);
+        });
       },
       () => {
         this.app.debug('*** Features API not present!');
-        this.app.data.anchor.hasApi = true;
       }
     );
 
-    // check for Autopilot API
-    this.signalk.api
-      .get(this.app.skApiVersion, 'vessels/self/steering/autopilot')
-      .subscribe(
-        () => {
-          this.app.data.autopilot.hasApi = true;
-        },
-        () => {
-          this.app.data.autopilot.hasApi = false;
-        }
-      );
+    // Check for custom resource collections
+    const rcs = await this.skresOther.initCustomCollections();
+    this.app.featureFlags.update((current) => {
+      return Object.assign({}, current, rcs);
+    });
   }
 
   // ** start trail / AIS timers
@@ -629,193 +812,211 @@ export class AppComponent {
     this.timers = [];
   }
 
-  // ** process local vessel trail **
-  private processTrail(trailData?) {
-    if (!this.app.config.selections.vessel.trail) {
+  /** process local vessel trail
+   * @param trailData Vessel trail data from server (stream.trail$)
+   */
+  private processTrail(trailData?: LineString) {
+    if (!this.app.config.vessels.trail) {
       return;
     }
     // ** update vessel trail **
-    const t = this.app.data.trail.slice(-1);
+    const t = this.app.selfTrail().slice(-1);
     if (this.app.data.vessels.showSelf) {
       if (t.length === 0) {
-        this.app.data.trail.push(this.app.data.vessels.active.position);
+        this.app.selfTrail.update((current) => {
+          const st = [].concat(current);
+          st.push(this.app.data.vessels.self.position);
+          return st;
+        });
         return;
       }
       if (
-        this.app.data.vessels.active.position[0] !== t[0][0] ||
-        this.app.data.vessels.active.position[1] !== t[0][1]
+        this.app.data.vessels.self.position[0] !== t[0][0] ||
+        this.app.data.vessels.self.position[1] !== t[0][1]
       ) {
-        this.app.data.trail.push(this.app.data.vessels.active.position);
+        this.app.selfTrail.update((current) => {
+          const st = [].concat(current);
+          st.push(this.app.data.vessels.self.position);
+          return st;
+        });
       }
     }
+
     if (!trailData || trailData.length === 0) {
       // no server trail data supplied
-      if (this.app.data.trail.length % 60 === 0 && this.app.data.serverTrail) {
-        if (this.app.config.selections.trailFromServer) {
-          this.skres.getVesselTrail(); // request trail from server
+      if (this.app.selfTrail().length % 60 === 0 && this.app.data.serverTrail) {
+        if (this.app.config.vessels.trailFromServer) {
+          this.stream.requestTrailFromServer(); // request trail from server
         }
       }
-      this.app.data.trail = this.app.data.trail.slice(-5000);
+      this.app.selfTrail.update((current) => current.slice(-5000));
     } else {
       // use server trail data, keep minimal local trail data
       const lastseg = trailData.slice(-1);
-      const lastpt =
+      const lastpt: any =
         lastseg.length !== 0
           ? lastseg[0].slice(-1)
           : trailData.length > 1
-          ? trailData[trailData.length - 2].slice(-1)
-          : [];
-      this.app.data.trail = lastpt;
+            ? trailData[trailData.length - 2].slice(-1)
+            : [];
+      this.app.selfTrail.update(() => lastpt);
     }
     const trailId = this.mode === SKSTREAM_MODE.PLAYBACK ? 'history' : 'self';
-    this.app.db.saveTrail(trailId, this.app.data.trail);
+    this.app.db.saveTrail(trailId, this.app.selfTrail());
   }
 
-  // ** RESOURCES event handlers **
-  private handleResourceUpdate(e) {
-    // ** handle routes get and update NavData based on activeRoute
-    if (e.action === 'get' && e.mode === 'route') {
-      //this.updateNavPanel(e);
-    }
-    // ** trail retrieved from server **
+  // ** stream.trail$ event handler (vessel trail from server) **
+  private handleTrailUpdate(e: { action: string; mode: string; data: any[] }) {
     if (e.action === 'get' && e.mode === 'trail') {
+      if (this.app.config.vessels.trailFromServer) {
+        this.app.selfTrailFromServer.update(() => {
+          return e.data;
+        });
+      }
       this.processTrail(e.data);
     }
-    // ** create note in group **
-    if (e.action === 'new' && e.mode === 'note') {
-      if (this.app.config.resources.notes.groupRequiresPosition) {
-        this.drawStart(e.mode, { group: e.group });
-      } else {
-        this.skres.showNoteEditor({ group: e.group });
-      }
-    }
   }
 
-  // ** SETTINGS event handler **
-  private handleSettingsEvent(e: SettingsMessage) {
-    this.app.debug(`App: settings.update$`, 'warn');
-    if (e.action === 'load' && e.setting === 'config') {
-      this.app.data.trueMagChoice = this.app.config.selections.headingAttribute;
+  /** Handle setting change events
+   * @param e setting change identifier
+   */
+  private handleSettingChangeEvent(e: string[]) {
+    if (e.includes('darkTheme')) {
+      this.setDarkTheme();
     }
-    if (e.action === 'save' && e.setting === 'config') {
-      this.setDarkTheme(); // **  set theme **
-      if (
-        this.app.data.trueMagChoice !==
-        this.app.config.selections.headingAttribute
-      ) {
-        this.app.debug('True / Magnetic selection changed..');
-        this.app.data.vessels.self.heading = this.app.useMagnetic
-          ? this.app.data.vessels.self.headingMagnetic
-          : this.app.data.vessels.self.headingTrue;
-        this.app.data.vessels.self.cog = this.app.useMagnetic
-          ? this.app.data.vessels.self.cogMagnetic
-          : this.app.data.vessels.self.cogTrue;
-        this.app.data.vessels.self.wind.direction = this.app.useMagnetic
-          ? this.app.data.vessels.self.wind.mwd
-          : this.app.data.vessels.self.wind.twd;
 
-        this.app.data.vessels.aisTargets.forEach((v) => {
-          v.heading = this.app.useMagnetic ? v.headingMagnetic : v.headingTrue;
-          v.cog = this.app.useMagnetic ? v.cogMagnetic : v.cogTrue;
-          v.wind.direction = this.app.useMagnetic ? v.wind.mwd : v.wind.twd;
+    if (e.includes('headingAttribute')) {
+      this.app.debug('True / Magnetic selection changed..');
+      this.app.data.vessels.self.heading = this.app.useMagnetic
+        ? this.app.data.vessels.self.headingMagnetic
+        : this.app.data.vessels.self.headingTrue;
+      this.app.data.vessels.self.cog = this.app.useMagnetic
+        ? this.app.data.vessels.self.cogMagnetic
+        : this.app.data.vessels.self.cogTrue;
+      this.app.data.vessels.self.wind.direction = this.app.useMagnetic
+        ? this.app.data.vessels.self.wind.mwd
+        : this.app.data.vessels.self.wind.twd;
+
+      this.app.data.vessels.aisTargets.forEach((v) => {
+        v.heading = this.app.useMagnetic ? v.headingMagnetic : v.headingTrue;
+        v.cog = this.app.useMagnetic ? v.cogMagnetic : v.cogTrue;
+        v.wind.direction = this.app.useMagnetic ? v.wind.mwd : v.wind.twd;
+      });
+      this.app.sTrueMagChoice.set(this.app.config.units.headingAttribute);
+    }
+
+    if (
+      e.includes('pluginParameters') ||
+      e.includes('pluginInstruments') ||
+      e.includes('pluginStartOnOpen')
+    ) {
+      this.instUrl.update(() =>
+        this.dom.bypassSecurityTrustResourceUrl(this.formatInstrumentsUrl())
+      );
+      // update instrument app state
+      this.instrumentPanel.update((current) => {
+        return Object.assign({}, current, {
+          activate: this.app.config.display.plugins.startOnOpen
+            ? current.open
+              ? true
+              : false
+            : true
         });
-        this.app.data.trueMagChoice =
-          this.app.config.selections.headingAttribute;
-      }
+      });
+    }
 
-      if (
-        this.lastInstUrl !== this.app.config.plugins.instruments ||
-        this.lastInstParams !== this.app.config.plugins.parameters
-      ) {
-        this.lastInstUrl = this.app.config.plugins.instruments;
-        this.lastInstParams = this.app.config.plugins.parameters;
-        this.instUrl = this.dom.bypassSecurityTrustResourceUrl(
-          this.formatInstrumentsUrl()
-        );
-      }
-      if (this.lastVideoUrl !== this.app.config.resources.video.url) {
-        this.lastVideoUrl = this.app.config.resources.video.url;
-        this.vidUrl = this.dom.bypassSecurityTrustResourceUrl(
+    if (e.includes('videoUrl')) {
+      this.vidUrl.update(() =>
+        this.dom.bypassSecurityTrustResourceUrl(
           `${this.app.config.resources.video.url}`
-        );
-      }
-      // ** trail **
-      if (this.app.config.selections.vessel.trail) {
+        )
+      );
+    }
+
+    // ** trail **
+    if (e.includes('vesselTrail') || e.includes('trailFromServer')) {
+      if (this.app.config.vessels.trail) {
         // show trail
-        if (this.app.config.selections.trailFromServer) {
-          this.skres.getVesselTrail();
+        if (this.app.config.vessels.trailFromServer) {
+          this.stream.requestTrailFromServer();
         } else {
           this.app.data.serverTrail = false;
         }
       }
     }
-    // update instrument app state
-    if (this.app.config.plugins.startOnOpen) {
-      if (!this.display.instrumentPanelOpen) {
-        this.display.instrumentAppActive = false;
-      }
-    } else {
-      this.display.instrumentAppActive = true;
-    }
   }
 
   // ** trigger focus of the map so keyboard controls work
-  public focusMap() {
-    this.display.map.setFocus = true;
-    // reset value to ensure change detection
-    setTimeout(() => {
-      this.display.map.setFocus = false;
-    }, 1000);
+  protected focusMap() {
+    this.mapSetFocus.update(() => Date().valueOf());
   }
 
   // ********* SIDENAV ACTIONS *************
 
-  public leftSideNavAction(e: boolean) {
+  protected rightSideNavAction(e: boolean) {
+    this.instrumentPanel.update((current) => {
+      return Object.assign({}, current, {
+        open: e,
+        activate: this.app.config.display.plugins.startOnOpen
+          ? e
+          : current.activate
+      });
+    });
     if (!e) {
       this.focusMap();
     } // set when closed
   }
 
-  public rightSideNavAction(e: boolean) {
-    this.display.instrumentPanelOpen = e;
-    if (this.app.config.plugins.startOnOpen) {
-      this.display.instrumentAppActive = e;
-    }
-    if (!e) {
-      this.focusMap();
-    } // set when closed
-  }
-
-  public displayLeftMenu(menulist = '', show = false) {
-    this.display.leftMenuPanel = show;
-    this.display.routeList = false;
-    this.display.waypointList = false;
-    this.display.chartList = false;
-    this.display.noteList = false;
-    this.display.aisList = false;
-    this.display.anchorWatch = false;
+  /** control left menu display  */
+  protected displayLeftMenu(menulist = '', show = false) {
+    const lm = {
+      leftMenuPanel: show,
+      routeList: false,
+      waypointList: false,
+      chartList: false,
+      noteList: false,
+      regionList: false,
+      trackList: false,
+      aisList: false,
+      resourceGroups: false,
+      infoLayerList: false,
+      anchorWatch: false
+    };
     switch (menulist) {
       case 'routeList':
-        this.display.routeList = show;
+        lm.routeList = show;
         break;
       case 'waypointList':
-        this.display.waypointList = show;
+        lm.waypointList = show;
         break;
       case 'chartList':
-        this.display.chartList = show;
+        lm.chartList = show;
         break;
       case 'noteList':
-        this.display.noteList = show;
+        lm.noteList = show;
+        break;
+      case 'regionList':
+        lm.regionList = show;
+        break;
+      case 'trackList':
+        lm.trackList = show;
         break;
       case 'anchorWatch':
-        this.display.anchorWatch = show;
+        lm.anchorWatch = show;
         break;
       case 'aisList':
-        this.display.aisList = show;
+        lm.aisList = show;
+        break;
+      case 'resourceGroups':
+        lm.resourceGroups = show;
+        break;
+      case 'infoLayerList':
+        lm.infoLayerList = show;
         break;
       default:
-        this.display.leftMenuPanel = false;
+        lm.leftMenuPanel = false;
     }
+    this.leftMenuCtrl.update(() => lm);
     if (!show) {
       this.focusMap();
     }
@@ -824,13 +1025,13 @@ export class AppComponent {
   // ********* MAIN MENU ACTIONS *************
 
   // ** open about dialog **
-  public openAbout() {
+  protected openAbout() {
     this.dialog
       .open(AboutDialog, {
         disableClose: false,
         data: {
           name: this.app.name,
-          version: this.app.plugin.version,
+          version: this.app.version,
           description: this.app.description,
           logo: this.app.logo,
           url: this.app.url
@@ -841,65 +1042,72 @@ export class AppComponent {
   }
 
   // ** open settings dialog **
-  public openSettings() {
+  protected openSettings() {
     this.dialog
       .open(SettingsDialog, {
         disableClose: true,
         data: {},
         maxWidth: '90vw',
-        minWidth: '90vw'
+        minHeight: '80vh'
       })
       .afterClosed()
-      .subscribe((doSave) => {
+      .subscribe(() => {
         this.focusMap();
-        if (doSave) {
-          this.app.saveConfig();
-        }
       });
   }
 
-  // ** GPX File processing **
-  public processGPX(e) {
+  /** GPX / GeoJSON imports */
+  protected importFile(f: { data: string | ArrayBuffer; name: string }) {
+    if ((f.data as string).indexOf('<gpx ') !== -1) {
+      this.processGPX(f);
+    } else if (
+      (f.data as string).indexOf(`"type": "FeatureCollection",`) !== -1
+    ) {
+      this.processGeoJSON(f);
+    } else {
+      this.app.showAlert('Import', 'File format not supported!');
+    }
+    this.focusMap();
+  }
+
+  /** process GPX file */
+  protected processGPX(f: { data: string | ArrayBuffer; name: string }) {
     this.dialog
       .open(GPXImportDialog, {
         disableClose: true,
         data: {
-          fileData: e.data,
-          fileName: e.name
+          fileData: f.data,
+          fileName: f.name
         }
       })
       .afterClosed()
-      .subscribe((errCount) => {
-        if (errCount < 0) {
+      .subscribe((res: { errCount: number; errList: ErrorList }) => {
+        if (typeof res.errCount === 'undefined' || res.errCount < 0) {
           // cancelled
           this.focusMap();
           return;
         }
         this.fetchResources();
-        if (errCount === 0) {
-          this.app.showAlert(
+        if (res.errCount === 0) {
+          this.app.showMsgBox(
             'GPX Load',
             'GPX file resources loaded successfully.'
           );
         } else {
-          this.app.showAlert(
-            'GPX Load',
-            'Completed with errors!\nNot all resources were loaded.'
-          );
+          this.app.showErrorList(res.errList);
         }
         this.focusMap();
       });
   }
 
-  // ** Save resources to GPX File **
-  public saveToGPX() {
+  /** Export resources to GPX file */
+  protected exportToGPX() {
     this.dialog
       .open(GPXExportDialog, {
         disableClose: true,
         data: {
-          routes: this.app.data.routes,
-          waypoints: this.app.data.waypoints,
-          tracks: [this.app.data.trail]
+          routes: this.skres.routes(),
+          tracks: [this.app.selfTrail()]
         }
       })
       .afterClosed()
@@ -910,7 +1118,7 @@ export class AppComponent {
           return;
         }
         if (errCount === 0) {
-          this.app.showAlert(
+          this.app.showMsgBox(
             'GPX Save',
             'Resources saved to GPX file successfully.'
           );
@@ -921,14 +1129,14 @@ export class AppComponent {
       });
   }
 
-  // process GeoJSON file
-  processGeoJSON(e) {
+  /** process GeoJSON file */
+  protected processGeoJSON(f: { data: string | ArrayBuffer; name: string }) {
     this.dialog
       .open(GeoJSONImportDialog, {
         disableClose: true,
         data: {
-          fileData: e.data,
-          fileName: e.name
+          fileData: f.data,
+          fileName: f.name
         }
       })
       .afterClosed()
@@ -938,7 +1146,7 @@ export class AppComponent {
         } // cancelled
         this.fetchResources();
         if (errCount === 0) {
-          this.app.showAlert(
+          this.app.showMsgBox(
             'GeoJSON Load',
             'GeoJSON features loaded successfully.'
           );
@@ -952,8 +1160,8 @@ export class AppComponent {
       });
   }
 
-  // Upload Resources
-  uploadResources() {
+  /** Import ResourceSet */
+  protected importResourceSet() {
     this.dialog
       .open(ResourceImportDialog, {
         disableClose: true,
@@ -966,7 +1174,7 @@ export class AppComponent {
         } // cancelled
         try {
           const d = JSON.parse(res.data);
-          this.skres.postResource(res.path, d);
+          this.skres.postToServer(res.path as any, d);
         } catch (err) {
           this.app.showAlert(
             'Load Resource',
@@ -978,7 +1186,7 @@ export class AppComponent {
   }
 
   // ** show login dialog **
-  public showLogin(
+  protected showLogin(
     message?: string,
     cancelWarning = true,
     onConnect?: boolean
@@ -996,26 +1204,18 @@ export class AppComponent {
             (r) => {
               // ** authenticated
               this.app.persistToken(r['token']);
-              this.app.loadSettingsfromServer().subscribe((r) => {
-                const msg = r
-                  ? 'Settings loaded from server.'
-                  : 'Error loading Settings from server!';
-                console.log(msg);
-                if (r) {
-                  this.skres.alignResourceSelections();
-                }
-              });
+              this.app.loadSettingsfromServer();
               if (onConnect) {
                 this.queryAfterConnect();
               }
-              this.app.data.loggedIn = true;
+              this.app.isLoggedIn.set(true);
               lis.next(true);
             },
             () => {
               // ** auth failed
               this.app.persistToken(null);
               this.signalk.isLoggedIn().subscribe((r) => {
-                this.app.data.loggedIn = r;
+                this.app.isLoggedIn.set(r);
               });
               if (onConnect) {
                 this.app
@@ -1044,9 +1244,9 @@ export class AppComponent {
             }
           );
         } else {
-          this.app.data.hasToken = false; // show login menu item
+          this.app.hasAuthToken.set(false); // show login menu item
           this.signalk.isLoggedIn().subscribe((r: boolean) => {
-            this.app.data.loggedIn = r;
+            this.app.isLoggedIn.set(r);
           });
           if (onConnect) {
             this.showLogin(null, false, true);
@@ -1065,7 +1265,7 @@ export class AppComponent {
     return lis.asObservable();
   }
 
-  public showPlaybackSettings() {
+  protected showPlaybackSettings() {
     this.dialog
       .open(PlaybackDialog, {
         disableClose: false
@@ -1083,104 +1283,61 @@ export class AppComponent {
       });
   }
 
-  // ********** TOOLBAR ACTIONS **********
-
-  public openAlarmsDialog() {
-    if (this.app.data.loginRequired && !this.app.data.loggedIn) {
-      this.showLogin(null, false, false).subscribe((r) => {
-        if (r) {
-          this.openAlarmsDialog();
-        }
-      });
-    } else {
-      this.dialog
-        .open(AlarmsDialog, { disableClose: true })
-        .afterClosed()
-        .subscribe(() => this.focusMap());
-    }
-  }
-
-  public toggleMoveMap(exit = false) {
-    const doSave: boolean = !this.app.config.map.moveMap && exit ? false : true;
-    this.app.config.map.moveMap = exit ? false : !this.app.config.map.moveMap;
-    if (doSave) {
-      this.app.saveConfig();
-    }
-  }
-
-  public toggleNorthUp() {
-    this.app.config.map.northUp = !this.app.config.map.northUp;
-    this.app.saveConfig();
-  }
-
-  // ***** EDIT MENU ACTONS *******
-
-  // ** Enter Draw mode **
-  public drawStart(mode: string, props?) {
-    this.draw.properties = props && props.group ? props : {};
-    this.draw.mode = mode;
-    this.draw.enabled = true;
-    this.app.data.map.suppressContextMenu = true;
-  }
-
-  // ** Enter Measure mode **
-  public measureStart() {
-    this.measure.enabled = true;
-    this.app.data.map.suppressContextMenu = true;
-  }
-
-  public measureEnd() {
-    this.measure.enabled = false;
-    this.app.data.measurement = { coords: [], index: -1 };
-    this.app.data.map.suppressContextMenu = false;
-  }
-
   // ***** OPTIONS MENU ACTONS *******
 
-  public centerResource(position: [number, number], zoomTo?: number) {
-    position[0] += 0.0000000000001;
-    this.display.map.center = position;
+  /**
+   * Center and zoom the map
+   * @param position Location to center the map
+   * @param zoomTo Zoom level to apply
+   */
+  protected centerAndZoom(position: Position, zoomTo?: number) {
+    this.mapCenter.update(() => position);
     if (typeof zoomTo === 'number') {
       this.app.config.map.zoomLevel = zoomTo;
     }
   }
 
-  public centerVessel() {
-    const t = this.app.data.vessels.active.position;
-    t[0] += 0.0000000000001;
-    this.display.map.center = t;
+  /**
+   * Center the map relative to the vessel position
+   */
+  protected centerVessel() {
+    const pos = this.app.calcMapCenter(this.app.data.vessels.active.position);
+    this.centerAndZoom(pos);
   }
 
-  public toggleAisTargets() {
-    this.app.config.aisTargets = !this.app.config.aisTargets;
-    if (this.app.config.aisTargets) {
-      this.processAIS(true);
+  protected toggleAisTargets() {
+    this.app.config.ui.showAisTargets = !this.app.config.ui.showAisTargets;
+    if (this.app.config.ui.showAisTargets) {
+      this.stream.aisTargetUpdated();
     }
     this.app.saveConfig();
   }
 
-  public toggleCourseData() {
-    this.app.config.courseData = !this.app.config.courseData;
+  protected toggleCourseData() {
+    this.app.config.ui.showCourseData = !this.app.config.ui.showCourseData;
     this.app.saveConfig();
   }
 
-  public toggleNotes() {
-    this.app.config.notes = !this.app.config.notes;
+  protected toggleNotes() {
+    this.app.config.ui.showNotes = !this.app.config.ui.showNotes;
     this.app.saveConfig();
   }
 
   // ** delete vessel trail **
-  public clearTrail(noprompt = false) {
-    if (noprompt) {
+  protected clearTrail(noprompt = false) {
+    const doClear = () => {
       if (!this.app.data.serverTrail) {
-        this.app.data.trail = [];
+        this.app.selfTrail.set([]);
       } else {
-        if (this.app.config.selections.trailFromServer) {
-          this.skres.getVesselTrail(); // request trail from server
+        if (this.app.config.vessels.trailFromServer) {
+          this.stream.requestTrailFromServer(); // request trail from server
         }
       }
+    };
+    if (noprompt) {
+      doClear();
     } else {
-      if (!this.app.data.serverTrail)
+      if (!this.app.data.serverTrail) {
         this.app
           .showConfirm(
             'Clear Vessel Trail',
@@ -1188,82 +1345,65 @@ export class AppComponent {
           )
           .subscribe((res) => {
             if (res) {
-              if (!this.app.data.serverTrail) {
-                this.app.data.trail = [];
-              } else {
-                if (this.app.config.selections.trailFromServer) {
-                  this.skres.getVesselTrail(); // request trail from server
-                }
-              }
+              doClear();
             }
           });
+      }
     }
   }
 
   // ** clear course / navigation data **
-  public clearCourseData() {
-    const idx = this.app.data.navData.pointIndex;
-    this.app.data.navData = {
-      vmg: null,
-      dtg: null,
-      ttg: null,
-      bearing: { value: null, type: null },
-      bearingTrue: null,
-      bearingMagnetic: null,
-      xte: null,
-      eta: null,
-      position: [null, null],
-      pointIndex: idx,
-      pointTotal: 0,
-      arrivalCircle: null,
-      startPosition: [null, null],
-      pointNames: [],
-      activeRoutePoints: null,
-      destPointName: ''
-    };
+  protected clearCourseData() {
+    this.course.initCourseData();
   }
 
   // ** clear active destination **
-  public clearDestintation() {
-    this.skres.clearCourse(this.app.data.vessels.activeId);
+  protected clearDestination() {
+    this.course.clearCourse();
   }
 
   // ********** MAP / UI ACTIONS **********
 
   // ** set active route **
-  public activateRoute(id: string) {
-    this.skres.activateRoute(id, this.app.data.vessels.activeId);
+  protected activateRoute(id: string) {
+    this.course.activateRoute(id);
   }
 
   // ** Increment / decrement next active route point **
-  public routeNextPoint(pointIndex: number) {
-    this.skres.coursePointIndex(pointIndex);
+  protected routeNextPoint(pointIndex: number) {
+    this.course.coursePointIndex(pointIndex);
     this.focusMap();
   }
 
   // ** show feature (vessel/AtoN/Aircraft/Route points) properties **
-  public featureProperties(e: { id: string; type: string }) {
+  protected async featureProperties(e: { id: string; type: string }) {
     let v: FBRoute | SKVessel | SKSaR | SKAircraft | SKAtoN;
     if (e.type === 'route') {
-      v = this.skres.fromCache('routes', e.id);
-      if (v) {
-        this.bottomSheet
-          .open(ActiveResourcePropertiesModal, {
-            disableClose: true,
-            data: {
-              title: 'Route Properties',
-              resource: v,
-              type: e.type,
-              skres: this.skres
-            }
-          })
-          .afterDismissed()
-          .subscribe((deactivate: boolean) => {
-            if (deactivate) {
-              this.clearDestintation();
-            }
-            this.focusMap();
-          });
+      try {
+        this.app.sIsFetching.set(true);
+        v = await this.skres.fromServer('routes', e.id);
+        this.app.sIsFetching.set(false);
+        if (v) {
+          this.bottomSheet
+            .open(ActiveResourcePropertiesModal, {
+              disableClose: true,
+              data: {
+                title: 'Route Properties',
+                resource: [e.id, v, false],
+                type: e.type
+              }
+            })
+            .afterDismissed()
+            .subscribe((deactivate: boolean) => {
+              if (deactivate) {
+                this.clearDestination();
+              }
+              this.focusMap();
+            });
+        }
+      } catch (err) {
+        this.app.sIsFetching.set(false);
+        this.app.parseHttpErrorResponse(err);
       }
     } else if (e.type === 'aton' || e.type === 'meteo') {
       let title: string;
@@ -1316,14 +1456,14 @@ export class AppComponent {
           .subscribe(() => this.focusMap());
       }
     } else if (e.type === 'alarm') {
-      this.openAlarmsDialog();
+      this.notiMgr.showAlertInfo(e.id);
     } else if (e.type === 'rset') {
-      v = this.skres.resSetFromCache(e.id);
+      v = this.skresOther.fromResourceSetCache(e.id);
       if (v) {
         this.bottomSheet
           .open(ResourceSetFeatureModal, {
             disableClose: true,
-            data: { id: e.id, skres: v }
+            data: { id: e.id, item: v }
           })
           .afterDismissed()
           .subscribe(() => {
@@ -1331,32 +1471,42 @@ export class AppComponent {
           });
       }
     } else {
-      v =
+      // vessel
+      const id =
         e.type === 'self'
-          ? this.app.data.vessels.self
-          : this.app.data.vessels.aisTargets.get(e.id);
-      if (v) {
-        this.bottomSheet
-          .open(AISPropertiesModal, {
-            disableClose: true,
-            data: {
-              title: 'Vessel Properties',
-              target: v,
-              id: e.id
-            }
-          })
-          .afterDismissed()
-          .subscribe(() => this.focusMap());
+          ? e.type
+          : e.id.includes('vessels.')
+            ? e.id.split('.')[1]
+            : e.id;
+      try {
+        this.app.sIsFetching.set(true);
+        v = await this.skres.vesselFromServer(id);
+        this.app.sIsFetching.set(false);
+        if (v) {
+          this.bottomSheet
+            .open(AISPropertiesModal, {
+              disableClose: true,
+              data: {
+                title: 'Vessel Properties',
+                target: v
+              }
+            })
+            .afterDismissed()
+            .subscribe(() => this.focusMap());
+        }
+      } catch (err) {
+        this.app.sIsFetching.set(false);
+        this.app.parseHttpErrorResponse(err);
       }
     }
   }
 
   // ** handle drag and drop of files onto map container**
-  public mapDragOver(e: DragEvent) {
+  protected mapDragOver(e: DragEvent) {
     e.preventDefault();
   }
 
-  public mapDrop(e: DragEvent) {
+  protected mapDrop(e: DragEvent) {
     e.preventDefault();
     if (e.dataTransfer.files) {
       if (e.dataTransfer.files.length > 1) {
@@ -1384,23 +1534,10 @@ export class AppComponent {
     }
   }
 
-  // ** process / cleanup AIS targets
-  private processAIS(toggled?: boolean) {
-    if (!this.app.config.aisTargets && !toggled) {
-      return;
-    }
-    if (toggled) {
-      // ** re-populate list after hide
-      this.app.data.vessels.aisTargets.forEach((v, k) => {
-        this.app.data.aisMgr.updateList.push(k);
-      });
-    }
-  }
-
   // ********* MODE ACTIONS *************
 
   // ** set the active vessel to the supplied UUID **
-  public switchActiveVessel(uuid: string = null) {
+  protected switchActiveVessel(uuid: string = null) {
     this.app.data.vessels.activeId = uuid;
     if (!uuid) {
       this.app.data.vessels.active = this.app.data.vessels.self;
@@ -1416,30 +1553,22 @@ export class AppComponent {
       }
     }
     this.app.data.activeRoute = null;
-    this.clearTrail(true);
     this.clearCourseData();
-    this.alarmsFacade.queryAnchorStatus(
-      this.app.data.vessels.activeId,
-      this.app.data.vessels.active.position
-    );
-    //this.skres.getRoutes(); // get activeroute from active vessel
-    this.alarmsFacade.alarms.clear(); // reset displayed alarm(s)
-
     this.app.debug(`** Active vessel: ${this.app.data.vessels.activeId} `);
     this.app.debug(this.app.data.vessels.active);
   }
 
   // ** switch between realtime and history playback modes
-  public switchMode(toMode: SKSTREAM_MODE, options?: StreamOptions) {
+  protected switchMode(toMode: SKSTREAM_MODE, options?: StreamOptions) {
     this.app.debug(`switchMode from: ${this.mode} to ${toMode}`);
     if (toMode === SKSTREAM_MODE.PLAYBACK) {
       // ** history playback
-      this.app.db.saveTrail('self', this.app.data.trail);
-      this.app.data.trail = [];
+      this.app.db.saveTrail('self', this.app.selfTrail());
+      this.app.selfTrail.set([]);
     } else {
       // ** realtime data
       this.app.db.getTrail('self').then((t) => {
-        this.app.data.trail = t && t.value ? t.value : [];
+        this.app.selfTrail.update(() => (t && t.value ? t.value : []));
       });
     }
     this.switchActiveVessel();
@@ -1447,7 +1576,7 @@ export class AppComponent {
   }
 
   // ** show select mode dialog
-  public showSelectMode() {
+  protected showSelectMode() {
     if (this.mode === SKSTREAM_MODE.REALTIME) {
       // request history playback
       this.app
@@ -1477,181 +1606,159 @@ export class AppComponent {
 
   // ******** DRAW / EDIT EVENT HANDLERS ************
 
-  // ** handle modify start event **
-  public handleModifyStart(e: { id: string; type: string }) {
-    this.draw.type = null;
-    this.draw.mode = null;
-    this.draw.enabled = false;
-    this.draw.modify = true;
-    this.draw.modifyMode = e.type;
-    this.draw.forSave = { id: e.type ?? null, coords: null };
-    this.app.data.map.suppressContextMenu = true;
-    if (e.type === 'route') {
-      this.app.data.measurement.coords = this.skres.fromCache(
-        'routes',
-        e.id
-      )[1].feature.geometry.coordinates;
+  /** Handle OL selection end event and prompt */
+  protected handleSelectionEnded(selection: SelectionResultDef) {
+    if (selection.mode === 'seedChart') {
+      this.skres.seedChartCache(selection.data, selection.bbox);
     }
   }
 
-  // ** handle modify end event **
-  public handleModifyEnd(e: {
-    id: string;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    coords: any[];
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    coordsMetadata?: any[];
-  }) {
-    if (
-      this.app.data.activeRoute &&
-      e.id.indexOf(this.app.data.activeRoute) !== -1
-    ) {
-      this.app.data.activeRouteIsEditing = true;
-    } else {
-      this.app.data.activeRouteIsEditing = false;
-    }
-    this.app.data.editingId = e.id;
-    this.draw.forSave = e;
-    this.app.debug(this.draw.forSave);
+  /**
+   * Start feature drawing mode
+   * @param f type of feature to draw
+   */
+  protected drawFeature(f: DrawFeatureType) {
+    this.mapInteract.startDrawing(f);
   }
 
-  // ** Draw end event **
-  public handleDrawEnd(e: DrawEndEvent) {
-    this.draw.enabled = false;
-    let params;
-    let region: SKRegion;
-    let uuid: string;
-    switch (this.draw.mode) {
+  /** Handle feature DrawEnded event and prompt to save */
+  protected handleDrawEnded(e: DrawFeatureInfo) {
+    this.mapInteract.isDrawing();
+    switch (this.mapInteract.draw.resourceType) {
       case 'note':
-        params = { position: e.coordinates };
-        if (this.draw.properties['group']) {
-          params['group'] = this.draw.properties['group'];
+        const params = { position: e.coordinates };
+        if (this.mapInteract.draw.properties['group']) {
+          params['group'] = this.mapInteract.draw.properties['group'];
         }
         this.skres.showNoteEditor(params);
         break;
       case 'waypoint':
-        this.skres.showWaypointEditor({ position: e.coordinates as Position });
+        this.skres.newWaypointAt(e.coordinates as Position);
         break;
       case 'route':
-        this.skres.showRouteNew({ coordinates: e.coordinates as LineString });
+        this.skres.newRouteAt(e.coordinates as LineString);
         break;
       case 'region':
-        region = new SKRegion();
-        uuid = this.signalk.uuid;
+        const region = new SKRegion();
         region.feature.geometry.coordinates = [
           GeoUtils.normaliseCoords(e.coordinates as Polygon)
         ];
-        this.skres.showRegionInfo({ id: uuid, region: region });
-        /* //region + note
-        this.skres.showNoteEditor({
-          type: 'region',
-          href: { id: uuid, data: region }
-        });
-        */
+        this.skres.newRegion(region);
         break;
     }
-    // clean up
-    this.draw.mode = null;
-    this.draw.modify = false;
-    this.app.data.map.suppressContextMenu = false;
   }
 
-  // ** End Draw / modify / Measure mode **
-  public cancelDraw() {
-    if (this.draw.modify && this.draw.forSave && this.draw.forSave.id) {
-      if (this.draw.forSave.id === 'anchor') {
-        this.draw.forSave = null;
-        this.app.data.activeRouteIsEditing = false;
-        this.focusMap();
-      } else {
+  /** End interaction mode */
+  protected closeInteraction() {
+    if (this.mapInteract.isBoxSelecting()) {
+      this.mapInteract.stopBoxSelection();
+    }
+    if (this.mapInteract.isMeasuring()) {
+      this.mapInteract.stopMeasuring();
+    }
+    if (this.mapInteract.isDrawing()) {
+      this.mapInteract.stopDrawing();
+    }
+    if (this.mapInteract.isModifying()) {
+      this.mapInteract.stopModifying();
+      this.app.data.activeRouteIsEditing = false;
+
+      if (this.mapInteract.draw.forSave?.id) {
+        // anchor moved
+        if (this.mapInteract.draw.forSave.id === 'anchor') {
+          this.mapInteract.draw.forSave = null;
+          this.focusMap();
+          return;
+        }
+
         // save changes
         this.app
           .showConfirm(
             `Do you want to save the changes made to ${
-              this.draw.forSave.id.split('.')[0]
+              this.mapInteract.draw.forSave.id.split('.')[0]
             }?`,
             'Save Changes'
           )
-          .subscribe((res) => {
-            const r = this.draw.forSave.id.split('.');
-            if (res) {
+          .subscribe((result) => {
+            const r = this.mapInteract.draw.forSave.id.split('.');
+            if (result) {
               // save changes
               if (r[0] === 'route') {
                 this.skres.updateRouteCoords(
                   r[1],
-                  this.draw.forSave.coords,
-                  this.draw.forSave.coordsMetadata
+                  this.mapInteract.draw.forSave.coords,
+                  this.mapInteract.draw.forSave.coordsMetadata
                 );
               }
               if (r[0] === 'waypoint') {
                 this.skres.updateWaypointPosition(
                   r[1],
-                  this.draw.forSave.coords
+                  this.mapInteract.draw.forSave.coords
                 );
                 // if waypoint the target destination update nextPoint
                 if (r[1] === this.app.data.activeWaypoint) {
-                  this.skres.setDestination({
-                    latitude: this.draw.forSave.coords[1],
-                    longitude: this.draw.forSave.coords[0]
+                  this.course.setDestination({
+                    latitude: this.mapInteract.draw.forSave.coords[1],
+                    longitude: this.mapInteract.draw.forSave.coords[0]
                   });
                 }
               }
               if (r[0] === 'note') {
-                this.skres.updateNotePosition(r[1], this.draw.forSave.coords);
+                this.skres.updateNotePosition(
+                  r[1],
+                  this.mapInteract.draw.forSave.coords
+                );
               }
               if (r[0] === 'region') {
-                this.skres.updateRegionCoords(r[1], this.draw.forSave.coords);
+                this.skres.updateRegionCoords(
+                  r[1],
+                  this.mapInteract.draw.forSave.coords
+                );
               }
             } else {
+              // do not save
               if (r[0] === 'route') {
-                this.skres.getRoutes();
+                this.skres.refreshRoutes();
               }
               if (r[0] === 'waypoint') {
-                this.skres.getWaypoints();
+                this.skres.refreshWaypoints();
               }
-              if (r[0] === 'note' || r[0] === 'region') {
-                this.skres.getNotes();
+              if (r[0] === 'note') {
+                this.skres.refreshNotes();
+              }
+              if (r[0] === 'region') {
+                this.skres.refreshRegions();
               }
             }
-            this.draw.forSave = null;
-            this.app.data.activeRouteIsEditing = false;
+            this.mapInteract.draw.forSave = null;
             this.focusMap();
           });
       }
     }
-    // clean up
-    this.draw.enabled = false;
-    this.draw.mode = null;
-    this.draw.modify = false;
-    this.measure.enabled = false;
-    this.app.data.editingId = null;
-    this.app.data.map.suppressContextMenu = false;
-    this.app.data.measurement = { coords: [], index: -1 };
   }
 
   // ******** SIGNAL K STREAM *************
 
-  // ** fetch resource types from server **
-  fetchResources(allTypes = false) {
-    this.skres.getRoutes();
-    this.skres.getWaypoints();
-    this.skres.getCharts();
-    this.skres.getRegions();
-    this.skres.getNotes();
+  /** fetch resource types from server */
+  private fetchResources(allTypes = false) {
+    this.skres.refreshRoutes();
+    this.skres.refreshWaypoints();
+    this.skres.refreshCharts();
+    this.skres.refreshNotes();
+    this.skres.refreshRegions();
     if (allTypes) {
-      this.fetchOtherResources(true);
+      this.fetchOtherResources();
     }
   }
 
-  // ** fetch non-standard resources from server **
-  fetchOtherResources(onlySelected = false) {
-    this.skres.getTracks(onlySelected);
-    this.app.config.resources.paths.forEach((i) => {
-      this.skresOther.getItems(i, onlySelected);
-    });
+  /** fetch non-standard resources from server */
+  private fetchOtherResources() {
+    this.skres.refreshTracks();
+    this.skresOther.refreshResourceSetsInBounds();
+    this.skresOther.refreshInfoLayers();
   }
 
-  // ** open WS Stream
+  /** open WS Stream */
   private openSKStream(
     options: StreamOptions = null,
     toMode: SKSTREAM_MODE = SKSTREAM_MODE.REALTIME,
@@ -1662,10 +1769,11 @@ export class AppComponent {
       this.stream.close();
       return;
     }
+    this.stream.sendConfig(this.app.config);
     this.stream.open(options);
   }
 
-  // ** query server for current values **
+  /** query server for current values */
   private queryAfterConnect() {
     if (this.signalk.server.info.version.split('.')[0] === '1') {
       this.app.showAlert(
@@ -1673,6 +1781,7 @@ export class AppComponent {
         'The connected Signal K server is not supported by this version of Freeboard-SK.\n Signal K server version 2 or later is required!'
       );
     }
+    this.app.alignCustomResourcesPaths();
     this.signalk.api.getSelf().subscribe(
       (r) => {
         this.stream.post({
@@ -1680,13 +1789,13 @@ export class AppComponent {
           options: { context: 'self', name: r['name'] }
         });
         this.fetchResources(true); // ** fetch all resource types from server
-        if (this.app.config.selections.trailFromServer) {
-          this.skres.getVesselTrail(); // request trail from server
+        if (this.app.config.vessels.trailFromServer) {
+          this.stream.requestTrailFromServer(); // request trail from server
         }
         // ** query anchor alarm status
-        this.alarmsFacade.queryAnchorStatus(
-          this.app.data.vessels.activeId,
-          this.app.data.vessels.active.position
+        this.anchor.queryAnchorStatus(
+          undefined,
+          this.app.data.vessels.self.position
         );
       },
       (err: HttpErrorResponse) => {
@@ -1696,10 +1805,9 @@ export class AppComponent {
         this.app.debug('No vessel data available!');
       }
     );
-    this.app.fetchPluginSettings();
   }
 
-  // ** handle connection established
+  /** handle connection established */
   private onConnect(e?: NotificationMessage | UpdateMessage) {
     this.app.showMessage('Connection Open.', false, 2000);
     this.app.debug(e);
@@ -1773,18 +1881,12 @@ export class AppComponent {
       // delta message
       if (this.mode === SKSTREAM_MODE.PLAYBACK) {
         const d = new Date(e.timestamp);
-        this.display.playback.time = `${d.toDateString().slice(4)} ${d
-          .toTimeString()
-          .slice(0, 8)}`;
+        this.playbackTime.update(
+          () => `${d.toDateString().slice(4)} ${d.toTimeString().slice(0, 8)}`
+        );
       } else {
-        this.display.playback.time = null;
+        this.playbackTime.set(null);
         this.setDarkTheme();
-        if (
-          e.result.self.resourceUpdates &&
-          e.result.self.resourceUpdates.length !== 0
-        ) {
-          this.skres.processDelta(e.result.self.resourceUpdates);
-        }
       }
       this.updateNavPanel();
     }
@@ -1792,27 +1894,26 @@ export class AppComponent {
 
   // ** Update NavData Panel display **
   private updateNavPanel() {
-    this.display.navDataPanel.show =
-      this.app.data.activeRoute ||
-      this.app.data.activeWaypoint ||
-      this.app.data.navData.position
-        ? true
-        : false;
+    this.navDataPanel.update((current) => {
+      return {
+        show:
+          this.app.data.activeRoute ||
+          this.app.data.activeWaypoint ||
+          this.course.courseData().position
+            ? true
+            : false,
 
-    this.display.navDataPanel.nextPointCtrl = this.app.data.activeRoute
-      ? true
-      : false;
+        nextPointCtrl: this.app.data.activeRoute ? true : false,
 
-    //autopilot
-    if (this.app.data.vessels.self.autopilot.enabled) {
-      this.display.navDataPanel.apModeColor = 'primary';
-    } else {
-      this.display.navDataPanel.apModeColor = '';
-    }
+        //autopilot
+        apModeColor: this.app.data.vessels.self.autopilot.enabled
+          ? 'primary'
+          : '',
 
-    this.display.navDataPanel.apModeText = this.app.data.vessels.self.autopilot
-      .enabled
-      ? 'Autopilot: ' + this.app.data.vessels.self.autopilot.mode
-      : '';
+        apModeText: this.app.data.vessels.self.autopilot.default
+          ? `Autopilot: ${this.app.data.vessels.self.autopilot.default}`
+          : ''
+      };
+    });
   }
 }

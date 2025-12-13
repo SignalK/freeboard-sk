@@ -23,9 +23,10 @@ import { AsyncSubject } from 'rxjs';
 
 // ** Freeboard CPA Alarm component **
 @Component({
-  selector: 'ol-map > fb-cpa-alarm',
+  selector: 'ol-map > fb-cpa-alarms',
   template: '<ng-content></ng-content>',
-  changeDetection: ChangeDetectionStrategy.OnPush
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  standalone: false
 })
 export class CPAAlarmComponent implements OnInit, OnDestroy, OnChanges {
   protected layer: Layer;
@@ -38,8 +39,7 @@ export class CPAAlarmComponent implements OnInit, OnDestroy, OnChanges {
    */
   @Output() layerReady: AsyncSubject<Layer> = new AsyncSubject(); // AsyncSubject will only store the last value, and only publish it when the sequence is completed
 
-  @Input() targetPosition: Coordinate;
-  @Input() lineCoords: Array<Coordinate>;
+  @Input() cpaLines: Array<Coordinate[]>;
   @Input() opacity: number;
   @Input() visible: boolean;
   @Input() extent: Extent;
@@ -48,8 +48,6 @@ export class CPAAlarmComponent implements OnInit, OnDestroy, OnChanges {
   @Input() maxResolution: number;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   @Input() layerProperties: { [index: string]: any };
-
-  public mapifiedLine: Array<Coordinate> = [];
 
   constructor(
     protected changeDetectorRef: ChangeDetectorRef,
@@ -80,7 +78,7 @@ export class CPAAlarmComponent implements OnInit, OnDestroy, OnChanges {
       const properties: { [index: string]: any } = {};
 
       for (const key in changes) {
-        if (key === 'targetPosition' || key === 'lineCoords') {
+        if (key === 'cpaLines') {
           this.parseValues();
           if (this.source) {
             this.source.clear();
@@ -106,18 +104,23 @@ export class CPAAlarmComponent implements OnInit, OnDestroy, OnChanges {
   }
 
   parseValues() {
-    this.mapifiedLine = mapifyCoords(this.lineCoords);
+    if (!Array.isArray(this.cpaLines)) {
+      return;
+    }
     const fa: Feature[] = [];
-    const f = new Feature({
-      geometry: new LineString(fromLonLatArray(this.mapifiedLine))
+    this.cpaLines.forEach((cpaLine) => {
+      const mapifiedLine = mapifyCoords(cpaLine);
+      const f = new Feature({
+        geometry: new LineString(fromLonLatArray(mapifiedLine))
+      });
+      f.setStyle(this.buildStyle());
+      fa.push(f);
+      const fp = new Feature({
+        geometry: new Point(fromLonLat(mapifiedLine[0]))
+      });
+      fp.setStyle(this.buildStyle());
+      fa.push(fp);
     });
-    f.setStyle(this.buildStyle());
-    fa.push(f);
-    const fp = new Feature({
-      geometry: new Point(fromLonLat(this.targetPosition))
-    });
-    fp.setStyle(this.buildStyle());
-    fa.push(fp);
     this.features = fa;
   }
 

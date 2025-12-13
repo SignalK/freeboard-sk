@@ -71,8 +71,10 @@ export class SKNote {
   mimeType: string;
   url: string;
   group: string;
-  authors: Array<unknown>;
-  properties: { [key: string]: unknown };
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  authors: Array<any>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  properties: { [key: string]: any };
 
   constructor(note?: NoteResource) {
     this.name = note?.name ?? '';
@@ -127,6 +129,10 @@ export class SKChart {
   maxZoom = 24;
   type: string;
   url: string;
+  source: string;
+  style: string;
+  defaultOpacity: number;
+  proxy: boolean;
 
   constructor(chart?: ChartResource) {
     this.identifier = chart?.identifier ? chart.identifier : undefined;
@@ -145,12 +151,17 @@ export class SKChart {
       typeof chart?.scale !== 'undefined' && !isNaN(chart?.scale)
         ? chart.scale
         : this.scale;
-    this.url = chart?.url ? chart.url : undefined;
+    this.style = chart?.style ?? undefined;
+    this.source = chart?.$source ?? undefined;
+    this.defaultOpacity = chart?.defaultOpacity ?? 1;
+    this.proxy = chart?.proxy ?? false;
   }
 }
 
 // ** Signal K Track
 export class SKTrack {
+  name: string;
+  description: string;
   feature: MultiLineStringFeature;
 
   constructor(trk?: TrackResource) {
@@ -163,6 +174,8 @@ export class SKTrack {
       properties: {},
       id: ''
     };
+    this.name = this.feature.properties?.name ?? '';
+    this.description = this.feature.properties?.description ?? '';
   }
 }
 
@@ -172,27 +185,60 @@ class SKTargetBase {
   name: string;
   mmsi: string;
   position: Position = [0, 0];
+  positionReceived = false;
   state: string;
   type: { id: number; name: string } = { id: -1, name: '' };
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   properties: { [key: string]: any } = {};
   lastUpdated = new Date();
   callsignVhf: string;
   callsignHf: string;
   orientation = 0;
+  virtual?: boolean;
 }
 
 // ** Vessel Data **
 export class SKVessel extends SKTargetBase {
-  heading: number;
-  headingTrue: number = null;
-  headingMagnetic: number = null;
+  // stream sourced attributes
+  anchor = { maxRadius: null, radius: null, position: null };
+  autopilot = {
+    state: null,
+    mode: null,
+    target: null,
+    enabled: false,
+    default: null,
+    availableActions: []
+  };
+  buddy = false;
   cog: number;
   cogTrue: number = null;
   cogMagnetic: number = null;
-  sog: number;
+  courseApi = {
+    arrivalCircle: 0,
+    activeRoute: {},
+    nextPoint: {},
+    previousPoint: {}
+  };
+  courseCalcs: { [key: string]: any } = {};
+  distanceToSelf: number;
+  environment = {
+    mode: null, // day | night
+    sun: null // dawn| sunrise | day | sunset | dusk | night
+  };
+  heading: number;
+  headingTrue: number = null;
+  headingMagnetic: number = null;
+  performance = {
+    beatAngle: null,
+    gybeAngle: null
+  };
+  racing: { [key: string]: string };
   registrations: { [key: string]: string } = {};
-  type: { id: number; name: string } = { id: -1, name: '' };
+  resourceUpdates = []; // resource deltas
+  sog: number;
+  track: Array<Position[]> = [];
+  vectors = {
+    cog: [] // cog vector
+  };
   wind = {
     direction: null,
     mwd: null,
@@ -203,35 +249,23 @@ export class SKVessel extends SKTargetBase {
     awa: null,
     aws: null
   };
-  buddy = false;
-  closestApproach = null;
-  mode = 'day';
-  anchor = { maxRadius: null, radius: null, position: null };
-  resourceUpdates = [];
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  autopilot: { [key: string]: any } = {};
-  track: Array<Position[]> = [];
-  courseApi = {
-    arrivalCircle: 0,
-    activeRoute: {},
-    nextPoint: {},
-    previousPoint: {}
-  };
-  performance = {
-    beatAngle: null,
-    gybeAngle: null
-  };
-  racing: { [key: string]: string };
-  vectors = {
-    cog: [] // cog vector
-  };
-}
 
-// ** AtoN class **
-export class SKAtoN extends SKTargetBase {
-  constructor() {
-    super();
-  }
+  // http api sourced attributes
+  design = {
+    airHeight: null,
+    beam: null,
+    draft: {
+      current: null,
+      maximum: null
+    },
+    length: null
+  };
+  destination = {
+    name: null,
+    eta: null
+  };
+  flag: string;
+  port: string;
 }
 
 // ** SaR class **
@@ -245,6 +279,13 @@ export class SKSaR extends SKTargetBase {
 export class SKAircraft extends SKTargetBase {
   sog = 0;
   track: Array<Position[]> = [];
+  constructor() {
+    super();
+  }
+}
+
+// ** AtoN class **
+export class SKAtoN extends SKTargetBase {
   constructor() {
     super();
   }

@@ -7,7 +7,7 @@ import {
   MatDialogRef,
   MAT_DIALOG_DATA
 } from '@angular/material/dialog';
-import { CommonModule } from '@angular/common';
+
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
@@ -15,21 +15,18 @@ import { MatSliderModule } from '@angular/material/slider';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatToolbarModule } from '@angular/material/toolbar';
 
-import { CommonDialogs } from 'src/app/lib/components/dialogs';
 import { FreeboardOpenlayersModule } from 'src/app/modules/map/ol';
 import { SimplifyAP } from 'simplify-ts';
-import { SKRoute, SKResources, SKStreamFacade } from 'src/app/modules';
-import { AppInfo } from 'src/app/app.info';
+import { SKRoute, SKResourceService, SKStreamFacade } from 'src/app/modules';
+import { AppFacade } from 'src/app/app.facade';
 
 /********* Trail2RouteDialog **********
 	data: {
     }
 ***********************************/
 @Component({
-  standalone: true,
   selector: 'ap-trail2routedialog',
   imports: [
-    CommonModule,
     MatIconModule,
     MatButtonModule,
     MatDialogModule,
@@ -37,7 +34,6 @@ import { AppInfo } from 'src/app/app.info';
     MatSliderModule,
     MatCheckboxModule,
     MatToolbarModule,
-    CommonDialogs,
     FreeboardOpenlayersModule
   ],
   templateUrl: `./trail2route-dialog.html`,
@@ -69,8 +65,8 @@ export class Trail2RouteDialog implements OnInit {
   private serverCoords: Array<any> = [];
 
   constructor(
-    private skres: SKResources,
-    protected app: AppInfo,
+    private skres: SKResourceService,
+    protected app: AppFacade,
     private stream: SKStreamFacade,
     public dialogRef: MatDialogRef<Trail2RouteDialog>,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -83,7 +79,7 @@ export class Trail2RouteDialog implements OnInit {
     this.obsList.push(
       this.stream.trail$().subscribe((value) => this.onServerResource(value))
     );
-    this.getServerTrail(this.app.config.selections.trailFromServer);
+    this.getServerTrail(this.app.config.vessels.trailFromServer);
   }
 
   ngOnDestroy() {
@@ -122,11 +118,11 @@ export class Trail2RouteDialog implements OnInit {
   getServerTrail(checked: boolean) {
     if (checked) {
       if (
-        !this.app.config.selections.trailFromServer ||
+        !this.app.config.vessels.trailFromServer ||
         this.serverCoords.length === 0
       ) {
         this.fetching = true;
-        this.skres.getVesselTrail();
+        this.stream.requestTrailFromServer();
       } else {
         this.parseTrail(true);
       }

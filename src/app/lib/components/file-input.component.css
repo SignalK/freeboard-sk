@@ -11,7 +11,6 @@
 	flex-wrap: nowrap;
 	justify-content: flex-start;
 	align-content: stretch; 
-    font-size: 10pt;
     width:100%;
 }
 #ctrl {

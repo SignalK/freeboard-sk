@@ -42,9 +42,31 @@ mat-nav-list {
     width: 315px;
 }
 
+.statusBar { 
+    width: max-content; 
+    z-index: 4800;
+    position: absolute;
+    right: 55px;
+    top: 20px;
+    padding: 1px;
+    overflow: hidden;
+    text-align:right;
+    display: flex;
+}
+
+.statusBarItem {
+    padding-left: 5px;
+}
+
+.statusBarItem .mat-icon {
+    background-color: rgba(255,255,255, .5);
+    color: black;
+    border-radius:10px;
+}
+
 .buttonPanel { 
     width:50px; 
-    z-index: 200;
+    z-index: 4800;
     position: absolute;
     padding: 5px 2px 2px 2px;
     overflow: auto;
@@ -72,7 +94,7 @@ mat-nav-list {
 .buttonPanel.right { 
     top: 60px;
     right: 0px;
-    bottom: 0px;
+    bottom: 80px;
 }
 
 .buttonPanel .buttonPanelItem {
@@ -121,8 +143,8 @@ mat-nav-list {
     position: absolute;
     z-index: 4901;
     bottom: 30px;
-    left: 50px;
-    max-width:100%;
+    left: 10px;
+    max-width: calc(100% - 75px);
     max-height: 100px;
     text-align: center;
     display: flex;
@@ -192,4 +214,11 @@ mat-nav-list {
     .instrumentPanelToggle {
         display: none;
     }     
+}
+
+@media only screen and (max-height: 600px) { 
+    .navdataPanel {
+        left: 50px;
+        max-width: calc(100% - 115px);
+    }
 }

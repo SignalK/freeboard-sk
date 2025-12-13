@@ -25,7 +25,8 @@ import { Position } from 'src/app/types';
 @Component({
   selector: 'ol-map > fb-layline',
   template: '<ng-content></ng-content>',
-  changeDetection: ChangeDetectionStrategy.OnPush
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  standalone: false
 })
 export class LaylineComponent implements OnInit, OnDestroy, OnChanges {
   protected layer: Layer;

@@ -6,11 +6,11 @@ import {
   Output,
   EventEmitter
 } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { MatTooltip } from '@angular/material/tooltip';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { AppInfo } from 'src/app/app.info';
+import { AppFacade } from 'src/app/app.facade';
 import { Position } from 'src/app/types';
 import { getGreatCircleBearing } from 'geolib';
 import { GeoUtils } from '../geoutils';
@@ -19,19 +19,12 @@ import { MatToolbarModule } from '@angular/material/toolbar';
 // ********* Measurements Component ********
 
 @Component({
-  standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'fb-measurements',
-  imports: [
-    CommonModule,
-    MatIconModule,
-    MatButtonModule,
-    MatTooltip,
-    MatToolbarModule
-  ],
+  imports: [MatIconModule, MatButtonModule, MatTooltip, MatToolbarModule],
   template: `
     <div class="_ap_measurements">
-      <mat-toolbar class="bg-primary">
+      <mat-toolbar>
         <div class="_ap_row">
           <div class="_ap_row">
             <div class="icon-label">
@@ -39,25 +32,25 @@ import { MatToolbarModule } from '@angular/material/toolbar';
             </div>
             <div class="value">{{ totalDistance }}<br /></div>
           </div>
-          @if(!totalOnly) {
-          <div class="_ap_row">
+          @if (!totalOnly) {
             <div class="_ap_row">
-              <div style="font-size: 12pt;">
-                <mat-icon>square_foot</mat-icon><br />
-                {{
-                  this.coords.length < 2
-                    ? '-'
-                    : this.index === -1
-                    ? this.coords.length - 1
-                    : this.index + 1
-                }}
-              </div>
-              <div class="value">
-                {{ legDistance }}<br />
-                {{ legBearing }}
+              <div class="_ap_row">
+                <div style="font-size: 12pt;">
+                  <mat-icon>square_foot</mat-icon><br />
+                  {{
+                    this.coords.length < 2
+                      ? '-'
+                      : this.index === -1
+                        ? this.coords.length - 1
+                        : this.index + 1
+                  }}
+                </div>
+                <div class="value">
+                  {{ legDistance }}<br />
+                  {{ legBearing }}
+                </div>
               </div>
             </div>
-          </div>
           }
           <div>
             <button
@@ -76,7 +69,7 @@ import { MatToolbarModule } from '@angular/material/toolbar';
   styles: [
     `
       ._ap_measurements {
-        position: fixed;
+        position: relative;
         top: 0;
         min-width: 200px;
       }
@@ -120,7 +113,7 @@ export class Measurements {
     next: false
   };
 
-  constructor(public app: AppInfo) {
+  constructor(public app: AppFacade) {
     this.init();
   }
 

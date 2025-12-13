@@ -7,16 +7,16 @@ import {
   ChangeDetectionStrategy,
   ChangeDetectorRef,
   EventEmitter,
-  Output
+  Output,
+  signal
 } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { FormsModule } from '@angular/forms';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
-import { AppInfo } from 'src/app/app.info';
-import { SignalKClient } from 'signalk-client-angular';
+import { AppFacade } from 'src/app/app.facade';
 import {
   CdkDragDrop,
   moveItemInArray,
@@ -24,13 +24,13 @@ import {
   CdkDrag,
   CdkDropList
 } from '@angular/cdk/drag-drop';
+import { SKResourceService } from '../../resources.service';
+import { FBWaypoint, LineString } from 'src/app/types';
 
 @Component({
-  standalone: true,
   selector: 'route-builder',
   imports: [
     MatTooltipModule,
-    CommonModule,
     CdkDrag,
     CdkDropList,
     MatButtonModule,
@@ -57,7 +57,8 @@ import {
             style="flex: 1 1 auto;
             font-size: 14pt;
             line-height: 2.5em;
-            text-align: center;"
+            text-align: center;
+            cursor: grab;"
           >
             Build Route:
           </div>
@@ -81,19 +82,19 @@ import {
                 id="wpt-list"
                 cdkDropList
                 #wptList="cdkDropList"
-                [cdkDropListData]="wpts"
+                [cdkDropListData]="wpts()"
                 [cdkDropListConnectedTo]="[rteptList]"
                 (cdkDropListDropped)="dropEventHandler($event)"
               >
-                @for(item of wpts; track item) {
-                <div class="wpt-box" cdkDrag>
-                  <div style="width:40px;">
-                    <mat-icon>room</mat-icon>
+                @for (item of wpts(); track item) {
+                  <div class="wpt-box" cdkDrag>
+                    <div style="width:40px;">
+                      <mat-icon>room</mat-icon>
+                    </div>
+                    <div class="wpt-text" [matTooltip]="item.name">
+                      {{ item.name }}
+                    </div>
                   </div>
-                  <div class="wpt-text" [matTooltip]="item.name">
-                    {{ item.name }}
-                  </div>
-                </div>
                 }
               </div>
             </div>
@@ -107,20 +108,20 @@ import {
                 [cdkDropListData]="rtepts"
                 (cdkDropListDropped)="dropEventHandler($event)"
               >
-                @for(item of rtepts; track item; let idx = $index) {
-                <div class="wpt-box" mat-background cdkDrag>
-                  <div style="width:40px;">
-                    <mat-icon>room</mat-icon>
+                @for (item of rtepts; track item; let idx = $index) {
+                  <div class="wpt-box" mat-background cdkDrag>
+                    <div style="width:40px;">
+                      <mat-icon>room</mat-icon>
+                    </div>
+                    <div class="wpt-text" [matTooltip]="item.name">
+                      {{ item.name }}
+                    </div>
+                    <div style="width:40px;">
+                      <button mat-icon-button (click)="deleteFromRoute(idx)">
+                        <mat-icon>delete</mat-icon>
+                      </button>
+                    </div>
                   </div>
-                  <div class="wpt-text" [matTooltip]="item.name">
-                    {{ item.name }}
-                  </div>
-                  <div style="width:40px;">
-                    <button mat-icon-button (click)="deleteFromRoute(idx)">
-                      <mat-icon>delete</mat-icon>
-                    </button>
-                  </div>
-                </div>
                 }
               </div>
             </div>
@@ -141,15 +142,18 @@ import {
   `
 })
 export class BuildRouteComponent {
-  wpts = [];
+  wpts = signal([]);
   rtepts = [];
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  @Output() save: EventEmitter<any> = new EventEmitter();
+  @Output() save: EventEmitter<{
+    coordinates: LineString;
+    meta?: Array<{ href?: string; name?: string }>;
+  }> = new EventEmitter();
+  @Output() close: EventEmitter<void> = new EventEmitter();
 
   constructor(
-    protected app: AppInfo,
-    private signalk: SignalKClient,
+    protected app: AppFacade,
+    private skres: SKResourceService,
     private cdr: ChangeDetectorRef
   ) {}
 
@@ -158,15 +162,22 @@ export class BuildRouteComponent {
     this.cdr.detectChanges();
   }
 
-  getWaypoints() {
-    this.wpts = this.app.data.waypoints.map((i) => {
-      return {
-        id: i[0],
-        name: i[1].name,
-        position: i[1].feature.geometry.coordinates,
-        href: `/resources/waypoints/${i[0]}`
-      };
-    });
+  /**
+   * @description Fetch all waypoints from server
+   */
+  protected async getWaypoints() {
+    const wptList = await this.skres.listFromServer<FBWaypoint>('waypoints');
+    const wmap = wptList
+      .map((w: FBWaypoint) => {
+        return {
+          id: w[0],
+          name: w[1].name,
+          position: w[1].feature.geometry.coordinates,
+          href: `/resources/waypoints/${w[0]}`
+        };
+      })
+      .sort((a, b) => a.name.localeCompare(b.name));
+    this.wpts.set(wmap);
   }
 
   deleteFromRoute(index: number) {
@@ -202,11 +213,11 @@ export class BuildRouteComponent {
           if (res) {
             this.doSave();
           } else {
-            this.app.data.buildRoute.show = false;
+            this.close.emit();
           }
         });
     } else {
-      this.app.data.buildRoute.show = false;
+      this.close.emit();
     }
   }
 
@@ -226,5 +237,6 @@ export class BuildRouteComponent {
     });
 
     this.save.emit(rte);
+    this.close.emit();
   }
 }

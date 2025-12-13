@@ -3,7 +3,7 @@
     top: 0;
     left: 0;
     transform: translate(-50%, -100%);
-    z-index: 1060;
+    z-index: 3990;
     display: block;
     max-width: 276px;
     min-width: 270px;
@@ -41,7 +41,7 @@
     display:flex;
     line-height: 2.5em;
     font-size: 12pt;
-    background-color: rgba(250,250,250,.3);
+    background-color: rgba(250,250,250,.51);
     border-radius: 5px 5px 0 0;
     min-width: 110px;
 } 
@@ -96,7 +96,8 @@
     font-weight: bold;
     border-bottom: none;
     background-color: inherit;
-    text-align: center;
+    text-align: left;
+    width: max-content;
 } 
 
 .popover.top.measure > .arrow {

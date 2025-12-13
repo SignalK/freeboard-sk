@@ -14,13 +14,10 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatSelectModule } from '@angular/material/select';
 import { MatInputModule } from '@angular/material/input';
 import { MatDatepickerModule } from '@angular/material/datepicker';
-import { CommonModule } from '@angular/common';
 
 @Component({
-  standalone: true,
   selector: 'ap-playbackdialog',
   imports: [
-    CommonModule,
     FormsModule,
     MatDialogModule,
     MatIconModule,
@@ -44,8 +41,8 @@ import { CommonModule } from '@angular/common';
               <mat-form-field>
                 <mat-label>Context</mat-label>
                 <mat-select [(ngModel)]="formData.context">
-                  @for(i of ['self', 'all']; track i) {
-                  <mat-option [value]="i">{{ i }}</mat-option>
+                  @for (i of ['self', 'all']; track i) {
+                    <mat-option [value]="i">{{ i }}</mat-option>
                   }
                 </mat-select>
               </mat-form-field>
@@ -73,8 +70,8 @@ import { CommonModule } from '@angular/common';
               <mat-form-field style="width:100px;">
                 <mat-label>Hour</mat-label>
                 <mat-select [(ngModel)]="formData.startTimeHr">
-                  @for(i of hrValues(); track i) {
-                  <mat-option [value]="i">{{ i }}</mat-option>
+                  @for (i of hrValues(); track i) {
+                    <mat-option [value]="i">{{ i }}</mat-option>
                   }
                 </mat-select>
               </mat-form-field>
@@ -82,8 +79,8 @@ import { CommonModule } from '@angular/common';
               <mat-form-field style="width:100px;">
                 <mat-label>Minutes</mat-label>
                 <mat-select [(ngModel)]="formData.startTimeMin">
-                  @for(i of minValues(); track i) {
-                  <mat-option [value]="i">{{ i }}</mat-option>
+                  @for (i of minValues(); track i) {
+                    <mat-option [value]="i">{{ i }}</mat-option>
                   }
                 </mat-select>
               </mat-form-field>
@@ -95,8 +92,8 @@ import { CommonModule } from '@angular/common';
               >
                 <mat-label>Playback Rate</mat-label>
                 <mat-select [(ngModel)]="formData.playbackRate">
-                  @for(i of rateValues(); track i) {
-                  <mat-option [value]="i">{{ i }}</mat-option>
+                  @for (i of rateValues(); track i) {
+                    <mat-option [value]="i">{{ i }}</mat-option>
                   }
                 </mat-select>
               </mat-form-field>

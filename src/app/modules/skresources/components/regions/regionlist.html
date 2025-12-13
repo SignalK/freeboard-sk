@@ -1,0 +1,140 @@
+<div class="resourcelist">
+  <mat-card style="border-radius: unset">
+    <mat-card-title>
+      <div class="title-block">
+        <div style="width: 50px">
+          <button
+            mat-icon-button
+            (click)="close()"
+            matTooltip="Close Region List"
+            matTooltipPosition="right"
+          >
+            <mat-icon>arrow_back</mat-icon>
+          </button>
+        </div>
+        <div style="flex: 1 1 auto; padding-top: 7px">Regions</div>
+      </div>
+    </mat-card-title>
+    <mat-card-content>
+      <div style="display: flex">
+        <div style="flex: 1 1 auto; padding-left: 3px">
+          <mat-form-field floatLabel="always" style="max-width: 170px">
+            <mat-label>Type to filter list</mat-label>
+            <input
+              #ftext
+              type="text"
+              matInput
+              [value]="filterText"
+              (keyup)="filterKeyUp(ftext.value)"
+            />
+            @if(filterText) {
+            <button matSuffix mat-icon-button (click)="filterKeyUp('')">
+              <mat-icon>close</mat-icon>
+            </button>
+            }
+          </mat-form-field>
+        </div>
+        <div>
+          <button
+            mat-icon-button
+            (click)="initItems()"
+            matTooltip="Reload Regions"
+            matTooltipPosition="left"
+          >
+            <mat-icon>refresh</mat-icon>
+          </button>
+        </div>
+        <div>
+          <mat-checkbox
+            #selall
+            [disabled]="fullList.length === 0"
+            [checked]="allSel"
+            [indeterminate]="someSel"
+            (change)="toggleAll($event.checked)"
+            [matTooltip]="(!selall.checked || someSel) ? 'Select All' : 'Deselect All'"
+            matTooltipPosition="below"
+          >
+          </mat-checkbox>
+        </div>
+      </div>
+    </mat-card-content>
+  </mat-card>
+
+  <div class="resources">
+    <cdk-virtual-scroll-viewport class="vscroller" itemSize="72">
+      <mat-card
+        *cdkVirtualFor="let r of filteredList(); let i= index;"
+        style="border-bottom: silver 1px outset; border-radius: unset"
+      >
+        <mat-card-content>
+          <div style="display: flex">
+            <div style="flex: 1 1 auto; width: 215px">
+              <div
+                style="
+                  text-overflow: ellipsis;
+                  overflow-x: hidden;
+                  white-space: pre;
+                "
+              >
+                <b>{{r[1].name}}</b>
+              </div>
+              <div
+                style="
+                  text-overflow: ellipsis;
+                  overflow-x: hidden;
+                  white-space: pre;
+                "
+              >
+                {{r[1].description}}
+              </div>
+            </div>
+            <div style="text-align: right">
+              <mat-checkbox
+                [checked]="r[2]"
+                (change)="itemSelect($event.checked, r[0])"
+                matTooltip="Show in Map"
+                matTooltipPosition="left"
+              >
+              </mat-checkbox>
+            </div>
+          </div>
+        </mat-card-content>
+        <mat-card-actions>
+          <div style="display: flex">
+            <div style="flex: 1 1 auto; text-align: right">
+              <button
+                mat-icon-button
+                [disabled]="app.uiConfig().mapMove"
+                (click)="emitCenter(r[1])"
+                matTooltip="Center Region"
+                matTooltipPosition="left"
+              >
+                <mat-icon>center_focus_strong</mat-icon>
+              </button>
+
+              <button
+                mat-icon-button
+                (click)="itemProperties(r[0])"
+                matTooltip="Region Properties"
+                matTooltipPosition="left"
+              >
+                <mat-icon>info_outline</mat-icon>
+              </button>
+
+              @if(app.featureFlags().resourceGroups) { &nbsp;
+              <button
+                mat-icon-button
+                (click)="itemAddToGroup(r[0])"
+                matTooltip="Add to Group"
+                matTooltipPosition="right"
+              >
+                <mat-icon>category</mat-icon>
+              </button>
+              }
+            </div>
+          </div>
+        </mat-card-actions>
+      </mat-card>
+    </cdk-virtual-scroll-viewport>
+  </div>
+</div>

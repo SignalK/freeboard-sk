@@ -67,8 +67,8 @@ export function mapifyCoords(
         last[0] > 0 && coords[i][0] < 0
           ? 1
           : last[0] < 0 && coords[i][0] > 0
-          ? -1
-          : 0;
+            ? -1
+            : 0;
       if (dlCrossing === 1) {
         coords[i][0] = coords[i][0] + 360;
       }

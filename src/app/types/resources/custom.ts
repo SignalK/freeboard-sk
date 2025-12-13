@@ -18,6 +18,7 @@ export type ResourceSets = { [id: string]: ResourceSet };
 
 export interface ResourceSet extends CustomResource {
   type: 'ResourceSet';
+  styles?: CustomStyles;
   values: {
     type: 'FeatureCollection';
     features: Array<
@@ -29,6 +30,24 @@ export interface ResourceSet extends CustomResource {
     >;
   };
 }
+
+export type InfoLayers = { [id: string]: InfoLayerResource };
+
+export interface InfoLayerResource extends CustomResource {
+  name: string;
+  description: string;
+  type: 'InfoLayer';
+  values: {
+    url: string;
+    sourceType: 'WMTS' | 'WMS';
+    layers: string[];
+    opacity: number;
+    minZoom: number;
+    maxZoom: number;
+    refreshInterval?: number;
+  };
+}
+
 export type CustomResources = { [id: string]: CustomResource };
 
 export interface CustomResource {
@@ -36,13 +55,7 @@ export interface CustomResource {
   name?: string | null;
   description?: string | null;
   type: string;
-  styles: CustomStyles;
-  values: CustomValues;
-}
-
-export interface CustomValues {
-  type: string;
-  features: Array<any>;
+  values: { [key: string]: any };
 }
 
 export interface CustomStyles {

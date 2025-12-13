@@ -16,19 +16,20 @@ import { AISBaseLayerComponent } from './ais-base.component';
 @Component({
   selector: 'ol-map > sk-ais-flags',
   template: '<ng-content></ng-content>',
-  changeDetection: ChangeDetectionStrategy.OnPush
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  standalone: false
 })
 export class AISFlagsLayerComponent extends AISBaseLayerComponent {
   @Input() flagged: Array<string>;
 
   constructor(
-    protected mapComponent: MapComponent,
-    protected changeDetectorRef: ChangeDetectorRef
+    protected override mapComponent: MapComponent,
+    protected override changeDetectorRef: ChangeDetectorRef
   ) {
     super(mapComponent, changeDetectorRef);
   }
 
-  ngOnChanges(changes: SimpleChanges): void {
+  override ngOnChanges(changes: SimpleChanges): void {
     super.ngOnChanges(changes);
     if ('flagged' in changes) {
       this.updateFlags();
@@ -69,7 +70,7 @@ export class AISFlagsLayerComponent extends AISBaseLayerComponent {
   private buildStyle(label?: string) {
     return new Style({
       image: new Icon({
-        src: './assets/img/ais_flag.svg',
+        src: './assets/img/vessels/ais_flag.svg',
         rotateWithView: false,
         scale: 0.2,
         anchor: [27, 187],

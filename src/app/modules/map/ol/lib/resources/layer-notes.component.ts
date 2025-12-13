@@ -3,145 +3,48 @@ import {
   ChangeDetectorRef,
   Component,
   Input,
-  SimpleChange,
   SimpleChanges
 } from '@angular/core';
 import { Feature } from 'ol';
-import { Style, RegularShape, Stroke, Fill } from 'ol/style';
+import { Style, RegularShape, Stroke, Fill, Text } from 'ol/style';
 import { Point } from 'ol/geom';
 import { fromLonLat } from 'ol/proj';
 import { MapComponent } from '../map.component';
 import { FBFeatureLayerComponent } from '../sk-feature.component';
-import { FBNotes, Notes } from 'src/app/types';
-
-@Component({
-  selector: 'ol-map > sk-notes-base',
-  template: '<ng-content></ng-content>',
-  changeDetection: ChangeDetectionStrategy.OnPush
-})
-export class NotesBaseComponent extends FBFeatureLayerComponent {
-  @Input() noteStyles: { [key: string]: Style };
-
-  constructor(
-    protected mapComponent: MapComponent,
-    protected changeDetectorRef: ChangeDetectorRef
-  ) {
-    super(mapComponent, changeDetectorRef);
-  }
-
-  ngOnInit() {
-    super.ngOnInit();
-    this.labelPrefixes = ['note'];
-  }
-
-  ngOnChanges(changes: SimpleChanges) {
-    super.ngOnChanges(changes);
-    if (this.source && 'notes' in changes) {
-      this.source.clear();
-      this.parseNotes(changes['notes']);
-    }
-  }
-
-  parseNotes(change: SimpleChange) {
-    // overridable function
-  }
-
-  // build note feature style
-  buildStyle(id: string, note): Style {
-    if (typeof this.noteStyles !== 'undefined') {
-      if (note.properties?.skType) {
-        return this.noteStyles[note.properties.skType];
-      } else {
-        return this.noteStyles.default;
-      }
-    } else if (this.layerProperties && this.layerProperties.style) {
-      return this.layerProperties.style;
-    } else {
-      // default styles
-      return new Style({
-        image: new RegularShape({
-          points: 4,
-          radius: 10,
-          fill: new Fill({ color: 'gold' }),
-          stroke: new Stroke({
-            color: 'black',
-            width: 1
-          }),
-          rotation: (Math.PI / 180) * 45
-        })
-      });
-    }
-  }
-}
-
-// ** Signal K resource collection format **
-@Component({
-  selector: 'ol-map > sk-notes',
-  template: '<ng-content></ng-content>',
-  changeDetection: ChangeDetectionStrategy.OnPush
-})
-export class NoteLayerComponent extends NotesBaseComponent {
-  @Input() notes: Notes;
-
-  constructor(
-    protected mapComponent: MapComponent,
-    protected changeDetectorRef: ChangeDetectorRef
-  ) {
-    super(mapComponent, changeDetectorRef);
-  }
-
-  ngOnInit() {
-    super.ngOnInit();
-    this.parseSKNotes(this.notes);
-  }
-
-  override parseNotes(change: SimpleChange) {
-    this.parseSKNotes(change.currentValue);
-  }
-
-  parseSKNotes(notes: Notes = this.notes) {
-    const fa: Feature[] = [];
-    for (const n in notes) {
-      if (!notes[n].position) {
-        continue;
-      }
-      const f = new Feature({
-        geometry: new Point(
-          fromLonLat([notes[n].position.longitude, notes[n].position.latitude])
-        ),
-        name: notes[n].name
-      });
-      f.setId('note.' + n);
-      f.setStyle(this.buildStyle(n, notes[n]).clone());
-      fa.push(f);
-    }
-    this.source.addFeatures(fa);
-  }
-}
+import { FBNotes, NoteResource } from 'src/app/types';
+import { MapImageRegistry } from '../map-image-registry.service';
+import { SKNote } from 'src/app/modules/skresources';
 
 // ** Freeboard resource collection format **
 @Component({
   selector: 'ol-map > fb-notes',
   template: '<ng-content></ng-content>',
-  changeDetection: ChangeDetectionStrategy.OnPush
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  standalone: false
 })
-export class FreeboardNoteLayerComponent extends NotesBaseComponent {
+export class FreeboardNoteLayerComponent extends FBFeatureLayerComponent {
   @Input() notes: FBNotes = [];
 
   constructor(
-    protected mapComponent: MapComponent,
-    protected changeDetectorRef: ChangeDetectorRef
+    protected override mapComponent: MapComponent,
+    protected override changeDetectorRef: ChangeDetectorRef,
+    protected mapImages: MapImageRegistry
   ) {
     super(mapComponent, changeDetectorRef);
   }
 
-  ngOnInit() {
+  override ngOnInit() {
     super.ngOnInit();
+    this.labelPrefixes = ['note'];
     this.parseFBNotes(this.notes);
   }
 
-  override parseNotes(change: SimpleChange) {
-    this.parseFBNotes(change.currentValue);
+  override ngOnChanges(changes: SimpleChanges) {
+    super.ngOnChanges(changes);
+    if (this.source && 'notes' in changes) {
+      this.source.clear();
+      this.parseFBNotes(changes['notes'].currentValue);
+    }
   }
 
   parseFBNotes(notes: FBNotes = this.notes) {
@@ -157,9 +60,43 @@ export class FreeboardNoteLayerComponent extends NotesBaseComponent {
         name: n[1].name
       });
       f.setId('note.' + n[0]);
-      f.setStyle(this.buildStyle(n[0], n[1]).clone());
+      f.set(
+        'icon',
+        n[1].properties?.skIcon
+          ? `sk-${n[1].properties?.skIcon}`
+          : 'local_offer'
+      );
+      f.setStyle(this.buildStyle(n[1]).clone());
       fa.push(f);
     }
     this.source.addFeatures(fa);
+  }
+
+  // build note feature style
+  buildStyle(note: SKNote | NoteResource): Style {
+    const icon = this.mapImages.getPOI(note.properties.skIcon ?? 'default');
+    if (icon) {
+      return new Style({
+        image: icon,
+        text: new Text({
+          text: '',
+          offsetX: 0,
+          offsetY: -12
+        })
+      });
+    } else {
+      return new Style({
+        image: new RegularShape({
+          points: 4,
+          radius: 10,
+          fill: new Fill({ color: 'gold' }),
+          stroke: new Stroke({
+            color: 'black',
+            width: 1
+          }),
+          rotation: (Math.PI / 180) * 45
+        })
+      });
+    }
   }
 }
