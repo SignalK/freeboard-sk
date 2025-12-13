@@ -1,9 +1,8 @@
 # CHANGELOG: Freeboard
 
-### v2.19.2
+### v2.19.3
 
-- **New**: Added messaging support for hosting application.
-- **Added**: Support for chart provider `defaultOpacity` property.
-- **Added**: Initial "time slider" support for WMS / WMTS Overlays with a time dimension.
-- **Updated**: Use `mmsi` path time as "Last updated" time for AIS targets (#303).
-- **Updated**: Use VesselFinder (replaces MarineTraffic) to display vessel information (#305).
+- **New**: Added support for submitting tile seeding jobs to `charts-plugin`.
+- **New**: Added Regions list so they can now be managed similarly to routes & waypoints.
+- **Updated**: Regions and Charts can now be added to resource groups.
+- **Updated**: Resource groups to control behaviour of resource types when none have been included in a group.

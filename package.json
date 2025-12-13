@@ -1,6 +1,6 @@
 {
   "name": "@signalk/freeboard-sk",
-  "version": "2.19.2",
+  "version": "2.19.3",
   "description": "Openlayers chart plotter implementation for Signal K",
   "keywords": [
     "signalk-webapp",
@@ -24,6 +24,7 @@
     "format:all": "npm run format && npm run format:helper",
     "build:helper": "tsc -p tsconfig-helper.json",
     "build:web": "ng build -c production --output-hashing all",
+    "build:sit": "ng build -c development --aot",
     "build:all": "npm run build:helper && npm run build:web",
     "build:prod": "npm run build:all",
     "prepack": "npm run build:all"
@@ -68,6 +69,7 @@
     "@types/xml2js": "^0.4.14",
     "@typescript-eslint/eslint-plugin": "^8.46.3",
     "@typescript-eslint/parser": "^8.46.3",
+    "buffer": "^6.0.3",
     "eslint": "^9.17.0",
     "geolib": "^3.3.3",
     "jasmine-core": "~5.5.0",
@@ -87,7 +89,6 @@
     "rxjs": "~6.6.3",
     "semver": "^7.6.0",
     "signalk-client-angular": "^2.0.3",
-    "signalk-worker-angular": "^1.1.4",
     "simplify-ts": "^1.0.2",
     "stream": "^0.0.2",
     "timers": "^0.1.1",

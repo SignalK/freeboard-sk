@@ -1,6 +1,5 @@
 import {
   Component,
-  Input,
   Output,
   EventEmitter,
   ChangeDetectionStrategy,
@@ -20,11 +19,9 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatRadioModule } from '@angular/material/radio';
 
 import { AppFacade } from 'src/app/app.facade';
-import { FBResourceSelect } from 'src/app/types/resources/freeboard';
 import { SKResourceService } from '../../resources.service';
 import { SKWorkerService } from 'src/app/modules/skstream/skstream.service';
 import { SignalKClient } from 'signalk-client-angular';
-import { HttpErrorResponse } from '@angular/common/http';
 
 import {
   SKResourceGroupService,
@@ -180,15 +177,20 @@ export class GroupListComponent {
       if (checked) {
         this.selectedGroup = id;
 
-        this.app.config.selections.routes = Array.isArray(group.routes)
-          ? group.routes
-          : [];
-        this.skres.refreshRoutes();
+        if (Array.isArray(group.routes)) {
+          this.app.config.selections.routes = group.routes;
+          this.skres.refreshRoutes();
+        }
 
-        this.app.config.selections.waypoints = Array.isArray(group.waypoints)
-          ? group.waypoints
-          : [];
-        this.skres.refreshWaypoints();
+        if (Array.isArray(group.waypoints)) {
+          this.app.config.selections.waypoints = group.waypoints;
+          this.skres.refreshWaypoints();
+        }
+
+        if (Array.isArray(group.regions)) {
+          this.app.config.selections.regions = group.regions;
+          this.skres.refreshRegions();
+        }
 
         if (Array.isArray(group.charts)) {
           this.app.config.selections.charts = group.charts;

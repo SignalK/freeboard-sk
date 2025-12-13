@@ -7,7 +7,6 @@ import {
   signal,
   input
 } from '@angular/core';
-
 import { MatDialog, MatDialogRef } from '@angular/material/dialog';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatIconModule } from '@angular/material/icon';
@@ -34,6 +33,9 @@ import { JsonMapSourceDialog } from './jsonmapsource-dialog';
 import { SignalKClient } from 'signalk-client-angular';
 import { SKWorkerService } from 'src/app/modules/skstream/skstream.service';
 import { ResourceListBase } from '../resource-list-baseclass';
+import { FBMapInteractService } from 'src/app/modules/map/fbmap-interact.service';
+import { SingleSelectListDialog } from 'src/app/lib/components';
+import { SKResourceGroupService } from '../groups/groups.service';
 
 @Component({
   selector: 'chart-list',
@@ -70,7 +72,9 @@ export class ChartListComponent extends ResourceListBase {
     private dialog: MatDialog,
     private signalk: SignalKClient,
     protected override skres: SKResourceService,
-    private worker: SKWorkerService
+    private worker: SKWorkerService,
+    private mapInteract: FBMapInteractService,
+    protected skgroups: SKResourceGroupService
   ) {
     super('charts', skres);
     // selection.charts changed
@@ -88,6 +92,8 @@ export class ChartListComponent extends ResourceListBase {
   }
 
   ngOnInit() {
+    this.app.data.chartBounds.show = false;
+    this.app.data.chartBounds.charts = [];
     this.initItems();
   }
 
@@ -205,6 +211,9 @@ export class ChartListComponent extends ResourceListBase {
     }
   }
 
+  /**
+   * @description Add new chart source to resources
+   * */
   addChartSource(type: 'wms' | 'wmts' | 'json') {
     let dref: MatDialogRef<WMTSDialog | WMSDialog | JsonMapSourceDialog>;
 
@@ -271,5 +280,51 @@ export class ChartListComponent extends ResourceListBase {
    */
   showChartLayers(show = false) {
     this.displayChartLayers = show;
+  }
+
+  /**
+   * @description Trigger select area interaction
+   * @param id Chart identifier
+   *
+   */
+  selectCacheArea(id: string) {
+    const cht = this.fullList.find((cht: FBChart) => cht[0] === id);
+    this.app.data.chartBounds.charts = [cht];
+    this.app.data.chartBounds.show = true;
+    this.mapInteract.startBoxSelection('seedChart', cht);
+  }
+
+  /**
+   * @description Show select Group dialog
+   * @param id region identifier
+   */
+  protected async itemAddToGroup(id: string) {
+    try {
+      const groups = await this.skgroups.listFromServer();
+      const glist = groups.map((g) => {
+        return { id: g[0], name: g[1].name };
+      });
+      this.dialog
+        .open(SingleSelectListDialog, {
+          data: {
+            title: 'Select Group',
+            icon: { name: 'category' },
+            items: glist
+          }
+        })
+        .afterClosed()
+        .subscribe(async (selGrp) => {
+          if (selGrp) {
+            try {
+              await this.skgroups.addToGroup(selGrp.id, 'chart', id);
+              this.app.showMessage(`Chart added to group.`);
+            } catch (err) {
+              this.app.parseHttpErrorResponse(err);
+            }
+          }
+        });
+    } catch (err) {
+      this.app.parseHttpErrorResponse(err);
+    }
   }
 }

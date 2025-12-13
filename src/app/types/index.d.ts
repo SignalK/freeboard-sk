@@ -184,6 +184,7 @@ export interface IAppConfig {
     // ** saved selections
     routes: string[];
     waypoints: string[];
+    regions: string[];
     tracks: string[] | null;
     charts: string[];
     chartOrder: string[]; // chart layer ordering

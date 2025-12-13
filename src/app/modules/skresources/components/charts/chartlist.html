@@ -189,6 +189,29 @@
                 <mat-icon>info_outline</mat-icon>
               </button>
             </div>
+            @if(r[1].proxy) {
+            <div style="width: 100%; text-align: right">
+              <button
+                mat-icon-button
+                (click)="selectCacheArea(r[0])"
+                matTooltip="Cache Tiles"
+                matTooltipPosition="right"
+              >
+                <mat-icon>download</mat-icon>
+              </button>
+            </div>
+            } @if(app.featureFlags().resourceGroups) { &nbsp;
+            <div style="width: 100%; text-align: right">
+              <button
+                mat-icon-button
+                (click)="itemAddToGroup(r[0])"
+                matTooltip="Add to Group"
+                matTooltipPosition="right"
+              >
+                <mat-icon>category</mat-icon>
+              </button>
+            </div>
+            }
           </div>
         </mat-card-actions>
       </mat-card>

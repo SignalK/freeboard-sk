@@ -43,7 +43,7 @@ const FSK: AppInfoDef = {
   id: 'freeboard',
   name: 'Freeboard-SK',
   description: `Signal K Chart Plotter.`,
-  version: '2.19.2',
+  version: '2.19.3',
   url: 'https://github.com/signalk/freeboard-sk',
   logo: './assets/img/app_logo.png'
 };

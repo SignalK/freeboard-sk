@@ -28,14 +28,7 @@
       "es2022",
       "dom"
     ],
-    "paths": {
-      "ol": [
-        "node_modules/@types/ol"
-      ],
-      "ol/*": [
-        "node_modules/@types/ol/*"
-      ]
-    }
+    "paths": {}
   },
   "angularCompilerOptions": {
     "fullTemplateTypeCheck": true,

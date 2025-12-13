@@ -19,6 +19,10 @@
         <mat-icon>local_offer</mat-icon>
         &nbsp;Notes
       </button>
+      <button mat-menu-item (click)="displayLeftMenu('regionList', true)">
+        <mat-icon>tab_unselected</mat-icon>
+        &nbsp;Regions
+      </button>
       <button mat-menu-item (click)="displayLeftMenu('chartList', true)">
         <mat-icon>map</mat-icon>
         &nbsp;Charts
@@ -153,7 +157,7 @@
         <mat-icon>swap_vertical_circle</mat-icon>
         <span>Measure Radius</span>
       </a>
-      <!--<a mat-menu-item (click)="mapInteract.startBoxSelection()">
+      <!--<a mat-menu-item (click)="mapInteract.startBoxSelection('someMode')">
         <mat-icon>highlight_alt</mat-icon>
         <span>Select</span>
       </a>-->
@@ -574,6 +578,16 @@
                       (closed)="displayLeftMenu()"
                     >
                     </note-list>
+                  }
+                }
+                @if (leftMenuCtrl().regionList) {
+                  @defer {
+                    <region-list
+                      [regions]="skres.regions()"
+                      (pan)="centerAndZoom($event.center, $event.zoomLevel)"
+                      (closed)="displayLeftMenu()"
+                    >
+                    </region-list>
                   }
                 }
                 @if (leftMenuCtrl().trackList) {

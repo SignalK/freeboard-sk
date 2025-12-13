@@ -67,6 +67,7 @@ export interface ChartResource {
   url?: string;
   layers?: string[];
   defaultOpacity?: number;
+  proxy?: boolean;
   $source?: string;
   style?: string;
   //v1

@@ -8,8 +8,6 @@ import { Observable, Subject } from 'rxjs';
 
 // standalone
 import { CommonModule } from '@angular/common';
-//import { BrowserModule } from '@angular/platform-browser';
-//import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { MatBadgeModule } from '@angular/material/badge';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -73,6 +71,7 @@ import {
   WaypointListComponent,
   ChartListComponent,
   NoteListComponent,
+  RegionListComponent,
   TrackListComponent,
   AISListComponent,
   GroupListComponent,
@@ -105,7 +104,8 @@ import { Feature } from 'ol';
 import {
   DrawFeatureType,
   FBMapInteractService,
-  DrawFeatureInfo
+  DrawFeatureInfo,
+  SelectionResultDef
 } from './modules/map/fbmap-interact.service';
 
 interface DrawEndEvent {
@@ -123,7 +123,6 @@ interface DrawEndEvent {
   selector: 'app-root',
   templateUrl: './app.component.html',
   styleUrls: ['./app.component.css'],
-  //standalone: false
   imports: [
     MatMenuModule,
     MatSidenavModule,
@@ -134,7 +133,6 @@ interface DrawEndEvent {
     MatTooltipModule,
     MatProgressBarModule,
     CommonModule,
-    //BrowserAnimationsModule,
     TextDialComponent,
     TTGDialComponent,
     ETADialComponent,
@@ -153,6 +151,7 @@ interface DrawEndEvent {
     WaypointListComponent,
     ChartListComponent,
     NoteListComponent,
+    RegionListComponent,
     TrackListComponent,
     AISListComponent,
     GroupListComponent,
@@ -191,6 +190,7 @@ export class AppComponent {
     waypointList: boolean;
     chartList: boolean;
     noteList: boolean;
+    regionList: boolean;
     trackList: boolean;
     aisList: boolean;
     resourceGroups: boolean;
@@ -202,6 +202,7 @@ export class AppComponent {
     waypointList: false,
     chartList: false,
     noteList: false,
+    regionList: false,
     trackList: false,
     aisList: false,
     resourceGroups: false,
@@ -284,6 +285,10 @@ export class AppComponent {
     effect(() => {
       this.app.debug('** kioskMode Event:', this.app.kioskMode());
       this.toggleSuppressContextMenu(this.app.kioskMode());
+    });
+    // handle map interaction selection signal
+    effect(() => {
+      this.handleSelectionEnded(this.mapInteract.selection());
     });
   }
 
@@ -968,6 +973,7 @@ export class AppComponent {
       waypointList: false,
       chartList: false,
       noteList: false,
+      regionList: false,
       trackList: false,
       aisList: false,
       resourceGroups: false,
@@ -986,6 +992,9 @@ export class AppComponent {
         break;
       case 'noteList':
         lm.noteList = show;
+        break;
+      case 'regionList':
+        lm.regionList = show;
         break;
       case 'trackList':
         lm.trackList = show;
@@ -1595,12 +1604,11 @@ export class AppComponent {
 
   // ******** DRAW / EDIT EVENT HANDLERS ************
 
-  /**
-   * Start feature drawing mode
-   * @param f type of feature to draw
-   */
-  protected dragBox(f: 'select') {
-    //this.mapInteract.startDrawing(f);
+  /** Handle OL selection end event and prompt */
+  protected handleSelectionEnded(selection: SelectionResultDef) {
+    if (selection.mode === 'seedChart') {
+      this.skres.seedChartCache(selection.data, selection.bbox);
+    }
   }
 
   /**
@@ -1713,8 +1721,11 @@ export class AppComponent {
               if (r[0] === 'waypoint') {
                 this.skres.refreshWaypoints();
               }
-              if (r[0] === 'note' || r[0] === 'region') {
+              if (r[0] === 'note') {
                 this.skres.refreshNotes();
+              }
+              if (r[0] === 'region') {
+                this.skres.refreshRegions();
               }
             }
             this.mapInteract.draw.forSave = null;
@@ -1731,7 +1742,8 @@ export class AppComponent {
     this.skres.refreshRoutes();
     this.skres.refreshWaypoints();
     this.skres.refreshCharts();
-    this.skres.refreshNotes(); // calling refreshNotes() also refreshes Regions
+    this.skres.refreshNotes();
+    this.skres.refreshRegions();
     if (allTypes) {
       this.fetchOtherResources();
     }

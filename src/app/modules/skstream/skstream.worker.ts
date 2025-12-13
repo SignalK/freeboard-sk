@@ -1,6 +1,6 @@
 /// <reference lib="webworker" />
 
-import { SignalKStreamWorker, Alarm } from 'signalk-worker-angular';
+import { SKStreamAPI, Alarm } from './stream-api';
 import {
   SKVessel,
   SKAtoN,
@@ -73,7 +73,7 @@ const prefSourcePaths = [
 ];
 
 let vessels: ResultPayload; // post message payload
-let stream: SignalKStreamWorker;
+let stream: SKStreamAPI;
 let skToken!: string;
 const unsubscribe = [];
 let timers = [];
@@ -490,7 +490,7 @@ function openStream(opt) {
   apiUrl = u.join('/');
 
   initVessels();
-  stream = new SignalKStreamWorker();
+  stream = new SKStreamAPI();
   unsubscribe.push(
     stream.onConnect.subscribe((r) =>
       handleStreamEvent({ action: 'onConnect', msg: r })

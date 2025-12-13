@@ -15,14 +15,13 @@
       "prefix": "app",
       "architect": {
         "build": {
-          "builder": "@angular-builders/custom-webpack:browser",
+          "builder": "@angular-devkit/build-angular:application",
           "options": {
-            "customWebpackConfig": {
-              "path": "./webpack.config.js"
+            "outputPath": {
+              "base": "public",
+              "browser": ""
             },
-            "outputPath": "public",
             "index": "src/index.html",
-            "main": "src/main.ts",
             "polyfills": [
               "zone.js"
             ],
@@ -38,9 +37,7 @@
               "src/styles.scss"
             ],
             "scripts": [],
-            "vendorChunk": true,
             "extractLicenses": false,
-            "buildOptimizer": false,
             "sourceMap": true,
             "optimization": false,
             "namedChunks": true,
@@ -57,8 +54,6 @@
               "sourceMap": false,
               "namedChunks": false,
               "extractLicenses": true,
-              "vendorChunk": false,
-              "buildOptimizer": true,
               "budgets": [
                 {
                   "type": "initial",
@@ -81,7 +76,7 @@
           "defaultConfiguration": "production"
         },
         "serve": {
-          "builder": "@angular-builders/custom-webpack:dev-server",
+          "builder": "@angular-devkit/build-angular:dev-server",
           "options": {
             "buildTarget": "freeboard-sk:build"
           },

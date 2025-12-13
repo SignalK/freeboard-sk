@@ -202,8 +202,11 @@ export class InteractionHelpComponent {
         this.mode = {
           iconName: 'highlight_alt',
           iconText: 'Select',
-          description: 'Click and drag to select area.',
-          steps: []
+          description: '',
+          steps: [
+            'Click and drag to select area.',
+            'On touch devices, press and hold then drag.'
+          ]
         };
       } else if (
         mapInteract.isMeasuring() &&

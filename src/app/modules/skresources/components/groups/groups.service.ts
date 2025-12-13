@@ -15,6 +15,7 @@ export interface SKResourceGroup {
   routes?: Array<string>;
   waypoints?: Array<string>;
   charts?: Array<string>;
+  regions?: Array<string>;
 }
 interface GroupResponse {
   [index: string]: SKResourceGroup;
@@ -141,7 +142,8 @@ export class SKResourceGroupService {
         description: '',
         routes: [],
         waypoints: [],
-        charts: []
+        charts: [],
+        regions: []
       };
     } else {
       // edit group
@@ -233,12 +235,19 @@ export class SKResourceGroupService {
       const newids = resId.filter((i) => !grp.waypoints.includes(i));
       grp.waypoints = grp.waypoints.concat(newids);
     }
+    if (resType === 'region') {
+      if (!Array.isArray(grp.regions)) {
+        grp.regions = [];
+      }
+      const newids = resId.filter((i) => !grp.regions.includes(i));
+      grp.regions = grp.regions.concat(newids);
+    }
     if (resType === 'chart') {
       if (!Array.isArray(grp.charts)) {
         grp.charts = [];
       }
       const newids = resId.filter((i) => !grp.charts.includes(i));
-      grp.charts = grp.routes.concat(newids);
+      grp.charts = grp.charts.concat(newids);
     }
     await this.putToServer(grpId, grp);
   }

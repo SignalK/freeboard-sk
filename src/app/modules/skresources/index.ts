@@ -10,6 +10,7 @@ export * from './components/notes/notelist';
 export * from './components/notes/note-dialog';
 export * from './components/notes/relatednotes-dialog';
 
+export * from './components/regions/regionlist';
 export * from './components/regions/region-dialog';
 
 export * from './components/ais/aislist';

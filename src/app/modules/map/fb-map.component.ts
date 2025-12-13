@@ -702,14 +702,12 @@ export class FBMapComponent implements OnInit, OnDestroy {
   protected onDragBoxStart(e: DragBoxEvent) {
     let c = toLonLat(e.coordinate);
     this.mapInteract.initBoxCoord(c as Position);
-    this.app.debug(`onDragBoxStart()...`, this.mapInteract.boxCoords);
   }
 
   /** Handle OL interaction end event */
   protected onDragBoxEnd(e: DragBoxEvent) {
     let c = toLonLat(e.coordinate);
     this.mapInteract.stopBoxSelection(c as Position);
-    this.app.debug(`onDragBoxEnd()...`, this.mapInteract.boxCoords);
   }
 
   /** Handle OL interaction end event */

@@ -60,6 +60,7 @@ import {
 import { ActionResult, PathValue } from 'src/app/types';
 import { groupBy } from 'rxjs/operators';
 import { SKWorkerService } from '../skstream/skstream.service';
+import { ChartSeedJobDialog } from './components/charts/chart-seedjob-dialog';
 
 export type SKResourceType =
   | 'routes'
@@ -787,6 +788,66 @@ export class SKResourceService {
     this.refreshCharts();
   }
 
+  /**
+   * @description Seed chart cache for the selected area (charts-plugin)
+   * @param chart SKChart object
+   * @param bbox Bounding box
+   */
+  public async seedChartCache(chart: SKChart, bbox: Position[]) {
+    if (!chart || !Array.isArray(bbox)) {
+      this.app.showAlert('Selection Error', 'Invalid selection data!');
+      return;
+    }
+    const parseBbox = (coords: Position[]) => {
+      return {
+        minLon: coords[0][0],
+        minLat: coords[0][1],
+        maxLon: coords[1][0],
+        maxLat: coords[1][1]
+      };
+    };
+    if (bbox.length !== 2) {
+      this.app.showAlert('Selection Error', 'Invalid selection!');
+      return;
+    }
+    // confirm cache seeding job submission
+    this.dialog
+      .open(ChartSeedJobDialog, {
+        data: { chart: chart, bbox: bbox }
+      })
+      .afterClosed()
+      .subscribe((maxZoom: number) => {
+        if (maxZoom > 0) {
+          const req = {
+            bbox: parseBbox(bbox),
+            maxZoom: maxZoom
+          };
+          this.app.debug(
+            `Submit chart seed job ${JSON.stringify(req)} for chart ${chart[0]}`
+          );
+          this.signalk
+            .post(`/signalk/chart-tiles/cache/${chart[0]}`, req)
+            .subscribe(
+              (res) => {
+                this.app.showAlert(
+                  'Chart Cache',
+                  `Tile cache seed job created successfully.`
+                );
+              },
+              (err) => {
+                this.app.parseHttpErrorResponse(err);
+              }
+            );
+        }
+      });
+  }
+
+  /**
+   * @description Submit cache seeding job for a proxied chart
+   * @param id Chart identifier
+   * @param data Object containing seed job attributes
+   */
+
   // **** ROUTES ****
 
   private routeCacheSignal = signal<FBRoutes>([]);
@@ -1352,12 +1413,6 @@ export class SKResourceService {
    * @param query Filter criteria for regions placed in the cache
    */
   public async refreshRegions(query?: string) {
-    query =
-      query ??
-      processUrlTokens(
-        this.app.config.resources.notes.rootFilter,
-        this.app.config
-      );
     if (query && query[0] !== '?') {
       query = '?' + query;
     }
@@ -1421,9 +1476,12 @@ export class SKResourceService {
       .afterClosed()
       .subscribe(async (r: { save: boolean; region: SKRegion }) => {
         if (r.save) {
-          this.postToServer('regions', r.region).catch((err) =>
-            this.app.parseHttpErrorResponse(err)
-          );
+          try {
+            const reg = await this.postToServer('regions', r.region);
+            this.selectionAdd('regions', reg.id);
+          } catch (err) {
+            this.app.parseHttpErrorResponse(err);
+          }
         }
       });
   }
@@ -1432,7 +1490,7 @@ export class SKResourceService {
    * @description Fetch Region with supplied id and display edit dialog
    * @param id region identifier
    */
-  private async editRegionInfo(id: string) {
+  public async editRegionInfo(id: string) {
     if (!id) {
       return;
     }
@@ -1522,6 +1580,72 @@ export class SKResourceService {
     });
   }
 
+  /**
+   * @description Add FBRegion objects to the Region Cache
+   * @param ids Array of region identifiers. If not supplied all regions will be added.
+   */
+  public regionAddFromServer(ids?: string[]) {
+    if (!ids) {
+      // add all regions retrieved from server
+      this.selectionUnfilter('regions');
+    } else {
+      if (this.selectionIsFiltered) {
+        this.selectionAdd('regions', ids);
+      }
+    }
+    this.refreshRegions();
+  }
+
+  /**
+   * @description Add FBRegion objects to the Region Cache
+   * @param regions FBRegion array
+   */
+  public regionAdd(regions: FBRegions) {
+    this.regionCacheSignal.update((current: FBRegions) => {
+      if (this.selectionIsFiltered('regions')) {
+        this.selectionAdd(
+          'regions',
+          regions.map((c: FBRegion) => c[0])
+        );
+      }
+      return current.concat(regions);
+    });
+  }
+
+  /**
+   * @description Remove FBRegion objects from the Region Cache
+   * @param ids Array of region identifiers. If not supplied all regions are removed.
+   */
+  public regionRemove(ids?: string[]) {
+    this.regionCacheSignal.update((current: FBRegions) => {
+      if (!ids) {
+        // remove all entries
+        this.selectionClear('regions');
+        this.app.saveConfig();
+        return [];
+      } else {
+        this.selectionRemove('regions', ids);
+        return current.filter((c) => !ids.includes(c[0]));
+      }
+    });
+  }
+
+  /**
+   * @description Select the regions with the supplied ids for inclusion into the cache.
+   * @param ids Array of region identifiers
+   */
+  public regionSelected(ids: string | string[]) {
+    ids = !Array.isArray(ids) ? [ids] : ids;
+    ids.forEach((id: string) => {
+      if (!this.selectionHas('regions', id)) {
+        this.selectionAdd('regions', id);
+      } else {
+        this.selectionRemove('regions', id);
+      }
+    });
+    this.refreshRegions();
+  }
+
   // **** NOTES ****
 
   private noteCacheSignal = signal<FBNotes>([]);
@@ -1549,8 +1673,6 @@ export class SKResourceService {
     } catch (err) {
       this.app.debug('** refreshNotes:', err);
     }
-    // fetch regions as well
-    this.refreshRegions(query);
   }
 
   /**

@@ -694,8 +694,8 @@
               group on the map and hide all other resources.
               <br />
               Resources can be added to groups directly from the specfic
-              resource list <i>(e.g. Routes, Waypoints)</i> or when editing a
-              Group's properties.
+              resource list <i>(e.g. Routes, Waypoints, Regions, Charts)</i> or
+              when editing a Group's properties.
               <br />
               <i
                 >Note: A resource can belong to more than one resource group.</i
@@ -703,7 +703,14 @@
               <ul>
                 <li>
                   <i class="material-icons">add</i> <b>New Group:</b> Create a
-                  new resource Group.
+                  new resource Group.<br />
+                  <i
+                    >Note: By default if no resources are listed for a specific
+                    resource type (e.g.regions) then all resources of this type
+                    will be hidden from display.<br />
+                    To keep these resources displayed uncheck the
+                    <b>Hide</b> checkbox.
+                  </i>
                 </li>
                 <li>
                   <i class="material-icons">edit</i>
@@ -1220,6 +1227,20 @@
                   chart properties.
                 </li>
                 <li>
+                  <b>Cache Tiles:</b> Click
+                  <i class="material-icons">download</i> to select an area on
+                  the map for which chart tiles will be cached.<br />
+                  <i
+                    >Note: This option is only available when a chart is defined
+                    as proxied by the chart provider.</i
+                  ><br />
+                </li>
+                <li>
+                  <b>Add to Group: </b> Click
+                  <i class="material-icons">category</i> Add Chart to a Resource
+                  Group.
+                </li>
+                <li>
                   <b>Display Chart:</b> Check the checkbox to display the chart.
                 </li>
               </ul>
@@ -1241,6 +1262,7 @@
             <li class="nobullet">
               <i class="material-icons">tab_unselected</i>
               <b>Regions:</b>
+              Displays a list of Regions.
             </li>
           </ul>
           <div style="display: flex; flex-wrap: wrap">
@@ -1249,7 +1271,30 @@
               map.<br />
               They can be attributed as hazardous areas which will create an
               alarm which will sound when the vessel position is inside the
-              region's bounds. <br />
+              region's bounds. <br />&nbsp;
+            </div>
+            <div style="padding-left: 15px">
+              <ul>
+                <li>
+                  <b>Filter Regions:</b> Type into the text box to filter the
+                  list of regions.
+                </li>
+                <li>
+                  <b>Properties:</b> Click
+                  <i class="material-icons">info_outline</i> to display the
+                  chart properties.
+                </li>
+                <li>
+                  <b>Add to Group: </b> Click
+                  <i class="material-icons">category</i> Add Region to a
+                  Resource Group.
+                </li>
+                <li>
+                  <b>Display Region:</b> Check the checkbox to display the
+                  region.
+                </li>
+              </ul>
+
               To mark a regions as hazardous:
               <ul>
                 <li>Click on the Region</li>

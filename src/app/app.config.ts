@@ -309,6 +309,9 @@ export function cleanConfig(
   if (typeof settings.selections.infolayers === 'undefined') {
     settings.selections.infolayers = [];
   }
+  if (typeof settings.selections.regions === 'undefined') {
+    settings.selections.regions = [];
+  }
 
   if (typeof settings.units.temperature === 'undefined') {
     settings.units.temperature = 'c';
@@ -469,6 +472,7 @@ export function defaultConfig(): IAppConfig {
     selections: {
       routes: [],
       waypoints: [],
+      regions: [],
       tracks: null,
       charts: ['openstreetmap', 'openseamap'],
       chartOrder: ['openstreetmap', 'openseamap'], // chart layer ordering

@@ -50,6 +50,14 @@ export interface MeasurementDef {
   radius?: number;
 }
 
+export type SelectionModeDef = 'seedChart';
+
+export interface SelectionResultDef {
+  mode: SelectionModeDef;
+  bbox?: [Position?, Position?];
+  data?: any;
+}
+
 export type DrawFeatureType = 'waypoint' | 'route' | 'region' | 'note'; // feature type to draw
 
 export interface DrawFeatureInfo {
@@ -77,7 +85,11 @@ export class FBMapInteractService {
     radius: 0
   });
 
-  readonly boxCoords: Position[] = [];
+  readonly selection = signal<SelectionResultDef>({
+    mode: null
+  });
+
+  private selectionResult: SelectionResultDef;
   public measureGeometryType: 'LineString' | 'Circle' = 'LineString';
 
   /** draw interaction data */
@@ -94,8 +106,10 @@ export class FBMapInteractService {
 
   /** add start coordinate to box select */
   initBoxCoord(coord: Position) {
-    this.boxCoords.splice(0);
-    this.boxCoords.push(coord);
+    if (!this.selectionResult) {
+      this.selectionResult = { mode: null };
+    }
+    this.selectionResult.bbox = [coord];
   }
 
   /** set coordinates array in measurment data */
@@ -258,19 +272,46 @@ export class FBMapInteractService {
   /**
    * Start box selection mode
    */
-  startBoxSelection() {
+  startBoxSelection(mode: SelectionModeDef, data: any) {
     this.app.debug(`startBoxSelection()...`);
+    this.selectionResult = {
+      mode: mode,
+      data: data,
+      bbox: []
+    };
     this.isBoxSelecting.set(true);
-    this.boxCoords.splice(0);
     this.interactionStarted();
   }
 
   /** Exit measuring mode */
   stopBoxSelection(coords?: Position) {
     this.app.debug(`stopBoxSelection()...`);
-    if (coords) this.boxCoords.push(coords);
+    if (coords) {
+      this.selectionResult.bbox.push(coords);
+      this.formatBbox();
+      this.selection.update(() => {
+        return this.selectionResult;
+      });
+    }
     this.isBoxSelecting.set(false);
     this.interactionEnded();
+  }
+
+  private formatBbox() {
+    if (this.selectionResult.bbox.length !== 2) {
+      return;
+    }
+    const coords = [].concat(this.selectionResult.bbox);
+    this.selectionResult.bbox = [
+      [
+        coords[0][0] < coords[1][0] ? coords[0][0] : coords[1][0],
+        coords[0][1] < coords[1][1] ? coords[0][1] : coords[1][1]
+      ],
+      [
+        coords[0][0] > coords[1][0] ? coords[0][0] : coords[1][0],
+        coords[0][1] > coords[1][1] ? coords[0][1] : coords[1][1]
+      ]
+    ];
   }
 
   /** Common interaction start tasks */
