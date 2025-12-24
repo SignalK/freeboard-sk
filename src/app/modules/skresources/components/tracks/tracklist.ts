@@ -19,7 +19,6 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 
 import { AppFacade } from 'src/app/app.facade';
 import { SKResourceService, SKResourceType } from 'src/app/modules/skresources';
-import { SignalKClient } from 'signalk-client-angular';
 import { FBTrack, FBTracks, Position } from 'src/app/types';
 import { SKWorkerService } from 'src/app/modules';
 import { ResourceListBase } from '../resource-list-baseclass';

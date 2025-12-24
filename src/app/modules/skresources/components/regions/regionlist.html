@@ -39,7 +39,7 @@
             mat-icon-button
             (click)="initItems()"
             matTooltip="Reload Regions"
-            matTooltipPosition="left"
+            matTooltipPosition="below"
           >
             <mat-icon>refresh</mat-icon>
           </button>
@@ -107,7 +107,7 @@
                 [disabled]="app.uiConfig().mapMove"
                 (click)="emitCenter(r[1])"
                 matTooltip="Center Region"
-                matTooltipPosition="left"
+                matTooltipPosition="above"
               >
                 <mat-icon>center_focus_strong</mat-icon>
               </button>
@@ -116,7 +116,7 @@
                 mat-icon-button
                 (click)="itemProperties(r[0])"
                 matTooltip="Region Properties"
-                matTooltipPosition="left"
+                matTooltipPosition="above"
               >
                 <mat-icon>info_outline</mat-icon>
               </button>
@@ -126,7 +126,7 @@
                 mat-icon-button
                 (click)="itemAddToGroup(r[0])"
                 matTooltip="Add to Group"
-                matTooltipPosition="right"
+                matTooltipPosition="above"
               >
                 <mat-icon>category</mat-icon>
               </button>

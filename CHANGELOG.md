@@ -1,8 +1,7 @@
 # CHANGELOG: Freeboard
 
-### v2.19.3
+### v2.19.4
 
-- **New**: Added support for submitting tile seeding jobs to `charts-plugin`.
-- **New**: Added Regions list so they can now be managed similarly to routes & waypoints.
-- **Updated**: Regions and Charts can now be added to resource groups.
-- **Updated**: Resource groups to control behaviour of resource types when none have been included in a group.
+- **Updated**: AIS Target processing improvements.
+- **Updated**: S57 color table options.
+- **Experiment**: Configure URL for "Feature server" to display details of chart features supplied as GeoJSON FeatureCollection

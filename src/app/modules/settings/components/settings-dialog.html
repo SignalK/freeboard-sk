@@ -425,9 +425,9 @@
                       </mat-select>
                     </mat-form-field>
                   </div>
-                  <!--<div class="setting-card-row-item">
+                  <div class="setting-card-row-item">
                     <mat-form-field style="width: 100%">
-                      <mat-label>Color Table</mat-label>
+                      <mat-label>Color Table (Requires refresh)</mat-label>
                       <mat-select
                         [(ngModel)]="facade.settings.map.s57Options.colorTable"
                         (selectionChange)="doS57()"
@@ -438,7 +438,7 @@
                         }
                       </mat-select>
                     </mat-form-field>
-                  </div>-->
+                  </div>
                   <div class="setting-card-row-item">
                     <mat-form-field style="width: 100%">
                       <mat-label>Colors</mat-label>
@@ -1319,7 +1319,7 @@
                         [disabled]="!facade.settings.resources.video.enable"
                         [(ngModel)]="facade.settings.resources.video.url"
                         (change)="persistModel('videoUrl')"
-                        placeholder="Video stream url"
+                        placeholder="Video stream URL"
                         matTooltip="Enter URL of video stream"
                       />
                       @if(videourl.invalid) {
@@ -1339,6 +1339,26 @@
                     >
                       <mat-icon>science</mat-icon> Experimental Features
                     </mat-checkbox>
+                  </div>
+                </div>
+                <div class="setting-card-row">
+                  <div class="setting-card-row-item">
+                    <mat-form-field style="width: 100%" floatLabel="always">
+                      <mat-label>Feature Server url:</mat-label>
+                      <input
+                        matInput
+                        type="text"
+                        #featureserverurl="ngModel"
+                        [disabled]="!facade.settings.experiments"
+                        [(ngModel)]="facade.settings.resources.featureServer.url"
+                        (change)="persistModel('featureServerUrl')"
+                        placeholder="e.g. http://host:port/path/?position=[%pointer:longitude%,%pointer:latitude%]"
+                        matTooltip="Enter URL of feature server"
+                      />
+                      @if(featureserverurl.invalid) {
+                      <mat-error> Value required. </mat-error>
+                      }
+                    </mat-form-field>
                   </div>
                 </div>
               </mat-card-content>

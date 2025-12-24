@@ -1,3 +1,4 @@
+import { provideZoneChangeDetection } from '@angular/core';
 import { bootstrapApplication } from '@angular/platform-browser';
 import {
   provideHttpClient,
@@ -6,5 +7,8 @@ import {
 import { AppComponent } from './app/app.component';
 
 bootstrapApplication(AppComponent, {
-  providers: [provideHttpClient(withInterceptorsFromDi())]
+  providers: [
+    provideZoneChangeDetection(),
+    provideHttpClient(withInterceptorsFromDi())
+  ]
 }).catch((e) => console.log(e));

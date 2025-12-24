@@ -1,3 +1,5 @@
+export * from './components/feature-properties-modal';
+
 export * from './resources.service';
 export * from './resource-classes';
 export * from './custom-resource-classes';

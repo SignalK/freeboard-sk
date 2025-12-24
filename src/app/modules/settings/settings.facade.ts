@@ -100,9 +100,9 @@ export class SettingsOptions {
       colorTables: new Map([
         [0, 'Day Bright'],
         [1, 'Day Black Background'],
-        [2, 'Day White Background'],
-        [3, 'Dusk'],
-        [4, 'Night']
+        [2, 'Day White Background']
+        /*[3, 'Dusk'],
+        [4, 'Night']*/
       ])
     }
   };

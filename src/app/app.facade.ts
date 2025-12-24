@@ -1,7 +1,7 @@
 /** Application Information Service **
  * perform version checking etc. here
  * ************************************/
-import { effect, Injectable, isDevMode, signal } from '@angular/core';
+import { effect, inject, Injectable, isDevMode, signal } from '@angular/core';
 import { DomSanitizer } from '@angular/platform-browser';
 import { MatIconRegistry } from '@angular/material/icon';
 import { MatDialog } from '@angular/material/dialog';
@@ -37,13 +37,14 @@ import { getSvgList } from './modules/icons';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Extent } from 'ol/extent';
 import { GeoUtils } from './lib/geoutils';
+import { S57Service } from './modules/map/ol';
 
 // App details
 const FSK: AppInfoDef = {
   id: 'freeboard',
   name: 'Freeboard-SK',
   description: `Signal K Chart Plotter.`,
-  version: '2.19.3',
+  version: '2.19.4',
   url: 'https://github.com/signalk/freeboard-sk',
   logo: './assets/img/app_logo.png'
 };
@@ -185,14 +186,15 @@ export class AppFacade extends InfoService {
   selfTrailFromServer = signal<LineString>([]); // vessel trail from server
   mapExtent = signal<Extent>([]); // map viewport extent
 
-  constructor(
-    public signalk: SignalKClient,
-    private worker: SKWorkerService,
-    private dialog: MatDialog,
-    private snackbar: MatSnackBar,
-    private iconReg: MatIconRegistry,
-    private dom: DomSanitizer
-  ) {
+  protected signalk = inject(SignalKClient);
+  private worker = inject(SKWorkerService);
+  private dialog = inject(MatDialog);
+  private snackbar = inject(MatSnackBar);
+  private iconReg = inject(MatIconRegistry);
+  private dom = inject(DomSanitizer);
+  private s57 = inject(S57Service);
+
+  constructor() {
     /** Initialise and apply defaults */
     super(FSK);
     this.config = defaultConfig();
@@ -285,6 +287,7 @@ export class AppFacade extends InfoService {
   private parseLoadedConfig() {
     cleanConfig(this.config, this.hostDef.params);
     this.doPostConfigLoad();
+    this.s57.init(this.config.map.s57Options);
   }
 
   /** Initialise and raise "settings$.load" event */

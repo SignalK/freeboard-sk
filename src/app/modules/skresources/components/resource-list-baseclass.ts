@@ -34,11 +34,7 @@ export class ResourceListBase {
    */
   protected doFilter() {
     const sortList = () => {
-      fl.sort((a, b) => {
-        const x = a[1].name?.toLowerCase();
-        const y = b[1].name?.toLowerCase();
-        return x > y ? 1 : -1;
-      });
+      fl.sort((a, b) => a[1].name.localeCompare(b[1].name));
     };
     let fl: Array<FBResource>;
     if (this.filterText.length === 0) {

@@ -7,7 +7,6 @@ import {
   signal,
   effect
 } from '@angular/core';
-import { CommonModule } from '@angular/common';
 
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatIconModule } from '@angular/material/icon';
@@ -35,7 +34,6 @@ import { SingleSelectListDialog } from 'src/app/lib/components';
   templateUrl: './regionlist.html',
   styleUrls: ['../resourcelist.css'],
   imports: [
-    CommonModule,
     MatTooltipModule,
     MatIconModule,
     MatCardModule,

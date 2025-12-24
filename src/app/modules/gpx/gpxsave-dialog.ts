@@ -1,6 +1,6 @@
 import { Component, OnInit, Inject } from '@angular/core';
 import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
-import { CommonModule } from '@angular/common';
+
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
@@ -36,8 +36,7 @@ import { FBRoute, FBWaypoint } from 'src/app/types';
     MatExpansionModule,
     MatCheckboxModule,
     MatTooltipModule,
-    FormsModule,
-    CommonModule
+    FormsModule
   ],
   templateUrl: './gpxsave-dialog.html',
   styleUrls: ['./gpxsave-dialog.css']

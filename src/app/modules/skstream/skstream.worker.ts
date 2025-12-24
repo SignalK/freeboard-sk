@@ -697,9 +697,9 @@ function postUpdate(immediate = false) {
     postMessage(msg);
     initAisTargetStatus();
     vessels.self.resourceUpdates = [];
-    // cleanup and extent calc
+    processAISStatus(); // cleanup
+    // extent calc
     if (extRecalcCounter === 0) {
-      processAISStatus();
       if (vessels.self.positionReceived && targetFilter?.signalk.maxRadius) {
         targetExtent = GeoUtils.calcMapifiedExtent(
           vessels.self.position,
@@ -841,6 +841,7 @@ function processVessel(d: SKVessel, v: any, isSelf = false) {
       v.value.latitude
     ]);
     d.positionReceived = true;
+    d.lastUpdated = new Date();
     if (!isSelf) {
       appendTrack(d);
     }

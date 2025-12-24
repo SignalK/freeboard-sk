@@ -178,6 +178,9 @@ export function cleanConfig(
         enable: false,
         url: ''
       },
+      featureServer: {
+        url: ''
+      },
       paths: []
     };
   } else {
@@ -187,6 +190,9 @@ export function cleanConfig(
     }
     if (typeof settings.resources.video === 'undefined') {
       settings.resources.video = { enable: false, url: '' };
+    }
+    if (typeof settings.resources.featureServer === 'undefined') {
+      settings.resources.featureServer = { url: '' };
     }
     if (typeof settings.resources.paths === 'undefined') {
       settings.resources.paths = [];
@@ -448,6 +454,9 @@ export function defaultConfig(): IAppConfig {
       },
       video: {
         enable: false,
+        url: null
+      },
+      featureServer: {
         url: null
       },
       paths: []

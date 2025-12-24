@@ -1,4 +1,11 @@
-import { Component, ViewChild, computed, effect, signal } from '@angular/core';
+import {
+  Component,
+  ViewChild,
+  computed,
+  effect,
+  inject,
+  signal
+} from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
 import { MatDialog } from '@angular/material/dialog';
 import { MatBottomSheet } from '@angular/material/bottom-sheet';
@@ -245,24 +252,24 @@ export class AppComponent {
     );
   });
 
-  constructor(
-    protected app: AppFacade,
-    protected mapInteract: FBMapInteractService,
-    protected anchor: AnchorService,
-    protected notiMgr: NotificationManager,
-    protected course: CourseService,
-    protected stream: SKStreamFacade,
-    protected skres: SKResourceService,
-    protected skresOther: FBCustomResourceService,
-    protected signalk: SignalKClient,
-    private dom: DomSanitizer,
-    private overlayContainer: OverlayContainer,
-    private bottomSheet: MatBottomSheet,
-    private dialog: MatDialog,
-    protected wakeLock: WakeLockService,
-    private settings: SettingsFacade,
-    protected autopilot: AutopilotService
-  ) {
+  protected app = inject(AppFacade);
+  protected mapInteract = inject(FBMapInteractService);
+  protected anchor = inject(AnchorService);
+  protected notiMgr = inject(NotificationManager);
+  protected course = inject(CourseService);
+  protected stream = inject(SKStreamFacade);
+  protected skres = inject(SKResourceService);
+  protected skresOther = inject(FBCustomResourceService);
+  protected signalk = inject(SignalKClient);
+  private dom = inject(DomSanitizer);
+  private overlayContainer = inject(OverlayContainer);
+  private bottomSheet = inject(MatBottomSheet);
+  private dialog = inject(MatDialog);
+  protected wakeLock = inject(WakeLockService);
+  private settings = inject(SettingsFacade);
+  protected autopilot = inject(AutopilotService);
+
+  constructor() {
     // set self to active vessel
     this.app.data.vessels.active = this.app.data.vessels.self;
 

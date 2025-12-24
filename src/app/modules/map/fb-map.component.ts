@@ -9,7 +9,8 @@ import {
   SimpleChanges,
   signal,
   input,
-  effect
+  effect,
+  inject
 } from '@angular/core';
 
 import { MatButtonModule } from '@angular/material/button';
@@ -62,7 +63,8 @@ import {
   NotificationManager,
   CourseService,
   SettingsFacade,
-  WeatherForecastModal
+  WeatherForecastModal,
+  FeaturePropertiesModal
 } from 'src/app/modules';
 import {
   mapControls,
@@ -90,7 +92,7 @@ import {
   MapComponent
 } from './ol/lib/map.component';
 import { FeatureLike } from 'ol/Feature';
-import { HttpErrorResponse } from '@angular/common/http';
+import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import {
   FBMapInteractService,
   DrawFeatureInfo,
@@ -247,18 +249,19 @@ export class FBMapComponent implements OnInit, OnDestroy {
 
   private obsList = [];
 
-  constructor(
-    protected app: AppFacade,
-    protected skres: SKResourceService,
-    protected skresOther: FBCustomResourceService,
-    protected skstream: SKStreamFacade,
-    protected anchor: AnchorService,
-    protected notiMgr: NotificationManager,
-    protected course: CourseService,
-    protected mapInteract: FBMapInteractService,
-    private settings: SettingsFacade,
-    private bottomSheet: MatBottomSheet
-  ) {
+  private http = inject(HttpClient);
+  protected app = inject(AppFacade);
+  protected skres = inject(SKResourceService);
+  protected skresOther = inject(FBCustomResourceService);
+  protected skstream = inject(SKStreamFacade);
+  protected anchor = inject(AnchorService);
+  protected notiMgr = inject(NotificationManager);
+  protected course = inject(CourseService);
+  protected mapInteract = inject(FBMapInteractService);
+  private settings = inject(SettingsFacade);
+  private bottomSheet = inject(MatBottomSheet);
+
+  constructor() {
     effect(() => {
       if (this.scaleUnits()) {
         this.setScaleUnits();
@@ -527,6 +530,9 @@ export class FBMapComponent implements OnInit, OnDestroy {
         break;
       case 'measure':
         this.mapInteract.startMeasuring();
+        break;
+      case 'get_feature_info':
+        this.getFeatureInfo(pos);
         break;
       default:
         this.menuItemSelected.emit(action);
@@ -1734,7 +1740,11 @@ export class FBMapComponent implements OnInit, OnDestroy {
     }
   }
 
-  // ** returns true if skres.refreshNotes() should be called
+  /**
+   * @description Determine if Notes should be fetched from the server.
+   * @param zoomChanged When true signifies that zoom level has changed.
+   * @returns true if skres.refreshNotes() should be called
+   */
   private shouldFetchNotes(zoomChanged: boolean) {
     this.showNoteslayer.update(
       () =>
@@ -1754,6 +1764,36 @@ export class FBMapComponent implements OnInit, OnDestroy {
     }
     return this.mapMoveThresholdExceeded(
       this.app.config.resources.notes.getRadius
+    );
+  }
+
+  /**
+   * @decsription Retrieves and displays feature information
+   * @param pos Position of feature(s) to retrieve
+   * @todo Experiment
+   */
+  private getFeatureInfo(pos: Position) {
+    if (!this.app.config.resources.featureServer.url) return;
+    // parse url tokens
+    const u = this.app.config.resources.featureServer.url
+      .replaceAll('%longitude%', pos[0].toString())
+      .replaceAll('%latitude%', pos[1].toString())
+      .replaceAll('%map:zoom%', this.mapZoomLevel().toFixed(1));
+
+    this.http.get(u).subscribe(
+      (r: { type: string; features: Feature[] }) => {
+        if (Array.isArray(r?.features)) {
+          this.bottomSheet.open(FeaturePropertiesModal, {
+            disableClose: true,
+            data: r.features
+          });
+        } else {
+          this.app.showAlert('Invalid Response', 'Invalid data received!');
+        }
+      },
+      (error) => {
+        this.app.parseHttpErrorResponse(error);
+      }
     );
   }
 }

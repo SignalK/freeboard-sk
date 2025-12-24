@@ -127,12 +127,7 @@
   </ol-control>
 
   <!-- Charts -->
-  <fb-charts
-    [zIndex]="10"
-    [charts]="skres.charts()"
-    [colorMode]="app.data.vessels.self.environment.sun"
-  >
-  </fb-charts>
+  <fb-charts [zIndex]="10" [charts]="skres.charts()"> </fb-charts>
 
   <!-- Charts -->
   <fb-livelayer
@@ -778,6 +773,15 @@
       >
         <mat-icon>air</mat-icon>
         <span>Weather Forecast</span>
+      </button>
+    }
+    @if (app.config.experiments && app.config.resources.featureServer.url) {
+      <button
+        mat-menu-item
+        (click)="onContextMenuAction('get_feature_info', item)"
+      >
+        <mat-icon>info</mat-icon>
+        <span>Get Feature Info</span>
       </button>
     }
   </ng-template>
