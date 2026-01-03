@@ -79,7 +79,8 @@ import {
   laylineStyles,
   drawStyles,
   targetAngleStyle,
-  raceCourseStyles
+  raceCourseStyles,
+  bearingDistanceStyle
 } from './mapconfig';
 import { ModifyEvent } from 'ol/interaction/Modify';
 import { DrawEvent } from 'ol/interaction/Draw';
@@ -221,7 +222,8 @@ export class FBMapComponent implements OnInit, OnDestroy {
     sar: sarStyles,
     layline: laylineStyles,
     targetAngle: targetAngleStyle,
-    raceCourse: raceCourseStyles
+    raceCourse: raceCourseStyles,
+    bearingDistance: bearingDistanceStyle
   };
 
   // ** map feature data
@@ -517,6 +519,9 @@ export class FBMapComponent implements OnInit, OnDestroy {
           latitude: pos[1],
           longitude: pos[0]
         });
+        break;
+      case 'bearing_dist':
+        this.formatPopover('bearing_dist', pos);
         break;
       case 'weather_forecast':
         this.bottomSheet.open(WeatherForecastModal, {
@@ -1118,6 +1123,17 @@ export class FBMapComponent implements OnInit, OnDestroy {
       case 'anchor':
         this.modifyFeature('anchor');
         return;
+      case 'bearing_dist':
+        const d =
+          GeoUtils.distanceTo(this.app.data.vessels.self.position, coord) ?? 0;
+        const b =
+          getGreatCircleBearing(this.app.data.vessels.self.position, coord) ??
+          0;
+        poData.type = t[0];
+        poData.title = `${this.app.formatValueForDisplay(d, 'm')} ${this.app.formatValueForDisplay(b, 'deg')}`;
+        poData.position = coord;
+        poData.show = true;
+        break;
       case 'list':
         poData.type = t[0];
         poData.title = 'Features';

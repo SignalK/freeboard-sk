@@ -1,7 +1,7 @@
 # CHANGELOG: Freeboard
 
-### v2.19.4
+### v2.19.5
 
-- **Updated**: AIS Target processing improvements.
-- **Updated**: S57 color table options.
-- **Experiment**: Configure URL for "Feature server" to display details of chart features supplied as GeoJSON FeatureCollection
+- **New**: Bearing & Distance context menu option. (#309)
+- **Fixed**: Issue where Signal K server 2.19.0 rate limiting was causing "Too many requests" error when checking login status.
+

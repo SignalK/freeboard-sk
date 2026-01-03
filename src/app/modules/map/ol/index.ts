@@ -3,15 +3,13 @@
  */
 import { NgModule } from '@angular/core';
 import { InteractionsDirective } from './lib/interactions.directive';
-//import { LayerType } from './lib/models';
+
 import { MapComponent } from './lib/map.component';
 import { OverlayComponent } from './lib/overlay.component';
 import { ControlsDirective } from './lib/controls.directive';
 import { ViewDirective } from './lib/view.directive';
-//import { MapService } from './lib/map.service';
 import { ContentComponent } from './lib/content.component';
 import { LayerComponent } from './lib/layer.component';
-
 import { ControlComponent } from './lib/control.component';
 
 import { InteractionDrawComponent } from './lib/interactions/interaction-draw.component';
@@ -21,7 +19,6 @@ import { FreeboardWaypointLayerComponent } from './lib/resources/layer-waypoints
 import { FreeboardNoteLayerComponent } from './lib/resources/layer-notes.component';
 import { FreeboardRouteLayerComponent } from './lib/resources/layer-routes.component';
 import { FreeboardRegionLayerComponent } from './lib/resources/layer-regions.component';
-import { FreeboardChartLayerComponent } from './lib/resources/layer-charts.component';
 import { FreeboardLiveLayerComponent } from './lib/resources/layer-livelayer.component';
 import { ChartBoundsLayerComponent } from './lib/resources/layer-chart-bounds.component';
 import { TrackLayerComponent } from './lib/resources/layer-tracks.component';
@@ -47,10 +44,17 @@ import { AISTargetsTrackLayerComponent } from './lib/resources/layer-aistargets-
 import { RangeCirclesComponent } from './lib/navigation/layer-range-circles.component';
 import { CogLineComponent } from './lib/navigation/layer-cog-line.component';
 import { WindLinesComponent } from './lib/navigation/layer-wind-lines.component';
+import { RasterChartLayerComponent } from './lib/charts/layer-raster-chart.component';
+import { VectorChartLayerComponent } from './lib/charts/layer-vector-chart.component';
+import { WmsChartLayerComponent } from './lib/charts/layer-wms-chart.component';
+import { WmtsChartLayerComponent } from './lib/charts/layer-wmts-chart.component';
+import { TileJsonChartLayerComponent } from './lib/charts/layer-tilejson-chart.component';
+import { MapStyleJsonChartLayerComponent } from './lib/charts/layer-mapstylejson-chart.component';
+import { S57ChartLayerComponent } from './lib/charts/layer-s57-chart.component';
 
 export * from './lib/util';
 export { MapService } from './lib/map.service';
-export { S57Service } from './lib/s57.service';
+export { S57Service } from './lib/charts/s57.service';
 
 export { ContentComponent } from './lib/content.component';
 export { ControlsDirective } from './lib/controls.directive';
@@ -70,7 +74,6 @@ export { FreeboardWaypointLayerComponent } from './lib/resources/layer-waypoints
 export { FreeboardNoteLayerComponent } from './lib/resources/layer-notes.component';
 export { FreeboardRouteLayerComponent } from './lib/resources/layer-routes.component';
 export { FreeboardRegionLayerComponent } from './lib/resources/layer-regions.component';
-export { FreeboardChartLayerComponent } from './lib/resources/layer-charts.component';
 export { FreeboardLiveLayerComponent } from './lib/resources/layer-livelayer.component';
 export { ChartBoundsLayerComponent } from './lib/resources/layer-chart-bounds.component';
 export { TrackLayerComponent } from './lib/resources/layer-tracks.component';
@@ -96,6 +99,13 @@ export { AISTargetsTrackLayerComponent } from './lib/resources/layer-aistargets-
 export { RangeCirclesComponent } from './lib/navigation/layer-range-circles.component';
 export { CogLineComponent } from './lib/navigation/layer-cog-line.component';
 export { WindLinesComponent } from './lib/navigation/layer-wind-lines.component';
+export { RasterChartLayerComponent } from './lib/charts/layer-raster-chart.component';
+export { VectorChartLayerComponent } from './lib/charts/layer-vector-chart.component';
+export { WmsChartLayerComponent } from './lib/charts/layer-wms-chart.component';
+export { WmtsChartLayerComponent } from './lib/charts/layer-wmts-chart.component';
+export { TileJsonChartLayerComponent } from './lib/charts/layer-tilejson-chart.component';
+export { MapStyleJsonChartLayerComponent } from './lib/charts/layer-mapstylejson-chart.component';
+export { S57ChartLayerComponent } from './lib/charts/layer-s57-chart.component';
 
 const declarations = [
   ContentComponent,
@@ -114,7 +124,6 @@ const declarations = [
   FreeboardRouteLayerComponent,
   FreeboardRegionLayerComponent,
   TrackLayerComponent,
-  FreeboardChartLayerComponent,
   FreeboardLiveLayerComponent,
   ChartBoundsLayerComponent,
   ResourceSetLayerComponent,
@@ -138,7 +147,14 @@ const declarations = [
   AISTargetsTrackLayerComponent,
   RangeCirclesComponent,
   CogLineComponent,
-  WindLinesComponent
+  WindLinesComponent,
+  RasterChartLayerComponent,
+  VectorChartLayerComponent,
+  WmsChartLayerComponent,
+  WmtsChartLayerComponent,
+  TileJsonChartLayerComponent,
+  MapStyleJsonChartLayerComponent,
+  S57ChartLayerComponent
 ];
 
 @NgModule({

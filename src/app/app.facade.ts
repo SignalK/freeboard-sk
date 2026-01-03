@@ -44,7 +44,7 @@ const FSK: AppInfoDef = {
   id: 'freeboard',
   name: 'Freeboard-SK',
   description: `Signal K Chart Plotter.`,
-  version: '2.19.4',
+  version: '2.19.5',
   url: 'https://github.com/signalk/freeboard-sk',
   logo: './assets/img/app_logo.png'
 };
@@ -117,7 +117,7 @@ export class AppFacade extends InfoService {
 
   public db: AppDB;
 
-  private watchingSKLogin: number; // watch interval timer
+  public watchingSKLogin: number; // watch interval timer
 
   // signals
   kioskMode = signal<boolean>(false); // kiosk mode flag

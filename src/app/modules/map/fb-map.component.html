@@ -127,9 +127,34 @@
   </ol-control>
 
   <!-- Charts -->
-  <fb-charts [zIndex]="10" [charts]="skres.charts()"> </fb-charts>
+  @for (c of skres.charts(); track c[0]; let idx = $index) {
+    @if (c[1].type?.toLowerCase() === 's-57') {
+      <fb-s57-chart [zIndex]="10 + idx" [chart]="c"> </fb-s57-chart>
+    } @else if (c[1].type?.toLowerCase() === 'mapstylejson') {
+      <fb-mapstylejson-chart [zIndex]="10 + idx" [chart]="c">
+      </fb-mapstylejson-chart>
+    } @else if (c[1].type?.toLowerCase() === 'tilejson') {
+      <fb-tilejson-chart [zIndex]="10 + idx" [chart]="c"> </fb-tilejson-chart>
+    } @else if (c[1].type?.toLowerCase() === 'wms') {
+      <fb-wms-chart [zIndex]="10 + idx" [chart]="c"> </fb-wms-chart>
+    } @else if (c[1].type?.toLowerCase() === 'wmts') {
+      <fb-wmts-chart [zIndex]="10 + idx" [chart]="c"> </fb-wmts-chart>
+    } @else if (
+      c[1].type?.toLowerCase() === 'tilelayer' &&
+      (c[1].format?.toLowerCase() === 'pbf' ||
+        c[1].format?.toLowerCase() === 'mvt')
+    ) {
+      <fb-tilelayer-vector [zIndex]="10 + idx" [chart]="c">
+      </fb-tilelayer-vector>
+    } @else if (
+      c[0] === 'openstreetmap' || c[1].type?.toLowerCase() === 'tilelayer'
+    ) {
+      <fb-tilelayer-raster [zIndex]="10 + idx" [chart]="c">
+      </fb-tilelayer-raster>
+    }
+  }
 
-  <!-- Charts -->
+  <!-- Chart Overlay -->
   <fb-livelayer
     [params]="skresOther.infoLayerParams()"
     [layerDefs]="skresOther.infoLayers()"
@@ -390,6 +415,34 @@
   <!-- Notes -->
   @if (showNoteslayer()) {
     <fb-notes [notes]="skres.notes()" [zIndex]="450"> </fb-notes>
+  }
+
+  <!-- Distance & Bearing to -->
+  @if (overlay().show && overlay().type === 'bearing_dist') {
+    <ol-overlay [position]="overlay().position" [positioning]="'top-center'">
+      <ap-popover
+        [title]="overlay().title"
+        [canClose]="false"
+        [measure]="true"
+        [navTo]="true"
+        (closed)="popoverClosed()"
+        (navigateTo)="
+          onContextMenuAction('nav_to', overlay().position); popoverClosed()
+        "
+      >
+      </ap-popover>
+    </ol-overlay>
+    <fb-bearing-line
+      [markerPosition]="overlay().position"
+      [vesselPosition]="dfeat.active.position"
+      [showMarker]="false"
+      [markerName]=""
+      [bearingStyles]="featureStyles.bearingDistance"
+      [labelMinZoom]="this.app.config.map.labelsMinZoom"
+      [mapZoom]="mapZoomLevel()"
+      [zIndex]="335"
+    >
+    </fb-bearing-line>
   }
 
   <!-- Popovers -->
@@ -688,14 +741,16 @@
 ></div>
 <mat-menu #contextMenu="matMenu" (contextmenu)="$event.preventDefault()">
   <ng-template matMenuContent let-item="item">
-    <button
-      mat-menu-item
-      (contextmenu)="$event.preventDefault()"
-      (click)="onContextMenuAction('nav_to', item)"
-    >
-      <mat-icon>near_me</mat-icon>
-      Navigate to here
-    </button>
+    @if (app.data.vessels.showSelf) {
+      <button
+        mat-menu-item
+        (contextmenu)="$event.preventDefault()"
+        (click)="onContextMenuAction('nav_to', item)"
+      >
+        <mat-icon>near_me</mat-icon>
+        Navigate to here
+      </button>
+    }
     @if (course.courseData().position) {
       <button
         mat-menu-item
@@ -709,7 +764,9 @@
         }
       </button>
     }
-    <mat-divider></mat-divider>
+    @if (app.data.vessels.showSelf || course.courseData().position) {
+      <mat-divider></mat-divider>
+    }
     <button
       mat-menu-item
       (click)="onContextMenuAction('add_wpt', item)"
@@ -731,6 +788,16 @@
     }
 
     <mat-divider></mat-divider>
+    @if (this.app.data.vessels.showSelf) {
+      <button
+        mat-menu-item
+        (contextmenu)="$event.preventDefault()"
+        (click)="onContextMenuAction('bearing_dist', item)"
+      >
+        <mat-icon>arrow_right_alt</mat-icon>
+        Bearing & Distance
+      </button>
+    }
     <button
       mat-menu-item
       (click)="onContextMenuAction('measure', item)"

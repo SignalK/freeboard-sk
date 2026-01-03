@@ -286,7 +286,9 @@ export class AppComponent {
     // handle skAuthChange signal
     effect(() => {
       this.app.debug('** skAuthChange Event:', this.app.skAuthChange());
-      this.handleSKAuthChange();
+      if (this.app.watchingSKLogin) {
+        this.handleSKAuthChange();
+      }
     });
     // handle kioskMode signal
     effect(() => {
