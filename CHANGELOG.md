@@ -1,7 +1,8 @@
 # CHANGELOG: Freeboard
 
-### v2.19.5
+### v2.19.6
 
-- **New**: Bearing & Distance context menu option. (#309)
-- **Fixed**: Issue where Signal K server 2.19.0 rate limiting was causing "Too many requests" error when checking login status.
+- **New**: Edit chart name and description _(where chart provider allows it)._
+- **New**: Allow selection of WMS chart layers in chart properties screen.
+- **Fix**: `geolib` to dependency.
 

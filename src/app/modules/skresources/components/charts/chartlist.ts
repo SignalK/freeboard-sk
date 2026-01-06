@@ -187,10 +187,7 @@ export class ChartListComponent extends ResourceListBase {
    * @param id Chart identifier
    */
   protected itemProperties(id: string) {
-    const chart = this.fullList.find((cht: FBChart) => cht[0] === id);
-    if (chart) {
-      this.dialog.open(ChartPropertiesDialog, { data: chart[1] });
-    }
+    this.skres.editChartInfo(id);
   }
 
   /**

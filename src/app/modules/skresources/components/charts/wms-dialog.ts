@@ -1,11 +1,9 @@
-import { Component, Inject } from '@angular/core';
+import { Component, inject, Inject } from '@angular/core';
 import {
   MatDialogModule,
   MatDialogRef,
   MAT_DIALOG_DATA
 } from '@angular/material/dialog';
-import { MatTreeModule } from '@angular/material/tree';
-import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatIconModule } from '@angular/material/icon';
 import { MatCardModule } from '@angular/material/card';
@@ -18,15 +16,14 @@ import { SKChart } from 'src/app/modules/skresources/resource-classes';
 import { ChartProvider } from 'src/app/types';
 import { SKInfoLayer } from '../../custom-resource-classes';
 import { WMSGetCapabilities, LayerNode, parseWMSCapabilities } from './wmslib';
+import { NodeTreeSelect } from './node-tree-select';
 
 /********* WMSDialog **********
-	data: <WMSCapabilities.xml>
+	data: SKChart
 ***********************************/
 @Component({
   selector: 'wms-dialog',
   imports: [
-    MatTreeModule,
-    MatCheckboxModule,
     MatTooltipModule,
     MatIconModule,
     MatCardModule,
@@ -34,7 +31,8 @@ import { WMSGetCapabilities, LayerNode, parseWMSCapabilities } from './wmslib';
     MatToolbarModule,
     MatDialogModule,
     MatProgressBarModule,
-    MatInputModule
+    MatInputModule,
+    NodeTreeSelect
   ],
   template: `
     <div class="_ap-wms">
@@ -74,52 +72,11 @@ import { WMSGetCapabilities, LayerNode, parseWMSCapabilities } from './wmslib';
           @if (errorMsg) {
             <mat-error>Error retrieving capabilities from server!</mat-error>
           } @else {
-            <div>
-              <mat-tree
-                class="wms-tree"
-                #tree
-                [dataSource]="dataSource"
-                [childrenAccessor]="childrenAccessor"
-              >
-                <mat-nested-tree-node *matTreeNodeDef="let node">
-                  <mat-checkbox
-                    [matTooltip]="node.description"
-                    [checked]="node.selected"
-                    (change)="toggleSelection($event.checked, node)"
-                  >
-                    {{ node.title ?? node.name }}
-                  </mat-checkbox>
-                </mat-nested-tree-node>
-                <mat-nested-tree-node
-                  *matTreeNodeDef="let node; when: hasChild"
-                >
-                  <div class="mat-tree-node">
-                    <button mat-icon-button matTreeNodeToggle>
-                      <mat-icon class="mat-icon-rtl-mirror">
-                        {{
-                          tree.isExpanded(node)
-                            ? 'expand_circle_down'
-                            : 'chevron_right'
-                        }}
-                      </mat-icon>
-                    </button>
-                    <mat-checkbox
-                      [matTooltip]="node.description"
-                      [checked]="node.selected"
-                      (change)="toggleSelection($event.checked, node)"
-                    >
-                      {{ node.title ?? node.name }}
-                    </mat-checkbox>
-                  </div>
-                  <div
-                    role="group"
-                    [class.tree-invisible]="!tree.isExpanded(node)"
-                  >
-                    <ng-container matTreeNodeOutlet></ng-container>
-                  </div>
-                </mat-nested-tree-node>
-              </mat-tree>
-            </div>
+            <node-tree-select
+              [layers]="dataSource"
+              (selected)="handleLayerSelection()"
+            >
+            </node-tree-select>
           }
         }
       </mat-dialog-content>
@@ -164,38 +121,54 @@ export class WMSDialog {
   protected hostUrl = '';
 
   protected dataSource: LayerNode[] = [];
-  protected childrenAccessor = (node: LayerNode) => node.children ?? [];
-  protected hasChild = (_: number, node: LayerNode) =>
-    !!node.children && node.children.length > 0;
 
-  constructor(
-    public app: AppFacade,
-    public dialogRef: MatDialogRef<WMSDialog>,
-    @Inject(MAT_DIALOG_DATA) public data: SKChart
-  ) {}
+  protected app = inject(AppFacade);
+  protected dialogRef = inject(MatDialogRef<WMSDialog>);
 
-  protected toggleSelection(checked: boolean, node: LayerNode) {
-    this.handleSelection(checked, node);
-    this.parseSelections();
-  }
+  constructor(@Inject(MAT_DIALOG_DATA) public data: SKChart) {}
 
-  private handleSelection(checked: boolean, node: LayerNode) {
-    node.selected = checked;
-    if (node.children) {
-      node.children.forEach((child) => {
-        this.handleSelection(checked, child);
-      });
-    }
-  }
-
-  private parseSelections() {
+  /**
+   * Handle layer selections and build WMS source objects
+   */
+  protected handleLayerSelection() {
     this.selections = [];
     this.wmsSources = {};
     this.dataSource.forEach((l: LayerNode) => {
-      this.getSelections(l);
+      this.parseSelections(l);
     });
   }
 
+  /**
+   * Parse selections under the supplied layer node
+   * @param node Parent layer
+   */
+  private parseSelections(node: LayerNode) {
+    const selNode = (n: LayerNode) => {
+      if (n.selected) {
+        if (!this.selections.includes(n.name)) {
+          this.selections.push(n.name);
+          this.wmsSources[n.name] = this.buildSource(n);
+        } else {
+          if (
+            this.wmsSources[n.name].description === this.wmsSources[n.name].name
+          ) {
+            this.wmsSources[n.name].description = n.description;
+          }
+        }
+      }
+    };
+    if (Array.isArray(node.children)) {
+      node.children.forEach((c) => this.parseSelections(c));
+    } else {
+      selNode(node);
+    }
+  }
+
+  /**
+   *
+   * @param l Build and return the WMS source object
+   * @returns WMS source object
+   */
   private buildSource(l: LayerNode): ChartProvider | SKInfoLayer {
     if (this.data.format === 'infolayer') {
       const s = new SKInfoLayer();
@@ -215,28 +188,9 @@ export class WMSDialog {
     }
   }
 
-  private getSelections(node: LayerNode) {
-    const selNode = (n: LayerNode) => {
-      if (n.selected) {
-        if (!this.selections.includes(n.name)) {
-          this.selections.push(n.name);
-          this.wmsSources[n.name] = this.buildSource(n);
-        } else {
-          if (
-            this.wmsSources[n.name].description === this.wmsSources[n.name].name
-          ) {
-            this.wmsSources[n.name].description = n.description;
-          }
-        }
-      }
-    };
-    if (Array.isArray(node.children)) {
-      node.children.forEach((c) => this.getSelections(c));
-    } else {
-      selNode(node);
-    }
-  }
-
+  /**
+   * Close and return WMS objects
+   */
   protected handleSave() {
     this.dialogRef.close(Object.values(this.wmsSources));
   }

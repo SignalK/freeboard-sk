@@ -78,6 +78,7 @@ import { getWMTSLayers, WMTSGetCapabilities } from './wmslib';
                 <div style="height: 200px;overflow-x: hidden;overflow-y: auto;">
                   <mat-selection-list
                     #wlayers
+                    [multiple]="false"
                     (selectionChange)="handleSelection($event)"
                   >
                     @for (layer of wmtsLayers; track layer; let idx = $index) {
@@ -91,10 +92,6 @@ import { getWMTSLayers, WMTSGetCapabilities } from './wmslib';
                     }
                   </mat-selection-list>
                 </div>
-                <p>
-                  Selected: {{ wlayers.selectedOptions.selected.length }} of
-                  {{ wmtsLayers.length }}
-                </p>
               }
             </div>
           }

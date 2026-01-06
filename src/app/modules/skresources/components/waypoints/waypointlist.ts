@@ -27,10 +27,7 @@ import { SKResourceService, SKResourceType } from '../../resources.service';
 import { SKWorkerService } from 'src/app/modules/skstream/skstream.service';
 import { ResourceListBase } from '../resource-list-baseclass';
 import { SKResourceGroupService } from '../groups/groups.service';
-import {
-  MultiSelectListDialog,
-  SingleSelectListDialog
-} from 'src/app/lib/components';
+import { SingleSelectListDialog } from 'src/app/lib/components';
 
 @Component({
   selector: 'waypoint-list',

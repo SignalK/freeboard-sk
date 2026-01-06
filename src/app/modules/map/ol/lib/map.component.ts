@@ -8,6 +8,7 @@ import {
   OnDestroy,
   OnInit,
   Output,
+  signal,
   SimpleChanges
 } from '@angular/core';
 import { Map, MapBrowserEvent } from 'ol';
@@ -112,6 +113,9 @@ export class MapComponent implements OnInit, OnDestroy {
   @Input() properties: { [index: string]: any };
   @Input() setFocus = '';
   @Input() hitTolerance = 5;
+
+  private _pointerDown = signal<MouseEvent>(undefined);
+  public pointerDownSignal = this._pointerDown.asReadonly();
 
   constructor(
     protected changeDetectorRef: ChangeDetectorRef,
@@ -229,7 +233,9 @@ export class MapComponent implements OnInit, OnDestroy {
     this.evCache[event.pointerId] = event;
     this.touchTimer = setTimeout(this.touchHold, 500);
     const c = toLonLat(this.map.getEventCoordinate(event));
-    this.mapPointerDown.emit(Object.assign(event, { lonlat: c }));
+    const e = Object.assign(event, { lonlat: c });
+    this.mapPointerDown.emit(e);
+    this._pointerDown.update(() => e);
   };
   private pointerUpHandler = (event) => {
     this.clearTouchTimer();

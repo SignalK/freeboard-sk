@@ -9,13 +9,11 @@ import {
 } from '@angular/core';
 
 import TileLayer from 'ol/layer/Tile';
-import { TileWMS } from 'ol/source';
 
 import { MapComponent } from '../map.component';
 
 import { FBChart } from 'src/app/types';
 import WMTS, { optionsFromCapabilities } from 'ol/source/WMTS';
-import { WMTSCapabilities } from 'ol/format';
 import { WMTSGetCapabilities } from 'src/app/modules/skresources/components/charts/wmslib';
 
 // ** Freeboard WMTS Chart **
@@ -28,8 +26,6 @@ import { WMTSGetCapabilities } from 'src/app/modules/skresources/components/char
 export class WmtsChartLayerComponent implements OnDestroy {
   protected chart = input<FBChart>();
   protected zIndex = input<number>();
-  protected params =
-    input<Array<{ id: string; param: { [key: string]: any } }>>();
 
   private layer: TileLayer;
   private capabilities: string;
@@ -42,13 +38,6 @@ export class WmtsChartLayerComponent implements OnDestroy {
       this.chart();
       this.zIndex();
       this.parseChart();
-    });
-    effect(() => {
-      if (!this.layer || !Array.isArray(this.params())) return;
-      const src = this.layer.getSource();
-      if (src) {
-        (src as WMTS).updateDimensions(this.params);
-      }
     });
   }
 
@@ -69,7 +58,7 @@ export class WmtsChartLayerComponent implements OnDestroy {
 
     if (!this.capabilities) {
       try {
-        const url = `${chart[1].url}?request=GetCapabilities&service=wmts`;
+        const url = `${chart[1].url}`;
         this.capabilities = await WMTSGetCapabilities(url);
       } catch (err) {
         console.log(err);
@@ -107,11 +96,6 @@ export class WmtsChartLayerComponent implements OnDestroy {
     } else {
       this.layer.setZIndex(this.zIndex());
       this.layer.setOpacity(chart[1].defaultOpacity ?? 1);
-      const src = this.layer.getSource() as WMTS;
-      src.updateDimensions({
-        LAYERS: chart[1].layers ? chart[1].layers.join(',') : ''
-      });
-      src.refresh();
     }
     map.render();
   }

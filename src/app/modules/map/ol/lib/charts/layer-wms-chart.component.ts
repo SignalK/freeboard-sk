@@ -14,6 +14,7 @@ import { TileWMS } from 'ol/source';
 import { MapComponent } from '../map.component';
 
 import { FBChart } from 'src/app/types';
+import { Map } from 'ol';
 
 // ** Freeboard WMS Chart **
 @Component({
@@ -32,8 +33,12 @@ export class WmsChartLayerComponent implements OnDestroy {
   private changeDetectorRef = inject(ChangeDetectorRef);
   private mapComponent = inject(MapComponent);
 
+  private map: Map;
+  private featureUrl: string = undefined;
+
   constructor() {
     this.changeDetectorRef.detach();
+    this.map = this.mapComponent.getMap();
     effect(() => {
       this.chart();
       this.zIndex();
@@ -46,19 +51,39 @@ export class WmsChartLayerComponent implements OnDestroy {
         (src as TileWMS).updateParams(this.params);
       }
     });
+    effect(() => {
+      const ev = this.mapComponent.pointerDownSignal();
+      const view = this.map.getView();
+      const prj = view.getProjection();
+      const resolution = view.getResolution();
+      const coord = this.map.getEventCoordinate(ev);
+
+      const src: TileWMS = this.layer.getSource() as TileWMS;
+      this.featureUrl = src.getFeatureInfoUrl(coord, resolution, prj, {
+        INFO_FORMAT: 'application/json'
+      });
+      //const data = this.layer.getData(this.map.getEventPixel(ev));
+      //const hit = data && data[3] > 0;
+      //console.log('data', data, 'hit', hit);
+      /*if (this.featureUrl) { // && data) {
+        fetch(this.featureUrl)
+          .then((response) => response.json())
+          .then((json) => {
+            console.log(json);
+          });
+      }*/
+    });
   }
 
   ngOnDestroy() {
-    const map = this.mapComponent.getMap();
     if (this.layer) {
-      map.removeLayer(this.layer);
-      map.render();
+      this.map.removeLayer(this.layer);
+      this.map.render();
     }
   }
 
   private parseChart(chart: FBChart = this.chart()) {
-    const map = this.mapComponent.getMap();
-    if (!map) {
+    if (!this.map) {
       return;
     }
 
@@ -88,7 +113,7 @@ export class WmsChartLayerComponent implements OnDestroy {
         this.layer.set('chartId', chart[0]);
         this.layer.set('chartType', chart[1].type);
         this.layer.set('chartFormat', chart[1].format);
-        map.addLayer(this.layer);
+        this.map.addLayer(this.layer);
       }
     } else {
       this.layer.setZIndex(this.zIndex());
@@ -99,6 +124,6 @@ export class WmsChartLayerComponent implements OnDestroy {
       });
       src.refresh();
     }
-    map.render();
+    this.map.render();
   }
 }
