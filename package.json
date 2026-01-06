@@ -1,6 +1,6 @@
 {
   "name": "@signalk/freeboard-sk",
-  "version": "2.19.5",
+  "version": "2.19.6",
   "description": "Openlayers chart plotter implementation for Signal K",
   "keywords": [
     "signalk-webapp",
@@ -41,6 +41,7 @@
   "license": "Apache-v2",
   "dependencies": {
     "@signalk/server-api": "^2.9.0",
+    "geolib": "^3.3.3",
     "tslib": "^2.0.0",
     "uuid": "^11.1.0"
   },
@@ -71,7 +72,6 @@
     "buffer": "^6.0.3",
     "eslint": "^9.17.0",
     "events": "^3.3.0",
-    "geolib": "^3.3.3",
     "jasmine-core": "~5.5.0",
     "karma": "~6.4.0",
     "karma-chrome-launcher": "~3.1.0",
