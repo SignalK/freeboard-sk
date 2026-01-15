@@ -12,7 +12,6 @@ import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatInputModule } from '@angular/material/input';
 import { AppFacade } from 'src/app/app.facade';
-import { SKChart } from 'src/app/modules/skresources/resource-classes';
 import { ChartProvider } from 'src/app/types';
 import { SKInfoLayer } from '../../custom-resource-classes';
 import { WMSGetCapabilities, LayerNode, parseWMSCapabilities } from './wmslib';
@@ -80,15 +79,17 @@ import { NodeTreeSelect } from './node-tree-select';
           }
         }
       </mat-dialog-content>
-      <mat-dialog-actions>
-        <button
-          mat-raised-button
-          [disabled]="this.selections.length === 0"
-          (click)="handleSave()"
-        >
-          Save
-        </button>
-      </mat-dialog-actions>
+      @if (data.format !== 'chartprovider') {
+        <mat-dialog-actions>
+          <button
+            mat-raised-button
+            [disabled]="this.selections.length === 0"
+            (click)="handleSave()"
+          >
+            Save
+          </button>
+        </mat-dialog-actions>
+      }
     </div>
   `,
   styles: [
@@ -125,7 +126,12 @@ export class WMSDialog {
   protected app = inject(AppFacade);
   protected dialogRef = inject(MatDialogRef<WMSDialog>);
 
-  constructor(@Inject(MAT_DIALOG_DATA) public data: SKChart) {}
+  constructor(
+    @Inject(MAT_DIALOG_DATA)
+    public data: {
+      format: 'chartprovider' | 'infolayer';
+    }
+  ) {}
 
   /**
    * Handle layer selections and build WMS source objects
@@ -200,6 +206,18 @@ export class WMSDialog {
    * @param wmsHost WMS server host url (without parameters)
    */
   protected async getCapabilities(wmsHost: string) {
+    if (this.data.format === 'chartprovider') {
+      this.dialogRef.close([
+        {
+          name: 'New WMS Chart',
+          description: '',
+          type: 'WMS',
+          url: wmsHost,
+          layers: []
+        }
+      ]);
+      return;
+    }
     this.selections = [];
     this.errorMsg = '';
     try {

@@ -39,12 +39,22 @@ import { Extent } from 'ol/extent';
 import { GeoUtils } from './lib/geoutils';
 import { S57Service } from './modules/map/ol';
 
+/** Parent Window message */
+interface ParentMessage {
+  settings?: {
+    autoNightMode?: boolean;
+  };
+  commands?: {
+    nightModeEnable?: boolean;
+  };
+}
+
 // App details
 const FSK: AppInfoDef = {
   id: 'freeboard',
   name: 'Freeboard-SK',
   description: `Signal K Chart Plotter.`,
-  version: '2.19.6',
+  version: '2.19.7-beta.2',
   url: 'https://github.com/signalk/freeboard-sk',
   logo: './assets/img/app_logo.png'
 };
@@ -133,13 +143,17 @@ export class AppFacade extends InfoService {
   uiCtrl = signal<{
     alertList: boolean; // display AlertList
     autopilotConsole: boolean; // display AutopilotConsole
+    radarLayer: boolean; // display Radar map Layer
     routeBuilder: boolean; // display BuildRoute
     suppressContextMenu: boolean; // prevent display of context menu
+    forceNightMode: boolean; // force setting of night mode
   }>({
     alertList: false,
     autopilotConsole: false,
+    radarLayer: false,
     routeBuilder: false,
-    suppressContextMenu: false
+    suppressContextMenu: false,
+    forceNightMode: false
   });
 
   // persisted UI configuration items
@@ -152,6 +166,7 @@ export class AppFacade extends InfoService {
     showCourseData: boolean; // show/hide course data
     showAisTargets: boolean; // show/hide AIS targets
     showNotes: boolean; // show/hide Notes
+    autoNightMode: boolean;
   }>({
     mapNorthUp: true,
     mapMove: false,
@@ -160,7 +175,8 @@ export class AppFacade extends InfoService {
     invertColor: false,
     showCourseData: true,
     showAisTargets: true,
-    showNotes: true
+    showNotes: true,
+    autoNightMode: false
   });
 
   // Signal K server feature flags
@@ -168,6 +184,8 @@ export class AppFacade extends InfoService {
     anchorApi: boolean;
     autopilotApi: boolean;
     weatherApi: boolean;
+    radarApi: boolean;
+    notificationApi: boolean;
     resourceGroups: boolean;
     resourceTracks: boolean;
     infoLayers: boolean;
@@ -176,6 +194,8 @@ export class AppFacade extends InfoService {
     anchorApi: true, // default true until API is available
     autopilotApi: false,
     weatherApi: false,
+    radarApi: false,
+    notificationApi: false,
     resourceGroups: false, // ability to store resource groups
     resourceTracks: false, // ability to store track resources
     infoLayers: false, // ability to store map information overlays
@@ -265,19 +285,35 @@ export class AppFacade extends InfoService {
    * requests
    * @param data MessageEvent data from parent
    */
-  parseMessageFromParent(event: MessageEvent<any>) {
-    // Do we trust the sender of this message?
+  parseMessageFromParent(event: MessageEvent<ParentMessage>) {
     if (isDevMode() || event.origin === this.hostDef.url) {
       this.debug('parseMessageFromParent()', event.origin, event.data);
-      const { settings } = event.data;
-      if (!settings) {
+      const { settings, commands } = event.data;
+      if (!settings && !commands) {
         this.debug('parseMessageFromParent() - invalid data!');
         return;
       }
-      if (typeof settings.autoNightMode === 'boolean') {
+
+      if (typeof settings?.autoNightMode === 'boolean') {
+        // set auto night mode
         this.config.display.nightMode = settings.autoNightMode;
+        this.uiConfig.update((current) => {
+          return Object.assign({}, current, {
+            autoNightMode: this.config.display.nightMode
+          });
+        });
+      }
+
+      if (typeof commands?.nightModeEnable === 'boolean') {
+        // force dimming the display
+        this.uiCtrl.update((current) => {
+          return Object.assign({}, current, {
+            forceNightMode: commands.nightModeEnable
+          });
+        });
       }
     } else {
+      // We don't trust the sender of this message?
       this.debug('parseMessageFromParent() - untrusted origin!', event.origin);
       return;
     }

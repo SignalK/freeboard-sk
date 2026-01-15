@@ -1,8 +1,8 @@
 # CHANGELOG: Freeboard
 
-### v2.19.6
+### v2.19.7
 
-- **New**: Edit chart name and description _(where chart provider allows it)._
-- **New**: Allow selection of WMS chart layers in chart properties screen.
-- **Fix**: `geolib` to dependency.
+- **New**: Creating new Chart entry opens `Chart Properties` screen to allow editing of details before save.
+- **Update**: Range circles to use OL geodesic circle.
+- **Update**: Parent window message handling.
 

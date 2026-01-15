@@ -5,11 +5,17 @@ import { MFBAction } from 'src/app/types';
 import { POBButtonComponent } from './pob-button.component';
 import { WptButtonComponent } from './wpt-button.component';
 import { AutopilotButtonComponent } from './autopilot-button.component';
+import { RadarButtonComponent } from './radar-button.component';
 
 @Component({
   selector: 'mfb-container',
   standalone: true,
-  imports: [POBButtonComponent, WptButtonComponent, AutopilotButtonComponent],
+  imports: [
+    POBButtonComponent,
+    WptButtonComponent,
+    AutopilotButtonComponent,
+    RadarButtonComponent
+  ],
   template: `
     <div class="mfb-container">
       @if (action() === 'wpt') {
@@ -28,6 +34,13 @@ import { AutopilotButtonComponent } from './autopilot-button.component';
             app.data.vessels.self.autopilot.default
           "
         ></autopilot-button>
+      }
+      @if (action() === 'radar') {
+        <radar-button
+          [active]="
+            app.featureFlags().radarApi && app.data.vessels.self.radar.default
+          "
+        ></radar-button>
       }
     </div>
   `,

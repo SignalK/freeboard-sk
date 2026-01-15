@@ -800,6 +800,32 @@ export class SKResourceService {
   }
 
   /**
+   * @description Create new Chart and save to server
+   * @param chart
+   */
+  public newChart(chart: SKChart) {
+    if (!chart) {
+      return;
+    }
+    this.dialog
+      .open(ChartPropertiesDialog, {
+        disableClose: true,
+        data: chart
+      })
+      .afterClosed()
+      .subscribe(async (r: { save: boolean; chart: SKChart }) => {
+        if (r.save) {
+          try {
+            const cht = await this.postToServer('charts', r.chart);
+            this.selectionAdd('charts', cht.id);
+          } catch (err) {
+            this.app.parseHttpErrorResponse(err);
+          }
+        }
+      });
+  }
+
+  /**
    * @description Fetch Chart with supplied id and display edit dialog
    * @param id chart identifier
    */

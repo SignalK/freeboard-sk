@@ -1,7 +1,7 @@
 <div
   [ngClass]="{
     'dark-theme': app.config.display.darkMode.enabled,
-    'app-night': stream.selfNightMode()
+    'app-night': stream.selfNightMode() || app.uiCtrl().forceNightMode
   }"
 >
   <div class="appframe mat-app-background">
@@ -220,6 +220,16 @@
         <a mat-menu-item (click)="displayLeftMenu('anchorWatch', true)">
           <mat-icon>anchor</mat-icon>
           <span>Anchor Watch</span>
+        </a>
+      }
+      @if (
+        !isInteracting() &&
+        app.featureFlags().radarApi &&
+        app.data.vessels.self.radar.default
+      ) {
+        <a mat-menu-item (click)="displayLeftMenu('radar', true)">
+          <mat-icon class="ob" svgIcon="radar-iec"></mat-icon>
+          <span>Radar Overlay</span>
         </a>
       }
       <a mat-menu-item (click)="displayLeftMenu('aisList', true)">

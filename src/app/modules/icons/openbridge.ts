@@ -35,6 +35,8 @@ export const OpenBridgeIcons: AppIconSet = {
     'warning-unack-iec.svg',
     'warning-silenced-iec.svg',
     'warning-unack-iec.svg',
-    'command-autopilot.svg'
+    'command-autopilot.svg',
+    'radar-iec.svg',
+    'chart-radar-overlay-iec.svg'
   ]
 };

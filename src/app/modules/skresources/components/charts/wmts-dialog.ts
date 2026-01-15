@@ -13,7 +13,6 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatInputModule } from '@angular/material/input';
 import { MatListModule, MatSelectionListChange } from '@angular/material/list';
 import { AppFacade } from 'src/app/app.facade';
-import { SKChart } from 'src/app/modules/skresources/resource-classes';
 import { HttpClient } from '@angular/common/http';
 import { ChartProvider } from 'src/app/types';
 import { SKInfoLayer } from '../../custom-resource-classes';
@@ -97,15 +96,17 @@ import { getWMTSLayers, WMTSGetCapabilities } from './wmslib';
           }
         }
       </mat-dialog-content>
-      <mat-dialog-actions>
-        <button
-          mat-raised-button
-          [disabled]="selections.length === 0"
-          (click)="handleSave()"
-        >
-          Save
-        </button>
-      </mat-dialog-actions>
+      @if (data.format !== 'chartprovider') {
+        <mat-dialog-actions>
+          <button
+            mat-raised-button
+            [disabled]="selections.length === 0"
+            (click)="handleSave()"
+          >
+            Save
+          </button>
+        </mat-dialog-actions>
+      }
     </div>
   `,
   styles: [
@@ -132,7 +133,10 @@ export class WMTSDialog {
     public app: AppFacade,
     public dialogRef: MatDialogRef<WMTSDialog>,
     private http: HttpClient,
-    @Inject(MAT_DIALOG_DATA) public data: SKChart
+    @Inject(MAT_DIALOG_DATA)
+    public data: {
+      format: 'chartprovider' | 'infolayer';
+    }
   ) {}
 
   handleSelection(e: MatSelectionListChange) {
@@ -156,7 +160,6 @@ export class WMTSDialog {
     this.wmtsLayers = [];
     this.errorMsg = '';
 
-    const url = wmtsHost + `?request=GetCapabilities&service=wmts`;
     this.isFetching = true;
     try {
       this.isFetching = true;
@@ -168,6 +171,12 @@ export class WMTSDialog {
           wmtsHost,
           this.data.format
         ).sort((a, b) => (a.name < b.name ? -1 : 1));
+        if (this.data.format === 'chartprovider' && this.wmtsLayers.length) {
+          // return skeleton chart record
+          const cht = this.wmtsLayers[0] as ChartProvider;
+          cht.layers = [];
+          this.dialogRef.close([cht]);
+        }
       } else {
         this.errorMsg = 'Invalid response received!';
       }

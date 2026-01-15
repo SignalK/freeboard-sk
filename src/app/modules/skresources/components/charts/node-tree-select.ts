@@ -27,7 +27,7 @@ import { LayerNode } from './wmslib';
         <mat-tree
           class="node-tree"
           #tree
-          [dataSource]="dataSource"
+          [dataSource]="layers()"
           [childrenAccessor]="childrenAccessor"
         >
           <mat-nested-tree-node *matTreeNodeDef="let node">
@@ -97,18 +97,14 @@ export class NodeTreeSelect {
   protected expand = input<boolean>(false);
 
   private selections: Array<string> = [];
-  protected dataSource: LayerNode[] = [];
   protected childrenAccessor = (node: LayerNode) => node.children ?? [];
   protected hasChild = (_: number, node: LayerNode) =>
     !!node.children && node.children.length > 0;
 
   constructor(public app: AppFacade) {
     effect(() => {
-      if (Array.isArray(this.layers())) {
-        this.dataSource = [].concat(this.layers());
-      }
       if (Array.isArray(this.preSelect()) && this.preSelect().length) {
-        this.dataSource.forEach((l: LayerNode) => {
+        this.layers()?.forEach((l: LayerNode) => {
           this.selectNode(l);
         });
       }
@@ -145,7 +141,7 @@ export class NodeTreeSelect {
    */
   private parseSelections() {
     this.selections = [];
-    this.dataSource.forEach((l: LayerNode) => {
+    this.layers().forEach((l: LayerNode) => {
       this.getSelections(l);
     });
   }

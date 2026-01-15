@@ -21,11 +21,11 @@ import { circular } from 'ol/geom/Polygon.js';
 import { fromLonLat } from 'ol/proj';
 import { MapComponent } from '../map.component';
 import { Extent, Coordinate } from '../models';
-import { mapifyRadius } from '../util';
 import { AsyncSubject } from 'rxjs';
 import { Convert } from '../../../../../lib/convert';
 import { computeDestinationPoint } from 'geolib';
 import { DarkTheme } from '../themes';
+import { circular } from 'ol/geom/Polygon';
 
 const LightTheme = {
   labelText: {
@@ -137,17 +137,27 @@ export class RangeCirclesComponent implements OnInit, OnDestroy, OnChanges {
     const fa: Feature[] = [];
     if (this.mapZoom >= this.minZoom) {
       const range =
-        zoomResolution > 300
-          ? 10000
-          : zoomResolution > 100
-            ? 5000
-            : zoomResolution > 40
-              ? 2000
-              : zoomResolution > 20
-                ? 1000
-                : zoomResolution > 10
-                  ? 500
-                  : 250;
+        zoomResolution > 5000
+          ? 150000
+          : zoomResolution > 2000
+            ? 75000
+            : zoomResolution > 1500
+              ? 25000
+              : zoomResolution > 1000
+                ? 20000
+                : zoomResolution > 600
+                  ? 15000
+                  : zoomResolution > 300
+                    ? 10000
+                    : zoomResolution > 100
+                      ? 5000
+                      : zoomResolution > 40
+                        ? 2000
+                        : zoomResolution > 20
+                          ? 1000
+                          : zoomResolution > 10
+                            ? 500
+                            : 250;
       const st = this.buildCircleStyle();
       for (let i = 1; i <= this.maxCircles; ++i) {
         const d = range * i;

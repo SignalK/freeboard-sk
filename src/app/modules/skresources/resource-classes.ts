@@ -232,6 +232,10 @@ export class SKVessel extends SKTargetBase {
     gybeAngle: null
   };
   racing: { [key: string]: string };
+  radar = {
+    enabled: false,
+    default: null
+  };
   registrations: { [key: string]: string } = {};
   resourceUpdates = []; // resource deltas
   sog: number;

@@ -790,7 +790,8 @@
                             [disabled]="!facade.settings.vessels.rangeCircles"
                             (selectionChange)="persistModel()"
                           >
-                            @for(i of options.zoomLevels; track i) {
+                            @for(i of options.rangeCircles.zoomLevels; track i)
+                            {
                             <mat-option [value]="i">{{i}}</mat-option>
                             }
                           </mat-select>

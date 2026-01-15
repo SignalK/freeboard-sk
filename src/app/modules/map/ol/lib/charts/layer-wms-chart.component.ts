@@ -53,19 +53,18 @@ export class WmsChartLayerComponent implements OnDestroy {
     });
     effect(() => {
       const ev = this.mapComponent.pointerDownSignal();
+      if (!ev) {
+        return;
+      }
       const view = this.map.getView();
       const prj = view.getProjection();
       const resolution = view.getResolution();
       const coord = this.map.getEventCoordinate(ev);
-
       const src: TileWMS = this.layer.getSource() as TileWMS;
       this.featureUrl = src.getFeatureInfoUrl(coord, resolution, prj, {
         INFO_FORMAT: 'application/json'
       });
-      //const data = this.layer.getData(this.map.getEventPixel(ev));
-      //const hit = data && data[3] > 0;
-      //console.log('data', data, 'hit', hit);
-      /*if (this.featureUrl) { // && data) {
+      /*if (this.featureUrl) {
         fetch(this.featureUrl)
           .then((response) => response.json())
           .then((json) => {
@@ -119,10 +118,12 @@ export class WmsChartLayerComponent implements OnDestroy {
       this.layer.setZIndex(this.zIndex());
       this.layer.setOpacity(chart[1].defaultOpacity ?? 1);
       const src = this.layer.getSource() as TileWMS;
-      src.updateParams({
-        LAYERS: chart[1].layers ? chart[1].layers.join(',') : ''
-      });
-      src.refresh();
+      const l = chart[1].layers ? chart[1].layers.join(',') : '';
+      const p = src.getParams();
+      if (p.LAYERS && p.LAYERS !== l) {
+        src.updateParams({ LAYERS: l });
+        src.refresh();
+      }
     }
     this.map.render();
   }

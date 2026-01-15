@@ -18,7 +18,7 @@ export * from './stream';
 
 export type ErrorList = Array<{ status: number; message: string }>;
 
-export type MFBAction = 'wpt' | 'pob' | 'autopilot';
+export type MFBAction = 'wpt' | 'pob' | 'autopilot' | 'radar';
 
 export interface SKApiResponse {
   state: 'FAILED' | 'COMPLETED' | 'PENDING';
@@ -63,6 +63,7 @@ export interface IAppConfig {
     showCourseData: boolean; // show/hide course data
     showAisTargets: boolean; // show/hide AIS targets
     showNotes: boolean; // show/hide notes
+    autoNightMode: boolean;
   };
   display: {
     fab: MFBAction; // FAB button selection

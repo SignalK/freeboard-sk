@@ -29,7 +29,8 @@ export function cleanConfig(
       toolbarButtons: (settings as any).toolBarButtons ?? true,
       showCourseData: (settings as any).courseData ?? true,
       showAisTargets: (settings as any).aisTargets ?? true,
-      showNotes: true
+      showNotes: true,
+      autoNightMode: (settings as any).autoNightMode ?? false
     };
   } else {
     if (typeof settings.ui.showCourseData === 'undefined') {
@@ -355,7 +356,8 @@ export function defaultConfig(): IAppConfig {
       invertColor: false, // invert map feature label colors
       showCourseData: true, // show/hide course data
       showAisTargets: true, // show/hide ais targets
-      showNotes: true // show/hide notes
+      showNotes: true, // show/hide notes
+      autoNightMode: false
     },
     display: {
       fab: 'wpt', // default FAB button

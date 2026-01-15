@@ -299,6 +299,11 @@ export class AppComponent {
     effect(() => {
       this.handleSelectionEnded(this.mapInteract.selection());
     });
+    // handle uiConfig signal
+    effect(() => {
+      this.app.uiConfig();
+      this.handleSettingChangeEvent(undefined);
+    });
   }
 
   // ********* LIFECYCLE ****************
@@ -752,6 +757,8 @@ export class AppComponent {
       anchorApi: false,
       autopilotApi: false,
       weatherApi: false,
+      radarApi: false,
+      notificationApi: false,
       buddyList: false
     };
     this.signalk.get('/signalk/v2/features?enabled=1').subscribe(
@@ -762,6 +769,8 @@ export class AppComponent {
         // detect apis
         ff.weatherApi = res.apis.includes('weather');
         ff.autopilotApi = res.apis.includes('autopilot');
+        ff.radarApi = res.apis.includes('radar');
+        ff.notificationApi = res.apis.includes('notification');
 
         // detect plugins
         const hasPlugin = {
