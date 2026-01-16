@@ -106,7 +106,7 @@
                 [disabled]="r[0] === activeWaypoint || disableRefresh"
                 (click)="itemDelete(r[0])"
                 matTooltip="Delete Waypoint"
-                matTooltipPosition="right"
+                matTooltipPosition="above"
               >
                 <mat-icon>delete</mat-icon>
               </button>
@@ -115,7 +115,7 @@
               mat-icon-button
               (click)="itemViewNotes(r)"
               matTooltip="Waypoint notes"
-              matTooltipPosition="right"
+              matTooltipPosition="above"
             >
               <mat-icon>local_offer</mat-icon>
             </button>
@@ -126,7 +126,7 @@
                 [disabled]="disableRefresh"
                 (click)="itemGoTo(r[0])"
                 matTooltip="Navigate to Waypoint"
-                matTooltipPosition="below"
+                matTooltipPosition="above"
               >
                 <mat-icon>near_me</mat-icon>
               </button>
@@ -136,7 +136,7 @@
                 [disabled]="disableRefresh"
                 (click)="itemClearActive()"
                 matTooltip="Clear Destination"
-                matTooltipPosition="right"
+                matTooltipPosition="above"
               >
                 <mat-icon>clear_all</mat-icon>
               </button>
@@ -148,7 +148,7 @@
                 [disabled]="app.uiConfig().mapMove || !r[2]"
                 (click)="emitCenter(r[1].feature.geometry.coordinates)"
                 matTooltip="Center Waypoint"
-                matTooltipPosition="left"
+                matTooltipPosition="above"
               >
                 <mat-icon>center_focus_strong</mat-icon>
               </button>
@@ -157,7 +157,7 @@
                 [disabled]="disableRefresh"
                 (click)="itemProperties(r[0])"
                 matTooltip="Edit Waypoint Properties"
-                matTooltipPosition="right"
+                matTooltipPosition="above"
               >
                 <mat-icon>edit</mat-icon>
               </button>
@@ -169,7 +169,7 @@
                 [disabled]="disableRefresh"
                 (click)="itemAddToGroup(r[0])"
                 matTooltip="Add to Group"
-                matTooltipPosition="right"
+                matTooltipPosition="above"
               >
                 <mat-icon>category</mat-icon>
               </button>

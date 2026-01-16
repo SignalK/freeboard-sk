@@ -89,6 +89,8 @@
         [hideIcon]="true"
         [checked]="app.data.chartBounds.show"
         (change)="toggleChartBoundaries()"
+        matTooltip="Display Chart Boundaries"
+        matTooltipPosition="above"
       >
         Boundaries
       </mat-slide-toggle>
@@ -173,7 +175,7 @@
                 mat-icon-button
                 (click)="itemDelete(r[0])"
                 matTooltip="Remove Chart"
-                matTooltipPosition="right"
+                matTooltipPosition="above"
               >
                 <mat-icon>delete</mat-icon>
               </button>
@@ -184,7 +186,7 @@
                 mat-icon-button
                 (click)="itemProperties(r[0])"
                 matTooltip="Chart Properties"
-                matTooltipPosition="right"
+                matTooltipPosition="above"
               >
                 <mat-icon>info_outline</mat-icon>
               </button>
@@ -195,7 +197,7 @@
                 mat-icon-button
                 (click)="selectCacheArea(r[0])"
                 matTooltip="Cache Tiles"
-                matTooltipPosition="right"
+                matTooltipPosition="above"
               >
                 <mat-icon>download</mat-icon>
               </button>
@@ -206,7 +208,7 @@
                 mat-icon-button
                 (click)="itemAddToGroup(r[0])"
                 matTooltip="Add to Group"
-                matTooltipPosition="right"
+                matTooltipPosition="above"
               >
                 <mat-icon>category</mat-icon>
               </button>

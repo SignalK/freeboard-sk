@@ -25,7 +25,7 @@ export interface IPopover {
   id: string;
   type: string;
   icon?: string;
-  position: Coordinate;
+  position: Position;
   show: boolean;
   title: string;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

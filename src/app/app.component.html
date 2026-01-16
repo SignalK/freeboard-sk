@@ -222,6 +222,20 @@
           <span>Anchor Watch</span>
         </a>
       }
+      @if (
+        !isInteracting() &&
+        app.featureFlags().radarApi &&
+        radarApi.defaultRadar()
+      ) {
+        <a mat-menu-item (click)="toggleRadar()">
+          @if (app.uiCtrl().radarLayer) {
+            <mat-icon class="icon-accent">check_box</mat-icon>
+          } @else {
+            <mat-icon class="ob" svgIcon="radar-iec"></mat-icon>
+          }
+          <span>Radar Overlay</span>
+        </a>
+      }
       <a mat-menu-item (click)="displayLeftMenu('aisList', true)">
         <mat-icon>directions_boat</mat-icon>
         <span>Vessels</span>

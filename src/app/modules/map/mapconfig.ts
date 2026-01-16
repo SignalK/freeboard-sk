@@ -22,6 +22,40 @@ export const mapControls = [
   //{name: 'attribution'},
 ];
 
+export const bearingDistanceStyle = {
+  line: [
+    new Style({
+      stroke: new Stroke({
+        color: 'white',
+        width: 5,
+        lineDash: [5, 5]
+      })
+    }),
+    new Style({
+      fill: new Fill({
+        color: '#3399CC'
+      }),
+      stroke: new Stroke({
+        color: '#3399CC',
+        width: 3,
+        lineDash: [5, 5]
+      })
+    })
+  ],
+  marker: new Style({
+    image: new Circle({
+      radius: 3,
+      stroke: new Stroke({
+        width: 2,
+        color: 'white'
+      }),
+      fill: new Fill({
+        color: '#3399CC'
+      })
+    })
+  })
+};
+
 export const raceCourseStyles = {
   startLine: new Style({
     stroke: new Stroke({

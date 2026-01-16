@@ -1,4 +1,5 @@
-import { Component, Inject } from '@angular/core';
+import { Component, Inject, signal } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import {
   MatDialogModule,
   MatDialogRef,
@@ -9,9 +10,21 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatToolbarModule } from '@angular/material/toolbar';
+import { MatProgressBarModule } from '@angular/material/progress-bar';
+import { MatInputModule } from '@angular/material/input';
 import { AppFacade } from 'src/app/app.facade';
 import { SKChart } from 'src/app/modules/skresources/resource-classes';
 import { CoordsPipe } from 'src/app/lib/pipes';
+import {
+  getWMTSLayers,
+  LayerNode,
+  parseWMSCapabilities,
+  WMSGetCapabilities,
+  WMTSGetCapabilities
+} from './wmslib';
+import { NodeTreeSelect } from './node-tree-select';
+import { NodeListSelect } from './node-list-select';
+import { ChartProvider } from 'src/app/types';
 
 /********* ChartPropertiesDialog **********
 	data: <SKChart>
@@ -19,13 +32,18 @@ import { CoordsPipe } from 'src/app/lib/pipes';
 @Component({
   selector: 'ap-chartproperties',
   imports: [
+    FormsModule,
     MatTooltipModule,
     MatIconModule,
     MatCardModule,
     MatButtonModule,
     MatToolbarModule,
     MatDialogModule,
-    CoordsPipe
+    MatProgressBarModule,
+    MatInputModule,
+    CoordsPipe,
+    NodeTreeSelect,
+    NodeListSelect
   ],
   template: `
     <div class="_ap-chartinfo">
@@ -35,7 +53,7 @@ import { CoordsPipe } from 'src/app/lib/pipes';
         >
         <span style="flex: 1 1 auto; text-align: center">Chart Properties</span>
         <span style="text-align: right">
-          <button mat-icon-button (click)="dialogRef.close()">
+          <button mat-icon-button (click)="handleClose(false)">
             <mat-icon>close</mat-icon>
           </button>
         </span>
@@ -44,11 +62,37 @@ import { CoordsPipe } from 'src/app/lib/pipes';
         <div style="display:flex;flex-direction: column;">
           <div style="display:flex;">
             <div class="key-label">Name:</div>
-            <div style="flex: 1 1 auto;">{{ data.name }}</div>
+            <div style="flex: 1 1 auto;">
+              <mat-form-field floatLabel="always" style="width:100%">
+                <mat-label>Name</mat-label>
+                <input
+                  matInput
+                  #inpname="ngModel"
+                  type="text"
+                  required
+                  [readonly]="!isEditable()"
+                  [(ngModel)]="data.name"
+                />
+                @if (inpname.invalid && (inpname.dirty || inpname.touched)) {
+                  <mat-error> Please enter a name.</mat-error>
+                }
+              </mat-form-field>
+            </div>
           </div>
           <div style="display:flex;">
             <div class="key-label">Description:</div>
-            <div style="flex: 1 1 auto;">{{ data.description }}</div>
+            <div style="flex: 1 1 auto;">
+              <mat-form-field floatLabel="always" style="width:100%">
+                <mat-label>Description</mat-label>
+                <input
+                  matInput
+                  #inpdesc="ngModel"
+                  type="text"
+                  [readonly]="!isEditable()"
+                  [(ngModel)]="data.description"
+                />
+              </mat-form-field>
+            </div>
           </div>
           <div style="display:flex;">
             <div class="key-label">Scale:</div>
@@ -117,12 +161,6 @@ import { CoordsPipe } from 'src/app/lib/pipes';
               {{ data.type }}
             </div>
           </div>
-          @if (data.layers.length !== 0) {
-            <div style="display:flex;">
-              <div class="key-label">Layers:</div>
-              <div style="flex: 1 1 auto;">{{ data.layers }}</div>
-            </div>
-          }
           <div style="display:flex;">
             <div class="key-label">URL:</div>
             <div style="flex: 1 1 auto;overflow-x: auto;">
@@ -137,8 +175,69 @@ import { CoordsPipe } from 'src/app/lib/pipes';
               </div>
             </div>
           }
+          @if (data.source) {
+            <div style="display:flex;">
+              <div class="key-label">Source:</div>
+              <div style="flex: 1 1 auto;overflow-x: auto;">
+                {{ data.source }}
+              </div>
+            </div>
+          }
+          @if (
+            isEditable() && ['wms', 'wmts'].includes(data.type.toLowerCase())
+          ) {
+            <div style="">
+              <div class="key-label">Layers:</div>
+              <div style="flex: 1 1 auto;">
+                @if (isFetching()) {
+                  <mat-progress-bar mode="query"></mat-progress-bar>
+                } @else {
+                  @if (data.type.toLowerCase() === 'wms') {
+                    <node-tree-select
+                      [layers]="wmsLayers"
+                      [preSelect]="data.layers"
+                      [expand]="true"
+                      (selected)="handleLayerSelection($event)"
+                    >
+                    </node-tree-select>
+                  } @else if (data.type.toLowerCase() === 'wmts') {
+                    <node-list-select
+                      [layers]="wmtsLayers"
+                      [preSelect]="data.layers"
+                      (selected)="handleLayerSelection($event)"
+                    >
+                    </node-list-select>
+                  }
+                }
+              </div>
+            </div>
+          } @else if (data.layers.length) {
+            <div style="display:flex;">
+              <div class="key-label">Layers:</div>
+              <div style="flex: 1 1 auto;">
+                {{ data.layers }}
+              </div>
+            </div>
+          }
         </div>
       </mat-dialog-content>
+      @if (isEditable()) {
+        <mat-dialog-actions>
+          <div style="text-align:center;width:100%;">
+            <button
+              mat-raised-button
+              [disabled]="
+                inpname.invalid ||
+                (['wms', 'wmts'].includes(data.type.toLowerCase()) &&
+                  data.layers.length === 0)
+              "
+              (click)="handleClose(true)"
+            >
+              SAVE
+            </button>
+          </div>
+        </mat-dialog-actions>
+      }
     </div>
   `,
   styles: [
@@ -170,15 +269,87 @@ import { CoordsPipe } from 'src/app/lib/pipes';
   ]
 })
 export class ChartPropertiesDialog {
-  public icon: string;
+  protected icon: string;
+  protected wmsLayers: LayerNode[] = [];
+  protected wmtsLayers: Array<{ name: string; description: string }> = [];
+  protected isEditable = signal<boolean>(false);
+  protected isFetching = signal<boolean>(false);
 
   constructor(
     public app: AppFacade,
     public dialogRef: MatDialogRef<ChartPropertiesDialog>,
     @Inject(MAT_DIALOG_DATA) public data: SKChart
-  ) {}
+  ) {
+    if (data.source?.toLowerCase() === 'resources-provider') {
+      this.isEditable.set(true);
+    }
+    if (data.type.toLowerCase() === 'wms') {
+      this.getWmsCapabilities();
+    } else if (data.type.toLowerCase() === 'wmts') {
+      this.getWmtsCapabilities();
+    }
+  }
 
   isLocal(url: string) {
     return url && url.indexOf('signalk') !== -1 ? 'map' : 'language';
+  }
+
+  /**
+   * Retrieve and process capabilities from WMS server
+   */
+  protected async getWmsCapabilities() {
+    this.wmsLayers = [];
+    try {
+      this.isFetching.set(true);
+      const capabilities = await WMSGetCapabilities(this.data.url);
+      this.isFetching.set(false);
+      if (capabilities && capabilities.Capability) {
+        parseWMSCapabilities(capabilities, this.wmsLayers);
+      }
+    } catch (err) {
+      this.isFetching.set(false);
+      this.app.debug('Error fetching WMS layers!');
+    }
+  }
+
+  /**
+   * Retrieve and process capabilities from WMTS server
+   */
+  protected async getWmtsCapabilities() {
+    this.wmtsLayers = [];
+    try {
+      this.isFetching.set(true);
+      const capabilities = await WMTSGetCapabilities(this.data.url);
+      this.isFetching.set(false);
+      if (capabilities && capabilities.Contents?.Layer) {
+        this.wmtsLayers = getWMTSLayers(
+          capabilities,
+          this.data.url,
+          'chart-provider'
+        )
+          .map((c: ChartProvider) => {
+            return {
+              id: c.layers[0] ?? Date.now(),
+              name: c.name,
+              description: c.description
+            };
+          })
+          .sort((a, b) => (a.name < b.name ? -1 : 1));
+      }
+    } catch (err) {
+      this.isFetching.set(false);
+      this.app.debug('Error fetching WMS layers!');
+    }
+  }
+
+  protected handleLayerSelection(e: string[]) {
+    this.data.layers = e;
+  }
+
+  protected handleClose(save: boolean) {
+    this.dialogRef.close({
+      save: save,
+      chart: this.data
+    });
   }
 }

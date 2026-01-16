@@ -96,7 +96,7 @@
                 [checked]="r[2]"
                 [disabled]="r[2]"
                 (change)="itemSelect($event.checked, r[0])"
-                matTooltip="Select Resources"
+                matTooltip="Display Group Resources"
                 matTooltipPosition="left"
               >
               </mat-checkbox>
@@ -110,7 +110,7 @@
                 mat-icon-button
                 (click)="itemDelete(r[0])"
                 matTooltip="Delete Group"
-                matTooltipPosition="right"
+                matTooltipPosition="above"
               >
                 <mat-icon>delete</mat-icon>
               </button>
@@ -120,7 +120,7 @@
                 mat-icon-button
                 (click)="itemProperties(r[0])"
                 matTooltip="Edit Group Properties"
-                matTooltipPosition="right"
+                matTooltipPosition="above"
               >
                 <mat-icon>edit</mat-icon>
               </button>

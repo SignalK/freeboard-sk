@@ -120,7 +120,7 @@
                 (click)="itemDelete(r[0])"
                 [disabled]="r[0] === activeRoute || disableRefresh"
                 matTooltip="Delete Route"
-                matTooltipPosition="right"
+                matTooltipPosition="above"
               >
                 <mat-icon>delete</mat-icon>
               </button>
@@ -129,7 +129,7 @@
                 [disabled]="disableRefresh"
                 (click)="itemViewPoints(r[0])"
                 matTooltip="Route points"
-                matTooltipPosition="right"
+                matTooltipPosition="above"
               >
                 <mat-icon>flag</mat-icon>
               </button>
@@ -137,7 +137,7 @@
                 mat-icon-button
                 (click)="itemViewNotes(r)"
                 matTooltip="Route notes"
-                matTooltipPosition="right"
+                matTooltipPosition="above"
               >
                 <mat-icon>local_offer</mat-icon>
               </button>
@@ -147,7 +147,7 @@
                 [disabled]="disableRefresh"
                 (click)="itemSetActive(r[0])"
                 matTooltip="Set as Active Route"
-                matTooltipPosition="below"
+                matTooltipPosition="above"
               >
                 <mat-icon>near_me</mat-icon>
               </button>
@@ -157,7 +157,7 @@
                 [disabled]="disableRefresh"
                 (click)="itemClearActive(r[0])"
                 matTooltip="Clear Active Route"
-                matTooltipPosition="right"
+                matTooltipPosition="above"
               >
                 <mat-icon>clear_all</mat-icon>
               </button>
@@ -169,7 +169,7 @@
                 [disabled]="disableRefresh"
                 (click)="itemProperties(r[0])"
                 matTooltip="Edit Route Properties"
-                matTooltipPosition="right"
+                matTooltipPosition="above"
               >
                 <mat-icon>edit</mat-icon>
               </button>
@@ -181,7 +181,7 @@
                 [disabled]="disableRefresh"
                 (click)="itemAddToGroup(r[0])"
                 matTooltip="Add to Group"
-                matTooltipPosition="right"
+                matTooltipPosition="above"
               >
                 <mat-icon>category</mat-icon>
               </button>

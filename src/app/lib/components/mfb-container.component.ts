@@ -1,15 +1,22 @@
-import { Component, input } from '@angular/core';
+import { Component, inject, input } from '@angular/core';
 
 import { AppFacade } from 'src/app/app.facade';
 import { MFBAction } from 'src/app/types';
 import { POBButtonComponent } from './pob-button.component';
 import { WptButtonComponent } from './wpt-button.component';
 import { AutopilotButtonComponent } from './autopilot-button.component';
+import { RadarButtonComponent } from './radar-button.component';
+import { RadarAPIService } from 'src/app/modules/radar/radar-api.service';
 
 @Component({
   selector: 'mfb-container',
   standalone: true,
-  imports: [POBButtonComponent, WptButtonComponent, AutopilotButtonComponent],
+  imports: [
+    POBButtonComponent,
+    WptButtonComponent,
+    AutopilotButtonComponent,
+    RadarButtonComponent
+  ],
   template: `
     <div class="mfb-container">
       @if (action() === 'wpt') {
@@ -29,6 +36,11 @@ import { AutopilotButtonComponent } from './autopilot-button.component';
           "
         ></autopilot-button>
       }
+      @if (action() === 'radar') {
+        <radar-button
+          [active]="app.featureFlags().radarApi && radarApi.defaultRadar()"
+        ></radar-button>
+      }
     </div>
   `,
   styles: [
@@ -44,5 +56,9 @@ import { AutopilotButtonComponent } from './autopilot-button.component';
 })
 export class MFBContainerComponent {
   protected action = input<MFBAction>();
-  constructor(protected app: AppFacade) {}
+
+  protected app = inject(AppFacade);
+  protected radarApi = inject(RadarAPIService);
+
+  constructor() {}
 }

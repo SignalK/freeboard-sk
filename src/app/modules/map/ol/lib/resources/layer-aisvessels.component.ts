@@ -56,6 +56,7 @@ export class AISVesselsLayerComponent extends AISBaseLayerComponent {
 
   // update targets
   override onUpdateTargets(ids: Array<string>) {
+    if (!this.source) return;
     ids.forEach((id: string) => {
       if (id.includes(this.targetContext)) {
         if (this.okToRenderTarget(id)) {

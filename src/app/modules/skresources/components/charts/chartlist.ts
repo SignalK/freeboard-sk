@@ -36,6 +36,7 @@ import { ResourceListBase } from '../resource-list-baseclass';
 import { FBMapInteractService } from 'src/app/modules/map/fbmap-interact.service';
 import { SingleSelectListDialog } from 'src/app/lib/components';
 import { SKResourceGroupService } from '../groups/groups.service';
+import { SKChart } from '../../resource-classes';
 
 @Component({
   selector: 'chart-list',
@@ -187,10 +188,7 @@ export class ChartListComponent extends ResourceListBase {
    * @param id Chart identifier
    */
   protected itemProperties(id: string) {
-    const chart = this.fullList.find((cht: FBChart) => cht[0] === id);
-    if (chart) {
-      this.dialog.open(ChartPropertiesDialog, { data: chart[1] });
-    }
+    this.skres.editChartInfo(id);
   }
 
   /**
@@ -244,32 +242,18 @@ export class ChartListComponent extends ResourceListBase {
     }
     dref.afterClosed().subscribe((sources) => {
       if (sources && sources.length !== 0) {
-        const req = [];
-        sources.forEach((cs) => {
-          req.push(
-            this.signalk.api.post(
-              this.app.skApiVersion,
-              `/resources/charts?provider=resources-provider`,
-              cs
-            )
-          );
-        });
-
-        const r = forkJoin(req).pipe(catchError((error) => of(error)));
-        r.subscribe((r) => {
-          if (r.error) {
-            this.app.showAlert(
-              'Add Chart Sources',
-              `Error saving chart source!\n(${r.error.statusCode}: ${r.error.message})`
-            );
-          } else {
-            this.app.showAlert(
-              'Add Chart Sources',
-              'Chart sources added successfully.'
-            );
-            this.initItems();
-          }
-        });
+        if (['wmts', 'wms'].includes(type)) {
+          sources[0].source = 'resources-provider';
+          this.skres.newChart(sources[0]);
+          return;
+        }
+        if (['json'].includes(type)) {
+          sources[0].source = 'resources-provider';
+          const c = new SKChart(sources[0]);
+          c.source = 'resources-provider';
+          this.skres.newChart(c);
+          return;
+        }
       }
     });
   }

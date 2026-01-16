@@ -72,7 +72,8 @@ export class SettingsOptions {
     fab: new Map([
       ['wpt', 'Waypoint at vessel'],
       ['pob', 'Person Overboard'],
-      ['autopilot', 'Autopilot Console']
+      ['autopilot', 'Autopilot Console'],
+      ['radar', 'Radar Overlay']
     ])
   };
 
@@ -100,9 +101,9 @@ export class SettingsOptions {
       colorTables: new Map([
         [0, 'Day Bright'],
         [1, 'Day Black Background'],
-        [2, 'Day White Background'],
-        [3, 'Dusk'],
-        [4, 'Night']
+        [2, 'Day White Background']
+        /*[3, 'Dusk'],
+        [4, 'Night']*/
       ])
     }
   };
@@ -198,10 +199,6 @@ export class SettingsOptions {
     ])
   };
 
-  rangeCircles = {
-    count: [4, 5, 6, 7, 8, 9, 10, 15, 20]
-  };
-
   course = {
     nextPointTrigger: ['perpendicularPassed', 'arrivalCircleEntered'],
     nextPointDelay: this.alarm.smoothing
@@ -213,6 +210,11 @@ export class SettingsOptions {
   };
 
   zoomLevels = [8, 9, 10, 11, 12, 13, 14, 15, 16, 17];
+
+  rangeCircles = {
+    count: [4, 5, 6, 7, 8, 9, 10, 15, 20],
+    zoomLevels: [2, 3, 4, 5, 6, 7].concat(this.zoomLevels)
+  };
 }
 
 @Injectable({ providedIn: 'root' })

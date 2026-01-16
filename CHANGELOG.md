@@ -1,8 +1,7 @@
 # CHANGELOG: Freeboard
 
-### v2.19.3
+### v2.19.7
 
-- **New**: Added support for submitting tile seeding jobs to `charts-plugin`.
-- **New**: Added Regions list so they can now be managed similarly to routes & waypoints.
-- **Updated**: Regions and Charts can now be added to resource groups.
-- **Updated**: Resource groups to control behaviour of resource types when none have been included in a group.
+- **New**: Creating new Chart entry opens `Chart Properties` screen to allow editing of details before save.
+- **Update**: Range circles to use OL geodesic circle.
+

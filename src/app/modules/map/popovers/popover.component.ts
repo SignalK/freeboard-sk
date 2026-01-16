@@ -68,6 +68,17 @@ measure: boolean= measure mode;
             </button>
           </div>
         }
+        @if (!canClose && navTo) {
+          <div style="">
+            <button
+              mat-icon-button
+              matTooltip="Navigate to here"
+              (click)="handleNavTo()"
+            >
+              <mat-icon>near_me</mat-icon>
+            </button>
+          </div>
+        }
       </div>
       <div class="popover-content">
         <ng-content></ng-content>
@@ -84,10 +95,16 @@ export class PopoverComponent {
   @Input() icon: { class: string; name?: string; svgIcon?: string };
   @Input() canClose = true;
   @Input() measure = false;
+  @Input() navTo = false;
   @Output() closed: EventEmitter<void> = new EventEmitter();
+  @Output() navigateTo: EventEmitter<void> = new EventEmitter();
   constructor(protected app: AppFacade) {}
 
   handleClose() {
     this.closed.emit();
+  }
+
+  handleNavTo() {
+    this.navigateTo.emit();
   }
 }

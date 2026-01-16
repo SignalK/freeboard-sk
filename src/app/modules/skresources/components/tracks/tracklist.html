@@ -7,7 +7,7 @@
             mat-icon-button
             (click)="close()"
             matTooltip="Close Track List"
-            matTooltipPosition="right"
+            matTooltipPosition="above"
           >
             <mat-icon>arrow_back</mat-icon>
           </button>
@@ -110,7 +110,7 @@
                 mat-icon-button
                 (click)="itemDelete(r[0])"
                 matTooltip="Delete Track"
-                matTooltipPosition="right"
+                matTooltipPosition="above"
               >
                 <mat-icon>delete</mat-icon>
               </button>
@@ -120,7 +120,7 @@
                 mat-icon-button
                 (click)="itemProperties(r[0])"
                 matTooltip="Track Properties"
-                matTooltipPosition="right"
+                matTooltipPosition="above"
               >
                 <mat-icon>edit</mat-icon>
               </button>
@@ -131,7 +131,7 @@
                 [disabled]="app.uiConfig().mapMove"
                 (click)="emitCenter(r[1].feature.geometry.coordinates[0][0])"
                 matTooltip="Center Track"
-                matTooltipPosition="left"
+                matTooltipPosition="above"
               >
                 <mat-icon>center_focus_strong</mat-icon>
               </button>

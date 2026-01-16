@@ -7,4 +7,6 @@ export * from './country-flags.component';
 export * from './mfb-container.component';
 export * from './pob-button.component';
 export * from './wpt-button.component';
+export * from './radar-button.component';
+export * from './autopilot-button.component';
 export * from './interact-help.component';

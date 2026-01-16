@@ -267,7 +267,7 @@ export interface WeatherData {
 export class WeatherDataComponent {
   @Input() data: Array<WeatherData>;
 
-  public currentPage = 1;
+  protected currentPage = 1;
 
   ngAfterViewInit() {
     const sh = document.getElementsByClassName(

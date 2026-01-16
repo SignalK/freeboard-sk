@@ -44,7 +44,7 @@ import { FBResourceSet, FBResourceSets } from 'src/app/types';
               app.config.selections.resourceSets[data.path].length === 0
             "
             matTooltip="Clear selections"
-            matTooltipPosition="right"
+            matTooltipPosition="below"
             (click)="clearSelections()"
           >
             <mat-icon>clear_all</mat-icon>
@@ -53,7 +53,7 @@ import { FBResourceSet, FBResourceSets } from 'src/app/types';
           <button
             mat-icon-button
             matTooltip="Refresh list entries"
-            matTooltipPosition="right"
+            matTooltipPosition="below"
             (click)="getItems(true)"
           >
             <mat-icon>refresh</mat-icon>
@@ -67,7 +67,7 @@ import { FBResourceSet, FBResourceSets } from 'src/app/types';
             mat-icon-button
             (click)="closeModal()"
             matTooltip="Close"
-            matTooltipPosition="left"
+            matTooltipPosition="below"
           >
             <mat-icon>keyboard_arrow_down</mat-icon>
           </button>

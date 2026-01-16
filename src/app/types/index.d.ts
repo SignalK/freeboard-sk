@@ -18,7 +18,7 @@ export * from './stream';
 
 export type ErrorList = Array<{ status: number; message: string }>;
 
-export type MFBAction = 'wpt' | 'pob' | 'autopilot';
+export type MFBAction = 'wpt' | 'pob' | 'autopilot' | 'radar';
 
 export interface SKApiResponse {
   state: 'FAILED' | 'COMPLETED' | 'PENDING';
@@ -159,6 +159,9 @@ export interface IAppConfig {
     };
     video: {
       enable: boolean;
+      url: string | null;
+    };
+    featureServer: {
       url: string | null;
     };
     paths: string[];

@@ -1,4 +1,11 @@
-import { Component, ViewChild, computed, effect, signal } from '@angular/core';
+import {
+  Component,
+  ViewChild,
+  computed,
+  effect,
+  inject,
+  signal
+} from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
 import { MatDialog } from '@angular/material/dialog';
 import { MatBottomSheet } from '@angular/material/bottom-sheet';
@@ -107,6 +114,7 @@ import {
   DrawFeatureInfo,
   SelectionResultDef
 } from './modules/map/fbmap-interact.service';
+import { RadarAPIService } from './modules/radar/radar-api.service';
 
 interface DrawEndEvent {
   coordinates: LineString | Position | Polygon;
@@ -245,24 +253,25 @@ export class AppComponent {
     );
   });
 
-  constructor(
-    protected app: AppFacade,
-    protected mapInteract: FBMapInteractService,
-    protected anchor: AnchorService,
-    protected notiMgr: NotificationManager,
-    protected course: CourseService,
-    protected stream: SKStreamFacade,
-    protected skres: SKResourceService,
-    protected skresOther: FBCustomResourceService,
-    protected signalk: SignalKClient,
-    private dom: DomSanitizer,
-    private overlayContainer: OverlayContainer,
-    private bottomSheet: MatBottomSheet,
-    private dialog: MatDialog,
-    protected wakeLock: WakeLockService,
-    private settings: SettingsFacade,
-    protected autopilot: AutopilotService
-  ) {
+  protected app = inject(AppFacade);
+  protected mapInteract = inject(FBMapInteractService);
+  protected anchor = inject(AnchorService);
+  protected notiMgr = inject(NotificationManager);
+  protected course = inject(CourseService);
+  protected stream = inject(SKStreamFacade);
+  protected skres = inject(SKResourceService);
+  protected skresOther = inject(FBCustomResourceService);
+  protected signalk = inject(SignalKClient);
+  private dom = inject(DomSanitizer);
+  private overlayContainer = inject(OverlayContainer);
+  private bottomSheet = inject(MatBottomSheet);
+  private dialog = inject(MatDialog);
+  protected wakeLock = inject(WakeLockService);
+  private settings = inject(SettingsFacade);
+  protected autopilot = inject(AutopilotService);
+  protected radarApi = inject(RadarAPIService);
+
+  constructor() {
     // set self to active vessel
     this.app.data.vessels.active = this.app.data.vessels.self;
 
@@ -279,7 +288,9 @@ export class AppComponent {
     // handle skAuthChange signal
     effect(() => {
       this.app.debug('** skAuthChange Event:', this.app.skAuthChange());
-      this.handleSKAuthChange();
+      if (this.app.watchingSKLogin) {
+        this.handleSKAuthChange();
+      }
     });
     // handle kioskMode signal
     effect(() => {
@@ -421,6 +432,13 @@ export class AppComponent {
   }
 
   /** TOOLBAR ACTIONS */
+
+  protected toggleRadar() {
+    this.app.uiCtrl.update((current) => {
+      return Object.assign({}, current, { radarLayer: !current.radarLayer });
+    });
+    this.focusMap();
+  }
 
   protected toggleMoveMap(exit = false) {
     this.app.uiConfig.update((current) => {
@@ -743,8 +761,9 @@ export class AppComponent {
       anchorApi: false,
       autopilotApi: false,
       weatherApi: false,
-      buddyList: false,
-      radarApi: false
+      radarApi: false,
+      notificationApi: false,
+      buddyList: false
     };
     this.signalk.get('/signalk/v2/features?enabled=1').subscribe(
       (res: {
@@ -755,6 +774,7 @@ export class AppComponent {
         ff.weatherApi = res.apis.includes('weather');
         ff.autopilotApi = res.apis.includes('autopilot');
         ff.radarApi = res.apis.includes('radar');
+        ff.notificationApi = res.apis.includes('notification');
 
         // detect plugins
         const hasPlugin = {
@@ -1788,15 +1808,17 @@ export class AppComponent {
           cmd: 'vessel',
           options: { context: 'self', name: r['name'] }
         });
-        this.fetchResources(true); // ** fetch all resource types from server
+        this.fetchResources(true); // fetch all resource types from server
         if (this.app.config.vessels.trailFromServer) {
           this.stream.requestTrailFromServer(); // request trail from server
         }
-        // ** query anchor alarm status
+        // query anchor alarm status
         this.anchor.queryAnchorStatus(
           undefined,
           this.app.data.vessels.self.position
         );
+        // query radar API
+        this.radarApi.listRadars();
       },
       (err: HttpErrorResponse) => {
         if (err.status && err.status === 401) {

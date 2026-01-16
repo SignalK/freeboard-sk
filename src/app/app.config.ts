@@ -1,7 +1,10 @@
 import { FBAppData, IAppConfig } from './types';
 import { Convert } from './lib/convert';
 import { SKVessel } from './modules';
-import { cleanConfig as cleanRadarConfig, DefaultRadarConfig } from './modules/radar/settings';
+import {
+  cleanConfig as cleanRadarConfig,
+  DefaultRadarConfig
+} from './modules/radar/settings';
 
 // validate supplied settings against base config
 export function validateConfig(settings: IAppConfig): boolean {
@@ -179,6 +182,9 @@ export function cleanConfig(
         enable: false,
         url: ''
       },
+      featureServer: {
+        url: ''
+      },
       paths: []
     };
   } else {
@@ -188,6 +194,9 @@ export function cleanConfig(
     }
     if (typeof settings.resources.video === 'undefined') {
       settings.resources.video = { enable: false, url: '' };
+    }
+    if (typeof settings.resources.featureServer === 'undefined') {
+      settings.resources.featureServer = { url: '' };
     }
     if (typeof settings.resources.paths === 'undefined') {
       settings.resources.paths = [];
@@ -453,6 +462,9 @@ export function defaultConfig(): IAppConfig {
       },
       video: {
         enable: false,
+        url: null
+      },
+      featureServer: {
         url: null
       },
       paths: []

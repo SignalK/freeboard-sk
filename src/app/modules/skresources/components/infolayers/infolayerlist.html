@@ -122,7 +122,8 @@
                   <mat-select
                     [(ngModel)]="r[1].values.refreshInterval"
                     (selectionChange)="setRefresh(r[0], $event.value)"
-                    matTooltip="Set layer transparency"
+                    matTooltip="Set refresh interval"
+                    matTooltipPosition="above"
                   >
                     @for(t of refreshOptions; track t[0]) {
                     <mat-option [value]="t[0]">{{t[1]}}</mat-option>
@@ -136,6 +137,7 @@
                     [(ngModel)]="r[1].values.opacity"
                     (selectionChange)="setOpacity(r[0], $event.value)"
                     matTooltip="Set layer opacity"
+                    matTooltipPosition="above"
                   >
                     @for(t of opacityOptions; track t[0]) {
                     <mat-option [value]="t[0]">{{t[1]}}</mat-option>
@@ -152,6 +154,8 @@
                 [disabled]="!r[2]"
                 min="0"
                 [max]="r[1].values.time?.values.length-1"
+                matTooltip="Set opacity"
+                matTooltipPosition="below"
               >
                 <input
                   #timeValue
@@ -185,6 +189,7 @@
                   mat-icon-button
                   (click)="itemDelete(r[0])"
                   matTooltip="Delete Layer"
+                  matTooltipPosition="above"
                 >
                   <mat-icon class="icon-warn">delete</mat-icon>
                 </button>
@@ -194,6 +199,7 @@
                   mat-icon-button
                   (click)="itemProperties(r[0])"
                   matTooltip="Layer Properties"
+                  matTooltipPosition="above"
                 >
                   <mat-icon>info_outline</mat-icon>
                 </button>

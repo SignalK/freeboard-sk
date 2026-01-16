@@ -200,6 +200,7 @@ export class JsonMapSourceDialog {
                   ? (res as TileJson).vector_layers.map((l) => l.id)
                   : []
             };
+            this.dialogRef.close([this.provider]);
           } else {
             this.fetchError = true;
             this.errorMsg = 'Invalid file contents!';

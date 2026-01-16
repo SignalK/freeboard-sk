@@ -16,15 +16,15 @@ import { Feature } from 'ol';
 import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
 import { Style, Stroke, Fill, Text } from 'ol/style';
-import { Circle, Point } from 'ol/geom';
+import { Point } from 'ol/geom';
 import { fromLonLat } from 'ol/proj';
 import { MapComponent } from '../map.component';
 import { Extent, Coordinate } from '../models';
-import { mapifyRadius } from '../util';
 import { AsyncSubject } from 'rxjs';
 import { Convert } from '../../../../../lib/convert';
 import { computeDestinationPoint } from 'geolib';
 import { DarkTheme } from '../themes';
+import { circular } from 'ol/geom/Polygon';
 
 const LightTheme = {
   labelText: {
@@ -136,26 +136,33 @@ export class RangeCirclesComponent implements OnInit, OnDestroy, OnChanges {
     const fa: Feature[] = [];
     if (this.mapZoom >= this.minZoom) {
       const range =
-        zoomResolution > 300
-          ? 10000
-          : zoomResolution > 100
-            ? 5000
-            : zoomResolution > 40
-              ? 2000
-              : zoomResolution > 20
-                ? 1000
-                : zoomResolution > 10
-                  ? 500
-                  : 250;
+        zoomResolution > 5000
+          ? 150000
+          : zoomResolution > 2000
+            ? 75000
+            : zoomResolution > 1500
+              ? 25000
+              : zoomResolution > 1000
+                ? 20000
+                : zoomResolution > 600
+                  ? 15000
+                  : zoomResolution > 300
+                    ? 10000
+                    : zoomResolution > 100
+                      ? 5000
+                      : zoomResolution > 40
+                        ? 2000
+                        : zoomResolution > 20
+                          ? 1000
+                          : zoomResolution > 10
+                            ? 500
+                            : 250;
       const st = this.buildCircleStyle();
       for (let i = 1; i <= this.maxCircles; ++i) {
         const d = range * i;
-        const f = new Feature({
-          geometry: new Circle(
-            fromLonLat(this.position),
-            mapifyRadius(d, this.position)
-          )
-        });
+        const geodesicCircle = circular(this.position, d, 1024);
+        geodesicCircle.transform('EPSG:4326', 'EPSG:3857'); // Transform from ol default projection (EPSG:4326) to map projection (EPSG:3857)
+        const f = new Feature({ geometry: geodesicCircle });
         f.setStyle(st);
         fa.push(f);
         // point for text display

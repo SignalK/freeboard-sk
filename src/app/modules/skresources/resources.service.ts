@@ -15,7 +15,8 @@ import {
   WaypointDialog,
   RelatedNotesDialog,
   TrackDialog,
-  SKInfoLayer
+  SKInfoLayer,
+  ChartPropertiesDialog
 } from '.';
 import { processUrlTokens } from 'src/app/app.config';
 
@@ -385,6 +386,7 @@ export class SKResourceService {
    * @param collection
    * @param id Resource identifier
    * @param data Resource data
+   * @param provider Resource provider
    * @returns Promise<ActionResult> (rejects with HTTPErrorResponse)
    */
   public putToServer(
@@ -397,11 +399,17 @@ export class SKResourceService {
       | SKNote
       | SKChart
       | SKTrack
-      | SKInfoLayer
+      | SKInfoLayer,
+    provider?: string
   ): Promise<any> {
+    const p = provider ? `?provider=${provider}` : '';
     return new Promise((resolve, reject) => {
       this.signalk.api
-        .put(this.app.skApiVersion, `/resources/${collection}/${id}`, data)
+        .put(
+          this.app.skApiVersion,
+          `/resources/${collection}/${id}${provider ? p : ''}`,
+          data
+        )
         .subscribe(
           (res: ActionResult) => resolve(res),
           (err: HttpErrorResponse) => reject(err)
@@ -505,6 +513,9 @@ export class SKResourceService {
         break;
       case 'region':
         this.editRegionInfo(r.id);
+        break;
+      case 'chart':
+        this.editChartInfo(r.id);
         break;
       case 'track':
         this.editTrackInfo(r.id);
@@ -786,6 +797,65 @@ export class SKResourceService {
       }
     });
     this.refreshCharts();
+  }
+
+  /**
+   * @description Create new Chart and save to server
+   * @param chart
+   */
+  public newChart(chart: SKChart) {
+    if (!chart) {
+      return;
+    }
+    this.dialog
+      .open(ChartPropertiesDialog, {
+        disableClose: true,
+        data: chart
+      })
+      .afterClosed()
+      .subscribe(async (r: { save: boolean; chart: SKChart }) => {
+        if (r.save) {
+          try {
+            const cht = await this.postToServer('charts', r.chart);
+            this.selectionAdd('charts', cht.id);
+          } catch (err) {
+            this.app.parseHttpErrorResponse(err);
+          }
+        }
+      });
+  }
+
+  /**
+   * @description Fetch Chart with supplied id and display edit dialog
+   * @param id chart identifier
+   */
+  public async editChartInfo(id: string) {
+    if (!id) {
+      return;
+    }
+    let chart: SKChart;
+    try {
+      this.app.sIsFetching.set(true);
+      chart = await this.fromServer('charts', id);
+      this.app.sIsFetching.set(false);
+    } catch (err) {
+      this.app.sIsFetching.set(false);
+      this.app.parseHttpErrorResponse(err as HttpErrorResponse);
+      return;
+    }
+    this.dialog
+      .open(ChartPropertiesDialog, {
+        disableClose: true,
+        data: chart
+      })
+      .afterClosed()
+      .subscribe((r: { save: boolean; chart: SKChart }) => {
+        if (r.save) {
+          this.putToServer('charts', id, r.chart).catch((err) =>
+            this.app.parseHttpErrorResponse(err)
+          );
+        }
+      });
   }
 
   /**

@@ -110,8 +110,13 @@ export class S57Service {
 
   private attMatch = new RegExp('([A-Za-z0-9]{6})([0-9,\\?]*)');
 
-  constructor(private http: HttpClient) {
-    http
+  constructor(private http: HttpClient) {}
+
+  public init(options: Options = DefaultOptions) {
+    this.options = Object.assign({}, options);
+    this.selectedColorTable = this.options.colorTable;
+
+    this.http
       .get('assets/s57/chartsymbols.xml', { responseType: 'text' })
       .subscribe((symbolsXml) => {
         const parser = new xml2js.Parser({ strict: false, trim: true });
@@ -129,17 +134,15 @@ export class S57Service {
         };
         image.src =
           'assets/s57/' + this.colorTables[this.selectedColorTable].symbolfile;
+        console.log(image.src);
       });
   }
 
-  /**
-   * @todo Changing value and refresh is not enough.
-   * @param value ColorTable index value (0->4)
-   */
-  public setColorTable(value: number) {
-    if (value >= 0 && value <= 5 && this.selectedColorTable !== value) {
-      //this.selectedColorTable = value;
-      //this.refresh.next();
+  public SetOptions(options: Options) {
+    if (this.isChanged(this.options, options)) {
+      this.options = Object.assign({}, options);
+      this.selectedColorTable = this.options.colorTable;
+      this.refresh.next();
     }
   }
 
@@ -162,13 +165,6 @@ export class S57Service {
       }
     }
     return changed;
-  }
-
-  public SetOptions(options: Options) {
-    if (this.isChanged(this.options, options)) {
-      this.options = Object.assign({}, options);
-      this.refresh.next();
-    }
   }
 
   public getLookup(lookupIndex: number): Lookup {
