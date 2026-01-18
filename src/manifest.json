@@ -1,17 +1,20 @@
 {
-  "name": "Freeboard",
+  "name": "Freeboard-SK",
   "short_name": "Freeboard",
+  "description": "Signal K Chartplotter",
   "theme_color": "#1976d2",
   "background_color": "#fafafa",
-  "display": "fullscreen",
-  "orientation": "portrait",
+  "display": "standalone",
+  "orientation": "any",
   "scope": "/@signalk/freeboard-sk/",
-  "start_url": "index.html",
+  "start_url": "./index.html",
   "icons": [
     {
       "src": "assets/icons/icon-72x72.png",
       "sizes": "72x72",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any"
     }
-  ]
+  ],
+  "prefer_related_applications": false
 }

@@ -1789,6 +1789,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
    * @todo Experiment
    */
   private getFeatureInfo(pos: Position) {
+    /*
     if (!this.app.config.resources.featureServer.url) return;
     // parse url tokens
     const u = this.app.config.resources.featureServer.url
@@ -1811,5 +1812,6 @@ export class FBMapComponent implements OnInit, OnDestroy {
         this.app.parseHttpErrorResponse(error);
       }
     );
+    */
   }
 }

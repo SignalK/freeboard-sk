@@ -114,6 +114,7 @@ import {
   DrawFeatureInfo,
   SelectionResultDef
 } from './modules/map/fbmap-interact.service';
+import { RadarAPIService } from './modules/radar/radar-api.service';
 
 interface DrawEndEvent {
   coordinates: LineString | Position | Polygon;
@@ -268,6 +269,7 @@ export class AppComponent {
   protected wakeLock = inject(WakeLockService);
   private settings = inject(SettingsFacade);
   protected autopilot = inject(AutopilotService);
+  protected radarApi = inject(RadarAPIService);
 
   constructor() {
     // set self to active vessel
@@ -286,9 +288,7 @@ export class AppComponent {
     // handle skAuthChange signal
     effect(() => {
       this.app.debug('** skAuthChange Event:', this.app.skAuthChange());
-      if (this.app.watchingSKLogin) {
-        this.handleSKAuthChange();
-      }
+      this.handleSKAuthChange();
     });
     // handle kioskMode signal
     effect(() => {
@@ -435,6 +435,13 @@ export class AppComponent {
   }
 
   /** TOOLBAR ACTIONS */
+
+  protected toggleRadar() {
+    this.app.uiCtrl.update((current) => {
+      return Object.assign({}, current, { radarLayer: !current.radarLayer });
+    });
+    this.focusMap();
+  }
 
   protected toggleMoveMap(exit = false) {
     this.app.uiConfig.update((current) => {
@@ -897,11 +904,11 @@ export class AppComponent {
    * @param e setting change identifier
    */
   private handleSettingChangeEvent(e: string[]) {
-    if (e.includes('darkTheme')) {
+    if (e?.includes('darkTheme')) {
       this.setDarkTheme();
     }
 
-    if (e.includes('headingAttribute')) {
+    if (e?.includes('headingAttribute')) {
       this.app.debug('True / Magnetic selection changed..');
       this.app.data.vessels.self.heading = this.app.useMagnetic
         ? this.app.data.vessels.self.headingMagnetic
@@ -922,9 +929,9 @@ export class AppComponent {
     }
 
     if (
-      e.includes('pluginParameters') ||
-      e.includes('pluginInstruments') ||
-      e.includes('pluginStartOnOpen')
+      e?.includes('pluginParameters') ||
+      e?.includes('pluginInstruments') ||
+      e?.includes('pluginStartOnOpen')
     ) {
       this.instUrl.update(() =>
         this.dom.bypassSecurityTrustResourceUrl(this.formatInstrumentsUrl())
@@ -941,7 +948,7 @@ export class AppComponent {
       });
     }
 
-    if (e.includes('videoUrl')) {
+    if (e?.includes('videoUrl')) {
       this.vidUrl.update(() =>
         this.dom.bypassSecurityTrustResourceUrl(
           `${this.app.config.resources.video.url}`
@@ -950,7 +957,7 @@ export class AppComponent {
     }
 
     // ** trail **
-    if (e.includes('vesselTrail') || e.includes('trailFromServer')) {
+    if (e?.includes('vesselTrail') || e?.includes('trailFromServer')) {
       if (this.app.config.vessels.trail) {
         // show trail
         if (this.app.config.vessels.trailFromServer) {
@@ -1804,15 +1811,19 @@ export class AppComponent {
           cmd: 'vessel',
           options: { context: 'self', name: r['name'] }
         });
-        this.fetchResources(true); // ** fetch all resource types from server
+        this.fetchResources(true); // fetch all resource types from server
         if (this.app.config.vessels.trailFromServer) {
           this.stream.requestTrailFromServer(); // request trail from server
         }
-        // ** query anchor alarm status
+        // query anchor alarm status
         this.anchor.queryAnchorStatus(
           undefined,
           this.app.data.vessels.self.position
         );
+        // query radar API
+        this.radarApi.listRadars().catch((err: Error) => {
+          this.app.debug(err.message);
+        });
       },
       (err: HttpErrorResponse) => {
         if (err.status && err.status === 401) {

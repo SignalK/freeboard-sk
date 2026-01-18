@@ -1292,6 +1292,19 @@
       </div>
     </mat-tab>
 
+    @if(app.config.experiments && app.featureFlags().radarApi) {
+    <mat-tab label="Radar">
+      <div class="theme-page settings">
+        <div class="theme-panel">
+          <div class="setting-group" id="sectExperiments">
+            <div class="setting-group-title">RADAR SETTINGS</div>
+            <mat-card class="setting-card"> </mat-card>
+          </div>
+        </div>
+      </div>
+    </mat-tab>
+    }
+
     <mat-tab label="Experiments">
       <div class="theme-page settings">
         <div class="theme-panel">
@@ -1342,7 +1355,7 @@
                     </mat-checkbox>
                   </div>
                 </div>
-                <div class="setting-card-row">
+                <!--<div class="setting-card-row">
                   <div class="setting-card-row-item">
                     <mat-form-field style="width: 100%" floatLabel="always">
                       <mat-label>Feature Server url:</mat-label>
@@ -1361,7 +1374,7 @@
                       }
                     </mat-form-field>
                   </div>
-                </div>
+                </div>-->
               </mat-card-content>
             </mat-card>
           </div>

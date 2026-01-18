@@ -162,9 +162,6 @@ export interface IAppConfig {
       enable: boolean;
       url: string | null;
     };
-    featureServer: {
-      url: string | null;
-    };
     paths: string[];
   };
   signalk: {

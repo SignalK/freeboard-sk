@@ -1,9 +1,10 @@
-import { Component, input } from '@angular/core';
+import { Component, inject, input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { AppFacade } from 'src/app/app.facade';
+import { RadarAPIService } from 'src/app/modules/radar/radar-api.service';
 
 @Component({
   selector: 'radar-button',
@@ -11,11 +12,9 @@ import { AppFacade } from 'src/app/app.facade';
   template: `
     <button
       [ngClass]="{
-        'button-primary': app.data.vessels.self.autopilot.enabled,
+        'button-primary': radarApi.defaultRadar() && app.uiCtrl().radarLayer,
         'button-toolbar':
-          !app.data.vessels.self.radar.enabled ||
-          !app.featureFlags().radarApi ||
-          !app.data.vessels.self.radar.default
+          !app.featureFlags().radarApi || !app.uiCtrl().radarLayer
       }"
       mat-fab
       [disabled]="!active()"
@@ -23,7 +22,11 @@ import { AppFacade } from 'src/app/app.facade';
       matTooltip="Radar Overlay"
       matTooltipPosition="above"
     >
-      <mat-icon class="ob" svgIcon="radar-iec"></mat-icon>
+      @if (app.uiCtrl().radarLayer) {
+        <mat-icon class="ob" svgIcon="chart-radar-overlay-iec"></mat-icon>
+      } @else {
+        <mat-icon class="ob" svgIcon="radar-iec"></mat-icon>
+      }
     </button>
   `,
   styles: []
@@ -31,7 +34,10 @@ import { AppFacade } from 'src/app/app.facade';
 export class RadarButtonComponent {
   protected active = input<boolean>(false);
 
-  constructor(protected app: AppFacade) {}
+  protected app = inject(AppFacade);
+  protected radarApi = inject(RadarAPIService);
+
+  constructor() {}
 
   handleClick() {
     this.app.uiCtrl.update((current) => {

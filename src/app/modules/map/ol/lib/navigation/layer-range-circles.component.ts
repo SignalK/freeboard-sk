@@ -17,7 +17,6 @@ import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
 import { Style, Stroke, Fill, Text } from 'ol/style';
 import { Point } from 'ol/geom';
-import { circular } from 'ol/geom/Polygon.js';
 import { fromLonLat } from 'ol/proj';
 import { MapComponent } from '../map.component';
 import { Extent, Coordinate } from '../models';
@@ -161,10 +160,9 @@ export class RangeCirclesComponent implements OnInit, OnDestroy, OnChanges {
       const st = this.buildCircleStyle();
       for (let i = 1; i <= this.maxCircles; ++i) {
         const d = range * i;
-        const geodesicCircle = circular( this.position, d, 1024 );
-        geodesicCircle.transform('EPSG:4326', 'EPSG:3857');  // Transform from default projection (EPSG:4326) to map projection (EPSG:3857)
+        const geodesicCircle = circular(this.position, d, 1024);
+        geodesicCircle.transform('EPSG:4326', 'EPSG:3857'); // Transform from ol default projection (EPSG:4326) to map projection (EPSG:3857)
         const f = new Feature({ geometry: geodesicCircle });
-
         f.setStyle(st);
         fa.push(f);
         // point for text display

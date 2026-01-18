@@ -51,6 +51,7 @@ import { WmtsChartLayerComponent } from './lib/charts/layer-wmts-chart.component
 import { TileJsonChartLayerComponent } from './lib/charts/layer-tilejson-chart.component';
 import { MapStyleJsonChartLayerComponent } from './lib/charts/layer-mapstylejson-chart.component';
 import { S57ChartLayerComponent } from './lib/charts/layer-s57-chart.component';
+import { RadarComponent } from './lib/radar/layer-radar.component';
 
 export * from './lib/util';
 export { MapService } from './lib/map.service';
@@ -106,6 +107,7 @@ export { WmtsChartLayerComponent } from './lib/charts/layer-wmts-chart.component
 export { TileJsonChartLayerComponent } from './lib/charts/layer-tilejson-chart.component';
 export { MapStyleJsonChartLayerComponent } from './lib/charts/layer-mapstylejson-chart.component';
 export { S57ChartLayerComponent } from './lib/charts/layer-s57-chart.component';
+export { RadarComponent } from './lib/radar/layer-radar.component';
 
 const declarations = [
   ContentComponent,
@@ -148,6 +150,7 @@ const declarations = [
   RangeCirclesComponent,
   CogLineComponent,
   WindLinesComponent,
+  RadarComponent,
   RasterChartLayerComponent,
   VectorChartLayerComponent,
   WmsChartLayerComponent,

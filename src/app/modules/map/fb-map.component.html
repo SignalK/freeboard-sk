@@ -163,6 +163,15 @@
   </fb-livelayer>
 
   <!-- Radar Overlay -->
+  @if (app.uiCtrl().radarLayer) {
+    <fb-radar
+      [position]="dfeat.self.position"
+      [heading]="dfeat.self.orientation"
+      [mapZoom]="mapZoomLevel()"
+      [zIndex]="99"
+    >
+    </fb-radar>
+  }
 
   <!-- Tracks -->
   @if (app.featureFlags().resourceTracks) {
@@ -844,7 +853,7 @@
         <span>Weather Forecast</span>
       </button>
     }
-    @if (app.config.experiments && app.config.resources.featureServer.url) {
+    <!--@if (app.config.experiments && app.config.resources.featureServer.url) {
       <button
         mat-menu-item
         (click)="onContextMenuAction('get_feature_info', item)"
@@ -852,6 +861,6 @@
         <mat-icon>info</mat-icon>
         <span>Get Feature Info</span>
       </button>
-    }
+    }-->
   </ng-template>
 </mat-menu>

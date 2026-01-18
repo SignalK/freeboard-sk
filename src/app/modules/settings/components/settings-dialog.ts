@@ -24,6 +24,7 @@ import { WakeLockService } from 'src/app/lib/services';
 import { defaultConfig } from 'src/app/app.config';
 import { SettingsOptions } from '../settings.facade';
 import { S57Service } from '../../map/ol';
+import { AppFacade } from 'src/app/app.facade';
 
 interface PreferredPathsResult {
   save: boolean;
@@ -75,7 +76,8 @@ export class SettingsDialog implements OnInit {
     protected myElement: ElementRef,
     protected dialogRef: MatDialogRef<SettingsDialog>,
     protected wakeLock: WakeLockService,
-    private s57: S57Service
+    private s57: S57Service,
+    protected app: AppFacade
   ) {
     this.options = new SettingsOptions();
   }

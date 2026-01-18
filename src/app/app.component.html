@@ -223,12 +223,17 @@
         </a>
       }
       @if (
+        app.config.experiments &&
         !isInteracting() &&
         app.featureFlags().radarApi &&
-        app.data.vessels.self.radar.default
+        radarApi.defaultRadar()
       ) {
-        <a mat-menu-item (click)="displayLeftMenu('radar', true)">
-          <mat-icon class="ob" svgIcon="radar-iec"></mat-icon>
+        <a mat-menu-item (click)="toggleRadar()">
+          @if (app.uiCtrl().radarLayer) {
+            <mat-icon class="icon-accent">check_box</mat-icon>
+          } @else {
+            <mat-icon class="ob" svgIcon="radar-iec"></mat-icon>
+          }
           <span>Radar Overlay</span>
         </a>
       }

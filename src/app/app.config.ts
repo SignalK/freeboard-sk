@@ -1,6 +1,10 @@
 import { FBAppData, IAppConfig } from './types';
 import { Convert } from './lib/convert';
 import { SKVessel } from './modules';
+/*import {
+  cleanConfig as cleanRadarConfig,
+  DefaultRadarConfig
+} from './modules/radar/settings';*/
 
 // validate supplied settings against base config
 export function validateConfig(settings: IAppConfig): boolean {
@@ -179,9 +183,6 @@ export function cleanConfig(
         enable: false,
         url: ''
       },
-      featureServer: {
-        url: ''
-      },
       paths: []
     };
   } else {
@@ -191,9 +192,6 @@ export function cleanConfig(
     }
     if (typeof settings.resources.video === 'undefined') {
       settings.resources.video = { enable: false, url: '' };
-    }
-    if (typeof settings.resources.featureServer === 'undefined') {
-      settings.resources.featureServer = { url: '' };
     }
     if (typeof settings.resources.paths === 'undefined') {
       settings.resources.paths = [];
@@ -230,6 +228,12 @@ export function cleanConfig(
       rodeLength: (settings as any).anchorRodeLength ?? 50
     };
   }
+
+  /**
+   * v2 disconinued experiments
+   * @todo For removal (Applied 2.19.7)
+   */
+  delete (settings as any).resources.featureServer;
 
   /**
    * v2 deprecations
@@ -456,9 +460,6 @@ export function defaultConfig(): IAppConfig {
       },
       video: {
         enable: false,
-        url: null
-      },
-      featureServer: {
         url: null
       },
       paths: []

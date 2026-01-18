@@ -1,6 +1,6 @@
 {
   "name": "@signalk/freeboard-sk",
-  "version": "2.19.7-beta.2",
+  "version": "2.19.7",
   "description": "Openlayers chart plotter implementation for Signal K",
   "keywords": [
     "signalk-webapp",
@@ -42,6 +42,7 @@
   "dependencies": {
     "@signalk/server-api": "^2.9.0",
     "geolib": "^3.3.3",
+    "google-protobuf": "^4.0.1",
     "tslib": "^2.0.0",
     "uuid": "^11.1.0"
   },
