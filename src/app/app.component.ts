@@ -51,6 +51,7 @@ import {
   SKStreamFacade,
   SKSTREAM_MODE,
   StreamOptions,
+  StreamStaleEvent,
   AnchorService,
   SKResourceService,
   SKVessel,
@@ -389,6 +390,11 @@ export class AppComponent {
         .subscribe((msg: NotificationMessage | UpdateMessage) =>
           this.onError(msg)
         )
+    );
+    this.obsList.push(
+      this.stream
+        .stale$()
+        .subscribe((msg: StreamStaleEvent) => this.onStale(msg))
     );
     // ** TRAIL$ update event
     this.obsList.push(
@@ -1878,6 +1884,16 @@ export class AppComponent {
   private onError(e?: NotificationMessage | UpdateMessage) {
     this.app.showMessage('Connection Error!', false, 2000);
     console.warn('Stream Error!', e);
+  }
+
+  private onStale(e: StreamStaleEvent) {
+    const ageSeconds = Math.round(e.ageMs / 1000);
+    this.app.showMessage(
+      `No Signal K updates for ${ageSeconds}s. Reconnecting...`,
+      false,
+      5000
+    );
+    this.app.debug('Stream stalled.', e);
   }
 
   // ** handle delta message received
