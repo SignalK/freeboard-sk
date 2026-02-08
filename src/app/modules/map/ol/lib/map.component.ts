@@ -4,6 +4,7 @@ import {
   Component,
   ElementRef,
   EventEmitter,
+  inject,
   Input,
   OnDestroy,
   OnInit,
@@ -117,11 +118,11 @@ export class MapComponent implements OnInit, OnDestroy {
   private _pointerDown = signal<MouseEvent>(undefined);
   public pointerDownSignal = this._pointerDown.asReadonly();
 
-  constructor(
-    protected changeDetectorRef: ChangeDetectorRef,
-    protected element: ElementRef,
-    protected mapService: MapService
-  ) {
+  protected changeDetectorRef = inject(ChangeDetectorRef);
+  protected element = inject(ElementRef);
+  protected mapService = inject(MapService);
+
+  constructor() {
     this.changeDetectorRef.detach();
   }
 
@@ -234,6 +235,7 @@ export class MapComponent implements OnInit, OnDestroy {
     this.touchTimer = setTimeout(this.touchHold, 500);
     const c = toLonLat(this.map.getEventCoordinate(event));
     const e = Object.assign(event, { lonlat: c });
+    this.mapService.clearFeatureUrls();
     this.mapPointerDown.emit(e);
     this._pointerDown.update(() => e);
   };

@@ -263,7 +263,7 @@ const handleDeltaMessage = (delta: Delta) => {
   });
 };
 
-const initAlarmEndpoints = () => {
+const initAlarmEndpoints = async () => {
   server.debug(`** Registering Alarm Action API endpoint(s) **`);
 
   // list area alarms
@@ -398,6 +398,7 @@ const initAlarmEndpoints = () => {
       }
     }
   );
+
   server.post(
     `${ALARM_API_PATH}/area/:id/silence`,
     (req: Request, res: Response) => {
@@ -428,124 +429,128 @@ const initAlarmEndpoints = () => {
     }
   );
 
-  // standard alarms
-  server.post(
-    `${ALARM_API_PATH}/:alarmType`,
-    (req: Request, res: Response, next: NextFunction) => {
-      server.debug(
-        `** ${req.method} ${ALARM_API_PATH}/${req.params.alarmType}`
-      );
-      if (!STANDARD_ALARMS.includes(req.params.alarmType)) {
-        next();
-        return;
-      }
-      try {
-        const id = uuid.v4();
-        const msg = req.body.message
-          ? req.body.message
-          : (req.params.alarmType as string);
-
-        const r = handleAlarm(
-          'vessels.self',
-          `notifications.${req.params.alarmType}.${id}` as Path,
-          Object.assign(
-            {
-              message: msg,
-              method: [ALARM_METHOD.sound, ALARM_METHOD.visual],
-              state: ALARM_STATE.emergency
-            },
-            buildAlarmData()
-          )
+  const f = await server.getFeatures();
+  // test for notifications API
+  if (!f.apis.includes('notifications' as any)) {
+    // standard alarms
+    server.post(
+      `${ALARM_API_PATH}/:alarmType`,
+      (req: Request, res: Response, next: NextFunction) => {
+        server.debug(
+          `** ${req.method} ${ALARM_API_PATH}/${req.params.alarmType}`
         );
-        res.status(r.statusCode).json(Object.assign(r, { id: id }));
-      } catch (e) {
-        res.status(400).json({
-          state: 'FAILED',
-          statusCode: 400,
-          message: (e as Error).message
-        });
-      }
-    }
-  );
-  server.post(
-    `${ALARM_API_PATH}/:alarmType/:id/silence`,
-    (req: Request, res: Response) => {
-      server.debug(`** ${req.method} ${req.path}`);
-      if (!STANDARD_ALARMS.includes(req.params.alarmType)) {
-        res.status(200).json({
-          state: 'COMPLETED',
-          statusCode: 200,
-          message: `Unsupported Alarm (${req.params.alarmType}).`
-        });
-        return;
-      }
-      try {
-        const al = server.getSelfPath(
-          `notifications.${req.params.alarmType}.${req.params.id}`
-        );
-        if (al && al.value) {
-          server.debug('Alarm value....');
-          if (al.value.method && al.value.method.includes('sound')) {
-            server.debug('Alarm has sound... silence!!!');
-            al.value.method = al.value.method.filter((i) => i !== 'sound');
-            const r = handleAlarm(
-              'vessels.self',
-              `notifications.${req.params.alarmType}.${req.params.id}` as Path,
-              al.value
-            );
-            res.status(r.statusCode).json(r);
-          } else {
-            server.debug('Alarm has no sound... no action required.');
-            res.status(200).json({
-              state: 'COMPLETED',
-              statusCode: 200,
-              message: `Alarm (${req.params.alarmType}) is already silent.`
-            });
-          }
-        } else {
-          throw new Error(
-            `Alarm (${req.params.alarmType}.${req.params.id}) has no value or was not found!`
-          );
+        if (!STANDARD_ALARMS.includes(req.params.alarmType)) {
+          next();
+          return;
         }
-      } catch (e) {
-        res.status(400).json({
-          state: 'FAILED',
-          statusCode: 400,
-          message: (e as Error).message
-        });
+        try {
+          const id = uuid.v4();
+          const msg = req.body.message
+            ? req.body.message
+            : (req.params.alarmType as string);
+
+          const r = handleAlarm(
+            'vessels.self',
+            `notifications.${req.params.alarmType}.${id}` as Path,
+            Object.assign(
+              {
+                message: msg,
+                method: [ALARM_METHOD.sound, ALARM_METHOD.visual],
+                state: ALARM_STATE.emergency
+              },
+              buildAlarmData()
+            )
+          );
+          res.status(r.statusCode).json(Object.assign(r, { id: id }));
+        } catch (e) {
+          res.status(400).json({
+            state: 'FAILED',
+            statusCode: 400,
+            message: (e as Error).message
+          });
+        }
       }
-    }
-  );
-  server.delete(
-    `${ALARM_API_PATH}/:alarmType/:id`,
-    (req: Request, res: Response, next: NextFunction) => {
-      server.debug(
-        `** ${req.method} ${ALARM_API_PATH}/${req.params.alarmType}`
-      );
-      if (!STANDARD_ALARMS.includes(req.params.alarmType)) {
-        next();
-        return;
-      }
-      try {
-        const r = handleAlarm(
-          'vessels.self',
-          `notifications.${req.params.alarmType}.${req.params.id}` as Path,
-          {
-            message: '',
-            method: [],
-            state: ALARM_STATE.normal
+    );
+    server.post(
+      `${ALARM_API_PATH}/:alarmType/:id/silence`,
+      (req: Request, res: Response) => {
+        server.debug(`** ${req.method} ${req.path}`);
+        if (!STANDARD_ALARMS.includes(req.params.alarmType)) {
+          res.status(200).json({
+            state: 'COMPLETED',
+            statusCode: 200,
+            message: `Unsupported Alarm (${req.params.alarmType}).`
+          });
+          return;
+        }
+        try {
+          const al = server.getSelfPath(
+            `notifications.${req.params.alarmType}.${req.params.id}`
+          );
+          if (al && al.value) {
+            server.debug('Alarm value....');
+            if (al.value.method && al.value.method.includes('sound')) {
+              server.debug('Alarm has sound... silence!!!');
+              al.value.method = al.value.method.filter((i) => i !== 'sound');
+              const r = handleAlarm(
+                'vessels.self',
+                `notifications.${req.params.alarmType}.${req.params.id}` as Path,
+                al.value
+              );
+              res.status(r.statusCode).json(r);
+            } else {
+              server.debug('Alarm has no sound... no action required.');
+              res.status(200).json({
+                state: 'COMPLETED',
+                statusCode: 200,
+                message: `Alarm (${req.params.alarmType}) is already silent.`
+              });
+            }
+          } else {
+            throw new Error(
+              `Alarm (${req.params.alarmType}.${req.params.id}) has no value or was not found!`
+            );
           }
-        );
-        res.status(r.statusCode).json(r);
-      } catch (e) {
-        res.status(400).json({
-          state: 'FAILED',
-          statusCode: 400,
-          message: (e as Error).message
-        });
+        } catch (e) {
+          res.status(400).json({
+            state: 'FAILED',
+            statusCode: 400,
+            message: (e as Error).message
+          });
+        }
       }
-    }
-  );
+    );
+    server.delete(
+      `${ALARM_API_PATH}/:alarmType/:id`,
+      (req: Request, res: Response, next: NextFunction) => {
+        server.debug(
+          `** ${req.method} ${ALARM_API_PATH}/${req.params.alarmType}`
+        );
+        if (!STANDARD_ALARMS.includes(req.params.alarmType)) {
+          next();
+          return;
+        }
+        try {
+          const r = handleAlarm(
+            'vessels.self',
+            `notifications.${req.params.alarmType}.${req.params.id}` as Path,
+            {
+              message: '',
+              method: [],
+              state: ALARM_STATE.normal
+            }
+          );
+          res.status(r.statusCode).json(r);
+        } catch (e) {
+          res.status(400).json({
+            state: 'FAILED',
+            statusCode: 400,
+            message: (e as Error).message
+          });
+        }
+      }
+    );
+  }
 };
 
 const handleV1PutRequest = (
@@ -684,7 +689,8 @@ const validateAreaBody = (body: any) => {
  * @returns true if valid
  */
 const isValidPosition = (position: Position): boolean => {
-  return 'latitude' in position &&
+  return position &&
+    'latitude' in position &&
     'longitude' in position &&
     typeof position.latitude === 'number' &&
     position.latitude >= -90 &&

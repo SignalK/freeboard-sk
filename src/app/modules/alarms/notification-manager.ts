@@ -1,4 +1,4 @@
-import { Injectable, signal } from '@angular/core';
+import { inject, Injectable, signal } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
 import { MatBottomSheet } from '@angular/material/bottom-sheet';
 import {
@@ -28,12 +28,12 @@ export class NotificationManager {
   private mobSignal = signal<AlertItems>([]);
   readonly mobAlerts = this.mobSignal.asReadonly();
 
-  constructor(
-    private app: AppFacade,
-    private worker: SKWorkerService,
-    private signalk: SignalKClient,
-    private bottomSheet: MatBottomSheet
-  ) {
+  private app = inject(AppFacade);
+  private worker = inject(SKWorkerService);
+  private signalk = inject(SignalKClient);
+  private bottomSheet = inject(MatBottomSheet);
+
+  constructor() {
     this.alertMap = new Map();
 
     // ** SIGNAL K STREAM Message**
@@ -97,11 +97,6 @@ export class NotificationManager {
   private parse(msg: PathValue) {
     const alertType = this.getAlertType(msg.path);
 
-    if (alertType === 'notification') {
-      // out-of-scope
-      return;
-    }
-
     // check enabled in config
     if (alertType === 'depth' && !this.app.config.display.depthAlarm.enabled) {
       return;
@@ -116,38 +111,67 @@ export class NotificationManager {
       return;
     }
 
-    const alert: AlertData = this.alertMap.has(msg.path)
-      ? this.alertMap.get(msg.path)
-      : {
-          path: msg.path,
-          priority: ALARM_STATE.nominal,
-          message: '',
-          sound: false,
-          visual: true,
-          properties: {},
-          acknowledged: false,
-          silenced: false,
-          icon: {},
-          type: undefined,
-          canAcknowledge: true,
-          createdAt: Date.now()
-        };
+    let alert: AlertData;
 
-    alert.priority = (msg.value as SKNotification).state;
-    alert.message = (msg.value as SKNotification).message;
-    alert.sound = (msg.value as SKNotification).method.includes(
-      ALARM_METHOD.sound
-    );
-    alert.visual =
-      (msg.value as SKNotification).method.includes(ALARM_METHOD.visual) ||
-      ['perpendicularPassed', 'arrivalCircleEntered'].includes(alertType);
-    alert.canAcknowledge = ['emergency', 'alarm', 'warn'].includes(
-      alert.priority
-    );
+    // Test for Notifications API
+    if (this.app.featureFlags().notificationApi) {
+      const v: SKNotification = msg.value as SKNotification;
+      alert = {
+        id: v.id,
+        path: msg.path,
+        priority: v.state,
+        message: v.message,
+        sound: v.method.includes(ALARM_METHOD.sound),
+        visual: v.method.includes(ALARM_METHOD.visual),
+        properties: {},
+        acknowledged: v.status.acknowledged,
+        silenced: v.status.silenced,
+        icon: {},
+        type: undefined,
+        canAcknowledge: v.status.canAcknowledge,
+        canSilence: v.status.canSilence,
+        canCancel: v.status.canClear,
+        createdAt: v.createdAt ? new Date(v.createdAt).valueOf() : Date.now()
+      };
+    } else {
+      if (alertType === 'notification') {
+        return;
+      }
+      alert = this.alertMap.has(msg.path)
+        ? this.alertMap.get(msg.path)
+        : {
+            path: msg.path,
+            priority: ALARM_STATE.nominal,
+            message: '',
+            sound: false,
+            visual: true,
+            properties: {},
+            acknowledged: false,
+            silenced: false,
+            icon: {},
+            type: undefined,
+            canAcknowledge: true,
+            canCancel: false,
+            canSilence: true,
+            createdAt: Date.now()
+          };
+
+      alert.priority = (msg.value as SKNotification).state;
+      alert.message = (msg.value as SKNotification).message;
+      alert.sound = (msg.value as SKNotification).method.includes(
+        ALARM_METHOD.sound
+      );
+      alert.visual =
+        (msg.value as SKNotification).method.includes(ALARM_METHOD.visual) ||
+        ['perpendicularPassed', 'arrivalCircleEntered'].includes(alertType);
+      alert.canAcknowledge = ['emergency', 'alarm', 'warn'].includes(
+        alert.priority
+      );
+      alert.canCancel = this.isStandardAlarm(alert.type);
+    }
+
     alert.type = alertType;
     alert.icon = getAlertIcon(alert);
-    alert.canCancel = this.isStandardAlarm(alert.type);
-
     if ((msg.value as any).position) {
       alert.properties.position = (msg.value as any).position;
     }
@@ -251,8 +275,26 @@ export class NotificationManager {
    */
   public acknowledge(path: string) {
     if (this.alertMap.has(path)) {
-      this.alertMap.get(path).acknowledged = true;
-      this.emitSignals();
+      if (this.app.featureFlags().notificationApi) {
+        const alert = this.alertMap.get(path);
+        this.signalk.api
+          .post(
+            this.app.skApiVersion,
+            `notifications/${alert.id}/acknowledge`,
+            {}
+          )
+          .subscribe(
+            () => {
+              this.app.debug(`Acknowledged ${alert.id}, ${path}`);
+            },
+            (err: HttpErrorResponse) => {
+              this.app.parseHttpErrorResponse(err);
+            }
+          );
+      } else {
+        this.alertMap.get(path).acknowledged = true;
+        this.emitSignals();
+      }
     }
   }
 
@@ -263,27 +305,44 @@ export class NotificationManager {
   public silence(path: string) {
     if (this.alertMap.has(path)) {
       const alert = this.alertMap.get(path);
-      if (this.isStandardAlarm(alert.type)) {
-        // if is standard alarm silence via server
-        const id = alert.path.split('.').slice(-1)[0];
+      if (this.app.featureFlags().notificationApi) {
         this.signalk.api
-          .post(this.app.skApiVersion, `alarms/${alert.type}/${id}/silence`, {})
+          .post(this.app.skApiVersion, `notifications/${alert.id}/silence`, {})
           .subscribe(
             () => {
-              alert.silenced = true;
-              this.emitSignals();
+              this.app.debug(`Silenced ${alert.id}, ${path}`);
             },
             (err: HttpErrorResponse) => {
-              this.app.showAlert(
-                `Error`,
-                `Unable to silence alarm (${path})!`,
-                err.message
-              );
+              this.app.parseHttpErrorResponse(err);
             }
           );
       } else {
-        alert.silenced = true;
-        this.emitSignals();
+        if (this.isStandardAlarm(alert.type)) {
+          // if is standard alarm silence via server
+          const id = alert.path.split('.').slice(-1)[0];
+          this.signalk.api
+            .post(
+              this.app.skApiVersion,
+              `alarms/${alert.type}/${id}/silence`,
+              {}
+            )
+            .subscribe(
+              () => {
+                alert.silenced = true;
+                this.emitSignals();
+              },
+              (err: HttpErrorResponse) => {
+                this.app.showAlert(
+                  `Error`,
+                  `Unable to silence alarm (${path})!`,
+                  err.message
+                );
+              }
+            );
+        } else {
+          alert.silenced = true;
+          this.emitSignals();
+        }
       }
     }
   }
@@ -295,26 +354,38 @@ export class NotificationManager {
   public clear(path: string) {
     if (this.alertMap.has(path)) {
       const alert = this.alertMap.get(path);
-
-      if (alert.canCancel) {
-        if (this.isStandardAlarm(alert.type)) {
-          // if is standard alarm remove via server
-          this.cancelServerAlarm(alert).subscribe(
+      if (this.app.featureFlags().notificationApi) {
+        this.signalk.api
+          .delete(this.app.skApiVersion, `notifications/${alert.id}`)
+          .subscribe(
             () => {
-              this.alertMap.delete(path);
-              this.emitSignals();
+              this.app.debug(`Cleared ${alert.id}, ${path}`);
             },
             (err: HttpErrorResponse) => {
-              this.app.showAlert(
-                `Error`,
-                `Unable to clear alarm (${path})!`,
-                err.message
-              );
+              this.app.parseHttpErrorResponse(err);
             }
           );
-        } else {
-          this.alertMap.delete(path);
-          this.emitSignals();
+      } else {
+        if (alert.canCancel) {
+          if (this.isStandardAlarm(alert.type)) {
+            // if is standard alarm remove via server
+            this.cancelServerAlarm(alert).subscribe(
+              () => {
+                this.alertMap.delete(path);
+                this.emitSignals();
+              },
+              (err: HttpErrorResponse) => {
+                this.app.showAlert(
+                  `Error`,
+                  `Unable to clear alarm (${path})!`,
+                  err.message
+                );
+              }
+            );
+          } else {
+            this.alertMap.delete(path);
+            this.emitSignals();
+          }
         }
       }
     }
@@ -325,19 +396,32 @@ export class NotificationManager {
    * @param path Alarm type to raise
    */
   public raiseServerAlarm(alarmType: string, message?: string) {
-    this.signalk.api
-      .post(this.app.skApiVersion, `alarms/${alarmType}`, {
-        message: message ?? ''
-      })
-      .subscribe(
-        () => undefined,
-        (err: HttpErrorResponse) => {
-          this.app.showAlert(
-            'Error',
-            `Unable to raise alarm: ${alarmType} \n ${err.message}`
-          );
-        }
-      );
+    if (this.app.featureFlags().notificationApi) {
+      this.signalk.api
+        .post(this.app.skApiVersion, `notifications/mob`, { message: message })
+        .subscribe(
+          (r) => {
+            this.app.debug(`MOB Alarm raised (${r.id})`);
+          },
+          (err: HttpErrorResponse) => {
+            this.app.parseHttpErrorResponse(err);
+          }
+        );
+    } else {
+      this.signalk.api
+        .post(this.app.skApiVersion, `alarms/${alarmType}`, {
+          message: message ?? ''
+        })
+        .subscribe(
+          () => undefined,
+          (err: HttpErrorResponse) => {
+            this.app.showAlert(
+              'Error',
+              `Unable to raise alarm: ${alarmType} \n ${err.message}`
+            );
+          }
+        );
+    }
   }
 
   /**
@@ -346,11 +430,24 @@ export class NotificationManager {
    * @returns Observable
    */
   public cancelServerAlarm(alert: AlertData) {
-    const id = alert.path.split('.').slice(-1)[0];
-    return this.signalk.api.delete(
-      this.app.skApiVersion,
-      `alarms/${alert.type}/${id}`
-    );
+    if (this.app.featureFlags().notificationApi) {
+      this.signalk.api
+        .delete(this.app.skApiVersion, `notifications/${alert.id}`)
+        .subscribe(
+          () => {
+            this.app.debug(`Cleared ${alert.id}`);
+          },
+          (err: HttpErrorResponse) => {
+            this.app.parseHttpErrorResponse(err);
+          }
+        );
+    } else {
+      const id = alert.path.split('.').slice(-1)[0];
+      return this.signalk.api.delete(
+        this.app.skApiVersion,
+        `alarms/${alert.type}/${id}`
+      );
+    }
   }
 
   // parse ClosestApproach message data

@@ -19,6 +19,16 @@ export interface SKNotification {
   state: ALARM_STATE;
   method: ALARM_METHOD[];
   message: string;
+  status?: {
+    silenced: boolean;
+    acknowledged: boolean;
+    canSilence: boolean;
+    canAcknowledge: boolean;
+    canClear: boolean;
+  };
+  position?: SKPosition;
+  createdAt?: string;
+  id?: string;
 }
 
 // Update Deltas

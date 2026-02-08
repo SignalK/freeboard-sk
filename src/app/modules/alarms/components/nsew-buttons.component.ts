@@ -7,7 +7,6 @@ import {
   Input,
   Output,
   ChangeDetectionStrategy,
-  ChangeDetectorRef,
   EventEmitter
 } from '@angular/core';
 
@@ -74,7 +73,7 @@ export class NSEWButtonsComponent {
   @Input() disabled: boolean;
   @Output() direction: EventEmitter<number> = new EventEmitter();
 
-  constructor(private cdr: ChangeDetectorRef) {}
+  constructor() {}
 
   action(value: number) {
     this.direction.emit(value);

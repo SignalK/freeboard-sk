@@ -14,6 +14,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatSelectModule } from '@angular/material/select';
 import { MatInputModule } from '@angular/material/input';
 import { MatDatepickerModule } from '@angular/material/datepicker';
+import { provideNativeDateAdapter } from '@angular/material/core';
 
 @Component({
   selector: 'ap-playbackdialog',
@@ -27,6 +28,7 @@ import { MatDatepickerModule } from '@angular/material/datepicker';
     MatInputModule,
     MatDatepickerModule
   ],
+  providers: [provideNativeDateAdapter()],
   template: `
     <div class="_ap-playback">
       <div>

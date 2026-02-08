@@ -7,8 +7,8 @@ import {
   Input,
   Output,
   ChangeDetectionStrategy,
-  ChangeDetectorRef,
-  EventEmitter
+  EventEmitter,
+  signal
 } from '@angular/core';
 
 import { MatButtonModule } from '@angular/material/button';
@@ -21,7 +21,7 @@ import { MatIconModule } from '@angular/material/icon';
   styles: [``],
   template: `
     <div>
-      @if (cancelled) {
+      @if (cancelled()) {
         &nbsp;
         <button mat-raised-button (click)="action()">
           @if (icon) {
@@ -31,7 +31,7 @@ import { MatIconModule } from '@angular/material/icon';
         </button>
       } @else {
         <button mat-button [disabled]="disabled" (click)="cancel()">
-          {{ label }} {{ timeLeft }} secs
+          {{ label }} {{ timeLeft() }} secs
         </button>
       }
     </div>
@@ -46,24 +46,23 @@ export class TimerButtonComponent {
   @Output() nextPoint: EventEmitter<void> = new EventEmitter();
 
   private timer: ReturnType<typeof setInterval>;
-  public timeLeft: number;
-  public cancelled = false;
+  protected timeLeft = signal<number>(this.period ?? 5);
+  protected cancelled = signal<boolean>(false);
 
-  constructor(private cdr: ChangeDetectorRef) {}
+  constructor() {}
 
   ngOnInit() {
-    this.timeLeft = isNaN(this.period) ? 5 : this.period / 1000;
+    this.timeLeft.update(() => (isNaN(this.period) ? 5 : this.period / 1000));
     this.label = this.label ?? 'Action in ';
     this.cancelledLabel = this.cancelledLabel ?? 'OK';
     this.timer = setInterval(() => {
-      --this.timeLeft;
-      if (this.timeLeft === 0) {
+      this.timeLeft.update((current) => --current);
+      if (this.timeLeft() === 0) {
         this.disabled = true;
         this.action();
         clearInterval(this.timer);
         this.timer = null;
       }
-      this.cdr.detectChanges();
     }, 1000);
   }
 
@@ -78,7 +77,7 @@ export class TimerButtonComponent {
       clearInterval(this.timer);
       this.timer = null;
     }
-    this.cancelled = true;
+    this.cancelled.set(true);
   }
 
   action() {

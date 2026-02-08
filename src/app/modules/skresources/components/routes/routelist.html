@@ -126,6 +126,14 @@
               </button>
               <button
                 mat-icon-button
+                (click)="itemViewNotes(r)"
+                matTooltip="Route notes"
+                matTooltipPosition="above"
+              >
+                <mat-icon>local_offer</mat-icon>
+              </button>
+              <button
+                mat-icon-button
                 [disabled]="disableRefresh"
                 (click)="itemViewPoints(r[0])"
                 matTooltip="Route points"
@@ -133,20 +141,12 @@
               >
                 <mat-icon>flag</mat-icon>
               </button>
-              <button
-                mat-icon-button
-                (click)="itemViewNotes(r)"
-                matTooltip="Route notes"
-                matTooltipPosition="above"
-              >
-                <mat-icon>local_offer</mat-icon>
-              </button>
               @if(r[0] !== activeRoute) {
               <button
                 mat-icon-button
                 [disabled]="disableRefresh"
                 (click)="itemSetActive(r[0])"
-                matTooltip="Set as Active Route"
+                matTooltip="Go to first point"
                 matTooltipPosition="above"
               >
                 <mat-icon>near_me</mat-icon>

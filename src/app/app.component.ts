@@ -777,7 +777,7 @@ export class AppComponent {
         ff.weatherApi = res.apis.includes('weather');
         ff.autopilotApi = res.apis.includes('autopilot');
         ff.radarApi = res.apis.includes('radar');
-        ff.notificationApi = res.apis.includes('notification');
+        ff.notificationApi = res.apis.includes('notifications');
 
         // detect plugins
         const hasPlugin = {

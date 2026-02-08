@@ -1,6 +1,6 @@
 {
   "name": "@signalk/freeboard-sk",
-  "version": "2.19.7",
+  "version": "2.19.8",
   "description": "Openlayers chart plotter implementation for Signal K",
   "keywords": [
     "signalk-webapp",
@@ -70,6 +70,7 @@
     "@types/xml2js": "^0.4.14",
     "@typescript-eslint/eslint-plugin": "^8.46.3",
     "@typescript-eslint/parser": "^8.46.3",
+    "baseline-browser-mapping": "^2.9.18",
     "buffer": "^6.0.3",
     "eslint": "^9.17.0",
     "events": "^3.3.0",
@@ -81,7 +82,7 @@
     "karma-jasmine-html-reporter": "~2.1.0",
     "ng-packagr": "^21.0.0",
     "ngeohash": "^0.6.3",
-    "ol": "^10.2.1",
+    "ol": "^10.7.0",
     "ol-mapbox-style": "^12.3.5",
     "pmtiles": "^2.7.0",
     "prettier": "^3.6.2",

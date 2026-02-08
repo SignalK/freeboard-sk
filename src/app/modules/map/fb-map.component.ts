@@ -102,6 +102,7 @@ import {
 import { ScaleLine } from 'ol/control';
 import { Units } from 'ol/control/ScaleLine';
 import { DragBoxEvent } from 'ol/interaction/DragBox';
+import { MapService } from './ol/lib/map.service';
 
 interface IResource {
   id: string;
@@ -260,6 +261,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
   protected notiMgr = inject(NotificationManager);
   protected course = inject(CourseService);
   protected mapInteract = inject(FBMapInteractService);
+  protected mapService = inject(MapService);
   private settings = inject(SettingsFacade);
   private bottomSheet = inject(MatBottomSheet);
 
@@ -537,7 +539,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
         this.mapInteract.startMeasuring();
         break;
       case 'get_feature_info':
-        this.getFeatureInfo(pos);
+        this.getFeatureInfo();
         break;
       default:
         this.menuItemSelected.emit(action);
@@ -1788,7 +1790,13 @@ export class FBMapComponent implements OnInit, OnDestroy {
    * @param pos Position of feature(s) to retrieve
    * @todo Experiment
    */
-  private getFeatureInfo(pos: Position) {
+  private getFeatureInfo() {
+    const f = [].concat(this.mapService.featureUrls());
+    /*fetch(this.featureUrl)
+    .then((response) => response.json())
+    .then((json) => {
+      console.log(json);
+    });*/
     /*
     if (!this.app.config.resources.featureServer.url) return;
     // parse url tokens

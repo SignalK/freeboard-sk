@@ -6,7 +6,8 @@ import {
   Output,
   EventEmitter,
   ChangeDetectionStrategy,
-  SimpleChanges
+  SimpleChanges,
+  inject
 } from '@angular/core';
 
 import { MatButtonModule } from '@angular/material/button';
@@ -226,10 +227,10 @@ export class VesselPopoverComponent {
   position: Position = [0, 0];
   isFlagged = false;
 
-  constructor(
-    protected app: AppFacade,
-    private buddies: Buddies
-  ) {}
+  protected app = inject(AppFacade);
+  protected buddies = inject(Buddies);
+
+  constructor() {}
 
   ngOnInit() {
     if (!this.vessel) {

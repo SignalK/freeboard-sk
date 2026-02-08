@@ -15,6 +15,7 @@ import { MapComponent } from '../map.component';
 
 import { FBChart } from 'src/app/types';
 import { Map } from 'ol';
+import { MapService } from '../map.service';
 
 // ** Freeboard WMS Chart **
 @Component({
@@ -32,6 +33,7 @@ export class WmsChartLayerComponent implements OnDestroy {
   private layer: TileLayer;
   private changeDetectorRef = inject(ChangeDetectorRef);
   private mapComponent = inject(MapComponent);
+  private mapService = inject(MapService);
 
   private map: Map;
   private featureUrl: string = undefined;
@@ -64,13 +66,15 @@ export class WmsChartLayerComponent implements OnDestroy {
       this.featureUrl = src.getFeatureInfoUrl(coord, resolution, prj, {
         INFO_FORMAT: 'application/json'
       });
-      /*if (this.featureUrl) {
-        fetch(this.featureUrl)
-          .then((response) => response.json())
-          .then((json) => {
-            console.log(json);
-          });
-      }*/
+      if (this.featureUrl) {
+        this.mapService.addFeatureUrls({
+          id: this.chart()[0],
+          name: this.chart()[1].name,
+          type: 'chart',
+          subType: 'wms',
+          url: this.featureUrl
+        });
+      }
     });
   }
 

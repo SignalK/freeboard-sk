@@ -1,4 +1,4 @@
-import { Component, OnInit, Inject } from '@angular/core';
+import { Component, OnInit, Inject, signal, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatIconModule } from '@angular/material/icon';
@@ -48,7 +48,7 @@ import { CourseService } from '../../course';
       <div>
         <mat-toolbar style="background-color: transparent">
           <span>
-            @if (showClearButton) {
+            @if (showClearButton()) {
               <button
                 mat-button
                 (click)="deactivate()"
@@ -56,6 +56,15 @@ import { CourseService } from '../../course';
               >
                 <mat-icon>clear_all</mat-icon>
                 Clear
+              </button>
+            } @else {
+              <button
+                mat-raised-button
+                (click)="startAt()"
+                matTooltip="Start at nearest point."
+              >
+                <mat-icon>near_me</mat-icon>
+                Nearest
               </button>
             }
           </span>
@@ -93,23 +102,30 @@ import { CourseService } from '../../course';
 
                 <div
                   style="display:flex;"
-                  (click)="selectPoint(i)"
                   [style.cursor]="
-                    points.length > 1 && selIndex !== -1 ? 'pointer' : 'initial'
+                    points.length > 1 && selIndex() !== -1
+                      ? 'pointer'
+                      : 'initial'
                   "
                 >
                   <div style="width:35px;">
-                    @if (selIndex === i) {
+                    @if (selIndex() === i) {
                       <mat-icon class="icon-warn"> flag </mat-icon>
+                    } @else {
+                      <button
+                        mat-icon-button
+                        matTooltip="Go to"
+                        (click)="startAt(i)"
+                      >
+                        <mat-icon> near_me </mat-icon>
+                      </button>
                     }
                   </div>
                   <div style="flex: 1 1 auto;">
                     <div style="display:flex;">
-                      <div class="key-label">
-                        <mat-icon> text_fields </mat-icon>
-                      </div>
+                      <div class="key-label"></div>
                       <div
-                        style="flex: 1 1 auto;"
+                        style="flex: 1 1 auto;font-weight:bold;"
                         [innerText]="pointMeta[i].name"
                       ></div>
                     </div>
@@ -125,12 +141,8 @@ import { CourseService } from '../../course';
                     }
 
                     <div style="display:flex;">
-                      <div class="key-label">
-                        <mat-icon [ngClass]="{ 'icon-primary': i === 0 }"
-                          >square_foot</mat-icon
-                        >
-                      </div>
-                      <div style="flex: 1 1 auto;">
+                      <div class="key-label"></div>
+                      <div style="flex: 1 1 auto;font-style:italic">
                         <span [innerText]="legs[i].bearing"></span>
                         &nbsp;
                         <span [innerText]="legs[i].distance"></span>
@@ -157,7 +169,7 @@ import { CourseService } from '../../course';
         min-width: 300px;
       }
       ._ap-dest .key-label {
-        width: 50px;
+        width: 20px;
         font-weight: bold;
       }
       ._ap-dest .selected {
@@ -184,16 +196,18 @@ export class ActiveResourcePropertiesModal implements OnInit {
   protected points: Array<Position> = [];
   protected pointMeta: Array<{ name: string; description: string }> = [];
   protected legs: { bearing: string; distance: string }[] = [];
-  protected selIndex = -1;
+  protected selIndex = signal<number>(-1);
   protected clearButtonText = 'Clear';
-  protected showClearButton = false;
+  protected showClearButton = signal<boolean>(false);
   protected readOnly: boolean;
+  protected closestPoint = signal<number>(-1);
+
+  protected app = inject(AppFacade);
+  protected modalRef = inject(MatBottomSheetRef<ActiveResourcePropertiesModal>);
+  protected course = inject(CourseService);
+  protected skres = inject(SKResourceService);
 
   constructor(
-    public app: AppFacade,
-    public modalRef: MatBottomSheetRef<ActiveResourcePropertiesModal>,
-    protected course: CourseService,
-    protected skres: SKResourceService,
     @Inject(MAT_BOTTOM_SHEET_DATA)
     public data: {
       title: string;
@@ -218,8 +232,8 @@ export class ActiveResourcePropertiesModal implements OnInit {
           : 'Route Points';
 
         if (this.data.resource[0] === this.app.data.activeRoute) {
-          this.selIndex = this.course.courseData().pointIndex;
-          this.showClearButton = true;
+          this.selIndex.update(() => this.course.courseData().pointIndex);
+          this.showClearButton.set(true);
         }
         this.readOnly =
           this.data.resource[1].feature.properties?.readOnly ?? false;
@@ -230,6 +244,21 @@ export class ActiveResourcePropertiesModal implements OnInit {
 
   getLegs() {
     const pos = this.app.data.vessels.self.position;
+    let ld = 0;
+    let idx = 0;
+    this.points.forEach((i) => {
+      const d = GeoUtils.distanceTo(pos, i);
+      if (idx === 0) {
+        ld = d;
+        this.closestPoint.set(idx);
+      } else {
+        if (d < ld) {
+          ld = d;
+          this.closestPoint.set(idx);
+        }
+      }
+      idx++;
+    });
     return GeoUtils.routeLegs(this.points, pos).map((l) => {
       return {
         bearing: this.app.formatValueForDisplay(l.bearing, 'deg'),
@@ -278,17 +307,9 @@ export class ActiveResourcePropertiesModal implements OnInit {
     }
   }
 
-  selectPoint(idx: number) {
-    if (this.points.length < 2 || this.selIndex < 0) {
-      return;
-    }
-    this.selIndex = idx;
-    this.course.coursePointIndex(this.selIndex);
-  }
-
   drop(e: CdkDragDrop<{ previousIndex: number; currentIndex: number }>) {
     if (this.data.type === 'route') {
-      const selPosition = this.points[this.selIndex];
+      const selPosition = this.points[this.selIndex()];
       moveItemInArray(this.points, e.previousIndex, e.currentIndex);
       this.legs = this.getLegs();
       if (this.data.resource[1].feature.properties.coordinatesMeta) {
@@ -316,7 +337,7 @@ export class ActiveResourcePropertiesModal implements OnInit {
     let idx = 0;
     this.points.forEach((p: Position) => {
       if (p[0] === selPosition[0] && p[1] === selPosition[1]) {
-        this.selIndex = idx;
+        this.selIndex.set(idx);
       }
       idx++;
     });
@@ -326,8 +347,20 @@ export class ActiveResourcePropertiesModal implements OnInit {
     this.modalRef.dismiss();
   }
 
-  // ** deactivate route / clear destination
+  /** Activate route starting at nearest point */
+  startAt(idx: number = this.closestPoint()) {
+    if (this.points.length < 2) {
+      return;
+    }
+    this.selIndex.update(() => idx);
+    this.showClearButton.set(true);
+    this.course.activateRoute(this.data.resource[0], idx);
+  }
+
+  /** deactivate route / clear destination */
   deactivate() {
-    this.modalRef.dismiss(true);
+    this.selIndex.set(-1);
+    this.showClearButton.set(false);
+    this.course.clearCourse();
   }
 }

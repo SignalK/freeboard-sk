@@ -7,7 +7,8 @@ import {
   ChangeDetectionStrategy,
   EventEmitter,
   Output,
-  input
+  input,
+  inject
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -42,22 +43,24 @@ import { NotificationManager } from '../notification-manager';
         <mat-icon class="ob" svgIcon="alarm-mob"></mat-icon>
         &nbsp;Overboard!
       </button>
-      <button mat-menu-item (click)="raiseAlarm('fire')">
-        <mat-icon class="ob" svgIcon="alarm-fire"></mat-icon>
-        &nbsp;Fire
-      </button>
-      <button mat-menu-item (click)="raiseAlarm('aground')">
-        <mat-icon class="ob" svgIcon="alarm-aground"></mat-icon>
-        &nbsp;Aground
-      </button>
-      <button mat-menu-item (click)="raiseAlarm('abandon')">
-        <mat-icon class="ob" svgIcon="alarm-abandon"></mat-icon>
-        &nbsp;Abandon
-      </button>
-      <button mat-menu-item (click)="raiseAlarm('piracy')">
-        <mat-icon class="" svgIcon="alarm-acknowledged-iec"></mat-icon>
-        &nbsp;Piracy
-      </button>
+      @if (!app.featureFlags().notificationApi) {
+        <button mat-menu-item (click)="raiseAlarm('fire')">
+          <mat-icon class="ob" svgIcon="alarm-fire"></mat-icon>
+          &nbsp;Fire
+        </button>
+        <button mat-menu-item (click)="raiseAlarm('aground')">
+          <mat-icon class="ob" svgIcon="alarm-aground"></mat-icon>
+          &nbsp;Aground
+        </button>
+        <button mat-menu-item (click)="raiseAlarm('abandon')">
+          <mat-icon class="ob" svgIcon="alarm-abandon"></mat-icon>
+          &nbsp;Abandon
+        </button>
+        <button mat-menu-item (click)="raiseAlarm('piracy')">
+          <mat-icon class="" svgIcon="alarm-acknowledged-iec"></mat-icon>
+          &nbsp;Piracy
+        </button>
+      }
     </mat-menu>
     <mat-card appearance="outlined">
       <div class="alert-list-main mat-app-background" cdkDrag>
@@ -140,7 +143,7 @@ import { NotificationManager } from '../notification-manager';
                     {{ item[1].message }}
                   </div>
                   <div style="width:90px;">
-                    @if (item[1].sound) {
+                    @if (item[1].sound && item[1].canSilence) {
                       <button
                         mat-icon-button
                         [matTooltip]="item[1].silenced ? 'Silenced' : 'Silence'"
@@ -200,10 +203,10 @@ export class AlertListComponent {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   @Output() closed: EventEmitter<void> = new EventEmitter();
 
-  constructor(
-    protected app: AppFacade,
-    protected notiMgr: NotificationManager
-  ) {}
+  protected app = inject(AppFacade);
+  protected notiMgr = inject(NotificationManager);
+
+  constructor() {}
 
   protected handleClose() {
     this.closed.emit();

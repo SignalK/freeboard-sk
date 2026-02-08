@@ -6,7 +6,8 @@ import {
   Input,
   Output,
   EventEmitter,
-  ChangeDetectionStrategy
+  ChangeDetectionStrategy,
+  inject
 } from '@angular/core';
 
 import { CommonModule } from '@angular/common';
@@ -98,7 +99,10 @@ export class PopoverComponent {
   @Input() navTo = false;
   @Output() closed: EventEmitter<void> = new EventEmitter();
   @Output() navigateTo: EventEmitter<void> = new EventEmitter();
-  constructor(protected app: AppFacade) {}
+
+  protected app = inject(AppFacade);
+
+  constructor() {}
 
   handleClose() {
     this.closed.emit();

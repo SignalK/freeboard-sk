@@ -853,7 +853,7 @@
         <span>Weather Forecast</span>
       </button>
     }
-    <!--@if (app.config.experiments && app.config.resources.featureServer.url) {
+    @if (app.config.experiments && mapService.featureUrls().length) {
       <button
         mat-menu-item
         (click)="onContextMenuAction('get_feature_info', item)"
@@ -861,6 +861,6 @@
         <mat-icon>info</mat-icon>
         <span>Get Feature Info</span>
       </button>
-    }-->
+    }
   </ng-template>
 </mat-menu>

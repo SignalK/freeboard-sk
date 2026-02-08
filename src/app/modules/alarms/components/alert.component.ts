@@ -6,7 +6,8 @@ import {
   EventEmitter,
   input,
   effect,
-  signal
+  signal,
+  inject
 } from '@angular/core';
 
 import { MatButtonModule } from '@angular/material/button';
@@ -22,6 +23,7 @@ import { ALARM_STATE } from 'src/app/types';
 import { CourseService } from '../../course';
 
 export interface AlertData {
+  id?: string;
   path: string;
   priority: ALARM_STATE;
   message: string;
@@ -33,6 +35,7 @@ export interface AlertData {
   acknowledged: boolean;
   silenced: boolean;
   canAcknowledge?: boolean;
+  canSilence?: boolean;
   canCancel?: boolean;
   createdAt: number;
 }
@@ -90,7 +93,7 @@ const SoundFiles = {
 
             <mat-card-actions>
               <div style="display:flex;flex-wrap: wrap;">
-                @if (alert().sound) {
+                @if (alert().sound && alert().canSilence) {
                   <div style="text-align: left;">
                     <button
                       mat-raised-button
@@ -197,11 +200,11 @@ export class AlertComponent {
   private soundFile = SoundFiles.warn;
   private timerRef!: any;
 
-  constructor(
-    protected app: AppFacade,
-    private notiMgr: NotificationManager,
-    protected course: CourseService
-  ) {
+  protected app = inject(AppFacade);
+  private notiMgr = inject(NotificationManager);
+  protected course = inject(CourseService);
+
+  constructor() {
     effect(() => {
       const ack = this.acknowledged();
       const mute = this.silenced();

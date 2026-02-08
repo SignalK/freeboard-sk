@@ -1,5 +1,5 @@
 const WHATS_NEW = [
-  {
+  /*{
     type: 'signalk-server-node',
     title: 'Deprecation Notice',
     message: `
@@ -37,7 +37,7 @@ const WHATS_NEW = [
         See <a href="assets/help/index.html" target="help">HELP</a> 
         for more details.
       `
-  }
+  }*/
 ];
 
 export const WELCOME_MESSAGES = {

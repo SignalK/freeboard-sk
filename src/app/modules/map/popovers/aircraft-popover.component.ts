@@ -3,7 +3,8 @@ import {
   Input,
   Output,
   EventEmitter,
-  ChangeDetectionStrategy
+  ChangeDetectionStrategy,
+  inject
 } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -95,7 +96,10 @@ export class AircraftPopoverComponent {
   _title: string;
   timeLastUpdate: string;
   timeAgo: string; // last update in minutes ago
-  constructor(public app: AppFacade) {}
+
+  protected app = inject(AppFacade);
+
+  constructor() {}
   ngOnInit() {
     if (!this.aircraft) {
       this.handleClose();

@@ -6,7 +6,8 @@ import {
   ChangeDetectionStrategy,
   SimpleChanges,
   ViewChild,
-  ElementRef
+  ElementRef,
+  inject
 } from '@angular/core';
 
 import { MatButtonModule } from '@angular/material/button';
@@ -79,11 +80,11 @@ export class AnchorWatchComponent {
   protected defaultRodeLength: number;
   protected disableRaiseDrop: boolean;
 
-  constructor(
-    private anchor: AnchorService,
-    private app: AppFacade,
-    private signalk: SignalKClient
-  ) {}
+  private anchor = inject(AnchorService);
+  private app = inject(AppFacade);
+  private signalk = inject(SignalKClient);
+
+  constructor() {}
 
   ngOnInit() {
     this.displayRadius = this.sliderValue;

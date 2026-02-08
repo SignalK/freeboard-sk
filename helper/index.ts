@@ -64,7 +64,8 @@ module.exports = (server: FreeboardHelperApp): Plugin => {
       settings.alarms = options.alarms ?? {
         enable: true
       };
-      settings.alarms.enable = true;
+      // const f = await server.getFeatures();
+      settings.alarms.enable = true; //!f.apis.includes('notifications' as any);
 
       server.debug(`Applied config: ${JSON.stringify(settings)}`);
 

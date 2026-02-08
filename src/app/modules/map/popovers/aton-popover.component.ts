@@ -3,7 +3,8 @@ import {
   Input,
   Output,
   EventEmitter,
-  ChangeDetectionStrategy
+  ChangeDetectionStrategy,
+  inject
 } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -109,7 +110,11 @@ export class AtoNPopoverComponent {
   timeAgo: string; // last update in minutes ago
   protected convert = Convert;
   isMeteo: boolean;
-  constructor(public app: AppFacade) {}
+
+  protected app = inject(AppFacade);
+
+  constructor() {}
+
   ngOnInit() {
     if (!this.aton) {
       this.handleClose();

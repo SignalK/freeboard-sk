@@ -1,4 +1,4 @@
-import { Component, OnInit, Inject } from '@angular/core';
+import { Component, OnInit, Inject, inject } from '@angular/core';
 import {
   MatBottomSheetRef,
   MAT_BOTTOM_SHEET_DATA
@@ -125,9 +125,10 @@ export class AlertPropertiesModal implements OnInit {
   protected properties: { [key: string]: any };
   protected raisedAt!: string;
 
+  protected notiMgr = inject(NotificationManager);
+  protected modalRef = inject(MatBottomSheetRef<AlertPropertiesModal>);
+
   constructor(
-    protected notiMgr: NotificationManager,
-    public modalRef: MatBottomSheetRef<AlertPropertiesModal>,
     @Inject(MAT_BOTTOM_SHEET_DATA)
     public data: {
       alert: AlertData;

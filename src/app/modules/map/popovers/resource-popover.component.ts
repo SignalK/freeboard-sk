@@ -3,7 +3,8 @@ import {
   Input,
   Output,
   EventEmitter,
-  ChangeDetectionStrategy
+  ChangeDetectionStrategy,
+  inject
 } from '@angular/core';
 
 import { MatButtonModule } from '@angular/material/button';
@@ -16,6 +17,20 @@ import { AppFacade } from 'src/app/app.facade';
 import { Convert } from 'src/app/lib/convert';
 import { SKRoute, SKWaypoint, SKNote, SKRegion } from 'src/app/modules';
 import { AppIconDef, getResourceIcon } from 'src/app/modules/icons';
+
+interface PopoverCtrl {
+  showInfoButton: boolean;
+  showModifyButton: boolean;
+  showDeleteButton: boolean;
+  showAddNoteButton: boolean;
+  showRelatedButton: boolean;
+  showPointsButton: boolean;
+  showNotesButton: boolean;
+  canActivate: boolean;
+  isActive: boolean;
+  activeText: string;
+  isReadOnly: boolean;
+}
 
 /*********** Resource Popover ***************
 title: string -  title text,
@@ -130,7 +145,7 @@ id: string - resource id
               [matTooltip]="
                 type === 'waypoint'
                   ? 'Navigate to Waypoint'
-                  : 'Make this the Active Route'
+                  : 'Navigate to first point'
               "
               matTooltipPosition="after"
             >
@@ -148,6 +163,19 @@ id: string - resource id
             >
               <mat-icon>clear_all</mat-icon>
               CLEAR
+            </button>
+          </div>
+        }
+        @if (ctrl.showPointsButton) {
+          <div class="popover-action-button">
+            <button
+              mat-button
+              (click)="emitPoints()"
+              matTooltip="Route Points"
+              matTooltipPosition="after"
+            >
+              <mat-icon>flag</mat-icon>
+              POINTS
             </button>
           </div>
         }
@@ -190,19 +218,6 @@ id: string - resource id
             </button>
           </div>
         }
-        @if (ctrl.showPointsButton) {
-          <div class="popover-action-button">
-            <button
-              mat-button
-              (click)="emitPoints()"
-              matTooltip="Route Waypoints"
-              matTooltipPosition="after"
-            >
-              <mat-icon>flag</mat-icon>
-              POINTS
-            </button>
-          </div>
-        }
       </div>
     </ap-popover>
   `,
@@ -229,7 +244,7 @@ export class ResourcePopoverComponent {
 
   properties: Array<unknown>; // ** resource properties
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  ctrl: any = {
+  ctrl: PopoverCtrl = {
     showInfoButton: false,
     showModifyButton: false,
     showDeleteButton: false,
@@ -244,8 +259,9 @@ export class ResourcePopoverComponent {
   };
 
   protected icon: AppIconDef;
+  protected app = inject(AppFacade);
 
-  constructor(public app: AppFacade) {}
+  constructor() {}
 
   ngOnChanges() {
     this.parse();
@@ -331,7 +347,7 @@ export class ResourcePopoverComponent {
   parseRoute() {
     this.ctrl.isActive =
       this.active && this.active === this.resource[0] ? true : false;
-    this.ctrl.activeText = 'ACTIVATE';
+    this.ctrl.activeText = 'START';
     this.ctrl.canActivate = true;
     this.ctrl.showInfoButton = true;
     this.ctrl.showModifyButton = true;
@@ -494,9 +510,10 @@ export class ResourceSetPopoverComponent {
   @Output() info: EventEmitter<string> = new EventEmitter();
   @Output() closed: EventEmitter<void> = new EventEmitter();
 
-  properties: Array<unknown>; // ** resource properties
+  protected properties: Array<unknown>; // ** resource properties
+  protected app = inject(AppFacade);
 
-  constructor(public app: AppFacade) {}
+  constructor() {}
 
   ngOnChanges() {
     this.parse();

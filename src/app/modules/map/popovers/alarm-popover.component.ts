@@ -3,7 +3,8 @@ import {
   Input,
   Output,
   EventEmitter,
-  ChangeDetectionStrategy
+  ChangeDetectionStrategy,
+  inject
 } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -110,7 +111,11 @@ export class AlarmPopoverComponent {
   @Output() goto: EventEmitter<Position> = new EventEmitter();
   @Output() closed: EventEmitter<void> = new EventEmitter();
   _title: string;
-  constructor(public app: AppFacade) {}
+
+  protected app = inject(AppFacade);
+
+  constructor() {}
+
   ngOnInit() {
     if (!this.alarm) {
       this.handleClose();

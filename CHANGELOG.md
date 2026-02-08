@@ -1,12 +1,10 @@
 # CHANGELOG: Freeboard
 
-### v2.19.7
+### v2.19.8
 
-- **New**: Creating new Chart entry opens `Chart Properties` screen to allow editing of details before save.
-- **Update**: Range circles to use OL geodesic circle.
-- **Update**: Cache directives (#312)
-- **Update**: Support for KIP `auto night mode` and `night mode` messages.
-- **Fix**: Login menu item not shown (#313)
+- **Update**: Within a Route's `Points` screen, provide the ability to start navigating the route from the nearest point, or any point within the route. (#319)
+- **Fix**: Area zone manager position validation check failing when value is null.
+- **Fix**: Screens containing date picker not being displayed.
 
 #### Experiment: 
 - Initial `RADAR API` support.

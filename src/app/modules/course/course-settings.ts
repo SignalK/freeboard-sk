@@ -17,6 +17,7 @@ import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatCardModule } from '@angular/material/card';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatDatepickerModule } from '@angular/material/datepicker';
+import { provideNativeDateAdapter } from '@angular/material/core';
 import { AppFacade } from 'src/app/app.facade';
 import { SignalKClient } from 'signalk-client-angular';
 import { Convert } from 'src/app/lib/convert';
@@ -45,6 +46,7 @@ import { Subscription } from 'rxjs';
     MatSlideToggleModule,
     MatDatepickerModule
   ],
+  providers: [provideNativeDateAdapter()],
   template: `
     <div class="_ap-course">
       <mat-toolbar style="background-color: transparent">
