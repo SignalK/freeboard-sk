@@ -26,6 +26,11 @@ export interface StreamOptions {
   subscribe: string;
 }
 
+export interface StreamStaleEvent {
+  ageMs: number;
+  timeoutMs: number;
+}
+
 @Injectable({ providedIn: 'root' })
 export class SKStreamFacade {
   // **************** ATTRIBUTES ***************************
@@ -33,12 +38,19 @@ export class SKStreamFacade {
   private onClose: Subject<UpdateMessage> = new Subject();
   private onError: Subject<UpdateMessage> = new Subject();
   private onMessage: Subject<UpdateMessage> = new Subject();
+  private onStale: Subject<StreamStaleEvent> = new Subject();
   private onSelfTrail: Subject<{
     action: 'get';
     mode: 'trail';
     data: MultiLineString;
   }> = new Subject();
   private vesselsUpdate: Subject<void> = new Subject();
+  private streamHealthTimer = null;
+  private streamLastMessageAt = 0;
+  private streamStalled = false;
+  private streamPlayback = false;
+  private readonly streamStallTimeoutMs = 15000;
+  private readonly streamStallCheckIntervalMs = 5000;
   // **************** SIGNALS ***********************************
   private anchorSignal = signal<{
     maxRadius?: number;
@@ -71,6 +83,9 @@ export class SKStreamFacade {
     // ** SIGNAL K STREAM **
     this.worker.message$().subscribe((msg: UpdateMessage | TrailMessage) => {
       if (msg.action === 'open') {
+        this.streamPlayback = msg.playback ?? false;
+        this.markStreamActivity();
+        this.startStreamHealthCheck();
         this.post({
           cmd: 'auth',
           options: {
@@ -79,12 +94,16 @@ export class SKStreamFacade {
         });
         this.onConnect.next(msg);
       } else if (msg.action === 'close') {
+        this.stopStreamHealthCheck();
+        this.resetStreamHealth();
+        this.streamPlayback = false;
         this.onClose.next(msg);
       } else if (msg.action === 'error') {
         this.onError.next(msg);
       } else if (msg.action === 'trail') {
         this.parseSelfTrail(msg as TrailMessage);
       } else {
+        this.markStreamActivity();
         this.parseUpdateMessage(msg);
         this.onMessage.next(msg as UpdateMessage);
       }
@@ -118,6 +137,9 @@ export class SKStreamFacade {
   }> {
     return this.onSelfTrail.asObservable();
   }
+  stale$(): Observable<StreamStaleEvent> {
+    return this.onStale.asObservable();
+  }
 
   // ** Data centric messages
   vessels$(): Observable<void> {
@@ -125,10 +147,16 @@ export class SKStreamFacade {
   }
 
   terminate() {
+    this.stopStreamHealthCheck();
+    this.resetStreamHealth();
+    this.streamPlayback = false;
     this.worker.terminate();
   }
 
   close() {
+    this.stopStreamHealthCheck();
+    this.resetStreamHealth();
+    this.streamPlayback = false;
     this.worker.close();
   }
 
@@ -274,6 +302,46 @@ export class SKStreamFacade {
     this.aisLifecycle.update((current) => {
       return Object.assign({}, current, { updated: av });
     });
+  }
+
+  private markStreamActivity() {
+    this.streamLastMessageAt = Date.now();
+    this.streamStalled = false;
+  }
+
+  private startStreamHealthCheck() {
+    if (this.streamHealthTimer) {
+      return;
+    }
+    this.streamHealthTimer = setInterval(() => {
+      this.checkStreamHealth();
+    }, this.streamStallCheckIntervalMs);
+  }
+
+  private stopStreamHealthCheck() {
+    if (!this.streamHealthTimer) {
+      return;
+    }
+    clearInterval(this.streamHealthTimer);
+    this.streamHealthTimer = null;
+  }
+
+  private resetStreamHealth() {
+    this.streamLastMessageAt = 0;
+    this.streamStalled = false;
+  }
+
+  private checkStreamHealth() {
+    if (!this.streamLastMessageAt || this.streamStalled || this.streamPlayback) {
+      return;
+    }
+    const ageMs = Date.now() - this.streamLastMessageAt;
+    if (ageMs < this.streamStallTimeoutMs) {
+      return;
+    }
+    this.streamStalled = true;
+    this.onStale.next({ ageMs, timeoutMs: this.streamStallTimeoutMs });
+    this.close();
   }
 
   // ** process selfTrail message from worker and emit trail$ **
