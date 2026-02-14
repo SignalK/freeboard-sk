@@ -23,14 +23,12 @@ jobs:
         run: |
           npm install
 
-      - name: Install Chromium
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y chromium-browser || sudo apt-get install -y chromium
+      - name: Setup Chrome
+        uses: browser-actions/setup-chrome@v1
 
       - name: Run tests
         env:
-          CHROME_BIN: /usr/bin/chromium
+          CHROME_BIN: ${{ steps.setup-chrome.outputs.chrome-path }}
         run: |
           npx ng test --watch=false --browsers=ChromeHeadless
 
