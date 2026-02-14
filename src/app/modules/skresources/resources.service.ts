@@ -147,6 +147,31 @@ export class SKResourceService {
     }
   }
 
+  private inferFormatFromUrl(url?: string): string | undefined {
+    if (!url) {
+      return undefined;
+    }
+    const cleanUrl = url.split('?')[0] ?? url;
+    const lowerUrl = cleanUrl.toLowerCase();
+    if (lowerUrl.endsWith('.png')) {
+      return 'png';
+    }
+    if (lowerUrl.endsWith('.jpg') || lowerUrl.endsWith('.jpeg')) {
+      return 'jpg';
+    }
+    if (lowerUrl.endsWith('.webp')) {
+      return 'webp';
+    }
+    return undefined;
+  }
+
+  private inferFormatFromTiles(tilejson: any): string | undefined {
+    if (Array.isArray(tilejson?.tiles) && tilejson.tiles.length > 0) {
+      return this.inferFormatFromUrl(tilejson.tiles[0]);
+    }
+    return undefined;
+  }
+
   private async enrichChartFromTileJson(
     chart: ChartResource
   ): Promise<ChartResource> {
@@ -171,6 +196,22 @@ export class SKResourceService {
 
     try {
       const tilejson = await this.fetchTileJson(fetchUrl);
+      const vectorLayers = Array.isArray(tilejson?.vector_layers)
+        ? tilejson.vector_layers
+            .map((layer: { id?: string }) => layer?.id)
+            .filter((id: string) => typeof id === 'string' && id.length > 0)
+        : undefined;
+      const resolvedLayers =
+        Array.isArray(chart.layers) && chart.layers.length
+          ? chart.layers
+          : vectorLayers;
+      const resolvedFormat =
+        typeof chart.format !== 'undefined'
+          ? chart.format
+          : typeof tilejson.format !== 'undefined'
+            ? tilejson.format
+            : this.inferFormatFromTiles(tilejson) ??
+              (vectorLayers?.length ? 'pbf' : chart.format);
       return {
         ...chart,
         bounds: Array.isArray(chart.bounds) ? chart.bounds : tilejson.bounds,
@@ -182,7 +223,8 @@ export class SKResourceService {
           typeof chart.maxzoom !== 'undefined'
             ? chart.maxzoom
             : tilejson.maxzoom,
-        format: typeof chart.format !== 'undefined' ? chart.format : tilejson.format
+        format: resolvedFormat,
+        layers: resolvedLayers ?? chart.layers
       };
     } catch (_err) {
       return chart;
@@ -736,6 +778,12 @@ export class SKResourceService {
       if (chart.url.startsWith('/') || !chart.url.startsWith('http')) {
         chart.url = this.app.hostDef.url + chart.url;
       }
+    }
+    if (
+      typeof chart.format === 'undefined' &&
+      chart.type?.toLowerCase() === 'tilelayer'
+    ) {
+      chart.format = this.inferFormatFromUrl(chart.url);
     }
     return new SKChart(chart);
   }
