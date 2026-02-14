@@ -15,6 +15,7 @@ import { MapComponent } from '../map.component';
 import { FBChart } from 'src/app/types';
 import WMTS, { optionsFromCapabilities } from 'ol/source/WMTS';
 import { WMTSGetCapabilities } from 'src/app/modules/skresources/components/charts/wmslib';
+import { resolveLayerMaxZoom } from './zoom-utils';
 
 // ** Freeboard WMTS Chart **
 @Component({
@@ -26,6 +27,8 @@ import { WMTSGetCapabilities } from 'src/app/modules/skresources/components/char
 export class WmtsChartLayerComponent implements OnDestroy {
   protected chart = input<FBChart>();
   protected zIndex = input<number>();
+  protected overZoomTiles = input<boolean>(true);
+  protected mapMaxZoom = input<number>();
 
   private layer: TileLayer;
   private capabilities: string;
@@ -37,6 +40,8 @@ export class WmtsChartLayerComponent implements OnDestroy {
     effect(() => {
       this.chart();
       this.zIndex();
+      this.overZoomTiles();
+      this.mapMaxZoom();
       this.parseChart();
     });
   }
@@ -76,13 +81,18 @@ export class WmtsChartLayerComponent implements OnDestroy {
           ? chart[1].minZoom - 0.1
           : chart[1].minZoom;
       const maxZ = chart[1].maxZoom;
+      const layerMaxZ = resolveLayerMaxZoom(
+        maxZ,
+        this.mapMaxZoom(),
+        this.overZoomTiles()
+      );
 
       this.layer = new TileLayer({
         source: new WMTS(options),
         preload: 0,
         zIndex: this.zIndex(),
         minZoom: minZ,
-        maxZoom: maxZ,
+        maxZoom: layerMaxZ,
         opacity: chart[1].defaultOpacity ?? 1
       });
 
@@ -94,9 +104,22 @@ export class WmtsChartLayerComponent implements OnDestroy {
         map.addLayer(this.layer);
       }
     } else {
+      const minZ =
+        chart[1].minZoom && chart[1].minZoom >= 0.1
+          ? chart[1].minZoom - 0.1
+          : chart[1].minZoom;
+      const maxZ = chart[1].maxZoom;
+      const layerMaxZ = resolveLayerMaxZoom(
+        maxZ,
+        this.mapMaxZoom(),
+        this.overZoomTiles()
+      );
       this.layer.setZIndex(this.zIndex());
+      this.layer.setMinZoom(minZ);
+      this.layer.setMaxZoom(layerMaxZ);
       this.layer.setOpacity(chart[1].defaultOpacity ?? 1);
     }
     map.render();
   }
+
 }
