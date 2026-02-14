@@ -114,6 +114,80 @@ export class SKResourceService {
     }
     return this.app.config.selections[collection].includes(id);
   }
+
+  private buildChartUrl(chart: ChartResource): string | undefined {
+    if (!chart?.url) {
+      return undefined;
+    }
+
+    if (chart.url.startsWith('/') || !chart.url.startsWith('http')) {
+      return this.app.hostDef.url + chart.url;
+    }
+
+    return chart.url;
+  }
+
+  private async fetchTileJson(url: string, timeoutMs = 3000): Promise<any> {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+    try {
+      const response = await fetch(url, {
+        headers: { Accept: 'application/json' },
+        signal: controller.signal
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      return await response.json();
+    } finally {
+      clearTimeout(timeoutId);
+    }
+  }
+
+  private async enrichChartFromTileJson(
+    chart: ChartResource
+  ): Promise<ChartResource> {
+    if (!chart?.type || chart.type.toLowerCase() !== 'tilejson') {
+      return chart;
+    }
+
+    const fetchUrl = this.buildChartUrl(chart);
+    if (!fetchUrl) {
+      return chart;
+    }
+
+    const needsMeta =
+      typeof chart.minzoom === 'undefined' ||
+      typeof chart.maxzoom === 'undefined' ||
+      !Array.isArray(chart.bounds) ||
+      typeof chart.format === 'undefined';
+
+    if (!needsMeta) {
+      return chart;
+    }
+
+    try {
+      const tilejson = await this.fetchTileJson(fetchUrl);
+      return {
+        ...chart,
+        bounds: Array.isArray(chart.bounds) ? chart.bounds : tilejson.bounds,
+        minzoom:
+          typeof chart.minzoom !== 'undefined'
+            ? chart.minzoom
+            : tilejson.minzoom,
+        maxzoom:
+          typeof chart.maxzoom !== 'undefined'
+            ? chart.maxzoom
+            : tilejson.maxzoom,
+        format: typeof chart.format !== 'undefined' ? chart.format : tilejson.format
+      };
+    } catch (_err) {
+      return chart;
+    }
+  }
   /**
    * @description Add resource ids to selection list
    * @param collection
@@ -284,15 +358,44 @@ export class SKResourceService {
       );
       skf?.subscribe(
         (res: Routes | Waypoints | Regions | Notes | Charts | Tracks) => {
-          const list: any = [];
-          Object.keys(res).forEach((id: string) => {
-            list.push([
-              id,
-              this.transform(collection, res[id], id),
-              !this.selectionIsFiltered(collection)
-                ? true
-                : this.selectionHas(collection, id)
-            ]);
+          const ids = Object.keys(res);
+
+          if (collection === 'charts') {
+            (async () => {
+              try {
+                const list = (await Promise.all(
+                  ids.map(async (id: string) => {
+                    const enriched = await this.enrichChartFromTileJson(
+                      res[id] as ChartResource
+                    );
+                    return [
+                      id,
+                      this.transform(collection, enriched, id),
+                      !this.selectionIsFiltered(collection)
+                        ? true
+                        : this.selectionHas(collection, id)
+                    ] as T;
+                  })
+                )) as T[];
+                resolve(list);
+              } catch (err) {
+                reject(err as HttpErrorResponse);
+              }
+            })();
+            return;
+          }
+
+          const list: T[] = [];
+          ids.forEach((id: string) => {
+            list.push(
+              [
+                id,
+                this.transform(collection, res[id], id),
+                !this.selectionIsFiltered(collection)
+                  ? true
+                  : this.selectionHas(collection, id)
+              ] as T
+            );
           });
           resolve(list);
         },
@@ -319,7 +422,22 @@ export class SKResourceService {
               | RegionResource
               | NoteResource
               | ChartResource
-          ) => resolve(this.transform(collection, res, id)),
+          ) => {
+            if (collection === 'charts') {
+              (async () => {
+                try {
+                  const enriched = await this.enrichChartFromTileJson(
+                    res as ChartResource
+                  );
+                  resolve(this.transform(collection, enriched, id));
+                } catch (err) {
+                  reject(err as HttpErrorResponse);
+                }
+              })();
+              return;
+            }
+            resolve(this.transform(collection, res, id));
+          },
           (err: HttpErrorResponse) => reject(err)
         );
     });
