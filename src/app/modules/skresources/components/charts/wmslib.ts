@@ -301,29 +301,67 @@ export interface LayerNode {
   time?: TimeDef;
   children?: LayerNode[];
   selected: boolean;
-  parent: LayerNode;
+  parent?: LayerNode;
 }
 
-/** Retrieve WMS capabilities as JSON object */
-export const WMSGetCapabilities = async (wmsHost: string) => {
+export interface WmsParseOptions {
+  maxNodes?: number;
+  maxDepth?: number;
+}
+
+export interface WmtsParseOptions {
+  maxLayers?: number;
+}
+
+export const fetchCapabilitiesXml = async (
+  url: string,
+  timeoutMs = 8000
+): Promise<string> => {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    const r = await fetch(wmsHost + `?request=getcapabilities&service=wms`);
-    const res = await r.text();
+    const r = await fetch(url, { signal: controller.signal });
+    return await r.text();
+  } finally {
+    clearTimeout(timeoutId);
+  }
+};
+
+/** Retrieve WMS capabilities as JSON object */
+export const WMSGetCapabilities = async (wmsHost: string, timeoutMs = 8000) => {
+  try {
+    const res = await fetchCapabilitiesXml(
+      wmsHost + `?request=getcapabilities&service=wms`,
+      timeoutMs
+    );
     const wms = new WMSCapabilities();
     const capabilities = wms.read(res);
     return capabilities;
   } catch (err) {
-    throw new Error(err.message);
+    const message = (err as Error)?.message ?? 'WMS capabilities error';
+    throw new Error(message);
   }
 };
 
 /** Parse ol/format/WMSCapabilities() result */
-export const parseWMSCapabilities = (capabilities: any, data: LayerNode[]) => {
+export const parseWMSCapabilities = (
+  capabilities: any,
+  data: LayerNode[],
+  options?: WmsParseOptions
+) => {
+  const maxNodes = options?.maxNodes ?? 5000;
+  const maxDepth = options?.maxDepth ?? 12;
+  let nodeCount = 0;
   const parseLayer = (
     layer: any,
     cList: LayerNode[],
-    parent: LayerNode = null
+    parent: LayerNode = null,
+    depth = 0
   ) => {
+    if (nodeCount >= maxNodes || depth > maxDepth) {
+      return;
+    }
+    nodeCount += 1;
     const node: LayerNode = {
       name: layer.Name ?? '',
       title: layer.Title ?? '',
@@ -342,9 +380,9 @@ export const parseWMSCapabilities = (capabilities: any, data: LayerNode[]) => {
         }
       }
     }
-    if (layer.Layer) {
+    if (layer.Layer && depth < maxDepth) {
       node.children = [];
-      layer.Layer.forEach((l) => parseLayer(l, node.children));
+      layer.Layer.forEach((l) => parseLayer(l, node.children, node, depth + 1));
     }
     cList.push(node);
   };
@@ -392,15 +430,18 @@ export const getWMSLayerNodeByName = (
 };
 
 /** Retrieve WMTS capabilities as JSON object */
-export const WMTSGetCapabilities = async (wmtsHost: string) => {
+export const WMTSGetCapabilities = async (wmtsHost: string, timeoutMs = 8000) => {
   try {
-    const r = await fetch(wmtsHost + `?request=GetCapabilities&service=wmts`);
-    const res = await r.text();
+    const res = await fetchCapabilitiesXml(
+      wmtsHost + `?request=GetCapabilities&service=wmts`,
+      timeoutMs
+    );
     const wmts = new WMTSCapabilities();
     const capabilities = wmts.read(res);
     return capabilities;
   } catch (err) {
-    throw new Error(err.message);
+    const message = (err as Error)?.message ?? 'WMTS capabilities error';
+    throw new Error(message);
   }
 };
 
@@ -409,7 +450,8 @@ export const getWMTSLayers = (
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   capabilities: any,
   urlBase: string,
-  format: string
+  format: string,
+  maxLayers?: number
 ): Array<ChartProvider | SKInfoLayer> => {
   const maps: Array<ChartProvider | SKInfoLayer> = [];
   if (!capabilities.Contents?.Layer) {
@@ -417,12 +459,15 @@ export const getWMTSLayers = (
   }
   const layers = capabilities.Contents?.Layer;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  layers.forEach((layer: any) => {
+  for (const layer of layers as any[]) {
     const ch = parseWMTSLayer(layer, urlBase, format);
     if (ch) {
       maps.push(ch);
     }
-  });
+    if (typeof maxLayers === 'number' && maps.length >= maxLayers) {
+      break;
+    }
+  }
   return maps;
 };
 

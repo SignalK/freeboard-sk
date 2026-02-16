@@ -16,6 +16,7 @@ import { AppFacade } from 'src/app/app.facade';
 import { SKChart } from 'src/app/modules/skresources/resource-classes';
 import { CoordsPipe } from 'src/app/lib/pipes';
 import {
+  fetchCapabilitiesXml,
   getWMTSLayers,
   LayerNode,
   parseWMSCapabilities,
@@ -189,9 +190,23 @@ import { ChartProvider } from 'src/app/types';
             <div style="">
               <div class="key-label">Layers:</div>
               <div style="flex: 1 1 auto;">
+                @if (!capabilitiesLoaded()) {
+                  <button
+                    mat-button
+                    [disabled]="isFetching()"
+                    (click)="loadCapabilities()"
+                  >
+                    Load layers
+                  </button>
+                  @if (capabilitiesError()) {
+                    <div style="color: darkorange; font-size: 10pt;">
+                      {{ capabilitiesError() }}
+                    </div>
+                  }
+                }
                 @if (isFetching()) {
                   <mat-progress-bar mode="query"></mat-progress-bar>
-                } @else {
+                } @else if (capabilitiesLoaded()) {
                   @if (data.type.toLowerCase() === 'wms') {
                     <node-tree-select
                       [layers]="wmsLayers"
@@ -207,6 +222,18 @@ import { ChartProvider } from 'src/app/types';
                       (selected)="handleLayerSelection($event)"
                     >
                     </node-list-select>
+                  }
+                  @if (
+                    data.type.toLowerCase() === 'wms' &&
+                    wmsLayers.length === 0
+                  ) {
+                    <div style="font-size: 10pt;">No layers available.</div>
+                  }
+                  @if (
+                    data.type.toLowerCase() === 'wmts' &&
+                    wmtsLayers.length === 0
+                  ) {
+                    <div style="font-size: 10pt;">No layers available.</div>
                   }
                 }
               </div>
@@ -269,11 +296,27 @@ import { ChartProvider } from 'src/app/types';
   ]
 })
 export class ChartPropertiesDialog {
+  private static wmsLayerCache = new Map<string, LayerNode[]>();
+  private static wmtsLayerCache = new Map<
+    string,
+    Array<{ id: string | number; name: string; description: string }>
+  >();
+
+  private readonly maxWmsNodes = 5000;
+  private readonly maxWmsDepth = 12;
+  private readonly maxWmtsLayers = 2000;
+
   protected icon: string;
   protected wmsLayers: LayerNode[] = [];
-  protected wmtsLayers: Array<{ name: string; description: string }> = [];
+  protected wmtsLayers: Array<{
+    id: string | number;
+    name: string;
+    description: string;
+  }> = [];
   protected isEditable = signal<boolean>(false);
   protected isFetching = signal<boolean>(false);
+  protected capabilitiesLoaded = signal<boolean>(false);
+  protected capabilitiesError = signal<string | null>(null);
 
   constructor(
     public app: AppFacade,
@@ -283,62 +326,99 @@ export class ChartPropertiesDialog {
     if (data.source?.toLowerCase() === 'resources-provider') {
       this.isEditable.set(true);
     }
-    if (data.type.toLowerCase() === 'wms') {
-      this.getWmsCapabilities();
-    } else if (data.type.toLowerCase() === 'wmts') {
-      this.getWmtsCapabilities();
-    }
   }
 
   isLocal(url: string) {
     return url && url.indexOf('signalk') !== -1 ? 'map' : 'language';
   }
 
+  protected loadCapabilities() {
+    if (this.isFetching() || this.capabilitiesLoaded()) {
+      return;
+    }
+    this.capabilitiesError.set(null);
+    this.runWhenIdle(async () => {
+      let ok = false;
+      if (this.data.type.toLowerCase() === 'wms') {
+        ok = await this.getWmsCapabilities();
+      } else if (this.data.type.toLowerCase() === 'wmts') {
+        ok = await this.getWmtsCapabilities();
+      }
+      if (ok) {
+        this.capabilitiesLoaded.set(true);
+      }
+    });
+  }
+
+  private runWhenIdle(task: () => void) {
+    const w = window as unknown as { requestIdleCallback?: (cb: () => void) => void };
+    if (typeof w.requestIdleCallback === 'function') {
+      w.requestIdleCallback(() => task());
+    } else {
+      setTimeout(task, 0);
+    }
+  }
+
   /**
    * Retrieve and process capabilities from WMS server
    */
-  protected async getWmsCapabilities() {
+  protected async getWmsCapabilities(): Promise<boolean> {
+    const cached = ChartPropertiesDialog.wmsLayerCache.get(this.data.url);
+    if (cached) {
+      this.wmsLayers = this.cloneWmsLayers(cached);
+      return true;
+    }
     this.wmsLayers = [];
     try {
       this.isFetching.set(true);
-      const capabilities = await WMSGetCapabilities(this.data.url);
-      this.isFetching.set(false);
-      if (capabilities && capabilities.Capability) {
-        parseWMSCapabilities(capabilities, this.wmsLayers);
+      const url = `${this.data.url}?request=getcapabilities&service=wms`;
+      const xml = await fetchCapabilitiesXml(url, 8000);
+      const workerLayers = await this.parseWmsCapabilitiesInWorker(xml);
+      if (!workerLayers) {
+        this.capabilitiesError.set('WMS parsing failed in worker.');
+        return false;
       }
+      const cachedLayers = this.cloneWmsLayers(workerLayers);
+      ChartPropertiesDialog.wmsLayerCache.set(this.data.url, cachedLayers);
+      this.wmsLayers = this.cloneWmsLayers(cachedLayers);
+      return true;
     } catch (err) {
-      this.isFetching.set(false);
       this.app.debug('Error fetching WMS layers!');
+      this.capabilitiesError.set('Failed to load WMS layers.');
+      return false;
+    } finally {
+      this.isFetching.set(false);
     }
   }
 
   /**
    * Retrieve and process capabilities from WMTS server
    */
-  protected async getWmtsCapabilities() {
+  protected async getWmtsCapabilities(): Promise<boolean> {
+    const cached = ChartPropertiesDialog.wmtsLayerCache.get(this.data.url);
+    if (cached) {
+      this.wmtsLayers = this.cloneWmtsLayers(cached);
+      return true;
+    }
     this.wmtsLayers = [];
     try {
       this.isFetching.set(true);
-      const capabilities = await WMTSGetCapabilities(this.data.url);
-      this.isFetching.set(false);
-      if (capabilities && capabilities.Contents?.Layer) {
-        this.wmtsLayers = getWMTSLayers(
-          capabilities,
-          this.data.url,
-          'chart-provider'
-        )
-          .map((c: ChartProvider) => {
-            return {
-              id: c.layers[0] ?? Date.now(),
-              name: c.name,
-              description: c.description
-            };
-          })
-          .sort((a, b) => (a.name < b.name ? -1 : 1));
+      const url = `${this.data.url}?request=GetCapabilities&service=wmts`;
+      const xml = await fetchCapabilitiesXml(url, 8000);
+      const workerLayers = await this.parseWmtsCapabilitiesInWorker(xml);
+      if (!workerLayers) {
+        this.capabilitiesError.set('WMTS parsing failed in worker.');
+        return false;
       }
+      ChartPropertiesDialog.wmtsLayerCache.set(this.data.url, workerLayers);
+      this.wmtsLayers = this.cloneWmtsLayers(workerLayers);
+      return true;
     } catch (err) {
-      this.isFetching.set(false);
       this.app.debug('Error fetching WMS layers!');
+      this.capabilitiesError.set('Failed to load WMTS layers.');
+      return false;
+    } finally {
+      this.isFetching.set(false);
     }
   }
 
@@ -350,6 +430,87 @@ export class ChartPropertiesDialog {
     this.dialogRef.close({
       save: save,
       chart: this.data
+    });
+  }
+
+  private cloneWmsLayers(layers: LayerNode[], parent?: LayerNode): LayerNode[] {
+    return layers.map((l) => {
+      const node: LayerNode = {
+        name: l.name,
+        title: l.title,
+        description: l.description,
+        time: l.time ? { ...l.time } : undefined,
+        selected: false,
+        parent: parent
+      };
+      if (Array.isArray(l.children) && l.children.length) {
+        node.children = this.cloneWmsLayers(l.children, node);
+      }
+      return node;
+    });
+  }
+
+  private cloneWmtsLayers(
+    layers: Array<{ id: string | number; name: string; description: string }>
+  ) {
+    return layers.map((l) => ({ ...l }));
+  }
+
+  private parseWmsCapabilitiesInWorker(xml: string): Promise<LayerNode[] | null> {
+    if (typeof Worker === 'undefined') {
+      return Promise.resolve(null);
+    }
+    return new Promise((resolve) => {
+      const worker = new Worker(
+        new URL('./capabilities.worker', import.meta.url),
+        { type: 'module' }
+      );
+      const cleanup = (result: any) => {
+        worker.terminate();
+        resolve(Array.isArray(result?.layers) ? result.layers : null);
+      };
+      worker.onmessage = (event) => cleanup(event.data);
+      worker.onerror = () => cleanup(null);
+      worker.postMessage({
+        type: 'wms',
+        xml: xml,
+        url: this.data.url,
+        options: {
+          maxNodes: this.maxWmsNodes,
+          maxDepth: this.maxWmsDepth,
+          maxLayers: this.maxWmtsLayers
+        }
+      });
+    });
+  }
+
+  private parseWmtsCapabilitiesInWorker(
+    xml: string
+  ): Promise<Array<{ id: string | number; name: string; description: string }> | null> {
+    if (typeof Worker === 'undefined') {
+      return Promise.resolve(null);
+    }
+    return new Promise((resolve) => {
+      const worker = new Worker(
+        new URL('./capabilities.worker', import.meta.url),
+        { type: 'module' }
+      );
+      const cleanup = (result: any) => {
+        worker.terminate();
+        resolve(Array.isArray(result?.layers) ? result.layers : null);
+      };
+      worker.onmessage = (event) => cleanup(event.data);
+      worker.onerror = () => cleanup(null);
+      worker.postMessage({
+        type: 'wmts',
+        xml: xml,
+        url: this.data.url,
+        options: {
+          maxNodes: this.maxWmsNodes,
+          maxDepth: this.maxWmsDepth,
+          maxLayers: this.maxWmtsLayers
+        }
+      });
     });
   }
 }
