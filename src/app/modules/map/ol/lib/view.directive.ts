@@ -140,6 +140,9 @@ export class ViewDirective
   }
 
   ngOnDestroy() {
+    if (!this.view) {
+      return;
+    }
     this.view.un('change:center', this.emitCenterChange);
     this.view.un('change:resolution', this.emitZoomChange);
     this.view.un('change:rotation', this.emitRotationChange);

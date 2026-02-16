@@ -140,6 +140,9 @@ export class MapComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy() {
+    if (!this.map) {
+      return;
+    }
     this.map.un('singleclick', this.emitSingleClickEvent);
     this.map.un('dblclick', this.emitDblClickEvent);
     this.map.un('click', this.emitClickEvent);
