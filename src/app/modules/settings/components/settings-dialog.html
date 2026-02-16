@@ -382,6 +382,16 @@
                   </div>
                   <div class="setting-card-row-item">
                     <mat-checkbox
+                      [(ngModel)]="facade.settings.map.overZoomTiles"
+                      (change)="persistModel()"
+                      matTooltip="Keep tiles visible when zooming past chart max"
+                      label="after"
+                    >
+                      Keep tiles on max zoom
+                    </mat-checkbox>
+                  </div>
+                  <div class="setting-card-row-item">
+                    <mat-checkbox
                       [(ngModel)]="facade.settings.map.lockMoveMap"
                       (change)="persistModel()"
                       matTooltip="Do not exit follow vessel when map is panned."

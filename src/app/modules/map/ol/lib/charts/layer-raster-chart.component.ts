@@ -15,6 +15,7 @@ import { XYZ } from 'ol/source';
 import { initPMTilesXYZLayer } from './pmtiles-utils';
 import { osmLayer } from '../util';
 import { MapComponent } from '../map.component';
+import { resolveLayerMaxZoom } from './zoom-utils';
 
 import { FBChart } from 'src/app/types';
 
@@ -28,6 +29,8 @@ import { FBChart } from 'src/app/types';
 export class RasterChartLayerComponent implements OnDestroy {
   protected chart = input<FBChart>();
   protected zIndex = input<number>();
+  protected overZoomTiles = input<boolean>(true);
+  protected mapMaxZoom = input<number>();
 
   private layer: TileLayer | WebGLTileLayer;
   private changeDetectorRef = inject(ChangeDetectorRef);
@@ -38,6 +41,8 @@ export class RasterChartLayerComponent implements OnDestroy {
     effect(() => {
       this.chart();
       this.zIndex();
+      this.overZoomTiles();
+      this.mapMaxZoom();
       this.parseChart();
     });
   }
@@ -57,32 +62,43 @@ export class RasterChartLayerComponent implements OnDestroy {
     }
 
     if (!this.layer) {
+      const maxZ = chart[1].maxZoom;
+      const layerMaxZ = resolveLayerMaxZoom(
+        maxZ,
+        this.mapMaxZoom(),
+        this.overZoomTiles()
+      );
+
       if (chart[0] === 'openstreetmap') {
         this.layer = osmLayer();
         this.layer.setZIndex(this.zIndex());
         this.layer.setMinZoom(chart[1].minZoom);
-        this.layer.setMaxZoom(chart[1].maxZoom);
+        this.layer.setMaxZoom(layerMaxZ);
         this.layer.setOpacity(chart[1].defaultOpacity ?? 1);
       } else {
         const minZ =
           chart[1].minZoom && chart[1].minZoom >= 0.1
             ? chart[1].minZoom - 0.1
             : chart[1].minZoom;
-        const maxZ = chart[1].maxZoom;
 
         if (chart[1].url.indexOf('.pmtiles') !== -1) {
           this.layer = initPMTilesXYZLayer(chart[1], this.zIndex());
         } else {
           this.layer = new TileLayer({
             source: new XYZ({
-              url: chart[1].url
+              url: chart[1].url,
+              maxZoom: maxZ
             }),
             preload: 0,
             zIndex: this.zIndex(),
             minZoom: minZ,
-            maxZoom: maxZ,
+            maxZoom: layerMaxZ,
             opacity: chart[1].defaultOpacity ?? 1
           });
+        }
+        if (this.layer) {
+          this.layer.setMinZoom(minZ);
+          this.layer.setMaxZoom(layerMaxZ);
         }
       }
       if (this.layer) {
@@ -93,9 +109,22 @@ export class RasterChartLayerComponent implements OnDestroy {
         map.addLayer(this.layer);
       }
     } else {
+      const minZ =
+        chart[1].minZoom && chart[1].minZoom >= 0.1
+          ? chart[1].minZoom - 0.1
+          : chart[1].minZoom;
+      const maxZ = chart[1].maxZoom;
+      const layerMaxZ = resolveLayerMaxZoom(
+        maxZ,
+        this.mapMaxZoom(),
+        this.overZoomTiles()
+      );
       this.layer.setZIndex(this.zIndex());
+      this.layer.setMinZoom(minZ);
+      this.layer.setMaxZoom(layerMaxZ);
       this.layer.setOpacity(chart[1].defaultOpacity ?? 1);
     }
     map.render();
   }
+
 }

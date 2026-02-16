@@ -102,6 +102,7 @@ export interface IAppConfig {
     animate: boolean;
     labelsMinZoom: number;
     doubleClickZoom: boolean; // true=zoom
+    overZoomTiles: boolean; // keep tiles visible beyond chart max zoom
     centerOffset: number; // vessel offset south of center (%)
     s57Options: {
       graphicsStyle: 'Simplified' | 'Paper';

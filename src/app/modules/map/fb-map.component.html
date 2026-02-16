@@ -134,22 +134,50 @@
       <fb-mapstylejson-chart [zIndex]="10 + idx" [chart]="c">
       </fb-mapstylejson-chart>
     } @else if (c[1].type?.toLowerCase() === 'tilejson') {
-      <fb-tilejson-chart [zIndex]="10 + idx" [chart]="c"> </fb-tilejson-chart>
+      <fb-tilejson-chart
+        [zIndex]="10 + idx"
+        [chart]="c"
+        [overZoomTiles]="overZoomTiles"
+        [mapMaxZoom]="app.MAP_ZOOM_EXTENT.max"
+      >
+      </fb-tilejson-chart>
     } @else if (c[1].type?.toLowerCase() === 'wms') {
-      <fb-wms-chart [zIndex]="10 + idx" [chart]="c"> </fb-wms-chart>
+      <fb-wms-chart
+        [zIndex]="10 + idx"
+        [chart]="c"
+        [overZoomTiles]="overZoomTiles"
+        [mapMaxZoom]="app.MAP_ZOOM_EXTENT.max"
+      >
+      </fb-wms-chart>
     } @else if (c[1].type?.toLowerCase() === 'wmts') {
-      <fb-wmts-chart [zIndex]="10 + idx" [chart]="c"> </fb-wmts-chart>
+      <fb-wmts-chart
+        [zIndex]="10 + idx"
+        [chart]="c"
+        [overZoomTiles]="overZoomTiles"
+        [mapMaxZoom]="app.MAP_ZOOM_EXTENT.max"
+      >
+      </fb-wmts-chart>
     } @else if (
       c[1].type?.toLowerCase() === 'tilelayer' &&
       (c[1].format?.toLowerCase() === 'pbf' ||
         c[1].format?.toLowerCase() === 'mvt')
     ) {
-      <fb-tilelayer-vector [zIndex]="10 + idx" [chart]="c">
+      <fb-tilelayer-vector
+        [zIndex]="10 + idx"
+        [chart]="c"
+        [overZoomTiles]="overZoomTiles"
+        [mapMaxZoom]="app.MAP_ZOOM_EXTENT.max"
+      >
       </fb-tilelayer-vector>
     } @else if (
       c[0] === 'openstreetmap' || c[1].type?.toLowerCase() === 'tilelayer'
     ) {
-      <fb-tilelayer-raster [zIndex]="10 + idx" [chart]="c">
+      <fb-tilelayer-raster
+        [zIndex]="10 + idx"
+        [chart]="c"
+        [overZoomTiles]="overZoomTiles"
+        [mapMaxZoom]="app.MAP_ZOOM_EXTENT.max"
+      >
       </fb-tilelayer-raster>
     }
   }

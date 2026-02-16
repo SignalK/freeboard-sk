@@ -164,6 +164,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
   @Input() activeRoute: string;
   @Input() vesselTrail: Array<Position> = [];
   @Input() dblClickZoom = false;
+  @Input() overZoomTiles = true;
   @Output() drawEnded: EventEmitter<DrawFeatureInfo> = new EventEmitter();
   @Output() activate: EventEmitter<string> = new EventEmitter();
   @Output() deactivate: EventEmitter<string> = new EventEmitter();

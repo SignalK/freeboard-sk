@@ -16,6 +16,7 @@ import { MapComponent } from '../map.component';
 import { FBChart } from 'src/app/types';
 import { Map } from 'ol';
 import { MapService } from '../map.service';
+import { resolveLayerMaxZoom } from './zoom-utils';
 
 // ** Freeboard WMS Chart **
 @Component({
@@ -29,6 +30,8 @@ export class WmsChartLayerComponent implements OnDestroy {
   protected zIndex = input<number>();
   protected params =
     input<Array<{ id: string; param: { [key: string]: any } }>>();
+  protected overZoomTiles = input<boolean>(true);
+  protected mapMaxZoom = input<number>();
 
   private layer: TileLayer;
   private changeDetectorRef = inject(ChangeDetectorRef);
@@ -44,6 +47,8 @@ export class WmsChartLayerComponent implements OnDestroy {
     effect(() => {
       this.chart();
       this.zIndex();
+      this.overZoomTiles();
+      this.mapMaxZoom();
       this.parseChart();
     });
     effect(() => {
@@ -96,6 +101,11 @@ export class WmsChartLayerComponent implements OnDestroy {
           ? chart[1].minZoom - 0.1
           : chart[1].minZoom;
       const maxZ = chart[1].maxZoom;
+      const layerMaxZ = resolveLayerMaxZoom(
+        maxZ,
+        this.mapMaxZoom(),
+        this.overZoomTiles()
+      );
 
       this.layer = new TileLayer({
         source: new TileWMS({
@@ -107,7 +117,7 @@ export class WmsChartLayerComponent implements OnDestroy {
         preload: 0,
         zIndex: this.zIndex(),
         minZoom: minZ,
-        maxZoom: maxZ,
+        maxZoom: layerMaxZ,
         opacity: chart[1].defaultOpacity ?? 1
       });
 
@@ -119,7 +129,19 @@ export class WmsChartLayerComponent implements OnDestroy {
         this.map.addLayer(this.layer);
       }
     } else {
+      const minZ =
+        chart[1].minZoom && chart[1].minZoom >= 0.1
+          ? chart[1].minZoom - 0.1
+          : chart[1].minZoom;
+      const maxZ = chart[1].maxZoom;
+      const layerMaxZ = resolveLayerMaxZoom(
+        maxZ,
+        this.mapMaxZoom(),
+        this.overZoomTiles()
+      );
       this.layer.setZIndex(this.zIndex());
+      this.layer.setMinZoom(minZ);
+      this.layer.setMaxZoom(layerMaxZ);
       this.layer.setOpacity(chart[1].defaultOpacity ?? 1);
       const src = this.layer.getSource() as TileWMS;
       const l = chart[1].layers ? chart[1].layers.join(',') : '';
@@ -131,4 +153,5 @@ export class WmsChartLayerComponent implements OnDestroy {
     }
     this.map.render();
   }
+
 }

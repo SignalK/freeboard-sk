@@ -17,6 +17,7 @@ import { MapComponent } from '../map.component';
 
 import { FBChart } from 'src/app/types';
 import { initPMTilesVectorLayer } from './pmtiles-utils';
+import { resolveLayerMaxZoom } from './zoom-utils';
 
 // ** Freeboard Vector TileLayer Chart **
 @Component({
@@ -28,6 +29,8 @@ import { initPMTilesVectorLayer } from './pmtiles-utils';
 export class VectorChartLayerComponent implements OnDestroy {
   protected chart = input<FBChart>();
   protected zIndex = input<number>();
+  protected overZoomTiles = input<boolean>(true);
+  protected mapMaxZoom = input<number>();
 
   private layer: VectorTileLayer;
   private changeDetectorRef = inject(ChangeDetectorRef);
@@ -38,6 +41,8 @@ export class VectorChartLayerComponent implements OnDestroy {
     effect(() => {
       this.chart();
       this.zIndex();
+      this.overZoomTiles();
+      this.mapMaxZoom();
       this.parseChart();
     });
   }
@@ -62,6 +67,11 @@ export class VectorChartLayerComponent implements OnDestroy {
           ? chart[1].minZoom - 0.1
           : chart[1].minZoom;
       const maxZ = chart[1].maxZoom;
+      const layerMaxZ = resolveLayerMaxZoom(
+        maxZ,
+        this.mapMaxZoom(),
+        this.overZoomTiles()
+      );
 
       if (chart[1].url.indexOf('.pmtiles') !== -1) {
         this.layer = initPMTilesVectorLayer(chart[1], this.zIndex());
@@ -74,14 +84,20 @@ export class VectorChartLayerComponent implements OnDestroy {
                 Array.isArray(chart[1].layers) && chart[1].layers.length !== 0
                   ? chart[1].layers
                   : null
-            })
+            }),
+            maxZoom: maxZ
           }),
           preload: 0,
           zIndex: this.zIndex(),
           minZoom: minZ,
-          maxZoom: maxZ,
+          maxZoom: layerMaxZ,
           opacity: chart[1].defaultOpacity ?? 1
         });
+      }
+
+      if (this.layer) {
+        this.layer.setMinZoom(minZ);
+        this.layer.setMaxZoom(layerMaxZ);
       }
 
       if (this.layer) {
@@ -95,9 +111,22 @@ export class VectorChartLayerComponent implements OnDestroy {
         map.addLayer(this.layer);
       }
     } else {
+      const minZ =
+        chart[1].minZoom && chart[1].minZoom >= 0.1
+          ? chart[1].minZoom - 0.1
+          : chart[1].minZoom;
+      const maxZ = chart[1].maxZoom;
+      const layerMaxZ = resolveLayerMaxZoom(
+        maxZ,
+        this.mapMaxZoom(),
+        this.overZoomTiles()
+      );
       this.layer.setZIndex(this.zIndex());
+      this.layer.setMinZoom(minZ);
+      this.layer.setMaxZoom(layerMaxZ);
       this.layer.setOpacity(chart[1].defaultOpacity ?? 1);
     }
     map.render();
   }
+
 }
