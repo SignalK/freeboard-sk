@@ -528,6 +528,48 @@ export class SKResourceService {
   private chartCacheSignal = signal([]);
   readonly charts = this.chartCacheSignal.asReadonly();
 
+  public updateChartOpacityCache(id: string, opacity: number) {
+    const clamped = Math.min(1, Math.max(0, opacity));
+    this.chartCacheSignal.update((current: FBCharts) => {
+      return current.map((c: FBChart) => {
+        if (c[0] !== id) {
+          return c;
+        }
+        const updated = new SKChart(c[1] as any);
+        updated.defaultOpacity = clamped;
+        return [c[0], updated, c[2]];
+      });
+    });
+    this.persistChartOpacity(id, clamped);
+  }
+
+  private persistChartOpacity(id: string, opacity: number) {
+    if (!this.app?.config?.selections) {
+      return;
+    }
+    if (typeof this.app.config.selections.chartOpacity === 'undefined') {
+      this.app.config.selections.chartOpacity = {};
+    }
+    this.app.config.selections.chartOpacity[id] = opacity;
+    this.app.saveConfig();
+  }
+
+  private applyStoredChartOpacity(chartList: FBCharts): FBCharts {
+    const opacityMap = this.app?.config?.selections?.chartOpacity;
+    if (!opacityMap) {
+      return chartList;
+    }
+    return chartList.map((c: FBChart): FBChart => {
+      const stored = opacityMap[c[0]];
+      if (typeof stored !== 'number') {
+        return c;
+      }
+      const updated = new SKChart(c[1] as any);
+      updated.defaultOpacity = Math.min(1, Math.max(0, stored));
+      return [c[0], updated, c[2]] as FBChart;
+    });
+  }
+
   /**
    * @description Add OSM charts to supplied chart list
    * @param chtList List of FBChart objects
@@ -586,6 +628,7 @@ export class SKResourceService {
       let flist = chts.filter((chart: FBChart) => chart[2]);
       flist = this.sortByScaleDesc(flist);
       flist = this.arrangeChartLayers(flist);
+      flist = this.applyStoredChartOpacity(flist);
       // set map zoom extent
       this.setMapZoomRange();
       this.chartCacheSignal.set(flist);
