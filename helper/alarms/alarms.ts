@@ -102,14 +102,16 @@ class AreaAlarmManager {
    */
   silence(id: string) {
     // clean up notification
-    const n = server.getSelfPath(`notifications.area.${id}`);
-    if (n.value && Array.isArray(n.value.method)) {
+    const n = getSelfPathValue<{ method?: ALARM_METHOD[] }>(
+      `notifications.area.${id}`
+    );
+    if (n?.value && Array.isArray(n.value.method)) {
       const m = n.value.method.filter((i) => i !== 'sound');
       n.value.method = m;
     }
     emitNotification({
       path: `notifications.area.${id}` as Path,
-      value: n.value
+      value: n?.value
     });
   }
 
@@ -186,6 +188,10 @@ class AreaAlarmManager {
 let server: FreeboardHelperApp;
 let pluginId: string;
 let unsubscribes = [];
+
+const getSelfPathValue = <T>(path: string): { value?: T } | undefined => {
+  return server.getSelfPath(path) as { value?: T } | undefined;
+};
 
 const alarmAreas: Map<string, AreaAlarmDef> = new Map();
 const alarmManager: AreaAlarmManager = new AreaAlarmManager();
@@ -484,18 +490,31 @@ const initAlarmEndpoints = async () => {
           return;
         }
         try {
-          const al = server.getSelfPath(
+          const al = getSelfPathValue<{ method?: ALARM_METHOD[] }>(
             `notifications.${req.params.alarmType}.${req.params.id}`
           );
-          if (al && al.value) {
+          if (al?.value) {
             server.debug('Alarm value....');
-            if (al.value.method && al.value.method.includes('sound')) {
+            if (
+              al.value.method &&
+              al.value.method.includes(ALARM_METHOD.sound)
+            ) {
               server.debug('Alarm has sound... silence!!!');
-              al.value.method = al.value.method.filter((i) => i !== 'sound');
+              al.value.method = al.value.method.filter(
+                (i) => i !== ALARM_METHOD.sound
+              );
               const r = handleAlarm(
                 'vessels.self',
                 `notifications.${req.params.alarmType}.${req.params.id}` as Path,
-                al.value
+                al.value as {
+                  message: string;
+                  state: ALARM_STATE;
+                  method: ALARM_METHOD[];
+                  data?: {
+                    position: Position;
+                    timestamp: string;
+                  };
+                }
               );
               res.status(r.statusCode).json(r);
             } else {
@@ -563,11 +582,11 @@ const handleV1PutRequest = (
 };
 
 const buildAlarmData = () => {
-  const pos: { value: Position } = server.getSelfPath('navigation.position');
+  const pos = getSelfPathValue<Position>('navigation.position');
   const r: any = {
     createdAt: new Date().toISOString()
   };
-  if (pos) {
+  if (pos?.value) {
     r.position = pos.value;
   }
   return r;
