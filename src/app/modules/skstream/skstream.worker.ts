@@ -58,7 +58,7 @@ interface MsgFromApp {
   options: { [key: string]: any };
 }
 
-// ** preference source paths **
+// preference source paths
 const prefSourcePaths = [
   'environment.wind.speedTrue',
   'environment.wind.speedOverGround',
@@ -71,6 +71,15 @@ const prefSourcePaths = [
   'navigation.headingTrue',
   'navigation.headingMagnetic'
 ];
+
+// server message reception watch dog
+const watchDog = {
+  active: false, // active only on connection
+  maxMsgIntervals: 18, // max number of empty msgIntervals
+  intervalCount: 0, // number empty intervals
+  msgCount: 0, // number of messages received
+  alarm: false // alarm condition
+};
 
 let vessels: ResultPayload; // post message payload
 let stream: SKStreamAPI;
@@ -113,8 +122,10 @@ const trailMgr: VesselTrailConfig = {
   }
 };
 
-// current delta $source
+// current delta update $source
 let $source!: string;
+// current delta update timestamp
+let $timestamp: string;
 // autopilot device id
 let apDeviceId = 'freeboard-sk';
 
@@ -169,10 +180,15 @@ function handleStreamEvent({ action, msg }) {
         playback: playbackMode,
         result: msg.target.readyState
       });
+      watchDog.msgCount = 0;
+      watchDog.intervalCount = 0;
+      watchDog.alarm = false;
+      watchDog.active = true;
       break;
     case 'onClose':
       //console.warn('streamEvent: ', msg);
       closeStream(false);
+      watchDog.active = false;
       break;
     case 'onError':
       //console.warn('streamEvent: ', msg);
@@ -181,8 +197,12 @@ function handleStreamEvent({ action, msg }) {
         playback: playbackMode,
         result: 'Connection error!'
       });
+      watchDog.msgCount = 0;
+      watchDog.intervalCount = 0;
+      watchDog.active = false;
       break;
     case 'onMessage':
+      watchDog.msgCount++;
       parseStreamMessage(msg);
       break;
   }
@@ -565,6 +585,7 @@ function parseStreamMessage(data) {
         return;
       }
       $source = u.$source;
+      $timestamp = u.timestamp;
       u.values.forEach((v) => {
         playbackTime = u.timestamp;
         if (!data.context) {
@@ -686,6 +707,7 @@ function filterContext(
 function postUpdate(immediate = false) {
   if (!msgInterval || immediate) {
     const msg = new UpdateMessage();
+    msg.watchDogAlarm = watchDog.alarm;
     msg.playback = playbackMode;
     vessels.aisStatus.updated = Object.keys(targetStatus.updated);
     vessels.aisStatus.stale = Object.keys(targetStatus.stale);
@@ -721,6 +743,22 @@ function startTimers() {
   if (msgInterval && typeof msgInterval === 'number') {
     timers.push(
       setInterval(() => {
+        // check watchDog
+        if (watchDog.active && !watchDog.msgCount) {
+          watchDog.intervalCount = watchDog.intervalCount + 1;
+          // console.log(`WATCHDOG ALARM: ${watchDog.alarm} - Interval count: ${watchDog.intervalCount}`);
+          if (watchDog.intervalCount >= watchDog.maxMsgIntervals) {
+            // raise watchdog alarm
+            // console.log('WATCHDOG ALARM: No messages received from Server!');
+            watchDog.intervalCount = 0;
+            watchDog.alarm = true;
+            postUpdate(true);
+          }
+        } else {
+          watchDog.intervalCount = 0;
+          watchDog.msgCount = 0;
+          watchDog.alarm = false;
+        }
         if (updateReceived) {
           postUpdate(true);
           updateReceived = false;
@@ -802,6 +840,9 @@ function processVessel(d: SKVessel, v: any, isSelf = false) {
     if (v.path === 'navigation.distanceToSelf') {
       d.distanceToSelf = v.value;
     }
+    if (v.path === 'navigation.closestApproach') {
+      d.closestApproach = v.value;
+    }
   }
   // ** all vessels
   if (v.path === '') {
@@ -841,6 +882,7 @@ function processVessel(d: SKVessel, v: any, isSelf = false) {
       v.value.latitude
     ]);
     d.positionReceived = true;
+    d.positionTimestamp = $timestamp ?? '';
     d.lastUpdated = new Date();
     if (!isSelf) {
       appendTrack(d);

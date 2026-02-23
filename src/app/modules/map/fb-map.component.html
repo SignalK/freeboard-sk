@@ -178,7 +178,7 @@
     <fb-tracks
       [darkMode]="app.uiConfig().invertColor"
       [tracks]="skres.tracks()"
-      [labelMinZoom]="0"
+      [labelMinZoom]="app.config.map.labelsMinZoom"
       [mapZoom]="mapZoomLevel()"
       [zIndex]="100"
     >

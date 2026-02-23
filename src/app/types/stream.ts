@@ -106,6 +106,7 @@ export class UpdateMessage implements WorkerMessageBase {
   result = null;
   timestamp: string;
   self = null;
+  watchDogAlarm: boolean;
 
   constructor() {
     this.action = 'update';

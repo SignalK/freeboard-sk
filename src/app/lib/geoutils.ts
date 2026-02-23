@@ -40,6 +40,7 @@ export class GeoUtils {
 
   /** Calculate distance bearing between each point in an array
    * @param points Array of points
+   * @param vessel Vessel position
    * @returns Array of objects (same length as points) containing bearing & distance.
    */
   static routeLegs(
@@ -69,6 +70,40 @@ export class GeoUtils {
       legs.push(l);
     }
     return legs;
+  }
+
+  /** Returns the index of the closest point that is forward of vessel position
+   * @param points Array of points
+   * @param vessel Vessel position (degrees)
+   * @param heading Vessel heading (degrees)
+   * @returns Index of the point in the array that is cloosest to and forward of vessel or -1 if no point matches criteria
+   */
+  static closestForwardPoint(
+    points: Position[],
+    vessel: Position,
+    heading: number
+  ): number {
+    if (points.length < 2 || !vessel) {
+      return -1;
+    }
+    const closest: {
+      index: number;
+      distance: number;
+    } = { index: -1, distance: -1 };
+
+    for (let i = 0; i < points.length; ++i) {
+      const bearing = getGreatCircleBearing(vessel, points[i]);
+      const a = Angle.difference(heading, bearing);
+      // if forward of vessel
+      if (a > -90 && a < 90) {
+        const distance = GeoUtils.distanceTo(vessel, points[i]);
+        if (closest.distance === -1 || distance < closest.distance) {
+          closest.distance = distance;
+          closest.index = i;
+        }
+      }
+    }
+    return closest.index;
   }
 
   //** Calculate the centre of polygon

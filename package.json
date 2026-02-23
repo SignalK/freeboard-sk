@@ -40,7 +40,7 @@
   ],
   "license": "Apache-v2",
   "dependencies": {
-    "@signalk/server-api": "^2.9.0",
+    "@signalk/server-api": "^2.22.0",
     "geolib": "^3.3.3",
     "google-protobuf": "^4.0.1",
     "tslib": "^2.0.0",

@@ -313,12 +313,6 @@ export class AppComponent {
       if (!this.app.config.display.disableWakelock) {
         this.wakeLock.enable();
       }
-      const wr = this.app.showWelcome();
-      if (wr) {
-        wr.afterClosed().subscribe((r) => {
-          if (r) this.openSettings();
-        });
-      }
     }, 500);
   }
 
@@ -741,7 +735,16 @@ export class AppComponent {
         () => {
           this.signalk.authToken = this.app.getFBToken();
           this.app.watchSKLogin();
-          this.app.loadSettingsfromServer();
+          this.app.loadSettingsfromServer().then((result: boolean) => {
+            if (!result && this.app.launchStatus.result === 'first_run') {
+              const wr = this.app.showWelcome();
+              if (wr) {
+                wr.afterClosed().subscribe((r) => {
+                  if (r) this.openSettings();
+                });
+              }
+            }
+          });
           this.getFeatures();
           this.app.data.server = this.signalk.server.info;
           this.openSKStream();
@@ -1387,9 +1390,28 @@ export class AppComponent {
 
   // ********** MAP / UI ACTIONS **********
 
-  // ** set active route **
+  // ** set active route starting at nearest point **
   protected activateRoute(id: string) {
-    this.course.activateRoute(id);
+    const r = this.skres.fromCache('routes', id);
+    const cpi = GeoUtils.closestForwardPoint(
+      r[1].feature.geometry.coordinates,
+      this.app.data.vessels.self.position,
+      Convert.radiansToDegrees(this.app.data.vessels.self.heading)
+    );
+    if (cpi === -1) {
+      this.app
+        .showConfirm(
+          'Closest point is behind vessel!\nDo you want to start from the first point?',
+          'Start Route'
+        )
+        .subscribe((r) => {
+          if (r) {
+            this.course.activateRoute(id);
+          }
+        });
+      return;
+    }
+    this.course.activateRoute(id, cpi);
   }
 
   // ** Increment / decrement next active route point **

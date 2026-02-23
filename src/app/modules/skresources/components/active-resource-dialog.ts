@@ -22,6 +22,7 @@ import { SKWaypoint, SKRoute } from '../resource-classes';
 import { GeoUtils } from 'src/app/lib/geoutils';
 import { SKResourceService } from '../resources.service';
 import { CourseService } from '../../course';
+import { Convert } from 'src/app/lib/convert';
 
 /** 
   @description ActiveResourcePropertiesModal 
@@ -64,7 +65,7 @@ import { CourseService } from '../../course';
                 matTooltip="Start at nearest point."
               >
                 <mat-icon>near_me</mat-icon>
-                Nearest
+                Start
               </button>
             }
           </span>
@@ -244,21 +245,6 @@ export class ActiveResourcePropertiesModal implements OnInit {
 
   getLegs() {
     const pos = this.app.data.vessels.self.position;
-    let ld = 0;
-    let idx = 0;
-    this.points.forEach((i) => {
-      const d = GeoUtils.distanceTo(pos, i);
-      if (idx === 0) {
-        ld = d;
-        this.closestPoint.set(idx);
-      } else {
-        if (d < ld) {
-          ld = d;
-          this.closestPoint.set(idx);
-        }
-      }
-      idx++;
-    });
     return GeoUtils.routeLegs(this.points, pos).map((l) => {
       return {
         bearing: this.app.formatValueForDisplay(l.bearing, 'deg'),
@@ -348,9 +334,21 @@ export class ActiveResourcePropertiesModal implements OnInit {
   }
 
   /** Activate route starting at nearest point */
-  startAt(idx: number = this.closestPoint()) {
+  startAt(idx: number = -1) {
     if (this.points.length < 2) {
       return;
+    }
+    if (idx === -1) {
+      const cpi = GeoUtils.closestForwardPoint(
+        this.data.resource[1].feature.geometry.coordinates,
+        this.app.data.vessels.self.position,
+        Convert.radiansToDegrees(this.app.data.vessels.self.heading)
+      );
+      if (cpi === -1) {
+        this.app.showAlert('Start Route', 'Closest point is behind vessel!');
+        return;
+      }
+      idx = cpi;
     }
     this.selIndex.update(() => idx);
     this.showClearButton.set(true);

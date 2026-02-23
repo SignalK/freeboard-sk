@@ -82,12 +82,32 @@ isSelf: boolean - true if vessel 'self'
           [innerText]="position[0] | coords: app.config.units.positionFormat"
         ></div>
       </div>
+      <div style="display:flex;">
+        <div style="font-weight:bold;">Last Position:</div>
+        <div style="flex: 1 1 auto;text-align:right;">
+          {{ positionTimestamp }}
+        </div>
+      </div>
       @if (!isSelf) {
         @if (vessel.distanceToSelf) {
           <div style="display:flex;">
-            <div style="font-weight:bold;">Distance:</div>
+            <div style="font-weight:bold;">Range:</div>
             <div style="flex: 1 1 auto;text-align:right;">
               {{ distToSelf }}
+            </div>
+          </div>
+        }
+        @if (vessel.closestApproach) {
+          <div style="display:flex;">
+            <div style="font-weight:bold;">CPA:</div>
+            <div style="flex: 1 1 auto;text-align:right;">
+              {{ cpa ?? '--' }}
+            </div>
+          </div>
+          <div style="display:flex;">
+            <div style="font-weight:bold;">TCPA:</div>
+            <div style="flex: 1 1 auto;text-align:right;">
+              {{ tcpa ?? '--' }}
             </div>
           </div>
         }
@@ -217,15 +237,18 @@ export class VesselPopoverComponent {
   @Output() focused: EventEmitter<boolean> = new EventEmitter();
   @Output() markPosition: EventEmitter<Position> = new EventEmitter();
 
-  _title: string;
-  convert = Convert;
-  timeLastUpdate: string;
-  timeAgo: string; // last update in minutes ago
-  speedUnits: string;
+  protected _title: string;
+  protected convert = Convert;
+  protected timeLastUpdate: string;
+  protected timeAgo: string; // last update in minutes ago
+  protected speedUnits: string;
   protected distToSelf: string;
+  protected cpa: string;
+  protected tcpa: string;
 
-  position: Position = [0, 0];
-  isFlagged = false;
+  protected position: Position = [0, 0];
+  protected positionTimestamp = '';
+  protected isFlagged = false;
 
   protected app = inject(AppFacade);
   protected buddies = inject(Buddies);
@@ -259,6 +282,12 @@ export class VesselPopoverComponent {
         changes.vessel.currentValue.position[1]
       ];
       this.position = GeoUtils.normaliseCoords(this.position);
+      if (this.vessel.positionTimestamp) {
+        const pts = new Date(this.vessel.positionTimestamp);
+        this.positionTimestamp = `${pts.getHours()}:${(
+          '00' + pts.getMinutes()
+        ).slice(-2)}`;
+      }
     }
     this.timeLastUpdate = `${this.vessel.lastUpdated.getHours()}:${(
       '00' + this.vessel.lastUpdated.getMinutes()
@@ -270,6 +299,16 @@ export class VesselPopoverComponent {
       this.vessel.distanceToSelf,
       'm'
     );
+    if (this.vessel.closestApproach) {
+      this.cpa = this.app.formatValueForDisplay(
+        this.vessel.closestApproach.distance,
+        'm'
+      );
+      this.tcpa = this.app.formatValueForDisplay(
+        this.vessel.closestApproach.timeTo,
+        'sec'
+      );
+    }
   }
 
   handleMarkPosition() {

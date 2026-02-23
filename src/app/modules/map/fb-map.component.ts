@@ -671,7 +671,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
   /** Handle ol-map container context menu event */
   protected onContextMenu(e: PointerEvent) {
     this.app.debug(`onContextMenu()`, this.app.data.map.atClick);
-    if (this.app.uiCtrl().suppressContextMenu) {
+    if (this.app.uiCtrl().suppressContextMenu || this.overlay().show) {
       return;
     }
     e.preventDefault();

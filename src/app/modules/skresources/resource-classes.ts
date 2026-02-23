@@ -186,6 +186,7 @@ class SKTargetBase {
   mmsi: string;
   position: Position = [0, 0];
   positionReceived = false;
+  positionTimestamp: string = '';
   state: string;
   type: { id: number; name: string } = { id: -1, name: '' };
   properties: { [key: string]: any } = {};
@@ -209,6 +210,10 @@ export class SKVessel extends SKTargetBase {
     availableActions: []
   };
   buddy = false;
+  closestApproach = {
+    distance: null,
+    timeTo: null
+  };
   cog: number;
   cogTrue: number = null;
   cogMagnetic: number = null;

@@ -61,6 +61,9 @@ export class SKStreamFacade {
   });
   readonly aisStatus = this.aisLifecycle.asReadonly();
 
+  private watchDogAlarmSignal = signal<boolean>(false);
+  readonly watchDogAlarm = this.watchDogAlarmSignal.asReadonly();
+
   constructor(
     private app: AppFacade,
     private signalk: SignalKClient,
@@ -86,6 +89,7 @@ export class SKStreamFacade {
         this.parseSelfTrail(msg as TrailMessage);
       } else {
         this.parseUpdateMessage(msg);
+        this.watchDogAlarmSignal.update(() => msg.watchDogAlarm);
         this.onMessage.next(msg as UpdateMessage);
       }
     });

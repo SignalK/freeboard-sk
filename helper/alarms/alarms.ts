@@ -196,6 +196,10 @@ const getSelfPathValue = <T>(path: string): { value?: T } | undefined => {
 const alarmAreas: Map<string, AreaAlarmDef> = new Map();
 const alarmManager: AreaAlarmManager = new AreaAlarmManager();
 
+const getSelfPathValue = <T>(path: string): { value?: T } | undefined => {
+  return server.getSelfPath(path) as { value?: T } | undefined;
+};
+
 export const initAlarms = (app: FreeboardHelperApp, id: string) => {
   server = app;
   pluginId = id;

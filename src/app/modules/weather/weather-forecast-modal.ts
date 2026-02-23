@@ -20,9 +20,28 @@ import {
 import { AppFacade } from 'src/app/app.facade';
 import { SignalKClient } from 'signalk-client-angular';
 import { Convert } from 'src/app/lib/convert';
-import { WeatherData, WeatherDataComponent } from './weather-data.component';
 import { Position } from 'src/app/types';
 import { CoordsPipe } from 'src/app/lib/pipes';
+
+interface WeatherData {
+  description?: string;
+  time?: string;
+  temperature?: string;
+  temperatureMin?: string;
+  temperatureMax?: string;
+  dewPoint?: string;
+  humidity?: string;
+  pressure?: string;
+  rain?: string;
+  uvIndex?: string;
+  clouds?: string;
+  visibility?: string;
+  wind?: {
+    speed?: string;
+    direction?: string;
+    gust?: string;
+  };
+}
 
 /********* WeatherForecastModal **********
 	data: {
@@ -43,7 +62,6 @@ import { CoordsPipe } from 'src/app/lib/pipes';
     MatToolbarModule,
     MatStepperModule,
     MatProgressBar,
-    WeatherDataComponent,
     CoordsPipe
   ],
   template: `
@@ -104,7 +122,90 @@ import { CoordsPipe } from 'src/app/lib/pipes';
             </div>
             <div style="flex: 1;"></div>
           </div>
-          <weather-data [data]="forecasts.slice(0, 18)"></weather-data>
+
+          <div class="meteo">
+            <div class="meteo-row">
+              <div class="meteo-row-label">
+                <mat-icon>schedule</mat-icon>Time
+              </div>
+              <div class="meteo-row-units">&nbsp;</div>
+              @for (f of forecasts; track f) {
+                <div class="meteo-row-value">{{ f.time }}</div>
+              }
+            </div>
+
+            <div class="meteo-row">
+              <div class="meteo-row-label">
+                <mat-icon>device_thermostat</mat-icon>Temp
+              </div>
+              <div class="meteo-row-units">{{ units.temp }}</div>
+              @for (f of forecasts; track f) {
+                <div class="meteo-row-value">{{ f.temperature }}</div>
+              }
+            </div>
+
+            <div class="meteo-row">
+              <div class="meteo-row-label"><mat-icon>eco</mat-icon>DewP</div>
+              <div class="meteo-row-units">{{ units.temp }}</div>
+              @for (f of forecasts; track f) {
+                <div class="meteo-row-value">{{ f.dewPoint }}</div>
+              }
+            </div>
+
+            <div class="meteo-row">
+              <div class="meteo-row-label"><mat-icon>air</mat-icon>Speed</div>
+              <div class="meteo-row-units">{{ units.speed }}</div>
+              @for (f of forecasts; track f) {
+                <div class="meteo-row-value">{{ f.wind?.speed }}</div>
+              }
+            </div>
+
+            <div class="meteo-row">
+              <div class="meteo-row-label"><mat-icon>explore</mat-icon>Dir</div>
+              <div class="meteo-row-units">&nbsp;</div>
+              @for (f of forecasts; track f) {
+                <div class="meteo-row-value">{{ f.wind?.direction }}</div>
+              }
+            </div>
+
+            <div class="meteo-row">
+              <div class="meteo-row-label"><mat-icon>air</mat-icon>Gust</div>
+              <div class="meteo-row-units">{{ units.speed }}</div>
+              @for (f of forecasts; track f) {
+                <div class="meteo-row-value">{{ f.wind?.gust }}</div>
+              }
+            </div>
+
+            <div class="meteo-row">
+              <div class="meteo-row-label">
+                <mat-icon>opacity</mat-icon>Hum.
+              </div>
+              <div class="meteo-row-units">{{ units.humidity }}</div>
+              @for (f of forecasts; track f) {
+                <div class="meteo-row-value">{{ f.humidity }}</div>
+              }
+            </div>
+
+            <div class="meteo-row">
+              <div class="meteo-row-label">
+                <mat-icon>compress</mat-icon>Bar.
+              </div>
+              <div class="meteo-row-units">{{ units.pressure }}</div>
+              @for (f of forecasts; track f) {
+                <div class="meteo-row-value">{{ f.pressure }}</div>
+              }
+            </div>
+
+            <div class="meteo-row">
+              <div class="meteo-row-label">
+                <mat-icon>water_drop</mat-icon>Rain
+              </div>
+              <div class="meteo-row-units">{{ units.precipitation }}</div>
+              @for (f of forecasts; track f) {
+                <div class="meteo-row-value">{{ f.rain }}</div>
+              }
+            </div>
+          </div>
         }
       }
     </div>
@@ -118,6 +219,51 @@ import { CoordsPipe } from 'src/app/lib/pipes';
         width: 150px;
         font-weight: bold;
       }
+
+      .meteo {
+        overflow: auto;
+        font-size: small;
+      }
+      .meteo-row {
+        display: flex;
+        text-wrap-mode: nowrap;
+        border-color: gray;
+        border-style: solid;
+        border-width: 0;
+        font-weight: bold;
+      }
+
+      .meteo-row-label,
+      .meteo-row-units {
+        min-width: 65px;
+        border-color: inherit;
+        border-style: inherit;
+        border-width: 0 0 1px 1px;
+      }
+
+      .meteo-row-units {
+        min-width: 45px;
+        max-width: 45px;
+        text-align: center;
+      }
+
+      .meteo-row-value {
+        border-width: 0 1px 1px;
+        border-color: inherit;
+        border-style: inherit;
+        min-width: 50px;
+        max-width: 50px;
+        text-align: center;
+      }
+
+      .meteo-row:first-child div {
+        border-top: gray 1px solid;
+      }
+
+      .meteo-row:nth-child(odd) div {
+        background-color: rgb(209 243 209 / 60%);
+        color: black;
+      }
     `
   ]
 })
@@ -126,6 +272,14 @@ export class WeatherForecastModal implements OnInit {
   public forecasts: any[] = [];
   protected isFetching = false;
   protected errorText = 'No weather data found!';
+  protected units!: {
+    temp: string;
+    speed: string;
+    pressure: string;
+    humidity: string;
+    precipitation: string;
+  };
+  private maxForecasts = 12;
 
   constructor(
     public app: AppFacade,
@@ -137,27 +291,14 @@ export class WeatherForecastModal implements OnInit {
 
   ngOnInit() {
     this.getForecast(this.data.position);
+    this.units = {
+      temp: `${String.fromCharCode(186)}${this.app.config.units?.temperature === 'f' ? 'F' : 'C'}`,
+      speed: this.app.formattedSpeedUnits,
+      humidity: '%',
+      pressure: 'Pa',
+      precipitation: 'mm'
+    };
   }
-
-  formatTempDegreesC(val: number) {
-    return val
-      ? `${Convert.kelvinToCelsius(val).toFixed(1)} ${String.fromCharCode(186)}`
-      : '0.0';
-  }
-
-  formatDegrees(val: number) {
-    return val
-      ? `${Convert.radiansToDegrees(val).toFixed(1)} ${String.fromCharCode(
-          186
-        )}`
-      : '0.0';
-  }
-
-  formatKnots(val: number) {
-    return val ? `${Convert.msecToKnots(val).toFixed(1)} kn` : '0.0';
-  }
-
-  private dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
   private getForecast(pos: Position) {
     if (!this.app.featureFlags().weatherApi) {
@@ -176,6 +317,7 @@ export class WeatherForecastModal implements OnInit {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (forecasts: any) => {
         this.isFetching = false;
+        forecasts = forecasts.slice(0, this.maxForecasts);
         Object.values(forecasts)
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           .forEach((v: any) => {
@@ -183,110 +325,59 @@ export class WeatherForecastModal implements OnInit {
             forecastData.description = v['description'] ?? '';
             const d = new Date(v['date']);
             forecastData.time = d
-              ? `${this.dayNames[d.getDay()]} ${d.getHours()}:${(
-                  '00' + d.getMinutes()
-                ).slice(-2)}`
+              ? `${d.getHours()}:${('00' + d.getMinutes()).slice(-2)}`
               : '';
 
             if (typeof v.outside?.temperature !== 'undefined') {
               forecastData.temperature =
                 this.app.config.units?.temperature === 'f'
-                  ? Convert.kelvinToFarenheit(v.outside.temperature).toFixed(
-                      1
-                    ) +
-                    String.fromCharCode(186) +
-                    'F'
-                  : Convert.kelvinToCelsius(v.outside.temperature).toFixed(1) +
-                    String.fromCharCode(186) +
-                    'C';
-            }
-            if (typeof v.outside?.minTemperature?.minimum !== 'undefined') {
-              forecastData.temperatureMin =
-                this.app.config.units?.temperature === 'f'
-                  ? Convert.kelvinToFarenheit(v.outside.minTemperature).toFixed(
-                      1
-                    ) +
-                    String.fromCharCode(186) +
-                    'F'
-                  : Convert.kelvinToCelsius(v.outside.minTemperature).toFixed(
-                      1
-                    ) +
-                    String.fromCharCode(186) +
-                    'C';
-            }
-            if (typeof v.outside?.maxTemperature !== 'undefined') {
-              forecastData.temperatureMax =
-                this.app.config.units?.temperature === 'f'
-                  ? Convert.kelvinToFarenheit(v.outside.maxTemperature).toFixed(
-                      1
-                    ) +
-                    String.fromCharCode(186) +
-                    'F'
-                  : Convert.kelvinToCelsius(v.outside.maxTemperature).toFixed(
-                      1
-                    ) +
-                    String.fromCharCode(186) +
-                    'C';
+                  ? Convert.kelvinToFarenheit(v.outside.temperature).toFixed(1)
+                  : Convert.kelvinToCelsius(v.outside.temperature).toFixed(1);
+            } else {
+              forecastData.temperature = '--';
             }
             if (typeof v.outside?.dewPointTemperature !== 'undefined') {
               forecastData.dewPoint =
                 this.app.config.units?.temperature === 'f'
                   ? Convert.kelvinToFarenheit(
                       v.outside.dewPointTemperature
-                    ).toFixed(1) +
-                    String.fromCharCode(186) +
-                    'F'
+                    ).toFixed(1)
                   : Convert.kelvinToCelsius(
                       v.outside.dewPointTemperature
-                    ).toFixed(1) +
-                    String.fromCharCode(186) +
-                    'C';
+                    ).toFixed(1);
+            } else {
+              forecastData.dewPoint = '--';
             }
 
             forecastData.humidity =
-              typeof v.outside?.absoluteHumility !== 'undefined'
-                ? `${v.outside?.absoluteHumility} (%)`
-                : '';
+              typeof v.outside?.absoluteHumidity !== 'undefined'
+                ? `${(v.outside?.absoluteHumidity * 100).toFixed(0)}`
+                : '--';
             forecastData.pressure =
               typeof v.outside?.pressure !== 'undefined'
-                ? `${Math.round(v.outside?.pressure)} (Pa)`
-                : '';
+                ? `${Math.round(v.outside?.pressure)}`
+                : '--';
 
-            if (typeof v.outside?.uvIndex !== 'undefined') {
-              forecastData.uvIndex = v.outside?.uvIndex.toFixed(2);
-            }
-            if (typeof v.outside?.clouds !== 'undefined') {
-              forecastData.clouds =
-                v.outside?.clouds.toFixed(1) +
-                `${v.clouds.units ? ' (' + v.clouds.units + ')' : ''}`;
-            }
-            if (typeof v.outside?.visibility !== 'undefined') {
-              forecastData.visibility = v.outside?.visibility;
-            }
-            if (typeof v.outside?.precipitationVolume !== 'undefined') {
-              forecastData.rain = `${(
-                v.outside?.precipitationVolume * 1000
-              ).toFixed(2)} mm`;
-            }
+            forecastData.rain =
+              typeof v.outside?.precipitationVolume !== 'undefined'
+                ? `${(v.outside?.precipitationVolume * 1000).toFixed(2)}`
+                : '--';
 
             if (typeof v.wind !== 'undefined') {
-              if (typeof v.wind.speedTrue !== 'undefined') {
-                forecastData.wind.speed =
-                  this.app.formatSpeed(v.wind.speedTrue, true) +
-                  ' ' +
-                  this.app.formattedSpeedUnits;
-              }
-              if (typeof v.wind.gust !== 'undefined') {
-                forecastData.wind.gust =
-                  this.app.formatSpeed(v.wind.gust, true) +
-                  ' ' +
-                  this.app.formattedSpeedUnits;
-              }
-              if (typeof v.wind.directionTrue !== 'undefined') {
-                forecastData.wind.direction =
-                  Convert.radiansToDegrees(v.wind.directionTrue).toFixed(0) +
-                  String.fromCharCode(186);
-              }
+              forecastData.wind.speed =
+                typeof v.wind.speedTrue !== 'undefined'
+                  ? `${this.app.formatSpeed(v.wind.speedTrue, true)}`
+                  : '--';
+
+              forecastData.wind.gust =
+                typeof v.wind.gust !== 'undefined'
+                  ? `${this.app.formatSpeed(v.wind.gust, true)}`
+                  : '--';
+
+              forecastData.wind.direction =
+                typeof v.wind.directionTrue !== 'undefined'
+                  ? `${this.toCardinal(Convert.radiansToDegrees(v.wind.directionTrue))}`
+                  : '--';
             }
             this.forecasts.push(forecastData);
           });
@@ -296,5 +387,41 @@ export class WeatherForecastModal implements OnInit {
         this.errorText = 'Error retrieving weather data!';
       }
     );
+  }
+
+  toCardinal(value: number) {
+    return value > 348.75 && value <= 11.25
+      ? 'N'
+      : value > 11.25 && value <= 22.5
+        ? 'NNE'
+        : value > 22.5 && value <= 67.5
+          ? 'NE'
+          : value > 67.5 && value <= 78.75
+            ? 'ENE'
+            : value > 78.75 && value <= 101.25
+              ? 'E'
+              : value > 101.25 && value <= 112.5
+                ? 'ESE'
+                : value > 112.5 && value <= 157.5
+                  ? 'SE'
+                  : value > 157.5 && value <= 168.75
+                    ? 'SSE'
+                    : value > 168.75 && value <= 191.25
+                      ? 'S'
+                      : value > 191.25 && value <= 202.5
+                        ? 'SSW'
+                        : value > 202.5 && value <= 245.5
+                          ? 'SW'
+                          : value > 245.5 && value <= 258.75
+                            ? 'WSW'
+                            : value > 258.75 && value <= 281.25
+                              ? 'W'
+                              : value > 281.25 && value <= 292.5
+                                ? 'WNW'
+                                : value > 292.5 && value <= 337.5
+                                  ? 'NW'
+                                  : value > 337.5 && value <= 348.75
+                                    ? 'NNW'
+                                    : 'N';
   }
 }

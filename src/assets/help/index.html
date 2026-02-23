@@ -120,7 +120,7 @@
           >
         </div>
 
-        <div
+        <!--<div
           class="panel"
           id="deprecations"
           style="background-color: rgba(255, 0, 0, 0.4)"
@@ -142,7 +142,7 @@
               >
             </li>
           </ul>
-        </div>
+        </div>-->
 
         <div class="panel" id="server">
           <h3>Signal K Server</h3>
@@ -281,13 +281,42 @@
             alt=""
           />.<br />
           <img src="./img/screen.png" style="height: 400px" alt="" />
-          <br />
-          The menu bar along the left of the screen provides access to functions
-          and menus that allow you control the map display. <br />
-          The buttons along the right side provide access to quick-actions and
-          experiments.
           <br />&nbsp;<br />
+          <b>Status Area:</b>
+          Provides visual indication of the following conditions.
+          <ul>
+            <li class="nobullet">
+              <i class="material-icons"
+                >signal_wifi_statusbar_connected_no_internet_4</i
+              >
+              <b>No server messages:</b>
+              Indicates there may be an issue on the server as messages no have
+              been received over the open connection in the last 8-10 seconds.
+            </li>
+            <li class="nobullet">
+              <i class="material-icons">directions_boat</i>
+              <b>Vessels hidden:</b>
+              Indicates vessels are not being displayed.
+            </li>
+            <li class="nobullet">
+              <i class="material-icons">local_offer</i>
+              <b>Notes hidden:</b>
+              Indicates notes are not being displayed.
+            </li>
+            <li class="nobullet">
+              <i class="material-icons">compare_arrows</i>
+              <b>Course hidden:</b>
+              Indicates course information is not being displayed.
+            </li>
+            <li class="nobullet">
+              <i class="material-icons">visibility_off</i>
+              <b>Wake lock off:</b>
+              Indicates that the device wake lock is off.
+            </li>
+          </ul>
+          <br />
           <b>Left menu bar:</b>
+          Provides access to functions that allow you control the map display.
           <ul>
             <li class="nobullet">
               <i class="material-icons">menu</i>
@@ -377,6 +406,7 @@
           </ul>
           <br />
           <b>Right menu bar:</b>
+          Provides access to quick-actions and experiments.
           <ul>
             <li class="nobullet">
               <i class="material-icons">av_timer</i>

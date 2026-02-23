@@ -130,21 +130,28 @@ const SoundFiles = {
                     Dismiss
                   </button>
                 }
-                @if (
-                  app.data.activeRoute &&
-                  course.courseData().pointIndex !==
-                    course.courseData().pointTotal - 1
-                ) {
+
+                @if (app.data.activeRoute) {
+                  @let isLastPoint =
+                    course.courseData().pointIndex ===
+                    course.courseData().pointTotal - 1;
                   <div>
                     @if (
                       app.config.course.autoNextPointOnArrival &&
                       app.config.course.autoNextPointTrigger === alert().type
                     ) {
                       <div>
-                        @if (
-                          course.courseData().pointIndex !==
-                          course.courseData().pointTotal - 1
-                        ) {
+                        @if (isLastPoint) {
+                          <timer-button
+                            [disabled]="nextPointClicked"
+                            [icon]="'clear_all'"
+                            [label]="'End Route in'"
+                            [cancelledLabel]="'End Route'"
+                            [period]="app.config.course.autoNextPointDelay"
+                            (nextPoint)="endRoute()"
+                          >
+                          </timer-button>
+                        } @else {
                           <timer-button
                             [disabled]="nextPointClicked"
                             [icon]="'skip_next'"
@@ -157,18 +164,25 @@ const SoundFiles = {
                         }
                       </div>
                     } @else {
-                      <button
-                        mat-button
-                        [disabled]="
-                          nextPointClicked ||
-                          course.courseData().pointIndex ===
-                            course.courseData().pointTotal - 1
-                        "
-                        (click)="gotoNextPoint()"
-                      >
-                        <mat-icon>skip_next</mat-icon>
-                        NEXT POINT
-                      </button>
+                      @if (isLastPoint) {
+                        <button
+                          mat-button
+                          [disabled]="nextPointClicked"
+                          (click)="endRoute()"
+                        >
+                          <mat-icon>clear_all</mat-icon>
+                          END ROUTE
+                        </button>
+                      } @else {
+                        <button
+                          mat-button
+                          [disabled]="nextPointClicked"
+                          (click)="gotoNextPoint()"
+                        >
+                          <mat-icon>skip_next</mat-icon>
+                          NEXT POINT
+                        </button>
+                      }
                     }
                   </div>
                 }
@@ -192,6 +206,7 @@ export class AlertComponent {
   progressValue = signal<number>(100);
 
   @Output() nextPoint: EventEmitter<void> = new EventEmitter();
+  @Output() routeEnd: EventEmitter<void> = new EventEmitter();
 
   protected showAutoNextPoint = false;
   protected nextPointClicked = false;
@@ -293,6 +308,13 @@ export class AlertComponent {
   gotoNextPoint() {
     this.nextPointClicked = true;
     this.nextPoint.emit();
+    this.hide();
+  }
+
+  // end route
+  endRoute() {
+    this.nextPointClicked = true;
+    this.routeEnd.emit();
     this.hide();
   }
 }

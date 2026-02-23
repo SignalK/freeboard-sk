@@ -347,44 +347,50 @@ export class AppFacade extends InfoService {
   }
 
   /** Retrieve and apply saved config from server */
-  public loadSettingsfromServer() {
-    this.signalk.isLoggedIn().subscribe(
-      (r: boolean) => {
-        this.isLoggedIn.set(r);
-        if (r) {
-          this.debug(
-            'loadSettingsfromServer(): Is authenticated. Fetching config from SK Server...'
-          );
-          this.signalk.appDataGet('/').subscribe(
-            (serverSettings: IAppConfig) => {
-              if (Object.keys(serverSettings).length === 0) {
-                return;
+  public async loadSettingsfromServer(): Promise<boolean> {
+    return new Promise((resolve) => {
+      this.signalk.isLoggedIn().subscribe(
+        (r: boolean) => {
+          this.isLoggedIn.set(r);
+          if (r) {
+            this.debug(
+              'loadSettingsfromServer(): Is authenticated. Fetching config from SK Server...'
+            );
+            this.signalk.appDataGet('/').subscribe(
+              (serverSettings: IAppConfig) => {
+                if (Object.keys(serverSettings).length === 0) {
+                  resolve(false);
+                }
+                cleanConfig(serverSettings, this.hostDef.params);
+                if (validateConfig(serverSettings)) {
+                  this.config = serverSettings;
+                  this.doPostConfigLoad();
+                  this.alignCustomResourcesPaths();
+                  this.saveConfig();
+                }
+                resolve(true);
+              },
+              () => {
+                console.info(
+                  'applicationData: Unable to retrieve settings from server!'
+                );
+                resolve(false);
               }
-              cleanConfig(serverSettings, this.hostDef.params);
-              if (validateConfig(serverSettings)) {
-                this.config = serverSettings;
-                this.doPostConfigLoad();
-                this.alignCustomResourcesPaths();
-                this.saveConfig();
-              }
-            },
-            () => {
-              console.info(
-                'applicationData: Unable to retrieve settings from server!'
-              );
-            }
-          );
-        } else {
-          this.debug(
-            'loadSettingsfromServer(): Not authenticated to SK Server!'
-          );
+            );
+          } else {
+            this.debug(
+              'loadSettingsfromServer(): Not authenticated to SK Server!'
+            );
+            return resolve(false);
+          }
+        },
+        () => {
+          this.isLoggedIn.set(false);
+          this.debug('loadSettingsfromServer(): Error fetching loginStatus!');
+          resolve(false);
         }
-      },
-      () => {
-        this.isLoggedIn.set(false);
-        this.debug('loadSettingsfromServer(): Error fetching loginStatus!');
-      }
-    );
+      );
+    });
   }
 
   /** Initialises Material IconRegistry with custom icons */
@@ -778,7 +784,7 @@ export class AppFacade extends InfoService {
    */
   formatValueForDisplay(
     value: number,
-    sourceUnits: 'K' | 'm/s' | 'rad' | 'm' | 'ratio' | 'deg',
+    sourceUnits: 'K' | 'm/s' | 'rad' | 'm' | 'ratio' | 'deg' | 'sec',
     depthValue?: boolean,
     precision: number = 1
   ): string {
@@ -829,6 +835,20 @@ export class AppFacade extends InfoService {
           default:
             return `${value} ${sourceUnits}`;
         }
+      } else if (sourceUnits === 'sec') {
+        const minutes = Math.floor(value / 60);
+        const hr = minutes / 60;
+        if (hr >= 24) {
+          const fh = Math.floor(hr % 24);
+          const fhs = fh !== 0 ? `${fh}`.slice(-2) + `h` : '';
+          return `${Math.floor(hr / 24)}d ${fhs}`;
+        }
+        if (minutes >= 60) {
+          const fm = Math.floor((hr % 1) * 60);
+          const fms = fm !== 0 ? `00${fm}`.slice(-2) + `m` : '';
+          return `${Math.floor(hr)}h ${fms}`;
+        }
+        return `${minutes} min`;
       }
     } else {
       // timestamp

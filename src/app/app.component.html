@@ -692,6 +692,16 @@
                   </mat-icon>
                 </div>
               }
+              @if (stream.watchDogAlarm()) {
+                <div class="statusBarItem">
+                  <mat-icon
+                    style="background-color: red; color: white"
+                    matTooltip="No server messages!"
+                    matTooltipPosition="below"
+                    >signal_wifi_statusbar_connected_no_internet_4
+                  </mat-icon>
+                </div>
+              }
             </div>
 
             <!-- right button bar -->
@@ -948,6 +958,7 @@
                         course.courseData().pointIndex + 1
                       )
                     "
+                    (routeEnd)="clearDestination()"
                   >
                   </fb-alert>
                 </span>
