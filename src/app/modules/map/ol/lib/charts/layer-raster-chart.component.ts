@@ -126,5 +126,4 @@ export class RasterChartLayerComponent implements OnDestroy {
     }
     map.render();
   }
-
 }

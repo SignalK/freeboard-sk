@@ -121,5 +121,4 @@ export class WmtsChartLayerComponent implements OnDestroy {
     }
     map.render();
   }
-
 }

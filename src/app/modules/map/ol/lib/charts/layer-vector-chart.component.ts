@@ -128,5 +128,4 @@ export class VectorChartLayerComponent implements OnDestroy {
     }
     map.render();
   }
-
 }

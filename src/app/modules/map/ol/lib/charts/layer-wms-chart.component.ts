@@ -153,5 +153,4 @@ export class WmsChartLayerComponent implements OnDestroy {
     }
     this.map.render();
   }
-
 }

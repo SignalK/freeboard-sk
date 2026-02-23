@@ -283,9 +283,9 @@ export class ChartPropertiesDialog {
     if (data.source?.toLowerCase() === 'resources-provider') {
       this.isEditable.set(true);
     }
-    if (data.type.toLowerCase() === 'wms') {
+    if (data.type?.toLowerCase() === 'wms') {
       this.getWmsCapabilities();
-    } else if (data.type.toLowerCase() === 'wmts') {
+    } else if (data.type?.toLowerCase() === 'wmts') {
       this.getWmtsCapabilities();
     }
   }

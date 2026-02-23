@@ -107,5 +107,4 @@ export class TileJsonChartLayerComponent implements OnDestroy {
     }
     map.render();
   }
-
 }
