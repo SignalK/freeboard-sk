@@ -37,6 +37,10 @@ import { FBMapInteractService } from 'src/app/modules/map/fbmap-interact.service
 import { SingleSelectListDialog } from 'src/app/lib/components';
 import { SKResourceGroupService } from '../groups/groups.service';
 import { SKChart } from '../../resource-classes';
+import {
+  ChartOpacityDialog,
+  ChartOpacityDialogResult
+} from './chart-opacity-dialog';
 
 @Component({
   selector: 'chart-list',
@@ -197,6 +201,61 @@ export class ChartListComponent extends ResourceListBase {
    */
   protected itemDelete(id: string) {
     this.skres.deleteChart(id);
+  }
+
+  protected openOpacityDialog(chart: FBChart) {
+    const opacityPercent = this.opacityToPercent(chart[1]?.defaultOpacity);
+    const originalOpacity = chart[1]?.defaultOpacity ?? 1;
+    
+    this.dialog
+      .open(ChartOpacityDialog, {
+        disableClose: false,
+        data: {
+          name: chart[1]?.name ?? chart[0],
+          opacityPercent: opacityPercent,
+          // Live preview: update opacity while slider moves
+          onOpacityChange: (percent: number) => {
+            const opacity = this.clampPercent(percent) / 100;
+            this.updateOpacityLocal(chart[0], opacity);
+          }
+        }
+      })
+      .afterClosed()
+      .subscribe((result: ChartOpacityDialogResult) => {
+        if (!result || !result.save) {
+          // Cancel: restore original opacity
+          this.updateOpacityLocal(chart[0], originalOpacity);
+          return;
+        }
+        // Apply: keep the current opacity in session only
+        const percent = this.clampPercent(result.opacityPercent);
+        const opacity = percent / 100;
+        this.updateOpacityLocal(chart[0], opacity);
+      });
+  }
+
+  private updateOpacityLocal(id: string, opacity: number) {
+    this.fullList = this.fullList.map((c: FBChart) => {
+      if (c[0] !== id) {
+        return c;
+      }
+      const updated = new SKChart(c[1] as any);
+      updated.defaultOpacity = opacity;
+      return [c[0], updated, c[2]];
+    });
+    this.doFilter();
+    this.skres.updateChartOpacityCache(id, opacity);
+  }
+
+
+  private opacityToPercent(value?: number) {
+    const opacity = typeof value === 'number' ? value : 1;
+    return this.clampPercent(Math.round(opacity * 100));
+  }
+
+  private clampPercent(value?: number) {
+    const v = typeof value === 'number' ? value : 100;
+    return Math.min(100, Math.max(0, Math.round(v)));
   }
 
   /**
