@@ -84,7 +84,7 @@ export interface ChartProvider {
   type: 'tileJSON' | 'WMS' | 'WMTS' | 'mapstyleJSON';
   url: string;
   layers?: string[];
-  bounds?: number[];
+  bounds?: [number, number, number, number];
   minzoom?: number;
   maxzoom?: number;
   format?: string;

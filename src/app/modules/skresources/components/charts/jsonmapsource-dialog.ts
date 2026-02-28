@@ -40,6 +40,10 @@ interface TileJson {
     id: string;
     description: string;
   }>;
+  maxzoom: number;
+  minzoom: number;
+  bounds: [number, number, number, number];
+  id: string;
 }
 
 /********* JsonMapSourceDialog **********
@@ -215,13 +219,17 @@ export class JsonMapSourceDialog {
     );
   }
 
-  parseFileContents(json: TileJson | MapboxStyle, uri: string) {
+  parseFileContents(json: TileJson | MapboxStyle, uri: string): ChartProvider {
     if ('tilejson' in json) {
       return {
         name: json.name ?? '',
         description: json.description ?? '',
         type: 'tileJSON',
-        url: uri
+        url: uri,
+        bounds: Array.isArray(json.bounds) ? json.bounds : [-180, -90, 180, 90],
+        maxzoom: json.maxzoom ?? 24,
+        minzoom: json.minzoom ?? 0,
+        identifier: json.id ?? ''
       };
     } else if ('version' in json && 'sources' in json && 'layers' in json) {
       return {

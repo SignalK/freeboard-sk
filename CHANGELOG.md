@@ -1,7 +1,8 @@
 # CHANGELOG: Freeboard
 
-### v2.19.next
+### v2.19.9
 
+- **Added**: Tile overzoom setting option. (PR #331)
 - **Update**: Delay display of welcome screen until after config is loaded from server. (#322)
 - **Update**: Activating a Route will now start at the closest point that is forward of the vessel. (#319)
 - **Update**: End route navigation after arrival at last point using Course "auto-advance" settings. (#326)
