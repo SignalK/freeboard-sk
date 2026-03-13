@@ -144,6 +144,8 @@ export function cleanConfig(
       headingLineSize:
         (settings as any).selections.vessel.headingLineSize ?? -1,
       iconScale: (settings as any).selections.vessel.iconScale ?? 0.9,
+      scaleToSize: false,
+      vesselDimensions: { length: 10, beam: 3 },
       rangeCircles: false,
       rangeCircleCount: 4,
       rangeCircleMinZoom: 8,
@@ -166,6 +168,12 @@ export function cleanConfig(
     }
     if (typeof settings.vessels.rangeCircleMinZoom === 'undefined') {
       settings.vessels.rangeCircleMinZoom = 8;
+    }
+    if (typeof settings.vessels.scaleToSize === 'undefined') {
+      settings.vessels.scaleToSize = false;
+    }
+    if (typeof settings.vessels.vesselDimensions === 'undefined') {
+      settings.vessels.vesselDimensions = { length: 10, beam: 3 };
     }
   }
 
@@ -432,6 +440,8 @@ export function defaultConfig(): IAppConfig {
       aisCogLine: 10, // ais COG line time (mins)
       headingLineSize: -1, // mode for display of heading line -1 = default
       iconScale: 0.9,
+      scaleToSize: false,
+      vesselDimensions: { length: 10, beam: 3 },
       rangeCircles: false,
       rangeCircleCount: 4,
       rangeCircleMinZoom: 8,

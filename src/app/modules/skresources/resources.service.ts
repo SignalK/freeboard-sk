@@ -2327,7 +2327,11 @@ export class SKResourceService {
     v.flag = vessel.flag?.value ?? undefined;
     v.port = vessel.port?.value ?? undefined;
     v.type = vessel.design?.aisShipType?.value ?? null;
-    v.design.length = vessel.design?.length?.value ?? null;
+    // Signal K structure: design.length.value.overall or design.beam.value
+    const lengthData = vessel.design?.length?.value;
+    if (lengthData) {
+      v.design.length = lengthData.overall ?? lengthData.hull ?? lengthData.waterline ?? null;
+    }
     v.design.beam = vessel.design?.beam?.value ?? null;
     v.design.draft = vessel.design?.draft?.value ?? null;
     v.design.airHeight = vessel.design?.airHeight?.value ?? null;

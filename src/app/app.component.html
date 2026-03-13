@@ -128,6 +128,16 @@
           >{{ app.config.ui.showAisTargets ? 'Hide' : 'Show' }} Vessels</span
         >
       </a>
+      <a mat-menu-item (click)="toggleScaleToSize()">
+        <mat-icon>{{
+          app.config.vessels.scaleToSize ? 'straighten' : 'open_in_full'
+        }}</mat-icon>
+        <span>{{
+          app.config.vessels.scaleToSize
+            ? 'Actual AIS Size'
+            : 'Default AIS Size'
+        }}</span>
+      </a>
       <a mat-menu-item (click)="toggleNotes()">
         <mat-icon>{{
           app.config.ui.showNotes ? 'visibility_off' : 'local_offer'

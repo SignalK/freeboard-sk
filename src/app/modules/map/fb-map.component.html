@@ -386,6 +386,8 @@
         [filterByShipType]="app.config.selections.aisFilterByShipType"
         [filterShipTypes]="app.config.selections.aisTargetTypes"
         [cogLineLength]="app.config.vessels.aisCogLine"
+        [scaleToSize]="app.config.vessels.scaleToSize"
+        [mapResolution]="mapResolution()"
       >
       </sk-ais-vessels>
     </div>
@@ -749,6 +751,8 @@
     [activeId]="app.data.vessels.activeId"
     [vesselLines]="vesselLines()"
     [iconScale]="app.config.vessels.iconScale"
+    [vesselDimensions]="app.config.vessels.vesselDimensions"
+    [mapResolution]="mapResolution()"
     [fixedLocation]="app.config.vessels.fixedLocationMode"
     [zIndex]="999"
   >

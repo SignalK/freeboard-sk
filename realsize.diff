@@ -1,0 +1,835 @@
+diff --git a/src/app/app.component.html b/src/app/app.component.html
+index 62545b02..e34304a0 100644
+--- a/src/app/app.component.html
++++ b/src/app/app.component.html
+@@ -128,6 +128,16 @@
+           >{{ app.config.ui.showAisTargets ? 'Hide' : 'Show' }} Vessels</span
+         >
+       </a>
++      <a mat-menu-item (click)="toggleScaleToSize()">
++        <mat-icon>{{
++          app.config.vessels.scaleToSize ? 'straighten' : 'open_in_full'
++        }}</mat-icon>
++        <span>{{
++          app.config.vessels.scaleToSize
++            ? 'Actual AIS Size'
++            : 'Default AIS Size'
++        }}</span>
++      </a>
+       <a mat-menu-item (click)="toggleNotes()">
+         <mat-icon>{{
+           app.config.ui.showNotes ? 'visibility_off' : 'local_offer'
+diff --git a/src/app/app.component.ts b/src/app/app.component.ts
+index 87593323..5322696c 100644
+--- a/src/app/app.component.ts
++++ b/src/app/app.component.ts
+@@ -1339,6 +1339,11 @@ export class AppComponent {
+     this.app.saveConfig();
+   }
+ 
++  protected toggleScaleToSize() {
++    this.app.config.vessels.scaleToSize = !this.app.config.vessels.scaleToSize;
++    this.app.saveConfig();
++  }
++
+   protected toggleCourseData() {
+     this.app.config.ui.showCourseData = !this.app.config.ui.showCourseData;
+     this.app.saveConfig();
+diff --git a/src/app/app.config.ts b/src/app/app.config.ts
+index 8fa50a0a..e36c099c 100644
+--- a/src/app/app.config.ts
++++ b/src/app/app.config.ts
+@@ -144,6 +144,8 @@ export function cleanConfig(
+       headingLineSize:
+         (settings as any).selections.vessel.headingLineSize ?? -1,
+       iconScale: (settings as any).selections.vessel.iconScale ?? 0.9,
++      scaleToSize: false,
++      vesselDimensions: { length: 10, beam: 3 },
+       rangeCircles: false,
+       rangeCircleCount: 4,
+       rangeCircleMinZoom: 8,
+@@ -167,6 +169,12 @@ export function cleanConfig(
+     if (typeof settings.vessels.rangeCircleMinZoom === 'undefined') {
+       settings.vessels.rangeCircleMinZoom = 8;
+     }
++    if (typeof settings.vessels.scaleToSize === 'undefined') {
++      settings.vessels.scaleToSize = false;
++    }
++    if (typeof settings.vessels.vesselDimensions === 'undefined') {
++      settings.vessels.vesselDimensions = { length: 10, beam: 3 };
++    }
+   }
+ 
+   if (typeof settings.resources === 'undefined') {
+@@ -432,6 +440,8 @@ export function defaultConfig(): IAppConfig {
+       aisCogLine: 10, // ais COG line time (mins)
+       headingLineSize: -1, // mode for display of heading line -1 = default
+       iconScale: 0.9,
++      scaleToSize: false,
++      vesselDimensions: { length: 10, beam: 3 },
+       rangeCircles: false,
+       rangeCircleCount: 4,
+       rangeCircleMinZoom: 8,
+diff --git a/src/app/modules/map/fb-map.component.html b/src/app/modules/map/fb-map.component.html
+index 7a6beff0..91d95545 100644
+--- a/src/app/modules/map/fb-map.component.html
++++ b/src/app/modules/map/fb-map.component.html
+@@ -386,6 +386,8 @@
+         [filterByShipType]="app.config.selections.aisFilterByShipType"
+         [filterShipTypes]="app.config.selections.aisTargetTypes"
+         [cogLineLength]="app.config.vessels.aisCogLine"
++        [scaleToSize]="app.config.vessels.scaleToSize"
++        [mapResolution]="mapResolution()"
+       >
+       </sk-ais-vessels>
+     </div>
+@@ -749,6 +751,8 @@
+     [activeId]="app.data.vessels.activeId"
+     [vesselLines]="vesselLines()"
+     [iconScale]="app.config.vessels.iconScale"
++    [vesselDimensions]="app.config.vessels.vesselDimensions"
++    [mapResolution]="mapResolution()"
+     [fixedLocation]="app.config.vessels.fixedLocationMode"
+     [zIndex]="999"
+   >
+diff --git a/src/app/modules/map/fb-map.component.ts b/src/app/modules/map/fb-map.component.ts
+index 3dab91d3..94810de5 100644
+--- a/src/app/modules/map/fb-map.component.ts
++++ b/src/app/modules/map/fb-map.component.ts
+@@ -209,6 +209,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
+   protected mapZoomLevel = signal<number>(1);
+   protected mapCenterPositon = signal<Position>([0, 0]);
+   protected mapRotation = signal<number>(0);
++  protected mapResolution = signal<number>(null);
+ 
+   protected showNoteslayer = signal<boolean>(false); //control notes layer display
+ 
+@@ -551,6 +552,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
+   // handle map move / zoom
+   protected onMapMoveEnd(e: FBMapEvent) {
+     this.app.config.map.zoomLevel = e.zoom;
++    this.mapResolution.set(e.resolution);
+ 
+     this.app.mapExtent.update(() => e.extent);
+     this.app.config.map.center = e.lonlat as Position;
+diff --git a/src/app/modules/map/ol/lib/map.component.ts b/src/app/modules/map/ol/lib/map.component.ts
+index d24a9388..a670b6ec 100644
+--- a/src/app/modules/map/ol/lib/map.component.ts
++++ b/src/app/modules/map/ol/lib/map.component.ts
+@@ -30,6 +30,7 @@ export interface FBMapEvent extends MapEvent {
+   zoomChanged: boolean;
+   extent: Extent;
+   projCode: string;
++  resolution: number;
+ }
+ 
+ export interface FBClickEvent extends MapBrowserEvent<PointerEvent> {
+@@ -296,12 +297,14 @@ export class MapComponent implements OnInit, OnDestroy {
+   // ** add {lonlat, zoom, extent, projection code} fields to event
+   private augmentMoveEvent(event: MapEvent) {
+     const zoom = this.map.getView().getZoom();
++    const resolution = this.map.getView().getResolution();
+     return Object.assign(event, {
+       lonlat: this.getMapCenter(),
+       zoom: zoom,
+       zoomChanged: this.zoomAtStart !== zoom,
+       extent: this.getMapExtent(),
+-      projCode: this.map.getView().getProjection().getCode()
++      projCode: this.map.getView().getProjection().getCode(),
++      resolution: resolution
+     });
+   }
+ 
+diff --git a/src/app/modules/map/ol/lib/resources/layer-aisvessels.component.ts b/src/app/modules/map/ol/lib/resources/layer-aisvessels.component.ts
+index abb1b960..28022ab3 100644
+--- a/src/app/modules/map/ol/lib/resources/layer-aisvessels.component.ts
++++ b/src/app/modules/map/ol/lib/resources/layer-aisvessels.component.ts
+@@ -6,7 +6,7 @@ import {
+   SimpleChanges
+ } from '@angular/core';
+ import { Feature } from 'ol';
+-import { Style, RegularShape, Fill, Stroke, Circle, Text } from 'ol/style';
++import { Style, RegularShape, Fill, Stroke, Circle, Text, Icon } from 'ol/style';
+ import { fromLonLat } from 'ol/proj';
+ import { Point, LineString } from 'ol/geom';
+ import { Coordinate } from 'ol/coordinate';
+@@ -16,6 +16,108 @@ import { SKVessel } from 'src/app/modules/skresources';
+ import { fromLonLatArray } from '../util';
+ import { MapImageRegistry } from '../map-image-registry.service';
+ 
++// Helper to validate L/B ratio (realistic ship ratios are 2:1 to 12:1)
++function isValidLBRatio(length: number, beam: number): boolean {
++  if (!length || !beam || beam <= 0 || length <= 0) return false;
++  const ratio = length / beam;
++  return ratio >= 2 && ratio <= 12;
++}
++
++// Helper to create a boat-shaped icon using Canvas
++function createBoatShapeIcon(
++  lengthMeters: number,
++  beamMeters: number,
++  mapResolution: number,
++  fillColor: string,
++  strokeColor: string
++): Icon {
++  // Convert meters to pixels at current map resolution
++  const lengthPixels = lengthMeters / mapResolution;
++  const beamPixels = beamMeters / mapResolution;
++  
++  // Create canvas with some padding for stroke
++  const padding = 2;
++  const canvasWidth = Math.max(8, beamPixels + padding * 2);
++  const canvasHeight = Math.max(16, lengthPixels + padding * 2);
++  
++  const canvas = document.createElement('canvas');
++  canvas.width = Math.ceil(canvasWidth);
++  canvas.height = Math.ceil(canvasHeight);
++  const ctx = canvas.getContext('2d');
++  
++  if (!ctx) {
++    // Fallback to simple triangle if canvas fails
++    return new Icon({
++      src: './assets/img/vessels/self.png',
++      scale: 1,
++      rotateWithView: true
++    });
++  }
++  
++  const centerX = canvas.width / 2;
++  const centerY = canvas.height / 2;
++  
++  // Draw boat shape:
++  // - Pointed bow at top
++  // - Wide beam at middle
++  // - Squared stern at bottom
++  ctx.beginPath();
++  
++  // Bow (pointed front) - top center
++  ctx.moveTo(centerX, padding);
++  
++  // Port side (left) going down to beam
++  ctx.lineTo(padding, canvas.height * 0.35);
++  
++  // Port side continuing to stern (slight curve in at stern)
++  ctx.lineTo(padding + canvas.width * 0.1, canvas.height - padding);
++  
++  // Stern (back) - flat bottom
++  ctx.lineTo(canvas.width - padding - canvas.width * 0.1, canvas.height - padding);
++  
++  // Starboard side (right) going up to beam
++  ctx.lineTo(canvas.width - padding, canvas.height * 0.35);
++  
++  // Back to bow
++  ctx.closePath();
++  
++  // Fill
++  ctx.fillStyle = fillColor;
++  ctx.fill();
++  
++  // Stroke
++  ctx.strokeStyle = strokeColor;
++  ctx.lineWidth = 1;
++  ctx.stroke();
++  
++  // Convert canvas to data URL
++  const dataUrl = canvas.toDataURL();
++  
++  return new Icon({
++    src: dataUrl,
++    anchor: [canvas.width / 2, canvas.height / 2],
++    anchorXUnits: 'pixels',
++    anchorYUnits: 'pixels',
++    rotateWithView: true
++  });
++}
++
++// AIS vessel colors by type
++const AIS_COLORS = {
++  default: { fill: '#FF00FF', stroke: '#000000' },  // Magenta
++  focused: { fill: '#FF0000', stroke: '#000000' },   // Red
++  buddy: { fill: '#4CFF00', stroke: '#FFFFFF' },     // Green
++  inactive: { fill: '#FFFFFF', stroke: '#FF00DC' },  // White
++  // Ship type colors
++  30: { fill: '#FF00FF', stroke: '#FFFFFF' },        // Fishing
++  40: { fill: '#FFE97F', stroke: '#7F6A00' },        // High-speed
++  50: { fill: '#00FFFF', stroke: '#000000' },        // Pilot/Special
++  60: { fill: '#0026FF', stroke: '#0026FF' },        // Passenger
++  70: { fill: '#009931', stroke: '#000000' },        // Cargo
++  80: { fill: '#FF0000', stroke: '#7F0000' },        // Tanker
++  90: { fill: '#808080', stroke: '#000000' }         // Other
++};
++
+ // ** Signal K AIS Vessel targets **
+ @Component({
+   selector: 'ol-map > sk-ais-vessels',
+@@ -25,6 +127,8 @@ import { MapImageRegistry } from '../map-image-registry.service';
+ })
+ export class AISVesselsLayerComponent extends AISBaseLayerComponent {
+   @Input() cogLineLength = 0;
++  @Input() scaleToSize = false;
++  @Input() mapResolution: number;
+ 
+   constructor(
+     protected override mapComponent: MapComponent,
+@@ -45,6 +149,10 @@ export class AISVesselsLayerComponent extends AISBaseLayerComponent {
+       this.cogLineLength = changes['cogLineLength'].currentValue ?? 0;
+       this.onUpdateTargets(this.extractKeys(this.targets));
+     }
++    if ('scaleToSize' in changes || 'mapResolution' in changes) {
++      // Re-render all targets when scale or resolution settings change
++      this.onUpdateTargets(this.extractKeys(this.targets));
++    }
+   }
+ 
+   // reload all Features from this.targets
+@@ -126,13 +234,13 @@ export class AISVesselsLayerComponent extends AISBaseLayerComponent {
+         geometry: new Point(fromLonLat(target.position)),
+         name: target.name
+       });
+-      f.setId('ais-' + id);
+-      f.set('name', label, true);
+       const s = this.buildVesselStyle(
+         target,
+         label,
+         this.isStale(target)
+       ).clone();
++      f.setId('ais-' + id);
++      f.set('name', label, true);
+       f.setStyle(
+         this.setTextLabel(this.setRotation(s, target.orientation), label)
+       );
+@@ -150,51 +258,118 @@ export class AISVesselsLayerComponent extends AISBaseLayerComponent {
+       ? Math.abs(Math.floor(target.type.id / 10) * 10)
+       : -1;
+ 
+-    const icon =
++    // Get vessel dimensions
++    const vesselLength = target.design?.length ?? null;
++    const vesselBeam = target.design?.beam ?? null;
++
++    // Check L/B ratio is within realistic bounds (2:1 to 12:1)
++    const hasValidDimensions = isValidLBRatio(vesselLength, vesselBeam);
++
++    // Check if we should draw to scale (requires valid L/B ratio)
++    if (this.scaleToSize && this.mapResolution && hasValidDimensions && !isMoored) {
++      // Get color based on ship type/status
++      let colorKey: string | number = 'default';
++      if (target.id === this.focusId) {
++        colorKey = 'focused';
++      } else if (setStale) {
++        colorKey = 'inactive';
++      } else if (target.buddy) {
++        colorKey = 'buddy';
++      } else if (shipClass !== -1 && AIS_COLORS[shipClass]) {
++        colorKey = shipClass;
++      }
++      
++      const colors = AIS_COLORS[colorKey] || AIS_COLORS['default'];
++      const boatIcon = createBoatShapeIcon(
++        vesselLength,
++        vesselBeam,
++        this.mapResolution,
++        colors.fill,
++        colors.stroke
++      );
++      
++      return new Style({
++        image: boatIcon,
++        text: new Text({
++          text: '',
++          offsetX: 0,
++          offsetY: 22
++        })
++      });
++    }
++
++    // Fallback: use icon with optional scaling (only if L/B ratio is valid)
++    let calculatedScale: number | null = null;
++    if (this.scaleToSize && this.mapResolution && hasValidDimensions) {
++      // Icon is 24pt (32px) but actual vessel shape is smaller
++      // Effective vessel length in icon is ~25.5 pixels
++      const EFFECTIVE_ICON_LENGTH = 25.5;
++      calculatedScale = vesselLength! / (this.mapResolution * EFFECTIVE_ICON_LENGTH);
++      // Clamp scale to reasonable bounds
++      calculatedScale = Math.max(0.1, Math.min(calculatedScale, 50));
++    }
++
++    // Helper to check if image is an Icon (has getSrc method)
++    const isIconImage = (img: any): img is Icon => {
++      return img && typeof img.getSrc === 'function';
++    };
++
++    // Helper to create scaled icon from an existing icon
++    const createScaledIcon = (baseIcon: Icon, scale: number): Icon => {
++      return new Icon({
++        src: baseIcon.getSrc(),
++        scale: scale,
++        anchor: baseIcon.getAnchor(),
++        anchorXUnits: 'pixels',
++        anchorYUnits: 'pixels',
++        rotateWithView: true,
++        rotation: baseIcon.getRotation()
++      });
++    };
++
++    // Get base icon from registry
++    const icon = this.mapImages.getVessel(
+       target.id === this.focusId
+-        ? this.mapImages.getVessel('focused')
++        ? 'focused'
+         : setStale
+-          ? this.mapImages.getVessel('inactive', isMoored)
++          ? 'inactive'
+           : target.buddy
+-            ? this.mapImages.getVessel('buddy', isMoored)
++            ? 'buddy'
+             : shipClass === -1
+-              ? this.mapImages.getVessel('default', isMoored)
+-              : this.mapImages.getVessel(shipClass, isMoored);
++              ? 'default'
++              : shipClass,
++      isMoored
++    );
+ 
+     if (icon && typeof this.targetStyles === 'undefined') {
+-      if (icon) {
+-        return new Style({
+-          image: icon,
+-          text: new Text({
+-            text: '',
+-            offsetX: 0,
+-            offsetY: isMoored ? 12 : 22
+-          })
+-        });
+-      }
+-      return;
++      const image = calculatedScale !== null && isIconImage(icon)
++        ? createScaledIcon(icon, calculatedScale)
++        : icon;
++      return new Style({
++        image: image,
++        text: new Text({
++          text: '',
++          offsetX: 0,
++          offsetY: isMoored ? 12 : 22
++        })
++      });
+     }
+ 
+     if (typeof this.targetStyles !== 'undefined') {
+       if (target.id === this.focusId && this.targetStyles.focus) {
+         s = this.targetStyles.focus;
+       } else if (setStale) {
+-        // stale
+         s = this.targetStyles.inactive ?? this.targetStyles.default;
+       } else if (target.type && this.targetStyles[shipClass]) {
+-        // ship type & state
+         if (target.state && this.targetStyles[shipClass][target.state]) {
+           s = this.targetStyles[shipClass][target.state];
+         } else {
+           s = this.targetStyles[shipClass]['default'];
+         }
+       } else if (target.buddy && this.targetStyles.buddy) {
+-        // buddy
+         s = this.targetStyles.buddy;
+       } else {
+-        // all others
+         if (target.state && this.targetStyles[target.state]) {
+-          // state only
+           s = this.targetStyles[target.state];
+         } else {
+           s = this.targetStyles.default;
+@@ -203,16 +378,14 @@ export class AISVesselsLayerComponent extends AISBaseLayerComponent {
+     } else if (this.layerProperties && this.layerProperties.style) {
+       s = this.layerProperties.style;
+     } else {
++      // Fallback styles using RegularShape
+       if (target.id === this.focusId) {
+         s = new Style({
+           image: new RegularShape({
+             points: 3,
+             radius: 4,
+             fill: new Fill({ color: 'red' }),
+-            stroke: new Stroke({
+-              color: 'black',
+-              width: 1
+-            }),
++            stroke: new Stroke({ color: 'black', width: 1 }),
+             rotateWithView: true
+           })
+         });
+@@ -222,10 +395,7 @@ export class AISVesselsLayerComponent extends AISBaseLayerComponent {
+             points: 3,
+             radius: 4,
+             fill: new Fill({ color: 'orange' }),
+-            stroke: new Stroke({
+-              color: 'black',
+-              width: 1
+-            }),
++            stroke: new Stroke({ color: 'black', width: 1 }),
+             rotateWithView: true
+           })
+         });
+@@ -235,15 +405,22 @@ export class AISVesselsLayerComponent extends AISBaseLayerComponent {
+             points: 3,
+             radius: 4,
+             fill: new Fill({ color: 'magenta' }),
+-            stroke: new Stroke({
+-              color: 'black',
+-              width: 1
+-            }),
++            stroke: new Stroke({ color: 'black', width: 1 }),
+             rotateWithView: true
+           })
+         });
+       }
+     }
++
++    // Apply scale-to-size to the selected style's image
++    if (calculatedScale !== null && s) {
++      const currentImage = s.getImage();
++      if (isIconImage(currentImage)) {
++        s = s.clone();
++        s.setImage(createScaledIcon(currentImage, calculatedScale));
++      }
++    }
++
+     return s;
+   }
+ 
+diff --git a/src/app/modules/map/ol/lib/vessel/layer-vessel.component.ts b/src/app/modules/map/ol/lib/vessel/layer-vessel.component.ts
+index 247869a0..65b461a1 100644
+--- a/src/app/modules/map/ol/lib/vessel/layer-vessel.component.ts
++++ b/src/app/modules/map/ol/lib/vessel/layer-vessel.component.ts
+@@ -13,7 +13,7 @@ import { Layer } from 'ol/layer';
+ import { Feature } from 'ol';
+ import VectorLayer from 'ol/layer/Vector';
+ import VectorSource from 'ol/source/Vector';
+-import { Style, Stroke, Icon } from 'ol/style';
++import { Style, Stroke, Icon, RegularShape, Fill } from 'ol/style';
+ import { Geometry, Point, LineString } from 'ol/geom';
+ import { fromLonLat } from 'ol/proj';
+ import { MapComponent } from '../map.component';
+@@ -22,6 +22,91 @@ import { fromLonLatArray, mapifyCoords } from '../util';
+ import { AsyncSubject } from 'rxjs';
+ import { Options } from 'ol/style/Icon';
+ 
++// Helper to validate L/B ratio (realistic ship ratios are 2:1 to 12:1)
++function isValidLBRatio(length: number, beam: number): boolean {
++  if (!length || !beam || beam <= 0 || length <= 0) return false;
++  const ratio = length / beam;
++  return ratio >= 2 && ratio <= 12;
++}
++
++// Helper to create a boat-shaped icon using Canvas
++function createBoatShapeIcon(
++  lengthMeters: number,
++  beamMeters: number,
++  mapResolution: number,
++  fillColor: string,
++  strokeColor: string
++): Icon {
++  // Convert meters to pixels at current map resolution
++  const lengthPixels = lengthMeters / mapResolution;
++  const beamPixels = beamMeters / mapResolution;
++  
++  // Create canvas with some padding for stroke
++  const padding = 2;
++  const canvasWidth = Math.max(8, beamPixels + padding * 2);
++  const canvasHeight = Math.max(16, lengthPixels + padding * 2);
++  
++  const canvas = document.createElement('canvas');
++  canvas.width = Math.ceil(canvasWidth);
++  canvas.height = Math.ceil(canvasHeight);
++  const ctx = canvas.getContext('2d');
++  
++  if (!ctx) {
++    // Fallback to default icon if canvas fails
++    return new Icon({
++      src: './assets/img/vessels/self.png',
++      scale: 1,
++      rotateWithView: true
++    });
++  }
++  
++  const centerX = canvas.width / 2;
++  
++  // Draw boat shape:
++  // - Pointed bow at top
++  // - Wide beam at middle
++  // - Squared stern at bottom
++  ctx.beginPath();
++  
++  // Bow (pointed front) - top center
++  ctx.moveTo(centerX, padding);
++  
++  // Port side (left) going down to beam
++  ctx.lineTo(padding, canvas.height * 0.35);
++  
++  // Port side continuing to stern (slight curve in at stern)
++  ctx.lineTo(padding + canvas.width * 0.1, canvas.height - padding);
++  
++  // Stern (back) - flat bottom
++  ctx.lineTo(canvas.width - padding - canvas.width * 0.1, canvas.height - padding);
++  
++  // Starboard side (right) going up to beam
++  ctx.lineTo(canvas.width - padding, canvas.height * 0.35);
++  
++  // Back to bow
++  ctx.closePath();
++  
++  // Fill
++  ctx.fillStyle = fillColor;
++  ctx.fill();
++  
++  // Stroke
++  ctx.strokeStyle = strokeColor;
++  ctx.lineWidth = 1;
++  ctx.stroke();
++  
++  // Convert canvas to data URL
++  const dataUrl = canvas.toDataURL();
++  
++  return new Icon({
++    src: dataUrl,
++    anchor: [canvas.width / 2, canvas.height / 2],
++    anchorXUnits: 'pixels',
++    anchorYUnits: 'pixels',
++    rotateWithView: true
++  });
++}
++
+ const vesselIconDef = {
+   src: './assets/img/vessels/self.png',
+   anchor: [9.5, 22.5],
+@@ -32,6 +117,11 @@ const vesselIconDef = {
+   rotateWithView: true
+ };
+ 
++// Base icon size in pixels (the vessel shape within the 50x50 icon)
++// The anchor at [9.5, 22.5] suggests the vessel shape is ~19 pixels wide and ~45 pixels long
++const ICON_BASE_LENGTH = 45; // pixels (bow to stern)
++const ICON_BASE_BEAM = 19; // pixels (beam width)
++
+ const inactiveVesselStyle = new Style({
+   image: new Icon({
+     src: './assets/img/vessels/self_blur.png',
+@@ -82,6 +172,8 @@ export class VesselComponent implements OnInit, OnDestroy, OnChanges {
+   @Input() vesselLines: { [key: string]: Array<Coordinate> };
+   @Input() fixedLocation: boolean;
+   @Input() iconScale = 1;
++  @Input() vesselDimensions = { length: 10, beam: 3 };
++  @Input() mapResolution: number;
+   @Input() opacity: number;
+   @Input() visible: boolean;
+   @Input() extent: Extent;
+@@ -146,7 +238,13 @@ export class VesselComponent implements OnInit, OnDestroy, OnChanges {
+           if (this.source) {
+             this.renderVesselLines();
+           }
+-        } else if (key === 'vesselStyles' || key === 'iconScale') {
++        } else if (
++          key === 'vesselStyles' ||
++          key === 'iconScale' ||
++          key === 'scaleToSize' ||
++          key === 'vesselDimensions' ||
++          key === 'mapResolution'
++        ) {
+           if (this.source) {
+             this.generateSelfStyle();
+             this.parseVessel();
+@@ -205,12 +303,27 @@ export class VesselComponent implements OnInit, OnDestroy, OnChanges {
+ 
+   // default self style with specified scale
+   generateSelfStyle() {
+-    if (this.iconScale) {
+-      vesselIconDef.scale = Math.abs(this.iconScale);
++    // Self vessel uses vesselDimensions if valid L/B ratio
++    if (this.vesselDimensions?.length && this.vesselDimensions?.beam && 
++        this.mapResolution && isValidLBRatio(this.vesselDimensions.length, this.vesselDimensions.beam)) {
++      // Use boat shape for correct beam/length ratio
++      this.selfStyle = new Style({
++        image: createBoatShapeIcon(
++          this.vesselDimensions.length,
++          this.vesselDimensions.beam,
++          this.mapResolution,
++          '#FF00FF',  // Magenta fill
++          '#000000'   // Black stroke
++        )
++      });
++    } else {
++      // Use the configured icon scale
++      const scale = Math.abs(this.iconScale);
++      vesselIconDef.scale = scale;
++      this.selfStyle = new Style({
++        image: new Icon(vesselIconDef as Options)
++      });
+     }
+-    this.selfStyle = new Style({
+-      image: new Icon(vesselIconDef as Options)
+-    });
+   }
+ 
+   // build target style
+diff --git a/src/app/modules/settings/components/settings-dialog.html b/src/app/modules/settings/components/settings-dialog.html
+index 3c9ee3f3..bf947559 100644
+--- a/src/app/modules/settings/components/settings-dialog.html
++++ b/src/app/modules/settings/components/settings-dialog.html
+@@ -625,28 +625,62 @@
+                   <div class="setting-card-row-item">
+                     <fieldset>
+                       <legend>Vessel Icon Size</legend>
+-                      <div
+-                        class="setting-card-row"
+-                        style="padding-bottom: 10px"
++                      <mat-checkbox
++                        [(ngModel)]="facade.settings.vessels.scaleToSize"
++                        (change)="persistModel()"
++                        matTooltip="Draw vessel icon to actual scale based on dimensions"
++                        label="after"
+                       >
++                        Scale to actual size
++                      </mat-checkbox>
++                      <div class="setting-card-row" style="padding-top: 10px">
+                         <div class="setting-card-row-item">
+-                          <mat-radio-group
+-                            [(ngModel)]="facade.settings.vessels.iconScale"
+-                            (change)="persistModel()"
+-                          >
+-                            @for(i of options.vessel.selfIconScale; track i[0])
+-                            {
+-                            <mat-radio-button [value]="i[0]">
+-                              <img
+-                                src="./assets/img/vessels/self.png"
+-                                [style]="`transform: scale(${i[0]})`"
+-                              />
+-                              ({{i[1]}})
+-                            </mat-radio-button>
+-                            }
+-                          </mat-radio-group>
++                          <mat-form-field style="width: 100%">
++                            <mat-label>Length</mat-label>
++                            <input
++                              matInput
++                              type="number"
++                              #vesselLength="ngModel"
++                              [disabled]="!facade.settings.vessels.scaleToSize"
++                              [(ngModel)]="facade.settings.vessels.vesselDimensions.length"
++                              (change)="persistModel()"
++                              min="1"
++                              step="0.5"
++                            />
++                            <span matSuffix>m</span>
++                          </mat-form-field>
++                        </div>
++                        <div class="setting-card-row-item">
++                          <mat-form-field style="width: 100%">
++                            <mat-label>Beam</mat-label>
++                            <input
++                              matInput
++                              type="number"
++                              #vesselBeam="ngModel"
++                              [disabled]="!facade.settings.vessels.scaleToSize"
++                              [(ngModel)]="facade.settings.vessels.vesselDimensions.beam"
++                              (change)="persistModel()"
++                              min="0.5"
++                              step="0.1"
++                            />
++                            <span matSuffix>m</span>
++                          </mat-form-field>
+                         </div>
+                       </div>
++                      <mat-form-field style="width: 100%">
++                        <mat-label>Icon Scale (when not scaled to size)</mat-label>
++                        <input
++                          matInput
++                          type="number"
++                          #iconScale="ngModel"
++                          [disabled]="facade.settings.vessels.scaleToSize"
++                          [(ngModel)]="facade.settings.vessels.iconScale"
++                          (change)="persistModel()"
++                          min="0.1"
++                          max="5"
++                          step="0.05"
++                        />
++                      </mat-form-field>
+                     </fieldset>
+                   </div>
+                 </div>
+diff --git a/src/app/modules/skresources/components/ais/ais-properties-modal.ts b/src/app/modules/skresources/components/ais/ais-properties-modal.ts
+index 215cd6dc..faa59adc 100644
+--- a/src/app/modules/skresources/components/ais/ais-properties-modal.ts
++++ b/src/app/modules/skresources/components/ais/ais-properties-modal.ts
+@@ -115,7 +115,7 @@ import { getAisIcon } from 'src/app/modules/icons';
+               </div>
+             }
+             @if (
+-              data.target.design.length?.overall && data.target.design?.beam
++              data.target.design.length && data.target.design?.beam
+             ) {
+               <div style="display:flex;">
+                 <div class="key-label">Dimensions:</div>
+@@ -211,7 +211,7 @@ export class AISPropertiesModal {
+     this.flagIcon = `${this.app.hostDef.url}/signalk/v2/api/resources/flags/mmsi/${this.data.target.mmsi}`;
+     this.display = {
+       length: app.formatValueForDisplay(
+-        this.data.target.design.length?.overall,
++        this.data.target.design.length,
+         'm',
+         true
+       ),
+diff --git a/src/app/modules/skresources/resources.service.ts b/src/app/modules/skresources/resources.service.ts
+index b53fdaf0..9bba1866 100644
+--- a/src/app/modules/skresources/resources.service.ts
++++ b/src/app/modules/skresources/resources.service.ts
+@@ -2327,7 +2327,11 @@ export class SKResourceService {
+     v.flag = vessel.flag?.value ?? undefined;
+     v.port = vessel.port?.value ?? undefined;
+     v.type = vessel.design?.aisShipType?.value ?? null;
+-    v.design.length = vessel.design?.length?.value ?? null;
++    // Signal K structure: design.length.value.overall or design.beam.value
++    const lengthData = vessel.design?.length?.value;
++    if (lengthData) {
++      v.design.length = lengthData.overall ?? lengthData.hull ?? lengthData.waterline ?? null;
++    }
+     v.design.beam = vessel.design?.beam?.value ?? null;
+     v.design.draft = vessel.design?.draft?.value ?? null;
+     v.design.airHeight = vessel.design?.airHeight?.value ?? null;
+diff --git a/src/app/modules/skstream/skstream.worker.ts b/src/app/modules/skstream/skstream.worker.ts
+index 3038f2f3..ac078f32 100644
+--- a/src/app/modules/skstream/skstream.worker.ts
++++ b/src/app/modules/skstream/skstream.worker.ts
+@@ -869,6 +869,18 @@ function processVessel(d: SKVessel, v: any, isSelf = false) {
+     d.callsignHf = v.value;
+   } else if (v.path === 'design.aisShipType') {
+     d.type = v.value;
++  } else if (v.path === 'design.length' || v.path === 'design.length.overall') {
++    // Handle vessel length from stream (can be object with overall or direct value)
++    const lengthVal = v.value?.overall?.value ?? v.value?.overall ?? v.value?.value ?? v.value;
++    if (typeof lengthVal === 'number') {
++      d.design.length = lengthVal;
++    }
++  } else if (v.path === 'design.beam') {
++    // Handle vessel beam from stream
++    const beamVal = v.value?.value ?? v.value;
++    if (typeof beamVal === 'number') {
++      d.design.beam = beamVal;
++    }
+   } else if (v.path === 'navigation.position' && v.value) {
+     // position is not null
+     if (
+diff --git a/src/app/types/index.d.ts b/src/app/types/index.d.ts
+index 3b678030..6d4cd5cf 100644
+--- a/src/app/types/index.d.ts
++++ b/src/app/types/index.d.ts
+@@ -130,7 +130,9 @@ export interface IAppConfig {
+     cogLine: number; // (minutes) length = cogLine * sog
+     aisCogLine: number; // (minutes) length = cogLine * sog
+     headingLineSize: number; // mode for display of heading line -1 = default
+-    iconScale: number; // scale to apply to self Vessel icon
++    iconScale: number; // scale to apply to self Vessel icon (used when scaleToSize is false)
++    scaleToSize: boolean; // draw vessel icon to actual scale based on dimensions
++    vesselDimensions: { length: number; beam: number }; // vessel dimensions in meters for scale-to-size rendering
+     rangeCircles: boolean; //display range circles
+     rangeCircleCount: number; // number of circles to display
+     rangeCircleMinZoom: number; // min zoom level where they are displayed

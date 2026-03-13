@@ -869,6 +869,18 @@ function processVessel(d: SKVessel, v: any, isSelf = false) {
     d.callsignHf = v.value;
   } else if (v.path === 'design.aisShipType') {
     d.type = v.value;
+  } else if (v.path === 'design.length' || v.path === 'design.length.overall') {
+    // Handle vessel length from stream (can be object with overall or direct value)
+    const lengthVal = v.value?.overall?.value ?? v.value?.overall ?? v.value?.value ?? v.value;
+    if (typeof lengthVal === 'number') {
+      d.design.length = lengthVal;
+    }
+  } else if (v.path === 'design.beam') {
+    // Handle vessel beam from stream
+    const beamVal = v.value?.value ?? v.value;
+    if (typeof beamVal === 'number') {
+      d.design.beam = beamVal;
+    }
   } else if (v.path === 'navigation.position' && v.value) {
     // position is not null
     if (
