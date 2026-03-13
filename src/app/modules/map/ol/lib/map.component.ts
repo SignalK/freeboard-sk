@@ -30,6 +30,7 @@ export interface FBMapEvent extends MapEvent {
   zoomChanged: boolean;
   extent: Extent;
   projCode: string;
+  resolution: number;
 }
 
 export interface FBClickEvent extends MapBrowserEvent<PointerEvent> {
@@ -296,12 +297,14 @@ export class MapComponent implements OnInit, OnDestroy {
   // ** add {lonlat, zoom, extent, projection code} fields to event
   private augmentMoveEvent(event: MapEvent) {
     const zoom = this.map.getView().getZoom();
+    const resolution = this.map.getView().getResolution();
     return Object.assign(event, {
       lonlat: this.getMapCenter(),
       zoom: zoom,
       zoomChanged: this.zoomAtStart !== zoom,
       extent: this.getMapExtent(),
-      projCode: this.map.getView().getProjection().getCode()
+      projCode: this.map.getView().getProjection().getCode(),
+      resolution: resolution
     });
   }
 

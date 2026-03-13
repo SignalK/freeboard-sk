@@ -13,7 +13,7 @@ import { Layer } from 'ol/layer';
 import { Feature } from 'ol';
 import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
-import { Style, Stroke, Icon } from 'ol/style';
+import { Style, Stroke, Icon, RegularShape, Fill } from 'ol/style';
 import { Geometry, Point, LineString } from 'ol/geom';
 import { fromLonLat } from 'ol/proj';
 import { MapComponent } from '../map.component';
@@ -21,6 +21,91 @@ import { Extent, Coordinate } from '../models';
 import { fromLonLatArray, mapifyCoords } from '../util';
 import { AsyncSubject } from 'rxjs';
 import { Options } from 'ol/style/Icon';
+
+// Helper to validate L/B ratio (realistic ship ratios are 2:1 to 12:1)
+function isValidLBRatio(length: number, beam: number): boolean {
+  if (!length || !beam || beam <= 0 || length <= 0) return false;
+  const ratio = length / beam;
+  return ratio >= 2 && ratio <= 12;
+}
+
+// Helper to create a boat-shaped icon using Canvas
+function createBoatShapeIcon(
+  lengthMeters: number,
+  beamMeters: number,
+  mapResolution: number,
+  fillColor: string,
+  strokeColor: string
+): Icon {
+  // Convert meters to pixels at current map resolution
+  const lengthPixels = lengthMeters / mapResolution;
+  const beamPixels = beamMeters / mapResolution;
+  
+  // Create canvas with some padding for stroke
+  const padding = 2;
+  const canvasWidth = Math.max(8, beamPixels + padding * 2);
+  const canvasHeight = Math.max(16, lengthPixels + padding * 2);
+  
+  const canvas = document.createElement('canvas');
+  canvas.width = Math.ceil(canvasWidth);
+  canvas.height = Math.ceil(canvasHeight);
+  const ctx = canvas.getContext('2d');
+  
+  if (!ctx) {
+    // Fallback to default icon if canvas fails
+    return new Icon({
+      src: './assets/img/vessels/self.png',
+      scale: 1,
+      rotateWithView: true
+    });
+  }
+  
+  const centerX = canvas.width / 2;
+  
+  // Draw boat shape:
+  // - Pointed bow at top
+  // - Wide beam at middle
+  // - Squared stern at bottom
+  ctx.beginPath();
+  
+  // Bow (pointed front) - top center
+  ctx.moveTo(centerX, padding);
+  
+  // Port side (left) going down to beam
+  ctx.lineTo(padding, canvas.height * 0.35);
+  
+  // Port side continuing to stern (slight curve in at stern)
+  ctx.lineTo(padding + canvas.width * 0.1, canvas.height - padding);
+  
+  // Stern (back) - flat bottom
+  ctx.lineTo(canvas.width - padding - canvas.width * 0.1, canvas.height - padding);
+  
+  // Starboard side (right) going up to beam
+  ctx.lineTo(canvas.width - padding, canvas.height * 0.35);
+  
+  // Back to bow
+  ctx.closePath();
+  
+  // Fill
+  ctx.fillStyle = fillColor;
+  ctx.fill();
+  
+  // Stroke
+  ctx.strokeStyle = strokeColor;
+  ctx.lineWidth = 1;
+  ctx.stroke();
+  
+  // Convert canvas to data URL
+  const dataUrl = canvas.toDataURL();
+  
+  return new Icon({
+    src: dataUrl,
+    anchor: [canvas.width / 2, canvas.height / 2],
+    anchorXUnits: 'pixels',
+    anchorYUnits: 'pixels',
+    rotateWithView: true
+  });
+}
 
 const vesselIconDef = {
   src: './assets/img/vessels/self.png',
@@ -31,6 +116,11 @@ const vesselIconDef = {
   scale: 0.9, //0.75,
   rotateWithView: true
 };
+
+// Base icon size in pixels (the vessel shape within the 50x50 icon)
+// The anchor at [9.5, 22.5] suggests the vessel shape is ~19 pixels wide and ~45 pixels long
+const ICON_BASE_LENGTH = 45; // pixels (bow to stern)
+const ICON_BASE_BEAM = 19; // pixels (beam width)
 
 const inactiveVesselStyle = new Style({
   image: new Icon({
@@ -82,6 +172,8 @@ export class VesselComponent implements OnInit, OnDestroy, OnChanges {
   @Input() vesselLines: { [key: string]: Array<Coordinate> };
   @Input() fixedLocation: boolean;
   @Input() iconScale = 1;
+  @Input() vesselDimensions = { length: 10, beam: 3 };
+  @Input() mapResolution: number;
   @Input() opacity: number;
   @Input() visible: boolean;
   @Input() extent: Extent;
@@ -146,7 +238,13 @@ export class VesselComponent implements OnInit, OnDestroy, OnChanges {
           if (this.source) {
             this.renderVesselLines();
           }
-        } else if (key === 'vesselStyles' || key === 'iconScale') {
+        } else if (
+          key === 'vesselStyles' ||
+          key === 'iconScale' ||
+          key === 'scaleToSize' ||
+          key === 'vesselDimensions' ||
+          key === 'mapResolution'
+        ) {
           if (this.source) {
             this.generateSelfStyle();
             this.parseVessel();
@@ -205,12 +303,27 @@ export class VesselComponent implements OnInit, OnDestroy, OnChanges {
 
   // default self style with specified scale
   generateSelfStyle() {
-    if (this.iconScale) {
-      vesselIconDef.scale = Math.abs(this.iconScale);
+    // Self vessel uses vesselDimensions if valid L/B ratio
+    if (this.vesselDimensions?.length && this.vesselDimensions?.beam && 
+        this.mapResolution && isValidLBRatio(this.vesselDimensions.length, this.vesselDimensions.beam)) {
+      // Use boat shape for correct beam/length ratio
+      this.selfStyle = new Style({
+        image: createBoatShapeIcon(
+          this.vesselDimensions.length,
+          this.vesselDimensions.beam,
+          this.mapResolution,
+          '#FF00FF',  // Magenta fill
+          '#000000'   // Black stroke
+        )
+      });
+    } else {
+      // Use the configured icon scale
+      const scale = Math.abs(this.iconScale);
+      vesselIconDef.scale = scale;
+      this.selfStyle = new Style({
+        image: new Icon(vesselIconDef as Options)
+      });
     }
-    this.selfStyle = new Style({
-      image: new Icon(vesselIconDef as Options)
-    });
   }
 
   // build target style

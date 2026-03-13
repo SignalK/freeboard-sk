@@ -6,7 +6,7 @@ import {
   SimpleChanges
 } from '@angular/core';
 import { Feature } from 'ol';
-import { Style, RegularShape, Fill, Stroke, Circle, Text } from 'ol/style';
+import { Style, RegularShape, Fill, Stroke, Circle, Text, Icon } from 'ol/style';
 import { fromLonLat } from 'ol/proj';
 import { Point, LineString } from 'ol/geom';
 import { Coordinate } from 'ol/coordinate';
@@ -15,6 +15,108 @@ import { AISBaseLayerComponent } from './ais-base.component';
 import { SKVessel } from 'src/app/modules/skresources';
 import { fromLonLatArray } from '../util';
 import { MapImageRegistry } from '../map-image-registry.service';
+
+// Helper to validate L/B ratio (realistic ship ratios are 2:1 to 12:1)
+function isValidLBRatio(length: number, beam: number): boolean {
+  if (!length || !beam || beam <= 0 || length <= 0) return false;
+  const ratio = length / beam;
+  return ratio >= 2 && ratio <= 12;
+}
+
+// Helper to create a boat-shaped icon using Canvas
+function createBoatShapeIcon(
+  lengthMeters: number,
+  beamMeters: number,
+  mapResolution: number,
+  fillColor: string,
+  strokeColor: string
+): Icon {
+  // Convert meters to pixels at current map resolution
+  const lengthPixels = lengthMeters / mapResolution;
+  const beamPixels = beamMeters / mapResolution;
+  
+  // Create canvas with some padding for stroke
+  const padding = 2;
+  const canvasWidth = Math.max(8, beamPixels + padding * 2);
+  const canvasHeight = Math.max(16, lengthPixels + padding * 2);
+  
+  const canvas = document.createElement('canvas');
+  canvas.width = Math.ceil(canvasWidth);
+  canvas.height = Math.ceil(canvasHeight);
+  const ctx = canvas.getContext('2d');
+  
+  if (!ctx) {
+    // Fallback to simple triangle if canvas fails
+    return new Icon({
+      src: './assets/img/vessels/self.png',
+      scale: 1,
+      rotateWithView: true
+    });
+  }
+  
+  const centerX = canvas.width / 2;
+  const centerY = canvas.height / 2;
+  
+  // Draw boat shape:
+  // - Pointed bow at top
+  // - Wide beam at middle
+  // - Squared stern at bottom
+  ctx.beginPath();
+  
+  // Bow (pointed front) - top center
+  ctx.moveTo(centerX, padding);
+  
+  // Port side (left) going down to beam
+  ctx.lineTo(padding, canvas.height * 0.35);
+  
+  // Port side continuing to stern (slight curve in at stern)
+  ctx.lineTo(padding + canvas.width * 0.1, canvas.height - padding);
+  
+  // Stern (back) - flat bottom
+  ctx.lineTo(canvas.width - padding - canvas.width * 0.1, canvas.height - padding);
+  
+  // Starboard side (right) going up to beam
+  ctx.lineTo(canvas.width - padding, canvas.height * 0.35);
+  
+  // Back to bow
+  ctx.closePath();
+  
+  // Fill
+  ctx.fillStyle = fillColor;
+  ctx.fill();
+  
+  // Stroke
+  ctx.strokeStyle = strokeColor;
+  ctx.lineWidth = 1;
+  ctx.stroke();
+  
+  // Convert canvas to data URL
+  const dataUrl = canvas.toDataURL();
+  
+  return new Icon({
+    src: dataUrl,
+    anchor: [canvas.width / 2, canvas.height / 2],
+    anchorXUnits: 'pixels',
+    anchorYUnits: 'pixels',
+    rotateWithView: true
+  });
+}
+
+// AIS vessel colors by type
+const AIS_COLORS = {
+  default: { fill: '#FF00FF', stroke: '#000000' },  // Magenta
+  focused: { fill: '#FF0000', stroke: '#000000' },   // Red
+  buddy: { fill: '#4CFF00', stroke: '#FFFFFF' },     // Green
+  inactive: { fill: '#FFFFFF', stroke: '#FF00DC' },  // White
+  // Ship type colors
+  30: { fill: '#FF00FF', stroke: '#FFFFFF' },        // Fishing
+  40: { fill: '#FFE97F', stroke: '#7F6A00' },        // High-speed
+  50: { fill: '#00FFFF', stroke: '#000000' },        // Pilot/Special
+  60: { fill: '#0026FF', stroke: '#0026FF' },        // Passenger
+  70: { fill: '#009931', stroke: '#000000' },        // Cargo
+  80: { fill: '#FF0000', stroke: '#7F0000' },        // Tanker
+  90: { fill: '#808080', stroke: '#000000' }         // Other
+};
 
 // ** Signal K AIS Vessel targets **
 @Component({
@@ -25,6 +127,8 @@ import { MapImageRegistry } from '../map-image-registry.service';
 })
 export class AISVesselsLayerComponent extends AISBaseLayerComponent {
   @Input() cogLineLength = 0;
+  @Input() scaleToSize = false;
+  @Input() mapResolution: number;
 
   constructor(
     protected override mapComponent: MapComponent,
@@ -43,6 +147,10 @@ export class AISVesselsLayerComponent extends AISBaseLayerComponent {
     super.ngOnChanges(changes);
     if ('cogLineLength' in changes) {
       this.cogLineLength = changes['cogLineLength'].currentValue ?? 0;
+      this.onUpdateTargets(this.extractKeys(this.targets));
+    }
+    if ('scaleToSize' in changes || 'mapResolution' in changes) {
+      // Re-render all targets when scale or resolution settings change
       this.onUpdateTargets(this.extractKeys(this.targets));
     }
   }
@@ -126,13 +234,13 @@ export class AISVesselsLayerComponent extends AISBaseLayerComponent {
         geometry: new Point(fromLonLat(target.position)),
         name: target.name
       });
-      f.setId('ais-' + id);
-      f.set('name', label, true);
       const s = this.buildVesselStyle(
         target,
         label,
         this.isStale(target)
       ).clone();
+      f.setId('ais-' + id);
+      f.set('name', label, true);
       f.setStyle(
         this.setTextLabel(this.setRotation(s, target.orientation), label)
       );
@@ -150,51 +258,118 @@ export class AISVesselsLayerComponent extends AISBaseLayerComponent {
       ? Math.abs(Math.floor(target.type.id / 10) * 10)
       : -1;
 
-    const icon =
+    // Get vessel dimensions
+    const vesselLength = target.design?.length ?? null;
+    const vesselBeam = target.design?.beam ?? null;
+
+    // Check L/B ratio is within realistic bounds (2:1 to 12:1)
+    const hasValidDimensions = isValidLBRatio(vesselLength, vesselBeam);
+
+    // Check if we should draw to scale (requires valid L/B ratio)
+    if (this.scaleToSize && this.mapResolution && hasValidDimensions && !isMoored) {
+      // Get color based on ship type/status
+      let colorKey: string | number = 'default';
+      if (target.id === this.focusId) {
+        colorKey = 'focused';
+      } else if (setStale) {
+        colorKey = 'inactive';
+      } else if (target.buddy) {
+        colorKey = 'buddy';
+      } else if (shipClass !== -1 && AIS_COLORS[shipClass]) {
+        colorKey = shipClass;
+      }
+      
+      const colors = AIS_COLORS[colorKey] || AIS_COLORS['default'];
+      const boatIcon = createBoatShapeIcon(
+        vesselLength,
+        vesselBeam,
+        this.mapResolution,
+        colors.fill,
+        colors.stroke
+      );
+      
+      return new Style({
+        image: boatIcon,
+        text: new Text({
+          text: '',
+          offsetX: 0,
+          offsetY: 22
+        })
+      });
+    }
+
+    // Fallback: use icon with optional scaling (only if L/B ratio is valid)
+    let calculatedScale: number | null = null;
+    if (this.scaleToSize && this.mapResolution && hasValidDimensions) {
+      // Icon is 24pt (32px) but actual vessel shape is smaller
+      // Effective vessel length in icon is ~25.5 pixels
+      const EFFECTIVE_ICON_LENGTH = 25.5;
+      calculatedScale = vesselLength! / (this.mapResolution * EFFECTIVE_ICON_LENGTH);
+      // Clamp scale to reasonable bounds
+      calculatedScale = Math.max(0.1, Math.min(calculatedScale, 50));
+    }
+
+    // Helper to check if image is an Icon (has getSrc method)
+    const isIconImage = (img: any): img is Icon => {
+      return img && typeof img.getSrc === 'function';
+    };
+
+    // Helper to create scaled icon from an existing icon
+    const createScaledIcon = (baseIcon: Icon, scale: number): Icon => {
+      return new Icon({
+        src: baseIcon.getSrc(),
+        scale: scale,
+        anchor: baseIcon.getAnchor(),
+        anchorXUnits: 'pixels',
+        anchorYUnits: 'pixels',
+        rotateWithView: true,
+        rotation: baseIcon.getRotation()
+      });
+    };
+
+    // Get base icon from registry
+    const icon = this.mapImages.getVessel(
       target.id === this.focusId
-        ? this.mapImages.getVessel('focused')
+        ? 'focused'
         : setStale
-          ? this.mapImages.getVessel('inactive', isMoored)
+          ? 'inactive'
           : target.buddy
-            ? this.mapImages.getVessel('buddy', isMoored)
+            ? 'buddy'
             : shipClass === -1
-              ? this.mapImages.getVessel('default', isMoored)
-              : this.mapImages.getVessel(shipClass, isMoored);
+              ? 'default'
+              : shipClass,
+      isMoored
+    );
 
     if (icon && typeof this.targetStyles === 'undefined') {
-      if (icon) {
-        return new Style({
-          image: icon,
-          text: new Text({
-            text: '',
-            offsetX: 0,
-            offsetY: isMoored ? 12 : 22
-          })
-        });
-      }
-      return;
+      const image = calculatedScale !== null && isIconImage(icon)
+        ? createScaledIcon(icon, calculatedScale)
+        : icon;
+      return new Style({
+        image: image,
+        text: new Text({
+          text: '',
+          offsetX: 0,
+          offsetY: isMoored ? 12 : 22
+        })
+      });
     }
 
     if (typeof this.targetStyles !== 'undefined') {
       if (target.id === this.focusId && this.targetStyles.focus) {
         s = this.targetStyles.focus;
       } else if (setStale) {
-        // stale
         s = this.targetStyles.inactive ?? this.targetStyles.default;
       } else if (target.type && this.targetStyles[shipClass]) {
-        // ship type & state
         if (target.state && this.targetStyles[shipClass][target.state]) {
           s = this.targetStyles[shipClass][target.state];
         } else {
           s = this.targetStyles[shipClass]['default'];
         }
       } else if (target.buddy && this.targetStyles.buddy) {
-        // buddy
         s = this.targetStyles.buddy;
       } else {
-        // all others
         if (target.state && this.targetStyles[target.state]) {
-          // state only
           s = this.targetStyles[target.state];
         } else {
           s = this.targetStyles.default;
@@ -203,16 +378,14 @@ export class AISVesselsLayerComponent extends AISBaseLayerComponent {
     } else if (this.layerProperties && this.layerProperties.style) {
       s = this.layerProperties.style;
     } else {
+      // Fallback styles using RegularShape
       if (target.id === this.focusId) {
         s = new Style({
           image: new RegularShape({
             points: 3,
             radius: 4,
             fill: new Fill({ color: 'red' }),
-            stroke: new Stroke({
-              color: 'black',
-              width: 1
-            }),
+            stroke: new Stroke({ color: 'black', width: 1 }),
             rotateWithView: true
           })
         });
@@ -222,10 +395,7 @@ export class AISVesselsLayerComponent extends AISBaseLayerComponent {
             points: 3,
             radius: 4,
             fill: new Fill({ color: 'orange' }),
-            stroke: new Stroke({
-              color: 'black',
-              width: 1
-            }),
+            stroke: new Stroke({ color: 'black', width: 1 }),
             rotateWithView: true
           })
         });
@@ -235,15 +405,22 @@ export class AISVesselsLayerComponent extends AISBaseLayerComponent {
             points: 3,
             radius: 4,
             fill: new Fill({ color: 'magenta' }),
-            stroke: new Stroke({
-              color: 'black',
-              width: 1
-            }),
+            stroke: new Stroke({ color: 'black', width: 1 }),
             rotateWithView: true
           })
         });
       }
     }
+
+    // Apply scale-to-size to the selected style's image
+    if (calculatedScale !== null && s) {
+      const currentImage = s.getImage();
+      if (isIconImage(currentImage)) {
+        s = s.clone();
+        s.setImage(createScaledIcon(currentImage, calculatedScale));
+      }
+    }
+
     return s;
   }
 

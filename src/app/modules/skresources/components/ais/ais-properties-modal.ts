@@ -115,7 +115,7 @@ import { getAisIcon } from 'src/app/modules/icons';
               </div>
             }
             @if (
-              data.target.design.length?.overall && data.target.design?.beam
+              data.target.design.length && data.target.design?.beam
             ) {
               <div style="display:flex;">
                 <div class="key-label">Dimensions:</div>
@@ -211,7 +211,7 @@ export class AISPropertiesModal {
     this.flagIcon = `${this.app.hostDef.url}/signalk/v2/api/resources/flags/mmsi/${this.data.target.mmsi}`;
     this.display = {
       length: app.formatValueForDisplay(
-        this.data.target.design.length?.overall,
+        this.data.target.design.length,
         'm',
         true
       ),

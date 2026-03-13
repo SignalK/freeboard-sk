@@ -209,6 +209,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
   protected mapZoomLevel = signal<number>(1);
   protected mapCenterPositon = signal<Position>([0, 0]);
   protected mapRotation = signal<number>(0);
+  protected mapResolution = signal<number>(null);
 
   protected showNoteslayer = signal<boolean>(false); //control notes layer display
 
@@ -551,6 +552,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
   // handle map move / zoom
   protected onMapMoveEnd(e: FBMapEvent) {
     this.app.config.map.zoomLevel = e.zoom;
+    this.mapResolution.set(e.resolution);
 
     this.app.mapExtent.update(() => e.extent);
     this.app.config.map.center = e.lonlat as Position;

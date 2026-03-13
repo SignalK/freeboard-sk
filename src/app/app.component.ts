@@ -1339,6 +1339,11 @@ export class AppComponent {
     this.app.saveConfig();
   }
 
+  protected toggleScaleToSize() {
+    this.app.config.vessels.scaleToSize = !this.app.config.vessels.scaleToSize;
+    this.app.saveConfig();
+  }
+
   protected toggleCourseData() {
     this.app.config.ui.showCourseData = !this.app.config.ui.showCourseData;
     this.app.saveConfig();

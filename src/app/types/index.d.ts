@@ -130,7 +130,9 @@ export interface IAppConfig {
     cogLine: number; // (minutes) length = cogLine * sog
     aisCogLine: number; // (minutes) length = cogLine * sog
     headingLineSize: number; // mode for display of heading line -1 = default
-    iconScale: number; // scale to apply to self Vessel icon
+    iconScale: number; // scale to apply to self Vessel icon (used when scaleToSize is false)
+    scaleToSize: boolean; // draw vessel icon to actual scale based on dimensions
+    vesselDimensions: { length: number; beam: number }; // vessel dimensions in meters for scale-to-size rendering
     rangeCircles: boolean; //display range circles
     rangeCircleCount: number; // number of circles to display
     rangeCircleMinZoom: number; // min zoom level where they are displayed
