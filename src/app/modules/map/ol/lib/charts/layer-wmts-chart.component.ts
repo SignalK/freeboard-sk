@@ -14,7 +14,8 @@ import { MapComponent } from '../map.component';
 
 import { FBChart } from 'src/app/types';
 import WMTS, { optionsFromCapabilities } from 'ol/source/WMTS';
-import { WMTSGetCapabilities } from 'src/app/modules/skresources/components/charts/wmslib';
+
+import WMTSCapabilities from 'ol/format/WMTSCapabilities';
 import { resolveLayerMaxZoom } from './zoom-utils';
 
 // ** Freeboard WMTS Chart **
@@ -64,7 +65,7 @@ export class WmtsChartLayerComponent implements OnDestroy {
     if (!this.capabilities) {
       try {
         const url = `${chart[1].url}`;
-        this.capabilities = await WMTSGetCapabilities(url);
+        this.capabilities = await this.fetchWMTSCapabilities(url);
       } catch (err) {
         console.log(err);
         return;
@@ -120,5 +121,24 @@ export class WmtsChartLayerComponent implements OnDestroy {
       this.layer.setOpacity(chart[1].defaultOpacity ?? 1);
     }
     map.render();
+  }
+
+  /** Retrieve WMTS capabilities as JSON object*/
+  private async fetchWMTSCapabilities(hostUrl: string) {
+    const abortCtrl = new AbortController();
+    const abortTimer = setTimeout(() => abortCtrl.abort(), 5000);
+    try {
+      const r = await fetch(hostUrl + `?request=GetCapabilities&service=wmts`, {
+        signal: abortCtrl.signal
+      });
+      clearTimeout(abortTimer);
+      const res = await r.text();
+      const wmts = new WMTSCapabilities();
+      const capabilities = wmts.read(res);
+      return capabilities;
+    } catch (err) {
+      clearTimeout(abortTimer);
+      throw new Error(err.message ?? 'Unable to retrieve capabilities!');
+    }
   }
 }

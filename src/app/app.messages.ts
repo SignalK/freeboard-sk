@@ -1,43 +1,39 @@
 const WHATS_NEW = [
-  /*{
+  {
     type: 'signalk-server-node',
     title: 'Deprecation Notice',
     message: `
-        The built-in <b>Weather Service</b> has been removed!
+        With the recent release of the <b>Notifications API</b>, Freeboard-SK
+        will be moving it's notification and alarm features to use this API
+        exclusively in an upcoming release.
         <br>&nbsp;<br>
-        Weather forecast functionality remains available when using 
-        Signal K server v2.16 (or later) and a weather provider plugin from the AppStore.
-        <br>&nbsp;<br>
-        See <a href="assets/help/index.html" target="help">HELP</a> 
-        for more details.
+        Be sure to keep your Signal K server installation up to date
+        to ensure notification and alarm features to remain operational.
       `
   },
   {
     type: 'signalk-server-node',
     title: 'New Feature',
     message: `
-        <b>Map Overlays</b>
+        <b>Server Unit Preferences</b>
         <br>&nbsp;<br>
-        Overlays allow map data from WMS & WMTS sources to be overlayed onto charts and can be 
-        configured to refresh at regular intervals.
+        Initial support has been added for unit preferences defined on the Signal K server
+        for the speed, depth, distance and temperature unit categories.
         <br>&nbsp;<br>
-        See <a href="assets/help/index.html" target="help">HELP</a> 
+        See <a href="assets/help/index.html#settings" target="help">HELP</a> 
         for more details.
       `
   },
   {
     type: 'signalk-server-node',
-    title: 'New Feature',
+    title: 'Updated Feature',
     message: `
-        <b>Hazardous Area Alarm</b>
+        <b>Range Rings</b>
         <br>&nbsp;<br>
-        Attribute a region as hazardous which will sound an alarm when the vessel enters
-        its bounds.
-        <br>&nbsp;<br>
-        See <a href="assets/help/index.html" target="help">HELP</a> 
-        for more details.
+        Define the distance between range rings instead of it being determined by the zoom
+        level of the map.
       `
-  }*/
+  }
 ];
 
 export const WELCOME_MESSAGES = {

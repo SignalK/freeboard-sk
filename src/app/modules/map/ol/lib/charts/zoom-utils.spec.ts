@@ -1,3 +1,4 @@
+import { expect, describe, it } from 'vitest';
 import { resolveLayerMaxZoom } from './zoom-utils';
 
 describe('resolveLayerMaxZoom', () => {

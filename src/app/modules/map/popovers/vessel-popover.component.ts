@@ -300,14 +300,18 @@ export class VesselPopoverComponent {
       'm'
     );
     if (this.vessel.closestApproach) {
-      this.cpa = this.app.formatValueForDisplay(
-        this.vessel.closestApproach.distance,
-        'm'
-      );
-      this.tcpa = this.app.formatValueForDisplay(
-        this.vessel.closestApproach.timeTo,
-        'sec'
-      );
+      if (typeof this.vessel.closestApproach.distance === 'number') {
+        this.cpa = this.app.formatValueForDisplay(
+          this.vessel.closestApproach.distance,
+          'm'
+        );
+      }
+      if (typeof this.vessel.closestApproach.timeTo === 'number') {
+        this.tcpa = this.app.formatValueForDisplay(
+          this.vessel.closestApproach.timeTo,
+          'sec'
+        );
+      }
     }
   }
 

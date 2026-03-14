@@ -14,8 +14,9 @@ import { MatInputModule } from '@angular/material/input';
 import { AppFacade } from 'src/app/app.facade';
 import { ChartProvider } from 'src/app/types';
 import { SKInfoLayer } from '../../custom-resource-classes';
-import { WMSGetCapabilities, LayerNode, parseWMSCapabilities } from './wmslib';
+import { LayerNode } from './maplib';
 import { NodeTreeSelect } from './node-tree-select';
+import { wmsCapabilitiesInWorker } from './maplib';
 
 /********* WMSDialog **********
 	data: SKChart
@@ -222,21 +223,16 @@ export class WMSDialog {
     this.errorMsg = '';
     try {
       this.isFetching = true;
-      const capabilities = await WMSGetCapabilities(wmsHost);
+      const capabilities = await wmsCapabilitiesInWorker(wmsHost);
+      this.wmsBase = {
+        name: capabilities?.name ?? '',
+        description: capabilities?.description ?? '',
+        type: 'WMS',
+        url: wmsHost,
+        layers: []
+      };
+      this.dataSource = capabilities.layers;
       this.isFetching = false;
-      this.dataSource = [];
-      if (capabilities && capabilities.Capability) {
-        this.wmsBase = {
-          name: '',
-          description: '',
-          type: 'WMS',
-          url: wmsHost,
-          layers: []
-        };
-        parseWMSCapabilities(capabilities, this.dataSource);
-      } else {
-        this.errorMsg = 'Invalid response received!';
-      }
     } catch (err) {
       this.isFetching = false;
       this.fetchError = true;

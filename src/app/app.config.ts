@@ -109,7 +109,6 @@ export function cleanConfig(
     settings.units.headingAttribute =
       (settings as any).selections.headingAttribute ?? 'navigation.headingTrue';
   }
-
   if (typeof settings.units.preferredPaths === 'undefined') {
     settings.units.preferredPaths = {
       tws: 'environment.wind.speedTrue',
@@ -117,6 +116,9 @@ export function cleanConfig(
       heading: 'navigation.courseOverGroundTrue',
       course: 'navigation.courseGreatCircle'
     };
+  }
+  if (typeof settings.units.useServerPrefs === 'undefined') {
+    settings.units.useServerPrefs = false;
   }
 
   if (typeof settings.course === 'undefined') {
@@ -147,6 +149,8 @@ export function cleanConfig(
       scaleToSize: false,
       vesselDimensions: { length: 10, beam: 3 },
       rangeCircles: false,
+      rangeCirclesFixed: false,
+      rangeCirclesDistance: 1000,
       rangeCircleCount: 4,
       rangeCircleMinZoom: 8,
       aisStaleAge: (settings as any).selections.aisStaleAge ?? 360000,
@@ -174,6 +178,12 @@ export function cleanConfig(
     }
     if (typeof settings.vessels.vesselDimensions === 'undefined') {
       settings.vessels.vesselDimensions = { length: 10, beam: 3 };
+    }
+    if (typeof settings.vessels.rangeCirclesFixed === 'undefined') {
+      settings.vessels.rangeCirclesFixed = false;
+    }
+    if (typeof settings.vessels.rangeCirclesDistance === 'undefined') {
+      settings.vessels.rangeCirclesDistance = 1000;
     }
   }
 
@@ -285,23 +295,6 @@ export function cleanConfig(
   delete (settings as any).selections.trailDuration;
   delete (settings as any).selections.trailResolution;
 
-  /**
-   * v2 deprecations
-   * @todo For removal (Applied 2.16.1)
-   */
-  delete (settings as any).map.northUp;
-  delete (settings as any).map.moveMap;
-  delete (settings as any).map.limitZoom;
-  delete (settings as any).map.invertColor;
-  delete (settings as any).toolBarButtons;
-  delete (settings as any).selections.wakeLock;
-
-  /**
-   *  Remove notes selections
-   * @todo For removal (Applied 2.14.2)
-   */
-  delete (settings as any).selections.notes;
-
   // ************************************************
 
   if (typeof settings.selections === 'undefined') {
@@ -400,7 +393,8 @@ export function defaultConfig(): IAppConfig {
         twd: 'environment.wind.directionTrue',
         heading: 'navigation.courseOverGroundTrue',
         course: 'navigation.courseGreatCircle'
-      }
+      },
+      useServerPrefs: false
     },
     map: {
       // ** map config
@@ -443,6 +437,8 @@ export function defaultConfig(): IAppConfig {
       scaleToSize: false,
       vesselDimensions: { length: 10, beam: 3 },
       rangeCircles: false,
+      rangeCirclesFixed: false,
+      rangeCirclesDistance: 1000, // distance in m
       rangeCircleCount: 4,
       rangeCircleMinZoom: 8,
       aisStaleAge: 360000, // time since last update in ms (6 min)

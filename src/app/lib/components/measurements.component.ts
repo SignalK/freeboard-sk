@@ -103,7 +103,7 @@ export class Measurements {
   @Input() coords: Array<Position> = [];
   @Input() index = -1;
   @Input() totalOnly = false;
-  @Output() cancel: EventEmitter<boolean> = new EventEmitter();
+  @Output() cancel: EventEmitter<void> = new EventEmitter();
 
   protected totalDistance: string;
   protected legDistance: string;

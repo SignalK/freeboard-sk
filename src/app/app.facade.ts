@@ -23,7 +23,13 @@ import { Convert } from './lib/convert';
 import { SignalKClient } from 'signalk-client-angular';
 import { SKWorkerService } from './modules';
 
-import { Position, ErrorList, IAppConfig, LineString } from './types';
+import {
+  Position,
+  ErrorList,
+  IAppConfig,
+  LineString,
+  SKServerUnitPrefs
+} from './types';
 
 import {
   defaultConfig,
@@ -54,7 +60,7 @@ const FSK: AppInfoDef = {
   id: 'freeboard',
   name: 'Freeboard-SK',
   description: `Signal K Chart Plotter.`,
-  version: '2.19.9',
+  version: '2.20.0',
   url: 'https://github.com/signalk/freeboard-sk',
   logo: './assets/img/app_logo.png'
 };
@@ -114,16 +120,20 @@ export class AppFacade extends InfoService {
     );
   }
 
+  public serverConfig = {
+    unitPreferences: signal<SKServerUnitPrefs>(undefined)
+  };
+
   // controls map zoom limits
   public MAP_ZOOM_EXTENT = {
     min: 2,
     max: 28
   };
 
-  private fbAudioContext =
+  private AudioContext =
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     window.AudioContext || (window as any).webkitAudioContext;
-  public audio = { context: new this.fbAudioContext() };
+  public audio = { context: new AudioContext() };
 
   public db: AppDB;
 
@@ -278,6 +288,24 @@ export class AppFacade extends InfoService {
       this.config.ui = this.uiConfig();
       this.saveConfig();
     });
+    effect(() => {
+      this.alignUnitPrefs(this.serverConfig.unitPreferences());
+    });
+  }
+
+  /**
+   * Retrieve unit preferences from the signal k server
+   * Sets serverConfig.unitPreferences signal
+   */
+  public fetchUnitPrefsFromSKServer() {
+    this.signalk.get('/signalk/v1/unitpreferences/active').subscribe({
+      next: (res: SKServerUnitPrefs) => {
+        this.serverConfig.unitPreferences.set(res);
+      },
+      error: () => {
+        this.debug('No server unit preferences...using fallback!');
+      }
+    });
   }
 
   /**
@@ -346,18 +374,67 @@ export class AppFacade extends InfoService {
     this.suppressPersist = false; // allow persisting of config.
   }
 
+  /**
+   * Align server unit prefernce settings with FB units config.
+   */
+  public alignUnitPrefs(units: SKServerUnitPrefs) {
+    if (!this.config.units.useServerPrefs) return;
+    this.debug('Aligning Unit preferences from server:', units);
+    if (!units?.categories) {
+      this.debug('No Unit preferences available!');
+      return;
+    }
+    if (units.categories.speed) {
+      this.config.units.speed =
+        units.categories.speed.targetUnit === 'm/s'
+          ? 'msec'
+          : ['km/h', 'kph'].includes(units.categories.speed.targetUnit)
+            ? 'kmh'
+            : units.categories.speed.targetUnit === 'mph'
+              ? 'mph'
+              : ['kn', 'knot'].includes(units.categories.speed.targetUnit)
+                ? 'kn'
+                : this.config.units.speed;
+    }
+    if (units.categories.depth) {
+      this.config.units.depth =
+        units.categories.depth.targetUnit === 'm'
+          ? 'm'
+          : units.categories.depth.targetUnit === 'foot'
+            ? 'ft'
+            : this.config.units.depth;
+    }
+    if (units.categories.distance) {
+      this.config.units.distance = ['naut-mile'].includes(
+        units.categories.distance.targetUnit
+      )
+        ? 'ft'
+        : ['kilometer'].includes(units.categories.distance.targetUnit)
+          ? 'm'
+          : this.config.units.distance;
+    }
+    if (units.categories.temperature) {
+      this.config.units.temperature =
+        units.categories.depth.targetUnit === 'C'
+          ? 'c'
+          : units.categories.temperature.targetUnit === 'F'
+            ? 'f'
+            : this.config.units.temperature;
+    }
+  }
+
   /** Retrieve and apply saved config from server */
   public async loadSettingsfromServer(): Promise<boolean> {
     return new Promise((resolve) => {
-      this.signalk.isLoggedIn().subscribe(
-        (r: boolean) => {
+      this.signalk.isLoggedIn().subscribe({
+        next: (r: boolean) => {
           this.isLoggedIn.set(r);
           if (r) {
             this.debug(
               'loadSettingsfromServer(): Is authenticated. Fetching config from SK Server...'
             );
-            this.signalk.appDataGet('/').subscribe(
-              (serverSettings: IAppConfig) => {
+            this.signalk.appDataGet('/').subscribe({
+              next: (serverSettings: IAppConfig) => {
                 if (Object.keys(serverSettings).length === 0) {
                   resolve(false);
                 }
@@ -366,17 +443,18 @@ export class AppFacade extends InfoService {
                   this.config = serverSettings;
                   this.doPostConfigLoad();
                   this.alignCustomResourcesPaths();
+                  this.alignUnitPrefs(this.serverConfig.unitPreferences());
                   this.saveConfig();
                 }
                 resolve(true);
               },
-              () => {
+              error: () => {
                 console.info(
                   'applicationData: Unable to retrieve settings from server!'
                 );
                 resolve(false);
               }
-            );
+            });
           } else {
             this.debug(
               'loadSettingsfromServer(): Not authenticated to SK Server!'
@@ -384,12 +462,12 @@ export class AppFacade extends InfoService {
             return resolve(false);
           }
         },
-        () => {
+        error: () => {
           this.isLoggedIn.set(false);
           this.debug('loadSettingsfromServer(): Error fetching loginStatus!');
           resolve(false);
         }
-      );
+      });
     });
   }
 
@@ -623,10 +701,10 @@ export class AppFacade extends InfoService {
   override saveConfig() {
     super.saveConfig();
     if (this.isLoggedIn()) {
-      this.signalk.appDataSet('/', this.config).subscribe(
-        () => this.debug('saveConfig: config saved to server.'),
-        () => this.debug('saveConfig: Cannot save config to server!')
-      );
+      this.signalk.appDataSet('/', this.config).subscribe({
+        next: () => this.debug('saveConfig: config saved to server.'),
+        error: () => this.debug('saveConfig: Cannot save config to server!')
+      });
     }
   }
 
@@ -637,7 +715,7 @@ export class AppFacade extends InfoService {
   }
 
   /** display Welcome dialog */
-  showWelcome() {
+  showWelcome(suppressFirstRun: boolean) {
     let btnText = 'Get Started';
     const messages = [];
     let showPrefs = false;
@@ -646,7 +724,7 @@ export class AppFacade extends InfoService {
       !this.kioskMode() &&
       ['first_run', 'major', 'minor'].includes(this.launchStatus.result)
     ) {
-      if (this.launchStatus.result === 'first_run') {
+      if (this.launchStatus.result === 'first_run' && !suppressFirstRun) {
         messages.push(WELCOME_MESSAGES['welcome']);
         if (this.data.server && this.data.server.id) {
           messages.push(WELCOME_MESSAGES[this.data.server.id]);
@@ -773,8 +851,8 @@ export class AppFacade extends InfoService {
       msg = 'Operation could not be completed!\n';
     }
     this.showAlert(
-      `${err.status}: ${err.statusText}`,
-      msg + `${err.error?.message}`
+      `${err.status ?? 'Error'}`,
+      msg + `${err.error?.message ?? ''}`
     );
   }
 

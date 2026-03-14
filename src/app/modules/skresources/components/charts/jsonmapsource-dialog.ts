@@ -1,4 +1,4 @@
-import { Component, Inject } from '@angular/core';
+import { Component, inject, Inject } from '@angular/core';
 import {
   MatDialogModule,
   MatDialogRef,
@@ -166,9 +166,10 @@ export class JsonMapSourceDialog {
     layers: string[];
   };
 
+  protected app = inject(AppFacade);
+  protected dialogRef = inject(MatDialogRef<JsonMapSourceDialog>);
+
   constructor(
-    public app: AppFacade,
-    public dialogRef: MatDialogRef<JsonMapSourceDialog>,
     private http: HttpClient,
     @Inject(MAT_DIALOG_DATA) public data: SKChart
   ) {}
@@ -183,8 +184,8 @@ export class JsonMapSourceDialog {
     this.fetchError = false;
     this.isFetching = true;
     this.provider = undefined;
-    this.http.get(uri).subscribe(
-      (res: TileJson | MapboxStyle) => {
+    this.http.get(uri).subscribe({
+      next: (res: TileJson | MapboxStyle) => {
         this.isFetching = false;
         if (!res.name) {
           this.errorMsg = 'Invalid response received!';
@@ -211,12 +212,12 @@ export class JsonMapSourceDialog {
           }
         }
       },
-      (err: HttpErrorResponse) => {
+      error: (err: HttpErrorResponse) => {
         this.isFetching = false;
         this.fetchError = true;
         this.errorMsg = err.message;
       }
-    );
+    });
   }
 
   parseFileContents(json: TileJson | MapboxStyle, uri: string): ChartProvider {

@@ -228,10 +228,14 @@ export class FreeboardLiveLayerComponent
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let result: any;
     if (!this.wmtsCapabilitesMap.has(ldef[1].values?.url)) {
+      const abortCtrl = new AbortController();
+      const abortTimer = setTimeout(() => abortCtrl.abort(), 5000);
       try {
         const response = await fetch(
-          `${ldef[1].values?.url}?request=GetCapabilities&service=wmts`
+          `${ldef[1].values?.url}?request=GetCapabilities&service=wmts`,
+          { signal: abortCtrl.signal }
         );
+        clearTimeout(abortTimer);
         const capabilitiesXml = await response.text();
         if (!capabilitiesXml) {
           console.log('Error: GetCapabilities response is empty!');
@@ -241,7 +245,7 @@ export class FreeboardLiveLayerComponent
         result = parser.read(capabilitiesXml);
         this.wmtsCapabilitesMap.set(ldef[1].values?.url, result);
       } catch (err) {
-        console.log(err);
+        clearTimeout(abortTimer);
         return;
       }
     } else {

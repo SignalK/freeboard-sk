@@ -1,4 +1,4 @@
-import { Component, Inject } from '@angular/core';
+import { Component, inject, Inject } from '@angular/core';
 import {
   MatDialogModule,
   MatDialogRef,
@@ -13,10 +13,10 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatInputModule } from '@angular/material/input';
 import { MatListModule, MatSelectionListChange } from '@angular/material/list';
 import { AppFacade } from 'src/app/app.facade';
-import { HttpClient } from '@angular/common/http';
 import { ChartProvider } from 'src/app/types';
 import { SKInfoLayer } from '../../custom-resource-classes';
-import { getWMTSLayers, WMTSGetCapabilities } from './wmslib';
+import { WMTSLayerDef } from './maplib';
+import { wmtsCapabilitiesInWorker } from './maplib';
 
 /********* WMTSDialog **********
 	data: <WMTSCapabilities.xml>
@@ -124,15 +124,15 @@ export class WMTSDialog {
   protected isFetching = false;
   protected fetchError = false;
   protected errorMsg = '';
-  protected wmtsLayers: Array<ChartProvider | SKInfoLayer> = [];
+  protected wmtsLayers: WMTSLayerDef[] = [];
   protected selections: Array<number> = [];
   protected selectionInfo: Array<{ name: string; description: string }> = [];
   protected hostUrl = '';
 
+  protected app = inject(AppFacade);
+  protected dialogRef = inject(MatDialogRef<WMTSDialog>);
+
   constructor(
-    public app: AppFacade,
-    public dialogRef: MatDialogRef<WMTSDialog>,
-    private http: HttpClient,
     @Inject(MAT_DIALOG_DATA)
     public data: {
       format: 'chartprovider' | 'infolayer';
@@ -144,10 +144,18 @@ export class WMTSDialog {
   }
 
   handleSave() {
-    const sources: Array<ChartProvider | SKInfoLayer> = this.selections.map(
-      (layerIdx) => this.wmtsLayers[layerIdx]
-    );
-    this.dialogRef.close(sources);
+    let l: SKInfoLayer;
+    const layer = this.wmtsLayers[this.selections[0]];
+    l = new SKInfoLayer();
+    l.name = layer.name ?? 'Untitled layer';
+    l.description = layer.description ?? '';
+    l.values.layers = [layer.id];
+    l.values.url = this.hostUrl;
+    l.values.sourceType = 'WMTS';
+    if (layer.time) {
+      l.values.time = layer.time;
+    }
+    this.dialogRef.close([l]);
   }
 
   /**
@@ -159,27 +167,25 @@ export class WMTSDialog {
     this.selectionInfo = [];
     this.wmtsLayers = [];
     this.errorMsg = '';
-
-    this.isFetching = true;
+    this.hostUrl = wmtsHost;
     try {
-      this.isFetching = true;
-      const capabilities = await WMTSGetCapabilities(wmtsHost);
-      this.isFetching = false;
-      if (capabilities && capabilities.Contents?.Layer) {
-        this.wmtsLayers = getWMTSLayers(
-          capabilities,
-          wmtsHost,
-          this.data.format
-        ).sort((a, b) => (a.name < b.name ? -1 : 1));
-        if (this.data.format === 'chartprovider' && this.wmtsLayers.length) {
-          // return skeleton chart record
-          const cht = this.wmtsLayers[0] as ChartProvider;
-          cht.layers = [];
-          this.dialogRef.close([cht]);
-        }
-      } else {
-        this.errorMsg = 'Invalid response received!';
+      if (this.data.format === 'chartprovider') {
+        this.dialogRef.close([
+          {
+            name: 'New WMTS Chart',
+            description: '',
+            type: 'WMTS',
+            url: wmtsHost,
+            format: 'png',
+            layers: []
+          }
+        ]);
+        return;
       }
+      this.isFetching = true;
+      const capabilities = await wmtsCapabilitiesInWorker(wmtsHost);
+      this.isFetching = false;
+      this.wmtsLayers = capabilities.layers;
     } catch (err) {
       this.isFetching = false;
       this.fetchError = true;

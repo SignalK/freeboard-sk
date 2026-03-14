@@ -8,7 +8,7 @@ import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 
 import { AppFacade } from 'src/app/app.facade';
-import { LayerNode } from './wmslib';
+import { LayerNode } from './maplib';
 
 /********* NodeTree Select ***********/
 @Component({
