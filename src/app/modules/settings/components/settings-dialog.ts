@@ -109,11 +109,9 @@ export class SettingsDialog implements OnInit {
     this.formattedNumberModel = {
       rangeCirclesDistance:
         this.facade.settings.units.distance === 'm'
-          ? Math.floor(this.facade.settings.vessels.rangeCirclesDistance / 1000)
-          : Math.floor(
-              Convert.kmToNauticalMiles(
-                this.facade.settings.vessels.rangeCirclesDistance / 1000
-              )
+          ? this.facade.settings.vessels.rangeCirclesDistance / 1000
+          : Convert.kmToNauticalMiles(
+              this.facade.settings.vessels.rangeCirclesDistance / 1000
             )
     };
   }
@@ -188,12 +186,10 @@ export class SettingsDialog implements OnInit {
     }
     this.facade.settings.vessels.rangeCirclesDistance =
       this.facade.settings.units.distance === 'm'
-        ? Math.floor(this.formattedNumberModel.rangeCirclesDistance * 1000)
-        : Math.floor(
-            Convert.nauticalMilesToKm(
-              this.formattedNumberModel.rangeCirclesDistance
-            ) * 1000
-          );
+        ? this.formattedNumberModel.rangeCirclesDistance * 1000
+        : Convert.nauticalMilesToKm(
+            this.formattedNumberModel.rangeCirclesDistance
+          ) * 1000;
     this.persistModel();
   }
 

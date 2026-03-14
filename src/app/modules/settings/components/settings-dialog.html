@@ -902,12 +902,13 @@
                             [(ngModel)]="formattedNumberModel.rangeCirclesDistance"
                             (change)="parseFormattedNumber(rangeCirclesDistance)"
                             [disabled]="!facade.settings.vessels.rangeCircles || !facade.settings.vessels.rangeCirclesFixed"
-                            min="1"
+                            min="0.0001"
+                            step="0.0001"
                           />
                           @if(rangeCirclesDistance.invalid &&
                           (rangeCirclesDistance.dirty ||
                           rangeCirclesDistance.touched)) {
-                          <mat-error> Please enter a number >= 1. </mat-error>
+                          <mat-error> Please enter a number >= 0.0001. </mat-error>
                           }
                         </mat-form-field>
                       </div>
