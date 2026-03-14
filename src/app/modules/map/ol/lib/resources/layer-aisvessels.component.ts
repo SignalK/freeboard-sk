@@ -16,11 +16,11 @@ import { SKVessel } from 'src/app/modules/skresources';
 import { fromLonLatArray } from '../util';
 import { MapImageRegistry } from '../map-image-registry.service';
 
-// Helper to validate L/B ratio (realistic ship ratios are 2:1 to 12:1)
+// Helper to validate L/B ratio (realistic ship ratios are 1.5:1 to 12:1)
 function isValidLBRatio(length: number, beam: number): boolean {
   if (!length || !beam || beam <= 0 || length <= 0) return false;
   const ratio = length / beam;
-  return ratio >= 2 && ratio <= 12;
+  return ratio >= 1.5 && ratio <= 12;
 }
 
 // Helper to create a boat-shaped icon using Canvas

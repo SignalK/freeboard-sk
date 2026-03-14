@@ -731,6 +731,14 @@
     >
     </fb-cog-line>
   }
+  @if (gotoMarker()) {
+    <fb-goto-marker
+      [position]="gotoMarker()"
+      [label]="gotoMarkerLabel()"
+      [zIndex]="500"
+    >
+    </fb-goto-marker>
+  }
   @if (app.config.vessels.windVectors) {
     <fb-wind-lines
       [twd]="this.dfeat.active.wind.direction"
