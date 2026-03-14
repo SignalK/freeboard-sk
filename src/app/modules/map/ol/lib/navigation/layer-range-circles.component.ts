@@ -46,6 +46,8 @@ export class RangeCirclesComponent implements OnInit, OnDestroy, OnChanges {
   private theme = LightTheme;
 
   protected darkMode = input<boolean>(false);
+  protected fixedMode = input<boolean>(false);
+  protected fixedDistance = input<number>(1000);
 
   /**
    * This event is triggered after the layer is initialized
@@ -55,10 +57,9 @@ export class RangeCirclesComponent implements OnInit, OnDestroy, OnChanges {
 
   @Input() position: Coordinate;
   @Input() maxCircles = 4;
-  @Input() minZoom: number;
   @Input() mapZoom: number;
   @Input() units = 'm';
-
+  @Input() minZoom: number;
   @Input() opacity: number;
   @Input() visible: boolean;
   @Input() extent: Extent;
@@ -76,6 +77,12 @@ export class RangeCirclesComponent implements OnInit, OnDestroy, OnChanges {
     effect(() => {
       this.theme = this.darkMode() ? DarkTheme : LightTheme;
       this.parseValues();
+    });
+
+    effect(() => {
+      this.fixedMode();
+      this.fixedDistance();
+      this.processChange();
     });
   }
 
@@ -106,11 +113,7 @@ export class RangeCirclesComponent implements OnInit, OnDestroy, OnChanges {
             key
           )
         ) {
-          this.parseValues();
-          if (this.source) {
-            this.source.clear();
-            this.source.addFeatures(this.features);
-          }
+          this.processChange();
         } else if (key === 'layerProperties') {
           this.layer.setProperties(properties, false);
         } else {
@@ -131,11 +134,11 @@ export class RangeCirclesComponent implements OnInit, OnDestroy, OnChanges {
   }
 
   parseValues() {
-    const map = this.mapComponent.getMap();
-    const zoomResolution = map.getView().getResolutionForZoom(this.mapZoom);
-    const fa: Feature[] = [];
-    if (this.mapZoom >= this.minZoom) {
-      const range =
+    let range: number;
+    if (!this.fixedMode()) {
+      const map = this.mapComponent.getMap();
+      const zoomResolution = map.getView().getResolutionForZoom(this.mapZoom);
+      range =
         zoomResolution > 5000
           ? 150000
           : zoomResolution > 2000
@@ -157,6 +160,11 @@ export class RangeCirclesComponent implements OnInit, OnDestroy, OnChanges {
                           : zoomResolution > 10
                             ? 500
                             : 250;
+    } else {
+      range = this.fixedDistance();
+    }
+    const fa: Feature[] = [];
+    if (this.mapZoom >= this.minZoom) {
       const st = this.buildCircleStyle();
       for (let i = 1; i <= this.maxCircles; ++i) {
         const d = range * i;
@@ -175,6 +183,14 @@ export class RangeCirclesComponent implements OnInit, OnDestroy, OnChanges {
       }
     }
     this.features = fa;
+  }
+
+  processChange() {
+    this.parseValues();
+    if (this.source) {
+      this.source.clear();
+      this.source.addFeatures(this.features);
+    }
   }
 
   // build target style

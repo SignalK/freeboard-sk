@@ -1,4 +1,4 @@
-import { Component, OnInit, ElementRef, signal } from '@angular/core';
+import { Component, OnInit, ElementRef, signal, effect } from '@angular/core';
 
 import { FormsModule, NgModel } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
@@ -25,6 +25,7 @@ import { defaultConfig } from 'src/app/app.config';
 import { SettingsOptions } from '../settings.facade';
 import { S57Service } from '../../map/ol';
 import { AppFacade } from 'src/app/app.facade';
+import { Convert } from 'src/app/lib/convert';
 
 interface PreferredPathsResult {
   save: boolean;
@@ -64,10 +65,17 @@ export class SettingsDialog implements OnInit {
 
   protected options: SettingsOptions;
 
-  public aisStateFilter = {
+  protected aisStateFilter = {
     moored: false,
     anchored: false
   };
+
+  // model to hold numbers that require unit conversion
+  protected formattedNumberModel = {
+    rangeCirclesDistance: 1000
+  };
+
+  protected unitsChangedSignal = signal<number>(0);
 
   private saveOnClose = false;
 
@@ -80,6 +88,11 @@ export class SettingsDialog implements OnInit {
     protected app: AppFacade
   ) {
     this.options = new SettingsOptions();
+
+    effect(() => {
+      this.unitsChangedSignal();
+      this.formatNumberModel();
+    });
   }
 
   ngOnInit() {
@@ -89,6 +102,25 @@ export class SettingsDialog implements OnInit {
         this.aisStateFilter[i] = true;
       }
     });
+  }
+
+  // format numbers in model used for form fields
+  formatNumberModel() {
+    this.formattedNumberModel = {
+      rangeCirclesDistance:
+        this.facade.settings.units.distance === 'm'
+          ? Math.floor(this.facade.settings.vessels.rangeCirclesDistance / 1000)
+          : Math.floor(
+              Convert.kmToNauticalMiles(
+                this.facade.settings.vessels.rangeCirclesDistance / 1000
+              )
+            )
+    };
+  }
+
+  raiseChange() {
+    this.app.alignUnitPrefs(this.app.serverConfig.unitPreferences());
+    this.unitsChangedSignal.update((current) => current + 1);
   }
 
   /**
@@ -140,6 +172,28 @@ export class SettingsDialog implements OnInit {
     if (!allowNegative && e.model < 0) {
       e.reset(Math.abs(e.model));
     }
+    this.persistModel();
+  }
+
+  /**
+   * Parse & convert the entered number value to SI units and fall back to default if null.
+   * Resultant number value is always positive unless allowNegative = true.
+   */
+  parseFormattedNumber(e: NgModel, allowNegative?: boolean) {
+    if (typeof e.model !== 'number') {
+      return;
+    }
+    if (!allowNegative && e.model < 0) {
+      e.reset(Math.abs(e.model));
+    }
+    this.facade.settings.vessels.rangeCirclesDistance =
+      this.facade.settings.units.distance === 'm'
+        ? Math.floor(this.formattedNumberModel.rangeCirclesDistance * 1000)
+        : Math.floor(
+            Convert.nauticalMilesToKm(
+              this.formattedNumberModel.rangeCirclesDistance
+            ) * 1000
+          );
     this.persistModel();
   }
 

@@ -129,7 +129,7 @@ import { Measurements } from './measurements.component';
   ]
 })
 export class InteractionHelpComponent {
-  @Output() cancel: EventEmitter<boolean> = new EventEmitter();
+  @Output() cancel: EventEmitter<void> = new EventEmitter();
 
   protected showHelpPanel: Signal<boolean>;
   protected showMeasurePanel: Signal<boolean>;

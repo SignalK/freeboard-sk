@@ -35,12 +35,12 @@ import { catchError } from 'rxjs/operators';
 import { SignalKClient } from 'signalk-client-angular';
 import { MatSliderModule } from '@angular/material/slider';
 import {
+  TimeDef,
   TimeDimension,
-  WMSGetCapabilities,
-  WMTSGetCapabilities,
-  getWMSLayerNodeByName,
-  getWMTSInfoLayerByName
-} from '../charts/wmslib';
+  getLayerNodeByName,
+  wmsCapabilitiesInWorker,
+  wmtsCapabilitiesInWorker
+} from '../charts/maplib';
 
 //** InfoLayer Resource List **
 @Component({
@@ -75,8 +75,10 @@ export class InfoLayerListComponent extends ResourceListBase {
   override filterText = '';
   override someSel = false;
   override allSel = false;
-
   protected override fullList: FBInfoLayers = [];
+
+  private timeDim: Map<string, TimeDef> = new Map();
+  private fetchedUrls: string[] = [];
 
   constructor(
     protected app: AppFacade,
@@ -122,25 +124,71 @@ export class InfoLayerListComponent extends ResourceListBase {
   }
 
   /**
-   * Get time dimension data for WMS & WMTS sources
+   * Update time dimension data for layer sources
    */
   private async updateTimeDimensions() {
-    this.fullList.forEach(async (l) => {
-      if (l[1].values.sourceType.toLowerCase() === 'wms') {
-        const capabilities = await WMSGetCapabilities(l[1].values.url);
-        const il = getWMSLayerNodeByName(l[1].values.layers[0], capabilities);
-        if (il.time) {
-          l[1].values.time = il.time;
+    const capList = this.compileCapabilitiesReqList();
+    let callCount = 0;
+
+    capList.forEach(async (iLayers, url) => {
+      try {
+        if (!this.fetchedUrls.includes(url)) {
+          this.fetchedUrls.push(url);
+          if (iLayers[0].values.sourceType.toLocaleLowerCase() === 'wms') {
+            const capabilities = await wmsCapabilitiesInWorker(url);
+            iLayers.forEach((il) => {
+              const cl = getLayerNodeByName(il.name, capabilities.layers);
+              if (cl?.time) {
+                this.timeDim.set(il.id, cl.time);
+              }
+            });
+          } else if (
+            iLayers[0].values.sourceType.toLocaleLowerCase() === 'wmts'
+          ) {
+            const capabilities = await wmtsCapabilitiesInWorker(url);
+            capabilities.layers.forEach((cl) => {
+              if (cl?.time) {
+                this.timeDim.set(cl.id, cl.time);
+              }
+            });
+          }
         }
+      } catch (err) {
+        this.app.debug(err);
+      } finally {
+        callCount++;
       }
-      if (l[1].values.sourceType.toLowerCase() === 'wmts') {
-        const capabilities = await WMTSGetCapabilities(l[1].values.url);
-        const il = getWMTSInfoLayerByName(l[1].values.layers[0], capabilities);
-        if (il.values.time) {
-          l[1].values.time = il.values.time;
+      if (callCount === capList.size) {
+        this.timeDim.forEach((v, k) => {
+          const idx = this.fullList.findIndex((i) => i[0] === k);
+          if (idx !== -1) {
+            this.fullList[idx][1].values.time = v;
+          }
+        });
+      }
+    });
+  }
+
+  /**
+   * Compile list of infolayers to collect time dimension data from WMS capabilities.
+   * @abstract Currently only WMS with time.values array
+   */
+  private compileCapabilitiesReqList() {
+    const capList: Map<string, SKInfoLayer[]> = new Map();
+    this.fullList.forEach((l) => {
+      const values = l[1].values;
+      const sourceType = values.sourceType.toLowerCase();
+      if (['wms'].includes(sourceType)) {
+        if (!capList.has(values.url)) {
+          capList.set(values.url, [l[1]]);
+        } else {
+          const e = capList.get(values.url);
+          e.push(l[1]);
+          capList.set(values.url, e);
         }
       }
     });
+    return capList;
   }
 
   /**

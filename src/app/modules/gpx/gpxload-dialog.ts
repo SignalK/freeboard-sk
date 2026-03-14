@@ -1,4 +1,4 @@
-import { Component, OnInit, Inject } from '@angular/core';
+import { Component, OnInit, Inject, inject } from '@angular/core';
 import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 
 import { FormsModule } from '@angular/forms';
@@ -82,11 +82,12 @@ export class GPXImportDialog implements OnInit {
   private subCount = 0;
   private gpx: GPX;
 
+  protected app = inject(AppFacade);
+  protected dialogRef = inject(MatDialogRef<GPXImportDialog>);
+  private skres = inject(SKResourceService);
+  private signalk = inject(SignalKClient);
+
   constructor(
-    public app: AppFacade,
-    private skres: SKResourceService,
-    private signalk: SignalKClient,
-    protected dialogRef: MatDialogRef<GPXImportDialog>,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     @Inject(MAT_DIALOG_DATA) public data: any
   ) {}
@@ -260,7 +261,9 @@ export class GPXImportDialog implements OnInit {
     };
     this.gpx = new GPX();
 
+    this.app.sIsFetching.set(true);
     if (!(await this.gpx.parse(data))) {
+      this.app.sIsFetching.set(false);
       return null;
     }
 
@@ -289,6 +292,7 @@ export class GPXImportDialog implements OnInit {
       });
       idx++;
     });
+    this.app.sIsFetching.set(false);
     return gpxData;
   }
 

@@ -224,10 +224,9 @@ export class AlertComponent {
       const ack = this.acknowledged();
       const mute = this.silenced();
       const al = this.alert();
-      this.showAutoNextPoint = [
-        'perpendicularPassed',
-        'arrivalCircleEntered'
-      ].includes(al.type);
+      this.showAutoNextPoint =
+        ['perpendicularPassed', 'arrivalCircleEntered'].includes(al.type) &&
+        this.app.config.course.autoNextPointTrigger === al.type;
       if (typeof this.doNotPlaySound() !== 'undefined') {
       }
       this.processAudio();

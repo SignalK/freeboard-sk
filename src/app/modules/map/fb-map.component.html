@@ -709,6 +709,8 @@
     <fb-range-circles
       [position]="dfeat.active.position"
       [maxCircles]="this.app.config.vessels.rangeCircleCount"
+      [fixedMode]="this.app.config.vessels.rangeCirclesFixed"
+      [fixedDistance]="this.app.config.vessels.rangeCirclesDistance"
       [mapZoom]="mapZoomLevel()"
       [darkMode]="app.uiConfig().invertColor"
       [minZoom]="this.app.config.vessels.rangeCircleMinZoom"

@@ -222,63 +222,93 @@
               <mat-card-content>
                 <div class="setting-card-row" style="padding-bottom: 10px">
                   <div class="setting-card-row-item">
-                    <mat-form-field style="width: 100%">
-                      <mat-label>Distance units</mat-label>
-                      <mat-select
-                        #distunits
-                        [(ngModel)]="facade.settings.units.distance"
-                        (selectionChange)="persistModel()"
+                    <fieldset>
+                      <legend>
+                        <mat-checkbox
+                          #serverprefs
+                          [disabled]="!app.serverConfig.unitPreferences()"
+                          [(ngModel)]="facade.settings.units.useServerPrefs"
+                          (change)="raiseChange();persistModel()"
+                          label="after"
+                          matTooltip="Use the unit preferences configured on the server."
+                        >
+                          Use Server Unit Preferences
+                        </mat-checkbox>
+                      </legend>
+                      <div
+                        class="setting-card-row"
+                        style="padding-bottom: 10px"
                       >
-                        @for(i of options.availableUnits.distance; track i[0]) {
-                        <mat-option [value]="i[0]">{{i[1]}}</mat-option>
-                        }
-                      </mat-select>
-                    </mat-form-field>
-                  </div>
+                        <div class="setting-card-row-item">
+                          <mat-form-field style="width: 100%">
+                            <mat-label>Distance units</mat-label>
+                            <mat-select
+                              #distunits
+                              [disabled]="facade.settings.units.useServerPrefs"
+                              [(ngModel)]="facade.settings.units.distance"
+                              (selectionChange)="raiseChange();persistModel()"
+                            >
+                              @for(i of options.availableUnits.distance; track
+                              i[0]) {
+                              <mat-option [value]="i[0]">{{i[1]}}</mat-option>
+                              }
+                            </mat-select>
+                          </mat-form-field>
+                        </div>
 
-                  <div class="setting-card-row-item">
-                    <mat-form-field style="width: 100%">
-                      <mat-label>Depth units</mat-label>
-                      <mat-select
-                        [(ngModel)]="facade.settings.units.depth"
-                        (selectionChange)="persistModel()"
-                      >
-                        @for(i of options.availableUnits.depth; track i[0]) {
-                        <mat-option [value]="i[0]">{{i[1]}}</mat-option>
-                        }
-                      </mat-select>
-                    </mat-form-field>
-                  </div>
+                        <div class="setting-card-row-item">
+                          <mat-form-field style="width: 100%">
+                            <mat-label>Depth units</mat-label>
+                            <mat-select
+                              [disabled]="facade.settings.units.useServerPrefs"
+                              [(ngModel)]="facade.settings.units.depth"
+                              (selectionChange)="raiseChange();persistModel()"
+                            >
+                              @for(i of options.availableUnits.depth; track
+                              i[0]) {
+                              <mat-option [value]="i[0]">{{i[1]}}</mat-option>
+                              }
+                            </mat-select>
+                          </mat-form-field>
+                        </div>
 
-                  <div class="setting-card-row-item">
-                    <mat-form-field style="width: 100%">
-                      <mat-label>Speed units</mat-label>
-                      <mat-select
-                        [(ngModel)]="facade.settings.units.speed"
-                        (selectionChange)="persistModel()"
-                      >
-                        @for(i of options.availableUnits.speed; track i[0]) {
-                        <mat-option [value]="i[0]">{{i[1]}}</mat-option>
-                        }
-                      </mat-select>
-                    </mat-form-field>
-                  </div>
+                        <div class="setting-card-row-item">
+                          <mat-form-field style="width: 100%">
+                            <mat-label>Speed units</mat-label>
+                            <mat-select
+                              [disabled]="facade.settings.units.useServerPrefs"
+                              [(ngModel)]="facade.settings.units.speed"
+                              (selectionChange)="raiseChange();persistModel()"
+                            >
+                              @for(i of options.availableUnits.speed; track
+                              i[0]) {
+                              <mat-option [value]="i[0]">{{i[1]}}</mat-option>
+                              }
+                            </mat-select>
+                          </mat-form-field>
+                        </div>
 
-                  <div class="setting-card-row-item">
-                    <mat-form-field style="width: 100%">
-                      <mat-label>Temperature units</mat-label>
-                      <mat-select
-                        [(ngModel)]="facade.settings.units.temperature"
-                        (selectionChange)="persistModel()"
-                      >
-                        @for(i of options.availableUnits.temperature; track
-                        i[0]) {
-                        <mat-option [value]="i[0]">{{i[1]}}</mat-option>
-                        }
-                      </mat-select>
-                    </mat-form-field>
+                        <div class="setting-card-row-item">
+                          <mat-form-field style="width: 100%">
+                            <mat-label>Temperature units</mat-label>
+                            <mat-select
+                              [disabled]="facade.settings.units.useServerPrefs"
+                              [(ngModel)]="facade.settings.units.temperature"
+                              (selectionChange)="raiseChange();persistModel()"
+                            >
+                              @for(i of options.availableUnits.temperature;
+                              track i[0]) {
+                              <mat-option [value]="i[0]">{{i[1]}}</mat-option>
+                              }
+                            </mat-select>
+                          </mat-form-field>
+                        </div>
+                      </div>
+                    </fieldset>
                   </div>
+                </div>
 
+                <div class="setting-card-row" style="padding-bottom: 10px">
                   @if(options.preferredValues.coords.length !== 0) {
                   <div class="setting-card-row-item">
                     <mat-form-field style="width: 100%">
@@ -768,7 +798,11 @@
                         </mat-form-field>
                       </div>
                     </div>
-                    <div class="setting-card-row" style="padding-bottom: 10px">
+                  </fieldset>
+                </div>
+                <div class="setting-card-row-item">
+                  <fieldset>
+                    <legend>
                       <mat-checkbox
                         [(ngModel)]="facade.settings.vessels.rangeCircles"
                         (change)="persistModel()"
@@ -776,7 +810,7 @@
                       >
                         Display Range Circles
                       </mat-checkbox>
-                    </div>
+                    </legend>
                     <div class="setting-card-row" style="padding-bottom: 10px">
                       <div class="setting-card-row-item">
                         <mat-form-field style="width: 100%">
@@ -805,6 +839,42 @@
                             <mat-option [value]="i">{{i}}</mat-option>
                             }
                           </mat-select>
+                        </mat-form-field>
+                      </div>
+                    </div>
+                    <div class="setting-card-row" style="padding-bottom: 10px">
+                      <div class="setting-card-row-item">
+                        <mat-checkbox
+                          [(ngModel)]="facade.settings.vessels.rangeCirclesFixed"
+                          [disabled]="!facade.settings.vessels.rangeCircles"
+                          (change)="persistModel()"
+                          label="after"
+                        >
+                          Use Fixed Distance
+                        </mat-checkbox>
+                      </div>
+                      <div class="setting-card-row-item">
+                        <mat-form-field floatLabel="always">
+                          <mat-label>
+                            Distance between circles
+                            ({{facade.settings.units.distance === 'm' ? 'km' :
+                            'NM'}})
+                          </mat-label>
+                          <input
+                            matInput
+                            type="number"
+                            #rangeCirclesDistance="ngModel"
+                            required
+                            [(ngModel)]="formattedNumberModel.rangeCirclesDistance"
+                            (change)="parseFormattedNumber(rangeCirclesDistance)"
+                            [disabled]="!facade.settings.vessels.rangeCircles || !facade.settings.vessels.rangeCirclesFixed"
+                            min="1"
+                          />
+                          @if(rangeCirclesDistance.invalid &&
+                          (rangeCirclesDistance.dirty ||
+                          rangeCirclesDistance.touched)) {
+                          <mat-error> Please enter a number >= 1. </mat-error>
+                          }
                         </mat-form-field>
                       </div>
                     </div>

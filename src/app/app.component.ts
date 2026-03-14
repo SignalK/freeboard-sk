@@ -737,12 +737,14 @@ export class AppComponent {
           this.app.watchSKLogin();
           this.app.loadSettingsfromServer().then((result: boolean) => {
             if (!result && this.app.launchStatus.result === 'first_run') {
-              const wr = this.app.showWelcome();
+              const wr = this.app.showWelcome(false);
               if (wr) {
                 wr.afterClosed().subscribe((r) => {
                   if (r) this.openSettings();
                 });
               }
+            } else {
+              const wr = this.app.showWelcome(true);
             }
           });
           this.getFeatures();
@@ -813,6 +815,9 @@ export class AppComponent {
         this.app.debug('*** Features API not present!');
       }
     );
+
+    // Get unit preferences from the signal k server
+    this.app.fetchUnitPrefsFromSKServer();
 
     // Check for custom resource collections
     const rcs = await this.skresOther.initCustomCollections();

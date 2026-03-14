@@ -264,6 +264,7 @@ export class SettingsFacade {
       this.settings.vessels.fixedPosition.slice() as Position;
     this.getApps();
     this.getResourcePaths();
+    this.app.fetchUnitPrefsFromSKServer();
   }
 
   /** Populate list of available non-standard resource paths */

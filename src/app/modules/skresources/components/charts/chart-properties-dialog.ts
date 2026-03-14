@@ -1,4 +1,4 @@
-import { Component, Inject, signal } from '@angular/core';
+import { Component, inject, Inject, resource, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import {
   MatDialogModule,
@@ -16,15 +16,15 @@ import { AppFacade } from 'src/app/app.facade';
 import { SKChart } from 'src/app/modules/skresources/resource-classes';
 import { CoordsPipe } from 'src/app/lib/pipes';
 import {
-  getWMTSLayers,
   LayerNode,
-  parseWMSCapabilities,
-  WMSGetCapabilities,
-  WMTSGetCapabilities
-} from './wmslib';
+  WMSCapabilitiesDef,
+  wmsCapabilitiesInWorker,
+  WMTSCapabilitiesDef,
+  wmtsCapabilitiesInWorker,
+  WMTSLayerDef
+} from './maplib';
 import { NodeTreeSelect } from './node-tree-select';
 import { NodeListSelect } from './node-list-select';
-import { ChartProvider } from 'src/app/types';
 
 /********* ChartPropertiesDialog **********
 	data: <SKChart>
@@ -189,12 +189,19 @@ import { ChartProvider } from 'src/app/types';
             <div style="">
               <div class="key-label">Layers:</div>
               <div style="flex: 1 1 auto;">
-                @if (isFetching()) {
+                @if (capabilitiesResource.isLoading()) {
                   <mat-progress-bar mode="query"></mat-progress-bar>
                 } @else {
-                  @if (data.type.toLowerCase() === 'wms') {
+                  @if (layerErrorText.length) {
+                    <div style="display:flex;">
+                      <div class="key-label"></div>
+                      <div style="flex: 1 1 auto;">
+                        {{ data.layers }}
+                      </div>
+                    </div>
+                  } @else if (data.type.toLowerCase() === 'wms') {
                     <node-tree-select
-                      [layers]="wmsLayers"
+                      [layers]="wmsLayers()"
                       [preSelect]="data.layers"
                       [expand]="true"
                       (selected)="handleLayerSelection($event)"
@@ -202,7 +209,7 @@ import { ChartProvider } from 'src/app/types';
                     </node-tree-select>
                   } @else if (data.type.toLowerCase() === 'wmts') {
                     <node-list-select
-                      [layers]="wmtsLayers"
+                      [layers]="wmtsLayers()"
                       [preSelect]="data.layers"
                       (selected)="handleLayerSelection($event)"
                     >
@@ -270,23 +277,46 @@ import { ChartProvider } from 'src/app/types';
 })
 export class ChartPropertiesDialog {
   protected icon: string;
-  protected wmsLayers: LayerNode[] = [];
-  protected wmtsLayers: Array<{ name: string; description: string }> = [];
+  protected wmsLayers = signal<LayerNode[]>([]);
+  protected wmtsLayers = signal<
+    Array<{
+      name: string;
+      description: string;
+      format?: string;
+      bounds?: [number, number, number, number];
+    }>
+  >([]);
   protected isEditable = signal<boolean>(false);
-  protected isFetching = signal<boolean>(false);
+  protected layerErrorText = '';
+  private capabilities!: WMTSCapabilitiesDef | WMSCapabilitiesDef;
 
-  constructor(
-    public app: AppFacade,
-    public dialogRef: MatDialogRef<ChartPropertiesDialog>,
-    @Inject(MAT_DIALOG_DATA) public data: SKChart
-  ) {
+  protected capabilitiesParam = signal<{ url: string; type: string }>({
+    url: null,
+    type: null
+  });
+
+  protected capabilitiesResource = resource({
+    params: () => this.capabilitiesParam(),
+    loader: ({ params }) => this.fetchCapabilities(params.url, params.type)
+  });
+
+  protected app = inject(AppFacade);
+  protected dialogRef = inject(MatDialogRef<ChartPropertiesDialog>);
+
+  constructor(@Inject(MAT_DIALOG_DATA) public data: SKChart) {
     if (data.source?.toLowerCase() === 'resources-provider') {
       this.isEditable.set(true);
     }
-    if (data.type?.toLowerCase() === 'wms') {
-      this.getWmsCapabilities();
-    } else if (data.type?.toLowerCase() === 'wmts') {
-      this.getWmtsCapabilities();
+  }
+
+  ngOnInit() {
+    if (['wms', 'wmts'].includes(this.data.type?.toLowerCase())) {
+      this.capabilitiesParam.update(() => {
+        return {
+          url: this.data.url,
+          type: this.data.type.toLowerCase()
+        };
+      });
     }
   }
 
@@ -295,54 +325,35 @@ export class ChartPropertiesDialog {
   }
 
   /**
-   * Retrieve and process capabilities from WMS server
+   * Fetch capabilities from map server
+   * @param url Chart url
+   * @param chartType wms | wmts
    */
-  protected async getWmsCapabilities() {
-    this.wmsLayers = [];
+  private async fetchCapabilities(url: string, chartType: string) {
+    if (!url) return;
     try {
-      this.isFetching.set(true);
-      const capabilities = await WMSGetCapabilities(this.data.url);
-      this.isFetching.set(false);
-      if (capabilities && capabilities.Capability) {
-        parseWMSCapabilities(capabilities, this.wmsLayers);
+      if (chartType === 'wms') {
+        this.capabilities = await wmsCapabilitiesInWorker(url);
+        this.wmsLayers.update(() => this.capabilities.layers as LayerNode[]);
+      } else if (chartType === 'wmts') {
+        this.capabilities = await wmtsCapabilitiesInWorker(url);
+        this.wmtsLayers.update(() => this.capabilities.layers);
       }
     } catch (err) {
-      this.isFetching.set(false);
-      this.app.debug('Error fetching WMS layers!');
-    }
-  }
-
-  /**
-   * Retrieve and process capabilities from WMTS server
-   */
-  protected async getWmtsCapabilities() {
-    this.wmtsLayers = [];
-    try {
-      this.isFetching.set(true);
-      const capabilities = await WMTSGetCapabilities(this.data.url);
-      this.isFetching.set(false);
-      if (capabilities && capabilities.Contents?.Layer) {
-        this.wmtsLayers = getWMTSLayers(
-          capabilities,
-          this.data.url,
-          'chart-provider'
-        )
-          .map((c: ChartProvider) => {
-            return {
-              id: c.layers[0] ?? Date.now(),
-              name: c.name,
-              description: c.description
-            };
-          })
-          .sort((a, b) => (a.name < b.name ? -1 : 1));
-      }
-    } catch (err) {
-      this.isFetching.set(false);
-      this.app.debug('Error fetching WMS layers!');
+      this.layerErrorText = 'Error retrieving layers.';
     }
   }
 
   protected handleLayerSelection(e: string[]) {
+    if (this.data.type?.toLowerCase() === 'wmts') {
+      const l: WMTSLayerDef = (this.capabilities.layers as WMTSLayerDef[]).find(
+        (i: WMTSLayerDef) => i.id === e[0]
+      );
+      if (l) {
+        this.data.format = l.format ? l.format : this.data.format;
+        this.data.bounds = l.bounds ? l.bounds : this.data.bounds;
+      }
+    }
     this.data.layers = e;
   }
 

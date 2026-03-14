@@ -2,7 +2,7 @@
  ** GPX File Class Module       *
  ********************************/
 
-import { parseStringPromise } from 'xml2js';
+import { xml2JsonInWorker } from 'src/app/lib/file-xml2json';
 
 /************************
  ** GPX File Class **
@@ -16,14 +16,13 @@ export class GPX {
   public trk: Array<GPXTrack>; // ** array of tracks
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   public extensions: any;
-
   public metadata: GPXMetadataType;
 
   constructor() {
     this.init();
   }
 
-  init() {
+  public init() {
     this.version = '1.1';
     this.creator = '@panaaj';
     this.wpt = []; // ** array of waypoints
@@ -33,13 +32,13 @@ export class GPX {
     this.metadata = new GPXMetadataType();
   }
 
-  //** alias for toXML() **
-  stringify() {
+  /** alias for toXML() **/
+  public stringify() {
     return this.toXML();
   }
 
-  //** return a formatted string of GPX data suitable for writing to a file **
-  toXML() {
+  /** return a formatted string of GPX data suitable for writing to a file **/
+  public toXML() {
     let xml =
       `<?xml version="1.0" encoding="UTF-8"?>\r\n` +
       `<gpx xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" ` +
@@ -58,8 +57,8 @@ export class GPX {
     return xml;
   }
 
-  //** Returns a formatted metadata string
-  metadataToXML() {
+  /** Returns a formatted metadata string **/
+  private metadataToXML() {
     let xml =
       `\t<metadata>\r\n` +
       `\t\t<name>${this.metadata.name || ''}</name>\r\n` +
@@ -115,8 +114,8 @@ export class GPX {
     return xml;
   }
 
-  //** Returns a formatted wpt strings
-  waypointsToXML() {
+  /** Returns a formatted wpt strings **/
+  private waypointsToXML() {
     let xml = '';
     for (const pt of this.wpt) {
       xml += this.ptToXML(pt, 'wpt');
@@ -124,8 +123,8 @@ export class GPX {
     return xml;
   }
 
-  //** Returns a formatted rte strings
-  routesToXML() {
+  /** Returns a formatted rte strings **/
+  private routesToXML() {
     let xml = '';
     this.rte.forEach((rt) => {
       xml += `\t<rte>\r\n`;
@@ -154,8 +153,8 @@ export class GPX {
     return xml;
   }
 
-  //** Returns a formatted trk strings
-  tracksToXML() {
+  /** Returns a formatted trk strings **/
+  private tracksToXML() {
     let xml = '';
     this.trk.forEach((tk) => {
       xml += '\t<trk>\r\n';
@@ -180,9 +179,9 @@ export class GPX {
     return xml;
   }
 
-  // ** return formatted ptType <tag> XML for supplied GPXWaypoint object
+  /** Return formatted ptType <tag> XML for supplied GPXWaypoint object **/
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  ptToXML(pt: any, tag: any) {
+  private ptToXML(pt: any, tag: any) {
     let pad = '';
     let padLevel = 2;
     switch (tag) {
@@ -238,9 +237,9 @@ export class GPX {
     return xml;
   }
 
-  // ** return formatted <extension> XML for supplied .extension object
+  /** return formatted <extension> XML for supplied .extension object **/
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  extensionsToXML(ext: any, padLevel = 1) {
+  private extensionsToXML(ext: any, padLevel = 1) {
     let xml = '';
     if (ext && Object.keys(ext).length !== 0) {
       const pad = '\t\t\t\t\t\t\t\t\t'.slice(0 - padLevel);
@@ -259,26 +258,22 @@ export class GPX {
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  xValue(attrib: Array<any>) {
+  private xValue(attrib: Array<any>) {
     if (attrib && Array.isArray(attrib)) {
       return attrib.length !== 0 ? attrib[0] : null;
     }
   }
 
   /** parse GPX string contents and fill this.data  **/
-  async parse(gpxstr: string) {
+  public async parse(gpxstr: string): Promise<boolean> {
     // ** check for valid file contents **
     if (!gpxstr || gpxstr.indexOf('<gpx') === -1) {
       return false;
     }
     // ** initialise **
     this.init();
-    // ** xml to Json
     try {
-      const xjs = await parseStringPromise(gpxstr);
-      if (!xjs) {
-        return false;
-      }
+      const xjs = await xml2JsonInWorker(gpxstr);
 
       //** parse header **
       if (xjs['gpx']['metadata']) {
@@ -322,9 +317,9 @@ export class GPX {
     }
   }
 
-  //** parse wpt xml element object array into this.wpt array
+  /** parse wpt xml element object array into this.wpt array **/
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  parseWaypoints(waypoints: any[]) {
+  private parseWaypoints(waypoints: any[]) {
     if (Array.isArray(waypoints)) {
       waypoints.forEach((w) => {
         const pt = this.toWpt(w);
@@ -338,9 +333,9 @@ export class GPX {
     }
   }
 
-  //** parse rte xml element object array into this.rte array
+  /** parse rte xml element object array into this.rte array **/
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  parseRoutes(routes: any[]) {
+  private parseRoutes(routes: any[]) {
     if (Array.isArray(routes)) {
       routes.forEach((r) => {
         const rte = this.toRte(r);
@@ -354,9 +349,9 @@ export class GPX {
     }
   }
 
-  //** parse trk xml element object array into this.trk array
+  /** parse trk xml element object array into this.trk array **/
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  parseTracks(tracks: any[]) {
+  private parseTracks(tracks: any[]) {
     if (Array.isArray(tracks)) {
       tracks.forEach((t) => {
         const trk = this.toTrk(t);
@@ -370,30 +365,9 @@ export class GPX {
     }
   }
 
-  //** updateBounds **
+  /** return extension data **/
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  updateBounds(pt: any) {
-    this.metadata.bounds.minLat =
-      pt.lat < this.metadata.bounds.minLat
-        ? pt.lat
-        : this.metadata.bounds.minLat;
-    this.metadata.bounds.minLon =
-      pt.lon < this.metadata.bounds.minLon
-        ? pt.lon
-        : this.metadata.bounds.minLon;
-    this.metadata.bounds.maxLat =
-      pt.lat > this.metadata.bounds.maxLat
-        ? pt.lat
-        : this.metadata.bounds.maxLat;
-    this.metadata.bounds.maxLon =
-      pt.lon > this.metadata.bounds.maxLon
-        ? pt.lon
-        : this.metadata.bounds.maxLon;
-  }
-
-  // ** return extension data
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  parseExtensions(xext: any[]) {
+  private parseExtensions(xext: any[]) {
     if (!xext) {
       return {};
     }
@@ -414,9 +388,9 @@ export class GPX {
     return resExt;
   }
 
-  // ** return array of GPXLinkType objects from x2js
+  /** return array of GPXLinkType objects from x2js **/
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  parseLinks(xlink: any): Array<GPXLinkType> {
+  private parseLinks(xlink: any): Array<GPXLinkType> {
     const links = [];
     if (!xlink) {
       return links;
@@ -440,9 +414,9 @@ export class GPX {
     return links;
   }
 
-  // ** return GPXRoute object for supplied rte xml object
+  /** return GPXRoute object for supplied rte xml object **/
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  toRte(xmlrte: any): GPXRoute {
+  private toRte(xmlrte: any): GPXRoute {
     const rte = new GPXRoute();
 
     rte.name = xmlrte.name ? this.xValue(xmlrte.name) : null;
@@ -461,9 +435,9 @@ export class GPX {
     return rte;
   }
 
-  // ** return GPXWaypoint object for supplied wpt xml object
+  /** return GPXWaypoint object for supplied wpt xml object **/
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  toWpt(xmlwpt: any): GPXWaypoint {
+  private toWpt(xmlwpt: any): GPXWaypoint {
     const pt = new GPXWaypoint();
     pt.lat = Number(xmlwpt['$'].lat) || 0;
     pt.lon = Number(xmlwpt['$'].lon) || 0;
@@ -484,9 +458,9 @@ export class GPX {
     return pt;
   }
 
-  // ** return GPXTrack object for supplied trk xml object
+  /** return GPXTrack object for supplied trk xml object **/
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  toTrk(xmltrk: any): GPXTrack {
+  private toTrk(xmltrk: any): GPXTrack {
     const tk = new GPXTrack();
 
     tk.name = xmltrk.name ? this.xValue(xmltrk.name) : null;
@@ -525,9 +499,9 @@ export class GPX {
     return tk;
   }
 
-  // ** return GPXWaypoint array for supplied pt xml object(s)
+  /** return GPXWaypoint array for supplied pt xml object(s) **/
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  toPtArray(xpts: any[]): Array<GPXWaypoint> {
+  private toPtArray(xpts: any[]): Array<GPXWaypoint> {
     const pts = [];
     if (Array.isArray(xpts)) {
       xpts.forEach((t) => {
@@ -543,13 +517,14 @@ export class GPX {
     return pts;
   }
 
-  /** add extension to element
-   * ele: element to add <extension> to
-   * name: extension path/name in dotted notation e.g. signalk.uuid
-   * value: extension value
-   * ************************/
+  /**
+   * add extension to element
+   * @param ele: element to add <extension> to
+   * @param name: extension path/name in dotted notation e.g. signalk.uuid
+   * @param value: extension value
+   **/
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  setExtension(ele: any, name: string, value: any) {
+  private setExtension(ele: any, name: string, value: any) {
     if (!ele.extensions) {
       ele.extensions = {};
     }
@@ -562,6 +537,27 @@ export class GPX {
       p = p[n];
     });
     ele.extensions['signalk']['uuid'] = value;
+  }
+
+  /** update Bounds metadata **/
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  public updateBounds(pt: any) {
+    this.metadata.bounds.minLat =
+      pt.lat < this.metadata.bounds.minLat
+        ? pt.lat
+        : this.metadata.bounds.minLat;
+    this.metadata.bounds.minLon =
+      pt.lon < this.metadata.bounds.minLon
+        ? pt.lon
+        : this.metadata.bounds.minLon;
+    this.metadata.bounds.maxLat =
+      pt.lat > this.metadata.bounds.maxLat
+        ? pt.lat
+        : this.metadata.bounds.maxLat;
+    this.metadata.bounds.maxLon =
+      pt.lon > this.metadata.bounds.maxLon
+        ? pt.lon
+        : this.metadata.bounds.maxLon;
   }
 }
 
