@@ -151,6 +151,9 @@ export function cleanConfig(
       rangeCircles: false,
       rangeCirclesFixed: false,
       rangeCirclesDistance: 1000,
+      rangeCirclesDynamic: false,
+      rangeCirclesDynamicSpeed: 0.5,
+      rangeCirclesDynamicDistance: 100,
       rangeCircleCount: 4,
       rangeCircleMinZoom: 8,
       aisStaleAge: (settings as any).selections.aisStaleAge ?? 360000,
@@ -184,6 +187,15 @@ export function cleanConfig(
     }
     if (typeof settings.vessels.rangeCirclesDistance === 'undefined') {
       settings.vessels.rangeCirclesDistance = 1000;
+    }
+    if (typeof settings.vessels.rangeCirclesDynamic === 'undefined') {
+      settings.vessels.rangeCirclesDynamic = false;
+    }
+    if (typeof settings.vessels.rangeCirclesDynamicSpeed === 'undefined') {
+      settings.vessels.rangeCirclesDynamicSpeed = 0.5;
+    }
+    if (typeof settings.vessels.rangeCirclesDynamicDistance === 'undefined') {
+      settings.vessels.rangeCirclesDynamicDistance = 100;
     }
   }
 
@@ -439,6 +451,9 @@ export function defaultConfig(): IAppConfig {
       rangeCircles: false,
       rangeCirclesFixed: false,
       rangeCirclesDistance: 1000, // distance in m
+      rangeCirclesDynamic: false,
+      rangeCirclesDynamicSpeed: 0.5, // speed threshold in knots
+      rangeCirclesDynamicDistance: 100, // distance in m when underway
       rangeCircleCount: 4,
       rangeCircleMinZoom: 8,
       aisStaleAge: 360000, // time since last update in ms (6 min)
