@@ -38,6 +38,8 @@ export interface Options {
   boundaries: string;
   colors: number;
   colorTable: number;
+  otherLayers: string[];
+  depthUnit: 'm' | 'ft';
 }
 
 export const DefaultOptions: Options = {
@@ -47,7 +49,9 @@ export const DefaultOptions: Options = {
   graphicsStyle: 'Paper', //Simplified or Paper
   boundaries: 'Plain', // Plain or Symbolized
   colors: 4, // 2 or 4
-  colorTable: 0 //color scheme
+  colorTable: 0, //color scheme
+  otherLayers: ['SOUNDG', 'OBSTRN', 'UWTROC', 'WRECKS', 'DEPCNT'],
+  depthUnit: 'm'
 };
 
 interface ColorTable {
@@ -232,7 +236,7 @@ export class S57Service {
     const ir = a.name.localeCompare(b.name, 'en', { sensitivity: 'base' });
     if (ir !== 0) return ir;
     const c1 = Object.keys(a.attributes).length;
-    const c2 = Object.keys(a.attributes).length;
+    const c2 = Object.keys(b.attributes).length;
     if (c1 !== c2) return c2 - c1;
     return a.id - b.id;
   }

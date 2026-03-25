@@ -40,6 +40,8 @@ export interface IPopover {
   meteo?: SKMeteo;
   aircraft?: SKAircraft;
   alarm?: AlertData;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  s57Properties?: { [key: string]: any };
   readOnly: boolean;
 }
 

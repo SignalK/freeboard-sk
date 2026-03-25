@@ -351,7 +351,7 @@ export class AppFacade extends InfoService {
   private parseLoadedConfig() {
     cleanConfig(this.config, this.hostDef.params);
     this.doPostConfigLoad();
-    this.s57.init(this.config.map.s57Options);
+    this.s57.init({ ...this.config.map.s57Options, depthUnit: this.config.units.depth });
   }
 
   /** Initialise and raise "settings$.load" event */

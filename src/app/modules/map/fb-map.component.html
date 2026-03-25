@@ -613,6 +613,14 @@
         >
         </aircraft-popover>
       }
+      @if (overlay().type === 's57') {
+        <s57-popover
+          [canClose]="true"
+          [properties]="overlay().s57Properties"
+          (closed)="popoverClosed()"
+        >
+        </s57-popover>
+      }
       @if (overlay().type === 'alarm') {
         <alarm-popover
           [canClose]="app.config.map.popoverMulti"

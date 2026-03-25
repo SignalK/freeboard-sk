@@ -78,8 +78,12 @@ export function cleanConfig(
       shallowDepth: (settings as any).selections.s57Options.shallowDepth ?? 2,
       safetyDepth: (settings as any).selections.s57Options.safetyDepth ?? 3,
       deepDepth: (settings as any).selections.s57Options.deepDepth ?? 6,
-      colorTable: 0
+      colorTable: 0,
+      otherLayers: ['SOUNDG', 'OBSTRN', 'UWTROC', 'WRECKS', 'DEPCNT']
     };
+  }
+  if (typeof settings.map.s57Options.otherLayers === 'undefined') {
+    settings.map.s57Options.otherLayers = ['SOUNDG', 'OBSTRN', 'UWTROC', 'WRECKS', 'DEPCNT'];
   }
   if (typeof settings.map.labelsMinZoom === 'undefined') {
     settings.map.labelsMinZoom =
@@ -406,7 +410,8 @@ export function defaultConfig(): IAppConfig {
         shallowDepth: 2,
         safetyDepth: 3,
         deepDepth: 6,
-        colorTable: 0
+        colorTable: 0,
+        otherLayers: ['SOUNDG', 'OBSTRN', 'UWTROC', 'WRECKS', 'DEPCNT']
       },
       popoverMulti: false // close popovers using cose button
     },

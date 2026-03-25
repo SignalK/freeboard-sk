@@ -113,6 +113,7 @@ export interface IAppConfig {
       safetyDepth: number;
       deepDepth: number;
       colorTable: number;
+      otherLayers: string[];
     };
     popoverMulti: boolean; // close popovers using cose button
   };

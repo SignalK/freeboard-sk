@@ -10,6 +10,7 @@ const LOOKUPINDEXKEY = '$lupIndex';
 export class S57Style {
   private s57Service: S57Service;
   private selectedSafeContour = 1000;
+  private currentResolution = 0;
   private instructionMatch = new RegExp('([A-Z][A-Z])\\((.*)\\)');
 
   constructor(s57Service: S57Service) {
@@ -151,6 +152,9 @@ export class S57Style {
     switch (lineStyle) {
       case 'DASH':
         lineDash = [4, 4];
+        break;
+      case 'DOTT':
+        lineDash = [2, 4];
         break;
       case 'SOLD':
         lineDash = null;
@@ -718,6 +722,214 @@ export class S57Style {
     return retval;
   }
 
+  private GetCSSOUNDG02(feature: Feature): string[] {
+    const retval: string[] = [];
+    const featureProperties = feature.getProperties();
+
+    let depth = NaN;
+    if (featureProperties['DEPTH'] !== undefined) {
+      depth = parseFloat(featureProperties['DEPTH']);
+    } else if (featureProperties['VALSOU'] !== undefined) {
+      depth = parseFloat(featureProperties['VALSOU']);
+    }
+
+    if (isNaN(depth)) {
+      return retval;
+    }
+
+    // Convert to user's preferred depth unit
+    if (this.s57Service.options.depthUnit === 'ft') {
+      depth = depth * 3.28084;
+    }
+
+    // Format: whole numbers for feet; meters show tenths only when zoomed in
+    const sign = depth < 0 ? '-' : '';
+    const absDepth = Math.abs(depth);
+    let str: string;
+    if (this.s57Service.options.depthUnit === 'ft') {
+      str = sign + Math.round(absDepth).toString();
+    } else {
+      // Show tenths when zoomed in (resolution < 5 ≈ zoom 15+), whole numbers when zoomed out
+      const showTenths = this.currentResolution < 5;
+      if (showTenths) {
+        const rounded = Math.round(absDepth * 10) / 10;
+        str = sign + (rounded % 1 === 0 ? rounded.toFixed(0) : rounded.toFixed(1));
+      } else {
+        str = sign + Math.round(absDepth).toString();
+      }
+    }
+
+    // Write synthetic property directly (RenderFeature has no .set())
+    featureProperties['_SOUNDG_WHOLE'] = str;
+    retval.push('TX(_SOUNDG_WHOLE,1,2,2)');
+
+    return retval;
+  }
+
+  //https://github.com/OpenCPN/OpenCPN/blob/master/libs/s52plib/src/s52cnsy.cpp
+  private GetCSOBSTRN04(feature: Feature): string[] {
+    const retval: string[] = [];
+    const props = feature.getProperties();
+    const geomType = feature.getGeometry().getType();
+    const layer = props['layer'];
+
+    const valsou =
+      props['VALSOU'] !== undefined ? parseFloat(props['VALSOU']) : NaN;
+    const watlev = props['WATLEV'] ? parseInt(props['WATLEV']) : 0;
+
+    if (geomType === 'Point') {
+      if (!isNaN(valsou)) {
+        if (valsou <= 0) {
+          retval.push(
+            layer === 'UWTROC' ? 'SY(UWTROC04)' : 'SY(OBSTRN11)'
+          );
+        } else if (valsou <= this.s57Service.options.safetyDepth) {
+          retval.push('SY(DANGER51)');
+        } else {
+          retval.push(
+            layer === 'UWTROC' ? 'SY(UWTROC03)' : 'SY(OBSTRN01)'
+          );
+        }
+      } else {
+        if (watlev === 1 || watlev === 2) {
+          retval.push(
+            layer === 'UWTROC' ? 'SY(UWTROC04)' : 'SY(OBSTRN11)'
+          );
+        } else if (watlev === 4 || watlev === 5) {
+          retval.push(
+            layer === 'UWTROC' ? 'SY(UWTROC03)' : 'SY(OBSTRN03)'
+          );
+        } else {
+          retval.push(
+            layer === 'UWTROC' ? 'SY(UWTROC03)' : 'SY(OBSTRN01)'
+          );
+        }
+      }
+    } else if (geomType === 'LineString') {
+      if (!isNaN(valsou) && valsou <= this.s57Service.options.safetyDepth) {
+        retval.push('LS(DOTT,2,CHBLK)');
+      } else {
+        retval.push('LS(DASH,2,CHBLK)');
+      }
+    } else {
+      // Polygon/Area
+      if (watlev === 1 || watlev === 2) {
+        retval.push('AC(CHBRN)');
+        retval.push('LS(SOLD,2,CSTLN)');
+      } else if (watlev === 4) {
+        retval.push('AC(DEPIT)');
+        retval.push('LS(DASH,2,CSTLN)');
+      } else {
+        retval.push('AC(DEPVS)');
+        retval.push('LS(DOTT,2,CHBLK)');
+      }
+    }
+
+    return retval;
+  }
+
+  //https://github.com/OpenCPN/OpenCPN/blob/master/libs/s52plib/src/s52cnsy.cpp
+  private GetCSWRECKS02(feature: Feature): string[] {
+    const retval: string[] = [];
+    const props = feature.getProperties();
+    const geomType = feature.getGeometry().getType();
+
+    const valsou =
+      props['VALSOU'] !== undefined ? parseFloat(props['VALSOU']) : NaN;
+    const watlev = props['WATLEV'] ? parseInt(props['WATLEV']) : 0;
+    const catwrk = props['CATWRK'] ? parseInt(props['CATWRK']) : 0;
+
+    if (geomType === 'Point') {
+      if (!isNaN(valsou)) {
+        if (valsou <= 0) {
+          retval.push('SY(WRECKS01)');
+        } else if (valsou <= this.s57Service.options.safetyDepth) {
+          retval.push('SY(DANGER51)');
+        } else {
+          retval.push('SY(WRECKS05)');
+        }
+      } else {
+        if (catwrk === 1) {
+          retval.push('SY(WRECKS05)');
+        } else if (catwrk === 2) {
+          retval.push('SY(WRECKS01)');
+        } else if (watlev === 1 || watlev === 2 || watlev === 3) {
+          retval.push('SY(WRECKS01)');
+        } else if (watlev === 4 || watlev === 5) {
+          retval.push('SY(WRECKS05)');
+        } else {
+          retval.push('SY(WRECKS01)');
+        }
+      }
+    } else {
+      // Polygon/Area
+      if (watlev === 1 || watlev === 2) {
+        retval.push('AC(CHBRN)');
+        retval.push('LS(SOLD,2,CSTLN)');
+      } else if (watlev === 4) {
+        retval.push('AC(DEPIT)');
+        retval.push('LS(DASH,2,CSTLN)');
+      } else {
+        retval.push('AC(DEPVS)');
+        retval.push('LS(DOTT,2,CSTLN)');
+      }
+    }
+
+    return retval;
+  }
+
+  private GetCSRESTRN01(feature: Feature): string[] {
+    const retval: string[] = [];
+    const props = feature.getProperties();
+
+    if (!props['RESTRN']) {
+      return retval;
+    }
+
+    const restrns = props['RESTRN']
+      .toString()
+      .split(',')
+      .map((v) => parseInt(v));
+
+    if (restrns.includes(1) || restrns.includes(2)) {
+      retval.push('SY(ACHRES51)');
+    }
+    if (restrns.includes(3) || restrns.includes(4)) {
+      retval.push('SY(FSHRES51)');
+    }
+    if (restrns.includes(5) || restrns.includes(6)) {
+      retval.push('SY(FSHRES71)');
+    }
+    if (restrns.includes(7) || restrns.includes(8) || restrns.includes(14)) {
+      retval.push('SY(ENTRES51)');
+    }
+    if (restrns.includes(9) || restrns.includes(10)) {
+      retval.push('SY(DRGARE51)');
+    }
+    if (restrns.includes(11) || restrns.includes(12)) {
+      retval.push('SY(DIVPRO51)');
+    }
+    if (restrns.includes(13)) {
+      retval.push('SY(ENTRES61)');
+    }
+    if (restrns.includes(27)) {
+      retval.push('SY(ENTRES71)');
+    }
+
+    if (retval.length === 0) {
+      retval.push('SY(ENTRES61)');
+    }
+
+    return retval;
+  }
+
+  private GetCSRESARE02(feature: Feature): string[] {
+    const retval: string[] = [];
+    retval.push('LS(DASH,2,CHMGD)');
+    retval.push(...this.GetCSRESTRN01(feature));
+    return retval;
+  }
+
   private evalCS(feature: Feature, instruction: string): string[] {
     let retval: string[] = [];
     const instrParts = this.instructionMatch.exec(instruction);
@@ -741,6 +953,22 @@ export class S57Style {
           break;
         case 'QUAPOS01':
           retval = this.GetCSQUAPOS01(feature);
+          break;
+        case 'SOUNDG02':
+          retval = this.GetCSSOUNDG02(feature);
+          break;
+        case 'OBSTRN04':
+          retval = this.GetCSOBSTRN04(feature);
+          break;
+        case 'WRECKS02':
+          retval = this.GetCSWRECKS02(feature);
+          break;
+        case 'RESTRN01':
+          retval = this.GetCSRESTRN01(feature);
+          break;
+        case 'RESARE01':
+        case 'RESARE02':
+          retval = this.GetCSRESARE02(feature);
           break;
         default:
           console.debug('Unsupported CS:' + instruction);
@@ -768,7 +996,10 @@ export class S57Style {
         if (instrParts && instrParts.length > 1) {
           let style: Style = null;
           const cacheKey = instrParts[1] + '_' + instrParts[2];
-          style = this.s57Service.getStyle(cacheKey);
+          const isText = instrParts[1] === 'TX' || instrParts[1] === 'TE';
+          if (!isText) {
+            style = this.s57Service.getStyle(cacheKey);
+          }
           if (!style) {
             switch (instrParts[1]) {
               case 'SY':
@@ -790,7 +1021,9 @@ export class S57Style {
                 //debugger
                 console.debug('Unsupported instruction:' + instruction);
             }
-            this.s57Service.setStyle(cacheKey, style);
+            if (!isText) {
+              this.s57Service.setStyle(cacheKey, style);
+            }
           }
 
           if (style) {
@@ -828,6 +1061,8 @@ export class S57Style {
         return 5;
       case 'BUAARE':
         return 6;
+      case 'SOUNDG':
+        return 7;
       default:
         return 99;
     }
@@ -861,10 +1096,13 @@ export class S57Style {
   public renderOrder = (feature1: Feature, feature2: Feature): number => {
     const l1 = this.layerOrder(feature1);
     const l2 = this.layerOrder(feature2);
+    // TODO: updateSafeContour has side effects inside a sort comparator,
+    // making selectedSafeContour depend on sort traversal order.
+    // Proper fix: compute safe contour in a pre-render pass over all features.
     const o1 = this.updateSafeContour(feature1);
     const o2 = this.updateSafeContour(feature2);
     let lupIndex1 = feature1[LOOKUPINDEXKEY];
-    let lupIndex2 = feature1[LOOKUPINDEXKEY];
+    let lupIndex2 = feature2[LOOKUPINDEXKEY];
     if (!lupIndex1) {
       lupIndex1 = this.s57Service.selectLookup(feature1);
       feature1[LOOKUPINDEXKEY] = lupIndex1;
@@ -880,7 +1118,7 @@ export class S57Style {
 
     if (lupIndex1 >= 0 && lupIndex2 >= 0) {
       const c1 = this.s57Service.getLookup(lupIndex1).displayPriority;
-      const c2 = this.s57Service.getLookup(lupIndex1).displayPriority;
+      const c2 = this.s57Service.getLookup(lupIndex2).displayPriority;
       if (c1 !== c2) {
         return c1 - c2;
       }
@@ -894,7 +1132,12 @@ export class S57Style {
   };
 
   public getStyle = (feature: Feature, resolution: number): Style[] => {
-    const lupIndex = feature[LOOKUPINDEXKEY];
+    this.currentResolution = resolution;
+    let lupIndex = feature[LOOKUPINDEXKEY];
+    if (lupIndex === undefined || lupIndex === null) {
+      lupIndex = this.s57Service.selectLookup(feature);
+      feature[LOOKUPINDEXKEY] = lupIndex;
+    }
     if (lupIndex >= 0) {
       const lup = this.s57Service.getLookup(lupIndex);
       // simple feature filter
@@ -902,7 +1145,7 @@ export class S57Style {
         lup.displayCategory === DisplayCategory.DISPLAYBASE ||
         lup.displayCategory === DisplayCategory.STANDARD ||
         lup.displayCategory === DisplayCategory.MARINERS_STANDARD ||
-        lup.name === 'DEPCNT'
+        this.s57Service.options.otherLayers.includes(lup.name)
       ) {
         return this.getStylesFromRules(lup, feature);
       }
