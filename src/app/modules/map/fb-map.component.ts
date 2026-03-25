@@ -31,8 +31,10 @@ import {
   AlarmPopoverComponent,
   ResourcePopoverComponent,
   ResourceSetPopoverComponent,
-  VesselPopoverComponent
+  VesselPopoverComponent,
+  S57PopoverComponent
 } from './popovers';
+import { S57_CLICKABLE_LAYERS } from './popovers/s57-popover.component';
 import { FreeboardOpenlayersModule } from 'src/app/modules/map/ol';
 import { CoordsPipe } from 'src/app/lib/pipes';
 
@@ -147,7 +149,8 @@ enum INTERACTION_MODE {
     AlarmPopoverComponent,
     ResourcePopoverComponent,
     ResourceSetPopoverComponent,
-    VesselPopoverComponent
+    VesselPopoverComponent,
+    S57PopoverComponent
   ],
   templateUrl: './fb-map.component.html',
   styleUrls: ['./fb-map.component.css']
@@ -944,9 +947,23 @@ export class FBMapComponent implements OnInit, OnDestroy {
     const fa = []; // features that can be the target of modify interaction
     let maskPopover = false; // suppress popover display
 
+    // S-57 vector tile feature detection
+    let s57Feature = null;
+
     // process list of features at click location
     e.features.forEach((feature: Feature) => {
+      // Check for S-57 vector tile features (no string ID, have 'layer' property)
       const id = feature.getId();
+      if (!id && feature.getProperties) {
+        const props = feature.getProperties();
+        if (props['layer'] && S57_CLICKABLE_LAYERS.has(props['layer'])) {
+          if (!s57Feature) {
+            s57Feature = feature;
+          }
+        }
+        return;
+      }
+
       let addToFeatureList = false;
       let aton: SKAtoN;
       let sar: SKSaR;
@@ -1082,6 +1099,9 @@ export class FBMapComponent implements OnInit, OnDestroy {
     } else if (featureList.size > 1) {
       // show list of features
       this.formatPopover('list.', e.lonlat, featureList);
+    } else if (s57Feature && featureList.size === 0) {
+      // S-57 vector tile feature
+      this.formatPopover('s57.feature', e.lonlat, null, s57Feature);
     }
   }
 
@@ -1097,7 +1117,8 @@ export class FBMapComponent implements OnInit, OnDestroy {
   protected formatPopover(
     id: string,
     coord: Position,
-    featureList?: Map<string, any>
+    featureList?: Map<string, any>,
+    s57Feature?: any
   ) {
     if (!id) {
       this.overlay.update((current) => {
@@ -1292,6 +1313,16 @@ export class FBMapComponent implements OnInit, OnDestroy {
           (poData.resource as GeoJsonFeature)?.properties?.name ??
           'Resource Set';
         poData.show = poData.resource ? true : false;
+        break;
+      case 's57':
+        if (s57Feature) {
+          const props = s57Feature.getProperties ? s57Feature.getProperties() : {};
+          poData.type = 's57';
+          poData.id = 's57';
+          poData.title = props['OBJNAM'] || props['layer'] || 'S-57 Feature';
+          poData.s57Properties = props;
+          poData.show = true;
+        }
         break;
       default:
         return;
