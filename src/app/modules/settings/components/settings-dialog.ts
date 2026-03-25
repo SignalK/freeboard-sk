@@ -1,4 +1,4 @@
-import { Component, OnInit, ElementRef, signal, effect } from '@angular/core';
+import { Component, OnInit, ElementRef, signal, effect, computed } from '@angular/core';
 
 import { FormsModule, NgModel } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
@@ -25,6 +25,7 @@ import { defaultConfig } from 'src/app/app.config';
 import { SettingsOptions } from '../settings.facade';
 import { S57Service } from '../../map/ol';
 import { AppFacade } from 'src/app/app.facade';
+import { SKResourceService } from '../../skresources';
 import { Convert } from 'src/app/lib/convert';
 
 interface PreferredPathsResult {
@@ -77,6 +78,10 @@ export class SettingsDialog implements OnInit {
 
   protected unitsChangedSignal = signal<number>(0);
 
+  protected hasS57Charts = computed(() =>
+    this.skres.charts().some((c) => c[1].type?.toLowerCase() === 's-57')
+  );
+
   private saveOnClose = false;
 
   constructor(
@@ -85,7 +90,8 @@ export class SettingsDialog implements OnInit {
     protected dialogRef: MatDialogRef<SettingsDialog>,
     protected wakeLock: WakeLockService,
     private s57: S57Service,
-    protected app: AppFacade
+    protected app: AppFacade,
+    private skres: SKResourceService
   ) {
     this.options = new SettingsOptions();
 
