@@ -262,7 +262,7 @@
                             <mat-select
                               [disabled]="facade.settings.units.useServerPrefs"
                               [(ngModel)]="facade.settings.units.depth"
-                              (selectionChange)="raiseChange();persistModel()"
+                              (selectionChange)="raiseChange();persistModel();doS57()"
                             >
                               @for(i of options.availableUnits.depth; track
                               i[0]) {
@@ -550,6 +550,22 @@
                       <mat-error> Please enter a positive number </mat-error>
                       }
                       <span matSuffix>m</span>
+                    </mat-form-field>
+                  </div>
+                </div>
+                <div class="setting-card-row" style="padding-bottom: 10px">
+                  <div class="setting-card-row-item" style="width: 100%">
+                    <mat-form-field style="width: 100%">
+                      <mat-label>Additional Layers</mat-label>
+                      <mat-select
+                        [(ngModel)]="facade.settings.map.s57Options.otherLayers"
+                        (selectionChange)="doS57()"
+                        multiple
+                      >
+                        @for(layer of options.map.s57.otherLayers; track layer.value) {
+                        <mat-option [value]="layer.value">{{layer.label}}</mat-option>
+                        }
+                      </mat-select>
                     </mat-form-field>
                   </div>
                 </div>

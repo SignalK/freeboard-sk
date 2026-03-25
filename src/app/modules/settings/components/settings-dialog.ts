@@ -150,7 +150,7 @@ export class SettingsDialog implements OnInit {
     } else {
       this.persistModel();
     }
-    this.s57.SetOptions(this.facade.settings.map.s57Options);
+    this.s57.SetOptions({ ...this.facade.settings.map.s57Options, depthUnit: this.facade.settings.units.depth });
   }
 
   /**

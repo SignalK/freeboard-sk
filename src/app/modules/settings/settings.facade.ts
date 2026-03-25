@@ -104,7 +104,22 @@ export class SettingsOptions {
         [2, 'Day White Background']
         /*[3, 'Dusk'],
         [4, 'Night']*/
-      ])
+      ]),
+      otherLayers: [
+        { value: 'SOUNDG', label: 'Depth Soundings' },
+        { value: 'DEPCNT', label: 'Depth Contours' },
+        { value: 'OBSTRN', label: 'Obstructions' },
+        { value: 'UWTROC', label: 'Underwater Rocks' },
+        { value: 'WRECKS', label: 'Wrecks' },
+        { value: 'CBLSUB', label: 'Submarine Cables' },
+        { value: 'PIPSOL', label: 'Submarine Pipelines' },
+        { value: 'BERTHS', label: 'Berths' },
+        { value: 'MORFAC', label: 'Mooring Facilities' },
+        { value: 'LNDMRK', label: 'Landmarks' },
+        { value: 'DISMAR', label: 'Distance Marks' },
+        { value: 'CURENT', label: 'Currents' },
+        { value: 'MAGVAR', label: 'Magnetic Variation' }
+      ]
     }
   };
 
