@@ -38,6 +38,8 @@ export interface Options {
   boundaries: string;
   colors: number;
   colorTable: number;
+  otherLayers: string[];
+  depthUnit: 'm' | 'ft';
 }
 
 export const DefaultOptions: Options = {
@@ -47,7 +49,9 @@ export const DefaultOptions: Options = {
   graphicsStyle: 'Paper', //Simplified or Paper
   boundaries: 'Plain', // Plain or Symbolized
   colors: 4, // 2 or 4
-  colorTable: 0 //color scheme
+  colorTable: 0, //color scheme
+  otherLayers: ['SOUNDG', 'OBSTRN', 'UWTROC', 'WRECKS', 'DEPCNT'],
+  depthUnit: 'm'
 };
 
 interface ColorTable {

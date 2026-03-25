@@ -10,6 +10,7 @@ const LOOKUPINDEXKEY = '$lupIndex';
 export class S57Style {
   private s57Service: S57Service;
   private selectedSafeContour = 1000;
+  private currentResolution = 0;
   private instructionMatch = new RegExp('([A-Z][A-Z])\\((.*)\\)');
 
   constructor(s57Service: S57Service) {
@@ -736,21 +737,31 @@ export class S57Style {
       return retval;
     }
 
-    const isNegative = depth < 0;
-    const absDepth = Math.abs(depth);
-    const wholePart = Math.floor(absDepth);
-    const decimalPart = Math.round((absDepth - wholePart) * 10);
-
-    // Write synthetic properties directly (RenderFeature has no .set())
-    featureProperties['_SOUNDG_WHOLE'] =
-      (isNegative ? '-' : '') + wholePart.toString();
-
-    retval.push('TX(_SOUNDG_WHOLE,1,1,2)');
-
-    if (decimalPart > 0) {
-      featureProperties['_SOUNDG_FRAC'] = decimalPart.toString();
-      retval.push('TX(_SOUNDG_FRAC,1,3,2)');
+    // Convert to user's preferred depth unit
+    if (this.s57Service.options.depthUnit === 'ft') {
+      depth = depth * 3.28084;
     }
+
+    // Format: whole numbers for feet; meters show tenths only when zoomed in
+    const sign = depth < 0 ? '-' : '';
+    const absDepth = Math.abs(depth);
+    let str: string;
+    if (this.s57Service.options.depthUnit === 'ft') {
+      str = sign + Math.round(absDepth).toString();
+    } else {
+      // Show tenths when zoomed in (resolution < 5 ≈ zoom 15+), whole numbers when zoomed out
+      const showTenths = this.currentResolution < 5;
+      if (showTenths) {
+        const rounded = Math.round(absDepth * 10) / 10;
+        str = sign + (rounded % 1 === 0 ? rounded.toFixed(0) : rounded.toFixed(1));
+      } else {
+        str = sign + Math.round(absDepth).toString();
+      }
+    }
+
+    // Write synthetic property directly (RenderFeature has no .set())
+    featureProperties['_SOUNDG_WHOLE'] = str;
+    retval.push('TX(_SOUNDG_WHOLE,1,2,2)');
 
     return retval;
   }
@@ -1121,7 +1132,12 @@ export class S57Style {
   };
 
   public getStyle = (feature: Feature, resolution: number): Style[] => {
-    const lupIndex = feature[LOOKUPINDEXKEY];
+    this.currentResolution = resolution;
+    let lupIndex = feature[LOOKUPINDEXKEY];
+    if (lupIndex === undefined || lupIndex === null) {
+      lupIndex = this.s57Service.selectLookup(feature);
+      feature[LOOKUPINDEXKEY] = lupIndex;
+    }
     if (lupIndex >= 0) {
       const lup = this.s57Service.getLookup(lupIndex);
       // simple feature filter
@@ -1129,8 +1145,7 @@ export class S57Style {
         lup.displayCategory === DisplayCategory.DISPLAYBASE ||
         lup.displayCategory === DisplayCategory.STANDARD ||
         lup.displayCategory === DisplayCategory.MARINERS_STANDARD ||
-        lup.name === 'DEPCNT' ||
-        lup.name === 'SOUNDG'
+        this.s57Service.options.otherLayers.includes(lup.name)
       ) {
         return this.getStylesFromRules(lup, feature);
       }
