@@ -30,22 +30,26 @@ export class SettingsOptions {
 
   availableUnits = {
     distance: new Map([
-      ['m', 'Kilometres'],
-      ['ft', 'Nautical Miles']
+      ['kilometer', 'Kilometres'],
+      ['naut-mile', 'Nautical Miles']
     ]),
     depth: new Map([
       ['m', 'metres'],
-      ['ft', 'feet']
+      ['foot', 'feet']
+    ]),
+    length: new Map([
+      ['m', 'metres'],
+      ['foot', 'feet']
     ]),
     speed: new Map([
       ['kn', 'knots'],
-      ['msec', 'm/sec'],
-      ['kmh', 'km/h'],
+      ['m/s', 'm/sec'],
+      ['km/h', 'km/h'],
       ['mph', 'mph']
     ]),
     temperature: new Map([
-      ['c', 'Celsius'],
-      ['f', 'Fahrenheit']
+      ['C', 'Celsius'],
+      ['F', 'Fahrenheit']
     ])
   };
 
@@ -152,14 +156,14 @@ export class SettingsOptions {
     ]),
     headingLine: new Map([
       [-1, 'Default'],
-      [1, '1 NM (2km)'],
-      [2, '2 NM (4km)'],
-      [5, '5 NM (10km)'],
-      [10, '10 NM (20km)'],
-      [15, '15 NM (30km)'],
-      [20, '20 NM (40km)'],
-      [50, '50 NM (90km)'],
-      [100, '100 NM (180km)']
+      [1, '1 nmi (2km)'],
+      [2, '2 nmi (4km)'],
+      [5, '5 nmi (10km)'],
+      [10, '10 nmi (20km)'],
+      [15, '15 nmi (30km)'],
+      [20, '20 nmi (40km)'],
+      [50, '50 nmi (90km)'],
+      [100, '100 nmi (180km)']
     ]),
     cogLine: new Map([
       [0, 'None'],
@@ -183,13 +187,13 @@ export class SettingsOptions {
     ]),
     aisMaxRadius: new Map([
       [0, 'None'],
-      [10000, '5 NM (10km)'],
-      [20000, '10 NM (20km)'],
-      [30000, '15 NM (30km)'],
-      [40000, '20 NM (40km)'],
-      [50000, '25 NM (50km)'],
-      [75000, '40 NM (75km)'],
-      [100000, '55 NM (100km)']
+      [10000, '5 nmi (10km)'],
+      [20000, '10 nmi (20km)'],
+      [30000, '15 nmi (30km)'],
+      [40000, '20 nmi (40km)'],
+      [50000, '25 nmi (50km)'],
+      [75000, '40 nmi (75km)'],
+      [100000, '55 nmi (100km)']
     ]),
     aisCogLine: new Map([
       [0, 'Off'],

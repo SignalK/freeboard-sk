@@ -1,4 +1,4 @@
-import { Pipe, PipeTransform } from '@angular/core';
+import { inject, Pipe, PipeTransform } from '@angular/core';
 import {
   DomSanitizer,
   SafeHtml,
@@ -13,7 +13,9 @@ import {
   standalone: true
 })
 export class SafePipe implements PipeTransform {
-  constructor(protected sanitizer: DomSanitizer) {}
+  protected sanitizer = inject(DomSanitizer);
+
+  constructor() {}
 
   public transform(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -42,7 +44,9 @@ export class SafePipe implements PipeTransform {
   standalone: true
 })
 export class AddTargetPipe implements PipeTransform {
-  constructor(protected sanitizer: DomSanitizer) {}
+  protected sanitizer = inject(DomSanitizer);
+
+  constructor() {}
 
   public transform(value: string, target: string): string {
     if (typeof value === 'string') {

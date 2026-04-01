@@ -1,4 +1,4 @@
-import { FBAppData, IAppConfig } from './types';
+import { FBAppData, IAppConfig, TemperatureUnitDef } from './types';
 import { Convert } from './lib/convert';
 import { SKVessel } from './modules';
 /*import {
@@ -68,6 +68,29 @@ export function cleanConfig(
       }
     };
   }
+
+  if (typeof settings.units.temperature === 'undefined') {
+    settings.units.temperature = 'C';
+  }
+  settings.units.temperature =
+    settings.units.temperature.toUpperCase() as TemperatureUnitDef;
+  settings.units.depth =
+    (settings.units.depth as any) === 'ft' ? 'foot' : settings.units.depth;
+  if (typeof settings.units.length === 'undefined') {
+    settings.units.length = settings.units.depth ?? 'm';
+  }
+  settings.units.speed =
+    (settings.units.speed as any) === 'msec'
+      ? 'm/s'
+      : (settings.units.speed as any) === 'kmh'
+        ? 'km/h'
+        : settings.units.speed;
+  settings.units.distance =
+    (settings.units.distance as any) === 'm'
+      ? 'kilometer'
+      : (settings.units.distance as any) === 'ft'
+        ? 'naut-mile'
+        : settings.units.distance;
 
   if (typeof settings.map.s57Options === 'undefined') {
     settings.map.s57Options = {
@@ -320,10 +343,6 @@ export function cleanConfig(
     settings.selections.regions = [];
   }
 
-  if (typeof settings.units.temperature === 'undefined') {
-    settings.units.temperature = 'c';
-  }
-
   // apply url params
   if (typeof hostParams.northup !== 'undefined') {
     settings.ui.mapNorthUp = hostParams.northup === '0' ? false : true;
@@ -374,10 +393,11 @@ export function defaultConfig(): IAppConfig {
       }
     },
     units: {
-      distance: 'm',
+      distance: 'kilometer',
       depth: 'm',
+      length: 'm',
       speed: 'kn',
-      temperature: 'c',
+      temperature: 'C',
       positionFormat: 'XY',
       headingAttribute: 'navigation.headingTrue',
       preferredPaths: {
@@ -449,11 +469,11 @@ export function defaultConfig(): IAppConfig {
       // ** resource options
       fetchFilter:
         '?position=[%map:longitude%,%map:latitude%]&distance=%fetch:radius%',
-      fetchRadius: 0, // radius (NM/km) within which to return resources
+      fetchRadius: 0, // radius (nmi/km) within which to return resources
       notes: {
         rootFilter:
           '?position=[%map:longitude%,%map:latitude%]&distance=%note:radius%', // param string to provide record filtering
-        getRadius: 20, // radius (NM/km) within which to return notes
+        getRadius: 20, // radius (nmi/km) within which to return notes
         groupNameEdit: false,
         groupRequiresPosition: true,
         minZoom: 10
@@ -560,7 +580,7 @@ export const processUrlTokens = (s: string, config: IAppConfig): string => {
         return Math.floor(config.map.zoomLevel);
       } else if (i === 'note:radius') {
         const dist =
-          config.units.distance === 'm'
+          config.units.distance === 'kilometer'
             ? config.resources.notes.getRadius
             : Math.floor(
                 Convert.nauticalMilesToKm(config.resources.notes.getRadius)
@@ -568,7 +588,7 @@ export const processUrlTokens = (s: string, config: IAppConfig): string => {
         return dist * 1000;
       } else if (i === 'fetch:radius') {
         const dist =
-          config.units.distance === 'm'
+          config.units.distance === 'kilometer'
             ? config.resources.notes.getRadius
             : Math.floor(
                 Convert.nauticalMilesToKm(config.resources.fetchRadius)

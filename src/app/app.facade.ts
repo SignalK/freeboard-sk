@@ -19,7 +19,7 @@ import {
   ErrorListDialog
 } from './lib/components/dialogs';
 
-import { Convert } from './lib/convert';
+import { Convert, SI_BASE_UNIT, TARGET_UNIT } from './lib/convert';
 import { SignalKClient } from 'signalk-client-angular';
 import { SKWorkerService } from './modules';
 
@@ -28,7 +28,13 @@ import {
   ErrorList,
   IAppConfig,
   LineString,
-  SKServerUnitPrefs
+  SKServerUnitPrefs,
+  SKUnitCategory,
+  TemperatureUnitDef,
+  DepthUnitDef,
+  SpeedUnitDef,
+  DistanceUnitDef,
+  LengthUnitDef
 } from './types';
 
 import {
@@ -385,41 +391,66 @@ export class AppFacade extends InfoService {
       return;
     }
     if (units.categories.speed) {
-      this.config.units.speed =
-        units.categories.speed.targetUnit === 'm/s'
-          ? 'msec'
-          : ['km/h', 'kph'].includes(units.categories.speed.targetUnit)
-            ? 'kmh'
-            : units.categories.speed.targetUnit === 'mph'
-              ? 'mph'
-              : ['kn', 'knot'].includes(units.categories.speed.targetUnit)
-                ? 'kn'
-                : this.config.units.speed;
-    }
-    if (units.categories.depth) {
-      this.config.units.depth =
-        units.categories.depth.targetUnit === 'm'
-          ? 'm'
-          : units.categories.depth.targetUnit === 'foot'
-            ? 'ft'
-            : this.config.units.depth;
-    }
-    if (units.categories.distance) {
-      this.config.units.distance = ['naut-mile'].includes(
-        units.categories.distance.targetUnit
+      this.config.units.speed = ['kn', 'm/s', 'km/h', 'mph'].includes(
+        units.categories.speed.targetUnit
       )
-        ? 'ft'
-        : ['kilometer'].includes(units.categories.distance.targetUnit)
-          ? 'm'
-          : this.config.units.distance;
+        ? (units.categories.speed.targetUnit as SpeedUnitDef)
+        : this.config.units.speed;
+      Convert.setSymbol(
+        units.categories.speed.targetUnit as TARGET_UNIT,
+        units.categories.speed.symbol
+      );
     }
     if (units.categories.temperature) {
-      this.config.units.temperature =
-        units.categories.depth.targetUnit === 'C'
-          ? 'c'
-          : units.categories.temperature.targetUnit === 'F'
-            ? 'f'
-            : this.config.units.temperature;
+      this.config.units.temperature = ['C', 'F'].includes(
+        units.categories.temperature.targetUnit
+      )
+        ? (units.categories.temperature.targetUnit as TemperatureUnitDef)
+        : this.config.units.temperature;
+
+      Convert.setSymbol(
+        units.categories.temperature.targetUnit as TARGET_UNIT,
+        units.categories.temperature.symbol
+      );
+    }
+
+    if (units.categories.distance) {
+      this.config.units.distance = ['kilometer', 'naut-mile'].includes(
+        units.categories.distance.targetUnit
+      )
+        ? (units.categories.distance.targetUnit as DistanceUnitDef)
+        : this.config.units.distance;
+
+      Convert.setSymbol(
+        units.categories.distance.targetUnit as TARGET_UNIT,
+        units.categories.distance.symbol
+      );
+    }
+
+    if (units.categories.depth) {
+      this.config.units.depth = ['m', 'foot'].includes(
+        units.categories.depth.targetUnit
+      )
+        ? (units.categories.depth.targetUnit as DepthUnitDef)
+        : this.config.units.depth;
+
+      Convert.setSymbol(
+        units.categories.depth.targetUnit as TARGET_UNIT,
+        units.categories.depth.symbol
+      );
+    }
+
+    if (units.categories.length) {
+      this.config.units.length = ['m', 'foot'].includes(
+        units.categories.length.targetUnit
+      )
+        ? (units.categories.length.targetUnit as LengthUnitDef)
+        : this.config.units.length;
+
+      Convert.setSymbol(
+        units.categories.length.targetUnit as TARGET_UNIT,
+        units.categories.length.symbol
+      );
     }
   }
 
@@ -862,58 +893,105 @@ export class AppFacade extends InfoService {
    */
   formatValueForDisplay(
     value: number,
-    sourceUnits: 'K' | 'm/s' | 'rad' | 'm' | 'ratio' | 'deg' | 'sec',
-    depthValue?: boolean,
-    precision: number = 1
+    sourceUnit: SI_BASE_UNIT,
+    options?: {
+      category?: string;
+      noSymbol?: boolean;
+      precision?: number;
+    }
   ): string {
     if (typeof value === 'number') {
-      if (sourceUnits === 'K') {
-        return this.config.units.temperature === 'c'
-          ? `${Convert.kelvinToCelsius(value).toFixed(
-              precision
-            )}${String.fromCharCode(186)}C`
-          : `${Convert.kelvinToFarenheit(value).toFixed(
-              1
-            )}${String.fromCharCode(186)}F`;
-      } else if (sourceUnits === 'ratio') {
-        return Math.abs(value) <= 1
-          ? `${(value * 100).toFixed(precision)}%`
-          : value.toFixed(4);
-      } else if (sourceUnits === 'rad') {
-        return `${Convert.radiansToDegrees(value).toFixed(
-          1
-        )}${String.fromCharCode(186)}`;
-      } else if (sourceUnits === 'deg') {
-        return `${value.toFixed(precision)}${String.fromCharCode(186)}`;
-      } else if (sourceUnits === 'm') {
-        if (depthValue) {
-          return this.config.units.depth === 'm'
-            ? `${value.toFixed(precision)} m`
-            : `${Convert.metersToFeet(value).toFixed(precision)} ft`;
+      const precision = options?.precision ?? 1;
+      let symbol = '';
+      let nv: string;
+
+      if (sourceUnit === 'K') {
+        symbol = Convert.getSymbol(this.config.units.temperature);
+        nv = this.formatNumericDisplay(
+          Convert.transform(
+            value,
+            sourceUnit,
+            this.config.units.temperature as TARGET_UNIT
+          ),
+          precision
+        );
+      } else if (sourceUnit === 'rad') {
+        symbol = Convert.getSymbol('degree');
+        nv = this.formatNumericDisplay(
+          Convert.transform(value, sourceUnit, 'degree'),
+          precision
+        );
+      } else if (sourceUnit === 'm/s') {
+        symbol = Convert.getSymbol(this.config.units.speed);
+        nv = this.formatNumericDisplay(
+          Convert.transform(
+            value,
+            sourceUnit,
+            this.config.units.speed as TARGET_UNIT
+          ),
+          precision
+        );
+      } else if (sourceUnit === 'ratio') {
+        symbol = Convert.getSymbol('percent');
+        nv =
+          Math.abs(value) <= 1
+            ? this.formatNumericDisplay(value * 100, precision)
+            : this.formatNumericDisplay(value, 4);
+      } else if (sourceUnit === 'deg') {
+        symbol = Convert.getSymbol('degree');
+        nv = this.formatNumericDisplay(value, precision);
+      } else if (sourceUnit === 'm') {
+        if (options?.category === 'depth') {
+          symbol = Convert.getSymbol(this.config.units.depth);
+          nv = this.formatNumericDisplay(
+            Convert.transform(
+              value,
+              sourceUnit,
+              this.config.units.depth as TARGET_UNIT
+            ),
+            precision
+          );
+        } else if (options?.category === 'length') {
+          symbol = Convert.getSymbol(this.config.units.length);
+          nv = this.formatNumericDisplay(
+            Convert.transform(
+              value,
+              sourceUnit,
+              this.config.units.length as TARGET_UNIT
+            ),
+            precision
+          );
         } else {
-          if (this.config.units.distance !== 'ft') {
-            return value < 1000
-              ? `${value.toFixed(Math.floor(value) === 0 ? precision : 0)} m`
-              : `${(value / 1000).toFixed(precision)} km`;
+          // distance
+          if (this.config.units.distance === 'kilometer' && value < 1000) {
+            symbol = Convert.getSymbol('m');
+            nv = this.formatNumericDisplay(value, 0);
+          } else if (this.config.units.distance === 'naut-mile') {
+            const nm = Convert.transform(
+              value,
+              sourceUnit,
+              this.config.units.distance
+            );
+            if (nm < 0.5) {
+              symbol = Convert.getSymbol(this.config.units.length);
+              nv = this.formatNumericDisplay(nm, 0);
+            } else {
+              symbol = Convert.getSymbol(this.config.units.distance);
+              nv = this.formatNumericDisplay(nm, precision);
+            }
           } else {
-            const nm = Convert.kmToNauticalMiles(value / 1000);
-            return nm < 0.5
-              ? this.formatValueForDisplay(value, 'm', true)
-              : `${nm.toFixed(precision)} NM`;
+            symbol = Convert.getSymbol(this.config.units.distance);
+            nv = this.formatNumericDisplay(
+              Convert.transform(
+                value,
+                sourceUnit,
+                this.config.units.distance as TARGET_UNIT
+              ),
+              precision
+            );
           }
         }
-      } else if (sourceUnits === 'm/s') {
-        switch (this.config.units.speed) {
-          case 'kmh':
-            return `${Convert.msecToKmh(value).toFixed(precision)} km/h`;
-          case 'kn':
-            return `${Convert.msecToKnots(value).toFixed(precision)} knots`;
-          case 'mph':
-            return `${Convert.msecToMph(value).toFixed(precision)} mph`;
-          default:
-            return `${value} ${sourceUnits}`;
-        }
-      } else if (sourceUnits === 'sec') {
+      } else if (sourceUnit === 's') {
         const minutes = Math.floor(value / 60);
         const hr = minutes / 60;
         if (hr >= 24) {
@@ -928,6 +1006,7 @@ export class AppFacade extends InfoService {
         }
         return `${minutes} min`;
       }
+      return `${nv}${options?.noSymbol ? '' : symbol}`;
     } else {
       // timestamp
       if (typeof value === 'string') {
@@ -935,37 +1014,42 @@ export class AppFacade extends InfoService {
           return new Date(value).toLocaleString();
         }
       }
-      return `${value}${sourceUnits}`;
+      return `${value}${sourceUnit}`;
     }
+  }
+
+  /**
+   * Formats numeric value as text for display
+   * @param value Numeric value
+   * @param precision Number of decimal places
+   * @returns Formatted string value '--' when value is non-numeric
+   */
+  formatNumericDisplay(value: number, precision?: number): string {
+    precision = Number.isFinite(precision) ? precision : 1;
+    return !Number.isFinite(value)
+      ? '---'.slice(0 - precision)
+      : Number.isFinite(precision)
+        ? value.toFixed(precision)
+        : `${value}`;
   }
 
   // convert speed value and set the value of this.app.formattedSpeedUnits
   formatSpeed(value: number, asString = false): string | number {
-    const valIsNumber = typeof value === 'number';
-    switch (this.config.units.speed) {
-      case 'kn':
-        value = Convert.msecToKnots(value);
-        this.formattedSpeedUnits = 'knots';
-        break;
-      case 'kmh':
-        value = Convert.msecToKmh(value);
-        this.formattedSpeedUnits = 'km/h';
-        break;
-      case 'mph':
-        value = Convert.msecToMph(value);
-        this.formattedSpeedUnits = 'mph';
-        break;
-      default:
-        this.formattedSpeedUnits = 'm/s';
-    }
-    if (asString) {
-      return valIsNumber ? value.toFixed(1) : '-';
-    } else {
-      return valIsNumber ? value : '-';
+    this.formattedSpeedUnits = Convert.getSymbol(this.config.units.speed);
+    try {
+      value = Convert.transform(
+        value,
+        'm/s',
+        this.config.units.speed as TARGET_UNIT
+      );
+    } catch {
+      value = null;
+    } finally {
+      return asString ? this.formatNumericDisplay(value) : value;
     }
   }
 
-  formattedSpeedUnits = 'knots';
+  formattedSpeedUnits = Convert.getSymbol('kn');
 }
 
 /******************

@@ -25,7 +25,7 @@ import { defaultConfig } from 'src/app/app.config';
 import { SettingsOptions } from '../settings.facade';
 import { S57Service } from '../../map/ol';
 import { AppFacade } from 'src/app/app.facade';
-import { Convert } from 'src/app/lib/convert';
+import { Convert, TARGET_UNIT } from 'src/app/lib/convert';
 
 interface PreferredPathsResult {
   save: boolean;
@@ -108,11 +108,13 @@ export class SettingsDialog implements OnInit {
   formatNumberModel() {
     this.formattedNumberModel = {
       rangeCirclesDistance:
-        this.facade.settings.units.distance === 'm'
+        this.facade.settings.units.distance === 'kilometer'
           ? Math.floor(this.facade.settings.vessels.rangeCirclesDistance / 1000)
           : Math.floor(
-              Convert.kmToNauticalMiles(
-                this.facade.settings.vessels.rangeCirclesDistance / 1000
+              Convert.transform(
+                this.facade.settings.vessels.rangeCirclesDistance,
+                'm',
+                'naut-mile'
               )
             )
     };
@@ -187,7 +189,7 @@ export class SettingsDialog implements OnInit {
       e.reset(Math.abs(e.model));
     }
     this.facade.settings.vessels.rangeCirclesDistance =
-      this.facade.settings.units.distance === 'm'
+      this.facade.settings.units.distance === 'kilometer'
         ? Math.floor(this.formattedNumberModel.rangeCirclesDistance * 1000)
         : Math.floor(
             Convert.nauticalMilesToKm(
@@ -306,5 +308,9 @@ export class SettingsDialog implements OnInit {
    */
   clearAuthToken() {
     this.facade.clearToken();
+  }
+
+  renderSymbol(unit: TARGET_UNIT) {
+    return Convert.getSymbol(unit);
   }
 }

@@ -897,17 +897,17 @@ export class SKResourceService {
           );
           this.signalk
             .post(`/signalk/chart-tiles/cache/${chart[0]}`, req)
-            .subscribe(
-              (res) => {
+            .subscribe({
+              next: (res) => {
                 this.app.showAlert(
                   'Chart Cache',
                   `Tile cache seed job created successfully.`
                 );
               },
-              (err) => {
+              error: (err) => {
                 this.app.parseHttpErrorResponse(err);
               }
-            );
+            });
         }
       });
   }

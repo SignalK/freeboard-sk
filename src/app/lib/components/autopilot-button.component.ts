@@ -1,4 +1,4 @@
-import { Component, input } from '@angular/core';
+import { Component, inject, input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
@@ -31,7 +31,9 @@ import { AppFacade } from 'src/app/app.facade';
 export class AutopilotButtonComponent {
   protected active = input<boolean>(false);
 
-  constructor(protected app: AppFacade) {}
+  protected app = inject(AppFacade);
+
+  constructor() {}
 
   handleClick() {
     this.app.uiCtrl.update((current) => {

@@ -213,23 +213,25 @@ export class AISPropertiesModal {
       length: app.formatValueForDisplay(
         this.data.target.design.length?.overall,
         'm',
-        true
+        { category: 'length' }
       ),
-      beam: app.formatValueForDisplay(this.data.target.design.beam, 'm', true),
+      beam: app.formatValueForDisplay(this.data.target.design.beam, 'm', {
+        category: 'length'
+      }),
       draftMax: app.formatValueForDisplay(
         this.data.target.design.draft?.maximum,
         'm',
-        true
+        { category: 'depth' }
       ),
       draftCurrent: app.formatValueForDisplay(
         this.data.target.design.draft?.current,
         'm',
-        true
+        { category: 'depth' }
       ),
       airHeight: app.formatValueForDisplay(
         this.data.target.design.airHeight,
         'm',
-        true
+        { category: 'depth' }
       )
     };
   }

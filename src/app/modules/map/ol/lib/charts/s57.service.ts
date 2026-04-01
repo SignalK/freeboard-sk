@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { inject, Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 
 import { Feature } from 'ol';
@@ -110,7 +110,9 @@ export class S57Service {
 
   private attMatch = new RegExp('([A-Za-z0-9]{6})([0-9,\\?]*)');
 
-  constructor(private http: HttpClient) {}
+  private http = inject(HttpClient);
+
+  constructor() {}
 
   public init(options: Options = DefaultOptions) {
     this.options = Object.assign({}, options);

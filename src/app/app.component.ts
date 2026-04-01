@@ -237,7 +237,7 @@ export class AppComponent {
   private selFavourite = -1;
   protected vidUrl = signal<SafeResourceUrl | null>(null);
 
-  public convert = Convert;
+  protected convert = Convert;
   private obsList = []; // observables array
   private streamOptions = { options: null, toMode: null };
 
@@ -731,8 +731,8 @@ export class AppComponent {
         this.app.hostDef.port,
         this.app.hostDef.ssl
       )
-      .subscribe(
-        () => {
+      .subscribe({
+        next: () => {
           this.signalk.authToken = this.app.getFBToken();
           this.app.watchSKLogin();
           this.app.loadSettingsfromServer().then((result: boolean) => {
@@ -751,7 +751,7 @@ export class AppComponent {
           this.app.data.server = this.signalk.server.info;
           this.openSKStream();
         },
-        () => {
+        error: () => {
           this.app.showMessage(
             'Unable to contact Signal K server! (Retrying in 5 secs)',
             false,
@@ -759,7 +759,7 @@ export class AppComponent {
           );
           setTimeout(() => this.connectSignalKServer(), 5000);
         }
-      );
+      });
   }
 
   // ** discover server features **

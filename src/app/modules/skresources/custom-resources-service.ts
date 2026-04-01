@@ -75,10 +75,10 @@ export class FBCustomResourceService {
               .post(`/plugins/resources-provider/_config/${name}`, {
                 description: description
               })
-              .subscribe(
-                () => resolve(true),
-                () => resolve(false)
-              );
+              .subscribe({
+                next: () => resolve(true),
+                error: () => resolve(false)
+              });
           }
         );
     });

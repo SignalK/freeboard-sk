@@ -361,16 +361,8 @@ export class ResourcePopoverComponent {
     this.icon = getResourceIcon('routes', this.resource[1]);
     this.title = this.resource[1].name ?? '';
     this.properties = [];
-    const d =
-      this.units === 'm'
-        ? [(this.resource[1].distance / 1000).toFixed(1), 'km']
-        : [
-            Convert.kmToNauticalMiles(this.resource[1].distance / 1000).toFixed(
-              1
-            ),
-            'NM'
-          ];
-    this.properties.push(['Distance', `${d[0]} ${d[1]}`]);
+    const d = this.app.formatValueForDisplay(this.resource[1].distance, 'm');
+    this.properties.push(['Distance', d]);
   }
 
   parseNote() {

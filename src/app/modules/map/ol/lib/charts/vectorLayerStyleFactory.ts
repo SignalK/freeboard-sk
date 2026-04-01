@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { inject, Injectable } from '@angular/core';
 import { SKChart } from 'src/app/modules';
 import { S57Service } from './s57.service';
 import { S57Style } from './s57Style';
@@ -12,12 +12,14 @@ export abstract class VectorLayerStyler {
   public MinZ: number;
   public MaxZ: number;
 
-  constructor(public chart: SKChart) {
+  protected chart = inject(SKChart);
+
+  constructor() {
     this.MinZ =
-      chart.minZoom && chart.minZoom >= 0.1
-        ? chart.minZoom - 0.1
-        : chart.minZoom;
-    this.MaxZ = chart.maxZoom;
+      this.chart.minZoom && this.chart.minZoom >= 0.1
+        ? this.chart.minZoom - 0.1
+        : this.chart.minZoom;
+    this.MaxZ = this.chart.maxZoom;
   }
 
   public abstract ApplyStyle(vectorLayer: VectorTileLayer<never>);
@@ -25,11 +27,8 @@ export abstract class VectorLayerStyler {
 }
 
 class S57LayerStyler extends VectorLayerStyler {
-  constructor(
-    chart: SKChart,
-    private s57service: S57Service
-  ) {
-    super(chart);
+  constructor(private s57service: S57Service) {
+    super();
   }
 
   public CreateLayer(): VectorTileLayer<never> {
@@ -68,10 +67,13 @@ class S57LayerStyler extends VectorLayerStyler {
   providedIn: 'root'
 })
 export class VectorLayerStyleFactory {
-  constructor(private s57service: S57Service) {}
+  private s57service = inject(S57Service);
+
+  constructor() {}
+
   public CreateVectorLayerStyler(chart: SKChart): VectorLayerStyler {
     if (chart.type === 'S-57' || chart.type === 's-57') {
-      return new S57LayerStyler(chart, this.s57service);
+      return new S57LayerStyler(this.s57service);
     }
   }
 }

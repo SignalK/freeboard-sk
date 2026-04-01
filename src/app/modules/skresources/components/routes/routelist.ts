@@ -20,7 +20,7 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatDialog } from '@angular/material/dialog';
 
 import { AppFacade } from 'src/app/app.facade';
-import { Convert } from 'src/app/lib/convert';
+import { Convert, TARGET_UNIT } from 'src/app/lib/convert';
 import {
   FBRoute,
   FBResourceSelect,
@@ -242,10 +242,10 @@ export class RouteListComponent extends ResourceListBase {
     }
   }
 
-  /** Convert km to nautical miles
-   * @param v Distsnce in km
+  /** Format distance value
+   * @param valaue Distance in meters
    */
-  protected km2Nm(value: number) {
-    return Convert.kmToNauticalMiles(value);
+  protected formatDistance(value: number) {
+    return `(${this.app.formatValueForDisplay(value, 'm', { precision: 2 })})`;
   }
 }

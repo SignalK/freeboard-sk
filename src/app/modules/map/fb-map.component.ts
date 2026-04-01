@@ -360,7 +360,9 @@ export class FBMapComponent implements OnInit, OnDestroy {
   // set map scale units
   private setScaleUnits() {
     try {
-      const u: Units = this.scaleUnits() === 'm' ? 'metric' : 'nautical';
+      const u: Units = ['kilometer', 'm'].includes(this.scaleUnits())
+        ? 'metric'
+        : 'nautical';
       const c = this.olMap.getMap().getControls().getArray();
       (c[0] as ScaleLine).setUnits(u);
     } catch (err) {
@@ -1482,7 +1484,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
           ) < (ga_diff ?? 0);
 
       const dtg =
-        this.app.config.units.distance === 'm'
+        this.app.config.units.distance === 'kilometer'
           ? this.course.courseData().dtg * 1000
           : Convert.nauticalMilesToKm(this.course.courseData().dtg * 1000);
 
@@ -1728,9 +1730,9 @@ export class FBMapComponent implements OnInit, OnDestroy {
     this.app.debug(`distance map moved: ${d}`);
     // ** if d is more than half the getRadius
     const cr =
-      this.app.config.units.distance === 'ft'
-        ? Convert.nauticalMilesToKm(threshold) * 1000
-        : threshold * 1000;
+      this.app.config.units.distance === 'kilometer'
+        ? threshold * 1000
+        : Convert.nauticalMilesToKm(threshold) * 1000;
 
     this.app.debug(`mapMoveThresholdExceeded: ${d >= cr / 2}`);
     if (d >= cr / 2) {

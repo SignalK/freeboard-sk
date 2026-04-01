@@ -174,12 +174,18 @@ export class AtoNPropertiesModal implements OnInit {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         Object.entries(g).forEach((i: any) => {
           const key = `${pathRoot}.${i[0]}`;
+          const precision = {
+            precision: key === 'environment.outside.precipitationVolume' ? 5 : 1
+          };
+          const cat =
+            i[0].toLowerCase().includes('level') ||
+            i[0].toLowerCase().includes('height')
+              ? { category: 'depth' }
+              : {}; // depth values
           res[key] = this.app.formatValueForDisplay(
             i[1].value,
             i[1].meta && i[1].meta.units ? i[1].meta.units : '',
-            i[0].toLowerCase().includes('level') ||
-              i[0].toLowerCase().includes('height'), // depth values
-            key === 'environment.outside.precipitationVolume' ? 5 : 1
+            Object.assign({}, cat, precision)
           );
         });
       }

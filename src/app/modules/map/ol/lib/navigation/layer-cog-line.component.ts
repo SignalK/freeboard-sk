@@ -27,6 +27,7 @@ import { AsyncSubject } from 'rxjs';
 import { getDistance } from 'geolib';
 import { Convert } from 'src/app/lib/convert';
 import { DarkTheme } from '../themes';
+import { DistanceUnitDef } from 'src/app/types';
 
 const LightTheme = {
   labelText: {
@@ -55,7 +56,7 @@ export class CogLineComponent implements OnInit, OnDestroy, OnChanges {
 
   protected coords = input<Coordinate[]>();
   protected cogTime = input<number>();
-  protected units = input<'m' | 'ft'>('m');
+  protected units = input<DistanceUnitDef>('kilometer');
   protected labelMinZoom = input<number>(10);
   protected darkMode = input<boolean>(false);
 
@@ -193,11 +194,13 @@ export class CogLineComponent implements OnInit, OnDestroy, OnChanges {
   }
 
   formatNumber(value: number): string {
-    if (this.units() === 'm') {
-      return value >= 1000 ? `${(value / 1000).toFixed(1)} km` : `${value} m`;
+    if (this.units() === 'kilometer') {
+      return value >= 1000
+        ? `${(value / 1000).toFixed(1)}${Convert.getSymbol(this.units())}`
+        : `${value}m`;
     } else {
-      const nm = Convert.kmToNauticalMiles(value / 1000);
-      return `${nm.toFixed(1)} NM`;
+      const nm = Convert.transform(value, 'm', 'naut-mile');
+      return `${nm.toFixed(1)}${Convert.getSymbol(this.units())}`;
     }
   }
 

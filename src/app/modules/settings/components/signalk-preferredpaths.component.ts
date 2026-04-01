@@ -7,7 +7,8 @@ import {
   Input,
   Output,
   EventEmitter,
-  ChangeDetectionStrategy
+  ChangeDetectionStrategy,
+  inject
 } from '@angular/core';
 
 import { MatRadioModule } from '@angular/material/radio';
@@ -93,7 +94,9 @@ export class SignalKPreferredPathsComponent {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   public availPaths: any;
 
-  constructor(public app: AppFacade) {}
+  private app = inject(AppFacade);
+
+  constructor() {}
 
   ngOnInit() {
     this.initEntries();

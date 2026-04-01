@@ -5,7 +5,8 @@ import {
   ViewChild,
   ChangeDetectionStrategy,
   Renderer2,
-  SimpleChanges
+  SimpleChanges,
+  inject
 } from '@angular/core';
 
 import { CommonModule } from '@angular/common';
@@ -108,7 +109,9 @@ export class CompassComponent extends SvgDialBase {
   public valueStr: string = '0' + String.fromCharCode(186);
   private ptrOffset = 0; // ** pointer offset value
 
-  constructor(private renderer: Renderer2) {
+  private renderer = inject(Renderer2);
+
+  constructor() {
     super(null);
   }
 
@@ -267,7 +270,9 @@ export class NorthUpCompassComponent extends SvgDialBase {
   public showWindTrue = true;
   public showWindApparent = true;
 
-  constructor(private renderer: Renderer2) {
+  private renderer = inject(Renderer2);
+
+  constructor() {
     super(null);
   }
 

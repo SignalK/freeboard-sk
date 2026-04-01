@@ -9,7 +9,8 @@ import {
   Input,
   Output,
   ChangeDetectorRef,
-  EventEmitter
+  EventEmitter,
+  inject
 } from '@angular/core';
 
 @Component({
@@ -39,7 +40,9 @@ export class FileInputComponent {
 
   public avatar = null;
 
-  constructor(private changeDetectorRef: ChangeDetectorRef) {}
+  private changeDetectorRef = inject(ChangeDetectorRef);
+
+  constructor() {}
 
   //** detect file change event handler **
   fileChange(input) {

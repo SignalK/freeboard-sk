@@ -1,6 +1,6 @@
 /** Map interactions Service
  * ************************************/
-import { Injectable, signal } from '@angular/core';
+import { inject, Injectable, signal } from '@angular/core';
 import { Feature } from 'ol';
 import { Coordinate } from 'ol/coordinate';
 import { toLonLat } from 'ol/proj';
@@ -102,7 +102,9 @@ export class FBMapInteractService {
     properties: {}
   };
 
-  constructor(private app: AppFacade) {}
+  private app = inject(AppFacade);
+
+  constructor() {}
 
   /** add start coordinate to box select */
   initBoxCoord(coord: Position) {

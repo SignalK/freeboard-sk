@@ -645,7 +645,6 @@
                   <anchor-watch
                     [showSelf]="app.data.vessels.showSelf"
                     [radius]="this.anchor.radius()"
-                    [feet]="app.config.units.depth !== 'm' ? true : false"
                     [raised]="anchor.raised()"
                     (closed)="displayLeftMenu()"
                   >
@@ -1072,7 +1071,7 @@
                           ? course.courseData().xte.toFixed(1)
                           : course.courseData().xte.toFixed(3)
                       "
-                      [units]="app.config.units.distance === 'm' ? 'km' : 'NM'"
+                      [units]="convert.getSymbol(app.config.units.distance)"
                     >
                     </ap-dial-text>
                   }
@@ -1082,9 +1081,7 @@
                         [title]="'DTG'"
                         subTitle="RT"
                         [value]="course.courseData().route.dtg.toFixed(1)"
-                        [units]="
-                          app.config.units.distance === 'm' ? 'km' : 'NM'
-                        "
+                        [units]="convert.getSymbol(app.config.units.distance)"
                       >
                       </ap-dial-text>
                     }
@@ -1108,7 +1105,7 @@
                     <ap-dial-text
                       [title]="'DTG'"
                       [value]="course.courseData().dtg.toFixed(1)"
-                      [units]="app.config.units.distance === 'm' ? 'km' : 'NM'"
+                      [units]="convert.getSymbol(app.config.units.distance)"
                     >
                     </ap-dial-text>
                   }

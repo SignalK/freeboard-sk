@@ -4,7 +4,8 @@ import {
   ChangeDetectionStrategy,
   SimpleChanges,
   Output,
-  EventEmitter
+  EventEmitter,
+  inject
 } from '@angular/core';
 
 import { MatTooltip } from '@angular/material/tooltip';
@@ -113,7 +114,9 @@ export class Measurements {
     next: false
   };
 
-  constructor(public app: AppFacade) {
+  protected app = inject(AppFacade);
+
+  constructor() {
     this.init();
   }
 

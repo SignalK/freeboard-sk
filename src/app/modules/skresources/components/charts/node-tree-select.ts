@@ -1,4 +1,11 @@
-import { Component, effect, EventEmitter, input, Output } from '@angular/core';
+import {
+  Component,
+  effect,
+  EventEmitter,
+  inject,
+  input,
+  Output
+} from '@angular/core';
 
 import { MatTreeModule } from '@angular/material/tree';
 import { MatCheckboxModule } from '@angular/material/checkbox';
@@ -101,7 +108,9 @@ export class NodeTreeSelect {
   protected hasChild = (_: number, node: LayerNode) =>
     !!node.children && node.children.length > 0;
 
-  constructor(public app: AppFacade) {
+  private app = inject(AppFacade);
+
+  constructor() {
     effect(() => {
       if (Array.isArray(this.preSelect()) && this.preSelect().length) {
         this.layers()?.forEach((l: LayerNode) => {

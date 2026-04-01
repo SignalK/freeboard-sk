@@ -274,13 +274,13 @@
 
                         <div class="setting-card-row-item">
                           <mat-form-field style="width: 100%">
-                            <mat-label>Speed units</mat-label>
+                            <mat-label>Length units</mat-label>
                             <mat-select
                               [disabled]="facade.settings.units.useServerPrefs"
-                              [(ngModel)]="facade.settings.units.speed"
+                              [(ngModel)]="facade.settings.units.length"
                               (selectionChange)="raiseChange();persistModel()"
                             >
-                              @for(i of options.availableUnits.speed; track
+                              @for(i of options.availableUnits.length; track
                               i[0]) {
                               <mat-option [value]="i[0]">{{i[1]}}</mat-option>
                               }
@@ -303,6 +303,23 @@
                             </mat-select>
                           </mat-form-field>
                         </div>
+
+                        <div class="setting-card-row-item">
+                          <mat-form-field style="width: 100%">
+                            <mat-label>Speed units</mat-label>
+                            <mat-select
+                              [disabled]="facade.settings.units.useServerPrefs"
+                              [(ngModel)]="facade.settings.units.speed"
+                              (selectionChange)="raiseChange();persistModel()"
+                            >
+                              @for(i of options.availableUnits.speed; track
+                              i[0]) {
+                              <mat-option [value]="i[0]">{{i[1]}}</mat-option>
+                              }
+                            </mat-select>
+                          </mat-form-field>
+                        </div>
+
                       </div>
                     </fieldset>
                   </div>
@@ -857,8 +874,7 @@
                         <mat-form-field floatLabel="always">
                           <mat-label>
                             Distance between circles
-                            ({{facade.settings.units.distance === 'm' ? 'km' :
-                            'NM'}})
+                            ({{renderSymbol(facade.settings.units.distance)}})
                           </mat-label>
                           <input
                             matInput

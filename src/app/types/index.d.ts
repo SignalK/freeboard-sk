@@ -53,6 +53,12 @@ export interface CourseData {
   destPointName: string;
 }
 
+export type TemperatureUnitDef = 'C' | 'F';
+export type DepthUnitDef = 'm' | 'foot';
+export type LengthUnitDef = 'm' | 'foot';
+export type SpeedUnitDef = 'kn' | 'm/s' | 'km/h' | 'mph';
+export type DistanceUnitDef = 'kilometer' | 'naut-mile';
+
 export interface IAppConfig {
   ui: {
     mapNorthUp: boolean;
@@ -80,10 +86,11 @@ export interface IAppConfig {
     };
   };
   units: {
-    distance: 'm' | 'ft';
-    depth: 'm' | 'ft';
-    speed: 'kn' | 'msec' | 'kmh' | 'mph';
-    temperature: 'c' | 'f';
+    distance: DistanceUnitDef;
+    depth: DepthUnitDef;
+    length: LengthUnitDef;
+    speed: SpeedUnitDef;
+    temperature: TemperatureUnitDef;
     positionFormat: 'XY' | 'SHDd' | 'HDd' | 'DMdH' | 'HDMS' | 'DHMS';
     headingAttribute: 'navigation.headingTrue' | 'navigation.headingMagnetic';
     preferredPaths: {
@@ -154,10 +161,10 @@ export interface IAppConfig {
   resources: {
     // ** resource options
     fetchFilter: string; // param string to provide record filtering
-    fetchRadius: number; // radius (NM/km) within which to return resources
+    fetchRadius: number; // radius (nmi/km) within which to return resources
     notes: {
       rootFilter: string; // param string to provide record filtering
-      getRadius: number; // radius (NM/km) within which to return notes
+      getRadius: number; // radius (nmi/km) within which to return notes
       groupNameEdit: boolean;
       groupRequiresPosition: boolean;
       minZoom: number;
@@ -250,13 +257,12 @@ export interface FBAppData {
 
 export interface SKServerUnitPrefs {
   name: string;
-  categories: Record<
-    string,
-    | {
-        baseUnit: string;
-        targetUnit: string;
-        displayFormat: string;
-      }
-    | undefined
-  >;
+  categories: Record<string, SKUnitCategory | undefined>;
 }
+
+export type SKUnitCategory = {
+  baseUnit: string;
+  targetUnit: string;
+  displayFormat: string;
+  symbol: string;
+};

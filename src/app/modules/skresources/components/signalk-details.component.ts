@@ -2,7 +2,12 @@
 Signal K Details list component
     <signalk-details-list>
 ***********************************/
-import { Component, Input, ChangeDetectionStrategy } from '@angular/core';
+import {
+  Component,
+  Input,
+  ChangeDetectionStrategy,
+  inject
+} from '@angular/core';
 
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { AppFacade } from 'src/app/app.facade';
@@ -57,7 +62,9 @@ export class SignalKDetailsComponent {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   public items: any;
 
-  constructor(protected app: AppFacade) {}
+  protected app = inject(AppFacade);
+
+  constructor() {}
 
   ngOnChanges() {
     if (this.details) {

@@ -13,6 +13,7 @@ import {
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatDivider } from '@angular/material/divider';
 import { CoordsPipe } from 'src/app/lib/pipes';
 import { PopoverComponent } from './popover.component';
 import { CompassComponent } from './compass.component';
@@ -38,6 +39,7 @@ isSelf: boolean - true if vessel 'self'
     MatButtonModule,
     MatTooltipModule,
     MatIconModule,
+    MatDivider,
     CoordsPipe,
     PopoverComponent,
     CompassComponent
@@ -49,6 +51,65 @@ isSelf: boolean - true if vessel 'self'
       [canClose]="canClose"
       (closed)="handleClose()"
     >
+      <div style="display:flex;">
+        <div style="flex:1 1 auto;">
+          @if (isActive) {
+            <button
+              mat-icon-button
+              (click)="handleMarkPosition()"
+              matTooltip="Add Waypoint at vessel location"
+            >
+              <mat-icon>add_location</mat-icon>
+            </button>
+          } @else {
+            <button
+              mat-icon-button
+              (click)="toggleFlag()"
+              matTooltip="Flag vessel"
+            >
+              <mat-icon>{{ isFlagged ? 'clear_all' : 'flag' }}</mat-icon>
+            </button>
+
+            @if (!isSelf && app.featureFlags().buddyList) {
+              <button
+                mat-icon-button
+                (click)="toggleBuddy()"
+                matTooltip="Is Buddy"
+              >
+                <mat-icon>{{
+                  vessel.buddy ? 'group_remove' : 'group_add'
+                }}</mat-icon>
+              </button>
+            }
+            <button
+              mat-icon-button
+              (click)="focusVessel(true)"
+              matTooltip="Focus vessel"
+            >
+              <mat-icon>center_focus_weak</mat-icon>
+            </button>
+          }
+          @if (isActive && !isSelf) {
+            <button
+              mat-icon-button
+              (click)="focusVessel(false)"
+              matTooltip="Clear vessel focus"
+            >
+              <mat-icon>clear_all</mat-icon>
+            </button>
+          }
+        </div>
+        <div style="text-align:right;">
+          <button
+            mat-icon-button
+            (click)="handleInfo()"
+            matTooltip="Show Properties"
+          >
+            <mat-icon>info_outline</mat-icon>
+          </button>
+        </div>
+      </div>
+      <mat-divider></mat-divider>
       @if (vessel.callsignVhf) {
         <div style="display:flex;">
           <div style="font-weight:bold;">Callsign (VHF):</div>
@@ -119,7 +180,7 @@ isSelf: boolean - true if vessel 'self'
         </div>
       </div>
       <div style="display:flex;flex-wrap:no-wrap;">
-        <div style="width:150px;">
+        <div style="width:120px;">
           <ap-compass
             [heading]="convert.radiansToDegrees(vessel.orientation)"
             [windtrue]="
@@ -137,10 +198,10 @@ isSelf: boolean - true if vessel 'self'
           >
           </ap-compass>
         </div>
-        <div>
+        <div style="text-align:right; flex:auto;">
           &nbsp;<br />
           <div>
-            <div style="border-left:olive 10px solid;padding-left: 5px;">
+            <div style="border-right:olive 10px solid;padding-left: 5px;">
               <span style="font-weight:bold">
                 Wind ({{ useMagnetic ? 'M' : 'T' }}):</span
               >
@@ -153,7 +214,7 @@ isSelf: boolean - true if vessel 'self'
           </div>
           <div>
             <div
-              style="border-left:rgb(16, 75, 16) 10px solid;;padding-left: 5px;"
+              style="border-right:rgb(16, 75, 16) 10px solid;;padding-left: 5px;"
             >
               <span style="font-weight:bold;"> Wind (A):</span>
             </div>
@@ -163,62 +224,6 @@ isSelf: boolean - true if vessel 'self'
               }}
             </div>
           </div>
-        </div>
-      </div>
-      <div style="display:flex;">
-        <div style="flex:1 1 auto;"></div>
-        <div style="text-align:right;">
-          @if (isActive) {
-            <button
-              mat-button
-              (click)="handleMarkPosition()"
-              matTooltip="Add Waypoint at vessel location"
-            >
-              <mat-icon>add_location</mat-icon>
-              DROP WPT
-            </button>
-          } @else {
-            <button mat-button (click)="toggleFlag()" matTooltip="Flag vessel">
-              <mat-icon>{{ isFlagged ? 'clear_all' : 'flag' }}</mat-icon>
-              {{ isFlagged ? 'UN-FLAG' : 'FLAG' }}
-            </button>
-
-            @if (!isSelf && app.featureFlags().buddyList) {
-              <button mat-button (click)="toggleBuddy()" matTooltip="Is Buddy">
-                <mat-icon>{{
-                  vessel.buddy ? 'group_remove' : 'group_add'
-                }}</mat-icon>
-                {{ vessel.buddy ? 'UN-BUDDY' : 'BUDDY' }}
-              </button>
-            }
-
-            <button
-              mat-button
-              (click)="focusVessel(true)"
-              matTooltip="Focus vessel"
-            >
-              <mat-icon>center_focus_weak</mat-icon>
-              FOCUS
-            </button>
-          }
-          @if (isActive && !isSelf) {
-            <button
-              mat-button
-              (click)="focusVessel(false)"
-              matTooltip="Clear vessel focus"
-            >
-              <mat-icon>clear_all</mat-icon>
-              UNFOCUS
-            </button>
-          }
-          <button
-            mat-button
-            (click)="handleInfo()"
-            matTooltip="Show Properties"
-          >
-            <mat-icon>info_outline</mat-icon>
-            INFO
-          </button>
         </div>
       </div>
     </ap-popover>
@@ -309,7 +314,7 @@ export class VesselPopoverComponent {
       if (typeof this.vessel.closestApproach.timeTo === 'number') {
         this.tcpa = this.app.formatValueForDisplay(
           this.vessel.closestApproach.timeTo,
-          'sec'
+          's'
         );
       }
     }

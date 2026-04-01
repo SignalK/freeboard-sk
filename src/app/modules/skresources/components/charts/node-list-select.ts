@@ -1,4 +1,11 @@
-import { Component, effect, EventEmitter, input, Output } from '@angular/core';
+import {
+  Component,
+  effect,
+  EventEmitter,
+  inject,
+  input,
+  Output
+} from '@angular/core';
 
 import { MatListModule, MatSelectionListChange } from '@angular/material/list';
 import { AppFacade } from 'src/app/app.facade';
@@ -51,7 +58,9 @@ export class NodeListSelect {
 
   private selections: Array<string> = [];
 
-  constructor(public app: AppFacade) {}
+  protected app = inject(AppFacade);
+
+  constructor() {}
 
   /**
    * Handle user check box selection

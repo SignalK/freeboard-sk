@@ -38,8 +38,7 @@
             text-align: right;
           "
         >
-          {{ radius === -1 ? '--' : feet ? mToFt(radius) : radius.toFixed(0) }}
-          {{ feet ? 'ft' : 'm' }}
+          {{ formattedRadiusValue() }}
         </b>
       </div>
     </mat-card-content>
@@ -172,14 +171,15 @@
                 <mat-slider
                   discrete
                   [disabled]="disableRaiseDrop"
-                  [min]="this.feet ? mToFt(min) : min"
-                  [max]="this.feet ? mToFt(max) : max"
+                  [displayWith]="formatSliderLabel"
+                  [min]="min"
+                  [max]="max"
                   step="1"
                   tickInterval="1"
                 >
                   <input
                     matSliderThumb
-                    [value]="this.feet ? mToFt(sliderValue) : sliderValue"
+                    [value]="sliderValue"
                     (valueChange)="setRadius($event)"
                   />
                 </mat-slider>
@@ -192,8 +192,7 @@
                   text-align: right;
                 "
               >
-                {{ feet ? mToFt(displayRadius) : displayRadius }}
-                {{ feet ? 'ft' : 'm' }}
+                {{ displayRadius() }}
               </div>
             </div>
           </div>

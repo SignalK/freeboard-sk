@@ -19,7 +19,7 @@ import {
 } from '@angular/material/bottom-sheet';
 import { AppFacade } from 'src/app/app.facade';
 import { SignalKClient } from 'signalk-client-angular';
-import { Convert } from 'src/app/lib/convert';
+import { Convert, SI_BASE_UNIT } from 'src/app/lib/convert';
 import { Position } from 'src/app/types';
 import { CoordsPipe } from 'src/app/lib/pipes';
 
@@ -292,7 +292,9 @@ export class WeatherForecastModal implements OnInit {
   ngOnInit() {
     this.getForecast(this.data.position);
     this.units = {
-      temp: `${String.fromCharCode(186)}${this.app.config.units?.temperature === 'f' ? 'F' : 'C'}`,
+      temp: Convert.getSymbol(
+        this.app.config.units?.temperature.toUpperCase() as SI_BASE_UNIT
+      ),
       speed: this.app.formattedSpeedUnits,
       humidity: '%',
       pressure: 'Pa',
@@ -329,22 +331,20 @@ export class WeatherForecastModal implements OnInit {
               : '';
 
             if (typeof v.outside?.temperature !== 'undefined') {
-              forecastData.temperature =
-                this.app.config.units?.temperature === 'f'
-                  ? Convert.kelvinToFarenheit(v.outside.temperature).toFixed(1)
-                  : Convert.kelvinToCelsius(v.outside.temperature).toFixed(1);
+              forecastData.temperature = this.app.formatValueForDisplay(
+                v.outside.temperature,
+                'K',
+                { noSymbol: true }
+              );
             } else {
               forecastData.temperature = '--';
             }
             if (typeof v.outside?.dewPointTemperature !== 'undefined') {
-              forecastData.dewPoint =
-                this.app.config.units?.temperature === 'f'
-                  ? Convert.kelvinToFarenheit(
-                      v.outside.dewPointTemperature
-                    ).toFixed(1)
-                  : Convert.kelvinToCelsius(
-                      v.outside.dewPointTemperature
-                    ).toFixed(1);
+              forecastData.dewPoint = this.app.formatValueForDisplay(
+                v.outside?.dewPointTemperature,
+                'K',
+                { noSymbol: true }
+              );
             } else {
               forecastData.dewPoint = '--';
             }

@@ -21,7 +21,7 @@ import { fromLonLat } from 'ol/proj';
 import { MapComponent } from '../map.component';
 import { Extent, Coordinate } from '../models';
 import { AsyncSubject } from 'rxjs';
-import { Convert } from '../../../../../lib/convert';
+import { Convert, TARGET_UNIT } from '../../../../../lib/convert';
 import { computeDestinationPoint } from 'geolib';
 import { DarkTheme } from '../themes';
 import { circular } from 'ol/geom/Polygon';
@@ -226,11 +226,15 @@ export class RangeCirclesComponent implements OnInit, OnDestroy, OnChanges {
   }
 
   formatLabel(value: number): string {
-    if (this.units === 'm') {
-      return value >= 1000 ? `${(value / 1000).toFixed(1)} km` : `${value} m`;
+    if (this.units === 'kilometer') {
+      const u =
+        value >= 1000 ? (this.units as TARGET_UNIT) : ('m' as TARGET_UNIT);
+      const p = u === ('m' as TARGET_UNIT) ? 0 : 1;
+      const tv = Convert.transform(value, 'm', u);
+      return `${tv.toFixed(p)}${Convert.getSymbol(u)}`;
     } else {
-      const nm = Convert.kmToNauticalMiles(value / 1000);
-      return `${nm.toFixed(1)} NM`;
+      const tv = Convert.transform(value, 'm', this.units as TARGET_UNIT);
+      return `${tv.toFixed(1)}${Convert.getSymbol(this.units as TARGET_UNIT)}`;
     }
   }
 }
