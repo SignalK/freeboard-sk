@@ -77,6 +77,7 @@ export type SKSelection = SKResourceType | 'aisTargets' | 'infolayers';
 @Injectable({ providedIn: 'root' })
 export class SKResourceService {
   private reOpen: { key?: string; value?: string; readOnly?: boolean };
+  private inflight = new Map<string, Promise<any[]>>();
 
   constructor(
     private dialog: MatDialog,
@@ -277,7 +278,13 @@ export class SKResourceService {
       query = '';
     }
 
-    return new Promise((resolve, reject) => {
+    const key = `${collection}${query}`;
+    const existing = this.inflight.get(key);
+    if (existing) {
+      return existing as Promise<T[]>;
+    }
+
+    const promise = new Promise<T[]>((resolve, reject) => {
       const skf = this.signalk.api.get(
         this.app.skApiVersion,
         `/resources/${collection}${query}`
@@ -298,7 +305,12 @@ export class SKResourceService {
         },
         (err: HttpErrorResponse) => reject(err)
       );
-    });
+    }).finally(() => {
+      this.inflight.delete(key);
+    }) as Promise<T[]>;
+
+    this.inflight.set(key, promise);
+    return promise;
   }
 
   /**

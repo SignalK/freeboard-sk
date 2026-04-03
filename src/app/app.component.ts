@@ -273,16 +273,6 @@ export class AppComponent {
     // set self to active vessel
     this.app.data.vessels.active = this.app.data.vessels.self;
 
-    // CONFIG$ - handle app.config$ event
-    this.obsList.push(
-      this.app.config$.subscribe((value: string) => {
-        // config has been loaded and cleaned (ready)
-        if (value === 'ready') {
-          this.fetchResources(true);
-        }
-      })
-    );
-
     // handle skAuthChange signal
     effect(() => {
       this.app.debug('** skAuthChange Event:', this.app.skAuthChange());
