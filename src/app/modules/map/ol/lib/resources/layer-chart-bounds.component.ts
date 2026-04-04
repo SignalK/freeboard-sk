@@ -73,6 +73,7 @@ export class ChartBoundsLayerComponent extends FBFeatureLayerComponent {
       ];
       f.set('labelPos', lp);
       f.set('boundColor', this.boundStyles[i]);
+      f.set('labelIndex', i);
       f.setStyle(this.buildStyle);
       fa.push(f);
       i++;
@@ -106,6 +107,8 @@ export class ChartBoundsLayerComponent extends FBFeatureLayerComponent {
   }
 
   buildStyle(feature: Feature) {
+    const labelIndex = feature.get('labelIndex') ?? 0;
+    const labelOffset = -10 - labelIndex * 16;
     return [
       new Style({
         stroke: new Stroke({
@@ -113,7 +116,7 @@ export class ChartBoundsLayerComponent extends FBFeatureLayerComponent {
           width: 2
         }),
         fill: new Fill({
-          color: 'rgba(255,255,255,0.1 )'
+          color: 'rgba(255,255,255,0.1)'
         })
       }),
       new Style({
@@ -122,7 +125,7 @@ export class ChartBoundsLayerComponent extends FBFeatureLayerComponent {
           text: feature.get('name'),
           overflow: true,
           offsetX: 0,
-          offsetY: -10,
+          offsetY: labelOffset,
           fill: new Fill({
             color: feature.get('boundColor')
           }),
