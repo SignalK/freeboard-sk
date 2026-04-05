@@ -92,20 +92,29 @@
         matTooltip="Display Chart Boundaries"
         matTooltipPosition="above"
       >
-        Boundaries
+        Bounds
+      </mat-slide-toggle>
+      <mat-slide-toggle
+        style="margin-left: 12px"
+        [hideIcon]="true"
+        [checked]="inViewOnly"
+        (change)="toggleInViewOnly($event.checked)"
+        matTooltip="Show only charts whose bounds intersect the current map view"
+        matTooltipPosition="above"
+      >
+        In Bounds
       </mat-slide-toggle>
       <button
-        mat-button
+        mat-icon-button
         (click)="showChartLayers(true)"
         matTooltip="Re-order Charts"
         matTooltipPosition="above"
       >
         <mat-icon>import_export</mat-icon>
-        Re-order
       </button>
 
       <button
-        mat-button
+        mat-icon-button
         matTooltip="Add Chart"
         matTooltipPosition="above"
         [matMenuTriggerFor]="addchartmenu"
