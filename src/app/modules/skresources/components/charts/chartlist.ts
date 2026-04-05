@@ -37,6 +37,7 @@ import { FBMapInteractService } from 'src/app/modules/map/fbmap-interact.service
 import { SingleSelectListDialog } from 'src/app/lib/components';
 import { SKResourceGroupService } from '../groups/groups.service';
 import { SKChart } from '../../resource-classes';
+import { intersects as extentsIntersect } from 'ol/extent';
 
 @Component({
   selector: 'chart-list',
@@ -67,6 +68,7 @@ export class ChartListComponent extends ResourceListBase {
   protected override filteredList = signal<FBCharts>([]);
 
   displayChartLayers = false;
+  protected inViewOnly = false;
 
   constructor(
     protected app: AppFacade,
@@ -88,6 +90,13 @@ export class ChartListComponent extends ResourceListBase {
     effect(() => {
       if (this.worker.resourceUpdate().path.includes('resources.charts')) {
         this.initItems(true);
+      }
+    });
+    // react to map extent changes when in-view filter is active
+    effect(() => {
+      this.app.mapExtent();
+      if (this.inViewOnly) {
+        this.doFilter();
       }
     });
   }
@@ -133,6 +142,42 @@ export class ChartListComponent extends ResourceListBase {
       this.app.parseHttpErrorResponse(err);
       this.fullList = [];
     }
+  }
+
+  /**
+   * @description Toggle filtering of chart list by map viewport.
+   */
+  protected toggleInViewOnly(checked: boolean) {
+    this.inViewOnly = checked;
+    this.doFilter();
+  }
+
+  /**
+   * @description Override base filter to also apply map viewport bounds filter.
+   */
+  protected override doFilter() {
+    const text = this.filterText?.toLowerCase() ?? '';
+    const extent = this.app.mapExtent();
+    const useExtent =
+      this.inViewOnly && Array.isArray(extent) && extent.length === 4;
+    let fl: FBCharts = this.fullList.filter((item) => {
+      if (text && !item[1].name?.toLowerCase().includes(text)) {
+        return false;
+      }
+      if (useExtent) {
+        const b = item[1].bounds;
+        if (!Array.isArray(b) || b.length !== 4) {
+          // charts without bounds are treated as global and kept visible
+          return true;
+        }
+        // both bounds and mapExtent are [minLon, minLat, maxLon, maxLat]
+        return extentsIntersect(b, extent);
+      }
+      return true;
+    });
+    fl.sort((a, b) => a[1].name.localeCompare(b[1].name));
+    this.filteredList.update(() => fl.slice(0));
+    this.alignSelections();
   }
 
   /**
