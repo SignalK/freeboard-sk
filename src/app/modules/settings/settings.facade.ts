@@ -219,6 +219,20 @@ export class SettingsOptions {
     count: [4, 5, 6, 7, 8, 9, 10, 15, 20],
     zoomLevels: [2, 3, 4, 5, 6, 7].concat(this.zoomLevels)
   };
+
+  lineStyle = {
+    dashPatterns: new Map([
+      ['solid', 'Solid'],
+      ['short', 'Short Dash'],
+      ['medium', 'Dashed'],
+      ['long', 'Long Dash']
+    ]),
+    lineLengthKinds: new Map([
+      ['time', 'Time (min)'],
+      ['distance', 'Distance (nmi)'],
+      ['pixels', 'On screen (px)']
+    ])
+  };
 }
 
 @Injectable({ providedIn: 'root' })

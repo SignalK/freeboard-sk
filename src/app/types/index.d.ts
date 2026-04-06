@@ -1,6 +1,27 @@
 // ** Resource Types **
 
 import { Position, LineString, MultiLineString } from './resources/geojson';
+
+export type LineDash = 'solid' | 'short' | 'medium' | 'long';
+export type LineLengthKind = 'pixels' | 'time' | 'distance';
+
+/** How to interpret the line length value */
+export interface ILineLengthDef {
+  kind: LineLengthKind;
+  value: number; // px | minutes | nmi
+}
+
+export interface ILineStyle {
+  color: string;          // CSS / hex color
+  width: number;          // line width in pixels
+  dash: LineDash;         // named dash pattern
+  lineLength?: ILineLengthDef; // only used for lines that have a configurable length
+}
+
+/** ILineStyle variant for lines that always carry a length definition. */
+export interface ILineStyleWithLength extends ILineStyle {
+  lineLength: ILineLengthDef;
+}
 import { FBCharts, FBRoute } from './resources/freeboard';
 import {
   SKMeteo,
@@ -135,9 +156,7 @@ export interface IAppConfig {
     trail: boolean; // display trail
     windVectors: boolean; // display vessel TWD, AWD vectors
     laylines: boolean;
-    cogLine: number; // (minutes) length = cogLine * sog
     aisCogLine: number; // (minutes) length = cogLine * sog
-    headingLineSize: number; // mode for display of heading line -1 = default
     iconScale: number; // scale to apply to self Vessel icon
     rangeCircles: boolean; //display range circles
     rangeCirclesFixed: boolean; // use a fixed distance rather than zoom level calc
@@ -157,6 +176,10 @@ export interface IAppConfig {
       next23: string;
       beyond24: string;
     };
+    headingLineStyle: ILineStyleWithLength;  // style of self vessel heading line
+    cogLineStyle: ILineStyleWithLength;      // style of self vessel COG line
+    selfTrailStyle: ILineStyle;    // style of self vessel track line
+    aisTrackStyle: ILineStyle;     // style of other vessel track lines
   };
   resources: {
     // ** resource options

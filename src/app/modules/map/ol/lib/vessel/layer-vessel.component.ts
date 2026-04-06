@@ -18,7 +18,8 @@ import { Geometry, Point, LineString } from 'ol/geom';
 import { fromLonLat } from 'ol/proj';
 import { MapComponent } from '../map.component';
 import { Extent, Coordinate } from '../models';
-import { fromLonLatArray } from '../util';
+import { fromLonLatArray, lineDashFor } from '../util';
+import { ILineStyle } from 'src/app/types';
 import { AsyncSubject } from 'rxjs';
 import { Options } from 'ol/style/Icon';
 
@@ -80,6 +81,7 @@ export class VesselComponent implements OnInit, OnDestroy, OnChanges {
   @Input() heading = 0;
   @Input() vesselStyles: { [key: string]: Style };
   @Input() vesselLines: { [key: string]: Array<Coordinate> };
+  @Input() headingLineStyle: ILineStyle;
   @Input() fixedLocation: boolean;
   @Input() iconScale = 1;
   @Input() opacity: number;
@@ -142,7 +144,7 @@ export class VesselComponent implements OnInit, OnDestroy, OnChanges {
           if (this.source) {
             this.parseVessel();
           }
-        } else if (key === 'vesselLines') {
+        } else if (key === 'vesselLines' || key === 'headingLineStyle') {
           if (this.source) {
             this.renderVesselLines();
           }
@@ -269,9 +271,14 @@ export class VesselComponent implements OnInit, OnDestroy, OnChanges {
         this.headingLine,
         this.vesselLines.heading
       );
+      const hs = this.headingLineStyle;
       this.headingLine.setStyle(
         new Style({
-          stroke: new Stroke({ color: 'rgba(221, 99, 0, 0.5)', width: 4 })
+          stroke: new Stroke({
+            color: hs ? hs.color : 'rgba(221, 99, 0, 0.5)',
+            width: hs ? hs.width : 4,
+            lineDash: hs ? lineDashFor(hs.dash) : []
+          })
         })
       );
     } else {
