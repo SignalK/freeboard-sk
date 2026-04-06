@@ -1701,7 +1701,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
 
   // ** called by onMapMoveEnd() to render features within map extent
   private renderMapContents(zoomChanged?: boolean) {
-    if (this.shouldFetchNotes(zoomChanged)) {
+    if (this.shouldFetchNotes()) {
       this.skres.refreshNotes();
       this.app.debug(`fetching Notes...`);
     }
@@ -1758,25 +1758,26 @@ export class FBMapComponent implements OnInit, OnDestroy {
 
   /**
    * @description Determine if Notes should be fetched from the server.
-   * @param zoomChanged When true signifies that zoom level has changed.
-   * @returns true if skres.refreshNotes() should be called
+   * Notes are fetched by position+radius, not by viewport bounds.
+   * Zoom changes alone never require a refetch since the query
+   * parameters (center + getRadius) remain the same.
+   *
+   * Note: zooming out far enough can make the viewport exceed the
+   * fetched radius, leaving edges without notes. The previous code
+   * had the same gap — refetching on zoom used the same center+radius
+   * and returned identical results. Properly fixing this would require
+   * a viewport-aware fetch radius (e.g. derive distance from the
+   * extent diagonal) so the server query grows with the viewport.
    */
-  private shouldFetchNotes(zoomChanged: boolean) {
+  private shouldFetchNotes() {
     this.showNoteslayer.update(
       () =>
         this.app.config.ui.showNotes &&
         this.app.config.map.zoomLevel >= this.app.config.resources.notes.minZoom
     );
 
-    this.app.debug(`lastGet: ${this.app.data.lastGet}`);
-    this.app.debug(`getRadius: ${this.app.config.resources.notes.getRadius}`);
-
-    if (zoomChanged) {
-      if (this.mapZoomLevel() < this.app.config.resources.notes.minZoom) {
-        return false;
-      } else {
-        return true;
-      }
+    if (!this.showNoteslayer()) {
+      return false;
     }
     return this.mapMoveThresholdExceeded(
       this.app.config.resources.notes.getRadius
