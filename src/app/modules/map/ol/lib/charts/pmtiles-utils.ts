@@ -7,6 +7,7 @@ import { SKChart } from 'src/app/modules/skresources';
 import VectorTileLayer from 'ol/layer/VectorTile';
 import VectorTileSource from 'ol/source/VectorTile';
 import { MVT } from 'ol/format';
+import { Extent } from 'ol/extent';
 
 // create a PMTile WebGLtile layer
 export function initPMTilesWebGLLayer(
@@ -51,7 +52,8 @@ export function initPMTilesWebGLLayer(
 // create a PMTile XYZ source TileLayer
 export function initPMTilesXYZLayer(
   chart: SKChart,
-  zIndex: number
+  zIndex: number,
+  extent?: Extent
 ): TileLayer<XYZ> {
   const tiles = new pmtiles.PMTiles(chart.url);
 
@@ -87,6 +89,7 @@ export function initPMTilesXYZLayer(
       minZoom: chart.minZoom
     }),
     zIndex: zIndex,
+    extent,
     opacity: chart.defaultOpacity ?? 1
   });
 }
@@ -94,7 +97,8 @@ export function initPMTilesXYZLayer(
 // create a PMTile Vector layer
 export function initPMTilesVectorLayer(
   chart: SKChart,
-  zIndex: number
+  zIndex: number,
+  extent?: Extent
 ): VectorTileLayer {
   const tiles = new pmtiles.PMTiles(chart.url);
 
@@ -132,6 +136,7 @@ export function initPMTilesVectorLayer(
       tileLoadFunction: loader
     }),
     zIndex: zIndex,
+    extent,
     opacity: chart.defaultOpacity ?? 1,
     minZoom: chart.minZoom,
     maxZoom: chart.maxZoom,

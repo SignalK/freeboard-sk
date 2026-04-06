@@ -18,6 +18,7 @@ import { MapComponent } from '../map.component';
 import { FBChart } from 'src/app/types';
 import { initPMTilesVectorLayer } from './pmtiles-utils';
 import { resolveLayerMaxZoom } from './zoom-utils';
+import { chartExtent } from './chart-bounds';
 
 // ** Freeboard Vector TileLayer Chart **
 @Component({
@@ -73,8 +74,10 @@ export class VectorChartLayerComponent implements OnDestroy {
         this.overZoomTiles()
       );
 
+      const extent = chartExtent(chart[1].bounds);
+
       if (chart[1].url.indexOf('.pmtiles') !== -1) {
-        this.layer = initPMTilesVectorLayer(chart[1], this.zIndex());
+        this.layer = initPMTilesVectorLayer(chart[1], this.zIndex(), extent);
       } else {
         this.layer = new VectorTileLayer({
           source: new VectorTileSource({
@@ -91,6 +94,7 @@ export class VectorChartLayerComponent implements OnDestroy {
           zIndex: this.zIndex(),
           minZoom: minZ,
           maxZoom: layerMaxZ,
+          extent,
           opacity: chart[1].defaultOpacity ?? 1
         });
       }

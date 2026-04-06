@@ -13,6 +13,7 @@ import TileLayer from 'ol/layer/Tile';
 import { MapComponent } from '../map.component';
 
 import { FBChart } from 'src/app/types';
+import { chartExtent } from './chart-bounds';
 import WMTS, { optionsFromCapabilities } from 'ol/source/WMTS';
 
 import WMTSCapabilities from 'ol/format/WMTSCapabilities';
@@ -94,6 +95,7 @@ export class WmtsChartLayerComponent implements OnDestroy {
         zIndex: this.zIndex(),
         minZoom: minZ,
         maxZoom: layerMaxZ,
+        extent: chartExtent(chart[1].bounds),
         opacity: chart[1].defaultOpacity ?? 1
       });
 

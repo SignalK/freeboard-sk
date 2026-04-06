@@ -17,6 +17,7 @@ import { FBChart } from 'src/app/types';
 import { Map } from 'ol';
 import { MapService } from '../map.service';
 import { resolveLayerMaxZoom } from './zoom-utils';
+import { chartExtent } from './chart-bounds';
 
 // ** Freeboard WMS Chart **
 @Component({
@@ -118,6 +119,7 @@ export class WmsChartLayerComponent implements OnDestroy {
         zIndex: this.zIndex(),
         minZoom: minZ,
         maxZoom: layerMaxZ,
+        extent: chartExtent(chart[1].bounds),
         opacity: chart[1].defaultOpacity ?? 1
       });
 

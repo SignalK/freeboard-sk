@@ -13,6 +13,7 @@ import WebGLTileLayer from 'ol/layer/WebGLTile';
 import { XYZ } from 'ol/source';
 
 import { initPMTilesXYZLayer } from './pmtiles-utils';
+import { chartExtent } from './chart-bounds';
 import { osmLayer } from '../util';
 import { MapComponent } from '../map.component';
 import { resolveLayerMaxZoom } from './zoom-utils';
@@ -81,8 +82,10 @@ export class RasterChartLayerComponent implements OnDestroy {
             ? chart[1].minZoom - 0.1
             : chart[1].minZoom;
 
+        const extent = chartExtent(chart[1].bounds);
+
         if (chart[1].url.indexOf('.pmtiles') !== -1) {
-          this.layer = initPMTilesXYZLayer(chart[1], this.zIndex());
+          this.layer = initPMTilesXYZLayer(chart[1], this.zIndex(), extent);
         } else {
           this.layer = new TileLayer({
             source: new XYZ({
@@ -93,6 +96,7 @@ export class RasterChartLayerComponent implements OnDestroy {
             zIndex: this.zIndex(),
             minZoom: minZ,
             maxZoom: layerMaxZ,
+            extent,
             opacity: chart[1].defaultOpacity ?? 1
           });
         }
