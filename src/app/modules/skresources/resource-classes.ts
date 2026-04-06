@@ -79,12 +79,12 @@ export class SKNote {
   constructor(note?: NoteResource) {
     this.name = note?.name ?? '';
     this.description = note?.description ?? '';
-    this.position = note?.position ?? null;
-    this.href = note?.href ?? null;
+    this.position = note?.position;
+    this.href = note?.href;
     this.mimeType = note?.mimeType ?? '';
     this.url = note?.url ?? '';
     // ca reports
-    this.group = note?.group ?? null;
+    this.group = note?.group;
     this.authors =
       note?.authors && Array.isArray(note?.authors) ? note.authors : [];
     this.properties =

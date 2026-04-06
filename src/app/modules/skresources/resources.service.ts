@@ -1760,7 +1760,7 @@ export class SKResourceService {
       }
     }
     if (!note.href) {
-      note.href = note['region'] ?? null;
+      note.href = note['region'];
       if (note['region']) {
         delete note['region'];
       }
@@ -1997,7 +1997,6 @@ export class SKResourceService {
       if (e.group) {
         note.group = e.group;
       }
-      note.position = null;
       note.name = '';
       note.description = '';
       data.note = note;
