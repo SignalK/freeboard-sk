@@ -689,7 +689,13 @@ export class AppFacade extends InfoService {
   /** Calculate the position to center the map.
    * Tales into account the amount of offset to apply
    */
-  calcMapCenter(ref: Position): Position {
+  calcMapCenter(): Position {
+    const cog =
+      this.data.vessels.active.cogTrue ??
+      this.data.vessels.active.headingTrue;
+    if (cog === null) {
+      return this.data.vessels.active.position;
+    }
     const ctrOfExtent: Position = GeoUtils.centreOfPolygon([
       this.mapExtent().slice(0, 2) as Position,
       [this.mapExtent()[0], this.mapExtent()[3]],
@@ -702,14 +708,11 @@ export class AppFacade extends InfoService {
         this.mapExtent()[0],
         ctrOfExtent[1]
       ]) * (this.config.map.centerOffset ?? 0.5);
-    const pos: Position = true //this.app.config.display.mapCenterOffset ?
-      ? GeoUtils.destCoordinate(
-          this.data.vessels.active.position,
-          0,
-          offsetDistance
-        )
-      : ref;
-    return pos;
+    return GeoUtils.destCoordinate(
+      this.data.vessels.active.position,
+      cog,
+      offsetDistance
+    );
   }
 
   /**

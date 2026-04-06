@@ -1394,7 +1394,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
 
   // center map to active vessel position
   private centerVessel() {
-    const pos = this.app.calcMapCenter(this.dfeat.active.position);
+    const pos = this.app.calcMapCenter();
     this.mapCenterPositon.update(() => pos);
   }
 
