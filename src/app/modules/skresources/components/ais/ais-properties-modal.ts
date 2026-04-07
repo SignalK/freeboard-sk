@@ -221,17 +221,17 @@ export class AISPropertiesModal {
       draftMax: app.formatValueForDisplay(
         this.data.target.design.draft?.maximum,
         'm',
-        { category: 'depth' }
+        { category: 'length' }
       ),
       draftCurrent: app.formatValueForDisplay(
         this.data.target.design.draft?.current,
         'm',
-        { category: 'depth' }
+        { category: 'length' }
       ),
       airHeight: app.formatValueForDisplay(
         this.data.target.design.airHeight,
         'm',
-        { category: 'depth' }
+        { category: 'length' }
       )
     };
   }

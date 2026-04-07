@@ -420,7 +420,9 @@ export class FBMapComponent implements OnInit, OnDestroy {
         this.app.data.vessels.closest.forEach((id: string) => {
           if (this.app.data.vessels.aisTargets.has(id)) {
             const a = this.app.data.vessels.aisTargets.get(id);
-            v.push([a.position, this.app.data.vessels.self.position]);
+            if (a.position) {
+              v.push([a.position, this.app.data.vessels.self.position]);
+            }
           }
         });
       }

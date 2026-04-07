@@ -47,6 +47,9 @@ const siBaseFn = {
     minute: (v: number) => v * 0.016666666666666666,
     day: (v: number) => v * 0.000011574074074074073,
     year: (v: number) => v * 3.168876461541279e-8
+  },
+  foot: {
+    m: (v: number) => v / 3.280839895013124
   }
 };
 

@@ -38,7 +38,7 @@ import { AnchorService } from '../anchor.service';
 import { AppFacade } from 'src/app/app.facade';
 import { SignalKClient } from 'signalk-client-angular';
 import { HttpErrorResponse } from '@angular/common/http';
-import { Convert, TARGET_UNIT } from 'src/app/lib/convert';
+import { Convert, SI_BASE_UNIT, TARGET_UNIT } from 'src/app/lib/convert';
 
 @Component({
   selector: 'anchor-watch',
@@ -72,16 +72,18 @@ export class AnchorWatchComponent {
   protected bgImage: string;
   protected sliderValue: number;
   protected rodeOut = false;
+  protected convert = Convert;
 
   // set controls
   protected useDefaultRadius: boolean;
-  protected defaultAlarmRadius: number;
   protected useSetManual: boolean;
-  protected defaultRodeLength: number;
+  protected defaultRodeLength = signal<number>(10);
+  protected defaultAlarmRadius = signal<number>(10);
+
   protected disableRaiseDrop: boolean;
 
   private anchor = inject(AnchorService);
-  private app = inject(AppFacade);
+  protected app = inject(AppFacade);
   private signalk = inject(SignalKClient);
 
   protected radiusValue = signal<number>(0); // incoming alarm radius
@@ -89,7 +91,7 @@ export class AnchorWatchComponent {
     if (!Number.isFinite(this.radiusValue()) || this.raised) {
       return '--';
     } else {
-      return `${Math.round(this.radiusValue())}${Convert.getSymbol(this.app.config.units.depth)}`;
+      return `${Math.round(this.radiusValue())}${Convert.getSymbol(this.app.config.units.length)}`;
     }
   });
   protected displayRadius = signal<string>('--');
@@ -97,10 +99,14 @@ export class AnchorWatchComponent {
   constructor() {}
 
   ngOnInit() {
-    this.defaultAlarmRadius = this.app.config.anchor.radius;
     this.useDefaultRadius = this.app.config.anchor.setRadius;
     this.useSetManual = this.app.config.anchor.manualSet;
-    this.defaultRodeLength = this.app.config.anchor.rodeLength;
+    this.defaultRodeLength.update(() => {
+      return Math.round(this.transformValue(this.app.config.anchor.rodeLength));
+    });
+    this.defaultAlarmRadius.update(() => {
+      return Math.round(this.transformValue(this.app.config.anchor.radius));
+    });
   }
 
   ngOnChanges(changes: SimpleChanges) {
@@ -134,7 +140,7 @@ export class AnchorWatchComponent {
   }
 
   /**
-   * Convert the formatted value based on config.units.depth
+   * Convert the formatted value based on config.units.length
    * @param value to convert
    * @returns Transformed value
    */
@@ -142,7 +148,7 @@ export class AnchorWatchComponent {
     return Convert.transform(
       value,
       'm',
-      this.app.config.units.depth as TARGET_UNIT
+      this.app.config.units.length as TARGET_UNIT
     );
   }
 
@@ -152,7 +158,7 @@ export class AnchorWatchComponent {
    * @returns Formatted string of transformed for display
    */
   formatTransformedValue(value: number): string {
-    return `${Math.round(this.transformValue(value))} ${Convert.getSymbol(this.app.config.units.depth)}`;
+    return `${Math.round(this.transformValue(value))} ${Convert.getSymbol(this.app.config.units.length)}`;
   }
 
   /** Format slider thumb value for display */
@@ -166,16 +172,32 @@ export class AnchorWatchComponent {
     this.useDefaultRadius = e.checked;
     this.app.config.anchor.setRadius = e.checked;
     if (!e.checked) {
-      this.defaultAlarmRadius = this.app.config.anchor.radius;
+      this.defaultAlarmRadius.update(() => {
+        return Math.round(this.transformValue(this.app.config.anchor.radius));
+      });
     }
     this.app.saveConfig();
+  }
+
+  onDefaultRadiusChange(e: any) {
+    this.app.config.anchor.radius = Math.round(
+      Convert.transform(
+        e,
+        this.app.config.units.length as SI_BASE_UNIT,
+        'm' as TARGET_UNIT
+      )
+    );
   }
 
   onSetManualCheck(e: MatCheckboxChange) {
     this.useSetManual = e.checked;
     this.app.config.anchor.manualSet = e.checked;
     if (!e.checked) {
-      this.defaultRodeLength = this.app.config.anchor.rodeLength;
+      this.defaultRodeLength.update(() => {
+        return Math.round(
+          this.transformValue(this.app.config.anchor.rodeLength)
+        );
+      });
     }
     this.disableRaiseDrop = this.raised && this.useSetManual;
     this.app.saveConfig();
@@ -214,11 +236,17 @@ export class AnchorWatchComponent {
    * @description Set anchor position using the rode length
    */
   setManualAnchor() {
-    if (typeof this.defaultRodeLength !== 'number') {
+    if (typeof this.defaultRodeLength() !== 'number') {
       this.app.showAlert('Error', 'Rode length value is not a number!');
       return;
     }
-    this.app.config.anchor.rodeLength = this.defaultRodeLength;
+    this.app.config.anchor.rodeLength = Math.round(
+      Convert.transform(
+        this.defaultRodeLength(),
+        this.app.config.units.length as SI_BASE_UNIT,
+        'm' as TARGET_UNIT
+      )
+    );
     this.signalk
       .post('/plugins/anchoralarm/setManualAnchor', {
         rodeLength: this.app.config.anchor.rodeLength
@@ -240,7 +268,7 @@ export class AnchorWatchComponent {
   dropRaiseAnchor(e: MatSlideToggleChange) {
     if (e.checked) {
       this.dropAnchor(
-        this.useDefaultRadius ? this.defaultAlarmRadius : undefined
+        this.useDefaultRadius ? this.app.config.anchor.radius : undefined
       );
     } else {
       this.raiseAnchor();

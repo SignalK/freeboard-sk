@@ -1,14 +1,13 @@
 const WHATS_NEW = [
   {
     type: 'signalk-server-node',
-    title: 'Deprecation Notice',
+    title: 'Notifications & Alarms',
     message: `
-        With the recent release of the <b>Notifications API</b>, Freeboard-SK
-        will be moving it's notification and alarm features to use this API
-        exclusively in an upcoming release.
+        Notification and alarm features in Freeboard-SK now use the
+        <b>Notifications API</b> exclusively.
         <br>&nbsp;<br>
-        Be sure to keep your Signal K server installation up to date
-        to ensure notification and alarm features to remain operational.
+        This requires Signal K server v2.22.0 or later to enable
+        notification and alarm features to be used.
       `
   },
   {

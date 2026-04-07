@@ -69,10 +69,15 @@
           </div>
           <div>
             <mat-form-field floatLabel="always" style="max-width: 130px">
-              <mat-label>Alarm Radius (m)</mat-label>
+              <mat-label
+                >Alarm Radius ({{
+                  convert.getSymbol(app.config.units.length)
+                }})</mat-label
+              >
               <input
                 #ctlAlarmRadius="ngModel"
-                [(ngModel)]="defaultAlarmRadius"
+                [ngModel]="defaultAlarmRadius()"
+                (ngModelChange)="onDefaultRadiusChange($event)"
                 [disabled]="!raised || !useDefaultRadius || useSetManual"
                 matInput
                 required
@@ -118,7 +123,11 @@
 
           <div>
             <mat-form-field floatLabel="always" style="max-width: 130px">
-              <mat-label>Rode Length (m)</mat-label>
+              <mat-label
+                >Rode Length ({{
+                  convert.getSymbol(app.config.units.length)
+                }})</mat-label
+              >
               <input
                 #ctlRodeLength="ngModel"
                 [(ngModel)]="defaultRodeLength"

@@ -74,7 +74,7 @@ export class SKNote {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   authors: Array<any>;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  properties: { [key: string]: any };
+  properties: Record<string, any>;
 
   constructor(note?: NoteResource) {
     this.name = note?.name ?? '';

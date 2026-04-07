@@ -133,7 +133,7 @@ export class NotificationManager {
         canCancel: v.status.canClear,
         createdAt: v.createdAt ? new Date(v.createdAt).valueOf() : Date.now()
       };
-    } else {
+    } /* else {
       if (alertType === 'notification') {
         return;
       }
@@ -168,7 +168,7 @@ export class NotificationManager {
         alert.priority
       );
       alert.canCancel = this.isStandardAlarm(alert.type);
-    }
+    } */
 
     alert.type = alertType;
     alert.icon = getAlertIcon(alert);
@@ -291,10 +291,10 @@ export class NotificationManager {
               this.app.parseHttpErrorResponse(err);
             }
           );
-      } else {
+      } /* else {
         this.alertMap.get(path).acknowledged = true;
         this.emitSignals();
-      }
+      }*/
     }
   }
 
@@ -316,7 +316,7 @@ export class NotificationManager {
               this.app.parseHttpErrorResponse(err);
             }
           );
-      } else {
+      } /* else {
         if (this.isStandardAlarm(alert.type)) {
           // if is standard alarm silence via server
           const id = alert.path.split('.').slice(-1)[0];
@@ -343,7 +343,7 @@ export class NotificationManager {
           alert.silenced = true;
           this.emitSignals();
         }
-      }
+      } */
     }
   }
 
@@ -365,7 +365,7 @@ export class NotificationManager {
               this.app.parseHttpErrorResponse(err);
             }
           );
-      } else {
+      } /*else {
         if (alert.canCancel) {
           if (this.isStandardAlarm(alert.type)) {
             // if is standard alarm remove via server
@@ -387,7 +387,7 @@ export class NotificationManager {
             this.emitSignals();
           }
         }
-      }
+      } */
     }
   }
 
@@ -407,7 +407,7 @@ export class NotificationManager {
             this.app.parseHttpErrorResponse(err);
           }
         );
-    } else {
+    } /* else {
       this.signalk.api
         .post(this.app.skApiVersion, `alarms/${alarmType}`, {
           message: message ?? ''
@@ -421,7 +421,7 @@ export class NotificationManager {
             );
           }
         );
-    }
+    } */
   }
 
   /**
@@ -441,13 +441,13 @@ export class NotificationManager {
             this.app.parseHttpErrorResponse(err);
           }
         );
-    } else {
+    } /* else {
       const id = alert.path.split('.').slice(-1)[0];
       return this.signalk.api.delete(
         this.app.skApiVersion,
         `alarms/${alert.type}/${id}`
       );
-    }
+    } */
   }
 
   // parse ClosestApproach message data

@@ -43,7 +43,7 @@ import { NotificationManager } from '../notification-manager';
         <mat-icon class="ob" svgIcon="alarm-mob"></mat-icon>
         &nbsp;Overboard!
       </button>
-      @if (!app.featureFlags().notificationApi) {
+      <!--
         <button mat-menu-item (click)="raiseAlarm('fire')">
           <mat-icon class="ob" svgIcon="alarm-fire"></mat-icon>
           &nbsp;Fire
@@ -60,23 +60,25 @@ import { NotificationManager } from '../notification-manager';
           <mat-icon class="" svgIcon="alarm-acknowledged-iec"></mat-icon>
           &nbsp;Piracy
         </button>
-      }
+      -->
     </mat-menu>
     <mat-card appearance="outlined">
       <div class="alert-list-main mat-app-background" cdkDrag>
         <div class="title" cdkDragHandle>
-          <div>
-            <button
-              class="button-warn"
-              mat-raised-button
-              matTooltip="Raise Alarm"
-              matTooltipPosition="right"
-              [matMenuTriggerFor]="alarmsmenu"
-            >
-              <mat-icon>warning</mat-icon>
-              Raise
-            </button>
-          </div>
+          @if (app.featureFlags().notificationApi) {
+            <div>
+              <button
+                class="button-warn"
+                mat-raised-button
+                matTooltip="Raise Alarm"
+                matTooltipPosition="right"
+                [matMenuTriggerFor]="alarmsmenu"
+              >
+                <mat-icon>warning</mat-icon>
+                Raise
+              </button>
+            </div>
+          }
           <div
             style="flex: 1 1 auto;
             font-size: 14pt;
@@ -143,7 +145,11 @@ import { NotificationManager } from '../notification-manager';
                     {{ item[1].message }}
                   </div>
                   <div style="width:90px;">
-                    @if (item[1].sound && item[1].canSilence) {
+                    @if (
+                      app.featureFlags().notificationApi &&
+                      item[1].sound &&
+                      item[1].canSilence
+                    ) {
                       <button
                         mat-icon-button
                         [matTooltip]="item[1].silenced ? 'Silenced' : 'Silence'"
@@ -162,7 +168,10 @@ import { NotificationManager } from '../notification-manager';
                       </button>
                       &nbsp;
                     }
-                    @if (item[1].canAcknowledge) {
+                    @if (
+                      app.featureFlags().notificationApi &&
+                      item[1].canAcknowledge
+                    ) {
                       @if (!item[1].acknowledged) {
                         <button
                           mat-icon-button
