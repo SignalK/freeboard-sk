@@ -275,16 +275,6 @@ export class AppComponent {
     // set self to active vessel
     this.app.data.vessels.active = this.app.data.vessels.self;
 
-    // CONFIG$ - handle app.config$ event
-    this.obsList.push(
-      this.app.config$.subscribe((value: string) => {
-        // config has been loaded and cleaned (ready)
-        if (value === 'ready') {
-          this.fetchResources(true);
-        }
-      })
-    );
-
     // handle skAuthChange signal
     effect(() => {
       this.app.debug('** skAuthChange Event:', this.app.skAuthChange());
@@ -746,6 +736,7 @@ export class AppComponent {
             } else {
               const wr = this.app.showWelcome(true);
             }
+            this.fetchResources(true); // fetch all resource types from server
           });
           this.getFeatures();
           this.app.data.server = this.signalk.server.info;
@@ -1794,7 +1785,7 @@ export class AppComponent {
     this.skres.refreshRoutes();
     this.skres.refreshWaypoints();
     this.skres.refreshCharts();
-    this.skres.refreshNotes();
+    //this.skres.refreshNotes(); // fetched by fbMap.renderMapContents
     this.skres.refreshRegions();
     if (allTypes) {
       this.fetchOtherResources();
@@ -1838,7 +1829,6 @@ export class AppComponent {
           cmd: 'vessel',
           options: { context: 'self', name: r['name'] }
         });
-        this.fetchResources(true); // fetch all resource types from server
         if (this.app.config.vessels.trailFromServer) {
           this.stream.requestTrailFromServer(); // request trail from server
         }

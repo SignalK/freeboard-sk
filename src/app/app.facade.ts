@@ -29,7 +29,6 @@ import {
   IAppConfig,
   LineString,
   SKServerUnitPrefs,
-  SKUnitCategory,
   TemperatureUnitDef,
   DepthUnitDef,
   SpeedUnitDef,
@@ -283,9 +282,9 @@ export class AppFacade extends InfoService {
     /** check for internet connection */
     this.testForInternet();
 
-    /** Load persisted configuration */
+    /** Load & clean persisted configuration */
     this.loadConfig();
-    this.parseLoadedConfig();
+    this.parseLocalConfig();
 
     // respond to signals
     effect(() => {
@@ -354,10 +353,9 @@ export class AppFacade extends InfoService {
   }
 
   /** Parse, clean loaded config */
-  private parseLoadedConfig() {
+  private parseLocalConfig() {
     cleanConfig(this.config, this.hostDef.params);
     this.doPostConfigLoad();
-    this.s57.init(this.config.map.s57Options);
   }
 
   /** Initialise and raise "settings$.load" event */
@@ -374,10 +372,60 @@ export class AppFacade extends InfoService {
 
     this.sTrueMagChoice.set(this.config.units.headingAttribute);
 
-    // emit settings$.ready
+    this.s57.init(this.config.map.s57Options);
+
+    // emit config$.ready
     this.debug(`doPostConfigLoad(): emit config$.ready`);
     this.emitConfigEvent('ready');
     this.suppressPersist = false; // allow persisting of config.
+  }
+
+  /** Retrieve and apply saved config from server */
+  public async loadSettingsfromServer(): Promise<boolean> {
+    return new Promise((resolve) => {
+      this.signalk.isLoggedIn().subscribe({
+        next: (r: boolean) => {
+          this.isLoggedIn.set(r);
+          if (r) {
+            this.debug(
+              'loadSettingsfromServer(): Is authenticated. Fetching config from SK Server...'
+            );
+            this.signalk.appDataGet('/').subscribe({
+              next: (serverSettings: IAppConfig) => {
+                if (Object.keys(serverSettings).length === 0) {
+                  resolve(false);
+                }
+                cleanConfig(serverSettings, this.hostDef.params);
+                if (validateConfig(serverSettings)) {
+                  this.config = serverSettings;
+                  this.doPostConfigLoad();
+                  this.alignCustomResourcesPaths();
+                  this.alignUnitPrefs(this.serverConfig.unitPreferences());
+                  this.saveConfig();
+                }
+                resolve(true);
+              },
+              error: () => {
+                console.info(
+                  'applicationData: Unable to retrieve settings from server!'
+                );
+                resolve(false);
+              }
+            });
+          } else {
+            this.debug(
+              'loadSettingsfromServer(): Not authenticated to SK Server!'
+            );
+            return resolve(false);
+          }
+        },
+        error: () => {
+          this.isLoggedIn.set(false);
+          this.debug('loadSettingsfromServer(): Error fetching loginStatus!');
+          resolve(false);
+        }
+      });
+    });
   }
 
   /**
@@ -452,54 +500,6 @@ export class AppFacade extends InfoService {
         units.categories.length.symbol
       );
     }
-  }
-
-  /** Retrieve and apply saved config from server */
-  public async loadSettingsfromServer(): Promise<boolean> {
-    return new Promise((resolve) => {
-      this.signalk.isLoggedIn().subscribe({
-        next: (r: boolean) => {
-          this.isLoggedIn.set(r);
-          if (r) {
-            this.debug(
-              'loadSettingsfromServer(): Is authenticated. Fetching config from SK Server...'
-            );
-            this.signalk.appDataGet('/').subscribe({
-              next: (serverSettings: IAppConfig) => {
-                if (Object.keys(serverSettings).length === 0) {
-                  resolve(false);
-                }
-                cleanConfig(serverSettings, this.hostDef.params);
-                if (validateConfig(serverSettings)) {
-                  this.config = serverSettings;
-                  this.doPostConfigLoad();
-                  this.alignCustomResourcesPaths();
-                  this.alignUnitPrefs(this.serverConfig.unitPreferences());
-                  this.saveConfig();
-                }
-                resolve(true);
-              },
-              error: () => {
-                console.info(
-                  'applicationData: Unable to retrieve settings from server!'
-                );
-                resolve(false);
-              }
-            });
-          } else {
-            this.debug(
-              'loadSettingsfromServer(): Not authenticated to SK Server!'
-            );
-            return resolve(false);
-          }
-        },
-        error: () => {
-          this.isLoggedIn.set(false);
-          this.debug('loadSettingsfromServer(): Error fetching loginStatus!');
-          resolve(false);
-        }
-      });
-    });
   }
 
   /** Initialises Material IconRegistry with custom icons */

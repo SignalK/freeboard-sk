@@ -366,15 +366,20 @@ function closeStream(fromCommand = false) {
 }
 
 // fetch from api endpoint
+let isFetching = false;
 function apiGet(url: string): Promise<unknown> {
+  if (isFetching) return;
   return new Promise((resolve, reject) => {
+    isFetching = true;
     fetch(`${url}`)
       .then((r: Response) => {
+        isFetching = false;
         r.json()
           .then((j) => resolve(j))
           .catch((err) => reject(err));
       })
       .catch((err) => {
+        isFetching = false;
         reject(err);
       });
   });
