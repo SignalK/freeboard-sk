@@ -557,6 +557,9 @@ export class FBMapComponent implements OnInit, OnDestroy {
     this.app.config.map.zoomLevel = e.zoom;
 
     this.app.mapExtent.update(() => e.extent);
+    this.app.mapViewTopCenter.update(() => e.topCenter as Position);
+    this.app.mapViewRightCenter.update(() => e.rightCenter as Position);
+    this.app.mapViewRotation.update(() => e.rotation);
     this.app.config.map.center = e.lonlat as Position;
 
     this.drawVesselLines();
