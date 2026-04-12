@@ -733,6 +733,14 @@
     >
     </fb-cog-line>
   }
+  @if (showGreatCircle) {
+    <fb-great-circle
+      [coords]="greatCircleArc()"
+      [lineStyle]="app.config.vessels.greatCircleStyle"
+      [zIndex]="344"
+    >
+    </fb-great-circle>
+  }
   @if (app.config.vessels.windVectors) {
     <fb-wind-lines
       [twd]="this.dfeat.active.wind.direction"

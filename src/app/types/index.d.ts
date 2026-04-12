@@ -178,6 +178,7 @@ export interface IAppConfig {
     };
     headingLineStyle: ILineStyleWithLength;  // style of self vessel heading line
     cogLineStyle: ILineStyleWithLength;      // style of self vessel COG line
+    greatCircleStyle: ILineStyle;   // style of great-circle arc line
     selfTrailStyle: ILineStyle;    // style of self vessel track line
     aisTrackStyle: ILineStyle;     // style of other vessel track lines
   };

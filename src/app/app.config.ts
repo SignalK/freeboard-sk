@@ -185,6 +185,7 @@ export function cleanConfig(
       },
       headingLineStyle: { color: '#dd6300', width: 4, dash: 'solid', lineLength: { kind: 'time', value: 10 } },
       cogLineStyle: { color: '#cc0ce1', width: 1, dash: 'solid', lineLength: { kind: 'time', value: 10 } },
+      greatCircleStyle: { color: '#0080ff', width: 1, dash: 'long', lineLength: { kind: 'distance', value: 0 } },
       selfTrailStyle: { color: '#fc0384', width: 1, dash: 'short' },
       aisTrackStyle: { color: '#ff00ff', width: 1, dash: 'short' }
     };
@@ -229,6 +230,9 @@ export function cleanConfig(
     }
     if (!settings.vessels.aisTrackStyle) {
       settings.vessels.aisTrackStyle = { color: '#ff00ff', width: 1, dash: 'short' };
+    }
+    if (!settings.vessels.greatCircleStyle) {
+      settings.vessels.greatCircleStyle = { color: '#0080ff', width: 1, dash: 'long', lineLength: { kind: 'distance', value: 0 } };
     }
   }
 
@@ -494,6 +498,7 @@ export function defaultConfig(): IAppConfig {
       },
       headingLineStyle: { color: '#dd6300', width: 4, dash: 'solid', lineLength: { kind: 'time', value: 10 } },
       cogLineStyle: { color: '#cc0ce1', width: 1, dash: 'solid', lineLength: { kind: 'time', value: 10 } },
+      greatCircleStyle: { color: '#0080ff', width: 1, dash: 'long', lineLength: { kind: 'distance', value: 0 } },
       selfTrailStyle: { color: '#fc0384', width: 1, dash: 'short' },
       aisTrackStyle: { color: '#ff00ff', width: 1, dash: 'short' }
     },

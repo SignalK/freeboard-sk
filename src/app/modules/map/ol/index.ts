@@ -43,6 +43,7 @@ import { AISVesselsLayerComponent } from './lib/resources/layer-aisvessels.compo
 import { AISTargetsTrackLayerComponent } from './lib/resources/layer-aistargets-track.component';
 import { RangeCirclesComponent } from './lib/navigation/layer-range-circles.component';
 import { CogLineComponent } from './lib/navigation/layer-cog-line.component';
+import { GreatCircleComponent } from './lib/navigation/layer-great-circle.component';
 import { WindLinesComponent } from './lib/navigation/layer-wind-lines.component';
 import { RasterChartLayerComponent } from './lib/charts/layer-raster-chart.component';
 import { VectorChartLayerComponent } from './lib/charts/layer-vector-chart.component';
@@ -99,6 +100,7 @@ export { AISVesselsLayerComponent } from './lib/resources/layer-aisvessels.compo
 export { AISTargetsTrackLayerComponent } from './lib/resources/layer-aistargets-track.component';
 export { RangeCirclesComponent } from './lib/navigation/layer-range-circles.component';
 export { CogLineComponent } from './lib/navigation/layer-cog-line.component';
+export { GreatCircleComponent } from './lib/navigation/layer-great-circle.component';
 export { WindLinesComponent } from './lib/navigation/layer-wind-lines.component';
 export { RasterChartLayerComponent } from './lib/charts/layer-raster-chart.component';
 export { VectorChartLayerComponent } from './lib/charts/layer-vector-chart.component';
@@ -149,6 +151,7 @@ const declarations = [
   AISTargetsTrackLayerComponent,
   RangeCirclesComponent,
   CogLineComponent,
+  GreatCircleComponent,
   WindLinesComponent,
   RadarComponent,
   RasterChartLayerComponent,
