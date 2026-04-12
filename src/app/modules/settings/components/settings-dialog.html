@@ -991,6 +991,46 @@
                         </fieldset>
                       </div>
                     </div>
+                    <div class="setting-card-row" style="padding-bottom: 10px">
+                      <div class="setting-card-row-item">
+                        <fieldset>
+                          <legend>Great Circle Line</legend>
+                          <div
+                            class="setting-card-row"
+                            style="padding-bottom: 10px"
+                          >
+                            <div class="setting-card-row-item">
+                              <mat-form-field style="width: 110px">
+                                <mat-label>Length</mat-label>
+                                <input matInput type="number" min="0"
+                                  [(ngModel)]="facade.settings.vessels.selfLines.greatCircleStyle.lineLength.value"
+                                  (change)="persistModel()"
+                                >
+                              </mat-form-field>
+                              <mat-form-field style="width: 110px">
+                                <mat-label>Unit</mat-label>
+                                <mat-select
+                                  [(ngModel)]="facade.settings.vessels.selfLines.greatCircleStyle.lineLength.kind"
+                                  (selectionChange)="persistModel()"
+                                >
+                                  @for(k of options.lineLengthKinds; track k[0]) {
+                                    <mat-option [value]="k[0]">{{k[1]}}</mat-option>
+                                  }
+                                </mat-select>
+                              </mat-form-field>
+                            </div>
+                            <div class="setting-card-row-item">
+                              <linestyle-select
+                                [color]="facade.settings.vessels.selfLines.greatCircleStyle.color"
+                                [dash]="facade.settings.vessels.selfLines.greatCircleStyle.dash"
+                                [weight]="facade.settings.vessels.selfLines.greatCircleStyle.weight"
+                                (selectionChange)="onGreatCircleStyle($event)"
+                              ></linestyle-select>
+                            </div>
+                          </div>
+                        </fieldset>
+                      </div>
+                    </div>
                   </fieldset>
                 </div>
                 <div class="setting-card-row-item">

@@ -193,6 +193,9 @@ export class FBMapComponent implements OnInit, OnDestroy {
     heading: []
   });
 
+  /** Densified great-circle arc line */
+  protected greatCircleArc = signal<Position[]>([]);
+
   protected overlay = signal<IPopover>({
     id: null,
     type: null,
@@ -1492,6 +1495,11 @@ export class FBMapComponent implements OnInit, OnDestroy {
     }
   }
 
+  protected get showGreatCircle(): boolean {
+    const ll = this.app.config.vessels.selfLines.greatCircleStyle?.lineLength;
+    return !!ll && ll.value > 0;
+  }
+
   /** construct vessel lines for rendering */
   protected drawVesselLines(vesselUpdate = false) {
     // update vessel trail
@@ -1530,6 +1538,35 @@ export class FBMapComponent implements OnInit, OnDestroy {
 
       return { cog, heading };
     });
+
+    // render great-circle arc
+    this.greatCircleArc.update(() => {
+      const cogAngle = this.dfeat.active.cog;
+      const pos = this.dfeat.active.position;
+      const sog = this.dfeat.active.sog || 0;
+      if (cogAngle === null || cogAngle === undefined || !pos) return [];
+      const totalMeters = this.lineLengthToMeters(
+        this.app.config.vessels.selfLines.greatCircleStyle?.lineLength, sog
+      );
+      if (totalMeters <= 0) return [];
+      return this.densifyGreatCircle(pos, Convert.radiansToDegrees(cogAngle), totalMeters);
+    });
+  }
+
+  /**
+   * Densify a great-circle arc from an origin at a given initial bearing.
+   * Returns an array of [lon, lat] intermediate points.
+   */
+  private densifyGreatCircle(
+    origin: Position, bearingDeg: number, distMeters: number, segments = 128
+  ): Position[] {
+    const pts: Position[] = [origin];
+    const step = distMeters / segments;
+    for (let i = 1; i <= segments; i++) {
+      const pt = computeDestinationPoint(origin, step * i, bearingDeg);
+      pts.push([pt.longitude, pt.latitude]);
+    }
+    return pts;
   }
 
   /** calculate vessel & dest laylines & update signals */

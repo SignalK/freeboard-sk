@@ -143,18 +143,9 @@ export interface IAppConfig {
     windVectors: boolean; // display vessel TWD, AWD vectors
     laylines: boolean;
     selfLines: {
-      cog: {
-        lineLength: ILineLengthDef;
-        color: string;
-        weight: number;
-        dash: LineStyleDash;
-      };
-      heading: {
-        lineLength: ILineLengthDef;
-        color: string;
-        weight: number;
-        dash: LineStyleDash;
-      };
+      cog: LineStyleConfig & { lineLength: ILineLengthDef };
+      heading: LineStyleConfig & { lineLength: ILineLengthDef };
+      greatCircleStyle: LineStyleConfig & { lineLength: ILineLengthDef };
     };
     aisCogLine: number; // (minutes) length = cogLine * sog
     iconScale: number; // scale to apply to self Vessel icon

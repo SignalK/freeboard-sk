@@ -182,6 +182,17 @@ export class SettingsDialog implements OnInit {
     }
   }
 
+  /** handle great circle line style change */
+  onGreatCircleStyle(value: { lineStyle: LineStyleDef; config: LineStyleConfig }) {
+    const l = this.facade.settings.vessels.selfLines.greatCircleStyle;
+    if (l) {
+      l.color = value.config.color;
+      l.dash = value.config.dash;
+      l.weight = value.config.weight;
+      this.persistModel();
+    }
+  }
+
   /** handle route / navigation line style change */
   onRouteStyle(
     target: 'activeRoute' | 'defaultRoute' | 'activeSegment' | 'destination',

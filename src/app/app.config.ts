@@ -178,7 +178,13 @@ export function cleanConfig(
           color: 'rgba(221, 99, 0, 0.5)',
           weight: 4,
           dash: 'none'
-        }
+        },
+        greatCircleStyle: {
+          lineLength: { kind: 'distance', value: 0 },
+          color: '#0080ff',
+          weight: 1,
+          dash: 'long',
+        },
       },
       aisCogLine: 10,
       iconScale: 0.9,
@@ -247,7 +253,13 @@ export function cleanConfig(
           color: 'rgba(221, 99, 0, 0.5)',
           weight: 4,
           dash: 'none'
-        }
+        },
+        greatCircleStyle: {
+          color: '#0080ff',
+          weight: 1,
+          dash: 'long',
+          lineLength: { kind: 'distance', value: 0 }
+        },
       };
       // @todo remove (implemented) v2.22.2
       delete (settings as any).vessels.cogLine;
@@ -512,7 +524,13 @@ export function defaultConfig(): IAppConfig {
           color: 'rgba(221, 99, 0, 0.5)',
           weight: 4,
           dash: 'none'
-        }
+        },
+        greatCircleStyle: {
+          color: '#0080ff',
+          weight: 1,
+          dash: 'long',
+          lineLength: { kind: 'distance', value: 0 }
+        },
       },
       aisCogLine: 10, // ais COG line time (mins)
       iconScale: 0.9,
