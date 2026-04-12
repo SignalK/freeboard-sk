@@ -16,10 +16,10 @@ import { Feature } from 'ol';
 import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
 import { Style, Stroke } from 'ol/style';
-import { LineString } from 'ol/geom';
+import { MultiLineString } from 'ol/geom';
 import { MapComponent } from '../map.component';
 import { Extent, Coordinate } from '../models';
-import { fromLonLatArray, lineDashFor } from '../util';
+import { fromLonLatArray, splitAtAntimeridian, lineDashFor } from '../util';
 import { AsyncSubject } from 'rxjs';
 import { ILineStyle } from 'src/app/types';
 
@@ -114,9 +114,10 @@ export class GreatCircleComponent implements OnInit, OnDestroy, OnChanges {
     const fa: Feature[] = [];
     const c = this.coords();
     if (Array.isArray(c) && c.length >= 2) {
-      const projected = fromLonLatArray(c) as Coordinate[];
+      const projected = splitAtAntimeridian(c.map(p => [p[0], p[1]] as Coordinate))
+        .map(seg => fromLonLatArray(seg));
       const feat = new Feature({
-        geometry: new LineString(projected)
+        geometry: new MultiLineString(projected)
       });
       feat.setId('greatCircleSelf');
       const ls = this.lineStyle();
