@@ -141,7 +141,7 @@ class AreaAlarmManager {
         notify = true;
         server.debug(`*** active -> to inactive (${id})`);
       }
-      alarm.lastUpdate == Date.now();
+      alarm.lastUpdate = Date.now();
     } else {
       if (condition === 'outside' && !alarm.active) {
         // transition to active
