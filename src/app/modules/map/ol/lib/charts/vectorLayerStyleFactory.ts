@@ -73,6 +73,7 @@ export class VectorLayerStyleFactory {
 
   public CreateVectorLayerStyler(chart: SKChart): VectorLayerStyler {
     if (chart.type === 'S-57' || chart.type === 's-57') {
+      this.s57service.ensureLoaded();
       return new S57LayerStyler(this.s57service);
     }
   }

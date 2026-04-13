@@ -110,6 +110,8 @@ export class S57Service {
 
   private attMatch = new RegExp('([A-Za-z0-9]{6})([0-9,\\?]*)');
 
+  private loaded = false;
+
   private http = inject(HttpClient);
 
   constructor() {}
@@ -117,6 +119,14 @@ export class S57Service {
   public init(options: Options = DefaultOptions) {
     this.options = Object.assign({}, options);
     this.selectedColorTable = this.options.colorTable;
+  }
+
+  /** Load chart symbols and images. Called lazily on first use. */
+  public ensureLoaded() {
+    if (this.loaded) {
+      return;
+    }
+    this.loaded = true;
 
     this.http
       .get('assets/s57/chartsymbols.xml', { responseType: 'text' })
