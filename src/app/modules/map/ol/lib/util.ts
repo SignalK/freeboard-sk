@@ -40,42 +40,18 @@ export function fromLonLatArray(
   }
 }
 
-/** DateLine Crossing:
- * returns true if point is in the zone for dateline transition
- * zoneValue: lower end of 180 to xx range within which Longitude must fall for retun value to be true
- **/
-export function inDLCrossingZone(coord: Coordinate, zoneValue = 170) {
-  return Math.abs(coord[0]) >= zoneValue ? true : false;
-}
-
-// update linestring coords for map display (including dateline crossing)
-export function mapifyCoords(
-  coords: Array<Coordinate>,
-  zoneValue?: number
-): Array<Coordinate> {
-  if (coords.length === 0) {
+/**
+ * Unwrap longitudes so that consecutive points never jump by more
+ * than 180°.  Works for short dateline-crossing lines (2-3 points)
+ * as well as long great-circle arcs that pass the antipodal meridian.
+ */
+export function mapifyCoords(coords: Array<Coordinate>): Array<Coordinate> {
+  if (coords.length < 2) {
     return coords;
   }
-  let dlCrossing = 0;
-  const last = coords[0];
-  for (let i = 0; i < coords.length; i++) {
-    if (
-      inDLCrossingZone(coords[i], zoneValue) ||
-      inDLCrossingZone(last, zoneValue)
-    ) {
-      dlCrossing =
-        last[0] > 0 && coords[i][0] < 0
-          ? 1
-          : last[0] < 0 && coords[i][0] > 0
-            ? -1
-            : 0;
-      if (dlCrossing === 1) {
-        coords[i][0] = coords[i][0] + 360;
-      }
-      if (dlCrossing === -1) {
-        coords[i][0] = Math.abs(coords[i][0]) - 360;
-      }
-    }
+  for (let i = 1; i < coords.length; i++) {
+    while (coords[i][0] - coords[i - 1][0] > 180) coords[i][0] -= 360;
+    while (coords[i - 1][0] - coords[i][0] > 180) coords[i][0] += 360;
   }
   return coords;
 }
