@@ -15,6 +15,35 @@ import { SKPosition, Position } from '../types';
 export type Extent = [number, number, number, number]; // coords [swlon,swlat,nelon,nelat] of a bounding box
 
 export class GeoUtils {
+  private static readonly R = 6_371_000; // mean earth radius in metres
+
+  /**
+   * Rhumb-line destination: given a start [lon,lat], bearing (radians),
+   * and distance (metres), return the destination [lon,lat].
+   */
+  static rhumbDestination(origin: Position, bearingRad: number, distMeters: number): Position {
+    const R = GeoUtils.R;
+    const δ = distMeters / R;
+    const φ1 = origin[1] * Math.PI / 180;
+    const λ1 = origin[0] * Math.PI / 180;
+    const θ = bearingRad;
+
+    let Δφ = δ * Math.cos(θ);
+    let φ2 = φ1 + Δφ;
+    if (Math.abs(φ2) > Math.PI / 2) {
+      φ2 = φ2 > 0 ? Math.PI / 2 : -Math.PI / 2;
+      Δφ = φ2 - φ1;
+    }
+
+    const Δψ = Math.log(
+      Math.tan(Math.PI / 4 + φ2 / 2) / Math.tan(Math.PI / 4 + φ1 / 2)
+    );
+    const q = Math.abs(Δψ) > 1e-12 ? Δφ / Δψ : Math.cos(φ1);
+    const Δλ = (δ * Math.sin(θ)) / q;
+
+    return [(λ1 + Δλ) * 180 / Math.PI, φ2 * 180 / Math.PI];
+  }
+
   static destCoordinate(
     src: Position,
     bearing: number,
