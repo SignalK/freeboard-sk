@@ -18,7 +18,7 @@ import { Geometry, Point, LineString } from 'ol/geom';
 import { fromLonLat } from 'ol/proj';
 import { MapComponent } from '../map.component';
 import { Extent, Coordinate } from '../models';
-import { fromLonLatArray, mapifyCoords } from '../util';
+import { fromLonLatArray } from '../util';
 import { AsyncSubject } from 'rxjs';
 import { Options } from 'ol/style/Icon';
 
@@ -284,13 +284,15 @@ export class VesselComponent implements OnInit, OnDestroy, OnChanges {
     if (!coords || !Array.isArray(coords)) {
       return;
     }
+    // Coordinates arrive pre-unwrapped from rhumbDestination — fromLonLatArray
+    // handles any longitude value, so no mapifyCoords needed.
     if (!lf) {
       // create feature
-      lf = new Feature(new LineString(fromLonLatArray(mapifyCoords(coords))));
+      lf = new Feature(new LineString(fromLonLatArray(coords)));
     } else {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const g: any = lf.getGeometry();
-      g.setCoordinates(fromLonLatArray(mapifyCoords(coords)));
+      g.setCoordinates(fromLonLatArray(coords));
     }
     return lf;
   }

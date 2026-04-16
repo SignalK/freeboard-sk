@@ -22,7 +22,7 @@ import { StyleLike } from 'ol/style/Style';
 import { LineString, Point } from 'ol/geom';
 import { MapComponent } from '../map.component';
 import { Extent, Coordinate } from '../models';
-import { fromLonLatArray, mapifyCoords } from '../util';
+import { fromLonLatArray } from '../util';
 import { AsyncSubject } from 'rxjs';
 import { getDistance } from 'geolib';
 import { Convert } from 'src/app/lib/convert';
@@ -145,7 +145,9 @@ export class CogLineComponent implements OnInit, OnDestroy, OnChanges {
   parseInput() {
     const fa: Feature[] = [];
     if (Array.isArray(this.coords()) && this.coords().length !== 0) {
-      this.mapifiedLine = mapifyCoords(this.coords());
+      // Coordinates arrive pre-unwrapped from rhumbDestination —
+      // no mapifyCoords needed (it would flip wide-angle lines).
+      this.mapifiedLine = this.coords().map(p => [p[0], p[1]] as Coordinate);
 
       this.labelText.update(() => {
         return `${this.formatNumber(
