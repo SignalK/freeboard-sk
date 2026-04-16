@@ -200,6 +200,7 @@ export interface IAppConfig {
     tracks: string[] | null;
     charts: string[];
     chartOrder: string[]; // chart layer ordering
+    chartOpacity: { [id: string]: number };
     aisTargets: string[];
     aisTargetTypes: number[];
     aisFilterByShipType: boolean;

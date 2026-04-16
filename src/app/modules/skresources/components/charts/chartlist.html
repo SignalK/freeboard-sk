@@ -191,6 +191,16 @@
                 <mat-icon>info_outline</mat-icon>
               </button>
             </div>
+            <div style="width: 100%; text-align: right">
+              <button
+                mat-icon-button
+                (click)="openOpacityDialog(r)"
+                matTooltip="Set Opacity"
+                matTooltipPosition="above"
+              >
+                <mat-icon>opacity</mat-icon>
+              </button>
+            </div>
             @if(r[1].proxy) {
             <div style="width: 100%; text-align: right">
               <button
