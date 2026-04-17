@@ -88,6 +88,17 @@ export function mapifyCoords(
  * Each segment can be passed independently to fromLonLatArray so that
  * OpenLayers wrapX cloning works correctly on each compact piece.
  */
+/** Convert latitude (degrees) to Mercator Y. */
+function latToMercY(latDeg: number): number {
+  const latRad = (latDeg * Math.PI) / 180;
+  return Math.log(Math.tan(Math.PI / 4 + latRad / 2));
+}
+
+/** Convert Mercator Y back to latitude (degrees). */
+function mercYToLat(mercY: number): number {
+  return ((2 * Math.atan(Math.exp(mercY)) - Math.PI / 2) * 180) / Math.PI;
+}
+
 export function splitAtAntimeridian(coords: Coordinate[]): Coordinate[][] {
   if (coords.length < 2) return coords.length === 0 ? [] : [coords];
 
@@ -103,7 +114,9 @@ export function splitAtAntimeridian(coords: Coordinate[]): Coordinate[][] {
       // Westward crossing: x0 is east (positive), x1 is west (negative)
       const dLonUnwrapped = dLon - 360;
       const t = (-180 - x0) / dLonUnwrapped;
-      const yIntercept = y0 + t * (y1 - y0);
+      const yIntercept = mercYToLat(
+        latToMercY(y0) + t * (latToMercY(y1) - latToMercY(y0))
+      );
       current.push([-180, yIntercept]);
       segments.push(current);
       current = [[180, yIntercept], [x1, y1]];
@@ -111,7 +124,9 @@ export function splitAtAntimeridian(coords: Coordinate[]): Coordinate[][] {
       // Eastward crossing: x0 is west (negative), x1 is east (positive)
       const dLonUnwrapped = dLon + 360;
       const t = (180 - x0) / dLonUnwrapped;
-      const yIntercept = y0 + t * (y1 - y0);
+      const yIntercept = mercYToLat(
+        latToMercY(y0) + t * (latToMercY(y1) - latToMercY(y0))
+      );
       current.push([180, yIntercept]);
       segments.push(current);
       current = [[-180, yIntercept], [x1, y1]];
