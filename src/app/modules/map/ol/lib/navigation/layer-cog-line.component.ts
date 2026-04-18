@@ -22,12 +22,12 @@ import { StyleLike } from 'ol/style/Style';
 import { LineString, Point } from 'ol/geom';
 import { MapComponent } from '../map.component';
 import { Extent, Coordinate } from '../models';
-import { fromLonLatArray, mapifyCoords } from '../util';
+import { fromLonLatArray, lineDashFor } from '../util';
 import { AsyncSubject } from 'rxjs';
 import { getDistance } from 'geolib';
 import { Convert } from 'src/app/lib/convert';
 import { DarkTheme } from '../themes';
-import { DistanceUnitDef } from 'src/app/types';
+import { DistanceUnitDef, ILineLengthDef, ILineStyle } from 'src/app/types';
 
 const LightTheme = {
   labelText: {
@@ -55,10 +55,11 @@ export class CogLineComponent implements OnInit, OnDestroy, OnChanges {
   @Output() layerReady: AsyncSubject<Layer> = new AsyncSubject(); // AsyncSubject will only store the last value, and only publish it when the sequence is completed
 
   protected coords = input<Coordinate[]>();
-  protected cogTime = input<number>();
+  protected cogLineLength = input<ILineLengthDef>();
   protected units = input<DistanceUnitDef>('kilometer');
   protected labelMinZoom = input<number>(10);
   protected darkMode = input<boolean>(false);
+  protected cogLineStyle = input<ILineStyle>();
 
   @Input() mapZoom = 10;
   @Input() opacity: number;
@@ -80,7 +81,8 @@ export class CogLineComponent implements OnInit, OnDestroy, OnChanges {
     this.changeDetectorRef.detach();
     effect(() => {
       this.coords();
-      this.cogTime();
+
+      this.cogLineStyle();
       this.parseInput();
       if (this.source) {
         this.source.clear();
@@ -145,16 +147,18 @@ export class CogLineComponent implements OnInit, OnDestroy, OnChanges {
   parseInput() {
     const fa: Feature[] = [];
     if (Array.isArray(this.coords()) && this.coords().length !== 0) {
-      this.mapifiedLine = mapifyCoords(this.coords());
+      // Coordinates arrive pre-unwrapped from rhumbDestination —
+      // no mapifyCoords needed (it would flip wide-angle lines).
+      this.mapifiedLine = this.coords().map(p => [p[0], p[1]] as Coordinate);
 
       this.labelText.update(() => {
-        return `${this.formatNumber(
-          getDistance(this.coords()[0], this.coords()[1])
-        )}  ${
-          this.cogTime() >= 60
-            ? this.cogTime() / 60 + 'hr'
-            : this.cogTime() + 'min'
-        }`;
+        const ll = this.cogLineLength();
+        const dist = this.formatNumber(getDistance(this.coords()[0], this.coords()[1]));
+        if (ll?.kind === 'time' && ll.value > 0) {
+          const t = ll.value >= 60 ? ll.value / 60 + 'hr' : ll.value + 'min';
+          return `${dist}  ${t}`;
+        }
+        return dist;
       });
 
       const cog = new Feature({
@@ -162,12 +166,15 @@ export class CogLineComponent implements OnInit, OnDestroy, OnChanges {
       });
       cog.setId('cogSelf');
       cog.setStyle((feature: Feature) => {
-        const color = 'rgba(204, 12, 225, 0.7)';
+        const cs = this.cogLineStyle();
+        const color = cs ? cs.color : 'rgba(204, 12, 225, 0.7)';
+        const lineWidth = cs ? cs.width : 1;
+        const lineDash = cs ? lineDashFor(cs.dash) : [];
         const geometry = feature.getGeometry() as LineString;
         const styles = [];
         styles.push(
           new Style({
-            stroke: new Stroke({ color: color, width: 1 })
+            stroke: new Stroke({ color, width: lineWidth, lineDash })
           })
         );
         geometry.forEachSegment((start: Coordinate, end: Coordinate) => {
@@ -178,7 +185,7 @@ export class CogLineComponent implements OnInit, OnDestroy, OnChanges {
                 radius: 2,
                 stroke: new Stroke({
                   color: color,
-                  width: 1
+                  width: lineWidth
                 }),
                 fill: new Fill({ color: 'transparent' })
               }),

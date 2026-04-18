@@ -164,10 +164,7 @@ export function cleanConfig(
       trail: (settings as any).selections.vessel.trail ?? true,
       windVectors: (settings as any).selections.vessel.windVectors ?? true,
       laylines: (settings as any).selections.vessel.laylines ?? false,
-      cogLine: (settings as any).selections.vessel.cogLine ?? 10,
       aisCogLine: (settings as any).selections.vessel.aisCogLine ?? 10,
-      headingLineSize:
-        (settings as any).selections.vessel.headingLineSize ?? -1,
       iconScale: (settings as any).selections.vessel.iconScale ?? 0.9,
       rangeCircles: false,
       rangeCirclesFixed: false,
@@ -185,7 +182,12 @@ export function cleanConfig(
         lastHour: '5s',
         next23: '1m',
         beyond24: '5m'
-      }
+      },
+      headingLineStyle: { color: '#dd6300', width: 4, dash: 'solid', lineLength: { kind: 'time', value: 10 } },
+      cogLineStyle: { color: '#cc0ce1', width: 1, dash: 'solid', lineLength: { kind: 'time', value: 10 } },
+      greatCircleStyle: { color: '#0080ff', width: 1, dash: 'long', lineLength: { kind: 'distance', value: 0 } },
+      selfTrailStyle: { color: '#fc0384', width: 1, dash: 'short' },
+      aisTrackStyle: { color: '#ff00ff', width: 1, dash: 'short' }
     };
   } else {
     if (typeof settings.vessels.rangeCircleCount === 'undefined') {
@@ -199,6 +201,38 @@ export function cleanConfig(
     }
     if (typeof settings.vessels.rangeCirclesDistance === 'undefined') {
       settings.vessels.rangeCirclesDistance = 1000;
+    }
+    if (!settings.vessels.headingLineStyle) {
+      settings.vessels.headingLineStyle = {
+        color: '#dd6300', width: 4, dash: 'solid',
+        lineLength: { kind: 'time', value: 10 }
+      };
+    } else if (!settings.vessels.headingLineStyle.lineLength) {
+      // migrate from old length: number (-1 = zoom-based → time/10; N = distance/N nmi)
+      const oldLen = (settings.vessels.headingLineStyle as any).length;
+      settings.vessels.headingLineStyle.lineLength =
+        (!oldLen || oldLen === -1)
+          ? { kind: 'time', value: 10 }
+          : { kind: 'distance', value: oldLen };
+    }
+    if (!settings.vessels.cogLineStyle) {
+      settings.vessels.cogLineStyle = {
+        color: '#cc0ce1', width: 1, dash: 'solid',
+        lineLength: { kind: 'time', value: 10 }
+      };
+    } else if (!settings.vessels.cogLineStyle.lineLength) {
+      // migrate from old length: number (minutes)
+      const oldLen = (settings.vessels.cogLineStyle as any).length;
+      settings.vessels.cogLineStyle.lineLength = { kind: 'time', value: oldLen ?? 10 };
+    }
+    if (!settings.vessels.selfTrailStyle) {
+      settings.vessels.selfTrailStyle = { color: '#fc0384', width: 1, dash: 'short' };
+    }
+    if (!settings.vessels.aisTrackStyle) {
+      settings.vessels.aisTrackStyle = { color: '#ff00ff', width: 1, dash: 'short' };
+    }
+    if (!settings.vessels.greatCircleStyle) {
+      settings.vessels.greatCircleStyle = { color: '#0080ff', width: 1, dash: 'long', lineLength: { kind: 'distance', value: 0 } };
     }
   }
 
@@ -442,9 +476,7 @@ export function defaultConfig(): IAppConfig {
       trail: false, // display trail
       windVectors: true, // display vessel TWD, AWD vectors
       laylines: false,
-      cogLine: 10, // self COG line time (mins)
       aisCogLine: 10, // ais COG line time (mins)
-      headingLineSize: -1, // mode for display of heading line -1 = default
       iconScale: 0.9,
       rangeCircles: false,
       rangeCirclesFixed: false,
@@ -463,7 +495,12 @@ export function defaultConfig(): IAppConfig {
         lastHour: '5s',
         next23: '1m',
         beyond24: '5m'
-      }
+      },
+      headingLineStyle: { color: '#dd6300', width: 4, dash: 'solid', lineLength: { kind: 'time', value: 10 } },
+      cogLineStyle: { color: '#cc0ce1', width: 1, dash: 'solid', lineLength: { kind: 'time', value: 10 } },
+      greatCircleStyle: { color: '#0080ff', width: 1, dash: 'long', lineLength: { kind: 'distance', value: 0 } },
+      selfTrailStyle: { color: '#fc0384', width: 1, dash: 'short' },
+      aisTrackStyle: { color: '#ff00ff', width: 1, dash: 'short' }
     },
     resources: {
       // ** resource options

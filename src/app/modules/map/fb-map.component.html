@@ -222,6 +222,7 @@
       [updateIds]="skstream.aisStatus().updated"
       [removeIds]="skstream.aisStatus().expired"
       [mapZoom]="mapZoomLevel()"
+      [aisTrackStyle]="app.config.vessels.aisTrackStyle"
       zIndex="110"
     >
     </ais-targets-track>
@@ -719,17 +720,26 @@
     >
     </fb-range-circles>
   }
-  @if (app.config.vessels.cogLine !== 0) {
+  @if (showCogLine) {
     <fb-cog-line
       [coords]="vesselLines().cog"
-      [cogTime]="app.config.vessels.cogLine"
+      [cogLineLength]="app.config.vessels.cogLineStyle.lineLength"
       [units]="app.config.units.distance"
       [darkMode]="app.uiConfig().invertColor"
       [labelMinZoom]="this.app.config.map.labelsMinZoom"
       [mapZoom]="mapZoomLevel()"
+      [cogLineStyle]="app.config.vessels.cogLineStyle"
       [zIndex]="345"
     >
     </fb-cog-line>
+  }
+  @if (showGreatCircle) {
+    <fb-great-circle
+      [coords]="greatCircleArc()"
+      [lineStyle]="app.config.vessels.greatCircleStyle"
+      [zIndex]="344"
+    >
+    </fb-great-circle>
   }
   @if (app.config.vessels.windVectors) {
     <fb-wind-lines
@@ -750,6 +760,7 @@
     [id]="'' + app.data.selfId"
     [activeId]="app.data.vessels.activeId"
     [vesselLines]="vesselLines()"
+    [headingLineStyle]="app.config.vessels.headingLineStyle"
     [iconScale]="app.config.vessels.iconScale"
     [fixedLocation]="app.config.vessels.fixedLocationMode"
     [zIndex]="999"
@@ -760,7 +771,7 @@
     <fb-vessel-trail
       [localTrail]="app.selfTrail()"
       [serverTrail]="app.selfTrailFromServer()"
-      [trailStyles]=""
+      [selfTrailStyle]="app.config.vessels.selfTrailStyle"
       [zIndex]="990"
     >
     </fb-vessel-trail>

@@ -9,8 +9,9 @@ import { Feature } from 'ol';
 import { Style, Stroke } from 'ol/style';
 import { MultiLineString } from 'ol/geom';
 import { MapComponent } from '../map.component';
-import { fromLonLatArray, mapifyCoords } from '../util';
+import { fromLonLatArray, splitAtAntimeridian, lineDashFor } from '../util';
 import { AISBaseLayerComponent } from './ais-base.component';
+import { ILineStyle } from 'src/app/types';
 
 // ** Signal K AIS targets track  **
 @Component({
@@ -25,6 +26,7 @@ export class AISTargetsTrackLayerComponent extends AISBaseLayerComponent {
   @Input() tracksMinZoom = 10;
   @Input() override mapZoom = 10;
   @Input() showTracks = true;
+  @Input() aisTrackStyle: ILineStyle;
 
   constructor(
     protected override mapComponent: MapComponent,
@@ -48,7 +50,7 @@ export class AISTargetsTrackLayerComponent extends AISBaseLayerComponent {
       ) {
         this.reloadTracks();
       } else {
-        if (keys.includes('tracksMinZoom')) {
+        if (keys.includes('tracksMinZoom') || keys.includes('aisTrackStyle')) {
           if (typeof this.mapZoom !== 'undefined') {
             this.reloadTracks();
           }
@@ -138,10 +140,20 @@ export class AISTargetsTrackLayerComponent extends AISBaseLayerComponent {
 
   // build track style
   buildStyle(id: string): Style {
-    const rgb = id.indexOf('aircraft') !== -1 ? '0, 0, 255' : '255, 0, 255';
-    let color =
-      this.mapZoom < this.tracksMinZoom ? `rgba(${rgb},0)` : `rgba(${rgb},1)`;
-    color = this.showTracks ? `rgba(${rgb},1)` : `rgba(${rgb},0)`;
+    const isAircraft = id.indexOf('aircraft') !== -1;
+    if (isAircraft) {
+      const visible = this.showTracks ? 1 : 0;
+      return new Style({
+        stroke: new Stroke({ width: 1, color: `rgba(0,0,255,${visible})`, lineDash: [2, 2] })
+      });
+    }
+    // vessel track — use configured style
+    const st = this.aisTrackStyle;
+    const color = this.showTracks
+      ? (st ? st.color : '#ff00ff')
+      : 'rgba(0,0,0,0)';
+    const width = st ? st.width : 1;
+    const lineDash = st ? lineDashFor(st.dash) : [2, 2];
     if (this.layerProperties && this.layerProperties.style) {
       const cs = this.layerProperties.style.clone();
       const ls = cs.getStroke();
@@ -150,25 +162,18 @@ export class AISTargetsTrackLayerComponent extends AISBaseLayerComponent {
       return cs;
     } else {
       return new Style({
-        stroke: new Stroke({
-          width: 1,
-          color: color,
-          lineDash: [2, 2]
-        })
+        stroke: new Stroke({ width, color, lineDash })
       });
     }
   }
 
-  // ** mapify and transform MultiLineString coordinates
+  // ** split at antimeridian and transform MultiLineString coordinates
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   parseCoordinates(trk: Array<any>) {
     // ** handle dateline crossing **
-    const tc = trk.map((mls) => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const lines: Array<any> = [];
-      mls.forEach((line) => lines.push(mapifyCoords(line)));
-      return lines;
-    });
+    const tc = trk.map((mls) =>
+      mls.flatMap((line) => splitAtAntimeridian(line))
+    );
     return fromLonLatArray(tc);
   }
 }

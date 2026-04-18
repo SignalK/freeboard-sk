@@ -14,11 +14,12 @@ import { Feature } from 'ol';
 import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
 import { Style, Stroke } from 'ol/style';
-import { Geometry, MultiLineString, LineString } from 'ol/geom';
+import { Geometry, MultiLineString } from 'ol/geom';
 import { MapComponent } from '../map.component';
 import { Extent, Coordinate } from '../models';
-import { fromLonLatArray, mapifyCoords } from '../util';
+import { fromLonLatArray, splitAtAntimeridian, lineDashFor } from '../util';
 import { AsyncSubject } from 'rxjs';
+import { ILineStyle } from 'src/app/types';
 
 // ** Freeboard Vessel trail component **
 @Component({
@@ -41,6 +42,7 @@ export class VesselTrailComponent implements OnInit, OnDestroy, OnChanges {
   @Input() localTrail: Array<Coordinate>;
   @Input() serverTrail: Array<Array<Coordinate>>;
   @Input() trailStyles: { [key: string]: Style };
+  @Input() selfTrailStyle: ILineStyle;
   @Input() opacity: number;
   @Input() visible: boolean;
   @Input() extent: Extent;
@@ -99,9 +101,15 @@ export class VesselTrailComponent implements OnInit, OnDestroy, OnChanges {
             this.parseServerTrail();
           }
         }
-        if (key === 'trailStyles') {
+        if (key === 'trailStyles' || key === 'selfTrailStyle') {
           if (this.source) {
             this.parseTrails();
+            if (this.trailLocal) {
+              this.trailLocal.setStyle(this.buildStyle('local'));
+            }
+            if (this.trailServer) {
+              this.trailServer.setStyle(this.buildStyle('server'));
+            }
           }
         } else if (key === 'layerProperties') {
           this.layer.setProperties(properties, false);
@@ -131,10 +139,12 @@ export class VesselTrailComponent implements OnInit, OnDestroy, OnChanges {
     if (!this.localTrail) {
       return;
     }
-    const c = fromLonLatArray(mapifyCoords(this.localTrail));
+    const ca = splitAtAntimeridian(this.localTrail).map((seg) =>
+      fromLonLatArray(seg)
+    );
     if (!this.trailLocal) {
       // create feature
-      this.trailLocal = new Feature(new LineString(c));
+      this.trailLocal = new Feature(new MultiLineString(ca));
       this.trailLocal.setId('trail.self.local');
       this.trailLocal.setStyle(this.buildStyle('local'));
     } else {
@@ -144,7 +154,7 @@ export class VesselTrailComponent implements OnInit, OnDestroy, OnChanges {
       ) as Feature;
       if (this.localTrail && Array.isArray(this.localTrail)) {
         const g: Geometry = this.trailLocal.getGeometry();
-        (g as LineString).setCoordinates(c);
+        (g as MultiLineString).setCoordinates(ca);
       }
     }
   }
@@ -153,9 +163,9 @@ export class VesselTrailComponent implements OnInit, OnDestroy, OnChanges {
     if (!this.serverTrail) {
       return;
     }
-    const ca = this.serverTrail.map((t: Array<Coordinate>) => {
-      return fromLonLatArray(mapifyCoords(t));
-    });
+    const ca = this.serverTrail.flatMap((t: Array<Coordinate>) =>
+      splitAtAntimeridian(t).map((seg) => fromLonLatArray(seg))
+    );
     if (!this.trailServer) {
       // create feature
       this.trailServer = new Feature(new MultiLineString(ca));
@@ -176,9 +186,18 @@ export class VesselTrailComponent implements OnInit, OnDestroy, OnChanges {
   // build target style
   buildStyle(type = 'local'): Style {
     let cs: Style;
+    const st = this.selfTrailStyle;
     if (type === 'server') {
       if (this.trailStyles && this.trailStyles.server) {
         cs = this.trailStyles.server;
+      } else if (st) {
+        cs = new Style({
+          stroke: new Stroke({
+            color: st.color,
+            width: st.width,
+            lineDash: lineDashFor(st.dash)
+          })
+        });
       } else {
         cs = new Style({
           // default server
@@ -192,6 +211,14 @@ export class VesselTrailComponent implements OnInit, OnDestroy, OnChanges {
     } else {
       if (this.trailStyles && this.trailStyles.local) {
         cs = this.trailStyles.local;
+      } else if (st) {
+        cs = new Style({
+          stroke: new Stroke({
+            color: st.color,
+            width: st.width,
+            lineDash: lineDashFor(st.dash)
+          })
+        });
       } else {
         cs = new Style({
           // default local

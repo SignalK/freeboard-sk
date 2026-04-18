@@ -44,7 +44,7 @@ import { Feature as GeoJsonFeature } from 'geojson';
 
 import { Convert } from 'src/app/lib/convert';
 import { GeoUtils, Angle } from 'src/app/lib/geoutils';
-import { LineString, MultiLineString, Position } from 'src/app/types';
+import { ILineLengthDef, ILineStyleWithLength, LineString, MultiLineString, Position } from 'src/app/types';
 
 import { AppFacade } from 'src/app/app.facade';
 
@@ -190,6 +190,9 @@ export class FBMapComponent implements OnInit, OnDestroy {
     cog: [],
     heading: []
   });
+
+  /** Densified great-circle arc line */
+  protected greatCircleArc = signal<Position[]>([]);
 
   protected overlay = signal<IPopover>({
     id: null,
@@ -1398,12 +1401,34 @@ export class FBMapComponent implements OnInit, OnDestroy {
     this.mapCenterPositon.update(() => pos);
   }
 
+  /** Compute a line length in metres from an ILineLengthDef */
+  private lineLengthToMeters(ll: ILineLengthDef, sogMs: number): number {
+    const resolution = this.olMap?.getMap()?.getView()?.getResolution() ?? 1;
+    switch (ll.kind) {
+      case 'time':     return sogMs * ll.value * 60;
+      case 'distance': return Convert.nauticalMilesToKm(ll.value) * 1000;
+      case 'pixels':   return ll.value * resolution;
+      default: {
+        // Compile-time exhaustiveness check: if LineLengthKind gains a new
+        // member without a matching case above, TypeScript will flag this line.
+        const _exhaustive: never = ll.kind;
+        throw new Error(`Unhandled LineLengthKind: ${_exhaustive}`);
+      }
+    }
+  }
+
+  protected get showCogLine(): boolean {
+    const ll = this.app.config.vessels.cogLineStyle.lineLength;
+    return ll.value > 0;
+  }
+
+  protected get showGreatCircle(): boolean {
+    const ll = this.app.config.vessels.greatCircleStyle?.lineLength;
+    return !!ll && ll.value > 0;
+  }
+
   /** construct vessel lines for rendering */
   protected drawVesselLines(vesselUpdate = false) {
-    const z = this.mapZoomLevel();
-    const offset = z < 29 ? zoomOffsetLevel[Math.floor(z)] : 60;
-    const wMax = 10; // max line length
-
     // update vessel trail
     if (vesselUpdate) {
       this.app.addToSelfTrail(this.dfeat.self.position);
@@ -1412,33 +1437,63 @@ export class FBMapComponent implements OnInit, OnDestroy {
     // render laylines
     this.buildLaylines();
 
-    // render cog, heading, twd, awa for focused vessel
+    // render heading + COG for focused vessel
     this.vesselLines.update(() => {
-      const cog = this.dfeat.active.vectors.cog ?? [];
-
       const sog = this.dfeat.active.sog || 0;
-      let hl = 0;
-      if (this.app.config.vessels.headingLineSize === -1) {
-        hl = (sog > wMax ? wMax : sog) * offset;
-      } else {
-        hl =
-          Convert.nauticalMilesToKm(this.app.config.vessels.headingLineSize) *
-          1000;
-      }
+      const pos = this.dfeat.active.position;
+
+      // Heading line
+      const hl = this.lineLengthToMeters(
+        this.app.config.vessels.headingLineStyle.lineLength, sog
+      );
       const heading = [
-        this.dfeat.active.position,
-        GeoUtils.destCoordinate(
-          this.dfeat.active.position,
-          this.dfeat.active.orientation,
-          hl
-        )
+        pos,
+        GeoUtils.rhumbDestination(pos, this.dfeat.active.orientation, hl)
       ];
 
-      return {
-        cog: cog,
-        heading: heading
-      };
+      // COG line — computed in main thread so all 4 kinds work (incl. pixels)
+      const cogAngle = this.dfeat.active.cog;
+      let cog: LineString = [];
+      if (cogAngle !== null && cogAngle !== undefined && pos) {
+        const cl = this.lineLengthToMeters(
+          this.app.config.vessels.cogLineStyle.lineLength, sog
+        );
+        if (cl > 0) {
+          cog = [pos, GeoUtils.rhumbDestination(pos, cogAngle, cl)];
+        }
+      }
+
+      return { cog, heading };
     });
+
+    // render great-circle arc
+    this.greatCircleArc.update(() => {
+      const cogAngle = this.dfeat.active.cog;
+      const pos = this.dfeat.active.position;
+      const sog = this.dfeat.active.sog || 0;
+      if (cogAngle === null || cogAngle === undefined || !pos) return [];
+      const totalMeters = this.lineLengthToMeters(
+        this.app.config.vessels.greatCircleStyle?.lineLength, sog
+      );
+      if (totalMeters <= 0) return [];
+      return this.densifyGreatCircle(pos, Convert.radiansToDegrees(cogAngle), totalMeters);
+    });
+  }
+
+  /**
+   * Densify a great-circle arc from an origin at a given initial bearing.
+   * Returns an array of [lon, lat] intermediate points.
+   */
+  private densifyGreatCircle(
+    origin: Position, bearingDeg: number, distMeters: number, segments = 128
+  ): Position[] {
+    const pts: Position[] = [origin];
+    const step = distMeters / segments;
+    for (let i = 1; i <= segments; i++) {
+      const pt = computeDestinationPoint(origin, step * i, bearingDeg);
+      pts.push([pt.longitude, pt.latitude]);
+    }
+    return pts;
   }
 
   /** calculate vessel & dest laylines & update signals */
