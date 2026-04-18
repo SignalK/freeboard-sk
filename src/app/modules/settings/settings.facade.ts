@@ -227,10 +227,16 @@ export class SettingsOptions {
       ['medium', 'Dashed'],
       ['long', 'Long Dash']
     ]),
+    dashArrays: new Map([
+      ['solid', 'none'],
+      ['short', '2 2'],
+      ['medium', '4 4'],
+      ['long', '8 4']
+    ]),
     lineLengthKinds: new Map([
-      ['time', 'Time (min)'],
-      ['distance', 'Distance (nmi)'],
-      ['pixels', 'On screen (px)']
+      ['time', 'min'],
+      ['distance', 'nm'],
+      ['pixels', 'px']
     ])
   };
 }
