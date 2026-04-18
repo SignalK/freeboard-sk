@@ -9,7 +9,7 @@ import { Feature } from 'ol';
 import { Style, Stroke } from 'ol/style';
 import { MultiLineString } from 'ol/geom';
 import { MapComponent } from '../map.component';
-import { fromLonLatArray, mapifyCoords, lineDashFor } from '../util';
+import { fromLonLatArray, splitAtAntimeridian, lineDashFor } from '../util';
 import { AISBaseLayerComponent } from './ais-base.component';
 import { ILineStyle } from 'src/app/types';
 
@@ -167,16 +167,13 @@ export class AISTargetsTrackLayerComponent extends AISBaseLayerComponent {
     }
   }
 
-  // ** mapify and transform MultiLineString coordinates
+  // ** split at antimeridian and transform MultiLineString coordinates
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   parseCoordinates(trk: Array<any>) {
     // ** handle dateline crossing **
-    const tc = trk.map((mls) => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const lines: Array<any> = [];
-      mls.forEach((line) => lines.push(mapifyCoords(line)));
-      return lines;
-    });
+    const tc = trk.map((mls) =>
+      mls.flatMap((line) => splitAtAntimeridian(line))
+    );
     return fromLonLatArray(tc);
   }
 }
