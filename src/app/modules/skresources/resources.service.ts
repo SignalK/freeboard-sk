@@ -989,7 +989,7 @@ export class SKResourceService {
     }
     // ensure coords & coordsMeta array lengths are aligned
     if (
-      rte.feature.properties.coordinatesMeta &&
+      rte.feature?.properties?.coordinatesMeta &&
       rte.feature.properties.coordinatesMeta.length !==
         rte.feature.geometry.coordinates.length
     ) {
@@ -1246,6 +1246,9 @@ export class SKResourceService {
     if (typeof (wpt as any).position !== 'undefined') {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       delete (wpt as any).position;
+    }
+    if (wpt.feature && !wpt.feature.properties) {
+      wpt.feature.properties = {};
     }
     if (!wpt.name) {
       if (wpt.feature.properties.name) {
