@@ -6,7 +6,6 @@ export const mapControls = [
   {
     name: 'scaleline',
     options: {
-      className: 'ol-scale-line',
       bar: true,
       steps: 2,
       text: false,

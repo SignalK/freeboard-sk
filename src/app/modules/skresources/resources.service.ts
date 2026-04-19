@@ -834,14 +834,26 @@ export class SKResourceService {
       return;
     }
     let chart: SKChart;
-    try {
-      this.app.sIsFetching.set(true);
-      chart = await this.fromServer('charts', id);
-      this.app.sIsFetching.set(false);
-    } catch (err) {
-      this.app.sIsFetching.set(false);
-      this.app.parseHttpErrorResponse(err as HttpErrorResponse);
-      return;
+    if (['openseamap', 'openstreetmap'].includes(id)) {
+      chart = new SKChart({
+        name: id === 'openseamap' ? 'Sea Map' : 'World Map',
+        description: id === 'openseamap' ? 'Open Sea Map' : 'Open Street Map',
+        url: `https://${id === 'openseamap' ? 'tiles.openseamap.org/seamark' : 'tile.openstreetmap.org}/{z}/{x}/{y}.png'}`,
+        minzoom: 1,
+        maxzoom: 24,
+        bounds: [-180, -90, 180, 90],
+        type: 'tilelayer'
+      });
+    } else {
+      try {
+        this.app.sIsFetching.set(true);
+        chart = await this.fromServer('charts', id);
+        this.app.sIsFetching.set(false);
+      } catch (err) {
+        this.app.sIsFetching.set(false);
+        this.app.parseHttpErrorResponse(err as HttpErrorResponse);
+        return;
+      }
     }
     this.dialog
       .open(ChartPropertiesDialog, {
@@ -966,6 +978,9 @@ export class SKResourceService {
     if (typeof rte.name === 'undefined') {
       rte.name = 'Rte-' + id.slice(-6);
     }
+    if (rte.feature && !rte.feature.properties) {
+      rte.feature.properties = {};
+    }
     if (typeof rte.feature?.properties?.points !== 'undefined') {
       // check for v2 array
       if (!Array.isArray(rte.feature.properties.points)) {
@@ -989,7 +1004,7 @@ export class SKResourceService {
     }
     // ensure coords & coordsMeta array lengths are aligned
     if (
-      rte.feature.properties.coordinatesMeta &&
+      rte.feature?.properties?.coordinatesMeta &&
       rte.feature.properties.coordinatesMeta.length !==
         rte.feature.geometry.coordinates.length
     ) {
@@ -1246,6 +1261,9 @@ export class SKResourceService {
     if (typeof (wpt as any).position !== 'undefined') {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       delete (wpt as any).position;
+    }
+    if (wpt.feature && !wpt.feature.properties) {
+      wpt.feature.properties = {};
     }
     if (!wpt.name) {
       if (wpt.feature.properties.name) {
@@ -1760,7 +1778,7 @@ export class SKResourceService {
       }
     }
     if (!note.href) {
-      note.href = note['region'];
+      note.href = note['region'] ?? '';
       if (note['region']) {
         delete note['region'];
       }

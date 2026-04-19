@@ -22,16 +22,6 @@ const WHATS_NEW = [
         See <a href="assets/help/index.html#settings" target="help">HELP</a> 
         for more details.
       `
-  },
-  {
-    type: 'signalk-server-node',
-    title: 'Updated Feature',
-    message: `
-        <b>Range Rings</b>
-        <br>&nbsp;<br>
-        Define the distance between range rings instead of it being determined by the zoom
-        level of the map.
-      `
   }
 ];
 

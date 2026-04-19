@@ -1,10 +1,7 @@
 import { FBAppData, IAppConfig, TemperatureUnitDef } from './types';
 import { Convert } from './lib/convert';
 import { SKVessel } from './modules';
-/*import {
-  cleanConfig as cleanRadarConfig,
-  DefaultRadarConfig
-} from './modules/radar/settings';*/
+import { DefaultOptions } from './modules/map/ol/lib/charts/s57.service';
 
 // validate supplied settings against base config
 export function validateConfig(settings: IAppConfig): boolean {
@@ -101,9 +98,20 @@ export function cleanConfig(
       shallowDepth: (settings as any).selections.s57Options.shallowDepth ?? 2,
       safetyDepth: (settings as any).selections.s57Options.safetyDepth ?? 3,
       deepDepth: (settings as any).selections.s57Options.deepDepth ?? 6,
-      colorTable: 0
+      colorTable: 0,
+      otherLayers: DefaultOptions.otherLayers,
+      depthUnit: settings.units.depth ?? 'm'
     };
+    delete (settings as any).selections.s57Options; //@todo for removal
+  } else {
+    if (typeof settings.map.s57Options.otherLayers === 'undefined') {
+      settings.map.s57Options.otherLayers = DefaultOptions.otherLayers;
+    }
+    if (typeof settings.map.s57Options.depthUnit === 'undefined') {
+      settings.map.s57Options.depthUnit = settings.units.depth ?? 'm';
+    }
   }
+
   if (typeof settings.map.labelsMinZoom === 'undefined') {
     settings.map.labelsMinZoom =
       (settings as any).selections.labelsMinZoom ?? 8;
@@ -280,7 +288,6 @@ export function cleanConfig(
   delete (settings as any).anchorManualSet;
   delete (settings as any).anchorRodeLength;
   delete (settings as any).courseData;
-  delete (settings as any).selections.s57Options;
   delete (settings as any).popoverMulti;
   delete (settings as any).mapDoubleClick;
   delete (settings as any).darkMode;
@@ -409,7 +416,6 @@ export function defaultConfig(): IAppConfig {
       useServerPrefs: false
     },
     map: {
-      // ** map config
       zoomLevel: 2,
       center: [0, 0],
       rotation: 0,
@@ -426,7 +432,9 @@ export function defaultConfig(): IAppConfig {
         shallowDepth: 2,
         safetyDepth: 3,
         deepDepth: 6,
-        colorTable: 0
+        colorTable: 0,
+        otherLayers: DefaultOptions.otherLayers,
+        depthUnit: 'm'
       },
       popoverMulti: false // close popovers using cose button
     },

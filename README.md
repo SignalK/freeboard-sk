@@ -187,11 +187,9 @@ The following features require that the Signal K server have plugins / providers
 
 The following plugins are recommended for installation on the Signal K Server to enable full functionality:
 
-- @signalk/course-provider _(Course calculations e.g. XTE, DTG, etc.)_
-- @signalk/charts-plugin *(Mapbox tiles chart provider)*
-- signalk-pmtiles-plugin *(ProtoMaps chart provider)*
-- signalk-anchoralarm-plugin _(Anchor alarm settings & notifications)_
-- signalk-simple-notifications _(Depth alarm notifications)_
+- Charts: `@signalk/charts-plugin`, `signalk-chart-provider-simple`, `signalk-pmtiles-plugin`, etc.
+- Anchor Watch: `signalk-anchoralarm-plugin`
+- Weather Forcasts: `signalk-openweather-provider`
 
 ---
 

@@ -5,6 +5,7 @@ import { Feature } from 'ol';
 import { Subject } from 'rxjs';
 import * as xml2js from 'xml2js';
 import { Style } from 'ol/style';
+import { DEPTH_UNIT } from 'src/app/lib/convert';
 
 interface Symbol {
   image: HTMLImageElement;
@@ -34,20 +35,24 @@ export interface Options {
   shallowDepth: number;
   safetyDepth: number;
   deepDepth: number;
-  graphicsStyle: string;
-  boundaries: string;
-  colors: number;
+  graphicsStyle: 'Simplified' | 'Paper';
+  boundaries: 'Symbolized' | 'Plain';
+  colors: 2 | 4;
   colorTable: number;
+  otherLayers: string[];
+  depthUnit: DEPTH_UNIT;
 }
 
 export const DefaultOptions: Options = {
   shallowDepth: 2,
   safetyDepth: 3,
   deepDepth: 6,
-  graphicsStyle: 'Paper', //Simplified or Paper
-  boundaries: 'Plain', // Plain or Symbolized
-  colors: 4, // 2 or 4
-  colorTable: 0 //color scheme
+  graphicsStyle: 'Paper',
+  boundaries: 'Plain',
+  colors: 4,
+  colorTable: 0, //color scheme
+  otherLayers: ['SOUNDG', 'OBSTRN', 'UWTROC', 'WRECKS', 'DEPCNT'],
+  depthUnit: 'm'
 };
 
 interface ColorTable {
@@ -103,11 +108,11 @@ export class S57Service {
   private lookupStartIndex: Map<string, number> = new Map<string, number>();
   private styles: Map<string, Style> = new Map<string, Style>();
   public refresh: Subject<void> = new Subject<void>();
+  private symbolsLoaded = false;
 
   //options
 
   public options: Options = DefaultOptions;
-
   private attMatch = new RegExp('([A-Za-z0-9]{6})([0-9,\\?]*)');
 
   private http = inject(HttpClient);
@@ -117,30 +122,41 @@ export class S57Service {
   public init(options: Options = DefaultOptions) {
     this.options = Object.assign({}, options);
     this.selectedColorTable = this.options.colorTable;
+  }
 
+  public fetchSymbols() {
+    if (this.symbolsLoaded) {
+      return;
+    }
     this.http
       .get('assets/s57/chartsymbols.xml', { responseType: 'text' })
-      .subscribe((symbolsXml) => {
-        const parser = new xml2js.Parser({ strict: false, trim: true });
-        parser.parseString(symbolsXml, (err, symbolsJs) => {
-          this.processSymbols(symbolsJs);
-          this.processLookup(symbolsJs);
-          this.processColors(symbolsJs);
-        });
-
-        this.refresh.next();
-        const image = new Image();
-        image.onload = () => {
-          this.chartSymbolsImage = image;
+      .subscribe({
+        next: (symbolsXml) => {
+          const parser = new xml2js.Parser({ strict: false, trim: true });
+          parser.parseString(symbolsXml, (err, symbolsJs) => {
+            this.processSymbols(symbolsJs);
+            this.processLookup(symbolsJs);
+            this.processColors(symbolsJs);
+          });
+          this.symbolsLoaded = true;
           this.refresh.next();
-        };
-        image.src =
-          'assets/s57/' + this.colorTables[this.selectedColorTable].symbolfile;
-        console.log(image.src);
+          const image = new Image();
+          image.onload = () => {
+            this.chartSymbolsImage = image;
+            this.refresh.next();
+          };
+          image.src =
+            'assets/s57/' +
+            this.colorTables[this.selectedColorTable].symbolfile;
+          //console.log(image.src);
+        },
+        error: () => {
+          this.symbolsLoaded = false;
+        }
       });
   }
 
-  public SetOptions(options: Options) {
+  public setOptions(options: Options) {
     if (this.isChanged(this.options, options)) {
       this.options = Object.assign({}, options);
       this.selectedColorTable = this.options.colorTable;
@@ -234,7 +250,7 @@ export class S57Service {
     const ir = a.name.localeCompare(b.name, 'en', { sensitivity: 'base' });
     if (ir !== 0) return ir;
     const c1 = Object.keys(a.attributes).length;
-    const c2 = Object.keys(a.attributes).length;
+    const c2 = Object.keys(b.attributes).length;
     if (c1 !== c2) return c2 - c1;
     return a.id - b.id;
   }

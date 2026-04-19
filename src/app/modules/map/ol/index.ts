@@ -20,7 +20,6 @@ import { FreeboardNoteLayerComponent } from './lib/resources/layer-notes.compone
 import { FreeboardRouteLayerComponent } from './lib/resources/layer-routes.component';
 import { FreeboardRegionLayerComponent } from './lib/resources/layer-regions.component';
 import { FreeboardLiveLayerComponent } from './lib/resources/layer-livelayer.component';
-import { ChartBoundsLayerComponent } from './lib/resources/layer-chart-bounds.component';
 import { TrackLayerComponent } from './lib/resources/layer-tracks.component';
 import { ResourceSetLayerComponent } from './lib/resources/layer-resourceset.component';
 import { AnchorAlarmComponent } from './lib/alarms/layer-anchor-alarm.component';
@@ -51,6 +50,7 @@ import { WmtsChartLayerComponent } from './lib/charts/layer-wmts-chart.component
 import { TileJsonChartLayerComponent } from './lib/charts/layer-tilejson-chart.component';
 import { MapStyleJsonChartLayerComponent } from './lib/charts/layer-mapstylejson-chart.component';
 import { S57ChartLayerComponent } from './lib/charts/layer-s57-chart.component';
+import { ChartBoundsLayerComponent } from './lib/charts/layer-chart-bounds.component';
 import { RadarComponent } from './lib/radar/layer-radar.component';
 
 export * from './lib/util';
@@ -76,7 +76,6 @@ export { FreeboardNoteLayerComponent } from './lib/resources/layer-notes.compone
 export { FreeboardRouteLayerComponent } from './lib/resources/layer-routes.component';
 export { FreeboardRegionLayerComponent } from './lib/resources/layer-regions.component';
 export { FreeboardLiveLayerComponent } from './lib/resources/layer-livelayer.component';
-export { ChartBoundsLayerComponent } from './lib/resources/layer-chart-bounds.component';
 export { TrackLayerComponent } from './lib/resources/layer-tracks.component';
 export { ResourceSetLayerComponent } from './lib/resources/layer-resourceset.component';
 export { AnchorAlarmComponent } from './lib/alarms/layer-anchor-alarm.component';
@@ -107,6 +106,7 @@ export { WmtsChartLayerComponent } from './lib/charts/layer-wmts-chart.component
 export { TileJsonChartLayerComponent } from './lib/charts/layer-tilejson-chart.component';
 export { MapStyleJsonChartLayerComponent } from './lib/charts/layer-mapstylejson-chart.component';
 export { S57ChartLayerComponent } from './lib/charts/layer-s57-chart.component';
+export { ChartBoundsLayerComponent } from './lib/charts/layer-chart-bounds.component';
 export { RadarComponent } from './lib/radar/layer-radar.component';
 
 const declarations = [

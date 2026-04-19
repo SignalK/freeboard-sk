@@ -35,7 +35,8 @@ export class SettingsOptions {
     ]),
     depth: new Map([
       ['m', 'metres'],
-      ['foot', 'feet']
+      ['foot', 'feet'],
+      ['fathom', 'fathom']
     ]),
     length: new Map([
       ['m', 'metres'],
@@ -108,6 +109,21 @@ export class SettingsOptions {
         [2, 'Day White Background']
         /*[3, 'Dusk'],
         [4, 'Night']*/
+      ]),
+      otherLayers: new Map([
+        ['SOUNDG', 'Depth Soundings'],
+        ['DEPCNT', 'Depth Contours'],
+        ['OBSTRN', 'Obstructions'],
+        ['UWTROC', 'Underwater Rocks'],
+        ['WRECKS', 'Wrecks'],
+        ['CBLSUB', 'Submarine Cable'],
+        ['PIPSOL', 'Submarine Pipelines'],
+        ['BERTHS', 'Berths'],
+        ['MORFAC', 'Mooring Facilities'],
+        ['LNDMRK', 'Landmarks'],
+        ['DISMAR', 'Distance Marks'],
+        ['CURENT', 'Currents'],
+        ['MAGVAR', 'Magnetic Variation']
       ])
     }
   };

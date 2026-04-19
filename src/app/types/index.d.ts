@@ -9,6 +9,8 @@ import {
   SKAircraft,
   SKVessel
 } from '../modules/skresources/resource-classes';
+import { DEPTH_UNIT } from '../lib/convert';
+import { Options } from '../modules/map/ol/lib/charts/s57.service';
 
 export * from './resources/signalk';
 export * from './resources/custom';
@@ -112,15 +114,7 @@ export interface IAppConfig {
     doubleClickZoom: boolean; // true=zoom
     overZoomTiles: boolean; // keep tiles visible beyond chart max zoom
     centerOffset: number; // vessel offset south of center (%)
-    s57Options: {
-      graphicsStyle: 'Simplified' | 'Paper';
-      boundaries: 'Symbolized' | 'Plain';
-      colors: 2 | 4;
-      shallowDepth: number;
-      safetyDepth: number;
-      deepDepth: number;
-      colorTable: number;
-    };
+    s57Options: Options; // S57 chart Options
     popoverMulti: boolean; // close popovers using cose button
   };
   course: {
