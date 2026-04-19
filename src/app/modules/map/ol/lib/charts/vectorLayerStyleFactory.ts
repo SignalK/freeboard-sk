@@ -12,9 +12,7 @@ export abstract class VectorLayerStyler {
   public MinZ: number;
   public MaxZ: number;
 
-  protected chart = inject(SKChart);
-
-  constructor() {
+  constructor(public chart: SKChart) {
     this.MinZ =
       this.chart.minZoom && this.chart.minZoom >= 0.1
         ? this.chart.minZoom - 0.1
@@ -27,8 +25,11 @@ export abstract class VectorLayerStyler {
 }
 
 class S57LayerStyler extends VectorLayerStyler {
-  constructor(private s57service: S57Service) {
-    super();
+  constructor(
+    chart: SKChart,
+    private s57service: S57Service
+  ) {
+    super(chart);
   }
 
   public CreateLayer(): VectorTileLayer<never> {
@@ -67,14 +68,12 @@ class S57LayerStyler extends VectorLayerStyler {
   providedIn: 'root'
 })
 export class VectorLayerStyleFactory {
-  private s57service = inject(S57Service);
-
-  constructor() {}
+  constructor(private s57service: S57Service) {}
 
   public CreateVectorLayerStyler(chart: SKChart): VectorLayerStyler {
     if (chart.type === 'S-57' || chart.type === 's-57') {
-      this.s57service.ensureLoaded();
-      return new S57LayerStyler(this.s57service);
+      this.s57service.fetchSymbols();
+      return new S57LayerStyler(chart, this.s57service);
     }
   }
 }

@@ -88,6 +88,8 @@ export type TARGET_UNIT =
   | 'day'
   | 'year';
 
+export type DEPTH_UNIT = 'm' | 'foot' | 'fathom';
+
 const symbolMap = {
   degree: {
     symbol: String.fromCharCode(186),
@@ -116,6 +118,10 @@ const symbolMap = {
   yard: {
     symbol: 'yd',
     name: 'Yard'
+  },
+  fathom: {
+    symbol: 'fm',
+    name: 'Fathom'
   },
   hour: {
     symbol: 'hr',

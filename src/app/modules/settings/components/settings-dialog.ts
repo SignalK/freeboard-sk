@@ -147,12 +147,14 @@ export class SettingsDialog implements OnInit {
 
   /** apply S57 Options  */
   doS57(numericAttrib?: any) {
+    this.facade.settings.map.s57Options.depthUnit =
+      this.facade.settings.units.depth;
     if (numericAttrib) {
       this.parseNumber(numericAttrib);
     } else {
       this.persistModel();
     }
-    this.s57.SetOptions(this.facade.settings.map.s57Options);
+    this.s57.setOptions(this.facade.settings.map.s57Options);
   }
 
   /**

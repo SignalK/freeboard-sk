@@ -34,14 +34,8 @@ describe('Speed Conversions', () => {
   it('m/s to kn', () => {
     expect(Convert.transform(1, 'm/s', 'kn')).toBe(1.94384);
   });
-  it('m/s to knot', () => {
-    expect(Convert.transform(1, 'm/s', 'knot')).toBe(1.943844494119952);
-  });
   it('m/s to km/h', () => {
     expect(Convert.transform(1, 'm/s', 'km/h')).toBe(3.6);
-  });
-  it('m/s to kph', () => {
-    expect(Convert.transform(1, 'm/s', 'kph')).toBe(3.5999999971200007);
   });
   it('m/s to mph', () => {
     expect(Convert.transform(1, 'm/s', 'mph')).toBe(2.2369362920544025);

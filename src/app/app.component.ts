@@ -725,19 +725,23 @@ export class AppComponent {
         next: () => {
           this.signalk.authToken = this.app.getFBToken();
           this.app.watchSKLogin();
-          this.app.loadSettingsfromServer().then((result: boolean) => {
-            if (!result && this.app.launchStatus.result === 'first_run') {
-              const wr = this.app.showWelcome(false);
-              if (wr) {
-                wr.afterClosed().subscribe((r) => {
-                  if (r) this.openSettings();
-                });
+          this.app
+            .loadUserConfigfromServer()
+            .then((loaded: boolean) => {
+              if (!loaded && this.app.launchStatus.result === 'first_run') {
+                const wr = this.app.showWelcome(false);
+                if (wr) {
+                  wr.afterClosed().subscribe((r) => {
+                    if (r) this.openSettings();
+                  });
+                }
+              } else {
+                const wr = this.app.showWelcome(true);
               }
-            } else {
-              const wr = this.app.showWelcome(true);
-            }
-            this.fetchResources(true); // fetch all resource types from server
-          });
+            })
+            .finally(() => {
+              this.fetchResources(true); // fetch all resource types from server
+            });
           this.getFeatures();
           this.app.data.server = this.signalk.server.info;
           this.openSKStream();
@@ -1069,7 +1073,7 @@ export class AppComponent {
       .open(SettingsDialog, {
         disableClose: true,
         data: {},
-        maxWidth: '90vw',
+        maxWidth: '1000px',
         minHeight: '80vh'
       })
       .afterClosed()
@@ -1222,18 +1226,22 @@ export class AppComponent {
       .afterClosed()
       .subscribe((res) => {
         if (!res.cancel) {
-          this.signalk.login(res.user, res.pwd).subscribe(
-            (r) => {
+          this.signalk.login(res.user, res.pwd).subscribe({
+            next: (r) => {
               // ** authenticated
               this.app.persistToken(r['token']);
-              this.app.loadSettingsfromServer();
+              this.app.loadUserConfigfromServer().then((loaded: boolean) => {
+                if (loaded) {
+                  this.fetchResources(true);
+                }
+              });
               if (onConnect) {
                 this.queryAfterConnect();
               }
               this.app.isLoggedIn.set(true);
               lis.next(true);
             },
-            () => {
+            error: () => {
               // ** auth failed
               this.app.persistToken(null);
               this.signalk.isLoggedIn().subscribe((r) => {
@@ -1264,7 +1272,7 @@ export class AppComponent {
                   });
               }
             }
-          );
+          });
         } else {
           this.app.hasAuthToken.set(false); // show login menu item
           this.signalk.isLoggedIn().subscribe((r: boolean) => {
@@ -1785,7 +1793,7 @@ export class AppComponent {
     this.skres.refreshRoutes();
     this.skres.refreshWaypoints();
     this.skres.refreshCharts();
-    //this.skres.refreshNotes(); // fetched by fbMap.renderMapContents
+    // this.skres.refreshNotes(); // triggered via map center change
     this.skres.refreshRegions();
     if (allTypes) {
       this.fetchOtherResources();

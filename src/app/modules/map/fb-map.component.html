@@ -768,7 +768,11 @@
 
   <!-- chart boundaries-->
   @if (app.data.chartBounds.show) {
-    <fb-chart-bounds [zIndex]="250" [charts]="app.data.chartBounds.charts">
+    <fb-chart-bounds
+      [zIndex]="250"
+      [charts]="app.data.chartBounds.charts"
+      [layerProperties]="{ declutter: true }"
+    >
     </fb-chart-bounds>
   }
 </ol-map>

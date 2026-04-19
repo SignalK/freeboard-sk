@@ -29,6 +29,7 @@ import {
   IAppConfig,
   LineString,
   SKServerUnitPrefs,
+  SKUnitCategory,
   TemperatureUnitDef,
   DepthUnitDef,
   SpeedUnitDef,
@@ -65,7 +66,7 @@ const FSK: AppInfoDef = {
   id: 'freeboard',
   name: 'Freeboard-SK',
   description: `Signal K Chart Plotter.`,
-  version: '2.20.0',
+  version: '2.21.0',
   url: 'https://github.com/signalk/freeboard-sk',
   logo: './assets/img/app_logo.png'
 };
@@ -282,7 +283,7 @@ export class AppFacade extends InfoService {
     /** check for internet connection */
     this.testForInternet();
 
-    /** Load & clean persisted configuration */
+    /** Load persisted configuration */
     this.loadConfig();
     this.parseLocalConfig();
 
@@ -355,6 +356,7 @@ export class AppFacade extends InfoService {
   /** Parse, clean loaded config */
   private parseLocalConfig() {
     cleanConfig(this.config, this.hostDef.params);
+    this.s57.init(this.config.map.s57Options);
     this.doPostConfigLoad();
   }
 
@@ -371,24 +373,23 @@ export class AppFacade extends InfoService {
     }
 
     this.sTrueMagChoice.set(this.config.units.headingAttribute);
+    this.s57.setOptions(this.config.map.s57Options);
 
-    this.s57.init(this.config.map.s57Options);
-
-    // emit config$.ready
+    // emit settings$.ready
     this.debug(`doPostConfigLoad(): emit config$.ready`);
     this.emitConfigEvent('ready');
     this.suppressPersist = false; // allow persisting of config.
   }
 
   /** Retrieve and apply saved config from server */
-  public async loadSettingsfromServer(): Promise<boolean> {
+  public async loadUserConfigfromServer(): Promise<boolean> {
     return new Promise((resolve) => {
       this.signalk.isLoggedIn().subscribe({
         next: (r: boolean) => {
           this.isLoggedIn.set(r);
           if (r) {
             this.debug(
-              'loadSettingsfromServer(): Is authenticated. Fetching config from SK Server...'
+              'loadUserConfigfromServer(): Is authenticated. Fetching config from SK Server...'
             );
             this.signalk.appDataGet('/').subscribe({
               next: (serverSettings: IAppConfig) => {
@@ -414,14 +415,14 @@ export class AppFacade extends InfoService {
             });
           } else {
             this.debug(
-              'loadSettingsfromServer(): Not authenticated to SK Server!'
+              'loadUserConfigfromServer(): Not authenticated to SK Server!'
             );
             return resolve(false);
           }
         },
         error: () => {
           this.isLoggedIn.set(false);
-          this.debug('loadSettingsfromServer(): Error fetching loginStatus!');
+          this.debug('loadUserConfigfromServer(): Error fetching loginStatus!');
           resolve(false);
         }
       });

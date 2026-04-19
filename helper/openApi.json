@@ -1,7 +1,7 @@
 {
   "openapi": "3.0.0",
   "info": {
-    "version": "2.18.0",
+    "version": "2.20.0",
     "title": "Freeboard-SK API",
     "description": "API endpoints exposed by Freeboard-SK to support application functionality and experimental features.",
     "termsOfService": "http://signalk.org/terms/",
@@ -14,16 +14,7 @@
     "url": "http://signalk.org/specification/",
     "description": "Signal K specification."
   },
-  "servers": [
-    {
-      "url": "/"
-    }
-  ],
   "tags": [
-    {
-      "name": "Alarms",
-      "description": "Standard alarms."
-    },
     {
       "name": "Areas",
       "description": "Area alarms."
@@ -142,28 +133,6 @@
         "schema": {
           "type": "number"
         }
-      },
-      "AlarmTypeParam": {
-        "in": "path",
-        "required": true,
-        "name": "alarmType",
-        "description": "Alarm type.",
-        "schema": {
-          "type": "string",
-          "enum": [
-            "mob",
-            "fire",
-            "sinking",
-            "flooding",
-            "collision",
-            "grounding",
-            "listing",
-            "adrift",
-            "piracy",
-            "abandon",
-            "aground"
-          ]
-        }
       }
     },
     "securitySchemes": {
@@ -182,6 +151,32 @@
   "security": [{ "cookieAuth": [] }, { "bearerAuth": [] }],
   "paths": {
     "/signalk/v2/api/alarms/area": {
+      "get": {
+        "tags": ["Areas"],
+        "summary": "List Area Alarms.",
+        "requestBody": {
+          "description": "Lists the areas to monitor for vessel entry /exit.",
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/AreaAlarmDef"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200ActionResponse": {
+            "$ref": "#/components/responses/200OKResponse"
+          },
+          "default": {
+            "$ref": "#/components/responses/ErrorResponse"
+          }
+        }
+      },
       "post": {
         "tags": ["Areas"],
         "summary": "Set Alarm area.",
@@ -257,87 +252,6 @@
       "post": {
         "tags": ["Areas"],
         "summary": "Silence Area Alarm.",
-        "responses": {
-          "200ActionResponse": {
-            "$ref": "#/components/responses/200OKResponse"
-          },
-          "default": {
-            "$ref": "#/components/responses/ErrorResponse"
-          }
-        }
-      }
-    },
-    "/signalk/v2/api/alarms/{alarmType}": {
-      "parameters": [
-        {
-          "$ref": "#/components/parameters/AlarmTypeParam"
-        }
-      ],
-      "post": {
-        "tags": ["Alarms"],
-        "summary": "Raise Alarm.",
-        "requestBody": {
-          "description": "Alarm message text.",
-          "required": false,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "message": {
-                    "type": "string",
-                    "description": "Alarm message text.",
-                    "example": "Person overboard!"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200ActionResponse": {
-            "$ref": "#/components/responses/200OKResponse"
-          },
-          "default": {
-            "$ref": "#/components/responses/ErrorResponse"
-          }
-        }
-      }
-    },
-    "/signalk/v2/api/alarms/{alarmType}/{id}": {
-      "parameters": [
-        {
-          "$ref": "#/components/parameters/AlarmTypeParam"
-        },
-        {
-          "$ref": "#/components/parameters/AlarmIdParam"
-        }
-      ],
-      "delete": {
-        "tags": ["Alarms"],
-        "summary": "Clear / cancel Alarm.",
-        "responses": {
-          "200ActionResponse": {
-            "$ref": "#/components/responses/200OKResponse"
-          },
-          "default": {
-            "$ref": "#/components/responses/ErrorResponse"
-          }
-        }
-      }
-    },
-    "/signalk/v2/api/alarms/{alarmType}/{id}/silence": {
-      "parameters": [
-        {
-          "$ref": "#/components/parameters/AlarmTypeParam"
-        },
-        {
-          "$ref": "#/components/parameters/AlarmIdParam"
-        }
-      ],
-      "post": {
-        "tags": ["Alarms"],
-        "summary": "Silence Alarm.",
         "responses": {
           "200ActionResponse": {
             "$ref": "#/components/responses/200OKResponse"
