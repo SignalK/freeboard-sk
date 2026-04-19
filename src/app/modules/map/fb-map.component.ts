@@ -1427,7 +1427,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
       }
       const heading = [
         this.dfeat.active.position,
-        GeoUtils.destCoordinate(
+        GeoUtils.rhumbDestination(
           this.dfeat.active.position,
           this.dfeat.active.orientation,
           hl
