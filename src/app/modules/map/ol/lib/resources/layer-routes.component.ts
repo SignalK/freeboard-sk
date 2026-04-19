@@ -7,10 +7,11 @@ import {
 } from '@angular/core';
 import { Feature } from 'ol';
 import { Style, Stroke, Fill, Circle, RegularShape } from 'ol/style';
-import { LineString, Point } from 'ol/geom';
+import { LineString, MultiLineString, Point } from 'ol/geom';
 import { toLonLat } from 'ol/proj';
 import { MapComponent } from '../map.component';
-import { fromLonLatArray, mapifyCoords } from '../util';
+import { Coordinate } from '../models';
+import { fromLonLatArray, splitAtAntimeridian } from '../util';
 import { getRhumbLineBearing } from 'geolib';
 import { GeolibInputCoordinates } from 'geolib/es/types';
 import { FBFeatureLayerComponent } from '../sk-feature.component';
@@ -62,15 +63,24 @@ export class FreeboardRouteLayerComponent extends FBFeatureLayerComponent {
     for (const r of routes) {
       if (r[2]) {
         // selected
-        const mc = mapifyCoords(r[1].feature.geometry.coordinates);
-        const c = fromLonLatArray(mc);
+        const rawCoords = r[1].feature.geometry.coordinates;
+        // Split at antimeridian so each segment stays within [-180,180] and
+        // OL wrapX clones the feature correctly into all world copies.
+        const multiCoords = splitAtAntimeridian(rawCoords).map(
+          (seg) => fromLonLatArray(seg) as Coordinate[]
+        );
         const f = new Feature({
-          geometry: new LineString(c),
+          geometry: new MultiLineString(multiCoords),
           name: r[1].name
         });
         f.setId('route.' + r[0]);
         f.set('pointMetadata', r[1].feature.properties.coordinatesMeta ?? null);
-        f.setStyle(this.buildStyle(f));
+        // Use original waypoints (not split) for point-marker iteration so
+        // markers land exactly on waypoints within the standard world extent.
+        const waypointLine = new LineString(
+          fromLonLatArray(rawCoords) as Coordinate[]
+        );
+        f.setStyle(this.buildStyle(f, waypointLine));
         fa.push(f);
       }
     }
@@ -79,8 +89,8 @@ export class FreeboardRouteLayerComponent extends FBFeatureLayerComponent {
   }
 
   // Route style function
-  buildStyle(feature: Feature) {
-    const geometry = feature.getGeometry() as LineString;
+  buildStyle(feature: Feature, lineGeom?: LineString) {
+    const geometry = lineGeom ?? (feature.getGeometry() as LineString);
     const styles = [];
     const id = (feature.getId() as string).split('.').slice(-1)[0];
     const isActive = id === this.activeRoute;
