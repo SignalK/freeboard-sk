@@ -221,6 +221,9 @@ export class AppFacade extends InfoService {
   selfTrail = signal<LineString>([]); // vessel trail from indexedDB
   selfTrailFromServer = signal<LineString>([]); // vessel trail from server
   mapExtent = signal<Extent>([]); // map viewport extent
+  mapViewTopCenter = signal<Position>([0, 0]); // top-centre of viewport (rotation-aware)
+  mapViewRightCenter = signal<Position>([0, 0]); // right-centre of viewport (rotation-aware)
+  mapViewRotation = signal<number>(0); // OL view rotation in radians (CCW positive)
 
   protected signalk = inject(SignalKClient);
   private worker = inject(SKWorkerService);
@@ -690,27 +693,43 @@ export class AppFacade extends InfoService {
   /** Calculate the position to center the map.
    * Tales into account the amount of offset to apply
    */
-  calcMapCenter(ref: Position): Position {
-    const ctrOfExtent: Position = GeoUtils.centreOfPolygon([
-      this.mapExtent().slice(0, 2) as Position,
-      [this.mapExtent()[0], this.mapExtent()[3]],
-      this.mapExtent().slice(-2) as Position,
-      [this.mapExtent()[2], this.mapExtent()[1]],
-      this.mapExtent().slice(0, 2) as Position
-    ]);
-    const offsetDistance =
-      GeoUtils.distanceTo(this.mapExtent().slice(0, 2) as Position, [
-        this.mapExtent()[0],
-        ctrOfExtent[1]
-      ]) * (this.config.map.centerOffset ?? 0.5);
-    const pos: Position = true //this.app.config.display.mapCenterOffset ?
-      ? GeoUtils.destCoordinate(
-          this.data.vessels.active.position,
-          0,
-          offsetDistance
-        )
-      : ref;
-    return pos;
+  calcMapCenter(): Position {
+    const cog =
+      this.data.vessels.active.cogTrue ??
+      this.data.vessels.active.headingTrue;
+    if (cog === null) {
+      return this.data.vessels.active.position;
+    }
+    // Compute the geodetic distance from the viewport centre to the screen
+    // edge in the exact CoG direction. This correctly handles any map rotation
+    // mode (north-up or heading-up) and any screen aspect ratio.
+    //
+    // In OL, a CW bearing β has projected-space direction (sin β, cos β).
+    // With OL view rotation rot (CCW), the screen-space components are:
+    //   sx = sin(β + rot)  (rightward)   sy = cos(β + rot)  (upward)
+    // The edge of the viewport rectangle lies at min(hw/|sx|, hh/|sy|)
+    // where hw = geodetic half-width, hh = geodetic half-height.
+    const hh = GeoUtils.distanceTo(
+      this.config.map.center as Position,
+      this.mapViewTopCenter()
+    );
+    const hw = GeoUtils.distanceTo(
+      this.config.map.center as Position,
+      this.mapViewRightCenter()
+    );
+    const rot = this.mapViewRotation();
+    const sx = Math.abs(Math.sin(cog + rot));
+    const sy = Math.abs(Math.cos(cog + rot));
+    const edgeDistance = Math.min(
+      sx > 1e-10 ? hw / sx : Infinity,
+      sy > 1e-10 ? hh / sy : Infinity
+    );
+    const offsetDistance = edgeDistance * (this.config.map.centerOffset ?? 0.5);
+    return GeoUtils.destCoordinate(
+      this.data.vessels.active.position,
+      cog,
+      offsetDistance
+    );
   }
 
   /**

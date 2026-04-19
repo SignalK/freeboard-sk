@@ -1331,7 +1331,7 @@ export class AppComponent {
    * Center the map relative to the vessel position
    */
   protected centerVessel() {
-    const pos = this.app.calcMapCenter(this.app.data.vessels.active.position);
+    const pos = this.app.calcMapCenter();
     this.centerAndZoom(pos);
   }
 

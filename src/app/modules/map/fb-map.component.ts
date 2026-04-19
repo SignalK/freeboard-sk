@@ -557,6 +557,9 @@ export class FBMapComponent implements OnInit, OnDestroy {
     this.app.config.map.zoomLevel = e.zoom;
 
     this.app.mapExtent.update(() => e.extent);
+    this.app.mapViewTopCenter.update(() => e.topCenter as Position);
+    this.app.mapViewRightCenter.update(() => e.rightCenter as Position);
+    this.app.mapViewRotation.update(() => e.rotation);
     this.app.config.map.center = e.lonlat as Position;
 
     this.drawVesselLines();
@@ -1394,7 +1397,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
 
   // center map to active vessel position
   private centerVessel() {
-    const pos = this.app.calcMapCenter(this.dfeat.active.position);
+    const pos = this.app.calcMapCenter();
     this.mapCenterPositon.update(() => pos);
   }
 
