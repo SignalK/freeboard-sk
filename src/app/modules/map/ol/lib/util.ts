@@ -40,6 +40,18 @@ export function fromLonLatArray(
   }
 }
 
+/** Named dash pattern → OL lineDash array */
+export const DASH_PATTERNS: Record<string, number[]> = {
+  solid: [],
+  short: [2, 2],
+  medium: [4, 4],
+  long: [8, 4]
+};
+
+export function lineDashFor(dash: string): number[] {
+  return DASH_PATTERNS[dash] ?? [];
+}
+
 /** DateLine Crossing:
  * returns true if point is in the zone for dateline transition
  * zoneValue: lower end of 180 to xx range within which Longitude must fall for retun value to be true

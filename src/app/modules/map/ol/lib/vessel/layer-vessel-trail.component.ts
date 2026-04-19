@@ -17,8 +17,9 @@ import { Style, Stroke } from 'ol/style';
 import { Geometry, MultiLineString, LineString } from 'ol/geom';
 import { MapComponent } from '../map.component';
 import { Extent, Coordinate } from '../models';
-import { fromLonLatArray, mapifyCoords } from '../util';
+import { fromLonLatArray, mapifyCoords, lineDashFor } from '../util';
 import { AsyncSubject } from 'rxjs';
+import { ILineStyle } from 'src/app/types';
 
 // ** Freeboard Vessel trail component **
 @Component({
@@ -41,6 +42,7 @@ export class VesselTrailComponent implements OnInit, OnDestroy, OnChanges {
   @Input() localTrail: Array<Coordinate>;
   @Input() serverTrail: Array<Array<Coordinate>>;
   @Input() trailStyles: { [key: string]: Style };
+  @Input() selfTrailStyle: ILineStyle;
   @Input() opacity: number;
   @Input() visible: boolean;
   @Input() extent: Extent;
@@ -99,9 +101,15 @@ export class VesselTrailComponent implements OnInit, OnDestroy, OnChanges {
             this.parseServerTrail();
           }
         }
-        if (key === 'trailStyles') {
+        if (key === 'trailStyles' || key === 'selfTrailStyle') {
           if (this.source) {
             this.parseTrails();
+            if (this.trailLocal) {
+              this.trailLocal.setStyle(this.buildStyle('local'));
+            }
+            if (this.trailServer) {
+              this.trailServer.setStyle(this.buildStyle('server'));
+            }
           }
         } else if (key === 'layerProperties') {
           this.layer.setProperties(properties, false);
@@ -176,9 +184,18 @@ export class VesselTrailComponent implements OnInit, OnDestroy, OnChanges {
   // build target style
   buildStyle(type = 'local'): Style {
     let cs: Style;
+    const st = this.selfTrailStyle;
     if (type === 'server') {
       if (this.trailStyles && this.trailStyles.server) {
         cs = this.trailStyles.server;
+      } else if (st) {
+        cs = new Style({
+          stroke: new Stroke({
+            color: st.color,
+            width: st.width,
+            lineDash: lineDashFor(st.dash)
+          })
+        });
       } else {
         cs = new Style({
           // default server
@@ -192,6 +209,14 @@ export class VesselTrailComponent implements OnInit, OnDestroy, OnChanges {
     } else {
       if (this.trailStyles && this.trailStyles.local) {
         cs = this.trailStyles.local;
+      } else if (st) {
+        cs = new Style({
+          stroke: new Stroke({
+            color: st.color,
+            width: st.width,
+            lineDash: lineDashFor(st.dash)
+          })
+        });
       } else {
         cs = new Style({
           // default local

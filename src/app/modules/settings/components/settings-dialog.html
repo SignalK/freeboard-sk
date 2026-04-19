@@ -799,35 +799,109 @@
                         Display Laylines
                       </mat-checkbox>
                     </div>
-                    <div class="setting-card-row" style="padding-bottom: 10px">
-                      <div class="setting-card-row-item">
-                        <mat-form-field style="width: 100%">
-                          <mat-label>Heading Line Length</mat-label>
-                          <mat-select
-                            matTooltip="Length of heading line."
-                            [(ngModel)]="facade.settings.vessels.headingLineSize"
-                            (selectionChange)="persistModel()"
-                          >
-                            @for(i of options.vessel.headingLine; track i[0] ) {
-                            <mat-option [value]="i[0]">{{i[1]}}</mat-option>
-                            }
-                          </mat-select>
-                        </mat-form-field>
-                      </div>
-                      <div class="setting-card-row-item">
-                        <mat-form-field style="width: 100%">
-                          <mat-label>COG Line Length</mat-label>
-                          <mat-select
-                            matTooltip="Length of COG line."
-                            [(ngModel)]="facade.settings.vessels.cogLine"
-                            (selectionChange)="persistModel()"
-                          >
-                            @for(i of options.vessel.cogLine; track i[0]) {
-                            <mat-option [value]="i[0]">{{i[1]}}</mat-option>
-                            }
-                          </mat-select>
-                        </mat-form-field>
-                      </div>
+                    <div class="setting-card-row" style="padding-bottom: 6px; align-items: center; gap: 12px; flex-wrap: wrap">
+                      <div style="flex: 0 0 auto; min-width: 120px">Heading Line Style:</div>
+                      <mat-form-field style="width: 110px">
+                        <mat-label>Value</mat-label>
+                        <input matInput type="number" min="0"
+                          [(ngModel)]="facade.settings.vessels.headingLineStyle.lineLength.value"
+                          (change)="persistModel()"
+                        >
+                      </mat-form-field>
+                      <mat-form-field style="width: 75px">
+                        <mat-label>Unit</mat-label>
+                        <mat-select
+                          [(ngModel)]="facade.settings.vessels.headingLineStyle.lineLength.kind"
+                          (selectionChange)="persistModel()"
+                        >
+                          @for(k of options.lineStyle.lineLengthKinds; track k[0]) {
+                            <mat-option [value]="k[0]">{{k[1]}}</mat-option>
+                          }
+                        </mat-select>
+                      </mat-form-field>
+                      <mat-form-field style="width: 70px">
+                        <mat-label>Color</mat-label>
+                        <input matInput type="color"
+                          [(ngModel)]="facade.settings.vessels.headingLineStyle.color"
+                          (change)="persistModel()"
+                          style="cursor: pointer; padding: 0; height: 24px"
+                        >
+                      </mat-form-field>
+                      <mat-form-field style="width: 80px">
+                        <mat-label>Width</mat-label>
+                        <input matInput type="number" min="1" max="10"
+                          [(ngModel)]="facade.settings.vessels.headingLineStyle.width"
+                          (change)="persistModel()"
+                        >
+                      </mat-form-field>
+                      <mat-form-field style="width: 200px">
+                        <mat-label>Pattern</mat-label>
+                        <mat-select
+                          [(ngModel)]="facade.settings.vessels.headingLineStyle.dash"
+                          (selectionChange)="persistModel()"
+                        >
+                          @for(d of options.lineStyle.dashPatterns; track d[0]) {
+                            <mat-option [value]="d[0]">
+                              <svg width="48" height="10" style="vertical-align: middle; margin-right: 6px">
+                                <line x1="0" y1="5" x2="48" y2="5" stroke="currentColor" stroke-width="2"
+                                  [attr.stroke-dasharray]="options.lineStyle.dashArrays.get(d[0])"/>
+                              </svg>{{d[1]}}
+                            </mat-option>
+                          }
+                        </mat-select>
+                      </mat-form-field>
+                    </div>
+                    <div class="setting-card-row" style="padding-bottom: 10px; align-items: center; gap: 12px; flex-wrap: wrap">
+                      <div style="flex: 0 0 auto; min-width: 120px">COG Line Style:</div>
+                      <mat-form-field style="width: 110px">
+                        <mat-label>Value</mat-label>
+                        <input matInput type="number" min="0"
+                          [(ngModel)]="facade.settings.vessels.cogLineStyle.lineLength.value"
+                          (change)="persistModel()"
+                        >
+                      </mat-form-field>
+                      <mat-form-field style="width: 75px">
+                        <mat-label>Unit</mat-label>
+                        <mat-select
+                          [(ngModel)]="facade.settings.vessels.cogLineStyle.lineLength.kind"
+                          (selectionChange)="persistModel()"
+                        >
+                          @for(k of options.lineStyle.lineLengthKinds; track k[0]) {
+                            <mat-option [value]="k[0]">{{k[1]}}</mat-option>
+                          }
+                        </mat-select>
+                      </mat-form-field>
+                      <mat-form-field style="width: 70px">
+                        <mat-label>Color</mat-label>
+                        <input matInput type="color"
+                          [(ngModel)]="facade.settings.vessels.cogLineStyle.color"
+                          (change)="persistModel()"
+                          style="cursor: pointer; padding: 0; height: 24px"
+                        >
+                      </mat-form-field>
+                      <mat-form-field style="width: 80px">
+                        <mat-label>Width</mat-label>
+                        <input matInput type="number" min="1" max="10"
+                          [(ngModel)]="facade.settings.vessels.cogLineStyle.width"
+                          (change)="persistModel()"
+                        >
+                      </mat-form-field>
+                      <mat-form-field style="width: 200px">
+                        <mat-label>Pattern</mat-label>
+                        <mat-select
+                          [(ngModel)]="facade.settings.vessels.cogLineStyle.dash"
+                          (selectionChange)="persistModel()"
+                        >
+                          @for(d of options.lineStyle.dashPatterns; track d[0]) {
+                            <mat-option [value]="d[0]">
+                              <svg width="48" height="10" style="vertical-align: middle; margin-right: 6px">
+                                <line x1="0" y1="5" x2="48" y2="5" stroke="currentColor" stroke-width="2"
+                                  [attr.stroke-dasharray]="options.lineStyle.dashArrays.get(d[0])"/>
+                              </svg>{{d[1]}}
+                            </mat-option>
+                          }
+                        </mat-select>
+                      </mat-form-field>
                     </div>
                   </fieldset>
                 </div>
@@ -1006,6 +1080,44 @@
                 </div>
               </mat-card-content>
             </mat-card>
+            <mat-card class="setting-card">
+              <mat-card-content>
+                <div class="setting-card-row" style="padding-bottom: 6px; align-items: center; gap: 12px; flex-wrap: wrap">
+                  <div style="flex: 0 0 auto; min-width: 120px">Self Track Style:</div>
+                  <mat-form-field style="width: 70px">
+                    <mat-label>Color</mat-label>
+                    <input matInput type="color"
+                      [(ngModel)]="facade.settings.vessels.selfTrailStyle.color"
+                      (change)="persistModel()"
+                      style="cursor: pointer; padding: 0; height: 24px"
+                    >
+                  </mat-form-field>
+                  <mat-form-field style="width: 80px">
+                    <mat-label>Width</mat-label>
+                    <input matInput type="number" min="1" max="10"
+                      [(ngModel)]="facade.settings.vessels.selfTrailStyle.width"
+                      (change)="persistModel()"
+                    >
+                  </mat-form-field>
+                  <mat-form-field style="width: 200px">
+                    <mat-label>Pattern</mat-label>
+                    <mat-select
+                      [(ngModel)]="facade.settings.vessels.selfTrailStyle.dash"
+                      (selectionChange)="persistModel()"
+                    >
+                      @for(d of options.lineStyle.dashPatterns; track d[0]) {
+                        <mat-option [value]="d[0]">
+                          <svg width="48" height="10" style="vertical-align: middle; margin-right: 6px">
+                            <line x1="0" y1="5" x2="48" y2="5" stroke="currentColor" stroke-width="2"
+                              [attr.stroke-dasharray]="options.lineStyle.dashArrays.get(d[0])"/>
+                          </svg>{{d[1]}}
+                        </mat-option>
+                      }
+                    </mat-select>
+                  </mat-form-field>
+                </div>
+              </mat-card-content>
+            </mat-card>
 
             <div class="setting-group-title">OTHER VESSELS</div>
             <mat-card class="setting-card">
@@ -1036,6 +1148,40 @@
                       Hide Anchored
                     </mat-checkbox>
                   </div>
+                </div>
+                <div class="setting-card-row" style="padding-bottom: 6px; align-items: center; gap: 12px; flex-wrap: wrap">
+                  <div style="flex: 0 0 auto; min-width: 140px">Other Vessel Track Style:</div>
+                  <mat-form-field style="width: 70px">
+                    <mat-label>Color</mat-label>
+                    <input matInput type="color"
+                      [(ngModel)]="facade.settings.vessels.aisTrackStyle.color"
+                      (change)="persistModel()"
+                      style="cursor: pointer; padding: 0; height: 24px"
+                    >
+                  </mat-form-field>
+                  <mat-form-field style="width: 80px">
+                    <mat-label>Width</mat-label>
+                    <input matInput type="number" min="1" max="10"
+                      [(ngModel)]="facade.settings.vessels.aisTrackStyle.width"
+                      (change)="persistModel()"
+                    >
+                  </mat-form-field>
+                  <mat-form-field style="width: 200px">
+                    <mat-label>Pattern</mat-label>
+                    <mat-select
+                      [(ngModel)]="facade.settings.vessels.aisTrackStyle.dash"
+                      (selectionChange)="persistModel()"
+                    >
+                      @for(d of options.lineStyle.dashPatterns; track d[0]) {
+                        <mat-option [value]="d[0]">
+                          <svg width="48" height="10" style="vertical-align: middle; margin-right: 6px">
+                            <line x1="0" y1="5" x2="48" y2="5" stroke="currentColor" stroke-width="2"
+                              [attr.stroke-dasharray]="options.lineStyle.dashArrays.get(d[0])"/>
+                          </svg>{{d[1]}}
+                        </mat-option>
+                      }
+                    </mat-select>
+                  </mat-form-field>
                 </div>
                 <div class="setting-card-row" style="padding-bottom: 10px">
                   <div class="setting-card-row-item">
