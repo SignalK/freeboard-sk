@@ -454,7 +454,7 @@ export class CourseService {
 
     if (Array.isArray(rte[1].feature.properties.coordinatesMeta)) {
       c.pointNames = rte[1].feature.properties.coordinatesMeta.map((pt) => {
-        return pt.name ?? '';
+        return pt?.name ?? '';
       });
       if (c.pointIndex !== -1 && c.pointIndex < c.pointNames.length) {
         c.destPointName = c.pointNames[c.pointIndex];

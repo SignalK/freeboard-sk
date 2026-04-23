@@ -259,7 +259,12 @@ export class ActiveResourcePropertiesModal implements OnInit {
       Array.isArray(this.data.resource[1].feature.properties.coordinatesMeta)
     ) {
       const pointsMeta =
-        this.data.resource[1].feature.properties.coordinatesMeta;
+        this.data.resource[1].feature.properties.coordinatesMeta.map((p) => {
+          return {
+            name: p?.name ?? '',
+            description: p?.description ?? ''
+          };
+        });
       let idx = 0;
       return pointsMeta.map((pt) => {
         idx++;

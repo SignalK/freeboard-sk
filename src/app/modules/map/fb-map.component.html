@@ -515,6 +515,14 @@
         >
         </feature-list-popover>
       }
+      @if (this.overlay().type === 's57') {
+        <s57-popover
+          [canClose]="app.config.map.popoverMulti"
+          [properties]="this.overlay().s57Feature"
+          (closed)="popoverClosed()"
+        >
+        </s57-popover>
+      }
       @if (
         overlay().type === 'destination' ||
         overlay().type === 'waypoint' ||

@@ -31,7 +31,10 @@ import {
   AlarmPopoverComponent,
   ResourcePopoverComponent,
   ResourceSetPopoverComponent,
-  VesselPopoverComponent
+  VesselPopoverComponent,
+  S57PopoverComponent,
+  S57_CLICKABLE_LAYERS,
+  S57_NAMES
 } from './popovers';
 import { FreeboardOpenlayersModule } from 'src/app/modules/map/ol';
 import { CoordsPipe } from 'src/app/lib/pipes';
@@ -147,7 +150,8 @@ enum INTERACTION_MODE {
     AlarmPopoverComponent,
     ResourcePopoverComponent,
     ResourceSetPopoverComponent,
-    VesselPopoverComponent
+    VesselPopoverComponent,
+    S57PopoverComponent
   ],
   templateUrl: './fb-map.component.html',
   styleUrls: ['./fb-map.component.css']
@@ -927,6 +931,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
 
   /** Process pointer click in non-interaction mode */
   private processMapClick(e) {
+    this.s57Features = {};
     const featureList: Map<
       string,
       {
@@ -950,18 +955,17 @@ export class FBMapComponent implements OnInit, OnDestroy {
 
     // process list of features at click location
     e.features.forEach((feature: Feature) => {
-      const id = feature.getId();
+      let id = feature.getId() as string;
       let addToFeatureList = false;
       let aton: SKAtoN;
       let sar: SKSaR;
       let meteo: SKMeteo;
       let aircraft: SKAircraft;
       let vessel: SKVessel;
+      let icon: string;
+      let text: string;
       if (id && typeof id === 'string') {
         const t = id.split('.');
-        let icon: string;
-        let text: string;
-
         if (t[0] === 'chart-backdrop') {
           maskPopover = true;
           return;
@@ -1058,17 +1062,30 @@ export class FBMapComponent implements OnInit, OnDestroy {
             text = aircraft ? aircraft.name || aircraft.mmsi : '';
             break;
         }
-        if (addToFeatureList && !featureList.has(id)) {
-          featureList.set(id, {
-            id: id,
-            coord: e.lonlat,
-            icon: icon,
-            text: text
-          });
-          fa.push(feature);
+      } else if (!id && feature.getProperties) {
+        const props = feature.getProperties();
+        // S57 features
+        if (props['RCID'] && S57_CLICKABLE_LAYERS.has(props['layer'])) {
+          id = `s57.${props['LNAM']}`;
+          addToFeatureList = true;
+          icon = 'beenhere';
+          text = S57_NAMES[props['layer']];
+          this.s57Features[id] = props;
         }
       }
+
+      if (addToFeatureList && !featureList.has(id)) {
+        featureList.set(id, {
+          id: id,
+          coord: e.lonlat,
+          icon: icon,
+          text: text
+        });
+        fa.push(feature);
+      }
     });
+
+    console.log('s57 features=>', this.s57Features);
 
     if (chartBoundsFeatures.size > 0) {
       // show list of chart features
@@ -1088,6 +1105,8 @@ export class FBMapComponent implements OnInit, OnDestroy {
       this.formatPopover('list.', e.lonlat, featureList);
     }
   }
+
+  private s57Features: Record<string, Record<string, string | number>> = {};
 
   // ******** POPOVER ACTIONS ************
 
@@ -1127,6 +1146,15 @@ export class FBMapComponent implements OnInit, OnDestroy {
     let aid: string;
 
     switch (t[0]) {
+      case 's57':
+        poData.id = id;
+        poData.title = 'S57 Feature';
+        poData.type = 's57';
+        poData.s57Feature = this.s57Features[id];
+        poData.position = coord;
+        poData.show = true;
+        poData.readOnly = true;
+        break;
       case 'anchor':
         this.modifyFeature('anchor');
         return;

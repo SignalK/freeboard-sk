@@ -40,6 +40,7 @@ export interface IPopover {
   meteo?: SKMeteo;
   aircraft?: SKAircraft;
   alarm?: AlertData;
+  s57Feature?: Record<string, string | number>;
   readOnly: boolean;
 }
 

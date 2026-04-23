@@ -291,10 +291,7 @@ export class NotificationManager {
               this.app.parseHttpErrorResponse(err);
             }
           );
-      } /* else {
-        this.alertMap.get(path).acknowledged = true;
-        this.emitSignals();
-      }*/
+      }
     }
   }
 
@@ -316,34 +313,25 @@ export class NotificationManager {
               this.app.parseHttpErrorResponse(err);
             }
           );
-      } /* else {
-        if (this.isStandardAlarm(alert.type)) {
-          // if is standard alarm silence via server
-          const id = alert.path.split('.').slice(-1)[0];
-          this.signalk.api
-            .post(
-              this.app.skApiVersion,
-              `alarms/${alert.type}/${id}/silence`,
-              {}
-            )
-            .subscribe(
-              () => {
-                alert.silenced = true;
-                this.emitSignals();
-              },
-              (err: HttpErrorResponse) => {
-                this.app.showAlert(
-                  `Error`,
-                  `Unable to silence alarm (${path})!`,
-                  err.message
-                );
-              }
-            );
-        } else {
-          alert.silenced = true;
-          this.emitSignals();
-        }
-      } */
+      }
+    }
+  }
+
+  /**
+   * @description Silence All alerts
+   */
+  public silenceAll() {
+    if (this.app.featureFlags().notificationApi) {
+      this.signalk.api
+        .post(this.app.skApiVersion, `notifications/silenceAll`, {})
+        .subscribe(
+          () => {
+            this.app.debug(`Silenced All alerts`);
+          },
+          (err: HttpErrorResponse) => {
+            this.app.parseHttpErrorResponse(err);
+          }
+        );
     }
   }
 
@@ -365,29 +353,7 @@ export class NotificationManager {
               this.app.parseHttpErrorResponse(err);
             }
           );
-      } /*else {
-        if (alert.canCancel) {
-          if (this.isStandardAlarm(alert.type)) {
-            // if is standard alarm remove via server
-            this.cancelServerAlarm(alert).subscribe(
-              () => {
-                this.alertMap.delete(path);
-                this.emitSignals();
-              },
-              (err: HttpErrorResponse) => {
-                this.app.showAlert(
-                  `Error`,
-                  `Unable to clear alarm (${path})!`,
-                  err.message
-                );
-              }
-            );
-          } else {
-            this.alertMap.delete(path);
-            this.emitSignals();
-          }
-        }
-      } */
+      }
     }
   }
 
@@ -407,21 +373,7 @@ export class NotificationManager {
             this.app.parseHttpErrorResponse(err);
           }
         );
-    } /* else {
-      this.signalk.api
-        .post(this.app.skApiVersion, `alarms/${alarmType}`, {
-          message: message ?? ''
-        })
-        .subscribe(
-          () => undefined,
-          (err: HttpErrorResponse) => {
-            this.app.showAlert(
-              'Error',
-              `Unable to raise alarm: ${alarmType} \n ${err.message}`
-            );
-          }
-        );
-    } */
+    }
   }
 
   /**
@@ -441,13 +393,7 @@ export class NotificationManager {
             this.app.parseHttpErrorResponse(err);
           }
         );
-    } /* else {
-      const id = alert.path.split('.').slice(-1)[0];
-      return this.signalk.api.delete(
-        this.app.skApiVersion,
-        `alarms/${alert.type}/${id}`
-      );
-    } */
+    }
   }
 
   // parse ClosestApproach message data
