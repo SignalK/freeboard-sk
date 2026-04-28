@@ -51,7 +51,15 @@ export const DefaultOptions: Options = {
   boundaries: 'Plain',
   colors: 4,
   colorTable: 0, //color scheme
-  otherLayers: ['SOUNDG', 'OBSTRN', 'UWTROC', 'WRECKS', 'DEPCNT'],
+  otherLayers: [
+    'SOUNDG',
+    'OBSTRN',
+    'UWTROC',
+    'WRECKS',
+    'DEPCNT',
+    'RIVERS',
+    'LAKARE'
+  ],
   depthUnit: 'm'
 };
 

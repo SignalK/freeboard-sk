@@ -123,7 +123,9 @@ export class SettingsOptions {
         ['LNDMRK', 'Landmarks'],
         ['DISMAR', 'Distance Marks'],
         ['CURENT', 'Currents'],
-        ['MAGVAR', 'Magnetic Variation']
+        ['MAGVAR', 'Magnetic Variation'],
+        ['RIVERS', 'Rivers'],
+        ['LAKARE', 'Lakes']
       ])
     }
   };
