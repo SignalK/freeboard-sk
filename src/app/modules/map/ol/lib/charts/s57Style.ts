@@ -1047,8 +1047,21 @@ export class S57Style {
     switch (layer) {
       case 'SEAARE':
         return 2;
-      case 'DEPARE':
-        return 3;
+      case 'DEPARE': {
+        // S-52 assigns DEPARE and LNDARE the same display priority ('Area 1' = 2),
+        // so the spec doesn't mandate which paints on top. We split DEPARE into
+        // two cases:
+        //   • DRVAL2 > 0 (real water at chart datum): draw above LNDARE so
+        //     constructed marina basins, lagoons and dredged channels that
+        //     producers encode as "land + water-on-top" render as water in
+        //     the renderer. Without this the basin appears as land even
+        //     though the chart contains correct depth data.
+        //   • Otherwise (drying flats, intertidal zones with DRVAL2 ≤ 0):
+        //     keep below LNDARE so they render as land at chart datum, which
+        //     is correct per S-52 convention for such areas.
+        const drval2 = properties['DRVAL2'];
+        return typeof drval2 === 'number' && drval2 > 0 ? 5.5 : 3;
+      }
       case 'DEPCNT':
         return 4;
       case 'LNDARE':
