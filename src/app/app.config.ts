@@ -337,6 +337,10 @@ export function cleanConfig(
   if (typeof settings.selections.chartOrder === 'undefined') {
     settings.selections.chartOrder = [];
   }
+  if (typeof settings.selections.chartOpacity === 'undefined') {
+    settings.selections.chartOpacity = {};
+  }
+
   if (typeof settings.selections.tracks === 'undefined') {
     settings.selections.tracks = [];
   }
@@ -516,6 +520,7 @@ export function defaultConfig(): IAppConfig {
       tracks: null,
       charts: ['openstreetmap', 'openseamap'],
       chartOrder: ['openstreetmap', 'openseamap'], // chart layer ordering
+      chartOpacity: {},
       aisTargets: null,
       aisTargetTypes: [],
       aisFilterByShipType: false,

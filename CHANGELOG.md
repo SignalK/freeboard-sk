@@ -1,10 +1,11 @@
 # CHANGELOG: Freeboard
 
-### v2.21.0-next.1
+### v2.21.1-next
 
 #### IMPORTANT
 **Freeboard-SK now exclusively uses the Notification API to interact with alarms.<br>_To use this functionality Signal K Server v2.22.0 or later is required._**
 
+- **Update**: Add chart opacity control. (#368)
 - **Update**: View S57 Chart feature details. (#339)
 - **Update**: Added ability to silence all alerts.
 - **Fix**: Processing of route `coordinatesMeta` properties.
