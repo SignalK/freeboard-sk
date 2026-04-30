@@ -353,7 +353,7 @@ export class SKResourceService {
       case 'notes':
         return this.transformNote(resource as NoteResource, id);
       case 'charts':
-        return this.transformChart(resource as ChartResource);
+        return this.transformChart(resource as ChartResource, id);
       case 'tracks':
         return this.transformTrack(resource as TrackResource);
     }
@@ -525,7 +525,7 @@ export class SKResourceService {
 
   // **** CHARTS ****
 
-  private chartCacheSignal = signal([]);
+  private chartCacheSignal = signal<FBCharts>([]);
   readonly charts = this.chartCacheSignal.asReadonly();
 
   /**
@@ -600,9 +600,10 @@ export class SKResourceService {
   /**
    * @description Signal K v2 API transformation
    * @param chart Chart entry from server
+   * @param id Chart resource identifier
    * @returns SKChart object
    */
-  private transformChart(chart: ChartResource): SKChart {
+  private transformChart(chart: ChartResource, id: string): SKChart {
     // v1->2 alignment
     if (chart.tilemapUrl) {
       chart.url = chart.tilemapUrl;
@@ -614,10 +615,14 @@ export class SKResourceService {
       chart.type = chart.serverType;
     }
     if (chart.type) {
-      // ** ensure host is in url
+      // ensure host is in url
       if (chart.url.startsWith('/') || !chart.url.startsWith('http')) {
         chart.url = this.app.hostDef.url + chart.url;
       }
+    }
+    // map local chart opacity
+    if (this.app.config.selections.chartOpacity[id]) {
+      chart.defaultOpacity = this.app.config.selections.chartOpacity[id];
     }
     return new SKChart(chart);
   }
@@ -784,6 +789,30 @@ export class SKResourceService {
   }
 
   /**
+   * @description Update opacity value of Chart object in the Chart Cache
+   * @param id Chart identifier
+   * @param value Opacity value to set (0-1)
+   */
+  public chartSetOpacity(id: string, value: number) {
+    if (!id || !Number.isFinite(value)) {
+      return;
+    }
+    const idx = this.chartCacheSignal().findIndex((c: FBChart) => c[0] === id);
+    if (idx !== -1) {
+      this.chartCacheSignal.update((current: FBCharts) => {
+        return current.map((c: FBChart) => {
+          if (c[0] !== id) {
+            return c;
+          }
+          const updated = new SKChart(c[1]);
+          updated.defaultOpacity = value;
+          return [c[0], updated, c[2]];
+        });
+      });
+    }
+  }
+
+  /**
    * @description Select the charts with the supplied ids for inclusion into the cache.
    * @param ids Array of chart identifiers
    */
@@ -923,12 +952,6 @@ export class SKResourceService {
         }
       });
   }
-
-  /**
-   * @description Submit cache seeding job for a proxied chart
-   * @param id Chart identifier
-   * @param data Object containing seed job attributes
-   */
 
   // **** ROUTES ****
 
