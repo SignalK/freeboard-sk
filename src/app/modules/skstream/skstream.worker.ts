@@ -1003,7 +1003,7 @@ function processVessel(d: SKVessel, v: any, isSelf = false) {
     const cvlen = (d.sog ?? 0) * (cogLen * 60);
     d.vectors.cog = [
       d.position,
-      GeoUtils.destCoordinate(d.position, cog, cvlen)
+      GeoUtils.rhumbDestination(d.position, cog, cvlen)
     ];
   }
 }

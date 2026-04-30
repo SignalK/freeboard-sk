@@ -15,6 +15,45 @@ import { SKPosition, Position } from '../types';
 export type Extent = [number, number, number, number]; // coords [swlon,swlat,nelon,nelat] of a bounding box
 
 export class GeoUtils {
+  private static readonly R = 6_371_000; // mean earth radius in metres
+
+  /**
+   * Rhumb-line destination: given a start [lon,lat], bearing (radians),
+   * and distance (metres), return the destination [lon,lat].
+   */
+  static rhumbDestination(origin: Position, bearingRad: number, distMeters: number): Position {
+    const R = GeoUtils.R;
+    const δ = distMeters / R;
+    const φ1 = origin[1] * Math.PI / 180;
+    const λ1 = origin[0] * Math.PI / 180;
+    const θ = bearingRad;
+
+    const Δφ = δ * Math.cos(θ);
+    let φ2 = φ1 + Δφ;
+    let δ_eff = δ;
+
+    // Clamp to ±89° to avoid the Mercator/pole singularity (log(tan(π/2)) → ∞).
+    // Scale the effective distance proportionally so that tan(θ)·Δψ — the rhumb
+    // bearing identity — produces the correct longitude offset and the line points
+    // in the right direction on the Mercator map.
+    const MAX_φ = 89 * Math.PI / 180;
+    if (φ2 > MAX_φ && φ1 < MAX_φ) {
+      δ_eff = δ * (MAX_φ - φ1) / Δφ;
+      φ2 = MAX_φ;
+    } else if (φ2 < -MAX_φ && φ1 > -MAX_φ) {
+      δ_eff = δ * (-MAX_φ - φ1) / Δφ;
+      φ2 = -MAX_φ;
+    }
+
+    const Δψ = Math.log(
+      Math.tan(Math.PI / 4 + φ2 / 2) / Math.tan(Math.PI / 4 + φ1 / 2)
+    );
+    const q = Math.abs(Δψ) > 1e-12 ? (φ2 - φ1) / Δψ : Math.cos(φ1);
+    const Δλ = (δ_eff * Math.sin(θ)) / q;
+
+    return [(λ1 + Δλ) * 180 / Math.PI, φ2 * 180 / Math.PI];
+  }
+
   static destCoordinate(
     src: Position,
     bearing: number,
