@@ -518,8 +518,10 @@ export class FBMapComponent implements OnInit, OnDestroy {
     ) {
       if (this.overlay().isSelf) {
         this.overlay.update((current) => {
+          const newPos = this.dfeat.self.position;
+          const wo = Math.round((current.position[0] - newPos[0]) / 360) * 360;
           return Object.assign({}, current, {
-            position: this.dfeat.self.position,
+            position: wo !== 0 ? [newPos[0] + wo, newPos[1]] : newPos,
             vessel: this.dfeat.self
           });
         });
@@ -536,26 +538,14 @@ export class FBMapComponent implements OnInit, OnDestroy {
         } else {
           if (this.overlay().type === 'ais') {
             this.overlay.update((current) => {
+              const newPos = this.dfeat.ais.get(current.id).position;
+              const wo = Math.round((current.position[0] - newPos[0]) / 360) * 360;
               return Object.assign({}, current, {
-                position: this.dfeat.ais.get(current.id).position,
+                position: wo !== 0 ? [newPos[0] + wo, newPos[1]] : newPos,
                 vessel: this.dfeat.ais.get(current.id)
               });
             });
           }
-        }
-      }
-      if (this.app.mapExtent()[0] < 180 && this.app.mapExtent()[2] > 180) {
-        // if dateline is in view adjust overlay position to stay with vessel
-
-        if (
-          this.overlay().position[0] < 0 &&
-          this.overlay().position[0] > -180
-        ) {
-          this.overlay.update((current) => {
-            return Object.assign({}, current, {
-              position: [current.position[0] + 360, current.position[1]]
-            });
-          });
         }
       }
     }
@@ -1473,6 +1463,11 @@ export class FBMapComponent implements OnInit, OnDestroy {
     let item = null;
     const t = id.split('.');
     let aid: string;
+    // Shift stored geographic positions to the clicked world copy so the popup
+    // appears at the same world copy the user clicked, not the primary world.
+    const worldOffset = coord ? Math.floor((coord[0] + 180) / 360) * 360 : 0;
+    const wrapPos = (pos: Position): Position =>
+      worldOffset !== 0 ? [pos[0] + worldOffset, pos[1]] : pos;
 
     switch (t[0]) {
       case 's57':
@@ -1526,7 +1521,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
         poData.type = 'ais';
         poData.isSelf = true;
         poData.vessel = this.dfeat.self;
-        poData.position = this.dfeat.self.position;
+        poData.position = wrapPos(this.dfeat.self.position);
         poData.show = true;
         break;
       case 'ais-vessels':
@@ -1537,7 +1532,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
         poData.type = 'ais';
         poData.id = aid;
         poData.vessel = this.dfeat.ais.get(aid);
-        poData.position = poData.vessel.position;
+        poData.position = wrapPos(poData.vessel.position);
         poData.show = true;
         break;
       case 'atons':
@@ -1549,7 +1544,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
         poData.type = 'aton';
         poData.id = id;
         poData.aton = this.app.data.atons.get(id);
-        poData.position = poData.aton.position;
+        poData.position = wrapPos(poData.aton.position);
         poData.show = true;
         break;
       case 'sar':
@@ -1559,7 +1554,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
         poData.type = 'aton';
         poData.id = id;
         poData.aton = this.app.data.sar.get(id);
-        poData.position = poData.aton.position;
+        poData.position = wrapPos(poData.aton.position);
         poData.show = true;
         break;
       case 'meteo':
@@ -1569,7 +1564,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
         poData.type = t[0];
         poData.id = id;
         poData.aton = this.app.data.meteo.get(id);
-        poData.position = poData.aton.position;
+        poData.position = wrapPos(poData.aton.position);
         poData.show = true;
         break;
       case 'aircraft':
@@ -1579,7 +1574,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
         poData.type = t[0];
         poData.id = id;
         poData.aircraft = this.app.data.aircraft.get(id);
-        poData.position = poData.aircraft.position;
+        poData.position = wrapPos(poData.aircraft.position);
         poData.show = true;
         break;
       case 'tidal': {
