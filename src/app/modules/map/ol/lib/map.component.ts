@@ -30,6 +30,12 @@ export interface FBMapEvent extends MapEvent {
   zoomChanged: boolean;
   extent: Extent;
   projCode: string;
+  /** Geographic coords of the viewport's top-centre pixel (rotation-aware) */
+  topCenter: Coordinate;
+  /** Geographic coords of the viewport's right-centre pixel (rotation-aware) */
+  rightCenter: Coordinate;
+  /** OL view rotation in radians (CCW positive) at the time of the event */
+  rotation: number;
 }
 
 export interface FBClickEvent extends MapBrowserEvent<PointerEvent> {
@@ -293,7 +299,7 @@ export class MapComponent implements OnInit, OnDestroy {
     this.mapMoveEnd.emit(this.augmentMoveEvent(event));
   };
 
-  // ** add {lonlat, zoom, extent, projection code} fields to event
+  // ** add {lonlat, zoom, extent, projCode, topCenter, rightCenter, rotation} fields to event
   private augmentMoveEvent(event: MapEvent) {
     const zoom = this.map.getView().getZoom();
     return Object.assign(event, {
@@ -301,7 +307,10 @@ export class MapComponent implements OnInit, OnDestroy {
       zoom: zoom,
       zoomChanged: this.zoomAtStart !== zoom,
       extent: this.getMapExtent(),
-      projCode: this.map.getView().getProjection().getCode()
+      projCode: this.map.getView().getProjection().getCode(),
+      topCenter: this.getMapViewTopCenter(),
+      rightCenter: this.getMapViewRightCenter(),
+      rotation: this.map.getView().getRotation()
     });
   }
 
@@ -365,6 +374,46 @@ export class MapComponent implements OnInit, OnDestroy {
       v.calculateExtent(this.map.getSize()),
       mrid,
       'EPSG:4326'
+    );
+  }
+
+  /**
+   * Returns the geographic coordinates [lon, lat] of the viewport's
+   * top-centre pixel, correctly accounting for map rotation.
+   * In OL, positive rotation is CCW. The projected-space unit vector
+   * pointing "up" on screen is (-sin θ, cos θ).
+   */
+  getMapViewTopCenter(): Coordinate {
+    if (!this.map) {
+      return [0, 0];
+    }
+    const v = this.map.getView();
+    const center = v.getCenter();
+    const rot = v.getRotation();
+    const hh = (this.map.getSize()[1] / 2) * v.getResolution();
+    return toLonLat(
+      [center[0] - hh * Math.sin(rot), center[1] + hh * Math.cos(rot)],
+      v.getProjection()
+    );
+  }
+
+  /**
+   * Returns the geographic coordinates [lon, lat] of the viewport's
+   * right-centre pixel, correctly accounting for map rotation.
+   * In OL, positive rotation is CCW. The projected-space unit vector
+   * pointing "right" on screen is (cos θ, sin θ).
+   */
+  getMapViewRightCenter(): Coordinate {
+    if (!this.map) {
+      return [0, 0];
+    }
+    const v = this.map.getView();
+    const center = v.getCenter();
+    const rot = v.getRotation();
+    const hw = (this.map.getSize()[0] / 2) * v.getResolution();
+    return toLonLat(
+      [center[0] + hw * Math.cos(rot), center[1] + hw * Math.sin(rot)],
+      v.getProjection()
     );
   }
 }
