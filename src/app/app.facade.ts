@@ -66,7 +66,7 @@ const FSK: AppInfoDef = {
   id: 'freeboard',
   name: 'Freeboard-SK',
   description: `Signal K Chart Plotter.`,
-  version: '2.21.0',
+  version: '2.22.0',
   url: 'https://github.com/signalk/freeboard-sk',
   logo: './assets/img/app_logo.png'
 };
@@ -695,8 +695,7 @@ export class AppFacade extends InfoService {
    */
   calcMapCenter(): Position {
     const cog =
-      this.data.vessels.active.cogTrue ??
-      this.data.vessels.active.headingTrue;
+      this.data.vessels.active.cogTrue ?? this.data.vessels.active.headingTrue;
     if (cog === null) {
       return this.data.vessels.active.position;
     }

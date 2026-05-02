@@ -1088,8 +1088,6 @@ export class FBMapComponent implements OnInit, OnDestroy {
       }
     });
 
-    console.log('s57 features=>', this.s57Features);
-
     if (chartBoundsFeatures.size > 0) {
       // show list of chart features
       this.formatPopover('chartlist.', e.lonlat, chartBoundsFeatures);

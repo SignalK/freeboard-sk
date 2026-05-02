@@ -284,8 +284,6 @@ export class VesselComponent implements OnInit, OnDestroy, OnChanges {
     if (!coords || !Array.isArray(coords)) {
       return;
     }
-    // Coordinates arrive pre-unwrapped from rhumbDestination — fromLonLatArray
-    // handles any longitude value, so no mapifyCoords needed.
     if (!lf) {
       // create feature
       lf = new Feature(new LineString(fromLonLatArray(coords)));

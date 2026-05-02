@@ -21,11 +21,15 @@ export class GeoUtils {
    * Rhumb-line destination: given a start [lon,lat], bearing (radians),
    * and distance (metres), return the destination [lon,lat].
    */
-  static rhumbDestination(origin: Position, bearingRad: number, distMeters: number): Position {
+  static rhumbDestination(
+    origin: Position,
+    bearingRad: number,
+    distMeters: number
+  ): Position {
     const R = GeoUtils.R;
     const δ = distMeters / R;
-    const φ1 = origin[1] * Math.PI / 180;
-    const λ1 = origin[0] * Math.PI / 180;
+    const φ1 = (origin[1] * Math.PI) / 180;
+    const λ1 = (origin[0] * Math.PI) / 180;
     const θ = bearingRad;
 
     const Δφ = δ * Math.cos(θ);
@@ -36,12 +40,12 @@ export class GeoUtils {
     // Scale the effective distance proportionally so that tan(θ)·Δψ — the rhumb
     // bearing identity — produces the correct longitude offset and the line points
     // in the right direction on the Mercator map.
-    const MAX_φ = 89 * Math.PI / 180;
+    const MAX_φ = (89 * Math.PI) / 180;
     if (φ2 > MAX_φ && φ1 < MAX_φ) {
-      δ_eff = δ * (MAX_φ - φ1) / Δφ;
+      δ_eff = (δ * (MAX_φ - φ1)) / Δφ;
       φ2 = MAX_φ;
     } else if (φ2 < -MAX_φ && φ1 > -MAX_φ) {
-      δ_eff = δ * (-MAX_φ - φ1) / Δφ;
+      δ_eff = (δ * (-MAX_φ - φ1)) / Δφ;
       φ2 = -MAX_φ;
     }
 
@@ -51,9 +55,16 @@ export class GeoUtils {
     const q = Math.abs(Δψ) > 1e-12 ? (φ2 - φ1) / Δψ : Math.cos(φ1);
     const Δλ = (δ_eff * Math.sin(θ)) / q;
 
-    return [(λ1 + Δλ) * 180 / Math.PI, φ2 * 180 / Math.PI];
+    return [((λ1 + Δλ) * 180) / Math.PI, (φ2 * 180) / Math.PI];
   }
 
+  /**
+   * Great Circle desitnation coordinate
+   * @param src - origin position
+   * @param bearing - angle in radians
+   * @param distance - distance in meters
+   * @returns
+   */
   static destCoordinate(
     src: Position,
     bearing: number,
@@ -67,12 +78,12 @@ export class GeoUtils {
     return [pt.longitude, pt.latitude];
   }
 
-  //** Calculate the great circle distance between two points in metres
+  /** Calculate the great circle distance between two points in metres **/
   static distanceTo(srcpt: Position, destpt: Position) {
     return getDistance(srcpt, destpt);
   }
 
-  //** Calculate the length of an array of points in metres
+  /** Calculate the length of an array of points in metres **/
   static routeLength(points: Position[]) {
     return getPathLength(points);
   }
@@ -145,15 +156,16 @@ export class GeoUtils {
     return closest.index;
   }
 
-  //** Calculate the centre of polygon
+  /** Calculate the centre of polygon **/
   static centreOfPolygon(coords: Array<Position>): Position {
     const c = getCenter(coords) as SKPosition;
     return [c.longitude, c.latitude];
   }
 
   /** DateLine Crossing:
-   * returns true if point is in the zone for dateline transition
-   * zoneValue: lower end of 180 to xx range within which Longitude must fall for retun value to be true
+   * @returns true if point is in the zone for dateline transition
+   * @param zoneValue lower end of 180 to xx range within which Longitude must fall for retun value to be true
+   * @param position Coordinate to test
    **/
   static inDLCrossingZone(coord: Position, zoneValue = 170) {
     return Math.abs(coord[0]) >= zoneValue ? true : false;

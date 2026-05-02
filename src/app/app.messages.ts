@@ -9,19 +9,6 @@ const WHATS_NEW = [
         This requires Signal K server v2.22.0 or later to enable
         notification and alarm features to be used.
       `
-  },
-  {
-    type: 'signalk-server-node',
-    title: 'New Feature',
-    message: `
-        <b>Server Unit Preferences</b>
-        <br>&nbsp;<br>
-        Initial support has been added for unit preferences defined on the Signal K server
-        for the speed, depth, distance and temperature unit categories.
-        <br>&nbsp;<br>
-        See <a href="assets/help/index.html#settings" target="help">HELP</a> 
-        for more details.
-      `
   }
 ];
 

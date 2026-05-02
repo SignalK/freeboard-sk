@@ -145,9 +145,7 @@ export class CogLineComponent implements OnInit, OnDestroy, OnChanges {
   parseInput() {
     const fa: Feature[] = [];
     if (Array.isArray(this.coords()) && this.coords().length !== 0) {
-      // Coordinates arrive pre-unwrapped from rhumbDestination —
-      // no mapifyCoords needed (it would flip wide-angle lines).
-      this.mapifiedLine = this.coords().map(p => [p[0], p[1]] as Coordinate);
+      this.mapifiedLine = this.coords().map((p) => [p[0], p[1]] as Coordinate);
 
       this.labelText.update(() => {
         return `${this.formatNumber(

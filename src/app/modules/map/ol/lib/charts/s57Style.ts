@@ -1047,7 +1047,7 @@ export class S57Style {
     switch (layer) {
       case 'SEAARE':
         return 2;
-      case 'DEPARE': {
+      case 'DEPARE':
         // S-52 assigns DEPARE and LNDARE the same display priority ('Area 1' = 2),
         // so the spec doesn't mandate which paints on top. We split DEPARE into
         // two cases:
@@ -1061,7 +1061,6 @@ export class S57Style {
         //     is correct per S-52 convention for such areas.
         const drval2 = properties['DRVAL2'];
         return typeof drval2 === 'number' && drval2 > 0 ? 5.5 : 3;
-      }
       case 'DEPCNT':
         return 4;
       case 'LNDARE':
