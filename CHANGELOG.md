@@ -1,5 +1,9 @@
 # CHANGELOG: Freeboard
 
+### v2.22.1
+
+- **Fix**: Issue where ATONs were incorrectly displayed with the weather station icon 
+
 ### v2.22.0
 
 #### IMPORTANT
