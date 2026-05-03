@@ -66,12 +66,10 @@ import {
   NotificationManager,
   CourseService,
   SettingsFacade,
-  WeatherForecastModal,
-  FeaturePropertiesModal
+  WeatherForecastModal
 } from 'src/app/modules';
 import {
   mapControls,
-  basestationStyles,
   aircraftStyles,
   sarStyles,
   regionStyles,
@@ -223,7 +221,6 @@ export class FBMapComponent implements OnInit, OnDestroy {
     anchor: anchorStyles,
     alarm: alarmStyles,
     destination: destinationStyles,
-    basestation: basestationStyles,
     aircraft: aircraftStyles,
     sar: sarStyles,
     layline: laylineStyles,

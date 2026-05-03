@@ -1079,8 +1079,9 @@ function processAtoN(id: string, v): string {
     const aton = new SKAtoN();
     aton.id = id;
     aton.position = null;
+    aton.type.id = null;
     if (isBaseStation) {
-      aton.type.id = -1;
+      aton.type.id = -2;
       aton.type.name = 'Basestation';
     }
     vessels.atons.set(id, aton);

@@ -194,29 +194,6 @@ export const destinationStyles = {
 };
 
 // ***********
-
-const baseStationIcon = new Icon({
-  src: './assets/img/atons/basestation.svg',
-  scale: 0.4,
-  anchor: [23, 49],
-  anchorXUnits: 'pixels',
-  anchorYUnits: 'pixels',
-  rotateWithView: false,
-  rotation: 0
-});
-
-export const basestationStyles = {
-  default: new Style({
-    image: baseStationIcon,
-    text: new Text({
-      text: '',
-      offsetX: 0,
-      offsetY: -20
-    })
-  })
-};
-
-// ***********
 const aircraftActiveIcon = new Icon({
   src: './assets/img/aircraft_active.png',
   rotateWithView: true,
