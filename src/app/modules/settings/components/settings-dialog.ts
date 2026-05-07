@@ -182,6 +182,20 @@ export class SettingsDialog implements OnInit {
     }
   }
 
+  /** handle route / navigation line style change */
+  onRouteStyle(
+    target: 'activeRoute' | 'defaultRoute' | 'activeSegment' | 'destination',
+    value: { lineStyle: LineStyleDef; config: LineStyleConfig }
+  ) {
+    const st = this.facade.settings.vessels.routing?.[target];
+    if (st) {
+      st.color = value.config.color;
+      st.dash = value.config.dash;
+      st.weight = value.config.weight;
+      this.persistModel();
+    }
+  }
+
   /**
    * toggle display of favourites
    */

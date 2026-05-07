@@ -249,7 +249,7 @@
   <!-- Routes -->
   <fb-routes
     [routes]="skres.routes()"
-    [routeStyles]="featureStyles.route"
+    [routeStyles]="routeFeatureStyles"
     [activeRoute]="activeRoute"
     [darkMode]="app.uiConfig().invertColor"
     [labelMinZoom]="this.app.config.map.labelsMinZoom"
@@ -661,7 +661,9 @@
   @if (anchor.raised() && dfeat.navData.position) {
     @if (dfeat.navData.startPosition) {
       <fb-xte-path
-        [color]=""
+        [color]="app.config.vessels.routing.activeSegment.color"
+        [weight]="app.config.vessels.routing.activeSegment.weight"
+        [dash]="app.config.vessels.routing.activeSegment.dash"
         [startPosition]="dfeat.navData.startPosition"
         [destPosition]="dfeat.navData.position"
         [zIndex]="340"
@@ -696,7 +698,7 @@
         [vesselPosition]="dfeat.active.position"
         [showMarker]="!app.data.activeWaypoint"
         [markerName]="course.courseData().destPointName"
-        [bearingStyles]="featureStyles.destination"
+        [bearingStyles]="destinationFeatureStyles"
         [labelMinZoom]="this.app.config.map.labelsMinZoom"
         [mapZoom]="mapZoomLevel()"
         [zIndex]="335"

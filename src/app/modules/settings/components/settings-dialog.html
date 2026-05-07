@@ -877,6 +877,79 @@
                 </div>
                 <div class="setting-card-row-item">
                   <fieldset>
+                    <legend>Route &amp; Navigation Line Styles</legend>
+                    <div class="setting-card-row" style="padding-bottom: 10px">
+                      <div class="setting-card-row-item">
+                        <fieldset>
+                          <legend>Active Route</legend>
+                          <div class="setting-card-row" style="padding-bottom: 10px">
+                            <div class="setting-card-row-item">
+                              <linestyle-select
+                                [color]="facade.settings.vessels.routing.activeRoute.color"
+                                [dash]="facade.settings.vessels.routing.activeRoute.dash"
+                                [weight]="facade.settings.vessels.routing.activeRoute.weight"
+                                (selectionChange)="onRouteStyle('activeRoute', $event)"
+                              ></linestyle-select>
+                            </div>
+                          </div>
+                        </fieldset>
+                      </div>
+                    </div>
+                    <div class="setting-card-row" style="padding-bottom: 10px">
+                      <div class="setting-card-row-item">
+                        <fieldset>
+                          <legend>Other Routes</legend>
+                          <div class="setting-card-row" style="padding-bottom: 10px">
+                            <div class="setting-card-row-item">
+                              <linestyle-select
+                                [color]="facade.settings.vessels.routing.defaultRoute.color"
+                                [dash]="facade.settings.vessels.routing.defaultRoute.dash"
+                                [weight]="facade.settings.vessels.routing.defaultRoute.weight"
+                                (selectionChange)="onRouteStyle('defaultRoute', $event)"
+                              ></linestyle-select>
+                            </div>
+                          </div>
+                        </fieldset>
+                      </div>
+                    </div>
+                    <div class="setting-card-row" style="padding-bottom: 10px">
+                      <div class="setting-card-row-item">
+                        <fieldset>
+                          <legend>Active Segment</legend>
+                          <div class="setting-card-row" style="padding-bottom: 10px">
+                            <div class="setting-card-row-item">
+                              <linestyle-select
+                                [color]="facade.settings.vessels.routing.activeSegment.color"
+                                [dash]="facade.settings.vessels.routing.activeSegment.dash"
+                                [weight]="facade.settings.vessels.routing.activeSegment.weight"
+                                (selectionChange)="onRouteStyle('activeSegment', $event)"
+                              ></linestyle-select>
+                            </div>
+                          </div>
+                        </fieldset>
+                      </div>
+                    </div>
+                    <div class="setting-card-row" style="padding-bottom: 10px">
+                      <div class="setting-card-row-item">
+                        <fieldset>
+                          <legend>Destination Bearing Line</legend>
+                          <div class="setting-card-row" style="padding-bottom: 10px">
+                            <div class="setting-card-row-item">
+                              <linestyle-select
+                                [color]="facade.settings.vessels.routing.destination.color"
+                                [dash]="facade.settings.vessels.routing.destination.dash"
+                                [weight]="facade.settings.vessels.routing.destination.weight"
+                                (selectionChange)="onRouteStyle('destination', $event)"
+                              ></linestyle-select>
+                            </div>
+                          </div>
+                        </fieldset>
+                      </div>
+                    </div>
+                  </fieldset>
+                </div>
+                <div class="setting-card-row-item">
+                  <fieldset>
                     <legend>
                       <mat-checkbox
                         [(ngModel)]="facade.settings.vessels.rangeCircles"

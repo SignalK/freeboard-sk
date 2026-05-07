@@ -41,13 +41,14 @@ import { CoordsPipe } from 'src/app/lib/pipes';
 
 import { computeDestinationPoint, getGreatCircleBearing } from 'geolib';
 import { toLonLat } from 'ol/proj';
-import { Style, Stroke, Fill } from 'ol/style';
+import { Style, Stroke, Fill, Circle, Text } from 'ol/style';
 import { Collection, Feature } from 'ol';
 import { Feature as GeoJsonFeature } from 'geojson';
 
 import { Convert } from 'src/app/lib/convert';
 import { GeoUtils, Angle } from 'src/app/lib/geoutils';
 import { LineString, MultiLineString, Position } from 'src/app/types';
+import { lineDashFor } from './ol/lib/util';
 
 import { AppFacade } from 'src/app/app.facade';
 
@@ -213,6 +214,54 @@ export class FBMapComponent implements OnInit, OnDestroy {
   protected mapRotation = signal<number>(0);
 
   protected showNoteslayer = signal<boolean>(false); //control notes layer display
+
+  /** Route line styles built dynamically from config */
+  protected get routeFeatureStyles() {
+    const r = this.app.config.vessels.routing;
+    const defDash = lineDashFor(r.defaultRoute.dash, r.defaultRoute.weight);
+    return {
+      active: new Style({
+        stroke: new Stroke({
+          color: r.activeRoute.color,
+          width: r.activeRoute.weight,
+          lineDash: lineDashFor(r.activeRoute.dash, r.activeRoute.weight)
+        })
+      }),
+      default: new Style({
+        stroke: new Stroke({
+          color: r.defaultRoute.color,
+          width: r.defaultRoute.weight,
+          lineDash: defDash.length ? defDash : undefined
+        }),
+        text: new Text({ text: '', offsetY: 10 })
+      })
+    };
+  }
+
+  /** Destination bearing-line styles built dynamically from config */
+  protected get destinationFeatureStyles() {
+    const d = this.app.config.vessels.routing.destination;
+    const dash = lineDashFor(d.dash, d.weight);
+    return {
+      ...destinationStyles,
+      line: [
+        new Style({ stroke: new Stroke({ color: 'white', width: d.weight + 4 }) }),
+        new Style({
+          image: new Circle({
+            radius: 5,
+            stroke: new Stroke({ width: 2, color: 'white' }),
+            fill: new Fill({ color: d.color })
+          }),
+          stroke: new Stroke({
+            color: d.color,
+            width: d.weight,
+            lineDash: dash.length ? dash : undefined
+          }),
+          text: new Text({ text: '', offsetY: -29 })
+        })
+      ]
+    };
+  }
 
   // ** map feature styles
   protected featureStyles = {

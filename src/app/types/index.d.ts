@@ -163,6 +163,12 @@ export interface IAppConfig {
       next23: string;
       beyond24: string;
     };
+    routing: {
+      activeRoute: LineStyleConfig;  // active route line
+      defaultRoute: LineStyleConfig; // inactive / other route lines
+      activeSegment: LineStyleConfig; // current leg (XTE reference track)
+      destination: LineStyleConfig;  // vessel-to-next-waypoint bearing line
+    };
   };
   resources: {
     // ** resource options

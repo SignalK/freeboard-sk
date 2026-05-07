@@ -198,6 +198,12 @@ export function cleanConfig(
         lastHour: '5s',
         next23: '1m',
         beyond24: '5m'
+      },
+      routing: {
+        activeRoute: { color: 'blue', weight: 4, dash: 'none' },
+        defaultRoute: { color: 'green', weight: 2, dash: 'long' },
+        activeSegment: { color: 'gray', weight: 1, dash: 'medium' },
+        destination: { color: 'rgba(221, 149, 0, 1)', weight: 2, dash: 'none' }
       }
     };
   } else {
@@ -231,6 +237,14 @@ export function cleanConfig(
       // @todo remove (implemented) v2.22.2
       delete (settings as any).vessels.cogLine;
       delete (settings as any).vessels.headingLineSize;
+    }
+    if (typeof settings.vessels.routing === 'undefined') {
+      settings.vessels.routing = {
+        activeRoute: { color: 'blue', weight: 4, dash: 'none' },
+        defaultRoute: { color: 'green', weight: 2, dash: 'long' },
+        activeSegment: { color: 'gray', weight: 1, dash: 'medium' },
+        destination: { color: 'rgba(221, 149, 0, 1)', weight: 2, dash: 'none' }
+      };
     }
   }
 
@@ -479,6 +493,12 @@ export function defaultConfig(): IAppConfig {
         lastHour: '5s',
         next23: '1m',
         beyond24: '5m'
+      },
+      routing: {
+        activeRoute: { color: 'blue', weight: 4, dash: 'none' },
+        defaultRoute: { color: 'green', weight: 2, dash: 'long' },
+        activeSegment: { color: 'gray', weight: 1, dash: 'medium' },
+        destination: { color: 'rgba(221, 149, 0, 1)', weight: 2, dash: 'none' }
       }
     },
     resources: {

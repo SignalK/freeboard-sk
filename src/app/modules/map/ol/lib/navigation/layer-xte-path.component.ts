@@ -19,7 +19,7 @@ import { Style, Stroke, Fill } from 'ol/style';
 import { LineString } from 'ol/geom';
 import { MapComponent } from '../map.component';
 import { Extent, Coordinate } from '../models';
-import { fromLonLatArray, mapifyCoords } from '../util';
+import { fromLonLatArray, mapifyCoords, lineDashFor } from '../util';
 import { AsyncSubject } from 'rxjs';
 
 // ** Freeboard XTE path component **
@@ -43,6 +43,8 @@ export class XTEPathComponent implements OnInit, OnDestroy, OnChanges {
   protected startPosition = input<Coordinate>();
   protected destPosition = input<Coordinate>();
   protected color = input<string>();
+  protected weight = input<number>();
+  protected dash = input<string>();
 
   @Input() opacity: number;
   @Input() visible: boolean;
@@ -64,6 +66,8 @@ export class XTEPathComponent implements OnInit, OnDestroy, OnChanges {
       this.startPosition();
       this.destPosition();
       this.color();
+      this.weight();
+      this.dash();
       this.parseValues();
       if (this.source) {
         this.source.clear();
@@ -141,11 +145,12 @@ export class XTEPathComponent implements OnInit, OnDestroy, OnChanges {
     } else {
       // default style
       const color = this.color() ?? 'gray';
+      const ld = lineDashFor(this.dash() ?? 'medium', this.weight() ?? 1);
       cs = new Style({
         stroke: new Stroke({
-          width: 1,
+          width: this.weight() ?? 1,
           color: color,
-          lineDash: [5, 5]
+          lineDash: ld.length ? ld : [5, 5]
         }),
         fill: new Fill({
           color: 'rgba(255,0,0,.2)'
