@@ -410,16 +410,48 @@ const PROP_DISPLAY: { key: string; label: string }[] = [
   { key: 'HORWID', label: 'Width' }
 ];
 
+// Normalise an S-57 list-typed value (COLOUR, STATUS, …) into a flat array
+// of code strings. Different chart producers and MBTiles converters serialise
+// these differently:
+//   - flat scalar:           "3"           (preferred — newer charts)
+//   - comma-separated:       "3,1"
+//   - native array:          ["3", "1"]    (rare, but possible)
+//   - JSON-stringified array: '["3","1"]'  (legacy MBTiles where an
+//     intermediate GeoJSON→MVT step stringified arrays)
+function toCodeList(val: unknown): string[] {
+  if (Array.isArray(val)) {
+    return val.map((v) => String(v).trim()).filter((v) => v !== '');
+  }
+  const s = String(val).trim();
+  if (s === '' || s === '[]') {
+    return [];
+  }
+  if (s.startsWith('[') && s.endsWith(']')) {
+    try {
+      const parsed = JSON.parse(s) as unknown;
+      if (Array.isArray(parsed)) {
+        return parsed.map((v) => String(v).trim()).filter((v) => v !== '');
+      }
+    } catch {
+      // not JSON — fall through to comma-split
+    }
+  }
+  return s
+    .split(',')
+    .map((v) => v.trim())
+    .filter((v) => v !== '');
+}
+
 function decodeValue(key: string, val: unknown): string {
-  const s = String(val);
+  const codes = toCodeList(val);
+  if (codes.length === 0) {
+    return '';
+  }
   const table = DECODE_TABLES[key];
   if (!table) {
-    return s;
+    return codes.join(', ');
   }
-  // Handle comma-separated multi-values (e.g. COLOUR "1,3")
-  const parts = s.split(',');
-  const decoded = parts.map((p) => table[p.trim()] || p.trim());
-  return decoded.join(', ');
+  return codes.map((c) => table[c] || c).join(', ');
 }
 
 const DEPTH_KEYS = new Set(['DEPTH', 'VALSOU', 'DRVAL1', 'DRVAL2', 'VALDCO']);
