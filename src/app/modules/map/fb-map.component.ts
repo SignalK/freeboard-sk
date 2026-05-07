@@ -262,6 +262,16 @@ export class FBMapComponent implements OnInit, OnDestroy {
     };
   }
 
+  /** Self trail style — spread to create new reference so OnPush child detects changes */
+  protected get selfTrailStyleConfig() {
+    return { ...this.app.config.vessels.selfTrailStyle };
+  }
+
+  /** AIS track style — spread to create new reference so OnPush child detects changes */
+  protected get aisTrackStyleConfig() {
+    return { ...this.app.config.vessels.aisTrackStyle };
+  }
+
   // ** map feature styles
   protected featureStyles = {
     route: routeStyles,

@@ -883,6 +883,45 @@
                 </div>
                 <div class="setting-card-row-item">
                   <fieldset>
+                    <legend>Trail &amp; Track Styles</legend>
+                    <div class="setting-card-row" style="padding-bottom: 10px">
+                      <div class="setting-card-row-item">
+                        <fieldset>
+                          <legend>Self Vessel Trail</legend>
+                          <div class="setting-card-row" style="padding-bottom: 10px">
+                            <div class="setting-card-row-item">
+                              <linestyle-select
+                                [color]="facade.settings.vessels.selfTrailStyle.color"
+                                [dash]="facade.settings.vessels.selfTrailStyle.dash"
+                                [weight]="facade.settings.vessels.selfTrailStyle.weight"
+                                (selectionChange)="onTrailStyle('self', $event)"
+                              ></linestyle-select>
+                            </div>
+                          </div>
+                        </fieldset>
+                      </div>
+                    </div>
+                    <div class="setting-card-row" style="padding-bottom: 10px">
+                      <div class="setting-card-row-item">
+                        <fieldset>
+                          <legend>AIS Target Tracks</legend>
+                          <div class="setting-card-row" style="padding-bottom: 10px">
+                            <div class="setting-card-row-item">
+                              <linestyle-select
+                                [color]="facade.settings.vessels.aisTrackStyle.color"
+                                [dash]="facade.settings.vessels.aisTrackStyle.dash"
+                                [weight]="facade.settings.vessels.aisTrackStyle.weight"
+                                (selectionChange)="onTrailStyle('ais', $event)"
+                              ></linestyle-select>
+                            </div>
+                          </div>
+                        </fieldset>
+                      </div>
+                    </div>
+                  </fieldset>
+                </div>
+                <div class="setting-card-row-item">
+                  <fieldset>
                     <legend>Route &amp; Navigation Line Styles</legend>
                     <div class="setting-card-row" style="padding-bottom: 10px">
                       <div class="setting-card-row-item">

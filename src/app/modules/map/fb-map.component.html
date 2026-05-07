@@ -222,6 +222,7 @@
       [updateIds]="skstream.aisStatus().updated"
       [removeIds]="skstream.aisStatus().expired"
       [mapZoom]="mapZoomLevel()"
+      [aisTrackStyle]="aisTrackStyleConfig"
       zIndex="110"
     >
     </ais-targets-track>
@@ -781,6 +782,7 @@
       [localTrail]="app.selfTrail()"
       [serverTrail]="app.selfTrailFromServer()"
       [trailStyles]=""
+      [selfTrailStyle]="selfTrailStyleConfig"
       [zIndex]="990"
     >
     </fb-vessel-trail>

@@ -9,6 +9,11 @@ export interface ILineLengthDef {
   value: number; // px | minutes | nmi
 }
 
+import {
+  LineStyleDash,
+  LineStyleConfig
+} from '../modules/settings/components/linestyle-select.component';
+export { LineStyleDash, LineStyleConfig };
 import { FBCharts, FBRoute } from './resources/freeboard';
 import {
   SKMeteo,
@@ -177,6 +182,8 @@ export interface IAppConfig {
       activeSegment: LineStyleConfig; // current leg (XTE reference track)
       destination: LineStyleConfig;  // vessel-to-next-waypoint bearing line
     };
+    selfTrailStyle: LineStyleConfig; // style of self vessel trail line
+    aisTrackStyle: LineStyleConfig;  // style of AIS target track lines
   };
   resources: {
     // ** resource options

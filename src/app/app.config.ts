@@ -204,6 +204,16 @@ export function cleanConfig(
         defaultRoute: { color: 'green', weight: 2, dash: 'long' },
         activeSegment: { color: 'gray', weight: 1, dash: 'medium' },
         destination: { color: 'rgba(221, 149, 0, 1)', weight: 2, dash: 'none' }
+      },
+      selfTrailStyle: {
+        color: 'rgb(252, 3, 132)',
+        weight: 1,
+        dash: 'short'
+      },
+      aisTrackStyle: {
+        color: 'rgb(255, 0, 255)',
+        weight: 1,
+        dash: 'short'
       }
     };
   } else {
@@ -260,6 +270,20 @@ export function cleanConfig(
         defaultRoute: { color: 'green', weight: 2, dash: 'long' },
         activeSegment: { color: 'gray', weight: 1, dash: 'medium' },
         destination: { color: 'rgba(221, 149, 0, 1)', weight: 2, dash: 'none' }
+      };
+    }
+    if (typeof settings.vessels.selfTrailStyle === 'undefined') {
+      settings.vessels.selfTrailStyle = {
+        color: 'rgb(252, 3, 132)',
+        weight: 1,
+        dash: 'short'
+      };
+    }
+    if (typeof settings.vessels.aisTrackStyle === 'undefined') {
+      settings.vessels.aisTrackStyle = {
+        color: 'rgb(255, 0, 255)',
+        weight: 1,
+        dash: 'short'
       };
     }
   }
@@ -515,6 +539,16 @@ export function defaultConfig(): IAppConfig {
         defaultRoute: { color: 'green', weight: 2, dash: 'long' },
         activeSegment: { color: 'gray', weight: 1, dash: 'medium' },
         destination: { color: 'rgba(221, 149, 0, 1)', weight: 2, dash: 'none' }
+      },
+      selfTrailStyle: {
+        color: 'rgb(252, 3, 132)',
+        weight: 1,
+        dash: 'short'
+      },
+      aisTrackStyle: {
+        color: 'rgb(255, 0, 255)',
+        weight: 1,
+        dash: 'short'
       }
     },
     resources: {

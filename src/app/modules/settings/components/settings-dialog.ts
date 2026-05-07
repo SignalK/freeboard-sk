@@ -196,6 +196,21 @@ export class SettingsDialog implements OnInit {
     }
   }
 
+  /** handle trail / AIS track style change */
+  onTrailStyle(
+    target: 'self' | 'ais',
+    value: { lineStyle: LineStyleDef; config: LineStyleConfig }
+  ) {
+    const key = target === 'self' ? 'selfTrailStyle' : 'aisTrackStyle';
+    const st = this.facade.settings.vessels[key];
+    if (st) {
+      st.color = value.config.color;
+      st.dash = value.config.dash;
+      st.weight = value.config.weight;
+      this.persistModel();
+    }
+  }
+
   /**
    * toggle display of favourites
    */
