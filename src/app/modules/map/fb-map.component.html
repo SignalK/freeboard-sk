@@ -726,10 +726,22 @@
     >
     </fb-range-circles>
   }
-  @if (app.config.vessels.cogLine !== 0) {
+
+  @if (app.config.vessels.selfLines.cog.length !== 0) {
+    <fb-heading-line
+      [coords]="vesselLines().heading"
+      [lineStyle]="app.selfLines().heading"
+      [mapZoom]="mapZoomLevel()"
+      [zIndex]="344"
+    >
+    </fb-heading-line>
+  }
+
+  @if (app.config.vessels.selfLines.cog.length !== 0) {
     <fb-cog-line
       [coords]="vesselLines().cog"
-      [cogTime]="app.config.vessels.cogLine"
+      [cogTime]="app.config.vessels.selfLines.cog.length"
+      [lineStyle]="app.selfLines().cog"
       [units]="app.config.units.distance"
       [darkMode]="app.uiConfig().invertColor"
       [labelMinZoom]="this.app.config.map.labelsMinZoom"
@@ -756,7 +768,6 @@
     [heading]="dfeat.self.orientation"
     [id]="'' + app.data.selfId"
     [activeId]="app.data.vessels.activeId"
-    [vesselLines]="vesselLines()"
     [iconScale]="app.config.vessels.iconScale"
     [fixedLocation]="app.config.vessels.fixedLocationMode"
     [zIndex]="999"

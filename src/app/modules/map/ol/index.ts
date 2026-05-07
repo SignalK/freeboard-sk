@@ -28,6 +28,7 @@ import { CPAAlarmComponent } from './lib/alarms/layer-cpa-alarm.component';
 import { ArrivalCircleComponent } from './lib/navigation/layer-arrival-circle.component';
 import { XTEPathComponent } from './lib/navigation/layer-xte-path.component';
 import { BearingLineComponent } from './lib/navigation/layer-bearing-line.component';
+import { HeadingLineComponent } from './lib/navigation/layer-heading-line.component';
 import { LaylineComponent } from './lib/navigation/layer-layline.component';
 import { TargetAngleComponent } from './lib/navigation/layer-target-angle.component';
 import { DirectionOfTravelComponent } from './lib/navigation/layer-dot.component';
@@ -84,6 +85,7 @@ export { CPAAlarmComponent } from './lib/alarms/layer-cpa-alarm.component';
 export { ArrivalCircleComponent } from './lib/navigation/layer-arrival-circle.component';
 export { XTEPathComponent } from './lib/navigation/layer-xte-path.component';
 export { BearingLineComponent } from './lib/navigation/layer-bearing-line.component';
+export { HeadingLineComponent } from './lib/navigation/layer-heading-line.component';
 export { LaylineComponent } from './lib/navigation/layer-layline.component';
 export { TargetAngleComponent } from './lib/navigation/layer-target-angle.component';
 export { DirectionOfTravelComponent } from './lib/navigation/layer-dot.component';
@@ -135,6 +137,7 @@ const declarations = [
   ArrivalCircleComponent,
   XTEPathComponent,
   BearingLineComponent,
+  HeadingLineComponent,
   LaylineComponent,
   TargetAngleComponent,
   VesselComponent,

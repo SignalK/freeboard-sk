@@ -50,6 +50,10 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { Extent } from 'ol/extent';
 import { GeoUtils } from './lib/geoutils';
 import { S57Service } from './modules/map/ol';
+import {
+  LineStyleDash,
+  LineStyleDef
+} from './modules/settings/components/linestyle-select.component';
 
 /** Parent Window message */
 interface ParentMessage {
@@ -218,6 +222,24 @@ export class AppFacade extends InfoService {
     buddyList: false
   });
 
+  selfLines = signal<{ cog: LineStyleDef; heading: LineStyleDef }>({
+    cog: {
+      fill: { color: 'rgba(204, 12, 225, 0.7)' },
+      stroke: {
+        color: 'rgba(204, 12, 225, 0.7)',
+        width: 1,
+        lineDash: null
+      }
+    },
+    heading: {
+      fill: { color: 'rgba(221, 99, 0, 0.5)' },
+      stroke: {
+        color: 'rgba(221, 99, 0, 0.5)',
+        width: 4,
+        lineDash: null
+      }
+    }
+  });
   selfTrail = signal<LineString>([]); // vessel trail from indexedDB
   selfTrailFromServer = signal<LineString>([]); // vessel trail from server
   mapExtent = signal<Extent>([]); // map viewport extent
@@ -363,6 +385,26 @@ export class AppFacade extends InfoService {
     this.doPostConfigLoad();
   }
 
+  // line dash style helpers
+  get lineDashMap() {
+    return new Map([
+      ['none', 'none'],
+      ['short', '2 2'],
+      ['medium', '4 4'],
+      ['long', '8 4'],
+      ['alt', '8 4 2 4']
+    ]);
+  }
+
+  // line dash style format helpers
+  formatLineDashArray(value: LineStyleDash): number[] | null {
+    return value === 'none'
+      ? null
+      : Array.from(this.lineDashMap.get(value))
+          .filter((i) => i !== ' ')
+          .map((i) => Number(i));
+  }
+
   /** Initialise and raise "settings$.load" event */
   private doPostConfigLoad() {
     // initialise signals
@@ -374,6 +416,32 @@ export class AppFacade extends InfoService {
       this.data.vessels.showSelf = true;
       this.config.map.center = [...this.config.vessels.fixedPosition];
     }
+
+    this.selfLines.update((current) => {
+      const c = {
+        cog: {
+          fill: { color: this.config.vessels.selfLines.cog.color },
+          stroke: {
+            color: this.config.vessels.selfLines.cog.color,
+            width: this.config.vessels.selfLines.cog.weight,
+            lineDash: this.formatLineDashArray(
+              this.config.vessels.selfLines.cog.dash
+            )
+          }
+        },
+        heading: {
+          fill: { color: this.config.vessels.selfLines.heading.color },
+          stroke: {
+            color: this.config.vessels.selfLines.heading.color,
+            width: this.config.vessels.selfLines.heading.weight,
+            lineDash: this.formatLineDashArray(
+              this.config.vessels.selfLines.heading.dash
+            )
+          }
+        }
+      };
+      return c;
+    });
 
     this.sTrueMagChoice.set(this.config.units.headingAttribute);
     this.s57.setOptions(this.config.map.s57Options);

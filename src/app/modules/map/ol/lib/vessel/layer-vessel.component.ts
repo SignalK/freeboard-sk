@@ -14,11 +14,10 @@ import { Feature } from 'ol';
 import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
 import { Style, Stroke, Icon } from 'ol/style';
-import { Geometry, Point, LineString } from 'ol/geom';
+import { Geometry, Point } from 'ol/geom';
 import { fromLonLat } from 'ol/proj';
 import { MapComponent } from '../map.component';
 import { Extent, Coordinate } from '../models';
-import { fromLonLatArray } from '../util';
 import { AsyncSubject } from 'rxjs';
 import { Options } from 'ol/style/Icon';
 
@@ -79,7 +78,6 @@ export class VesselComponent implements OnInit, OnDestroy, OnChanges {
   @Input() position: Coordinate;
   @Input() heading = 0;
   @Input() vesselStyles: { [key: string]: Style };
-  @Input() vesselLines: { [key: string]: Array<Coordinate> };
   @Input() fixedLocation: boolean;
   @Input() iconScale = 1;
   @Input() opacity: number;
@@ -92,7 +90,6 @@ export class VesselComponent implements OnInit, OnDestroy, OnChanges {
   @Input() layerProperties: { [index: string]: any };
 
   vessel: Feature;
-  headingLine: Feature;
   selfStyle: Style;
 
   constructor(
@@ -107,10 +104,6 @@ export class VesselComponent implements OnInit, OnDestroy, OnChanges {
     this.parseVessel();
     if (this.vessel) {
       fa.push(this.vessel);
-    }
-    this.renderVesselLines();
-    if (this.headingLine) {
-      fa.push(this.headingLine);
     }
 
     this.source = new VectorSource({ features: fa });
@@ -141,10 +134,6 @@ export class VesselComponent implements OnInit, OnDestroy, OnChanges {
         ) {
           if (this.source) {
             this.parseVessel();
-          }
-        } else if (key === 'vesselLines') {
-          if (this.source) {
-            this.renderVesselLines();
           }
         } else if (key === 'vesselStyles' || key === 'iconScale') {
           if (this.source) {
@@ -251,47 +240,5 @@ export class VesselComponent implements OnInit, OnDestroy, OnChanges {
       }
     }
     return cs;
-  }
-
-  // remove feature from layer
-  removeFeature(f: Feature) {
-    if (this.source) {
-      this.source.removeFeature(f);
-    }
-  }
-
-  renderVesselLines() {
-    if (!this.vesselLines) {
-      return;
-    }
-    if ('heading' in this.vesselLines) {
-      this.headingLine = this.updateLine(
-        this.headingLine,
-        this.vesselLines.heading
-      );
-      this.headingLine.setStyle(
-        new Style({
-          stroke: new Stroke({ color: 'rgba(221, 99, 0, 0.5)', width: 4 })
-        })
-      );
-    } else {
-      this.removeFeature(this.headingLine);
-    }
-  }
-
-  // ** update line geometry **
-  updateLine(lf: Feature, coords: Array<Coordinate>) {
-    if (!coords || !Array.isArray(coords)) {
-      return;
-    }
-    if (!lf) {
-      // create feature
-      lf = new Feature(new LineString(fromLonLatArray(coords)));
-    } else {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const g: any = lf.getGeometry();
-      g.setCoordinates(fromLonLatArray(coords));
-    }
-    return lf;
   }
 }
