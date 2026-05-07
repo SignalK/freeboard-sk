@@ -110,7 +110,7 @@ const aisMgr = {
   maxTrack: 20 // max point count in track
 };
 
-let vesselPrefs = { cogLine: 10, aisCogLine: 10 }; // selections.vessel
+let vesselPrefs = { selfLines: { cog: { length: 10 } }, aisCogLine: 10 }; // selections.vessel
 
 // ** Vessel trail management **
 const trailMgr: VesselTrailConfig = {
@@ -999,7 +999,9 @@ function processVessel(d: SKVessel, v: any, isSelf = false) {
   // ** cog vector **
   const cog = d.cogTrue ?? d.cogMagnetic ?? undefined;
   if (typeof cog !== 'undefined' && d.position) {
-    const cogLen = isSelf ? vesselPrefs.cogLine : vesselPrefs.aisCogLine;
+    const cogLen = isSelf
+      ? vesselPrefs.selfLines.cog.length
+      : vesselPrefs.aisCogLine;
     const cvlen = (d.sog ?? 0) * (cogLen * 60);
     d.vectors.cog = [
       d.position,

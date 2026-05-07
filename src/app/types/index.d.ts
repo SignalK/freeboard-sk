@@ -129,9 +129,21 @@ export interface IAppConfig {
     trail: boolean; // display trail
     windVectors: boolean; // display vessel TWD, AWD vectors
     laylines: boolean;
-    cogLine: number; // (minutes) length = cogLine * sog
+    selfLines: {
+      cog: {
+        length: number; // (minutes) length = cogLine * sog
+        color: string;
+        weight: number;
+        dash: LineStyleDash;
+      };
+      heading: {
+        length: number; // mode for display of heading line -1 = default
+        color: string;
+        weight: number;
+        dash: LineStyleDash;
+      };
+    };
     aisCogLine: number; // (minutes) length = cogLine * sog
-    headingLineSize: number; // mode for display of heading line -1 = default
     iconScale: number; // scale to apply to self Vessel icon
     rangeCircles: boolean; //display range circles
     rangeCirclesFixed: boolean; // use a fixed distance rather than zoom level calc

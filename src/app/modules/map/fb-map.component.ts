@@ -1444,12 +1444,13 @@ export class FBMapComponent implements OnInit, OnDestroy {
 
       const sog = this.dfeat.active.sog || 0;
       let hl = 0;
-      if (this.app.config.vessels.headingLineSize === -1) {
+      if (this.app.config.vessels.selfLines.heading.length === -1) {
         hl = (sog > wMax ? wMax : sog) * offset;
       } else {
         hl =
-          Convert.nauticalMilesToKm(this.app.config.vessels.headingLineSize) *
-          1000;
+          Convert.nauticalMilesToKm(
+            this.app.config.vessels.selfLines.heading.length
+          ) * 1000;
       }
       const heading = [
         this.dfeat.active.position,

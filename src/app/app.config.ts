@@ -23,22 +23,22 @@ export function cleanConfig(
   /** v2 formatting */
   if (typeof settings.ui === 'undefined') {
     settings.ui = {
-      mapNorthUp: (settings as any).map.northUp ?? true,
-      mapMove: (settings as any).map.moveMap ?? false,
-      mapConstrainZoom: (settings as any).map.limitZoom ?? false,
-      invertColor: (settings as any).map.invertColor ?? false,
-      toolbarButtons: (settings as any).toolBarButtons ?? true,
-      showCourseData: (settings as any).courseData ?? true,
-      showAisTargets: (settings as any).aisTargets ?? true,
+      mapNorthUp: true,
+      mapMove: false,
+      mapConstrainZoom: false,
+      invertColor: false,
+      toolbarButtons: true,
+      showCourseData: true,
+      showAisTargets: true,
       showNotes: true,
-      autoNightMode: (settings as any).autoNightMode ?? false
+      autoNightMode: false
     };
   } else {
     if (typeof settings.ui.showCourseData === 'undefined') {
-      settings.ui.showCourseData = (settings as any).courseData ?? true;
+      settings.ui.showCourseData = true;
     }
     if (typeof settings.ui.showAisTargets === 'undefined') {
-      settings.ui.showAisTargets = (settings as any).aisTargets ?? true;
+      settings.ui.showAisTargets = true;
     }
     if (typeof settings.ui.showNotes === 'undefined') {
       settings.ui.showNotes = true;
@@ -49,19 +49,18 @@ export function cleanConfig(
     settings.display = {
       fab: 'wpt',
       disableWakelock: false,
-      darkMode: (settings as any).darkMode ?? { enabled: false, source: 0 }, // source: 0= browser default, 1= Signal K mode, -1=manual)
-      nightMode: (settings as any).nightMode ?? false, // auto set night mode based on environment.mode
-      muteSound: (settings as any).muteSound ?? false,
-      depthAlarm: (settings as any).depthAlarm ?? {
+      darkMode: { enabled: false, source: 0 }, // source: 0= browser default, 1= Signal K mode, -1=manual)
+      nightMode: false, // auto set night mode based on environment.mode
+      muteSound: false,
+      depthAlarm: {
         enabled: false,
         smoothing: 10000
       },
       plugins: {
-        instruments:
-          (settings as any).plugins.instruments ?? '/@signalk/instrumentpanel',
-        startOnOpen: (settings as any).plugins.startOnOpen ?? true,
-        parameters: (settings as any).plugins.parameters ?? null,
-        favourites: (settings as any).selections.pluginFavourites ?? []
+        instruments: '/@signalk/instrumentpanel',
+        startOnOpen: true,
+        parameters: null,
+        favourites: []
       }
     };
   }
@@ -91,18 +90,16 @@ export function cleanConfig(
 
   if (typeof settings.map.s57Options === 'undefined') {
     settings.map.s57Options = {
-      graphicsStyle:
-        (settings as any).selections.s57Options.graphicsStyle ?? 'Paper',
-      boundaries: (settings as any).selections.s57Options.boundaries ?? 'Plain',
-      colors: (settings as any).selections.s57Options.colors ?? 4,
-      shallowDepth: (settings as any).selections.s57Options.shallowDepth ?? 2,
-      safetyDepth: (settings as any).selections.s57Options.safetyDepth ?? 3,
-      deepDepth: (settings as any).selections.s57Options.deepDepth ?? 6,
+      graphicsStyle: 'Paper',
+      boundaries: 'Plain',
+      colors: 4,
+      shallowDepth: 2,
+      safetyDepth: 3,
+      deepDepth: 6,
       colorTable: 0,
       otherLayers: DefaultOptions.otherLayers,
       depthUnit: settings.units.depth ?? 'm'
     };
-    delete (settings as any).selections.s57Options; //@todo for removal
   } else {
     if (typeof settings.map.s57Options.otherLayers === 'undefined') {
       settings.map.s57Options.otherLayers = DefaultOptions.otherLayers;
@@ -113,32 +110,29 @@ export function cleanConfig(
   }
 
   if (typeof settings.map.labelsMinZoom === 'undefined') {
-    settings.map.labelsMinZoom =
-      (settings as any).selections.labelsMinZoom ?? 8;
+    settings.map.labelsMinZoom = 8;
   }
   if (typeof settings.map.lockMoveMap === 'undefined') {
     settings.map.lockMoveMap = false;
   }
   if (typeof settings.map.popoverMulti === 'undefined') {
-    settings.map.popoverMulti = (settings as any).popoverMulti ?? false;
+    settings.map.popoverMulti = false;
   }
   if (typeof settings.map.centerOffset === 'undefined') {
     settings.map.centerOffset = 0;
   }
   if (typeof settings.map.doubleClickZoom === 'undefined') {
-    settings.map.doubleClickZoom = (settings as any).mapDoubleClick ?? false;
+    settings.map.doubleClickZoom = false;
   }
   if (typeof settings.map.overZoomTiles === 'undefined') {
     settings.map.overZoomTiles = true;
   }
 
   if (!settings.units.positionFormat) {
-    settings.units.positionFormat =
-      (settings as any).selections.positionFormat ?? 'XY';
+    settings.units.positionFormat = 'XY';
   }
   if (typeof settings.units.headingAttribute === 'undefined') {
-    settings.units.headingAttribute =
-      (settings as any).selections.headingAttribute ?? 'navigation.headingTrue';
+    settings.units.headingAttribute = 'navigation.headingTrue';
   }
   if (typeof settings.units.preferredPaths === 'undefined') {
     settings.units.preferredPaths = {
@@ -153,7 +147,7 @@ export function cleanConfig(
   }
 
   if (typeof settings.course === 'undefined') {
-    settings.course = (settings as any).selections.course ?? {
+    settings.course = {
       autoNextPointOnArrival: false,
       autoNextPointDelay: 5000,
       autoNextPointTrigger: 'perpendicularPassed',
@@ -167,29 +161,40 @@ export function cleanConfig(
 
   if (typeof settings.vessels === 'undefined') {
     settings.vessels = {
-      fixedLocationMode: (settings as any).fixedLocationMode ?? false,
-      fixedPosition: (settings as any).fixedPosition ?? [0, 0],
-      trail: (settings as any).selections.vessel.trail ?? true,
-      windVectors: (settings as any).selections.vessel.windVectors ?? true,
-      laylines: (settings as any).selections.vessel.laylines ?? false,
-      cogLine: (settings as any).selections.vessel.cogLine ?? 10,
-      aisCogLine: (settings as any).selections.vessel.aisCogLine ?? 10,
-      headingLineSize:
-        (settings as any).selections.vessel.headingLineSize ?? -1,
-      iconScale: (settings as any).selections.vessel.iconScale ?? 0.9,
+      fixedLocationMode: false,
+      fixedPosition: [0, 0],
+      trail: true,
+      windVectors: true,
+      laylines: false,
+      selfLines: {
+        cog: {
+          length: 10, // (minutes) length = cogLine * sog
+          color: 'rgba(204, 12, 225, 0.7)',
+          weight: 1,
+          dash: 'none'
+        },
+        heading: {
+          length: -1, // mode for display of heading line -1 = default
+          color: 'rgba(221, 99, 0, 0.5)',
+          weight: 4,
+          dash: 'none'
+        }
+      },
+      aisCogLine: 10,
+      iconScale: 0.9,
       rangeCircles: false,
       rangeCirclesFixed: false,
       rangeCirclesDistance: 1000,
       rangeCircleCount: 4,
       rangeCircleMinZoom: 8,
-      aisStaleAge: (settings as any).selections.aisStaleAge ?? 360000,
-      aisMaxAge: (settings as any).selections.aisMaxAge ?? 540000,
-      aisWindApparent: (settings as any).selections.aisWindApparent ?? false,
-      aisWindMinZoom: (settings as any).selections.aisWindMinZoom ?? 15,
-      aisShowTrack: (settings as any).selections.aisShowTrack ?? false,
-      trailFromServer: (settings as any).selections.trailFromServer ?? false,
-      trailDuration: (settings as any).selections.trailDuration ?? 24,
-      trailResolution: (settings as any).selections.trailResolution ?? {
+      aisStaleAge: 360000,
+      aisMaxAge: 540000,
+      aisWindApparent: false,
+      aisWindMinZoom: 15,
+      aisShowTrack: false,
+      trailFromServer: false,
+      trailDuration: 24,
+      trailResolution: {
         lastHour: '5s',
         next23: '1m',
         beyond24: '5m'
@@ -207,6 +212,25 @@ export function cleanConfig(
     }
     if (typeof settings.vessels.rangeCirclesDistance === 'undefined') {
       settings.vessels.rangeCirclesDistance = 1000;
+    }
+    if (typeof settings.vessels.selfLines === 'undefined') {
+      settings.vessels.selfLines = {
+        cog: {
+          length: (settings as any).vessels.cogLine ?? 10,
+          color: 'rgba(204, 12, 225, 0.7)',
+          weight: 1,
+          dash: 'none'
+        },
+        heading: {
+          length: (settings as any).vessels.headingLineSize ?? -1,
+          color: 'rgba(221, 99, 0, 0.5)',
+          weight: 4,
+          dash: 'none'
+        }
+      };
+      // @todo remove (implemented) v2.22.2
+      delete (settings as any).vessels.cogLine;
+      delete (settings as any).vessels.headingLineSize;
     }
   }
 
@@ -231,8 +255,7 @@ export function cleanConfig(
     };
   } else {
     if (typeof settings.resources.notes.minZoom === 'undefined') {
-      settings.resources.notes.minZoom =
-        (settings as any).selections.notesMinZoom ?? 10;
+      settings.resources.notes.minZoom = 10;
     }
     if (typeof settings.resources.video === 'undefined') {
       settings.resources.video = { enable: false, url: '' };
@@ -250,7 +273,7 @@ export function cleanConfig(
   }
 
   if (typeof settings.signalk === 'undefined') {
-    settings.signalk = (settings as any).selections.signalk ?? {
+    settings.signalk = {
       vessels: true,
       atons: true,
       aircraft: false,
@@ -266,62 +289,31 @@ export function cleanConfig(
 
   if (typeof settings.anchor === 'undefined') {
     settings.anchor = {
-      radius: (settings as any).anchorRadius ?? 40,
-      setRadius: (settings as any).anchorSetRadius ?? false,
-      manualSet: (settings as any).anchorManualSet ?? false,
-      rodeLength: (settings as any).anchorRodeLength ?? 50
+      radius: 40,
+      setRadius: false,
+      manualSet: false,
+      rodeLength: 50
     };
   }
-
-  /**
-   * v2 disconinued experiments
-   * @todo For removal (Applied 2.19.7)
-   */
-  delete (settings as any).resources.featureServer;
-
-  /**
-   * v2 deprecations
-   * @todo For removal (Applied 2.17.0)
-   */
-  delete (settings as any).anchorRadius;
-  delete (settings as any).anchorSetRadius;
-  delete (settings as any).anchorManualSet;
-  delete (settings as any).anchorRodeLength;
-  delete (settings as any).courseData;
-  delete (settings as any).popoverMulti;
-  delete (settings as any).mapDoubleClick;
-  delete (settings as any).darkMode;
-  delete (settings as any).nightMode;
-  delete (settings as any).muteSound;
-  delete (settings as any).depthAlarm;
-  delete (settings as any).plugins;
-  delete (settings as any).notes;
-  delete (settings as any).aisTargets;
-  delete (settings as any).selections.notesMinZoom;
-  delete (settings as any).selections.signalk;
-  delete (settings as any).fixedLocationMode;
-  delete (settings as any).fixedPosition;
-  delete (settings as any).selections.labelsMinZoom;
-  delete (settings as any).selections.positionFormat;
-  delete (settings as any).selections.headingAttribute;
-  delete (settings as any).selections.preferredPaths;
-  delete (settings as any).selections.pluginFavourites;
-  delete (settings as any).selections.course;
-  delete (settings as any).selections.aisStaleAge;
-  delete (settings as any).selections.aisMaxAge;
-  delete (settings as any).selections.aisWindApparent;
-  delete (settings as any).selections.aisWindMinZoom;
-  delete (settings as any).selections.aisShowTrack;
-  delete (settings as any).selections.vessel;
-  delete (settings as any).selections.trailFromServer;
-  delete (settings as any).selections.trailDuration;
-  delete (settings as any).selections.trailResolution;
 
   // ************************************************
 
   if (typeof settings.selections === 'undefined') {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (settings as any).selections = {};
+    settings.selections = {
+      routes: [],
+      waypoints: [],
+      regions: [],
+      tracks: null,
+      charts: ['openstreetmap', 'openseamap'],
+      chartOrder: ['openstreetmap', 'openseamap'],
+      chartOpacity: {},
+      aisTargets: null,
+      aisTargetTypes: [],
+      aisFilterByShipType: false,
+      aisState: [],
+      resourceSets: {},
+      infolayers: null
+    };
   }
 
   if (typeof settings.selections.aisTargetTypes === 'undefined') {
@@ -454,9 +446,21 @@ export function defaultConfig(): IAppConfig {
       trail: false, // display trail
       windVectors: true, // display vessel TWD, AWD vectors
       laylines: false,
-      cogLine: 10, // self COG line time (mins)
+      selfLines: {
+        cog: {
+          length: 10, // (minutes) length = cogLine * sog
+          color: 'rgba(204, 12, 225, 0.7)',
+          weight: 1,
+          dash: 'none'
+        },
+        heading: {
+          length: -1, // mode for display of heading line -1 = default
+          color: 'rgba(221, 99, 0, 0.5)',
+          weight: 4,
+          dash: 'none'
+        }
+      },
       aisCogLine: 10, // ais COG line time (mins)
-      headingLineSize: -1, // mode for display of heading line -1 = default
       iconScale: 0.9,
       rangeCircles: false,
       rangeCirclesFixed: false,

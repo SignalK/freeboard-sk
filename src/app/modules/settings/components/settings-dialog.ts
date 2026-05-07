@@ -18,6 +18,11 @@ import { MatMenuModule } from '@angular/material/menu';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatTabsModule } from '@angular/material/tabs';
 
+import {
+  LineStyleConfig,
+  LineStyleDef,
+  LineStyleSelectComponent
+} from './linestyle-select.component';
 import { SignalKPreferredPathsComponent } from './signalk-preferredpaths.component';
 import { SettingsFacade } from '../settings.facade';
 import { WakeLockService } from 'src/app/lib/services';
@@ -53,7 +58,8 @@ interface PreferredPathsResult {
     MatMenuModule,
     MatToolbarModule,
     MatTabsModule,
-    SignalKPreferredPathsComponent
+    SignalKPreferredPathsComponent,
+    LineStyleSelectComponent
   ],
   templateUrl: './settings-dialog.html',
   styleUrls: ['./settings-dialog.css']
@@ -155,6 +161,25 @@ export class SettingsDialog implements OnInit {
       this.persistModel();
     }
     this.s57.setOptions(this.facade.settings.map.s57Options);
+  }
+
+  /** handle line style change */
+  onLineStyle(
+    lineType: 'cog' | 'heading',
+    value: { lineStyle: LineStyleDef; config: LineStyleConfig }
+  ) {
+    const l = this.facade.settings.vessels.selfLines[lineType];
+    if (l) {
+      l.color = value.config.color;
+      l.dash = value.config.dash;
+      l.weight = value.config.weight;
+      this.app.selfLines.update((current) => {
+        const c = Object.assign({}, current);
+        c[lineType] = value.lineStyle;
+        return c;
+      });
+      this.persistModel();
+    }
   }
 
   /**

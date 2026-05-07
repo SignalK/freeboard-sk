@@ -801,32 +801,76 @@
                     </div>
                     <div class="setting-card-row" style="padding-bottom: 10px">
                       <div class="setting-card-row-item">
-                        <mat-form-field style="width: 100%">
-                          <mat-label>Heading Line Length</mat-label>
-                          <mat-select
-                            matTooltip="Length of heading line."
-                            [(ngModel)]="facade.settings.vessels.headingLineSize"
-                            (selectionChange)="persistModel()"
+                        <fieldset>
+                          <legend>Heading Line</legend>
+                          <div
+                            class="setting-card-row"
+                            style="padding-bottom: 10px"
                           >
-                            @for(i of options.vessel.headingLine; track i[0] ) {
-                            <mat-option [value]="i[0]">{{i[1]}}</mat-option>
-                            }
-                          </mat-select>
-                        </mat-form-field>
+                            <div class="setting-card-row-item">
+                              <mat-form-field>
+                                <mat-label>Heading Line Length</mat-label>
+                                <mat-select
+                                  matTooltip="Length of heading line."
+                                  [(ngModel)]="facade.settings.vessels.selfLines.heading.length"
+                                  (selectionChange)="persistModel()"
+                                >
+                                  @for(i of options.vessel.headingLine; track
+                                  i[0] ) {
+                                  <mat-option [value]="i[0]"
+                                    >{{i[1]}}</mat-option
+                                  >
+                                  }
+                                </mat-select>
+                              </mat-form-field>
+                            </div>
+                            <div class="setting-card-row-item">
+                              <linestyle-select
+                                [color]="facade.settings.vessels.selfLines.heading.color"
+                                [dash]="facade.settings.vessels.selfLines.heading.dash"
+                                [weight]="facade.settings.vessels.selfLines.heading.weight"
+                                (selectionChange)="onLineStyle('heading', $event)"
+                              ></linestyle-select>
+                            </div>
+                          </div>
+                        </fieldset>
                       </div>
+                    </div>
+                    <div class="setting-card-row" style="padding-bottom: 10px">
                       <div class="setting-card-row-item">
-                        <mat-form-field style="width: 100%">
-                          <mat-label>COG Line Length</mat-label>
-                          <mat-select
-                            matTooltip="Length of COG line."
-                            [(ngModel)]="facade.settings.vessels.cogLine"
-                            (selectionChange)="persistModel()"
+                        <fieldset>
+                          <legend>COG Line</legend>
+                          <div
+                            class="setting-card-row"
+                            style="padding-bottom: 10px"
                           >
-                            @for(i of options.vessel.cogLine; track i[0]) {
-                            <mat-option [value]="i[0]">{{i[1]}}</mat-option>
-                            }
-                          </mat-select>
-                        </mat-form-field>
+                            <div class="setting-card-row-item">
+                              <mat-form-field>
+                                <mat-label>COG Line Length</mat-label>
+                                <mat-select
+                                  matTooltip="Length of COG line."
+                                  [(ngModel)]="facade.settings.vessels.selfLines.cog.length"
+                                  (selectionChange)="persistModel()"
+                                >
+                                  @for(i of options.vessel.cogLine; track i[0])
+                                  {
+                                  <mat-option [value]="i[0]"
+                                    >{{i[1]}}</mat-option
+                                  >
+                                  }
+                                </mat-select>
+                              </mat-form-field>
+                            </div>
+                            <div class="setting-card-row-item">
+                              <linestyle-select
+                                [color]="facade.settings.vessels.selfLines.cog.color"
+                                [dash]="facade.settings.vessels.selfLines.cog.dash"
+                                [weight]="facade.settings.vessels.selfLines.cog.weight"
+                                (selectionChange)="onLineStyle('cog', $event)"
+                              ></linestyle-select>
+                            </div>
+                          </div>
+                        </fieldset>
                       </div>
                     </div>
                   </fieldset>
