@@ -729,7 +729,7 @@
     </fb-range-circles>
   }
 
-  @if (app.config.vessels.selfLines.cog.length !== 0) {
+  @if (app.config.vessels.selfLines.cog.lineLength.value !== 0) {
     <fb-heading-line
       [coords]="vesselLines().heading"
       [lineStyle]="app.selfLines().heading"
@@ -739,10 +739,10 @@
     </fb-heading-line>
   }
 
-  @if (app.config.vessels.selfLines.cog.length !== 0) {
+  @if (app.config.vessels.selfLines.cog.lineLength.value !== 0) {
     <fb-cog-line
       [coords]="vesselLines().cog"
-      [cogTime]="app.config.vessels.selfLines.cog.length"
+      [cogTime]="app.config.vessels.selfLines.cog.lineLength.value"
       [lineStyle]="app.selfLines().cog"
       [units]="app.config.units.distance"
       [darkMode]="app.uiConfig().invertColor"

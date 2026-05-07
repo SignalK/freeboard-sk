@@ -808,18 +808,21 @@
                             style="padding-bottom: 10px"
                           >
                             <div class="setting-card-row-item">
-                              <mat-form-field>
-                                <mat-label>Heading Line Length</mat-label>
+                              <mat-form-field style="width: 110px">
+                                <mat-label>Length</mat-label>
+                                <input matInput type="number" min="0"
+                                  [(ngModel)]="facade.settings.vessels.selfLines.heading.lineLength.value"
+                                  (change)="persistModel()"
+                                >
+                              </mat-form-field>
+                              <mat-form-field style="width: 110px">
+                                <mat-label>Unit</mat-label>
                                 <mat-select
-                                  matTooltip="Length of heading line."
-                                  [(ngModel)]="facade.settings.vessels.selfLines.heading.length"
+                                  [(ngModel)]="facade.settings.vessels.selfLines.heading.lineLength.kind"
                                   (selectionChange)="persistModel()"
                                 >
-                                  @for(i of options.vessel.headingLine; track
-                                  i[0] ) {
-                                  <mat-option [value]="i[0]"
-                                    >{{i[1]}}</mat-option
-                                  >
+                                  @for(k of options.lineLengthKinds; track k[0]) {
+                                    <mat-option [value]="k[0]">{{k[1]}}</mat-option>
                                   }
                                 </mat-select>
                               </mat-form-field>
@@ -845,18 +848,21 @@
                             style="padding-bottom: 10px"
                           >
                             <div class="setting-card-row-item">
-                              <mat-form-field>
-                                <mat-label>COG Line Length</mat-label>
+                              <mat-form-field style="width: 110px">
+                                <mat-label>Length</mat-label>
+                                <input matInput type="number" min="0"
+                                  [(ngModel)]="facade.settings.vessels.selfLines.cog.lineLength.value"
+                                  (change)="persistModel()"
+                                >
+                              </mat-form-field>
+                              <mat-form-field style="width: 110px">
+                                <mat-label>Unit</mat-label>
                                 <mat-select
-                                  matTooltip="Length of COG line."
-                                  [(ngModel)]="facade.settings.vessels.selfLines.cog.length"
+                                  [(ngModel)]="facade.settings.vessels.selfLines.cog.lineLength.kind"
                                   (selectionChange)="persistModel()"
                                 >
-                                  @for(i of options.vessel.cogLine; track i[0])
-                                  {
-                                  <mat-option [value]="i[0]"
-                                    >{{i[1]}}</mat-option
-                                  >
+                                  @for(k of options.lineLengthKinds; track k[0]) {
+                                    <mat-option [value]="k[0]">{{k[1]}}</mat-option>
                                   }
                                 </mat-select>
                               </mat-form-field>

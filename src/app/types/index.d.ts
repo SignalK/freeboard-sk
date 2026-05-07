@@ -1,6 +1,14 @@
 // ** Resource Types **
 
 import { Position, LineString, MultiLineString } from './resources/geojson';
+export type LineLengthKind = 'pixels' | 'time' | 'distance';
+
+/** How to interpret the line length value */
+export interface ILineLengthDef {
+  kind: LineLengthKind;
+  value: number; // px | minutes | nmi
+}
+
 import { FBCharts, FBRoute } from './resources/freeboard';
 import {
   SKMeteo,
@@ -131,13 +139,13 @@ export interface IAppConfig {
     laylines: boolean;
     selfLines: {
       cog: {
-        length: number; // (minutes) length = cogLine * sog
+        lineLength: ILineLengthDef;
         color: string;
         weight: number;
         dash: LineStyleDash;
       };
       heading: {
-        length: number; // mode for display of heading line -1 = default
+        lineLength: ILineLengthDef;
         color: string;
         weight: number;
         dash: LineStyleDash;
