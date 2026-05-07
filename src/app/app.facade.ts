@@ -54,6 +54,7 @@ import {
   LineStyleDash,
   LineStyleDef
 } from './modules/settings/components/linestyle-select.component';
+import { lineDashFor, DASH_PATTERNS } from './modules/map/ol/lib/util';
 
 /** Parent Window message */
 interface ParentMessage {
@@ -385,24 +386,20 @@ export class AppFacade extends InfoService {
     this.doPostConfigLoad();
   }
 
-  // line dash style helpers
+  // line dash style helpers — SVG stroke-dasharray strings derived from DASH_PATTERNS
   get lineDashMap() {
-    return new Map([
-      ['none', 'none'],
-      ['short', '2 2'],
-      ['medium', '4 4'],
-      ['long', '8 4'],
-      ['alt', '8 4 2 4']
-    ]);
+    return new Map(
+      Object.entries(DASH_PATTERNS).map(([key, arr]) => [
+        key,
+        arr.length === 0 ? 'none' : arr.join(' ')
+      ])
+    );
   }
 
   // line dash style format helpers
   formatLineDashArray(value: LineStyleDash): number[] | null {
-    return value === 'none'
-      ? null
-      : Array.from(this.lineDashMap.get(value))
-          .filter((i) => i !== ' ')
-          .map((i) => Number(i));
+    const arr = lineDashFor(value);
+    return arr.length === 0 ? null : arr;
   }
 
   /** Initialise and raise "settings$.load" event */
