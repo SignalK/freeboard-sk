@@ -31,8 +31,9 @@ export const DASH_PATTERNS: Record<string, number[]> = {
   alt: [8, 4, 2, 4]
 };
 
-export function lineDashFor(dash: string): number[] {
-  return DASH_PATTERNS[dash] ?? [];
+export function lineDashFor(dash: string, weight = 1): number[] {
+  const pattern = DASH_PATTERNS[dash] ?? [];
+  return pattern.map(v => v * weight);
 }
 
 // Point | LineString | MultiLineString

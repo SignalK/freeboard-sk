@@ -174,7 +174,7 @@ export class LineStyleSelectComponent {
   ngOnInit() {}
 
   onSelectChange(opt: { key: string; value: any }) {
-    let d = this.app.formatLineDashArray(this._dash());
+    let d = this.app.formatLineDashArray(this._dash(), this._weight());
 
     this.selectionChange.emit({
       lineStyle: {

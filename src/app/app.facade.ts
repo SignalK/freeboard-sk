@@ -397,8 +397,8 @@ export class AppFacade extends InfoService {
   }
 
   // line dash style format helpers
-  formatLineDashArray(value: LineStyleDash): number[] | null {
-    const arr = lineDashFor(value);
+  formatLineDashArray(value: LineStyleDash, weight = 1): number[] | null {
+    const arr = lineDashFor(value, weight);
     return arr.length === 0 ? null : arr;
   }
 
@@ -422,7 +422,8 @@ export class AppFacade extends InfoService {
             color: this.config.vessels.selfLines.cog.color,
             width: this.config.vessels.selfLines.cog.weight,
             lineDash: this.formatLineDashArray(
-              this.config.vessels.selfLines.cog.dash
+              this.config.vessels.selfLines.cog.dash,
+              this.config.vessels.selfLines.cog.weight
             )
           }
         },
@@ -432,7 +433,8 @@ export class AppFacade extends InfoService {
             color: this.config.vessels.selfLines.heading.color,
             width: this.config.vessels.selfLines.heading.weight,
             lineDash: this.formatLineDashArray(
-              this.config.vessels.selfLines.heading.dash
+              this.config.vessels.selfLines.heading.dash,
+              this.config.vessels.selfLines.heading.weight
             )
           }
         }
