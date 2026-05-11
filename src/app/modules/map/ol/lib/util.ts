@@ -62,6 +62,27 @@ export function inDLCrossingZone(coord: Coordinate, zoneValue = 170) {
   return Math.abs(coord[0]) >= zoneValue ? true : false;
 }
 
+/**
+ * Split a densified great-circle arc at antimeridian crossings.
+ * A crossing is detected when consecutive longitudes differ by more than 180°.
+ * Returns an array of coordinate segments suitable for a MultiLineString.
+ */
+export function splitAtAntimeridian(coords: Coordinate[]): Coordinate[][] {
+  if (coords.length === 0) return [];
+  const segments: Coordinate[][] = [];
+  let current: Coordinate[] = [coords[0]];
+  for (let i = 1; i < coords.length; i++) {
+    if (Math.abs(coords[i][0] - coords[i - 1][0]) > 180) {
+      segments.push(current);
+      current = [coords[i]];
+    } else {
+      current.push(coords[i]);
+    }
+  }
+  segments.push(current);
+  return segments;
+}
+
 // update linestring coords for map display (including dateline crossing)
 export function mapifyCoords(
   coords: Array<Coordinate>,
