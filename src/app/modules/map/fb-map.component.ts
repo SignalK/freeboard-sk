@@ -40,7 +40,14 @@ import { FreeboardOpenlayersModule } from 'src/app/modules/map/ol';
 import { CoordsPipe } from 'src/app/lib/pipes';
 
 import { computeDestinationPoint, getGreatCircleBearing } from 'geolib';
-import { toLonLat } from 'ol/proj';
+import { fromLonLat, toLonLat } from 'ol/proj';
+import {
+  LineString as OlLineString
+} from 'ol/geom';
+import {
+  fromLonLatArray,
+  mapifyCoords
+} from './ol/lib/util';
 import { Style, Stroke, Fill } from 'ol/style';
 import { Collection, Feature } from 'ol';
 import { Feature as GeoJsonFeature } from 'geojson';
@@ -266,6 +273,8 @@ export class FBMapComponent implements OnInit, OnDestroy {
   protected course = inject(CourseService);
   protected mapInteract = inject(FBMapInteractService);
   protected mapService = inject(MapService);
+  /** Source feature whose MultiLineString geometry is updated live during route editing. */
+  private routeEditSourceFeature: Feature | null = null;
   private settings = inject(SettingsFacade);
   private bottomSheet = inject(MatBottomSheet);
   private infoPanel = inject(InfoPanelFacade);
@@ -846,13 +855,66 @@ export class FBMapComponent implements OnInit, OnDestroy {
     if (this.mapInteract.draw.features.getLength() === 0) {
       return;
     }
-    this.mapInteract.startModifying(this.overlay());
+    this.routeEditSourceFeature = null;
     if (this.overlay().type === 'route') {
-      this.mapInteract.measurementCoords = this.skres.fromCache(
+      const rawCoords = this.skres.fromCache(
         'routes',
         this.overlay().id
       )[1].feature.geometry.coordinates;
+      // Keep a reference to the rendered MultiLineString feature so its
+      // geometry can be updated live after each vertex drop.
+      this.routeEditSourceFeature =
+        this.mapInteract.draw.features.getArray()[0] as Feature;
+      // Give OL Modify a scratch LineString with unwrapped (non-split) coords
+      // so there are no phantom ±180° boundary vertices during editing.
+      const mc = mapifyCoords([...rawCoords]);
+      // Shift the scratch geometry to the world copy the user clicked in.
+      // OL always returns the primary-world Feature regardless of which
+      // rendered copy was hit, so we identify the correct copy explicitly.
+      //
+      // Strategy: the click's raw Mercator x encodes the world copy (thanks to
+      // the transform() fix in map.component.ts).  mapifyCoords() may produce
+      // a geometry spanning n world widths (e.g. a route crossing the
+      // antimeridian multiple times).  We search all shifts in the range
+      // [m-n-1 .. m+n+1] where m = clicked world copy and n = route width in
+      // world copies, and pick the shift that places the nearest vertex closest
+      // to the click.
+      const mercCoords = fromLonLatArray(mc) as Coordinate[];
+      const clickMerc = fromLonLat(this.overlay().position as [number, number]);
+      const clickMercX = clickMerc[0];
+      const clickMercY = clickMerc[1];
+      const worldWidth = 2 * 20037508.3427892;
+      let minX = mercCoords[0][0], maxX = mercCoords[0][0];
+      for (const c of mercCoords) {
+        if (c[0] < minX) minX = c[0];
+        if (c[0] > maxX) maxX = c[0];
+      }
+      const m = Math.round(clickMercX / worldWidth);
+      const n = Math.ceil((maxX - minX) / worldWidth);
+      let bestShift = 0, bestDist = Infinity;
+      for (let k = m - n - 1; k <= m + n + 1; k++) {
+        const shift = k * worldWidth;
+        for (const c of mercCoords) {
+          const dx = c[0] + shift - clickMercX;
+          const dy = c[1] - clickMercY;
+          const dist = dx * dx + dy * dy; // squared Euclidean, no sqrt needed
+          if (dist < bestDist) { bestDist = dist; bestShift = shift; }
+        }
+      }
+      if (bestShift !== 0) {
+        mercCoords.forEach((c) => (c[0] += bestShift));
+      }
+      const scratchGeom = new OlLineString(mercCoords);
+      const scratchFeat = new Feature({ geometry: scratchGeom });
+      scratchFeat.setId(this.routeEditSourceFeature.getId());
+      scratchFeat.set(
+        'pointMetadata',
+        this.routeEditSourceFeature.get('pointMetadata')
+      );
+      this.mapInteract.draw.features = new Collection([scratchFeat]);
+      this.mapInteract.measurementCoords = rawCoords;
     }
+    this.mapInteract.startModifying(this.overlay());
     if (featureType === 'anchor') {
       this.overlay().type = featureType;
       this.mapInteract.draw.forSave.id = featureType;
