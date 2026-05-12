@@ -38,7 +38,10 @@ import {
   S57_CLICKABLE_LAYERS,
   S57_NAMES
 } from './popovers';
-import { FreeboardOpenlayersModule } from 'src/app/modules/map/ol';
+import {
+  FreeboardOpenlayersModule,
+  FreeboardRouteLayerComponent
+} from 'src/app/modules/map/ol';
 import { CoordsPipe } from 'src/app/lib/pipes';
 
 import { computeDestinationPoint, getGreatCircleBearing } from 'geolib';
@@ -213,6 +216,8 @@ export class FBMapComponent implements OnInit, OnDestroy {
 
   @ViewChild(MatMenuTrigger, { static: true }) contextMenu: MatMenuTrigger;
   @ViewChild('olMap', { static: false }) olMap: MapComponent;
+  @ViewChild(FreeboardRouteLayerComponent)
+  routeLayer: FreeboardRouteLayerComponent;
 
   scaleUnits = input<string>('');
 
@@ -1139,8 +1144,14 @@ export class FBMapComponent implements OnInit, OnDestroy {
     }
     let pc;
     if (fid.split('.')[0] === 'route') {
+      // c is a flat Coordinate[] from the scratch LineString (EPSG:3857)
       pc = this.transformCoordsArray(c);
       this.mapInteract.measurementCoords = pc;
+      // Re-split at antimeridian and update all source segment features so
+      // the rendered route reflects the edit after each vertex drop.
+      if (this.routeLayer) {
+        this.routeLayer.updateRouteSegments(fid.split('.')[1], pc);
+      }
     } else if (fid.split('.')[0] === 'region') {
       for (let e = 0; e < c.length; e++) {
         if (this.isCoordsArray(c[e])) {
