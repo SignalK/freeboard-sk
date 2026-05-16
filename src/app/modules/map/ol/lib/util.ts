@@ -80,6 +80,53 @@ export function mapifyCoords(
   return coords;
 }
 
+/**
+ * Split a LineString at each antimeridian (±180°) crossing.
+ * Input coordinates must be in [-180, 180].
+ * Returns an array of segments, each fully within [-180, 180], with
+ * interpolated endpoints at exactly ±180° where crossings occur.
+ * Each segment can be passed independently to fromLonLatArray so that
+ * OpenLayers wrapX cloning works correctly on each compact piece.
+ */
+export function splitAtAntimeridian(coords: Coordinate[]): Coordinate[][] {
+  if (coords.length < 2) return coords.length === 0 ? [] : [coords];
+
+  const segments: Coordinate[][] = [];
+  let current: Coordinate[] = [[coords[0][0], coords[0][1]]];
+
+  for (let i = 1; i < coords.length; i++) {
+    const [x0, y0] = current[current.length - 1];
+    const [x1, y1] = [coords[i][0], coords[i][1]];
+    const dLon = x1 - x0;
+
+    if (dLon > 180) {
+      // Westward crossing: x0 is east (positive), x1 is west (negative)
+      const dLonUnwrapped = dLon - 360;
+      const t = (-180 - x0) / dLonUnwrapped;
+      const yIntercept = y0 + t * (y1 - y0);
+      current.push([-180, yIntercept]);
+      segments.push(current);
+      current = [[180, yIntercept], [x1, y1]];
+    } else if (dLon < -180) {
+      // Eastward crossing: x0 is west (negative), x1 is east (positive)
+      const dLonUnwrapped = dLon + 360;
+      const t = (180 - x0) / dLonUnwrapped;
+      const yIntercept = y0 + t * (y1 - y0);
+      current.push([180, yIntercept]);
+      segments.push(current);
+      current = [[-180, yIntercept], [x1, y1]];
+    } else {
+      current.push([x1, y1]);
+    }
+  }
+
+  if (current.length >= 2) {
+    segments.push(current);
+  }
+
+  return segments;
+}
+
 // ** return adjusted radius to correctly render circle on ground at given position.
 export function mapifyRadius(radius: number, position: Coordinate): number {
   if (typeof radius === 'undefined' || typeof position === 'undefined') {
