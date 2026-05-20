@@ -1,7 +1,4 @@
-/** Related Notes Dialog Component **
- ********************************/
-
-import { Component, OnInit, Inject } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
@@ -16,16 +13,18 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatToolbarModule } from '@angular/material/toolbar';
-
+import { RemarkModule } from 'ngx-remark';
 import { AddTargetPipe } from './safe.pipe';
 
 import { AppFacade } from 'src/app/app.facade';
+import { SKNote } from '../../resource-classes';
 
-/********* RelatedNotesDialog **********
-	data: {
-        notes: [<SKNote>]
-    }
-***********************************/
+interface DialogData {
+  notes: SKNote[];
+  relatedBy: string;
+  readOnly: boolean;
+}
+
 @Component({
   selector: 'ap-relatednotesdialog',
   imports: [
@@ -38,20 +37,20 @@ import { AppFacade } from 'src/app/app.facade';
     MatFormFieldModule,
     MatInputModule,
     MatToolbarModule,
-    AddTargetPipe
+    AddTargetPipe,
+    RemarkModule
   ],
   templateUrl: `relatednotes-dialog.html`,
   styleUrls: ['notes.css']
 })
 export class RelatedNotesDialog implements OnInit {
-  relatedBy: string;
+  protected relatedBy: string;
 
-  constructor(
-    public app: AppFacade,
-    public dialogRef: MatDialogRef<RelatedNotesDialog>,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    @Inject(MAT_DIALOG_DATA) public data: any
-  ) {}
+  protected data = inject<DialogData>(MAT_DIALOG_DATA);
+  protected app = inject(AppFacade);
+  protected dialogRef = inject(MatDialogRef<RelatedNotesDialog>);
+
+  constructor() {}
 
   ngOnInit() {
     this.relatedBy =

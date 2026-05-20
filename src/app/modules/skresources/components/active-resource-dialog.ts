@@ -1,4 +1,4 @@
-import { Component, OnInit, Inject, signal, inject } from '@angular/core';
+import { Component, OnInit, signal, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatIconModule } from '@angular/material/icon';
@@ -24,14 +24,6 @@ import { SKResourceService } from '../resources.service';
 import { CourseService } from '../../course';
 import { Convert } from 'src/app/lib/convert';
 
-/** 
-  @description ActiveResourcePropertiesModal 
-	@param data: {
-        title: "<string>" title text,
-        type: 'dest' | 'route' resource type,
-        resource: "<SKWaypoint | SKRoute>" active resource info
-    }
-*/
 @Component({
   selector: 'ap-dest-modal',
   imports: [
@@ -49,24 +41,26 @@ import { Convert } from 'src/app/lib/convert';
       <div>
         <mat-toolbar style="background-color: transparent">
           <span>
-            @if (showClearButton()) {
-              <button
-                mat-button
-                (click)="deactivate()"
-                [matTooltip]="clearButtonText"
-              >
-                <mat-icon>clear_all</mat-icon>
-                Clear
-              </button>
-            } @else {
-              <button
-                mat-raised-button
-                (click)="startAt()"
-                matTooltip="Start at nearest point."
-              >
-                <mat-icon>near_me</mat-icon>
-                Start
-              </button>
+            @if (!data.noButtons) {
+              @if (showClearButton()) {
+                <button
+                  mat-button
+                  (click)="deactivate()"
+                  [matTooltip]="clearButtonText"
+                >
+                  <mat-icon>clear_all</mat-icon>
+                  Clear
+                </button>
+              } @else {
+                <button
+                  mat-raised-button
+                  (click)="startAt()"
+                  matTooltip="Start at nearest point."
+                >
+                  <mat-icon>near_me</mat-icon>
+                  Start
+                </button>
+              }
             }
           </span>
           <span
@@ -113,13 +107,15 @@ import { Convert } from 'src/app/lib/convert';
                     @if (selIndex() === i) {
                       <mat-icon class="icon-warn"> flag </mat-icon>
                     } @else {
-                      <button
-                        mat-icon-button
-                        matTooltip="Go to"
-                        (click)="startAt(i)"
-                      >
-                        <mat-icon> near_me </mat-icon>
-                      </button>
+                      @if (!data.noButtons) {
+                        <button
+                          mat-icon-button
+                          matTooltip="Go to"
+                          (click)="startAt(i)"
+                        >
+                          <mat-icon> near_me </mat-icon>
+                        </button>
+                      }
                     }
                   </div>
                   <div style="flex: 1 1 auto;">
@@ -151,7 +147,11 @@ import { Convert } from 'src/app/lib/convert';
                     </div>
                   </div>
                   @if (!readOnly && data.type === 'route') {
-                    <div cdkDragHandle matTooltip="Drag to re-order points">
+                    <div
+                      cdkDragHandle
+                      matTooltip="Drag to re-order points"
+                      style="cursor:grab"
+                    >
                       <mat-icon>drag_indicator</mat-icon>
                     </div>
                   }
@@ -207,15 +207,14 @@ export class ActiveResourcePropertiesModal implements OnInit {
   protected modalRef = inject(MatBottomSheetRef<ActiveResourcePropertiesModal>);
   protected course = inject(CourseService);
   protected skres = inject(SKResourceService);
+  protected data = inject<{
+    title: string;
+    type: string;
+    resource: SKWaypoint | SKRoute;
+    noButtons: boolean;
+  }>(MAT_BOTTOM_SHEET_DATA);
 
-  constructor(
-    @Inject(MAT_BOTTOM_SHEET_DATA)
-    public data: {
-      title: string;
-      type: string;
-      resource: SKWaypoint | SKRoute;
-    }
-  ) {}
+  constructor() {}
 
   ngOnInit() {
     if (

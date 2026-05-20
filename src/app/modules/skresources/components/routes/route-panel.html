@@ -1,0 +1,205 @@
+<div
+  style="
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    width: stretch;
+    height: 100%;
+  "
+>
+  <div>
+    <div style="display: flex">
+      <div>
+        @if(!icon.svgIcon) {
+        <mat-icon [class]="icon.class">{{icon.name}}</mat-icon>
+        } @else {
+        <mat-icon [svgIcon]="icon.svgIcon" [class]="icon.class"></mat-icon>
+        }
+        <br />
+      </div>
+      <div style="flex: 1; padding: 0 0 0 10px; text-align: right">
+        <b>Distance:</b> {{app.formatValueForDisplay(this._route().distance,
+        'm')}}
+      </div>
+    </div>
+
+    <mat-divider></mat-divider>
+
+    <div style="display: flex">
+      <div>
+        <button
+          mat-button
+          [disabled]="_route()?.feature?.properties?.readOnly"
+          (click)="onEdit()"
+          matTooltip="Edit Route"
+        >
+          <mat-icon>edit</mat-icon>
+          EDIT
+        </button>
+        &nbsp; @if (this.app.data.activeRoute !== id()) {
+        <button mat-button (click)="onGoto()" matTooltip="Navigate To">
+          <mat-icon>near_me</mat-icon>
+          START
+        </button>
+        } @else {
+        <button mat-button (click)="onGoto(-1)" matTooltip="Clear Destination">
+          <mat-icon>clear_all</mat-icon>
+          CLEAR
+        </button>
+        &nbsp; } @if(app.featureFlags().resourceGroups) { &nbsp;
+        <button mat-button (click)="addToGroup()" matTooltip="Add to Group">
+          <mat-icon>category</mat-icon>
+          GROUP
+        </button>
+        } &nbsp;
+        <button
+          mat-button
+          [disabled]="this.app.data.activeRoute !== id()"
+          (click)="onReverse()"
+          matTooltip="Reverse direction"
+        >
+          <mat-icon>multiple_stop</mat-icon>
+          REVERSE
+        </button>
+        &nbsp;
+        <button mat-button (click)="onPanTo()" matTooltip="Center Route">
+          <mat-icon>center_focus_strong</mat-icon>
+          CENTER
+        </button>
+        &nbsp;
+        <button
+          mat-button
+          [disabled]="_route()?.feature?.properties?.readOnly || this.app.data.activeRoute === id()"
+          (click)="onDelete()"
+          matTooltip="Delete Route"
+        >
+          <mat-icon>delete</mat-icon>
+          DELETE
+        </button>
+      </div>
+    </div>
+
+    <mat-divider></mat-divider>
+
+    <div style="display: flex; flex-direction: column; padding-top: 15px">
+      <div style="font-weight: bold; font-size: larger; padding-bottom: 5px">
+        {{_route()?.name}}
+      </div>
+    </div>
+  </div>
+
+  <remark
+    [markdown]="_route().description"
+    style="flex: 2 1 auto; overflow-y: auto"
+  >
+    <ng-template remarkTemplate="heading" let-node>
+      @if(node.depth === 1) {
+      <h1 [remarkNode]="node" style="font-size: 14pt"></h1>
+      } @if(node.depth === 2) {
+      <h2 [remarkNode]="node" style="font-size: 12pt"></h2>
+      } @if(node.depth === 3) {
+      <h3 [remarkNode]="node" style="font-size: 10pt"></h3>
+      } @if(node.depth === 4) {
+      <h4 [remarkNode]="node" style="font-size: 8pt"></h4>
+      }
+    </ng-template>
+  </remark>
+
+  <mat-divider></mat-divider>
+  <mat-accordion>
+    <mat-expansion-panel expanded="true">
+      <mat-expansion-panel-header>
+        <mat-panel-title>
+          <mat-icon>location_on</mat-icon>
+          &nbsp;Points:
+        </mat-panel-title>
+        <mat-panel-description>
+          ({{this.points().length}})
+          <button
+            matIconButton
+            matTooltip="Re-order points"
+            (click)="arrangePoints()"
+          >
+            <mat-icon>import_export</mat-icon>
+          </button>
+        </mat-panel-description>
+      </mat-expansion-panel-header>
+      @if(this.points().length){
+      <mat-stepper
+        orientation="vertical"
+        #stepper
+        style="min-height: 50px; max-height: 200px; overflow-y: auto"
+      >
+        <ng-template matStepperIcon="edit">
+          <mat-icon>location_on</mat-icon>
+        </ng-template>
+        <ng-template matStepperIcon="point">
+          <mat-icon>location_on</mat-icon>
+        </ng-template>
+        @for( point of points(); track point.index) {
+        <mat-step state="point" [completed]="true">
+          <ng-template matStepLabel>
+            <button
+              matIconButton
+              matTooltip="Start here"
+              (click)="onGoto(point.index)"
+            >
+              <mat-icon>near_me</mat-icon>
+            </button>
+            {{point.name}}
+          </ng-template>
+          <p style="font-size: smaller; padding: 0">
+            <span>{{point.bearing}}</span>&nbsp;
+            <span>{{point.distance}}</span>
+          </p>
+        </mat-step>
+        }
+      </mat-stepper>
+      }
+    </mat-expansion-panel>
+    <mat-expansion-panel>
+      <mat-expansion-panel-header>
+        <mat-panel-title>
+          <mat-icon>local_offer</mat-icon>
+          &nbsp;Notes:
+        </mat-panel-title>
+        <mat-panel-description>
+          ({{this.notes().length}})
+        </mat-panel-description>
+      </mat-expansion-panel-header>
+      @if(this.notes().length){
+      <mat-nav-list
+        style="min-height: 50px; max-height: 200px; overflow-y: auto"
+      >
+        @for( note of notes(); track note[0]) {
+        <a mat-list-item (click)="showNote(note[0])">
+          <span matListItemTitle> {{note[1].name}}</span>
+        </a>
+        }
+      </mat-nav-list>
+      }
+    </mat-expansion-panel>
+    <mat-expansion-panel>
+      <mat-expansion-panel-header>
+        <mat-panel-title>
+          <mat-icon>category</mat-icon>
+          &nbsp;Groups:
+        </mat-panel-title>
+        <mat-panel-description>
+          ({{this.groups().length}})
+        </mat-panel-description>
+      </mat-expansion-panel-header>
+      @if(this.groups().length){
+      <mat-nav-list
+        style="min-height: 50px; max-height: 200px; overflow-y: auto"
+      >
+        @for( group of groups(); track group[0]) {
+        <a mat-list-item (click)="skgroups.editGroupInfo(group[0])">
+          <span matListItemTitle> {{group[1].name}}</span>
+        </a>
+        }
+      </mat-nav-list>
+      }
+    </mat-expansion-panel>
+  </mat-accordion>
+</div>

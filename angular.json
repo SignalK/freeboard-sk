@@ -30,11 +30,17 @@
               "src/favicon.ico",
               "src/assets",
               "src/manifest.json", 
-              "src/browserconfig.xml"
+              "src/browserconfig.xml",
+              {
+                "glob": "**/*",
+                "input": "node_modules/@kolkov/angular-editor/assets/icons",
+                "output": "assets/ae-icons/"
+              }
             ],
             "styles": [
               "src/app-theme.scss",
-              "src/styles.scss"
+              "src/styles.scss",
+              "node_modules/@kolkov/angular-editor/themes/default.scss"
             ],
             "scripts": [],
             "extractLicenses": false,

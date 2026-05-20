@@ -8,6 +8,7 @@ import { AppFacade } from 'src/app/app.facade';
 import { ResourceGroupDialog } from './group-dialog';
 
 import { ActionResult } from 'src/app/types';
+import { SKResourceType } from '../../resources.service';
 
 export interface SKResourceGroup {
   name: string;
@@ -133,7 +134,7 @@ export class SKResourceGroupService {
    * @description Fetch Group with supplied id and display edit dialog
    * @param id route identifier. undefined = new group
    */
-  async editGroupinfo(id?: string) {
+  public async editGroupInfo(id?: string) {
     let grp: SKResourceGroup;
     if (!id) {
       // new group
@@ -183,7 +184,7 @@ export class SKResourceGroupService {
    * @description Confirm deletion of Resource Group with supplied id
    * @param id Group identifier
    */
-  deleteGroup(id: string) {
+  public deleteGroup(id: string) {
     if (!id) {
       return;
     }
@@ -211,7 +212,11 @@ export class SKResourceGroupService {
    * @param resType Resource type (route, waypoint, chart)
    * @param resId Resource identifier(s)
    */
-  async addToGroup(grpId: string, resType: string, resId: string | string[]) {
+  public async addToGroup(
+    grpId: string,
+    resType: string,
+    resId: string | string[]
+  ) {
     if (!resId) {
       return;
     }
@@ -250,5 +255,42 @@ export class SKResourceGroupService {
       grp.charts = grp.charts.concat(newids);
     }
     await this.putToServer(grpId, grp);
+  }
+
+  /**
+   * @description Fetch resource groups containing the supplied resource.
+   * @returns Promise<FBResourceGroups> (rejects with HTTPErrorResponse)
+   */
+  public with(
+    collection: SKResourceType,
+    id: string
+  ): Promise<FBResourceGroups> {
+    return new Promise((resolve, reject) => {
+      if (!collection || !id) {
+        resolve([]);
+      }
+      const skf = this.signalk.api.get(
+        this.app.skApiVersion,
+        `/resources/groups`
+      );
+      skf?.subscribe(
+        (res: GroupResponse) => {
+          const list = Object.entries(res).filter((item) => {
+            if (Array.isArray(item[1][collection])) {
+              return item[1][collection].includes(id);
+            } else {
+              return false;
+            }
+          });
+          list.sort((a, b) => {
+            const x = a[1].name?.toLowerCase();
+            const y = b[1].name?.toLowerCase();
+            return x > y ? 1 : -1;
+          });
+          resolve(list);
+        },
+        (err: HttpErrorResponse) => reject(err)
+      );
+    });
   }
 }

@@ -1,9 +1,9 @@
 import {
   Component,
   Input,
-  Output,
-  EventEmitter,
-  ChangeDetectionStrategy
+  ChangeDetectionStrategy,
+  output,
+  inject
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
@@ -40,11 +40,10 @@ import { SKResourceService } from '../../resources.service';
 })
 export class NoteListComponent {
   @Input() notes: FBNotes;
-  @Output() select: EventEmitter<FBResourceSelect> = new EventEmitter();
-  @Output() refresh: EventEmitter<void> = new EventEmitter();
-  @Output() closed: EventEmitter<void> = new EventEmitter();
-  @Output() pan: EventEmitter<{ center: Position; zoomLevel: number }> =
-    new EventEmitter();
+  select = output<FBResourceSelect>();
+  refresh = output<void>();
+  closed = output<void>();
+  pan = output<{ center: Position; zoomLevel: number }>();
 
   filterList = [];
   filterText = '';
@@ -52,10 +51,10 @@ export class NoteListComponent {
   showNotes = false;
   draftOnly = false;
 
-  constructor(
-    public app: AppFacade,
-    private skres: SKResourceService
-  ) {}
+  protected app = inject(AppFacade);
+  private skres = inject(SKResourceService);
+
+  constructor() {}
 
   ngOnInit() {
     this.showNotes = this.app.config.ui.showNotes;

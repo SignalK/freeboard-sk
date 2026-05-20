@@ -1,12 +1,8 @@
-/***********************************
-Signal K Details list component
-    <signalk-details-list>
-***********************************/
 import {
   Component,
-  Input,
   ChangeDetectionStrategy,
-  inject
+  inject,
+  input
 } from '@angular/core';
 
 import { MatTooltipModule } from '@angular/material/tooltip';
@@ -21,7 +17,7 @@ import { CoordsPipe } from '../../../lib/pipes';
   template: `
     <div class="sk-details">
       <div class="title">
-        <div>{{ title }}</div>
+        <div>{{ title() }}</div>
       </div>
       <div class="content">
         @for (item of items; track item) {
@@ -56,9 +52,9 @@ import { CoordsPipe } from '../../../lib/pipes';
   `
 })
 export class SignalKDetailsComponent {
-  @Input() title = '';
+  title = input<string>('');
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  @Input() details: any;
+  details = input<any>();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   public items: any;
 
@@ -67,7 +63,7 @@ export class SignalKDetailsComponent {
   constructor() {}
 
   ngOnChanges() {
-    if (this.details) {
+    if (this.details()) {
       this.parseEntries();
     } else {
       this.items = [];
@@ -76,7 +72,7 @@ export class SignalKDetailsComponent {
 
   // ** parse items
   parseEntries() {
-    const u = Object.entries(this.details);
+    const u = Object.entries(this.details());
     u.sort((a, b) => {
       return a[0] < b[0] ? -1 : 1;
     });

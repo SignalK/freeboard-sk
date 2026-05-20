@@ -1,4 +1,4 @@
-import { Injectable, signal } from '@angular/core';
+import { inject, Injectable, signal } from '@angular/core';
 import { moveItemInArray } from '@angular/cdk/drag-drop';
 import { HttpErrorResponse } from '@angular/common/http';
 import { MatDialog } from '@angular/material/dialog';
@@ -78,12 +78,12 @@ export type SKSelection = SKResourceType | 'aisTargets' | 'infolayers';
 export class SKResourceService {
   private reOpen: { key?: string; value?: string; readOnly?: boolean };
 
-  constructor(
-    private dialog: MatDialog,
-    private signalk: SignalKClient,
-    private worker: SKWorkerService,
-    private app: AppFacade
-  ) {
+  private app = inject(AppFacade);
+  private dialog = inject(MatDialog);
+  private signalk = inject(SignalKClient);
+  private worker = inject(SKWorkerService);
+
+  constructor() {
     this.worker
       .resource$()
       .subscribe((msg: PathValue[]) => this.processResourceMessage(msg));
@@ -332,7 +332,7 @@ export class SKResourceService {
    * @param id
    * @returns Transformed SK resource class
    */
-  private transform(
+  public transform(
     collection: SKResourceType,
     resource:
       | RouteResource
@@ -1869,6 +1869,8 @@ export class SKResourceService {
     this.dialog
       .open(NoteDialog, {
         disableClose: true,
+        minWidth: '50vw',
+        maxWidth: '400px',
         data: {
           note: e.note,
           editable: e.editable,
@@ -1886,6 +1888,9 @@ export class SKResourceService {
             this.createNote(note);
           } else {
             // update note
+            if (typeof note.href !== 'undefined' && !note.href) {
+              delete note.href;
+            }
             try {
               await this.putToServer('notes', e.noteId, note);
               this.reopenRelatedDialog();
@@ -1916,6 +1921,25 @@ export class SKResourceService {
       } else {
         this.reOpen = { key: null, value: null, readOnly: undefined };
       }
+    }
+  }
+
+  /**
+   * Fetch a list of related notes for the supplied resource identifier
+   * @param collection - Type of resource
+   * @param id - Resource identifier
+   */
+  public async getRelatedNotes(
+    collection: SKResourceType,
+    id: string
+  ): Promise<FBNotes> {
+    try {
+      return await this.listFromServer<FBNote>(
+        'notes',
+        `href=/resources/${collection}/${id}`
+      );
+    } catch (err) {
+      return [];
     }
   }
 

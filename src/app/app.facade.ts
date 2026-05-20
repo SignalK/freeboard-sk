@@ -29,7 +29,6 @@ import {
   IAppConfig,
   LineString,
   SKServerUnitPrefs,
-  SKUnitCategory,
   TemperatureUnitDef,
   DepthUnitDef,
   SpeedUnitDef,
@@ -70,7 +69,7 @@ const FSK: AppInfoDef = {
   id: 'freeboard',
   name: 'Freeboard-SK',
   description: `Signal K Chart Plotter.`,
-  version: '2.22.1',
+  version: '2.23.0',
   url: 'https://github.com/signalk/freeboard-sk',
   logo: './assets/img/app_logo.png'
 };
@@ -158,6 +157,14 @@ export class AppFacade extends InfoService {
 
   sIsFetching = signal<boolean>(false); // show progress for fetching data from server
   sTrueMagChoice = signal<string>(''); // preferred path True / Magnetic
+
+  instrumentPanel = signal<{
+    open: boolean;
+    activate: boolean;
+  }>({
+    open: false,
+    activate: false
+  });
 
   // non-persisted UIstate attributes
   uiCtrl = signal<{
@@ -322,6 +329,15 @@ export class AppFacade extends InfoService {
     effect(() => {
       this.alignUnitPrefs(this.serverConfig.unitPreferences());
     });
+  }
+
+  /**
+   * Detemine whether InfoPanel is used to display resource details based
+   * on the device screen width.
+   */
+  public useInfoPanel(): boolean {
+    const mediaQuery = window.matchMedia('(max-width: 760px)');
+    return !mediaQuery.matches && !this.instrumentPanel().open;
   }
 
   /**

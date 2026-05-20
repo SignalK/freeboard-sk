@@ -1,13 +1,14 @@
 const WHATS_NEW = [
   {
     type: 'signalk-server-node',
-    title: 'Notifications & Alarms',
+    title: 'Resource Panel',
     message: `
-        Notification and alarm features in Freeboard-SK now use the
-        <b>Notifications API</b> exclusively.
+        New resource information panel display available on 
+        larger screen devices that provides access to operations,
+        related items and support for markdown formatting in
+        resource descriptions.
         <br>&nbsp;<br>
-        This requires Signal K server v2.22.0 or later to enable
-        notification and alarm features to be used.
+        Supports Route, Waypoint, Note and Region resource types.
       `
   }
 ];

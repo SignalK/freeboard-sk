@@ -275,7 +275,60 @@
     <!-- content -->
     <div class="view" theme-main>
       <mat-sidenav-container hasBackdrop="false">
-        <!--instruments-->
+        <!--info-panel-->
+        <mat-sidenav
+          #sideleft
+          [disableClose]="false"
+          [opened]="infoPanel.opened()"
+          mode="side"
+          position="start"
+          style="width: 250px"
+        >
+          <info-panel>
+            @if (infoPanel.item()?.type === 'notes') {
+              <note-panel
+                [note]="infoPanel.item().resource"
+                [id]="infoPanel.item().id"
+                (edit)="
+                  skres.showNoteEditor({
+                    id: $event
+                  })
+                "
+                (panTo)="centerAndZoom($event.center, $event.zoomLevel)"
+              />
+            }
+            @if (infoPanel.item()?.type === 'regions') {
+              <region-panel
+                [region]="infoPanel.item().resource"
+                [id]="infoPanel.item().id"
+                [related]="infoPanel.related()"
+                (edit)="skres.editRegionInfo($event)"
+                (panTo)="centerAndZoom($event.center, $event.zoomLevel)"
+              />
+            }
+            @if (infoPanel.item()?.type === 'waypoints') {
+              <waypoint-panel
+                [waypoint]="infoPanel.item().resource"
+                [id]="infoPanel.item().id"
+                [related]="infoPanel.related()"
+                (edit)="skres.editWaypointInfo($event)"
+                (panTo)="centerAndZoom($event.center, $event.zoomLevel)"
+              />
+            }
+            @if (infoPanel.item()?.type === 'routes') {
+              <route-panel
+                [route]="infoPanel.item().resource"
+                [id]="infoPanel.item().id"
+                [related]="infoPanel.related()"
+                (edit)="skres.editRouteInfo($event)"
+                (activate)="activateRoute($event)"
+                (panTo)="centerAndZoom($event.center, $event.zoomLevel)"
+              />
+            }
+          </info-panel>
+        </mat-sidenav>
+
+        <!--instrument-panel-->
         @if (app.instrumentPanelAvailable()) {
           <mat-sidenav
             #sideright
@@ -340,7 +393,7 @@
                   -webkit-overfow-scrolling: touch;
                 "
               >
-                @if (instrumentPanel().activate) {
+                @if (app.instrumentPanel().activate) {
                   <iframe
                     [src]="instUrl()"
                     style="width: 345px; height: 100%"
@@ -539,7 +592,7 @@
                       [editingRouteId]="app.data.editingId"
                       (activate)="activateRoute($event.id)"
                       (deactivate)="clearDestination()"
-                      (properties)="skres.resourceProperties($event)"
+                      (select)="handleResourceInfo('routes', $event.id)"
                       (points)="
                         featureProperties({ id: $event.id, type: 'route' })
                       "
@@ -560,6 +613,7 @@
                     <waypoint-list
                       [activeWaypoint]="app.data.activeWaypoint"
                       [editingWaypointId]="app.data.editingId"
+                      (select)="handleResourceInfo('waypoints', $event.id)"
                       (goto)="course.navigateToWaypoint($event.id)"
                       (deactivate)="clearDestination()"
                       (center)="centerAndZoom($event)"
@@ -588,7 +642,7 @@
                   @defer {
                     <note-list
                       [notes]="skres.notes()"
-                      (select)="skres.noteSelected($event.id, $event.isGroup)"
+                      (select)="handleResourceInfo('notes', $event.id)"
                       (pan)="centerAndZoom($event.center, $event.zoomLevel)"
                       (closed)="displayLeftMenu()"
                     >
@@ -599,6 +653,7 @@
                   @defer {
                     <region-list
                       [regions]="skres.regions()"
+                      (select)="handleResourceInfo('regions', $event.id)"
                       (pan)="centerAndZoom($event.center, $event.zoomLevel)"
                       (closed)="displayLeftMenu()"
                     >

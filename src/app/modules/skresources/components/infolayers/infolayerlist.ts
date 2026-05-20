@@ -1,10 +1,4 @@
-import {
-  Component,
-  Input,
-  Output,
-  EventEmitter,
-  ChangeDetectionStrategy
-} from '@angular/core';
+import { Component, ChangeDetectionStrategy, output } from '@angular/core';
 
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatIconModule } from '@angular/material/icon';
@@ -64,12 +58,11 @@ import {
   ]
 })
 export class InfoLayerListComponent extends ResourceListBase {
-  @Input() focusId: string;
-  @Output() closed: EventEmitter<void> = new EventEmitter();
-  @Output() paramChanged: EventEmitter<{
+  closed = output<void>();
+  paramChanged = output<{
     id: string;
     param: { [key: string]: any };
-  }> = new EventEmitter();
+  }>();
 
   filterList = [];
   override filterText = '';

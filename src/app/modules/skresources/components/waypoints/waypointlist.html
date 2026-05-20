@@ -88,7 +88,7 @@
             </div>
             <div style="text-align: right">
               <mat-checkbox
-                [disabled]="r[0] === activeWaypoint || disableRefresh"
+                [disabled]="r[0] === activeWaypoint() || disableRefresh"
                 [checked]="r[2]"
                 (change)="itemSelect($event.checked, r[0])"
                 matTooltip="Show on Map"
@@ -103,7 +103,7 @@
             <div>
               <button
                 mat-icon-button
-                [disabled]="r[0] === activeWaypoint || disableRefresh"
+                [disabled]="r[0] === activeWaypoint() || disableRefresh"
                 (click)="itemDelete(r[0])"
                 matTooltip="Delete Waypoint"
                 matTooltipPosition="above"
@@ -120,7 +120,7 @@
               <mat-icon>local_offer</mat-icon>
             </button>
             <div style="flex: 1 1 auto; text-align: center">
-              @if(!activeWaypoint || activeWaypoint !== r[0]) {
+              @if(!activeWaypoint() || activeWaypoint() !== r[0]) {
               <button
                 mat-icon-button
                 [disabled]="disableRefresh"
@@ -130,7 +130,7 @@
               >
                 <mat-icon>near_me</mat-icon>
               </button>
-              } @if(activeWaypoint === r[0]) {
+              } @if(activeWaypoint() === r[0]) {
               <button
                 mat-icon-button
                 [disabled]="disableRefresh"
@@ -152,18 +152,7 @@
               >
                 <mat-icon>center_focus_strong</mat-icon>
               </button>
-              <button
-                mat-icon-button
-                [disabled]="disableRefresh"
-                (click)="itemProperties(r[0])"
-                matTooltip="Edit Waypoint Properties"
-                matTooltipPosition="above"
-              >
-                <mat-icon>edit</mat-icon>
-              </button>
-            </div>
-            @if(app.featureFlags().resourceGroups) { &nbsp;
-            <div>
+              @if(app.featureFlags().resourceGroups) {
               <button
                 mat-icon-button
                 [disabled]="disableRefresh"
@@ -173,8 +162,19 @@
               >
                 <mat-icon>category</mat-icon>
               </button>
+              }
             </div>
-            }
+            <div>
+              <button
+                mat-icon-button
+                [disabled]="disableRefresh"
+                (click)="itemProperties(r[0])"
+                matTooltip="Waypoint Properties"
+                matTooltipPosition="above"
+              >
+                <mat-icon>info_outline</mat-icon>
+              </button>
+            </div>
           </div>
         </mat-card-actions>
       </mat-card>

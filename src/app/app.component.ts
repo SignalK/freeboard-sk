@@ -36,6 +36,7 @@ import {
 // ****
 
 import { AppFacade } from './app.facade';
+import { InfoPanelFacade, InfoPanelComponent } from './modules/info-panel';
 import { SignalKClient } from 'signalk-client-angular';
 import { WakeLockService } from 'src/app/lib/services';
 
@@ -83,7 +84,9 @@ import {
   AISListComponent,
   GroupListComponent,
   InfoLayerListComponent,
-  BuildRouteComponent
+  BuildRouteComponent,
+  NotePanel,
+  RegionPanel
 } from 'src/app/modules';
 
 import {
@@ -115,6 +118,11 @@ import {
   SelectionResultDef
 } from './modules/map/fbmap-interact.service';
 import { RadarAPIService } from './modules/radar/radar-api.service';
+import {
+  RoutePanel,
+  SKResourceType,
+  WaypointPanel
+} from './modules/skresources';
 
 interface DrawEndEvent {
   coordinates: LineString | Position | Polygon;
@@ -164,7 +172,12 @@ interface DrawEndEvent {
     AISListComponent,
     GroupListComponent,
     InfoLayerListComponent,
-    BuildRouteComponent
+    BuildRouteComponent,
+    InfoPanelComponent,
+    NotePanel,
+    RegionPanel,
+    WaypointPanel,
+    RoutePanel
   ]
 })
 export class AppComponent {
@@ -183,14 +196,6 @@ export class AppComponent {
   });
 
   protected playbackTime = signal<string | null>(null);
-
-  protected instrumentPanel = signal<{
-    open: boolean;
-    activate: boolean;
-  }>({
-    open: false,
-    activate: false
-  });
 
   protected leftMenuCtrl = signal<{
     leftMenuPanel: boolean;
@@ -254,6 +259,7 @@ export class AppComponent {
   });
 
   protected app = inject(AppFacade);
+  protected infoPanel = inject(InfoPanelFacade);
   protected mapInteract = inject(FBMapInteractService);
   protected anchor = inject(AnchorService);
   protected notiMgr = inject(NotificationManager);
@@ -323,7 +329,7 @@ export class AppComponent {
 
     // ** apply loaded app config
     this.mapCenter.update(() => this.app.config.map.center);
-    this.instrumentPanel.update((current) => {
+    this.app.instrumentPanel.update((current) => {
       return Object.assign({}, current, {
         activate: !this.app.config.display.plugins.startOnOpen
       });
@@ -940,7 +946,7 @@ export class AppComponent {
         this.dom.bypassSecurityTrustResourceUrl(this.formatInstrumentsUrl())
       );
       // update instrument app state
-      this.instrumentPanel.update((current) => {
+      this.app.instrumentPanel.update((current) => {
         return Object.assign({}, current, {
           activate: this.app.config.display.plugins.startOnOpen
             ? current.open
@@ -980,7 +986,7 @@ export class AppComponent {
   // ********* SIDENAV ACTIONS *************
 
   protected rightSideNavAction(e: boolean) {
-    this.instrumentPanel.update((current) => {
+    this.app.instrumentPanel.update((current) => {
       return Object.assign({}, current, {
         open: e,
         activate: this.app.config.display.plugins.startOnOpen
@@ -1045,6 +1051,21 @@ export class AppComponent {
     this.leftMenuCtrl.update(() => lm);
     if (!show) {
       this.focusMap();
+    }
+  }
+
+  /** handle resource info event */
+  protected handleResourceInfo(collection: SKResourceType, id: string) {
+    if (collection === 'notes' && !this.app.useInfoPanel()) {
+      this.skres.noteSelected(id, false);
+    } else if (collection === 'regions' && !this.app.useInfoPanel()) {
+      this.skres.editRegionInfo(id);
+    } else if (collection === 'waypoints' && !this.app.useInfoPanel()) {
+      this.skres.editWaypointInfo(id);
+    } else if (collection === 'routes' && !this.app.useInfoPanel()) {
+      this.skres.editRouteInfo(id);
+    } else {
+      this.infoPanel.open(collection, id);
     }
   }
 

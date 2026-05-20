@@ -1,11 +1,11 @@
 import {
   Component,
-  Output,
-  EventEmitter,
   ChangeDetectionStrategy,
   effect,
   signal,
-  input
+  input,
+  inject,
+  output
 } from '@angular/core';
 import { MatDialog, MatDialogRef } from '@angular/material/dialog';
 import { MatTooltipModule } from '@angular/material/tooltip';
@@ -27,7 +27,6 @@ import { FBCharts, FBChart } from 'src/app/types';
 import { WMTSDialog } from './wmts-dialog';
 import { WMSDialog } from './wms-dialog';
 import { JsonMapSourceDialog } from './jsonmapsource-dialog';
-import { SignalKClient } from 'signalk-client-angular';
 import { SKWorkerService } from 'src/app/modules/skstream/skstream.service';
 import { ResourceListBase } from '../resource-list-baseclass';
 import { FBMapInteractService } from 'src/app/modules/map/fbmap-interact.service';
@@ -60,7 +59,7 @@ import { SKChart } from '../../resource-classes';
   ]
 })
 export class ChartListComponent extends ResourceListBase {
-  @Output() closed: EventEmitter<void> = new EventEmitter();
+  closed = output<void>();
 
   selectedCharts = input<string[]>();
 
@@ -69,15 +68,13 @@ export class ChartListComponent extends ResourceListBase {
 
   displayChartLayers = false;
 
-  constructor(
-    protected app: AppFacade,
-    private dialog: MatDialog,
-    private signalk: SignalKClient,
-    protected override skres: SKResourceService,
-    private worker: SKWorkerService,
-    private mapInteract: FBMapInteractService,
-    protected skgroups: SKResourceGroupService
-  ) {
+  protected app = inject(AppFacade);
+  private worker = inject(SKWorkerService);
+  private dialog = inject(MatDialog);
+  private skgroups = inject(SKResourceGroupService);
+  private mapInteract = inject(FBMapInteractService);
+
+  constructor(protected override skres: SKResourceService) {
     super('charts', skres);
     // selection.charts changed
     effect(() => {
@@ -125,6 +122,7 @@ export class ChartListComponent extends ResourceListBase {
       this.fullList = this.skres.appendOSM(this.fullList);
       this.app.sIsFetching.set(false);
       this.doFilter();
+      this.cleanOpacityConfig();
       this.skres.selectionClean(
         this.collection,
         this.fullList.map((i) => i[0])
@@ -134,6 +132,19 @@ export class ChartListComponent extends ResourceListBase {
       this.app.parseHttpErrorResponse(err);
       this.fullList = [];
     }
+  }
+
+  /**
+   * Clean orphaned chartOpacity keys from config
+   */
+  cleanOpacityConfig() {
+    const keys = Object.keys(this.app.config.selections.chartOpacity);
+    const listIds = this.fullList.map((i) => i[0]);
+    keys.forEach((key) => {
+      if (!listIds.includes(key)) {
+        delete this.app.config.selections.chartOpacity[key];
+      }
+    });
   }
 
   /**

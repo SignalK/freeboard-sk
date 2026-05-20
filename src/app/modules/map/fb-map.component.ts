@@ -66,7 +66,9 @@ import {
   NotificationManager,
   CourseService,
   SettingsFacade,
-  WeatherForecastModal
+  WeatherForecastModal,
+  InfoPanelFacade,
+  SKResourceType
 } from 'src/app/modules';
 import {
   mapControls,
@@ -266,6 +268,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
   protected mapService = inject(MapService);
   private settings = inject(SettingsFacade);
   private bottomSheet = inject(MatBottomSheet);
+  private infoPanel = inject(InfoPanelFacade);
 
   constructor() {
     effect(() => {
@@ -1269,14 +1272,15 @@ export class FBMapComponent implements OnInit, OnDestroy {
           return false;
         }
         poData.readOnly = item[1]?.properties?.readOnly ?? false;
+        poData.id = t[1];
+        poData.type = t[0];
+        poData.title = 'Note';
+        poData.resource = item;
         if (poData.readOnly) {
           poData.show = false;
-          this.skres.showNoteDetails(item[0]);
+          this.overlay.set(poData);
+          this.popoverInfo();
         } else {
-          poData.id = t[1];
-          poData.type = t[0];
-          poData.title = 'Note';
-          poData.resource = item;
           poData.show = true;
         }
         break;
@@ -1326,9 +1330,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
       default:
         return;
     }
-    this.overlay.update(() => {
-      return poData;
-    });
+    this.overlay.set(poData);
   }
 
   /** handle selection from the FeatureList popover */
@@ -1342,6 +1344,19 @@ export class FBMapComponent implements OnInit, OnDestroy {
     });
     this.mapInteract.draw.features = sf;
     this.formatPopover(feature.id, feature.coord);
+  }
+
+  /** handle popover info event */
+  protected popoverInfo() {
+    const collection = `${this.overlay().type}s` as SKResourceType;
+    if (
+      ['notes', 'regions', 'waypoints', 'routes'].includes(collection) &&
+      this.app.useInfoPanel()
+    ) {
+      this.infoPanel.open(collection, this.overlay().id);
+    } else {
+      this.skres.resourceProperties(this.overlay());
+    }
   }
 
   /** handle popover closed event */

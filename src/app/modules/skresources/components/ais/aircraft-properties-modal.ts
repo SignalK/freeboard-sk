@@ -1,4 +1,4 @@
-import { Component, Inject } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import {
   MatBottomSheetRef,
   MAT_BOTTOM_SHEET_DATA
@@ -9,17 +9,10 @@ import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatToolbarModule } from '@angular/material/toolbar';
 
-import { AppFacade } from 'src/app/app.facade';
 import { SignalKClient } from 'signalk-client-angular';
 import { SKAircraft } from 'src/app/modules/skresources/resource-classes';
 import { SignalKDetailsComponent } from '../../components/signalk-details.component';
 
-/********* AircraftPropertiesModal **********
-	data: {
-        title: "<string>" title text,
-        target: "<SKAircraft>" aid to navigation
-    }
-***********************************/
 @Component({
   selector: 'ap-aircraft-modal',
   imports: [
@@ -103,18 +96,16 @@ export class AircraftPropertiesModal {
   protected showProperties = true;
   protected properties: { [key: string]: string | number | null };
 
-  constructor(
-    private sk: SignalKClient,
-    private app: AppFacade,
-    public modalRef: MatBottomSheetRef<AircraftPropertiesModal>,
-    @Inject(MAT_BOTTOM_SHEET_DATA)
-    public data: {
-      title: string;
-      target: SKAircraft;
-      id: string;
-      icon: string;
-    }
-  ) {}
+  private sk = inject(SignalKClient);
+  protected modalRef = inject(MatBottomSheetRef<AircraftPropertiesModal>);
+  protected data = inject<{
+    title: string;
+    target: SKAircraft;
+    id: string;
+    icon: string;
+  }>(MAT_BOTTOM_SHEET_DATA);
+
+  constructor() {}
 
   ngOnInit() {
     this.getAircraftInfo();

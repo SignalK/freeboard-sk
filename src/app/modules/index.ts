@@ -11,4 +11,6 @@ export * from './weather';
 export * from './skstream/skstream.service';
 export * from './skstream/skstream.facade';
 
+export * from './info-panel';
+
 export * from './experiments';

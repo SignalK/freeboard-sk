@@ -10,37 +10,37 @@ interface Feature {
   id?: string;
 }
 
-export interface PointFeature extends Feature {
+export type PointFeature = Feature & {
   geometry: {
     type: 'Point';
     coordinates: Position;
   };
-}
+};
 
-export interface LineStringFeature extends Feature {
+export type LineStringFeature = Feature & {
   geometry: {
     type: 'LineString';
     coordinates: LineString;
   };
-}
+};
 
-export interface MultiLineStringFeature extends Feature {
+export type MultiLineStringFeature = Feature & {
   geometry: {
     type: 'MultiLineString';
     coordinates: MultiLineString;
   };
-}
+};
 
-export interface PolygonFeature extends Feature {
+export type PolygonFeature = Feature & {
   geometry: {
     type: 'Polygon';
     coordinates: Polygon;
   };
-}
+};
 
-export interface MultiPolygonFeature {
+export type MultiPolygonFeature = Feature & {
   geometry: {
     type: 'MultiPolygon';
     coordinates: MultiPolygon;
   };
-}
+};

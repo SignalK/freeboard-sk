@@ -1,7 +1,4 @@
-/** Notes Dialog Component **
- ********************************/
-
-import { Component, OnInit, Inject } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { CoordsPipe } from 'src/app/lib/pipes';
 import { MatButtonModule } from '@angular/material/button';
@@ -14,6 +11,7 @@ import {
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
+import { MatSelectModule } from '@angular/material/select';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatToolbarModule } from '@angular/material/toolbar';
@@ -22,16 +20,22 @@ import {
   AngularEditorModule,
   AngularEditorConfig
 } from '@kolkov/angular-editor';
+import { RemarkModule } from 'ngx-remark';
 import { AddTargetPipe } from './safe.pipe';
 
 import { AppFacade } from 'src/app/app.facade';
-import { AppIconDef, getResourceIcon } from 'src/app/modules/icons';
+import { AppIconDef, getResourceIcon, listPoiIds } from 'src/app/modules/icons';
+import { SKNote } from '../../resource-classes';
+import { SKPosition } from 'src/app/types';
 
-/********* NoteDialog **********
-	data: {
-        note: <SKNote>
-    }
-***********************************/
+interface DialogData {
+  title: string;
+  note: SKNote;
+  editable: boolean;
+  addMode: boolean;
+  position: SKPosition;
+}
+
 @Component({
   selector: 'ap-notedialog',
   imports: [
@@ -44,10 +48,12 @@ import { AppIconDef, getResourceIcon } from 'src/app/modules/icons';
     MatSlideToggleModule,
     MatFormFieldModule,
     MatInputModule,
+    MatSelectModule,
     MatToolbarModule,
     AngularEditorModule,
     CoordsPipe,
-    AddTargetPipe
+    AddTargetPipe,
+    RemarkModule
   ],
   templateUrl: `note-dialog.html`,
   styleUrls: ['notes.css']
@@ -112,13 +118,12 @@ export class NoteDialog implements OnInit {
   };
 
   protected icon: AppIconDef;
+  protected poiIcons: Array<{ id: string; name: string }> = [];
+  protected data = inject<DialogData>(MAT_DIALOG_DATA);
+  protected app = inject(AppFacade);
+  protected dialogRef = inject(MatDialogRef<NoteDialog>);
 
-  constructor(
-    protected app: AppFacade,
-    protected dialogRef: MatDialogRef<NoteDialog>,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    @Inject(MAT_DIALOG_DATA) public data: any
-  ) {}
+  constructor() {}
 
   ngOnInit() {
     if (!this.data.note.properties) {
@@ -130,7 +135,29 @@ export class NoteDialog implements OnInit {
     if (this.data.note.properties.readOnly) {
       this.data.editable = false;
     }
-    this.icon = getResourceIcon('notes', this.data.note);
+    this.icon = this.cleanIconDef(getResourceIcon('notes', this.data.note));
+    this.poiIcons = listPoiIds();
+  }
+
+  cleanIconDef(icon: AppIconDef) {
+    icon.svgIcon = icon.svgIcon ?? '';
+    return icon;
+  }
+
+  onIconSelected(e: string) {
+    if (e.startsWith('sk-')) {
+      this.data.note.properties.skIcon = e.slice(3);
+    } else {
+      delete this.data.note.properties.skIcon;
+    }
+    this.icon = this.cleanIconDef(getResourceIcon('notes', this.data.note));
+  }
+  onSave() {
+    this.dialogRef.close({
+      result: true,
+      data: this.data.note,
+      action: 'save'
+    });
   }
 
   openNoteUrl() {

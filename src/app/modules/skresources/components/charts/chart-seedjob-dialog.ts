@@ -1,4 +1,4 @@
-import { Component, Inject } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import {
   MatDialogModule,
   MatDialogRef,
@@ -16,9 +16,11 @@ import { SKChart } from 'src/app/modules/skresources/resource-classes';
 import { CoordsPipe } from 'src/app/lib/pipes';
 import { Position } from 'src/app/types';
 
-/********* ChartSeedJobDialog **********
-	data: { chart: SKChart, bbox: {} }
-***********************************/
+interface DialogData {
+  chart: SKChart;
+  bbox: [Position, Position];
+}
+
 @Component({
   selector: 'ap-chartproperties',
   imports: [
@@ -90,8 +92,8 @@ import { Position } from 'src/app/types';
           </div>
         </div>
       </mat-dialog-content>
-      <mat-dialog-actions>
-        <button mat-raised-button (click)="dialogRef.close(selZoom)">
+      <mat-dialog-actions align="right">
+        <button mat-flat-button (click)="dialogRef.close(selZoom)">
           Submit
         </button>
       </mat-dialog-actions>
@@ -130,12 +132,11 @@ export class ChartSeedJobDialog {
   protected zoomRange: number[] = [];
   protected selZoom: number;
 
-  constructor(
-    public app: AppFacade,
-    public dialogRef: MatDialogRef<ChartSeedJobDialog>,
-    @Inject(MAT_DIALOG_DATA)
-    public data: { chart: SKChart; bbox: [Position, Position] }
-  ) {}
+  protected app = inject(AppFacade);
+  protected dialogRef = inject(MatDialogRef<ChartSeedJobDialog>);
+  protected data = inject<DialogData>(MAT_DIALOG_DATA);
+
+  constructor() {}
 
   ngOnInit() {
     const minZoom = this.data.chart[1].minZoom ?? 1;

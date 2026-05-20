@@ -1,7 +1,4 @@
-/** Route Details Dialog Component **
- ********************************/
-
-import { Component, OnInit, Inject } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 
 import { FormsModule } from '@angular/forms';
 import { MatInputModule } from '@angular/material/input';
@@ -13,12 +10,12 @@ import {
   MAT_DIALOG_DATA
 } from '@angular/material/dialog';
 import { SKRoute } from '../../resource-classes';
+import { MatToolbarModule } from '@angular/material/toolbar';
 
-/********* RouteDialog **********
-	data: {
-    route: SKRoute
-  }
-***********************************/
+interface DialogData {
+  route: SKRoute;
+}
+
 @Component({
   selector: 'ap-routedialog',
   imports: [
@@ -26,24 +23,28 @@ import { SKRoute } from '../../resource-classes';
     MatInputModule,
     MatIconModule,
     MatButtonModule,
-    MatDialogModule
+    MatDialogModule,
+    MatToolbarModule
   ],
   template: `
     <div class="_ap-route">
-      <div style="display:flex;">
-        <div style="padding: 15px 0 0 10px;">
+      <mat-toolbar style="background-color: transparent">
+        <div>
           <mat-icon class="icon-route" svgIcon="route"></mat-icon>
         </div>
-        <div>
-          <h1 mat-dialog-title>Route Details</h1>
+        <span style="flex: 1 1 auto; text-align: center;">Route Details</span>
+        <div style="width: 50px;text-align:right;">
+          <button mat-icon-button (click)="handleClose(false)">
+            <mat-icon>close</mat-icon>
+          </button>
         </div>
-      </div>
+      </mat-toolbar>
 
       <mat-dialog-content>
-        <div>
-          <div style="padding-left: 10px;">
+        <div style="display: flex">
+          <div style="flex: 1 1 auto">
             <div>
-              <mat-form-field floatLabel="always">
+              <mat-form-field floatLabel="always" style="width: 100%">
                 <mat-label>Name</mat-label>
                 <input
                   matInput
@@ -59,7 +60,7 @@ import { SKRoute } from '../../resource-classes';
               </mat-form-field>
             </div>
             <div>
-              <mat-form-field floatLabel="always">
+              <mat-form-field floatLabel="always" style="width: 100%">
                 <mat-label>Description</mat-label>
                 <textarea
                   matInput
@@ -74,20 +75,17 @@ import { SKRoute } from '../../resource-classes';
           </div>
         </div>
       </mat-dialog-content>
-      <mat-dialog-actions>
-        <div style="text-align:center;width:100%;">
-          @if (!readOnly) {
-            <button
-              mat-raised-button
-              [disabled]="inpname.invalid || readOnly"
-              (click)="handleClose(true)"
-            >
-              SAVE
-            </button>
-          }
-          <button mat-raised-button (click)="handleClose(false)">CANCEL</button>
-        </div>
-      </mat-dialog-actions>
+      @if (!readOnly) {
+        <mat-dialog-actions align="right">
+          <button
+            mat-flat-button
+            [disabled]="inpname.invalid || readOnly"
+            (click)="handleClose(true)"
+          >
+            SAVE
+          </button>
+        </mat-dialog-actions>
+      }
     </div>
   `,
   styles: [
@@ -103,13 +101,10 @@ export class RouteDialog implements OnInit {
   protected description: string;
   protected readOnly = false;
 
-  constructor(
-    private dialogRef: MatDialogRef<RouteDialog>,
-    @Inject(MAT_DIALOG_DATA)
-    protected data: {
-      route: SKRoute;
-    }
-  ) {}
+  private dialogRef = inject(MatDialogRef<RouteDialog>);
+  protected data = inject<DialogData>(MAT_DIALOG_DATA);
+
+  constructor() {}
 
   ngOnInit() {
     this.name = this.data.route.name ?? '';

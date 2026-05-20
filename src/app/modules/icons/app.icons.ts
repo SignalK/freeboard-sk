@@ -64,7 +64,27 @@ export const getResourceIcon = (
     return { class: 'icon-route', svgIcon: 'route', name: undefined };
   }
   if (resourceType === 'regions') {
-    return { class: 'icon-region', svgIcon: undefined, name: 'tab_unselected' };
+    let iconDef = {
+      class: 'icon-region',
+      svgIcon: undefined,
+      name: 'tab_unselected'
+    };
+    if (!resource) {
+      return iconDef;
+    }
+    const icon =
+      typeof resource === 'string'
+        ? resource
+        : (resource as SKRegion).feature.properties?.skIcon;
+    if (!icon) {
+      return iconDef;
+    } else {
+      return {
+        class: undefined,
+        svgIcon: `sk-${icon}`,
+        name: undefined
+      };
+    }
   }
   if (resourceType === 'notes') {
     let iconDef = {
@@ -202,4 +222,22 @@ export const getAisIcon = (id: number | string): AppIconDef => {
       name: id.toString()
     };
   }
+};
+
+/**
+ * @description Return a list of POI icon ids
+ */
+export const listPoiIds = (): Array<{ id: string; name: string }> => {
+  const icons = PoiIcons.files.map((file: string) => {
+    const name = file.slice(0, file.lastIndexOf('.'));
+    return {
+      id: `sk-${name}`,
+      name: name
+    };
+  });
+  icons.unshift({
+    id: '',
+    name: `local_offer`
+  });
+  return icons;
 };

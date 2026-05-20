@@ -1,10 +1,10 @@
 import {
   Component,
-  Output,
-  EventEmitter,
   ChangeDetectionStrategy,
   signal,
-  effect
+  effect,
+  inject,
+  output
 } from '@angular/core';
 
 import { MatTooltipModule } from '@angular/material/tooltip';
@@ -49,20 +49,20 @@ import {
   ]
 })
 export class GroupListComponent {
-  @Output() closed: EventEmitter<void> = new EventEmitter();
+  closed = output<void>();
 
   protected fullList: FBResourceGroups = [];
   protected filteredList = signal<FBResourceGroups>([]);
   protected filterText = '';
   selectedGroup!: string;
 
-  constructor(
-    public app: AppFacade,
-    protected skres: SKResourceService,
-    protected signalk: SignalKClient,
-    private worker: SKWorkerService,
-    private skgroups: SKResourceGroupService
-  ) {
+  protected app = inject(AppFacade);
+  private worker = inject(SKWorkerService);
+  private skgroups = inject(SKResourceGroupService);
+  protected skres = inject(SKResourceService);
+  protected signalk = inject(SignalKClient);
+
+  constructor() {
     // resources delta handler
     effect(() => {
       if (this.worker.resourceUpdate().path.includes('resources.groups')) {
@@ -206,7 +206,7 @@ export class GroupListComponent {
    * @param id group identifier
    */
   protected itemProperties(id: string) {
-    this.skgroups.editGroupinfo(id);
+    this.skgroups.editGroupInfo(id);
   }
 
   /**
