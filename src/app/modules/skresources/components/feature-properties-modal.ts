@@ -1,4 +1,4 @@
-import { Component, Inject } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import {
   MatBottomSheetRef,
   MAT_BOTTOM_SHEET_DATA
@@ -12,9 +12,6 @@ import { MatStepperModule } from '@angular/material/stepper';
 import { SignalKDetailsComponent } from '../components/signalk-details.component';
 import { Feature } from 'geojson';
 
-/********* FeaturePropertiesModal **********
-	data: GeoJSONFeature[]
-***********************************/
 @Component({
   selector: 'ap-feature-modal',
   imports: [
@@ -119,12 +116,13 @@ export class FeaturePropertiesModal {
   protected display = [];
   protected currentPage = 1;
 
-  constructor(
-    protected modalRef: MatBottomSheetRef<FeaturePropertiesModal>,
-    @Inject(MAT_BOTTOM_SHEET_DATA)
-    public data: Feature[]
-  ) {
-    this.display = Array.isArray(data) ? data.map((f) => f.properties) : [];
+  protected modalRef = inject(MatBottomSheetRef<FeaturePropertiesModal>);
+  protected data = inject<Feature[]>(MAT_BOTTOM_SHEET_DATA);
+
+  constructor() {
+    this.display = Array.isArray(this.data)
+      ? this.data.map((f) => f.properties)
+      : [];
   }
 
   ngAfterViewInit() {

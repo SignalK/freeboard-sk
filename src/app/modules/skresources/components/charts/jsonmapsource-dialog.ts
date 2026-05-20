@@ -1,4 +1,4 @@
-import { Component, inject, Inject } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import {
   MatDialogModule,
   MatDialogRef,
@@ -46,9 +46,6 @@ interface TileJson {
   id: string;
 }
 
-/********* JsonMapSourceDialog **********
-	data: 
-***********************************/
 @Component({
   selector: 'json-mapsource-dialog',
   imports: [
@@ -129,11 +126,11 @@ interface TileJson {
           }
         }
       </mat-dialog-content>
-      <mat-dialog-actions>
-        <button mat-raised-button [disabled]="!provider" (click)="handleSave()">
-          Save
-        </button>
-      </mat-dialog-actions>
+      @if (provider) {
+        <mat-dialog-actions align="right">
+          <button mat-raised-button (click)="handleSave()">Save</button>
+        </mat-dialog-actions>
+      }
     </div>
   `,
   styles: [
@@ -168,11 +165,10 @@ export class JsonMapSourceDialog {
 
   protected app = inject(AppFacade);
   protected dialogRef = inject(MatDialogRef<JsonMapSourceDialog>);
+  private http = inject(HttpClient);
+  protected data = inject<SKChart>(MAT_DIALOG_DATA);
 
-  constructor(
-    private http: HttpClient,
-    @Inject(MAT_DIALOG_DATA) public data: SKChart
-  ) {}
+  constructor() {}
 
   handleSave() {
     this.dialogRef.close([this.provider]);

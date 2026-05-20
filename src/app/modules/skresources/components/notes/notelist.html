@@ -122,7 +122,7 @@
               >
                 <mat-icon>style</mat-icon>
               </button>
-              }
+              } @if(r[1].position){
               <button
                 mat-icon-button
                 [disabled]="app.uiConfig().mapMove"
@@ -132,7 +132,7 @@
               >
                 <mat-icon>center_focus_strong</mat-icon>
               </button>
-
+              }
               <button
                 mat-icon-button
                 (click)="viewNote(r[0])"

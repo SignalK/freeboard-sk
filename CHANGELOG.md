@@ -1,21 +1,10 @@
 # CHANGELOG: Freeboard
 
-### v2.22.1
+### v2.23.0
 
-- **Fix**: Issue where ATONs were incorrectly displayed with the weather station icon 
-
-### v2.22.0
-
-#### IMPORTANT
-**Freeboard-SK now exclusively uses the Notification API to interact with alarms.<br>_To use this functionality Signal K Server v2.22.0 or later is required._**
-
-- **Update**: Add chart opacity control. (#368)
-- **Update**: View S57 Chart feature details. (#339, #369, #370)
-- **Update**: Added ability to silence all alerts.
-- **Update**: Use rhumbline calculation for vessel lines. (#363)
-- **Fix**: Processing of route `coordinatesMeta` properties.
-- **Fix**: Issue where "Next Point" button was appearing on all alert notifications when there is and active destination.
-- **Fix**: Map offset / lookahead (#359) 
+- **New**: Information panel providing a more complete display of resource details and actions. Includes support for disoplaying formatted markdown content in resource descriptons. (#373)
+- **Added**: Settings to enable configuration COG and Heading line styles. (#375)  
+- **Fix**: S-57 popover to tolerate chart attributes in differing formats. (#372)  
 
 #### Experiment: 
 - Initial `RADAR API` support.

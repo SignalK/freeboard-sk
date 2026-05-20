@@ -1,14 +1,10 @@
-/***********************************
-Build Route from  waypoints, locations component
-    <route-builder>
-***********************************/
 import {
   Component,
   ChangeDetectionStrategy,
   ChangeDetectorRef,
-  EventEmitter,
-  Output,
-  signal
+  signal,
+  output,
+  inject
 } from '@angular/core';
 
 import { FormsModule } from '@angular/forms';
@@ -145,17 +141,17 @@ export class BuildRouteComponent {
   wpts = signal([]);
   rtepts = [];
 
-  @Output() save: EventEmitter<{
+  save = output<{
     coordinates: LineString;
     meta?: Array<{ href?: string; name?: string }>;
-  }> = new EventEmitter();
-  @Output() close: EventEmitter<void> = new EventEmitter();
+  }>();
+  close = output<void>();
 
-  constructor(
-    protected app: AppFacade,
-    private skres: SKResourceService,
-    private cdr: ChangeDetectorRef
-  ) {}
+  protected app = inject(AppFacade);
+  private skres = inject(SKResourceService);
+  private cdr = inject(ChangeDetectorRef);
+
+  constructor() {}
 
   ngAfterViewInit() {
     this.getWaypoints();

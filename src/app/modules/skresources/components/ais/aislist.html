@@ -147,7 +147,7 @@
         <mat-card-actions>
           <div style="display: flex">
             <div style="flex: 1 1 auto">
-              @if(r[0] !== focusId) {
+              @if(r[0] !== focusId()) {
               <button
                 mat-button
                 (click)="focus(r[0])"

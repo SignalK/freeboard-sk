@@ -1,4 +1,4 @@
-import { Component, inject, Inject } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import {
   MatDialogModule,
   MatDialogRef,
@@ -13,14 +13,10 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatInputModule } from '@angular/material/input';
 import { MatListModule, MatSelectionListChange } from '@angular/material/list';
 import { AppFacade } from 'src/app/app.facade';
-import { ChartProvider } from 'src/app/types';
 import { SKInfoLayer } from '../../custom-resource-classes';
 import { WMTSLayerDef } from './maplib';
 import { wmtsCapabilitiesInWorker } from './maplib';
 
-/********* WMTSDialog **********
-	data: <WMTSCapabilities.xml>
-***********************************/
 @Component({
   selector: 'wmts-dialog',
   imports: [
@@ -46,26 +42,25 @@ import { wmtsCapabilitiesInWorker } from './maplib';
         </span>
       </mat-toolbar>
       <mat-dialog-content>
-        @if (true) {
-          <mat-form-field floatLabel="always" style="width:100%">
-            <mat-label> WMTS host. </mat-label>
-            <input matInput #txturl type="url" required [(value)]="hostUrl" />
-            @if (txturl) {
-              <button
-                matSuffix
-                mat-icon-button
-                [disabled]="txturl.value.length === 0"
-                (click)="getCapabilities(txturl.value)"
-              >
-                <mat-icon>arrow_forward</mat-icon>
-              </button>
-            }
-            <mat-hint> Enter url of the WMTS host. </mat-hint>
-            @if (txturl.invalid) {
-              <mat-error>WMTS host is required!</mat-error>
-            }
-          </mat-form-field>
-        }
+        <mat-form-field floatLabel="always" style="width:100%">
+          <mat-label> WMTS host. </mat-label>
+          <input matInput #txturl type="url" required [(value)]="hostUrl" />
+          @if (txturl) {
+            <button
+              matSuffix
+              mat-icon-button
+              [disabled]="txturl.value.length === 0"
+              (click)="getCapabilities(txturl.value)"
+            >
+              <mat-icon>arrow_forward</mat-icon>
+            </button>
+          }
+          <mat-hint> Enter url of the WMTS host. </mat-hint>
+          @if (txturl.invalid) {
+            <mat-error>WMTS host is required!</mat-error>
+          }
+        </mat-form-field>
+
         @if (isFetching) {
           <mat-progress-bar mode="query"></mat-progress-bar>
         } @else {
@@ -97,9 +92,9 @@ import { wmtsCapabilitiesInWorker } from './maplib';
         }
       </mat-dialog-content>
       @if (data.format !== 'chartprovider') {
-        <mat-dialog-actions>
+        <mat-dialog-actions align="right">
           <button
-            mat-raised-button
+            mat-flat-button
             [disabled]="selections.length === 0"
             (click)="handleSave()"
           >
@@ -131,13 +126,11 @@ export class WMTSDialog {
 
   protected app = inject(AppFacade);
   protected dialogRef = inject(MatDialogRef<WMTSDialog>);
+  protected data = inject<{ format: 'chartprovider' | 'infolayer' }>(
+    MAT_DIALOG_DATA
+  );
 
-  constructor(
-    @Inject(MAT_DIALOG_DATA)
-    public data: {
-      format: 'chartprovider' | 'infolayer';
-    }
-  ) {}
+  constructor() {}
 
   handleSelection(e: MatSelectionListChange) {
     this.selections = e.source.selectedOptions.selected.map((opt) => opt.value);

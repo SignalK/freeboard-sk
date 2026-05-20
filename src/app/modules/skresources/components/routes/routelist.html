@@ -83,15 +83,24 @@
               >
                 <b>{{r[1].name}}</b>
               </div>
-              <div
+              <remark
                 style="
+                  flex: 1 1 auto;
+                  text-align: left;
+                  font-style: italic;
+                  overflow: hidden;
+                  display: -webkit-box;
+                  -webkit-box-orient: vertical;
+                  -webkit-line-clamp: 2;
+                  line-clamp: 2;
                   text-overflow: ellipsis;
-                  overflow-x: hidden;
-                  white-space: pre;
                 "
+                [markdown]="r[1].description ?? ''"
               >
-                {{r[1].description}}
-              </div>
+                <ng-template remarkTemplate="heading" let-node>
+                  <h1 [remarkNode]="node" style="font-size: 10pt"></h1>
+                </ng-template>
+              </remark>
               <div>
                 <i>{{formatDistance(r[1].distance)}} </i>
               </div>
@@ -99,7 +108,7 @@
             <div style="text-align: right">
               <mat-checkbox
                 [checked]="r[2]"
-                [disabled]="r[0] === activeRoute || disableRefresh"
+                [disabled]="r[0] === activeRoute() || disableRefresh"
                 (change)="itemSelect($event.checked, r[0])"
                 matTooltip="Show on Map"
                 matTooltipPosition="left"
@@ -114,7 +123,7 @@
               <button
                 mat-icon-button
                 (click)="itemDelete(r[0])"
-                [disabled]="r[0] === activeRoute || disableRefresh"
+                [disabled]="r[0] === activeRoute() || disableRefresh"
                 matTooltip="Delete Route"
                 matTooltipPosition="above"
               >
@@ -137,7 +146,7 @@
               >
                 <mat-icon>flag</mat-icon>
               </button>
-              @if(r[0] !== activeRoute) {
+              @if(r[0] !== activeRoute()) {
               <button
                 mat-icon-button
                 [disabled]="disableRefresh"

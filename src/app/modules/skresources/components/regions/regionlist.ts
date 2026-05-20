@@ -1,11 +1,11 @@
 import {
   Component,
   Input,
-  Output,
-  EventEmitter,
   ChangeDetectionStrategy,
   signal,
-  effect
+  effect,
+  output,
+  inject
 } from '@angular/core';
 
 import { MatTooltipModule } from '@angular/material/tooltip';
@@ -27,6 +27,7 @@ import { MatDialog } from '@angular/material/dialog';
 import { SKRegion } from '../../resource-classes';
 import { SKResourceGroupService } from '../groups/groups.service';
 import { SingleSelectListDialog } from 'src/app/lib/components';
+import { RemarkModule } from 'ngx-remark';
 
 @Component({
   selector: 'region-list',
@@ -41,29 +42,27 @@ import { SingleSelectListDialog } from 'src/app/lib/components';
     MatButtonModule,
     FormsModule,
     MatInputModule,
-    ScrollingModule
+    ScrollingModule,
+    RemarkModule
   ]
 })
 export class RegionListComponent extends ResourceListBase {
   @Input() regions: FBRegions;
-  @Output() select: EventEmitter<FBResourceSelect> = new EventEmitter();
-  @Output() refresh: EventEmitter<void> = new EventEmitter();
-  @Output() closed: EventEmitter<void> = new EventEmitter();
-  @Output() pan: EventEmitter<{ center: Position; zoomLevel: number }> =
-    new EventEmitter();
+  select = output<FBResourceSelect>();
+  refresh = output<void>();
+  closed = output<void>();
+  pan = output<{ center: Position; zoomLevel: number }>();
 
   protected override fullList: FBRegions = [];
   protected override filteredList = signal<FBRegions>([]);
-
   filterList = [];
 
-  constructor(
-    public app: AppFacade,
-    protected override skres: SKResourceService,
-    private worker: SKWorkerService,
-    private dialog: MatDialog,
-    protected skgroups: SKResourceGroupService
-  ) {
+  protected app = inject(AppFacade);
+  private worker = inject(SKWorkerService);
+  private dialog = inject(MatDialog);
+  private skgroups = inject(SKResourceGroupService);
+
+  constructor(protected override skres: SKResourceService) {
     super('regions', skres);
     // resources delta handler
     effect(() => {
@@ -171,7 +170,7 @@ export class RegionListComponent extends ResourceListBase {
    * @param id Region identifier
    */
   protected itemProperties(id: string) {
-    this.skres.editRegionInfo(id);
+    this.select.emit({ id: id });
   }
 
   /**

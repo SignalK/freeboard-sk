@@ -1,4 +1,4 @@
-import { Component, OnInit, Inject } from '@angular/core';
+import { Component, inject, OnInit } from '@angular/core';
 import {
   MatBottomSheetRef,
   MAT_BOTTOM_SHEET_DATA
@@ -14,13 +14,6 @@ import { SignalKClient } from 'signalk-client-angular';
 import { SKAtoN } from 'src/app/modules/skresources/resource-classes';
 import { SignalKDetailsComponent } from '../../components/signalk-details.component';
 
-/********* AtoNPropertiesModal **********
-	data: {
-        title: "<string>" title text,
-        target: "<SKAtoN>" aid to navigation
-        icon: <string>
-    }
-***********************************/
 @Component({
   selector: 'ap-aton-modal',
   imports: [
@@ -100,19 +93,18 @@ export class AtoNPropertiesModal implements OnInit {
   protected showProperties = true;
   protected properties: { [key: string]: string | number | null };
 
-  constructor(
-    private sk: SignalKClient,
-    private app: AppFacade,
-    public modalRef: MatBottomSheetRef<AtoNPropertiesModal>,
-    @Inject(MAT_BOTTOM_SHEET_DATA)
-    public data: {
-      title: string;
-      target: SKAtoN;
-      id: string;
-      icon: string;
-      type: 'aton' | 'sar' | 'meteo';
-    }
-  ) {}
+  private app = inject(AppFacade);
+  private sk = inject(SignalKClient);
+  protected modalRef = inject(MatBottomSheetRef<AtoNPropertiesModal>);
+  protected data = inject<{
+    title: string;
+    target: SKAtoN;
+    id: string;
+    icon: string;
+    type: 'aton' | 'sar' | 'meteo';
+  }>(MAT_BOTTOM_SHEET_DATA);
+
+  constructor() {}
 
   ngOnInit() {
     this.getAtoNInfo();

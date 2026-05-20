@@ -1,4 +1,4 @@
-import { Component, Inject, signal } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import {
   MatBottomSheetRef,
   MAT_BOTTOM_SHEET_DATA
@@ -13,12 +13,6 @@ import { AppFacade } from 'src/app/app.facade';
 import { SKVessel } from 'src/app/modules/skresources/resource-classes';
 import { getAisIcon } from 'src/app/modules/icons';
 
-/********* AISPropertiesModal **********
-	data: {
-        title: "<string>" title text,
-        target: <SKVessel> vessel
-    }
-***********************************/
 @Component({
   selector: 'ap-ais-modal',
   imports: [
@@ -199,36 +193,35 @@ export class AISPropertiesModal {
     draftCurrent: null
   };
 
-  constructor(
-    public app: AppFacade,
-    public modalRef: MatBottomSheetRef<AISPropertiesModal>,
-    @Inject(MAT_BOTTOM_SHEET_DATA)
-    public data: {
-      title: string;
-      target: SKVessel;
-    }
-  ) {
+  private app = inject(AppFacade);
+  protected modalRef = inject(MatBottomSheetRef<AISPropertiesModal>);
+  protected data = inject<{
+    title: string;
+    target: SKVessel;
+  }>(MAT_BOTTOM_SHEET_DATA);
+
+  constructor() {
     this.flagIcon = `${this.app.hostDef.url}/signalk/v2/api/resources/flags/mmsi/${this.data.target.mmsi}`;
     this.display = {
-      length: app.formatValueForDisplay(
+      length: this.app.formatValueForDisplay(
         this.data.target.design.length?.overall,
         'm',
         { category: 'length' }
       ),
-      beam: app.formatValueForDisplay(this.data.target.design.beam, 'm', {
+      beam: this.app.formatValueForDisplay(this.data.target.design.beam, 'm', {
         category: 'length'
       }),
-      draftMax: app.formatValueForDisplay(
+      draftMax: this.app.formatValueForDisplay(
         this.data.target.design.draft?.maximum,
         'm',
         { category: 'length' }
       ),
-      draftCurrent: app.formatValueForDisplay(
+      draftCurrent: this.app.formatValueForDisplay(
         this.data.target.design.draft?.current,
         'm',
         { category: 'length' }
       ),
-      airHeight: app.formatValueForDisplay(
+      airHeight: this.app.formatValueForDisplay(
         this.data.target.design.airHeight,
         'm',
         { category: 'length' }
