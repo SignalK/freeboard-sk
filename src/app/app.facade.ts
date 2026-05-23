@@ -15,9 +15,9 @@ import {
   ConfirmDialog,
   WelcomeDialog,
   MessageBarComponent,
-  MsgBox,
-  ErrorListDialog
-} from './lib/components/dialogs';
+  MsgBox
+} from './lib/components/dialogs/common-dialogs';
+import { ErrorListDialog } from './lib/components/dialogs/errorlist-dialog';
 
 import { Convert, SI_BASE_UNIT, TARGET_UNIT } from './lib/convert';
 import { SignalKClient } from 'signalk-client-angular';
