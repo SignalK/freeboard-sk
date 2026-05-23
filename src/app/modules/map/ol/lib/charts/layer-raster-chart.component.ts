@@ -16,6 +16,7 @@ import { initPMTilesXYZLayer } from './pmtiles-utils';
 import { osmLayer } from '../util';
 import { MapComponent } from '../map.component';
 import { extentFromBounds, resolveLayerMaxZoom } from './chart-utils';
+import { createAbortableRasterTileLoader } from './tile-loader-abort';
 
 import { FBChart } from 'src/app/types';
 
@@ -87,7 +88,8 @@ export class RasterChartLayerComponent implements OnDestroy {
           this.layer = new TileLayer({
             source: new XYZ({
               url: chart[1].url,
-              maxZoom: maxZ
+              maxZoom: maxZ,
+              tileLoadFunction: createAbortableRasterTileLoader()
             }),
             preload: 0,
             zIndex: this.zIndex(),

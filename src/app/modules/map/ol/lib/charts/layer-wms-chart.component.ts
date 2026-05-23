@@ -17,6 +17,7 @@ import { FBChart } from 'src/app/types';
 import { Map } from 'ol';
 import { MapService } from '../map.service';
 import { extentFromBounds, resolveLayerMaxZoom } from './chart-utils';
+import { createAbortableRasterTileLoader } from './tile-loader-abort';
 
 // ** Freeboard WMS Chart **
 @Component({
@@ -112,7 +113,8 @@ export class WmsChartLayerComponent implements OnDestroy {
           url: chart[1].url,
           params: {
             LAYERS: chart[1].layers ? chart[1].layers.join(',') : ''
-          }
+          },
+          tileLoadFunction: createAbortableRasterTileLoader()
         }),
         preload: 0,
         zIndex: this.zIndex(),
