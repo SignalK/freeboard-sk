@@ -2,10 +2,12 @@ import {
   Component,
   ChangeDetectionStrategy,
   ChangeDetectorRef,
+  DestroyRef,
   signal,
   output,
   inject
 } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 import { FormsModule } from '@angular/forms';
 import { MatTooltipModule } from '@angular/material/tooltip';
@@ -150,6 +152,7 @@ export class BuildRouteComponent {
   protected app = inject(AppFacade);
   private skres = inject(SKResourceService);
   private cdr = inject(ChangeDetectorRef);
+  private destroyRef = inject(DestroyRef);
 
   constructor() {}
 
@@ -205,6 +208,7 @@ export class BuildRouteComponent {
           'Changes have not been saved.\nDo you want to save?',
           'Unsaved Changes'
         )
+        .pipe(takeUntilDestroyed(this.destroyRef))
         .subscribe((res: boolean) => {
           if (res) {
             this.doSave();

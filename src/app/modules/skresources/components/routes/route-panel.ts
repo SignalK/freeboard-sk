@@ -1,5 +1,6 @@
 import {
   Component,
+  DestroyRef,
   effect,
   inject,
   input,
@@ -7,6 +8,7 @@ import {
   output,
   signal
 } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
@@ -86,6 +88,7 @@ export class RoutePanel {
   protected skgroups = inject(SKResourceGroupService);
   private dialog = inject(MatDialog);
   private bottomSheet = inject(MatBottomSheet);
+  private destroyRef = inject(DestroyRef);
 
   constructor() {
     effect(() => {
@@ -269,6 +272,7 @@ export class RoutePanel {
         }
       })
       .afterDismissed()
+      .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe((deactivate: boolean) => {
         if (deactivate) {
           //this.clearDestination();
@@ -293,6 +297,7 @@ export class RoutePanel {
             'There are currently no groups defined.\nYou will need to first create a group and then add the resource.\n\nDo you want to create a new group?',
             'Group'
           )
+          .pipe(takeUntilDestroyed(this.destroyRef))
           .subscribe((r) => {
             if (r) {
               this.skgroups.editGroupInfo();
@@ -309,6 +314,7 @@ export class RoutePanel {
           }
         })
         .afterClosed()
+        .pipe(takeUntilDestroyed(this.destroyRef))
         .subscribe(async (selGrp) => {
           if (selGrp) {
             try {

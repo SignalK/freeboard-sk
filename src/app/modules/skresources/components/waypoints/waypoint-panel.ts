@@ -1,5 +1,6 @@
 import {
   Component,
+  DestroyRef,
   effect,
   inject,
   input,
@@ -7,6 +8,7 @@ import {
   output,
   signal
 } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CoordsPipe } from 'src/app/lib/pipes';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
@@ -69,6 +71,7 @@ export class WaypointPanel {
   private course = inject(CourseService);
   protected skgroups = inject(SKResourceGroupService);
   private dialog = inject(MatDialog);
+  private destroyRef = inject(DestroyRef);
 
   constructor() {
     effect(() => {
@@ -154,6 +157,7 @@ export class WaypointPanel {
             'There are currently no groups defined.\nYou will need to first create a group and then add the resource.\n\nDo you want to create a new group?',
             'Group'
           )
+          .pipe(takeUntilDestroyed(this.destroyRef))
           .subscribe((r) => {
             if (r) {
               this.skgroups.editGroupInfo();
@@ -170,6 +174,7 @@ export class WaypointPanel {
           }
         })
         .afterClosed()
+        .pipe(takeUntilDestroyed(this.destroyRef))
         .subscribe(async (selGrp) => {
           if (selGrp) {
             try {

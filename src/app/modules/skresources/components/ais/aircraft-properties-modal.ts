@@ -1,4 +1,5 @@
-import { Component, inject } from '@angular/core';
+import { Component, DestroyRef, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import {
   MatBottomSheetRef,
   MAT_BOTTOM_SHEET_DATA
@@ -104,6 +105,7 @@ export class AircraftPropertiesModal {
     id: string;
     icon: string;
   }>(MAT_BOTTOM_SHEET_DATA);
+  private destroyRef = inject(DestroyRef);
 
   constructor() {}
 
@@ -118,9 +120,12 @@ export class AircraftPropertiesModal {
     }
     const path = this.data.id.split('.').join('/');
 
-    this.sk.api.get(path).subscribe((v) => {
-      this.properties = this.parseAircraft(v);
-    });
+    this.sk.api
+      .get(path)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((v) => {
+        this.properties = this.parseAircraft(v);
+      });
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

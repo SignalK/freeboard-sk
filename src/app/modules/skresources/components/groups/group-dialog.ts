@@ -1,4 +1,5 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, DestroyRef, OnInit, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 import { FormsModule } from '@angular/forms';
 import { MatInputModule } from '@angular/material/input';
@@ -268,6 +269,7 @@ export class ResourceGroupDialog implements OnInit {
     addMode: boolean;
     group: SKResourceGroup;
   }>(MAT_DIALOG_DATA);
+  private destroyRef = inject(DestroyRef);
 
   constructor() {}
 
@@ -452,6 +454,7 @@ export class ResourceGroupDialog implements OnInit {
         }
       })
       .afterClosed()
+      .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe((items: RListEntry[]) => {
         if (items) {
           // routes
