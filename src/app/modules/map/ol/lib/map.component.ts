@@ -134,7 +134,11 @@ export class MapComponent implements OnInit, OnDestroy {
 
   ngOnInit() {
     const target = this.element.nativeElement.firstElementChild;
-    this.map = new Map();
+    this.map = new Map({
+      // 2x OL default (16); keeps the browser HTTP/1.1 per-host connection
+      // pool fully fed during zoom-out tile bursts.
+      maxTilesLoading: 32
+    });
     this.map.setTarget(target);
     this.map.setProperties(this.properties, true);
     // register the map in the injectable mapService
