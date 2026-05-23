@@ -731,6 +731,7 @@ export class AppComponent {
         next: () => {
           this.signalk.authToken = this.app.getFBToken();
           this.app.watchSKLogin();
+          this.fetchResources(true); // pre-config: parallelize with config load
           this.app
             .loadUserConfigfromServer()
             .then((loaded: boolean) => {
@@ -746,7 +747,7 @@ export class AppComponent {
               }
             })
             .finally(() => {
-              this.fetchResources(true); // fetch all resource types from server
+              this.fetchResources(true); // post-config: re-apply user selections
             });
           this.getFeatures();
           this.app.data.server = this.signalk.server.info;
