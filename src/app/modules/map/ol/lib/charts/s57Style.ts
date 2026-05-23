@@ -8,11 +8,19 @@ const DEPARE = 42; // Depth Area
 
 const LOOKUPINDEXKEY = '$lupIndex';
 
+type TextStyleConfig = {
+  textAlign: CanvasTextAlign;
+  textBaseline: CanvasTextBaseline;
+  offsetX: number;
+  offsetY: number;
+};
+
 export class S57Style {
   private s57Service: S57Service;
   private selectedSafeContour = 1000;
   private currentResolution = 0;
   private instructionMatch = new RegExp('([A-Z][A-Z])\\((.*)\\)');
+  private textStyleConfigCache = new Map<string, TextStyleConfig>();
 
   constructor(s57Service: S57Service) {
     this.s57Service = s57Service;
@@ -39,35 +47,37 @@ export class S57Style {
 
   //TODO implement more parameters
   private getTextStyle(params: string[]): Style {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let textBaseline: any = 'middle';
-    let offsetY = 0;
-    if (params[1] === '3') {
-      textBaseline = 'top';
-      offsetY = 15;
-    } else if (params[1] === '1') {
-      textBaseline = 'bottom';
-      offsetY = -15;
+    const configKey = (params[0] ?? '') + '|' + (params[1] ?? '');
+    let config = this.textStyleConfigCache.get(configKey);
+    if (!config) {
+      let textBaseline: CanvasTextBaseline = 'middle';
+      let offsetY = 0;
+      if (params[1] === '3') {
+        textBaseline = 'top';
+        offsetY = 15;
+      } else if (params[1] === '1') {
+        textBaseline = 'bottom';
+        offsetY = -15;
+      }
+      let textAlign: CanvasTextAlign = 'left';
+      let offsetX = 15;
+      if (params[0] === '2') {
+        textAlign = 'right';
+        offsetX = -15;
+      } else if (params[0] === '1') {
+        textAlign = 'center';
+        offsetX = 0;
+      }
+      config = { textAlign, textBaseline, offsetX, offsetY };
+      this.textStyleConfigCache.set(configKey, config);
     }
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let textAlign: any = 'left';
-    let offsetX = 15;
-    if (params[0] === '2') {
-      textAlign = 'right';
-      offsetX = -15;
-    } else if (params[0] === '1') {
-      textAlign = 'center';
-      offsetX = 0;
-    }
-
     const style = new Style({
       text: new Text({
-        textAlign: textAlign,
-        textBaseline: textBaseline,
+        textAlign: config.textAlign,
+        textBaseline: config.textBaseline,
         scale: 1.5,
-        offsetX: offsetX,
-        offsetY: offsetY
+        offsetX: config.offsetX,
+        offsetY: config.offsetY
       })
     });
     style.setZIndex(99); // text always on top
