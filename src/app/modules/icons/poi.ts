@@ -28,6 +28,7 @@ export const PoiIcons: AppIconSet = {
     'radio-call-point.svg',
     'transhipment-dock.svg',
     'notice-to-mariners.svg',
+    'dive-site.svg',
     'navigation-structure.svg',
     'fuel.svg',
     'tunnel.svg',
