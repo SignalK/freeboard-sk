@@ -11,7 +11,6 @@ import { MatDialog } from '@angular/material/dialog';
 import { MatBottomSheet } from '@angular/material/bottom-sheet';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { OverlayContainer } from '@angular/cdk/overlay';
-import { Observable, Subject } from 'rxjs';
 
 // standalone
 import { CommonModule } from '@angular/common';
@@ -45,10 +44,8 @@ import {
   AtoNPropertiesModal,
   AircraftPropertiesModal,
   ActiveResourcePropertiesModal,
-  ResourceImportDialog,
   ResourceSetModal,
   ResourceSetFeatureModal,
-  SettingsDialog,
   SKStreamFacade,
   SKSTREAM_MODE,
   StreamOptions,
@@ -63,8 +60,6 @@ import {
   WeatherForecastModal,
   CourseSettingsModal,
   NotificationManager,
-  GPXImportDialog,
-  GPXExportDialog,
   CourseService,
   SettingsFacade,
   AutopilotService,
@@ -89,13 +84,18 @@ import {
   RegionPanel
 } from 'src/app/modules';
 
-import {
+import type { ResourceImportDialog } from 'src/app/modules/skresources/components/resourcesets/resource-upload-dialog';
+import type { SettingsDialog } from 'src/app/modules/settings/components/settings-dialog';
+import type { GPXImportDialog } from 'src/app/modules/gpx/gpxload-dialog';
+import type { GPXExportDialog } from 'src/app/modules/gpx/gpxsave-dialog';
+
+import type {
   AboutDialog,
-  LoginDialog,
-  PlaybackDialog,
-  GeoJSONImportDialog,
-  Trail2RouteDialog
-} from 'src/app/lib/components/dialogs';
+  LoginDialog
+} from 'src/app/lib/components/dialogs/common-dialogs';
+import type { PlaybackDialog } from 'src/app/lib/components/dialogs/playback-dialog';
+import type { GeoJSONImportDialog } from 'src/app/lib/components/dialogs/geojson/geojson-dialog';
+import type { Trail2RouteDialog } from 'src/app/lib/components/dialogs/trail2route-dialog';
 import { Convert } from 'src/app/lib/convert';
 import { GeoUtils } from 'src/app/lib/geoutils';
 
@@ -610,7 +610,9 @@ export class AppComponent {
     }
   }
   // ** create route from vessel trail **
-  protected trailToRoute() {
+  protected async trailToRoute() {
+    const { Trail2RouteDialog } =
+      await import('src/app/lib/components/dialogs/trail2route-dialog');
     this.dialog
       .open(Trail2RouteDialog, {
         disableClose: true,
@@ -1071,8 +1073,9 @@ export class AppComponent {
 
   // ********* MAIN MENU ACTIONS *************
 
-  // ** open about dialog **
-  protected openAbout() {
+  protected async openAbout() {
+    const { AboutDialog } =
+      await import('src/app/lib/components/dialogs/common-dialogs');
     this.dialog
       .open(AboutDialog, {
         disableClose: false,
@@ -1088,8 +1091,9 @@ export class AppComponent {
       .subscribe(() => this.focusMap());
   }
 
-  // ** open settings dialog **
-  protected openSettings() {
+  protected async openSettings() {
+    const { SettingsDialog } =
+      await import('src/app/modules/settings/components/settings-dialog');
     this.dialog
       .open(SettingsDialog, {
         disableClose: true,
@@ -1118,7 +1122,9 @@ export class AppComponent {
   }
 
   /** process GPX file */
-  protected processGPX(f: { data: string | ArrayBuffer; name: string }) {
+  protected async processGPX(f: { data: string | ArrayBuffer; name: string }) {
+    const { GPXImportDialog } =
+      await import('src/app/modules/gpx/gpxload-dialog');
     this.dialog
       .open(GPXImportDialog, {
         disableClose: true,
@@ -1148,7 +1154,9 @@ export class AppComponent {
   }
 
   /** Export resources to GPX file */
-  protected exportToGPX() {
+  protected async exportToGPX() {
+    const { GPXExportDialog } =
+      await import('src/app/modules/gpx/gpxsave-dialog');
     this.dialog
       .open(GPXExportDialog, {
         disableClose: true,
@@ -1177,7 +1185,12 @@ export class AppComponent {
   }
 
   /** process GeoJSON file */
-  protected processGeoJSON(f: { data: string | ArrayBuffer; name: string }) {
+  protected async processGeoJSON(f: {
+    data: string | ArrayBuffer;
+    name: string;
+  }) {
+    const { GeoJSONImportDialog } =
+      await import('src/app/lib/components/dialogs/geojson/geojson-dialog');
     this.dialog
       .open(GeoJSONImportDialog, {
         disableClose: true,
@@ -1208,7 +1221,9 @@ export class AppComponent {
   }
 
   /** Import ResourceSet */
-  protected importResourceSet() {
+  protected async importResourceSet() {
+    const { ResourceImportDialog } =
+      await import('src/app/modules/skresources/components/resourcesets/resource-upload-dialog');
     this.dialog
       .open(ResourceImportDialog, {
         disableClose: true,
@@ -1232,13 +1247,13 @@ export class AppComponent {
       });
   }
 
-  // ** show login dialog **
-  protected showLogin(
+  protected async showLogin(
     message?: string,
     cancelWarning = true,
     onConnect?: boolean
-  ): Observable<boolean> {
-    const lis: Subject<boolean> = new Subject();
+  ): Promise<void> {
+    const { LoginDialog } =
+      await import('src/app/lib/components/dialogs/common-dialogs');
     this.dialog
       .open(LoginDialog, {
         disableClose: true,
@@ -1260,7 +1275,6 @@ export class AppComponent {
                 this.queryAfterConnect();
               }
               this.app.isLoggedIn.set(true);
-              lis.next(true);
             },
             error: () => {
               // ** auth failed
@@ -1301,22 +1315,20 @@ export class AppComponent {
           });
           if (onConnect) {
             this.showLogin(null, false, true);
-          } else {
-            if (cancelWarning) {
-              this.app.showAlert(
-                'Login Cancelled:',
-                `Update operations are NOT available until you have authenticated to the Signal K server.`
-              );
-            }
-            lis.next(false);
+          } else if (cancelWarning) {
+            this.app.showAlert(
+              'Login Cancelled:',
+              `Update operations are NOT available until you have authenticated to the Signal K server.`
+            );
           }
         }
         this.focusMap();
       });
-    return lis.asObservable();
   }
 
-  protected showPlaybackSettings() {
+  protected async showPlaybackSettings() {
+    const { PlaybackDialog } =
+      await import('src/app/lib/components/dialogs/playback-dialog');
     this.dialog
       .open(PlaybackDialog, {
         disableClose: false
