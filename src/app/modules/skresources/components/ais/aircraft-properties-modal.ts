@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, DestroyRef, inject } from '@angular/core';
 import {
   MatBottomSheetRef,
   MAT_BOTTOM_SHEET_DATA
@@ -12,6 +12,7 @@ import { MatToolbarModule } from '@angular/material/toolbar';
 import { SignalKClient } from 'signalk-client-angular';
 import { SKAircraft } from 'src/app/modules/skresources/resource-classes';
 import { SignalKDetailsComponent } from '../../components/signalk-details.component';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
   selector: 'ap-aircraft-modal',
@@ -97,6 +98,7 @@ export class AircraftPropertiesModal {
   protected properties: { [key: string]: string | number | null };
 
   private sk = inject(SignalKClient);
+  private destroyRef = inject(DestroyRef);
   protected modalRef = inject(MatBottomSheetRef<AircraftPropertiesModal>);
   protected data = inject<{
     title: string;
@@ -118,9 +120,12 @@ export class AircraftPropertiesModal {
     }
     const path = this.data.id.split('.').join('/');
 
-    this.sk.api.get(path).subscribe((v) => {
-      this.properties = this.parseAircraft(v);
-    });
+    this.sk.api
+      .get(path)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((v) => {
+        this.properties = this.parseAircraft(v);
+      });
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

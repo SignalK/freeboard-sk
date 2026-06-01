@@ -16,7 +16,7 @@ import {
   WelcomeDialog,
   MessageBarComponent,
   MsgBox
-} from './lib/components/dialogs/common-dialogs';
+} from './lib/components/dialogs';
 import { ErrorListDialog } from './lib/components/dialogs/errorlist-dialog';
 
 import { Convert, SI_BASE_UNIT, TARGET_UNIT } from './lib/convert';
@@ -680,7 +680,7 @@ export class AppFacade extends InfoService {
   }
 
   /** returns true if not embedded (is top window)*/
-  private isTopWindow(): boolean {
+  public isTopWindow(): boolean {
     try {
       return window.self === window.top;
     } catch (e) {
@@ -1108,6 +1108,11 @@ export class AppFacade extends InfoService {
           return `${Math.floor(hr)}h ${fms}`;
         }
         return `${minutes} min`;
+      } else {
+        nv = this.formatNumericDisplay(
+          Convert.transform(value, sourceUnit, sourceUnit as TARGET_UNIT),
+          precision
+        );
       }
       return `${nv}${options?.noSymbol ? '' : symbol}`;
     } else {

@@ -43,7 +43,7 @@ export const getSvgList = (): Array<{ id: string; path: string }> => {
     });
   };
   addToList(OpenBridgeIcons);
-  addToList(PoiIcons, 'sk-');
+  addToList(PoiIcons);
   addToList(VesselAisIcons);
   addToList(WaypointIcons);
   addToList(AtoNsType1);
@@ -81,7 +81,7 @@ export const getResourceIcon = (
     } else {
       return {
         class: undefined,
-        svgIcon: `sk-${icon}`,
+        svgIcon: `${icon}`,
         name: undefined
       };
     }
@@ -104,7 +104,7 @@ export const getResourceIcon = (
     } else {
       return {
         class: undefined,
-        svgIcon: `sk-${icon}`,
+        svgIcon: `${icon}`,
         name: undefined
       };
     }
@@ -123,9 +123,9 @@ export const getResourceIcon = (
 
     if (!resource || wid === 'default' || !wptDefs[wid]) {
       return {
-        class: 'icon-waypoint',
-        svgIcon: undefined,
-        name: 'location_on'
+        class: undefined,
+        svgIcon: 'waypoint',
+        name: undefined
       };
     } else {
       return {
@@ -225,13 +225,13 @@ export const getAisIcon = (id: number | string): AppIconDef => {
 };
 
 /**
- * @description Return a list of POI icon ids
+ * @description Return a list of Note icon selection options
  */
-export const listPoiIds = (): Array<{ id: string; name: string }> => {
+export const selListNoteIcons = (): Array<{ id: string; name: string }> => {
   const icons = PoiIcons.files.map((file: string) => {
     const name = file.slice(0, file.lastIndexOf('.'));
     return {
-      id: `sk-${name}`,
+      id: name,
       name: name
     };
   });
@@ -240,4 +240,58 @@ export const listPoiIds = (): Array<{ id: string; name: string }> => {
     name: `local_offer`
   });
   return icons;
+};
+
+/**
+ * @description Return a list of Waypoint icon selection options
+ */
+export const selListWaypointIcons = (): Record<
+  string,
+  {
+    group: string;
+    icons: Array<AppIconDef>;
+  }
+> => {
+  const iconList = {
+    waypoint: {
+      group: 'Waypoints',
+      icons: [getResourceIcon('waypoints', 'waypoint')]
+    },
+    pseudoaton: {
+      group: 'Pseudo AtoN',
+      icons: [getResourceIcon('waypoints', 'pseudoaton')]
+    },
+    whale: {
+      group: 'Sightings',
+      icons: [getResourceIcon('waypoints', 'whale')]
+    },
+    pob: {
+      group: 'Alarms',
+      icons: [getResourceIcon('waypoints', 'pob')]
+    },
+    'start-boat': {
+      group: 'Start Boat',
+      icons: [getResourceIcon('waypoints', 'start-boat')]
+    },
+    'start-pin': {
+      group: 'Start Pin',
+      icons: [getResourceIcon('waypoints', 'start-pin')]
+    }
+  };
+
+  iconList.waypoint.icons = iconList.waypoint.icons.concat(
+    PoiIcons.files.map((file: string) => {
+      const name = file.slice(0, file.lastIndexOf('.'));
+      return getResourceIcon('notes', name);
+    })
+  );
+
+  iconList.pseudoaton.icons = iconList.pseudoaton.icons.concat(
+    AtoNsType1.files.map((file: string) => {
+      const name = file.slice(0, file.lastIndexOf('.'));
+      return getResourceIcon('waypoints', name);
+    })
+  );
+
+  return iconList;
 };

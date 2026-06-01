@@ -5,7 +5,8 @@ import {
   effect,
   output,
   inject,
-  input
+  input,
+  DestroyRef
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
@@ -28,6 +29,7 @@ import { SKWorkerService } from 'src/app/modules/skstream/skstream.service';
 import { ResourceListBase } from '../resource-list-baseclass';
 import { SKResourceGroupService } from '../groups/groups.service';
 import { SingleSelectListDialog } from 'src/app/lib/components';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
   selector: 'waypoint-list',
@@ -65,6 +67,7 @@ export class WaypointListComponent extends ResourceListBase {
   private worker = inject(SKWorkerService);
   private dialog = inject(MatDialog);
   private skgroups = inject(SKResourceGroupService);
+  private destroyRef = inject(DestroyRef);
 
   constructor(protected override skres: SKResourceService) {
     super('waypoints', skres);
@@ -226,6 +229,7 @@ export class WaypointListComponent extends ResourceListBase {
           }
         })
         .afterClosed()
+        .pipe(takeUntilDestroyed(this.destroyRef))
         .subscribe(async (selGrp) => {
           if (selGrp) {
             try {

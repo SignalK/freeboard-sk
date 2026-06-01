@@ -1,10 +1,10 @@
 import {
   Component,
-  Input,
-  Output,
-  EventEmitter,
   ChangeDetectionStrategy,
-  inject
+  inject,
+  input,
+  output,
+  effect
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
@@ -462,7 +462,11 @@ const HEIGHT_KEYS = new Set(['HEIGHT', 'VERLEN', 'HORLEN', 'HORWID']);
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, MatButtonModule, MatIconModule, PopoverComponent],
   template: `
-    <ap-popover [title]="_title" [canClose]="canClose" (closed)="handleClose()">
+    <ap-popover
+      [title]="_title"
+      [canClose]="canClose()"
+      (closed)="handleClose()"
+    >
       @for (prop of displayProps; track prop.key) {
         <div style="display:flex; padding: 2px 0;">
           <div style="font-weight:bold; min-width: 100px;">
@@ -478,15 +482,39 @@ const HEIGHT_KEYS = new Set(['HEIGHT', 'VERLEN', 'HORLEN', 'HORWID']);
   `
 })
 export class S57PopoverComponent {
-  @Input() title: string;
+  title = input<string>();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  @Input() properties: { [key: string]: any };
-  @Input() canClose: boolean;
-  @Output() closed: EventEmitter<void> = new EventEmitter();
+  properties = input<{ [key: string]: any }>();
+  canClose = input<boolean>();
+  closed = output<void>();
 
   private app = inject(AppFacade);
   _title: string;
   displayProps: { key: string; label: string; value: string }[] = [];
+
+  constructor() {
+    effect(() => {
+      if (!this.properties()) {
+        return;
+      }
+      const layer = this.properties()['layer'] || '';
+      this._title =
+        this.title() || S57_NAMES[layer] || layer || 'Chart Feature';
+
+      this.displayProps = [];
+      for (const prop of PROP_DISPLAY) {
+        const val = this.properties()[prop.key];
+        if (val === undefined || val === null || val === '') {
+          continue;
+        }
+        this.displayProps.push({
+          key: prop.key,
+          label: prop.label,
+          value: this.formatValue(prop.key, val)
+        });
+      }
+    });
+  }
 
   private formatValue(key: string, val: unknown): string {
     if (DEPTH_KEYS.has(key)) {
@@ -511,27 +539,6 @@ export class S57PopoverComponent {
       return val === 1 || val === '1' ? 'Yes' : 'No';
     }
     return decodeValue(key, val);
-  }
-
-  ngOnChanges() {
-    if (!this.properties) {
-      return;
-    }
-    const layer = this.properties['layer'] || '';
-    this._title = this.title || S57_NAMES[layer] || layer || 'Chart Feature';
-
-    this.displayProps = [];
-    for (const prop of PROP_DISPLAY) {
-      const val = this.properties[prop.key];
-      if (val === undefined || val === null || val === '') {
-        continue;
-      }
-      this.displayProps.push({
-        key: prop.key,
-        label: prop.label,
-        value: this.formatValue(prop.key, val)
-      });
-    }
   }
 
   handleClose() {

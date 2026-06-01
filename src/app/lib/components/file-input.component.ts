@@ -1,16 +1,10 @@
-/**************************************
- * form <input type="file"> component
- * <ap-file-input>
- **************************************/
-
 import { CommonModule } from '@angular/common';
 import {
   Component,
-  Input,
-  Output,
   ChangeDetectorRef,
-  EventEmitter,
-  inject
+  inject,
+  output,
+  input
 } from '@angular/core';
 
 @Component({
@@ -20,25 +14,24 @@ import {
   styleUrls: ['./file-input.component.css']
 })
 export class FileInputComponent {
-  @Input() disabled = false;
-  @Input() multiple = false;
-  @Input() maxfilesize = null; //** 1MB default
-  @Input() accept = ''; // ** html input attribute value
-  @Input() astext = false; // ** return text instead of base64
-  @Input() preview = false;
-  @Input() icon = false;
-  @Input() label = 'Upload File'; // ** button text
+  disabled = input<boolean>(false);
+  multiple = input<boolean>(false);
+  maxfilesize = input<number>(undefined); //** 1MB default
+  accept = input<string>(''); // ** html input attribute value
+  astext = input<boolean>(false); // ** return text instead of base64
+  preview = input<boolean>(false);
+  icon = input<boolean>(false);
+  label = input<string>('Upload File'); // ** button text
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  @Output() chosen: EventEmitter<{ name: string; data: any }> =
-    new EventEmitter();
-  @Output() invalid: EventEmitter<{
+  chosen = output<{ name: string; data: any }>();
+  invalid = output<{
     type: string;
     value: string;
     message: string;
-  }> = new EventEmitter();
-  @Output() cleared: EventEmitter<void> = new EventEmitter();
+  }>();
+  cleared = output<void>();
 
-  public avatar = null;
+  protected avatar = null;
 
   private changeDetectorRef = inject(ChangeDetectorRef);
 
@@ -76,24 +69,24 @@ export class FileInputComponent {
     //** If there is a file **
     if (index in files) {
       // ** Check file size **
-      if (this.maxfilesize && files[index].size > this.maxfilesize) {
+      if (this.maxfilesize() && files[index].size > this.maxfilesize()) {
         errmsg.type = 'SIZE';
         errmsg.value = files[index].size;
-        errmsg.message = `File size exceeds the accepted maximum size of ${this.maxfilesize}`;
+        errmsg.message = `File size exceeds the accepted maximum size of ${this.maxfilesize()}`;
         this.invalid.emit(errmsg); //** fire invalid size event
         return;
       }
       // ** Check file type **
-      if (this.accept.indexOf('/*') !== -1) {
+      if (this.accept().indexOf('/*') !== -1) {
         // ** if <filetype>/* used in accept attribute
         const ftype = files[index].type.substring(
           0,
           files[index].type.indexOf('/')
         );
-        if (this.accept.indexOf(ftype) < 0) {
+        if (this.accept().indexOf(ftype) < 0) {
           errmsg.type = 'TYPE';
           errmsg.value = files[index].type;
-          errmsg.message = `File type does not match the accepted type (${this.accept}) specified.`;
+          errmsg.message = `File type does not match the accepted type (${this.accept()}) specified.`;
           this.invalid.emit(errmsg); //** fire invalid type event
           return;
         }
@@ -102,7 +95,7 @@ export class FileInputComponent {
       // Start reading this file
       this.readFile(files[index], reader, (result) => {
         // ** callback function **
-        if (index === 0 && this.preview) {
+        if (index === 0 && this.preview()) {
           this.avatar = result;
         }
         this.chosen.emit({ name: files[index].name, data: result }); //** fire chosen event
@@ -140,7 +133,7 @@ export class FileInputComponent {
       callback(reader.result);
     };
 
-    if (file.type.indexOf('text') !== -1 || this.astext) {
+    if (file.type.indexOf('text') !== -1 || this.astext()) {
       reader.readAsText(file);
     } else {
       // read as base64

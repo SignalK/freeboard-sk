@@ -55,11 +55,13 @@ measure: boolean= measure mode;
               ></country-flag>
             </mat-icon>
           }
-          @if (icon) {
-            <mat-icon [class]="icon.class" [svgIcon]="icon.svgIcon">{{
-              icon.name
-            }}</mat-icon>
+
+          @if (icon?.svgIcon) {
+            <mat-icon [class]="icon?.class" [svgIcon]="icon.svgIcon"></mat-icon>
+          } @else {
+            <mat-icon [class]="icon?.class">{{ icon?.name }}</mat-icon>
           }
+
           &nbsp;{{ title }}
         </div>
         @if (canClose) {

@@ -1,7 +1,7 @@
 /** Trail2Route Dialog Component **
  ********************************/
 
-import { Component, OnInit, Inject } from '@angular/core';
+import { Component, inject, OnInit } from '@angular/core';
 import {
   MatDialogModule,
   MatDialogRef,
@@ -19,11 +19,8 @@ import { FreeboardOpenlayersModule } from 'src/app/modules/map/ol';
 import { SimplifyAP } from 'simplify-ts';
 import { SKRoute, SKResourceService, SKStreamFacade } from 'src/app/modules';
 import { AppFacade } from 'src/app/app.facade';
+import { MultiLineString } from 'src/app/types';
 
-/********* Trail2RouteDialog **********
-	data: {
-    }
-***********************************/
 @Component({
   selector: 'ap-trail2routedialog',
   imports: [
@@ -64,16 +61,17 @@ export class Trail2RouteDialog implements OnInit {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private serverCoords: Array<any> = [];
 
-  constructor(
-    private skres: SKResourceService,
-    protected app: AppFacade,
-    private stream: SKStreamFacade,
-    public dialogRef: MatDialogRef<Trail2RouteDialog>,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    @Inject(MAT_DIALOG_DATA) public data: any
-  ) {}
+  protected dialogRef = inject(MatDialogRef<Trail2RouteDialog>);
+  protected data = inject<{
+    trail: MultiLineString[];
+  }>(MAT_DIALOG_DATA);
 
-  //** lifecycle: events **
+  private skres = inject(SKResourceService);
+  protected app = inject(AppFacade);
+  private stream = inject(SKStreamFacade);
+
+  constructor() {}
+
   ngOnInit() {
     this.parseTrail(false, true);
     this.obsList.push(

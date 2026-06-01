@@ -1,5 +1,6 @@
 import {
   Component,
+  DestroyRef,
   effect,
   inject,
   input,
@@ -35,6 +36,7 @@ import { MatStepperModule } from '@angular/material/stepper';
 import { Convert } from 'src/app/lib/convert';
 import { ActiveResourcePropertiesModal } from '../active-resource-dialog';
 import { MatBottomSheet } from '@angular/material/bottom-sheet';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
   selector: 'route-panel',
@@ -56,6 +58,7 @@ export class RoutePanel {
   route = input<SKRoute>(new SKRoute());
   id = input<string>(undefined);
   related = input<string>(undefined);
+  interacting = input<boolean>(false);
 
   activate = output<string>();
   edit = output<string>();
@@ -86,6 +89,7 @@ export class RoutePanel {
   protected skgroups = inject(SKResourceGroupService);
   private dialog = inject(MatDialog);
   private bottomSheet = inject(MatBottomSheet);
+  private destroyRef = inject(DestroyRef);
 
   constructor() {
     effect(() => {
@@ -257,6 +261,13 @@ export class RoutePanel {
     this.skres.showNoteDetails(id);
   }
 
+  protected addNote() {
+    this.skres.showNoteEditor({
+      type: 'route',
+      href: { id: this.id(), exists: true }
+    });
+  }
+
   protected arrangePoints() {
     this.bottomSheet
       .open(ActiveResourcePropertiesModal, {
@@ -269,6 +280,7 @@ export class RoutePanel {
         }
       })
       .afterDismissed()
+      .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe((deactivate: boolean) => {
         if (deactivate) {
           //this.clearDestination();
@@ -287,12 +299,13 @@ export class RoutePanel {
       const glist = groups.map((g) => {
         return { id: g[0], name: g[1].name };
       });
-      if (glist.length) {
+      if (!glist.length) {
         this.app
           .showConfirm(
             'There are currently no groups defined.\nYou will need to first create a group and then add the resource.\n\nDo you want to create a new group?',
             'Group'
           )
+          .pipe(takeUntilDestroyed(this.destroyRef))
           .subscribe((r) => {
             if (r) {
               this.skgroups.editGroupInfo();
@@ -309,6 +322,7 @@ export class RoutePanel {
           }
         })
         .afterClosed()
+        .pipe(takeUntilDestroyed(this.destroyRef))
         .subscribe(async (selGrp) => {
           if (selGrp) {
             try {

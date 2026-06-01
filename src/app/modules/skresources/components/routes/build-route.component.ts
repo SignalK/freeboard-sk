@@ -4,7 +4,8 @@ import {
   ChangeDetectorRef,
   signal,
   output,
-  inject
+  inject,
+  DestroyRef
 } from '@angular/core';
 
 import { FormsModule } from '@angular/forms';
@@ -22,6 +23,7 @@ import {
 } from '@angular/cdk/drag-drop';
 import { SKResourceService } from '../../resources.service';
 import { FBWaypoint, LineString } from 'src/app/types';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
   selector: 'route-builder',
@@ -150,6 +152,7 @@ export class BuildRouteComponent {
   protected app = inject(AppFacade);
   private skres = inject(SKResourceService);
   private cdr = inject(ChangeDetectorRef);
+  private destroyRef = inject(DestroyRef);
 
   constructor() {}
 
@@ -205,6 +208,7 @@ export class BuildRouteComponent {
           'Changes have not been saved.\nDo you want to save?',
           'Unsaved Changes'
         )
+        .pipe(takeUntilDestroyed(this.destroyRef))
         .subscribe((res: boolean) => {
           if (res) {
             this.doSave();

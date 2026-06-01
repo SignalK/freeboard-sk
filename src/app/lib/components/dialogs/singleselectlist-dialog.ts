@@ -1,7 +1,4 @@
-/** Single Select List Dialog Component **
- ********************************/
-
-import { Component, OnInit, ViewChild, Inject } from '@angular/core';
+import { Component, inject, OnInit, ViewChild } from '@angular/core';
 
 import { FormsModule } from '@angular/forms';
 import { MatInputModule } from '@angular/material/input';
@@ -16,13 +13,6 @@ import {
 } from '@angular/material/dialog';
 import { AppIconDef } from 'src/app/modules/icons';
 
-/********* SingleSelectListDialog *********
- * data: {
-    title: string,
-    items: [{id: string, name: string}],
-    icon: AppIconDef
- * }
- */
 @Component({
   selector: 'ap-singleselectlistdialog',
   imports: [
@@ -78,15 +68,14 @@ import { AppIconDef } from 'src/app/modules/icons';
 export class SingleSelectListDialog implements OnInit {
   @ViewChild('btncancel', { static: false }) btncancel;
 
-  constructor(
-    private dialogRef: MatDialogRef<SingleSelectListDialog>,
-    @Inject(MAT_DIALOG_DATA)
-    public data: {
-      title: string;
-      items: [{ id: string; name: string }];
-      icon: AppIconDef;
-    }
-  ) {}
+  protected dialogRef = inject(MatDialogRef<SingleSelectListDialog>);
+  protected data = inject<{
+    title: string;
+    items: [{ id: string; name: string }];
+    icon: AppIconDef;
+  }>(MAT_DIALOG_DATA);
+
+  constructor() {}
 
   ngOnInit() {}
 

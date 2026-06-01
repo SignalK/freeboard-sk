@@ -24,7 +24,11 @@ import { RemarkModule } from 'ngx-remark';
 import { AddTargetPipe } from './safe.pipe';
 
 import { AppFacade } from 'src/app/app.facade';
-import { AppIconDef, getResourceIcon, listPoiIds } from 'src/app/modules/icons';
+import {
+  AppIconDef,
+  getResourceIcon,
+  selListNoteIcons
+} from 'src/app/modules/icons';
 import { SKNote } from '../../resource-classes';
 import { SKPosition } from 'src/app/types';
 
@@ -136,7 +140,7 @@ export class NoteDialog implements OnInit {
       this.data.editable = false;
     }
     this.icon = this.cleanIconDef(getResourceIcon('notes', this.data.note));
-    this.poiIcons = listPoiIds();
+    this.poiIcons = selListNoteIcons();
   }
 
   cleanIconDef(icon: AppIconDef) {
@@ -145,8 +149,8 @@ export class NoteDialog implements OnInit {
   }
 
   onIconSelected(e: string) {
-    if (e.startsWith('sk-')) {
-      this.data.note.properties.skIcon = e.slice(3);
+    if (e.length) {
+      this.data.note.properties.skIcon = e;
     } else {
       delete this.data.note.properties.skIcon;
     }

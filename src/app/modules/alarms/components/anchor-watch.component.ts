@@ -9,8 +9,11 @@ import {
   ElementRef,
   inject,
   signal,
-  computed
+  computed,
+  DestroyRef
 } from '@angular/core';
+
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
@@ -85,6 +88,7 @@ export class AnchorWatchComponent {
   private anchor = inject(AnchorService);
   protected app = inject(AppFacade);
   private signalk = inject(SignalKClient);
+  private destroyRef = inject(DestroyRef);
 
   protected radiusValue = signal<number>(0); // incoming alarm radius
   protected formattedRadiusValue = computed(() => {
@@ -220,6 +224,7 @@ export class AnchorWatchComponent {
           '/plugins/anchoralarm/setRadius',
           typeof value === 'number' ? { radius: value } : {}
         )
+        .pipe(takeUntilDestroyed(this.destroyRef))
         .subscribe({
           next: () => {
             this.app.config.anchor.radius = value;
@@ -251,6 +256,7 @@ export class AnchorWatchComponent {
       .post('/plugins/anchoralarm/setManualAnchor', {
         rodeLength: this.app.config.anchor.rodeLength
       })
+      .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: () => {
           this.app.saveConfig();
@@ -287,6 +293,7 @@ export class AnchorWatchComponent {
         '/plugins/anchoralarm/dropAnchor',
         typeof radius === 'number' ? { radius: radius } : {}
       )
+      .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: () => {
           this.app.saveConfig();
@@ -302,12 +309,15 @@ export class AnchorWatchComponent {
    * @description Raise the Anchor
    */
   raiseAnchor() {
-    this.signalk.post('/plugins/anchoralarm/raiseAnchor', {}).subscribe(
-      () => undefined,
-      (err: HttpErrorResponse) => {
-        this.app.parseHttpErrorResponse(err);
-      }
-    );
+    this.signalk
+      .post('/plugins/anchoralarm/raiseAnchor', {})
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: () => undefined,
+        error: (err: HttpErrorResponse) => {
+          this.app.parseHttpErrorResponse(err);
+        }
+      });
   }
 
   /**

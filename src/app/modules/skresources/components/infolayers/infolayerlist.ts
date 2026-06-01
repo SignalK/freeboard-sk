@@ -1,4 +1,10 @@
-import { Component, ChangeDetectionStrategy, output } from '@angular/core';
+import {
+  Component,
+  ChangeDetectionStrategy,
+  output,
+  DestroyRef,
+  inject
+} from '@angular/core';
 
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatIconModule } from '@angular/material/icon';
@@ -35,6 +41,7 @@ import {
   wmsCapabilitiesInWorker,
   wmtsCapabilitiesInWorker
 } from '../charts/maplib';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 //** InfoLayer Resource List **
 @Component({
@@ -72,6 +79,8 @@ export class InfoLayerListComponent extends ResourceListBase {
 
   private timeDim: Map<string, TimeDef> = new Map();
   private fetchedUrls: string[] = [];
+
+  private destroyRef = inject(DestroyRef);
 
   constructor(
     protected app: AppFacade,
@@ -235,6 +244,7 @@ export class InfoLayerListComponent extends ResourceListBase {
         'YES',
         'NO'
       )
+      .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(async (result: { ok: boolean }) => {
         if (result && result.ok) {
           try {
@@ -360,35 +370,38 @@ export class InfoLayerListComponent extends ResourceListBase {
       this.app.showAlert('Message', `Invalid source type (${type}) provided! `);
       return;
     }
-    dref.afterClosed().subscribe((sources) => {
-      if (sources && sources.length !== 0) {
-        const req = [];
-        sources.forEach((cs) => {
-          req.push(
-            this.signalk.api.post(
-              this.app.skApiVersion,
-              `/resources/infolayers?provider=resources-provider`,
-              cs
-            )
-          );
-        });
-
-        const r = forkJoin(req).pipe(catchError((error) => of(error)));
-        r.subscribe((r) => {
-          if (r.error) {
-            this.app.showAlert(
-              'Add Overlay',
-              `Error saving overlay source!\n(${r.error.statusCode}: ${r.error.message})`
+    dref
+      .afterClosed()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((sources) => {
+        if (sources && sources.length !== 0) {
+          const req = [];
+          sources.forEach((cs) => {
+            req.push(
+              this.signalk.api.post(
+                this.app.skApiVersion,
+                `/resources/infolayers?provider=resources-provider`,
+                cs
+              )
             );
-          } else {
-            this.app.showAlert(
-              'Add Overlay',
-              'Overlay sources added successfully.'
-            );
-            this.initItems();
-          }
-        });
-      }
-    });
+          });
+          /** @TODO */
+          const r = forkJoin(req).pipe(catchError((error) => of(error)));
+          r.subscribe((r) => {
+            if (r.error) {
+              this.app.showAlert(
+                'Add Overlay',
+                `Error saving overlay source!\n(${r.error.statusCode}: ${r.error.message})`
+              );
+            } else {
+              this.app.showAlert(
+                'Add Overlay',
+                'Overlay sources added successfully.'
+              );
+              this.initItems();
+            }
+          });
+        }
+      });
   }
 }

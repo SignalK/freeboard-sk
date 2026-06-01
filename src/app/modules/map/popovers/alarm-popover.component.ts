@@ -1,10 +1,10 @@
 import {
   Component,
-  Input,
-  Output,
-  EventEmitter,
   ChangeDetectionStrategy,
-  inject
+  inject,
+  input,
+  output,
+  effect
 } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -14,10 +14,7 @@ import { PopoverComponent } from './popover.component';
 import { AppFacade } from 'src/app/app.facade';
 import { Position } from 'src/app/types';
 import { AlertData } from '../../alarms';
-/*********** Alarm Popover ***************
-  title: string -  title text,
-  alarm: AlertData - alarm data
-  *************************************************/
+
 @Component({
   selector: 'alarm-popover',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -32,7 +29,7 @@ import { AlertData } from '../../alarms';
     <ap-popover
       [title]="_title"
       [canClose]="canClose"
-      [icon]="alarm.icon"
+      [icon]="alarm().icon"
       (closed)="handleClose()"
     >
       <div style="display:flex;">
@@ -48,19 +45,19 @@ import { AlertData } from '../../alarms';
                     line-clamp: 2;
                     text-overflow:ellipsis;"
         >
-          {{ alarm.message }}
+          {{ alarm().message }}
         </div>
       </div>
       <div style="display:flex;">
         <div style="font-weight:bold;">Type:</div>
-        <div style="flex: 1 1 auto;text-align:right;">{{ alarm.type }}</div>
+        <div style="flex: 1 1 auto;text-align:right;">{{ alarm().type }}</div>
       </div>
       <div style="display:flex;">
         <div style="font-weight:bold;">Latitude:</div>
         <div
           style="flex: 1 1 auto;text-align:right;"
           [innerText]="
-            alarm.properties.position.latitude
+            alarm().properties.position.latitude
               | coords: app.config.units.positionFormat : true
           "
         ></div>
@@ -70,7 +67,7 @@ import { AlertData } from '../../alarms';
         <div
           style="flex: 1 1 auto;text-align:right;"
           [innerText]="
-            alarm.properties.position.longitude
+            alarm().properties.position.longitude
               | coords: app.config.units.positionFormat : false
           "
         ></div>
@@ -103,39 +100,43 @@ import { AlertData } from '../../alarms';
   styleUrls: []
 })
 export class AlarmPopoverComponent {
-  @Input() title: string;
-  @Input() id: string;
-  @Input() alarm: AlertData;
-  @Input() canClose: boolean;
-  @Output() info: EventEmitter<string> = new EventEmitter();
-  @Output() goto: EventEmitter<Position> = new EventEmitter();
-  @Output() closed: EventEmitter<void> = new EventEmitter();
+  title = input<string>();
+  id = input<string>();
+  alarm = input<AlertData>();
+  canClose = input<boolean>();
+  info = output<string>();
+  goto = output<Position>();
+  closed = output<void>();
   _title: string;
 
   protected app = inject(AppFacade);
 
-  constructor() {}
+  constructor() {
+    effect(() => {
+      this.id();
+      if (!this.alarm()) {
+        this.handleClose();
+        return;
+      }
+    });
+  }
 
   ngOnInit() {
-    if (!this.alarm) {
+    if (!this.alarm()) {
       this.handleClose();
     } else {
-      this._title = this.title || 'Alarm:';
+      this._title = this.title() || 'Alarm:';
     }
   }
-  ngOnChanges() {
-    if (!this.alarm) {
-      this.handleClose();
-      return;
-    }
-  }
+
   handleInfo() {
-    this.info.emit(this.alarm.path);
+    this.info.emit(this.alarm().path);
   }
+
   handleGoto() {
     this.goto.emit([
-      this.alarm.properties.position.longitude,
-      this.alarm.properties.position.latitude
+      this.alarm().properties.position.longitude,
+      this.alarm().properties.position.latitude
     ]);
   }
   handleClose() {

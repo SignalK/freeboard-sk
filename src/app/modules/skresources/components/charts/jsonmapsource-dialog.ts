@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, DestroyRef, inject } from '@angular/core';
 import {
   MatDialogModule,
   MatDialogRef,
@@ -15,6 +15,7 @@ import { AppFacade } from 'src/app/app.facade';
 import { SKChart } from 'src/app/modules/skresources/resource-classes';
 import { ChartProvider } from 'src/app/types';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 interface MapboxStyle {
   version: string;
@@ -167,6 +168,7 @@ export class JsonMapSourceDialog {
   protected dialogRef = inject(MatDialogRef<JsonMapSourceDialog>);
   private http = inject(HttpClient);
   protected data = inject<SKChart>(MAT_DIALOG_DATA);
+  private destroyRef = inject(DestroyRef);
 
   constructor() {}
 
@@ -180,40 +182,44 @@ export class JsonMapSourceDialog {
     this.fetchError = false;
     this.isFetching = true;
     this.provider = undefined;
-    this.http.get(uri).subscribe({
-      next: (res: TileJson | MapboxStyle) => {
-        this.isFetching = false;
-        if (!res.name) {
-          this.errorMsg = 'Invalid response received!';
-        } else {
-          const c = this.parseFileContents(res, uri);
-          if (c) {
-            this.provider = c as ChartProvider;
-            this.details = {
-              type: (res as TileJson).tilejson ? 'TileJSON' : 'Mapbox Style',
-              name: res.name,
-              version: (res as MapboxStyle).version
-                ? (res as MapboxStyle).version
-                : (res as TileJson).tilejson,
-              layers: (res as MapboxStyle).layers
-                ? (res as MapboxStyle).layers.map((l) => l.id)
-                : (res as TileJson).vector_layers
-                  ? (res as TileJson).vector_layers.map((l) => l.id)
-                  : []
-            };
-            this.dialogRef.close([this.provider]);
+
+    this.http
+      .get(uri)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (res: TileJson | MapboxStyle) => {
+          this.isFetching = false;
+          if (!res.name) {
+            this.errorMsg = 'Invalid response received!';
           } else {
-            this.fetchError = true;
-            this.errorMsg = 'Invalid file contents!';
+            const c = this.parseFileContents(res, uri);
+            if (c) {
+              this.provider = c as ChartProvider;
+              this.details = {
+                type: (res as TileJson).tilejson ? 'TileJSON' : 'Mapbox Style',
+                name: res.name,
+                version: (res as MapboxStyle).version
+                  ? (res as MapboxStyle).version
+                  : (res as TileJson).tilejson,
+                layers: (res as MapboxStyle).layers
+                  ? (res as MapboxStyle).layers.map((l) => l.id)
+                  : (res as TileJson).vector_layers
+                    ? (res as TileJson).vector_layers.map((l) => l.id)
+                    : []
+              };
+              this.dialogRef.close([this.provider]);
+            } else {
+              this.fetchError = true;
+              this.errorMsg = 'Invalid file contents!';
+            }
           }
+        },
+        error: (err: HttpErrorResponse) => {
+          this.isFetching = false;
+          this.fetchError = true;
+          this.errorMsg = err.message;
         }
-      },
-      error: (err: HttpErrorResponse) => {
-        this.isFetching = false;
-        this.fetchError = true;
-        this.errorMsg = err.message;
-      }
-    });
+      });
   }
 
   parseFileContents(json: TileJson | MapboxStyle, uri: string): ChartProvider {

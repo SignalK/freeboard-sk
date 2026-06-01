@@ -1,5 +1,6 @@
 import {
   Component,
+  DestroyRef,
   effect,
   inject,
   input,
@@ -29,6 +30,7 @@ import {
 } from '../groups/groups.service';
 import { SingleSelectListDialog } from 'src/app/lib/components';
 import { MatDialog } from '@angular/material/dialog';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
   selector: 'region-panel',
@@ -49,6 +51,7 @@ export class RegionPanel {
   region = input<SKRegion>(new SKRegion());
   id = input<string>(undefined);
   related = input<string>(undefined);
+  interacting = input<boolean>(false);
 
   protected _region = linkedSignal(() => this.region());
   protected notes = signal<FBNotes>([]);
@@ -65,6 +68,7 @@ export class RegionPanel {
   private skres = inject(SKResourceService);
   protected skgroups = inject(SKResourceGroupService);
   private dialog = inject(MatDialog);
+  private destroyRef = inject(DestroyRef);
 
   constructor() {
     effect(() => {
@@ -134,6 +138,13 @@ export class RegionPanel {
     this.skres.showNoteDetails(id);
   }
 
+  protected addNote() {
+    this.skres.showNoteEditor({
+      type: 'waypoint',
+      href: { id: this.id(), exists: true }
+    });
+  }
+
   /**
    * @description Show select Group dialog
    * @param id region identifier
@@ -144,12 +155,13 @@ export class RegionPanel {
       const glist = groups.map((g) => {
         return { id: g[0], name: g[1].name };
       });
-      if (glist.length) {
+      if (!glist.length) {
         this.app
           .showConfirm(
             'There are currently no groups defined.\nYou will need to first create a group and then add the resource.\n\nDo you want to create a new group?',
             'Group'
           )
+          .pipe(takeUntilDestroyed(this.destroyRef))
           .subscribe((r) => {
             if (r) {
               this.skgroups.editGroupInfo();
@@ -166,6 +178,7 @@ export class RegionPanel {
           }
         })
         .afterClosed()
+        .pipe(takeUntilDestroyed(this.destroyRef))
         .subscribe(async (selGrp) => {
           if (selGrp) {
             try {
