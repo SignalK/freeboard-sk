@@ -270,7 +270,6 @@ export class ResourceGroupDialog implements OnInit {
     addMode: boolean;
     group: SKResourceGroup;
   }>(MAT_DIALOG_DATA);
-  private destroyRef = inject(DestroyRef);
 
   constructor() {}
 

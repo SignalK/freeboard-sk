@@ -1,6 +1,5 @@
 import {
   Component,
-  DestroyRef,
   Input,
   Output,
   EventEmitter,
@@ -89,7 +88,6 @@ export class AnchorWatchComponent {
   private anchor = inject(AnchorService);
   protected app = inject(AppFacade);
   private signalk = inject(SignalKClient);
-  private destroyRef = inject(DestroyRef);
   private destroyRef = inject(DestroyRef);
 
   protected radiusValue = signal<number>(0); // incoming alarm radius

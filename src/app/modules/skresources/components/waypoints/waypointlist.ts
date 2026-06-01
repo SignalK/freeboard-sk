@@ -1,7 +1,6 @@
 import {
   Component,
   ChangeDetectionStrategy,
-  DestroyRef,
   signal,
   effect,
   output,
@@ -9,7 +8,6 @@ import {
   input,
   DestroyRef
 } from '@angular/core';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 
 import { MatTooltipModule } from '@angular/material/tooltip';

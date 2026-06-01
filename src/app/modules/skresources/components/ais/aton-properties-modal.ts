@@ -105,7 +105,6 @@ export class AtoNPropertiesModal implements OnInit {
     icon: string;
     type: 'aton' | 'sar' | 'meteo';
   }>(MAT_BOTTOM_SHEET_DATA);
-  private destroyRef = inject(DestroyRef);
 
   constructor() {}
 

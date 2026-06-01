@@ -106,7 +106,6 @@ export class AircraftPropertiesModal {
     id: string;
     icon: string;
   }>(MAT_BOTTOM_SHEET_DATA);
-  private destroyRef = inject(DestroyRef);
 
   constructor() {}
 
