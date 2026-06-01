@@ -79,9 +79,7 @@
             <div style="flex: 1 1 auto; width: 215px; display: flex">
               <div>
                 @if(r[1].properties?.skIcon) {
-                <mat-icon
-                  [svgIcon]="'sk-' + r[1].properties?.skIcon"
-                ></mat-icon>
+                <mat-icon [svgIcon]="r[1].properties?.skIcon"></mat-icon>
                 } @else {
                 <mat-icon class="icon-note icon-accent">local_offer</mat-icon>
                 }

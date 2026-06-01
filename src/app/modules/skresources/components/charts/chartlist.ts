@@ -6,7 +6,8 @@ import {
   signal,
   input,
   inject,
-  output
+  output,
+  DestroyRef
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatDialog, MatDialogRef } from '@angular/material/dialog';
@@ -39,6 +40,7 @@ import {
 } from 'src/app/lib/components';
 import { SKResourceGroupService } from '../groups/groups.service';
 import { SKChart } from '../../resource-classes';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
   selector: 'chart-list',
@@ -233,6 +235,7 @@ export class ChartListComponent extends ResourceListBase {
     this.dialog
       .open(SliderInputDialog, {
         disableClose: false,
+        hasBackdrop: false,
         data: {
           resId: chart[0],
           title: 'Set Opacity',

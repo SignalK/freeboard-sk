@@ -1,9 +1,8 @@
 import {
   Component,
-  Input,
-  Output,
-  EventEmitter,
-  ChangeDetectionStrategy
+  ChangeDetectionStrategy,
+  input,
+  output
 } from '@angular/core';
 
 import { MatListModule } from '@angular/material/list';
@@ -12,9 +11,6 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { PopoverComponent } from './popover.component';
 
-/*********** Chart boundaries List Popover ***************
-  features: Array<{id: string, name: string}> - list of chart boundaries
-  *************************************************/
 @Component({
   selector: 'chart-list-popover',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -26,9 +22,14 @@ import { PopoverComponent } from './popover.component';
     PopoverComponent
   ],
   template: `
-    <ap-popover [title]="title" [canClose]="canClose" (closed)="handleClose()">
+    <ap-popover
+      [title]="title"
+      [canClose]="canClose()"
+      [icon]="{ name: 'map' }"
+      (closed)="handleClose()"
+    >
       <mat-nav-list>
-        @for (c of features; track c) {
+        @for (c of features(); track c) {
           <mat-list-item (click)="handleSelect(c.id)">
             <mat-icon>map</mat-icon>
             {{ c.text }}
@@ -40,11 +41,12 @@ import { PopoverComponent } from './popover.component';
   styleUrls: []
 })
 export class ChartListPopoverComponent {
+  features = input<Array<{ id: string; text: string }>>([]);
+  canClose = input<boolean>();
+  closed = output<void>();
+  selected = output<string>();
+
   protected title = 'Click to Show / Hide Chart';
-  @Input() features: Array<{ id: string; text: string }> = [];
-  @Input() canClose: boolean;
-  @Output() closed: EventEmitter<void> = new EventEmitter();
-  @Output() selected: EventEmitter<string> = new EventEmitter();
 
   handleSelect(id: string) {
     this.selected.emit(id);

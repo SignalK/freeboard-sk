@@ -6,7 +6,8 @@ import {
   effect,
   inject,
   output,
-  input
+  input,
+  DestroyRef
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
@@ -33,6 +34,7 @@ import { SKWorkerService } from 'src/app/modules/skstream/skstream.service';
 import { SKResourceGroupService } from '../groups/groups.service';
 import { SingleSelectListDialog } from 'src/app/lib/components';
 import { RemarkModule } from 'ngx-remark';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
   selector: 'route-list',

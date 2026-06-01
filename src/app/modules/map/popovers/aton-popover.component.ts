@@ -1,10 +1,10 @@
 import {
   Component,
-  Input,
-  Output,
-  EventEmitter,
   ChangeDetectionStrategy,
-  inject
+  inject,
+  input,
+  output,
+  effect
 } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -15,10 +15,8 @@ import { NorthUpCompassComponent } from './compass.component';
 import { SKMeteo } from 'src/app/modules';
 import { AppFacade } from 'src/app/app.facade';
 import { Convert } from 'src/app/lib/convert';
-/*********** AtoN Popover ***************
-  title: string -  title text,
-  aton: SKAtoN - aton data
-  *************************************************/
+import { AppIconDef } from '../../icons';
+
 @Component({
   selector: 'aton-popover',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -31,17 +29,24 @@ import { Convert } from 'src/app/lib/convert';
     NorthUpCompassComponent
   ],
   template: `
-    <ap-popover [title]="_title" [canClose]="canClose" (closed)="handleClose()">
+    <ap-popover
+      [title]="_title"
+      [canClose]="canClose()"
+      [icon]="_icon"
+      (closed)="handleClose()"
+    >
       <div style="display:flex;">
         <div style="font-weight:bold;">Type:</div>
-        <div style="flex: 1 1 auto;text-align:right;">{{ aton.type.name }}</div>
+        <div style="flex: 1 1 auto;text-align:right;">
+          {{ aton().type.name }}
+        </div>
       </div>
       <div style="display:flex;">
         <div style="font-weight:bold;">Latitude:</div>
         <div
           style="flex: 1 1 auto;text-align:right;"
           [innerText]="
-            aton.position[1] | coords: app.config.units.positionFormat : true
+            aton().position[1] | coords: app.config.units.positionFormat : true
           "
         ></div>
       </div>
@@ -50,7 +55,7 @@ import { Convert } from 'src/app/lib/convert';
         <div
           style="flex: 1 1 auto;text-align:right;"
           [innerText]="
-            aton.position[0] | coords: app.config.units.positionFormat
+            aton().position[0] | coords: app.config.units.positionFormat
           "
         ></div>
       </div>
@@ -60,21 +65,21 @@ import { Convert } from 'src/app/lib/convert';
           {{ timeLastUpdate }} {{ timeAgo }}
         </div>
       </div>
-      @if (isMeteo && aton.temperature !== undefined) {
+      @if (isMeteo && aton().temperature !== undefined) {
         <div style="display:flex;">
           <div style="font-weight:bold;">Temperature:</div>
           <div style="flex: 1 1 auto;text-align:right;">
-            {{ this.app.formatValueForDisplay(aton.temperature, 'K') }}
+            {{ this.app.formatValueForDisplay(aton().temperature, 'K') }}
           </div>
         </div>
       }
-      @if (isMeteo && aton.tws !== undefined && aton.twd !== undefined) {
+      @if (isMeteo && aton().tws !== undefined && aton().twd !== undefined) {
         <div style="display:flex;flex-wrap:no-wrap;">
           <div style="font-weight:bold;">Wind:</div>
           <div style="width:150px;">
             <ap-compass-northup
-              [heading]="convert.radiansToDegrees(aton.twd)"
-              [speed]="app.formatSpeed(aton.tws)"
+              [heading]="convert.radiansToDegrees(aton().twd)"
+              [speed]="app.formatSpeed(aton().tws)"
               [label]="app.formattedSpeedUnits"
               [windtrue]="true"
             >
@@ -100,12 +105,13 @@ import { Convert } from 'src/app/lib/convert';
   styleUrls: []
 })
 export class AtoNPopoverComponent {
-  @Input() title: string;
-  @Input() aton: SKMeteo;
-  @Input() canClose: boolean;
-  @Output() info: EventEmitter<string> = new EventEmitter();
-  @Output() closed: EventEmitter<void> = new EventEmitter();
+  title = input<string>();
+  aton = input<SKMeteo>();
+  canClose = input<boolean>();
+  info = output<string>();
+  closed = output<void>();
   _title: string;
+  _icon: AppIconDef;
   timeLastUpdate: string;
   timeAgo: string; // last update in minutes ago
   protected convert = Convert;
@@ -113,29 +119,42 @@ export class AtoNPopoverComponent {
 
   protected app = inject(AppFacade);
 
-  constructor() {}
+  constructor() {
+    effect(() => {
+      if (!this.aton()) {
+        this.handleClose();
+        return;
+      }
+      this._title =
+        this.title() || this.aton().name || this.aton().mmsi || 'AtoN:';
+      this.isMeteo = this.aton().id.includes('meteo');
+      this._icon = {
+        name: this.isMeteo ? 'air' : 'beenhere',
+        svgIcon: undefined
+      };
+      this.timeLastUpdate = `${this.aton().lastUpdated.getHours()}:${(
+        '00' + this.aton().lastUpdated.getMinutes()
+      ).slice(-2)}`;
+      const td =
+        (new Date().valueOf() - this.aton().lastUpdated.valueOf()) / 1000;
+      this.timeAgo = td < 60 ? '' : `(${Math.floor(td / 60)} min ago)`;
+    });
+  }
 
   ngOnInit() {
-    if (!this.aton) {
+    if (!this.aton()) {
       this.handleClose();
     } else {
-      this.isMeteo = this.aton.id.includes('meteo');
+      this.isMeteo = this.aton().id.includes('meteo');
+      this._icon = {
+        name: this.isMeteo ? 'air' : 'beenhere',
+        svgIcon: undefined
+      };
     }
   }
-  ngOnChanges() {
-    if (!this.aton) {
-      this.handleClose();
-      return;
-    }
-    this._title = this.title || this.aton.name || this.aton.mmsi || 'AtoN:';
-    this.timeLastUpdate = `${this.aton.lastUpdated.getHours()}:${(
-      '00' + this.aton.lastUpdated.getMinutes()
-    ).slice(-2)}`;
-    const td = (new Date().valueOf() - this.aton.lastUpdated.valueOf()) / 1000;
-    this.timeAgo = td < 60 ? '' : `(${Math.floor(td / 60)} min ago)`;
-  }
+
   handleInfo() {
-    this.info.emit(this.aton.id);
+    this.info.emit(this.aton().id);
   }
   handleClose() {
     this.closed.emit();

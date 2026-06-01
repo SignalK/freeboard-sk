@@ -1,7 +1,4 @@
-/** Multi-Select List Dialog Component **
- ********************************/
-
-import { Component, OnInit, ViewChild, Inject } from '@angular/core';
+import { Component, OnInit, ViewChild, inject } from '@angular/core';
 
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
@@ -13,14 +10,6 @@ import {
 } from '@angular/material/dialog';
 import { AppIconDef } from 'src/app/modules/icons';
 
-/********* MultiSelectListDialog **********
- * 
- * data: {
-    title: string,
-    items: [{id: string, name: string}],
-    icon: AppIconDef
- * }
- */
 @Component({
   selector: 'ap-multiselectlistdialog',
   imports: [MatIconModule, MatButtonModule, MatDialogModule, MatListModule],
@@ -75,15 +64,14 @@ import { AppIconDef } from 'src/app/modules/icons';
 export class MultiSelectListDialog implements OnInit {
   @ViewChild('btncancel', { static: false }) btncancel;
 
-  constructor(
-    private dialogRef: MatDialogRef<MultiSelectListDialog>,
-    @Inject(MAT_DIALOG_DATA)
-    public data: {
-      title: string;
-      items: [{ id: string; name: string }];
-      icon: AppIconDef;
-    }
-  ) {}
+  protected dialogRef = inject(MatDialogRef<MultiSelectListDialog>);
+  protected data = inject<{
+    title: string;
+    items: [{ id: string; name: string }];
+    icon: AppIconDef;
+  }>(MAT_DIALOG_DATA);
+
+  constructor() {}
 
   ngOnInit() {}
 

@@ -10,8 +10,10 @@ import {
   ElementRef,
   inject,
   signal,
-  computed
+  computed,
+  DestroyRef
 } from '@angular/core';
+
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 import { MatButtonModule } from '@angular/material/button';
@@ -87,6 +89,7 @@ export class AnchorWatchComponent {
   private anchor = inject(AnchorService);
   protected app = inject(AppFacade);
   private signalk = inject(SignalKClient);
+  private destroyRef = inject(DestroyRef);
   private destroyRef = inject(DestroyRef);
 
   protected radiusValue = signal<number>(0); // incoming alarm radius
@@ -311,12 +314,12 @@ export class AnchorWatchComponent {
     this.signalk
       .post('/plugins/anchoralarm/raiseAnchor', {})
       .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe(
-        () => undefined,
-        (err: HttpErrorResponse) => {
+      .subscribe({
+        next: () => undefined,
+        error: (err: HttpErrorResponse) => {
           this.app.parseHttpErrorResponse(err);
         }
-      );
+      });
   }
 
   /**

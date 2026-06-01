@@ -121,7 +121,7 @@ export class S57Service {
   //options
 
   public options: Options = DefaultOptions;
-  private attMatch = new RegExp('([A-Za-z0-9]{6})([0-9,\\?]*)');
+  private attMatch = new RegExp('([A-Za-z0-9_]{6})([0-9,\\?]*)');
 
   private http = inject(HttpClient);
 

@@ -1,8 +1,7 @@
 /** Weather Forecast Component **
  ********************************/
 
-import { Component, DestroyRef, Inject, OnInit, inject } from '@angular/core';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { Component, OnInit, Inject, inject, DestroyRef } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -23,6 +22,7 @@ import { SignalKClient } from 'signalk-client-angular';
 import { Convert, SI_BASE_UNIT } from 'src/app/lib/convert';
 import { Position } from 'src/app/types';
 import { CoordsPipe } from 'src/app/lib/pipes';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 interface WeatherData {
   description?: string;
@@ -44,11 +44,6 @@ interface WeatherData {
   };
 }
 
-/********* WeatherForecastModal **********
-	data: {
-        title: "<string>" title text
-    }
-***********************************/
 @Component({
   selector: 'weather-forecast-modal',
   imports: [
@@ -282,15 +277,18 @@ export class WeatherForecastModal implements OnInit {
   };
   private maxForecasts = 12;
 
+  protected app = inject(AppFacade);
+  private sk = inject(SignalKClient);
+  protected modalRef = inject(MatBottomSheetRef<WeatherForecastModal>);
+  protected data = inject<{
+    title: string;
+    subTitle: string;
+    position: Position;
+  }>(MAT_BOTTOM_SHEET_DATA);
+
   private destroyRef = inject(DestroyRef);
 
-  constructor(
-    public app: AppFacade,
-    private sk: SignalKClient,
-    public modalRef: MatBottomSheetRef<WeatherForecastModal>,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    @Inject(MAT_BOTTOM_SHEET_DATA) public data: any
-  ) {}
+  constructor() {}
 
   ngOnInit() {
     this.getForecast(this.data.position);

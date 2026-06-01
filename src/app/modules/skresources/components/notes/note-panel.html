@@ -44,7 +44,7 @@
       <div>
         <button
           mat-button
-          [disabled]="_note().properties?.readOnly"
+          [disabled]="_note().properties?.readOnly || interacting()"
           (click)="onEdit()"
           matTooltip="Edit Note"
         >
@@ -54,6 +54,7 @@
         @if(_note().url) { &nbsp;
         <button
           mat-button
+          [disabled]="interacting()"
           (click)="openNoteUrl()"
           matTooltip="Open Note link in browser window"
         >
@@ -61,19 +62,29 @@
           LINK
         </button>
         } @if(_note().position) { &nbsp;
-        <button mat-button (click)="onGoto()" matTooltip="Navigate To">
+        <button
+          mat-button
+          [disabled]="interacting()"
+          (click)="onGoto()"
+          matTooltip="Navigate To"
+        >
           <mat-icon>near_me</mat-icon>
           GO TO
         </button>
         &nbsp;
-        <button mat-button (click)="onPanTo()" matTooltip="Center Note">
+        <button
+          mat-button
+          [disabled]="interacting()"
+          (click)="onPanTo()"
+          matTooltip="Center Note"
+        >
           <mat-icon>center_focus_strong</mat-icon>
           CENTER
         </button>
         &nbsp;
         <button
           mat-button
-          [disabled]="_note().properties?.readOnly"
+          [disabled]="_note().properties?.readOnly  || interacting()"
           (click)="onDelete()"
           matTooltip="Delete Note"
         >
@@ -86,7 +97,14 @@
 
     <mat-divider></mat-divider>
 
-    <div style="display: flex; flex-direction: column; padding-top: 15px">
+    <div
+      style="
+        display: flex;
+        flex-direction: column;
+        padding-left: 5px;
+        padding-top: 15px;
+      "
+    >
       <div style="font-weight: bold; font-size: larger; padding-bottom: 5px">
         {{_note()?.name}}
       </div>
@@ -94,11 +112,15 @@
   </div>
 
   @if(_note().properties.draft) {
-  <div style="font-size: 12pt; font-weight: bold; color: red">** Draft **</div>
+  <div
+    style="font-size: 12pt; font-weight: bold; padding-left: 5px; color: red"
+  >
+    ** Draft **
+  </div>
   } @if(note().mimeType.includes('markdown')) {
   <remark
     [markdown]="note().description"
-    style="flex: 2 1 auto; overflow-y: auto"
+    style="flex: 2 1 auto; overflow-y: auto; padding-left: 5px"
   >
     <ng-template remarkTemplate="heading" let-node>
       @if(node.depth === 1) {
@@ -115,7 +137,12 @@
   } @else {
   <div
     class="note-description"
-    style="flex: 2 1 auto; overflow-y: auto; padding-top: 10px"
+    style="
+      flex: 2 1 auto;
+      overflow-y: auto;
+      padding-left: 5px;
+      padding-top: 10px;
+    "
     target="notelink"
     [innerHTML]="_note().description | addTarget: '_notes'"
   ></div>

@@ -5,7 +5,8 @@ import {
   DestroyRef,
   signal,
   output,
-  inject
+  inject,
+  DestroyRef
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
@@ -24,6 +25,7 @@ import {
 } from '@angular/cdk/drag-drop';
 import { SKResourceService } from '../../resources.service';
 import { FBWaypoint, LineString } from 'src/app/types';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
   selector: 'route-builder',

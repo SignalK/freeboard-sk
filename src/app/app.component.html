@@ -277,66 +277,63 @@
       <mat-sidenav-container hasBackdrop="false">
         <!--info-panel-->
         <mat-sidenav
-          #sideleft
+          #sideright
           [disableClose]="false"
-          [opened]="infoPanel.opened()"
+          [opened]="infoPanel.opened() || app.instrumentPanel().activate"
+          (openedChange)="rightSideNavAction($event)"
           mode="side"
-          position="start"
-          style="width: 250px"
+          position="end"
+          [style.width]="infoPanel.opened() ? '250px' : '350px'"
         >
-          <info-panel>
-            @if (infoPanel.item()?.type === 'notes') {
-              <note-panel
-                [note]="infoPanel.item().resource"
-                [id]="infoPanel.item().id"
-                (edit)="
-                  skres.showNoteEditor({
-                    id: $event
-                  })
-                "
-                (panTo)="centerAndZoom($event.center, $event.zoomLevel)"
-              />
-            }
-            @if (infoPanel.item()?.type === 'regions') {
-              <region-panel
-                [region]="infoPanel.item().resource"
-                [id]="infoPanel.item().id"
-                [related]="infoPanel.related()"
-                (edit)="skres.editRegionInfo($event)"
-                (panTo)="centerAndZoom($event.center, $event.zoomLevel)"
-              />
-            }
-            @if (infoPanel.item()?.type === 'waypoints') {
-              <waypoint-panel
-                [waypoint]="infoPanel.item().resource"
-                [id]="infoPanel.item().id"
-                [related]="infoPanel.related()"
-                (edit)="skres.editWaypointInfo($event)"
-                (panTo)="centerAndZoom($event.center, $event.zoomLevel)"
-              />
-            }
-            @if (infoPanel.item()?.type === 'routes') {
-              <route-panel
-                [route]="infoPanel.item().resource"
-                [id]="infoPanel.item().id"
-                [related]="infoPanel.related()"
-                (edit)="skres.editRouteInfo($event)"
-                (activate)="activateRoute($event)"
-                (panTo)="centerAndZoom($event.center, $event.zoomLevel)"
-              />
-            }
-          </info-panel>
-        </mat-sidenav>
-
-        <!--instrument-panel-->
-        @if (app.instrumentPanelAvailable()) {
-          <mat-sidenav
-            #sideright
-            mode="side"
-            position="end"
-            (openedChange)="rightSideNavAction($event)"
-            style="width: 350px"
-          >
+          @if (this.infoPanel.item && !app.instrumentPanel().open) {
+            <info-panel>
+              @if (infoPanel.item()?.type === 'notes') {
+                <note-panel
+                  [note]="infoPanel.item().resource"
+                  [id]="infoPanel.item().id"
+                  [interacting]="isInteracting()"
+                  (edit)="
+                    skres.showNoteEditor({
+                      id: $event
+                    })
+                  "
+                  (panTo)="centerAndZoom($event.center, $event.zoomLevel)"
+                />
+              }
+              @if (infoPanel.item()?.type === 'regions') {
+                <region-panel
+                  [region]="infoPanel.item().resource"
+                  [id]="infoPanel.item().id"
+                  [related]="infoPanel.related()"
+                  [interacting]="isInteracting()"
+                  (edit)="skres.editRegionInfo($event)"
+                  (panTo)="centerAndZoom($event.center, $event.zoomLevel)"
+                />
+              }
+              @if (infoPanel.item()?.type === 'waypoints') {
+                <waypoint-panel
+                  [waypoint]="infoPanel.item().resource"
+                  [id]="infoPanel.item().id"
+                  [related]="infoPanel.related()"
+                  [interacting]="isInteracting()"
+                  (edit)="skres.editWaypointInfo($event)"
+                  (panTo)="centerAndZoom($event.center, $event.zoomLevel)"
+                />
+              }
+              @if (infoPanel.item()?.type === 'routes') {
+                <route-panel
+                  [route]="infoPanel.item().resource"
+                  [id]="infoPanel.item().id"
+                  [related]="infoPanel.related()"
+                  [interacting]="isInteracting()"
+                  (edit)="skres.editRouteInfo($event)"
+                  (activate)="activateRoute($event)"
+                  (panTo)="centerAndZoom($event.center, $event.zoomLevel)"
+                />
+              }
+            </info-panel>
+          } @else {
+            <!-- instrument panel-->
             <div
               style="display: flex; flex-direction: column; position: relative"
             >
@@ -350,7 +347,7 @@
                     <a
                       mat-icon-button
                       [href]="instUrl()"
-                      (click)="sideright.toggle()"
+                      (click)="sideright.close()"
                       target="_blank"
                       matTooltip="Open Instruments in window."
                       matTooltipPosition="right"
@@ -403,8 +400,10 @@
                 }
               </div>
             </div>
-          </mat-sidenav>
-        }
+          }
+        </mat-sidenav>
+
+        <!-- main display content-->
         <mat-sidenav-content style="overflow: hidden">
           @if (app.sIsFetching()) {
             <div
@@ -791,7 +790,7 @@
                     <button
                       class="button-toolbar"
                       mat-mini-fab
-                      (click)="sideright.toggle()"
+                      (click)="handleInstrumentPanelClick()"
                       matTooltip="Instruments"
                       matTooltipPosition="before"
                     >
@@ -818,7 +817,7 @@
                 }
 
                 <!-- fullscreen enable -->
-                @if (displayFullscreen().enabled) {
+                @if (this.app.isTopWindow() && displayFullscreen().enabled) {
                   <div class="buttonPanelItem">
                     <button
                       mat-mini-fab

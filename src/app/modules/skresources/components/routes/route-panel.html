@@ -29,7 +29,7 @@
       <div>
         <button
           mat-button
-          [disabled]="_route()?.feature?.properties?.readOnly"
+          [disabled]="_route()?.feature?.properties?.readOnly  || interacting()"
           (click)="onEdit()"
           matTooltip="Edit Route"
         >
@@ -37,24 +37,29 @@
           EDIT
         </button>
         &nbsp; @if (this.app.data.activeRoute !== id()) {
-        <button mat-button (click)="onGoto()" matTooltip="Navigate To">
+        <button
+          mat-button
+          [disabled]="interacting()"
+          (click)="onGoto()"
+          matTooltip="Navigate To"
+        >
           <mat-icon>near_me</mat-icon>
           START
         </button>
         } @else {
-        <button mat-button (click)="onGoto(-1)" matTooltip="Clear Destination">
+        <button
+          mat-button
+          [disabled]="interacting()"
+          (click)="onGoto(-1)"
+          matTooltip="Clear Destination"
+        >
           <mat-icon>clear_all</mat-icon>
           CLEAR
-        </button>
-        &nbsp; } @if(app.featureFlags().resourceGroups) { &nbsp;
-        <button mat-button (click)="addToGroup()" matTooltip="Add to Group">
-          <mat-icon>category</mat-icon>
-          GROUP
         </button>
         } &nbsp;
         <button
           mat-button
-          [disabled]="this.app.data.activeRoute !== id()"
+          [disabled]="this.app.data.activeRoute !== id() || interacting()"
           (click)="onReverse()"
           matTooltip="Reverse direction"
         >
@@ -62,14 +67,19 @@
           REVERSE
         </button>
         &nbsp;
-        <button mat-button (click)="onPanTo()" matTooltip="Center Route">
+        <button
+          mat-button
+          [disabled]="interacting()"
+          (click)="onPanTo()"
+          matTooltip="Center Route"
+        >
           <mat-icon>center_focus_strong</mat-icon>
           CENTER
         </button>
         &nbsp;
         <button
           mat-button
-          [disabled]="_route()?.feature?.properties?.readOnly || this.app.data.activeRoute === id()"
+          [disabled]="_route()?.feature?.properties?.readOnly || this.app.data.activeRoute === id() || interacting()"
           (click)="onDelete()"
           matTooltip="Delete Route"
         >
@@ -81,7 +91,14 @@
 
     <mat-divider></mat-divider>
 
-    <div style="display: flex; flex-direction: column; padding-top: 15px">
+    <div
+      style="
+        display: flex;
+        flex-direction: column;
+        padding-left: 5px;
+        padding-top: 15px;
+      "
+    >
       <div style="font-weight: bold; font-size: larger; padding-bottom: 5px">
         {{_route()?.name}}
       </div>
@@ -90,7 +107,7 @@
 
   <remark
     [markdown]="_route().description"
-    style="flex: 2 1 auto; overflow-y: auto"
+    style="flex: 2 1 auto; overflow-y: auto; padding-left: 5px"
   >
     <ng-template remarkTemplate="heading" let-node>
       @if(node.depth === 1) {
@@ -118,6 +135,7 @@
           <button
             matIconButton
             matTooltip="Re-order points"
+            [disabled]="interacting()"
             (click)="arrangePoints()"
           >
             <mat-icon>import_export</mat-icon>
@@ -142,6 +160,7 @@
             <button
               matIconButton
               matTooltip="Start here"
+              [disabled]="interacting()"
               (click)="onGoto(point.index)"
             >
               <mat-icon>near_me</mat-icon>
@@ -165,6 +184,14 @@
         </mat-panel-title>
         <mat-panel-description>
           ({{this.notes().length}})
+          <button
+            matIconButton
+            matTooltip="Add Note"
+            [disabled]="interacting()"
+            (click)="addNote()"
+          >
+            <mat-icon>add</mat-icon>
+          </button>
         </mat-panel-description>
       </mat-expansion-panel-header>
       @if(this.notes().length){
@@ -186,7 +213,16 @@
           &nbsp;Groups:
         </mat-panel-title>
         <mat-panel-description>
-          ({{this.groups().length}})
+          ({{this.groups().length}}) @if(app.featureFlags().resourceGroups) {
+          <button
+            matIconButton
+            matTooltip="Add to Group"
+            [disabled]="interacting()"
+            (click)="addToGroup()"
+          >
+            <mat-icon>add</mat-icon>
+          </button>
+          }
         </mat-panel-description>
       </mat-expansion-panel-header>
       @if(this.groups().length){

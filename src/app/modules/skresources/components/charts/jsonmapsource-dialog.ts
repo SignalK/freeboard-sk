@@ -1,5 +1,4 @@
 import { Component, DestroyRef, inject } from '@angular/core';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import {
   MatDialogModule,
   MatDialogRef,
@@ -16,6 +15,7 @@ import { AppFacade } from 'src/app/app.facade';
 import { SKChart } from 'src/app/modules/skresources/resource-classes';
 import { ChartProvider } from 'src/app/types';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 interface MapboxStyle {
   version: string;
@@ -182,6 +182,7 @@ export class JsonMapSourceDialog {
     this.fetchError = false;
     this.isFetching = true;
     this.provider = undefined;
+
     this.http
       .get(uri)
       .pipe(takeUntilDestroyed(this.destroyRef))

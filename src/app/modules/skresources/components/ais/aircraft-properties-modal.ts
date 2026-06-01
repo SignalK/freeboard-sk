@@ -1,5 +1,4 @@
 import { Component, DestroyRef, inject } from '@angular/core';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import {
   MatBottomSheetRef,
   MAT_BOTTOM_SHEET_DATA
@@ -13,6 +12,7 @@ import { MatToolbarModule } from '@angular/material/toolbar';
 import { SignalKClient } from 'signalk-client-angular';
 import { SKAircraft } from 'src/app/modules/skresources/resource-classes';
 import { SignalKDetailsComponent } from '../../components/signalk-details.component';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
   selector: 'ap-aircraft-modal',
@@ -98,6 +98,7 @@ export class AircraftPropertiesModal {
   protected properties: { [key: string]: string | number | null };
 
   private sk = inject(SignalKClient);
+  private destroyRef = inject(DestroyRef);
   protected modalRef = inject(MatBottomSheetRef<AircraftPropertiesModal>);
   protected data = inject<{
     title: string;

@@ -1,11 +1,10 @@
 import {
-  ChangeDetectionStrategy,
   Component,
+  ChangeDetectionStrategy,
+  output,
   DestroyRef,
-  inject,
-  output
+  inject
 } from '@angular/core';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatIconModule } from '@angular/material/icon';
@@ -42,6 +41,7 @@ import {
   wmsCapabilitiesInWorker,
   wmtsCapabilitiesInWorker
 } from '../charts/maplib';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 //** InfoLayer Resource List **
 @Component({
@@ -385,11 +385,8 @@ export class InfoLayerListComponent extends ResourceListBase {
               )
             );
           });
-
-          const r = forkJoin(req).pipe(
-            catchError((error) => of(error)),
-            takeUntilDestroyed(this.destroyRef)
-          );
+          /** @TODO */
+          const r = forkJoin(req).pipe(catchError((error) => of(error)));
           r.subscribe((r) => {
             if (r.error) {
               this.app.showAlert(

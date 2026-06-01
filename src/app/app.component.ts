@@ -11,8 +11,8 @@ import { MatDialog } from '@angular/material/dialog';
 import { MatBottomSheet } from '@angular/material/bottom-sheet';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { OverlayContainer } from '@angular/cdk/overlay';
+import { Observable, Subject } from 'rxjs';
 
-// standalone
 import { CommonModule } from '@angular/common';
 import { MatBadgeModule } from '@angular/material/badge';
 import { MatButtonModule } from '@angular/material/button';
@@ -31,8 +31,6 @@ import {
   TextDialComponent,
   TTGDialComponent
 } from './lib/components';
-
-// ****
 
 import { AppFacade } from './app.facade';
 import { InfoPanelFacade, InfoPanelComponent } from './modules/info-panel';
@@ -84,18 +82,8 @@ import {
   RegionPanel
 } from 'src/app/modules';
 
-import type { ResourceImportDialog } from 'src/app/modules/skresources/components/resourcesets/resource-upload-dialog';
-import type { SettingsDialog } from 'src/app/modules/settings/components/settings-dialog';
-import type { GPXImportDialog } from 'src/app/modules/gpx/gpxload-dialog';
-import type { GPXExportDialog } from 'src/app/modules/gpx/gpxsave-dialog';
+import { LoginDialog } from 'src/app/lib/components/dialogs';
 
-import type {
-  AboutDialog,
-  LoginDialog
-} from 'src/app/lib/components/dialogs/common-dialogs';
-import type { PlaybackDialog } from 'src/app/lib/components/dialogs/playback-dialog';
-import type { GeoJSONImportDialog } from 'src/app/lib/components/dialogs/geojson/geojson-dialog';
-import type { Trail2RouteDialog } from 'src/app/lib/components/dialogs/trail2route-dialog';
 import { Convert } from 'src/app/lib/convert';
 import { GeoUtils } from 'src/app/lib/geoutils';
 
@@ -987,18 +975,35 @@ export class AppComponent {
 
   // ********* SIDENAV ACTIONS *************
 
-  protected rightSideNavAction(e: boolean) {
+  protected handleInstrumentPanelClick() {
+    let value = !this.app.instrumentPanel().open;
+    if (value && this.infoPanel.opened()) {
+      this.infoPanel.close();
+    }
+
     this.app.instrumentPanel.update((current) => {
       return Object.assign({}, current, {
-        open: e,
+        open: value,
         activate: this.app.config.display.plugins.startOnOpen
-          ? e
+          ? value
           : current.activate
       });
     });
-    if (!e) {
+  }
+
+  protected rightSideNavAction(value: boolean) {
+    if (!value) {
+      //closed
+      this.app.instrumentPanel.update((current) => {
+        return Object.assign({}, current, {
+          open: value,
+          activate: this.app.config.display.plugins.startOnOpen
+            ? value
+            : current.activate
+        });
+      });
       this.focusMap();
-    } // set when closed
+    }
   }
 
   /** control left menu display  */
@@ -1073,6 +1078,7 @@ export class AppComponent {
 
   // ********* MAIN MENU ACTIONS *************
 
+  // ** open about dialog **
   protected async openAbout() {
     const { AboutDialog } =
       await import('src/app/lib/components/dialogs/common-dialogs');
@@ -1091,6 +1097,7 @@ export class AppComponent {
       .subscribe(() => this.focusMap());
   }
 
+  // ** open settings dialog **
   protected async openSettings() {
     const { SettingsDialog } =
       await import('src/app/modules/settings/components/settings-dialog');
@@ -1247,6 +1254,7 @@ export class AppComponent {
       });
   }
 
+  // ** show login dialog **
   protected async showLogin(
     message?: string,
     cancelWarning = true,
@@ -1315,11 +1323,13 @@ export class AppComponent {
           });
           if (onConnect) {
             this.showLogin(null, false, true);
-          } else if (cancelWarning) {
-            this.app.showAlert(
-              'Login Cancelled:',
-              `Update operations are NOT available until you have authenticated to the Signal K server.`
-            );
+          } else {
+            if (cancelWarning) {
+              this.app.showAlert(
+                'Login Cancelled:',
+                `Update operations are NOT available until you have authenticated to the Signal K server.`
+              );
+            }
           }
         }
         this.focusMap();

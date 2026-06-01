@@ -1,11 +1,11 @@
 import {
   Component,
-  Input,
   ChangeDetectionStrategy,
-  SimpleChanges,
-  Output,
-  EventEmitter,
-  inject
+  inject,
+  output,
+  input,
+  effect,
+  linkedSignal
 } from '@angular/core';
 
 import { MatTooltip } from '@angular/material/tooltip';
@@ -16,8 +16,6 @@ import { Position } from 'src/app/types';
 import { getGreatCircleBearing } from 'geolib';
 import { GeoUtils } from '../geoutils';
 import { MatToolbarModule } from '@angular/material/toolbar';
-
-// ********* Measurements Component ********
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -33,17 +31,17 @@ import { MatToolbarModule } from '@angular/material/toolbar';
             </div>
             <div class="value">{{ totalDistance }}<br /></div>
           </div>
-          @if (!totalOnly) {
+          @if (!totalOnly()) {
             <div class="_ap_row">
               <div class="_ap_row">
                 <div style="font-size: 12pt;">
                   <mat-icon>square_foot</mat-icon><br />
                   {{
-                    this.coords.length < 2
+                    this.coords().length < 2
                       ? '-'
-                      : this.index === -1
-                        ? this.coords.length - 1
-                        : this.index + 1
+                      : this._index() === -1
+                        ? this.coords().length - 1
+                        : this._index() + 1
                   }}
                 </div>
                 <div class="value">
@@ -101,10 +99,11 @@ import { MatToolbarModule } from '@angular/material/toolbar';
   ]
 })
 export class Measurements {
-  @Input() coords: Array<Position> = [];
-  @Input() index = -1;
-  @Input() totalOnly = false;
-  @Output() cancel: EventEmitter<void> = new EventEmitter();
+  coords = input<Position[]>([]);
+  index = input<number>(-1);
+  _index = linkedSignal(() => this.index());
+  totalOnly = input<boolean>(false);
+  cancel = output<void>();
 
   protected totalDistance: string;
   protected legDistance: string;
@@ -117,6 +116,28 @@ export class Measurements {
   protected app = inject(AppFacade);
 
   constructor() {
+    effect(() => {
+      if (
+        !this.coords() ||
+        !Array.isArray(this.coords()) ||
+        this.coords().length === 0
+      ) {
+        this.init();
+        return;
+      }
+      if (this._index()) {
+        if (!Number.isFinite(this._index())) {
+          return;
+        } else if (
+          this._index() < -1 &&
+          this._index() >= this.coords().length
+        ) {
+          return;
+        }
+      }
+      this.calc();
+      this.setButtonState();
+    });
     this.init();
   }
 
@@ -132,44 +153,23 @@ export class Measurements {
     };
   }
 
-  ngOnChanges(changes: SimpleChanges) {
-    if (
-      !this.coords ||
-      !Array.isArray(this.coords) ||
-      this.coords.length === 0
-    ) {
-      this.init();
-      return;
-    }
-    if (changes.index) {
-      if (isNaN(changes.index.currentValue)) {
-        return;
-      } else if (
-        changes.index.currentValue < -1 &&
-        changes.index.currentValue >= this.coords.length
-      ) {
-        return;
-      }
-    }
-    this.calc();
-    this.setButtonState();
-  }
-
   close() {
-    this.cancel.next();
+    this.cancel.emit();
   }
 
   private calc() {
-    const td = GeoUtils.routeLength(this.coords);
+    const td = GeoUtils.routeLength(this.coords());
     this.totalDistance = this.app.formatValueForDisplay(td, 'm');
 
     let leg: Position[];
-    if (this.index === -1) {
-      leg = this.coords.slice(-2);
+    if (this._index() === -1) {
+      leg = this.coords().slice(-2);
     } else {
       const eidx =
-        this.index === this.coords.length - 2 ? undefined : this.index + 2;
-      leg = this.coords.slice(this.index, eidx);
+        this._index() === this.coords().length - 2
+          ? undefined
+          : this._index() + 2;
+      leg = this.coords().slice(this._index(), eidx);
     }
     if (leg.length < 2) {
       this.init(true);
@@ -182,19 +182,17 @@ export class Measurements {
   }
 
   select(prev?: boolean) {
-    console.log(this.index, prev);
-
     if (prev) {
-      if (this.index === -1) {
-        if (this.coords.length > 2) {
-          this.index = this.coords.length - 3;
+      if (this._index() === -1) {
+        if (this.coords().length > 2) {
+          this._index.set(this.coords().length - 3);
         }
-      } else if (this.index > 0) {
-        this.index--;
+      } else if (this._index() > 0) {
+        this._index.update((current) => --current);
       }
     } else {
-      if (this.index !== -1 || this.index < this.coords.length - 2) {
-        this.index++;
+      if (this._index() !== -1 || this._index() < this.coords().length - 2) {
+        this._index.update((current) => ++current);
       }
     }
     this.setButtonState();
@@ -202,13 +200,16 @@ export class Measurements {
   }
 
   setButtonState() {
-    if (this.index > 0 || (this.index === -1 && this.coords.length > 2)) {
+    if (
+      this._index() > 0 ||
+      (this._index() === -1 && this.coords().length > 2)
+    ) {
       this.btnDisable.prev = false;
     } else {
       this.btnDisable.prev = true;
     }
 
-    if (this.index !== -1 && this.index < this.coords.length - 2) {
+    if (this._index() !== -1 && this._index() < this.coords().length - 2) {
       this.btnDisable.next = false;
     } else {
       this.btnDisable.next = true;

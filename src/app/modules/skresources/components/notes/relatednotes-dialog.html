@@ -42,7 +42,7 @@
           <mat-card-title-group>
             <mat-card-title>{{n[1].name}}</mat-card-title>
             @if(n[1].properties?.skIcon) {
-            <mat-icon [svgIcon]="'sk-' + n[1].properties?.skIcon"></mat-icon>
+            <mat-icon [svgIcon]="n[1].properties?.skIcon"></mat-icon>
             } @else {
             <mat-icon class="icon-accent">local_offer</mat-icon>
             }
