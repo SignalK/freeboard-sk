@@ -2,6 +2,7 @@
 
 import {
   Component,
+  DestroyRef,
   Input,
   Output,
   EventEmitter,
@@ -9,6 +10,7 @@ import {
   SimpleChanges,
   inject
 } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -257,6 +259,7 @@ export class VesselPopoverComponent {
 
   protected app = inject(AppFacade);
   protected buddies = inject(Buddies);
+  private destroyRef = inject(DestroyRef);
 
   constructor() {}
 
@@ -336,29 +339,35 @@ export class VesselPopoverComponent {
   toggleBuddy() {
     const urn = this.vessel.id.split('.').slice(1).join('.');
     if (this.vessel.buddy) {
-      this.buddies.remove(urn).subscribe(
-        () => {
-          //console.log('buddy revedmo:', urn);
-          this.app.showMessage(`Buddy successfully removed.`, false, 3000);
-        },
-        (err: HttpErrorResponse) => {
-          this.app.showMessage(`Error removing buddy!`, false, 3000);
-        }
-      );
+      this.buddies
+        .remove(urn)
+        .pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe(
+          () => {
+            //console.log('buddy revedmo:', urn);
+            this.app.showMessage(`Buddy successfully removed.`, false, 3000);
+          },
+          (err: HttpErrorResponse) => {
+            this.app.showMessage(`Error removing buddy!`, false, 3000);
+          }
+        );
     } else {
       const name =
         this.vessel.name ??
         this.vessel.mmsi ??
         this.vessel.callsignVhf ??
         urn.slice(-5);
-      this.buddies.add(urn, name).subscribe(
-        () => {
-          this.app.showMessage(`Buddy added (${name})`, false, 3000);
-        },
-        (err: HttpErrorResponse) => {
-          this.app.showMessage(`Error adding buddy!(${name})`, false, 5000);
-        }
-      );
+      this.buddies
+        .add(urn, name)
+        .pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe(
+          () => {
+            this.app.showMessage(`Buddy added (${name})`, false, 3000);
+          },
+          (err: HttpErrorResponse) => {
+            this.app.showMessage(`Error adding buddy!(${name})`, false, 5000);
+          }
+        );
     }
   }
 

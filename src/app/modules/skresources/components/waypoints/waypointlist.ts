@@ -1,12 +1,14 @@
 import {
   Component,
   ChangeDetectionStrategy,
+  DestroyRef,
   signal,
   effect,
   output,
   inject,
   input
 } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 
 import { MatTooltipModule } from '@angular/material/tooltip';
@@ -65,6 +67,7 @@ export class WaypointListComponent extends ResourceListBase {
   private worker = inject(SKWorkerService);
   private dialog = inject(MatDialog);
   private skgroups = inject(SKResourceGroupService);
+  private destroyRef = inject(DestroyRef);
 
   constructor(protected override skres: SKResourceService) {
     super('waypoints', skres);
@@ -226,6 +229,7 @@ export class WaypointListComponent extends ResourceListBase {
           }
         })
         .afterClosed()
+        .pipe(takeUntilDestroyed(this.destroyRef))
         .subscribe(async (selGrp) => {
           if (selGrp) {
             try {

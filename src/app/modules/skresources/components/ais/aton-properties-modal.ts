@@ -1,4 +1,5 @@
-import { Component, inject, OnInit } from '@angular/core';
+import { Component, DestroyRef, inject, OnInit } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import {
   MatBottomSheetRef,
   MAT_BOTTOM_SHEET_DATA
@@ -103,6 +104,7 @@ export class AtoNPropertiesModal implements OnInit {
     icon: string;
     type: 'aton' | 'sar' | 'meteo';
   }>(MAT_BOTTOM_SHEET_DATA);
+  private destroyRef = inject(DestroyRef);
 
   constructor() {}
 
@@ -121,13 +123,16 @@ export class AtoNPropertiesModal implements OnInit {
     }
     const path = this.data.id.split('.').join('/');
 
-    this.sk.api.get(path).subscribe((v) => {
-      if (this.data.type === 'meteo') {
-        this.properties = this.parseMeteo(v);
-      } else {
-        this.properties = this.parseAtoN(v);
-      }
-    });
+    this.sk.api
+      .get(path)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((v) => {
+        if (this.data.type === 'meteo') {
+          this.properties = this.parseMeteo(v);
+        } else {
+          this.properties = this.parseAtoN(v);
+        }
+      });
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
