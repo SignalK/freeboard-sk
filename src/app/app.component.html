@@ -223,10 +223,10 @@
         </a>
       }
       @if (
-        app.config.experiments &&
         !isInteracting() &&
         app.featureFlags().radarApi &&
-        radarApi.defaultRadar()
+        radarApi.radarId() &&
+        this.app.data.vessels.showSelf
       ) {
         <a mat-menu-item (click)="toggleRadar()">
           @if (app.uiCtrl().radarLayer) {

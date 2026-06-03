@@ -78,7 +78,7 @@ const SERVER_APPDATA_VERSION = '1.0.0';
 
 // Development SK server host details
 const DEV_SERVER = {
-  host: 'localhost', //'192.168.86.32', // host name || ip address
+  host: '192.168.86.32', //'localhost', //'192.168.86.32', // host name || ip address
   port: 3000, // port number
   ssl: false
 };

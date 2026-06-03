@@ -296,6 +296,12 @@ export function cleanConfig(
     };
   }
 
+  if (typeof settings.radars === 'undefined') {
+    settings.radars = {
+      deviceId: ''
+    };
+  }
+
   // ************************************************
 
   if (typeof settings.selections === 'undefined') {
@@ -344,6 +350,10 @@ export function cleanConfig(
   }
   if (typeof settings.selections.regions === 'undefined') {
     settings.selections.regions = [];
+  }
+  // ensure legacy notes selections section is removed
+  if (typeof (settings as any).selections.notes) {
+    delete (settings as any).selections.notes;
   }
 
   // apply url params
@@ -515,6 +525,9 @@ export function defaultConfig(): IAppConfig {
       setRadius: false,
       manualSet: false, // checks manual set setting
       rodeLength: 50 // rode length setting
+    },
+    radars: {
+      deviceId: undefined
     },
     experiments: false,
     selections: {

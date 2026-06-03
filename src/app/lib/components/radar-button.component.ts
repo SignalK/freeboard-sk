@@ -12,12 +12,12 @@ import { RadarAPIService } from 'src/app/modules/radar/radar-api.service';
   template: `
     <button
       [ngClass]="{
-        'button-primary': radarApi.defaultRadar() && app.uiCtrl().radarLayer,
+        'button-primary': radarApi.radarId() && app.uiCtrl().radarLayer,
         'button-toolbar':
           !app.featureFlags().radarApi || !app.uiCtrl().radarLayer
       }"
       mat-fab
-      [disabled]="!active()"
+      [disabled]="!active() || !this.app.data.vessels.showSelf"
       (click)="handleClick()"
       matTooltip="Radar Overlay"
       matTooltipPosition="above"
@@ -40,6 +40,12 @@ export class RadarButtonComponent {
   constructor() {}
 
   handleClick() {
+    if (!this.app.uiCtrl().radarLayer) {
+      if (!this.radarApi.hasWebGL) {
+        this.radarApi.showWebGLMessage();
+        return;
+      }
+    }
     this.app.uiCtrl.update((current) => {
       const show = !current.radarLayer;
       return Object.assign({}, current, { radarLayer: show });

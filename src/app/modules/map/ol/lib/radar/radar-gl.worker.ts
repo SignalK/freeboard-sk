@@ -1,6 +1,6 @@
 /// <reference lib="webworker" />
 
-import { SKRadar } from 'src/app/modules/radar/radar-api.service';
+import { RadarDef } from 'src/app/modules/radar/radar-api.service';
 import { RadarMessage } from './RadarMessage';
 import { fromString } from 'ol/color';
 
@@ -18,7 +18,7 @@ addEventListener('message', (event) => {
       console.error('Error creating offscreencanvas radar');
       return;
     }
-    const radar = event.data.radar as SKRadar;
+    const radar = event.data.radar as RadarDef;
     colors.clear();
     Object.keys(radar.legend).forEach((n) => {
       colors.set(parseInt(n), fromString(radar.legend[n].color));
@@ -164,12 +164,13 @@ addEventListener('message', (event) => {
     const cx = 0;
     const cy = 0;
     const maxRadius = 1;
-    const angleShift = (2 * Math.PI) / radar.spokes / 2;
+    const angleShift = (2 * Math.PI) / radar.spokesPerRevolution / 2;
     const radiusShift = 0.0; // (1 / radar.maxSpokeLen)/2
 
-    for (let a = 0; a < radar.spokes; a++) {
+    for (let a = 0; a < radar.spokesPerRevolution; a++) {
       for (let r = 0; r < radar.maxSpokeLen; r++) {
-        const angle = a * ((2 * Math.PI) / radar.spokes) + angleShift;
+        const angle =
+          a * ((2 * Math.PI) / radar.spokesPerRevolution) + angleShift;
         const radius = r * (maxRadius / radar.maxSpokeLen);
         const x1 = cx + (radius + radiusShift) * Math.cos(angle);
         const y1 = cy + (radius + radiusShift) * Math.sin(angle);
@@ -183,8 +184,8 @@ addEventListener('message', (event) => {
       if (h < 0) {
         h += 360;
       }
-      angle += Math.round(h / (360 / radar.spokes)); // add heading
-      angle = angle % radar.spokes;
+      angle += Math.round(h / (360 / radar.spokesPerRevolution)); // add heading
+      angle = angle % radar.spokesPerRevolution;
       return angle;
     }
 
@@ -218,17 +219,24 @@ addEventListener('message', (event) => {
             postMessage({ range: spoke.range });
           }
 
-          let spokeBearing = ToBearing(spoke.angle);
+          /** Using spoke.angle due to issues with bearing value in recorded data
+          let spokeBearing: number;
           if (spoke.has_bearing) {
             spokeBearing = spoke.bearing;
+          } else {
+            spokeBearing = ToBearing(spoke.angle);
           }
+          */
+          // use angle value
+          const spokeBearing = ToBearing(spoke.angle);
+          //console.log('angle:', spoke.angle, 'spokeBearing', spokeBearing, 'bearing', spoke.bearing)
+
           let ba = spokeBearing + 1;
-          if (ba > radar.spokes - 1) {
+          if (ba > radar.spokesPerRevolution - 1) {
             ba = 0;
           }
 
           // draw current spoke
-
           for (let i = 0; i < spoke.data.length; i++) {
             vertices.push(x[spokeBearing * radar.maxSpokeLen + i]);
             vertices.push(y[spokeBearing * radar.maxSpokeLen + i]);
@@ -258,8 +266,8 @@ addEventListener('message', (event) => {
             }
           }
         }
-        // Draw buffer
 
+        // Draw buffer
         radarContext.bindBuffer(radarContext.ARRAY_BUFFER, vertexBuffer);
         radarContext.bufferData(
           radarContext.ARRAY_BUFFER,

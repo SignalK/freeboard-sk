@@ -415,6 +415,10 @@ export class AppComponent {
   /** TOOLBAR ACTIONS */
 
   protected toggleRadar() {
+    if (!this.radarApi.hasWebGL) {
+      this.radarApi.showWebGLMessage();
+      return;
+    }
     this.app.uiCtrl.update((current) => {
       return Object.assign({}, current, { radarLayer: !current.radarLayer });
     });

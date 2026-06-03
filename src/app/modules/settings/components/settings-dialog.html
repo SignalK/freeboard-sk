@@ -1446,13 +1446,34 @@
       </div>
     </mat-tab>
 
-    @if(app.config.experiments && app.featureFlags().radarApi) {
+    @if(app.featureFlags().radarApi) {
     <mat-tab label="Radar">
       <div class="theme-page settings">
         <div class="theme-panel">
           <div class="setting-group" id="sectExperiments">
             <div class="setting-group-title">RADAR SETTINGS</div>
-            <mat-card class="setting-card"> </mat-card>
+            <mat-card class="setting-card">
+              <div class="setting-card-row">
+                <div class="setting-card-row-item">
+                  <br />
+                  <mat-form-field style="width: 100%">
+                    <mat-label>Radar Devices</mat-label>
+                    <mat-select
+                      #radarlist
+                      [disabled]="!radarList().length || this.app.uiCtrl().radarLayer"
+                      [(ngModel)]="facade.settings.radars.deviceId"
+                      (selectionChange)="persistModel()"
+                      matToolTip="Select radar device"
+                      matTooltipPosition="below"
+                    >
+                      @for(i of radarList(); track i.id) {
+                      <mat-option [value]="i.id">{{i.name}}</mat-option>
+                      }
+                    </mat-select>
+                  </mat-form-field>
+                </div>
+              </div>
+            </mat-card>
           </div>
         </div>
       </div>
