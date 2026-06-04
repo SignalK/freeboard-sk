@@ -87,7 +87,10 @@ export class RasterChartLayerComponent implements OnDestroy {
           this.layer = new TileLayer({
             source: new XYZ({
               url: chart[1].url,
-              maxZoom: maxZ
+              maxZoom: maxZ,
+              // Charts with 512px tiles (e.g. some MBTiles basemaps) must be
+              // addressed on a 512px grid; the default is 256.
+              tileSize: chart[1].tileSize ?? 256
             }),
             preload: 0,
             zIndex: this.zIndex(),
