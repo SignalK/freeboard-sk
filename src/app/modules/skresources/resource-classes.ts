@@ -127,6 +127,7 @@ export class SKChart {
   format: string;
   minZoom = 0;
   maxZoom = 24;
+  tileSize = 256;
   type: string;
   url: string;
   source: string;
@@ -145,6 +146,8 @@ export class SKChart {
       typeof chart?.minzoom !== 'undefined' ? chart.minzoom : this.minZoom;
     this.maxZoom =
       typeof chart?.maxzoom !== 'undefined' ? chart.maxzoom : this.maxZoom;
+    this.tileSize =
+      typeof chart?.tileSize !== 'undefined' ? chart.tileSize : this.tileSize;
     this.type = chart?.type ? chart.type : undefined;
     this.url = chart?.url ? chart.url : undefined;
     this.scale =
