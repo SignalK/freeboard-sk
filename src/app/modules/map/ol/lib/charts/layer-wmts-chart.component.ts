@@ -17,6 +17,7 @@ import WMTS, { optionsFromCapabilities } from 'ol/source/WMTS';
 
 import WMTSCapabilities from 'ol/format/WMTSCapabilities';
 import { extentFromBounds, resolveLayerMaxZoom } from './chart-utils';
+import { createAbortableRasterTileLoader } from './tile-loader-abort';
 
 // ** Freeboard WMTS Chart **
 @Component({
@@ -89,7 +90,10 @@ export class WmtsChartLayerComponent implements OnDestroy {
       );
 
       this.layer = new TileLayer({
-        source: new WMTS(options),
+        source: new WMTS({
+          ...options,
+          tileLoadFunction: createAbortableRasterTileLoader()
+        }),
         preload: 0,
         zIndex: this.zIndex(),
         minZoom: minZ,
