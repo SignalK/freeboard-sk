@@ -3,7 +3,9 @@ import {
   ChangeDetectorRef,
   Component,
   Input,
-  SimpleChanges
+  SimpleChanges,
+  effect,
+  input
 } from '@angular/core';
 import { Feature } from 'ol';
 import { Style, Stroke, Fill, Circle, RegularShape } from 'ol/style';
@@ -24,7 +26,7 @@ import { FBRoutes } from 'src/app/types';
   standalone: false
 })
 export class FreeboardRouteLayerComponent extends FBFeatureLayerComponent {
-  @Input() routeStyles: { [key: string]: Style };
+  protected routeStyles = input<{ [key: string]: Style }>();
   @Input() activeRoute: string;
   @Input() routes: FBRoutes = [];
 
@@ -33,6 +35,13 @@ export class FreeboardRouteLayerComponent extends FBFeatureLayerComponent {
     protected override changeDetectorRef: ChangeDetectorRef
   ) {
     super(mapComponent, changeDetectorRef);
+    effect(() => {
+      this.routeStyles();
+      if (this.source) {
+        this.source.clear();
+        this.parseFBRoutes(this.routes);
+      }
+    });
   }
 
   override ngOnInit() {
@@ -47,7 +56,7 @@ export class FreeboardRouteLayerComponent extends FBFeatureLayerComponent {
       this.source.clear();
       if ('routes' in changes) {
         this.parseFBRoutes(changes['routes'].currentValue);
-      } else if ('activeRoute' in changes) {
+      } else {
         this.onActivateRoute();
       }
     }
@@ -86,7 +95,7 @@ export class FreeboardRouteLayerComponent extends FBFeatureLayerComponent {
     const isActive = id === this.activeRoute;
     let ptFill: Fill;
 
-    if (typeof this.routeStyles === 'undefined') {
+    if (typeof this.routeStyles() === 'undefined') {
       if (this.layerProperties && this.layerProperties.style) {
         return this.layerProperties.style;
       } else {
@@ -103,15 +112,15 @@ export class FreeboardRouteLayerComponent extends FBFeatureLayerComponent {
     }
 
     // line style
-    if (isActive && typeof this.routeStyles.active !== 'undefined') {
-      styles.push(this.routeStyles.active);
+    if (isActive && typeof this.routeStyles().active !== 'undefined') {
+      styles.push(this.routeStyles().active);
       ptFill = new Fill({
-        color: this.routeStyles.active.getStroke().getColor()
+        color: this.routeStyles().active.getStroke().getColor()
       });
     } else {
-      styles.push(this.routeStyles.default.clone());
+      styles.push(this.routeStyles().default.clone());
       ptFill = new Fill({
-        color: this.routeStyles.default.getStroke().getColor()
+        color: this.routeStyles().default.getStroke().getColor()
       });
     }
 

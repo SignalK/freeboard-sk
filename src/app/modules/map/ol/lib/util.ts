@@ -22,6 +22,20 @@ export function osmSource() {
   return new OSM();
 }
 
+/** Named dash pattern → OL lineDash array (empty = solid) */
+export const DASH_PATTERNS: Record<string, number[]> = {
+  none: [],
+  short: [2, 2],
+  medium: [4, 4],
+  long: [8, 4],
+  alt: [8, 4, 2, 4]
+};
+
+export function lineDashFor(dash: string, weight = 1): number[] {
+  const pattern = DASH_PATTERNS[dash] ?? [];
+  return pattern.map(v => v * weight);
+}
+
 // Point | LineString | MultiLineString
 export function fromLonLatArray(
   coords: Array<Array<Coordinate>> | Array<Coordinate> | Coordinate
@@ -46,6 +60,27 @@ export function fromLonLatArray(
  **/
 export function inDLCrossingZone(coord: Coordinate, zoneValue = 170) {
   return Math.abs(coord[0]) >= zoneValue ? true : false;
+}
+
+/**
+ * Split a densified great-circle arc at antimeridian crossings.
+ * A crossing is detected when consecutive longitudes differ by more than 180°.
+ * Returns an array of coordinate segments suitable for a MultiLineString.
+ */
+export function splitAtAntimeridian(coords: Coordinate[]): Coordinate[][] {
+  if (coords.length === 0) return [];
+  const segments: Coordinate[][] = [];
+  let current: Coordinate[] = [coords[0]];
+  for (let i = 1; i < coords.length; i++) {
+    if (Math.abs(coords[i][0] - coords[i - 1][0]) > 180) {
+      segments.push(current);
+      current = [coords[i]];
+    } else {
+      current.push(coords[i]);
+    }
+  }
+  segments.push(current);
+  return segments;
 }
 
 // update linestring coords for map display (including dateline crossing)

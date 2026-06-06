@@ -50,8 +50,7 @@ export class BearingLineComponent implements OnInit, OnDestroy, OnChanges {
   protected markerName = input<string>('');
 
   @Input() mapZoom = 10;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  @Input() bearingStyles: { [key: string]: any };
+  protected bearingStyles = input<{ [key: string]: Style | Style[] }>();
   @Input() opacity: number;
   @Input() visible: boolean;
   @Input() extent: Extent;
@@ -73,6 +72,7 @@ export class BearingLineComponent implements OnInit, OnDestroy, OnChanges {
       this.markerPosition();
       this.vesselPosition();
       this.showMarker();
+      this.bearingStyles();
       this.parseValues();
       if (this.source) {
         this.source.clear();
@@ -167,8 +167,8 @@ export class BearingLineComponent implements OnInit, OnDestroy, OnChanges {
 
   // build target style
   buildStyle(key: string): Style | Style[] {
-    if (this.bearingStyles && this.bearingStyles[key]) {
-      return this.bearingStyles[key];
+    if (this.bearingStyles() && this.bearingStyles()[key]) {
+      return this.bearingStyles()[key];
     } else {
       if (this.layerProperties && this.layerProperties.style) {
         return this.layerProperties.style;

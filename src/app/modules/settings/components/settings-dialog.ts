@@ -200,6 +200,46 @@ export class SettingsDialog implements OnInit {
     }
   }
 
+  /** handle great circle line style change */
+  onGreatCircleStyle(value: { lineStyle: LineStyleDef; config: LineStyleConfig }) {
+    const l = this.facade.settings.vessels.selfLines.greatCircleStyle;
+    if (l) {
+      l.color = value.config.color;
+      l.dash = value.config.dash;
+      l.weight = value.config.weight;
+      this.persistModel();
+    }
+  }
+
+  /** handle route / navigation line style change */
+  onRouteStyle(
+    target: 'activeRoute' | 'defaultRoute' | 'activeSegment' | 'destination',
+    value: { lineStyle: LineStyleDef; config: LineStyleConfig }
+  ) {
+    const st = this.facade.settings.vessels.routing?.[target];
+    if (st) {
+      st.color = value.config.color;
+      st.dash = value.config.dash;
+      st.weight = value.config.weight;
+      this.persistModel();
+    }
+  }
+
+  /** handle trail / AIS track style change */
+  onTrailStyle(
+    target: 'self' | 'ais',
+    value: { lineStyle: LineStyleDef; config: LineStyleConfig }
+  ) {
+    const key = target === 'self' ? 'selfTrailStyle' : 'aisTrackStyle';
+    const st = this.facade.settings.vessels[key];
+    if (st) {
+      st.color = value.config.color;
+      st.dash = value.config.dash;
+      st.weight = value.config.weight;
+      this.persistModel();
+    }
+  }
+
   /**
    * toggle display of favourites
    */

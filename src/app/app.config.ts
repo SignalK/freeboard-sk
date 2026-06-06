@@ -168,17 +168,23 @@ export function cleanConfig(
       laylines: false,
       selfLines: {
         cog: {
-          length: 10, // (minutes) length = cogLine * sog
+          lineLength: { kind: 'time', value: 10 },
           color: 'rgba(204, 12, 225, 0.7)',
           weight: 1,
           dash: 'none'
         },
         heading: {
-          length: -1, // mode for display of heading line -1 = default
+          lineLength: { kind: 'distance', value: 1 },
           color: 'rgba(221, 99, 0, 0.5)',
           weight: 4,
           dash: 'none'
-        }
+        },
+        greatCircleStyle: {
+          lineLength: { kind: 'distance', value: 0 },
+          color: '#0080ff',
+          weight: 1,
+          dash: 'long',
+        },
       },
       aisCogLine: 10,
       iconScale: 0.9,
@@ -198,6 +204,22 @@ export function cleanConfig(
         lastHour: '5s',
         next23: '1m',
         beyond24: '5m'
+      },
+      routing: {
+        activeRoute: { color: 'blue', weight: 4, dash: 'none' },
+        defaultRoute: { color: 'green', weight: 2, dash: 'long' },
+        activeSegment: { color: 'gray', weight: 1, dash: 'medium' },
+        destination: { color: 'rgba(221, 149, 0, 1)', weight: 2, dash: 'none' }
+      },
+      selfTrailStyle: {
+        color: 'rgb(252, 3, 132)',
+        weight: 1,
+        dash: 'short'
+      },
+      aisTrackStyle: {
+        color: 'rgb(255, 0, 255)',
+        weight: 1,
+        dash: 'short'
       }
     };
   } else {
@@ -214,23 +236,67 @@ export function cleanConfig(
       settings.vessels.rangeCirclesDistance = 1000;
     }
     if (typeof settings.vessels.selfLines === 'undefined') {
+      const oldCogLine = (settings as any).vessels.cogLine;
+      const oldHeadingSize = (settings as any).vessels.headingLineSize;
       settings.vessels.selfLines = {
         cog: {
-          length: (settings as any).vessels.cogLine ?? 10,
+          lineLength: { kind: 'time', value: oldCogLine ?? 10 },
           color: 'rgba(204, 12, 225, 0.7)',
           weight: 1,
           dash: 'none'
         },
         heading: {
-          length: (settings as any).vessels.headingLineSize ?? -1,
+          lineLength: {
+            kind: 'distance',
+            value: oldHeadingSize != null && oldHeadingSize > 0 ? oldHeadingSize : 1
+          },
           color: 'rgba(221, 99, 0, 0.5)',
           weight: 4,
           dash: 'none'
-        }
+        },
+        greatCircleStyle: {
+          color: '#0080ff',
+          weight: 1,
+          dash: 'long',
+          lineLength: { kind: 'distance', value: 0 }
+        },
       };
       // @todo remove (implemented) v2.22.2
       delete (settings as any).vessels.cogLine;
       delete (settings as any).vessels.headingLineSize;
+    } else if (typeof (settings.vessels.selfLines.cog as any).length !== 'undefined') {
+      // migrate from upstream v2.22 format (length:number) to lineLength:ILineLengthDef
+      const oldCog = (settings.vessels.selfLines.cog as any).length as number;
+      const oldHd = (settings.vessels.selfLines.heading as any).length as number;
+      settings.vessels.selfLines.cog.lineLength = { kind: 'time', value: oldCog ?? 10 };
+      settings.vessels.selfLines.heading.lineLength = {
+        kind: 'distance',
+        value: oldHd != null && oldHd > 0 ? oldHd : 1
+      };
+      delete (settings.vessels.selfLines.cog as any).length;
+      delete (settings.vessels.selfLines.heading as any).length;
+    }
+    if (typeof settings.vessels.routing === 'undefined') {
+      settings.vessels.routing = {
+        activeRoute: { color: 'blue', weight: 4, dash: 'none' },
+        defaultRoute: { color: 'green', weight: 2, dash: 'long' },
+        activeSegment: { color: 'gray', weight: 1, dash: 'medium' },
+        destination: { color: 'rgba(221, 149, 0, 1)', weight: 2, dash: 'none' }
+      };
+    }
+    if (typeof settings.vessels.selfTrailStyle === 'undefined') {
+      settings.vessels.selfTrailStyle = {
+        color: 'rgb(252, 3, 132)',
+        weight: 1,
+        dash: 'short'
+      };
+    }
+    if (typeof settings.vessels.aisTrackStyle === 'undefined') {
+      settings.vessels.aisTrackStyle = {
+        color: 'rgb(255, 0, 255)',
+        weight: 1,
+        dash: 'short'
+      };
     }
   }
 
@@ -458,17 +524,23 @@ export function defaultConfig(): IAppConfig {
       laylines: false,
       selfLines: {
         cog: {
-          length: 10, // (minutes) length = cogLine * sog
+          lineLength: { kind: 'time', value: 10 },
           color: 'rgba(204, 12, 225, 0.7)',
           weight: 1,
           dash: 'none'
         },
         heading: {
-          length: -1, // mode for display of heading line -1 = default
+          lineLength: { kind: 'distance', value: 1 },
           color: 'rgba(221, 99, 0, 0.5)',
           weight: 4,
           dash: 'none'
-        }
+        },
+        greatCircleStyle: {
+          color: '#0080ff',
+          weight: 1,
+          dash: 'long',
+          lineLength: { kind: 'distance', value: 0 }
+        },
       },
       aisCogLine: 10, // ais COG line time (mins)
       iconScale: 0.9,
@@ -489,6 +561,22 @@ export function defaultConfig(): IAppConfig {
         lastHour: '5s',
         next23: '1m',
         beyond24: '5m'
+      },
+      routing: {
+        activeRoute: { color: 'blue', weight: 4, dash: 'none' },
+        defaultRoute: { color: 'green', weight: 2, dash: 'long' },
+        activeSegment: { color: 'gray', weight: 1, dash: 'medium' },
+        destination: { color: 'rgba(221, 149, 0, 1)', weight: 2, dash: 'none' }
+      },
+      selfTrailStyle: {
+        color: 'rgb(252, 3, 132)',
+        weight: 1,
+        dash: 'short'
+      },
+      aisTrackStyle: {
+        color: 'rgb(255, 0, 255)',
+        weight: 1,
+        dash: 'short'
       }
     },
     resources: {

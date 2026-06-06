@@ -165,32 +165,18 @@ export class SettingsOptions {
     [-1, 'On']
   ]);
 
+  lineLengthKinds: [string, string][] = [
+    ['time', 'min'],
+    ['distance', 'nm'],
+    ['pixels', 'px']
+  ];
+
   vessel = {
     selfIconScale: new Map([
       [0.75, 'S'],
       [0.9, 'M'],
       [1.15, 'L'],
       [1.4, 'XL']
-    ]),
-    headingLine: new Map([
-      [-1, 'Default'],
-      [1, '1 nmi (2km)'],
-      [2, '2 nmi (4km)'],
-      [5, '5 nmi (10km)'],
-      [10, '10 nmi (20km)'],
-      [15, '15 nmi (30km)'],
-      [20, '20 nmi (40km)'],
-      [50, '50 nmi (90km)'],
-      [100, '100 nmi (180km)']
-    ]),
-    cogLine: new Map([
-      [0, 'None'],
-      [5, '5 min'],
-      [10, '10 min'],
-      [30, '30 min'],
-      [60, '60 min'],
-      [2 * 60, '2 hrs'],
-      [24 * 60, '24 hrs']
     ]),
     aisTimeouts: new Map([
       [60000, '1 min'],
