@@ -240,6 +240,15 @@
                 }
               </mat-select>
             </mat-form-field>
+            <mat-slide-toggle
+              labelPosition="before"
+              [hideIcon]="true"
+              [checked]="showAllIcons()"
+              (change)="onShowAllToggle($event.checked)"
+              style="font-size: 10pt; margin-left: 8px; vertical-align: middle;"
+            >
+              Show all symbols
+            </mat-slide-toggle>
           </div>
           <div style="padding-left: 10px">
             <mat-form-field style="width: 145px">

@@ -1,4 +1,4 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { CoordsPipe } from 'src/app/lib/pipes';
 import { MatButtonModule } from '@angular/material/button';
@@ -27,6 +27,7 @@ import { AppFacade } from 'src/app/app.facade';
 import {
   AppIconDef,
   getResourceIcon,
+  persistSkIcon,
   selListNoteIcons
 } from 'src/app/modules/icons';
 import { SKNote } from '../../resource-classes';
@@ -123,6 +124,7 @@ export class NoteDialog implements OnInit {
 
   protected icon: AppIconDef;
   protected poiIcons: Array<{ id: string; name: string }> = [];
+  protected showAllIcons = signal(false);
   protected data = inject<DialogData>(MAT_DIALOG_DATA);
   protected app = inject(AppFacade);
   protected dialogRef = inject(MatDialogRef<NoteDialog>);
@@ -140,7 +142,19 @@ export class NoteDialog implements OnInit {
       this.data.editable = false;
     }
     this.icon = this.cleanIconDef(getResourceIcon('notes', this.data.note));
-    this.poiIcons = selListNoteIcons();
+    this.poiIcons = selListNoteIcons(this.showAllIcons());
+    // If the current icon isn't visible in the merged list (a 'default:' pin or
+    // a non-note-role symbol, shown only under "Show all"), start with it on.
+    const sel = this.icon.svgIcon;
+    if (sel && !this.poiIcons.some((i) => i.id === sel)) {
+      this.showAllIcons.set(true);
+      this.poiIcons = selListNoteIcons(true);
+    }
+  }
+
+  onShowAllToggle(checked: boolean) {
+    this.showAllIcons.set(checked);
+    this.poiIcons = selListNoteIcons(checked);
   }
 
   cleanIconDef(icon: AppIconDef) {
@@ -150,7 +164,9 @@ export class NoteDialog implements OnInit {
 
   onIconSelected(e: string) {
     if (e.length) {
-      this.data.note.properties.skIcon = e;
+      // Pin to default:<id> when a bare built-in id has an override, so a future
+      // custom version won't silently replace an explicit built-in choice.
+      this.data.note.properties.skIcon = persistSkIcon(e);
     } else {
       delete this.data.note.properties.skIcon;
     }

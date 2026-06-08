@@ -18,6 +18,7 @@ import { AddTargetPipe } from './safe.pipe';
 
 import { AppFacade } from 'src/app/app.facade';
 import { SKNote } from '../../resource-classes';
+import { ResolveSkIconPipe } from 'src/app/modules/icons';
 
 interface DialogData {
   notes: SKNote[];
@@ -38,7 +39,8 @@ interface DialogData {
     MatInputModule,
     MatToolbarModule,
     AddTargetPipe,
-    RemarkModule
+    RemarkModule,
+    ResolveSkIconPipe
   ],
   templateUrl: `relatednotes-dialog.html`,
   styleUrls: ['notes.css']

@@ -72,7 +72,7 @@ export class FreeboardNoteLayerComponent extends FBFeatureLayerComponent {
 
   // build note feature style
   buildStyle(note: SKNote | NoteResource): Style {
-    const icon = this.mapImages.getPOI(note.properties.skIcon ?? 'default');
+    const icon = this.mapImages.getSymbol(note.properties.skIcon ?? 'default');
     if (icon) {
       return new Style({
         image: icon,
