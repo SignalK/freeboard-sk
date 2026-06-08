@@ -18,6 +18,7 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { AppFacade } from 'src/app/app.facade';
 import { SignalKClient } from 'signalk-client-angular';
 import { SKResourceService, SKTrack } from 'src/app/modules';
+import { SymbolService } from 'src/app/modules/icons';
 import {
   GPX,
   GPXRoute,
@@ -86,6 +87,7 @@ export class GPXImportDialog implements OnInit {
   protected dialogRef = inject(MatDialogRef<GPXImportDialog>);
   private skres = inject(SKResourceService);
   private signalk = inject(SignalKClient);
+  private symbols = inject(SymbolService);
 
   constructor(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -403,7 +405,7 @@ export class GPXImportDialog implements OnInit {
           this.subCount--;
           if (Math.floor(r['statusCode'] / 100) === 2) {
             this.app.debug('SUCCESS: Route added.');
-            this.app.config.selections.routes.push(skObj[0]);
+            this.skres.selectionAdd('routes', skObj[0]);
           } else {
             this.errorCount++;
           }
@@ -442,6 +444,14 @@ export class GPXImportDialog implements OnInit {
     }
     if (pt.sym) {
       wpt.feature.properties['sym'] = pt.sym;
+      // Match the GPX <sym> to a symbol (by gpxSym, then local id). On a match,
+      // use that symbol as the icon — as a 'waypoint' type so the override
+      // resolves on the map. No match → leave the default (rule 3).
+      const ref = this.symbols.resolveGpxSym(pt.sym);
+      if (ref) {
+        wpt.type = 'waypoint';
+        wpt.feature.properties['skIcon'] = ref;
+      }
     }
 
     this.subCount++;
@@ -456,7 +466,9 @@ export class GPXImportDialog implements OnInit {
           this.subCount--;
           if (Math.floor(r['statusCode'] / 100) === 2) {
             this.app.debug('SUCCESS: Waypoint added.');
-            this.app.config.selections.waypoints.push(wptObj[0]);
+            // selectionAdd handles the unfiltered (null) selection safely;
+            // a raw push throws when the selection filter is null.
+            this.skres.selectionAdd('waypoints', wptObj[0]);
           } else {
             this.errorCount++;
           }

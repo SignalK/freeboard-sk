@@ -20,6 +20,7 @@ import { AppFacade } from 'src/app/app.facade';
 import { Position } from 'src/app/types';
 import { FBNotes, FBNote, FBResourceSelect, SKPosition } from 'src/app/types';
 import { SKResourceService } from '../../resources.service';
+import { ResolveSkIconPipe } from 'src/app/modules/icons';
 
 @Component({
   selector: 'note-list',
@@ -35,7 +36,8 @@ import { SKResourceService } from '../../resources.service';
     MatButtonModule,
     FormsModule,
     MatInputModule,
-    ScrollingModule
+    ScrollingModule,
+    ResolveSkIconPipe
   ]
 })
 export class NoteListComponent {
