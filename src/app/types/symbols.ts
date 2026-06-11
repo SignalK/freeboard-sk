@@ -12,8 +12,10 @@ export type SymbolRole =
   | string;
 
 export interface SymbolDefinition {
-  id: string;
-  namespace: string;
+  /** Immutable symbol identifier. */
+  uuid: string;
+  /** One or more canonical "namespace:id" references. */
+  alias: string[];
   name: string;
   description?: string;
   mediaType: 'image/svg+xml';
