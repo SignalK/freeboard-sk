@@ -111,6 +111,7 @@ import {
   SKResourceType,
   WaypointPanel
 } from './modules/skresources';
+import { SymbolService, setSymbolRegistry } from './modules/icons';
 
 interface DrawEndEvent {
   coordinates: LineString | Position | Polygon;
@@ -264,6 +265,7 @@ export class AppComponent {
   private settings = inject(SettingsFacade);
   protected autopilot = inject(AutopilotService);
   protected radarApi = inject(RadarAPIService);
+  private symbols = inject(SymbolService);
 
   constructor() {
     // set self to active vessel
@@ -740,7 +742,7 @@ export class AppComponent {
               }
             })
             .finally(() => {
-              this.fetchResources(true); // fetch all resource types from server
+              this.loadSymbolsThenFetchResources();
             });
           this.getFeatures();
           this.app.data.server = this.signalk.server.info;
@@ -1834,6 +1836,15 @@ export class AppComponent {
   }
 
   // ******** SIGNAL K STREAM *************
+
+  /** Load external symbols then fetch all resource types. */
+  private async loadSymbolsThenFetchResources(): Promise<void> {
+    await this.symbols.load();
+    // Register SymbolService with the module-level hook so pure functions
+    // in app.icons.ts can resolve external symbols without DI injection.
+    setSymbolRegistry(this.symbols);
+    this.fetchResources(true);
+  }
 
   /** fetch resource types from server */
   private fetchResources(allTypes = false) {

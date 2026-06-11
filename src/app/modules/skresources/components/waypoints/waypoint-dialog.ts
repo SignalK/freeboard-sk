@@ -16,6 +16,7 @@ import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatTooltip } from '@angular/material/tooltip';
 import { MatChipsModule } from '@angular/material/chips';
+import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import {
   MatDialogModule,
   MatDialogRef,
@@ -29,6 +30,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import {
   AppIconDef,
   getResourceIcon,
+  persistSkIcon,
   selListWaypointIcons
 } from 'src/app/modules/icons';
 
@@ -54,7 +56,8 @@ interface DialogData {
     CoordsPipe,
     ReactiveFormsModule,
     MatTooltip,
-    MatChipsModule
+    MatChipsModule,
+    MatSlideToggleModule
   ],
   template: `
     <div class="_ap-waypoint">
@@ -167,21 +170,34 @@ interface DialogData {
             <div style="font-size: 10pt;display:flex;flex-wrap:wrap">
               <div>
                 <div>
-                  <mat-chip-listbox
-                    selectable
-                    (change)="handleWptTypeChange($event.value)"
-                  >
-                    @for (i of iconTypeSelection; track i) {
-                      <mat-chip-option
-                        [value]="i.id"
-                        [selected]="wptType === i.id"
+                  <div style="display:flex;align-items:center;flex-wrap:wrap;gap:4px;">
+                    <mat-chip-listbox
+                      selectable
+                      (change)="handleWptTypeChange($event.value)"
+                    >
+                      @for (i of iconTypeSelection; track i) {
+                        <mat-chip-option
+                          [value]="i.id"
+                          [selected]="wptType === i.id"
+                        >
+                          {{ i.group }}
+                        </mat-chip-option>
+                      }
+                    </mat-chip-listbox>
+                    @if (wptType === 'waypoint') {
+                      <mat-slide-toggle
+                        labelPosition="before"
+                        [hideIcon]="true"
+                        [checked]="showAllIcons()"
+                        (change)="onShowAllToggle($event.checked)"
+                        style="font-size:10pt;margin-left:4px;"
                       >
-                        {{ i.group }}
-                      </mat-chip-option>
+                        Show all symbols
+                      </mat-slide-toggle>
                     }
-                  </mat-chip-listbox>
+                  </div>
                   <div
-                    style="display:flex;flex-wrap:wrap;padding-bottom:10px;height:40px;"
+                    style="display:flex;flex-wrap:wrap;padding-bottom:10px;height:64px;overflow-y:auto;"
                   >
                     @for (i of iconsForSelection(); track i) {
                       <div
@@ -267,23 +283,35 @@ export class WaypointDialog {
   >;
   protected iconTypeSelection: Array<{ id: string; group: string }> = [];
   protected iconsForSelection = signal<AppIconDef[]>([]);
+  protected showAllIcons = signal(false);
 
   constructor() {
     this.dialogIcon = this.data.addMode ? 'add_location' : 'edit_location';
 
     // initialise waypoint icons and selections
-    this.wptOptions = selListWaypointIcons(); // waypoint selection options
+    this.rebuildIconOptions(false);
     const typeKeys = Object.keys(this.wptOptions);
     this.wptType = !typeKeys.includes(this.data.waypoint.type)
       ? 'waypoint'
       : this.data.waypoint.type;
 
-    this.iconTypeSelection = Object.entries(this.wptOptions).map((i) => {
-      return { id: i[0], group: i[1].group };
-    });
-    this.iconsForSelection.set(this.wptOptions[this.wptType].icons);
-
     this.wptIcon.update(() => this.getIconDef(this.data.waypoint));
+
+    // If the current icon isn't visible in the merged Waypoints list (e.g. a
+    // 'default:' pin or a non-waypoint-role symbol, both shown only under
+    // "Show all symbols"), start with the slider on so the selection is shown.
+    if (this.wptType === 'waypoint') {
+      const sel = this.wptIcon().svgIcon;
+      const visible = this.wptOptions['waypoint'].icons.some(
+        (i) => i.svgIcon === sel
+      );
+      if (sel && !visible) {
+        this.showAllIcons.set(true);
+        this.rebuildIconOptions(true);
+      }
+    }
+
+    this.iconsForSelection.set(this.wptOptions[this.wptType]?.icons ?? this.wptOptions['waypoint'].icons);
     this.wptDescription = this.data.waypoint.description ?? '';
     this.wptReadOnly = this.data.waypoint.feature.properties?.readOnly ?? false;
     const coords = this.data.waypoint.feature.geometry.coordinates ?? [0, 0];
@@ -331,7 +359,13 @@ export class WaypointDialog {
         this.inpLon.value,
         this.inpLat.value
       ];
-      this.data.waypoint.feature.properties.skIcon = this.wptIcon().svgIcon;
+      // Only the 'waypoint' category participates in symbol overrides, so only
+      // it gets the bare-vs-default: persistence treatment. Other categories
+      // (start-pin, …) save their icon id verbatim.
+      this.data.waypoint.feature.properties.skIcon =
+        this.wptType === 'waypoint'
+          ? persistSkIcon(this.wptIcon().svgIcon)
+          : this.wptIcon().svgIcon;
     }
     this.dialogRef.close({ save: save, waypoint: this.data.waypoint });
   }
@@ -339,6 +373,22 @@ export class WaypointDialog {
   /** return the waypoint icon definition */
   private getIconDef(wpt?: SKWaypoint): AppIconDef {
     return getResourceIcon('waypoints', wpt ?? this.data.waypoint);
+  }
+
+  protected onShowAllToggle(checked: boolean) {
+    this.showAllIcons.set(checked);
+    this.rebuildIconOptions(checked);
+    // Stay on the current category (only the Waypoints chip shows the toggle).
+    const currentGroup = this.wptOptions[this.wptType] ? this.wptType : 'waypoint';
+    this.iconsForSelection.set(this.wptOptions[currentGroup].icons);
+  }
+
+  private rebuildIconOptions(showAll: boolean) {
+    this.wptOptions = selListWaypointIcons(showAll);
+    this.iconTypeSelection = Object.entries(this.wptOptions).map((i) => ({
+      id: i[0],
+      group: i[1].group
+    }));
   }
 
   protected handleWptTypeChange(value: string) {
