@@ -124,16 +124,10 @@ export class MapImageRegistry {
    * Called by SymbolService after load(). ref is the canonical "namespace:id".
    */
   registerSymbolMarker(ref: string, def: MapIconDef): void {
+    // Register exactly the supplied key. SymbolService registers both the
+    // qualified ref and (for fsk overrides only) the bare built-in id, so a
+    // bare lookup resolves to an override but not to an arbitrary custom symbol.
     this.symbolDefs[ref] = def;
-    // Also register under the bare local id for unqualified skIcon lookups.
-    // External-first: first namespace registered for a given local id wins.
-    const colonIdx = ref.indexOf(':');
-    if (colonIdx !== -1) {
-      const localId = ref.slice(colonIdx + 1);
-      if (!(localId in this.symbolDefs)) {
-        this.symbolDefs[localId] = def;
-      }
-    }
   }
 
   /**
