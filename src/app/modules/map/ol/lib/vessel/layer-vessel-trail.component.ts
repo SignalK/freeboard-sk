@@ -14,10 +14,10 @@ import { Feature } from 'ol';
 import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
 import { Style, Stroke } from 'ol/style';
-import { Geometry, MultiLineString, LineString } from 'ol/geom';
+import { Geometry, MultiLineString } from 'ol/geom';
 import { MapComponent } from '../map.component';
 import { Extent, Coordinate } from '../models';
-import { fromLonLatArray, mapifyCoords } from '../util';
+import { fromLonLatArray, splitAtAntimeridian } from '../util';
 import { AsyncSubject } from 'rxjs';
 
 // ** Freeboard Vessel trail component **
@@ -131,10 +131,12 @@ export class VesselTrailComponent implements OnInit, OnDestroy, OnChanges {
     if (!this.localTrail) {
       return;
     }
-    const c = fromLonLatArray(mapifyCoords(this.localTrail));
+    const ca = splitAtAntimeridian(this.localTrail).map((seg) =>
+      fromLonLatArray(seg)
+    );
     if (!this.trailLocal) {
       // create feature
-      this.trailLocal = new Feature(new LineString(c));
+      this.trailLocal = new Feature(new MultiLineString(ca));
       this.trailLocal.setId('trail.self.local');
       this.trailLocal.setStyle(this.buildStyle('local'));
     } else {
@@ -144,7 +146,7 @@ export class VesselTrailComponent implements OnInit, OnDestroy, OnChanges {
       ) as Feature;
       if (this.localTrail && Array.isArray(this.localTrail)) {
         const g: Geometry = this.trailLocal.getGeometry();
-        (g as LineString).setCoordinates(c);
+        (g as MultiLineString).setCoordinates(ca);
       }
     }
   }
@@ -153,9 +155,9 @@ export class VesselTrailComponent implements OnInit, OnDestroy, OnChanges {
     if (!this.serverTrail) {
       return;
     }
-    const ca = this.serverTrail.map((t: Array<Coordinate>) => {
-      return fromLonLatArray(mapifyCoords(t));
-    });
+    const ca = this.serverTrail.flatMap((t: Array<Coordinate>) =>
+      splitAtAntimeridian(t).map((seg) => fromLonLatArray(seg))
+    );
     if (!this.trailServer) {
       // create feature
       this.trailServer = new Feature(new MultiLineString(ca));
