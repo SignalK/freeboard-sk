@@ -22,6 +22,20 @@ export function osmSource() {
   return new OSM();
 }
 
+/** Named dash pattern → OL lineDash array (empty = solid) */
+export const DASH_PATTERNS: Record<string, number[]> = {
+  none: [],
+  short: [2, 2],
+  medium: [4, 4],
+  long: [8, 4],
+  alt: [8, 4, 2, 4]
+};
+
+export function lineDashFor(dash: string, weight = 1): number[] {
+  const pattern = DASH_PATTERNS[dash] ?? [];
+  return pattern.map(v => v * weight);
+}
+
 // Point | LineString | MultiLineString
 export function fromLonLatArray(
   coords: Array<Array<Coordinate>> | Array<Coordinate> | Coordinate

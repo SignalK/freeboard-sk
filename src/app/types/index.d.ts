@@ -1,6 +1,19 @@
 // ** Resource Types **
 
 import { Position, LineString, MultiLineString } from './resources/geojson';
+export type LineLengthKind = 'pixels' | 'time' | 'distance';
+
+/** How to interpret the line length value */
+export interface ILineLengthDef {
+  kind: LineLengthKind;
+  value: number; // px | minutes | nmi
+}
+
+import {
+  LineStyleDash,
+  LineStyleConfig
+} from '../modules/settings/components/linestyle-select.component';
+export { LineStyleDash, LineStyleConfig };
 import { FBCharts, FBRoute } from './resources/freeboard';
 import {
   SKMeteo,
@@ -131,13 +144,13 @@ export interface IAppConfig {
     laylines: boolean;
     selfLines: {
       cog: {
-        length: number; // (minutes) length = cogLine * sog
+        lineLength: ILineLengthDef;
         color: string;
         weight: number;
         dash: LineStyleDash;
       };
       heading: {
-        length: number; // mode for display of heading line -1 = default
+        lineLength: ILineLengthDef;
         color: string;
         weight: number;
         dash: LineStyleDash;
@@ -163,6 +176,14 @@ export interface IAppConfig {
       next23: string;
       beyond24: string;
     };
+    routing: {
+      activeRoute: LineStyleConfig;  // active route line
+      defaultRoute: LineStyleConfig; // inactive / other route lines
+      activeSegment: LineStyleConfig; // current leg (XTE reference track)
+      destination: LineStyleConfig;  // vessel-to-next-waypoint bearing line
+    };
+    selfTrailStyle: LineStyleConfig; // style of self vessel trail line
+    aisTrackStyle: LineStyleConfig;  // style of AIS target track lines
   };
   resources: {
     // ** resource options

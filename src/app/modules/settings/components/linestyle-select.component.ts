@@ -19,7 +19,7 @@ export interface LineStyleDef {
 export interface LineStyleConfig {
   color: string;
   weight: number;
-  dash: string;
+  dash: LineStyleDash;
 }
 
 export type LineStyleDash = 'none' | 'short' | 'medium' | 'long' | 'alt';
@@ -174,7 +174,7 @@ export class LineStyleSelectComponent {
   ngOnInit() {}
 
   onSelectChange(opt: { key: string; value: any }) {
-    let d = this.app.formatLineDashArray(this._dash());
+    let d = this.app.formatLineDashArray(this._dash(), this._weight());
 
     this.selectionChange.emit({
       lineStyle: {

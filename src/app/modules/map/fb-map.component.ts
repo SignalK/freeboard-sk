@@ -41,13 +41,14 @@ import { CoordsPipe } from 'src/app/lib/pipes';
 
 import { computeDestinationPoint, getGreatCircleBearing } from 'geolib';
 import { toLonLat } from 'ol/proj';
-import { Style, Stroke, Fill } from 'ol/style';
+import { Style, Stroke, Fill, Circle, Text } from 'ol/style';
 import { Collection, Feature } from 'ol';
 import { Feature as GeoJsonFeature } from 'geojson';
 
 import { Convert } from 'src/app/lib/convert';
 import { GeoUtils, Angle } from 'src/app/lib/geoutils';
-import { LineString, MultiLineString, Position } from 'src/app/types';
+import { ILineLengthDef, LineString, MultiLineString, Position } from 'src/app/types';
+import { lineDashFor } from './ol/lib/util';
 
 import { AppFacade } from 'src/app/app.facade';
 
@@ -92,7 +93,6 @@ import { SKPosition } from 'src/app/types';
 import {
   FBMapEvent,
   FBPointerEvent,
-  zoomOffsetLevel,
   MapComponent
 } from './ol/lib/map.component';
 import { FeatureLike } from 'ol/Feature';
@@ -216,6 +216,64 @@ export class FBMapComponent implements OnInit, OnDestroy {
   protected mapRotation = signal<number>(0);
 
   protected showNoteslayer = signal<boolean>(false); //control notes layer display
+
+  /** Route line styles built dynamically from config */
+  protected get routeFeatureStyles() {
+    const r = this.app.config.vessels.routing;
+    const defDash = lineDashFor(r.defaultRoute.dash, r.defaultRoute.weight);
+    return {
+      active: new Style({
+        stroke: new Stroke({
+          color: r.activeRoute.color,
+          width: r.activeRoute.weight,
+          lineDash: lineDashFor(r.activeRoute.dash, r.activeRoute.weight)
+        })
+      }),
+      default: new Style({
+        stroke: new Stroke({
+          color: r.defaultRoute.color,
+          width: r.defaultRoute.weight,
+          lineDash: defDash.length ? defDash : undefined
+        }),
+        text: new Text({ text: '', offsetY: 10 })
+      })
+    };
+  }
+
+  /** Destination bearing-line styles built dynamically from config */
+  protected get destinationFeatureStyles() {
+    const d = this.app.config.vessels.routing.destination;
+    const dash = lineDashFor(d.dash, d.weight);
+    return {
+      ...destinationStyles,
+      line: [
+        new Style({ stroke: new Stroke({ color: 'white', width: d.weight + 4 }) }),
+        new Style({
+          image: new Circle({
+            radius: 5,
+            stroke: new Stroke({ width: 2, color: 'white' }),
+            fill: new Fill({ color: d.color })
+          }),
+          stroke: new Stroke({
+            color: d.color,
+            width: d.weight,
+            lineDash: dash.length ? dash : undefined
+          }),
+          text: new Text({ text: '', offsetY: -29 })
+        })
+      ]
+    };
+  }
+
+  /** Self trail style — spread to create new reference so OnPush child detects changes */
+  protected get selfTrailStyleConfig() {
+    return { ...this.app.config.vessels.selfTrailStyle };
+  }
+
+  /** AIS track style — spread to create new reference so OnPush child detects changes */
+  protected get aisTrackStyleConfig() {
+    return { ...this.app.config.vessels.aisTrackStyle };
+  }
 
   // ** map feature styles
   protected featureStyles = {
@@ -1498,12 +1556,18 @@ export class FBMapComponent implements OnInit, OnDestroy {
     this.mapCenterPositon.update(() => pos);
   }
 
+  /** Compute a line length in metres from an ILineLengthDef */
+  private lineLengthToMeters(ll: ILineLengthDef, sogMs: number): number {
+    const resolution = this.olMap?.getMap()?.getView()?.getResolution() ?? 1;
+    switch (ll.kind) {
+      case 'time':     return sogMs * ll.value * 60;
+      case 'distance': return Convert.nauticalMilesToKm(ll.value) * 1000;
+      case 'pixels':   return ll.value * resolution;
+    }
+  }
+
   /** construct vessel lines for rendering */
   protected drawVesselLines(vesselUpdate = false) {
-    const z = this.mapZoomLevel();
-    const offset = z < 29 ? zoomOffsetLevel[Math.floor(z)] : 60;
-    const wMax = 10; // max line length
-
     // update vessel trail
     if (vesselUpdate) {
       this.app.addToSelfTrail(this.dfeat.self.position);
@@ -1514,31 +1578,31 @@ export class FBMapComponent implements OnInit, OnDestroy {
 
     // render cog, heading, twd, awa for focused vessel
     this.vesselLines.update(() => {
-      const cog = this.dfeat.active.vectors.cog ?? [];
-
       const sog = this.dfeat.active.sog || 0;
-      let hl = 0;
-      if (this.app.config.vessels.selfLines.heading.length === -1) {
-        hl = (sog > wMax ? wMax : sog) * offset;
-      } else {
-        hl =
-          Convert.nauticalMilesToKm(
-            this.app.config.vessels.selfLines.heading.length
-          ) * 1000;
-      }
+      const pos = this.dfeat.active.position;
+
+      // Heading line
+      const hl = this.lineLengthToMeters(
+        this.app.config.vessels.selfLines.heading.lineLength, sog
+      );
       const heading = [
-        this.dfeat.active.position,
-        GeoUtils.rhumbDestination(
-          this.dfeat.active.position,
-          this.dfeat.active.orientation,
-          hl
-        )
+        pos,
+        GeoUtils.rhumbDestination(pos, this.dfeat.active.orientation, hl)
       ];
 
-      return {
-        cog: cog,
-        heading: heading
-      };
+      // COG line — computed in main thread so all unit kinds work (incl. pixels)
+      const cogAngle = this.dfeat.active.cog;
+      let cog: LineString = [];
+      if (cogAngle != null && pos) {
+        const cl = this.lineLengthToMeters(
+          this.app.config.vessels.selfLines.cog.lineLength, sog
+        );
+        if (cl > 0) {
+          cog = [pos, GeoUtils.rhumbDestination(pos, cogAngle, cl)];
+        }
+      }
+
+      return { cog, heading };
     });
   }
 

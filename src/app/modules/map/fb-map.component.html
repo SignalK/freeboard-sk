@@ -222,6 +222,7 @@
       [updateIds]="skstream.aisStatus().updated"
       [removeIds]="skstream.aisStatus().expired"
       [mapZoom]="mapZoomLevel()"
+      [aisTrackStyle]="aisTrackStyleConfig"
       zIndex="110"
     >
     </ais-targets-track>
@@ -249,7 +250,7 @@
   <!-- Routes -->
   <fb-routes
     [routes]="skres.routes()"
-    [routeStyles]="featureStyles.route"
+    [routeStyles]="routeFeatureStyles"
     [activeRoute]="activeRoute"
     [darkMode]="app.uiConfig().invertColor"
     [labelMinZoom]="this.app.config.map.labelsMinZoom"
@@ -661,7 +662,9 @@
   @if (anchor.raised() && dfeat.navData.position) {
     @if (dfeat.navData.startPosition) {
       <fb-xte-path
-        [color]=""
+        [color]="app.config.vessels.routing.activeSegment.color"
+        [weight]="app.config.vessels.routing.activeSegment.weight"
+        [dash]="app.config.vessels.routing.activeSegment.dash"
         [startPosition]="dfeat.navData.startPosition"
         [destPosition]="dfeat.navData.position"
         [zIndex]="340"
@@ -696,7 +699,7 @@
         [vesselPosition]="dfeat.active.position"
         [showMarker]="!app.data.activeWaypoint"
         [markerName]="course.courseData().destPointName"
-        [bearingStyles]="featureStyles.destination"
+        [bearingStyles]="destinationFeatureStyles"
         [labelMinZoom]="this.app.config.map.labelsMinZoom"
         [mapZoom]="mapZoomLevel()"
         [zIndex]="335"
@@ -727,7 +730,7 @@
     </fb-range-circles>
   }
 
-  @if (app.config.vessels.selfLines.cog.length !== 0) {
+  @if (app.config.vessels.selfLines.cog.lineLength.value !== 0) {
     <fb-heading-line
       [coords]="vesselLines().heading"
       [lineStyle]="app.selfLines().heading"
@@ -737,10 +740,10 @@
     </fb-heading-line>
   }
 
-  @if (app.config.vessels.selfLines.cog.length !== 0) {
+  @if (app.config.vessels.selfLines.cog.lineLength.value !== 0) {
     <fb-cog-line
       [coords]="vesselLines().cog"
-      [cogTime]="app.config.vessels.selfLines.cog.length"
+      [cogTime]="app.config.vessels.selfLines.cog.lineLength.value"
       [lineStyle]="app.selfLines().cog"
       [units]="app.config.units.distance"
       [darkMode]="app.uiConfig().invertColor"
@@ -779,6 +782,7 @@
       [localTrail]="app.selfTrail()"
       [serverTrail]="app.selfTrailFromServer()"
       [trailStyles]=""
+      [selfTrailStyle]="selfTrailStyleConfig"
       [zIndex]="990"
     >
     </fb-vessel-trail>

@@ -808,18 +808,21 @@
                             style="padding-bottom: 10px"
                           >
                             <div class="setting-card-row-item">
-                              <mat-form-field>
-                                <mat-label>Heading Line Length</mat-label>
+                              <mat-form-field style="width: 110px">
+                                <mat-label>Length</mat-label>
+                                <input matInput type="number" min="0"
+                                  [(ngModel)]="facade.settings.vessels.selfLines.heading.lineLength.value"
+                                  (change)="persistModel()"
+                                >
+                              </mat-form-field>
+                              <mat-form-field style="width: 110px">
+                                <mat-label>Unit</mat-label>
                                 <mat-select
-                                  matTooltip="Length of heading line."
-                                  [(ngModel)]="facade.settings.vessels.selfLines.heading.length"
+                                  [(ngModel)]="facade.settings.vessels.selfLines.heading.lineLength.kind"
                                   (selectionChange)="persistModel()"
                                 >
-                                  @for(i of options.vessel.headingLine; track
-                                  i[0] ) {
-                                  <mat-option [value]="i[0]"
-                                    >{{i[1]}}</mat-option
-                                  >
+                                  @for(k of options.lineLengthKinds; track k[0]) {
+                                    <mat-option [value]="k[0]">{{k[1]}}</mat-option>
                                   }
                                 </mat-select>
                               </mat-form-field>
@@ -845,18 +848,21 @@
                             style="padding-bottom: 10px"
                           >
                             <div class="setting-card-row-item">
-                              <mat-form-field>
-                                <mat-label>COG Line Length</mat-label>
+                              <mat-form-field style="width: 110px">
+                                <mat-label>Length</mat-label>
+                                <input matInput type="number" min="0"
+                                  [(ngModel)]="facade.settings.vessels.selfLines.cog.lineLength.value"
+                                  (change)="persistModel()"
+                                >
+                              </mat-form-field>
+                              <mat-form-field style="width: 110px">
+                                <mat-label>Unit</mat-label>
                                 <mat-select
-                                  matTooltip="Length of COG line."
-                                  [(ngModel)]="facade.settings.vessels.selfLines.cog.length"
+                                  [(ngModel)]="facade.settings.vessels.selfLines.cog.lineLength.kind"
                                   (selectionChange)="persistModel()"
                                 >
-                                  @for(i of options.vessel.cogLine; track i[0])
-                                  {
-                                  <mat-option [value]="i[0]"
-                                    >{{i[1]}}</mat-option
-                                  >
+                                  @for(k of options.lineLengthKinds; track k[0]) {
+                                    <mat-option [value]="k[0]">{{k[1]}}</mat-option>
                                   }
                                 </mat-select>
                               </mat-form-field>
@@ -867,6 +873,118 @@
                                 [dash]="facade.settings.vessels.selfLines.cog.dash"
                                 [weight]="facade.settings.vessels.selfLines.cog.weight"
                                 (selectionChange)="onLineStyle('cog', $event)"
+                              ></linestyle-select>
+                            </div>
+                          </div>
+                        </fieldset>
+                      </div>
+                    </div>
+                  </fieldset>
+                </div>
+                <div class="setting-card-row-item">
+                  <fieldset>
+                    <legend>Trail &amp; Track Styles</legend>
+                    <div class="setting-card-row" style="padding-bottom: 10px">
+                      <div class="setting-card-row-item">
+                        <fieldset>
+                          <legend>Self Vessel Trail</legend>
+                          <div class="setting-card-row" style="padding-bottom: 10px">
+                            <div class="setting-card-row-item">
+                              <linestyle-select
+                                [color]="facade.settings.vessels.selfTrailStyle.color"
+                                [dash]="facade.settings.vessels.selfTrailStyle.dash"
+                                [weight]="facade.settings.vessels.selfTrailStyle.weight"
+                                (selectionChange)="onTrailStyle('self', $event)"
+                              ></linestyle-select>
+                            </div>
+                          </div>
+                        </fieldset>
+                      </div>
+                    </div>
+                    <div class="setting-card-row" style="padding-bottom: 10px">
+                      <div class="setting-card-row-item">
+                        <fieldset>
+                          <legend>AIS Target Tracks</legend>
+                          <div class="setting-card-row" style="padding-bottom: 10px">
+                            <div class="setting-card-row-item">
+                              <linestyle-select
+                                [color]="facade.settings.vessels.aisTrackStyle.color"
+                                [dash]="facade.settings.vessels.aisTrackStyle.dash"
+                                [weight]="facade.settings.vessels.aisTrackStyle.weight"
+                                (selectionChange)="onTrailStyle('ais', $event)"
+                              ></linestyle-select>
+                            </div>
+                          </div>
+                        </fieldset>
+                      </div>
+                    </div>
+                  </fieldset>
+                </div>
+                <div class="setting-card-row-item">
+                  <fieldset>
+                    <legend>Route &amp; Navigation Line Styles</legend>
+                    <div class="setting-card-row" style="padding-bottom: 10px">
+                      <div class="setting-card-row-item">
+                        <fieldset>
+                          <legend>Active Route</legend>
+                          <div class="setting-card-row" style="padding-bottom: 10px">
+                            <div class="setting-card-row-item">
+                              <linestyle-select
+                                [color]="facade.settings.vessels.routing.activeRoute.color"
+                                [dash]="facade.settings.vessels.routing.activeRoute.dash"
+                                [weight]="facade.settings.vessels.routing.activeRoute.weight"
+                                (selectionChange)="onRouteStyle('activeRoute', $event)"
+                              ></linestyle-select>
+                            </div>
+                          </div>
+                        </fieldset>
+                      </div>
+                    </div>
+                    <div class="setting-card-row" style="padding-bottom: 10px">
+                      <div class="setting-card-row-item">
+                        <fieldset>
+                          <legend>Other Routes</legend>
+                          <div class="setting-card-row" style="padding-bottom: 10px">
+                            <div class="setting-card-row-item">
+                              <linestyle-select
+                                [color]="facade.settings.vessels.routing.defaultRoute.color"
+                                [dash]="facade.settings.vessels.routing.defaultRoute.dash"
+                                [weight]="facade.settings.vessels.routing.defaultRoute.weight"
+                                (selectionChange)="onRouteStyle('defaultRoute', $event)"
+                              ></linestyle-select>
+                            </div>
+                          </div>
+                        </fieldset>
+                      </div>
+                    </div>
+                    <div class="setting-card-row" style="padding-bottom: 10px">
+                      <div class="setting-card-row-item">
+                        <fieldset>
+                          <legend>Active Segment</legend>
+                          <div class="setting-card-row" style="padding-bottom: 10px">
+                            <div class="setting-card-row-item">
+                              <linestyle-select
+                                [color]="facade.settings.vessels.routing.activeSegment.color"
+                                [dash]="facade.settings.vessels.routing.activeSegment.dash"
+                                [weight]="facade.settings.vessels.routing.activeSegment.weight"
+                                (selectionChange)="onRouteStyle('activeSegment', $event)"
+                              ></linestyle-select>
+                            </div>
+                          </div>
+                        </fieldset>
+                      </div>
+                    </div>
+                    <div class="setting-card-row" style="padding-bottom: 10px">
+                      <div class="setting-card-row-item">
+                        <fieldset>
+                          <legend>Destination Bearing Line</legend>
+                          <div class="setting-card-row" style="padding-bottom: 10px">
+                            <div class="setting-card-row-item">
+                              <linestyle-select
+                                [color]="facade.settings.vessels.routing.destination.color"
+                                [dash]="facade.settings.vessels.routing.destination.dash"
+                                [weight]="facade.settings.vessels.routing.destination.weight"
+                                (selectionChange)="onRouteStyle('destination', $event)"
                               ></linestyle-select>
                             </div>
                           </div>
