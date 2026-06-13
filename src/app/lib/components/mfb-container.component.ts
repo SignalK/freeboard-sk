@@ -1,4 +1,4 @@
-import { Component, inject, input } from '@angular/core';
+import { Component, computed, inject, input } from '@angular/core';
 
 import { AppFacade } from 'src/app/app.facade';
 import { MFBAction } from 'src/app/types';
@@ -7,6 +7,7 @@ import { WptButtonComponent } from './wpt-button.component';
 import { AutopilotButtonComponent } from './autopilot-button.component';
 import { RadarButtonComponent } from './radar-button.component';
 import { RadarAPIService } from 'src/app/modules/radar/radar-api.service';
+import { PlotterExtensionService } from 'src/app/modules/plotterext/plotterext.service';
 
 @Component({
   selector: 'mfb-container',
@@ -18,7 +19,7 @@ import { RadarAPIService } from 'src/app/modules/radar/radar-api.service';
     RadarButtonComponent
   ],
   template: `
-    <div class="mfb-container">
+    <div class="mfb-container" [style.bottom.px]="bottomOffset()">
       @if (action() === 'wpt') {
         <wpt-button
           [position]="app.data.vessels.self.position"
@@ -59,6 +60,13 @@ export class MFBContainerComponent {
 
   protected app = inject(AppFacade);
   protected radarApi = inject(RadarAPIService);
+  private plotterExt = inject(PlotterExtensionService);
+
+  // sit above any plotter-extension widgets in the bottom-right corner
+  protected bottomOffset = computed(() => {
+    const lift = this.plotterExt.actionButtonLift();
+    return lift > 0 ? lift : 23;
+  });
 
   constructor() {}
 }

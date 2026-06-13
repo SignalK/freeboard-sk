@@ -43,6 +43,7 @@
     "@signalk/server-api": "^2.24.0",
     "geolib": "^3.3.3",
     "google-protobuf": "^4.0.1",
+    "signalk-plotterext-bus": "file:../signalk-plotterext-bus",
     "tslib": "^2.0.0",
     "uuid": "^11.1.0"
   },

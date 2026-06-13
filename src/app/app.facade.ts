@@ -253,6 +253,9 @@ export class AppFacade extends InfoService {
   mapViewTopCenter = signal<Position>([0, 0]); // top-centre of viewport (rotation-aware)
   mapViewRightCenter = signal<Position>([0, 0]); // right-centre of viewport (rotation-aware)
   mapViewRotation = signal<number>(0); // OL view rotation in radians (CCW positive)
+  // programmatic map move request (e.g. from a plotter extension). A new
+  // object reference each time so the consuming effect always reacts.
+  mapMoveRequest = signal<{ center: Position; zoom?: number } | null>(null);
 
   protected signalk = inject(SignalKClient);
   private worker = inject(SKWorkerService);
