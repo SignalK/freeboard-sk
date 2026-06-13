@@ -25,10 +25,18 @@ mat-nav-list {
 	bottom: 0;
     right: 0;
 	left: 0px;
-    overflow: auto;
+    overflow: hidden;
     scrollbar-width: none;
     position: fixed;
 	border-top: silver 0px solid;
+    /* row layout so an open plotter-extension panel pushes the map left */
+    display: flex;
+    flex-direction: row;
+}
+.view .pe-view-main {
+    flex: 1 1 auto;
+    min-width: 0;
+    height: 100%;
 }
 
 .leftMenuPanel {

@@ -94,7 +94,14 @@
   <!-- Cursor position control -->
   <ol-control>
     <ol-content>
-      <div class="ol-mouse-position">
+      <div
+        class="ol-mouse-position"
+        [style.bottom]="
+          plotterExt.statusBarLift() > 0
+            ? plotterExt.statusBarLift() + 'px'
+            : null
+        "
+      >
         <span
           style="
             background-color: rgba(250, 250, 250, 0.7);
@@ -452,9 +459,9 @@
   >
   </fb-regions>
 
-  <!-- Notes -->
+  <!-- Notes (display-filtered by plotter extensions) -->
   @if (showNoteslayer()) {
-    <fb-notes [notes]="skres.notes()" [zIndex]="450"> </fb-notes>
+    <fb-notes [notes]="plotterExt.visibleNotes()" [zIndex]="450"> </fb-notes>
   }
 
   <!-- Distance & Bearing to -->
@@ -914,6 +921,17 @@
       >
         <mat-icon>info</mat-icon>
         <span>Get Feature Info</span>
+      </button>
+    }
+    @if (addableWidgetCell) {
+      <mat-divider></mat-divider>
+      <button
+        mat-menu-item
+        (click)="onContextMenuAction('add_widget', item)"
+        (contextmenu)="$event.preventDefault()"
+      >
+        <mat-icon>widgets</mat-icon>
+        Add widget here
       </button>
     }
   </ng-template>

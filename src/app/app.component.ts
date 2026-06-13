@@ -104,6 +104,10 @@ import {
   SelectionResultDef
 } from './modules/map/fbmap-interact.service';
 import { RadarAPIService } from './modules/radar/radar-api.service';
+import { PlotterExtensionService } from './modules/plotterext/plotterext.service';
+import { PlotterExtensionOverlay } from './modules/plotterext/widget-overlay.component';
+import { PlotterBackgroundHost } from './modules/plotterext/background-runtime.component';
+import { PlotterPanelDrawer } from './modules/plotterext/panel-drawer.component';
 import {
   RoutePanel,
   SKResourceType,
@@ -165,7 +169,10 @@ interface DrawEndEvent {
     RegionPanel,
     WaypointPanel,
     RoutePanel,
-    RadarPanel
+    RadarPanel,
+    PlotterExtensionOverlay,
+    PlotterBackgroundHost,
+    PlotterPanelDrawer
   ]
 })
 export class AppComponent {
@@ -265,6 +272,7 @@ export class AppComponent {
   protected autopilot = inject(AutopilotService);
   protected radarApi = inject(RadarAPIService);
   private symbols = inject(SymbolService);
+  protected plotterExt = inject(PlotterExtensionService);
 
   constructor() {
     // set self to active vessel
@@ -299,6 +307,15 @@ export class AppComponent {
         if (this.sideright?.opened) {
           this.closeDrawer();
         }
+      }
+    });
+
+    // apply programmatic map move requests (e.g. from plotter extensions)
+    // through Freeboard's own centering path so chart layers refresh.
+    effect(() => {
+      const req = this.app.mapMoveRequest();
+      if (req) {
+        this.centerAndZoom(req.center, req.zoom);
       }
     });
   }
@@ -772,6 +789,9 @@ export class AppComponent {
             })
             .finally(() => {
               this.loadSymbolsThenFetchResources();
+              // after user config is final so persisted widget placements
+              // reflect the server-stored layout, not a stale local copy
+              this.plotterExt.init();
             });
           this.getFeatures();
           this.app.data.server = this.signalk.server.info;

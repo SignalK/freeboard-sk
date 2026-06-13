@@ -143,6 +143,22 @@ _Note: The `Signal K Instrument Panel` app will be displayed if no user selectio
 
 ---
 
+### Screen Widgets:
+
+If you have installed any plugins on your Signal K server that provide screen widgets, you can place them directly onto the chart screen.
+
+Widgets sit in the corners and at the centre of the top and bottom edges of the screen _(the top-left corner is reserved for Freeboard's own menu)_.
+
+![widgets](https://raw.githubusercontent.com/joelkoz/signalk-instrument-widgets/refs/heads/main/docs/screenshots/1_freeboard-widget.png)
+
+**To add a widget**, press and hold an empty spot in any of these areas for at least 1.5 seconds (or right-click if you are using a mouse and keyboard). A short list of the widgets that fit there appears — choose one and it is added to your screen. As you add more, widgets stack neatly from the edge inward.
+
+**To change or remove a widget** you have already placed, press and hold the widget itself for 1.5 seconds. This opens its settings, where you can adjust it (if it has any options) or remove it from the screen.
+
+Your layout is remembered, so the widgets you place are still there the next time you open Freeboard-SK.
+
+---
+
 ### S57 Charts
 
 Freeboard-SK is able to display S57 ENC charts that have been converted to vector tiles with [s57-tiler](https://github.com/wdantuma/s57-tiler). _(See the [README](https://github.com/wdantuma/s57-tiler) for instructions how to create the vector tiles from downloaded S57 ENC's.)_
