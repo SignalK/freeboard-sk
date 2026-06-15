@@ -26,7 +26,7 @@ import {
 export class TextDialComponent {
   title = input<string>();
   subTitle = input<string>();
-  value = input<string>();
+  value = input<string | number>();
   units = input<string>();
 }
 

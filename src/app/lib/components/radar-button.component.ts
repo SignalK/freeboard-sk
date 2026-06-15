@@ -17,16 +17,15 @@ import { RadarAPIService } from 'src/app/modules/radar/radar-api.service';
           !app.featureFlags().radarApi || !app.uiCtrl().radarLayer
       }"
       mat-fab
-      [disabled]="!active() || !this.app.data.vessels.showSelf"
-      (click)="handleClick()"
+      [disabled]="
+        !active() ||
+        !this.app.data.vessels.showSelf ||
+        this.app.instrumentPanel().open
+      "
       matTooltip="Radar Overlay"
       matTooltipPosition="above"
     >
-      @if (app.uiCtrl().radarLayer) {
-        <mat-icon class="ob" svgIcon="chart-radar-overlay-iec"></mat-icon>
-      } @else {
-        <mat-icon class="ob" svgIcon="radar-iec"></mat-icon>
-      }
+      <mat-icon class="ob" svgIcon="radar-iec"></mat-icon>
     </button>
   `,
   styles: []
@@ -39,10 +38,10 @@ export class RadarButtonComponent {
 
   constructor() {}
 
-  handleClick() {
+  /*handleClick() {
     if (!this.app.uiCtrl().radarLayer) {
       if (!this.radarApi.hasWebGL) {
-        this.radarApi.showWebGLMessage();
+        this.radarApi.showNoWebGLMessage();
         return;
       }
     }
@@ -50,5 +49,5 @@ export class RadarButtonComponent {
       const show = !current.radarLayer;
       return Object.assign({}, current, { radarLayer: show });
     });
-  }
+  }*/
 }

@@ -1,29 +1,35 @@
 import { effect, inject, Injectable, signal } from '@angular/core';
-import { SKResourceService, SKResourceType } from '../skresources';
+import {
+  SKChart,
+  SKNote,
+  SKRegion,
+  SKResourceService,
+  SKResourceType,
+  SKRoute,
+  SKTrack,
+  SKWaypoint
+} from '../skresources';
 import {
   ChartResource,
   FBNote,
   FBRegion,
   FBRoute,
-  FBWaypoint,
-  NoteResource,
-  RegionResource,
-  RouteResource,
-  TrackResource,
-  WaypointResource
+  FBWaypoint
 } from 'src/app/types';
 import { SKWorkerService } from '../skstream/skstream.service';
+import { ActiveRadar } from '../radar/radar-api.service';
 
-type InfoPanelResource =
-  | RouteResource
-  | WaypointResource
-  | RegionResource
-  | NoteResource
-  | ChartResource
-  | TrackResource;
+export type InfoPanelResource =
+  | SKRoute
+  | SKWaypoint
+  | SKRegion
+  | SKNote
+  | SKChart
+  | SKTrack
+  | ActiveRadar;
 
 export interface InfoPanelItem {
-  type: SKResourceType;
+  type: SKResourceType | 'radars';
   id: string;
   resource: InfoPanelResource;
 }
@@ -33,7 +39,7 @@ export class InfoPanelFacade {
   private _opened = signal<boolean>(false);
   readonly opened = this._opened.asReadonly();
 
-  private _item = signal<InfoPanelItem>(undefined);
+  private _item = signal(undefined);
   readonly item = this._item.asReadonly();
 
   private _related = signal<string>(undefined);
@@ -111,6 +117,15 @@ export class InfoPanelFacade {
       type: resourceType,
       id: resource[0],
       resource: resource[1]
+    });
+    this._opened.set(true);
+  }
+
+  public openRadar(radar: ActiveRadar) {
+    this._item.set({
+      type: 'radars',
+      id: radar.device.id,
+      resource: radar
     });
     this._opened.set(true);
   }

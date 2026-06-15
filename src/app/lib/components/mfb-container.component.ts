@@ -1,4 +1,4 @@
-import { Component, inject, input } from '@angular/core';
+import { Component, inject, input, output } from '@angular/core';
 
 import { AppFacade } from 'src/app/app.facade';
 import { MFBAction } from 'src/app/types';
@@ -38,7 +38,10 @@ import { RadarAPIService } from 'src/app/modules/radar/radar-api.service';
       }
       @if (action() === 'radar') {
         <radar-button
-          [active]="app.featureFlags().radarApi && radarApi.radarId()"
+          [active]="
+            app.featureFlags().radarApi && radarApi.radarId().length !== 0
+          "
+          (click)="radarClick.emit()"
         ></radar-button>
       }
     </div>
@@ -55,7 +58,8 @@ import { RadarAPIService } from 'src/app/modules/radar/radar-api.service';
   ]
 })
 export class MFBContainerComponent {
-  protected action = input<MFBAction>();
+  action = input<MFBAction>();
+  radarClick = output<void>();
 
   protected app = inject(AppFacade);
   protected radarApi = inject(RadarAPIService);

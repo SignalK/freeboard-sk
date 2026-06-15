@@ -1409,7 +1409,7 @@ export class SKResourceService {
         if (r.save) {
           try {
             const w = await this.postToServer('waypoints', r.waypoint);
-            this.selectionAdd('routes', w.id);
+            this.selectionAdd('waypoints', w.id);
           } catch (err) {
             this.app.parseHttpErrorResponse(err);
           }

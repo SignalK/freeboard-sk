@@ -199,7 +199,7 @@ export class SKStreamFacade {
         context: 'vessels.self',
         path: [
           { path: 'notifications.*', period: 1000 },
-          { path: 'radars.*', policy: 'instant' }
+          { path: 'radars.*', period: 1000 }
         ]
       }
     });
@@ -236,13 +236,6 @@ export class SKStreamFacade {
       options: {
         context: 'meteo.*',
         path: [{ path: '*', period: 1000 }]
-      }
-    });
-    this.worker.postMessage({
-      cmd: 'subscribe',
-      options: {
-        context: 'meteo.*',
-        path: [{ path: 'notifications.*', period: 1000 }]
       }
     });
   }

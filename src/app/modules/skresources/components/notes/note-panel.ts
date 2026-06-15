@@ -21,8 +21,8 @@ import { AppIconDef, getResourceIcon } from 'src/app/modules/icons';
 import { SKNote } from '../../resource-classes';
 import { MatDivider } from '@angular/material/divider';
 import { CourseService } from 'src/app/modules/course';
-import { Position } from 'geojson';
 import { SKResourceService } from '../../resources.service';
+import { Position } from 'src/app/types';
 
 @Component({
   selector: 'note-panel',

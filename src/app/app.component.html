@@ -226,9 +226,10 @@
         !isInteracting() &&
         app.featureFlags().radarApi &&
         radarApi.radarId() &&
+        !this.app.instrumentPanel().open &&
         this.app.data.vessels.showSelf
       ) {
-        <a mat-menu-item (click)="toggleRadar()">
+        <a mat-menu-item (click)="showRadarPanel()">
           @if (app.uiCtrl().radarLayer) {
             <mat-icon class="icon-accent">check_box</mat-icon>
           } @else {
@@ -279,14 +280,20 @@
         <mat-sidenav
           #sideright
           [disableClose]="false"
-          [opened]="infoPanel.opened() || app.instrumentPanel().activate"
-          (openedChange)="rightSideNavAction($event)"
           mode="side"
           position="end"
-          [style.width]="infoPanel.opened() ? '250px' : '350px'"
+          [style.width]="app.instrumentPanel().open ? '350px' : '250px'"
         >
           @if (this.infoPanel.item && !app.instrumentPanel().open) {
-            <info-panel>
+            <info-panel (closed)="closeDrawer()">
+              @if (infoPanel.item()?.type === 'radars') {
+                <radar-panel
+                  [radar]="infoPanel.item().resource"
+                  [id]="infoPanel.item().id"
+                  (connect)="connectRadar()"
+                  (disconnect)="disconnectRadar()"
+                />
+              }
               @if (infoPanel.item()?.type === 'notes') {
                 <note-panel
                   [note]="infoPanel.item().resource"
@@ -339,7 +346,7 @@
             >
               <mat-nav-list>
                 <a mat-list-item>
-                  <a mat-icon-button (click)="sideright.toggle()">
+                  <a mat-icon-button (click)="closeInstrumentPanel()">
                     <mat-icon>arrow_forward</mat-icon>
                   </a>
                   &nbsp;&nbsp;&nbsp;&nbsp;
@@ -347,7 +354,7 @@
                     <a
                       mat-icon-button
                       [href]="instUrl()"
-                      (click)="sideright.close()"
+                      (click)="closeInstrumentPanel()"
                       target="_blank"
                       matTooltip="Open Instruments in window."
                       matTooltipPosition="right"
@@ -784,13 +791,15 @@
                 <div class="instrumentPanelToggle buttonPanelItem">
                   @if (
                     app.instrumentPanelAvailable() &&
+                    !app.instrumentPanel().open &&
+                    !infoPanel.opened() &&
                     !isInteracting() &&
                     !app.data.vessels.activeId
                   ) {
                     <button
                       class="button-toolbar"
                       mat-mini-fab
-                      (click)="handleInstrumentPanelClick()"
+                      (click)="openInstrumentPanel()"
                       matTooltip="Instruments"
                       matTooltipPosition="before"
                     >
@@ -929,6 +938,30 @@
                         class="ob"
                         svgIcon="command-autopilot"
                       ></mat-icon>
+                    </button>
+                    <br />&nbsp;<br />
+                  </div>
+                }
+
+                <!-- Radar console-->
+                @if (
+                  app.featureFlags().radarApi &&
+                  radarApi.radarId() &&
+                  app.config.display.fab !== 'radar'
+                ) {
+                  <div class="buttonPanelItem">
+                    <button
+                      mat-mini-fab
+                      [ngClass]="{
+                        'button-primary': app.uiCtrl().radarLayer,
+                        'button-toolbar': !app.uiCtrl().radarLayer
+                      }"
+                      [disabled]="this.app.instrumentPanel().open"
+                      matTooltip="Radar"
+                      matTooltipPosition="before"
+                      (click)="showRadarPanel()"
+                    >
+                      <mat-icon class="ob" svgIcon="radar-iec"></mat-icon>
                     </button>
                     <br />&nbsp;<br />
                   </div>
@@ -1179,7 +1212,11 @@
             </div>
           }
           @if (!isInteracting() && !app.kioskMode()) {
-            <mfb-container [action]="app.config.display.fab"> </mfb-container>
+            <mfb-container
+              [action]="app.config.display.fab"
+              (radarClick)="showRadarPanel()"
+            >
+            </mfb-container>
           }
         </mat-sidenav-content>
       </mat-sidenav-container>

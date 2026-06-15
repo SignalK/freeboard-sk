@@ -2,11 +2,7 @@
  * ************************************/
 import { Injectable, signal } from '@angular/core';
 import { Subject } from 'rxjs';
-import {
-  NotificationMessage,
-  ResourceDeltaSignal,
-  PathValue
-} from 'src/app/types';
+import { NotificationMessage, DeltaSignal, PathValue } from 'src/app/types';
 
 interface IWorkerCommand {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -21,11 +17,14 @@ export class SKWorkerService {
   private messageSource = new Subject<any>();
   private notificationSource = new Subject<NotificationMessage>();
   private resourceUpdatesSource = new Subject<PathValue[]>();
-  private resourceDeltaSignal = signal<ResourceDeltaSignal>({
+  private resourceDeltaSignal = signal<DeltaSignal>({
     path: '',
     value: null
   });
   public readonly resourceUpdate = this.resourceDeltaSignal.asReadonly();
+
+  private radarDeltaSignal = signal<DeltaSignal>(undefined);
+  public readonly radarUpdate = this.radarDeltaSignal.asReadonly();
 
   constructor() {
     this.worker = new Worker(new URL('./skstream.worker', import.meta.url));
@@ -83,6 +82,8 @@ export class SKWorkerService {
       this.notificationSource.next(msg as NotificationMessage);
     } else if (msg.action === 'resource') {
       this.resourceDeltaSignal.set(msg.result);
+    } else if (msg.action === 'radar') {
+      this.radarDeltaSignal.set(msg.result);
     } else {
       if (
         msg.action === 'update' &&

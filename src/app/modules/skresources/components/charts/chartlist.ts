@@ -232,8 +232,8 @@ export class ChartListComponent extends ResourceListBase {
 
     this.dialog
       .open(SliderInputDialog, {
-        disableClose: false,
-        hasBackdrop: false,
+        disableClose: true,
+        backdropClass: 'transparent-backdrop',
         data: {
           resId: chart[0],
           title: 'Set Opacity',

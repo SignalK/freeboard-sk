@@ -51,6 +51,7 @@
           <li><a href="#display">Display</a></li>
           <li><a href="#navdata">Navigation</a></li>
           <li><a href="#autopilot">Autopilot</a></li>
+          <li><a href="#radar">RADAR</a></li>
           <li><a href="#resources">Resources</a></li>
           <li><a href="#menus">Menus</a></li>
           <li><a href="#aistargets">- Vessels</a></li>
@@ -129,17 +130,6 @@
           <i>Please note the following feature has been deprecated:</i><br />
           <ul>
             <li>
-              <b>Weather Service:</b> With the introduction to the Signal K
-              Weather API in Signal K Server 2.16.0 the in-built OpenWeather
-              provider is now deprecated and will be removed in an upcoming
-              release.<br />
-              Once you have updated Signal K Server to v2.16.0 (or later) you
-              can install the weather provider plugin(s) of your choice to
-              continue having weather data available in Freeboard-SK.<br />
-              <b
-                >Note: The <i>signalk-openweather-provider</i> plugin provides
-                equivalent functionality to the deprecated built-in service.</b
-              >
             </li>
           </ul>
         </div>-->
@@ -223,6 +213,13 @@
                   <b>@signalk/charts-plugin</b><br />
                   <b>signalk-charts-provider-simple</b><br />
                   <b>signalk-pmtiles-plugin</b>
+                </td>
+              </tr>
+              <tr>
+                <td>RADAR Overlay</td>
+                <td>
+                  <b>signalk-container</b><br />
+                  <b>@marineyachtradar/signalk-plugin</b>
                 </td>
               </tr>
               <tr>
@@ -690,6 +687,28 @@
           <div>
             <img src="./img/autopilot.png" style="max-width: 250px" alt="" />
           </div>
+        </div>
+
+        <div class="panel" id="radar">
+          <h4><img src="./img/command-radar.svg" /> RADAR Overlay</h4>
+
+          Freeboard-SK supports the Signal K RADAR API which enables
+          communication with RADAR devices via a MAYARA server.<br />
+
+          When RADARs are detected, Freeboard-SK will display the
+          <img src="./img/command-radar.svg" />
+          button to toggle on/off the RADAR display.
+          <br />&nbsp;<br />
+
+          When multiple RADAR devices are present you can select the preferred
+          device to use in
+          <a href="#settings">SETTINGS</a>. <br />&nbsp;<br />
+
+          <i
+            >Note: To enable RADAR support your Signal K Server must have both
+            the <b>signalk-container</b> and
+            <b>@marineyachtradar/signalk-plugin</b> plugins installed.
+          </i>
         </div>
 
         <div class="panel" id="resources">
@@ -2675,6 +2694,13 @@
             for more details regarding the file format.</i
           >
 
+          <hr />
+
+          <b>RADAR:</b><br />
+          This section allows you to set the default RADAR device to use when
+          there are multiple RADAR devices available.<br />
+          Click the <b>REFRESH</b> button to fetch the list of RADARs from the
+          Signal K Server.
           <hr />
 
           <b>SIGNAL K:</b><br />

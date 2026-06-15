@@ -21,6 +21,7 @@ See the [FAQs](https://github.com/SignalK/freeboard-sk/wiki) for more informatio
 Moving map display with:
 
 - Multiple chart overlay using both of online and locally served charts 
+- Radar overlay
 - Built in support (no plugin required) for OpenStreetMap and OpenSeaMap(from Signal K server)  
 - North-up / Vessel-up orientation   
 - Moving Map / Moving Vessel
@@ -75,6 +76,16 @@ Whilst not specifically defined in the Signal K specification, Freeboard-SK supp
 
 - Show / Hide Tracks
 - Delete Tracks
+
+---
+
+### Radar Overlay:  
+
+Freeboard-SK supports the Signal K RADAR API which provides connection to radars via the MAYARA server.
+
+> Note: Requires `signalk-container` & `@marineyachtradar/signalk-plugin` to be installed on the Signal K Server.
+
+![image](https://github.com/user-attachments/assets/5b51f641-59e0-496c-bc10-a33b0a5ec692)
 
 ---
 
@@ -190,6 +201,7 @@ The following plugins are recommended for installation on the Signal K Server to
 - Charts: `@signalk/charts-plugin`, `signalk-chart-provider-simple`, `signalk-pmtiles-plugin`, etc.
 - Anchor Watch: `signalk-anchoralarm-plugin`
 - Weather Forcasts: `signalk-openweather-provider`
+- Display RADAR overlay: `signalk-container` & `@marineyachtradar/signalk-plugin`
 
 ---
 

@@ -49,6 +49,10 @@ b { font-weight: 500; }
     font-family: 'Roboto';
 }
 
+.transparent-backdrop {
+    background: transparent !important;
+}
+
 @keyframes colorchange
 {
     0%      {border:3px solid rgba(8, 85, 178, .1);}

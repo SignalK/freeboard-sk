@@ -21,9 +21,8 @@ import { RemarkModule } from 'ngx-remark';
 import { AppFacade } from 'src/app/app.facade';
 import { AppIconDef, getResourceIcon } from 'src/app/modules/icons';
 import { SKRegion } from '../../resource-classes';
-import { Position } from 'geojson';
 import { SKResourceService } from '../../resources.service';
-import { FBNotes } from 'src/app/types';
+import { FBNotes, Position } from 'src/app/types';
 import {
   FBResourceGroups,
   SKResourceGroupService

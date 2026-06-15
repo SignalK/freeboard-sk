@@ -118,6 +118,10 @@ export class SettingsDialog implements OnInit {
         this.aisStateFilter[i] = true;
       }
     });
+    this.refreshRadars();
+  }
+
+  protected refreshRadars() {
     this.radarApi
       .listRadars()
       .then((rl) => {
@@ -179,6 +183,17 @@ export class SettingsDialog implements OnInit {
       this.persistModel();
     }
     this.s57.setOptions(this.facade.settings.map.s57Options);
+  }
+
+  /** apply RADAR Options  */
+  doRadar() {
+    this.radarApi
+      .init(this.facade.settings.radars.deviceId)
+      .then((id: string) => {
+        if (id) {
+          this.persistModel();
+        }
+      });
   }
 
   /** handle line style change */

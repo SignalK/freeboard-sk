@@ -70,7 +70,7 @@ interface WorkerMessageBase {
   timestamp: string;
 }
 
-export interface ResourceDeltaSignal {
+export interface DeltaSignal {
   path: string;
   value: any;
   sourceRef?: string;
@@ -117,6 +117,13 @@ export class ResourceMessage extends UpdateMessage {
   constructor() {
     super();
     this.action = 'resource';
+  }
+}
+
+export class RadarMessage extends UpdateMessage {
+  constructor() {
+    super();
+    this.action = 'radar';
   }
 }
 

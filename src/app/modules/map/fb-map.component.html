@@ -197,6 +197,7 @@
       [heading]="dfeat.self.orientation"
       [mapZoom]="mapZoomLevel()"
       [zIndex]="99"
+      (onError)="handleRadarError($event)"
     >
     </fb-radar>
   }
@@ -222,7 +223,7 @@
       [updateIds]="skstream.aisStatus().updated"
       [removeIds]="skstream.aisStatus().expired"
       [mapZoom]="mapZoomLevel()"
-      zIndex="110"
+      [zIndex]="110"
     >
     </ais-targets-track>
   }

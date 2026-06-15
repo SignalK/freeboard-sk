@@ -1,4 +1,9 @@
-import { Component, ChangeDetectionStrategy, inject } from '@angular/core';
+import {
+  Component,
+  ChangeDetectionStrategy,
+  inject,
+  output
+} from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
 import { MatListModule } from '@angular/material/list';
 import { InfoPanelFacade } from './info-panel.facade';
@@ -30,9 +35,11 @@ import { InfoPanelFacade } from './info-panel.facade';
   imports: [MatListModule, MatIconModule]
 })
 export class InfoPanelComponent {
+  closed = output<void>();
   protected infoPanel = inject(InfoPanelFacade);
 
   close() {
     this.infoPanel.close();
+    this.closed.emit();
   }
 }

@@ -11,7 +11,6 @@ import { MatDialog } from '@angular/material/dialog';
 import { MatBottomSheet } from '@angular/material/bottom-sheet';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { OverlayContainer } from '@angular/cdk/overlay';
-import { Observable, Subject } from 'rxjs';
 
 import { CommonModule } from '@angular/common';
 import { MatBadgeModule } from '@angular/material/badge';
@@ -79,10 +78,9 @@ import {
   InfoLayerListComponent,
   BuildRouteComponent,
   NotePanel,
-  RegionPanel
+  RegionPanel,
+  RadarPanel
 } from 'src/app/modules';
-
-import { LoginDialog } from 'src/app/lib/components/dialogs';
 
 import { Convert } from 'src/app/lib/convert';
 import { GeoUtils } from 'src/app/lib/geoutils';
@@ -165,7 +163,8 @@ interface DrawEndEvent {
     NotePanel,
     RegionPanel,
     WaypointPanel,
-    RoutePanel
+    RoutePanel,
+    RadarPanel
   ]
 })
 export class AppComponent {
@@ -287,6 +286,18 @@ export class AppComponent {
     effect(() => {
       this.app.uiConfig();
       this.handleSettingChangeEvent(undefined);
+    });
+
+    effect(() => {
+      if (this.infoPanel.opened() || this.app.instrumentPanel().activate) {
+        if (!this.sideright?.opened) {
+          this.openDrawer();
+        }
+      } else {
+        if (this.sideright?.opened) {
+          this.closeDrawer();
+        }
+      }
     });
   }
 
@@ -414,15 +425,33 @@ export class AppComponent {
 
   /** TOOLBAR ACTIONS */
 
-  protected toggleRadar() {
+  protected showRadarPanel() {
     if (!this.radarApi.hasWebGL) {
-      this.radarApi.showWebGLMessage();
+      this.radarApi.showNoWebGLMessage();
       return;
     }
-    this.app.uiCtrl.update((current) => {
-      return Object.assign({}, current, { radarLayer: !current.radarLayer });
-    });
+    if (this.app.instrumentPanel().open) {
+      this.closeInstrumentPanel();
+    }
+    this.connectRadar();
+    this.infoPanel.openRadar(this.radarApi.radar());
     this.focusMap();
+  }
+
+  protected connectRadar() {
+    if (!this.app.uiCtrl().radarLayer) {
+      this.app.uiCtrl.update((current) => {
+        return Object.assign({}, current, { radarLayer: true });
+      });
+    }
+  }
+
+  protected disconnectRadar() {
+    if (this.app.uiCtrl().radarLayer) {
+      this.app.uiCtrl.update((current) => {
+        return Object.assign({}, current, { radarLayer: false });
+      });
+    }
   }
 
   protected toggleMoveMap(exit = false) {
@@ -979,35 +1008,40 @@ export class AppComponent {
 
   // ********* SIDENAV ACTIONS *************
 
-  protected handleInstrumentPanelClick() {
-    let value = !this.app.instrumentPanel().open;
-    if (value && this.infoPanel.opened()) {
+  protected openDrawer() {
+    this.sideright.open();
+  }
+
+  protected closeDrawer() {
+    this.sideright.close();
+  }
+
+  protected openInstrumentPanel() {
+    if (this.app.instrumentPanel().open) {
+      return;
+    }
+    if (this.infoPanel.opened()) {
       this.infoPanel.close();
     }
 
     this.app.instrumentPanel.update((current) => {
       return Object.assign({}, current, {
-        open: value,
-        activate: this.app.config.display.plugins.startOnOpen
-          ? value
-          : current.activate
+        open: true,
+        activate: true
       });
     });
   }
 
-  protected rightSideNavAction(value: boolean) {
-    if (!value) {
-      //closed
-      this.app.instrumentPanel.update((current) => {
-        return Object.assign({}, current, {
-          open: value,
-          activate: this.app.config.display.plugins.startOnOpen
-            ? value
-            : current.activate
-        });
+  protected closeInstrumentPanel() {
+    this.app.instrumentPanel.update((current) => {
+      return Object.assign({}, current, {
+        open: false,
+        activate: this.app.config.display.plugins.startOnOpen
+          ? false
+          : current.activate
       });
-      this.focusMap();
-    }
+    });
+    this.focusMap();
   }
 
   /** control left menu display  */
@@ -1892,10 +1926,8 @@ export class AppComponent {
           undefined,
           this.app.data.vessels.self.position
         );
-        // query radar API
-        this.radarApi.listRadars().catch((err: Error) => {
-          this.app.debug(err.message);
-        });
+        // query radars / align defaultId
+        this.radarApi.init();
       },
       (err: HttpErrorResponse) => {
         if (err.status && err.status === 401) {

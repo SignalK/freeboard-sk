@@ -1,6 +1,6 @@
 # CHANGELOG: Freeboard
 
-### v2.24.0-beta.1
+### v2.24.0-beta.4
 
 - **Added**: Preview Radar API support - Enable toggle on/off of radar overlay.
 - **Update**: Improve custom resource selection probes after connection to server (#377)
@@ -12,6 +12,8 @@
 - **Update**: Lazy-load dialog components on demand (#384)
 - **Update**: Adopt `takeUntilDestroyed` for Observable subscriptions outside of lifecycle hooks (#385)
 - **Update**: Cache S57 derived text-style config across features (#388)
+- **Fix**: Issue where multiple chart opacity dialogs could be opened (#390)
+- **update**: Refactor info-panel open / close triggers (#391)
 - **Update**: Re-position info-panel to right side of screen.
 
 

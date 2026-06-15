@@ -1,6 +1,19 @@
 const WHATS_NEW = [
   {
     type: 'signalk-server-node',
+    title: 'RADAR Overlay',
+    message: `
+        New RADAR API support.
+        <br>&nbsp;<br>
+        Display a RADAR overlay when your Signal K Server is connected to a
+        MAYARA server.
+        <br>&nbsp;<br>
+        See <a href="assets/help/index.html" target="help">HELP</a> 
+        for more details.
+      `
+  },
+  {
+    type: 'signalk-server-node',
     title: 'Resource Panel',
     message: `
         New resource information panel display available on 

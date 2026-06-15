@@ -495,6 +495,15 @@ export class FBMapComponent implements OnInit, OnDestroy {
     }
   }
 
+  // ********** RADAR EVENT HANDLERS *****************
+
+  handleRadarError(error: Error) {
+    this.app.showAlert('Radar', error.message);
+    this.app.uiCtrl.update((current) => {
+      return Object.assign(current, { radarLayer: false });
+    });
+  }
+
   // ********** MAP EVENT HANDLERS *****************
 
   private toggleDblClickZoom(set?: boolean) {

@@ -11,6 +11,7 @@ import {
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { SafeResourceUrl } from '@angular/platform-browser';
 
 interface PiPVideoElement extends HTMLVideoElement {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -52,7 +53,7 @@ export class PiPVideoComponent implements OnInit {
   private pipWindow: any;
   pipMode = false;
   vidUrl: string;
-  src = input<string>();
+  src = input<SafeResourceUrl>();
   muted = input<boolean>(true);
   _muted = linkedSignal(() => this.muted());
   resize = output<[number, number]>();
@@ -63,7 +64,7 @@ export class PiPVideoComponent implements OnInit {
   constructor() {
     effect(() => {
       if (this.src()) {
-        this.vidUrl = this.src();
+        this.vidUrl = this.src() as string;
       }
     });
   }

@@ -223,7 +223,7 @@ export class SKVessel extends SKTargetBase {
     nextPoint: {},
     previousPoint: {}
   };
-  courseCalcs: { [key: string]: any } = {};
+  courseCalcs: Record<string, any> = {};
   distanceToSelf: number;
   environment = {
     mode: null, // day | night
@@ -236,8 +236,9 @@ export class SKVessel extends SKTargetBase {
     beatAngle: null,
     gybeAngle: null
   };
-  racing: { [key: string]: string };
-  registrations: { [key: string]: string } = {};
+  racing: Record<string, any>;
+  radars: Record<string, any> = {};
+  registrations: Record<string, any> = {};
   resourceUpdates = []; // resource deltas
   sog: number;
   track: Array<Position[]> = [];

@@ -14,7 +14,8 @@ import {
   UpdateMessage,
   TrailMessage,
   ResultPayload,
-  ResourceMessage
+  ResourceMessage,
+  RadarMessage
 } from 'src/app/types/stream';
 import { SimplifyAP } from 'simplify-ts';
 import { Convert } from 'src/app/lib/convert';
@@ -809,6 +810,9 @@ function processVessel(d: SKVessel, v: any, isSelf = false) {
       d.resourceUpdates.push(v);
       // emit immediate resource update for single path
       processResourceUpdate(v);
+    } else if (v.path.startsWith('radars')) {
+      // emit immediate radar update for single path
+      processRadarUpdate(v);
     } else if (v.path.startsWith('navigation.racing')) {
       d.properties[v.path] = v.value;
     } else if (v.path === 'performance.beatAngle') {
@@ -831,6 +835,15 @@ function processVessel(d: SKVessel, v: any, isSelf = false) {
       } else if (v.path.includes('arrivalCircle')) {
         d.courseApi.arrivalCircle = v.value;
       }
+    }
+    // ** radar data
+    else if (v.path.startsWith('radars.')) {
+      const pk = v.path.split('.');
+      const p = pk.slice(2).join('.');
+      if (!d.radars[pk[1]]) {
+        d.radars[pk[1]] = {};
+      }
+      d.radars[pk[1]][p] = v.value;
     }
     // ** record received preferred path names for selection
     const cp =
@@ -1008,6 +1021,18 @@ function processVessel(d: SKVessel, v: any, isSelf = false) {
       GeoUtils.rhumbDestination(d.position, cog, cvlen)
     ];
   }
+}
+
+// process radar messages **
+function processRadarUpdate(v: PathValue) {
+  const msg: ResourceMessage = new RadarMessage();
+  msg.playback = playbackMode;
+  msg.result = {
+    path: v.path,
+    value: v.value,
+    sourceRef: $source
+  };
+  postMessage(msg);
 }
 
 // process resources messages **
