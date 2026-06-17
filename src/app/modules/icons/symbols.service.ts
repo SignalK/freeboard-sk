@@ -12,8 +12,11 @@ import { AppIconDef, getBuiltinIconIds } from './app.icons';
 export const FALLBACK_ICON = 'no-such-symbol';
 
 // Freeboard's own vendor namespace. A symbol whose alias is `fsk:<built-in-id>`
-// overrides that built-in icon. `custom:<id>` symbols are offered as new
-// user-defined symbols. All other alias namespaces are ignored by Freeboard.
+// overrides that built-in icon, and a bare id resolves to that override when one
+// exists. `custom:<id>` symbols are offered as new user-defined symbols. A symbol
+// in any other namespace still renders by its exact alias (the image is shared
+// across apps); it is just never offered in a picker. An explicit `default:<id>`
+// always forces the bundled built-in, ignoring any `fsk:` override.
 export const FSK_NS = 'fsk';
 export const CUSTOM_NS = 'custom';
 
@@ -92,32 +95,37 @@ export class SymbolService implements SymbolRegistryLike {
     }
   }
 
-  // Register each of a symbol's relevant aliases. `fsk:<id>` overrides built-in
-  // `<id>`; `custom:<id>` is a user symbol; other namespaces are ignored.
+  // Index every alias of every namespace so a stored reference renders as named:
+  // the symbol image is shared across apps, so an icon another app wrote
+  // (garmin:anchor, a plugin's my-plugin:icon, …) must still draw. Only the
+  // built-in override table (`fsk:`) and the user-symbol pickers (`custom:`) are
+  // namespace-scoped; every other namespace renders but is never offered.
   private indexSymbol(sym: SymbolResource): void {
     for (const aliasStr of sym.alias) {
       const { namespace, id } = parseRef(aliasStr);
       if (!namespace || !id) continue;
 
+      const ref = `${namespace}:${id}`;
+      // `namespace:id` is globally unique per the spec, so the first alias wins.
+      if (this.byRef.has(ref)) continue;
+      const idx = this.toIndexed(sym, ref);
+      this.registerMaterial(namespace, id, sym.url);
+      this.registerMarker(ref, idx); // qualified render ref
+      this.byRef.set(ref, idx);
+
       if (namespace === FSK_NS) {
-        const ref = `${FSK_NS}:${id}`;
-        const idx = this.toIndexed(sym, ref);
-        this.registerMaterial(FSK_NS, id, sym.url);
-        this.registerMarker(ref, idx); // qualified render ref
         this.registerMarker(id, idx); // bare built-in id -> override (map markers)
-        this.byRef.set(ref, idx);
         if (!this.overrides.has(id)) this.overrides.set(id, idx);
       } else if (namespace === CUSTOM_NS) {
-        const ref = `${CUSTOM_NS}:${id}`;
-        if (this.byRef.has(ref)) continue;
-        const idx = this.toIndexed(sym, ref);
-        this.registerMaterial(CUSTOM_NS, id, sym.url);
-        this.registerMarker(ref, idx);
-        this.byRef.set(ref, idx);
         this.userSymbols.push(idx);
       }
-      // other namespaces (garmin, opencpn, user, …) are not used by Freeboard
     }
+  }
+
+  // The two namespaces Freeboard adopts (its own vendor table plus user symbols).
+  // Rendering is namespace-agnostic, but offering and GPX auto-mapping are not.
+  private isAdoptedRef(ref: string): boolean {
+    return ref.startsWith(`${FSK_NS}:`) || ref.startsWith(`${CUSTOM_NS}:`);
   }
 
   private toIndexed(sym: SymbolResource, ref: string): IndexedSymbol {
@@ -215,9 +223,11 @@ export class SymbolService implements SymbolRegistryLike {
    */
   resolveGpxSym(sym: string): string | null {
     if (!sym) return null;
-    // 1. gpxSym exact match.
+    // 1. gpxSym exact match. Auto-mapping only ever picks an adopted symbol
+    // (fsk: or custom:), never a foreign one the user cannot re-pick in the UI.
     let fallback: string | null = null;
     for (const [ref, s] of this.byRef.entries()) {
+      if (!this.isAdoptedRef(ref)) continue;
       if (s.gpxSym === sym) {
         if (ref.startsWith(`${CUSTOM_NS}:`)) return ref;
         fallback = fallback ?? ref;
@@ -226,6 +236,7 @@ export class SymbolService implements SymbolRegistryLike {
     if (fallback) return fallback;
     // 2. local id exact match.
     for (const ref of this.byRef.keys()) {
+      if (!this.isAdoptedRef(ref)) continue;
       const id = ref.slice(ref.indexOf(':') + 1);
       if (id === sym) {
         if (ref.startsWith(`${CUSTOM_NS}:`)) return ref;

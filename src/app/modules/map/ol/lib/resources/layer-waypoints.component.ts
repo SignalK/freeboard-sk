@@ -79,7 +79,7 @@ export class FreeboardWaypointLayerComponent extends FBFeatureLayerComponent {
   // build waypoint style
   buildStyle(id: string, wpt: SKWaypoint): Style {
     const icon = this.mapImages.getWaypoint(
-      wpt.type ?? 'default',
+      wpt.type || 'waypoint',
       wpt.feature.properties?.skIcon
     );
     if (icon && typeof this.waypointStyles === 'undefined') {
