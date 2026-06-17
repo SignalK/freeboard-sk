@@ -86,6 +86,7 @@ export interface IAppConfig {
       parameters: string | null;
       favourites: string[];
     };
+    preferInfoPanel: boolean;
   };
   units: {
     distance: DistanceUnitDef;
@@ -193,6 +194,7 @@ export interface IAppConfig {
   };
   radars: {
     deviceId: string;
+    opacity: number;
   };
   experiments: boolean;
   anchor: {

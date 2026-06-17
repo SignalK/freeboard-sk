@@ -7,10 +7,11 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
+import { MatSliderModule } from '@angular/material/slider';
 
 import { AppFacade } from 'src/app/app.facade';
 import { AppIconDef } from 'src/app/modules/icons';
-import { ActiveRadar } from '../radar-api.service';
+import { ActiveRadar, RadarAPIService } from '../radar-api.service';
 
 @Component({
   selector: 'radar-panel',
@@ -22,7 +23,8 @@ import { ActiveRadar } from '../radar-api.service';
     MatFormFieldModule,
     MatInputModule,
     MatSelectModule,
-    MatButtonToggleModule
+    MatButtonToggleModule,
+    MatSliderModule
   ],
   templateUrl: `radar-panel.html`,
   styles: [
@@ -44,13 +46,18 @@ export class RadarPanel {
 
   protected icon: AppIconDef;
   protected app = inject(AppFacade);
+  protected radarApi = inject(RadarAPIService);
 
-  protected forceReadOnly = true;
+  protected forceReadOnly = false;
 
   constructor() {
     effect(() => {
       this.radar();
     });
+  }
+
+  ngOnDestroy() {
+    this.app.saveConfig();
   }
 
   protected handleConnect(e: boolean) {
@@ -59,5 +66,18 @@ export class RadarPanel {
     } else {
       this.disconnect.emit();
     }
+  }
+
+  protected handleOpacity(e: Event) {
+    this.app.config.radars.opacity = Number(
+      (e.target as HTMLInputElement).value
+    );
+  }
+
+  protected handleControl(controlId: string, value: any) {
+    console.log(controlId, value);
+    this.radarApi
+      .setControl(undefined, controlId, value)
+      .catch((err) => this.app.parseHttpErrorResponse(err));
   }
 }

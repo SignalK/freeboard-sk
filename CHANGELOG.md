@@ -1,8 +1,8 @@
 # CHANGELOG: Freeboard
 
-### v2.24.0-beta.4
+### v2.24.0
 
-- **Added**: Preview Radar API support - Enable toggle on/off of radar overlay.
+- **Added**: Radar API support - Enable toggle on/off of radar overlay.
 - **Update**: Improve custom resource selection probes after connection to server (#377)
 - **Added**: Ability to select waypoint icon for more waypoint types (#378)
 - **Update**: Add `dive-site` POI icon (#379)
@@ -15,12 +15,5 @@
 - **Fix**: Issue where multiple chart opacity dialogs could be opened (#390)
 - **update**: Refactor info-panel open / close triggers (#391)
 - **Update**: Re-position info-panel to right side of screen.
-
-
-### v2.23.0
-
-- **New**: Information panel providing a more complete display of resource details and actions. Includes support for displaying formatted markdown content in resource descriptons. (#373)
-- **Added**: Settings to enable configuration COG and Heading line styles. (#375)  
-- **Fix**: S-57 popover to tolerate chart attributes in differing formats. (#372)  
-
+- **Added**: Configuration setting to prefer use of info-panel. (#397)
 

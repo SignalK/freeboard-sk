@@ -32,6 +32,25 @@
         {{radar()?.device?.brand}}
       </div>
     </div>
+    <div style="display: flex">
+      <div style="flex: 1; padding-top: 1em">Opacity</div>
+      <div style="flex: 1 1 auto">
+        <mat-slider
+          style="width: stretch"
+          [min]="0"
+          [max]="1"
+          [step]="0.1"
+          showTickMarks
+          discrete
+        >
+          <input
+            matSliderThumb
+            [value]="app.config.radars.opacity"
+            (input)="handleOpacity($event)"
+          />
+        </mat-slider>
+      </div>
+    </div>
   </div>
 
   <!-- Controls -->
@@ -55,6 +74,7 @@
           <mat-select
             [disabled]="cdef.isReadOnly || !app.uiCtrl().radarLayer || forceReadOnly"
             [value]="control[1].value"
+            (selectionChange)="handleControl(control[0], $event.value)"
           >
             @for(i of cdef.validValues; track i) {
             <mat-option [value]="i">

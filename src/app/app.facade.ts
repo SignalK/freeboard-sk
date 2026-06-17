@@ -337,7 +337,11 @@ export class AppFacade extends InfoService {
    */
   public useInfoPanel(): boolean {
     const mediaQuery = window.matchMedia('(max-width: 760px)');
-    return !mediaQuery.matches && !this.instrumentPanel().open;
+    return (
+      !mediaQuery.matches &&
+      !this.instrumentPanel().open &&
+      this.config.display.preferInfoPanel
+    );
   }
 
   /**

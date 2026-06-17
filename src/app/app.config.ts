@@ -61,8 +61,13 @@ export function cleanConfig(
         startOnOpen: true,
         parameters: null,
         favourites: []
-      }
+      },
+      preferInfoPanel: true
     };
+  } else {
+    if (typeof settings.display.preferInfoPanel === 'undefined') {
+      settings.display.preferInfoPanel = true;
+    }
   }
 
   if (typeof settings.units.temperature === 'undefined') {
@@ -298,8 +303,13 @@ export function cleanConfig(
 
   if (typeof settings.radars === 'undefined') {
     settings.radars = {
-      deviceId: ''
+      deviceId: '',
+      opacity: 1
     };
+  } else {
+    if (typeof settings.radars.opacity === 'undefined') {
+      settings.radars.opacity = 1;
+    }
   }
 
   // ************************************************
@@ -403,7 +413,8 @@ export function defaultConfig(): IAppConfig {
         startOnOpen: true,
         parameters: null,
         favourites: []
-      }
+      },
+      preferInfoPanel: true
     },
     units: {
       distance: 'kilometer',
@@ -527,7 +538,8 @@ export function defaultConfig(): IAppConfig {
       rodeLength: 50 // rode length setting
     },
     radars: {
-      deviceId: undefined
+      deviceId: undefined,
+      opacity: 1
     },
     experiments: false,
     selections: {

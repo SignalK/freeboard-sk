@@ -289,4 +289,26 @@ export class RadarAPIService {
         });
     });
   }
+
+  /**
+   * Send new control value to server.
+   */
+  public setControl(
+    radarId: string = this._selectedRadar(),
+    controlId: string,
+    value: any
+  ): Promise<void> {
+    return new Promise((resolve, reject) => {
+      this.signalk.api
+        .put(
+          this.app.skApiVersion,
+          `${this.getPath(radarId)}/controls/${radarId}/${controlId}`,
+          { value: value }
+        )
+        .subscribe({
+          next: () => resolve(),
+          error: () => reject(new Error('Error setting Radar control value!'))
+        });
+    });
+  }
 }

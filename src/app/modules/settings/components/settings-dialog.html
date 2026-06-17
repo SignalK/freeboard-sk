@@ -73,6 +73,16 @@
                       Allow Device to Sleep
                     </mat-checkbox>
                   </div>
+                  <div class="setting-card-row-item">
+                    <mat-checkbox
+                      [(ngModel)]="facade.settings.display.preferInfoPanel"
+                      (change)="persistModel()"
+                      label="after"
+                      matTooltip="Un-check to prefer dialogs over the information panel"
+                    >
+                      Prefer Info-Panel
+                    </mat-checkbox>
+                  </div>
                 </div>
               </mat-card-content>
             </mat-card>

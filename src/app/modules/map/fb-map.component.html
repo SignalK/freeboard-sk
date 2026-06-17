@@ -197,6 +197,7 @@
       [heading]="dfeat.self.orientation"
       [mapZoom]="mapZoomLevel()"
       [zIndex]="99"
+      [opacity]="app.config.radars.opacity"
       (onError)="handleRadarError($event)"
     >
     </fb-radar>
