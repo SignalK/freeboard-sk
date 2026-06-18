@@ -14,14 +14,9 @@ const WHATS_NEW = [
   },
   {
     type: 'signalk-server-node',
-    title: 'Resource Panel',
+    title: 'Waypoint Icons',
     message: `
-        New resource information panel display available on 
-        larger screen devices that provides access to operations,
-        related items and support for markdown formatting in
-        resource descriptions.
-        <br>&nbsp;<br>
-        Supports Route, Waypoint, Note and Region resource types.
+        You can now change waypoint icons in the Waypoint Details screen.
       `
   }
 ];

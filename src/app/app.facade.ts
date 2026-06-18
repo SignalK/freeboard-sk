@@ -69,7 +69,7 @@ const FSK: AppInfoDef = {
   id: 'freeboard',
   name: 'Freeboard-SK',
   description: `Signal K Chart Plotter.`,
-  version: '2.24.0-beta.4',
+  version: '2.24.0',
   url: 'https://github.com/signalk/freeboard-sk',
   logo: './assets/img/app_logo.png'
 };
@@ -78,7 +78,7 @@ const SERVER_APPDATA_VERSION = '1.0.0';
 
 // Development SK server host details
 const DEV_SERVER = {
-  host: '192.168.86.32', //'localhost', //'192.168.86.32', // host name || ip address
+  host: 'localhost', // host name || ip address
   port: 3000, // port number
   ssl: false
 };

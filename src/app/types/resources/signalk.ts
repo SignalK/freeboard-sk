@@ -66,9 +66,6 @@ export interface ChartResource {
   scale?: number;
   url?: string;
   layers?: string[];
-  // Tile edge length in pixels (e.g. 512). Omitted means the conventional
-  // 256. Raster tile sources must be built on the matching grid or 512px
-  // tiles render at the wrong scale.
   tileSize?: number;
   defaultOpacity?: number;
   proxy?: boolean;

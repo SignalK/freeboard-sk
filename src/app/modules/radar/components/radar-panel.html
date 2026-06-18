@@ -66,9 +66,20 @@
     this.radar().capabilities.controls[control[0]];
     <div class="kvRow">
       <div style="flex: 2; text-align: right">
-        <mat-form-field style="width: stretch" [hintLabel]="cdef.description">
+        <mat-form-field style="width: stretch" [matTooltip]="cdef.description">
           <mat-label> {{cdef.name}} </mat-label>
-
+          <mat-hint
+            style="
+              overflow: hidden;
+              display: -webkit-box;
+              -webkit-box-orient: vertical;
+              -webkit-line-clamp: 1;
+              line-clamp: 1;
+              text-overflow: ellipsis;
+            "
+          >
+            {{cdef.description}}
+          </mat-hint>
           @if(cdef.dataType === 'enum' || (cdef.dataType === 'number' &&
           cdef.validValues)) {
           <mat-select
