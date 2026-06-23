@@ -9,7 +9,7 @@
   ],
   "signalk": {
     "displayName": "Freeboard-SK",
-    "appIcon": "assets/icons/icon-72x72.png",
+    "appIcon": "public/assets/icons/icon-72x72.png",
     "recommends": [
       "signalk-charts-provider-simple",
       "signalk-flags",
