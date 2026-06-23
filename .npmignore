@@ -18,6 +18,5 @@ tsconfig.worker.json
 vitest-base.config.ts
 vitest-setup.js
 webpack.config.js
-CHANGELOG.md
 .angular
 .github
