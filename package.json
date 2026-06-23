@@ -7,9 +7,16 @@
     "signalk-node-server-plugin",
     "signalk-category-chart-plotters"
   ],
+  "files": [
+    "plugin",
+    "public",
+    "src/assets/icons/icon-192x192.png",
+    "docs/screenshots",
+    "CHANGELOG.md"
+  ],
   "signalk": {
     "displayName": "Freeboard-SK",
-    "appIcon": "public/assets/icons/icon-72x72.png",
+    "appIcon": "src/assets/icons/icon-192x192.png",
     "recommends": [
       "signalk-charts-provider-simple",
       "signalk-flags",
