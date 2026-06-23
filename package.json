@@ -8,8 +8,17 @@
     "signalk-category-chart-plotters"
   ],
   "signalk": {
+    "displayName": "Freeboard-SK",
     "appIcon": "./assets/icons/icon-72x72.png",
-    "displayName": "Freeboard-SK"
+    "recommends": [
+      "signalk-charts-provider-simple",
+      "signalk-flags",
+      "signalk-buddylist-plugin",
+      "signalk-restricted-areas"
+    ]
+  },
+  "engines": {
+    "node": ">=18"
   },
   "repository": "https://github.com/SignalK/freeboard-sk",
   "main": "plugin/index.js",
