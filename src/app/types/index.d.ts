@@ -232,6 +232,9 @@ export interface IAppConfig {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     resourceSets: { [key: string]: any }; // additional resources
     infolayers: string[];
+    weatherRadarEnabled: boolean;
+    weatherWindEnabled: boolean;
+    oceanCurrentsEnabled: boolean;
   };
 }
 
