@@ -7,7 +7,9 @@ import {
   input,
   effect,
   signal,
-  inject
+  inject,
+  ChangeDetectionStrategy,
+  NgZone
 } from '@angular/core';
 
 import { MatButtonModule } from '@angular/material/button';
@@ -193,7 +195,8 @@ const SoundFiles = {
       }
     }
   `,
-  styles: []
+  styles: [],
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class AlertComponent {
   alert = input<AlertData>();
@@ -219,6 +222,7 @@ export class AlertComponent {
   protected app = inject(AppFacade);
   private notiMgr = inject(NotificationManager);
   protected course = inject(CourseService);
+  private ngZone = inject(NgZone);
 
   constructor() {
     effect(() => {
@@ -240,15 +244,20 @@ export class AlertComponent {
         !['emergency', 'alarm'].includes(this.alert().priority) &&
         !this.showAutoNextPoint
       ) {
-        // hide after set time secs
-        this.timerRef = setInterval(() => {
-          if (this.progressValue() > 0) {
-            this.progressValue.update((value) => value - 4);
-          } else {
-            this.hidden.set(true);
-            clearInterval(this.timerRef);
-          }
-        }, 100);
+        // hide after set time secs. Run the 100ms ticker OUTSIDE the Angular
+        // zone so it doesn't trigger an app-wide change detection 10x/sec; the
+        // progressValue/hidden signal writes mark this OnPush component for
+        // check on their own.
+        this.ngZone.runOutsideAngular(() => {
+          this.timerRef = setInterval(() => {
+            if (this.progressValue() > 0) {
+              this.progressValue.update((value) => value - 4);
+            } else {
+              this.hidden.set(true);
+              clearInterval(this.timerRef);
+            }
+          }, 100);
+        });
       }
     });
   }
