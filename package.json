@@ -10,13 +10,13 @@
   "files": [
     "plugin",
     "public",
-    "src/assets/icons/icon-192x192.png",
+    "assets/icons/icon-192x192.png",
     "docs/screenshots",
     "CHANGELOG.md"
   ],
   "signalk": {
     "displayName": "Freeboard-SK",
-    "appIcon": "src/assets/icons/icon-192x192.png",
+    "appIcon": "assets/icons/icon-192x192.png",
     "screenshots": [
       "./docs/screenshots/1_freeboard-sk.png"
     ],
