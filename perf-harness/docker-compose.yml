@@ -1,0 +1,16 @@
+# SignalK server for the Freeboard-SK performance harness.
+# The stock image entrypoint (startup.sh) hardcodes `--securityenabled`, which
+# forces token auth. We override the entrypoint to run the server open (no auth)
+# so the app connects headlessly and the data generator can push deltas over WS.
+# Data is seeded at runtime by perf-harness/sk-feed.mjs (self vessel + N AIS).
+services:
+  signalk:
+    image: signalk/signalk-server:latest
+    container_name: fbsk-perf-signalk
+    working_dir: /home/node/.signalk
+    entrypoint: ['/bin/sh', '-c', 'exec /home/node/signalk/node_modules/signalk-server/bin/signalk-server']
+    ports:
+      - '3010:3000'
+    volumes:
+      - ./sk-config/settings.json:/home/node/.signalk/settings.json:ro
+    restart: unless-stopped
