@@ -18,6 +18,7 @@ import { MapComponent } from '../map.component';
 import { FBChart } from 'src/app/types';
 import { initPMTilesVectorLayer } from './pmtiles-utils';
 import { extentFromBounds, resolveLayerMaxZoom } from './chart-utils';
+import { createAbortableVectorTileLoader } from './tile-loader-abort';
 
 // ** Freeboard Vector TileLayer Chart **
 @Component({
@@ -33,6 +34,7 @@ export class VectorChartLayerComponent implements OnDestroy {
   protected mapMaxZoom = input<number>();
 
   private layer: VectorTileLayer;
+  private abortPendingTileLoads?: () => void;
   private changeDetectorRef = inject(ChangeDetectorRef);
   private mapComponent = inject(MapComponent);
 
@@ -48,6 +50,8 @@ export class VectorChartLayerComponent implements OnDestroy {
   }
 
   ngOnDestroy() {
+    this.abortPendingTileLoads?.();
+    this.abortPendingTileLoads = undefined;
     const map = this.mapComponent.getMap();
     if (this.layer) {
       map.removeLayer(this.layer);
@@ -76,6 +80,8 @@ export class VectorChartLayerComponent implements OnDestroy {
       if (chart[1].url.indexOf('.pmtiles') !== -1) {
         this.layer = initPMTilesVectorLayer(chart[1], this.zIndex());
       } else {
+        const abortableLoader = createAbortableVectorTileLoader();
+        this.abortPendingTileLoads = abortableLoader.abortPending;
         this.layer = new VectorTileLayer({
           source: new VectorTileSource({
             url: chart[1].url,
@@ -85,7 +91,8 @@ export class VectorChartLayerComponent implements OnDestroy {
                   ? chart[1].layers
                   : null
             }),
-            maxZoom: maxZ
+            maxZoom: maxZ,
+            tileLoadFunction: abortableLoader.tileLoadFunction
           }),
           preload: 0,
           zIndex: this.zIndex(),
@@ -100,7 +107,7 @@ export class VectorChartLayerComponent implements OnDestroy {
         this.layer.setMaxZoom(layerMaxZ);
         this.layer.setExtent(extentFromBounds(chart[1].bounds));
         if (chart[1].style) {
-          applyStyle(this.layer as any, chart[1].style);
+          applyStyle(this.layer, chart[1].style);
         }
         this.layer.set('id', chart[0]);
         this.layer.set('chartId', chart[0]);
