@@ -66,7 +66,7 @@
     "uuid": "^11.1.0"
   },
   "devDependencies": {
-    "@angular/animations": "^21.0.5",
+    "@angular/animations": "^22.0.2",
     "@angular/build": "^21.0.3",
     "@angular/cdk": "^21.0.3",
     "@angular/cli": "^21.0.3",
