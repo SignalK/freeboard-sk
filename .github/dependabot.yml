@@ -9,6 +9,10 @@ updates:
         patterns:
           - '@angular/*'
           - '@angular-devkit/*'
+        update-types:
+          - major
+          - minor
+          - patch
       minor-and-patch:
         update-types:
           - minor
