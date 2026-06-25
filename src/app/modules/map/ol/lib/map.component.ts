@@ -19,7 +19,7 @@ import RenderEvent from 'ol/render/Event';
 import { MapService } from './map.service';
 import { MapReadyEvent } from './models';
 import { AsyncSubject } from 'rxjs';
-import { toLonLat, transformExtent } from 'ol/proj';
+import { toLonLat, transform, transformExtent } from 'ol/proj';
 import { Coordinate } from 'ol/coordinate';
 import { FeatureLike } from 'ol/Feature';
 import { Extent } from 'ol/extent';
@@ -262,7 +262,9 @@ export class MapComponent implements OnInit, OnDestroy {
 
   private emitRightClickEvent = (event: MouseEvent) => {
     event.preventDefault();
-    const c = this.map.getEventCoordinate(event);
+    // Use getEventCoordinateInternal (EPSG:3857) so the pixel lookup is
+    // correct and the lon/lat preserves the world-copy offset.
+    const c = this.map.getEventCoordinateInternal(event);
     this.mapRightClick.emit({
       features: this.map.getFeaturesAtPixel(
         this.map.getPixelFromCoordinateInternal(c),
@@ -270,7 +272,7 @@ export class MapComponent implements OnInit, OnDestroy {
           hitTolerance: this.hitTolerance
         }
       ),
-      lonlat: toLonLat(c)
+      lonlat: transform(c, 'EPSG:3857', 'EPSG:4326')
     });
   };
   private emitSingleClickEvent = (event: MapBrowserEvent<PointerEvent>) => {
@@ -286,7 +288,11 @@ export class MapComponent implements OnInit, OnDestroy {
       features: this.map.getFeaturesAtPixel(event.pixel, {
         hitTolerance: this.hitTolerance
       }),
-      lonlat: toLonLat(event.coordinate)
+      // Use raw transform (not toLonLat) so the longitude preserves the
+      // world-copy offset (e.g. 190° for world +1). This ensures that
+      // fromLonLat() in overlay.component.ts produces the correct Mercator
+      // position so OL places the popup in the world copy the user clicked.
+      lonlat: transform(event.coordinate, 'EPSG:3857', 'EPSG:4326')
     });
   }
 

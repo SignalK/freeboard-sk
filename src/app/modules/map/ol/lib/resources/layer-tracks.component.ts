@@ -9,7 +9,7 @@ import { Feature } from 'ol';
 import { Style, Text, Stroke } from 'ol/style';
 import { MultiLineString } from 'ol/geom';
 import { MapComponent } from '../map.component';
-import { fromLonLatArray, mapifyCoords } from '../util';
+import { fromLonLatArray, splitAtAntimeridian } from '../util';
 import { SKTrack } from 'src/app/modules';
 import { FBFeatureLayerComponent } from '../sk-feature.component';
 import { FBTracks } from 'src/app/types';
@@ -98,11 +98,10 @@ export class TrackLayerComponent extends FBFeatureLayerComponent {
     }
   }
 
-  // ** mapify and transform MultiLineString coordinates
+  // ** split at antimeridian and transform MultiLineString coordinates
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   parseCoordinates(mls: Array<any>) {
-    const lines = [];
-    mls.forEach((line) => lines.push(mapifyCoords(line)));
+    const lines = mls.flatMap((line) => splitAtAntimeridian(line));
     return fromLonLatArray(lines);
   }
 }

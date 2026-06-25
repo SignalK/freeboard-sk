@@ -7,12 +7,10 @@ import {
 } from '@angular/core';
 import { Feature } from 'ol';
 import { Style, Stroke, Fill, Circle, RegularShape } from 'ol/style';
-import { LineString, Point } from 'ol/geom';
-import { toLonLat } from 'ol/proj';
+import { MultiLineString, Point } from 'ol/geom';
 import { MapComponent } from '../map.component';
-import { fromLonLatArray, mapifyCoords } from '../util';
-import { getRhumbLineBearing } from 'geolib';
-import { GeolibInputCoordinates } from 'geolib/es/types';
+import { Coordinate } from '../models';
+import { fromLonLatArray, splitAtAntimeridian } from '../util';
 import { FBFeatureLayerComponent } from '../sk-feature.component';
 import { FBRoutes } from 'src/app/types';
 
@@ -62,14 +60,22 @@ export class FreeboardRouteLayerComponent extends FBFeatureLayerComponent {
     for (const r of routes) {
       if (r[2]) {
         // selected
-        const mc = mapifyCoords(r[1].feature.geometry.coordinates);
-        const c = fromLonLatArray(mc);
+        const rawCoords = r[1].feature.geometry.coordinates;
+        // Split at antimeridian: each segment stays within [-180, 180] so
+        // OL wrapX can clone every segment into all adjacent world copies.
+        const multiCoords = splitAtAntimeridian(rawCoords).map(
+          (seg) => fromLonLatArray(seg) as Coordinate[]
+        );
         const f = new Feature({
-          geometry: new LineString(c),
+          geometry: new MultiLineString(multiCoords),
           name: r[1].name
         });
         f.setId('route.' + r[0]);
         f.set('pointMetadata', r[1].feature.properties.coordinatesMeta ?? null);
+        // Store waypoint Mercator coordinates separately so buildStyle can place
+        // markers on actual waypoints without having to filter out the
+        // interpolated ±180° split endpoints from the MultiLineString.
+        f.set('waypointMercCoords', fromLonLatArray(rawCoords) as Coordinate[]);
         f.setStyle(this.buildStyle(f));
         fa.push(f);
       }
@@ -78,12 +84,28 @@ export class FreeboardRouteLayerComponent extends FBFeatureLayerComponent {
     this.updateLabels();
   }
 
+  /**
+   * Update the rendered LineString geometry after a vertex drag.
+   * Called from fb-map after each onModifyEnd while editing a route.
+   * @param routeId   The bare route UUID (without the 'route.' prefix)
+   * @param newCoords New waypoint coordinates in lon/lat (EPSG:4326)
+   */
+  updateRouteSegments(routeId: string, newCoords: Coordinate[]) {
+    const f = this.source.getFeatureById('route.' + routeId) as Feature;
+    if (f) {
+      const multiCoords = splitAtAntimeridian(newCoords).map(
+        (seg) => fromLonLatArray(seg) as Coordinate[]
+      );
+      (f.getGeometry() as MultiLineString).setCoordinates(multiCoords);
+      f.set('waypointMercCoords', fromLonLatArray(newCoords) as Coordinate[]);
+      f.setStyle(this.buildStyle(f));
+    }
+  }
+
   // Route style function
   buildStyle(feature: Feature) {
-    const geometry = feature.getGeometry() as LineString;
     const styles = [];
-    const id = (feature.getId() as string).split('.').slice(-1)[0];
-    const isActive = id === this.activeRoute;
+    const isActive = (feature.getId() as string).split('.')[1] === this.activeRoute;
     let ptFill: Fill;
 
     if (typeof this.routeStyles === 'undefined') {
@@ -115,85 +137,80 @@ export class FreeboardRouteLayerComponent extends FBFeatureLayerComponent {
       });
     }
 
-    // point styles
-    let idx = 0;
-    const l = geometry.getCoordinates().length;
-    geometry.forEachSegment((start, end) => {
-      // start point
+    // Waypoint Mercator coordinates are stored on the feature at creation/update
+    // time. They correspond to the actual route waypoints in the primary world
+    // ([-180°, 180°] → [-20037508, 20037508] m), so OL's wrapX mechanism
+    // correctly clones the resulting Point markers into every world copy.
+    const waypoints: Coordinate[] = feature.get('waypointMercCoords') ?? [];
+    const worldWidth = 2 * 20037508.3427892;
+
+    const l = waypoints.length;
+    for (let idx = 0; idx < l; idx++) {
+      const c = waypoints[idx];
       if (idx === 0) {
+        // start point
         styles.push(
           new Style({
-            geometry: new Point(start),
+            geometry: new Point(c),
             image: new Circle({
               radius: 5,
-              stroke: new Stroke({
-                width: 1,
-                color: 'white'
-              }),
+              stroke: new Stroke({ width: 1, color: 'white' }),
               fill: ptFill
             })
           })
         );
-      } else {
-        if (isActive) {
-          styles.push(
-            new Style({
-              geometry: new Point(start),
-              image: new Circle({
-                radius: 4,
-                stroke: new Stroke({
-                  width: 1,
-                  color: 'white'
-                }),
-                fill: ptFill
-              })
-            })
-          );
-        } else {
-          const d = getRhumbLineBearing(
-            toLonLat(start) as GeolibInputCoordinates,
-            toLonLat(end) as GeolibInputCoordinates
-          );
-          const rotation = (d * Math.PI) / 180;
-          styles.push(
-            new Style({
-              geometry: new Point(start),
-              image: new RegularShape({
-                radius: 6,
-                stroke: new Stroke({
-                  width: 1,
-                  color: 'white'
-                }),
-                fill: ptFill,
-                points: 3,
-                angle: 0,
-                rotateWithView: true,
-                rotation: rotation
-              })
-            })
-          );
-        }
-      }
-      // last point
-      if (idx === l - 2) {
+      } else if (idx === l - 1) {
+        // end point
         styles.push(
           new Style({
-            geometry: new Point(end),
+            geometry: new Point(c),
             image: new RegularShape({
               radius: 6,
-              stroke: new Stroke({
-                width: 1,
-                color: 'white'
-              }),
+              stroke: new Stroke({ width: 1, color: 'white' }),
               fill: ptFill,
               points: 4,
               angle: Math.PI / 4
             })
           })
         );
+      } else if (isActive) {
+        // intermediate waypoint (active route)
+        styles.push(
+          new Style({
+            geometry: new Point(c),
+            image: new Circle({
+              radius: 4,
+              stroke: new Stroke({ width: 1, color: 'white' }),
+              fill: ptFill
+            })
+          })
+        );
+      } else {
+        // intermediate waypoint (inactive): arrow pointing towards next waypoint.
+        // Compute bearing in Mercator space; detect antimeridian crossings by
+        // checking if |dx| > half a world width, and wrap accordingly so the
+        // arrow points in the correct direction of travel.
+        const prev = waypoints[idx - 1];
+        let dx = c[0] - prev[0];
+        if (dx > worldWidth / 2) dx -= worldWidth;
+        else if (dx < -worldWidth / 2) dx += worldWidth;
+        const rotation = Math.atan2(dx, c[1] - prev[1]);
+        styles.push(
+          new Style({
+            geometry: new Point(c),
+            image: new RegularShape({
+              radius: 6,
+              stroke: new Stroke({ width: 1, color: 'white' }),
+              fill: ptFill,
+              points: 3,
+              angle: 0,
+              rotateWithView: true,
+              rotation: rotation
+            })
+          })
+        );
       }
-      idx++;
-    });
+    }
     return styles;
   }
 }
