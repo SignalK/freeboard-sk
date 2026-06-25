@@ -11,3 +11,4 @@ jobs:
     uses: SignalK/signalk-server/.github/workflows/plugin-ci.yml@master
     with:
       build-command: 'npm run build:all'
+      test-command: 'npm run test:ci'
