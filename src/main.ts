@@ -8,7 +8,7 @@ import { AppComponent } from './app/app.component';
 
 bootstrapApplication(AppComponent, {
   providers: [
-    provideZoneChangeDetection(),
+    provideZoneChangeDetection({ eventCoalescing: true, runCoalescing: true }),
     provideHttpClient(withInterceptorsFromDi())
   ]
 }).catch((e) => console.log(e));

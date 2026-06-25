@@ -10,7 +10,10 @@ import {
   signal,
   input,
   effect,
-  inject
+  inject,
+  ChangeDetectionStrategy,
+  ChangeDetectorRef,
+  NgZone
 } from '@angular/core';
 
 import { MatButtonModule } from '@angular/material/button';
@@ -155,7 +158,8 @@ enum INTERACTION_MODE {
     S57PopoverComponent
   ],
   templateUrl: './fb-map.component.html',
-  styleUrls: ['./fb-map.component.css']
+  styleUrls: ['./fb-map.component.css'],
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class FBMapComponent implements OnInit, OnDestroy {
   @Input() setFocus: string;
@@ -248,11 +252,18 @@ export class FBMapComponent implements OnInit, OnDestroy {
   private saveTimer;
   private isDirty = false;
 
-  protected mouse = {
+  // Cursor position readout. A signal so the readout (and measure overlay)
+  // refresh when pointer-move runs OUTSIDE the Angular zone (see MapComponent).
+  protected mouse = signal<{
+    pixel: number[] | null;
+    coords: Position;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    xy: any;
+  }>({
     pixel: null,
     coords: [0, 0],
     xy: null
-  };
+  });
   contextMenuPosition = { x: '0px', y: '0px' };
 
   private obsList = [];
@@ -270,6 +281,8 @@ export class FBMapComponent implements OnInit, OnDestroy {
   private settings = inject(SettingsFacade);
   private bottomSheet = inject(MatBottomSheet);
   private infoPanel = inject(InfoPanelFacade);
+  private cdr = inject(ChangeDetectorRef);
+  private ngZone = inject(NgZone);
 
   constructor() {
     effect(() => {
@@ -304,6 +317,8 @@ export class FBMapComponent implements OnInit, OnDestroy {
             });
           }
         }
+        // OnPush: settings changes update plain app.config read by the template.
+        this.cdr.markForCheck();
       })
     );
   }
@@ -493,6 +508,9 @@ export class FBMapComponent implements OnInit, OnDestroy {
     if (this.movingMap) {
       this.centerVessel();
     }
+    // OnPush: this runs from the (non-Angular-event) vessels$ stream and mutates
+    // the plain `dfeat` bound to child layers, so mark for check to propagate.
+    this.cdr.markForCheck();
   }
 
   // ********** RADAR EVENT HANDLERS *****************
@@ -590,9 +608,11 @@ export class FBMapComponent implements OnInit, OnDestroy {
 
   // pointer events
   protected onMapPointerMove(e: FBPointerEvent) {
-    this.mouse.pixel = e.pixel;
-    this.mouse.xy = e.coordinate;
-    this.mouse.coords = GeoUtils.normaliseCoords(e.lonlat as Position);
+    this.mouse.set({
+      pixel: e.pixel,
+      xy: e.coordinate,
+      coords: GeoUtils.normaliseCoords(e.lonlat as Position)
+    });
     if (this.mapInteract.isMeasuring()) {
       if (
         this.mapInteract.measureGeometryType === 'LineString' &&
@@ -635,12 +655,17 @@ export class FBMapComponent implements OnInit, OnDestroy {
 
   protected onMapPointerDrag() {
     if (!this.app.config.map.lockMoveMap && this.app.uiConfig().mapMove) {
-      this.exitMovingMap.emit(true);
+      // pointer-drag runs outside the Angular zone (see MapComponent); re-enter
+      // so exiting "move map" mode propagates to the UI. Rare one-off transition.
+      this.ngZone.run(() => this.exitMovingMap.emit(true));
     }
   }
 
   protected onMapPointerDown(e: FBPointerEvent) {
-    this.mouse.coords = GeoUtils.normaliseCoords(e.lonlat as Position);
+    this.mouse.update((m) => ({
+      ...m,
+      coords: GeoUtils.normaliseCoords(e.lonlat as Position)
+    }));
     this.contextMenuPosition.x = (e as any).clientX + 'px';
     this.contextMenuPosition.y = (e as any).clientY + 'px';
   }
@@ -699,11 +724,11 @@ export class FBMapComponent implements OnInit, OnDestroy {
     e.preventDefault();
     this.contextMenuPosition.x = e.clientX + 'px';
     this.contextMenuPosition.y = e.clientY + 'px';
-    this.contextMenu.menuData = { item: this.mouse.coords };
+    this.contextMenu.menuData = { item: this.mouse().coords };
     if (this.mapInteract.isMeasuring()) {
-      this.parseClickInMeasureMode(this.mouse.xy.lonlat);
+      this.parseClickInMeasureMode(this.mouse().xy.lonlat);
     } else if (!this.modifyMode) {
-      if (!this.mouse.xy) {
+      if (!this.mouse().xy) {
         return;
       }
       this.contextMenu.openMenu();
