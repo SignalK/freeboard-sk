@@ -48,6 +48,7 @@ import { PanelContribution } from './types';
   ]
 })
 export class PlotterPanelFrame implements OnInit, OnDestroy {
+  panelKey = input.required<string>();
   extension = input.required<string>();
   panel = input.required<PanelContribution>();
 
@@ -61,12 +62,14 @@ export class PlotterPanelFrame implements OnInit, OnDestroy {
 
   ngOnInit() {
     this.url = this.sanitizer.bypassSecurityTrustResourceUrl(
-      this.panel().url ? this.service.resolveAssetUrl(this.panel().url) : 'about:blank'
+      this.panel().url
+        ? this.service.resolveAssetUrl(this.panel().url)
+        : 'about:blank'
     );
     this.detach = this.service.attachPanel(this.frame.nativeElement, {
       extension: this.extension(),
       panel: this.panel(),
-      close: () => this.service.closeVisiblePanel()
+      close: () => this.service.closePanel(this.panelKey())
     });
   }
 
@@ -102,6 +105,7 @@ export class PlotterPanelFrame implements OnInit, OnDestroy {
         @for (entry of service.openPanels(); track entry.key) {
           <div class="pe-drawer-body" [class.pe-body-hidden]="!entry.visible">
             <fb-plotterext-panel-frame
+              [panelKey]="entry.key"
               [extension]="entry.extension"
               [panel]="entry.panel"
             ></fb-plotterext-panel-frame>

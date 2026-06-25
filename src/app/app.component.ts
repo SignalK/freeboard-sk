@@ -1337,6 +1337,10 @@ export class AppComponent {
               this.app.loadUserConfigfromServer().then((loaded: boolean) => {
                 if (loaded) {
                   this.loadSymbolsThenFetchResources();
+                  // re-run plotter extension discovery now that we are
+                  // authenticated, so auth-gated extensions and the
+                  // server-stored widget layout appear without a page reload
+                  this.plotterExt.init();
                 }
               });
               if (onConnect) {

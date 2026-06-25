@@ -20,7 +20,13 @@ import {
 import { MatIconModule } from '@angular/material/icon';
 import { PlotterExtensionService } from './plotterext.service';
 import { PlotterWidgetFrame } from './widget-frame.component';
-import { ANCHOR_GRID, ANCHORS, AnchorId, PlacedWidget, parseSize } from './types';
+import {
+  ANCHOR_GRID,
+  ANCHORS,
+  AnchorId,
+  PlacedWidget,
+  parseSize
+} from './types';
 
 const HOLD_MS = 1500;
 const MOVE_SLOP_PX = 8;
@@ -278,11 +284,13 @@ export class PlotterExtensionOverlay implements OnInit, OnDestroy {
     this.cancelHold();
     if (!e.isPrimary || (e.pointerType === 'mouse' && e.button !== 0)) return;
     // Ignore presses on dialogs, menus, or other app chrome — only presses
-    // that reach the map (or empty overlay space) count.
+    // that reach the map (or empty overlay space) count. This includes the
+    // overlay's own chrome: placed widget cells (.pe-cell) and the filter-chip
+    // bar (.pe-chips, which covers the chip body, label and clear button).
     const target = e.target as HTMLElement | null;
     if (
       target?.closest(
-        '.cdk-overlay-container, mat-dialog-container, button, mat-toolbar, .pe-cell'
+        '.cdk-overlay-container, mat-dialog-container, button, mat-toolbar, .pe-cell, .pe-chips'
       )
     ) {
       return;

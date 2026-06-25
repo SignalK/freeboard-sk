@@ -23,6 +23,7 @@ import { MatDialog, MatDialogRef } from '@angular/material/dialog';
 import { firstValueFrom } from 'rxjs';
 import { SignalKClient } from 'signalk-client-angular';
 import { transformExtent } from 'ol/proj';
+import * as uuid from 'uuid';
 
 import { AppFacade } from 'src/app/app.facade';
 import { SKResourceService } from 'src/app/modules/skresources/resources.service';
@@ -59,6 +60,30 @@ import {
 const STATE_STORAGE_KEY = 'fb-plotterext-state';
 const SK_PATH_PERIOD = 1000; // default delta period (ms) for relayed paths
 
+// Recognised resources.setFilter condition operators (see ResourceFilterCondition).
+const FILTER_OPS = new Set([
+  'eq',
+  'ne',
+  'lt',
+  'lte',
+  'gt',
+  'gte',
+  'in',
+  'contains',
+  'regex',
+  'exists'
+]);
+
+// A match condition is only safe to store/evaluate if it has a string path and
+// a known operator; evalCondition() does `cond.path.split('.')`, so a malformed
+// entry (e.g. {}) would throw during change detection.
+const isValidFilterCondition = (c: unknown): boolean =>
+  !!c &&
+  typeof c === 'object' &&
+  typeof (c as { path?: unknown }).path === 'string' &&
+  (c as { path: string }).path.length > 0 &&
+  FILTER_OPS.has((c as { op?: unknown }).op as string);
+
 interface ExtensionStateStore {
   [extensionId: string]: {
     extension?: Record<string, unknown>;
@@ -82,12 +107,18 @@ export class PlotterExtensionService {
   readonly activeWidgets = signal<PlacedWidget[]>([]);
   readonly initialized = signal(false);
 
+  // Bumped on window resize so the size-derived offset computeds below — which
+  // call cellHeightPx() (reads window.innerWidth) — re-evaluate after an
+  // orientation/viewport change, not only when widget state changes.
+  private readonly viewportTick = signal(0);
+
   /**
    * Bottom offset (px) for host chrome that normally lives in the
    * bottom-right corner (Freeboard's action button): 0 when no widgets
    * occupy the bottom-right anchor, otherwise just above the occupied rows.
    */
   readonly actionButtonLift = computed(() => {
+    this.viewportTick();
     const br = this.activeWidgets().filter((p) => p.anchor === 'br');
     if (!br.length) return 0;
     const rows = br.some((p) => p.row === 0) ? 2 : 1;
@@ -101,6 +132,7 @@ export class PlotterExtensionService {
    * against the screen bottom). Mirrors actionButtonLift for the bottom-right.
    */
   readonly statusBarLift = computed(() => {
+    this.viewportTick();
     const cb = this.activeWidgets().filter((p) => p.anchor === 'cb');
     if (!cb.length) return 0;
     const rows = cb.some((p) => p.row === 0) ? 2 : 1;
@@ -116,6 +148,7 @@ export class PlotterExtensionService {
    * row 1. Mirrors actionButtonLift/statusBarLift.
    */
   readonly toolbarTopOffset = computed(() => {
+    this.viewportTick();
     const tr = this.activeWidgets().filter((p) => p.anchor === 'tr');
     if (!tr.length) return 0;
     const rows = tr.some((p) => p.row === 1) ? 2 : 1;
@@ -203,29 +236,50 @@ export class PlotterExtensionService {
     const manifest = this.manifests()[extension];
     const panel = manifest?.panels?.find((p) => p.id === panelId);
     if (!panel || panel.type !== 'iframe' || !panel.url) return false;
+    // Skip a contribution that targets a newer host API than we implement.
+    if (
+      panel.apiVersion !== undefined &&
+      panel.apiVersion !== HOST_API_VERSION
+    ) {
+      return false;
+    }
     const key = `${extension}/${panelId}`;
     this.openPanels.update((panels) => {
-      const existing = panels.find((p) => p.key === key);
-      if (existing) {
-        return panels.map((p) => ({ ...p, visible: p.key === key }));
+      // Keep the target plus any keepAlive panels; drop non-keepAlive panels
+      // that are being hidden so their iframe/timers/subscriptions are torn
+      // down (matches the documented panel lifecycle).
+      const retained = panels
+        .filter((p) => p.key === key || p.panel.lifecycle === 'keepAlive')
+        .map((p) => ({ ...p, visible: p.key === key }));
+      if (retained.some((p) => p.key === key)) {
+        return retained;
       }
-      return [
-        ...panels.map((p) => ({ ...p, visible: false })),
-        { key, extension, panel, visible: true }
-      ];
+      return [...retained, { key, extension, panel, visible: true }];
     });
     return true;
   }
 
   /** Close the visible drawer panel (hide keepAlive, destroy others). */
   closeVisiblePanel() {
+    const visible = this.openPanels().find((p) => p.visible);
+    if (visible) this.closePanel(visible.key);
+  }
+
+  /**
+   * Close a specific drawer panel by key (hide if keepAlive, destroy
+   * otherwise). Used by `ui.closePanel` so a panel — including a hidden
+   * keepAlive one — closes itself rather than whichever panel is visible.
+   */
+  closePanel(key: string) {
     this.openPanels.update((panels) => {
-      const visible = panels.find((p) => p.visible);
-      if (!visible) return panels;
-      if (visible.panel.lifecycle === 'keepAlive') {
-        return panels.map((p) => ({ ...p, visible: false }));
+      const target = panels.find((p) => p.key === key);
+      if (!target) return panels;
+      if (target.panel.lifecycle === 'keepAlive') {
+        return panels.map((p) =>
+          p.key === key ? { ...p, visible: false } : p
+        );
       }
-      return panels.filter((p) => p.key !== visible.key);
+      return panels.filter((p) => p.key !== key);
     });
   }
 
@@ -381,9 +435,7 @@ export class PlotterExtensionService {
       matches = spec.ids.includes(id);
     }
     if (matches && spec.match) {
-      matches = spec.match.every((cond) =>
-        this.evalCondition(cond, resource)
-      );
+      matches = spec.match.every((cond) => this.evalCondition(cond, resource));
     }
     return spec.mode === 'exclude' ? !matches : matches;
   }
@@ -422,15 +474,16 @@ export class PlotterExtensionService {
         );
       case 'contains':
         if (typeof value === 'string') {
-          return value
-            .toLowerCase()
-            .includes(String(cond.value).toLowerCase());
+          return value.toLowerCase().includes(String(cond.value).toLowerCase());
         }
         return Array.isArray(value) && value.includes(cond.value);
       case 'regex': {
         if (typeof value !== 'string' || typeof cond.value !== 'string') {
           return false;
         }
+        // Bound tested input length as a second ReDoS safeguard (resource
+        // fields are short; anything larger is not worth matching here).
+        if (value.length > 2000) return false;
         const re = this.compileRegex(cond.value);
         return re ? re.test(value) : false;
       }
@@ -461,7 +514,11 @@ export class PlotterExtensionService {
    * `namespace:id` values participate; everything else compares strictly.
    * `exact` opts out of the tolerance and compares strictly.
    */
-  private refEquals(stored: unknown, target: unknown, exact?: boolean): boolean {
+  private refEquals(
+    stored: unknown,
+    target: unknown,
+    exact?: boolean
+  ): boolean {
     if (stored === target) return true;
     if (exact) return false;
     // bare target id vs qualified stored reference
@@ -475,8 +532,14 @@ export class PlotterExtensionService {
     return false;
   }
 
-  /** Compile a filter regex; invalid patterns make the condition false. */
+  /**
+   * Compile a filter regex; invalid or oversized patterns make the condition
+   * false. Patterns come from extension filter specs and run synchronously in
+   * the visibleNotes computed during change detection, so the length bound
+   * limits ReDoS exposure (paired with an input-length bound at the call site).
+   */
   private compileRegex(pattern: string): RegExp | null {
+    if (pattern.length > 200) return null;
     try {
       return new RegExp(pattern);
     } catch {
@@ -503,13 +566,22 @@ export class PlotterExtensionService {
       // console handle for exercising the host API during development
       (window as unknown as Record<string, unknown>)['fbPlotterExt'] = this;
     }
+    // Recompute size-derived widget offsets on viewport/orientation changes.
+    // The service is an app-lifetime root singleton, so this listener lives for
+    // the session by design.
+    window.addEventListener('resize', () =>
+      this.viewportTick.update((n) => n + 1)
+    );
   }
 
   /** Fetch manifests. Called after the server connection is established. */
   async init(): Promise<void> {
     try {
       const response = await firstValueFrom(
-        this.signalk.api.get(this.app.skApiVersion, '/resources/plotterExtensions')
+        this.signalk.api.get(
+          this.app.skApiVersion,
+          '/resources/plotterExtensions'
+        )
       );
       const manifests: Record<string, PlotterExtensionManifest> = {};
       if (response && typeof response === 'object') {
@@ -621,7 +693,9 @@ export class PlotterExtensionService {
     const rowCount = ANCHOR_GRID[anchor].rows;
     const ascending = Array.from({ length: rowCount }, (_, i) => i);
     const rows =
-      ANCHOR_GRAVITY[anchor] === 'bottom' ? [...ascending].reverse() : ascending;
+      ANCHOR_GRAVITY[anchor] === 'bottom'
+        ? [...ascending].reverse()
+        : ascending;
     const cols = ANCHOR_COL_ORDER[anchor];
     const order: Array<{ col: number; row: number }> = [];
     for (const row of rows) {
@@ -746,9 +820,8 @@ export class PlotterExtensionService {
   ) {
     const candidates = this.addableWidgets(anchor, cell);
     if (!candidates.length) return;
-    const { PlotterAddWidgetDialog } = await import(
-      './add-widget-dialog.component'
-    );
+    const { PlotterAddWidgetDialog } =
+      await import('./add-widget-dialog.component');
     this.dialog
       .open(PlotterAddWidgetDialog, {
         data: { anchor, candidates },
@@ -777,7 +850,10 @@ export class PlotterExtensionService {
     origin: { col: number; row: number }
   ): PlacedWidget {
     const placed: PlacedWidget = {
-      instanceId: crypto.randomUUID(),
+      // uuid.v4() (not crypto.randomUUID) so placement works on plain-HTTP
+      // origins too — crypto.randomUUID is secure-context only (boat LANs
+      // are often http://<ip>).
+      instanceId: uuid.v4(),
       extension,
       widget: widget.id,
       anchor,
@@ -809,7 +885,11 @@ export class PlotterExtensionService {
         return (
           manifest &&
           this.isCompatible(manifest) &&
-          manifest.widgets?.some((w) => w.id === p.widget)
+          manifest.widgets?.some(
+            (w) =>
+              w.id === p.widget &&
+              (w.apiVersion === undefined || w.apiVersion === HOST_API_VERSION)
+          )
         );
       })
     );
@@ -825,9 +905,22 @@ export class PlotterExtensionService {
   resolveAssetUrl(url: string): string {
     const base = this.app.hostDef?.url || window.location.origin;
     try {
-      return new URL(url, base).toString();
+      const baseUrl = new URL(base);
+      const resolved = new URL(url, base);
+      // The result feeds bypassSecurityTrustResourceUrl() in the iframe hosts,
+      // so only trust http(s) assets — reject javascript:, data:, blob:, etc.
+      if (resolved.protocol !== 'http:' && resolved.protocol !== 'https:') {
+        return 'about:blank';
+      }
+      // Manifest assets are server-relative; reject anything that resolves to a
+      // different origin so a manifest cannot point the host (and its trusted
+      // RPC surface) at an external server.
+      if (resolved.origin !== baseUrl.origin) {
+        return 'about:blank';
+      }
+      return resolved.toString();
     } catch {
-      return url;
+      return 'about:blank';
     }
   }
 
@@ -851,7 +944,8 @@ export class PlotterExtensionService {
       skSubs: new Map(),
       skSubSeq: 0
     };
-    const widgetUrl = this.widgetDef(placed.extension, placed.widget)?.url ?? '';
+    const widgetUrl =
+      this.widgetDef(placed.extension, placed.widget)?.url ?? '';
     ctx.conn = new HostConnection({
       port: windowPort(iframe.contentWindow as Window, {
         origin: this.assetOrigin(widgetUrl)
@@ -1013,9 +1107,15 @@ export class PlotterExtensionService {
     const widget = this.widgetDef(placed.extension, placed.widget);
     const found = manifest?.panels?.find((p) => p.id === widget?.configPanel);
     // A widget with no usable config panel still gets a dialog so it can be
-    // removed (long-press affordance applies to every placed widget).
+    // removed (long-press affordance applies to every placed widget). A panel
+    // targeting a newer host API is treated as absent so it is not loaded.
     const panel =
-      found && found.type === 'iframe' && found.url ? found : null;
+      found &&
+      found.type === 'iframe' &&
+      found.url &&
+      (found.apiVersion === undefined || found.apiVersion === HOST_API_VERSION)
+        ? found
+        : null;
     // Deferred import avoids a service->component->service import cycle.
     import('./panel-dialog.component').then(({ PlotterPanelDialog }) => {
       const ref = this.dialog.open(PlotterPanelDialog, {
@@ -1045,7 +1145,10 @@ export class PlotterExtensionService {
    * open for that instance, otherwise open it.
    */
   toggleConfigPanel(placed: PlacedWidget) {
-    if (this.configDialogRef && this.configDialogInstance === placed.instanceId) {
+    if (
+      this.configDialogRef &&
+      this.configDialogInstance === placed.instanceId
+    ) {
       this.configDialogRef.close();
       return;
     }
@@ -1087,7 +1190,8 @@ export class PlotterExtensionService {
       scope: string | undefined
     ): Record<string, unknown> => {
       const extStore = (store[extension] = store[extension] ?? {});
-      const useInstance = (scope ?? (instanceId ? 'instance' : 'extension')) === 'instance';
+      const useInstance =
+        (scope ?? (instanceId ? 'instance' : 'extension')) === 'instance';
       if (useInstance) {
         if (!instanceId) {
           throw new RpcError('No widget instance in scope', {
@@ -1143,7 +1247,11 @@ export class PlotterExtensionService {
     };
   }
 
-  private publishToExtension(extension: string, event: string, params: unknown) {
+  private publishToExtension(
+    extension: string,
+    event: string,
+    params: unknown
+  ) {
     for (const ctx of this.contexts) {
       if (ctx.extension === extension) {
         ctx.conn.publish(event, params);
@@ -1174,7 +1282,10 @@ export class PlotterExtensionService {
           type?: string;
           query?: Record<string, unknown>;
         };
-        if (typeof type !== 'string' || !/^[A-Za-z][A-Za-z0-9_-]*$/.test(type)) {
+        if (
+          typeof type !== 'string' ||
+          !/^[A-Za-z][A-Za-z0-9_-]*$/.test(type)
+        ) {
           throw new RpcError('resources.list requires a resource type', {
             code: RPC_ERRORS.INVALID_PARAMS,
             reason: 'INVALID_TYPE'
@@ -1209,7 +1320,9 @@ export class PlotterExtensionService {
           (filter.ids !== undefined &&
             (!Array.isArray(filter.ids) ||
               !filter.ids.every((id) => typeof id === 'string'))) ||
-          (filter.match !== undefined && !Array.isArray(filter.match))
+          (filter.match !== undefined &&
+            (!Array.isArray(filter.match) ||
+              !filter.match.every(isValidFilterCondition)))
         ) {
           throw new RpcError(
             'resources.setFilter requires a type and a filter with mode plus ids and/or match',
@@ -1241,7 +1354,9 @@ export class PlotterExtensionService {
       const serialized = Array.isArray(value)
         ? JSON.stringify(value)
         : String(value);
-      parts.push(`${encodeURIComponent(key)}=${encodeURIComponent(serialized)}`);
+      parts.push(
+        `${encodeURIComponent(key)}=${encodeURIComponent(serialized)}`
+      );
     }
     return parts.length ? `?${parts.join('&')}` : '';
   }

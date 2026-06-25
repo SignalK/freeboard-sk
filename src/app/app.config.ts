@@ -301,7 +301,11 @@ export function cleanConfig(
     };
   }
 
-  if (typeof settings.plotterExtensions === 'undefined') {
+  if (
+    !settings.plotterExtensions ||
+    typeof settings.plotterExtensions !== 'object' ||
+    Array.isArray(settings.plotterExtensions)
+  ) {
     settings.plotterExtensions = {
       widgets: []
     };
