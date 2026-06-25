@@ -40,6 +40,8 @@ const OUT = process.env.OUT || path.join(__dir, 'results', `${LABEL}.json`);
 const SETTLE_MS = Number(process.env.SETTLE_MS || 9000);
 const STUB_TILES = (process.env.STUB_TILES || 'true') !== 'false';
 const ZOOM = Number(process.env.ZOOM || 15);
+const STEADY_MS = Number(process.env.STEADY_MS || 0);
+const CPU_THROTTLE = Number(process.env.CPU_THROTTLE || 1); // 1 = none; 6 ~ Pi-class
 
 const MIME = {
   '.html': 'text/html', '.js': 'text/javascript', '.mjs': 'text/javascript',
@@ -137,9 +139,16 @@ async function run() {
   const { server, getWsUpgrades } = await startServer(BUILD_DIR, PORT, `http://${SKHOST}:${SKPORT}`);
   console.error(`[profile] serving ${BUILD_DIR} on :${PORT} (proxy -> ${SKHOST}:${SKPORT})  label=${LABEL}  headless=${HEADLESS}`);
 
+  // Headless can't reach the GPU reliably, so we fall back to SwiftShader
+  // (software GL) there — but that makes canvas rasterisation CPU-bound and
+  // dominate, masking JS-side wins. Run headed (HEADLESS=false) to use the real
+  // GPU and get real-world render performance.
+  const glArgs = HEADLESS
+    ? ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader']
+    : [];
   const browser = await chromium.launch({
     headless: HEADLESS,
-    args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--no-sandbox']
+    args: [...glArgs, '--no-sandbox']
   });
   const context = await browser.newContext({ viewport: { width: 1400, height: 900 }, deviceScaleFactor: 1 });
   await context.addInitScript(INIT_PROBE);
@@ -164,6 +173,13 @@ async function run() {
   page.on('console', (m) => { if (m.type() === 'error') consoleErrors.push(m.text()); });
   const client = await context.newCDPSession(page);
   await client.send('Performance.enable');
+  // Simulate low-power hardware (e.g. a Raspberry Pi / tablet) so change-detection
+  // overhead actually competes for the main thread, the way it does on the devices
+  // freeboard-sk commonly runs on.
+  if (CPU_THROTTLE > 1) {
+    await client.send('Emulation.setCPUThrottlingRate', { rate: CPU_THROTTLE });
+    console.error(`[profile] CPU throttled ${CPU_THROTTLE}x`);
+  }
 
   // same origin as the proxy => no host/port params, no CORS.
   // perfprobe => main.ts installs window.__cd (change-detection pass counter).
@@ -197,6 +213,25 @@ async function run() {
 
   // locate map centre (viewport)
   const cx = 700, cy = 450;
+
+  // ---- optional steady-state window (no interaction): isolates the per-tick
+  // data->render cost (e.g. AIS re-styling) from interaction. ----
+  let steady = null;
+  if (STEADY_MS > 0) {
+    const sBefore = await cdpMetrics(client);
+    await page.evaluate(() => window.__perf.mark());
+    await page.waitForTimeout(STEADY_MS);
+    const sProbe = await page.evaluate(() => window.__perf.collect());
+    const sAfter = await cdpMetrics(client);
+    steady = {
+      windowMs: STEADY_MS,
+      scriptSec: +(sAfter.ScriptDuration - sBefore.ScriptDuration).toFixed(3),
+      longtasks: sProbe.longtasks,
+      longFrames: sProbe.longFrames,
+      maxFrameMs: sProbe.maxFrameMs
+    };
+    console.error(`[profile] steady: scriptSec=${steady.scriptSec} longFrames=${steady.longFrames} maxFrameMs=${steady.maxFrameMs} longtasks=${steady.longtasks.count}`);
+  }
 
   // ---- measured gesture window ----
   const before = await cdpMetrics(client);
@@ -244,6 +279,7 @@ async function run() {
     dialogPresent,
     streamConnections: getWsUpgrades(),
     cdTicks,
+    steady,
     cdp: { scriptSec: dScript, layoutSec: dLayout, recalcStyleSec: dRecalc, taskSec: dTask },
     probe,
     consoleErrorCount: consoleErrors.length,

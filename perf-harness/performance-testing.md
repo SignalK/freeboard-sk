@@ -35,13 +35,15 @@ Everything lives in `perf-harness/`. It is self-contained (its own
 | `probe.fps` | Probe rAF cadence | higher |
 | `streamConnections` | WS stream connections (should be `1` = connected) | — |
 
-> **Read the numbers as relative, not absolute.** Headless Chromium uses
+> **Run headed for render/frame measurements.** Headless Chromium forces
 > **software GL** (SwiftShader), so OpenLayers canvas rasterisation is far slower
-> than on real GPU hardware and dominates the absolute timings. The app also sets
-> `[enableAnimation]="false"` on the map view, so there is no multi-frame zoom
-> animation. Both facts compress render-bound metrics; the **baseline→candidate
-> delta** on the same setup is the signal. `cdTicks` is the cleanest metric for
-> change-detection work because it is independent of render cost.
+> than on a real GPU and dominates the absolute timings — it both masks JS-side
+> wins and inflates frame times. Use `HEADLESS=false` (real GPU), and
+> `CPU_THROTTLE=6` to emulate the low-power hardware Freeboard targets. The app
+> also sets `[enableAnimation]="false"`, so there is no multi-frame zoom
+> animation. `cdTicks` is render-independent and the cleanest change-detection
+> metric in any mode. (We learned this the hard way — see the methodology caveat
+> in the Tier-1 results below.)
 
 ---
 
@@ -127,7 +129,9 @@ LABEL=mybuild BUILD_DIR=../public ZOOM=15 node profile.mjs   # writes results/my
 | `BUILD_DIR` | `../public` | built app dir to serve |
 | `ZOOM` | 15 | initial map zoom |
 | `SETTLE_MS` | 9000 | wait after load for connect + first render |
-| `HEADLESS` | true | set `false` to watch the browser |
+| `HEADLESS` | true | `false` runs **headed on the real GPU** — use this for render/frame measurements (see caveat above); headless forces SwiftShader |
+| `CPU_THROTTLE` | 1 | CDP CPU slowdown factor; `6` ≈ a Raspberry Pi / tablet (the low-power hardware Freeboard targets) |
+| `STEADY_MS` | 0 | if > 0, also measure a no-interaction window of this length (isolates per-tick data→render cost from interaction) |
 | `STUB_TILES` | true | serve a stub tile for external map tiles (offline + deterministic) |
 
 The profiler suppresses the first-run onboarding (by pre-seeding the stored app
@@ -178,33 +182,40 @@ Without the probe, `cdTicks` is reported as `-1` and the other metrics still wor
 
 ## Results — Tier 1 (change-detection containment)
 
-_Filled in by the harness; see `results/comparison.json`._
-
-Setup: 50 AIS targets @ 1 Hz, zoom 15, 3 repeats, headless software-GL.
-Median over 3 runs (per-run values were tight, e.g. CD passes baseline
-1140/1076/1103 vs candidate 268/313/271):
+**Architectural metric** (render-independent) — change-detection passes during
+the gesture, counted via `NgZone.onMicrotaskEmpty`:
 
 | metric | baseline | tier1 | Δ |
 |---|---:|---:|---:|
-| **CD passes during gesture** | **1103** | **271** | **−75.4%** |
-| CDP scriptSec | 0.277 | 0.264 | −4.7% |
-| CDP taskSec | 0.515 | 0.497 | −3.5% |
-| maxFrameMs (worst frame) | 291 | 237 | −18.6% |
-| fps (probe rAF) | 12.4 | 13.0 | +4.8% |
-| longFrames / gestureMs | ~flat | ~flat | render-bound |
+| **CD passes during gesture** | **1103** | **271** | **−75%** |
 
-**Headline: Tier 1 eliminates ~75% of change-detection passes during a
-pan/zoom/cursor interaction** — the OpenLayers render loop and pointer handlers
-now run outside the Angular zone, and `fb-map` is OnPush. Worst-case frame time
-also drops ~19%.
+The OpenLayers render loop and pointer handlers no longer drive app-wide change
+detection. Per-run values were tight (baseline 1140/1076/1103 vs 268/313/271).
 
-Interpretation: the change-detection-bound metrics (`cdTicks`, `scriptSec`,
-worst-case `maxFrameMs`) improve, while render-bound metrics (`longFrames`,
-`gestureMs`) barely move because software-GL rasterisation of 50 AIS targets
-dominates this environment. On real GPU hardware, where rendering is cheap and CD
-dominates the main thread, the Tier-1 win is proportionally larger — confirm with
-Angular DevTools Profiler on a device (record a pan/zoom; CD cycles per frame
-should drop to ~0 during the gesture).
+**Real-world effect** (headed, real GPU — `HEADLESS=false`). Each CD pass is cheap
+(the map subtree is OnPush), so the 75% reduction is a modest main-thread saving,
+not a dramatic frame win:
+
+| scenario | metric | baseline | tier1 |
+|---|---|---:|---:|
+| fast desktop, 300 AIS | gesture scriptSec | 2.35 | 2.22 (−5%) |
+| | fps / worst-frame | 105 / 40 ms | 105 / 40 ms (already smooth) |
+| **6× CPU throttle (≈ Pi/tablet), 200 AIS** | gesture scriptSec | 8.97 | 8.27 (−8%) |
+| | **fps** | 36.8 | **39.4 (+7%)** |
+| | gesture wall-time | 13.9 s | 13.1 s (−5%) |
+
+**Methodology caveat (important):** an earlier version of this section quoted a
+"−19% worst-frame" from a **headless software-GL** run. That was a *rendering*
+artifact — SwiftShader rasterisation dominated and was wrongly attributed to the
+CD change. Re-measured **headed (real GPU)**, Tier 1 produces no visible frame
+change on a fast desktop (both already smooth) and a modest, real improvement on
+**CPU-throttled / low-power hardware** — which is where Freeboard usually runs.
+**Use `HEADLESS=false` (and `CPU_THROTTLE=6` to emulate weak hardware) for any
+render/frame measurement; headless software-GL masks JS-side wins and inflates
+frame times.**
+
+Reproduce: build both variants (`./build-variants.sh`), then e.g.
+`AIS_COUNT=200 HEADLESS=false CPU_THROTTLE=6 SETTLE_MS=16000 BUILD_DIR=builds/tier1 node profile.mjs`.
 
 ---
 
