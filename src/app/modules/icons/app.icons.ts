@@ -12,6 +12,7 @@ import { PoiIcons } from './poi';
 import { AtoNsType1 } from './atons';
 import { WaypointIcons, getWaypointDefs } from './waypoints';
 import { VesselAisIcons, AIS_TYPE_IDS } from './vessels';
+import { RESERVED_DEFAULT_NS } from './symbol-ref';
 
 // ---- Module-level hook for SymbolService ----
 // SymbolService calls setSymbolRegistry(this) after load() so that the pure
@@ -193,11 +194,13 @@ export const getResourceIcon = (
         name: undefined
       };
     }
-    // Only the 'waypoint' type participates in symbol overrides; other types
-    // (start-pin, pseudoaton, …) always render their built-in icon. Ignore the
+    // The 'waypoint' type — and typeless resources, treated as generic
+    // waypoints — participate in symbol overrides; other types (start-pin,
+    // pseudoaton, …) always render their built-in icon. Ignore the
     // 'no-such-symbol' fallback so an unresolved/foreign value (e.g. a GPX
     // <type>) falls back to the default waypoint icon, not the missing marker.
-    if (_symbolRegistry && wptType === 'waypoint') {
+    const isGenericWaypoint = !wptType || wptType === 'waypoint';
+    if (_symbolRegistry && isGenericWaypoint) {
       const resolved = _symbolRegistry.resolveDisplayIcon(wid);
       if (resolved && resolved.svgIcon !== 'no-such-symbol') {
         return { class: undefined, ...resolved, name: undefined };
@@ -324,6 +327,21 @@ export const getAisIcon = (id: number | string): AppIconDef => {
   }
 };
 
+// Namespaces whose local id can shadow a built-in icon — so the ref is already
+// represented by the resolved built-in entry and must not be offered twice.
+// Other namespaces (notably `custom:` user symbols) are always distinct, even
+// when their local id collides with a built-in name, and must stay selectable.
+// ('fsk' mirrors FSK_NS in symbols.service; inlined to avoid a circular import.)
+const BUILTIN_SHADOW_NS = new Set(['', RESERVED_DEFAULT_NS, 'fsk']);
+
+/** True when `ref` duplicates a built-in already listed via its resolved entry. */
+const shadowsBuiltin = (ref: string, builtins: Set<string>): boolean => {
+  const idx = ref.indexOf(':');
+  const namespace = idx === -1 ? '' : ref.slice(0, idx);
+  const id = idx === -1 ? ref : ref.slice(idx + 1);
+  return BUILTIN_SHADOW_NS.has(namespace) && builtins.has(id);
+};
+
 /**
  * @description Return a list of Note icon selection options.
  * Built-in POIs are shown resolved: an overridden POI shows its override and the
@@ -347,9 +365,7 @@ export const selListNoteIcons = (
 
   if (_symbolRegistry) {
     const builtins = getBuiltinIconIds();
-    const localId = (ref: string) =>
-      ref.includes(':') ? ref.slice(ref.indexOf(':') + 1) : ref;
-    const isNewId = (i: { id: string }) => !builtins.has(localId(i.id));
+    const isNewId = (i: { id: string }) => !shadowsBuiltin(i.id, builtins);
 
     // Note-role external symbols with a new id (overrides already shown above).
     const noteSymbols = _symbolRegistry
@@ -438,11 +454,9 @@ export const selListWaypointIcons = (
 
   if (_symbolRegistry) {
     const builtins = getBuiltinIconIds();
-    const localId = (ref: string) =>
-      ref.includes(':') ? ref.slice(ref.indexOf(':') + 1) : ref;
     // Overrides of a built-in are already shown via the resolved built-in/POI
     // entry above, so exclude them here to avoid listing the same id twice.
-    const isNewId = (i: AppIconDef) => !builtins.has(localId(i.svgIcon ?? ''));
+    const isNewId = (i: AppIconDef) => !shadowsBuiltin(i.svgIcon ?? '', builtins);
 
     // Waypoint-role external symbols with a new id (no built-in counterpart).
     const wptSymbols = _symbolRegistry

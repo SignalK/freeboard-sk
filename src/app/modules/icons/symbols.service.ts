@@ -69,6 +69,11 @@ export class SymbolService implements SymbolRegistryLike {
   /** Fetch /resources/symbols, index, and register all renderable symbols. */
   async load(): Promise<void> {
     try {
+      // Reset indexes so a reload reflects removed/changed provider symbols
+      // rather than accumulating stale entries across calls.
+      this.byRef.clear();
+      this.overrides.clear();
+      this.userSymbols = [];
       const result = (await firstValueFrom(
         this.signalk.api.get(this.app.skApiVersion, '/resources/symbols')
       )) as Record<string, unknown>;
@@ -272,9 +277,35 @@ export class SymbolService implements SymbolRegistryLike {
   private isValidSymbol(sym: unknown, key: string): sym is SymbolResource {
     if (!sym || typeof sym !== 'object') return false;
     const s = sym as Partial<SymbolResource>;
-    if (!s.uuid || !s.name || !s.url) return false;
-    if (!Array.isArray(s.alias) || s.alias.length === 0) {
+    if (
+      typeof s.uuid !== 'string' ||
+      typeof s.name !== 'string' ||
+      typeof s.url !== 'string' ||
+      typeof s.mediaType !== 'string'
+    ) {
+      return false;
+    }
+    // Aliases must be well-formed `namespace:id` (single colon, no whitespace).
+    const isAliasRef = (a: unknown): a is string =>
+      typeof a === 'string' && /^[^:\s]+:[^:\s]+$/.test(a);
+    if (
+      !Array.isArray(s.alias) ||
+      s.alias.length === 0 ||
+      s.alias.some((a) => !isAliasRef(a))
+    ) {
       if (isDevMode()) console.debug(`[SymbolService] Skipping symbol "${key}": no alias.`);
+      return false;
+    }
+    // scale/anchor feed map markers directly — reject non-finite/malformed.
+    if (s.scale !== undefined && !Number.isFinite(s.scale)) {
+      return false;
+    }
+    if (
+      s.anchor !== undefined &&
+      (!Array.isArray(s.anchor) ||
+        s.anchor.length !== 2 ||
+        s.anchor.some((v) => !Number.isFinite(v)))
+    ) {
       return false;
     }
     if (!isRenderableSymbol(s as { mediaType: string; url: string })) {

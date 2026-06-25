@@ -8,7 +8,12 @@ import { resolveSkIcon } from './app.icons';
  */
 @Pipe({
   name: 'resolveSkIcon',
-  standalone: true
+  standalone: true,
+  // Impure: the underlying symbol registry is populated asynchronously, so the
+  // pipe must re-evaluate after it loads/reloads (not only when `ref` changes).
+  // Only used in two bounded note-list templates, and resolveSkIcon() is a
+  // cheap map lookup, so the per-CD cost is negligible.
+  pure: false
 })
 export class ResolveSkIconPipe implements PipeTransform {
   public transform(ref?: string): string {

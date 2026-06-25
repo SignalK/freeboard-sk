@@ -208,6 +208,9 @@ export class VesselComponent implements OnInit, OnDestroy, OnChanges {
     if (ext) {
       const img = ext.clone();
       img.setRotateWithView(true);
+      if (this.iconScale) {
+        img.setScale(Math.abs(this.iconScale));
+      }
       this.selfStyle = new Style({ image: img });
     } else {
       this.selfStyle = new Style({

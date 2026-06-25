@@ -41,7 +41,8 @@ export const isRenderableSymbol = (sym: {
   // Reject data: and javascript: schemes
   const lower = url.toLowerCase().trimStart();
   if (lower.startsWith('data:') || lower.startsWith('javascript:')) return false;
-  // Reject absolute URLs pointing to other origins
-  if (/^https?:\/\//i.test(url)) return false;
+  // Reject absolute URLs (any scheme) and protocol-relative URLs — both can
+  // point to other origins once trusted via bypassSecurityTrustResourceUrl().
+  if (/^[a-z][a-z0-9+.-]*:/i.test(lower) || lower.startsWith('//')) return false;
   return true;
 };

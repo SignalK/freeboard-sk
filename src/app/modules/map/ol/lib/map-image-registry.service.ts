@@ -32,16 +32,19 @@ export interface MapIconDef {
   providedIn: 'root'
 })
 export class MapImageRegistry {
+  // Null-prototype caches so a resource-supplied id (e.g. a note skIcon of
+  // 'toString' or '__proto__') cannot collide with inherited Object keys on
+  // lookup or pollute the prototype on assignment.
   private icons: MapImages = {
-    atons: {},
-    poi: {},
-    vessels: {},
-    waypoints: {},
-    symbols: {}
+    atons: Object.create(null),
+    poi: Object.create(null),
+    vessels: Object.create(null),
+    waypoints: Object.create(null),
+    symbols: Object.create(null)
   };
 
   /** Definitions for external symbols registered by SymbolService. */
-  private symbolDefs: { [ref: string]: MapIconDef } = {};
+  private symbolDefs: { [ref: string]: MapIconDef } = Object.create(null);
 
   private atonImageDefs: any = {
     virtual: {},
@@ -143,7 +146,7 @@ export class MapImageRegistry {
     if (id.startsWith('default:')) {
       // Forced built-in: strip the reserved prefix and skip override lookup.
       id = id.slice('default:'.length);
-    } else if (id in this.symbolDefs) {
+    } else if (Object.hasOwn(this.symbolDefs, id)) {
       // External override (qualified or unqualified external ref).
       if (!this.icons.symbols[id]) {
         this.buildIcon(this.icons.symbols, this.symbolDefs, id);
@@ -152,6 +155,9 @@ export class MapImageRegistry {
     }
     if (!this.icons.poi[id]) {
       this.buildIcon(this.icons.poi, this.poiImageDefs, id);
+    }
+    if (!this.icons.poi['default']) {
+      this.buildIcon(this.icons.poi, this.poiImageDefs, 'default');
     }
     return this.icons.poi[id] ?? this.icons.poi['default'];
   }
@@ -171,7 +177,7 @@ export class MapImageRegistry {
    * @returns Icon object or null
    */
   getExternalSymbol(id: string): Icon | null {
-    if (!id || !(id in this.symbolDefs)) {
+    if (!id || !Object.hasOwn(this.symbolDefs, id)) {
       return null;
     }
     if (!this.icons.symbols[id]) {
@@ -196,7 +202,7 @@ export class MapImageRegistry {
       if (wid.startsWith('default:')) {
         // Forced built-in: strip the reserved prefix and skip override lookup.
         wid = wid.slice('default:'.length);
-      } else if (wid in this.symbolDefs) {
+      } else if (Object.hasOwn(this.symbolDefs, wid)) {
         if (!this.icons.symbols[wid]) {
           this.buildIcon(this.icons.symbols, this.symbolDefs, wid);
         }
@@ -205,6 +211,12 @@ export class MapImageRegistry {
     }
     if (!this.icons.waypoints[wid]) {
       this.buildIcon(this.icons.waypoints, this.waypointImageDefs, wid);
+    }
+    if (!this.icons.waypoints[type]) {
+      this.buildIcon(this.icons.waypoints, this.waypointImageDefs, type);
+    }
+    if (!this.icons.waypoints['default']) {
+      this.buildIcon(this.icons.waypoints, this.waypointImageDefs, 'default');
     }
     return (
       this.icons.waypoints[wid] ??
@@ -228,7 +240,7 @@ export class MapImageRegistry {
     rotate: boolean = false,
     cacheKey: number | string = id
   ) {
-    if (!iconDef[id]) return;
+    if (!Object.hasOwn(iconDef, id)) return;
     group[cacheKey] = new Icon({
       src: iconDef[id].path,
       scale: iconDef[id].scale,

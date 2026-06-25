@@ -1316,7 +1316,7 @@ export class AppComponent {
               this.app.persistToken(r['token']);
               this.app.loadUserConfigfromServer().then((loaded: boolean) => {
                 if (loaded) {
-                  this.fetchResources(true);
+                  this.loadSymbolsThenFetchResources();
                 }
               });
               if (onConnect) {

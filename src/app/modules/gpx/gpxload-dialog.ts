@@ -435,6 +435,10 @@ export class GPXImportDialog implements OnInit {
     }
     if (pt.type) {
       wpt.type = pt.type;
+      // Preserve the imported GPX <type> for export; a symbol match below may
+      // override the internal type to 'waypoint', but the file's type must
+      // still round-trip via feature.properties['type'] (see sk2gpx).
+      wpt.feature.properties['type'] = pt.type;
     }
     if (pt.cmt) {
       wpt.feature.properties['cmt'] = pt.cmt;
