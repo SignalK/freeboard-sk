@@ -306,7 +306,7 @@ export class RadarAPIService {
       this.signalk.api
         .put(
           this.app.skApiVersion,
-          `${this.getPath(radarId)}/controls/${radarId}/${controlId}`,
+          `${this.getPath(radarId)}/controls/${controlId}`,
           { value: value }
         )
         .subscribe({
