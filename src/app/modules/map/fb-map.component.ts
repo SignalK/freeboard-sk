@@ -578,7 +578,8 @@ export class FBMapComponent implements OnInit, OnDestroy {
 
     this.drawVesselLines();
     if (!this.movingMap) {
-      this.app.saveConfig();
+      // debounce: a flurry of pans/zooms collapses into one save
+      this.app.saveConfigDebounced();
       this.isDirty = false;
     } else {
       this.isDirty = true;

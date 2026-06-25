@@ -324,7 +324,7 @@ export class AppFacade extends InfoService {
       this.uiConfig();
       this.debug(`AppFacade.effect().uiConfig`, this.uiConfig());
       this.config.ui = this.uiConfig();
-      this.saveConfig();
+      this.saveConfigDebounced();
     });
     effect(() => {
       this.alignUnitPrefs(this.serverConfig.unitPreferences());
@@ -844,6 +844,14 @@ export class AppFacade extends InfoService {
         error: () => this.debug('saveConfig: Cannot save config to server!')
       });
     }
+  }
+
+  private saveCfgTimer: ReturnType<typeof setTimeout>;
+  /** Debounced saveConfig — collapses a flurry of saves (e.g. repeated map
+   * pans or rapid UI toggles) into a single localStorage write + server PUT. */
+  saveConfigDebounced(ms = 1000) {
+    clearTimeout(this.saveCfgTimer);
+    this.saveCfgTimer = setTimeout(() => this.saveConfig(), ms);
   }
 
   /** show Help at specified anchor */
