@@ -20,6 +20,10 @@ import { MapComponent } from '../map.component';
 import { Extent, Coordinate } from '../models';
 import { AsyncSubject } from 'rxjs';
 import { Options } from 'ol/style/Icon';
+import { MapImageRegistry } from '../map-image-registry.service';
+
+/** Symbol id used to override the own-vessel marker. */
+export const VESSEL_SELF_MARKER = 'vessel-self';
 
 const vesselIconDef = {
   src: './assets/img/vessels/self.png',
@@ -94,7 +98,8 @@ export class VesselComponent implements OnInit, OnDestroy, OnChanges {
 
   constructor(
     protected changeDetectorRef: ChangeDetectorRef,
-    protected mapComponent: MapComponent
+    protected mapComponent: MapComponent,
+    protected mapImages: MapImageRegistry
   ) {
     this.changeDetectorRef.detach();
   }
@@ -197,9 +202,21 @@ export class VesselComponent implements OnInit, OnDestroy, OnChanges {
     if (this.iconScale) {
       vesselIconDef.scale = Math.abs(this.iconScale);
     }
-    this.selfStyle = new Style({
-      image: new Icon(vesselIconDef as Options)
-    });
+    // External symbol override for the own-vessel marker. Clone the cached icon
+    // so per-render heading rotation does not mutate the shared instance.
+    const ext = this.mapImages.getExternalSymbol(VESSEL_SELF_MARKER);
+    if (ext) {
+      const img = ext.clone();
+      img.setRotateWithView(true);
+      if (this.iconScale) {
+        img.setScale(Math.abs(this.iconScale));
+      }
+      this.selfStyle = new Style({ image: img });
+    } else {
+      this.selfStyle = new Style({
+        image: new Icon(vesselIconDef as Options)
+      });
+    }
   }
 
   // build target style
