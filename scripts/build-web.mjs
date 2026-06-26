@@ -40,12 +40,14 @@ const child = spawn(process.execPath, [ngBin, ...NG_ARGS], {
 let settled = false;
 let graceTimer = null;
 let hardTimer = null;
+let failTimer = null;
 
 const finish = (code, reason) => {
   if (settled) return;
   settled = true;
   clearTimeout(graceTimer);
   clearTimeout(hardTimer);
+  clearTimeout(failTimer);
   if (reason) console.log(`\n[build-web] ${reason}`);
   child.kill('SIGTERM');
   // Give the kill a moment to propagate, then exit deterministically.
@@ -55,7 +57,20 @@ const finish = (code, reason) => {
 const scan = (text) => {
   if (settled) return;
   if (text.includes(FAILED)) {
-    finish(1, 'ng build reported failure.');
+    // ng build prints its detailed errors AFTER this summary line and then
+    // hangs. Wait briefly so those errors flush to the console before exiting,
+    // otherwise the developer only sees "failed" with no cause.
+    if (!failTimer) {
+      failTimer = setTimeout(
+        () =>
+          finish(
+            1,
+            'ng build failed — see the errors above. A "Could not resolve" / ' +
+              '"Cannot find module" usually means a missing dependency (try `npm install`).'
+          ),
+        3000
+      );
+    }
   } else if (text.includes(COMPLETE)) {
     graceTimer = setTimeout(() => {
       if (existsSync(OUTPUT_INDEX)) {
