@@ -50,6 +50,7 @@ import { GeoUtils, Angle } from 'src/app/lib/geoutils';
 import { LineString, MultiLineString, Position } from 'src/app/types';
 
 import { AppFacade } from 'src/app/app.facade';
+import { PlotterExtensionService } from 'src/app/modules/plotterext/plotterext.service';
 
 import {
   SKResourceService,
@@ -254,6 +255,11 @@ export class FBMapComponent implements OnInit, OnDestroy {
     xy: null
   };
   contextMenuPosition = { x: '0px', y: '0px' };
+  // Empty widget-anchor cell at the last right-click (or null) — gates and
+  // drives the "Add widget here" context-menu item (desktop).
+  protected addableWidgetCell: ReturnType<
+    PlotterExtensionService['addableCellAt']
+  > = null;
 
   private obsList = [];
 
@@ -264,6 +270,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
   protected skstream = inject(SKStreamFacade);
   protected anchor = inject(AnchorService);
   protected notiMgr = inject(NotificationManager);
+  protected plotterExt = inject(PlotterExtensionService);
   protected course = inject(CourseService);
   protected mapInteract = inject(FBMapInteractService);
   protected mapService = inject(MapService);
@@ -557,6 +564,14 @@ export class FBMapComponent implements OnInit, OnDestroy {
       case 'measure':
         this.mapInteract.startMeasuring();
         break;
+      case 'add_widget':
+        if (this.addableWidgetCell) {
+          this.plotterExt.openAddWidgetPicker(
+            this.addableWidgetCell.anchor,
+            this.addableWidgetCell.cell
+          );
+        }
+        break;
       case 'get_feature_info':
         this.getFeatureInfo();
         break;
@@ -699,6 +714,12 @@ export class FBMapComponent implements OnInit, OnDestroy {
     e.preventDefault();
     this.contextMenuPosition.x = e.clientX + 'px';
     this.contextMenuPosition.y = e.clientY + 'px';
+    // Resolve the click to an empty widget-anchor cell (desktop right-click
+    // equivalent of the press-and-hold add gesture). Null when not over one.
+    this.addableWidgetCell = this.plotterExt.addableCellAt(
+      e.clientX,
+      e.clientY
+    );
     this.contextMenu.menuData = { item: this.mouse.coords };
     if (this.mapInteract.isMeasuring()) {
       this.parseClickInMeasureMode(this.mouse.xy.lonlat);

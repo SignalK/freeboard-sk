@@ -275,7 +275,7 @@
 
     <!-- content -->
     <div class="view" theme-main>
-      <mat-sidenav-container hasBackdrop="false">
+      <mat-sidenav-container hasBackdrop="false" class="pe-view-main">
         <!--info-panel-->
         <mat-sidenav
           #sideright
@@ -715,7 +715,10 @@
             }
 
             <!-- Status Bar -->
-            <div class="statusBar">
+            <div
+              class="statusBar"
+              [style.top.px]="20 + plotterExt.toolbarTopOffset()"
+            >
               @if (!wakeLock.enabled() && wakeLock.isAvailable) {
                 <div class="statusBarItem">
                   <mat-icon
@@ -766,7 +769,10 @@
 
             <!-- right button bar -->
             <!-- show/hide  -->
-            <div class="rightTop buttonPanel">
+            <div
+              class="rightTop buttonPanel"
+              [style.top.px]="plotterExt.toolbarTopOffset()"
+            >
               <div class="buttonPanelItem">
                 <button
                   class="button-secondary"
@@ -786,7 +792,10 @@
               </div>
             </div>
             @if (app.uiConfig().toolbarButtons) {
-              <div class="buttonPanel right">
+              <div
+                class="buttonPanel right"
+                [style.top.px]="60 + plotterExt.toolbarTopOffset()"
+              >
                 <!-- instrument sidebar open button -->
                 <div class="instrumentPanelToggle buttonPanelItem">
                   @if (
@@ -966,6 +975,30 @@
                     <br />&nbsp;<br />
                   </div>
                 }
+
+                <!-- plotter extension buttons -->
+                @for (
+                  entry of plotterExt.toolbarButtons();
+                  track entry.extension + '/' + entry.button.id
+                ) {
+                  <div class="buttonPanelItem">
+                    <button
+                      class="button-toolbar"
+                      mat-mini-fab
+                      [matTooltip]="entry.button.title"
+                      matTooltipPosition="before"
+                      (click)="
+                        plotterExt.handleButtonAction(
+                          entry.extension,
+                          entry.button
+                        )
+                      "
+                    >
+                      <mat-icon>{{ entry.button.icon || 'extension' }}</mat-icon>
+                    </button>
+                    <br />&nbsp;<br />
+                  </div>
+                }
               </div>
             }
             <!-- /right button bar -->
@@ -1001,6 +1034,9 @@
             </fb-map>
           </div>
           <!--/map panel-->
+
+          <!-- Plotter extension widget overlay -->
+          <fb-plotterext-overlay></fb-plotterext-overlay>
 
           <!-- North Arrow -->
           <div style="position: absolute; top: 60px; left: 56px; width: 50px">
@@ -1220,6 +1256,12 @@
           }
         </mat-sidenav-content>
       </mat-sidenav-container>
+
+      <!-- Plotter extension panel drawer: pushes the display left when open -->
+      <fb-plotterext-panel-drawer></fb-plotterext-panel-drawer>
+
+      <!-- Plotter extension headless background runtimes (hidden iframes) -->
+      <fb-plotterext-runtimes></fb-plotterext-runtimes>
     </div>
     <!-- /content -->
   </div>

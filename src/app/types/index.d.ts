@@ -197,6 +197,19 @@ export interface IAppConfig {
     opacity: number;
   };
   experiments: boolean;
+  plotterExtensions: {
+    // ** plotter extension host (plotterExtensions resource type).
+    // No enabled list: extension availability is controlled on the server
+    // (plugin install/enable); presence in the resources response = enabled.
+    widgets: Array<{
+      instanceId: string; // host-assigned GUID for this placement
+      extension: string; // extension (resource) id
+      widget: string; // manifest-local widget id
+      anchor: 'tr' | 'ct' | 'cb' | 'bl' | 'br';
+      col: number; // origin cell column (0 | 1)
+      row: number; // origin cell row (0 | 1)
+    }>;
+  };
   anchor: {
     radius: number; // most recent anchor radius setting
     setRadius: boolean; // checks inital anchor radius setting
