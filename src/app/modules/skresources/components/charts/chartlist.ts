@@ -39,6 +39,7 @@ import {
 import { SKResourceGroupService } from '../groups/groups.service';
 import { SKChart } from '../../resource-classes';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { isChartInView } from 'src/app/modules/map/ol/lib/charts/chart-utils';
 
 @Component({
   selector: 'chart-list',
@@ -69,6 +70,7 @@ export class ChartListComponent extends ResourceListBase {
   protected override filteredList = signal<FBCharts>([]);
 
   displayChartLayers = false;
+  protected inViewOnly = false;
 
   protected app = inject(AppFacade);
   private worker = inject(SKWorkerService);
@@ -89,6 +91,13 @@ export class ChartListComponent extends ResourceListBase {
     effect(() => {
       if (this.worker.resourceUpdate().path.includes('resources.charts')) {
         this.initItems(true);
+      }
+    });
+    // re-apply the filter as the map view changes while the in-view filter is on
+    effect(() => {
+      this.app.mapExtent();
+      if (this.inViewOnly) {
+        this.doFilter();
       }
     });
   }
@@ -281,6 +290,34 @@ export class ChartListComponent extends ResourceListBase {
     if (this.app.data.chartBounds.show) {
       this.app.data.chartBounds.charts = this.fullList;
     }
+  }
+
+  /**
+   * @description Toggle filtering of the chart list to the current map view.
+   */
+  protected toggleInViewOnly(checked: boolean) {
+    this.inViewOnly = checked;
+    this.doFilter();
+  }
+
+  /**
+   * @description Filter and sort charts by name, additionally restricting the
+   * list to charts visible in the current map view when the in-view filter is on.
+   */
+  protected override doFilter() {
+    const text = this.filterText?.toLowerCase() ?? '';
+    const extent = this.app.mapExtent();
+    const useExtent =
+      this.inViewOnly && Array.isArray(extent) && extent.length === 4;
+    const fl = this.fullList.filter((item) => {
+      if (text && !item[1].name?.toLowerCase().includes(text)) {
+        return false;
+      }
+      return useExtent ? isChartInView(item[1].bounds, extent) : true;
+    });
+    fl.sort((a, b) => a[1].name.localeCompare(b[1].name));
+    this.filteredList.update(() => fl.slice(0));
+    this.alignSelections();
   }
 
   /**
