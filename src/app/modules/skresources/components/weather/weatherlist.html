@@ -16,28 +16,14 @@
       </div>
     </mat-card-title>
     <mat-card-content>
-      <div style="font-size: 11px; font-weight: 500; padding: 8px 0 4px; color: #888">
-        RAIN RADAR (RAINVIEWER)
-      </div>
-      <div style="display: flex; align-items: center; padding: 2px 0">
-        <mat-checkbox
-          [checked]="app.config.selections.weatherRadarEnabled"
-          (change)="toggleWeatherRadar($event.checked)"
-          matTooltip="Toggle RainViewer radar overlay"
-          matTooltipPosition="right"
-        >
-          Enable rain radar layer
-        </mat-checkbox>
-      </div>
-      <div style="border-bottom: 1px solid #ccc; margin: 8px 0"></div>
       <div style="font-size: 11px; font-weight: 500; padding: 4px 0; color: #888">
-        WIND (OPEN-METEO)
+        WIND (SIGNAL K WEATHER API)
       </div>
       <div style="display: flex; align-items: center; padding: 2px 0">
         <mat-checkbox
           [checked]="app.config.selections.weatherWindEnabled"
           (change)="toggleWeatherWind($event.checked)"
-          matTooltip="Toggle Open-Meteo wind overlay"
+          matTooltip="Toggle wind overlay"
           matTooltipPosition="right"
         >
           Enable wind layer
@@ -51,7 +37,7 @@
         <mat-checkbox
           [checked]="app.config.selections.oceanCurrentsEnabled"
           (change)="toggleOceanCurrents($event.checked)"
-          matTooltip="Toggle Open-Meteo ocean currents overlay"
+          matTooltip="Toggle ocean currents overlay"
           matTooltipPosition="right"
         >
           Enable ocean currents layer

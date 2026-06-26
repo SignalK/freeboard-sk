@@ -84,8 +84,8 @@ export class LayerWindWeatherComponent implements OnChanges, OnDestroy {
       zIndex: this.zIndex,
       style: (feature) => this.createWindStyle(feature)
     });
-    this.layer.set('id', 'openmeteo-wind');
-    this.layer.set('name', 'Open-Meteo Wind');
+    this.layer.set('id', 'signal-k-weather-wind');
+    this.layer.set('name', 'Weather Wind');
     this.mapComponent.getMap().addLayer(this.layer);
     this.mapComponent.getMap().on('moveend', this.refreshWind);
     this.refreshWind();

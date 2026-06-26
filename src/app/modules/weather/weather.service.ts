@@ -1,19 +1,8 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
-import { Observable } from 'rxjs';
-import { map } from 'rxjs/operators';
-
-interface RainViewerFrame {
-  time: number;
-  path: string;
-}
-
-interface RainViewerWeatherMaps {
-  host: string;
-  radar?: {
-    past?: RainViewerFrame[];
-  };
-}
+import { forkJoin, Observable, of } from 'rxjs';
+import { catchError, map } from 'rxjs/operators';
+import { SignalKClient } from 'signalk-client-angular';
 
 export interface WeatherWindSample {
   latitude: number;
@@ -38,62 +27,63 @@ interface OpenMeteoMarineItem {
   };
 }
 
-interface OpenMeteoWindItem {
-  latitude: number;
-  longitude: number;
-  current?: {
-    wind_speed_10m?: number;
-    wind_direction_10m?: number;
-  };
+interface SkObservationWind {
+  speedTrue?: number;
+  directionTrue?: number;
+}
+
+interface SkObservation {
+  wind?: SkObservationWind;
 }
 
 @Injectable({ providedIn: 'root' })
 export class WeatherService {
-  private readonly rainViewerApi =
-    'https://api.rainviewer.com/public/weather-maps.json';
-
-  constructor(private http: HttpClient) {}
-
-  getLatestRainViewerRadarUrl(): Observable<string> {
-    return this.http.get<RainViewerWeatherMaps>(this.rainViewerApi).pipe(
-      map((weatherMaps) => {
-        const latest = this.getLatestPastRadarFrame(weatherMaps);
-        return `${weatherMaps.host}${latest.path}/256/{z}/{x}/{y}/7/1_1.png`;
-      })
-    );
-  }
+  constructor(
+    private http: HttpClient,
+    private sk: SignalKClient
+  ) {}
 
   getOpenMeteoWindSamples(
     points: Array<{ latitude: number; longitude: number }>
   ): Observable<WeatherWindSample[]> {
-    const latitudes = points.map((p) => p.latitude.toFixed(4)).join(',');
-    const longitudes = points.map((p) => p.longitude.toFixed(4)).join(',');
-    const url =
-      'https://api.open-meteo.com/v1/forecast' +
-      `?latitude=${latitudes}` +
-      `&longitude=${longitudes}` +
-      '&current=wind_speed_10m,wind_direction_10m' +
-      '&wind_speed_unit=kn';
+    if (points.length === 0) {
+      return of([]);
+    }
 
-    return this.http
-      .get<OpenMeteoWindItem | OpenMeteoWindItem[]>(url)
-      .pipe(
-        map((response) => (Array.isArray(response) ? response : [response])),
-        map((items) =>
-          items
-            .filter(
-              (item) =>
-                typeof item.current?.wind_speed_10m === 'number' &&
-                typeof item.current?.wind_direction_10m === 'number'
-            )
-            .map((item) => ({
-              latitude: item.latitude,
-              longitude: item.longitude,
-              speed: item.current!.wind_speed_10m,
-              direction: item.current!.wind_direction_10m
-            }))
+    const requests = points.map((point) =>
+      this.sk.api
+        .get(
+          2,
+          `/weather/observations?lat=${point.latitude}&lon=${point.longitude}`
         )
-      );
+        .pipe(
+          catchError(() => of(null))
+        )
+    );
+
+    return forkJoin(requests).pipe(
+      map((responses) => {
+        const samples: WeatherWindSample[] = [];
+        responses.forEach((response, i) => {
+          const obs: SkObservation | undefined =
+            response?.[0] as SkObservation | undefined;
+          if (
+            !obs?.wind ||
+            typeof obs.wind.speedTrue !== 'number' ||
+            typeof obs.wind.directionTrue !== 'number'
+          ) {
+            return;
+          }
+          samples.push({
+            latitude: points[i].latitude,
+            longitude: points[i].longitude,
+            speed: obs.wind.speedTrue * 1.94384,
+            direction: (obs.wind.directionTrue * 180) / Math.PI
+          });
+        });
+        return samples;
+      })
+    );
   }
 
   getOceanCurrentSamples(
@@ -126,17 +116,5 @@ export class WeatherService {
             }))
         )
       );
-  }
-
-  private getLatestPastRadarFrame(
-    weatherMaps: RainViewerWeatherMaps
-  ): RainViewerFrame {
-    const frames = weatherMaps.radar?.past ?? [];
-    if (frames.length === 0) {
-      throw new Error('No RainViewer past radar frames available.');
-    }
-    return frames.reduce((latest, frame) =>
-      frame.time > latest.time ? frame : latest
-    );
   }
 }

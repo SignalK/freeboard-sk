@@ -359,7 +359,6 @@ export function cleanConfig(
       aisState: [],
       resourceSets: {},
       infolayers: null,
-      weatherRadarEnabled: false,
       weatherWindEnabled: false,
       oceanCurrentsEnabled: false
     };
@@ -393,9 +392,6 @@ export function cleanConfig(
   }
   if (typeof settings.selections.regions === 'undefined') {
     settings.selections.regions = [];
-  }
-  if (typeof settings.selections.weatherRadarEnabled === 'undefined') {
-    settings.selections.weatherRadarEnabled = false;
   }
   if (typeof settings.selections.weatherWindEnabled === 'undefined') {
     settings.selections.weatherWindEnabled = false;
@@ -602,7 +598,6 @@ export function defaultConfig(): IAppConfig {
       aisState: [], // list of ais state values used to filter targets
       resourceSets: {}, // additional resources
       infolayers: null,
-      weatherRadarEnabled: false,
       weatherWindEnabled: false,
       oceanCurrentsEnabled: false
     }

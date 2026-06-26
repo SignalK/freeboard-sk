@@ -188,6 +188,14 @@
         [mapMaxZoom]="app.MAP_ZOOM_EXTENT.max"
       >
       </fb-tilelayer-raster>
+    } @else {
+      <fb-tilelayer-raster
+        [zIndex]="10 + idx"
+        [chart]="c"
+        [overZoomTiles]="overZoomTiles"
+        [mapMaxZoom]="app.MAP_ZOOM_EXTENT.max"
+      >
+      </fb-tilelayer-raster>
     }
   }
 
@@ -810,11 +818,6 @@
   }
 
   <!-- weather overlays -->
-  <fb-weather
-    [show]="app.config.selections.weatherRadarEnabled"
-    [opacity]="0.65">
-  </fb-weather>
-
   <fb-weather-wind
     [show]="app.config.selections.weatherWindEnabled"
     [opacity]="0.55">

@@ -37,14 +37,6 @@ export class WeatherListComponent {
     this.closed.emit();
   }
 
-  protected toggleWeatherRadar(checked: boolean) {
-    if (!this.app.config?.selections) {
-      return;
-    }
-    this.app.config.selections.weatherRadarEnabled = checked;
-    this.app.saveConfig();
-  }
-
   protected toggleWeatherWind(checked: boolean) {
     if (!this.app.config?.selections) {
       return;

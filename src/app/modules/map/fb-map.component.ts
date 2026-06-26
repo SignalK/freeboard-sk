@@ -121,7 +121,6 @@ import { Units } from 'ol/control/ScaleLine';
 import { DragBoxEvent } from 'ol/interaction/DragBox';
 import { MapService } from './ol/lib/map.service';
 import { AppIconDef } from '../icons';
-import { LayerWeatherComponent } from './ol/lib/resources/layer-weather.component';
 import { LayerWindWeatherComponent } from './ol/lib/resources/layer-wind-weather.component';
 import { LayerCurrentsWeatherComponent } from './ol/lib/resources/layer-currents-weather.component';
 
@@ -170,7 +169,6 @@ enum INTERACTION_MODE {
     ResourceSetPopoverComponent,
     VesselPopoverComponent,
     S57PopoverComponent,
-    LayerWeatherComponent,
     LayerWindWeatherComponent,
     LayerCurrentsWeatherComponent
   ],
