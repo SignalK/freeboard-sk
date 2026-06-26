@@ -558,23 +558,26 @@ export class AppComponent {
 
   /** ************* */
 
+  private darkThemeApplied: boolean;
   private setDarkTheme() {
     const mq = window.matchMedia('(prefers-color-scheme: dark)');
-
-    if (
+    const enabled =
       (this.app.config.display.darkMode.source === 0 && mq.matches) ||
       (this.app.config.display.darkMode.source === 1 &&
         this.app.data.vessels.self.environment.mode === 'night') ||
-      this.app.config.display.darkMode.source === -1
-    ) {
-      this.overlayContainer.getContainerElement().classList.add('dark-theme');
-      this.app.config.display.darkMode.enabled = true;
-    } else {
-      this.overlayContainer
-        .getContainerElement()
-        .classList.remove('dark-theme');
-      this.app.config.display.darkMode.enabled = false;
+      this.app.config.display.darkMode.source === -1;
+    // called on every realtime delta — skip the DOM work when unchanged
+    if (enabled === this.darkThemeApplied) {
+      return;
     }
+    this.darkThemeApplied = enabled;
+    const el = this.overlayContainer.getContainerElement();
+    if (enabled) {
+      el.classList.add('dark-theme');
+    } else {
+      el.classList.remove('dark-theme');
+    }
+    this.app.config.display.darkMode.enabled = enabled;
   }
 
   private formatInstrumentsUrl() {
