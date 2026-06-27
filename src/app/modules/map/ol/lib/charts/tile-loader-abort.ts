@@ -4,14 +4,14 @@ import type { FeatureLike } from 'ol/Feature';
 import type { Extent } from 'ol/extent';
 import type Projection from 'ol/proj/Projection';
 
-type PendingByZoom = Map<number, Set<AbortController>>;
+export type PendingByZoom = Map<number, Set<AbortController>>;
 
 /**
  * Abort and drop controllers held under zoom levels other than `z`, then
  * return (or create) the controller bucket for `z`. Keeps the vector
  * loader's per-zoom bookkeeping in lockstep.
  */
-function bucketForZoom(
+export function bucketForZoom(
   pending: PendingByZoom,
   z: number
 ): Set<AbortController> {
@@ -29,7 +29,7 @@ function bucketForZoom(
   return set;
 }
 
-function releaseController(
+export function releaseController(
   pending: PendingByZoom,
   z: number,
   controller: AbortController
