@@ -55,7 +55,7 @@ import { Measurements } from './measurements.component';
             }
           </div>
 
-          <div style="text-align: center">
+          <div style="text-align: center; padding: 6px 0 8px">
             <!-- cancel Draw button -->
             <a
               class="icon-warn"
