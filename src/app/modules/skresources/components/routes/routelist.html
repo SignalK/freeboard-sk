@@ -37,7 +37,7 @@
         <div>
           <button
             mat-icon-button
-            [disabled]="disableRefresh"
+            [disabled]="disableRefresh()"
             (click)="initItems()"
             matTooltip="Reload Routes"
             matTooltipPosition="below"
@@ -48,7 +48,7 @@
         <div>
           <mat-checkbox
             #selall
-            [disabled]="fullList.length === 0 || disableRefresh"
+            [disabled]="fullList.length === 0 || disableRefresh()"
             [checked]="allSel"
             [indeterminate]="someSel"
             (change)="toggleAll($event.checked)"
@@ -108,7 +108,7 @@
             <div style="text-align: right">
               <mat-checkbox
                 [checked]="r[2]"
-                [disabled]="r[0] === activeRoute() || disableRefresh"
+                [disabled]="r[0] === activeRoute() || disableRefresh()"
                 (change)="itemSelect($event.checked, r[0])"
                 matTooltip="Show on Map"
                 matTooltipPosition="left"
@@ -123,7 +123,7 @@
               <button
                 mat-icon-button
                 (click)="itemDelete(r[0])"
-                [disabled]="r[0] === activeRoute() || disableRefresh"
+                [disabled]="r[0] === activeRoute() || disableRefresh()"
                 matTooltip="Delete Route"
                 matTooltipPosition="above"
               >
@@ -139,7 +139,7 @@
               </button>
               <button
                 mat-icon-button
-                [disabled]="disableRefresh"
+                [disabled]="disableRefresh()"
                 (click)="itemViewPoints(r[0])"
                 matTooltip="Route points"
                 matTooltipPosition="above"
@@ -149,7 +149,7 @@
               @if(r[0] !== activeRoute()) {
               <button
                 mat-icon-button
-                [disabled]="disableRefresh"
+                [disabled]="disableRefresh()"
                 (click)="itemSetActive(r[0])"
                 matTooltip="Start"
                 matTooltipPosition="above"
@@ -159,7 +159,7 @@
               } @else {
               <button
                 mat-icon-button
-                [disabled]="disableRefresh"
+                [disabled]="disableRefresh()"
                 (click)="itemClearActive(r[0])"
                 matTooltip="Clear Active Route"
                 matTooltipPosition="above"
@@ -171,7 +171,7 @@
             <div>
               <button
                 mat-icon-button
-                [disabled]="disableRefresh"
+                [disabled]="disableRefresh()"
                 (click)="itemProperties(r[0])"
                 matTooltip="Edit Route Properties"
                 matTooltipPosition="above"
@@ -183,7 +183,7 @@
             <div>
               <button
                 mat-icon-button
-                [disabled]="disableRefresh"
+                [disabled]="disableRefresh()"
                 (click)="itemAddToGroup(r[0])"
                 matTooltip="Add to Group"
                 matTooltipPosition="above"

@@ -1783,6 +1783,10 @@ export class AppComponent {
   /** Handle feature DrawEnded event and prompt to save */
   protected handleDrawEnded(e: DrawFeatureInfo) {
     this.mapInteract.isDrawing();
+    // A completed draw is no longer being edited — clear the marker (set on
+    // modify drags during the draw, otherwise never reset) so resource-list
+    // visibility checkboxes don't stay disabled.
+    this.app.data.editingId = '';
     switch (this.mapInteract.draw.resourceType) {
       case 'note':
         const params = { position: e.coordinates };
@@ -1809,6 +1813,10 @@ export class AppComponent {
 
   /** End interaction mode */
   protected closeInteraction() {
+    // No feature is being edited once an interaction ends — clear the marker
+    // (it is set on every modify drag and otherwise never reset), so dependent
+    // UI such as the route-list visibility checkboxes re-enables.
+    this.app.data.editingId = '';
     if (this.mapInteract.isBoxSelecting()) {
       this.mapInteract.stopBoxSelection();
     }
