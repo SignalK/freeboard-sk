@@ -18,7 +18,9 @@
     "displayName": "Freeboard-SK",
     "appIcon": "assets/icons/icon-192x192.png",
     "screenshots": [
-      "./docs/screenshots/1_freeboard-sk.png"
+      "./docs/screenshots/1_freeboard-sk.png",
+      "./docs/screenshots/2_freeboard-sk.jpg",
+      "./docs/screenshots/3_freeboard-sk.jpg"
     ],
     "recommends": [
       "signalk-charts-provider-simple",
