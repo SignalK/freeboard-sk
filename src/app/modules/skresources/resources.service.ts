@@ -1145,6 +1145,40 @@ export class SKResourceService {
   }
 
   /**
+   * @description Open the Route Details dialog for an unsaved route and, on
+   * save, persist it to the server. Resolves with the saved resource id, or
+   * null if the user cancelled (closed the dialog without saving). Used to
+   * persist a live edit buffer into a stored route.
+   */
+  public saveNewRoute(route: SKRoute): Promise<string | null> {
+    return new Promise((resolve, reject) => {
+      this.dialog
+        .open(RouteDialog, {
+          disableClose: true,
+          data: { title: 'Route Details', route }
+        })
+        .afterClosed()
+        .subscribe(async (r: { save: boolean; route: SKRoute }) => {
+          if (r?.save) {
+            try {
+              const rte = await this.postToServer('routes', r.route);
+              this.selectionAdd('routes', rte.id);
+              resolve(rte.id);
+            } catch (err) {
+              // A server rejection is a real failure, not a cancel — reject so
+              // callers don't mistake it for the user dismissing the dialog.
+              this.app.parseHttpErrorResponse(err);
+              reject(err);
+            }
+          } else {
+            // User dismissed / chose not to save.
+            resolve(null);
+          }
+        });
+    });
+  }
+
+  /**
    * @description Fetch Route with supplied id and display edit dialog
    * @param id route identifier
    */
@@ -1185,35 +1219,54 @@ export class SKResourceService {
    * @description Confirm deletion of Route with supplied id
    * @param id Route identifier
    */
-  public async deleteRoute(id: string) {
+  public async deleteRoute(id: string): Promise<boolean> {
     if (!id) {
-      return;
+      return false;
     }
     // are there notes attached?
     const notes = await this.fetchRelatedNotes('routes', id);
     const checkText = notes?.length !== 0 ? 'Delete attached Notes.' : '';
-    this.app
-      .showConfirm(
-        'Do you want to delete this Route from the server?\n',
-        'Delete Route:',
-        'YES',
-        'NO',
-        checkText
-      )
-      .subscribe(async (result: { ok: boolean; checked: boolean }) => {
-        if (result && result.ok) {
-          try {
-            await this.deleteFromServer('routes', id);
-            if (result.checked) {
-              notes.forEach((note: FBNote) => {
-                this.deleteFromServer('notes', note[0]);
-              });
+    // Resolve true only once the user confirms AND the server delete succeeds,
+    // so callers can defer destructive local cleanup (dropping live buffers,
+    // closing panels) until the route is actually gone.
+    return new Promise<boolean>((resolve) => {
+      this.app
+        .showConfirm(
+          'Do you want to delete this Route from the server?\n',
+          'Delete Route:',
+          'YES',
+          'NO',
+          checkText
+        )
+        .subscribe(async (result: { ok: boolean; checked: boolean }) => {
+          if (result && result.ok) {
+            try {
+              await this.deleteFromServer('routes', id);
+              if (result.checked) {
+                // The route itself is gone; attached-note deletes are
+                // best-effort — await them so a failure is surfaced (not an
+                // unhandled rejection), but don't fail the route delete over one.
+                const outcomes = await Promise.allSettled(
+                  notes.map((note: FBNote) =>
+                    this.deleteFromServer('notes', note[0])
+                  )
+                );
+                for (const o of outcomes) {
+                  if (o.status === 'rejected') {
+                    this.app.parseHttpErrorResponse(o.reason);
+                  }
+                }
+              }
+              resolve(true);
+            } catch (err) {
+              this.app.parseHttpErrorResponse(err);
+              resolve(false);
             }
-          } catch (err) {
-            this.app.parseHttpErrorResponse(err);
+          } else {
+            resolve(false);
           }
-        }
-      });
+        });
+    });
   }
 
   // Modify Route point coordinates & refresh course
@@ -1228,10 +1281,10 @@ export class SKResourceService {
     coords: Array<Position>,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     coordsMeta?: Array<any>
-  ) {
+  ): Promise<boolean> {
     const r = this.fromCache('routes', id);
     if (!r) {
-      return;
+      return Promise.resolve(false);
     }
     const rte = r[1];
     rte['feature']['geometry']['coordinates'] =
@@ -1241,9 +1294,14 @@ export class SKResourceService {
     if (coordsMeta) {
       rte['feature']['properties']['coordinatesMeta'] = coordsMeta;
     }
-    this.putToServer('routes', id, rte).catch((err) => {
-      this.app.parseHttpErrorResponse(err);
-    });
+    // Resolves true on success, false on failure (the error is surfaced here);
+    // callers that only fire-and-forget can ignore the result.
+    return this.putToServer('routes', id, rte)
+      .then(() => true)
+      .catch((err) => {
+        this.app.parseHttpErrorResponse(err);
+        return false;
+      });
   }
 
   // **** WAYPOINTS ****

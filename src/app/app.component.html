@@ -333,7 +333,7 @@
                   [id]="infoPanel.item().id"
                   [related]="infoPanel.related()"
                   [interacting]="isInteracting()"
-                  (edit)="skres.editRouteInfo($event)"
+                  (edit)="onRouteInfoEdit($event)"
                   (activate)="activateRoute($event)"
                   (panTo)="centerAndZoom($event.center, $event.zoomLevel)"
                 />

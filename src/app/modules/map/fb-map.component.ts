@@ -8,6 +8,7 @@ import {
   ViewChild,
   SimpleChanges,
   signal,
+  computed,
   input,
   effect,
   inject
@@ -47,7 +48,13 @@ import { Feature as GeoJsonFeature } from 'geojson';
 
 import { Convert } from 'src/app/lib/convert';
 import { GeoUtils, Angle } from 'src/app/lib/geoutils';
-import { LineString, MultiLineString, Position } from 'src/app/types';
+import {
+  FBRoute,
+  FBRoutes,
+  LineString,
+  MultiLineString,
+  Position
+} from 'src/app/types';
 
 import { AppFacade } from 'src/app/app.facade';
 import { PlotterExtensionService } from 'src/app/modules/plotterext/plotterext.service';
@@ -82,10 +89,16 @@ import {
   destinationStyles,
   laylineStyles,
   drawStyles,
+  routeDraftStyles,
   targetAngleStyle,
   raceCourseStyles,
   bearingDistanceStyle
 } from './mapconfig';
+import { SKRoute } from 'src/app/modules/skresources/resource-classes';
+import {
+  RouteBuffer,
+  RouteBufferRegistry
+} from 'src/app/modules/plotterext/route-buffer.registry';
 import { ModifyEvent } from 'ol/interaction/Modify';
 import { DrawEvent } from 'ol/interaction/Draw';
 import { Coordinate } from 'ol/coordinate';
@@ -233,6 +246,18 @@ export class FBMapComponent implements OnInit, OnDestroy {
     bearingDistance: bearingDistanceStyle
   };
 
+  // Live route edit buffers (unsaved drafts) rendered via a second fb-routes
+  // layer in the amber draft style.
+  protected draftRouteStyles = routeDraftStyles;
+  protected bufferRoutes = computed<FBRoutes>(() =>
+    this.routeBuffers
+      .live()
+      // A saved + clean route renders from the resource layer (green); only
+      // unsaved or dirty routes get the amber draft styling.
+      .filter((b) => !b.saved || b.dirty)
+      .map((b) => this.bufferToFBRoute(b))
+  );
+
   // ** map feature data
   protected dfeat: IFeatureData = {
     aircraft: new Map(),
@@ -277,6 +302,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
   private settings = inject(SettingsFacade);
   private bottomSheet = inject(MatBottomSheet);
   private infoPanel = inject(InfoPanelFacade);
+  protected routeBuffers = inject(RouteBufferRegistry);
 
   constructor() {
     effect(() => {
@@ -874,16 +900,70 @@ export class FBMapComponent implements OnInit, OnDestroy {
   }
 
   /** Enter modify mode */
+  /** Convert a live route edit buffer to the FBRoute tuple fb-routes renders. */
+  /** The route buffer for `routeId` only when it represents an unsaved draft or
+   *  a route with pending edits. The registry now also mirrors clean saved
+   *  routes, so a plain `routeBuffers.has()` would wrongly treat those as
+   *  unsaved. */
+  private getUnsavedRouteBuffer(routeId: string): RouteBuffer | undefined {
+    const b = this.routeBuffers.get(routeId);
+    return b && (!b.saved || b.dirty) ? b : undefined;
+  }
+
+  private bufferToFBRoute(b: RouteBuffer): FBRoute {
+    const rte = new SKRoute();
+    rte.name = b.name ?? '';
+    rte.description = b.description ?? '';
+    rte.feature.geometry.coordinates = b.points.map(
+      (p) => p.position
+    ) as LineString;
+    // Carry per-point metadata so editing a named draft (which seeds
+    // coordsMetadata from the rendered feature's pointMetadata) doesn't drop
+    // waypoint names/descriptions on save.
+    const coordsMeta = b.points.map((p) => ({
+      ...(p.name ? { name: p.name } : {}),
+      ...(p.description ? { description: p.description } : {})
+    }));
+    if (coordsMeta.some((m) => Object.keys(m).length > 0)) {
+      rte.feature.properties.coordinatesMeta = coordsMeta;
+    }
+    rte.distance = GeoUtils.routeLength(rte.feature.geometry.coordinates);
+    return [b.routeId, rte, true];
+  }
+
+  /** True when the popover's route is an unsaved draft (or has pending edits). */
+  protected isUnsavedRoute(): boolean {
+    if (this.overlay().type !== 'route') {
+      return false;
+    }
+    const b = this.routeBuffers.get(this.overlay().id);
+    return !!b && (!b.saved || b.dirty);
+  }
+
+  /**
+   * Popover "Save" shortcut for an unsaved route — opens the standard Route
+   * Details dialog (same path as the info-panel SAVE) and persists. Saves the
+   * user a trip through INFO.
+   */
+  protected async saveRouteFromPopover() {
+    try {
+      await this.plotterExt.saveBuffer(this.overlay().id, { dialog: true });
+    } catch {
+      // saveBuffer surfaced the server error via parseHttpErrorResponse; the
+      // buffer stays dirty so the user can retry.
+    }
+  }
+
   protected modifyFeature(featureType?: string) {
     if (this.mapInteract.draw.features.getLength() === 0) {
       return;
     }
     this.mapInteract.startModifying(this.overlay());
     if (this.overlay().type === 'route') {
-      this.mapInteract.measurementCoords = this.skres.fromCache(
-        'routes',
-        this.overlay().id
-      )[1].feature.geometry.coordinates;
+      const rid = this.overlay().id;
+      this.mapInteract.measurementCoords = this.routeBuffers.has(rid)
+        ? (this.routeBuffers.get(rid)!.points.map((p) => p.position) as LineString)
+        : this.skres.fromCache('routes', rid)[1].feature.geometry.coordinates;
     }
     if (featureType === 'anchor') {
       this.overlay().type = featureType;
@@ -1062,8 +1142,13 @@ export class FBMapComponent implements OnInit, OnDestroy {
               class: 'icon-route'
             };
             addToFeatureList = true;
-            const r = this.skres.fromCache('routes', t[1]);
-            text = r[1].name;
+            const ub = this.getUnsavedRouteBuffer(t[1]);
+            if (ub) {
+              text = ub.name || 'Route (unsaved)';
+            } else {
+              const r = this.skres.fromCache('routes', t[1]);
+              text = r[1].name;
+            }
             break;
           case 'waypoint':
             icon = {
@@ -1366,22 +1451,38 @@ export class FBMapComponent implements OnInit, OnDestroy {
           this.popoverInfo();
         }
         break;
-      case 'route':
-        item = [this.skres.fromCache('routes', t[1])];
-        if (!item) {
-          return false;
+      case 'route': {
+        const ub = this.getUnsavedRouteBuffer(t[1]);
+        if (ub) {
+          // Unsaved live edit buffer (amber draft): build the popover from the
+          // registry, not the saved-route cache. The popover header shows the
+          // route name, so fall back to "(unsaved)" for an unnamed draft.
+          const skr = this.bufferToFBRoute(ub)[1];
+          skr.name = skr.name || '(unsaved)';
+          poData.id = t[1];
+          poData.type = 'route';
+          poData.title = 'Route (unsaved)';
+          poData.resource = [t[1], skr];
+          poData.show = true;
+          poData.readOnly = false;
+        } else {
+          item = [this.skres.fromCache('routes', t[1])];
+          if (!item) {
+            return false;
+          }
+          poData.id = t[1];
+          poData.type = t[0];
+          poData.title = 'Route';
+          poData.resource = item[0];
+          poData.show = true;
+          poData.readOnly = item[0][1]?.feature?.properties?.readOnly ?? false;
         }
-        poData.id = t[1];
-        poData.type = t[0];
-        poData.title = 'Route';
-        poData.resource = item[0];
-        poData.show = true;
-        poData.readOnly = item[0][1]?.feature?.properties?.readOnly ?? false;
         if (this.infoPanel.opened()) {
           this.overlay.set(poData);
           this.popoverInfo();
         }
         break;
+      }
       case 'waypoint':
         item = [this.skres.fromCache('waypoints', t[1])];
         if (!item) {
@@ -1443,7 +1544,14 @@ export class FBMapComponent implements OnInit, OnDestroy {
       ['notes', 'regions', 'waypoints', 'routes'].includes(collection) &&
       this.app.useInfoPanel()
     ) {
-      this.infoPanel.open(collection, this.overlay().id);
+      const ub = this.getUnsavedRouteBuffer(this.overlay().id);
+      if (collection === 'routes' && ub) {
+        // Unsaved live buffer: open the info panel directly from the registry
+        // (it is not on the server, so infoPanel.open()'s fetch would fail).
+        this.infoPanel.openWith('routes', this.bufferToFBRoute(ub));
+      } else {
+        this.infoPanel.open(collection, this.overlay().id);
+      }
     } else {
       this.skres.resourceProperties(this.overlay());
     }
@@ -1741,14 +1849,29 @@ export class FBMapComponent implements OnInit, OnDestroy {
   // ********************
 
   // ** delete selected feature **
-  protected deleteFeature(id: string, type: string) {
+  protected async deleteFeature(id: string, type: string) {
     switch (type) {
       case 'waypoint':
         this.skres.deleteWaypoint(id);
         break;
-      case 'route':
-        this.skres.deleteRoute(id);
+      case 'route': {
+        const b = this.routeBuffers.get(id);
+        if (b && !b.saved) {
+          // Unsaved draft — discard the live buffer locally.
+          this.routeBuffers.delete(id);
+        } else {
+          // Saved route (clean or dirty, with or without a buffer) — delete the
+          // stored resource by its href (a saved draft keeps its draft routeId),
+          // and only drop the live buffer once the server delete is confirmed so
+          // a cancel/failure doesn't lose it. hiddenSaved=false so the registry's
+          // hidden event reports a permanent delete, not a hide.
+          const ok = await this.skres.deleteRoute(b?.href ?? id);
+          if (ok && b) {
+            this.routeBuffers.delete(id, false);
+          }
+        }
         break;
+      }
       case 'note':
         this.skres.deleteNote(id);
         break;

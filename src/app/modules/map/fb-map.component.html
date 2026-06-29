@@ -267,6 +267,18 @@
   >
   </fb-routes>
 
+  <!-- Route edit buffers (unsaved drafts) rendered amber over saved routes -->
+  <fb-routes
+    [routes]="bufferRoutes()"
+    [routeStyles]="draftRouteStyles"
+    [activeRoute]="activeRoute"
+    [darkMode]="app.uiConfig().invertColor"
+    [labelMinZoom]="this.app.config.map.labelsMinZoom"
+    [mapZoom]="mapZoomLevel()"
+    [zIndex]="510"
+  >
+  </fb-routes>
+
   <!-- Routes -->
   @if (activeRoute && !app.data.activeRouteIsEditing) {
     <fb-route-direction
@@ -550,7 +562,9 @@
           "
           [featureCount]="overlay().featureCount"
           [units]="scaleUnits()"
+          [canSave]="isUnsavedRoute()"
           (modify)="modifyFeature(); popoverClosed()"
+          (save)="saveRouteFromPopover(); popoverClosed()"
           (delete)="
             deleteFeature(overlay().id, overlay().type); popoverClosed()
           "
