@@ -1151,7 +1151,7 @@ export class SKResourceService {
    * persist a live edit buffer into a stored route.
    */
   public saveNewRoute(route: SKRoute): Promise<string | null> {
-    return new Promise((resolve) => {
+    return new Promise((resolve, reject) => {
       this.dialog
         .open(RouteDialog, {
           disableClose: true,
@@ -1165,10 +1165,13 @@ export class SKResourceService {
               this.selectionAdd('routes', rte.id);
               resolve(rte.id);
             } catch (err) {
+              // A server rejection is a real failure, not a cancel — reject so
+              // callers don't mistake it for the user dismissing the dialog.
               this.app.parseHttpErrorResponse(err);
-              resolve(null);
+              reject(err);
             }
           } else {
+            // User dismissed / chose not to save.
             resolve(null);
           }
         });
@@ -1216,35 +1219,44 @@ export class SKResourceService {
    * @description Confirm deletion of Route with supplied id
    * @param id Route identifier
    */
-  public async deleteRoute(id: string) {
+  public async deleteRoute(id: string): Promise<boolean> {
     if (!id) {
-      return;
+      return false;
     }
     // are there notes attached?
     const notes = await this.fetchRelatedNotes('routes', id);
     const checkText = notes?.length !== 0 ? 'Delete attached Notes.' : '';
-    this.app
-      .showConfirm(
-        'Do you want to delete this Route from the server?\n',
-        'Delete Route:',
-        'YES',
-        'NO',
-        checkText
-      )
-      .subscribe(async (result: { ok: boolean; checked: boolean }) => {
-        if (result && result.ok) {
-          try {
-            await this.deleteFromServer('routes', id);
-            if (result.checked) {
-              notes.forEach((note: FBNote) => {
-                this.deleteFromServer('notes', note[0]);
-              });
+    // Resolve true only once the user confirms AND the server delete succeeds,
+    // so callers can defer destructive local cleanup (dropping live buffers,
+    // closing panels) until the route is actually gone.
+    return new Promise<boolean>((resolve) => {
+      this.app
+        .showConfirm(
+          'Do you want to delete this Route from the server?\n',
+          'Delete Route:',
+          'YES',
+          'NO',
+          checkText
+        )
+        .subscribe(async (result: { ok: boolean; checked: boolean }) => {
+          if (result && result.ok) {
+            try {
+              await this.deleteFromServer('routes', id);
+              if (result.checked) {
+                notes.forEach((note: FBNote) => {
+                  this.deleteFromServer('notes', note[0]);
+                });
+              }
+              resolve(true);
+            } catch (err) {
+              this.app.parseHttpErrorResponse(err);
+              resolve(false);
             }
-          } catch (err) {
-            this.app.parseHttpErrorResponse(err);
+          } else {
+            resolve(false);
           }
-        }
-      });
+        });
+    });
   }
 
   // Modify Route point coordinates & refresh course

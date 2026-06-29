@@ -75,7 +75,9 @@ export class RoutePanel {
    *  shows "Save" instead of "Edit" and acts locally. A saved + clean buffer is
    *  treated as a normal stored route (shows "Edit"). */
   protected isUnsaved = computed(() => {
-    const b = this.routeBuffers.get(this.id());
+    // Read the live() signal (not the plain get() Map lookup) so the Save/Edit
+    // label re-evaluates when the buffer's saved/dirty state changes.
+    const b = this.routeBuffers.live().find((x) => x.routeId === this.id());
     return !!b && (!b.saved || b.dirty);
   });
   protected notes = signal<FBNotes>([]);
@@ -253,25 +255,26 @@ export class RoutePanel {
     }
   }
 
-  protected onDelete() {
+  protected async onDelete() {
     const b = this.routeBuffers.get(this.id());
     if (b && !b.saved) {
-      // Unsaved draft — just discard the live buffer.
+      // Unsaved draft — just discard the live buffer and close; no server
+      // round-trip, so this is the only close trigger.
       this.routeBuffers.delete(this.id());
-    } else {
-      // Saved route (clean or dirty) — delete the stored resource, dropping any
-      // live buffer too. hiddenSaved=false so the registry's hidden event
-      // reports a permanent delete, not a hide.
+      this.infoPanel.close();
+      return;
+    }
+    // Saved route (clean or dirty) — only drop the live buffer and close the
+    // panel once the server delete is confirmed and succeeds; a cancel or
+    // failure leaves the route (and any dirty edits) intact. hiddenSaved=false
+    // so the registry's hidden event reports a permanent delete, not a hide.
+    const ok = await this.skres.deleteRoute(this.id());
+    if (ok) {
       if (b) {
         this.routeBuffers.delete(this.id(), false);
       }
-      this.skres.deleteRoute(this.id());
+      this.infoPanel.close();
     }
-    // The route no longer exists — close the panel so its now-stale actions
-    // (Save/Edit/Start…) don't linger. A draft delete fires no server delta, so
-    // closing here is the only trigger; for a saved route this just makes the
-    // close immediate rather than waiting on the delete delta round-trip.
-    this.infoPanel.close();
   }
 
   protected onPanTo() {

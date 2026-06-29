@@ -1917,10 +1917,19 @@ export class AppComponent {
                 if (buf && !buf.saved) {
                   // Unsaved draft: stage the modified geometry to the buffer
                   // (emits route.dirty). Persisted only via an explicit Save.
+                  // Carry the per-point name/description so the metadata is not
+                  // dropped on a later Save.
+                  const meta = this.mapInteract.draw.forSave.coordsMetadata as
+                    | Array<{ name?: string; description?: string }>
+                    | undefined;
                   this.routeBuffers.replace(
                     r[1],
-                    this.mapInteract.draw.forSave.coords.map((position) => ({
-                      position
+                    this.mapInteract.draw.forSave.coords.map((position, i) => ({
+                      position,
+                      ...(meta?.[i]?.name ? { name: meta[i].name } : {}),
+                      ...(meta?.[i]?.description
+                        ? { description: meta[i].description }
+                        : {})
                     }))
                   );
                 } else {

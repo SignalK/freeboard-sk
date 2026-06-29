@@ -66,15 +66,26 @@ export function createRouteMethods(
   const unknownId = () =>
     new RpcError('Unknown route buffer', { reason: 'routes.unknownId' });
 
+  const badRequest = (message: string) =>
+    new RpcError(message, {
+      code: RPC_ERRORS.INVALID_PARAMS,
+      reason: 'routes.badRequest'
+    });
+
+  // Reject a non-string metadata field at the boundary so it can't be stored in
+  // the registry and later emitted/persisted, breaking the routes API contract.
+  const requireOptString = (v: unknown, field: string): void => {
+    if (v !== undefined && typeof v !== 'string') {
+      throw badRequest(`${field} must be a string`);
+    }
+  };
+
   // A route needs at least two points, and every point must be a numeric
-  // [lon, lat] tuple — otherwise the registry blows up in clonePoint() and the
-  // caller sees an internal error instead of routes.badRequest.
+  // [lon, lat] tuple with string metadata — otherwise the registry blows up in
+  // clonePoint() and the caller sees an internal error instead of badRequest.
   const requireValidPoints = (points: unknown): RoutePoint[] => {
     if (!Array.isArray(points) || points.length < 2) {
-      throw new RpcError('a route needs at least two points', {
-        code: RPC_ERRORS.INVALID_PARAMS,
-        reason: 'routes.badRequest'
-      });
+      throw badRequest('a route needs at least two points');
     }
     for (const p of points) {
       const pos = (p as RoutePoint)?.position;
@@ -84,11 +95,10 @@ export function createRouteMethods(
         !Number.isFinite(pos[0]) ||
         !Number.isFinite(pos[1])
       ) {
-        throw new RpcError(
-          'each route point needs a numeric [lon, lat] position',
-          { code: RPC_ERRORS.INVALID_PARAMS, reason: 'routes.badRequest' }
-        );
+        throw badRequest('each route point needs a numeric [lon, lat] position');
       }
+      requireOptString((p as RoutePoint).name, 'point name');
+      requireOptString((p as RoutePoint).description, 'point description');
     }
     return points as RoutePoint[];
   };
@@ -102,6 +112,8 @@ export function createRouteMethods(
         description?: string;
         points?: RoutePoint[];
       };
+      requireOptString(name, 'name');
+      requireOptString(description, 'description');
       const validPoints = requireValidPoints(points);
       const buffer = registry.create({ name, description, points: validPoints });
       return { routeId: buffer.routeId, rev: buffer.rev };
@@ -135,6 +147,11 @@ export function createRouteMethods(
         description?: string;
         dialog?: boolean;
       };
+      requireOptString(name, 'name');
+      requireOptString(description, 'description');
+      if (dialog !== undefined && typeof dialog !== 'boolean') {
+        throw badRequest('dialog must be a boolean');
+      }
       const result = await opts.onSave(routeId, { name, description, dialog });
       if (!result) {
         throw new RpcError('Route save was cancelled', {

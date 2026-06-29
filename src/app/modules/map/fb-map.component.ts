@@ -935,8 +935,13 @@ export class FBMapComponent implements OnInit, OnDestroy {
    * Details dialog (same path as the info-panel SAVE) and persists. Saves the
    * user a trip through INFO.
    */
-  protected saveRouteFromPopover() {
-    void this.plotterExt.saveBuffer(this.overlay().id, { dialog: true });
+  protected async saveRouteFromPopover() {
+    try {
+      await this.plotterExt.saveBuffer(this.overlay().id, { dialog: true });
+    } catch {
+      // saveBuffer surfaced the server error via parseHttpErrorResponse; the
+      // buffer stays dirty so the user can retry.
+    }
   }
 
   protected modifyFeature(featureType?: string) {
@@ -1834,7 +1839,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
   // ********************
 
   // ** delete selected feature **
-  protected deleteFeature(id: string, type: string) {
+  protected async deleteFeature(id: string, type: string) {
     switch (type) {
       case 'waypoint':
         this.skres.deleteWaypoint(id);
@@ -1846,12 +1851,14 @@ export class FBMapComponent implements OnInit, OnDestroy {
           this.routeBuffers.delete(id);
         } else {
           // Saved route (clean or dirty, with or without a buffer) — delete the
-          // stored resource, dropping any live buffer too. hiddenSaved=false so
-          // the registry's hidden event reports a permanent delete, not a hide.
-          if (b) {
+          // stored resource by its href (a saved draft keeps its draft routeId),
+          // and only drop the live buffer once the server delete is confirmed so
+          // a cancel/failure doesn't lose it. hiddenSaved=false so the registry's
+          // hidden event reports a permanent delete, not a hide.
+          const ok = await this.skres.deleteRoute(b?.href ?? id);
+          if (ok && b) {
             this.routeBuffers.delete(id, false);
           }
-          this.skres.deleteRoute(id);
         }
         break;
       }

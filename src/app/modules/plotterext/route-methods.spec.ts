@@ -205,6 +205,21 @@ describe('route methods (host handlers)', () => {
     ).rejects.toHaveProperty('reason', 'routes.badRequest');
   });
 
+  it('route.create rejects non-string name/description metadata', async () => {
+    const { call } = setup();
+    await expect(
+      call('route.create', {
+        name: 1,
+        points: [{ position: [0, 0] }, { position: [1, 1] }]
+      })
+    ).rejects.toHaveProperty('reason', 'routes.badRequest');
+    await expect(
+      call('route.create', {
+        points: [{ position: [0, 0] }, { position: [1, 1], name: {} }]
+      })
+    ).rejects.toHaveProperty('reason', 'routes.badRequest');
+  });
+
   it('route.hide delegates to onHide when provided', async () => {
     const registry = new RouteBufferRegistry();
     const seen: string[] = [];

@@ -621,6 +621,7 @@ export class PlotterExtensionService {
       return (
         p.position[0] === q.position[0] &&
         p.position[1] === q.position[1] &&
+        (p.position[2] ?? null) === (q.position[2] ?? null) &&
         (p.name ?? null) === (q.name ?? null) &&
         (p.description ?? null) === (q.description ?? null)
       );
@@ -896,8 +897,15 @@ export class PlotterExtensionService {
       }
     } else if (opts.dialog) {
       // Interactive: open the Route Details dialog (prefilled) so the user
-      // names it. Returns null if they cancel.
-      savedId = await this.skres.saveNewRoute(route);
+      // names it. Resolves null on cancel; rejects on a server failure, which
+      // we surface as routes.saveFailed rather than letting it look like a cancel.
+      try {
+        savedId = await this.skres.saveNewRoute(route);
+      } catch {
+        throw new RpcError('Failed to save route', {
+          reason: 'routes.saveFailed'
+        });
+      }
     } else {
       // Headless create: persist directly with the supplied (or buffer) name.
       try {
