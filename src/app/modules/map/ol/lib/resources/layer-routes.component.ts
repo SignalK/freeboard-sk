@@ -77,7 +77,11 @@ export class FreeboardRouteLayerComponent extends FBFeatureLayerComponent {
         });
         f.setId('route.' + r[0]);
         f.set('pointMetadata', r[1].feature.properties.coordinatesMeta ?? null);
-        f.setStyle(this.buildStyle(f));
+        // Style FUNCTION (not a static array) so the per-vertex markers, whose
+        // geometries are derived from the line in buildStyle, re-evaluate as the
+        // geometry changes during a Modify drag — otherwise they stay frozen at
+        // the original vertex positions until the edit finishes.
+        f.setStyle((feat) => this.buildStyle(feat as Feature));
         fa.push(f);
       }
     }
