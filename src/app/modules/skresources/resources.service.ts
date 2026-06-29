@@ -1243,9 +1243,19 @@ export class SKResourceService {
             try {
               await this.deleteFromServer('routes', id);
               if (result.checked) {
-                notes.forEach((note: FBNote) => {
-                  this.deleteFromServer('notes', note[0]);
-                });
+                // The route itself is gone; attached-note deletes are
+                // best-effort — await them so a failure is surfaced (not an
+                // unhandled rejection), but don't fail the route delete over one.
+                const outcomes = await Promise.allSettled(
+                  notes.map((note: FBNote) =>
+                    this.deleteFromServer('notes', note[0])
+                  )
+                );
+                for (const o of outcomes) {
+                  if (o.status === 'rejected') {
+                    this.app.parseHttpErrorResponse(o.reason);
+                  }
+                }
               }
               resolve(true);
             } catch (err) {

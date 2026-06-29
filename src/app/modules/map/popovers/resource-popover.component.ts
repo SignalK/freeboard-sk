@@ -335,9 +335,12 @@ export class ResourcePopoverComponent {
       this.ctrl.showSaveButton = this.type() === 'route' && this.canSave();
       if (this.ctrl.showSaveButton) {
         // Unsaved draft: also offer a quick Delete (discard) shortcut, and hide
-        // Start — navigating a route that isn't persisted doesn't work.
+        // the actions that only work against a stored resource — Start
+        // (navigation), Route Points and Show Notes — which a draft has none of.
         this.ctrl.showDeleteButton = true;
         this.ctrl.canActivate = false;
+        this.ctrl.showPointsButton = false;
+        this.ctrl.showNotesButton = false;
       }
     });
   }

@@ -759,8 +759,13 @@ export class PlotterExtensionService {
       try {
         await this.skres.deleteFromServer('routes', buf.href);
       } catch (err) {
+        // The server rejected the delete — surface it and reject so route.delete
+        // reports failure instead of letting the extension drop local state for
+        // a route that still exists.
         this.app.parseHttpErrorResponse(err);
-        return;
+        throw new RpcError('Failed to delete route', {
+          reason: 'routes.deleteFailed'
+        });
       }
     }
     this.routeRegistry.delete(routeId, false);
@@ -822,17 +827,19 @@ export class PlotterExtensionService {
       const cached = this.skres.fromCache('routes', routeId);
       const name = cached ? (cached[1].name ?? null) : null;
       const description = cached ? (cached[1].description ?? null) : null;
-      buf = this.routeRegistry.show({
+      this.routeRegistry.show({
         routeId,
         name,
         description,
         points,
         href: routeId
       });
-    } else {
-      this.routeRegistry.replace(routeId, points);
-      buf = this.routeRegistry.get(routeId);
     }
+    // Mark the edit dirty (in both the new-mirror and existing-buffer cases)
+    // before persisting, so a failed PUT leaves an unsaved edit as dirty rather
+    // than a clean saved route, and extensions still see route.dirty.
+    this.routeRegistry.replace(routeId, points);
+    buf = this.routeRegistry.get(routeId);
     const href = buf?.href ?? routeId;
     // Await persistence — only mark saved + broadcast route.saved if the PUT
     // succeeded; otherwise the buffer stays dirty.

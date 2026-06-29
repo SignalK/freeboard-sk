@@ -917,6 +917,16 @@ export class FBMapComponent implements OnInit, OnDestroy {
     rte.feature.geometry.coordinates = b.points.map(
       (p) => p.position
     ) as LineString;
+    // Carry per-point metadata so editing a named draft (which seeds
+    // coordsMetadata from the rendered feature's pointMetadata) doesn't drop
+    // waypoint names/descriptions on save.
+    const coordsMeta = b.points.map((p) => ({
+      ...(p.name ? { name: p.name } : {}),
+      ...(p.description ? { description: p.description } : {})
+    }));
+    if (coordsMeta.some((m) => Object.keys(m).length > 0)) {
+      rte.feature.properties.coordinatesMeta = coordsMeta;
+    }
     rte.distance = GeoUtils.routeLength(rte.feature.geometry.coordinates);
     return [b.routeId, rte, true];
   }
