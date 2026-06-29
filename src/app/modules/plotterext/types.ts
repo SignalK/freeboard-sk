@@ -18,6 +18,7 @@ export const HOST_CAPABILITIES = [
   'map',
   'resources',
   'resources.filter',
+  'routes',
   'background.iframe',
   'ui'
 ];

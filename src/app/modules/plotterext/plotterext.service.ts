@@ -18,7 +18,13 @@
 //
 // Map/resource host APIs (buttons, filters, map.*) belong to phase 3.
 
-import { Injectable, computed, isDevMode, signal } from '@angular/core';
+import {
+  Injectable,
+  computed,
+  effect,
+  isDevMode,
+  signal
+} from '@angular/core';
 import { MatDialog, MatDialogRef } from '@angular/material/dialog';
 import { firstValueFrom } from 'rxjs';
 import { SignalKClient } from 'signalk-client-angular';
@@ -28,10 +34,11 @@ import * as uuid from 'uuid';
 import { AppFacade } from 'src/app/app.facade';
 import { SKResourceService } from 'src/app/modules/skresources/resources.service';
 import { MapService } from 'src/app/modules/map/ol/lib/map.service';
-import { FBNotes } from 'src/app/types';
+import { FBNotes, LineString, Position } from 'src/app/types';
 import {
   HostConnection,
   MethodHandler,
+  RoutePoint,
   RpcError,
   RPC_ERRORS,
   windowPort
@@ -56,6 +63,8 @@ import {
   cellHeightPx,
   parseSize
 } from './types';
+import { RouteBufferRegistry } from './route-buffer.registry';
+import { createRouteMethods } from './route-methods';
 
 const STATE_STORAGE_KEY = 'fb-plotterext-state';
 const SK_PATH_PERIOD = 1000; // default delta period (ms) for relayed paths
@@ -560,7 +569,8 @@ export class PlotterExtensionService {
     private signalk: SignalKClient,
     private dialog: MatDialog,
     private skres: SKResourceService,
-    private mapService: MapService
+    private mapService: MapService,
+    private routeRegistry: RouteBufferRegistry
   ) {
     if (isDevMode()) {
       // console handle for exercising the host API during development
@@ -572,6 +582,363 @@ export class PlotterExtensionService {
     window.addEventListener('resize', () =>
       this.viewportTick.update((n) => n + 1)
     );
+    this.bridgeRouteEvents();
+    // Mirror Freeboard's displayed (selected) routes into the visible-route
+    // registry so the `routes` capability reflects them — including routes
+    // restored from a previous session's selection state on load. Reads
+    // skres.routes() so it re-runs whenever the displayed set changes.
+    effect(() => this.syncVisibleFromSelections());
+  }
+
+  /**
+   * Bring the registry in line with the host's displayed saved routes: show any
+   * that are displayed but not yet mirrored (emits `route.visible saved:true`),
+   * and hide mirrors of routes no longer displayed that have no pending edits
+   * (emits `route.hidden saved:true`). Drafts and dirty edits are left alone.
+   */
+  /** Build RoutePoints from a route's geometry + coordinatesMeta, carrying each
+   *  point's name AND description so they survive a round-trip through the
+   *  registry and back into coordinatesMeta on save. */
+  private pointsFromRoute(
+    coords: Position[],
+    meta?: Array<{ name?: string; description?: string }>
+  ): RoutePoint[] {
+    return coords.map((position, i) => ({
+      position,
+      ...(meta?.[i]?.name ? { name: meta[i].name } : {}),
+      ...(meta?.[i]?.description ? { description: meta[i].description } : {})
+    }));
+  }
+
+  /** Deep-compare two point lists (position + name + description) so a
+   *  same-length geometry/metadata edit is still detected as a change. */
+  private pointsEqual(a: RoutePoint[], b: RoutePoint[]): boolean {
+    if (a.length !== b.length) {
+      return false;
+    }
+    return a.every((p, i) => {
+      const q = b[i];
+      return (
+        p.position[0] === q.position[0] &&
+        p.position[1] === q.position[1] &&
+        (p.name ?? null) === (q.name ?? null) &&
+        (p.description ?? null) === (q.description ?? null)
+      );
+    });
+  }
+
+  private syncVisibleFromSelections(): void {
+    const displayed = this.skres.routes();
+    const displayedHrefs = new Set(displayed.map((r) => r[0]));
+    for (const [id, route] of displayed) {
+      const coords = (route.feature?.geometry?.coordinates ?? []) as Position[];
+      const meta = route.feature?.properties?.coordinatesMeta as
+        | Array<{ name?: string; description?: string }>
+        | undefined;
+      const points = this.pointsFromRoute(coords, meta);
+      // Resolve by href, not routeId: a draft saved via route.save keeps its
+      // original (draft) routeId while its href points at the new resource, so
+      // get(id) can be undefined while a buffer for this resource exists.
+      const mirror = this.routeRegistry.getByHref(id);
+      if (mirror) {
+        // Refresh our own clean mirror when the backing route changed
+        // server-side; never clobber a draft or a buffer with pending edits.
+        const stale =
+          mirror.saved &&
+          !mirror.dirty &&
+          ((mirror.name ?? null) !== (route.name ?? null) ||
+            (mirror.description ?? null) !== (route.description ?? null) ||
+            !this.pointsEqual(mirror.points, points));
+        if (stale) {
+          this.routeRegistry.show({
+            routeId: mirror.routeId,
+            name: route.name ?? null,
+            description: route.description ?? null,
+            points,
+            href: id
+          });
+        }
+        continue;
+      }
+      this.routeRegistry.show({
+        routeId: id,
+        name: route.name ?? null,
+        description: route.description ?? null,
+        points,
+        href: id
+      });
+    }
+    for (const buf of this.routeRegistry.all()) {
+      if (buf.saved && !buf.dirty && buf.href && !displayedHrefs.has(buf.href)) {
+        this.routeRegistry.delete(buf.routeId, true);
+      }
+    }
+  }
+
+  /**
+   * Bridge RouteBufferRegistry mutations to `route.*` bus events. Delivery is
+   * subscription-gated by broadcastMessage, so only contexts that subscribed
+   * to (e.g.) `route.**` receive them. The service is an app-lifetime singleton,
+   * so this subscription lives for the session by design.
+   */
+  private bridgeRouteEvents(): void {
+    this.routeRegistry.events$.subscribe((e) => {
+      switch (e.type) {
+        case 'visible':
+          this.broadcastMessage('route.visible', {
+            routeId: e.routeId,
+            rev: e.rev,
+            name: e.name,
+            pointCount: e.pointCount,
+            saved: e.saved,
+            dirty: e.dirty
+          });
+          break;
+        case 'hidden':
+          this.broadcastMessage('route.hidden', {
+            routeId: e.routeId,
+            rev: e.rev,
+            saved: e.saved
+          });
+          break;
+        case 'dirty':
+          this.broadcastMessage('route.dirty', {
+            routeId: e.routeId,
+            rev: e.rev,
+            ...(e.reason !== undefined ? { reason: e.reason } : {})
+          });
+          break;
+      }
+    });
+  }
+
+  /** Host API handlers for the `routes` capability. */
+  private routeMethods(): Record<string, MethodHandler> {
+    return createRouteMethods(this.routeRegistry, {
+      onSave: (routeId, params) => this.saveBuffer(routeId, params),
+      onShow: (ref) => this.showRoute(ref),
+      onHide: (routeId) => this.hideRoute(routeId),
+      onDelete: (routeId) => this.deleteRoute(routeId)
+    });
+  }
+
+  /**
+   * `route.hide`: remove a route from the map. A saved route's visibility is
+   * unchecked (the stored resource is untouched → `route.hidden saved:true`); an
+   * unsaved draft is discarded (`route.hidden saved:false`).
+   */
+  hideRoute(routeId: string): void {
+    const buf = this.routeRegistry.get(routeId);
+    if (!buf) {
+      return;
+    }
+    if (buf.saved && buf.href) {
+      this.skres.selectionRemove('routes', buf.href);
+      this.skres.refreshRoutes();
+      this.routeRegistry.delete(routeId, true);
+    } else {
+      this.routeRegistry.delete(routeId, false);
+    }
+  }
+
+  /**
+   * `route.delete`: permanently delete a saved route from the store (and discard
+   * an unsaved one — same effect as hide). The route leaves the visible set as
+   * `route.hidden saved:false` (gone) in both cases.
+   */
+  async deleteRoute(routeId: string): Promise<void> {
+    const buf = this.routeRegistry.get(routeId);
+    if (!buf) {
+      return;
+    }
+    if (buf.saved && buf.href) {
+      // Delete the resource directly (no confirm dialog — the extension already
+      // chose to delete) and await it; keep the route on failure so host state
+      // matches the server.
+      try {
+        await this.skres.deleteFromServer('routes', buf.href);
+      } catch (err) {
+        this.app.parseHttpErrorResponse(err);
+        return;
+      }
+    }
+    this.routeRegistry.delete(routeId, false);
+  }
+
+  /**
+   * Bring a stored route into the visible set (capability `route.show`): ensure
+   * it is displayed, load its geometry, and register it as an addressable
+   * saved + clean route under its resource id. Throws `routes.badRef` if no such
+   * route exists.
+   */
+  async showRoute(ref: string): Promise<{ routeId: string; rev: number }> {
+    // Already mirrored (a displayed route, or shown before)? Return the existing
+    // buffer rather than creating a duplicate for the same resource.
+    const existing = this.routeRegistry.getByHref(ref);
+    if (existing) {
+      return { routeId: existing.routeId, rev: existing.rev };
+    }
+    this.skres.selectionAdd('routes', ref);
+    await this.skres.refreshRoutes();
+    const cached = this.skres.fromCache('routes', ref);
+    if (!cached) {
+      // Undo the speculative selection so an unknown ref doesn't linger in config.
+      this.skres.selectionRemove('routes', ref);
+      throw new RpcError('No such route', { reason: 'routes.badRef' });
+    }
+    const route = cached[1];
+    const coords = (route.feature?.geometry?.coordinates ?? []) as Position[];
+    const meta = route.feature?.properties?.coordinatesMeta as
+      | Array<{ name?: string; description?: string }>
+      | undefined;
+    const points = this.pointsFromRoute(coords, meta);
+    const buf = this.routeRegistry.show({
+      routeId: ref,
+      name: route.name ?? null,
+      description: route.description ?? null,
+      points,
+      href: ref
+    });
+    return { routeId: buf.routeId, rev: buf.rev };
+  }
+
+  /**
+   * Mirror a native edit of a stored route through the registry so extensions
+   * observe it, then persist. The route becomes addressable (`route.visible` if
+   * newly mirrored, else `route.dirty`) and is then saved (`route.saved`). The
+   * geometry is persisted via the existing resource path, preserving per-point
+   * metadata. Called by the host's own Modify-route flow.
+   */
+  async saveNativeRouteEdit(
+    routeId: string,
+    coords: Position[],
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    coordsMetadata?: Array<any>
+  ): Promise<void> {
+    const points = this.pointsFromRoute(coords, coordsMetadata);
+    let buf = this.routeRegistry.get(routeId);
+    if (!buf) {
+      const cached = this.skres.fromCache('routes', routeId);
+      const name = cached ? (cached[1].name ?? null) : null;
+      const description = cached ? (cached[1].description ?? null) : null;
+      buf = this.routeRegistry.show({
+        routeId,
+        name,
+        description,
+        points,
+        href: routeId
+      });
+    } else {
+      this.routeRegistry.replace(routeId, points);
+      buf = this.routeRegistry.get(routeId);
+    }
+    const href = buf?.href ?? routeId;
+    // Await persistence — only mark saved + broadcast route.saved if the PUT
+    // succeeded; otherwise the buffer stays dirty.
+    const ok = await this.skres.updateRouteCoords(href, coords, coordsMetadata);
+    if (!ok) {
+      return;
+    }
+    const rev = this.routeRegistry.markSaved(routeId, href) ?? 0;
+    this.broadcastMessage('route.saved', {
+      routeId,
+      rev,
+      href,
+      name: buf?.name ?? null,
+      saved: true,
+      dirty: false
+    });
+  }
+
+  /**
+   * Persist a live route to the `routes` resource, emit `route.saved`, and keep
+   * it in the visible set under the same `routeId` (now `saved:true,
+   * dirty:false`) — saving does not consume the route. Resolves with
+   * `{ href, rev }` on save, or null if the user cancelled. Shared by the
+   * `route.save` host method and the FSK info-panel "Save" action so both behave
+   * identically. Pass `dialog:true` to prompt for the name/description.
+   */
+  async saveBuffer(
+    routeId: string,
+    opts: { name?: string; description?: string; dialog?: boolean } = {}
+  ): Promise<{ href: string; rev: number } | null> {
+    const buf = this.routeRegistry.get(routeId);
+    if (!buf) {
+      return null;
+    }
+    const [, route] = this.skres.buildRoute(
+      buf.points.map((p) => p.position) as LineString
+    );
+    // buildRoute keeps only positions — carry the per-point names/descriptions
+    // and the route-level description so they are not silently dropped on save.
+    const coordinatesMeta = buf.points.map((p) => ({
+      ...(p.name ? { name: p.name } : {}),
+      ...(p.description ? { description: p.description } : {})
+    }));
+    if (coordinatesMeta.some((m) => Object.keys(m).length > 0)) {
+      route.feature.properties.coordinatesMeta = coordinatesMeta;
+    }
+    route.name = opts.name ?? buf.name ?? '';
+    route.description = opts.description ?? buf.description ?? '';
+    let savedId: string | null;
+    if (buf.href) {
+      // Backed by an existing resource — update it in place (keep its id).
+      try {
+        await this.skres.putToServer('routes', buf.href, route);
+        savedId = buf.href;
+      } catch (err) {
+        this.app.parseHttpErrorResponse(err);
+        // A server rejection is a real failure, not a user cancel — surface it
+        // so route.save reports routes.saveFailed instead of routes.saveCancelled.
+        throw new RpcError('Failed to save route', {
+          reason: 'routes.saveFailed'
+        });
+      }
+    } else if (opts.dialog) {
+      // Interactive: open the Route Details dialog (prefilled) so the user
+      // names it. Returns null if they cancel.
+      savedId = await this.skres.saveNewRoute(route);
+    } else {
+      // Headless create: persist directly with the supplied (or buffer) name.
+      try {
+        const rte = await this.skres.postToServer('routes', route);
+        savedId = rte.id;
+        // The dialog path (saveNewRoute) selects the new route; do the same for
+        // the headless path so it stays displayed after a refresh.
+        this.skres.selectionAdd('routes', savedId);
+      } catch (err) {
+        this.app.parseHttpErrorResponse(err);
+        throw new RpcError('Failed to save route', {
+          reason: 'routes.saveFailed'
+        });
+      }
+    }
+    if (!savedId) {
+      // Only the interactive dialog path returns null — the user cancelled.
+      return null;
+    }
+    // Keep the route in the visible set under the same routeId, now saved+clean,
+    // recording the backing resource id + the (possibly dialog-set) name.
+    const savedName = route.name || null;
+    const rev =
+      this.routeRegistry.markSaved(
+        routeId,
+        savedId,
+        savedName,
+        route.description || null
+      ) ?? buf.rev + 1;
+    this.broadcastMessage('route.saved', {
+      routeId,
+      rev,
+      href: savedId,
+      name: savedName,
+      saved: true,
+      dirty: false
+    });
+    // The route is persisted and no longer being edited — clear the editing
+    // marker so the route-list visibility checkboxes are not left disabled.
+    this.app.data.editingId = '';
+    return { href: savedId, rev };
   }
 
   /** Fetch manifests. Called after the server connection is established. */
@@ -963,6 +1330,7 @@ export class PlotterExtensionService {
         ...this.unitsMethods(),
         ...this.resourcesMethods(placed.extension),
         ...this.mapMethods(),
+        ...this.routeMethods(),
         ...this.uiPanelMethods(placed.extension),
         'ui.openConfigPanel': async () => {
           this.openConfigPanel(placed);
@@ -1017,6 +1385,7 @@ export class PlotterExtensionService {
         ...this.unitsMethods(),
         ...this.resourcesMethods(opts.extension),
         ...this.mapMethods(),
+        ...this.routeMethods(),
         ...this.uiPanelMethods(opts.extension),
         'ui.closePanel': async () => {
           opts.close();
@@ -1061,6 +1430,7 @@ export class PlotterExtensionService {
         ...this.unitsMethods(),
         ...this.resourcesMethods(opts.extension),
         ...this.mapMethods(),
+        ...this.routeMethods(),
         ...this.uiPanelMethods(opts.extension)
       },
       onError: (err) => console.warn('plotterext background error', err)

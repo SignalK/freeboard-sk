@@ -27,6 +27,17 @@
 
     <div style="display: flex">
       <div>
+        @if (isUnsaved()) {
+        <button
+          mat-button
+          [disabled]="interacting()"
+          (click)="onEdit()"
+          matTooltip="Save as a route"
+        >
+          <mat-icon>save</mat-icon>
+          SAVE
+        </button>
+        } @else {
         <button
           mat-button
           [disabled]="_route()?.feature?.properties?.readOnly  || interacting()"
@@ -36,10 +47,11 @@
           <mat-icon>edit</mat-icon>
           EDIT
         </button>
+        }
         &nbsp; @if (this.app.data.activeRoute !== id()) {
         <button
           mat-button
-          [disabled]="interacting()"
+          [disabled]="interacting() || isUnsaved()"
           (click)="onGoto()"
           matTooltip="Navigate To"
         >
@@ -100,7 +112,10 @@
       "
     >
       <div style="font-weight: bold; font-size: larger; padding-bottom: 5px">
-        {{_route()?.name}}
+        {{ _route()?.name }}
+        @if (isUnsaved()) {
+        <span style="color: gray; font-style: italic">&nbsp;(unsaved)</span>
+        }
       </div>
     </div>
   </div>
@@ -135,7 +150,7 @@
           <button
             matIconButton
             matTooltip="Re-order points"
-            [disabled]="interacting()"
+            [disabled]="interacting() || isUnsaved()"
             (click)="arrangePoints()"
           >
             <mat-icon>import_export</mat-icon>
@@ -160,7 +175,7 @@
             <button
               matIconButton
               matTooltip="Start here"
-              [disabled]="interacting()"
+              [disabled]="interacting() || isUnsaved()"
               (click)="onGoto(point.index)"
             >
               <mat-icon>near_me</mat-icon>
@@ -187,7 +202,7 @@
           <button
             matIconButton
             matTooltip="Add Note"
-            [disabled]="interacting()"
+            [disabled]="interacting() || isUnsaved()"
             (click)="addNote()"
           >
             <mat-icon>add</mat-icon>
@@ -217,7 +232,7 @@
           <button
             matIconButton
             matTooltip="Add to Group"
-            [disabled]="interacting()"
+            [disabled]="interacting() || isUnsaved()"
             (click)="addToGroup()"
           >
             <mat-icon>add</mat-icon>

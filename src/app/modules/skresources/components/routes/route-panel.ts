@@ -1,5 +1,6 @@
 import {
   Component,
+  computed,
   DestroyRef,
   effect,
   inject,
@@ -8,6 +9,7 @@ import {
   output,
   signal
 } from '@angular/core';
+import { RouteBufferRegistry } from 'src/app/modules/plotterext/route-buffer.registry';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
@@ -20,6 +22,7 @@ import { MatDialog } from '@angular/material/dialog';
 import { RemarkModule } from 'ngx-remark';
 
 import { AppFacade } from 'src/app/app.facade';
+import { InfoPanelFacade } from 'src/app/modules/info-panel/info-panel.facade';
 import { AppIconDef, getResourceIcon } from 'src/app/modules/icons';
 import { SKRoute } from '../../resource-classes';
 import { SKResourceService } from '../../resources.service';
@@ -67,6 +70,14 @@ export class RoutePanel {
   }>();
 
   protected _route = linkedSignal(() => this.route());
+  /** True when this id refers to a route with pending unsaved changes — a
+   *  never-saved draft or a stored route edited but not yet re-saved: the panel
+   *  shows "Save" instead of "Edit" and acts locally. A saved + clean buffer is
+   *  treated as a normal stored route (shows "Edit"). */
+  protected isUnsaved = computed(() => {
+    const b = this.routeBuffers.get(this.id());
+    return !!b && (!b.saved || b.dirty);
+  });
   protected notes = signal<FBNotes>([]);
   protected groups = signal<FBResourceGroups>([]);
   protected points = signal<
@@ -84,6 +95,8 @@ export class RoutePanel {
   protected icon: AppIconDef;
   protected app = inject(AppFacade);
   private skres = inject(SKResourceService);
+  private routeBuffers = inject(RouteBufferRegistry);
+  private infoPanel = inject(InfoPanelFacade);
   private course = inject(CourseService);
   protected skgroups = inject(SKResourceGroupService);
   private dialog = inject(MatDialog);
@@ -241,7 +254,24 @@ export class RoutePanel {
   }
 
   protected onDelete() {
-    this.skres.deleteRoute(this.id());
+    const b = this.routeBuffers.get(this.id());
+    if (b && !b.saved) {
+      // Unsaved draft — just discard the live buffer.
+      this.routeBuffers.delete(this.id());
+    } else {
+      // Saved route (clean or dirty) — delete the stored resource, dropping any
+      // live buffer too. hiddenSaved=false so the registry's hidden event
+      // reports a permanent delete, not a hide.
+      if (b) {
+        this.routeBuffers.delete(this.id(), false);
+      }
+      this.skres.deleteRoute(this.id());
+    }
+    // The route no longer exists — close the panel so its now-stale actions
+    // (Save/Edit/Start…) don't linger. A draft delete fires no server delta, so
+    // closing here is the only trigger; for a saved route this just makes the
+    // close immediate rather than waiting on the delete delta round-trip.
+    this.infoPanel.close();
   }
 
   protected onPanTo() {

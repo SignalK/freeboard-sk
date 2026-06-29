@@ -1145,6 +1145,37 @@ export class SKResourceService {
   }
 
   /**
+   * @description Open the Route Details dialog for an unsaved route and, on
+   * save, persist it to the server. Resolves with the saved resource id, or
+   * null if the user cancelled (closed the dialog without saving). Used to
+   * persist a live edit buffer into a stored route.
+   */
+  public saveNewRoute(route: SKRoute): Promise<string | null> {
+    return new Promise((resolve) => {
+      this.dialog
+        .open(RouteDialog, {
+          disableClose: true,
+          data: { title: 'Route Details', route }
+        })
+        .afterClosed()
+        .subscribe(async (r: { save: boolean; route: SKRoute }) => {
+          if (r?.save) {
+            try {
+              const rte = await this.postToServer('routes', r.route);
+              this.selectionAdd('routes', rte.id);
+              resolve(rte.id);
+            } catch (err) {
+              this.app.parseHttpErrorResponse(err);
+              resolve(null);
+            }
+          } else {
+            resolve(null);
+          }
+        });
+    });
+  }
+
+  /**
    * @description Fetch Route with supplied id and display edit dialog
    * @param id route identifier
    */
@@ -1228,10 +1259,10 @@ export class SKResourceService {
     coords: Array<Position>,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     coordsMeta?: Array<any>
-  ) {
+  ): Promise<boolean> {
     const r = this.fromCache('routes', id);
     if (!r) {
-      return;
+      return Promise.resolve(false);
     }
     const rte = r[1];
     rte['feature']['geometry']['coordinates'] =
@@ -1241,9 +1272,14 @@ export class SKResourceService {
     if (coordsMeta) {
       rte['feature']['properties']['coordinatesMeta'] = coordsMeta;
     }
-    this.putToServer('routes', id, rte).catch((err) => {
-      this.app.parseHttpErrorResponse(err);
-    });
+    // Resolves true on success, false on failure (the error is surfaced here);
+    // callers that only fire-and-forget can ignore the result.
+    return this.putToServer('routes', id, rte)
+      .then(() => true)
+      .catch((err) => {
+        this.app.parseHttpErrorResponse(err);
+        return false;
+      });
   }
 
   // **** WAYPOINTS ****
