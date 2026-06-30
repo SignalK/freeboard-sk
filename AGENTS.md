@@ -102,31 +102,35 @@ continue that. The bar below is what "done correctly" means here.
   When updating with upstream: `git fetch && git rebase origin/master`, force-push.
 - **CodeRabbit** reviews PRs automatically — address its comments, then it's ready
   for maintainer review.
+- **Share what you learned — keep the lessons log alive.** If working on your PR
+  surfaced something non-obvious about developing FSK locally (a toolchain trap, a
+  test-setup gotcha, a platform or hardware quirk), add it to
+  [`docs/freeboard/DEV-LESSONS-LEARNED.md`](docs/freeboard/DEV-LESSONS-LEARNED.md)
+  so the next contributor doesn't rediscover it. The bar is *non-obvious and
+  reusable*, **not** *universal*: lessons that apply to a whole class of setups are
+  welcome — just scope them with the condition that makes them relevant ("If you're
+  developing on Windows, …", "If your charts live on a Raspberry Pi microSD, …").
+  Skip anything truly unique to your one machine. Add it in its own small
+  `docs(lessons): …` PR. When an existing entry has gone **wrong or stale** — the
+  tooling or code moved, or it's genuinely unclear — fix or prune it the same way:
+  verify it actually misleads first (it bit you, or you checked it against current
+  code/tooling), then correct it (or remove it if obsolete) with a one-line note on
+  what changed. Don't reword on suspicion or for style — the bar for editing is the
+  same as for adding.
 
-## Hard-won knowledge (read this — it saves time and tokens)
+## Hard-won knowledge → read the lessons log
 
-Non-obvious facts about this project that took real effort to discover:
+The non-obvious, time-wasting traps that took real effort to discover live in
+[`docs/freeboard/DEV-LESSONS-LEARNED.md`](docs/freeboard/DEV-LESSONS-LEARNED.md),
+grouped by the **phase of work** they bite in. **Read it — skipping it wastes real
+time and tokens.** As you enter each phase, (re-)read the matching section:
 
-- **`ng build` / `ng test` don't exit** (esbuild keeps the loop alive) → use
-  `npm run build:web` / `npm run test:ci`, never the raw Angular commands, for
-  anything that must terminate. (This is why those wrappers exist.)
-- **A PR title is literally a line in the App Store Changelog.** The chain is: *PR
-  title → GitHub auto-generated release notes (on a `v*` tag) → App Store Changelog
-  tab*, colour-coded by `feat`/`fix`/breaking prefix. This is the real reason the
-  title convention and one-change-per-PR rules matter so much. (Details:
-  [`docs/signalk/plugin-publishing.md`](docs/signalk/plugin-publishing.md).)
-- **CodeRabbit reviews the PR *branch*, not the merged result.** It diffs against
-  the merge-base and reads context from the head branch — so if `master` moved
-  after you branched, CR (and CI) reason about a stale tree. **Rebase onto current
-  `master` before relying on a re-review**, or it may flag issues already fixed
-  elsewhere.
-- **Angular signals in `effect()`:** reading *and* writing the same signal inside an
-  effect creates a feedback loop. Read the current value non-reactively (e.g. a
-  plain getter / snapshot method) when an effect also mutates that state.
-- **Build outputs are gitignored** (`public/`, `plugin/`); the server serves
-  `public/` at the package mount point. See
-  [`docs/signalk/extension-model.md`](docs/signalk/extension-model.md) for the
-  base-path rule.
+- *reading / exploring the code* · *coding* · *testing* · *building & running
+  locally* · *submitting a PR* — plus *environment-specific* lessons scoped by
+  condition (Windows, Raspberry Pi microSD, …).
+
+Hit a new trap? Add it back — see *Share what you learned* under
+*Contributing — PR standards* above.
 
 ## DeepWiki (warm up your context)
 
@@ -148,6 +152,10 @@ the code. Use the DeepWiki MCP (or the web URLs) before guessing at architecture
   `routes` capability).
 - [`freeboard-symbol-support.md`](docs/freeboard/freeboard-symbol-support.md) — how
   Freeboard consumes custom map symbols.
+- [`DEV-LESSONS-LEARNED.md`](docs/freeboard/DEV-LESSONS-LEARNED.md) — the lessons
+  log: non-obvious, repo-specific traps grouped by work phase (reading, coding,
+  testing, building, PR). The *Hard-won knowledge* section above points here; read
+  the section matching your current phase.
 
 **Host-agnostic API specs** (`docs/api/`):
 - [`plotter-extensions-api.md`](docs/api/plotter-extensions-api.md) — the Plotter
