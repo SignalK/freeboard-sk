@@ -177,16 +177,10 @@
       >
       </fb-tilelayer-vector>
     } @else if (
-      c[0] === 'openstreetmap' || c[1].type?.toLowerCase() === 'tilelayer'
+      c[0] === 'openstreetmap' ||
+      c[1].type?.toLowerCase() === 'tilelayer' ||
+      !c[1]?.type
     ) {
-      <fb-tilelayer-raster
-        [zIndex]="10 + idx"
-        [chart]="c"
-        [overZoomTiles]="overZoomTiles"
-        [mapMaxZoom]="app.MAP_ZOOM_EXTENT.max"
-      >
-      </fb-tilelayer-raster>
-    } @else {
       <fb-tilelayer-raster
         [zIndex]="10 + idx"
         [chart]="c"
