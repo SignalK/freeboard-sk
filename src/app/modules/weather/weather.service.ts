@@ -43,7 +43,7 @@ export class WeatherService {
     private sk: SignalKClient
   ) {}
 
-  getOpenMeteoWindSamples(
+  getWindSamples(
     points: Array<{ latitude: number; longitude: number }>
   ): Observable<WeatherWindSample[]> {
     if (points.length === 0) {
@@ -86,6 +86,8 @@ export class WeatherService {
     );
   }
 
+  /** Stopgap: currents not yet exposed by the SK Weather API — call Open-Meteo Marine directly.
+   *  Migrate to the SK Weather API once providers expose ocean_current_velocity/direction. */
   getOceanCurrentSamples(
     points: Array<{ latitude: number; longitude: number }>
   ): Observable<OceanCurrentSample[]> {
@@ -100,6 +102,7 @@ export class WeatherService {
     return this.http
       .get<OpenMeteoMarineItem | OpenMeteoMarineItem[]>(url)
       .pipe(
+        catchError(() => of([])),
         map((response) => (Array.isArray(response) ? response : [response])),
         map((items) =>
           items

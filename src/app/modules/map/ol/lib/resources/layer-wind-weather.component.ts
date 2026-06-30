@@ -123,7 +123,7 @@ export class LayerWindWeatherComponent implements OnChanges, OnDestroy {
     }
 
     this.windSub?.unsubscribe();
-    this.windSub = this.weather.getOpenMeteoWindSamples(points).subscribe({
+    this.windSub = this.weather.getWindSamples(points).subscribe({
       next: (samples) => this.renderWind(samples),
       error: (err) => console.warn('Open-Meteo wind layer unavailable.', err)
     });
