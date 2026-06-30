@@ -48,7 +48,7 @@ terminate (CI, scripts, an agent verifying a change). Plain `npm test` stays as 
 local watch command. (This is why those wrappers exist; see *Build, test, run* in
 `AGENTS.md`.)
 
-### Running a single spec file: you can't (with bare vitest)
+### Running a single spec file: not with bare vitest — use `ng test --include`
 
 **The trap.** To iterate quickly on one test, the obvious move is
 `npx vitest run src/app/.../foo.spec.ts`. It fails with
@@ -62,19 +62,27 @@ app graph, that code's own **transitive** `src/…` imports fail the same way.
 `paths`), which only applies when tests run through `ng test`. The vitest config the
 project ships is intentionally minimal and assumes that pipeline.
 
-**What to do instead.** Run tests through the exit-safe wrapper:
+**What to do instead.** Run through Angular so the alias resolves. For the whole
+suite, the exit-safe wrapper:
 
 ```bash
 npm run test:ci      # = ng test, with the force-exit wrapper
 ```
 
-This resolves the alias correctly — but it runs the **whole** suite; there is no
-fast single-file or `-t <name>` filter. Practical consequences:
+To iterate on **one** spec, you *can* filter — pass the file to `ng test`:
 
-- Budget for full-suite runs while iterating on a single new spec.
-- **Red→green-verifying a regression test costs two full-suite runs** — once with
-  the fix reverted (expect the new test to fail), once restored (expect it to
-  pass). Plan for it; don't try to shortcut it with `npx vitest`.
+```bash
+npx ng test --include "src/app/.../foo.spec.ts"
+```
+
+This goes through the Angular pipeline (alias resolves) and runs only that file.
+The one catch: like all `ng test`/`ng build` invocations it **won't self-exit**
+(see *`ng test` / `ng build` don't exit* above) — `test:ci` is wrapped, this raw
+form is not. Background it, wait for the vitest `Test Files` summary, then kill it
+(or just Ctrl-C). So **red→green-verifying a regression test is two single-file
+runs**, not two full-suite runs — once with the fix reverted (new test fails), once
+restored (it passes). Don't reach for `npx vitest` to shortcut it; that's the path
+that fails on the alias.
 
 ### Unit-testing a DI-heavy service whose constructor calls `effect()`
 
