@@ -170,7 +170,9 @@ interface DialogData {
             <div style="font-size: 10pt;display:flex;flex-wrap:wrap">
               <div>
                 <div>
-                  <div style="display:flex;align-items:center;flex-wrap:wrap;gap:4px;">
+                  <div
+                    style="display:flex;align-items:center;flex-wrap:wrap;gap:4px;"
+                  >
                     <mat-chip-listbox
                       selectable
                       (change)="handleWptTypeChange($event.value)"
@@ -311,7 +313,9 @@ export class WaypointDialog {
       }
     }
 
-    this.iconsForSelection.set(this.wptOptions[this.wptType]?.icons ?? this.wptOptions['waypoint'].icons);
+    this.iconsForSelection.set(
+      this.wptOptions[this.wptType]?.icons ?? this.wptOptions['waypoint'].icons
+    );
     this.wptDescription = this.data.waypoint.description ?? '';
     this.wptReadOnly = this.data.waypoint.feature.properties?.readOnly ?? false;
     const coords = this.data.waypoint.feature.geometry.coordinates ?? [0, 0];
@@ -379,7 +383,9 @@ export class WaypointDialog {
     this.showAllIcons.set(checked);
     this.rebuildIconOptions(checked);
     // Stay on the current category (only the Waypoints chip shows the toggle).
-    const currentGroup = this.wptOptions[this.wptType] ? this.wptType : 'waypoint';
+    const currentGroup = this.wptOptions[this.wptType]
+      ? this.wptType
+      : 'waypoint';
     this.iconsForSelection.set(this.wptOptions[currentGroup].icons);
   }
 

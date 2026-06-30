@@ -41,6 +41,7 @@
     "build": "ng build",
     "test": "ng test",
     "format": "prettier --ignore-path .gitignore --write \"src/**/*.+(ts|html)\"",
+    "format:check": "prettier --ignore-path .gitignore --check \"src/**/*.+(ts|html)\"",
     "format:helper": "prettier --ignore-path .gitignore --write \"helper/**/*.+(ts|html)\"",
     "format:all": "npm run format && npm run format:helper",
     "build:helper": "tsc -p tsconfig-helper.json",

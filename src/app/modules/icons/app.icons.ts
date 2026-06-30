@@ -22,13 +22,15 @@ import { RESERVED_DEFAULT_NS } from './symbol-ref';
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 let _symbolRegistry: any = null;
 
-export const setSymbolRegistry = (registry: {
-  resolveDisplayIcon(ref: string): AppIconDef | null;
-  getExternalNoteIcons(showAll: boolean): Array<{ id: string; name: string }>;
-  getExternalWaypointIcons(showAll: boolean): AppIconDef[];
-  hasExternalVersion(id: string): boolean;
-  getGpxMapping(ref: string): { gpxType?: string; gpxSym?: string } | null;
-} | null): void => {
+export const setSymbolRegistry = (
+  registry: {
+    resolveDisplayIcon(ref: string): AppIconDef | null;
+    getExternalNoteIcons(showAll: boolean): Array<{ id: string; name: string }>;
+    getExternalWaypointIcons(showAll: boolean): AppIconDef[];
+    hasExternalVersion(id: string): boolean;
+    getGpxMapping(ref: string): { gpxType?: string; gpxSym?: string } | null;
+  } | null
+): void => {
   _symbolRegistry = registry;
 };
 
@@ -100,7 +102,10 @@ export const getSvgList = (): Array<{ id: string; path: string }> => {
   addToList(WaypointIcons);
   addToList(AtoNsType1);
   // Fallback icon for unresolvable symbol references
-  svgList.push({ id: 'no-such-symbol', path: './assets/img/no-such-symbol.svg' });
+  svgList.push({
+    id: 'no-such-symbol',
+    path: './assets/img/no-such-symbol.svg'
+  });
   return svgList;
 };
 
@@ -411,32 +416,33 @@ export const selListWaypointIcons = (
     icons: Array<AppIconDef>;
   }
 > => {
-  const iconList: Record<string, { group: string; icons: Array<AppIconDef> }> = {
-    waypoint: {
-      group: 'Waypoints',
-      icons: [getResourceIcon('waypoints', 'waypoint')]
-    },
-    pseudoaton: {
-      group: 'Pseudo AtoN',
-      icons: [getResourceIcon('waypoints', 'pseudoaton')]
-    },
-    whale: {
-      group: 'Sightings',
-      icons: [getResourceIcon('waypoints', 'whale')]
-    },
-    pob: {
-      group: 'Alarms',
-      icons: [getResourceIcon('waypoints', 'pob')]
-    },
-    'start-boat': {
-      group: 'Start Boat',
-      icons: [getResourceIcon('waypoints', 'start-boat')]
-    },
-    'start-pin': {
-      group: 'Start Pin',
-      icons: [getResourceIcon('waypoints', 'start-pin')]
-    }
-  };
+  const iconList: Record<string, { group: string; icons: Array<AppIconDef> }> =
+    {
+      waypoint: {
+        group: 'Waypoints',
+        icons: [getResourceIcon('waypoints', 'waypoint')]
+      },
+      pseudoaton: {
+        group: 'Pseudo AtoN',
+        icons: [getResourceIcon('waypoints', 'pseudoaton')]
+      },
+      whale: {
+        group: 'Sightings',
+        icons: [getResourceIcon('waypoints', 'whale')]
+      },
+      pob: {
+        group: 'Alarms',
+        icons: [getResourceIcon('waypoints', 'pob')]
+      },
+      'start-boat': {
+        group: 'Start Boat',
+        icons: [getResourceIcon('waypoints', 'start-boat')]
+      },
+      'start-pin': {
+        group: 'Start Pin',
+        icons: [getResourceIcon('waypoints', 'start-pin')]
+      }
+    };
 
   iconList.waypoint.icons = iconList.waypoint.icons.concat(
     PoiIcons.files.map((file: string) => {
@@ -456,7 +462,8 @@ export const selListWaypointIcons = (
     const builtins = getBuiltinIconIds();
     // Overrides of a built-in are already shown via the resolved built-in/POI
     // entry above, so exclude them here to avoid listing the same id twice.
-    const isNewId = (i: AppIconDef) => !shadowsBuiltin(i.svgIcon ?? '', builtins);
+    const isNewId = (i: AppIconDef) =>
+      !shadowsBuiltin(i.svgIcon ?? '', builtins);
 
     // Waypoint-role external symbols with a new id (no built-in counterpart).
     const wptSymbols = _symbolRegistry
@@ -483,7 +490,8 @@ export const selListWaypointIcons = (
       const replacedDefaults = waypointBuiltinIds
         .filter((id) => _symbolRegistry.hasExternalVersion(id))
         .map((id) => ({ svgIcon: id, name: id }));
-      iconList.waypoint.icons = iconList.waypoint.icons.concat(replacedDefaults);
+      iconList.waypoint.icons =
+        iconList.waypoint.icons.concat(replacedDefaults);
     }
   }
 

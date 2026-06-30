@@ -6,7 +6,12 @@ import { SignalKClient } from 'signalk-client-angular';
 import { AppFacade } from 'src/app/app.facade';
 import { SymbolResource, SymbolRole } from 'src/app/types/symbols';
 import { MapImageRegistry } from '../map/ol/lib/map-image-registry.service';
-import { isQualified, isDefaultNs, isRenderableSymbol, parseRef } from './symbol-ref';
+import {
+  isQualified,
+  isDefaultNs,
+  isRenderableSymbol,
+  parseRef
+} from './symbol-ref';
 import { AppIconDef, getBuiltinIconIds } from './app.icons';
 
 export const FALLBACK_ICON = 'no-such-symbol';
@@ -35,7 +40,9 @@ interface IndexedSymbol {
 /** Interface for the module-level hook used by pure functions in app.icons.ts */
 export interface SymbolRegistryLike {
   resolveDisplayIcon(ref: string): AppIconDef | null;
-  resolveMapMarker(ref: string): { path: string; scale?: number; anchor?: [number, number] } | null;
+  resolveMapMarker(
+    ref: string
+  ): { path: string; scale?: number; anchor?: [number, number] } | null;
   getExternalNoteIcons(showAll: boolean): Array<{ id: string; name: string }>;
   getExternalWaypointIcons(showAll: boolean): Array<AppIconDef>;
   hasExternalVersion(id: string): boolean;
@@ -79,7 +86,8 @@ export class SymbolService implements SymbolRegistryLike {
       )) as Record<string, unknown>;
 
       if (!result || typeof result !== 'object') {
-        if (isDevMode()) console.debug('[SymbolService] No symbols returned from server.');
+        if (isDevMode())
+          console.debug('[SymbolService] No symbols returned from server.');
         return;
       }
 
@@ -172,12 +180,16 @@ export class SymbolService implements SymbolRegistryLike {
     if (isDefaultNs(ref)) {
       // Force built-in: strip "default:" prefix.
       const { id } = parseRef(ref);
-      return this.builtinIds.has(id) ? { svgIcon: id } : { svgIcon: FALLBACK_ICON };
+      return this.builtinIds.has(id)
+        ? { svgIcon: id }
+        : { svgIcon: FALLBACK_ICON };
     }
 
     if (isQualified(ref)) {
       // Qualified external reference (custom:id or fsk:id).
-      return this.byRef.has(ref) ? { svgIcon: ref } : { svgIcon: FALLBACK_ICON };
+      return this.byRef.has(ref)
+        ? { svgIcon: ref }
+        : { svgIcon: FALLBACK_ICON };
     }
 
     // Bare id: an fsk override replaces the built-in, else the built-in itself.
@@ -293,7 +305,8 @@ export class SymbolService implements SymbolRegistryLike {
       s.alias.length === 0 ||
       s.alias.some((a) => !isAliasRef(a))
     ) {
-      if (isDevMode()) console.debug(`[SymbolService] Skipping symbol "${key}": no alias.`);
+      if (isDevMode())
+        console.debug(`[SymbolService] Skipping symbol "${key}": no alias.`);
       return false;
     }
     // scale/anchor feed map markers directly — reject non-finite/malformed.
@@ -309,7 +322,10 @@ export class SymbolService implements SymbolRegistryLike {
       return false;
     }
     if (!isRenderableSymbol(s as { mediaType: string; url: string })) {
-      if (isDevMode()) console.debug(`[SymbolService] Skipping symbol "${key}": not renderable.`);
+      if (isDevMode())
+        console.debug(
+          `[SymbolService] Skipping symbol "${key}": not renderable.`
+        );
       return false;
     }
     return true;
