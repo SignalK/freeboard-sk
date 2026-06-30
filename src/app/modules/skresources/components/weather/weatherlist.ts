@@ -16,6 +16,7 @@ import { AppFacade } from 'src/app/app.facade';
 
 @Component({
   selector: 'weather-list',
+  standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './weatherlist.html',
   styleUrls: ['../resourcelist.css'],

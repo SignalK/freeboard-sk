@@ -16,19 +16,21 @@
       </div>
     </mat-card-title>
     <mat-card-content>
-      <div style="font-size: 11px; font-weight: 500; padding: 4px 0; color: #888">
-        WIND (SIGNAL K WEATHER API)
-      </div>
-      <div style="display: flex; align-items: center; padding: 2px 0">
-        <mat-checkbox
-          [checked]="app.config.selections.weatherWindEnabled"
-          (change)="toggleWeatherWind($event.checked)"
-          matTooltip="Toggle wind overlay"
-          matTooltipPosition="right"
-        >
-          Enable wind layer
-        </mat-checkbox>
-      </div>
+      @if (app.featureFlags().weatherApi) {
+        <div style="font-size: 11px; font-weight: 500; padding: 4px 0; color: #888">
+          WIND (SIGNAL K WEATHER API)
+        </div>
+        <div style="display: flex; align-items: center; padding: 2px 0">
+          <mat-checkbox
+            [checked]="app.config.selections.weatherWindEnabled"
+            (change)="toggleWeatherWind($event.checked)"
+            matTooltip="Toggle wind overlay"
+            matTooltipPosition="right"
+          >
+            Enable wind layer
+          </mat-checkbox>
+        </div>
+      }
       <div style="border-bottom: 1px solid #ccc; margin: 8px 0"></div>
       <div style="font-size: 11px; font-weight: 500; padding: 4px 0; color: #888">
         OCEAN CURRENTS (OPEN-METEO)
