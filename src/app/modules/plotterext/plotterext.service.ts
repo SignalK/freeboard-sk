@@ -18,13 +18,7 @@
 //
 // Map/resource host APIs (buttons, filters, map.*) belong to phase 3.
 
-import {
-  Injectable,
-  computed,
-  effect,
-  isDevMode,
-  signal
-} from '@angular/core';
+import { Injectable, computed, effect, isDevMode, signal } from '@angular/core';
 import { MatDialog, MatDialogRef } from '@angular/material/dialog';
 import { firstValueFrom } from 'rxjs';
 import { SignalKClient } from 'signalk-client-angular';
@@ -670,7 +664,12 @@ export class PlotterExtensionService {
       });
     }
     for (const buf of this.routeRegistry.all()) {
-      if (buf.saved && !buf.dirty && buf.href && !displayedHrefs.has(buf.href)) {
+      if (
+        buf.saved &&
+        !buf.dirty &&
+        buf.href &&
+        !displayedHrefs.has(buf.href)
+      ) {
         this.routeRegistry.delete(buf.routeId, true);
       }
     }

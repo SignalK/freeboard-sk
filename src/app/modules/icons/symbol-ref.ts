@@ -6,9 +6,7 @@ export const RESERVED_DEFAULT_NS = 'default';
  * Parse a symbol reference into namespace and id components.
  * Splits on the FIRST colon only — namespace must not contain colons.
  */
-export const parseRef = (
-  ref: string
-): { namespace?: string; id: string } => {
+export const parseRef = (ref: string): { namespace?: string; id: string } => {
   const idx = ref.indexOf(':');
   if (idx === -1) {
     return { id: ref };
@@ -40,9 +38,11 @@ export const isRenderableSymbol = (sym: {
   if (!url) return false;
   // Reject data: and javascript: schemes
   const lower = url.toLowerCase().trimStart();
-  if (lower.startsWith('data:') || lower.startsWith('javascript:')) return false;
+  if (lower.startsWith('data:') || lower.startsWith('javascript:'))
+    return false;
   // Reject absolute URLs (any scheme) and protocol-relative URLs — both can
   // point to other origins once trusted via bypassSecurityTrustResourceUrl().
-  if (/^[a-z][a-z0-9+.-]*:/i.test(lower) || lower.startsWith('//')) return false;
+  if (/^[a-z][a-z0-9+.-]*:/i.test(lower) || lower.startsWith('//'))
+    return false;
   return true;
 };

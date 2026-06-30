@@ -95,7 +95,9 @@ export function createRouteMethods(
         !Number.isFinite(pos[0]) ||
         !Number.isFinite(pos[1])
       ) {
-        throw badRequest('each route point needs a numeric [lon, lat] position');
+        throw badRequest(
+          'each route point needs a numeric [lon, lat] position'
+        );
       }
       requireOptString((p as RoutePoint).name, 'point name');
       requireOptString((p as RoutePoint).description, 'point description');
@@ -115,7 +117,11 @@ export function createRouteMethods(
       requireOptString(name, 'name');
       requireOptString(description, 'description');
       const validPoints = requireValidPoints(points);
-      const buffer = registry.create({ name, description, points: validPoints });
+      const buffer = registry.create({
+        name,
+        description,
+        points: validPoints
+      });
       return { routeId: buffer.routeId, rev: buffer.rev };
     },
 

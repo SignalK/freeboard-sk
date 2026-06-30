@@ -962,7 +962,9 @@ export class FBMapComponent implements OnInit, OnDestroy {
     if (this.overlay().type === 'route') {
       const rid = this.overlay().id;
       this.mapInteract.measurementCoords = this.routeBuffers.has(rid)
-        ? (this.routeBuffers.get(rid)!.points.map((p) => p.position) as LineString)
+        ? (this.routeBuffers
+            .get(rid)!
+            .points.map((p) => p.position) as LineString)
         : this.skres.fromCache('routes', rid)[1].feature.geometry.coordinates;
     }
     if (featureType === 'anchor') {
