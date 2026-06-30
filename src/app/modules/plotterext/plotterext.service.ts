@@ -1013,13 +1013,19 @@ export class PlotterExtensionService {
     return this.app.config.plotterExtensions.widgets;
   }
 
-  /** Occupancy map of an anchor area (sized per ANCHOR_GRID): occupied[row][col]. */
+  /**
+   * Occupancy map of an anchor area (sized per ANCHOR_GRID): occupied[row][col].
+   * Driven by `activeWidgets()` (not the raw `placements()`) so it agrees with
+   * what the overlay renders: an orphaned placement — one whose extension is
+   * disabled, uninstalled, or renamed — is not drawn and must not block its
+   * cell, otherwise the empty-looking cell stays un-longpressable (#433).
+   */
   private occupancy(anchor: AnchorId): boolean[][] {
     const { cols, rows } = ANCHOR_GRID[anchor];
     const occupied = Array.from({ length: rows }, () =>
       Array.from({ length: cols }, () => false)
     );
-    for (const placed of this.placements()) {
+    for (const placed of this.activeWidgets()) {
       if (placed.anchor !== anchor) continue;
       const def = this.widgetDef(placed.extension, placed.widget);
       const size = parseSize(def?.size ?? '1x1');
