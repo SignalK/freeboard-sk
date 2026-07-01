@@ -70,6 +70,11 @@ for running a local Signal K server to develop against.
 - **Logging.** Use `console.warn` (not `console.error`) for *recoverable*
   feature-detection failures, and `this.app.debug()` for internal state tracing —
   not `console.log`.
+- **Displaying values → honor unit preferences.** When adding or changing UI that
+  displays a numeric value from Signal K, prefer the server's Unit Preferences
+  (`displayUnits` in path metadata) over a hard-coded conversion, so the value follows
+  the user's chosen units. See
+  [`docs/signalk/unit-preferences.md`](docs/signalk/unit-preferences.md).
 - **Tests.** New behaviour needs tests where the test infrastructure supports it
   (`*.spec.ts`, run via `npm run test:ci`). Test behaviour, not implementation.
 
@@ -173,3 +178,6 @@ it*:
   local server and linking a dev build into it.
 - [`plugin-publishing.md`](docs/signalk/plugin-publishing.md) — packaging for npm
   and the App Store.
+- [`unit-preferences.md`](docs/signalk/unit-preferences.md) — the server's Unit
+  Preferences system: consuming `displayUnits` metadata so UI values honor the user's
+  chosen units. Read before adding/changing any UI that displays a value.
