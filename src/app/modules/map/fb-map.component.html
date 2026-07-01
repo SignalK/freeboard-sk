@@ -177,7 +177,9 @@
       >
       </fb-tilelayer-vector>
     } @else if (
-      c[0] === 'openstreetmap' || c[1].type?.toLowerCase() === 'tilelayer'
+      c[0] === 'openstreetmap' ||
+      c[1].type?.toLowerCase() === 'tilelayer' ||
+      !c[1]?.type
     ) {
       <fb-tilelayer-raster
         [zIndex]="10 + idx"
