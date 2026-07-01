@@ -148,8 +148,7 @@ export class LayerWindWeatherComponent implements OnChanges, OnDestroy {
     const points: Array<{ latitude: number; longitude: number }> = [];
 
     for (let row = 0; row < this.gridRows; row++) {
-      const latitude =
-        north - ((north - south) * (row + 0.5)) / this.gridRows;
+      const latitude = north - ((north - south) * (row + 0.5)) / this.gridRows;
       for (let col = 0; col < this.gridColumns; col++) {
         const longitude =
           west + ((east - west) * (col + 0.5)) / this.gridColumns;

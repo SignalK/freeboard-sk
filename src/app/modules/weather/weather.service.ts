@@ -56,17 +56,16 @@ export class WeatherService {
           2,
           `/weather/observations?lat=${point.latitude}&lon=${point.longitude}`
         )
-        .pipe(
-          catchError(() => of(null))
-        )
+        .pipe(catchError(() => of(null)))
     );
 
     return forkJoin(requests).pipe(
       map((responses) => {
         const samples: WeatherWindSample[] = [];
         responses.forEach((response, i) => {
-          const obs: SkObservation | undefined =
-            response?.[0] as SkObservation | undefined;
+          const obs: SkObservation | undefined = response?.[0] as
+            | SkObservation
+            | undefined;
           if (
             !obs?.wind ||
             typeof obs.wind.speedTrue !== 'number' ||
@@ -99,25 +98,23 @@ export class WeatherService {
       `&longitude=${longitudes}` +
       '&current=ocean_current_velocity,ocean_current_direction';
 
-    return this.http
-      .get<OpenMeteoMarineItem | OpenMeteoMarineItem[]>(url)
-      .pipe(
-        catchError(() => of([])),
-        map((response) => (Array.isArray(response) ? response : [response])),
-        map((items) =>
-          items
-            .filter(
-              (item) =>
-                typeof item.current?.ocean_current_velocity === 'number' &&
-                typeof item.current?.ocean_current_direction === 'number'
-            )
-            .map((item) => ({
-              latitude: item.latitude,
-              longitude: item.longitude,
-              velocity: item.current!.ocean_current_velocity,
-              direction: item.current!.ocean_current_direction
-            }))
-        )
-      );
+    return this.http.get<OpenMeteoMarineItem | OpenMeteoMarineItem[]>(url).pipe(
+      catchError(() => of([])),
+      map((response) => (Array.isArray(response) ? response : [response])),
+      map((items) =>
+        items
+          .filter(
+            (item) =>
+              typeof item.current?.ocean_current_velocity === 'number' &&
+              typeof item.current?.ocean_current_direction === 'number'
+          )
+          .map((item) => ({
+            latitude: item.latitude,
+            longitude: item.longitude,
+            velocity: item.current!.ocean_current_velocity,
+            direction: item.current!.ocean_current_direction
+          }))
+      )
+    );
   }
 }
