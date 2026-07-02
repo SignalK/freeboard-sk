@@ -9,6 +9,7 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { Subject } from 'rxjs';
 
 import { InfoService, IndexedDB, AppInfoDef } from './lib/services';
+import { isTrackShown, toggleTrackSelection } from './lib/vessel-track';
 
 import {
   AlertDialog,
@@ -875,6 +876,19 @@ export class AppFacade extends InfoService {
       st.push(pt);
       return st;
     });
+  }
+
+  /** Whether the AIS vessel's individual track is displayed (session-only) */
+  isVesselTrackShown(id: string): boolean {
+    return isTrackShown(this.data.vessels.showTrack, id);
+  }
+
+  /** Toggle display of an AIS vessel's individual track on the map (session-only) */
+  toggleVesselTrack(id: string) {
+    this.data.vessels.showTrack = toggleTrackSelection(
+      this.data.vessels.showTrack,
+      id
+    );
   }
 
   /** Calculate the position to center the map.

@@ -225,9 +225,14 @@
   }
 
   <!-- AIS target tracks -->
-  @if (app.config.ui.showAisTargets && app.config.vessels.aisShowTrack) {
+  @if (
+    app.config.ui.showAisTargets &&
+    (app.config.vessels.aisShowTrack || app.data.vessels.showTrack.length > 0)
+  ) {
     <ais-targets-track
       [tracks]="app.data.vessels.aisTracks"
+      [showAll]="app.config.vessels.aisShowTrack"
+      [selectedIds]="app.data.vessels.showTrack"
       [tracksMinZoom]="10"
       targetContext="vessels"
       [updateIds]="skstream.aisStatus().updated"
