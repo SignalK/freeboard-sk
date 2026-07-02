@@ -29,6 +29,7 @@ import {
   IAppConfig,
   LineString,
   SKServerUnitPrefs,
+  SKPathDisplayUnits,
   TemperatureUnitDef,
   DepthUnitDef,
   SpeedUnitDef,
@@ -130,7 +131,11 @@ export class AppFacade extends InfoService {
   }
 
   public serverConfig = {
-    unitPreferences: signal<SKServerUnitPrefs>(undefined)
+    unitPreferences: signal<SKServerUnitPrefs>(undefined),
+    // Per-path display-unit overrides keyed by Signal K path (server
+    // `meta.displayUnits`). Populated from path metadata; consumed by
+    // formatValueForDisplay() when a path is supplied.
+    pathDisplayUnits: signal<Record<string, SKPathDisplayUnits>>({})
   };
 
   // controls map zoom limits
@@ -521,6 +526,25 @@ export class AppFacade extends InfoService {
         }
       });
     });
+  }
+
+  /**
+   * Returns the per-path display-unit override for a Signal K path, or undefined
+   * when the server has published none for it.
+   */
+  public getPathDisplayUnits(path: string): SKPathDisplayUnits | undefined {
+    return this.serverConfig.pathDisplayUnits()[path];
+  }
+
+  /**
+   * Store the per-path display-unit override for a Signal K path (from the path's
+   * `meta.displayUnits`).
+   */
+  public setPathDisplayUnits(path: string, displayUnits: SKPathDisplayUnits) {
+    this.serverConfig.pathDisplayUnits.update((m) => ({
+      ...m,
+      [path]: displayUnits
+    }));
   }
 
   /**
@@ -1007,12 +1031,19 @@ export class AppFacade extends InfoService {
 
   /** returns a formatted string containing the value (converted to the preferred units)
    * and units. (e.g. 12.5 knots, 8.8 m/s)
-   * Numbers are fixed to 1 decimal point unless precision is specified
+   * Numbers are fixed to 1 decimal point unless precision is specified.
+   *
+   * When `options.path` is supplied and the server has published a per-path
+   * display-unit override for it (`meta.displayUnits`), that override takes
+   * precedence over the category preset — so a path can display in a different
+   * unit than others in its category. Otherwise the category / source-unit
+   * preset is used.
    */
   formatValueForDisplay(
     value: number,
     sourceUnit: SI_BASE_UNIT,
     options?: {
+      path?: string;
       category?: string;
       noSymbol?: boolean;
       precision?: number;
@@ -1022,6 +1053,40 @@ export class AppFacade extends InfoService {
       const precision = options?.precision ?? 1;
       let symbol = '';
       let nv: string;
+
+      const displayUnits = options?.path
+        ? this.getPathDisplayUnits(options.path)
+        : undefined;
+      if (displayUnits) {
+        try {
+          // Ratios format like the category preset (0-1 → %, out-of-range shown raw)
+          // rather than a plain unit transform, so keep parity here.
+          nv =
+            sourceUnit === 'ratio'
+              ? this.formatNumericDisplay(
+                  Math.abs(value) <= 1 ? value * 100 : value,
+                  Math.abs(value) <= 1 ? precision : 4
+                )
+              : this.formatNumericDisplay(
+                  Convert.transform(
+                    value,
+                    sourceUnit,
+                    displayUnits.targetUnit as TARGET_UNIT
+                  ),
+                  precision
+                );
+          symbol =
+            displayUnits.symbol ??
+            Convert.getSymbol(displayUnits.targetUnit as TARGET_UNIT);
+          return `${nv}${options?.noSymbol ? '' : symbol}`;
+        } catch {
+          // Malformed server-published displayUnits (e.g. unknown targetUnit) —
+          // warn and fall back to the category preset.
+          console.warn(
+            `formatValueForDisplay: invalid displayUnits for path "${options.path}" — falling back to category preset.`
+          );
+        }
+      }
 
       if (sourceUnit === 'K') {
         symbol = Convert.getSymbol(this.config.units.temperature);

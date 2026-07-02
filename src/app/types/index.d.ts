@@ -291,3 +291,22 @@ export type SKUnitCategory = {
   displayFormat: string;
   symbol: string;
 };
+
+/**
+ * Per-path display-unit override as published by the Signal K server in a path's
+ * metadata (`meta.displayUnits`). Carries the user's preferred unit for that
+ * specific path, which can differ from the category preset (e.g. wind speed in m/s
+ * while boat speed is in knots).
+ *
+ * `formatValueForDisplay()` currently consumes `targetUnit` and `symbol`. The
+ * `formula`/`inverseFormula` (Math.js) and `displayFormat` fields are part of the
+ * server contract but not yet consumed — reserved for future use.
+ */
+export type SKPathDisplayUnits = {
+  category: string;
+  targetUnit: string;
+  formula?: string;
+  inverseFormula?: string;
+  symbol?: string;
+  displayFormat?: string;
+};

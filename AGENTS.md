@@ -70,6 +70,14 @@ for running a local Signal K server to develop against.
 - **Logging.** Use `console.warn` (not `console.error`) for *recoverable*
   feature-detection failures, and `this.app.debug()` for internal state tracing —
   not `console.log`.
+- **Displaying values → `formatValueForDisplay()`.** Render every user-facing numeric
+  value through `app.formatValueForDisplay(value, sourceUnit, { path })`. It applies the
+  user's unit preferences — a per-path server override (`meta.displayUnits`) when a
+  `path` is given, otherwise the category preset — and returns the value with its
+  symbol. Pass `path` whenever the value maps to a Signal K path; derived/computed
+  values omit it. Don't call `Convert` directly for display — `Convert` is the pure
+  primitive for geometry and numeric math only. See
+  [`docs/signalk/unit-preferences.md`](docs/signalk/unit-preferences.md).
 - **Tests.** New behaviour needs tests where the test infrastructure supports it
   (`*.spec.ts`, run via `npm run test:ci`). Test behaviour, not implementation.
 
@@ -173,3 +181,6 @@ it*:
   local server and linking a dev build into it.
 - [`plugin-publishing.md`](docs/signalk/plugin-publishing.md) — packaging for npm
   and the App Store.
+- [`unit-preferences.md`](docs/signalk/unit-preferences.md) — displaying values in the
+  user's preferred units via `formatValueForDisplay()`. Read before adding or changing
+  any UI that shows a numeric value.
