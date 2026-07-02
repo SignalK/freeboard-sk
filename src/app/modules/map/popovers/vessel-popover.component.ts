@@ -201,9 +201,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
               >
             </div>
             <div style="flex: 1 1 auto;text-align:right;">
-              {{ app.formatSpeed(vessel().wind.tws, true) }}&nbsp;{{
-                app.formattedSpeedUnits
-              }}
+              {{ windSpeed(vessel().wind.tws, app.twsDisplayUnitPath()) }}
             </div>
           </div>
           <div>
@@ -213,8 +211,8 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
               <span style="font-weight:bold;"> Wind (A):</span>
             </div>
             <div style="flex: 1 1 auto;text-align:right;">
-              {{ app.formatSpeed(vessel().wind.aws, true) }}&nbsp;{{
-                app.formattedSpeedUnits
+              {{
+                windSpeed(vessel().wind.aws, 'environment.wind.speedApparent')
               }}
             </div>
           </div>
@@ -253,6 +251,17 @@ export class VesselPopoverComponent {
   protected app = inject(AppFacade);
   protected buddies = inject(Buddies);
   private destroyRef = inject(DestroyRef);
+
+  /**
+   * Format a wind speed (m/s) for display, honoring the per-path unit override
+   * for `path` so wind speed can use a different unit than boat speed (#304).
+   * Returns '--' when the value is unavailable.
+   */
+  protected windSpeed(value: number, path: string): string {
+    return Number.isFinite(value)
+      ? this.app.formatValueForDisplay(value, 'm/s', { path })
+      : '--';
+  }
 
   constructor() {
     effect(() => {

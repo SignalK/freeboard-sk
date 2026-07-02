@@ -1,7 +1,9 @@
 import { TestBed } from '@angular/core/testing';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { of } from 'rxjs';
 import '@vitest/web-worker';
 import { AppFacade } from './app.facade';
+import { SignalKClient } from 'signalk-client-angular';
 
 describe('AppFacade.formatValueForDisplay', () => {
   let app: AppFacade;
@@ -106,5 +108,97 @@ describe('AppFacade.formatValueForDisplay', () => {
         path: 'tanks.fuel.0.currentLevel'
       })
     ).toBe(app.formatValueForDisplay(1.5, 'ratio', {}));
+  });
+});
+
+describe('AppFacade per-path display units (#304)', () => {
+  const windMeta = {
+    displayUnits: { category: 'speed', targetUnit: 'm/s', symbol: 'm/s' }
+  };
+
+  const mockClient = (getImpl: (url: string) => unknown) => ({
+    get: vi.fn(getImpl),
+    setAppId: vi.fn(),
+    setAppVersion: vi.fn()
+  });
+
+  const setup = (getImpl: (url: string) => unknown) => {
+    TestBed.configureTestingModule({
+      providers: [{ provide: SignalKClient, useValue: mockClient(getImpl) }]
+    });
+    return TestBed.inject(AppFacade);
+  };
+
+  it('caches wind display units from the server when server prefs are on', () => {
+    const app = setup((url) =>
+      of(url.includes('speedApparent') ? {} : windMeta)
+    );
+    app.config.units.useServerPrefs = true;
+    app.config.units.preferredPaths.tws = 'environment.wind.speedTrue';
+
+    app.refreshPathDisplayUnits();
+
+    expect(
+      app.getPathDisplayUnits('environment.wind.speedTrue')?.targetUnit
+    ).toBe('m/s');
+    // Wind speed now displays in m/s while boat speed stays the preset (kn).
+    expect(
+      app.formatValueForDisplay(1, 'm/s', {
+        path: 'environment.wind.speedTrue'
+      })
+    ).toBe('1.0m/s');
+    expect(app.formatValueForDisplay(1, 'm/s', {})).toBe('1.9kn');
+  });
+
+  it('clears the cache and does not fetch when server prefs are off', () => {
+    const client = mockClient(() => of(windMeta));
+    TestBed.configureTestingModule({
+      providers: [{ provide: SignalKClient, useValue: client }]
+    });
+    const app = TestBed.inject(AppFacade);
+    const getSpy = client.get;
+    app.setPathDisplayUnits(
+      'environment.wind.speedTrue',
+      windMeta.displayUnits
+    );
+    app.config.units.useServerPrefs = false;
+
+    app.refreshPathDisplayUnits();
+
+    expect(getSpy).not.toHaveBeenCalled();
+    expect(
+      app.getPathDisplayUnits('environment.wind.speedTrue')
+    ).toBeUndefined();
+  });
+
+  it('evicts a cached override when the server no longer publishes one', () => {
+    const app = setup(() => of({}));
+    app.config.units.useServerPrefs = true;
+    app.setPathDisplayUnits(
+      'environment.wind.speedTrue',
+      windMeta.displayUnits
+    );
+
+    app.fetchPathDisplayUnits('environment.wind.speedTrue');
+
+    expect(
+      app.getPathDisplayUnits('environment.wind.speedTrue')
+    ).toBeUndefined();
+  });
+
+  it('does not re-add an override if server prefs were turned off mid-fetch', () => {
+    const app = setup(() => of(windMeta));
+    app.setPathDisplayUnits(
+      'environment.wind.speedTrue',
+      windMeta.displayUnits
+    );
+    // Simulate the toggle flipping off before the (synchronous mock) response.
+    app.config.units.useServerPrefs = false;
+
+    app.fetchPathDisplayUnits('environment.wind.speedTrue');
+
+    expect(
+      app.getPathDisplayUnits('environment.wind.speedTrue')
+    ).toBeUndefined();
   });
 });
