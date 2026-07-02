@@ -15,7 +15,7 @@ Freeboard-SK. The host-agnostic contracts it implements live in:
 
 The wire contract (the JSON-RPC-over-`postMessage` bus) is the
 [`signalk-plotterext-bus`](https://www.npmjs.com/package/signalk-plotterext-bus)
-package; Freeboard depends on it (`^0.7.1`) and imports its host entry point
+package; Freeboard depends on it (`^0.8.0`) and imports its host entry point
 (`signalk-plotterext-bus/host`).
 
 ## How the host works
@@ -37,7 +37,8 @@ package; Freeboard depends on it (`^0.7.1`) and imports its host entry point
 ### Capabilities Freeboard advertises (`HOST_CAPABILITIES`)
 
 `widgets`, `panels.iframe`, `buttons`, `signalk.stream`, `signalk.put`, `units`,
-`map`, `resources`, `resources.filter`, `routes`, `background.iframe`, `ui`.
+`map`, `resources`, `resources.filter`, `routes`, `charts`, `background.iframe`,
+`ui`.
 
 (The authoritative list is `HOST_CAPABILITIES` in
 `src/app/modules/plotterext/types.ts`.)
@@ -107,6 +108,68 @@ persist — distinct from the user-cancel `routes.saveCancelled`),
 | `src/app/modules/plotterext/route-methods.ts` | the `route.*` method handlers + param validation |
 | `src/app/modules/plotterext/types.ts` | `HOST_API_VERSION`, `HOST_CAPABILITIES`, manifest types |
 | `src/app/modules/map/fb-map.component.ts` + `app.component.ts` | native route draw/modify/delete bridged into the registry |
+
+## The `charts` capability
+
+`charts` is a lightweight facade over the chart layers Freeboard **already
+manages** — the same charts the user turns on and off in the chart controls. An
+extension enumerates them and changes visibility, opacity and stacking order. It
+is deliberately **not** a chart provider: no create, add, import or delete.
+
+### The chart model
+
+Freeboard's charts come from the server `charts` resource plus the built-in
+OpenStreetMap / OpenSeaMap defaults. The displayed set is `SKResourceService`'s
+`charts()` signal (bottom-first render order); which charts are on is stored in
+`app.config.selections.charts` (an explicit id list, or `null` = "show all"),
+their stacking in `selections.chartOrder`, and per-chart opacity in
+`selections.chartOpacity`. Each chart is addressed by an **opaque `id`**.
+
+### Methods
+
+`chart.list`, `chart.setVisibility({ids, visible})`,
+`chart.setOpacity({ids, opacity})`, `chart.setOrder({order})`. All mutators are
+**batch** (take a set of ids). `chart.list` returns the full available set
+(visible **and** available-but-off charts, each with a `visible` flag) in display
+order, **topmost first** — so it doubles as the way to read the current order.
+The handlers are a pure factory (`chart-methods.ts`) over accessors the service
+binds to `SKResourceService`.
+
+### Events (`chart.**`)
+
+`chart.visibility` (`{id, visible}`), `chart.opacity` (`{id, opacity}`),
+`chart.order` (`{order}`). Emitted for **every** change regardless of origin — an
+extension command *or* the user's own chart controls — by diffing successive
+`charts()` emissions in an Angular `effect`. A batch `chart.setVisibility` emits
+one `chart.visibility` per *changed* chart. `chart.order` carries the topmost-first
+order of the **displayed** charts (hidden charts have no stacking position);
+re-read `chart.list` for the full snapshot.
+
+### Freeboard specifics
+
+- **`chart.setOrder` is host-clamped.** OpenStreetMap sits at the bottom and the
+  reorder applies to the rendered (visible) charts; the request expresses relative
+  intent and the resulting order is whatever the next `chart.list` reports.
+- **Show-all vs. explicit set.** When no chart has been deselected, Freeboard runs
+  in "show all" mode (`selections.charts === null`); hiding a chart materialises
+  the explicit selection, and showing the last missing one returns to show-all —
+  matching the native chart list's behaviour so extension and user stay in sync.
+- **Opacity persists.** `chart.setOpacity` writes `selections.chartOpacity` so the
+  value survives a refresh and applies when a currently-hidden chart is shown.
+
+### Error reasons
+
+`charts.unknownId` (a supplied id names no managed chart), `charts.badRequest`
+(malformed params — e.g. a non-array `ids`, non-boolean `visible`, or out-of-range
+`opacity`), `charts.notSupported`.
+
+### Key files
+
+| File | Role |
+|------|------|
+| `src/app/modules/plotterext/chart-methods.ts` | the `chart.*` handlers + param validation + `FBChart`→`ChartLayer` mapping |
+| `src/app/modules/plotterext/plotterext.service.ts` | binds the handlers to the service and emits `chart.*` events (`emitChartChanges`) |
+| `src/app/modules/skresources/resources.service.ts` | `chartsForHostApi` / `setChartsVisibility` / `setChartsOpacity` / `setChartsOrder` |
 
 ## Extending the host API? Update the agent bridge
 
