@@ -28,7 +28,7 @@ import * as uuid from 'uuid';
 import { AppFacade } from 'src/app/app.facade';
 import { SKResourceService } from 'src/app/modules/skresources/resources.service';
 import { MapService } from 'src/app/modules/map/ol/lib/map.service';
-import { FBNotes, LineString, Position } from 'src/app/types';
+import { FBCharts, FBNotes, LineString, Position } from 'src/app/types';
 import {
   HostConnection,
   MethodHandler,
@@ -59,6 +59,7 @@ import {
 } from './types';
 import { RouteBufferRegistry } from './route-buffer.registry';
 import { createRouteMethods } from './route-methods';
+import { createChartMethods } from './chart-methods';
 
 const STATE_STORAGE_KEY = 'fb-plotterext-state';
 const SK_PATH_PERIOD = 1000; // default delta period (ms) for relayed paths
@@ -582,6 +583,9 @@ export class PlotterExtensionService {
     // restored from a previous session's selection state on load. Reads
     // skres.routes() so it re-runs whenever the displayed set changes.
     effect(() => this.syncVisibleFromSelections());
+    // Emit `chart.*` events for every change to the displayed charts, whether it
+    // came from a host method or the user's own chart controls (origin-transparent).
+    effect(() => this.emitChartChanges(this.skres.charts()));
   }
 
   /**
@@ -720,6 +724,75 @@ export class PlotterExtensionService {
       onHide: (routeId) => this.hideRoute(routeId),
       onDelete: (routeId) => this.deleteRoute(routeId)
     });
+  }
+
+  /** Host API handlers for the `charts` capability. */
+  private chartMethods(): Record<string, MethodHandler> {
+    return createChartMethods({
+      listAvailableOrdered: () => this.skres.chartsForHostApi(),
+      setVisibility: (ids, visible) =>
+        this.skres.setChartsVisibility(ids, visible),
+      setOpacity: (ids, opacity) => this.skres.setChartsOpacity(ids, opacity),
+      setOrder: (order) => this.skres.setChartsOrder(order)
+    });
+  }
+
+  /** Topmost-first id order + per-chart opacity of the last displayed-chart set,
+   *  for diffing successive `skres.charts()` emissions into `chart.*` events. */
+  private prevChartSnapshot: {
+    order: string[];
+    opacity: Map<string, number>;
+  } | null = null;
+
+  /**
+   * Diff the displayed chart set against the previous snapshot and emit the
+   * fine-grained `chart.*` events. Delivery is subscription-gated by
+   * broadcastMessage. A show/hide emits `chart.visibility`; an opacity change on
+   * a still-displayed chart emits `chart.opacity`; a genuine reorder of the
+   * surviving set emits `chart.order`. The first (seeding) run emits nothing.
+   */
+  private emitChartChanges(charts: FBCharts): void {
+    const order = charts.map((c) => c[0]).reverse(); // topmost-first
+    const opacity = new Map<string, number>(
+      charts.map((c) => [
+        c[0],
+        typeof c[1]?.defaultOpacity === 'number' ? c[1].defaultOpacity : 1
+      ])
+    );
+    const prev = this.prevChartSnapshot;
+    this.prevChartSnapshot = { order, opacity };
+    if (!prev) {
+      return;
+    }
+
+    const prevSet = new Set(prev.order);
+    const currSet = new Set(order);
+    for (const id of order) {
+      if (!prevSet.has(id)) {
+        this.broadcastMessage('chart.visibility', { id, visible: true });
+      }
+    }
+    for (const id of prev.order) {
+      if (!currSet.has(id)) {
+        this.broadcastMessage('chart.visibility', { id, visible: false });
+      }
+    }
+    for (const [id, op] of opacity) {
+      const before = prev.opacity.get(id);
+      if (before !== undefined && before !== op) {
+        this.broadcastMessage('chart.opacity', { id, opacity: op });
+      }
+    }
+    // Fire chart.order only when the relative order of the charts common to both
+    // snapshots actually changed — a pure show/hide is already covered above.
+    const prevCommon = prev.order.filter((id) => currSet.has(id));
+    const currCommon = order.filter((id) => prevSet.has(id));
+    if (
+      prevCommon.length === currCommon.length &&
+      prevCommon.some((id, i) => id !== currCommon[i])
+    ) {
+      this.broadcastMessage('chart.order', { order });
+    }
   }
 
   /**
@@ -1351,6 +1424,7 @@ export class PlotterExtensionService {
         ...this.resourcesMethods(placed.extension),
         ...this.mapMethods(),
         ...this.routeMethods(),
+        ...this.chartMethods(),
         ...this.uiPanelMethods(placed.extension),
         'ui.openConfigPanel': async () => {
           this.openConfigPanel(placed);
@@ -1406,6 +1480,7 @@ export class PlotterExtensionService {
         ...this.resourcesMethods(opts.extension),
         ...this.mapMethods(),
         ...this.routeMethods(),
+        ...this.chartMethods(),
         ...this.uiPanelMethods(opts.extension),
         'ui.closePanel': async () => {
           opts.close();
@@ -1451,6 +1526,7 @@ export class PlotterExtensionService {
         ...this.resourcesMethods(opts.extension),
         ...this.mapMethods(),
         ...this.routeMethods(),
+        ...this.chartMethods(),
         ...this.uiPanelMethods(opts.extension)
       },
       onError: (err) => console.warn('plotterext background error', err)

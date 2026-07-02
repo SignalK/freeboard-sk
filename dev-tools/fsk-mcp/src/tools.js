@@ -195,6 +195,77 @@ const TOOLS = [
     inputSchema: withSession({ routeId: { type: 'string' } }, ['routeId']),
     run: (hub, a) =>
       hub.call('route.get', { routeId: a.routeId }, { session: a.session })
+  },
+  {
+    name: 'fsk_list_charts',
+    description:
+      'List the chart layers Freeboard-SK manages, in display order (topmost first). Each entry has an opaque id, name, visible flag, opacity (0..1) and best-effort type/bounds/zoom range. This is also how you read the current stacking order.',
+    inputSchema: withSession(),
+    run: (hub, a) => hub.call('chart.list', {}, { session: a.session })
+  },
+  {
+    name: 'fsk_set_chart_visibility',
+    description:
+      'Show or hide one or more chart layers by id (from fsk_list_charts). Idempotent — charts already in the requested state are unchanged.',
+    inputSchema: withSession(
+      {
+        ids: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Chart ids to show/hide.'
+        },
+        visible: {
+          type: 'boolean',
+          description: 'true to show, false to hide.'
+        }
+      },
+      ['ids', 'visible']
+    ),
+    run: (hub, a) =>
+      hub.call(
+        'chart.setVisibility',
+        { ids: a.ids, visible: a.visible },
+        { session: a.session }
+      )
+  },
+  {
+    name: 'fsk_set_chart_opacity',
+    description:
+      'Set the display opacity (0..1) of one or more chart layers by id (from fsk_list_charts).',
+    inputSchema: withSession(
+      {
+        ids: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Chart ids to retint.'
+        },
+        opacity: { type: 'number', description: 'Opacity, 0..1.' }
+      },
+      ['ids', 'opacity']
+    ),
+    run: (hub, a) =>
+      hub.call(
+        'chart.setOpacity',
+        { ids: a.ids, opacity: a.opacity },
+        { session: a.session }
+      )
+  },
+  {
+    name: 'fsk_set_chart_order',
+    description:
+      'Set the chart display/stacking order from a topmost-first list of chart ids (from fsk_list_charts). Ids you omit keep their relative order below the named ones. Order is host-clamped.',
+    inputSchema: withSession(
+      {
+        order: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Chart ids, topmost first.'
+        }
+      },
+      ['order']
+    ),
+    run: (hub, a) =>
+      hub.call('chart.setOrder', { order: a.order }, { session: a.session })
   }
 ];
 

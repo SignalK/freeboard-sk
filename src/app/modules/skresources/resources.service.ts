@@ -566,6 +566,17 @@ export class SKResourceService {
             : this.app.config.selections.charts.includes('openseamap')
       ]
     ];
+    // The built-in charts are constructed from scratch (not through
+    // transformChart), so apply any user-set opacity from config here too —
+    // otherwise a chart.setOpacity on openstreetmap/openseamap is lost on refresh.
+    if (this.app) {
+      OSM.forEach((c: FBChart) => {
+        const op = this.app.config.selections.chartOpacity[c[0]];
+        if (typeof op !== 'undefined') {
+          c[1].defaultOpacity = op;
+        }
+      });
+    }
     chtList.push(OSM[1]);
     chtList.unshift(OSM[0]);
     return chtList;
@@ -620,8 +631,9 @@ export class SKResourceService {
         chart.url = this.app.hostDef.url + chart.url;
       }
     }
-    // map local chart opacity
-    if (this.app.config.selections.chartOpacity[id]) {
+    // map local chart opacity (use a defined-check, not truthiness, so a fully
+    // transparent 0 is honored rather than silently dropped on refresh)
+    if (typeof this.app.config.selections.chartOpacity[id] !== 'undefined') {
       chart.defaultOpacity = this.app.config.selections.chartOpacity[id];
     }
     return new SKChart(chart);
@@ -826,6 +838,132 @@ export class SKResourceService {
       }
     });
     this.refreshCharts();
+  }
+
+  // **** CHARTS: Plotter Extensions host API (`charts` capability) ****
+
+  /**
+   * @description Full available chart set (server charts + built-in defaults)
+   * in host-API display order: **topmost first**. Visible charts come first in
+   * their current stacking order (the rendered order reversed); hidden charts
+   * follow. Backs the `chart.list` host method.
+   * @returns Promise resolving to an ordered FBChart array
+   */
+  public async chartsForHostApi(): Promise<FBCharts> {
+    let available: FBCharts;
+    try {
+      available = this.appendOSM(await this.listFromServer<FBChart>('charts'));
+    } catch (err) {
+      this.app.debug('** chartsForHostApi:', err);
+      available = this.appendOSM([]);
+    }
+    // Reconcile the rendered set against the freshly-fetched available charts:
+    // a chart dropped server-side may still linger in the cache, and callers
+    // treat this list as the source of truth for which ids are managed.
+    const availableIds = new Set(available.map((c: FBChart) => c[0]));
+    const visibleKnown = this.chartCacheSignal()
+      .slice()
+      .reverse()
+      .filter((c: FBChart) => availableIds.has(c[0]));
+    const seen = new Set(visibleKnown.map((c: FBChart) => c[0]));
+    const hidden = available.filter((c: FBChart) => !seen.has(c[0]));
+    return visibleKnown.concat(hidden);
+  }
+
+  /**
+   * @description Set the visibility of a set of charts to an explicit value
+   * (idempotent). Mirrors the chart-list UI's selection algorithm: recompute
+   * the visible id set, then either unfilter (all shown) or store the explicit
+   * subset. Callers should pass ids already known to be managed charts.
+   * @param ids Chart identifiers to show/hide
+   * @param visible true to show, false to hide
+   */
+  public async setChartsVisibility(ids: string[], visible: boolean) {
+    if (!Array.isArray(ids) || ids.length === 0) {
+      return;
+    }
+    let available: FBCharts;
+    try {
+      available = this.appendOSM(await this.listFromServer<FBChart>('charts'));
+    } catch (err) {
+      // A transient fetch failure leaves us unable to reason about the current
+      // visible set; degrade like the sibling chart methods and leave the
+      // selection state untouched rather than corrupt it.
+      this.app.debug('** setChartsVisibility:', err);
+      return;
+    }
+    const nowVisible = new Set(
+      available.filter((c: FBChart) => c[2]).map((c: FBChart) => c[0])
+    );
+    let changed = false;
+    ids.forEach((id: string) => {
+      if (nowVisible.has(id) === visible) {
+        return;
+      }
+      changed = true;
+      if (visible) {
+        nowVisible.add(id);
+      } else {
+        nowVisible.delete(id);
+      }
+    });
+    if (!changed) {
+      return;
+    }
+    if (nowVisible.size >= available.length) {
+      this.selectionUnfilter('charts');
+    } else {
+      this.selectionClear('charts');
+      this.selectionAdd('charts', [...nowVisible]);
+    }
+    await this.refreshCharts();
+  }
+
+  /**
+   * @description Set display opacity (0-1) on a set of charts. Persists to
+   * config so the value survives a refresh and applies to a chart once it
+   * becomes visible; also updates the rendered cache for currently-visible ones.
+   * @param ids Chart identifiers
+   * @param value Opacity value (0-1)
+   */
+  public setChartsOpacity(ids: string[], value: number) {
+    if (
+      !Array.isArray(ids) ||
+      !Number.isFinite(value) ||
+      value < 0 ||
+      value > 1
+    ) {
+      return;
+    }
+    ids.forEach((id: string) => {
+      this.app.config.selections.chartOpacity[id] = value;
+      this.chartSetOpacity(id, value);
+    });
+    this.app.saveConfig();
+  }
+
+  /**
+   * @description Set the chart display/stacking order from a **topmost-first**
+   * id list. Ids the caller omits keep their existing relative order below the
+   * named ones. The stored `chartOrder` is bottom-first (see the chart-layers
+   * reorder), so the request is reversed before storing; `chartReorder()` then
+   * applies it to the rendered set (host-clamped to the visible charts).
+   * @param orderTopmostFirst Chart identifiers, topmost first
+   */
+  public setChartsOrder(orderTopmostFirst: string[]) {
+    if (!Array.isArray(orderTopmostFirst)) {
+      return;
+    }
+    const existing = Array.isArray(this.app.config.selections.chartOrder)
+      ? this.app.config.selections.chartOrder.slice()
+      : [];
+    const requestedBottomFirst = orderTopmostFirst.slice().reverse();
+    const named = new Set(requestedBottomFirst);
+    const remainder = existing.filter((id: string) => !named.has(id));
+    this.app.config.selections.chartOrder =
+      remainder.concat(requestedBottomFirst);
+    this.app.saveConfig();
+    this.chartReorder();
   }
 
   /**
