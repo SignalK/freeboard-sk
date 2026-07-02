@@ -49,8 +49,11 @@ same mechanism at different points on a spectrum.
 - A route tool that reshapes the route the user is editing (the `routes`
   capability) — an auto-router that detours around land, a leg optimiser, a
   "reverse this route" button.
-- A background service that reacts to host events (a route shown or edited,
-  config changed) and computes something.
+- A chart-layer helper (the `charts` capability) — a button or panel that turns
+  a set of charts on or off together, swaps between chart presets, or dims an
+  overlay's opacity, driving the host's own chart layers.
+- A background service that reacts to host events (a route shown or edited, a
+  chart shown or hidden, config changed) and computes something.
 
 ### Poor candidates
 
@@ -264,6 +267,7 @@ required and optional capabilities and lists your contributions. A real one
 | `resources.filter`  | Push display filters (`resources.setFilter`)                  |
 | `map`               | Read/drive the map view (`map.*`)                             |
 | `routes`            | Read & edit the routes on the chart (`route.*`)               |
+| `charts`            | Manage chart-layer display — visibility/opacity/order (`chart.*`) |
 | `units`             | Read the user's display-unit preferences (`units.get`)        |
 | `background.iframe` | Run a headless background runtime                             |
 

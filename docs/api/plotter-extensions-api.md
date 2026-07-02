@@ -23,9 +23,10 @@ the existing Signal K plugin/app-store flow.
 > implemented by the reference host (Freeboard-SK) and the reference
 > extensions (`signalk-instrument-widgets`, `signalk-poi-search`): widgets,
 > panels, toolbar buttons, state storage, Signal K data relay, unit
-> preferences, resource display filters, map control, live route editing
-> and headless background runtimes. Manifest-declared filter chains and
-> host-into-runtime calls are out of scope for this version (see Non-Goals).
+> preferences, resource display filters, map control, live route editing,
+> chart-layer management and headless background runtimes. Manifest-declared
+> filter chains and host-into-runtime calls are out of scope for this version
+> (see Non-Goals).
 
 ---
 
@@ -118,6 +119,7 @@ extension id (the providing plugin's id is the recommended key):
 | `resources`         | Host implements `resources.list` (relayed resource queries).                                                                      |
 | `resources.filter`  | Host implements imperative resource display filters.                                                                              |
 | `routes`            | Host implements live route edit-buffer commands (`route.*`) and emits route lifecycle/mutation events.                            |
+| `charts`            | Host implements chart-layer management (`chart.*`) — enumerate the managed charts, toggle visibility/opacity/order — and emits `chart.*` change events. |
 | `ui`                | Host implements `ui.openPanel` / `ui.closePanel`.                                                                                 |
 
 The vocabulary is open-ended: future versions add ids (buttons, resource
@@ -232,7 +234,7 @@ are for.
 A runtime speaks the same bus protocol as widgets and panels; its handshake
 `context.kind` is `background`. It may call the host API — `state.*`
 (extension scope by default, as it has no widget instance), `signalk.*`,
-`resources.*` including `resources.setFilter`, `route.*`, `units.get`,
+`resources.*` including `resources.setFilter`, `route.*`, `chart.*`, `units.get`,
 `map.*`, and `ui.openPanel`/`ui.togglePanel`. It has no `ui.closePanel` or
 `ui.*ConfigPanel` (those are panel/widget affordances). The typical use is a
 client-side service that holds session state and keeps work alive so a panel
@@ -350,6 +352,7 @@ inside a routing envelope over `postMessage`**:
     "resources",
     "resources.filter",
     "routes",
+    "charts",
     "background.iframe",
     "ui"
   ],
@@ -398,6 +401,10 @@ contract** — any conforming implementation interoperates.
 | `route.get`             | `{ routeId }`                                  | `{ routeId, name, description, rev, saved, dirty, points }` |
 | `route.replace`         | `{ routeId, points (≥2) }`                     | `{ rev }`                  |
 | `route.save`            | `{ routeId, name?, description?, dialog? }`    | `{ href, rev }`            |
+| `chart.list`            | —                                              | `{ charts }` (display order) |
+| `chart.setVisibility`   | `{ ids: string[], visible: boolean }`          | `{}`                       |
+| `chart.setOpacity`      | `{ ids: string[], opacity: number }`           | `{}`                       |
+| `chart.setOrder`        | `{ order: string[] }`                          | `{}`                       |
 | `map.getView`           | —                                              | `{ center, zoom, bounds }` |
 | `map.center`            | `{ position: [lon, lat], zoom? }`              | `{}`                       |
 | `map.fitBounds`         | `{ bounds: [minLon, minLat, maxLon, maxLat] }` | `{}`                       |
@@ -415,7 +422,7 @@ subscribed to its name via `events.subscribe` (so a context that never
 subscribes pays nothing). A host emits an event when the corresponding
 capability is supported: `state.changed` always; `sk.<path>` with
 `signalk.stream`; `filters.changed` with `resources.filter`; route events
-(`route.*`) with `routes`. The
+(`route.*`) with `routes`; chart events (`chart.*`) with `charts`. The
 connection-level notifications `bus.ready` and `bus.handshake` (see
 Communication) are the only other host/extension events and are
 handled by the protocol layer, not subscribed to.
@@ -449,6 +456,19 @@ handled by the protocol layer, not subscribed to.
   `saved:true` — a stored route was made invisible (the resource is untouched and
   can be shown again); `saved:false` — an unsaved draft was deleted (gone for
   good). The umbrella name never overstates what happened.
+- `chart.visibility` — `{ id, visible }`: a chart layer was shown or hidden. A
+  batch `chart.setVisibility` emits one event per *changed* chart; charts already
+  in the requested state emit nothing.
+- `chart.opacity` — `{ id, opacity }`: a chart layer's display opacity (0..1)
+  changed.
+- `chart.order` — `{ order }`: the chart display/stacking order changed; `order`
+  is the new full ordered id list, topmost first (the same order `chart.list`
+  returns).
+
+  The chart events are **origin-transparent** like the route events — a host
+  emits them for *every* change, whether it came from an extension command or the
+  user's own chart controls, so a following extension stays in sync no matter who
+  is driving.
 
 ### Resource queries and display filters
 
@@ -630,6 +650,70 @@ with fewer than two points, a non-numeric `position`, or non-string metadata),
 `routes.badRef` (`route.show` reference not found), `routes.saveFailed` (server
 rejected the persist — distinct from a user cancel), `routes.saveCancelled` (the
 user dismissed the save dialog), `routes.notSupported` (host lacks `routes`).
+
+### Chart layers
+
+The `charts` capability is a **lightweight facade over the chart layers the host
+already manages** — the same charts the user turns on and off in the host's own
+chart controls. An extension enumerates them, reads which are shown and in what
+order, and changes visibility, opacity and stacking order. It is deliberately
+**not** a chart provider: there is no create, add, import, or delete. Chart
+sources come from the server's charts resource and the host's own configuration;
+this capability only *manages the display* of what already exists.
+
+**Addressing — opaque ids.** Each managed chart has a host-assigned `id` that is
+**opaque**: the extension treats it as a token and never parses it (a host may
+back it with a charts-resource id, a built-in layer key, or anything else). An id
+is stable for as long as the chart stays in the host's managed set. Every command
+and event names charts by `id`.
+
+**Enumerating — `chart.list`.** Returns the managed charts **in display order,
+topmost first** (index 0 is drawn on top). Each entry is:
+
+```jsonc
+{
+  "id": "noaa-12345",        // opaque, stable, host-assigned
+  "name": "NOAA 12345 — Miami",
+  "visible": true,
+  "opacity": 1.0,            // 0..1
+  "type": "raster",          // best-effort: raster | vector | S-57 | WMS | …
+  "bounds": [-80.5, 25.5, -80.0, 26.0],  // [minLon,minLat,maxLon,maxLat], optional
+  "minZoom": 4, "maxZoom": 18            // optional
+}
+```
+
+`id`, `name`, `visible` and `opacity` are always present; `type`, `bounds`,
+`minZoom` and `maxZoom` are best-effort and omitted when the host does not know
+them. Because the array is ordered, `chart.list` also *is* the way to read the
+current stacking order — there is no separate `getOrder`.
+
+**Mutating — all batch.** Every mutator takes a set, so an extension turns
+several charts on or off (or retints or restacks them) in one call:
+
+- `chart.setVisibility({ ids, visible })` — show (`true`) or hide (`false`) each
+  named chart.
+- `chart.setOpacity({ ids, opacity })` — set display opacity (0..1) on each named
+  chart.
+- `chart.setOrder({ order })` — set the display/stacking order. `order` is a list
+  of chart ids, **topmost first**. Ids the caller omits keep their existing
+  relative order after the named ones. **Order is host-clamped:** a host with
+  z-bands, pinned base layers or category grouping honors the requested *relative*
+  order within its own constraints rather than promising a literal global stack —
+  so `setOrder` expresses intent, and the resulting order is whatever the host
+  reports back on the next `chart.list` / `chart.order` event.
+
+**Following changes.** The host emits `chart.visibility`, `chart.opacity` and
+`chart.order` for **every** change — an extension's own command, another
+extension's, or the user toggling a chart in the host's chart controls (the same
+origin-transparency the route events have). A batch `chart.setVisibility` emits
+one `chart.visibility` per *changed* chart (charts already in the requested state
+emit nothing). Subscribe with `{ patterns: ["chart.**"] }`; re-read `chart.list`
+when a fuller snapshot is needed.
+
+**Errors** use the standard `error.data.reason` convention: `charts.unknownId`
+(one of the supplied ids names no managed chart), `charts.badRequest` (invalid
+params — e.g. a missing `ids` array, a non-boolean `visible`, or an out-of-range
+`opacity`), `charts.notSupported` (host lacks `charts`).
 
 ### State storage
 
