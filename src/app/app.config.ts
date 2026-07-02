@@ -627,7 +627,8 @@ export function initData(): FBAppData {
       active: null,
       closest: [],
       prefAvailablePaths: {}, // preference paths available from source,
-      flagged: [] // flagged ais targets
+      flagged: [], // flagged ais targets
+      showTrack: [] // ais targets to display track for (session-only)
     },
     aircraft: new Map(), // received AIS aircraft data
     atons: new Map(), // received AIS AtoN data

@@ -11,6 +11,7 @@ import { MultiLineString } from 'ol/geom';
 import { MapComponent } from '../map.component';
 import { fromLonLatArray, mapifyCoords } from '../util';
 import { AISBaseLayerComponent } from './ais-base.component';
+import { shouldRenderTrack } from 'src/app/lib/vessel-track';
 
 // ** Signal K AIS targets track  **
 @Component({
@@ -25,6 +26,8 @@ export class AISTargetsTrackLayerComponent extends AISBaseLayerComponent {
   @Input() tracksMinZoom = 10;
   @Input() override mapZoom = 10;
   @Input() showTracks = true;
+  @Input() showAll = true; // render tracks for all targets (global aisShowTrack)
+  @Input() selectedIds: string[] = []; // targets to render individually when !showAll
 
   constructor(
     protected override mapComponent: MapComponent,
@@ -42,6 +45,9 @@ export class AISTargetsTrackLayerComponent extends AISBaseLayerComponent {
     super.ngOnChanges(changes);
     if (this.layer) {
       const keys = Object.keys(changes);
+      if (keys.includes('showAll') || keys.includes('selectedIds')) {
+        this.reloadTracks();
+      }
       if (
         keys.includes('tracks') &&
         changes['tracks'].previousValue.size === 0
@@ -76,6 +82,11 @@ export class AISTargetsTrackLayerComponent extends AISBaseLayerComponent {
     return this.mapZoom >= this.tracksMinZoom;
   }
 
+  // render every target's track when showAll, else only the individually selected ones
+  protected override okToRenderTarget(id: string): boolean {
+    return shouldRenderTrack(id, this.showAll, this.selectedIds);
+  }
+
   reloadTracks() {
     if (!this.tracks || !this.source) {
       return;
@@ -104,7 +115,7 @@ export class AISTargetsTrackLayerComponent extends AISBaseLayerComponent {
                 this.addTrackWithId(id);
               }
             }
-          } else {
+          } else if (f) {
             this.source.removeFeature(f);
           }
         }

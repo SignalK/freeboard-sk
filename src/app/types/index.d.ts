@@ -270,6 +270,7 @@ export interface FBAppData {
     closest: string[];
     prefAvailablePaths: { [key: string]: string }; // preference paths available from source
     flagged: string[];
+    showTrack: string[]; // ais targets to display track for (session-only, independent of aisShowTrack)
   };
   aircraft: Map<string, SKAircraft>; // received AIS aircraft data
   atons: Map<string, SKAtoN>; // received AIS AtoN data

@@ -92,6 +92,26 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
               <mat-icon>clear_all</mat-icon>
             </button>
           }
+          @if (!isSelf()) {
+            @let trackShown = app.isVesselTrackShown(vessel().id);
+            <span
+              [matTooltip]="
+                app.config.vessels.aisShowTrack
+                  ? 'Turn off &quot;Show All&quot; to enable'
+                  : trackShown
+                    ? 'Hide vessel track'
+                    : 'Show vessel track'
+              "
+            >
+              <button
+                mat-icon-button
+                (click)="toggleTrack()"
+                [disabled]="app.config.vessels.aisShowTrack"
+              >
+                <mat-icon>{{ trackShown ? 'layers_clear' : 'route' }}</mat-icon>
+              </button>
+            </span>
+          }
         </div>
         <div style="text-align:right;">
           <button
@@ -364,6 +384,10 @@ export class VesselPopoverComponent {
           }
         );
     }
+  }
+
+  toggleTrack() {
+    this.app.toggleVesselTrack(this.vessel().id);
   }
 
   toggleFlag() {
