@@ -358,7 +358,9 @@ export function cleanConfig(
       aisFilterByShipType: false,
       aisState: [],
       resourceSets: {},
-      infolayers: null
+      infolayers: null,
+      weatherWindEnabled: false,
+      oceanCurrentsEnabled: false
     };
   }
 
@@ -391,6 +393,13 @@ export function cleanConfig(
   if (typeof settings.selections.regions === 'undefined') {
     settings.selections.regions = [];
   }
+  if (typeof settings.selections.weatherWindEnabled === 'undefined') {
+    settings.selections.weatherWindEnabled = false;
+  }
+  if (typeof settings.selections.oceanCurrentsEnabled === 'undefined') {
+    settings.selections.oceanCurrentsEnabled = false;
+  }
+
   // ensure legacy notes selections section is removed
   if (typeof (settings as any).selections.notes) {
     delete (settings as any).selections.notes;
@@ -588,7 +597,9 @@ export function defaultConfig(): IAppConfig {
       aisFilterByShipType: false,
       aisState: [], // list of ais state values used to filter targets
       resourceSets: {}, // additional resources
-      infolayers: null
+      infolayers: null,
+      weatherWindEnabled: false,
+      oceanCurrentsEnabled: false
     }
   };
 }

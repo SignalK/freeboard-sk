@@ -27,6 +27,10 @@
         <mat-icon>map</mat-icon>
         &nbsp;Charts
       </button>
+      <button mat-menu-item (click)="displayLeftMenu('weatherList', true)">
+        <mat-icon>cloud</mat-icon>
+        &nbsp;Weather
+      </button>
       @if (app.featureFlags().resourceGroups) {
         <button mat-menu-item (click)="displayLeftMenu('resourceGroups', true)">
           <mat-icon>category</mat-icon>
@@ -710,6 +714,11 @@
                     (closed)="displayLeftMenu()"
                   >
                   </anchor-watch>
+                }
+                @if (leftMenuCtrl().weatherList) {
+                  @defer {
+                    <weather-list (closed)="displayLeftMenu()"></weather-list>
+                  }
                 }
               </div>
             }

@@ -1,0 +1,54 @@
+<div class="resourcelist">
+  <mat-card style="border-radius: unset">
+    <mat-card-title>
+      <div class="title-block">
+        <div style="width: 50px">
+          <button
+            mat-icon-button
+            (click)="close()"
+            matTooltip="Close Weather"
+            matTooltipPosition="right"
+          >
+            <mat-icon>arrow_back</mat-icon>
+          </button>
+        </div>
+        <div style="flex: 1 1 auto; padding-top: 7px">Weather</div>
+      </div>
+    </mat-card-title>
+    <mat-card-content>
+      @if (app.featureFlags().weatherApi) {
+      <div
+        style="font-size: 11px; font-weight: 500; padding: 4px 0; color: #888"
+      >
+        WIND (SIGNAL K WEATHER API)
+      </div>
+      <div style="display: flex; align-items: center; padding: 2px 0">
+        <mat-checkbox
+          [checked]="app.config.selections.weatherWindEnabled"
+          (change)="toggleWeatherWind($event.checked)"
+          matTooltip="Toggle wind overlay"
+          matTooltipPosition="right"
+        >
+          Enable wind layer
+        </mat-checkbox>
+      </div>
+      }
+      <div style="border-bottom: 1px solid #ccc; margin: 8px 0"></div>
+      <div
+        style="font-size: 11px; font-weight: 500; padding: 4px 0; color: #888"
+      >
+        OCEAN CURRENTS (OPEN-METEO)
+      </div>
+      <div style="display: flex; align-items: center; padding: 2px 0">
+        <mat-checkbox
+          [checked]="app.config.selections.oceanCurrentsEnabled"
+          (change)="toggleOceanCurrents($event.checked)"
+          matTooltip="Toggle ocean currents overlay"
+          matTooltipPosition="right"
+        >
+          Enable ocean currents layer
+        </mat-checkbox>
+      </div>
+    </mat-card-content>
+  </mat-card>
+</div>

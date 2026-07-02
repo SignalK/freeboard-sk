@@ -188,6 +188,14 @@
         [mapMaxZoom]="app.MAP_ZOOM_EXTENT.max"
       >
       </fb-tilelayer-raster>
+    } @else {
+      <fb-tilelayer-raster
+        [zIndex]="10 + idx"
+        [chart]="c"
+        [overZoomTiles]="overZoomTiles"
+        [mapMaxZoom]="app.MAP_ZOOM_EXTENT.max"
+      >
+      </fb-tilelayer-raster>
     }
   }
 
@@ -808,6 +816,19 @@
     >
     </fb-vessel-trail>
   }
+
+  <!-- weather overlays -->
+  <fb-weather-wind
+    [show]="app.config.selections.weatherWindEnabled"
+    [opacity]="0.55"
+  >
+  </fb-weather-wind>
+
+  <fb-weather-currents
+    [show]="app.config.selections.oceanCurrentsEnabled"
+    [opacity]="0.55"
+  >
+  </fb-weather-currents>
 
   <!-- chart boundaries-->
   @if (app.data.chartBounds.show) {
