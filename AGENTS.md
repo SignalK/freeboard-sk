@@ -19,6 +19,7 @@ large, often non-technical user base, so changes warrant extra care.
 | `src/app/` | the Angular webapp; feature areas under `src/app/modules/` (`map`, `skresources`, `plotterext`, `autopilot`, `radar`, `weather`, `gpx`, `settings`, …) |
 | `helper/` | the companion server plugin (TypeScript) |
 | `scripts/` | build/test wrappers (`build-web.mjs`, `test-ci.mjs`) — see *Build/test* |
+| `dev-tools/` | developer-only tooling, **never shipped** (excluded by the package `files` whitelist, and not an npm workspace). e.g. `fsk-mcp/` — an MCP bridge that lets an agent drive a running Freeboard (see *Build, test, run*) |
 | `docs/` | the documentation set this file indexes |
 | `public/` | build output: the webapp (served by the SK server at `/@signalk/freeboard-sk/`) — gitignored |
 | `plugin/` | build output: the compiled helper plugin — gitignored |
@@ -53,6 +54,25 @@ Signal K server in the browser URL. To target a specific server while running
 `src/app/app.facade.ts`. This applies in **development mode only**. See
 [`docs/signalk/local-dev-environment.md`](docs/signalk/local-dev-environment.md)
 for running a local Signal K server to develop against.
+
+### Driving Freeboard from an agent — `dev-tools/fsk-mcp`
+
+To have your agent control a running Freeboard directly while debugging — set the
+map view, inspect and edit routes, push resource filters, read live data — install
+the bundled MCP bridge in [`dev-tools/fsk-mcp/`](dev-tools/fsk-mcp/). It exposes the
+Plotter Extensions host API as MCP tools, so "put the chart here at this zoom, then
+tell me what's rendered" becomes a tool call instead of a manual click-through. The
+one-time wiring (link the plugin, enable it, point your agent at the MCP endpoint)
+is in [`docs/dev-tools/fsk-mcp.md`](docs/dev-tools/fsk-mcp.md); it's dev-only and
+never shipped.
+
+**Keep it in sync with the host API.** When you add or change a Plotter Extensions
+host API method (the `map.*` / `route.*` / `resources.*` / … surface in
+[`docs/api/plotter-extensions-api.md`](docs/api/plotter-extensions-api.md)), add or
+update the matching tool in `dev-tools/fsk-mcp/src/tools.js` so agents can exercise
+the new behaviour. (`fsk_call` already reaches any method generically; the curated
+tools exist for clean, discoverable schemas — that file is the single place they
+live.)
 
 ## Code quality
 
@@ -184,3 +204,8 @@ it*:
 - [`unit-preferences.md`](docs/signalk/unit-preferences.md) — displaying values in the
   user's preferred units via `formatValueForDisplay()`. Read before adding or changing
   any UI that shows a numeric value.
+
+**Developer tooling** (`docs/dev-tools/`):
+- [`fsk-mcp.md`](docs/dev-tools/fsk-mcp.md) — one-time setup for the `dev-tools/fsk-mcp`
+  MCP bridge that lets an agent drive a running Freeboard-SK (map view, routes,
+  filters, live data) during debugging. Read once when wiring it up.

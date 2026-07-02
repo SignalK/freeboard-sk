@@ -108,6 +108,14 @@ persist — distinct from the user-cancel `routes.saveCancelled`),
 | `src/app/modules/plotterext/types.ts` | `HOST_API_VERSION`, `HOST_CAPABILITIES`, manifest types |
 | `src/app/modules/map/fb-map.component.ts` + `app.component.ts` | native route draw/modify/delete bridged into the registry |
 
+## Extending the host API? Update the agent bridge
+
+When you add or change a host API method here, also add or update the matching
+tool in [`../../dev-tools/fsk-mcp/src/tools.js`](../../dev-tools/fsk-mcp/src/tools.js)
+so the `fsk-mcp` dev bridge can drive the new behaviour from an agent (setup:
+[`../dev-tools/fsk-mcp.md`](../dev-tools/fsk-mcp.md)). The generic `fsk_call` tool
+already reaches any method; the curated tools are for discoverability.
+
 ## See also
 
 - [`../api/plotter-extensions-api.md`](../api/plotter-extensions-api.md) — the

@@ -317,6 +317,12 @@ export class AppComponent {
     effect(() => {
       const req = this.app.mapMoveRequest();
       if (req) {
+        // An explicit reposition outranks follow-vessel mode: turn it off so
+        // the requested view isn't immediately re-centered on the vessel.
+        // update() (not a reactive read) avoids a read/write feedback loop.
+        this.app.uiConfig.update((c) =>
+          c.mapMove ? { ...c, mapMove: false } : c
+        );
         this.centerAndZoom(req.center, req.zoom);
       }
     });
