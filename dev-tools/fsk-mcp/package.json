@@ -1,0 +1,27 @@
+{
+  "name": "fsk-mcp",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Dev-only Signal K plugin that bridges an MCP client (AI agent) to a running Freeboard-SK instance, letting the agent drive the chart plotter (map view, routes, resource filters, live data) directly during development. Never shipped in the @signalk/freeboard-sk package.",
+  "keywords": [
+    "signalk-node-server-plugin"
+  ],
+  "license": "Apache-2.0",
+  "main": "plugin/index.js",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "prepare": "node scripts/build.mjs",
+    "test": "node --test \"test/**/*.test.js\""
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "ws": "^8.21.0"
+  },
+  "devDependencies": {
+    "esbuild": "^0.24.0",
+    "signalk-plotterext-bus": "^0.7.3"
+  }
+}
