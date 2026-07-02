@@ -135,6 +135,20 @@ outputs and are **gitignored** — they won't be in a clean checkout.
 [`docs/signalk/extension-model.md`](../signalk/extension-model.md) for the base-path
 rule.
 
+### Linking the FSK checkout into a server needs `build:all`, not just `build:web`
+
+**The trap.** The package is *both* a `signalk-webapp` and a
+`signalk-node-server-plugin`, and its `package.json` `main` is `plugin/index.js`. If
+you symlink an FSK dev checkout into a server's `node_modules` with only the webapp
+built (`build:web`), the server crashes during plugin registration with
+`MODULE_NOT_FOUND` for `…/@signalk/freeboard-sk/plugin/index.js` — the webapp loads
+fine, but the missing helper build takes the whole plugin scan down with it, so the
+failure looks unrelated to Freeboard.
+
+**What to do instead.** Build **both** sides before linking: `npm run build:all` (or
+run `build:helper` alongside `build:web`). The helper compiles to `plugin/`, which is
+what `main` resolves to.
+
 ---
 
 ## When submitting a PR
