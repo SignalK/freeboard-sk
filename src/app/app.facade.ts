@@ -360,9 +360,68 @@ export class AppFacade extends InfoService {
     this.signalk.get('/signalk/v1/unitpreferences/active').subscribe({
       next: (res: SKServerUnitPrefs) => {
         this.serverConfig.unitPreferences.set(res);
+        this.refreshPathDisplayUnits();
       },
       error: () => {
         this.debug('No server unit preferences...using fallback!');
+      }
+    });
+  }
+
+  /**
+   * Paths whose per-path display-unit override (`meta.displayUnits`) Freeboard
+   * honors so they can display in a different unit than their category preset.
+   * Currently wind speed only (see issue #304): the true-wind path is the user's
+   * preferred TWS path.
+   */
+  /**
+   * True-wind path used as the per-path display-unit cache key and lookup. Shared
+   * with display consumers (e.g. the vessel popover) so the key always matches.
+   */
+  public twsDisplayUnitPath(): string {
+    return this.config.units.preferredPaths.tws ?? 'environment.wind.speedTrue';
+  }
+
+  private displayUnitPaths(): string[] {
+    return [this.twsDisplayUnitPath(), 'environment.wind.speedApparent'];
+  }
+
+  /**
+   * Refresh the per-path display-unit cache from the server. Only applied when
+   * the user has opted into server unit preferences; otherwise the cache is
+   * cleared so display falls back to the category preset.
+   */
+  public refreshPathDisplayUnits() {
+    if (!this.config.units.useServerPrefs) {
+      this.serverConfig.pathDisplayUnits.set({});
+      return;
+    }
+    this.displayUnitPaths().forEach((path) => this.fetchPathDisplayUnits(path));
+  }
+
+  /**
+   * Fetch a path's per-path display-unit override (`meta.displayUnits`) from the
+   * server and cache it. Paths with no published override are left uncached and
+   * fall back to the category preset.
+   */
+  public fetchPathDisplayUnits(path: string) {
+    const p = path.split('.').join('/');
+    this.signalk.get(`/signalk/v1/api/vessels/self/${p}/meta`).subscribe({
+      next: (meta: { displayUnits?: SKPathDisplayUnits }) => {
+        // Re-check useServerPrefs: it may have been turned off while this
+        // request was in flight (a stale response must not re-add an override).
+        if (
+          this.config.units.useServerPrefs &&
+          meta?.displayUnits?.targetUnit
+        ) {
+          this.setPathDisplayUnits(path, meta.displayUnits);
+        } else {
+          this.clearPathDisplayUnits(path);
+        }
+      },
+      error: () => {
+        this.debug(`No display units for path: ${path}`);
+        this.clearPathDisplayUnits(path);
       }
     });
   }
@@ -545,6 +604,19 @@ export class AppFacade extends InfoService {
       ...m,
       [path]: displayUnits
     }));
+  }
+
+  /**
+   * Remove the cached per-path display-unit override for a Signal K path, so it
+   * reverts to the category preset.
+   */
+  public clearPathDisplayUnits(path: string) {
+    this.serverConfig.pathDisplayUnits.update((m) => {
+      if (!(path in m)) return m;
+      const next = { ...m };
+      delete next[path];
+      return next;
+    });
   }
 
   /**
