@@ -24,6 +24,9 @@ import { Convert, SI_BASE_UNIT, TARGET_UNIT } from './lib/convert';
 import { SignalKClient } from 'signalk-client-angular';
 import { SKWorkerService } from './modules';
 
+// Package version — single source of truth is package.json, bumped by `npm version`
+import { version as PACKAGE_VERSION } from '../../package.json';
+
 import {
   Position,
   ErrorList,
@@ -71,7 +74,7 @@ const FSK: AppInfoDef = {
   id: 'freeboard',
   name: 'Freeboard-SK',
   description: `Signal K Chart Plotter.`,
-  version: '2.24.0',
+  version: PACKAGE_VERSION,
   url: 'https://github.com/signalk/freeboard-sk',
   logo: './assets/img/app_logo.png'
 };
