@@ -62,11 +62,21 @@ export function cleanConfig(
         parameters: null,
         favourites: []
       },
-      preferInfoPanel: true
+      preferInfoPanel: true,
+      statusBar: {
+        liveEta: false,
+        referenceSpeed: 6
+      }
     };
   } else {
     if (typeof settings.display.preferInfoPanel === 'undefined') {
       settings.display.preferInfoPanel = true;
+    }
+    if (typeof settings.display.statusBar === 'undefined') {
+      settings.display.statusBar = {
+        liveEta: false,
+        referenceSpeed: 6
+      };
     }
   }
 
@@ -444,7 +454,11 @@ export function defaultConfig(): IAppConfig {
         parameters: null,
         favourites: []
       },
-      preferInfoPanel: true
+      preferInfoPanel: true,
+      statusBar: {
+        liveEta: false,
+        referenceSpeed: 6
+      }
     },
     units: {
       distance: 'kilometer',

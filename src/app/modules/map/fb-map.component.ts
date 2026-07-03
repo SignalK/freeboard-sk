@@ -46,8 +46,9 @@ import { Style, Stroke, Fill } from 'ol/style';
 import { Collection, Feature } from 'ol';
 import { Feature as GeoJsonFeature } from 'geojson';
 
-import { Convert } from 'src/app/lib/convert';
+import { Convert, TARGET_UNIT } from 'src/app/lib/convert';
 import { GeoUtils, Angle } from 'src/app/lib/geoutils';
+import { computeCursorEta, CursorEtaInfo } from './cursor-eta';
 import {
   FBRoute,
   FBRoutes,
@@ -279,6 +280,9 @@ export class FBMapComponent implements OnInit, OnDestroy {
     coords: [0, 0],
     xy: null
   };
+  // Bearing/distance/ETA from the vessel to the cursor, shown in the status bar
+  // when the "Live ETA at cursor" option is enabled (null = hidden).
+  protected cursorInfo = signal<CursorEtaInfo | null>(null);
   contextMenuPosition = { x: '0px', y: '0px' };
   // Empty widget-anchor cell at the last right-click (or null) — gates and
   // drives the "Add widget here" context-menu item (desktop).
@@ -635,6 +639,7 @@ export class FBMapComponent implements OnInit, OnDestroy {
     this.mouse.pixel = e.pixel;
     this.mouse.xy = e.coordinate;
     this.mouse.coords = GeoUtils.normaliseCoords(e.lonlat as Position);
+    this.updateCursorInfo(e.lonlat as Position);
     if (this.mapInteract.isMeasuring()) {
       if (
         this.mapInteract.measureGeometryType === 'LineString' &&
@@ -679,6 +684,30 @@ export class FBMapComponent implements OnInit, OnDestroy {
     if (!this.app.config.map.lockMoveMap && this.app.uiConfig().mapMove) {
       this.exitMovingMap.emit(true);
     }
+  }
+
+  // Update the status-bar cursor bearing/distance/ETA readout. Off unless the
+  // "Live ETA at cursor" option is enabled and the vessel position is known.
+  private updateCursorInfo(cursor: Position) {
+    const vessel = this.app.data.vessels.self;
+    if (
+      !this.app.config.display.statusBar?.liveEta ||
+      !vessel?.positionReceived ||
+      !vessel.position
+    ) {
+      this.cursorInfo.set(null);
+      return;
+    }
+    // referenceSpeed is stored in the user's display speed unit; convert to m/s.
+    const factor =
+      Convert.transform(1, 'm/s', this.app.config.units.speed as TARGET_UNIT) ??
+      1;
+    const refSpeed = this.app.config.display.statusBar.referenceSpeed;
+    const referenceSpeedMs =
+      factor > 0 && typeof refSpeed === 'number' ? refSpeed / factor : 0;
+    this.cursorInfo.set(
+      computeCursorEta(vessel.position, cursor, vessel.sog, referenceSpeedMs)
+    );
   }
 
   protected onMapPointerDown(e: FBPointerEvent) {
