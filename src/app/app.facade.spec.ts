@@ -4,6 +4,16 @@ import { of } from 'rxjs';
 import '@vitest/web-worker';
 import { AppFacade } from './app.facade';
 import { SignalKClient } from 'signalk-client-angular';
+import { version as PACKAGE_VERSION } from '../../package.json';
+
+describe('AppFacade app version (#458)', () => {
+  it('reports the version from package.json, not a hardcoded literal', () => {
+    TestBed.configureTestingModule({});
+    const app = TestBed.inject(AppFacade);
+    // The About box renders app.version; it must track `npm version` bumps.
+    expect(app.version).toBe(PACKAGE_VERSION);
+  });
+});
 
 describe('AppFacade.formatValueForDisplay', () => {
   let app: AppFacade;
