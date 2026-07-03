@@ -79,7 +79,8 @@ import {
   BuildRouteComponent,
   NotePanel,
   RegionPanel,
-  RadarPanel
+  RadarPanel,
+  WeatherListComponent
 } from 'src/app/modules';
 
 import { Convert } from 'src/app/lib/convert';
@@ -173,7 +174,8 @@ interface DrawEndEvent {
     RadarPanel,
     PlotterExtensionOverlay,
     PlotterBackgroundHost,
-    PlotterPanelDrawer
+    PlotterPanelDrawer,
+    WeatherListComponent
   ]
 })
 export class AppComponent {
@@ -205,6 +207,7 @@ export class AppComponent {
     resourceGroups: boolean;
     infoLayerList: boolean;
     anchorWatch: boolean;
+    weatherList: boolean;
   }>({
     leftMenuPanel: false,
     routeList: false,
@@ -216,7 +219,8 @@ export class AppComponent {
     aisList: false,
     resourceGroups: false,
     infoLayerList: false,
-    anchorWatch: false
+    anchorWatch: false,
+    weatherList: false
   });
 
   protected displayFullscreen = signal<{
@@ -1090,7 +1094,8 @@ export class AppComponent {
       aisList: false,
       resourceGroups: false,
       infoLayerList: false,
-      anchorWatch: false
+      anchorWatch: false,
+      weatherList: false
     };
     switch (menulist) {
       case 'routeList':
@@ -1122,6 +1127,9 @@ export class AppComponent {
         break;
       case 'infoLayerList':
         lm.infoLayerList = show;
+        break;
+      case 'weatherList':
+        lm.weatherList = show;
         break;
       default:
         lm.leftMenuPanel = false;

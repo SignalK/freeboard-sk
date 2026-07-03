@@ -122,6 +122,8 @@ import { Units } from 'ol/control/ScaleLine';
 import { DragBoxEvent } from 'ol/interaction/DragBox';
 import { MapService } from './ol/lib/map.service';
 import { AppIconDef } from '../icons';
+import { LayerWindWeatherComponent } from './ol/lib/resources/layer-wind-weather.component';
+import { LayerCurrentsWeatherComponent } from './ol/lib/resources/layer-currents-weather.component';
 
 interface IResource {
   id: string;
@@ -167,7 +169,9 @@ enum INTERACTION_MODE {
     ResourcePopoverComponent,
     ResourceSetPopoverComponent,
     VesselPopoverComponent,
-    S57PopoverComponent
+    S57PopoverComponent,
+    LayerWindWeatherComponent,
+    LayerCurrentsWeatherComponent
   ],
   templateUrl: './fb-map.component.html',
   styleUrls: ['./fb-map.component.css']
