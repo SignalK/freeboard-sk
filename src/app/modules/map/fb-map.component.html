@@ -809,6 +809,19 @@
     </fb-vessel-trail>
   }
 
+  <!-- weather overlays -->
+  <fb-weather-wind
+    [show]="app.config.selections.weatherWindEnabled"
+    [opacity]="0.55"
+  >
+  </fb-weather-wind>
+
+  <fb-weather-currents
+    [show]="app.config.selections.oceanCurrentsEnabled"
+    [opacity]="0.55"
+  >
+  </fb-weather-currents>
+
   <!-- chart boundaries-->
   @if (app.data.chartBounds.show) {
     <fb-chart-bounds
